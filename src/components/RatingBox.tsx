@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import ConfirmationModal from './ConfirmationModal';
 import MovieDetailsModal from './MovieDetailsModal';
 import AllMoviesModal from './AllMoviesModal';
 import AddToListMenu from './AddToListMenu';
 import { Swiper, SwiperSlide } from 'swiper/react';
+import { FreeMode } from 'swiper/modules';
 import { useTranslation } from 'react-i18next';
 import 'swiper/css';
+import OptimizedPoster from './OptimizedPoster';
+import { motion } from 'framer-motion';
 
 interface RatingBoxProps {
   title: string;
@@ -48,6 +51,16 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const listButtonRef = useRef<HTMLButtonElement>(null);
 
+  // Desktop scroll states
+  const [isDraggingDesktop, setIsDraggingDesktop] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const dragDistanceRef = useRef(0);
+
+  // Swiper mobile state
+  const swiperMoved = useRef(false);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -61,70 +74,168 @@ const RatingBox: React.FC<RatingBoxProps> = ({
 
   const handleListButtonClick = (e: React.MouseEvent, movieId: number, title: string) => {
     e.stopPropagation();
-    
+
     // Calculate center position for the menu
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
     const menuWidth = 256; // Width of menu in pixels (matches w-64 class)
-    
+
     const position = {
       top: Math.max(window.scrollY + (windowHeight / 2) - 150, window.scrollY + 20),
       left: (windowWidth / 2) - (menuWidth / 2)
     };
-    
+
     setMenuPosition(position);
     setOpenMenuId(null);
     setShowAddToList({ movieId, title });
   };
 
+  // Desktop drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollContainerRef.current) return;
+    setIsDraggingDesktop(true);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeft(scrollContainerRef.current.scrollLeft);
+    dragDistanceRef.current = 0;
+    scrollContainerRef.current.style.cursor = 'grabbing';
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingDesktop || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 2;
+    dragDistanceRef.current = Math.abs(walk);
+    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUp = () => {
+    setIsDraggingDesktop(false);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.style.cursor = 'grab';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsDraggingDesktop(false);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.style.cursor = 'grab';
+    }
+  };
+
+  const handleMovieClickDesktop = (movie: Movie) => {
+    if (dragDistanceRef.current > 5) {
+      return;
+    }
+    setSelectedMovie(movie);
+  };
+
   if (movies.length === 0) return null;
 
   return (
-    <div
-      className={`w-full p-4 rounded-lg bg-white dark:bg-gray-800 mb-6 transition-all duration-300 ${
-        isNotRated
-          ? 'border-2 border-orange-200 dark:border-orange-800'
-          : className || ''
-      }`}
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-            {rating !== null && (
-              <span className="text-yellow-500 mr-2">★</span>
-            )}
-            <span className={rating !== null ? 'text-yellow-500' : ''}>
-              {rating !== null ? rating : title}
-            </span>
-          </h3>
-          <span className="ml-3 px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
-            {movies.length} {movies.length === 1 ? t('community.film') : t('community.films')}
-          </span>
+    <div className="relative mb-6 p-6 sm:p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden transition-all duration-300">
+      {/* Padrão decorativo de fundo */}
+      <div className="absolute inset-0 opacity-30 dark:opacity-20">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-pink-500/20 to-blue-500/20 rounded-full blur-3xl"></div>
+      </div>
+
+      {/* Grid pattern decorativo */}
+      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{
+        backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+        backgroundSize: '24px 24px'
+      }}></div>
+
+      {/* Header da seção */}
+      <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-1.5 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-full"></div>
+          <div>
+            <h3 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 pb-1 leading-relaxed flex items-center">
+              {rating !== null && (
+                <Star className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-500 fill-yellow-500 mr-2" />
+              )}
+              <span>
+                {rating !== null ? rating : title}
+              </span>
+            </h3>
+            <div className="mt-1 inline-flex items-center text-xs font-semibold bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 backdrop-blur-sm border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-lg">
+              <Film className="w-3 h-3 mr-1.5" />
+              {movies.length} {movies.length === 1 ? t('community.film') : t('community.films')}
+            </div>
+          </div>
         </div>
         <button
           onClick={() => setShowAllMovies(true)}
-          className="px-3 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors flex items-center"
+          className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
         >
-          <Eye className="w-3.5 h-3.5 mr-1" />
-          {t('common.view_all')}
+          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">{t('common.view_all')}</span>
+          <span className="sm:hidden">Ver</span>
         </button>
       </div>
 
-      <div className="overflow-hidden">
-        <Swiper
-          slidesPerView={1.2}
-          spaceBetween={16}
-          breakpoints={{
-            0: { slidesPerView: 2.4, spaceBetween: 12 },
-            480: { slidesPerView: 3.2, spaceBetween: 16 },
-            640: { slidesPerView: 4.1, spaceBetween: 16 },
-            768: { slidesPerView: 5.1, spaceBetween: 20 },
-            1024: { slidesPerView: 6.1, spaceBetween: 20 }
-          }}
-          className="pb-4"
-        >
-          {movies.map((movie) => (
-            <SwiperSlide key={movie.id}>
+      {/* Container do carrossel - Desktop: Native Scroll / Mobile: Swiper */}
+      <div className="relative z-10 overflow-visible py-4">
+        {/* MOBILE: Swiper */}
+        <div className="block lg:hidden">
+          <Swiper
+            modules={[FreeMode]}
+            slidesPerView={1.2}
+            spaceBetween={16}
+            speed={400}
+            freeMode={{
+              enabled: true,
+              momentum: true,
+              momentumRatio: 1,
+              momentumVelocityRatio: 1,
+              momentumBounce: false,
+              sticky: false,
+              minimumVelocity: 0.02
+            }}
+            grabCursor={true}
+            resistance={true}
+            resistanceRatio={0.85}
+            touchRatio={1}
+            touchAngle={45}
+            threshold={5}
+            longSwipesRatio={0.5}
+            shortSwipes={true}
+            longSwipes={true}
+            followFinger={true}
+            watchSlidesProgress={true}
+            preventInteractionOnTransition={false}
+            allowTouchMove={true}
+            touchStartForcePreventDefault={false}
+            cssMode={false}
+            breakpoints={{
+              0: { slidesPerView: 2.4, spaceBetween: 12 },
+              480: { slidesPerView: 3.2, spaceBetween: 16 },
+              640: { slidesPerView: 4.1, spaceBetween: 16 },
+              768: { slidesPerView: 5.1, spaceBetween: 20 }
+            }}
+            onTouchStart={() => {
+              swiperMoved.current = false;
+            }}
+            onSliderMove={() => {
+              swiperMoved.current = true;
+            }}
+            onTouchEnd={() => {
+              setTimeout(() => {
+                swiperMoved.current = false;
+              }, 50);
+            }}
+            onClick={(swiper, event) => {
+              if (swiperMoved.current) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
+            }}
+            className="pb-4"
+            style={{ overflow: 'visible' }}
+          >
+            {movies.map((movie, index) => (
+              <SwiperSlide key={movie.id}>
               <div className="relative group h-full">
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden h-full">
                   {!isOtherUserProfile && (
@@ -281,6 +392,179 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             </SwiperSlide>
           ))}
         </Swiper>
+        </div>
+
+        {/* DESKTOP: Native Scroll */}
+        <div
+          className="hidden lg:block overflow-x-auto scrollbar-hide cursor-grab active:cursor-grabbing pb-4"
+          ref={scrollContainerRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          <div className="flex gap-6" style={{ minWidth: 'min-content' }}>
+            {movies.map((movie, index) => (
+              <div
+                key={movie.id}
+                className="relative group flex-shrink-0"
+                style={{ width: '200px' }}
+              >
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden h-full">
+                  {!isOtherUserProfile && (
+                    <div className="absolute top-1 right-1 z-10">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === movie.id ? null : movie.id);
+                        }}
+                        className="w-6 h-6 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all duration-200"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                      {openMenuId === movie.id && (
+                        <div
+                          ref={menuRef}
+                          className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
+                        >
+                          {isPersonalList ? (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onRemoveFromList) {
+                                    onRemoveFromList(movie.id);
+                                  }
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                              >
+                                <XCircle className="w-4 h-4 mr-2" />
+                                {t('common.remove')}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (enableDragDrop) {
+                                    enableDragDrop();
+                                  }
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                              >
+                                <ArrowUpDown className="w-4 h-4 mr-2" />
+                                {t('lists.reorder')}
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {rating !== null && onRate && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRate(movie.id, null);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                                >
+                                  <Star className="w-4 h-4 mr-2" />
+                                  {t('common.remove')}
+                                </button>
+                              )}
+                              <button
+                                onClick={(e) => handleListButtonClick(e, movie.id, movie.title)}
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                              >
+                                <ListPlus className="w-4 h-4 mr-2" />
+                                {t('lists.title', { defaultValue: 'List' })}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteMovieId(movie.id);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                {t('common.delete')}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="absolute top-1 left-1 z-10 bg-black/40 rounded-md px-1.5 py-0.5 flex items-center">
+                    <Star className="w-3.5 h-3.5 text-blue-400 fill-current" />
+                    <span className="text-white text-xs ml-1">{movie.vote_average.toFixed(1)}</span>
+                  </div>
+                  <button
+                    onClick={() => handleMovieClickDesktop(movie)}
+                    className="relative w-full aspect-[2/3] block"
+                  >
+                    <img
+                      src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
+                      alt={movie.title}
+                      className="w-full h-full object-cover rounded-t-lg pointer-events-none"
+                      width={185}
+                      height={278}
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/185x278?text=No+Image';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg pointer-events-none">
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <h3 className="text-white text-sm font-medium line-clamp-1">
+                          {movie.title}
+                        </h3>
+                        <p className="text-gray-300 text-xs">
+                          {new Date(movie.release_date).getFullYear()}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                  <div className="p-2">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">
+                      {movie.title}
+                    </h4>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {new Date(movie.release_date).getFullYear()}
+                      </p>
+                      {!isNotRated && movie.userRating !== null && (
+                        <div className="bg-black/40 rounded-md px-1.5 py-0.5 flex items-center">
+                          <Star className="w-3.5 h-3.5 text-yellow-400 fill-current" />
+                          <span className="text-white text-xs ml-1">{movie.userRating}</span>
+                        </div>
+                      )}
+                    </div>
+                    {isNotRated && onRate && (
+                      <select
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          onRate(movie.id, parseInt(e.target.value));
+                        }}
+                        className="mt-2 w-full text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white py-1"
+                        defaultValue=""
+                      >
+                        <option value="" disabled>{t('movies.rating')}</option>
+                        {[...Array(11)].map((_, i) => (
+                          <option key={i} value={i}>{i}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Modals */}

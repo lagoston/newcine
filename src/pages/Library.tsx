@@ -281,68 +281,95 @@ export default function Library() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/5 dark:to-purple-900/5 transition-all duration-500 py-8 px-4">
-      <motion.div 
-        className="container mx-auto"
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background com gradientes animados */}
+      <div className="fixed inset-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10"></div>
+
+      {/* Orbes decorativos de fundo */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
+
+      <motion.div
+        className="relative container mx-auto px-4 py-8"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <motion.div 
-          className="flex flex-col gap-4 mb-8"
+        <motion.div
+          className="flex flex-col gap-6 mb-8"
           variants={itemVariants}
         >
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-            <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
-              {t('library.title')}
-            </h1>
-            <div className="inline-flex items-center text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full w-fit max-w-[150px] sm:max-w-none">
-              <Film className="w-4 h-4 mr-1 flex-shrink-0" />
-              <span className="truncate">{userMovies.length} {t('community.films')}</span>
+          {/* Header moderno */}
+          <div className="relative p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden">
+            {/* Padrão decorativo de fundo */}
+            <div className="absolute inset-0 opacity-30 dark:opacity-20">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-pink-500/20 to-blue-500/20 rounded-full blur-3xl"></div>
             </div>
-          </div>
+
+            {/* Grid pattern decorativo */}
+            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{
+              backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+              backgroundSize: '24px 24px'
+            }}></div>
+
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-1.5 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-full"></div>
+                <div>
+                  <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 pb-1 leading-relaxed">
+                    {t('library.title')}
+                  </h1>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="inline-flex items-center text-sm font-semibold bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 backdrop-blur-sm border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-xl shadow-lg">
+                      <Film className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span>{userMovies.length} {t('community.films')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
           
-          <div className="flex justify-end gap-2">
-            <Link
-              to="/oracle"
-              className="flex items-center justify-center w-10 sm:w-auto px-0 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 dark:from-purple-500 dark:to-purple-600 dark:hover:from-purple-600 dark:hover:to-purple-700 shadow-md hover:shadow-lg transition-all duration-200"
-              aria-label="Oracle"
-            >
-              <Eye className="w-5 h-5 sm:mr-2" />
-              <span className="hidden sm:inline">{t('nav.oracle')}</span>
-            </Link>
-            
-            <button
-              onClick={() => setIsEditModalOpen(true)}
-              className="flex items-center justify-center w-10 sm:w-auto px-0 sm:px-4 py-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 dark:from-gray-600 dark:to-gray-700 dark:hover:from-gray-500 dark:hover:to-gray-600 shadow-md hover:shadow-lg transition-all duration-200"
-              aria-label="Edit Library"
-            >
-              <Edit className="w-5 h-5 sm:mr-2" />
-              <span className="hidden sm:inline">{t('common.edit')}</span>
-            </button>
-            
-            <Link
-              to="/lists"
-              className="flex items-center justify-center w-10 sm:w-auto px-0 sm:px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 dark:from-blue-500 dark:to-blue-600 dark:hover:from-blue-600 dark:hover:to-blue-700 shadow-md hover:shadow-lg transition-all duration-200"
-              aria-label="Personal Lists"
-            >
-              <ListPlus className="w-5 h-5 sm:mr-2" />
-              <span className="hidden sm:inline">{t('lists.title')}</span>
-            </Link>
-            
-            <Link
-              to="/add-movies"
-              className="flex items-center justify-center gap-1 w-auto px-3 sm:px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 dark:from-green-500 dark:to-green-600 dark:hover:from-green-600 dark:hover:to-green-700 shadow-md hover:shadow-lg transition-all duration-200"
-              aria-label="Add Movies"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="text-sm sm:text-base">{t('library.addMovies')}</span>
-            </Link>
+              <div className="relative z-10 flex flex-wrap gap-2 justify-end">
+                <Link
+                  to="/oracle"
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t('nav.oracle')}</span>
+                </Link>
+
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t('common.edit')}</span>
+                </button>
+
+                <Link
+                  to="/lists"
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                >
+                  <ListPlus className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t('lists.title')}</span>
+                </Link>
+
+                <Link
+                  to="/add-movies"
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{t('library.addMovies')}</span>
+                </Link>
+              </div>
+            </div>
           </div>
         </motion.div>
 
-        <motion.div 
-          className="space-y-2"
+        <motion.div
+          className="space-y-6"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -355,7 +382,7 @@ export default function Library() {
               onRate={handleRate}
               onDelete={handleDelete}
               isNotRated
-              className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 bg-white dark:bg-gray-800"
+              className=""
             />
           </motion.div>
           
@@ -370,7 +397,7 @@ export default function Library() {
                   rating={rating}
                   onRate={handleRate}
                   onDelete={handleDelete}
-                  className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 bg-white dark:bg-gray-800"
+                  className=""
                 />
               </motion.div>
             );
