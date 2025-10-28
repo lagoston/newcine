@@ -33,8 +33,6 @@ const Home = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = React.useState<Movie | null>(null);
   const [username, setUsername] = React.useState('');
-  const [isDragging, setIsDragging] = React.useState(false);
-  const [dragStartPos, setDragStartPos] = React.useState({ x: 0, y: 0 });
 
   useEffect(() => {
     if (session?.user) {
@@ -96,13 +94,7 @@ const Home = () => {
     }
   };
 
-  const handleMovieClick = async (movie: Movie, e: React.MouseEvent) => {
-    if (isDragging) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-
+  const handleMovieClick = async (movie: Movie) => {
     try {
       const details = await getMovieDetails(movie.id);
       setSelectedMovie(details);
@@ -110,26 +102,6 @@ const Home = () => {
       console.error('Error fetching movie details:', error);
       toast.error('Failed to load movie details');
     }
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setDragStartPos({ x: e.clientX, y: e.clientY });
-    setIsDragging(false);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const deltaX = Math.abs(e.clientX - dragStartPos.x);
-    const deltaY = Math.abs(e.clientY - dragStartPos.y);
-
-    if (deltaX > 5 || deltaY > 5) {
-      setIsDragging(true);
-    }
-  };
-
-  const handleMouseUp = () => {
-    setTimeout(() => {
-      setIsDragging(false);
-    }, 100);
   };
 
   const handleAddToLibrary = () => {
@@ -212,12 +184,26 @@ const Home = () => {
             followFinger={true}
             watchSlidesProgress={true}
             preventInteractionOnTransition={false}
+            allowTouchMove={true}
+            touchStartForcePreventDefault={false}
+            cssMode={false}
             breakpoints={{
               0: { slidesPerView: 2.4, spaceBetween: 16 },
               480: { slidesPerView: 3.2, spaceBetween: 18 },
               640: { slidesPerView: 4.1, spaceBetween: 20 },
               768: { slidesPerView: 5.1, spaceBetween: 22 },
               1024: { slidesPerView: 6.1, spaceBetween: 24 }
+            }}
+            onTouchEnd={(swiper) => {
+              if (!swiper.swipeDirection) {
+                swiper.allowClick = true;
+              }
+            }}
+            onClick={(swiper, event) => {
+              if (swiper.swipeDirection) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
             }}
             className="popular-swiper pb-4"
             style={{ overflow: 'visible' }}
@@ -226,10 +212,7 @@ const Home = () => {
               <SwiperSlide key={movie.id}>
                 <motion.div
                   className="relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer group h-[200px] sm:h-[280px] shadow-xl hover:shadow-2xl border-3 border-white/50 dark:border-gray-700/50 hover:border-blue-400/60 dark:hover:border-purple-400/60"
-                  onClick={(e) => handleMovieClick(movie, e)}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
+                  onClick={() => handleMovieClick(movie)}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05, duration: 0.3 }}
