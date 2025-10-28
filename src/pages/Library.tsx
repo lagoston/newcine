@@ -369,7 +369,6 @@ export default function Library() {
         </motion.div>
 
         <motion.div
-          className="space-y-6"
           variants={containerVariants}
           initial="hidden"
           animate="visible"

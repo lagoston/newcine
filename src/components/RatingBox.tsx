@@ -134,7 +134,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
 
   return (
     <>
-    <div className="relative mb-6 p-6 sm:p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl transition-all duration-300">
+    <div className="relative mb-12 p-6 sm:p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl transition-all duration-300">
       {/* Padrão decorativo de fundo - com overflow hidden */}
       <div className="absolute inset-0 opacity-30 dark:opacity-20 overflow-hidden rounded-3xl pointer-events-none">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
@@ -177,7 +177,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
       </div>
 
       {/* Container do carrossel - Desktop: Native Scroll / Mobile: Swiper */}
-      <div className="relative z-10 overflow-visible py-4">
+      <div className="relative z-10 overflow-hidden py-4">
         {/* MOBILE: Swiper */}
         <div className="block lg:hidden">
           <Swiper
@@ -233,7 +233,6 @@ const RatingBox: React.FC<RatingBoxProps> = ({
               }
             }}
             className="pb-4"
-            style={{ overflow: 'visible' }}
           >
             {movies.map((movie, index) => (
               <SwiperSlide key={movie.id}>
