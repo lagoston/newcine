@@ -584,16 +584,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                         return (
                           <div
                             key={friend.user_id}
-                            className="absolute animate-float-slow"
+                            className="absolute animate-float-slow pointer-events-auto"
                             style={{
                               ...position,
-                              animationDelay: `${index * 0.3}s`
+                              animationDelay: `${index * 0.3}s`,
+                              zIndex: 10
                             }}
                           >
-                            <div className="relative group pointer-events-auto">
-                              <div className="relative">
-                                {/* Avatar PRIMEIRO no DOM */}
-                                <div className={`w-14 h-14 rounded-full border-3 border-white dark:border-gray-700 shadow-xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-0.5`}>
+                            <div className="relative group">
+                              {/* Container principal da bolha */}
+                              <div className="relative w-16 h-16">
+                                {/* Avatar */}
+                                <div className={`absolute inset-0 rounded-full border-3 border-white dark:border-gray-700 shadow-2xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-0.5`}>
                                   <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
                                     {friend.avatar_url ? (
                                       <img
@@ -602,30 +604,39 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                         className="w-full h-full object-cover"
                                       />
                                     ) : (
-                                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold text-lg">
+                                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold text-xl">
                                         {friend.username.charAt(0).toUpperCase()}
                                       </div>
                                     )}
                                   </div>
                                 </div>
 
-                                {/* Badge de nota DEPOIS no DOM = NA FRENTE visualmente */}
-                                <div className="absolute -bottom-1 -right-1 z-[100] relative">
+                                {/* Badge de nota - Posicionado FORA do avatar */}
+                                <div className="absolute -bottom-2 -right-2" style={{ zIndex: 20 }}>
+                                  {/* Efeito ping para nota 10 */}
                                   {isPerfectScore(friend.rating) && (
-                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 animate-ping opacity-75" />
+                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 animate-ping opacity-75"></div>
                                   )}
-                                  <div className={`relative w-7 h-7 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center ${isPerfectScore(friend.rating) ? 'shadow-[0_0_20px_rgba(168,85,247,0.8)]' : ''}`}>
-                                    <span className="text-xs font-bold text-white z-[101] relative">
+                                  {/* Badge */}
+                                  <div className={`relative w-8 h-8 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-3 border-white dark:border-gray-800 shadow-2xl flex items-center justify-center ${isPerfectScore(friend.rating) ? 'shadow-[0_0_20px_rgba(168,85,247,0.8)] ring-2 ring-purple-400/50' : ''}`}>
+                                    <span className="text-xs font-extrabold text-white drop-shadow-lg">
                                       {friend.rating}
                                     </span>
                                   </div>
                                 </div>
                               </div>
 
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl z-50">
-                                <div className="font-medium">{friend.username}</div>
-                                <div className="text-yellow-400">★ {friend.rating}/10</div>
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+                              {/* Tooltip no hover */}
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none shadow-2xl" style={{ zIndex: 50 }}>
+                                <div className="font-semibold">{friend.username}</div>
+                                <div className="text-yellow-400 flex items-center gap-1">
+                                  <span>★</span>
+                                  <span>{friend.rating}/10</span>
+                                </div>
+                                {/* Seta do tooltip */}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+                                  <div className="border-4 border-transparent border-t-gray-900/95"></div>
+                                </div>
                               </div>
                             </div>
                           </div>
