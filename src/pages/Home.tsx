@@ -109,34 +109,53 @@ const Home = () => {
   const MovieCarousel = ({ title, movies, loading, category }: { title: string | JSX.Element; movies: Movie[]; loading: boolean; category: string }) => {
     if (loading) {
       return (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="relative mb-12 p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl">
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
         </div>
       );
     }
 
     return (
       <motion.div
-        className="mb-12"
+        className="relative mb-12 p-6 sm:p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="flex items-center justify-between mb-6 gap-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 pb-1 leading-relaxed">
-            {title}
-          </h2>
+        {/* Padrão decorativo de fundo */}
+        <div className="absolute inset-0 opacity-30 dark:opacity-20">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-pink-500/20 to-blue-500/20 rounded-full blur-3xl"></div>
+        </div>
+
+        {/* Grid pattern decorativo */}
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{
+          backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }}></div>
+
+        {/* Header da seção */}
+        <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-1.5 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-full"></div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 pb-1 leading-relaxed">
+              {title}
+            </h2>
+          </div>
           <Link
             to={`/category/${category}`}
-            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-white bg-transparent hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 border-2 border-blue-600 dark:border-blue-400 rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0"
+            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
           >
             <span className="hidden sm:inline">{t('common.view_all')}</span>
             <span className="sm:hidden">Ver</span>
             <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
           </Link>
         </div>
-        
-        <div className="relative overflow-visible py-6">
+
+        {/* Container do carrossel */}
+        <div className="relative z-10 overflow-visible py-4">
           <Swiper
             slidesPerView={1.2}
             spaceBetween={16}
@@ -153,32 +172,47 @@ const Home = () => {
             className="popular-swiper pb-4"
             style={{ overflow: 'visible' }}
           >
-            {movies.map((movie) => (
+            {movies.map((movie, index) => (
               <SwiperSlide key={movie.id}>
                 <motion.div
-                  className="relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer group h-[200px] sm:h-[280px] shadow-lg hover:shadow-2xl border-2 border-transparent hover:border-blue-500/30"
+                  className="relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer group h-[200px] sm:h-[280px] shadow-xl hover:shadow-2xl border-3 border-white/50 dark:border-gray-700/50 hover:border-blue-400/60 dark:hover:border-purple-400/60"
                   onClick={() => handleMovieClick(movie)}
-                  whileHover={{ scale: 1.03, y: -2 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.3 }}
+                  whileHover={{ scale: 1.05, y: -8 }}
                   whileTap={{ scale: 0.98 }}
-                  style={{ transition: 'all 0.15s ease-out' }}
+                  style={{ transition: 'all 0.2s ease-out' }}
                 >
+                  {/* Badge de ranking */}
+                  <div className="absolute top-2 left-2 z-10 bg-gradient-to-br from-blue-600 to-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg">
+                    #{index + 1}
+                  </div>
+
                   <OptimizedPoster
                     src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
                     alt={movie.title}
-                    className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-200 ease-out"
+                    className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-150 ease-out flex flex-col justify-end backdrop-blur-sm">
-                    <div className="p-5">
-                      <h3 className="text-white font-bold mb-2 line-clamp-2 text-lg">{movie.title}</h3>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center bg-yellow-500/20 backdrop-blur-sm px-2 py-1 rounded-lg">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="ml-1 text-yellow-100 font-semibold">{movie.vote_average.toFixed(1)}</span>
+
+                  {/* Overlay com gradiente */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-sm">
+                    <div className="p-4 sm:p-5">
+                      <h3 className="text-white font-bold mb-2 line-clamp-2 text-base sm:text-lg drop-shadow-lg">{movie.title}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center bg-gradient-to-r from-yellow-500/30 to-orange-500/30 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-yellow-500/30 shadow-lg">
+                          <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="ml-1 text-yellow-100 font-bold text-sm">{movie.vote_average.toFixed(1)}</span>
                         </div>
-                        <span className="text-gray-200 text-sm font-medium">({new Date(movie.release_date).getFullYear()})</span>
+                        <span className="text-gray-200 text-xs sm:text-sm font-semibold bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg">
+                          {new Date(movie.release_date).getFullYear()}
+                        </span>
                       </div>
                     </div>
                   </div>
+
+                  {/* Brilho no hover */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/0 via-purple-500/0 to-pink-500/0 group-hover:from-blue-500/20 group-hover:via-purple-500/20 group-hover:to-pink-500/20 transition-all duration-300 pointer-events-none"></div>
                 </motion.div>
               </SwiperSlide>
             ))}
@@ -292,9 +326,29 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/50 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/30 transition-all duration-500 py-8 px-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(59,130,246,0.08),transparent_40%)] dark:bg-[radial-gradient(circle_at_20%_30%,rgba(59,130,246,0.03),transparent_40%)]"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,rgba(168,85,247,0.08),transparent_40%)] dark:bg-[radial-gradient(circle_at_80%_70%,rgba(168,85,247,0.03),transparent_40%)]"></div>
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 transition-all duration-500 py-8 px-4 relative overflow-hidden">
+      {/* Orbs animados de fundo */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400/15 to-rose-400/15 dark:from-pink-600/8 dark:to-rose-600/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+
+      {/* Grid pattern de fundo */}
+      <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" style={{
+        backgroundImage: 'linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }}></div>
+
+      {/* Dots pattern decorativo */}
+      <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.03]" style={{
+        backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+        backgroundSize: '30px 30px'
+      }}></div>
+
+      {/* Brilho sutil no topo */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-40 bg-gradient-to-b from-blue-500/5 to-transparent dark:from-blue-400/5 blur-2xl"></div>
+
       <div className="max-w-7xl mx-auto relative z-10">
         <motion.div 
           className="text-center mb-16"
