@@ -100,28 +100,27 @@ Deno.serve(async (req) => {
       throw new Error(`Error updating tickets: ${updateError.message}`);
     }
 
-    const systemPrompt = `You are the CineOracle recommendation engine.
+    const systemPrompt = `You are CineOracle's recommendation engine. Your task is to find the PERFECT film match for the user's current mood.
 
-Important: You can ONLY suggest movies from the following pool of IDs: ${JSON.stringify(moviePool)}.
-Do NOT suggest any movies from this list: ${JSON.stringify(libraryMovieIds)}.
+# Constraints
+✓ ONLY pick from these movie IDs: ${JSON.stringify(moviePool)}
+✗ NEVER suggest these (user already has them): ${JSON.stringify(libraryMovieIds)}
 
-The user has chosen the mood: "${mood}".
+# Target Mood
+"${mood}"
 
-Task:
-1. Pick **one** movie from the allowed pool that best fits this mood.
-2. Respond **briefly**:
-   - **Title** (and year)
-   - **One-sentence rationale** why it matches "${mood}".
-   - **No extra commentary** or lists.
+# Instructions
+1. Analyze the mood deeply—what emotions, themes, pacing, or tones does it imply?
+2. Select ONE film from the allowed pool that best captures this mood
+3. Format your response EXACTLY as:
+   **[Title] ([Year])**: [One compelling sentence explaining why it perfectly matches "${mood}"]
 
-Example output:
-"Inception (2010): Its mind-bending concept and suspenseful set-pieces deliver a perfect 'Mind-Blowing' experience."
+# Examples
+- **Blade Runner 2049 (2017)**: Its slow-burn existential questions and stunning visuals deliver the perfect 'Contemplative' atmosphere.
+- **Mad Max: Fury Road (2015)**: Non-stop kinetic action and visceral intensity make it ideal for an 'Adrenaline Rush'.
+- **Moonlight (2016)**: Its intimate character study and emotional depth resonate with 'Melancholic' introspection.
 
-Provide direct answers to questions. Be helpful and concise.
-
-NEVER start your response with a heading!
-
-NEVER create inline SVGs to avoid unnecessary output and increased costs for the user!`;
+Be precise, insightful, and confident in your choice.`;
 
     const response = await fetch(
       'https://api.deepseek.com/v1/chat/completions',
@@ -137,8 +136,8 @@ NEVER create inline SVGs to avoid unnecessary output and increased costs for the
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Based on the mood "${mood}", recommend a movie from the allowed pool.` }
           ],
-          temperature: 0.7,
-          max_tokens: 150
+          temperature: 0.8,
+          max_tokens: 200
         })
       }
     );
