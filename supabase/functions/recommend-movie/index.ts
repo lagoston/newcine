@@ -1,5 +1,4 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
-import { OpenAI } from 'npm:openai@4.28.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,9 +27,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const openai = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    });
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
     const { userId, mood, libraryMovieIds, moviePool } = await req.json() as RequestBody;
 
@@ -123,19 +120,31 @@ NEVER start your response with a heading!
 
 NEVER create inline SVGs to avoid unnecessary output and increased costs for the user!`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Based on the mood "${mood}", recommend a movie from the allowed pool.` }
-      ],
-      temperature: 0.7,
-      max_tokens: 150
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `${systemPrompt}\n\nBased on the mood "${mood}", recommend a movie from the allowed pool.`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 150
+          }
+        })
+      }
+    );
+
+    const data = await response.json();
+    const recommendation = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Unable to generate recommendation';
 
     return new Response(
       JSON.stringify({
-        recommendation: completion.choices[0].message.content,
+        recommendation,
         mood,
         ticketsRemaining: ticketData.tickets_remaining - 50
       }),
