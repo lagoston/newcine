@@ -353,17 +353,6 @@ export default function OraclePrediction() {
                   ✨ {t('oracle.speaksTitle')}
                 </motion.h2>
                 <div className="hidden md:flex items-center gap-2">
-                  <motion.button
-                    onClick={handleSave}
-                    className={`p-2 text-purple-400 hover:text-purple-300 transition-colors rounded-full hover:bg-purple-500/10 ${
-                      isSaved ? 'bg-purple-500/20' : ''
-                    }`}
-                    title={isSaved ? t('common.remove') : t('common.save')}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <BookmarkPlus className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
-                  </motion.button>
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -374,17 +363,6 @@ export default function OraclePrediction() {
               </div>
 
               <div className="flex flex-wrap gap-2 md:hidden">
-                <motion.button
-                  onClick={handleSave}
-                  className={`p-2 text-purple-400 hover:text-purple-300 transition-colors rounded-full hover:bg-purple-500/10 ${
-                    isSaved ? 'bg-purple-500/20' : ''
-                  }`}
-                  title={isSaved ? t('common.remove') : t('common.save')}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <BookmarkPlus className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
-                </motion.button>
                 <motion.div
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
