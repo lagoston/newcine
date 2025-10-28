@@ -121,7 +121,7 @@ NEVER start your response with a heading!
 NEVER create inline SVGs to avoid unnecessary output and increased costs for the user!`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

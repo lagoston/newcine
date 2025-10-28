@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     const prompt = `You are a professional translator. Translate the following text to ${languageMap[language]}. Maintain the same tone and style, including any emojis or special characters. Keep line breaks and formatting intact.\n\n${text}`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
