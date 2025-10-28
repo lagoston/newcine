@@ -536,10 +536,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const isPerfectScore = (rating: number) => rating === 10;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto pt-[calc(env(safe-area-inset-top)+3.5rem)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={onClose} />
-      <div className="flex min-h-full items-start justify-center p-4 pt-8">
-        <div className="relative w-full max-w-4xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-xl transform transition-all my-8 overflow-y-auto max-h-[calc(100vh-8rem)]">
+      <div className="relative w-full max-w-4xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-xl transform transition-all overflow-y-auto max-h-[calc(100vh-7rem)]" style={{ zIndex: 10 }}>
           <button
             onClick={onClose}
             className="sticky top-4 left-[calc(100%-3.5rem)] z-20 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-full p-2 shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
@@ -834,7 +833,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
             )}
           </div>
         </div>
-      </div>
 
       <RecommendModal
         isOpen={showRecommendModal}
