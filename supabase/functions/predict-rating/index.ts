@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
+import { OpenAI } from 'npm:openai@4.28.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,7 +39,9 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const geminiApiKey = 'AIzaSyB-jiDu9zi3HAwaGc-T7VhbNJCOFAqsUVM';
+    const openai = new OpenAI({
+      apiKey: Deno.env.get('OPENAI_API_KEY'),
+    });
 
     const { userId, movieName } = await req.json() as RequestBody;
 
@@ -190,31 +193,19 @@ NEVER start your response with a heading!
 
 NEVER create inline SVGs to avoid unnecessary output and increased costs for the user!`;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `${systemPrompt}\n\nBased on the user's rating history, predict their rating for "${movieName}".`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 450
-          }
-        })
-      }
-    );
-
-    const data = await response.json();
-    const prediction = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Unable to generate prediction';
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Based on the user's rating history, predict their rating for "${movieName}".` }
+      ],
+      temperature: 0.7,
+      max_tokens: 450
+    });
 
     return new Response(
       JSON.stringify({
-        prediction,
+        prediction: completion.choices[0].message.content,
         movie: movieName,
         ticketsRemaining: ticketData.tickets_remaining - 100
       }),
