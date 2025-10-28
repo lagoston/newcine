@@ -592,20 +592,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           >
                             <div className="relative group pointer-events-auto">
                               <div className="relative">
-                                {/* Badge de nota - DEVE estar ANTES do avatar no DOM para estar atrás */}
-                                <div className="absolute -bottom-1 -right-1" style={{ zIndex: 1 }}>
-                                  {isPerfectScore(friend.rating) && (
-                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 animate-ping opacity-75" />
-                                  )}
-                                  <div className={`relative w-7 h-7 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center ${isPerfectScore(friend.rating) ? 'shadow-[0_0_20px_rgba(168,85,247,0.8)]' : ''}`}>
-                                    <span className="text-xs font-bold text-white">
-                                      {friend.rating}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Avatar - DEPOIS no DOM = na frente visualmente */}
-                                <div className={`w-14 h-14 rounded-full border-3 border-white dark:border-gray-700 shadow-xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-0.5`} style={{ zIndex: 2, position: 'relative' }}>
+                                {/* Avatar PRIMEIRO no DOM */}
+                                <div className={`w-14 h-14 rounded-full border-3 border-white dark:border-gray-700 shadow-xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-0.5`}>
                                   <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
                                     {friend.avatar_url ? (
                                       <img
@@ -618,6 +606,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                         {friend.username.charAt(0).toUpperCase()}
                                       </div>
                                     )}
+                                  </div>
+                                </div>
+
+                                {/* Badge de nota DEPOIS no DOM = NA FRENTE visualmente */}
+                                <div className="absolute -bottom-1 -right-1 z-10">
+                                  {isPerfectScore(friend.rating) && (
+                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 animate-ping opacity-75" />
+                                  )}
+                                  <div className={`relative w-7 h-7 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center ${isPerfectScore(friend.rating) ? 'shadow-[0_0_20px_rgba(168,85,247,0.8)]' : ''}`}>
+                                    <span className="text-xs font-bold text-white">
+                                      {friend.rating}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
