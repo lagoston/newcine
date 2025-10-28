@@ -536,7 +536,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const isPerfectScore = (rating: number) => rating === 10;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={onClose} />
       <div className="relative w-full max-w-4xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-xl transform transition-all overflow-y-auto max-h-[calc(100vh-7rem)]" style={{ zIndex: 10 }}>
           <button

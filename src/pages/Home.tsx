@@ -33,6 +33,7 @@ const Home = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = React.useState<Movie | null>(null);
   const [username, setUsername] = React.useState('');
+  const swiperMoved = React.useRef(false);
 
   useEffect(() => {
     if (session?.user) {
@@ -194,13 +195,19 @@ const Home = () => {
               768: { slidesPerView: 5.1, spaceBetween: 22 },
               1024: { slidesPerView: 6.1, spaceBetween: 24 }
             }}
+            onTouchStart={() => {
+              swiperMoved.current = false;
+            }}
+            onSliderMove={() => {
+              swiperMoved.current = true;
+            }}
             onTouchEnd={(swiper) => {
-              if (!swiper.swipeDirection) {
-                swiper.allowClick = true;
-              }
+              setTimeout(() => {
+                swiperMoved.current = false;
+              }, 50);
             }}
             onClick={(swiper, event) => {
-              if (swiper.swipeDirection) {
+              if (swiperMoved.current) {
                 event.preventDefault();
                 event.stopPropagation();
               }
