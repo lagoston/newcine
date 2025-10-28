@@ -156,17 +156,17 @@ const Home = () => {
             {movies.map((movie) => (
               <SwiperSlide key={movie.id}>
                 <motion.div
-                  className="relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer group h-[200px] sm:h-[280px] shadow-lg hover:shadow-2xl transition-all duration-200 border-2 border-transparent hover:border-blue-500/30"
+                  className="relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer group h-[200px] sm:h-[280px] shadow-lg hover:shadow-2xl transition-all duration-150 border-2 border-transparent hover:border-blue-500/30"
                   onClick={() => handleMovieClick(movie)}
-                  whileHover={{ scale: 1.05, y: -4 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  transition={{ duration: 0.15, ease: "easeOut", delay: 0 }}
                 >
                   <OptimizedPoster
                     src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
                     alt={movie.title}
-                    className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-out"
+                    className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-200 ease-out"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-sm">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-150 ease-out flex flex-col justify-end backdrop-blur-sm">
                     <div className="p-5">
                       <h3 className="text-white font-bold mb-2 line-clamp-2 text-lg">{movie.title}</h3>
                       <div className="flex items-center gap-2">
@@ -259,7 +259,7 @@ const Home = () => {
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.3 + (i * 0.1), duration: 0.4 }}
-                  whileHover={{ scale: 1.05, y: -8 }}
+                  whileHover={{ scale: 1.03, y: -4, transition: { duration: 0.15, ease: "easeOut", delay: 0 } }}
                 >
                   {feature.icon}
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{feature.title}</h2>
@@ -316,9 +316,9 @@ const Home = () => {
           >
             <Link
               to="/library"
-              className="glass-effect bg-gradient-to-br from-blue-500/5 to-cyan-500/5 p-10 rounded-2xl shadow-lg border border-blue-200/30 dark:border-blue-700/30 group flex flex-col items-center justify-center card-interactive backdrop-blur-xl hover:shadow-blue-500/50 hover:shadow-2xl transition-all duration-300"
+              className="glass-effect bg-gradient-to-br from-blue-500/5 to-cyan-500/5 p-10 rounded-2xl shadow-lg border border-blue-200/30 dark:border-blue-700/30 group flex flex-col items-center justify-center card-interactive backdrop-blur-xl hover:shadow-blue-500/50 hover:shadow-2xl transition-all duration-200"
             >
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 mb-5 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-blue-500/50">
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 mb-5 transition-all duration-200 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-blue-500/50">
                 <LibraryIcon className="h-10 w-10 text-blue-600 dark:text-blue-400" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{t('home.yourLibrary')}</h2>
@@ -327,9 +327,9 @@ const Home = () => {
 
             <Link
               to="/oracle"
-              className="glass-effect bg-gradient-to-br from-purple-500/5 to-pink-500/5 p-10 rounded-2xl shadow-lg border border-purple-200/30 dark:border-purple-700/30 group flex flex-col items-center justify-center card-interactive backdrop-blur-xl hover:shadow-purple-500/50 hover:shadow-2xl transition-all duration-300"
+              className="glass-effect bg-gradient-to-br from-purple-500/5 to-pink-500/5 p-10 rounded-2xl shadow-lg border border-purple-200/30 dark:border-purple-700/30 group flex flex-col items-center justify-center card-interactive backdrop-blur-xl hover:shadow-purple-500/50 hover:shadow-2xl transition-all duration-200"
             >
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 mb-5 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-purple-500/50">
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 mb-5 transition-all duration-200 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-purple-500/50">
                 <Eye className="h-10 w-10 text-purple-600 dark:text-purple-400" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{t('home.consultOracle')}</h2>

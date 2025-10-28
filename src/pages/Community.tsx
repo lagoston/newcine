@@ -175,9 +175,9 @@ export default function Community() {
           animate="visible"
         >
           <div className="flex items-center gap-3">
-            <motion.div 
+            <motion.div
               whileHover={{ rotate: [0, -10, 0], scale: 1.05 }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
             >
               <Users className="w-8 h-8 text-blue-500" />
             </motion.div>
@@ -246,13 +246,14 @@ export default function Community() {
             {filteredProfiles.map((profile) => (
               <motion.div
                 key={profile.id}
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer ${getBannerClass(profile.banner, profile.plan_type === 'premium')}`}
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-150 cursor-pointer ${getBannerClass(profile.banner, profile.plan_type === 'premium')}`}
                 onClick={() => navigateToProfile(profile.username)}
                 role="button"
                 tabIndex={0}
                 aria-label={`View ${profile.username}'s profile`}
                 variants={itemVariants}
-                whileHover={{ scale: 1.02, y: -4 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                transition={{ duration: 0.15, ease: "easeOut", delay: 0 }}
                 whileTap={{ scale: 0.98 }}
               >
                 <div className="relative h-full flex flex-col">
@@ -281,7 +282,7 @@ export default function Community() {
                           {profile.plan_type === 'premium' && (
                             <motion.div
                               whileHover={{ rotate: 360 }}
-                              transition={{ duration: 0.5 }}
+                              transition={{ duration: 0.3, ease: "easeOut" }}
                               className="flex-shrink-0"
                             >
                               <Crown className="w-5 h-5 text-yellow-400" title={t('premium.title')} />
