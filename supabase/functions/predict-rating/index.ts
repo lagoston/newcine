@@ -40,10 +40,10 @@ Deno.serve(async (req) => {
 
     const { userId, movieName } = await req.json() as RequestBody;
 
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
     console.log('Starting prediction request for user:', userId);
     console.log('Movie name:', movieName);
-    console.log('Has Gemini API key:', !!geminiApiKey);
+    console.log('Has DeepSeek API key:', !!deepseekApiKey);
 
     if (!userId || !movieName) {
       throw new Error('Missing required fields: userId and movieName');
@@ -194,45 +194,40 @@ NEVER start your response with a heading!
 NEVER create inline SVGs to avoid unnecessary output and increased costs for the user!`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
+      'https://api.deepseek.com/v1/chat/completions',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${deepseekApiKey}`
+        },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `${systemPrompt}\n\nBased on the user's rating history, predict their rating for "${movieName}".`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 450
-          }
+          model: 'deepseek-chat',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Based on the user's rating history, predict their rating for "${movieName}".` }
+          ],
+          temperature: 0.7,
+          max_tokens: 450
         })
       }
     );
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Gemini API error:', errorData);
-      throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
+      console.error('DeepSeek API error:', errorData);
+      throw new Error(`DeepSeek API error: ${response.status} - ${errorData}`);
     }
 
     const data = await response.json();
-    console.log('Gemini response status:', response.status);
-    console.log('Gemini response data:', JSON.stringify(data));
+    console.log('DeepSeek response status:', response.status);
+    console.log('DeepSeek response data:', JSON.stringify(data));
 
-    // Check for safety filters or other blocks
-    if (data.candidates?.[0]?.finishReason && data.candidates[0].finishReason !== 'STOP') {
-      console.error('Content blocked:', data.candidates[0].finishReason);
-      throw new Error(`Content blocked: ${data.candidates[0].finishReason}`);
-    }
-
-    const prediction = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const prediction = data.choices?.[0]?.message?.content;
 
     if (!prediction) {
       console.error('No prediction in response:', JSON.stringify(data));
-      throw new Error('Unable to generate prediction from Gemini');
+      throw new Error('Unable to generate prediction from DeepSeek');
     }
 
     return new Response(
