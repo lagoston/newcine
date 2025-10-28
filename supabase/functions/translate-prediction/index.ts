@@ -1,5 +1,3 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
-import { OpenAI } from 'npm:openai@4.28.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,9 +19,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const openai = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    });
+    const geminiApiKey = 'AIzaSyB-jiDu9zi3HAwaGc-T7VhbNJCOFAqsUVM';
 
     const { text, language } = await req.json() as RequestBody;
 
@@ -36,25 +32,31 @@ Deno.serve(async (req) => {
       'es': 'Spanish'
     };
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a professional translator. Translate the following text to ${languageMap[language]}. Maintain the same tone and style, including any emojis or special characters. Keep line breaks and formatting intact.`
-        },
-        {
-          role: 'user',
-          content: text
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 500
-    });
+    const prompt = `You are a professional translator. Translate the following text to ${languageMap[language]}. Maintain the same tone and style, including any emojis or special characters. Keep line breaks and formatting intact.\n\n${text}`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 500
+          }
+        })
+      }
+    );
+
+    const data = await response.json();
+    const translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || text;
 
     return new Response(
       JSON.stringify({
-        translatedText: completion.choices[0].message.content
+        translatedText
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
