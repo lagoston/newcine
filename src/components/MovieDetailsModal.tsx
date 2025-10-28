@@ -48,30 +48,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Salvar posição atual do scroll
-      const scrollY = window.scrollY;
+      // Simples overflow hidden - sem position fixed que causa bugs visuais
+      const originalOverflow = document.body.style.overflow;
+      const originalTouchAction = document.body.style.touchAction;
 
-      // Bloquear scroll no body e html
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-
-      // Prevenir scroll em mobile (iOS)
       document.body.style.touchAction = 'none';
 
       return () => {
-        // Restaurar scroll
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflow = '';
-        document.documentElement.style.overflow = '';
-        document.body.style.touchAction = '';
-
-        // Restaurar posição do scroll
-        window.scrollTo(0, scrollY);
+        document.body.style.overflow = originalOverflow;
+        document.body.style.touchAction = originalTouchAction;
       };
     }
   }, [isOpen]);
@@ -203,50 +189,83 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       ctx.textAlign = 'center';
       ctx.fillText('🎬 Cine Oracle', canvas.width / 2, 150);
 
-      // Carregar e desenhar poster usando fetch + blob (contorna CORS)
+      // Carregar poster FRESH da API TMDB (sem cache)
       if (movie.poster_path) {
         try {
-          const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
-          console.log('[POSTER] Iniciando carregamento:', posterUrl);
+          const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}?t=${Date.now()}`;
+          console.log('[POSTER] 🔄 Buscando FRESH:', posterUrl);
 
-          // Passo 1: Fazer fetch da imagem
-          console.log('[POSTER] Fazendo fetch...');
-          const response = await fetch(posterUrl);
+          // Fetch com no-cache para buscar direto da API
+          const response = await fetch(posterUrl, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache'
+            }
+          });
 
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
-          console.log('[POSTER] Fetch OK, convertendo para blob...');
 
-          // Passo 2: Converter para blob
           const blob = await response.blob();
-          console.log('[POSTER] Blob criado:', blob.size, 'bytes, tipo:', blob.type);
+          console.log('[POSTER] 📦 Blob:', blob.size, 'bytes');
 
-          // Passo 3: Criar URL local do blob
           const blobUrl = URL.createObjectURL(blob);
-          console.log('[POSTER] Blob URL criado:', blobUrl);
 
-          // Passo 4: Carregar imagem do blob URL
-          console.log('[POSTER] Carregando imagem do blob...');
+          // Carregar e ESPERAR a imagem estar 100% pronta
           const img = await new Promise<HTMLImageElement>((resolve, reject) => {
             const image = new Image();
+            let resolved = false;
+
+            const cleanup = () => {
+              image.onload = null;
+              image.onerror = null;
+            };
+
             image.onload = () => {
-              console.log('[POSTER] Imagem carregada!', image.width, 'x', image.height);
-              resolve(image);
+              if (resolved) return;
+              resolved = true;
+              cleanup();
+
+              // ESPERAR um frame para garantir que a imagem está decodificada
+              requestAnimationFrame(() => {
+                console.log('[POSTER] ✅ Carregada:', image.naturalWidth, 'x', image.naturalHeight);
+                resolve(image);
+              });
             };
-            image.onerror = () => {
-              console.error('[POSTER] Erro ao carregar imagem do blob');
-              reject(new Error('Falha ao carregar imagem'));
+
+            image.onerror = (e) => {
+              if (resolved) return;
+              resolved = true;
+              cleanup();
+              console.error('[POSTER] ❌ Erro ao carregar:', e);
+              reject(new Error('Falha ao carregar'));
             };
+
+            // Timeout de segurança
+            setTimeout(() => {
+              if (!resolved) {
+                resolved = true;
+                cleanup();
+                reject(new Error('Timeout (10s)'));
+              }
+            }, 10000);
+
             image.src = blobUrl;
           });
 
-          // Passo 5: Desenhar no canvas
-          console.log('[POSTER] Desenhando no canvas...');
+          // Verificar dimensões
+          if (!img.naturalWidth || !img.naturalHeight) {
+            throw new Error('Imagem inválida (sem dimensões)');
+          }
+
+          // Desenhar no canvas
           const posterWidth = 600;
           const posterHeight = 900;
           const posterX = (canvas.width - posterWidth) / 2;
           const posterY = 300;
+
+          console.log('[POSTER] 🎨 Desenhando em:', posterX, posterY);
 
           // Sombra
           ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
@@ -254,24 +273,40 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 10;
 
+          // Configurar qualidade
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          // Desenhar
           ctx.drawImage(img, posterX, posterY, posterWidth, posterHeight);
 
-          // Resetar sombra
+          // Resetar
           ctx.shadowColor = 'transparent';
           ctx.shadowBlur = 0;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 0;
 
-          // Limpar blob URL
+          // Limpar
           URL.revokeObjectURL(blobUrl);
 
-          console.log('[POSTER] ✅ Sucesso! Poster desenhado no canvas');
+          console.log('[POSTER] ✅✅✅ SUCESSO TOTAL!');
         } catch (error) {
-          console.error('[POSTER] ❌ Erro:', error);
-          // Continuar sem o poster se houver erro
+          console.error('[POSTER] ❌❌❌ FALHA:', error);
+
+          // Desenhar placeholder
+          const posterX = (canvas.width - 600) / 2;
+          const posterY = 300;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+          ctx.fillRect(posterX, posterY, 600, 900);
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 64px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('🎬', canvas.width / 2, 750);
+          ctx.font = '24px Arial';
+          ctx.fillText('Poster indisponível', canvas.width / 2, 850);
         }
       } else {
-        console.log('[POSTER] Filme não possui poster_path');
+        console.log('[POSTER] ⚠️ Sem poster_path');
       }
 
       // Título do filme (com quebra de linha se necessário)
@@ -557,7 +592,20 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           >
                             <div className="relative group pointer-events-auto">
                               <div className="relative">
-                                <div className={`w-14 h-14 rounded-full border-3 border-white dark:border-gray-700 shadow-xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-0.5`}>
+                                {/* Badge de nota - DEVE estar ANTES do avatar no DOM para estar atrás */}
+                                <div className="absolute -bottom-1 -right-1" style={{ zIndex: 1 }}>
+                                  {isPerfectScore(friend.rating) && (
+                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 animate-ping opacity-75" />
+                                  )}
+                                  <div className={`relative w-7 h-7 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center ${isPerfectScore(friend.rating) ? 'shadow-[0_0_20px_rgba(168,85,247,0.8)]' : ''}`}>
+                                    <span className="text-xs font-bold text-white">
+                                      {friend.rating}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Avatar - DEPOIS no DOM = na frente visualmente */}
+                                <div className={`w-14 h-14 rounded-full border-3 border-white dark:border-gray-700 shadow-xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-0.5`} style={{ zIndex: 2, position: 'relative' }}>
                                   <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
                                     {friend.avatar_url ? (
                                       <img
@@ -570,17 +618,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                         {friend.username.charAt(0).toUpperCase()}
                                       </div>
                                     )}
-                                  </div>
-                                </div>
-
-                                <div className="absolute -bottom-1 -right-1" style={{ zIndex: 999, isolation: 'isolate' }}>
-                                  {isPerfectScore(friend.rating) && (
-                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 animate-ping opacity-75" />
-                                  )}
-                                  <div className={`relative w-7 h-7 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center ${isPerfectScore(friend.rating) ? 'shadow-[0_0_20px_rgba(168,85,247,0.8)]' : ''}`}>
-                                    <span className="text-xs font-bold text-white" style={{ position: 'relative', zIndex: 1 }}>
-                                      {friend.rating}
-                                    </span>
                                   </div>
                                 </div>
                               </div>
