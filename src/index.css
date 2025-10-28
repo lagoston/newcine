@@ -593,10 +593,43 @@
   @apply animate-pulse bg-gray-200 dark:bg-gray-700 rounded;
 }
 
-/* Image optimizations */
+/* Image optimizations - Prevent flickering */
 img {
   @apply object-cover;
   content-visibility: auto;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: auto;
+}
+
+/* Movie poster optimizations */
+img[src*="tmdb.org"] {
+  image-rendering: auto;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -webkit-backface-visibility: hidden;
+  will-change: auto;
+}
+
+/* Prevent layout shift during image load */
+img[loading="lazy"] {
+  min-height: 1px;
+}
+
+/* Hardware acceleration for smooth scrolling */
+.movie-grid,
+.swiper-wrapper,
+[class*="grid"] {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
 }
 
 /* Touch handling improvements */

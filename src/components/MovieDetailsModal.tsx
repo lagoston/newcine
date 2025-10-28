@@ -632,25 +632,26 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
           {/* Fixed Action Buttons */}
           {session?.user && (
-            <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-900">
-              <div className="grid grid-cols-3 gap-3">
+            <div className="sticky bottom-0 border-t border-gray-200 dark:border-gray-700 p-3 sm:p-4 bg-gray-50 dark:bg-gray-900 z-10">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 max-w-4xl mx-auto">
                 <button
                   onClick={() => setShowRecommendModal(true)}
-                  className="px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center font-medium"
+                  className="px-2 sm:px-4 py-2.5 sm:py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 active:bg-orange-700 transition-colors flex items-center justify-center font-medium text-xs sm:text-sm"
                 >
-                  Recomendar
+                  <span className="hidden xs:inline">Recomendar</span>
+                  <span className="xs:hidden">📤</span>
                 </button>
 
                 <button
                   onClick={handleShareToInstagram}
                   disabled={isSharing}
-                  className="px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-medium gap-2"
+                  className="px-2 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 active:from-purple-700 active:to-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-medium gap-1.5 text-xs sm:text-sm"
                 >
                   {isSharing ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                   ) : (
                     <>
-                      <Instagram className="w-5 h-5" />
+                      <Instagram className="w-4 h-4 sm:w-5 sm:h-5" />
                       <span className="hidden sm:inline">Compartilhar</span>
                     </>
                   )}
@@ -660,20 +661,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   <button
                     onClick={handleAddToLibrary}
                     disabled={adding}
-                    className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-medium"
+                    className="px-2 sm:px-4 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-medium text-xs sm:text-sm"
                   >
                     {adding ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                        <span className="hidden sm:inline">{t('movies.addingToLibrary')}</span>
-                      </>
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                     ) : (
-                      <span className="hidden sm:inline">{t('library.addToLibrary')}</span>
+                      <>
+                        <span className="hidden sm:inline">{t('library.addToLibrary')}</span>
+                        <span className="sm:hidden">➕</span>
+                      </>
                     )}
                   </button>
                 ) : (
-                  <div className="px-4 py-3 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-center font-medium flex items-center justify-center">
-                    ✓ <span className="hidden sm:inline ml-1">{t('movies.inLibrary')}</span>
+                  <div className="px-2 sm:px-4 py-2.5 sm:py-3 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-center font-medium flex items-center justify-center text-xs sm:text-sm">
+                    <span>✓</span>
+                    <span className="hidden sm:inline ml-1">{t('movies.inLibrary')}</span>
                   </div>
                 )}
               </div>

@@ -6,6 +6,7 @@ import { Movie, getTrending, getMovieDetails, getComingSoon, getTopRatedGems, ge
 import { supabase } from '../lib/supabase';
 import Logo from '../components/Logo';
 import MovieDetailsModal from '../components/MovieDetailsModal';
+import OptimizedPoster from '../components/OptimizedPoster';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { motion } from 'framer-motion';
 import 'swiper/css';
@@ -160,11 +161,10 @@ const Home = () => {
                   whileHover={{ scale: 1.05, y: -4 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
-                  <img
+                  <OptimizedPoster
                     src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
                     alt={movie.title}
                     className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300 ease-out"
-                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-sm">
                     <div className="p-5">
