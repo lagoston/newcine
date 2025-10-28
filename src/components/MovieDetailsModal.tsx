@@ -46,6 +46,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   }, [session?.user?.id, movie.id]);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${window.innerWidth - document.documentElement.clientWidth}px`;
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, [isOpen]);
+
   const checkIfInLibrary = async () => {
     try {
       const { data, error } = await supabase
@@ -136,9 +151,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const handleShareToInstagram = async () => {
     if (!session?.user?.id || isSharing) return;
 
-    try {
-      setIsSharing(true);
+    setIsSharing(true);
 
+    try {
       // Obter a nota do usuário
       const { data: userMovie, error: ratingError } = await supabase
         .from('user_movies')
@@ -153,6 +168,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
       if (!userRating) {
         toast.error('Você precisa dar uma nota ao filme antes de compartilhar!');
+        setIsSharing(false);
         return;
       }
 
@@ -253,6 +269,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       canvas.toBlob(async (blob) => {
         if (!blob) {
           toast.error('Erro ao gerar imagem');
+          setIsSharing(false);
           return;
         }
 
@@ -274,17 +291,19 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               // Fallback: baixar imagem
               downloadImage(canvas);
             }
+          } finally {
+            setIsSharing(false);
           }
         } else {
           // Fallback: baixar imagem
           downloadImage(canvas);
+          setIsSharing(false);
         }
       }, 'image/png');
 
     } catch (error) {
       console.error('Error sharing to Instagram:', error);
       toast.error('Erro ao compartilhar. Tente novamente.');
-    } finally {
       setIsSharing(false);
     }
   };
