@@ -38,9 +38,12 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-
     const { userId, movieName } = await req.json() as RequestBody;
+
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    console.log('Starting prediction request for user:', userId);
+    console.log('Movie name:', movieName);
+    console.log('Has Gemini API key:', !!geminiApiKey);
 
     if (!userId || !movieName) {
       throw new Error('Missing required fields: userId and movieName');
@@ -216,7 +219,10 @@ NEVER create inline SVGs to avoid unnecessary output and increased costs for the
     }
 
     const data = await response.json();
-    console.log('Gemini response:', JSON.stringify(data));
+    console.log('Gemini response status:', response.status);
+    console.log('Gemini response data:', JSON.stringify(data));
+    console.log('Candidates:', data.candidates);
+    console.log('Finish reason:', data.candidates?.[0]?.finishReason);
 
     // Check for safety filters or other blocks
     if (data.candidates?.[0]?.finishReason && data.candidates[0].finishReason !== 'STOP') {
