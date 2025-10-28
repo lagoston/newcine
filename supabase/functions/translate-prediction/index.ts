@@ -51,8 +51,34 @@ Deno.serve(async (req) => {
       }
     );
 
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Gemini API error:', errorData);
+      throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
+    }
+
     const data = await response.json();
-    const translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || text;
+    console.log('Gemini response:', JSON.stringify(data));
+
+    // Check for safety filters or other blocks
+    if (data.candidates?.[0]?.finishReason && data.candidates[0].finishReason !== 'STOP') {
+      console.error('Content blocked:', data.candidates[0].finishReason);
+      throw new Error(`Content blocked: ${data.candidates[0].finishReason}`);
+    }
+
+    const translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!translatedText) {
+      console.error('No translation in response:', JSON.stringify(data));
+      // Fallback to original text if translation fails
+      return new Response(
+        JSON.stringify({ translatedText: text }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
 
     return new Response(
       JSON.stringify({

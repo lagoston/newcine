@@ -139,8 +139,27 @@ NEVER create inline SVGs to avoid unnecessary output and increased costs for the
       }
     );
 
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Gemini API error:', errorData);
+      throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
+    }
+
     const data = await response.json();
-    const recommendation = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Unable to generate recommendation';
+    console.log('Gemini response:', JSON.stringify(data));
+
+    // Check for safety filters or other blocks
+    if (data.candidates?.[0]?.finishReason && data.candidates[0].finishReason !== 'STOP') {
+      console.error('Content blocked:', data.candidates[0].finishReason);
+      throw new Error(`Content blocked: ${data.candidates[0].finishReason}`);
+    }
+
+    const recommendation = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!recommendation) {
+      console.error('No recommendation in response:', JSON.stringify(data));
+      throw new Error('Unable to generate recommendation from Gemini');
+    }
 
     return new Response(
       JSON.stringify({
