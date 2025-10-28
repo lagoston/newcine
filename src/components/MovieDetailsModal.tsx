@@ -164,13 +164,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
       if (ratingError) throw ratingError;
 
-      const userRating = userMovie?.rating;
-
-      if (!userRating) {
-        toast.error('Você precisa dar uma nota ao filme antes de compartilhar!');
-        setIsSharing(false);
-        return;
-      }
+      const userRating = userMovie?.rating || null;
 
       // Criar um canvas temporário para o story
       const canvas = document.createElement('canvas');
@@ -194,59 +188,47 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       ctx.textAlign = 'center';
       ctx.fillText('🎬 Cine Oracle', canvas.width / 2, 150);
 
+      // Função helper para carregar imagem
+      const loadImage = (url: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error('Failed to load image'));
+          img.src = url;
+        });
+      };
+
       // Carregar e desenhar poster
       if (movie.poster_path) {
         try {
-          // Usar fetch com CORS para carregar a imagem
           const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
-          const response = await fetch(posterUrl);
+          console.log('Loading poster from:', posterUrl);
 
-          if (!response.ok) {
-            throw new Error('Failed to fetch image');
-          }
+          // Carregar imagem diretamente com crossOrigin
+          const img = await loadImage(posterUrl);
+          console.log('Poster loaded successfully');
 
-          const blob = await response.blob();
-          const img = new Image();
+          // Desenhar poster centralizado
+          const posterWidth = 600;
+          const posterHeight = 900;
+          const posterX = (canvas.width - posterWidth) / 2;
+          const posterY = 300;
 
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => {
-              try {
-                // Desenhar poster centralizado
-                const posterWidth = 600;
-                const posterHeight = 900;
-                const posterX = (canvas.width - posterWidth) / 2;
-                const posterY = 300;
+          // Sombra
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 20;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 10;
 
-                // Sombra
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                ctx.shadowBlur = 20;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 10;
+          ctx.drawImage(img, posterX, posterY, posterWidth, posterHeight);
+          console.log('Poster drawn to canvas');
 
-                ctx.drawImage(img, posterX, posterY, posterWidth, posterHeight);
-
-                // Resetar sombra
-                ctx.shadowColor = 'transparent';
-                ctx.shadowBlur = 0;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 0;
-
-                // Limpar object URL
-                URL.revokeObjectURL(img.src);
-                resolve();
-              } catch (err) {
-                reject(err);
-              }
-            };
-            img.onerror = (err) => {
-              console.error('Image load error:', err);
-              URL.revokeObjectURL(img.src);
-              reject(new Error('Failed to load image'));
-            };
-
-            const objectUrl = URL.createObjectURL(blob);
-            img.src = objectUrl;
-          });
+          // Resetar sombra
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
         } catch (error) {
           console.error('Error loading poster:', error);
           // Continuar sem o poster se houver erro
@@ -277,32 +259,62 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       }
       ctx.fillText(line, canvas.width / 2, y);
 
-      // Nota do usuário - badge grande
+      // Badge grande
       const badgeY = y + 120;
       const badgeRadius = 100;
 
-      // Círculo de fundo
-      ctx.beginPath();
-      ctx.arc(canvas.width / 2, badgeY, badgeRadius, 0, Math.PI * 2);
-      ctx.fillStyle = '#fbbf24';
-      ctx.fill();
+      if (userRating) {
+        // Usuário avaliou - mostrar nota
+        // Círculo de fundo
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, badgeY, badgeRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#fbbf24';
+        ctx.fill();
 
-      // Nota
-      ctx.fillStyle = '#1f2937';
-      ctx.font = 'bold 80px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(userRating.toString(), canvas.width / 2, badgeY);
+        // Nota
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 80px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(userRating.toString(), canvas.width / 2, badgeY);
 
-      // Estrela
-      ctx.fillStyle = '#1f2937';
-      ctx.font = '60px Arial';
-      ctx.fillText('★', canvas.width / 2, badgeY + 100);
+        // Estrela
+        ctx.fillStyle = '#1f2937';
+        ctx.font = '60px Arial';
+        ctx.fillText('★', canvas.width / 2, badgeY + 100);
 
-      // Texto "Minha nota"
-      ctx.fillStyle = 'white';
-      ctx.font = '32px Arial';
-      ctx.fillText('Minha nota', canvas.width / 2, badgeY + 160);
+        // Texto "Minha nota"
+        ctx.fillStyle = 'white';
+        ctx.font = '32px Arial';
+        ctx.fillText('Minha nota', canvas.width / 2, badgeY + 160);
+      } else {
+        // Usuário não avaliou - mostrar "Vou assistir..."
+        const watchText = t('common.watchingSoon');
+
+        // Retângulo arredondado de fundo
+        const textWidth = ctx.measureText(watchText).width;
+        const padding = 40;
+        const rectWidth = textWidth + padding * 2;
+        const rectHeight = 80;
+        const rectX = (canvas.width - rectWidth) / 2;
+        const rectY = badgeY - rectHeight / 2;
+
+        ctx.fillStyle = '#3b82f6';
+        ctx.beginPath();
+        ctx.roundRect(rectX, rectY, rectWidth, rectHeight, 40);
+        ctx.fill();
+
+        // Texto
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 42px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(watchText, canvas.width / 2, badgeY);
+
+        // Ícone de filme
+        ctx.font = '60px Arial';
+        ctx.fillText('🎬', canvas.width / 2, badgeY + 100);
+      }
 
       // Converter canvas para blob
       canvas.toBlob(async (blob) => {
