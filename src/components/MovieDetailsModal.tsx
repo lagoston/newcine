@@ -610,12 +610,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                 </div>
 
                                 {/* Badge de nota DEPOIS no DOM = NA FRENTE visualmente */}
-                                <div className="absolute -bottom-1 -right-1 z-10">
+                                <div className="absolute -bottom-1 -right-1 z-[100] relative">
                                   {isPerfectScore(friend.rating) && (
                                     <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 animate-ping opacity-75" />
                                   )}
                                   <div className={`relative w-7 h-7 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center ${isPerfectScore(friend.rating) ? 'shadow-[0_0_20px_rgba(168,85,247,0.8)]' : ''}`}>
-                                    <span className="text-xs font-bold text-white">
+                                    <span className="text-xs font-bold text-white z-[101] relative">
                                       {friend.rating}
                                     </span>
                                   </div>
