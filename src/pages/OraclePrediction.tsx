@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, BrainCircuit, Loader2, Ticket, Plus, Languages, Share2, BookmarkPlus, ArrowLeft } from 'lucide-react';
+import { Search, Star, BrainCircuit, Loader2, Ticket, Plus, Share2, BookmarkPlus, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { searchMovies } from '../lib/tmdb';
@@ -9,8 +9,7 @@ import { supabase } from '../lib/supabase';
 import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-
-type Language = 'pt-BR' | 'es';
+import { autoTranslate } from '../lib/translator';
 
 export default function OraclePrediction() {
   const navigate = useNavigate();
@@ -24,12 +23,10 @@ export default function OraclePrediction() {
   const [loading, setLoading] = useState({
     search: false,
     prediction: false,
-    translation: false,
     sharing: false
   });
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
   const [nextReset, setNextReset] = useState<Date | null>(null);
-  const [showTranslateMenu, setShowTranslateMenu] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savedPredictionId, setSavedPredictionId] = useState<string | null>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
@@ -182,7 +179,8 @@ export default function OraclePrediction() {
         throw new Error('No prediction received from Oracle');
       }
 
-      setPrediction(data);
+      const translatedPrediction = await autoTranslate(data.prediction);
+      setPrediction({ ...data, prediction: translatedPrediction });
       setTicketsRemaining(data.ticketsRemaining);
     } catch (error) {
       console.error('Error getting prediction:', error);
@@ -192,43 +190,6 @@ export default function OraclePrediction() {
     }
   };
 
-  const handleTranslate = async (language: Language) => {
-    if (!prediction?.prediction) return;
-    
-    try {
-      setLoading(prev => ({ ...prev, translation: true }));
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-prediction`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text: prediction.prediction,
-            language
-          })
-        }
-      );
-
-      if (!response.ok) throw new Error(t('common.error'));
-      
-      const data = await response.json();
-      setPrediction(prev => ({
-        ...prev!,
-        prediction: data.translatedText
-      }));
-      
-      toast.success(t('common.success'));
-      setShowTranslateMenu(false);
-    } catch (error) {
-      console.error('Translation error:', error);
-      toast.error(t('common.error'));
-    } finally {
-      setLoading(prev => ({ ...prev, translation: false }));
-    }
-  };
 
   const handleSave = async () => {
     if (!session?.user?.id || !prediction?.prediction || !selectedMovie) return;
@@ -377,44 +338,6 @@ export default function OraclePrediction() {
     </button>
   );
 
-  const renderTranslateMenu = () => {
-    if (!showTranslateMenu) return null;
-
-    return (
-      <motion.div 
-        className="absolute left-0 md:right-0 md:left-auto mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-purple-500/20 py-1 z-20"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.2 }}
-      >
-        <button
-          onClick={() => handleTranslate('pt-BR')}
-          disabled={loading.translation}
-          className="w-full px-4 py-2 text-left text-gray-300 hover:bg-purple-500/10 transition-colors flex items-center"
-        >
-          {loading.translation ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <span className="w-4 h-4 mr-2">🇧🇷</span>
-          )}
-          Português (BR)
-        </button>
-        <button
-          onClick={() => handleTranslate('es')}
-          disabled={loading.translation}
-          className="w-full px-4 py-2 text-left text-gray-300 hover:bg-purple-500/10 transition-colors flex items-center"
-        >
-          {loading.translation ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <span className="w-4 h-4 mr-2">🇪🇸</span>
-          )}
-          Español
-        </button>
-      </motion.div>
-    );
-  };
 
   const renderCrystalBall = () => {
     if (loading.prediction) {
@@ -470,20 +393,6 @@ export default function OraclePrediction() {
                   ✨ {t('oracle.speaksTitle')}
                 </motion.h2>
                 <div className="hidden md:flex items-center gap-2">
-                  <div className="relative">
-                    <motion.button
-                      onClick={() => setShowTranslateMenu(!showTranslateMenu)}
-                      className="p-2 text-purple-400 hover:text-purple-300 transition-colors rounded-full hover:bg-purple-500/10"
-                      title={t('common.translate')}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      <Languages className="w-5 h-5" />
-                    </motion.button>
-                    <AnimatePresence>
-                      {showTranslateMenu && renderTranslateMenu()}
-                    </AnimatePresence>
-                  </div>
                   <motion.button
                     onClick={handleSave}
                     className={`p-2 text-purple-400 hover:text-purple-300 transition-colors rounded-full hover:bg-purple-500/10 ${
@@ -505,20 +414,6 @@ export default function OraclePrediction() {
               </div>
 
               <div className="flex flex-wrap gap-2 md:hidden">
-                <div className="relative">
-                  <motion.button
-                    onClick={() => setShowTranslateMenu(!showTranslateMenu)}
-                    className="p-2 text-purple-400 hover:text-purple-300 transition-colors rounded-full hover:bg-purple-500/10"
-                    title={t('common.translate')}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <Languages className="w-5 h-5" />
-                  </motion.button>
-                  <AnimatePresence>
-                    {showTranslateMenu && renderTranslateMenu()}
-                  </AnimatePresence>
-                </div>
                 <motion.button
                   onClick={handleSave}
                   className={`p-2 text-purple-400 hover:text-purple-300 transition-colors rounded-full hover:bg-purple-500/10 ${

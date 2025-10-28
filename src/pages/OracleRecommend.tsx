@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wand2, Loader2, Ticket, Plus, Languages, ArrowLeft } from 'lucide-react';
+import { Wand2, Loader2, Ticket, Plus, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { autoTranslate } from '../lib/translator';
 
 export default function OracleRecommend() {
   const navigate = useNavigate();
@@ -19,7 +20,6 @@ export default function OracleRecommend() {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [libraryMovies, setLibraryMovies] = useState<number[]>([]);
   const [moviePool, setMoviePool] = useState<number[]>([]);
-  const [showTranslateMenu, setShowTranslateMenu] = useState(false);
 
   const moods = [
     t('oracle.moods.feelGood'), 
@@ -229,7 +229,8 @@ export default function OracleRecommend() {
         throw new Error('No recommendation received from Oracle');
       }
 
-      setPrediction(data.recommendation);
+      const translatedRecommendation = await autoTranslate(data.recommendation);
+      setPrediction(translatedRecommendation);
       setTicketsRemaining(data.ticketsRemaining);
     } catch (error) {
       console.error('Error getting recommendation:', error);
@@ -239,40 +240,6 @@ export default function OracleRecommend() {
     }
   };
 
-  const handleTranslate = async (targetLang: string) => {
-    if (!prediction) return;
-
-    try {
-      setLoading(true);
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text: prediction,
-            targetLang
-          })
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Translation failed');
-      }
-
-      const data = await response.json();
-      setPrediction(data.translatedText);
-      setShowTranslateMenu(false);
-    } catch (error) {
-      console.error('Translation error:', error);
-      toast.error('Failed to translate prediction');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Animation variants for staggered animations
   const containerVariants = {
@@ -559,53 +526,6 @@ export default function OracleRecommend() {
                 >
                   ✨ {t('oracle.speaksTitle')}
                 </motion.h2>
-                <div className="relative">
-                  <motion.button
-                    onClick={() => setShowTranslateMenu(!showTranslateMenu)}
-                    className="p-2 text-pink-400 hover:text-pink-300 transition-colors rounded-full hover:bg-pink-500/10"
-                    title={t('common.translate')}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <Languages className="w-5 h-5" />
-                  </motion.button>
-                  <AnimatePresence>
-                    {showTranslateMenu && (
-                      <motion.div 
-                        className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-pink-500/20 py-1 z-50"
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <button
-                          onClick={() => handleTranslate('pt-BR')}
-                          disabled={loading}
-                          className="w-full px-4 py-2 text-left text-gray-300 hover:bg-pink-500/10 transition-colors flex items-center"
-                        >
-                          {loading ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <span className="w-4 h-4 mr-2">🇧🇷</span>
-                          )}
-                          Português (BR)
-                        </button>
-                        <button
-                          onClick={() => handleTranslate('es')}
-                          disabled={loading}
-                          className="w-full px-4 py-2 text-left text-gray-300 hover:bg-pink-500/10 transition-colors flex items-center"
-                        >
-                          {loading ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <span className="w-4 h-4 mr-2">🇪🇸</span>
-                          )}
-                          Español
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
               </div>
               <motion.div 
                 className="prose prose-lg prose-invert"
