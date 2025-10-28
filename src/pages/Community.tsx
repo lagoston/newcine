@@ -246,15 +246,15 @@ export default function Community() {
             {filteredProfiles.map((profile) => (
               <motion.div
                 key={profile.id}
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-150 cursor-pointer ${getBannerClass(profile.banner, profile.plan_type === 'premium')}`}
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl cursor-pointer ${getBannerClass(profile.banner, profile.plan_type === 'premium')}`}
                 onClick={() => navigateToProfile(profile.username)}
                 role="button"
                 tabIndex={0}
                 aria-label={`View ${profile.username}'s profile`}
                 variants={itemVariants}
                 whileHover={{ scale: 1.02, y: -2 }}
-                transition={{ duration: 0.15, ease: "easeOut", delay: 0 }}
                 whileTap={{ scale: 0.98 }}
+                style={{ transition: 'all 0.15s ease-out' }}
               >
                 <div className="relative h-full flex flex-col">
                   {/* Avatar e informações principais */}

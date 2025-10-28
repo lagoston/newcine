@@ -742,9 +742,9 @@ img[loading="lazy"] {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-/* Card hover effects */
+/* Card hover effects - Fast and smooth */
 .card-interactive {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid transparent;
   will-change: transform, box-shadow;
 }

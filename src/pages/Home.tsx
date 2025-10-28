@@ -156,10 +156,11 @@ const Home = () => {
             {movies.map((movie) => (
               <SwiperSlide key={movie.id}>
                 <motion.div
-                  className="relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer group h-[200px] sm:h-[280px] shadow-lg hover:shadow-2xl transition-all duration-150 border-2 border-transparent hover:border-blue-500/30"
+                  className="relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer group h-[200px] sm:h-[280px] shadow-lg hover:shadow-2xl border-2 border-transparent hover:border-blue-500/30"
                   onClick={() => handleMovieClick(movie)}
                   whileHover={{ scale: 1.03, y: -2 }}
-                  transition={{ duration: 0.15, ease: "easeOut", delay: 0 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{ transition: 'all 0.15s ease-out' }}
                 >
                   <OptimizedPoster
                     src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
@@ -255,11 +256,13 @@ const Home = () => {
               ].map((feature, i) => (
                 <motion.div
                   key={i}
-                  className={`glass-effect rounded-2xl shadow-lg border border-white/20 dark:border-gray-700/50 p-8 card-interactive bg-gradient-to-br ${feature.gradient} backdrop-blur-xl`}
+                  className={`glass-effect rounded-2xl shadow-lg border border-white/20 dark:border-gray-700/50 p-8 bg-gradient-to-br ${feature.gradient} backdrop-blur-xl`}
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.3 + (i * 0.1), duration: 0.4 }}
-                  whileHover={{ scale: 1.03, y: -4, transition: { duration: 0.15, ease: "easeOut", delay: 0 } }}
+                  whileHover={{ scale: 1.03, y: -4 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{ transition: 'all 0.15s ease-out' }}
                 >
                   {feature.icon}
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{feature.title}</h2>
