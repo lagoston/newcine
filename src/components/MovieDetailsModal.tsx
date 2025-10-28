@@ -200,35 +200,52 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           // Usar fetch com CORS para carregar a imagem
           const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
           const response = await fetch(posterUrl);
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch image');
+          }
+
           const blob = await response.blob();
           const img = new Image();
 
           await new Promise<void>((resolve, reject) => {
             img.onload = () => {
-              // Desenhar poster centralizado
-              const posterWidth = 600;
-              const posterHeight = 900;
-              const posterX = (canvas.width - posterWidth) / 2;
-              const posterY = 300;
+              try {
+                // Desenhar poster centralizado
+                const posterWidth = 600;
+                const posterHeight = 900;
+                const posterX = (canvas.width - posterWidth) / 2;
+                const posterY = 300;
 
-              // Sombra
-              ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-              ctx.shadowBlur = 20;
-              ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = 10;
+                // Sombra
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 20;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 10;
 
-              ctx.drawImage(img, posterX, posterY, posterWidth, posterHeight);
+                ctx.drawImage(img, posterX, posterY, posterWidth, posterHeight);
 
-              // Resetar sombra
-              ctx.shadowColor = 'transparent';
-              ctx.shadowBlur = 0;
-              ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = 0;
+                // Resetar sombra
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
 
-              resolve();
+                // Limpar object URL
+                URL.revokeObjectURL(img.src);
+                resolve();
+              } catch (err) {
+                reject(err);
+              }
             };
-            img.onerror = () => reject(new Error('Failed to load image'));
-            img.src = URL.createObjectURL(blob);
+            img.onerror = (err) => {
+              console.error('Image load error:', err);
+              URL.revokeObjectURL(img.src);
+              reject(new Error('Failed to load image'));
+            };
+
+            const objectUrl = URL.createObjectURL(blob);
+            img.src = objectUrl;
           });
         } catch (error) {
           console.error('Error loading poster:', error);
@@ -236,14 +253,32 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         }
       }
 
-      // Título do filme
+      // Título do filme (com quebra de linha se necessário)
       ctx.fillStyle = 'white';
       ctx.font = 'bold 48px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(movie.title, canvas.width / 2, 1300);
+
+      const maxTitleWidth = 900;
+      const words = movie.title.split(' ');
+      let line = '';
+      let y = 1280;
+
+      for (let i = 0; i < words.length; i++) {
+        const testLine = line + words[i] + ' ';
+        const metrics = ctx.measureText(testLine);
+
+        if (metrics.width > maxTitleWidth && i > 0) {
+          ctx.fillText(line, canvas.width / 2, y);
+          line = words[i] + ' ';
+          y += 60;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, canvas.width / 2, y);
 
       // Nota do usuário - badge grande
-      const badgeY = 1450;
+      const badgeY = y + 120;
       const badgeRadius = 100;
 
       // Círculo de fundo
@@ -427,30 +462,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           </button>
 
           <div className="px-6 pt-2 pb-6">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex-1">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
-                  {movie.title}
-                  <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
-                    ({year})
-                  </span>
-                </h2>
-
-                {session?.user && (
-                  <button
-                    onClick={handleShareToInstagram}
-                    disabled={isSharing}
-                    className="mt-3 p-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-                    title="Compartilhar no Instagram"
-                  >
-                    {isSharing ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Instagram className="w-5 h-5" />
-                    )}
-                  </button>
-                )}
-              </div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+                {movie.title}
+                <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                  ({year})
+                </span>
+              </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -504,11 +522,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                   </div>
                                 </div>
 
-                                <div className="absolute -bottom-1 -right-1 z-10">
+                                <div className="absolute -bottom-1 -right-1 z-20">
                                   {isPerfectScore(friend.rating) && (
-                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 animate-ping opacity-75" />
+                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 animate-ping opacity-75 z-20" />
                                   )}
-                                  <div className={`relative w-7 h-7 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center ${isPerfectScore(friend.rating) ? 'shadow-[0_0_20px_rgba(168,85,247,0.8)]' : ''}`}>
+                                  <div className={`relative w-7 h-7 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center z-20 ${isPerfectScore(friend.rating) ? 'shadow-[0_0_20px_rgba(168,85,247,0.8)]' : ''}`}>
                                     <span className="text-xs font-bold text-white">
                                       {friend.rating}
                                     </span>
@@ -573,13 +591,28 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     </div>
                   )}
                 </div>
-                
-                <div className="flex flex-wrap gap-3">
+
+                <div className="flex flex-wrap items-center gap-3">
                   {movie.genres?.map(genre => (
                     <span key={genre.id} className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs text-gray-700 dark:text-gray-300">
                       {genre.name}
                     </span>
                   ))}
+
+                  {session?.user && (
+                    <button
+                      onClick={handleShareToInstagram}
+                      disabled={isSharing}
+                      className="ml-auto p-1 text-purple-500 hover:text-pink-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Compartilhar no Instagram"
+                    >
+                      {isSharing ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : (
+                        <Instagram className="w-6 h-6" />
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
