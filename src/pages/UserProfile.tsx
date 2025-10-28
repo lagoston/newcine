@@ -639,7 +639,7 @@ export default function UserProfile() {
             className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg p-4 shadow-md transition-all duration-300 flex items-center justify-center gap-2 font-medium"
           >
             <BarChart3 className="w-5 h-5" />
-            {showStats ? 'Ocultar Estatísticas' : 'Mostrar Todas as Estatísticas'}
+            {showStats ? t('profile.hideStats') : t('profile.showStats')}
             <svg
               className={`w-5 h-5 transition-transform duration-300 ${showStats ? 'rotate-180' : ''}`}
               fill="none"

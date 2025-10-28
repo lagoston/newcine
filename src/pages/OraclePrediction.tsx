@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, BrainCircuit, Loader2, Ticket, Plus, Share2, BookmarkPlus, ArrowLeft } from 'lucide-react';
+import { Search, Star, BrainCircuit, Loader2, Ticket, Plus, Share2, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { searchMovies } from '../lib/tmdb';
@@ -9,12 +9,11 @@ import { supabase } from '../lib/supabase';
 import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { autoTranslate } from '../lib/translator';
 
 export default function OraclePrediction() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery] = useDebounce(searchQuery, 300);
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -27,8 +26,6 @@ export default function OraclePrediction() {
   });
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
   const [nextReset, setNextReset] = useState<Date | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
-  const [savedPredictionId, setSavedPredictionId] = useState<string | null>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
 
@@ -155,7 +152,8 @@ export default function OraclePrediction() {
           },
           body: JSON.stringify({
             userId: session.user.id,
-            movieName
+            movieName,
+            language: i18n.language
           })
         }
       );
@@ -179,8 +177,7 @@ export default function OraclePrediction() {
         throw new Error('No prediction received from Oracle');
       }
 
-      const translatedPrediction = await autoTranslate(data.prediction);
-      setPrediction({ ...data, prediction: translatedPrediction });
+      setPrediction(data);
       setTicketsRemaining(data.ticketsRemaining);
     } catch (error) {
       console.error('Error getting prediction:', error);
@@ -191,43 +188,6 @@ export default function OraclePrediction() {
   };
 
 
-  const handleSave = async () => {
-    if (!session?.user?.id || !prediction?.prediction || !selectedMovie) return;
-
-    try {
-      if (isSaved && savedPredictionId) {
-        const { error: deleteError } = await supabase
-          .from('saved_predictions')
-          .delete()
-          .eq('id', savedPredictionId);
-
-        if (deleteError) throw deleteError;
-
-        setIsSaved(false);
-        setSavedPredictionId(null);
-        toast.success(t('oracle.whispers'));
-      } else {
-        const { data, error: insertError } = await supabase
-          .from('saved_predictions')
-          .insert({
-            user_id: session.user.id,
-            movie_name: selectedMovie,
-            prediction: prediction.prediction
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        setIsSaved(true);
-        setSavedPredictionId(data.id);
-        toast.success(t('oracle.whispers'));
-      }
-    } catch (error) {
-      console.error('Error saving prediction:', error);
-      toast.error(t('common.error'));
-    }
-  };
 
   const handleShare = async () => {
     if (!prediction?.prediction || !selectedMovie || loading.sharing) return;

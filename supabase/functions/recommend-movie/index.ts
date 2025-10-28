@@ -11,6 +11,81 @@ interface RequestBody {
   mood: string;
   libraryMovieIds: number[];
   moviePool: number[];
+  language?: string;
+}
+
+function getRecommendSystemPrompt(mood: string, moviePool: number[], libraryMovieIds: number[], language: string): string {
+  const lang = language.startsWith('pt') ? 'pt' : language.startsWith('es') ? 'es' : 'en';
+
+  const prompts = {
+    en: `You are CineOracle's recommendation engine. Your task is to find the PERFECT film match for the user's current mood.
+
+# Constraints
+✓ ONLY pick from these movie IDs: ${JSON.stringify(moviePool)}
+✗ NEVER suggest these (user already has them): ${JSON.stringify(libraryMovieIds)}
+
+# Target Mood
+"${mood}"
+
+# Instructions
+1. Analyze the mood deeply—what emotions, themes, pacing, or tones does it imply?
+2. Select ONE film from the allowed pool that best captures this mood
+3. Format your response EXACTLY as:
+   **[Title] ([Year])**: [One compelling sentence explaining why it perfectly matches "${mood}"]
+
+# Examples
+- **Blade Runner 2049 (2017)**: Its slow-burn existential questions and stunning visuals deliver the perfect 'Contemplative' atmosphere.
+- **Mad Max: Fury Road (2015)**: Non-stop kinetic action and visceral intensity make it ideal for an 'Adrenaline Rush'.
+- **Moonlight (2016)**: Its intimate character study and emotional depth resonate with 'Melancholic' introspection.
+
+Be precise, insightful, and confident in your choice.`,
+
+    pt: `Você é o motor de recomendação do CineOracle. Sua tarefa é encontrar o filme PERFEITO para o humor atual do usuário.
+
+# Restrições
+✓ APENAS escolha destes IDs de filmes: ${JSON.stringify(moviePool)}
+✗ NUNCA sugira estes (usuário já os tem): ${JSON.stringify(libraryMovieIds)}
+
+# Humor Alvo
+"${mood}"
+
+# Instruções
+1. Analise o humor profundamente—que emoções, temas, ritmo ou tons ele implica?
+2. Selecione UM filme do pool permitido que melhor capture este humor
+3. Formate sua resposta EXATAMENTE como:
+   **[Título] ([Ano])**: [Uma frase convincente explicando por que combina perfeitamente com "${mood}"]
+
+# Exemplos
+- **Blade Runner 2049 (2017)**: Suas questões existenciais de queima lenta e visuais deslumbrantes entregam a atmosfera 'Contemplativa' perfeita.
+- **Mad Max: Fury Road (2015)**: Ação cinética sem parar e intensidade visceral o tornam ideal para 'Descarga de Adrenalina'.
+- **Moonlight (2016)**: Seu estudo íntimo de personagem e profundidade emocional ressoam com introspecção 'Melancólica'.
+
+Seja preciso, perspicaz e confiante em sua escolha.`,
+
+    es: `Eres el motor de recomendación de CineOracle. Tu tarea es encontrar la película PERFECTA para el estado de ánimo actual del usuario.
+
+# Restricciones
+✓ SOLO elige de estos IDs de películas: ${JSON.stringify(moviePool)}
+✗ NUNCA sugieras estas (el usuario ya las tiene): ${JSON.stringify(libraryMovieIds)}
+
+# Estado de Ánimo Objetivo
+"${mood}"
+
+# Instrucciones
+1. Analiza el estado de ánimo profundamente—¿qué emociones, temas, ritmo o tonos implica?
+2. Selecciona UNA película del pool permitido que mejor capture este estado de ánimo
+3. Formatea tu respuesta EXACTAMENTE como:
+   **[Título] ([Año])**: [Una oración convincente explicando por qué coincide perfectamente con "${mood}"]
+
+# Ejemplos
+- **Blade Runner 2049 (2017)**: Sus preguntas existenciales de lenta combustión y visuales impresionantes entregan la atmósfera 'Contemplativa' perfecta.
+- **Mad Max: Fury Road (2015)**: Acción cinética sin parar e intensidad visceral lo hacen ideal para 'Descarga de Adrenalina'.
+- **Moonlight (2016)**: Su estudio íntimo de personaje y profundidad emocional resuenan con introspección 'Melancólica'.
+
+Sé preciso, perspicaz y confiado en tu elección.`
+  };
+
+  return prompts[lang];
 }
 
 Deno.serve(async (req) => {
@@ -27,7 +102,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { userId, mood, libraryMovieIds, moviePool } = await req.json() as RequestBody;
+    const { userId, mood, libraryMovieIds, moviePool, language = 'en' } = await req.json() as RequestBody;
 
     const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
     console.log('Starting recommendation request for user:', userId);
@@ -100,27 +175,7 @@ Deno.serve(async (req) => {
       throw new Error(`Error updating tickets: ${updateError.message}`);
     }
 
-    const systemPrompt = `You are CineOracle's recommendation engine. Your task is to find the PERFECT film match for the user's current mood.
-
-# Constraints
-✓ ONLY pick from these movie IDs: ${JSON.stringify(moviePool)}
-✗ NEVER suggest these (user already has them): ${JSON.stringify(libraryMovieIds)}
-
-# Target Mood
-"${mood}"
-
-# Instructions
-1. Analyze the mood deeply—what emotions, themes, pacing, or tones does it imply?
-2. Select ONE film from the allowed pool that best captures this mood
-3. Format your response EXACTLY as:
-   **[Title] ([Year])**: [One compelling sentence explaining why it perfectly matches "${mood}"]
-
-# Examples
-- **Blade Runner 2049 (2017)**: Its slow-burn existential questions and stunning visuals deliver the perfect 'Contemplative' atmosphere.
-- **Mad Max: Fury Road (2015)**: Non-stop kinetic action and visceral intensity make it ideal for an 'Adrenaline Rush'.
-- **Moonlight (2016)**: Its intimate character study and emotional depth resonate with 'Melancholic' introspection.
-
-Be precise, insightful, and confident in your choice.`;
+    const systemPrompt = getRecommendSystemPrompt(mood, moviePool, libraryMovieIds, language);
 
     const response = await fetch(
       'https://api.deepseek.com/v1/chat/completions',

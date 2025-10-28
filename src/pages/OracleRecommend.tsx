@@ -6,12 +6,11 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { autoTranslate } from '../lib/translator';
 
 export default function OracleRecommend() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [prediction, setPrediction] = useState<string | null>(null);
@@ -205,7 +204,8 @@ export default function OracleRecommend() {
             userId: session.user.id,
             mood: selectedMood,
             libraryMovieIds: libraryMovies,
-            moviePool
+            moviePool,
+            language: i18n.language
           })
         }
       );
@@ -229,8 +229,7 @@ export default function OracleRecommend() {
         throw new Error('No recommendation received from Oracle');
       }
 
-      const translatedRecommendation = await autoTranslate(data.recommendation);
-      setPrediction(translatedRecommendation);
+      setPrediction(data.recommendation);
       setTicketsRemaining(data.ticketsRemaining);
     } catch (error) {
       console.error('Error getting recommendation:', error);

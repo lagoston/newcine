@@ -211,6 +211,8 @@
     "userDoesntExist": "The user @{{username}} doesn't exist.",
     "movieCollection": "Movie Collection",
     "noMoviesYet": "This user hasn't added any movies to their collection.",
+    "showStats": "Show All Statistics",
+    "hideStats": "Hide Statistics",
     "stats": {
       "ratedMovies": "Rated Movies",
       "favoriteGenres": "Favorite Genres",
