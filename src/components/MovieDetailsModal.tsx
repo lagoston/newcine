@@ -195,41 +195,45 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       ctx.fillText('🎬 Cine Oracle', canvas.width / 2, 150);
 
       // Carregar e desenhar poster
-      const posterUrl = movie.poster_path
-        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-        : '';
+      if (movie.poster_path) {
+        try {
+          // Usar fetch com CORS para carregar a imagem
+          const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+          const response = await fetch(posterUrl);
+          const blob = await response.blob();
+          const img = new Image();
 
-      if (posterUrl) {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => {
+              // Desenhar poster centralizado
+              const posterWidth = 600;
+              const posterHeight = 900;
+              const posterX = (canvas.width - posterWidth) / 2;
+              const posterY = 300;
 
-        await new Promise((resolve, reject) => {
-          img.onload = () => {
-            // Desenhar poster centralizado
-            const posterWidth = 600;
-            const posterHeight = 900;
-            const posterX = (canvas.width - posterWidth) / 2;
-            const posterY = 300;
+              // Sombra
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+              ctx.shadowBlur = 20;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 10;
 
-            // Sombra
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 10;
+              ctx.drawImage(img, posterX, posterY, posterWidth, posterHeight);
 
-            ctx.drawImage(img, posterX, posterY, posterWidth, posterHeight);
+              // Resetar sombra
+              ctx.shadowColor = 'transparent';
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
 
-            // Resetar sombra
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-
-            resolve(true);
-          };
-          img.onerror = reject;
-          img.src = posterUrl;
-        });
+              resolve();
+            };
+            img.onerror = () => reject(new Error('Failed to load image'));
+            img.src = URL.createObjectURL(blob);
+          });
+        } catch (error) {
+          console.error('Error loading poster:', error);
+          // Continuar sem o poster se houver erro
+        }
       }
 
       // Título do filme
@@ -423,28 +427,30 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           </button>
 
           <div className="px-6 pt-2 pb-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
-                {movie.title}
-                <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
-                  ({year})
-                </span>
-              </h2>
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex-1">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+                  {movie.title}
+                  <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                    ({year})
+                  </span>
+                </h2>
 
-              {session?.user && (
-                <button
-                  onClick={handleShareToInstagram}
-                  disabled={isSharing}
-                  className="ml-4 p-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-                  title="Compartilhar no Instagram"
-                >
-                  {isSharing ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Instagram className="w-5 h-5" />
-                  )}
-                </button>
-              )}
+                {session?.user && (
+                  <button
+                    onClick={handleShareToInstagram}
+                    disabled={isSharing}
+                    className="mt-3 p-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                    title="Compartilhar no Instagram"
+                  >
+                    {isSharing ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Instagram className="w-5 h-5" />
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -666,7 +672,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
             {/* Action Buttons */}
             {session?.user && (
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-2 gap-3 max-w-2xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     onClick={() => setShowRecommendModal(true)}
                     className="px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 active:bg-orange-700 transition-all flex items-center justify-center font-medium text-sm shadow-lg hover:shadow-xl"
