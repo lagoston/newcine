@@ -133,15 +133,16 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   if (movies.length === 0) return null;
 
   return (
-    <div className="relative mb-6 p-6 sm:p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden transition-all duration-300">
-      {/* Padrão decorativo de fundo */}
-      <div className="absolute inset-0 opacity-30 dark:opacity-20">
+    <>
+    <div className="relative mb-6 p-6 sm:p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl transition-all duration-300">
+      {/* Padrão decorativo de fundo - com overflow hidden */}
+      <div className="absolute inset-0 opacity-30 dark:opacity-20 overflow-hidden rounded-3xl pointer-events-none">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-pink-500/20 to-blue-500/20 rounded-full blur-3xl"></div>
       </div>
 
       {/* Grid pattern decorativo */}
-      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{
+      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none rounded-3xl overflow-hidden" style={{
         backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
         backgroundSize: '24px 24px'
       }}></div>
@@ -566,50 +567,51 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           </div>
         </div>
       </div>
+    </div>
 
-      {/* Modals */}
-      <ConfirmationModal
-        isOpen={deleteMovieId !== null}
-        onClose={() => setDeleteMovieId(null)}
-        onConfirm={() => {
-          if (deleteMovieId && onDelete) {
-            onDelete(deleteMovieId);
-          }
-        }}
-        title={t('common.delete')}
-        message={t('library.movieRemoved')}
-      />
+    {/* Modals - Fora do container para evitar overflow */}
+    <ConfirmationModal
+      isOpen={deleteMovieId !== null}
+      onClose={() => setDeleteMovieId(null)}
+      onConfirm={() => {
+        if (deleteMovieId && onDelete) {
+          onDelete(deleteMovieId);
+        }
+      }}
+      title={t('common.delete')}
+      message={t('library.movieRemoved')}
+    />
 
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isOpen={true}
-          onClose={() => setSelectedMovie(null)}
-          isOtherUserProfile={isOtherUserProfile}
-          onAddToLibrary={onAddToLibrary}
-        />
-      )}
-
-      <AllMoviesModal 
-        isOpen={showAllMovies}
-        onClose={() => setShowAllMovies(false)}
-        title={rating !== null ? t('library.rating', { value: rating }) : title}
-        movies={movies}
-        rating={rating}
+    {selectedMovie && (
+      <MovieDetailsModal
+        movie={selectedMovie}
+        isOpen={true}
+        onClose={() => setSelectedMovie(null)}
         isOtherUserProfile={isOtherUserProfile}
         onAddToLibrary={onAddToLibrary}
       />
+    )}
 
-      {showAddToList && (
-        <AddToListMenu
-          movieId={showAddToList.movieId}
-          movieTitle={showAddToList.title}
-          isOpen={true}
-          onClose={() => setShowAddToList(null)}
-          position={menuPosition}
-        />
-      )}
-    </div>
+    <AllMoviesModal
+      isOpen={showAllMovies}
+      onClose={() => setShowAllMovies(false)}
+      title={rating !== null ? t('library.rating', { value: rating }) : title}
+      movies={movies}
+      rating={rating}
+      isOtherUserProfile={isOtherUserProfile}
+      onAddToLibrary={onAddToLibrary}
+    />
+
+    {showAddToList && (
+      <AddToListMenu
+        movieId={showAddToList.movieId}
+        movieTitle={showAddToList.title}
+        isOpen={true}
+        onClose={() => setShowAddToList(null)}
+        position={menuPosition}
+      />
+    )}
+    </>
   );
 };
 
