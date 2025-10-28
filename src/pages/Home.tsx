@@ -159,9 +159,19 @@ const Home = () => {
           <Swiper
             slidesPerView={1.2}
             spaceBetween={16}
-            speed={400}
-            freeMode={true}
+            speed={600}
+            freeMode={{
+              enabled: true,
+              momentum: true,
+              momentumRatio: 0.5,
+              momentumVelocityRatio: 0.5,
+              sticky: false
+            }}
             grabCursor={true}
+            resistance={true}
+            resistanceRatio={0.85}
+            touchRatio={1.2}
+            threshold={5}
             breakpoints={{
               0: { slidesPerView: 2.4, spaceBetween: 16 },
               480: { slidesPerView: 3.2, spaceBetween: 18 },
@@ -182,10 +192,21 @@ const Home = () => {
                   transition={{ delay: index * 0.05, duration: 0.3 }}
                   whileHover={{ scale: 1.05, y: -8 }}
                   whileTap={{ scale: 0.98 }}
-                  style={{ transition: 'all 0.2s ease-out' }}
+                  style={{
+                    transition: 'all 0.2s ease-out',
+                    willChange: 'transform'
+                  }}
                 >
-                  {/* Badge de ranking */}
-                  <div className="absolute top-2 left-2 z-10 bg-gradient-to-br from-blue-600 to-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg">
+                  {/* Badge de ranking - Com will-change para manter durante scroll */}
+                  <div
+                    className="absolute top-2 left-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg"
+                    style={{
+                      zIndex: 30,
+                      willChange: 'transform, opacity',
+                      transform: 'translateZ(0)',
+                      backfaceVisibility: 'hidden' as const
+                    }}
+                  >
                     #{index + 1}
                   </div>
 
