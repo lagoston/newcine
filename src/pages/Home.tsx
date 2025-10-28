@@ -162,29 +162,28 @@ const Home = () => {
             modules={[FreeMode]}
             slidesPerView={1.2}
             spaceBetween={16}
-            speed={600}
+            speed={400}
             freeMode={{
               enabled: true,
               momentum: true,
-              momentumRatio: 0.8,
-              momentumVelocityRatio: 0.8,
-              momentumBounce: true,
-              momentumBounceRatio: 0.5,
+              momentumRatio: 1,
+              momentumVelocityRatio: 1,
+              momentumBounce: false,
               sticky: false,
               minimumVelocity: 0.02
             }}
             grabCursor={true}
             resistance={true}
-            resistanceRatio={0.6}
-            touchRatio={0.6}
+            resistanceRatio={0.85}
+            touchRatio={1}
             touchAngle={45}
             threshold={5}
-            longSwipesRatio={0.4}
+            longSwipesRatio={0.5}
             shortSwipes={true}
             longSwipes={true}
             followFinger={true}
-            simulateTouch={true}
-            touchStartPreventDefault={false}
+            watchSlidesProgress={true}
+            preventInteractionOnTransition={false}
             breakpoints={{
               0: { slidesPerView: 2.4, spaceBetween: 16 },
               480: { slidesPerView: 3.2, spaceBetween: 18 },
