@@ -159,27 +159,29 @@ const Home = () => {
           <Swiper
             slidesPerView={1.2}
             spaceBetween={16}
-            speed={400}
+            speed={350}
             freeMode={{
               enabled: true,
               momentum: true,
-              momentumRatio: 1.2,
-              momentumVelocityRatio: 1.2,
+              momentumRatio: 2,
+              momentumVelocityRatio: 2,
               momentumBounce: true,
-              momentumBounceRatio: 1,
+              momentumBounceRatio: 0.8,
               sticky: false,
-              minimumVelocity: 0.02
+              minimumVelocity: 0.01
             }}
             grabCursor={true}
             resistance={true}
-            resistanceRatio={0.5}
+            resistanceRatio={0.3}
             touchRatio={1.5}
             touchAngle={45}
             threshold={2}
-            longSwipesRatio={0.3}
+            longSwipesRatio={0.25}
             shortSwipes={true}
             longSwipes={true}
             followFinger={true}
+            simulateTouch={true}
+            touchStartPreventDefault={false}
             breakpoints={{
               0: { slidesPerView: 2.4, spaceBetween: 16 },
               480: { slidesPerView: 3.2, spaceBetween: 18 },
