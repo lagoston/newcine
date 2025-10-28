@@ -8,8 +8,10 @@ import Logo from '../components/Logo';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import OptimizedPoster from '../components/OptimizedPoster';
 import { Swiper, SwiperSlide } from 'swiper/react';
+import { FreeMode } from 'swiper/modules';
 import { motion } from 'framer-motion';
 import 'swiper/css';
+import 'swiper/css/free-mode';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
@@ -157,6 +159,7 @@ const Home = () => {
         {/* Container do carrossel */}
         <div className="relative z-10 overflow-visible py-4">
           <Swiper
+            modules={[FreeMode]}
             slidesPerView={1.2}
             spaceBetween={16}
             speed={350}
