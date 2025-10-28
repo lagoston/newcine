@@ -1,0 +1,37 @@
+{
+  "name": "CineOracle",
+  "short_name": "CineOracle",
+  "description": "Your personal movie companion. Discover, rate, and build your ultimate movie collection.",
+  "theme_color": "#111111",
+  "background_color": "#111111",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/assets/Crystalball.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/Crystalball512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Library",
+      "url": "/library",
+      "description": "View your movie library"
+    },
+    {
+      "name": "Oracle",
+      "url": "/oracle",
+      "description": "Get movie predictions"
+    }
+  ]
+}
