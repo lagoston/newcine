@@ -292,7 +292,7 @@ export default function Library() {
       </div>
 
       <motion.div
-        className="relative container mx-auto px-4 py-8"
+        className="relative max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-8"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
