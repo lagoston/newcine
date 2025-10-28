@@ -171,14 +171,22 @@ export default function OraclePrediction() {
           setTicketsRemaining(error.ticketsRemaining);
           throw new Error(t('oracle.prediction.notEnough', { time: formatTimeUntilReset() }));
         }
-        throw new Error(t('common.error'));
+        throw new Error(data.error || t('common.error'));
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data.prediction) {
+        throw new Error('No prediction received from Oracle');
       }
 
       setPrediction(data);
       setTicketsRemaining(data.ticketsRemaining);
     } catch (error) {
       console.error('Error getting prediction:', error);
-      toast.error(error.message);
+      toast.error(error instanceof Error ? error.message : t('common.error'));
     } finally {
       setLoading(prev => ({ ...prev, prediction: false }));
     }

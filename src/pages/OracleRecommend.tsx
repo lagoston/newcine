@@ -220,11 +220,20 @@ export default function OracleRecommend() {
       }
 
       const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data.recommendation) {
+        throw new Error('No recommendation received from Oracle');
+      }
+
       setPrediction(data.recommendation);
       setTicketsRemaining(data.ticketsRemaining);
     } catch (error) {
       console.error('Error getting recommendation:', error);
-      toast.error(error.message);
+      toast.error(error instanceof Error ? error.message : t('common.error'));
     } finally {
       setLoading(false);
     }
