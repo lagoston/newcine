@@ -110,6 +110,12 @@ const Home = () => {
   };
 
   const MovieCarousel = ({ title, movies, loading, category }: { title: string | JSX.Element; movies: Movie[]; loading: boolean; category: string }) => {
+    const [isDraggingDesktop, setIsDraggingDesktop] = React.useState(false);
+    const [startX, setStartX] = React.useState(0);
+    const [scrollLeft, setScrollLeft] = React.useState(0);
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+    const dragDistanceRef = React.useRef(0);
+
     if (loading) {
       return (
         <div className="relative mb-12 p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl">
@@ -119,6 +125,45 @@ const Home = () => {
         </div>
       );
     }
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      if (!scrollContainerRef.current) return;
+      setIsDraggingDesktop(true);
+      setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+      setScrollLeft(scrollContainerRef.current.scrollLeft);
+      dragDistanceRef.current = 0;
+      scrollContainerRef.current.style.cursor = 'grabbing';
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+      if (!isDraggingDesktop || !scrollContainerRef.current) return;
+      e.preventDefault();
+      const x = e.pageX - scrollContainerRef.current.offsetLeft;
+      const walk = (x - startX) * 2;
+      dragDistanceRef.current = Math.abs(walk);
+      scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingDesktop(false);
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.style.cursor = 'grab';
+      }
+    };
+
+    const handleMouseLeave = () => {
+      setIsDraggingDesktop(false);
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.style.cursor = 'grab';
+      }
+    };
+
+    const handleMovieClickDesktop = (movie: Movie) => {
+      if (dragDistanceRef.current > 5) {
+        return;
+      }
+      handleMovieClick(movie);
+    };
 
     return (
       <motion.div
@@ -157,80 +202,149 @@ const Home = () => {
           </Link>
         </div>
 
-        {/* Container do carrossel */}
+        {/* Container do carrossel - Desktop: Native Scroll / Mobile: Swiper */}
         <div className="relative z-10 overflow-visible py-4">
-          <Swiper
-            modules={[FreeMode]}
-            slidesPerView={1.2}
-            spaceBetween={16}
-            speed={400}
-            freeMode={{
-              enabled: true,
-              momentum: true,
-              momentumRatio: 1,
-              momentumVelocityRatio: 1,
-              momentumBounce: false,
-              sticky: false,
-              minimumVelocity: 0.02
-            }}
-            grabCursor={true}
-            resistance={true}
-            resistanceRatio={0.85}
-            touchRatio={1}
-            touchAngle={45}
-            threshold={5}
-            longSwipesRatio={0.5}
-            shortSwipes={true}
-            longSwipes={true}
-            followFinger={true}
-            watchSlidesProgress={true}
-            preventInteractionOnTransition={false}
-            allowTouchMove={true}
-            touchStartForcePreventDefault={false}
-            cssMode={false}
-            breakpoints={{
-              0: { slidesPerView: 2.4, spaceBetween: 16 },
-              480: { slidesPerView: 3.2, spaceBetween: 18 },
-              640: { slidesPerView: 4.1, spaceBetween: 20 },
-              768: { slidesPerView: 5.1, spaceBetween: 22 },
-              1024: { slidesPerView: 6.1, spaceBetween: 24 }
-            }}
-            onTouchStart={() => {
-              swiperMoved.current = false;
-            }}
-            onSliderMove={() => {
-              swiperMoved.current = true;
-            }}
-            onTouchEnd={(swiper) => {
-              setTimeout(() => {
+          {/* MOBILE: Swiper */}
+          <div className="block lg:hidden">
+            <Swiper
+              modules={[FreeMode]}
+              slidesPerView={1.2}
+              spaceBetween={16}
+              speed={400}
+              freeMode={{
+                enabled: true,
+                momentum: true,
+                momentumRatio: 1,
+                momentumVelocityRatio: 1,
+                momentumBounce: false,
+                sticky: false,
+                minimumVelocity: 0.02
+              }}
+              grabCursor={true}
+              resistance={true}
+              resistanceRatio={0.85}
+              touchRatio={1}
+              touchAngle={45}
+              threshold={5}
+              longSwipesRatio={0.5}
+              shortSwipes={true}
+              longSwipes={true}
+              followFinger={true}
+              watchSlidesProgress={true}
+              preventInteractionOnTransition={false}
+              allowTouchMove={true}
+              touchStartForcePreventDefault={false}
+              cssMode={false}
+              breakpoints={{
+                0: { slidesPerView: 2.4, spaceBetween: 16 },
+                480: { slidesPerView: 3.2, spaceBetween: 18 },
+                640: { slidesPerView: 4.1, spaceBetween: 20 },
+                768: { slidesPerView: 5.1, spaceBetween: 22 }
+              }}
+              onTouchStart={() => {
                 swiperMoved.current = false;
-              }, 50);
+              }}
+              onSliderMove={() => {
+                swiperMoved.current = true;
+              }}
+              onTouchEnd={(swiper) => {
+                setTimeout(() => {
+                  swiperMoved.current = false;
+                }, 50);
+              }}
+              onClick={(swiper, event) => {
+                if (swiperMoved.current) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }
+              }}
+              className="popular-swiper pb-4"
+              style={{ overflow: 'visible' }}
+            >
+              {movies.map((movie, index) => (
+                <SwiperSlide key={movie.id}>
+                  <motion.div
+                    className="relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer group h-[200px] sm:h-[280px] shadow-xl hover:shadow-2xl border-3 border-white/50 dark:border-gray-700/50 hover:border-blue-400/60 dark:hover:border-purple-400/60"
+                    onClick={() => handleMovieClick(movie)}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05, duration: 0.3 }}
+                    whileHover={{ scale: 1.05, y: -8 }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      transition: 'all 0.2s ease-out',
+                      willChange: 'transform'
+                    }}
+                  >
+                    <div
+                      className="absolute top-2 left-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg"
+                      style={{
+                        zIndex: 30,
+                        willChange: 'transform, opacity',
+                        transform: 'translateZ(0)',
+                        backfaceVisibility: 'hidden' as const
+                      }}
+                    >
+                      #{index + 1}
+                    </div>
+
+                    <OptimizedPoster
+                      src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                      alt={movie.title}
+                      className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
+                    />
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-sm">
+                      <div className="p-4 sm:p-5">
+                        <h3 className="text-white font-bold mb-2 line-clamp-2 text-base sm:text-lg drop-shadow-lg">{movie.title}</h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center bg-gradient-to-r from-yellow-500/30 to-orange-500/30 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-yellow-500/30 shadow-lg">
+                            <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="ml-1 text-yellow-100 font-bold text-sm">{movie.vote_average.toFixed(1)}</span>
+                          </div>
+                          <span className="text-gray-200 text-xs sm:text-sm font-semibold bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg">
+                            {new Date(movie.release_date).getFullYear()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/0 via-purple-500/0 to-pink-500/0 group-hover:from-blue-500/20 group-hover:via-purple-500/20 group-hover:to-pink-500/20 transition-all duration-300 pointer-events-none"></div>
+                  </motion.div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+
+          {/* DESKTOP: Native Scroll */}
+          <div
+            className="hidden lg:block overflow-x-auto scrollbar-hide cursor-grab active:cursor-grabbing pb-4"
+            ref={scrollContainerRef}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
             }}
-            onClick={(swiper, event) => {
-              if (swiperMoved.current) {
-                event.preventDefault();
-                event.stopPropagation();
-              }
-            }}
-            className="popular-swiper pb-4"
-            style={{ overflow: 'visible' }}
           >
-            {movies.map((movie, index) => (
-              <SwiperSlide key={movie.id}>
+            <div className="flex gap-6" style={{ minWidth: 'min-content' }}>
+              {movies.map((movie, index) => (
                 <motion.div
-                  className="relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer group h-[200px] sm:h-[280px] shadow-xl hover:shadow-2xl border-3 border-white/50 dark:border-gray-700/50 hover:border-blue-400/60 dark:hover:border-purple-400/60"
-                  onClick={() => handleMovieClick(movie)}
+                  key={movie.id}
+                  className="relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer group h-[280px] shadow-xl hover:shadow-2xl border-3 border-white/50 dark:border-gray-700/50 hover:border-blue-400/60 dark:hover:border-purple-400/60 flex-shrink-0"
+                  style={{
+                    width: '200px',
+                    transition: 'all 0.2s ease-out',
+                    willChange: 'transform'
+                  }}
+                  onClick={() => handleMovieClickDesktop(movie)}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05, duration: 0.3 }}
                   whileHover={{ scale: 1.05, y: -8 }}
-                  whileTap={{ scale: 0.98 }}
-                  style={{
-                    transition: 'all 0.2s ease-out',
-                    willChange: 'transform'
-                  }}
                 >
-                  {/* Badge de ranking - Com will-change para manter durante scroll */}
                   <div
                     className="absolute top-2 left-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg"
                     style={{
@@ -246,31 +360,29 @@ const Home = () => {
                   <OptimizedPoster
                     src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
                     alt={movie.title}
-                    className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
+                    className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out pointer-events-none"
                   />
 
-                  {/* Overlay com gradiente */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-sm">
-                    <div className="p-4 sm:p-5">
-                      <h3 className="text-white font-bold mb-2 line-clamp-2 text-base sm:text-lg drop-shadow-lg">{movie.title}</h3>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-sm pointer-events-none">
+                    <div className="p-5">
+                      <h3 className="text-white font-bold mb-2 line-clamp-2 text-lg drop-shadow-lg">{movie.title}</h3>
                       <div className="flex items-center gap-2 flex-wrap">
                         <div className="flex items-center bg-gradient-to-r from-yellow-500/30 to-orange-500/30 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-yellow-500/30 shadow-lg">
-                          <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                           <span className="ml-1 text-yellow-100 font-bold text-sm">{movie.vote_average.toFixed(1)}</span>
                         </div>
-                        <span className="text-gray-200 text-xs sm:text-sm font-semibold bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg">
+                        <span className="text-gray-200 text-sm font-semibold bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg">
                           {new Date(movie.release_date).getFullYear()}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Brilho no hover */}
                   <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/0 via-purple-500/0 to-pink-500/0 group-hover:from-blue-500/20 group-hover:via-purple-500/20 group-hover:to-pink-500/20 transition-all duration-300 pointer-events-none"></div>
                 </motion.div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
+              ))}
+            </div>
+          </div>
         </div>
       </motion.div>
     );
