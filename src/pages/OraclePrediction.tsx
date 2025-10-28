@@ -10,6 +10,17 @@ import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
+interface Prediction {
+  prediction: string;
+  movie: string;
+  ticketsRemaining: number;
+}
+
+interface TicketError {
+  error: string;
+  ticketsRemaining: number;
+}
+
 export default function OraclePrediction() {
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -50,12 +61,6 @@ export default function OraclePrediction() {
     }
   }, [session?.user?.id]);
 
-  useEffect(() => {
-    if (prediction) {
-      setIsSaved(false);
-      setSavedPredictionId(null);
-    }
-  }, [prediction]);
 
   useEffect(() => {
     if (!loading.prediction && !prediction) {
