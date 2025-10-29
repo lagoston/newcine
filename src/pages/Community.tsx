@@ -14,7 +14,7 @@ import 'swiper/css';
 import 'swiper/css/free-mode';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import { useAuth } from '../lib/auth';
-import { getMovieDetails, Movie } from '../lib/tmdb';
+import { getMovieDetails, Movie, getTrending } from '../lib/tmdb';
 
 interface Profile {
   id: string;
@@ -53,7 +53,7 @@ export default function Community() {
   const [searching, setSearching] = useState(false);
   const [friendsWatchlist, setFriendsWatchlist] = useState<FriendWatchlistMovie[]>([]);
   const [loadingWatchlist, setLoadingWatchlist] = useState(true);
-  const [selectedMovie, setSelectedMovie] = useState<number | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
   // Animation variants for staggered animations
   const containerVariants = {
@@ -184,9 +184,32 @@ export default function Community() {
           })
         );
         setFriendsWatchlist(moviesWithDetails);
+      } else {
+        const trendingMovies = await getTrending();
+        const fallbackMovies = trendingMovies.slice(0, 10).map(movie => ({
+          movie_id: movie.id,
+          title: movie.title,
+          friend_username: '',
+          friend_id: '',
+          movieDetails: movie
+        }));
+        setFriendsWatchlist(fallbackMovies);
       }
     } catch (error) {
       console.error('Error fetching friends watchlist:', error);
+      try {
+        const trendingMovies = await getTrending();
+        const fallbackMovies = trendingMovies.slice(0, 10).map(movie => ({
+          movie_id: movie.id,
+          title: movie.title,
+          friend_username: '',
+          friend_id: '',
+          movieDetails: movie
+        }));
+        setFriendsWatchlist(fallbackMovies);
+      } catch {
+        setFriendsWatchlist([]);
+      }
     } finally {
       setLoadingWatchlist(false);
     }
@@ -259,19 +282,24 @@ export default function Community() {
         </motion.div>
 
         {/* Friends Watchlist Carousel */}
-        {!loadingWatchlist && friendsWatchlist.length > 0 && (
-          <motion.div
-            className="mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="w-6 h-6 text-purple-500" />
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {t('community.friendsWatchlist')}
-              </h2>
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-6 h-6 text-purple-500" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {t('community.friendsPlanning')}
+            </h2>
+          </div>
+
+          {loadingWatchlist ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
             </div>
+          ) : friendsWatchlist.length > 0 ? (
 
             <Swiper
               modules={[FreeMode]}
@@ -286,7 +314,7 @@ export default function Community() {
                     whileHover={{ scale: 1.05 }}
                     transition={{ duration: 0.2 }}
                     className="relative group cursor-pointer"
-                    onClick={() => setSelectedMovie(movie.movie_id)}
+                    onClick={() => movie.movieDetails && setSelectedMovie(movie.movieDetails)}
                   >
                     {movie.movieDetails?.poster_path && (
                       <img
@@ -309,8 +337,12 @@ export default function Community() {
                 </SwiperSlide>
               ))}
             </Swiper>
-          </motion.div>
-        )}
+          ) : (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              {t('common.noMoviesFound')}
+            </div>
+          )}
+        </motion.div>
 
         {filteredProfiles.length === 0 ? (
           <motion.div 
@@ -479,7 +511,8 @@ export default function Community() {
       {/* Movie Details Modal */}
       {selectedMovie && (
         <MovieDetailsModal
-          movieId={selectedMovie}
+          movie={selectedMovie}
+          isOpen={true}
           onClose={() => setSelectedMovie(null)}
         />
       )}

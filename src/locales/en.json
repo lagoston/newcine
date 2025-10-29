@@ -272,7 +272,8 @@
     "beFirst": "Be the first to join the community!",
     "films": "films",
     "film": "film",
-    "description": "Follow friends and create a unique profile"
+    "description": "Follow friends and create a unique profile",
+    "friendsPlanning": "Friends Planning to Watch..."
   },
   "lists": {
     "title": "Personal Lists",
