@@ -9,6 +9,7 @@ import { banners, BannerId } from '../lib/banners';
 interface CustomizeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave?: () => void;
 }
 
 interface Frame {
@@ -366,7 +367,7 @@ const getCategoryButtonStyle = (isActive: boolean, category: string) => {
   }
 };
 
-const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose }) => {
+const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave }) => {
   const { session, isPremium } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('frames');
   const [activeTagCategory, setActiveTagCategory] = useState<TagCategory>('basic');
@@ -1122,10 +1123,14 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose }) => {
 
           <div className="flex justify-end gap-4 p-6 border-t border-gray-200 dark:border-gray-700">
             <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+              onClick={() => {
+                if (onSave) onSave();
+                onClose();
+              }}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center gap-2"
             >
-              Close
+              <Check className="w-4 h-4" />
+              Salvar
             </button>
           </div>
         </div>

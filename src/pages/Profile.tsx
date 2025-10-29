@@ -75,7 +75,7 @@ interface LeastKnownGem {
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { session, isPremium } = useAuth();
+  const { session, isPremium, checkPremiumStatus } = useAuth();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
@@ -379,9 +379,11 @@ export default function Profile() {
       if (session.user.created_at) {
         setCreatedAt(session.user.created_at);
       }
-      
+
       // Force refresh premium status in auth context
-      await checkPremiumStatus();
+      if (checkPremiumStatus) {
+        await checkPremiumStatus();
+      }
       
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -868,33 +870,33 @@ export default function Profile() {
                           {t('oracle.premium.upgrade')}
                         </motion.button>
                       )}
-                      <motion.button
-                        onClick={handleWhispersClick}
-                        className={`relative w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center ${
-                          unreadWhispers > 0 ? 'animate-pulse shadow-lg shadow-orange-500/50' : ''
-                        }`}
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                      >
-                        <MessageCircle className="w-5 h-5 mr-2" />
-                        {t('profile.whispers')}
-                        {unreadWhispers > 0 && (
-                          <span className="ml-2 px-2 py-0.5 bg-white text-orange-600 text-xs font-bold rounded-full">
-                            {unreadWhispers}
-                          </span>
-                        )}
-                      </motion.button>
+                      <div className="flex gap-2">
+                        <motion.button
+                          onClick={handleWhispersClick}
+                          className={`relative flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center ${
+                            unreadWhispers > 0 ? 'animate-pulse shadow-lg shadow-orange-500/50' : ''
+                          }`}
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          <MessageCircle className="w-5 h-5" />
+                          {unreadWhispers > 0 && (
+                            <span className="ml-2 px-2 py-0.5 bg-white text-orange-600 text-xs font-bold rounded-full">
+                              {unreadWhispers}
+                            </span>
+                          )}
+                        </motion.button>
+                        <motion.button
+                          onClick={() => setShowCustomizeModal(true)}
+                          className="px-4 py-2 bg-indigo-600 text-white dark:bg-indigo-500 rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors flex items-center justify-center"
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          <Palette className="w-5 h-5" />
+                        </motion.button>
+                      </div>
                       {isEditing ? (
                         <>
-                          <motion.button
-                            onClick={() => setShowCustomizeModal(true)}
-                            className="w-full px-4 py-2 bg-indigo-600 text-white dark:bg-indigo-500 rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors flex items-center justify-center"
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                          >
-                            <Palette className="w-5 h-5 mr-2" />
-                            {t('profile.customize')}
-                          </motion.button>
                           <motion.button
                             onClick={handleUpdateProfile}
                             className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -1243,6 +1245,10 @@ export default function Profile() {
         <CustomizeModal
           isOpen={showCustomizeModal}
           onClose={() => setShowCustomizeModal(false)}
+          onSave={() => {
+            // Recarregar perfil após salvar customização
+            fetchProfile();
+          }}
         />
       </div>
     </motion.div>

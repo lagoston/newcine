@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, MessageCircle, Loader2, Calendar, Trash2, Film } from 'lucide-react';
+import { X, MessageCircle, Loader2, Calendar, Trash2, Film, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
