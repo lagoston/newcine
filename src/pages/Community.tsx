@@ -8,6 +8,13 @@ import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { FreeMode } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/free-mode';
+import MovieDetailsModal from '../components/MovieDetailsModal';
+import { useAuth } from '../lib/auth';
+import { getMovieDetails, Movie } from '../lib/tmdb';
 
 interface Profile {
   id: string;
@@ -26,15 +33,27 @@ interface Profile {
   };
 }
 
+interface FriendWatchlistMovie {
+  movie_id: number;
+  title: string;
+  friend_username: string;
+  friend_id: string;
+  movieDetails?: Movie;
+}
+
 export default function Community() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { session } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery] = useDebounce(searchQuery, 300);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [filteredProfiles, setFilteredProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [friendsWatchlist, setFriendsWatchlist] = useState<FriendWatchlistMovie[]>([]);
+  const [loadingWatchlist, setLoadingWatchlist] = useState(true);
+  const [selectedMovie, setSelectedMovie] = useState<number | null>(null);
 
   // Animation variants for staggered animations
   const containerVariants = {
@@ -59,6 +78,12 @@ export default function Community() {
   useEffect(() => {
     fetchProfiles();
   }, []);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchFriendsWatchlist();
+    }
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (debouncedQuery) {
@@ -137,6 +162,36 @@ export default function Community() {
     setSearching(false);
   };
 
+  const fetchFriendsWatchlist = async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      setLoadingWatchlist(true);
+      const { data, error } = await supabase
+        .rpc('get_friends_watchlist_movies', { user_id_param: session.user.id });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const moviesWithDetails = await Promise.all(
+          data.map(async (movie: FriendWatchlistMovie) => {
+            try {
+              const details = await getMovieDetails(movie.movie_id);
+              return { ...movie, movieDetails: details };
+            } catch {
+              return movie;
+            }
+          })
+        );
+        setFriendsWatchlist(moviesWithDetails);
+      }
+    } catch (error) {
+      console.error('Error fetching friends watchlist:', error);
+    } finally {
+      setLoadingWatchlist(false);
+    }
+  };
+
   const navigateToProfile = (username: string) => {
     navigate(`/profile/${username}`);
   };
@@ -202,6 +257,60 @@ export default function Community() {
             </div>
           </div>
         </motion.div>
+
+        {/* Friends Watchlist Carousel */}
+        {!loadingWatchlist && friendsWatchlist.length > 0 && (
+          <motion.div
+            className="mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-6 h-6 text-purple-500" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {t('community.friendsWatchlist')}
+              </h2>
+            </div>
+
+            <Swiper
+              modules={[FreeMode]}
+              spaceBetween={16}
+              slidesPerView="auto"
+              freeMode={true}
+              className="!pb-4"
+            >
+              {friendsWatchlist.map((movie) => (
+                <SwiperSlide key={`${movie.movie_id}-${movie.friend_id}`} className="!w-40">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.2 }}
+                    className="relative group cursor-pointer"
+                    onClick={() => setSelectedMovie(movie.movie_id)}
+                  >
+                    {movie.movieDetails?.poster_path && (
+                      <img
+                        src={`https://image.tmdb.org/t/p/w342${movie.movieDetails.poster_path}`}
+                        alt={movie.title}
+                        className="w-full rounded-lg shadow-lg"
+                        loading="lazy"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-end p-3">
+                      <p className="text-white text-xs font-medium truncate">{movie.title}</p>
+                      <p className="text-gray-300 text-xs truncate">@{movie.friend_username}</p>
+                    </div>
+                    {movie.movieDetails?.vote_average && movie.movieDetails.vote_average > 0 && (
+                      <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
+                        ★ {movie.movieDetails.vote_average.toFixed(1)}
+                      </div>
+                    )}
+                  </motion.div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </motion.div>
+        )}
 
         {filteredProfiles.length === 0 ? (
           <motion.div 
@@ -366,6 +475,14 @@ export default function Community() {
           />
         ))}
       </div>
+
+      {/* Movie Details Modal */}
+      {selectedMovie && (
+        <MovieDetailsModal
+          movieId={selectedMovie}
+          onClose={() => setSelectedMovie(null)}
+        />
+      )}
     </motion.div>
   );
 }
