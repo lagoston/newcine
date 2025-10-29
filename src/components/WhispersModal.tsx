@@ -17,10 +17,11 @@ interface WhispersModalProps {
 interface Recommendation {
   id: string;
   from_user_id: string;
-  movie_id: number;
-  movie_title: string;
-  movie_poster: string;
-  message: string;
+  type: 'movie' | 'follower';
+  movie_id?: number;
+  movie_title?: string;
+  movie_poster?: string;
+  message?: string;
   read: boolean;
   created_at: string;
   from_user: {
@@ -209,7 +210,7 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
                                 {rec.from_user.username}
                               </span>
                               <span className="text-sm text-gray-500 dark:text-gray-400">
-                                recomendou
+                                {rec.type === 'follower' ? 'começou a te seguir' : 'recomendou'}
                               </span>
                             </div>
                             <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
@@ -219,52 +220,85 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
                           </div>
                         </div>
 
-                        {/* Filme recomendado */}
-                        <div className="flex gap-4 mb-4 bg-white dark:bg-gray-800 rounded-lg p-4">
-                          <img
-                            src={`https://image.tmdb.org/t/p/w200${rec.movie_poster}`}
-                            alt={rec.movie_title}
-                            className="w-20 h-30 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => handleOpenMovie(rec.movie_id)}
-                            onError={(e) => {
-                              e.currentTarget.src = 'https://via.placeholder.com/200x300?text=No+Image';
-                            }}
-                          />
-                          <div className="flex-1">
-                            <h3
-                              className="text-lg font-semibold text-gray-900 dark:text-white mb-2 cursor-pointer hover:text-orange-500 transition-colors"
-                              onClick={() => handleOpenMovie(rec.movie_id)}
-                            >
-                              {rec.movie_title}
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-300 text-sm italic">
-                              "{rec.message}"
-                            </p>
-                          </div>
-                        </div>
+                        {/* Conteúdo baseado no tipo */}
+                        {rec.type === 'movie' ? (
+                          <>
+                            {/* Filme recomendado */}
+                            <div className="flex gap-4 mb-4 bg-white dark:bg-gray-800 rounded-lg p-4">
+                              <img
+                                src={`https://image.tmdb.org/t/p/w200${rec.movie_poster}`}
+                                alt={rec.movie_title}
+                                className="w-20 h-30 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => handleOpenMovie(rec.movie_id!)}
+                                onError={(e) => {
+                                  e.currentTarget.src = 'https://via.placeholder.com/200x300?text=No+Image';
+                                }}
+                              />
+                              <div className="flex-1">
+                                <h3
+                                  className="text-lg font-semibold text-gray-900 dark:text-white mb-2 cursor-pointer hover:text-orange-500 transition-colors"
+                                  onClick={() => handleOpenMovie(rec.movie_id!)}
+                                >
+                                  {rec.movie_title}
+                                </h3>
+                                <p className="text-gray-600 dark:text-gray-300 text-sm italic">
+                                  "{rec.message}"
+                                </p>
+                              </div>
+                            </div>
 
-                        {/* Ações */}
-                        <div className="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-600 pt-4">
-                          <button
-                            onClick={() => handleOpenMovie(rec.movie_id)}
-                            disabled={loadingMovie}
-                            className="flex items-center px-3 py-1.5 text-sm rounded-md text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors disabled:opacity-50"
-                          >
-                            {loadingMovie ? (
-                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                            ) : (
-                              <Film className="w-4 h-4 mr-2" />
-                            )}
-                            Ver Filme
-                          </button>
-                          <button
-                            onClick={() => setDeletingId(rec.id)}
-                            className="flex items-center px-3 py-1.5 text-sm rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Deletar
-                          </button>
-                        </div>
+                            {/* Ações - Filme */}
+                            <div className="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-600 pt-4">
+                              <button
+                                onClick={() => handleOpenMovie(rec.movie_id!)}
+                                disabled={loadingMovie}
+                                className="flex items-center px-3 py-1.5 text-sm rounded-md text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors disabled:opacity-50"
+                              >
+                                {loadingMovie ? (
+                                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                ) : (
+                                  <Film className="w-4 h-4 mr-2" />
+                                )}
+                                Ver Filme
+                              </button>
+                              <button
+                                onClick={() => setDeletingId(rec.id)}
+                                className="flex items-center px-3 py-1.5 text-sm rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Deletar
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Notificação de seguidor */}
+                            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-lg p-4 mb-4">
+                              <p className="text-gray-700 dark:text-gray-300 text-center">
+                                <User className="w-5 h-5 inline-block mr-2 text-orange-500" />
+                                <span className="font-semibold">@{rec.from_user.username}</span> agora está te seguindo! 🎉
+                              </p>
+                            </div>
+
+                            {/* Ações - Seguidor */}
+                            <div className="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-600 pt-4">
+                              <button
+                                onClick={() => window.location.href = `/profile/${rec.from_user.username}`}
+                                className="flex items-center px-3 py-1.5 text-sm rounded-md text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+                              >
+                                <User className="w-4 h-4 mr-2" />
+                                Ver Perfil
+                              </button>
+                              <button
+                                onClick={() => setDeletingId(rec.id)}
+                                className="flex items-center px-3 py-1.5 text-sm rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Deletar
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}

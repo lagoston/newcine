@@ -383,6 +383,33 @@ export default function UserProfile() {
         setIsFollowing(true);
         setFollowersCount(prev => prev + 1);
         toast.success(`Following @${profile.username}`);
+
+        // Verificar se pode enviar notificação (anti-spam 24h)
+        const { data: canSend } = await supabase
+          .rpc('can_send_follower_notification', {
+            p_from_user_id: session.user.id,
+            p_to_user_id: profile.id
+          });
+
+        if (canSend) {
+          // Criar notificação de seguidor
+          await supabase
+            .from('recommendations')
+            .insert({
+              from_user_id: session.user.id,
+              to_user_id: profile.id,
+              type: 'follower',
+              read: false
+            });
+
+          // Registrar no log para controle anti-spam
+          await supabase
+            .from('follower_notifications_log')
+            .insert({
+              from_user_id: session.user.id,
+              to_user_id: profile.id
+            });
+        }
       }
     } catch (error) {
       console.error('Error toggling follow:', error);
