@@ -144,6 +144,23 @@ export default function Library() {
 
   const handleRate = async (movieId: number, rating: number | null) => {
     try {
+      // Encontrar o filme para obter os gêneros
+      const movie = userMovies.find(m => m.id === movieId);
+
+      // Cache dos gêneros para o Espectrograma Cinematográfico
+      if (movie?.genres && movie.genres.length > 0) {
+        try {
+          await supabase
+            .rpc('cache_movie_genres', {
+              p_movie_id: movieId,
+              p_genres: movie.genres
+            });
+        } catch (cacheError) {
+          console.warn('Failed to cache movie genres:', cacheError);
+          // Não bloquear o rating se o cache falhar
+        }
+      }
+
       const { error } = await supabase
         .from('user_movies')
         .update({ rating })

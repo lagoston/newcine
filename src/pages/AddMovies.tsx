@@ -100,6 +100,19 @@ export default function AddMovies() {
 
       if (movieError) throw movieError;
 
+      // Cache genres for Espectrograma Cinematográfico
+      if (movie.genres && movie.genres.length > 0) {
+        try {
+          await supabase
+            .rpc('cache_movie_genres', {
+              p_movie_id: movie.id,
+              p_genres: movie.genres
+            });
+        } catch (cacheError) {
+          console.warn('Failed to cache movie genres:', cacheError);
+        }
+      }
+
       // Then add to user's library
       const { error } = await supabase
         .from('user_movies')
