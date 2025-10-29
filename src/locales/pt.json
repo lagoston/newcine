@@ -118,7 +118,8 @@
     "downloading": "Baixando...",
     "downloadSuccess": "Arquivo baixado com sucesso!",
     "noRatedMovies": "Você ainda não avaliou nenhum filme",
-    "noWatchlistMovies": "Sua watchlist está vazia"
+    "noWatchlistMovies": "Sua watchlist está vazia",
+    "loadingMovies": "Carregando sua biblioteca..."
   },
   "movies": {
     "director": "Diretor",

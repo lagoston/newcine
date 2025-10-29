@@ -71,9 +71,11 @@ export default function Library() {
       const total = (userMoviesData || []).length;
       setTotalMovies(total);
 
+      // Abrir interface imediatamente
+      setLoading(false);
+
       if (total === 0) {
         setUserMovies([]);
-        setLoading(false);
         setLoadingProgress(100);
         setInitialLoadComplete(true);
         return;
@@ -121,7 +123,6 @@ export default function Library() {
       // Carregar primeiro lote
       const firstBatchMovies = await loadBatch(initialBatch);
       setUserMovies(firstBatchMovies);
-      setLoading(false);
       setInitialLoadComplete(true);
 
       // Carregar restante em background
@@ -204,61 +205,6 @@ export default function Library() {
   );
 
   // Loading screen with container animation
-  if (loading) {
-    return (
-      <motion.div 
-        className="container mx-auto px-4 py-8 min-h-[50vh] flex flex-col items-center justify-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <motion.div 
-          className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 p-8 rounded-xl shadow-lg border border-blue-200 dark:border-blue-800/30 backdrop-blur-sm"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <div className="flex flex-col items-center justify-center">
-            <div className="mb-6 p-4 rounded-full bg-blue-100 dark:bg-blue-900/30">
-              <motion.div 
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="w-12 h-12 border-t-2 border-b-2 border-blue-500 rounded-full"
-              ></motion.div>
-            </div>
-            
-            <motion.h2
-              className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              {t('library.title')}
-            </motion.h2>
-            
-            {/* Only show the progress bar during initial load */}
-            {!initialLoadComplete && (
-              <motion.div
-                className="w-full max-w-md"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-              >
-                <LinearProgressBar 
-                  progress={loadingProgress}
-                  total={totalMovies}
-                  current={processedMovies}
-                  isError={loadingError}
-                  errorMessage={errorMessage}
-                />
-              </motion.div>
-            )}
-          </div>
-        </motion.div>
-      </motion.div>
-    );
-  }
 
   // Container animations for main content
   const containerVariants = {
@@ -297,6 +243,35 @@ export default function Library() {
         initial="hidden"
         animate="visible"
       >
+        {/* Loading Progress Bar - Fixed at top */}
+        {loadingProgress > 0 && loadingProgress < 100 && (
+          <motion.div
+            className="sticky top-0 z-50 mb-6"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg border border-blue-200 dark:border-blue-800/30 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('library.loadingMovies')}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {processedMovies} / {totalMovies}
+                </span>
+              </div>
+              <LinearProgressBar
+                progress={loadingProgress}
+                total={totalMovies}
+                current={processedMovies}
+                isError={loadingError}
+                errorMessage={errorMessage}
+              />
+            </div>
+          </motion.div>
+        )}
+
         <motion.div
           className="flex flex-col gap-6 mb-8"
           variants={itemVariants}

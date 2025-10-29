@@ -118,7 +118,8 @@
     "downloading": "Downloading...",
     "downloadSuccess": "File downloaded successfully!",
     "noRatedMovies": "You haven't rated any movies yet",
-    "noWatchlistMovies": "Your watchlist is empty"
+    "noWatchlistMovies": "Your watchlist is empty",
+    "loadingMovies": "Loading your library..."
   },
   "movies": {
     "director": "Director",
