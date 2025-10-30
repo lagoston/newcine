@@ -66,15 +66,15 @@ export default function OracleHub() {
         setArchetypeInfo(archetypeData);
       }
 
-      // Get rated movies count
-      const { count: ratingsCount, error: ratingsError } = await supabase
+      // Get rated movies count using the same approach as the library
+      const { data: ratingsData, error: ratingsError } = await supabase
         .from('user_ratings')
-        .select('*', { count: 'exact', head: true })
+        .select('id')
         .eq('user_id', session?.user?.id);
 
       if (ratingsError) throw ratingsError;
 
-      setRatedMoviesCount(ratingsCount || 0);
+      setRatedMoviesCount(ratingsData?.length || 0);
 
     } catch (error) {
       console.error('Error loading user data:', error);
