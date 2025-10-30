@@ -106,7 +106,8 @@ const Home = () => {
   };
 
   const handleAddToLibrary = () => {
-    fetchAllMovies(); // Refresh the list after adding to library
+    // Do nothing - modal handles the library state internally
+    // No need to refresh the entire page
   };
 
   const MovieCarousel = ({ title, movies, loading, category }: { title: string | JSX.Element; movies: Movie[]; loading: boolean; category: string }) => {

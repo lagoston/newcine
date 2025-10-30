@@ -253,7 +253,10 @@ export default function AddMovies() {
                   <div className="mt-auto">
                     {!isInLibrary(movie.id) ? (
                       <button
-                        onClick={() => addToLibrary(movie)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToLibrary(movie);
+                        }}
                         className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors"
                       >
                         {t('library.addToLibrary')}

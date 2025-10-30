@@ -919,7 +919,6 @@ export default function UserProfile() {
                       movies={ratedMovies}
                       rating={rating}
                       isOtherUserProfile={true}
-                      onAddToLibrary={fetchProfileAndMovies}
                     />
                   );
                 }
@@ -932,7 +931,6 @@ export default function UserProfile() {
                   movies={moviesByRating.unrated}
                   rating={null}
                   isOtherUserProfile={true}
-                  onAddToLibrary={fetchProfileAndMovies}
                 />
               )}
             </>
