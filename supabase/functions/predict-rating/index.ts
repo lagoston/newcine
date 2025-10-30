@@ -9,6 +9,7 @@ const corsHeaders = {
 interface RequestBody {
   userId: string;
   movieName: string;
+  movieId?: number;
   language?: string;
 }
 
@@ -17,125 +18,320 @@ interface TicketError {
   ticketsRemaining: number;
 }
 
-interface UserHistory {
+interface RelevantMovie {
   title: string;
   rating: number;
-  year: number;
-  genres: string[];
-  director?: string;
+  matchType: string;
 }
 
-function getSystemPrompt(username: string, favoriteGenres: string[], userHistory: UserHistory[], language: string): string {
+interface FishingResult {
+  signals: RelevantMovie[];
+  filters: RelevantMovie[];
+}
+
+async function getMovieDataFromTMDB(movieName: string): Promise<{ vote_average: number; id: number; director?: string; cast?: string[]; genres?: string[] } | null> {
+  const tmdbApiKey = Deno.env.get('TMDB_API_KEY');
+  if (!tmdbApiKey) {
+    console.error('TMDB_API_KEY not found');
+    return null;
+  }
+
+  try {
+    const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${tmdbApiKey}&query=${encodeURIComponent(movieName)}&language=en-US`;
+    const searchResponse = await fetch(searchUrl);
+    const searchData = await searchResponse.json();
+
+    if (!searchData.results || searchData.results.length === 0) {
+      console.log('Movie not found in TMDB:', movieName);
+      return null;
+    }
+
+    const movie = searchData.results[0];
+    const movieId = movie.id;
+
+    const detailsUrl = `https://api.themoviedb.org/3/movie/${movieId}?api_key=${tmdbApiKey}&append_to_response=credits&language=en-US`;
+    const detailsResponse = await fetch(detailsUrl);
+    const detailsData = await detailsResponse.json();
+
+    const director = detailsData.credits?.crew?.find((person: any) => person.job === 'Director')?.name;
+    const cast = detailsData.credits?.cast?.slice(0, 5).map((actor: any) => actor.name) || [];
+    const genres = detailsData.genres?.map((g: any) => g.name) || [];
+
+    return {
+      vote_average: movie.vote_average || 0,
+      id: movieId,
+      director,
+      cast,
+      genres
+    };
+  } catch (error) {
+    console.error('Error fetching TMDB data:', error);
+    return null;
+  }
+}
+
+async function fishForRelevantMovies(
+  supabase: any,
+  userId: string,
+  targetMovieData: { director?: string; cast?: string[]; genres?: string[] }
+): Promise<FishingResult> {
+  const signals: RelevantMovie[] = [];
+  const filters: RelevantMovie[] = [];
+
+  try {
+    const { data: userMovies, error } = await supabase
+      .from('user_movies')
+      .select(`
+        rating,
+        movies!inner (
+          id,
+          title,
+          director,
+          genres
+        )
+      `)
+      .eq('user_id', userId)
+      .not('rating', 'is', null)
+      .order('rating', { ascending: false });
+
+    if (error || !userMovies) {
+      console.error('Error fetching user movies:', error);
+      return { signals, filters };
+    }
+
+    const addedMovies = new Set<string>();
+
+    if (targetMovieData.director) {
+      for (const movie of userMovies) {
+        if (signals.length + filters.length >= 5) break;
+
+        if (movie.movies.director === targetMovieData.director && !addedMovies.has(movie.movies.title)) {
+          const entry: RelevantMovie = {
+            title: movie.movies.title,
+            rating: movie.rating,
+            matchType: 'Director'
+          };
+
+          if (movie.rating >= 7.0) {
+            signals.push(entry);
+          } else if (movie.rating <= 6.0) {
+            filters.push(entry);
+          }
+          addedMovies.add(movie.movies.title);
+        }
+      }
+    }
+
+    if (signals.length + filters.length < 5 && targetMovieData.cast && targetMovieData.cast.length > 0) {
+      const castResponse = await supabase
+        .from('user_movies')
+        .select(`
+          rating,
+          movies!inner (
+            id,
+            title
+          )
+        `)
+        .eq('user_id', userId)
+        .not('rating', 'is', null);
+
+      if (castResponse.data) {
+        for (const movie of castResponse.data) {
+          if (signals.length + filters.length >= 5) break;
+          if (addedMovies.has(movie.movies.title)) continue;
+
+          const movieDetailsUrl = `https://api.themoviedb.org/3/movie/${movie.movies.id}?api_key=${Deno.env.get('TMDB_API_KEY')}&append_to_response=credits`;
+          const detailsResponse = await fetch(movieDetailsUrl);
+          const detailsData = await detailsResponse.json();
+
+          const movieCast = detailsData.credits?.cast?.slice(0, 5).map((actor: any) => actor.name) || [];
+          const hasCommonActor = movieCast.some((actor: string) => targetMovieData.cast?.includes(actor));
+
+          if (hasCommonActor) {
+            const entry: RelevantMovie = {
+              title: movie.movies.title,
+              rating: movie.rating,
+              matchType: 'Actor'
+            };
+
+            if (movie.rating >= 7.0) {
+              signals.push(entry);
+            } else if (movie.rating <= 6.0) {
+              filters.push(entry);
+            }
+            addedMovies.add(movie.movies.title);
+          }
+        }
+      }
+    }
+
+    if (signals.length + filters.length < 5 && targetMovieData.genres && targetMovieData.genres.length > 0) {
+      const primaryGenre = targetMovieData.genres[0];
+
+      for (const movie of userMovies) {
+        if (signals.length + filters.length >= 5) break;
+        if (addedMovies.has(movie.movies.title)) continue;
+
+        if (movie.movies.genres && movie.movies.genres.includes(primaryGenre)) {
+          const entry: RelevantMovie = {
+            title: movie.movies.title,
+            rating: movie.rating,
+            matchType: 'Genre'
+          };
+
+          if (movie.rating >= 7.0) {
+            signals.push(entry);
+          } else if (movie.rating <= 6.0) {
+            filters.push(entry);
+          }
+          addedMovies.add(movie.movies.title);
+        }
+      }
+    }
+
+  } catch (error) {
+    console.error('Error in fishing logic:', error);
+  }
+
+  return { signals, filters };
+}
+
+function getHybridPrompt(
+  archetypeName: string,
+  archetypeCode: string,
+  archetypeDescription: string,
+  subcategoryDescription: string,
+  movieName: string,
+  movieAnchor: number,
+  signals: RelevantMovie[],
+  filters: RelevantMovie[],
+  language: string
+): string {
   const lang = language.startsWith('pt') ? 'pt' : language.startsWith('es') ? 'es' : 'en';
 
   const prompts = {
-    en: `You are CineOracle, an AI movie critic with deep pattern recognition. Analyze the user's 100-film rating history to predict their score for a new film.
+    en: `You are CineOracle. Your task is to predict a user's rating (0.0 to 10.0) for a target film using Weighted Bayesian Analysis.
 
-# User Profile
-@${username}
-Top genres: ${favoriteGenres.join(', ')}
+# MANDATORY METHODOLOGY (DO NOT BREAK THESE RULES)
+1. **ANCHOR:** Your analysis MUST start with the "Public Average Rating". This is your baseline.
+2. **ADJUSTMENT:** Adjust the Anchor up or down based on "Signals" (films they loved) and "Filters" (films they rejected).
+3. **LENS:** Use the "Personality Profile" as the primary lens to justify your analysis.
+4. **FINAL SCORE:** Provide a specific rating (e.g., 8.5/10). **NEVER** use ranges (e.g., "±1.0"). Be confident.
 
-# Rating History (100 films)
-${JSON.stringify(userHistory, null, 2)}
+# PREDICTION DATA
 
-# Analysis Framework
+## 1. THE USER (The Lens)
+* **Profile:** ${archetypeName} (${archetypeCode})
+* **Archetype Core:** "${archetypeDescription}"
+* **Subcategory Nuance:** "${subcategoryDescription}"
 
-📊 **Predicted Rating: X/10 (±Y)**
-- Provide your most accurate prediction (X) with uncertainty margin (Y, max 1.5)
-- Base prediction on: genre preferences, director patterns, rating distribution, thematic consistency
+## 2. THE TARGET FILM
+* **Film:** ${movieName}
+* **Anchor (Public Average):** ${movieAnchor.toFixed(1)}/10
 
-🧠 **Core Analysis (2-3 sentences)**
-Identify the user's taste profile using concrete examples from their history:
-- Genre/director preferences with specific titles they rated high/low
-- Patterns in themes, tone, or style (e.g., "favors cerebral sci-fi over action blockbusters")
-- Any notable rating tendencies (harsh critic, generous scorer, specific deal-breakers)
+## 3. USER DATA (Signal vs. Filter)
 
-⚖️ **Rating Modifiers**
-List 2-3 specific factors that could shift the score:
-+ Positive: What elements would boost their rating
-- Negative: What aspects would lower their score
+### Signals (Positive Relevant Matches):
+${signals.length > 0 ? JSON.stringify(signals, null, 2) : 'None found'}
 
-🎬 **Comparative Anchor (if applicable)**
-Reference 1-2 similar films from their history with ratings to calibrate prediction.
-Example: "Similar to *Blade Runner 2049* (8/10) but more action-heavy like *Mad Max* (6/10)"
+### Filters (Negative Relevant Matches):
+${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'None found'}
 
-🍿 **Better Alternative**
-Suggest ONE film matching the same mood/genre they'd likely rate higher, with brief reasoning.
+# RESPONSE FRAMEWORK (Follow EXACTLY)
 
-🎭 **Oracle's Verdict**
-Close with a sharp, memorable one-liner. No summary—just dramatic flair.`,
+📊 Predicted Rating: X.X/10
+(Your final, confident rating. No "±" estimates.)
 
-    pt: `Você é o CineOracle, um crítico de cinema de IA com reconhecimento profundo de padrões. Analise o histórico de 100 filmes avaliados pelo usuário para prever a nota dele para um novo filme.
+🧠 Personalized Analysis
+(Start with the Anchor. Explain how the Profile, Signals, and Filters made you adjust the rating up or down, resulting in your prediction. Be brief and analytical.)
 
-# Perfil do Usuário
-@${username}
-Gêneros favoritos: ${favoriteGenres.join(', ')}
+⚖️ Weightings
+(Identify the SINGLE decisive factor. What will make this user love or hate this film? Compare the "Signal" with the "Filter".)
 
-# Histórico de Avaliações (100 filmes)
-${JSON.stringify(userHistory, null, 2)}
+🎬 Oracle's Verdict
+(Close with a sharp, memorable one-liner.)`,
 
-# Framework de Análise
+    pt: `Você é o CineOracle. Sua tarefa é prever a nota (0.0 a 10.0) de um usuário para um filme-alvo, usando uma análise Bayesiana Ponderada.
 
-📊 **Nota Prevista: X/10 (±Y)**
-- Forneça sua previsão mais precisa (X) com margem de incerteza (Y, máx 1.5)
-- Base a previsão em: preferências de gênero, padrões de diretores, distribuição de notas, consistência temática
+# METODOLOGIA OBRIGATÓRIA (NÃO QUEBRE ESTAS REGRAS)
+1. **ÂNCORA:** Sua análise DEVE começar pela "Nota Média do Público". Esta é sua linha de base.
+2. **AJUSTE:** Ajuste a Âncora para cima ou para baixo com base nos "Sinais" (filmes que ele amou) e "Filtros" (filmes que ele rejeitou).
+3. **LENTE:** Use o "Perfil de Personalidade" como a lente principal para justificar sua análise.
+4. **NOTA FINAL:** Forneça uma nota específica (ex: 8.5/10). **NUNCA** use intervalos (ex: "±1.0"). Seja confiante.
 
-🧠 **Análise Central (2-3 frases)**
-Identifique o perfil de gosto do usuário usando exemplos concretos do histórico:
-- Preferências de gênero/diretor com títulos específicos que avaliou alto/baixo
-- Padrões em temas, tom ou estilo (ex: "favorece ficção científica cerebral sobre blockbusters de ação")
-- Tendências notáveis de avaliação (crítico rigoroso, generoso, rejeições específicas)
+# DADOS DA PREVISÃO
 
-⚖️ **Modificadores de Nota**
-Liste 2-3 fatores específicos que podem mudar a nota:
-+ Positivo: Que elementos aumentariam sua nota
-- Negativo: Que aspectos diminuiriam sua nota
+## 1. O USUÁRIO (A Lente)
+* **Perfil:** ${archetypeName} (${archetypeCode})
+* **Essência do Arquétipo:** "${archetypeDescription}"
+* **Nuance da Subcategoria:** "${subcategoryDescription}"
 
-🎬 **Âncora Comparativa (se aplicável)**
-Referencie 1-2 filmes similares do histórico com notas para calibrar a previsão.
-Exemplo: "Similar a *Blade Runner 2049* (8/10) mas com mais ação como *Mad Max* (6/10)"
+## 2. O FILME-ALVO
+* **Filme:** ${movieName}
+* **Âncora (Nota Média do Público):** ${movieAnchor.toFixed(1)}/10
 
-🍿 **Alternativa Melhor**
-Sugira UM filme com o mesmo clima/gênero que ele provavelmente avaliaria mais alto, com breve justificativa.
+## 3. DADOS DO USUÁRIO (Sinal vs. Filtro)
 
-🎭 **Veredicto do Oráculo**
-Feche com uma frase marcante e afiada. Sem resumo—apenas impacto dramático.`,
+### Sinais (Matches Positivos Relevantes):
+${signals.length > 0 ? JSON.stringify(signals, null, 2) : 'Nenhum encontrado'}
 
-    es: `Eres CineOracle, un crítico de cine de IA con reconocimiento profundo de patrones. Analiza el historial de 100 películas calificadas por el usuario para predecir su puntuación para una nueva película.
+### Filtros (Matches Negativos Relevantes):
+${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'Nenhum encontrado'}
 
-# Perfil del Usuario
-@${username}
-Géneros favoritos: ${favoriteGenres.join(', ')}
+# FRAMEWORK DA RESPOSTA (Siga EXATAMENTE)
 
-# Historial de Calificaciones (100 películas)
-${JSON.stringify(userHistory, null, 2)}
+📊 Nota Prevista: X.X/10
+(Sua nota final e confiante. Sem estimações "±".)
 
-# Marco de Análisis
+🧠 Análise Personalizada
+(Comece com a Âncora. Explique como o Perfil, os Sinais e os Filtros o fizeram ajustar a nota para cima ou para baixo, resultando na sua previsão. Seja breve e analítico.)
 
-📊 **Calificación Predicha: X/10 (±Y)**
-- Proporciona tu predicción más precisa (X) con margen de incertidumbre (Y, máx 1.5)
-- Basa la predicción en: preferencias de género, patrones de directores, distribución de calificaciones, consistencia temática
+⚖️ Ponderações
+(Identifique o ÚNICO fator decisivo. O que fará este usuário amar ou odiar este filme? Compare o "Sinal" com o "Filtro".)
 
-🧠 **Análisis Central (2-3 oraciones)**
-Identifica el perfil de gusto del usuario usando ejemplos concretos de su historial:
-- Preferencias de género/director con títulos específicos que calificó alto/bajo
-- Patrones en temas, tono o estilo (ej: "favorece ciencia ficción cerebral sobre blockbusters de acción")
-- Tendencias notables de calificación (crítico riguroso, generoso, rechazos específicos)
+🎬 Veredito do Oráculo
+(Feche com uma frase marcante e afiada.)`,
 
-⚖️ **Modificadores de Calificación**
-Lista 2-3 factores específicos que podrían cambiar la puntuación:
-+ Positivo: Qué elementos aumentarían su calificación
-- Negativo: Qué aspectos disminuirían su calificación
+    es: `Eres CineOracle. Tu tarea es predecir la calificación (0.0 a 10.0) de un usuario para una película objetivo, usando un Análisis Bayesiano Ponderado.
 
-🎬 **Ancla Comparativa (si aplica)**
-Referencia 1-2 películas similares de su historial con calificaciones para calibrar la predicción.
-Ejemplo: "Similar a *Blade Runner 2049* (8/10) pero con más acción como *Mad Max* (6/10)"
+# METODOLOGÍA OBLIGATORIA (NO ROMPAS ESTAS REGLAS)
+1. **ANCLA:** Tu análisis DEBE comenzar con el "Promedio Público". Esta es tu línea base.
+2. **AJUSTE:** Ajusta el Ancla hacia arriba o abajo basándote en "Señales" (películas que amó) y "Filtros" (películas que rechazó).
+3. **LENTE:** Usa el "Perfil de Personalidad" como la lente principal para justificar tu análisis.
+4. **CALIFICACIÓN FINAL:** Proporciona una calificación específica (ej: 8.5/10). **NUNCA** uses rangos (ej: "±1.0"). Sé confiado.
 
-🍿 **Mejor Alternativa**
-Sugiere UNA película con el mismo ambiente/género que probablemente calificaría más alto, con breve justificación.
+# DATOS DE LA PREDICCIÓN
 
-🎭 **Veredicto del Oráculo**
-Cierra con una frase memorable y aguda. Sin resumen—solo impacto dramático.`
+## 1. EL USUARIO (La Lente)
+* **Perfil:** ${archetypeName} (${archetypeCode})
+* **Esencia del Arquetipo:** "${archetypeDescription}"
+* **Matiz de la Subcategoría:** "${subcategoryDescription}"
+
+## 2. LA PELÍCULA OBJETIVO
+* **Película:** ${movieName}
+* **Ancla (Promedio Público):** ${movieAnchor.toFixed(1)}/10
+
+## 3. DATOS DEL USUARIO (Señal vs. Filtro)
+
+### Señales (Coincidencias Positivas Relevantes):
+${signals.length > 0 ? JSON.stringify(signals, null, 2) : 'Ninguna encontrada'}
+
+### Filtros (Coincidencias Negativas Relevantes):
+${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'Ninguna encontrada'}
+
+# MARCO DE RESPUESTA (Sigue EXACTAMENTE)
+
+📊 Calificación Predicha: X.X/10
+(Tu calificación final y confiada. Sin estimaciones "±".)
+
+🧠 Análisis Personalizado
+(Comienza con el Ancla. Explica cómo el Perfil, las Señales y los Filtros te hicieron ajustar la calificación hacia arriba o abajo, resultando en tu predicción. Sé breve y analítico.)
+
+⚖️ Ponderaciones
+(Identifica el ÚNICO factor decisivo. ¿Qué hará que este usuario ame u odie esta película? Compara la "Señal" con el "Filtro".)
+
+🎬 Veredicto del Oráculo
+(Cierra con una frase memorable y aguda.)`
   };
 
   return prompts[lang];
@@ -158,18 +354,15 @@ Deno.serve(async (req) => {
     const { userId, movieName, language = 'en' } = await req.json() as RequestBody;
 
     const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
-    console.log('Starting prediction request for user:', userId);
+    console.log('Starting hybrid prediction for user:', userId);
     console.log('Movie name:', movieName);
-    console.log('Has DeepSeek API key:', !!deepseekApiKey);
 
     if (!userId || !movieName) {
       throw new Error('Missing required fields: userId and movieName');
     }
 
-    // Check and reset tickets if needed
     await supabase.rpc('check_and_reset_tickets', { user_id_input: userId });
 
-    // Get ticket data
     const { data: ticketData, error: ticketError } = await supabase
       .from('user_tickets')
       .select('tickets_remaining, plan_type')
@@ -193,18 +386,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get user profile
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('id', userId)
-      .single();
-
-    if (profileError) {
-      throw new Error(`Error fetching user profile: ${profileError.message}`);
-    }
-
-    // Check if user has at least 15 rated movies
     const { count: ratedMoviesCount, error: countError } = await supabase
       .from('user_movies')
       .select('*', { count: 'exact', head: true })
@@ -229,18 +410,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get user's rated movies using the RPC function
-    const { data: userHistory, error: historyError } = await supabase
-      .rpc('get_random_user_ratings', { user_id_input: userId });
+    const { data: personalityData, error: personalityError } = await supabase
+      .rpc('get_user_complete_personality', { p_user_id: userId });
 
-    if (historyError) {
-      throw new Error(`Error fetching user history: ${historyError.message}`);
-    }
-
-    if (!userHistory || userHistory.length === 0) {
+    if (personalityError || !personalityData) {
+      console.error('Error fetching personality:', personalityError);
       return new Response(
         JSON.stringify({
-          prediction: "⚠️ Not enough data: Please rate some movies first so I can better understand your taste.",
+          prediction: "⚠️ Personality profile not found. Please complete the Oracle questionnaire first.",
           movie: movieName,
           ticketsRemaining: ticketData.tickets_remaining
         }),
@@ -251,7 +428,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Consume tickets
+    console.log('Personality data:', personalityData);
+
+    const movieData = await getMovieDataFromTMDB(movieName);
+
+    if (!movieData) {
+      return new Response(
+        JSON.stringify({
+          prediction: `⚠️ Could not find "${movieName}" in the movie database. Please check the spelling and try again.`,
+          movie: movieName,
+          ticketsRemaining: ticketData.tickets_remaining
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
+
+    console.log('Movie anchor score:', movieData.vote_average);
+
+    const fishingResult = await fishForRelevantMovies(supabase, userId, {
+      director: movieData.director,
+      cast: movieData.cast,
+      genres: movieData.genres
+    });
+
+    console.log('Fishing result - Signals:', fishingResult.signals.length, 'Filters:', fishingResult.filters.length);
+
     const { error: updateError } = await supabase
       .from('user_tickets')
       .update({ tickets_remaining: ticketData.tickets_remaining - 100 })
@@ -261,24 +465,17 @@ Deno.serve(async (req) => {
       throw new Error(`Error updating tickets: ${updateError.message}`);
     }
 
-    // Calculate genre preferences
-    const genreCounts = userHistory.reduce((acc, movie) => {
-      if (movie.genres && Array.isArray(movie.genres)) {
-        movie.genres.forEach(genre => {
-          if (genre) {
-            acc[genre] = (acc[genre] || 0) + 1;
-          }
-        });
-      }
-      return acc;
-    }, {} as { [key: string]: number });
-
-    const favoriteGenres = Object.entries(genreCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([genre]) => genre);
-
-    const systemPrompt = getSystemPrompt(profile.username, favoriteGenres, userHistory, language);
+    const hybridPrompt = getHybridPrompt(
+      personalityData.archetype_name || 'Unknown',
+      personalityData.complete_personality || 'XXX',
+      personalityData.archetype_description || '',
+      personalityData.subcategory_description || '',
+      movieName,
+      movieData.vote_average,
+      fishingResult.signals,
+      fishingResult.filters,
+      language
+    );
 
     const response = await fetch(
       'https://api.deepseek.com/v1/chat/completions',
@@ -291,11 +488,11 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: 'deepseek-chat',
           messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Based on the user's rating history, predict their rating for "${movieName}".` }
+            { role: 'system', content: hybridPrompt },
+            { role: 'user', content: `Predict this user's rating for "${movieName}" using the hybrid Bayesian + Spectrogram model.` }
           ],
           temperature: 0.7,
-          max_tokens: 600
+          max_tokens: 500
         })
       }
     );
@@ -307,9 +504,6 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('DeepSeek response status:', response.status);
-    console.log('DeepSeek response data:', JSON.stringify(data));
-
     const prediction = data.choices?.[0]?.message?.content;
 
     if (!prediction) {
