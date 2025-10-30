@@ -37,6 +37,18 @@ export default function OracleHub() {
   const [showRevelationModal, setShowRevelationModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
+  // Prevent background scroll when modals are open
+  useEffect(() => {
+    if (showRevelationModal || showInfoModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showRevelationModal, showInfoModal]);
+
   useEffect(() => {
     if (session?.user?.id) {
       loadUserData();
@@ -410,18 +422,15 @@ export default function OracleHub() {
         </motion.div>
 
         <motion.h1
-          className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 tracking-widest mb-4"
+          className="text-6xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 tracking-wider mb-12 relative"
           variants={itemVariants}
+          style={{
+            textShadow: '0 0 30px rgba(168, 85, 247, 0.4), 0 0 60px rgba(168, 85, 247, 0.2)',
+            fontFamily: 'serif'
+          }}
         >
-          {t('oracle.title')}
+          O Santuário
         </motion.h1>
-
-        <motion.p
-          className="text-gray-300 text-lg mb-8"
-          variants={itemVariants}
-        >
-          O Santuário está aberto
-        </motion.p>
 
         {/* Personality Display */}
         {archetypeInfo && (
@@ -431,7 +440,7 @@ export default function OracleHub() {
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-blue-600/30 rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-1000" />
             <div className="relative p-8 bg-gray-900/90 rounded-2xl border border-purple-500/30 backdrop-blur-sm">
-              <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
                 <div className="flex-shrink-0">
                   <ArchetypeSymbol
                     archetypeId={archetypeId || ''}
@@ -449,32 +458,32 @@ export default function OracleHub() {
                   <p className="text-xl text-white font-semibold mb-3">
                     {archetypeInfo.archetype_name} {archetypeInfo.subcategory_name}
                   </p>
-                  <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                  <p className="text-gray-400 text-sm leading-relaxed">
                     {archetypeInfo.description}
                   </p>
+                </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 mt-4">
-                    <motion.button
-                      onClick={() => setShowRevelationModal(true)}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg"
-                    >
-                      <Scroll className="w-4 h-4" />
-                      <span className="text-sm font-semibold">Revelação</span>
-                    </motion.button>
+                {/* Action Buttons - Right Side */}
+                <div className="flex md:flex-col gap-3 ml-auto">
+                  <motion.button
+                    onClick={() => setShowRevelationModal(true)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg"
+                  >
+                    <Scroll className="w-4 h-4" />
+                    <span className="text-sm font-semibold">Revelação</span>
+                  </motion.button>
 
-                    <motion.button
-                      onClick={() => setShowInfoModal(true)}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
-                    >
-                      <Info className="w-4 h-4" />
-                      <span className="text-sm font-semibold">Info</span>
-                    </motion.button>
-                  </div>
+                  <motion.button
+                    onClick={() => setShowInfoModal(true)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+                  >
+                    <Info className="w-4 h-4" />
+                    <span className="text-sm font-semibold">Info</span>
+                  </motion.button>
                 </div>
               </div>
             </div>
@@ -668,75 +677,83 @@ export default function OracleHub() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
             onClick={() => setShowRevelationModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, rotateX: -15 }}
-              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-              exit={{ scale: 0.9, opacity: 0, rotateX: 15 }}
+              initial={{ scale: 0.9, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 50 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="relative max-w-2xl w-full"
+              className="relative max-w-3xl w-full my-8"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Parchment-like scroll background */}
-              <div className="relative bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 dark:from-amber-900/90 dark:via-yellow-900/90 dark:to-amber-800/90 rounded-2xl shadow-2xl border-4 border-amber-800 dark:border-amber-600 p-8 overflow-hidden">
-                {/* Texture overlay */}
-                <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIj48cGF0aCBkPSJNMCAwaDQwdjQwSDB6IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDBoNDB2NDBIMHoiIGZpbGw9Im5vbmUiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYSkiLz48L3N2Zz4=')]" />
+              {/* Crystal ball glass effect - matching Info modal */}
+              <div className="relative bg-gradient-to-br from-purple-950/95 via-pink-950/95 to-blue-950/95 backdrop-blur-md rounded-3xl shadow-2xl border-2 border-purple-400/30 p-8">
+                {/* Glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-blue-500/10 rounded-3xl blur-xl" />
 
-                {/* Close button */}
+                {/* Close button - increased size and better positioning */}
                 <button
-                  onClick={() => setShowRevelationModal(false)}
-                  className="absolute top-4 right-4 p-2 bg-amber-800/20 hover:bg-amber-800/40 rounded-full transition-colors z-10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowRevelationModal(false);
+                  }}
+                  className="absolute top-4 right-4 z-50 p-3 bg-purple-500/20 hover:bg-purple-500/40 rounded-full transition-colors group"
+                  aria-label="Fechar"
                 >
-                  <X className="w-5 h-5 text-amber-900 dark:text-amber-100" />
+                  <X className="w-6 h-6 text-purple-200 group-hover:text-white transition-colors" />
                 </button>
 
                 {/* Content */}
                 <div className="relative z-10">
                   <div className="flex items-center justify-center mb-6">
-                    <Scroll className="w-8 h-8 text-amber-800 dark:text-amber-300 mr-3" />
-                    <h2 className="text-3xl font-bold text-amber-900 dark:text-amber-100 font-serif">
+                    <div className="relative">
+                      <Scroll className="w-10 h-10 text-purple-400 mr-3" style={{
+                        filter: 'drop-shadow(0 0 10px rgba(168, 85, 247, 0.5))'
+                      }} />
+                    </div>
+                    <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
                       Revelação
                     </h2>
                   </div>
 
                   {/* Personality Code */}
-                  <div className="text-center mb-6">
-                    <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 mb-2">
+                  <div className="text-center mb-6 bg-purple-900/30 rounded-xl p-6 border border-purple-500/20">
+                    <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-2">
                       {userPersonality?.personalidade_completa}
                     </p>
-                    <p className="text-xl text-amber-800 dark:text-amber-200 font-semibold">
+                    <p className="text-xl text-purple-200 font-semibold">
                       {archetypeInfo.archetype_name} {archetypeInfo.subcategory_name}
                     </p>
                   </div>
 
                   {/* Archetype Description */}
-                  <div className="space-y-4 mb-6">
-                    <div>
-                      <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2 font-serif">
+                  <div className="space-y-6 text-gray-200">
+                    <div className="bg-purple-900/30 rounded-xl p-6 border border-purple-500/20">
+                      <h3 className="text-xl font-bold text-purple-300 mb-3">
                         Sua Essência (As Duas Primeiras Letras)
                       </h3>
-                      <p className="text-amber-900/90 dark:text-amber-100/90 leading-relaxed text-justify">
+                      <p className="text-gray-300 leading-relaxed">
                         {archetypeInfo.archetype_description}
                       </p>
                     </div>
 
-                    <div>
-                      <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2 font-serif">
+                    <div className="bg-pink-900/30 rounded-xl p-6 border border-pink-500/20">
+                      <h3 className="text-xl font-bold text-pink-300 mb-3">
                         Sua Sintonia (A Terceira Letra)
                       </h3>
-                      <p className="text-amber-900/90 dark:text-amber-100/90 leading-relaxed text-justify">
+                      <p className="text-gray-300 leading-relaxed">
                         {archetypeInfo.subcategory_description}
                       </p>
                     </div>
                   </div>
 
-                  {/* Decorative elements */}
-                  <div className="flex items-center justify-center gap-2 pt-4 border-t-2 border-amber-800/30 dark:border-amber-600/30">
-                    <div className="w-16 h-0.5 bg-amber-800 dark:bg-amber-600" />
-                    <div className="w-2 h-2 rounded-full bg-amber-800 dark:bg-amber-600" />
-                    <div className="w-16 h-0.5 bg-amber-800 dark:bg-amber-600" />
+                  {/* Decorative bottom */}
+                  <div className="flex items-center justify-center gap-3 pt-6 mt-6">
+                    <div className="w-12 h-0.5 bg-gradient-to-r from-transparent via-purple-400 to-transparent" />
+                    <div className="w-2 h-2 rounded-full bg-pink-400" />
+                    <div className="w-12 h-0.5 bg-gradient-to-r from-transparent via-pink-400 to-transparent" />
                   </div>
                 </div>
               </div>
@@ -752,7 +769,7 @@ export default function OracleHub() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
             onClick={() => setShowInfoModal(false)}
           >
             <motion.div
@@ -760,7 +777,7 @@ export default function OracleHub() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 50 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="relative max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+              className="relative max-w-3xl w-full my-8"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Crystal ball glass effect */}
@@ -768,12 +785,16 @@ export default function OracleHub() {
                 {/* Glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-3xl blur-xl" />
 
-                {/* Close button */}
+                {/* Close button - increased size and better positioning */}
                 <button
-                  onClick={() => setShowInfoModal(false)}
-                  className="absolute top-4 right-4 p-2 bg-blue-500/20 hover:bg-blue-500/40 rounded-full transition-colors z-10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowInfoModal(false);
+                  }}
+                  className="absolute top-4 right-4 z-50 p-3 bg-blue-500/20 hover:bg-blue-500/40 rounded-full transition-colors group"
+                  aria-label="Fechar"
                 >
-                  <X className="w-5 h-5 text-blue-200" />
+                  <X className="w-6 h-6 text-blue-200 group-hover:text-white transition-colors" />
                 </button>
 
                 {/* Content */}
