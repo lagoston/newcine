@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, Wand2, BrainCircuit, Loader2, Scroll, Info, X } from 'lucide-react';
+import { Eye, Wand2, BrainCircuit, Loader2, Scroll, Info, X, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
@@ -24,6 +24,158 @@ interface ArchetypeInfo {
   subcategory_description: string;
 }
 
+// Pentagon Graph Component
+const PentagonGraph: React.FC<{ points: { e: number; i: number; c: number; s: number; r: number }; subcategoryId: string }> = ({ points, subcategoryId }) => {
+  const size = 280;
+  const center = size / 2;
+  const radius = size / 2 - 40;
+
+  // Normalize points to percentage (0-100)
+  const maxPoint = Math.max(points.e, points.i, points.c, points.s, points.r, 1);
+  const normalized = {
+    e: (points.e / maxPoint) * 100,
+    i: (points.i / maxPoint) * 100,
+    c: (points.c / maxPoint) * 100,
+    s: (points.s / maxPoint) * 100,
+    r: (points.r / maxPoint) * 100,
+  };
+
+  // Get color based on subcategory
+  const getSubcategoryColor = (id: string) => {
+    const firstLetter = id?.charAt(2) || 'A';
+    const colors: Record<string, string> = {
+      'A': '#fbbf24', // amber
+      'B': '#8b5cf6', // purple
+      'K': '#ef4444', // red
+      'X': '#3b82f6', // blue
+      'D': '#6b7280', // gray
+      'L': '#10b981', // green
+    };
+    return colors[firstLetter] || '#8b5cf6';
+  };
+
+  const color = getSubcategoryColor(subcategoryId);
+
+  // Calculate pentagon points
+  const angle = (Math.PI * 2) / 5;
+  const labels = ['E', 'I', 'C', 'S', 'R'];
+  const values = [normalized.e, normalized.i, normalized.c, normalized.s, normalized.r];
+
+  const getPoint = (index: number, value: number) => {
+    const pointRadius = (radius * value) / 100;
+    const x = center + pointRadius * Math.sin(angle * index - Math.PI / 2);
+    const y = center - pointRadius * Math.cos(angle * index - Math.PI / 2);
+    return { x, y };
+  };
+
+  const getLabelPoint = (index: number) => {
+    const labelRadius = radius + 25;
+    const x = center + labelRadius * Math.sin(angle * index - Math.PI / 2);
+    const y = center - labelRadius * Math.cos(angle * index - Math.PI / 2);
+    return { x, y };
+  };
+
+  // Create data points path
+  const dataPoints = values.map((value, i) => getPoint(i, value));
+  const dataPath = dataPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
+
+  // Create grid lines (20%, 40%, 60%, 80%, 100%)
+  const gridLevels = [20, 40, 60, 80, 100];
+
+  return (
+    <svg width={size} height={size} className="drop-shadow-lg">
+      {/* Grid lines */}
+      {gridLevels.map((level) => {
+        const gridPoints = labels.map((_, i) => getPoint(i, level));
+        const gridPath = gridPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
+        return (
+          <path
+            key={level}
+            d={gridPath}
+            fill="none"
+            stroke="#ffffff15"
+            strokeWidth="1"
+          />
+        );
+      })}
+
+      {/* Axes lines */}
+      {labels.map((_, i) => {
+        const point = getPoint(i, 100);
+        return (
+          <line
+            key={`axis-${i}`}
+            x1={center}
+            y1={center}
+            x2={point.x}
+            y2={point.y}
+            stroke="#ffffff15"
+            strokeWidth="1"
+          />
+        );
+      })}
+
+      {/* Data area */}
+      <path
+        d={dataPath}
+        fill={`${color}40`}
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+
+      {/* Data points */}
+      {dataPoints.map((point, i) => (
+        <circle
+          key={`point-${i}`}
+          cx={point.x}
+          cy={point.y}
+          r="4"
+          fill={color}
+          stroke="#fff"
+          strokeWidth="2"
+        />
+      ))}
+
+      {/* Labels */}
+      {labels.map((label, i) => {
+        const labelPoint = getLabelPoint(i);
+        return (
+          <text
+            key={`label-${i}`}
+            x={labelPoint.x}
+            y={labelPoint.y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="text-lg font-bold fill-white"
+          >
+            {label}
+          </text>
+        );
+      })}
+
+      {/* Values at labels */}
+      {labels.map((label, i) => {
+        const labelPoint = getLabelPoint(i);
+        const value = values[i];
+        return (
+          <text
+            key={`value-${i}`}
+            x={labelPoint.x}
+            y={labelPoint.y + 18}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="text-xs font-semibold"
+            fill={color}
+          >
+            {Math.round(value)}%
+          </text>
+        );
+      })}
+    </svg>
+  );
+};
+
 export default function OracleHub() {
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -36,6 +188,10 @@ export default function OracleHub() {
   const [questionnaireResult, setQuestionnaireResult] = useState<any>(null);
   const [showRevelationModal, setShowRevelationModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showRetakeQuizModal, setShowRetakeQuizModal] = useState(false);
+  const [showPremiumRequiredModal, setShowPremiumRequiredModal] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
 
   // Prevent background scroll when modals are open
   useEffect(() => {
@@ -59,16 +215,28 @@ export default function OracleHub() {
     try {
       setLoading(true);
 
-      // Get user personality
+      // Get user personality and spectrum points
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario')
+        .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario, pontos_e, pontos_i, pontos_c, pontos_s, pontos_r, is_premium')
         .eq('id', session?.user?.id)
         .single();
 
       if (profileError) throw profileError;
 
       setUserPersonality(profileData);
+      setIsPremium(profileData.is_premium || false);
+
+      // Set spectrum points
+      if (profileData) {
+        setSpectrumPoints({
+          e: Number(profileData.pontos_e) || 0,
+          i: Number(profileData.pontos_i) || 0,
+          c: Number(profileData.pontos_c) || 0,
+          s: Number(profileData.pontos_s) || 0,
+          r: Number(profileData.pontos_r) || 0,
+        });
+      }
 
       // If has personality, load archetype info
       if (profileData?.personalidade_completa) {
@@ -440,7 +608,7 @@ export default function OracleHub() {
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-blue-600/30 rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-1000" />
             <div className="relative p-8 bg-gray-900/90 rounded-2xl border border-purple-500/30 backdrop-blur-sm">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                 <div className="flex-shrink-0">
                   <ArchetypeSymbol
                     archetypeId={archetypeId || ''}
@@ -450,7 +618,7 @@ export default function OracleHub() {
                   />
                 </div>
 
-                <div className="flex-1 text-left">
+                <div className="flex-1 text-center md:text-left">
                   <p className="text-sm text-purple-400 mb-1">Sua Essência Cinematográfica</p>
                   <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 mb-2">
                     {userPersonality.personalidade_completa}
@@ -463,8 +631,8 @@ export default function OracleHub() {
                   </p>
                 </div>
 
-                {/* Action Buttons - Right Side */}
-                <div className="flex md:flex-col gap-3 ml-auto">
+                {/* Action Buttons - Right Side on desktop, centered on mobile */}
+                <div className="flex md:flex-col gap-3 md:ml-auto w-full md:w-auto justify-center md:justify-start">
                   <motion.button
                     onClick={() => setShowRevelationModal(true)}
                     whileHover={{ scale: 1.05 }}
@@ -677,7 +845,7 @@ export default function OracleHub() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={() => setShowRevelationModal(false)}
           >
             <motion.div
@@ -685,7 +853,7 @@ export default function OracleHub() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 50 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="relative max-w-3xl w-full my-8"
+              className="relative max-w-3xl w-full max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Crystal ball glass effect - matching Info modal */}
@@ -769,7 +937,7 @@ export default function OracleHub() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={() => setShowInfoModal(false)}
           >
             <motion.div
@@ -777,7 +945,7 @@ export default function OracleHub() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 50 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="relative max-w-3xl w-full my-8"
+              className="relative max-w-3xl w-full max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Crystal ball glass effect */}
@@ -822,7 +990,7 @@ export default function OracleHub() {
                         A Essência (As Duas Primeiras Letras)
                       </h3>
                       <p className="text-gray-300 leading-relaxed mb-3">
-                        Seu perfil principal <span className="font-bold text-purple-300">({userPersonality?.arquetipo_primario}{userPersonality?.arquetipo_secundario})</span> é a soma matemática do que você ama e odeia. Cada filme que você avalia move cinco balanças: <span className="font-semibold text-pink-300">Emocional (E)</span>, <span className="font-semibold text-blue-300">Intelectual (I)</span>, <span className="font-semibold text-amber-300">Cultural (C)</span>, <span className="font-semibold text-green-300">Sensorial (S)</span> e <span className="font-semibold text-cyan-300">Recreativa (R)</span>.
+                        Seu perfil principal <span className="font-bold text-white">({userPersonality?.arquetipo_primario}{userPersonality?.arquetipo_secundario})</span> é a soma matemática do que você ama e odeia. Cada filme que você avalia move cinco balanças: <span className="font-semibold text-white">Emocional (E)</span>, <span className="font-semibold text-white">Intelectual (I)</span>, <span className="font-semibold text-white">Cultural (C)</span>, <span className="font-semibold text-white">Sensorial (S)</span> e <span className="font-semibold text-white">Recreativa (R)</span>.
                       </p>
 
                       <div className="bg-black/30 rounded-lg p-4 mb-3">
@@ -847,7 +1015,7 @@ export default function OracleHub() {
                         A Sintonia (A Terceira Letra)
                       </h3>
                       <p className="text-gray-300 leading-relaxed mb-3">
-                        O Sub-arquétipo <span className="font-bold text-pink-300">({userPersonality?.subcategoria_id})</span> representa sua inclinação ou tom. Ela não é calculada pelos gêneros, mas pela <span className="font-semibold text-yellow-300">Calibragem</span> que você fez ao responder o questionário inicial.
+                        O Sub-arquétipo <span className="font-bold text-white">({userPersonality?.subcategoria_id})</span> representa sua inclinação ou tom. Ela não é calculada pelos gêneros, mas pela <span className="font-semibold text-white">Calibragem</span> que você fez ao responder o questionário inicial.
                       </p>
 
                       <div className="bg-black/30 rounded-lg p-4">
@@ -856,21 +1024,54 @@ export default function OracleHub() {
                         </p>
                         <ul className="space-y-2 text-sm">
                           <li className="flex items-start gap-2">
-                            <span className="text-amber-400 font-bold">•</span>
-                            <span className="text-gray-300"><span className="font-semibold text-amber-300">Radiante (A)</span> vs. <span className="font-semibold text-purple-300">Sombrio (B)</span> (Otimismo vs. Melancolia).</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-red-400 font-bold">•</span>
-                            <span className="text-gray-300"><span className="font-semibold text-red-300">Clássico (K)</span> vs. <span className="font-semibold text-blue-300">Experimental (X)</span> (Tradição vs. Ousadia).</span>
+                            <span className="text-white font-bold">•</span>
+                            <span className="text-gray-300"><span className="font-semibold text-white">Radiante (A)</span> vs. <span className="font-semibold text-white">Sombrio (B)</span> (Otimismo vs. Melancolia).</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <span className="text-white font-bold">•</span>
-                            <span className="text-gray-300"><span className="font-semibold text-gray-100">Denso (D)</span> vs. <span className="font-semibold text-green-300">Leve (L)</span> (Complexidade vs. Acessibilidade).</span>
+                            <span className="text-gray-300"><span className="font-semibold text-white">Clássico (K)</span> vs. <span className="font-semibold text-white">Experimental (X)</span> (Tradição vs. Ousadia).</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-white font-bold">•</span>
+                            <span className="text-gray-300"><span className="font-semibold text-white">Denso (D)</span> vs. <span className="font-semibold text-white">Leve (L)</span> (Complexidade vs. Acessibilidade).</span>
                           </li>
                         </ul>
                         <p className="text-gray-300 text-sm leading-relaxed mt-3">
                           O eixo onde sua preferência foi mais forte se tornou sua subcategoria dominante, adicionando o foco final ao seu perfil.
                         </p>
+                      </div>
+                    </div>
+
+                    {/* Section 3: Graph */}
+                    <div className="bg-indigo-900/30 rounded-xl p-6 border border-indigo-500/20">
+                      <h3 className="text-2xl font-bold text-indigo-300 mb-4 flex items-center gap-2">
+                        <span className="text-3xl">3.</span>
+                        O Gráfico
+                      </h3>
+
+                      {/* Pentagon Graph */}
+                      <div className="flex justify-center mb-4">
+                        <PentagonGraph
+                          points={spectrumPoints}
+                          subcategoryId={userPersonality?.subcategoria_id || ''}
+                        />
+                      </div>
+
+                      {/* Retake Quiz Button */}
+                      <div className="flex justify-center mt-4">
+                        <button
+                          onClick={() => {
+                            if (isPremium) {
+                              setShowRetakeQuizModal(true);
+                            } else {
+                              setShowPremiumRequiredModal(true);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg text-sm"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          <span className="font-semibold">Refazer Questionário</span>
+                        </button>
                       </div>
                     </div>
 
@@ -884,6 +1085,89 @@ export default function OracleHub() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Retake Quiz Confirmation Modal (Premium) */}
+      <AnimatePresence>
+        {showRetakeQuizModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowRetakeQuizModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-md w-full bg-gradient-to-br from-purple-950/95 to-blue-950/95 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-purple-400/30 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-2xl font-bold text-white mb-4 text-center">Refazer Questionário?</h3>
+              <p className="text-gray-300 text-center mb-6">
+                Tem certeza que deseja refazer o questionário de personalidade? Isso irá atualizar sua subcategoria.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowRetakeQuizModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRetakeQuizModal(false);
+                    setShowQuestionnaire(true);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-all"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Premium Required Modal (Free Users) */}
+      <AnimatePresence>
+        {showPremiumRequiredModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowPremiumRequiredModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-md w-full bg-gradient-to-br from-amber-950/95 to-orange-950/95 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-amber-400/30 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-2xl font-bold text-amber-400 mb-4 text-center">Função Premium</h3>
+              <p className="text-gray-300 text-center mb-6">
+                Refazer o questionário de personalidade é uma função exclusiva para usuários Premium.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPremiumRequiredModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all"
+                >
+                  Fechar
+                </button>
+                <Link
+                  to="/premium"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-lg transition-all text-center"
+                >
+                  Ver Premium
+                </Link>
               </div>
             </motion.div>
           </motion.div>
