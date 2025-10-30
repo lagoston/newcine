@@ -102,17 +102,62 @@ export default function Community() {
         return;
       }
 
-      // Use intelligent suggestions function (max 30 users)
+      // Try to use intelligent suggestions function, fallback to direct query
       const { data: suggestedUsers, error: suggestionsError } = await supabase
         .rpc('get_suggested_users', {
           p_user_id: session.user.id,
           p_limit: 30
         });
 
-      if (suggestionsError) throw suggestionsError;
+      if (suggestionsError) {
+        console.error('Error with suggestions, falling back to direct query:', suggestionsError);
 
-      setProfiles(suggestedUsers || []);
-      setFilteredProfiles(suggestedUsers || []);
+        // Fallback: get profiles directly
+        const { data: allProfiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            username,
+            avatar_url,
+            bio,
+            plan_type,
+            avatar_frame,
+            banner,
+            active_tag
+          `)
+          .neq('id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(30);
+
+        if (profilesError) throw profilesError;
+
+        // Add followers/following counts
+        const profilesWithCounts = await Promise.all(
+          (allProfiles || []).map(async (profile) => {
+            const { count: followersCount } = await supabase
+              .from('follows')
+              .select('*', { count: 'exact', head: true })
+              .eq('following_id', profile.id);
+
+            const { count: followingCount } = await supabase
+              .from('follows')
+              .select('*', { count: 'exact', head: true })
+              .eq('follower_id', profile.id);
+
+            return {
+              ...profile,
+              followers_count: followersCount || 0,
+              following_count: followingCount || 0
+            };
+          })
+        );
+
+        setProfiles(profilesWithCounts);
+        setFilteredProfiles(profilesWithCounts);
+      } else {
+        setProfiles(suggestedUsers || []);
+        setFilteredProfiles(suggestedUsers || []);
+      }
     } catch (error) {
       console.error('Error fetching profiles:', error);
       toast.error(t('common.error'));

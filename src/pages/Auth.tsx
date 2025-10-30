@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { Loader2, Mail, LogIn, UserPlus, Lock, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Loader2, Mail, LogIn, UserPlus, Lock, ArrowLeft, AlertCircle, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Logo from '../components/Logo';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -247,248 +248,421 @@ export default function Auth() {
   // Show verification message screen
   if (showVerificationMessage) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-md w-full mx-4 text-center">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
-            <div className="flex justify-center mb-4">
-              <Logo size="large" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Check your email
-            </h2>
-            <div className="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-              <Mail className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <p className="text-gray-600 dark:text-gray-300">
-              We sent a verification link to <strong>{email}</strong>.<br />
-              Please check your inbox and spam folder to verify your account.
-            </p>
-            <div className="pt-4">
-              <button
-                onClick={handleResendEmail}
-                disabled={loading || resendCooldown > 0}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20 relative overflow-hidden">
+        {/* Animated background particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {Array.from({ length: 30 }).map((_, i) => (
+            <motion.div
+              key={`particle-${i}`}
+              className="absolute w-1 h-1 rounded-full bg-blue-400/20"
+              initial={{
+                x: Math.random() * 100 + "%",
+                y: Math.random() * 100 + "%",
+                opacity: 0.3 + Math.random() * 0.3
+              }}
+              animate={{
+                y: [
+                  Math.random() * 100 + "%",
+                  Math.random() * 100 + "%",
+                  Math.random() * 100 + "%"
+                ],
+                opacity: [
+                  0.3 + Math.random() * 0.3,
+                  0.1 + Math.random() * 0.2,
+                  0.3 + Math.random() * 0.3
+                ]
+              }}
+              transition={{
+                duration: 15 + Math.random() * 15,
+                repeat: Infinity
+              }}
+            />
+          ))}
+        </div>
+
+        <motion.div
+          className="max-w-md w-full mx-4 text-center relative z-10"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/30 to-purple-600/30 rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-1000" />
+            <div className="relative bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-blue-500/20">
+              <motion.div
+                className="flex justify-center mb-6"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
               >
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Sending...
-                  </div>
-                ) : resendCooldown > 0 ? (
-                  `Wait ${resendCooldown}s to resend`
-                ) : (
-                  "Didn't receive the email? Click to resend"
-                )}
-              </button>
-            </div>
-            <div className="pt-2">
-              <button
-                onClick={() => {
-                  setShowVerificationMessage(false);
-                  setMode('signin');
-                }}
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                <Logo size="large" />
+              </motion.div>
+              <motion.h2
+                className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
               >
-                Back to sign in
-              </button>
+                Check your email
+              </motion.h2>
+              <motion.div
+                className="mx-auto w-16 h-16 mb-6 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center border border-blue-400/30"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+              >
+                <Mail className="w-8 h-8 text-blue-400" />
+              </motion.div>
+              <motion.p
+                className="text-gray-300 mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                We sent a verification link to <strong className="text-white">{email}</strong>.<br />
+                Please check your inbox and spam folder to verify your account.
+              </motion.p>
+              <motion.div
+                className="pt-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+              >
+                <button
+                  onClick={handleResendEmail}
+                  disabled={loading || resendCooldown > 0}
+                  className="text-sm text-blue-400 hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loading ? (
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Sending...
+                    </div>
+                  ) : resendCooldown > 0 ? (
+                    `Wait ${resendCooldown}s to resend`
+                  ) : (
+                    "Didn't receive the email? Click to resend"
+                  )}
+                </button>
+              </motion.div>
+              <motion.div
+                className="pt-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+              >
+                <button
+                  onClick={() => {
+                    setShowVerificationMessage(false);
+                    setMode('signin');
+                  }}
+                  className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                >
+                  Back to sign in
+                </button>
+              </motion.div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
   
   // Main auth form
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg">
-        <div className="flex flex-col items-center">
-          <Logo size="large" className="mb-4" />
-          <h2 className="text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            {mode === 'forgot-password'
-              ? 'Reset Your Password'
-              : mode === 'signup'
-              ? 'Create Your Account'
-              : 'Sign In to CineOracle'}
-          </h2>
-          
-          {mode === 'forgot-password' && (
-            <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-              Enter your email and we'll send you instructions to reset your password.
-            </p>
-          )}
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
-            {mode === 'signup' && (
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Username
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <UserPlus className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    required
-                    className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                    placeholder="Enter username (letters, numbers, underscores)"
-                    pattern="^[a-zA-Z0-9_]+$"
-                    minLength={3}
-                    maxLength={20}
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    disabled={isSubmitting || loading}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Email address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Enter your email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isSubmitting || loading}
-                />
-              </div>
-            </div>
-
-            {mode !== 'forgot-password' && (
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isSubmitting || loading}
-                    minLength={6}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {mode === 'signin' && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-                  Remember me
-                </label>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md px-4 py-3 flex items-start">
-              <AlertCircle className="w-5 h-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={isSubmitting || loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting || loading ? (
-                <div className="flex items-center">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  {mode === 'forgot-password'
-                    ? 'Sending reset link...'
-                    : mode === 'signup'
-                    ? 'Creating account...'
-                    : 'Signing in...'}
-                </div>
-              ) : (
-                <>
-                  {mode === 'signin' && <LogIn className="w-5 h-5 mr-2" />}
-                  {mode === 'signup' && <UserPlus className="w-5 h-5 mr-2" />}
-                  {mode === 'forgot-password'
-                    ? 'Send Reset Link'
-                    : mode === 'signup'
-                    ? 'Create Account'
-                    : 'Sign In'}
-                </>
-              )}
-            </button>
-          </div>
-
-          <div className="flex flex-col space-y-2 text-center text-sm">
-            {mode === 'signin' && (
-              <button
-                type="button"
-                onClick={() => changeMode('forgot-password')}
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
-                disabled={isSubmitting || loading}
-              >
-                Forgot your password?
-              </button>
-            )}
-            
-            {mode === 'forgot-password' && (
-              <button
-                type="button"
-                onClick={() => changeMode('signin')}
-                className="flex items-center justify-center text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
-                disabled={isSubmitting || loading}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to sign in
-              </button>
-            )}
-            
-            {(mode === 'signin' || mode === 'signup') && (
-              <button
-                type="button"
-                onClick={() => changeMode(mode === 'signin' ? 'signup' : 'signin')}
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
-                disabled={isSubmitting || loading}
-              >
-                {mode === 'signin'
-                  ? "Don't have an account? Sign up"
-                  : "Already have an account? Sign in"}
-              </button>
-            )}
-          </div>
-        </form>
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20 relative overflow-hidden">
+      {/* Animated background particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 30 }).map((_, i) => (
+          <motion.div
+            key={`particle-${i}`}
+            className="absolute w-1 h-1 rounded-full bg-blue-400/20"
+            initial={{
+              x: Math.random() * 100 + "%",
+              y: Math.random() * 100 + "%",
+              opacity: 0.3 + Math.random() * 0.3
+            }}
+            animate={{
+              y: [
+                Math.random() * 100 + "%",
+                Math.random() * 100 + "%",
+                Math.random() * 100 + "%"
+              ],
+              opacity: [
+                0.3 + Math.random() * 0.3,
+                0.1 + Math.random() * 0.2,
+                0.3 + Math.random() * 0.3
+              ]
+            }}
+            transition={{
+              duration: 15 + Math.random() * 15,
+              repeat: Infinity
+            }}
+          />
+        ))}
       </div>
+
+      <motion.div
+        className="max-w-md w-full relative z-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/30 to-purple-600/30 rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-1000" />
+          <div className="relative bg-gray-800/90 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-blue-500/20">
+            <div className="flex flex-col items-center mb-8">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+              >
+                <Logo size="large" className="mb-4" />
+              </motion.div>
+              <motion.h2
+                className="text-center text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                {mode === 'forgot-password'
+                  ? 'Reset Your Password'
+                  : mode === 'signup'
+                  ? 'Create Your Account'
+                  : 'Sign In to CineOracle'}
+              </motion.h2>
+
+              {mode === 'forgot-password' && (
+                <motion.p
+                  className="mt-2 text-center text-sm text-gray-400"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  Enter your email and we'll send you instructions to reset your password.
+                </motion.p>
+              )}
+            </div>
+
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <AnimatePresence mode="wait">
+                  {mode === 'signup' && (
+                    <motion.div
+                      key="username"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">
+                        Username
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <UserPlus className="h-5 w-5 text-gray-500" />
+                        </div>
+                        <input
+                          id="username"
+                          name="username"
+                          type="text"
+                          required
+                          className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all sm:text-sm"
+                          placeholder="Enter username (letters, numbers, underscores)"
+                          pattern="^[a-zA-Z0-9_]+$"
+                          minLength={3}
+                          maxLength={20}
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          disabled={isSubmitting || loading}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
+                    Email address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-500" />
+                    </div>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all sm:text-sm"
+                      placeholder="Enter your email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isSubmitting || loading}
+                    />
+                  </div>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {mode !== 'forgot-password' && (
+                    <motion.div
+                      key="password"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
+                        Password
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Lock className="h-5 w-5 text-gray-500" />
+                        </div>
+                        <input
+                          id="password"
+                          name="password"
+                          type="password"
+                          required
+                          className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all sm:text-sm"
+                          placeholder="Enter your password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          disabled={isSubmitting || loading}
+                          minLength={6}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {mode === 'signin' && (
+                  <motion.div
+                    className="flex items-center justify-between"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <div className="flex items-center">
+                      <input
+                        id="remember-me"
+                        name="remember-me"
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-600 rounded bg-gray-700"
+                      />
+                      <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-300">
+                        Remember me
+                      </label>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence mode="wait">
+                {error && (
+                  <motion.div
+                    className="bg-red-900/30 border border-red-500/50 rounded-lg px-4 py-3 flex items-start backdrop-blur-sm"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <AlertCircle className="w-5 h-5 text-red-400 mr-3 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-red-300">{error}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <button
+                  type="submit"
+                  disabled={isSubmitting || loading}
+                  className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all"
+                >
+                  {isSubmitting || loading ? (
+                    <div className="flex items-center">
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      {mode === 'forgot-password'
+                        ? 'Sending reset link...'
+                        : mode === 'signup'
+                        ? 'Creating account...'
+                        : 'Signing in...'}
+                    </div>
+                  ) : (
+                    <>
+                      {mode === 'signin' && <LogIn className="w-5 h-5 mr-2" />}
+                      {mode === 'signup' && <UserPlus className="w-5 h-5 mr-2" />}
+                      {mode === 'forgot-password'
+                        ? 'Send Reset Link'
+                        : mode === 'signup'
+                        ? 'Create Account'
+                        : 'Sign In'}
+                    </>
+                  )}
+                </button>
+              </motion.div>
+
+              <div className="flex flex-col space-y-2 text-center text-sm">
+                <AnimatePresence mode="wait">
+                  {mode === 'signin' && (
+                    <motion.button
+                      key="forgot-btn"
+                      type="button"
+                      onClick={() => changeMode('forgot-password')}
+                      className="text-blue-400 hover:text-blue-300 transition-colors"
+                      disabled={isSubmitting || loading}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      Forgot your password?
+                    </motion.button>
+                  )}
+
+                  {mode === 'forgot-password' && (
+                    <motion.button
+                      key="back-btn"
+                      type="button"
+                      onClick={() => changeMode('signin')}
+                      className="flex items-center justify-center text-blue-400 hover:text-blue-300 transition-colors"
+                      disabled={isSubmitting || loading}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back to sign in
+                    </motion.button>
+                  )}
+
+                  {(mode === 'signin' || mode === 'signup') && (
+                    <motion.button
+                      key="toggle-btn"
+                      type="button"
+                      onClick={() => changeMode(mode === 'signin' ? 'signup' : 'signin')}
+                      className="text-blue-400 hover:text-blue-300 transition-colors"
+                      disabled={isSubmitting || loading}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      {mode === 'signin'
+                        ? "Don't have an account? Sign up"
+                        : "Already have an account? Sign in"}
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </div>
+            </form>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
