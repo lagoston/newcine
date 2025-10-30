@@ -42,16 +42,21 @@ const PentagonGraph: React.FC<{ points: { e: number; i: number; c: number; s: nu
 
   // Get color based on subcategory
   const getSubcategoryColor = (id: string) => {
-    const firstLetter = id?.charAt(2) || 'A';
+    if (!id) {
+      console.warn('No subcategory ID provided for graph color');
+      return '#8b5cf6'; // default purple
+    }
+    const thirdLetter = id?.charAt(2);
+    console.log('Subcategory ID:', id, 'Third letter:', thirdLetter);
     const colors: Record<string, string> = {
-      'A': '#fbbf24', // amber
-      'B': '#8b5cf6', // purple
-      'K': '#ef4444', // red
-      'X': '#3b82f6', // blue
-      'D': '#6b7280', // gray
-      'L': '#10b981', // green
+      'A': '#fbbf24', // amber (Radiante)
+      'B': '#8b5cf6', // purple (Sombrio)
+      'K': '#ef4444', // red (Clássico)
+      'X': '#3b82f6', // blue (Experimental)
+      'D': '#6b7280', // gray (Denso)
+      'L': '#10b981', // green (Leve)
     };
-    return colors[firstLetter] || '#8b5cf6';
+    return colors[thirdLetter] || '#8b5cf6';
   };
 
   const color = getSubcategoryColor(subcategoryId);
@@ -153,25 +158,6 @@ const PentagonGraph: React.FC<{ points: { e: number; i: number; c: number; s: nu
           </text>
         );
       })}
-
-      {/* Values at labels */}
-      {labels.map((label, i) => {
-        const labelPoint = getLabelPoint(i);
-        const value = values[i];
-        return (
-          <text
-            key={`value-${i}`}
-            x={labelPoint.x}
-            y={labelPoint.y + 18}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className="text-xs font-semibold"
-            fill={color}
-          >
-            {Math.round(value)}%
-          </text>
-        );
-      })}
     </svg>
   );
 };
@@ -246,9 +232,13 @@ export default function OracleHub() {
       }
 
       // Get premium status using RPC function
-      const { data: premiumData } = await supabase
-        .rpc('get_user_premium_status', { user_id: session?.user?.id });
+      const { data: premiumData, error: premiumError } = await supabase
+        .rpc('get_user_premium_status', { user_id_input: session?.user?.id });
 
+      if (premiumError) {
+        console.error('Error loading premium status:', premiumError);
+      }
+      console.log('Premium status for user:', session?.user?.id, '=', premiumData);
       setIsPremium(premiumData || false);
 
       // If has personality, load archetype info
@@ -488,14 +478,14 @@ export default function OracleHub() {
                 />
               </motion.button>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 flex flex-col items-center">
                 <button
                   disabled
                   className="px-12 py-5 bg-gray-700/50 text-gray-500 text-xl font-bold rounded-xl border-2 border-gray-600/50 cursor-not-allowed"
                 >
                   Começar
                 </button>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-400 text-sm text-center">
                   Você precisa avaliar pelo menos 15 filmes antes de iniciar o ritual.
                   <br />
                   <span className="text-purple-400 font-semibold">
