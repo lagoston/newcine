@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Popular Cache de Gêneros</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      padding: 15px 30px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #status {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+    .info { color: #60a5fa; }
+    .warning { color: #fbbf24; }
+  </style>
+</head>
+<body>
+  <h1>🎬 Popular Cache de Gêneros - CineOracle</h1>
+
+  <div>
+    <h2>Status do Cache</h2>
+    <div id="cache-status">Carregando...</div>
+  </div>
+
+  <div>
+    <h2>Ações</h2>
+    <button id="check-btn" onclick="checkStatus()">🔍 Verificar Status</button>
+    <button id="populate-btn" onclick="populateCache()">📥 Popular Cache (TMDB)</button>
+    <button id="recalculate-btn" onclick="recalculateUsers()" disabled>♻️ Recalcular Usuários</button>
+  </div>
+
+  <div id="status"></div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+
+    // Configure seu Supabase (TEMPORÁRIO - usar .env em produção)
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    window.checkStatus = async function() {
+      log('Verificando status do cache...', 'info');
+      try {
+        const { data, error } = await supabase.rpc('check_cache_status');
+        if (error) throw error;
+
+        const status = data;
+        document.getElementById('cache-status').innerHTML = `
+          <div class="info">
+            <strong>Filmes avaliados:</strong> ${status.total_movies_rated}<br>
+            <strong>Filmes em cache:</strong> ${status.movies_cached}<br>
+            <strong>Filmes sem cache:</strong> ${status.uncached_movies}<br>
+            <strong>Cobertura:</strong> ${status.cache_coverage_percent}%<br>
+            <strong>Pronto para recalcular:</strong> ${status.ready_for_recalculation ? '✅ Sim' : '❌ Não'}
+          </div>
+        `;
+
+        const recalcBtn = document.getElementById('recalculate-btn');
+        recalcBtn.disabled = !status.ready_for_recalculation;
+
+        log('Status obtido com sucesso!', 'success');
+      } catch (error) {
+        log('Erro ao verificar status: ' + error.message, 'error');
+      }
+    };
+
+    window.populateCache = async function() {
+      if (!confirm('Isso vai buscar gêneros de ~375 filmes do TMDB. Continuar?')) return;
+
+      const btn = document.getElementById('populate-btn');
+      btn.disabled = true;
+      log('Iniciando população do cache...', 'info');
+      log('Isso pode levar alguns minutos. Por favor, aguarde...', 'warning');
+
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        if (!session?.session) {
+          throw new Error('Você precisa estar autenticado!');
+        }
+
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/populate-genres-cache`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          log(`✅ Cache populado com sucesso!`, 'success');
+          log(`   - Processados: ${result.total}`, 'info');
+          log(`   - Cacheados: ${result.cached}`, 'success');
+          log(`   - Ignorados: ${result.skipped}`, 'warning');
+          await checkStatus();
+        } else {
+          throw new Error(result.error || 'Erro desconhecido');
+        }
+      } catch (error) {
+        log('Erro ao popular cache: ' + error.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    window.recalculateUsers = async function() {
+      if (!confirm('Isso vai recalcular os pontos de TODOS os usuários. Continuar?')) return;
+
+      const btn = document.getElementById('recalculate-btn');
+      btn.disabled = true;
+      log('Iniciando recálculo de todos os usuários...', 'info');
+      log('Isso pode levar alguns minutos. Por favor, aguarde...', 'warning');
+
+      try {
+        const { data, error } = await supabase.rpc('bulk_recalculate_all_users');
+        if (error) throw error;
+
+        log(`✅ Recálculo completo!`, 'success');
+        log(`   - Total de usuários: ${data.total_users}`, 'info');
+        log(`   - Sucesso: ${data.successful}`, 'success');
+        log(`   - Falhas: ${data.failed}`, data.failed > 0 ? 'error' : 'info');
+        log(`   - Taxa de sucesso: ${data.success_rate_percent}%`, 'success');
+
+        await checkStatus();
+      } catch (error) {
+        log('Erro ao recalcular usuários: ' + error.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    function log(message, type = 'info') {
+      const status = document.getElementById('status');
+      const timestamp = new Date().toLocaleTimeString();
+      const className = type;
+      status.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+      status.scrollTop = status.scrollHeight;
+    }
+
+    // Check status on load
+    window.addEventListener('load', checkStatus);
+  </script>
+</body>
+</html>
