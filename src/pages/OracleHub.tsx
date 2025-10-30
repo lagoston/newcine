@@ -67,14 +67,14 @@ export default function OracleHub() {
       }
 
       // Get rated movies count
-      const { data: ratingsData, error: ratingsError } = await supabase
+      const { count: ratingsCount, error: ratingsError } = await supabase
         .from('user_ratings')
-        .select('movie_id', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', session?.user?.id);
 
       if (ratingsError) throw ratingsError;
 
-      setRatedMoviesCount((ratingsData as any)?.length || 0);
+      setRatedMoviesCount(ratingsCount || 0);
 
     } catch (error) {
       console.error('Error loading user data:', error);
