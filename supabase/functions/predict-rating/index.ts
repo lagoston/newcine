@@ -209,14 +209,20 @@ function getHybridPrompt(
 ): string {
   const lang = language.startsWith('pt') ? 'pt' : language.startsWith('es') ? 'es' : 'en';
 
+  const formatMatches = (matches: RelevantMovie[]): string => {
+    if (matches.length === 0) return 'None';
+    return matches.map(m => `"${m.title}" (${m.rating}/10) - Same ${m.matchType}`).join('\n');
+  };
+
   const prompts = {
     en: `You are CineOracle. Your task is to predict a user's rating (0.0 to 10.0) for a target film using Weighted Bayesian Analysis.
 
 # MANDATORY METHODOLOGY (DO NOT BREAK THESE RULES)
 1. **ANCHOR:** Your analysis MUST start with the "Public Average Rating". This is your baseline.
-2. **ADJUSTMENT:** Adjust the Anchor up or down based on "Signals" (films they loved) and "Filters" (films they rejected).
+2. **ADJUSTMENT:** Adjust the Anchor up or down based on relevant films from their history (loved vs. disliked).
 3. **LENS:** Use the "Personality Profile" as the primary lens to justify your analysis.
 4. **FINAL SCORE:** Provide a specific rating (e.g., 8.5/10). **NEVER** use ranges (e.g., "±1.0"). Be confident.
+5. **NATURAL LANGUAGE:** Write as if analyzing a real person. Avoid technical jargon or methodology terms. Be conversational and insightful.
 
 # PREDICTION DATA
 
@@ -229,13 +235,13 @@ function getHybridPrompt(
 * **Film:** ${movieName}
 * **Anchor (Public Average):** ${movieAnchor.toFixed(1)}/10
 
-## 3. USER DATA (Signal vs. Filter)
+## 3. RELEVANT USER HISTORY
 
-### Signals (Positive Relevant Matches):
-${signals.length > 0 ? JSON.stringify(signals, null, 2) : 'None found'}
+### Films They Loved (7.0+):
+${formatMatches(signals)}
 
-### Filters (Negative Relevant Matches):
-${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'None found'}
+### Films They Disliked (≤6.0):
+${formatMatches(filters)}
 
 # RESPONSE FRAMEWORK (Follow EXACTLY)
 
@@ -243,10 +249,10 @@ ${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'None found'}
 (Your final, confident rating. No "±" estimates.)
 
 🧠 Personalized Analysis
-(Start with the Anchor. Explain how the Profile, Signals, and Filters made you adjust the rating up or down, resulting in your prediction. Be brief and analytical.)
+(Start with the Anchor. Explain how their personality type and past reactions to similar films inform your prediction. Reference specific titles naturally without labeling them as "signals" or "filters". Be analytical but conversational.)
 
 ⚖️ Weightings
-(Identify the SINGLE decisive factor. What will make this user love or hate this film? Compare the "Signal" with the "Filter".)
+(Identify the SINGLE decisive factor. What will make this user love or hate this film? Use concrete examples from their history.)
 
 🎬 Oracle's Verdict
 (Close with a sharp, memorable one-liner.)`,
@@ -255,9 +261,10 @@ ${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'None found'}
 
 # METODOLOGIA OBRIGATÓRIA (NÃO QUEBRE ESTAS REGRAS)
 1. **ÂNCORA:** Sua análise DEVE começar pela "Nota Média do Público". Esta é sua linha de base.
-2. **AJUSTE:** Ajuste a Âncora para cima ou para baixo com base nos "Sinais" (filmes que ele amou) e "Filtros" (filmes que ele rejeitou).
+2. **AJUSTE:** Ajuste a Âncora para cima ou para baixo com base em filmes relevantes do histórico (amados vs. rejeitados).
 3. **LENTE:** Use o "Perfil de Personalidade" como a lente principal para justificar sua análise.
 4. **NOTA FINAL:** Forneça uma nota específica (ex: 8.5/10). **NUNCA** use intervalos (ex: "±1.0"). Seja confiante.
+5. **LINGUAGEM NATURAL:** Escreva como se estivesse analisando uma pessoa real. Evite jargão técnico ou termos metodológicos. Seja conversacional e perspicaz.
 
 # DADOS DA PREVISÃO
 
@@ -270,13 +277,13 @@ ${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'None found'}
 * **Filme:** ${movieName}
 * **Âncora (Nota Média do Público):** ${movieAnchor.toFixed(1)}/10
 
-## 3. DADOS DO USUÁRIO (Sinal vs. Filtro)
+## 3. HISTÓRICO RELEVANTE DO USUÁRIO
 
-### Sinais (Matches Positivos Relevantes):
-${signals.length > 0 ? JSON.stringify(signals, null, 2) : 'Nenhum encontrado'}
+### Filmes que Amou (7.0+):
+${formatMatches(signals)}
 
-### Filtros (Matches Negativos Relevantes):
-${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'Nenhum encontrado'}
+### Filmes que Rejeitou (≤6.0):
+${formatMatches(filters)}
 
 # FRAMEWORK DA RESPOSTA (Siga EXATAMENTE)
 
@@ -284,10 +291,10 @@ ${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'Nenhum encontrado'}
 (Sua nota final e confiante. Sem estimações "±".)
 
 🧠 Análise Personalizada
-(Comece com a Âncora. Explique como o Perfil, os Sinais e os Filtros o fizeram ajustar a nota para cima ou para baixo, resultando na sua previsão. Seja breve e analítico.)
+(Comece com a Âncora. Explique como o tipo de personalidade dele e reações passadas a filmes similares informam sua previsão. Referencie títulos específicos naturalmente, sem rotulá-los como "sinais" ou "filtros". Seja analítico mas conversacional.)
 
 ⚖️ Ponderações
-(Identifique o ÚNICO fator decisivo. O que fará este usuário amar ou odiar este filme? Compare o "Sinal" com o "Filtro".)
+(Identifique o ÚNICO fator decisivo. O que fará este usuário amar ou odiar este filme? Use exemplos concretos do histórico dele.)
 
 🎬 Veredito do Oráculo
 (Feche com uma frase marcante e afiada.)`,
@@ -296,9 +303,10 @@ ${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'Nenhum encontrado'}
 
 # METODOLOGÍA OBLIGATORIA (NO ROMPAS ESTAS REGLAS)
 1. **ANCLA:** Tu análisis DEBE comenzar con el "Promedio Público". Esta es tu línea base.
-2. **AJUSTE:** Ajusta el Ancla hacia arriba o abajo basándote en "Señales" (películas que amó) y "Filtros" (películas que rechazó).
+2. **AJUSTE:** Ajusta el Ancla hacia arriba o abajo basándote en películas relevantes del historial (amadas vs. rechazadas).
 3. **LENTE:** Usa el "Perfil de Personalidad" como la lente principal para justificar tu análisis.
 4. **CALIFICACIÓN FINAL:** Proporciona una calificación específica (ej: 8.5/10). **NUNCA** uses rangos (ej: "±1.0"). Sé confiado.
+5. **LENGUAJE NATURAL:** Escribe como si estuvieras analizando a una persona real. Evita jerga técnica o términos metodológicos. Sé conversacional y perspicaz.
 
 # DATOS DE LA PREDICCIÓN
 
@@ -311,13 +319,13 @@ ${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'Nenhum encontrado'}
 * **Película:** ${movieName}
 * **Ancla (Promedio Público):** ${movieAnchor.toFixed(1)}/10
 
-## 3. DATOS DEL USUARIO (Señal vs. Filtro)
+## 3. HISTORIAL RELEVANTE DEL USUARIO
 
-### Señales (Coincidencias Positivas Relevantes):
-${signals.length > 0 ? JSON.stringify(signals, null, 2) : 'Ninguna encontrada'}
+### Películas que Amó (7.0+):
+${formatMatches(signals)}
 
-### Filtros (Coincidencias Negativas Relevantes):
-${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'Ninguna encontrada'}
+### Películas que Rechazó (≤6.0):
+${formatMatches(filters)}
 
 # MARCO DE RESPUESTA (Sigue EXACTAMENTE)
 
@@ -325,10 +333,10 @@ ${filters.length > 0 ? JSON.stringify(filters, null, 2) : 'Ninguna encontrada'}
 (Tu calificación final y confiada. Sin estimaciones "±".)
 
 🧠 Análisis Personalizado
-(Comienza con el Ancla. Explica cómo el Perfil, las Señales y los Filtros te hicieron ajustar la calificación hacia arriba o abajo, resultando en tu predicción. Sé breve y analítico.)
+(Comienza con el Ancla. Explica cómo su tipo de personalidad y reacciones pasadas a películas similares informan tu predicción. Referencia títulos específicos naturalmente, sin etiquetarlos como "señales" o "filtros". Sé analítico pero conversacional.)
 
 ⚖️ Ponderaciones
-(Identifica el ÚNICO factor decisivo. ¿Qué hará que este usuario ame u odie esta película? Compara la "Señal" con el "Filtro".)
+(Identifica el ÚNICO factor decisivo. ¿Qué hará que este usuario ame u odie esta película? Usa ejemplos concretos de su historial.)
 
 🎬 Veredicto del Oráculo
 (Cierra con una frase memorable y aguda.)`
@@ -410,11 +418,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: personalityData, error: personalityError } = await supabase
+    const { data: personalityDataArray, error: personalityError } = await supabase
       .rpc('get_user_complete_personality', { p_user_id: userId });
 
-    if (personalityError || !personalityData) {
+    if (personalityError) {
       console.error('Error fetching personality:', personalityError);
+      return new Response(
+        JSON.stringify({
+          prediction: "⚠️ Error loading personality profile. Please try again.",
+          movie: movieName,
+          ticketsRemaining: ticketData.tickets_remaining
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
+
+    const personalityData = personalityDataArray?.[0];
+
+    if (!personalityData || !personalityData.personalidade_completa) {
+      console.error('No personality data found for user:', userId);
       return new Response(
         JSON.stringify({
           prediction: "⚠️ Personality profile not found. Please complete the Oracle questionnaire first.",
