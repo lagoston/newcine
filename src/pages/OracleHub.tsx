@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, Wand2, BrainCircuit, Loader2 } from 'lucide-react';
+import { Eye, Wand2, BrainCircuit, Loader2, Scroll, Info, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
@@ -34,6 +34,8 @@ export default function OracleHub() {
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [questionnaireResult, setQuestionnaireResult] = useState<any>(null);
+  const [showRevelationModal, setShowRevelationModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -447,9 +449,32 @@ export default function OracleHub() {
                   <p className="text-xl text-white font-semibold mb-3">
                     {archetypeInfo.archetype_name} {archetypeInfo.subcategory_name}
                   </p>
-                  <p className="text-gray-400 text-sm leading-relaxed">
+                  <p className="text-gray-400 text-sm leading-relaxed mb-4">
                     {archetypeInfo.description}
                   </p>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 mt-4">
+                    <motion.button
+                      onClick={() => setShowRevelationModal(true)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg"
+                    >
+                      <Scroll className="w-4 h-4" />
+                      <span className="text-sm font-semibold">Revelação</span>
+                    </motion.button>
+
+                    <motion.button
+                      onClick={() => setShowInfoModal(true)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+                    >
+                      <Info className="w-4 h-4" />
+                      <span className="text-sm font-semibold">Info</span>
+                    </motion.button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -635,6 +660,214 @@ export default function OracleHub() {
           subcategoryName={archetypeInfo.subcategory_name || ''}
         />
       )}
+
+      {/* Revelation Modal - Personality Description */}
+      <AnimatePresence>
+        {showRevelationModal && archetypeInfo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowRevelationModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, rotateX: -15 }}
+              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+              exit={{ scale: 0.9, opacity: 0, rotateX: 15 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative max-w-2xl w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Parchment-like scroll background */}
+              <div className="relative bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 dark:from-amber-900/90 dark:via-yellow-900/90 dark:to-amber-800/90 rounded-2xl shadow-2xl border-4 border-amber-800 dark:border-amber-600 p-8 overflow-hidden">
+                {/* Texture overlay */}
+                <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIj48cGF0aCBkPSJNMCAwaDQwdjQwSDB6IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDBoNDB2NDBIMHoiIGZpbGw9Im5vbmUiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYSkiLz48L3N2Zz4=')]" />
+
+                {/* Close button */}
+                <button
+                  onClick={() => setShowRevelationModal(false)}
+                  className="absolute top-4 right-4 p-2 bg-amber-800/20 hover:bg-amber-800/40 rounded-full transition-colors z-10"
+                >
+                  <X className="w-5 h-5 text-amber-900 dark:text-amber-100" />
+                </button>
+
+                {/* Content */}
+                <div className="relative z-10">
+                  <div className="flex items-center justify-center mb-6">
+                    <Scroll className="w-8 h-8 text-amber-800 dark:text-amber-300 mr-3" />
+                    <h2 className="text-3xl font-bold text-amber-900 dark:text-amber-100 font-serif">
+                      Revelação
+                    </h2>
+                  </div>
+
+                  {/* Personality Code */}
+                  <div className="text-center mb-6">
+                    <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 mb-2">
+                      {userPersonality?.personalidade_completa}
+                    </p>
+                    <p className="text-xl text-amber-800 dark:text-amber-200 font-semibold">
+                      {archetypeInfo.archetype_name} {archetypeInfo.subcategory_name}
+                    </p>
+                  </div>
+
+                  {/* Archetype Description */}
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2 font-serif">
+                        Sua Essência (As Duas Primeiras Letras)
+                      </h3>
+                      <p className="text-amber-900/90 dark:text-amber-100/90 leading-relaxed text-justify">
+                        {archetypeInfo.archetype_description}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2 font-serif">
+                        Sua Sintonia (A Terceira Letra)
+                      </h3>
+                      <p className="text-amber-900/90 dark:text-amber-100/90 leading-relaxed text-justify">
+                        {archetypeInfo.subcategory_description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Decorative elements */}
+                  <div className="flex items-center justify-center gap-2 pt-4 border-t-2 border-amber-800/30 dark:border-amber-600/30">
+                    <div className="w-16 h-0.5 bg-amber-800 dark:bg-amber-600" />
+                    <div className="w-2 h-2 rounded-full bg-amber-800 dark:bg-amber-600" />
+                    <div className="w-16 h-0.5 bg-amber-800 dark:bg-amber-600" />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Info Modal - Methodology Explanation */}
+      <AnimatePresence>
+        {showInfoModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowInfoModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 50 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Crystal ball glass effect */}
+              <div className="relative bg-gradient-to-br from-blue-950/95 via-purple-950/95 to-indigo-950/95 backdrop-blur-md rounded-3xl shadow-2xl border-2 border-blue-400/30 p-8">
+                {/* Glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-3xl blur-xl" />
+
+                {/* Close button */}
+                <button
+                  onClick={() => setShowInfoModal(false)}
+                  className="absolute top-4 right-4 p-2 bg-blue-500/20 hover:bg-blue-500/40 rounded-full transition-colors z-10"
+                >
+                  <X className="w-5 h-5 text-blue-200" />
+                </button>
+
+                {/* Content */}
+                <div className="relative z-10">
+                  <div className="flex items-center justify-center mb-6">
+                    <div className="relative">
+                      <Eye className="w-10 h-10 text-blue-400 mr-3" style={{
+                        filter: 'drop-shadow(0 0 10px rgba(96, 165, 250, 0.5))'
+                      }} />
+                    </div>
+                    <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+                      A Arquitetura da Alma
+                    </h2>
+                  </div>
+
+                  <div className="space-y-6 text-gray-200">
+                    <p className="text-center italic text-gray-300 text-lg">
+                      Seu Arquétipo não é adivinhação. É a arquitetura de seus gostos, construída em duas etapas:
+                    </p>
+
+                    {/* Section 1: Essence */}
+                    <div className="bg-blue-900/30 rounded-xl p-6 border border-blue-500/20">
+                      <h3 className="text-2xl font-bold text-blue-300 mb-3 flex items-center gap-2">
+                        <span className="text-3xl">1.</span>
+                        A Essência (As Duas Primeiras Letras)
+                      </h3>
+                      <p className="text-gray-300 leading-relaxed mb-3">
+                        Seu perfil principal <span className="font-bold text-purple-300">({userPersonality?.arquetipo_primario}{userPersonality?.arquetipo_secundario})</span> é a soma matemática do que você ama e odeia. Cada filme que você avalia move cinco balanças: <span className="font-semibold text-pink-300">Emocional (E)</span>, <span className="font-semibold text-blue-300">Intelectual (I)</span>, <span className="font-semibold text-amber-300">Cultural (C)</span>, <span className="font-semibold text-green-300">Sensorial (S)</span> e <span className="font-semibold text-cyan-300">Recreativa (R)</span>.
+                      </p>
+
+                      <div className="bg-black/30 rounded-lg p-4 mb-3">
+                        <h4 className="font-bold text-blue-200 mb-2">A Lógica:</h4>
+                        <p className="text-gray-300 text-sm leading-relaxed">
+                          Uma nota <span className="font-bold text-green-400">10.0</span> (apreço máximo) em um 'Drama' (gênero Emocional) adiciona peso máximo à sua balança E. Uma nota <span className="font-bold text-red-400">0.0</span> (rejeição máxima) em uma 'Comédia' (gênero Recreativo) remove peso da sua balança R. A nota <span className="font-bold text-yellow-400">5.0</span> é o equilíbrio neutro.
+                        </p>
+                      </div>
+
+                      <div className="bg-black/30 rounded-lg p-4">
+                        <h4 className="font-bold text-blue-200 mb-2">O Resultado:</h4>
+                        <p className="text-gray-300 text-sm leading-relaxed">
+                          Seu Arquétipo é formado pelas duas balanças com maior pontuação, as forças que hoje brilham mais forte em você.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Section 2: Attunement */}
+                    <div className="bg-purple-900/30 rounded-xl p-6 border border-purple-500/20">
+                      <h3 className="text-2xl font-bold text-purple-300 mb-3 flex items-center gap-2">
+                        <span className="text-3xl">2.</span>
+                        A Sintonia (A Terceira Letra)
+                      </h3>
+                      <p className="text-gray-300 leading-relaxed mb-3">
+                        O Sub-arquétipo <span className="font-bold text-pink-300">({userPersonality?.subcategoria_id})</span> representa sua inclinação ou tom. Ela não é calculada pelos gêneros, mas pela <span className="font-semibold text-yellow-300">Calibragem</span> que você fez ao responder o questionário inicial.
+                      </p>
+
+                      <div className="bg-black/30 rounded-lg p-4">
+                        <p className="text-gray-300 text-sm leading-relaxed mb-3">
+                          Ao responder às balanças, você definiu sua tendência em três eixos opostos:
+                        </p>
+                        <ul className="space-y-2 text-sm">
+                          <li className="flex items-start gap-2">
+                            <span className="text-amber-400 font-bold">•</span>
+                            <span className="text-gray-300"><span className="font-semibold text-amber-300">Radiante (A)</span> vs. <span className="font-semibold text-purple-300">Sombrio (B)</span> (Otimismo vs. Melancolia).</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-red-400 font-bold">•</span>
+                            <span className="text-gray-300"><span className="font-semibold text-red-300">Clássico (K)</span> vs. <span className="font-semibold text-blue-300">Experimental (X)</span> (Tradição vs. Ousadia).</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-white font-bold">•</span>
+                            <span className="text-gray-300"><span className="font-semibold text-gray-100">Denso (D)</span> vs. <span className="font-semibold text-green-300">Leve (L)</span> (Complexidade vs. Acessibilidade).</span>
+                          </li>
+                        </ul>
+                        <p className="text-gray-300 text-sm leading-relaxed mt-3">
+                          O eixo onde sua preferência foi mais forte se tornou sua subcategoria dominante, adicionando o foco final ao seu perfil.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Decorative bottom */}
+                    <div className="flex items-center justify-center gap-3 pt-4">
+                      <div className="w-12 h-0.5 bg-gradient-to-r from-transparent via-blue-400 to-transparent" />
+                      <div className="w-2 h-2 rounded-full bg-purple-400" />
+                      <div className="w-12 h-0.5 bg-gradient-to-r from-transparent via-purple-400 to-transparent" />
+                      <div className="w-2 h-2 rounded-full bg-pink-400" />
+                      <div className="w-12 h-0.5 bg-gradient-to-r from-transparent via-pink-400 to-transparent" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
