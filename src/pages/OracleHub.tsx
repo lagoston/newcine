@@ -226,23 +226,30 @@ export default function OracleHub() {
 
       setUserPersonality(profileData);
 
-      // Get premium status and spectrum points separately
+      // Get spectrum points separately
       const { data: spectrumData, error: spectrumError } = await supabase
         .from('profiles')
-        .select('pontos_e, pontos_i, pontos_c, pontos_s, pontos_r, is_premium')
+        .select('pontos_e, pontos_i, pontos_c, pontos_s, pontos_r')
         .eq('id', session?.user?.id)
         .single();
 
       if (!spectrumError && spectrumData) {
-        setIsPremium(spectrumData.is_premium || false);
-        setSpectrumPoints({
+        const points = {
           e: Number(spectrumData.pontos_e) || 0,
           i: Number(spectrumData.pontos_i) || 0,
           c: Number(spectrumData.pontos_c) || 0,
           s: Number(spectrumData.pontos_s) || 0,
           r: Number(spectrumData.pontos_r) || 0,
-        });
+        };
+        console.log('Spectrum points loaded:', points);
+        setSpectrumPoints(points);
       }
+
+      // Get premium status using RPC function
+      const { data: premiumData } = await supabase
+        .rpc('get_user_premium_status', { user_id: session?.user?.id });
+
+      setIsPremium(premiumData || false);
 
       // If has personality, load archetype info
       if (profileData?.personalidade_completa) {
@@ -446,6 +453,7 @@ export default function OracleHub() {
 
           {/* Start button */}
           <motion.div
+            className="flex justify-center"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 7 }}
@@ -938,7 +946,7 @@ export default function OracleHub() {
 
       {/* Info Modal - Methodology Explanation */}
       <AnimatePresence>
-        {showInfoModal && (
+        {showInfoModal && userPersonality && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1030,16 +1038,16 @@ export default function OracleHub() {
                         </p>
                         <ul className="space-y-2 text-sm">
                           <li className="flex items-start gap-2">
-                            <span className="text-white font-bold">•</span>
-                            <span className="text-gray-300"><span className="font-semibold text-white">Radiante (A)</span> vs. <span className="font-semibold text-white">Sombrio (B)</span> (Otimismo vs. Melancolia).</span>
+                            <span className="text-amber-400 font-bold">•</span>
+                            <span className="text-gray-300"><span className="font-semibold text-amber-300">Radiante (A)</span> vs. <span className="font-semibold text-purple-300">Sombrio (B)</span> (Otimismo vs. Melancolia).</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-white font-bold">•</span>
-                            <span className="text-gray-300"><span className="font-semibold text-white">Clássico (K)</span> vs. <span className="font-semibold text-white">Experimental (X)</span> (Tradição vs. Ousadia).</span>
+                            <span className="text-red-400 font-bold">•</span>
+                            <span className="text-gray-300"><span className="font-semibold text-red-300">Clássico (K)</span> vs. <span className="font-semibold text-blue-300">Experimental (X)</span> (Tradição vs. Ousadia).</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-white font-bold">•</span>
-                            <span className="text-gray-300"><span className="font-semibold text-white">Denso (D)</span> vs. <span className="font-semibold text-white">Leve (L)</span> (Complexidade vs. Acessibilidade).</span>
+                            <span className="text-gray-400 font-bold">•</span>
+                            <span className="text-gray-300"><span className="font-semibold text-gray-100">Denso (D)</span> vs. <span className="font-semibold text-green-300">Leve (L)</span> (Complexidade vs. Acessibilidade).</span>
                           </li>
                         </ul>
                         <p className="text-gray-300 text-sm leading-relaxed mt-3">
@@ -1126,9 +1134,16 @@ export default function OracleHub() {
                   Cancelar
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setShowRetakeQuizModal(false);
-                    setShowQuestionnaire(true);
+                    // Reset subcategory to null so user can retake questionnaire
+                    await supabase
+                      .from('profiles')
+                      .update({ subcategoria_id: null })
+                      .eq('id', session?.user?.id);
+
+                    // Reload data to show questionnaire screen
+                    await loadUserData();
                   }}
                   className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-all"
                 >
