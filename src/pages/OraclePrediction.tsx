@@ -35,6 +35,7 @@ export default function OraclePrediction() {
     prediction: false,
     sharing: false
   });
+  const [predictionProgress, setPredictionProgress] = useState(0);
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
   const [nextReset, setNextReset] = useState<Date | null>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
@@ -146,6 +147,14 @@ export default function OraclePrediction() {
       setSelectedMovie(movieName);
       setSearchQuery('');
       setSearchResults([]);
+      setPredictionProgress(0);
+
+      const progressInterval = setInterval(() => {
+        setPredictionProgress(prev => {
+          if (prev >= 90) return prev;
+          return prev + Math.random() * 15;
+        });
+      }, 400);
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/predict-rating`,
@@ -162,6 +171,9 @@ export default function OraclePrediction() {
           })
         }
       );
+
+      clearInterval(progressInterval);
+      setPredictionProgress(100);
 
       const data = await response.json();
 
@@ -307,7 +319,7 @@ export default function OraclePrediction() {
   const renderCrystalBall = () => {
     if (loading.prediction) {
       return (
-        <motion.div 
+        <motion.div
           className="text-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -316,14 +328,14 @@ export default function OraclePrediction() {
           <div className="inline-flex items-center justify-center p-8 rounded-full bg-purple-500/10 backdrop-blur-sm border border-purple-500/20 mb-4 relative">
             <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500/30 to-purple-600/10 blur-md"></div>
             <motion.div
-              animate={{ 
+              animate={{
                 scale: [1, 1.1, 1],
-                opacity: [0.8, 1, 0.8] 
+                opacity: [0.8, 1, 0.8]
               }}
-              transition={{ 
+              transition={{
                 duration: 2,
                 repeat: Infinity,
-                repeatType: "reverse" 
+                repeatType: "reverse"
               }}
             >
               <BrainCircuit className="w-12 h-12 text-purple-400 relative z-10" />
@@ -332,7 +344,24 @@ export default function OraclePrediction() {
           <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-2">
             {t('oracle.prediction.consulting')}
           </h2>
-          <p className="text-gray-400">{t('oracle.prediction.description')}</p>
+          <p className="text-gray-400 mb-4">{t('oracle.prediction.description')}</p>
+
+          <div className="max-w-xs mx-auto">
+            <div className="w-full bg-gray-800/50 rounded-full h-2 overflow-hidden backdrop-blur-sm border border-purple-500/20">
+              <motion.div
+                className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                initial={{ width: '0%' }}
+                animate={{ width: `${predictionProgress}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {predictionProgress < 30 ? t('oracle.prediction.analyzing') :
+               predictionProgress < 60 ? t('oracle.prediction.calculating') :
+               predictionProgress < 90 ? t('oracle.prediction.generating') :
+               t('oracle.prediction.finalizing')}
+            </p>
+          </div>
         </motion.div>
       );
     }

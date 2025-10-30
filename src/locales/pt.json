@@ -151,7 +151,11 @@
       "addMore": "Adicionar Mais Tickets",
       "consulting": "Consultando o Oráculo...",
       "cost": "Consultar o Oráculo ({{cost}} tickets)",
-      "notEnough": "Tickets insuficientes! Próxima recarga em {{time}}"
+      "notEnough": "Tickets insuficientes! Próxima recarga em {{time}}",
+      "analyzing": "Analisando seu perfil...",
+      "calculating": "Calculando compatibilidade...",
+      "generating": "Gerando previsão...",
+      "finalizing": "Finalizando análise..."
     },
     "recommend": {
       "title": "Câmara de Recomendação",

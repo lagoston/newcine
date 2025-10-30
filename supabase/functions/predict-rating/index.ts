@@ -133,33 +133,42 @@ async function fishForRelevantMovies(
           )
         `)
         .eq('user_id', userId)
-        .not('rating', 'is', null);
+        .not('rating', 'is', null)
+        .limit(10);
 
       if (castResponse.data) {
+        let checkedCount = 0;
         for (const movie of castResponse.data) {
           if (signals.length + filters.length >= 5) break;
           if (addedMovies.has(movie.movies.title)) continue;
+          if (checkedCount >= 5) break;
 
-          const movieDetailsUrl = `https://api.themoviedb.org/3/movie/${movie.movies.id}?api_key=${Deno.env.get('TMDB_API_KEY')}&append_to_response=credits`;
-          const detailsResponse = await fetch(movieDetailsUrl);
-          const detailsData = await detailsResponse.json();
+          checkedCount++;
 
-          const movieCast = detailsData.credits?.cast?.slice(0, 5).map((actor: any) => actor.name) || [];
-          const hasCommonActor = movieCast.some((actor: string) => targetMovieData.cast?.includes(actor));
+          try {
+            const movieDetailsUrl = `https://api.themoviedb.org/3/movie/${movie.movies.id}?api_key=${Deno.env.get('TMDB_API_KEY')}&append_to_response=credits`;
+            const detailsResponse = await fetch(movieDetailsUrl);
+            const detailsData = await detailsResponse.json();
 
-          if (hasCommonActor) {
-            const entry: RelevantMovie = {
-              title: movie.movies.title,
-              rating: movie.rating,
-              matchType: 'Actor'
-            };
+            const movieCast = detailsData.credits?.cast?.slice(0, 5).map((actor: any) => actor.name) || [];
+            const hasCommonActor = movieCast.some((actor: string) => targetMovieData.cast?.includes(actor));
 
-            if (movie.rating >= 7.0) {
-              signals.push(entry);
-            } else if (movie.rating <= 6.0) {
-              filters.push(entry);
+            if (hasCommonActor) {
+              const entry: RelevantMovie = {
+                title: movie.movies.title,
+                rating: movie.rating,
+                matchType: 'Actor'
+              };
+
+              if (movie.rating >= 7.0) {
+                signals.push(entry);
+              } else if (movie.rating <= 6.0) {
+                filters.push(entry);
+              }
+              addedMovies.add(movie.movies.title);
             }
-            addedMovies.add(movie.movies.title);
+          } catch (error) {
+            console.error('Error fetching cast for movie:', movie.movies.title, error);
           }
         }
       }
@@ -249,7 +258,7 @@ ${formatMatches(filters)}
 (Your final, confident rating. No "±" estimates.)
 
 🧠 Personalized Analysis
-(Start with the Anchor. Explain how their personality type and past reactions to similar films inform your prediction. Reference specific titles naturally without labeling them as "signals" or "filters". Be analytical but conversational.)
+(Explain how their personality type and past reactions to similar films inform your prediction. Reference specific titles naturally without labeling them as "signals" or "filters". Be analytical but conversational. NEVER mention the public average, anchor, baseline, or any methodology - just analyze the user's taste.)
 
 ⚖️ Weightings
 (Identify the SINGLE decisive factor. What will make this user love or hate this film? Use concrete examples from their history.)
@@ -291,7 +300,7 @@ ${formatMatches(filters)}
 (Sua nota final e confiante. Sem estimações "±".)
 
 🧠 Análise Personalizada
-(Comece com a Âncora. Explique como o tipo de personalidade dele e reações passadas a filmes similares informam sua previsão. Referencie títulos específicos naturalmente, sem rotulá-los como "sinais" ou "filtros". Seja analítico mas conversacional.)
+(Explique como o tipo de personalidade dele e reações passadas a filmes similares informam sua previsão. Referencie títulos específicos naturalmente, sem rotulá-los como "sinais" ou "filtros". Seja analítico mas conversacional. NUNCA mencione média pública, âncora, linha de base ou qualquer metodologia - apenas analise o gosto do usuário.)
 
 ⚖️ Ponderações
 (Identifique o ÚNICO fator decisivo. O que fará este usuário amar ou odiar este filme? Use exemplos concretos do histórico dele.)
@@ -333,7 +342,7 @@ ${formatMatches(filters)}
 (Tu calificación final y confiada. Sin estimaciones "±".)
 
 🧠 Análisis Personalizado
-(Comienza con el Ancla. Explica cómo su tipo de personalidad y reacciones pasadas a películas similares informan tu predicción. Referencia títulos específicos naturalmente, sin etiquetarlos como "señales" o "filtros". Sé analítico pero conversacional.)
+(Explica cómo su tipo de personalidad y reacciones pasadas a películas similares informan tu predicción. Referencia títulos específicos naturalmente, sin etiquetarlos como "señales" o "filtros". Sé analítico pero conversacional. NUNCA menciones promedio público, ancla, línea base o cualquier metodología - solo analiza el gusto del usuario.)
 
 ⚖️ Ponderaciones
 (Identifica el ÚNICO factor decisivo. ¿Qué hará que este usuario ame u odie esta película? Usa ejemplos concretos de su historial.)
@@ -362,6 +371,7 @@ Deno.serve(async (req) => {
     const { userId, movieName, language = 'en' } = await req.json() as RequestBody;
 
     const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
+    const startTime = Date.now();
     console.log('Starting hybrid prediction for user:', userId);
     console.log('Movie name:', movieName);
 
@@ -454,8 +464,11 @@ Deno.serve(async (req) => {
     }
 
     console.log('Personality data:', personalityData);
+    console.log('⏱️ Personality fetch:', Date.now() - startTime, 'ms');
 
+    const tmdbStart = Date.now();
     const movieData = await getMovieDataFromTMDB(movieName);
+    console.log('⏱️ TMDB fetch:', Date.now() - tmdbStart, 'ms');
 
     if (!movieData) {
       return new Response(
@@ -473,12 +486,13 @@ Deno.serve(async (req) => {
 
     console.log('Movie anchor score:', movieData.vote_average);
 
+    const fishingStart = Date.now();
     const fishingResult = await fishForRelevantMovies(supabase, userId, {
       director: movieData.director,
       cast: movieData.cast,
       genres: movieData.genres
     });
-
+    console.log('⏱️ Fishing:', Date.now() - fishingStart, 'ms');
     console.log('Fishing result - Signals:', fishingResult.signals.length, 'Filters:', fishingResult.filters.length);
 
     const { error: updateError } = await supabase
@@ -502,6 +516,7 @@ Deno.serve(async (req) => {
       language
     );
 
+    const aiStart = Date.now();
     const response = await fetch(
       'https://api.deepseek.com/v1/chat/completions',
       {
@@ -529,6 +544,9 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
+    console.log('⏱️ AI Generation:', Date.now() - aiStart, 'ms');
+    console.log('⏱️ TOTAL TIME:', Date.now() - startTime, 'ms');
+
     const prediction = data.choices?.[0]?.message?.content;
 
     if (!prediction) {

@@ -151,7 +151,11 @@
       "addMore": "Add More Tickets",
       "consulting": "Consulting the Oracle...",
       "cost": "Consult the Oracle ({{cost}} tickets)",
-      "notEnough": "Not enough tickets! Next reset in {{time}}"
+      "notEnough": "Not enough tickets! Next reset in {{time}}",
+      "analyzing": "Analyzing your profile...",
+      "calculating": "Calculating compatibility...",
+      "generating": "Generating prediction...",
+      "finalizing": "Finalizing analysis..."
     },
     "recommend": {
       "title": "Recommendation Chamber",
