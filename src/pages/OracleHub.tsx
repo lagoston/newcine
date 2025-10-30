@@ -215,26 +215,32 @@ export default function OracleHub() {
     try {
       setLoading(true);
 
-      // Get user personality and spectrum points
+      // Get user personality
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario, pontos_e, pontos_i, pontos_c, pontos_s, pontos_r, is_premium')
+        .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario')
         .eq('id', session?.user?.id)
         .single();
 
       if (profileError) throw profileError;
 
       setUserPersonality(profileData);
-      setIsPremium(profileData.is_premium || false);
 
-      // Set spectrum points
-      if (profileData) {
+      // Get premium status and spectrum points separately
+      const { data: spectrumData, error: spectrumError } = await supabase
+        .from('profiles')
+        .select('pontos_e, pontos_i, pontos_c, pontos_s, pontos_r, is_premium')
+        .eq('id', session?.user?.id)
+        .single();
+
+      if (!spectrumError && spectrumData) {
+        setIsPremium(spectrumData.is_premium || false);
         setSpectrumPoints({
-          e: Number(profileData.pontos_e) || 0,
-          i: Number(profileData.pontos_i) || 0,
-          c: Number(profileData.pontos_c) || 0,
-          s: Number(profileData.pontos_s) || 0,
-          r: Number(profileData.pontos_r) || 0,
+          e: Number(spectrumData.pontos_e) || 0,
+          i: Number(spectrumData.pontos_i) || 0,
+          c: Number(spectrumData.pontos_c) || 0,
+          s: Number(spectrumData.pontos_s) || 0,
+          r: Number(spectrumData.pontos_r) || 0,
         });
       }
 
