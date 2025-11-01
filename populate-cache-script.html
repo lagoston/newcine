@@ -64,9 +64,10 @@
   <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
-    // Configure seu Supabase (TEMPORÁRIO - usar .env em produção)
-    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    // Configure seu Supabase
+    const SUPABASE_URL = 'https://ehkewfmgpkzbmhtlzvdy.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVoa2V3Zm1ncGt6Ym1odGx6dmR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTM0NjY2NTUsImV4cCI6MjAyOTA0MjY1NX0.fIJpzfd3jcMqE11hF_iT4A2PkJRV0I7OxGvjYZ45g-Y';
+    const TMDB_API_KEY = '15da7a1d15ba5e2490acbad2f7394947';
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -97,40 +98,46 @@
     };
 
     window.populateCache = async function() {
-      if (!confirm('Isso vai buscar gêneros de ~375 filmes do TMDB. Continuar?')) return;
-
       const btn = document.getElementById('populate-btn');
       btn.disabled = true;
-      log('Iniciando população do cache...', 'info');
-      log('Isso pode levar alguns minutos. Por favor, aguarde...', 'warning');
+      log('Buscando gêneros do filme 448341 no TMDB...', 'info');
 
       try {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session?.session) {
-          throw new Error('Você precisa estar autenticado!');
+        // Buscar do TMDB diretamente
+        const tmdbResponse = await fetch(`https://api.themoviedb.org/3/movie/448341?api_key=${TMDB_API_KEY}`);
+
+        if (!tmdbResponse.ok) {
+          throw new Error(`TMDB API error: ${tmdbResponse.status}`);
         }
 
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/populate-genres-cache`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
+        const movie = await tmdbResponse.json();
+
+        log(`✅ Filme encontrado: ${movie.title}`, 'success');
+        log(`   Gêneros: ${movie.genres.map(g => g.name).join(', ')}`, 'info');
+        log(`   Ano: ${movie.release_date?.split('-')[0] || 'N/A'}`, 'info');
+        log('', 'info');
+        log('Populando cache no Supabase...', 'info');
+
+        // Popular cache via RPC
+        const { data, error } = await supabase.rpc('cache_movie_genres_from_frontend', {
+          p_movie_id: 448341,
+          p_genres_json: movie.genres
         });
 
-        const result = await response.json();
+        if (error) throw error;
 
-        if (result.success) {
-          log(`✅ Cache populado com sucesso!`, 'success');
-          log(`   - Processados: ${result.total}`, 'info');
-          log(`   - Cacheados: ${result.cached}`, 'success');
-          log(`   - Ignorados: ${result.skipped}`, 'warning');
-          await checkStatus();
-        } else {
-          throw new Error(result.error || 'Erro desconhecido');
-        }
+        log(`✅ Cache populado com sucesso!`, 'success');
+        log(`   Filme ID: 448341`, 'info');
+        log(`   Título: ${movie.title}`, 'info');
+        log(`   Gêneros: ${movie.genres.map(g => g.name).join(', ')}`, 'success');
+        log('', 'info');
+        log('Agora você pode recalcular o usuário Gustavo!', 'success');
+
+        await checkStatus();
+        document.getElementById('recalculate-btn').disabled = false;
+
       } catch (error) {
-        log('Erro ao popular cache: ' + error.message, 'error');
+        log('❌ Erro ao popular cache: ' + error.message, 'error');
       } finally {
         btn.disabled = false;
       }
