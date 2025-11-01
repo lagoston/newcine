@@ -117,6 +117,10 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
 
       if (error) throw error;
 
+      console.log('🔍 Calculate Result Response:', data);
+      console.log('🔍 Requires Tiebreaker:', data.requires_tiebreaker);
+      console.log('🔍 Tied Categories:', data.tied_categories);
+
       if (data.requires_tiebreaker) {
         await handleTiebreaker(data.tied_categories);
       } else {
@@ -130,25 +134,40 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
 
   const handleTiebreaker = async (tiedCategories: string[]) => {
     try {
+      console.log('🔥 Tiebreaker Handler Called with:', tiedCategories);
+
       const { data, error } = await supabase.rpc('get_tiebreaker_question', {
         p_tied_categories: tiedCategories
       });
 
+      console.log('🔥 Tiebreaker Question Response:', data);
+      console.log('🔥 Tiebreaker Error:', error);
+
       if (error) throw error;
 
       if (data && data.length > 0) {
+        console.log('🔥 Raw options:', data[0].options);
+
         const tiebreakerQuestion = {
           question_id: data[0].question_id,
           question_text: data[0].question_text,
           options: Array.isArray(data[0].options) ? data[0].options : []
         };
 
+        console.log('🔥 Formatted Tiebreaker Question:', tiebreakerQuestion);
+        console.log('🔥 Current Questions Length:', questions.length);
+
         setQuestions(prev => {
           const updatedQuestions = [...prev, tiebreakerQuestion];
+          console.log('🔥 Updated Questions Length:', updatedQuestions.length);
+          console.log('🔥 Setting Current Index to:', updatedQuestions.length - 1);
           setCurrentQuestionIndex(updatedQuestions.length - 1);
           return updatedQuestions;
         });
         setSelectedOption(null);
+        setIsAnswering(false);
+      } else {
+        console.error('🔥 No tiebreaker question returned');
       }
     } catch (error) {
       console.error('Error loading tiebreaker:', error);
