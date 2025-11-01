@@ -24,12 +24,16 @@
      - S=0 (Sensorial): Produção mais simples
      - R=5 (Recreativo): Entretenimento casual
 
+  ## Correções
+  - **Drama**: Corrigido de E=0 para E=4 (total estava em 1, agora 5)
+  - **History**: Corrigido de C=5 para C=4 e I=0 para I=1 (redistribuição)
+
   ## Nota
   Music e Family já estavam configurados anteriormente com os valores corretos.
 
   ## Alteração
   Atualizar a função `get_genre_base_points` para incluir Crime, Western e TV Movie,
-  mantendo todos os outros gêneros com seus valores atualizados.
+  além de corrigir Drama e History.
 */
 
 -- Atualizar função com todos os 19 gêneros do TMDB
@@ -42,7 +46,7 @@ BEGIN
   -- Matriz Gênero-Espectro (cada gênero distribui 5 pontos)
   RETURN QUERY SELECT
     CASE genre_name
-      WHEN 'Drama' THEN 0.0
+      WHEN 'Drama' THEN 4.0  -- CORRIGIDO
       WHEN 'Comedy' THEN 0.0
       WHEN 'Action' THEN 0.0
       WHEN 'Adventure' THEN 0.0
@@ -75,7 +79,7 @@ BEGIN
       WHEN 'Romance' THEN 0.0
       WHEN 'Mystery' THEN 5.0
       WHEN 'Documentary' THEN 0.0
-      WHEN 'History' THEN 0.0
+      WHEN 'History' THEN 1.0  -- CORRIGIDO
       WHEN 'War' THEN 0.0
       WHEN 'Animation' THEN 0.0
       WHEN 'Family' THEN 0.0
@@ -97,7 +101,7 @@ BEGIN
       WHEN 'Romance' THEN 0.0
       WHEN 'Mystery' THEN 0.0
       WHEN 'Documentary' THEN 5.0
-      WHEN 'History' THEN 5.0
+      WHEN 'History' THEN 4.0  -- CORRIGIDO
       WHEN 'War' THEN 5.0
       WHEN 'Animation' THEN 0.0
       WHEN 'Family' THEN 0.0
