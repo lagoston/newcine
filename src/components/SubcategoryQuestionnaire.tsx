@@ -57,11 +57,43 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
       setSelectedOption(optionId);
 
       const currentQuestion = questions[currentQuestionIndex];
+      const isLastQuestion = currentQuestionIndex === questions.length - 1;
+      const isTiebreakerQuestion = questions.length === 13 && isLastQuestion;
 
-      const { error } = await supabase.rpc('record_subcategory_response', {
+      if (isTiebreakerQuestion) {
+        await resolveTiebreaker(optionId);
+      } else {
+        const { error } = await supabase.rpc('record_subcategory_response', {
+          p_user_id: userId,
+          p_session_id: sessionId,
+          p_question_id: currentQuestion.question_id,
+          p_option_id: optionId
+        });
+
+        if (error) throw error;
+
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        if (currentQuestionIndex < questions.length - 1) {
+          setCurrentQuestionIndex(prev => prev + 1);
+          setSelectedOption(null);
+        } else {
+          await calculateResult();
+        }
+      }
+    } catch (error) {
+      console.error('Error recording answer:', error);
+      toast.error('Erro ao registrar resposta');
+    } finally {
+      setIsAnswering(false);
+    }
+  };
+
+  const resolveTiebreaker = async (optionId: number) => {
+    try {
+      const { data, error } = await supabase.rpc('resolve_tiebreaker', {
         p_user_id: userId,
         p_session_id: sessionId,
-        p_question_id: currentQuestion.question_id,
         p_option_id: optionId
       });
 
@@ -69,17 +101,10 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
 
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setSelectedOption(null);
-      } else {
-        await calculateResult();
-      }
+      onComplete(data);
     } catch (error) {
-      console.error('Error recording answer:', error);
-      toast.error('Erro ao registrar resposta');
-    } finally {
-      setIsAnswering(false);
+      console.error('Error resolving tiebreaker:', error);
+      toast.error('Erro ao resolver desempate');
     }
   };
 
@@ -112,8 +137,17 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
       if (error) throw error;
 
       if (data && data.length > 0) {
-        setQuestions(prev => [...prev, data[0]]);
-        setCurrentQuestionIndex(questions.length);
+        const tiebreakerQuestion = {
+          question_id: data[0].question_id,
+          question_text: data[0].question_text,
+          options: Array.isArray(data[0].options) ? data[0].options : []
+        };
+
+        setQuestions(prev => {
+          const updatedQuestions = [...prev, tiebreakerQuestion];
+          setCurrentQuestionIndex(updatedQuestions.length - 1);
+          return updatedQuestions;
+        });
         setSelectedOption(null);
       }
     } catch (error) {
