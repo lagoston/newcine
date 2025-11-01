@@ -64,6 +64,13 @@ const PentagonGraph: React.FC<{ points: { e: number; i: number; c: number; s: nu
   // Calculate pentagon points
   const angle = (Math.PI * 2) / 5;
   const labels = ['E', 'I', 'C', 'S', 'R'];
+  const labelNames: Record<string, string> = {
+    'E': 'Emocional',
+    'I': 'Intelectual',
+    'C': 'Complexo',
+    'S': 'Simples',
+    'R': 'Realista'
+  };
   const values = [normalized.e, normalized.i, normalized.c, normalized.s, normalized.r];
 
   const getPoint = (index: number, value: number) => {
@@ -146,16 +153,19 @@ const PentagonGraph: React.FC<{ points: { e: number; i: number; c: number; s: nu
       {labels.map((label, i) => {
         const labelPoint = getLabelPoint(i);
         return (
-          <text
-            key={`label-${i}`}
-            x={labelPoint.x}
-            y={labelPoint.y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className="text-lg font-bold fill-white"
-          >
-            {label}
-          </text>
+          <g key={`label-${i}`} className="cursor-help">
+            <title>{labelNames[label]}</title>
+            <text
+              x={labelPoint.x}
+              y={labelPoint.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="text-lg font-bold fill-white"
+              style={{ pointerEvents: 'all' }}
+            >
+              {label}
+            </text>
+          </g>
         );
       })}
     </svg>
@@ -600,12 +610,12 @@ export default function OracleHub() {
         </motion.div>
 
         <motion.h1
-          className="text-6xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 tracking-wider mb-12 relative uppercase"
+          className="text-4xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 tracking-wider mb-12 relative uppercase"
           variants={itemVariants}
           style={{
             textShadow: '0 0 30px rgba(168, 85, 247, 0.4), 0 0 60px rgba(168, 85, 247, 0.2)',
             fontFamily: 'Cinzel, serif',
-            letterSpacing: '0.15em'
+            letterSpacing: '0.1em'
           }}
         >
           O Santuário
@@ -847,19 +857,21 @@ export default function OracleHub() {
       </motion.div>
 
       {/* Completion Modal */}
-      {showCompletionModal && questionnaireResult && archetypeInfo && (
-        <PersonalityCompletionModal
-          isOpen={showCompletionModal}
-          onClose={handleModalClose}
-          personalityId={userPersonality?.personalidade_completa || ''}
-          archetypeName={archetypeInfo.archetype_name || ''}
-          subcategoryName={archetypeInfo.subcategory_name || ''}
-        />
-      )}
+      <AnimatePresence>
+        {showCompletionModal && questionnaireResult && archetypeInfo && (
+          <PersonalityCompletionModal
+            isOpen={showCompletionModal}
+            onClose={handleModalClose}
+            personalityId={userPersonality?.personalidade_completa || ''}
+            archetypeName={archetypeInfo.archetype_name || ''}
+            subcategoryName={archetypeInfo.subcategory_name || ''}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Revelation Modal - Personality Description */}
       <AnimatePresence>
-        {showRevelationModal && archetypeInfo && (
+        {showRevelationModal && archetypeInfo && !showCompletionModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -951,7 +963,7 @@ export default function OracleHub() {
 
       {/* Info Modal - Methodology Explanation */}
       <AnimatePresence>
-        {showInfoModal && userPersonality && (
+        {showInfoModal && userPersonality && !showCompletionModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
