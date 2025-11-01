@@ -162,6 +162,21 @@ const PentagonGraph: React.FC<{ points: { e: number; i: number; c: number; s: nu
   );
 };
 
+// Helper function to get subcategory color
+const getSubcategoryColor = (personalityId: string | null) => {
+  if (!personalityId || personalityId.length < 3) return '#8b5cf6';
+  const subcategoryId = personalityId.charAt(2);
+  const colors: Record<string, string> = {
+    'A': '#fbbf24',
+    'B': '#8b5cf6',
+    'K': '#ef4444',
+    'X': '#3b82f6',
+    'D': '#6b7280',
+    'L': '#10b981',
+  };
+  return colors[subcategoryId] || '#8b5cf6';
+};
+
 export default function OracleHub() {
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -497,16 +512,7 @@ export default function OracleHub() {
           </motion.div>
         </div>
 
-        {/* Completion Modal */}
-        {showCompletionModal && questionnaireResult && archetypeInfo && (
-          <PersonalityCompletionModal
-            isOpen={showCompletionModal}
-            onClose={handleModalClose}
-            personalityId={userPersonality?.personalidade_completa || ''}
-            archetypeName={archetypeInfo.archetype_name || ''}
-            subcategoryName={archetypeInfo.subcategory_name || ''}
-          />
-        )}
+        {/* Completion Modal - Removed duplicate, kept only the one at the end */}
       </motion.div>
     );
   }
@@ -594,11 +600,12 @@ export default function OracleHub() {
         </motion.div>
 
         <motion.h1
-          className="text-6xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 tracking-wider mb-12 relative"
+          className="text-6xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 tracking-wider mb-12 relative uppercase"
           variants={itemVariants}
           style={{
             textShadow: '0 0 30px rgba(168, 85, 247, 0.4), 0 0 60px rgba(168, 85, 247, 0.2)',
-            fontFamily: 'serif'
+            fontFamily: 'Cinzel, serif',
+            letterSpacing: '0.15em'
           }}
         >
           O Santuário
@@ -623,8 +630,16 @@ export default function OracleHub() {
                 </div>
 
                 <div className="flex-1 text-center md:text-left">
-                  <p className="text-sm text-purple-400 mb-1">Sua Essência Cinematográfica</p>
-                  <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 mb-2">
+                  <p
+                    className="text-sm mb-1 font-semibold"
+                    style={{ color: getSubcategoryColor(userPersonality.personalidade_completa) }}
+                  >
+                    Sua Essência Cinematográfica
+                  </p>
+                  <h2
+                    className="text-3xl font-bold mb-2"
+                    style={{ color: getSubcategoryColor(userPersonality.personalidade_completa) }}
+                  >
                     {userPersonality.personalidade_completa}
                   </h2>
                   <p className="text-xl text-white font-semibold mb-3">
@@ -1057,7 +1072,7 @@ export default function OracleHub() {
                       <div className="flex justify-center mb-4">
                         <PentagonGraph
                           points={spectrumPoints}
-                          subcategoryId={userPersonality?.subcategoria_id || ''}
+                          subcategoryId={userPersonality?.personalidade_completa || ''}
                         />
                       </div>
 
