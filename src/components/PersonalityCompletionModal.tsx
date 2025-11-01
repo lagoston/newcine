@@ -41,12 +41,12 @@ export default function PersonalityCompletionModal({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 50 }}
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              className="relative max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              className="relative max-w-2xl w-full"
             >
               {/* Glow effect */}
               <div className="absolute -inset-4 bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-blue-600/30 rounded-3xl blur-2xl" />
 
-              <div className="relative bg-gradient-to-b from-gray-900 via-purple-900/50 to-gray-900 rounded-2xl border-2 border-purple-500/30 shadow-2xl">
+              <div className="relative bg-gradient-to-b from-gray-900 via-purple-900/50 to-gray-900 rounded-2xl border-2 border-purple-500/30 shadow-2xl max-h-[90vh] overflow-y-auto">
                 {/* Close button */}
                 <button
                   onClick={onClose}
@@ -107,7 +107,7 @@ export default function PersonalityCompletionModal({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="space-y-6"
+                    className="space-y-6 flex flex-col items-center"
                   >
                     <p className="text-gray-300 text-lg leading-relaxed italic">
                       "O ritual está completo. A sintonia fina foi alcançada.
@@ -177,17 +177,19 @@ export default function PersonalityCompletionModal({
                   </motion.div>
 
                   {/* Enter button */}
-                  <motion.button
-                    onClick={onClose}
-                    className="mt-8 px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-purple-500/50"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.2 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Entrar no Santuário
-                  </motion.button>
+                  <div className="flex justify-center w-full">
+                    <motion.button
+                      onClick={onClose}
+                      className="mt-8 px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-purple-500/50"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.2 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Entrar no Santuário
+                    </motion.button>
+                  </div>
                 </div>
 
                 {/* Animated particles */}
