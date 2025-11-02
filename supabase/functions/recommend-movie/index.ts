@@ -29,9 +29,10 @@ async function fetchMoviePool(
   moodGenres: number[],
   libraryMovieIds: number[],
   profileData: ProfileData
-): Promise<number[]> {
+): Promise<{ moviePool: number[], selectedPages: number[] }> {
   const genresQuery = moodGenres.join(',');
   const allMovies: number[] = [];
+  let selectedPages: number[] = [];
 
   console.log('=== FETCH MOVIE POOL DEBUG ===');
   console.log('Card Type:', cardType);
@@ -42,6 +43,7 @@ async function fetchMoviePool(
   try {
     if (cardType === 'bogart') {
       console.log('BOGART: Fetching page 1 with rating >= 5.5');
+      selectedPages = [1];
       const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&vote_average.gte=5.5&sort_by=popularity.desc&page=1`;
       console.log('BOGART URL:', url.replace(TMDB_API_KEY, 'HIDDEN'));
 
@@ -53,36 +55,56 @@ async function fetchMoviePool(
       allMovies.push(...movies);
 
     } else if (cardType === 'fincher') {
-      console.log('FINCHER: Fetching pages 1, 3, 7 (NO rating filter)');
-      const pages = [1, 3, 7];
+      console.log('FINCHER: Fetching 3 random pages from 1-15 (Underground approach)');
+
+      // Generate 3 random unique pages between 1 and 15
+      const availablePages = Array.from({ length: 15 }, (_, i) => i + 1);
+      const pages: number[] = [];
+      for (let i = 0; i < 3; i++) {
+        const randomIndex = Math.floor(Math.random() * availablePages.length);
+        pages.push(availablePages[randomIndex]);
+        availablePages.splice(randomIndex, 1);
+      }
+      pages.sort((a, b) => a - b);
+      selectedPages = pages;
+
+      console.log('FINCHER: Selected random pages:', pages);
 
       for (const page of pages) {
         const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`;
         console.log(`FINCHER: Fetching page ${page}`);
-        console.log('FINCHER URL:', url.replace(TMDB_API_KEY, 'HIDDEN'));
 
         const response = await fetch(url);
         const data = await response.json();
         const movies = data.results?.map((m: any) => m.id) || [];
         console.log(`FINCHER Page ${page}: Fetched ${movies.length} movies`);
-        console.log(`FINCHER Page ${page} Movies:`, movies);
         allMovies.push(...movies);
       }
 
     } else if (cardType === 'cypher') {
-      console.log('CYPHER: Fetching pages 1, 3, 7 with inverted subcategory');
-      const pages = [1, 3, 7];
+      console.log('CYPHER: Fetching 3 random pages from deep catalog (15-50) - Paradox approach');
+
+      // Generate 3 random unique pages between 15 and 50 for truly obscure films
+      const availablePages = Array.from({ length: 36 }, (_, i) => i + 15); // 15 to 50
+      const pages: number[] = [];
+      for (let i = 0; i < 3; i++) {
+        const randomIndex = Math.floor(Math.random() * availablePages.length);
+        pages.push(availablePages[randomIndex]);
+        availablePages.splice(randomIndex, 1);
+      }
+      pages.sort((a, b) => a - b);
+      selectedPages = pages;
+
+      console.log('CYPHER: Selected random deep pages:', pages);
 
       for (const page of pages) {
         const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`;
         console.log(`CYPHER: Fetching page ${page}`);
-        console.log('CYPHER URL:', url.replace(TMDB_API_KEY, 'HIDDEN'));
 
         const response = await fetch(url);
         const data = await response.json();
         const movies = data.results?.map((m: any) => m.id) || [];
         console.log(`CYPHER Page ${page}: Fetched ${movies.length} movies`);
-        console.log(`CYPHER Page ${page} Movies:`, movies);
         allMovies.push(...movies);
       }
     }
@@ -111,11 +133,11 @@ async function fetchMoviePool(
     console.log('Final pool IDs:', finalPool);
     console.log('=== END FETCH MOVIE POOL DEBUG ===');
 
-    return finalPool;
+    return { moviePool: finalPool, selectedPages };
 
   } catch (error) {
     console.error('Error fetching movie pool:', error);
-    return [];
+    return { moviePool: [], selectedPages: [] };
   }
 }
 
@@ -259,11 +281,12 @@ Deno.serve(async (req) => {
     const excludeMovieIds = [...libraryMovieIds, ...recentMovieIds];
     console.log('Total movies to exclude:', excludeMovieIds.length);
 
-    const moviePool = await fetchMoviePool(cardType, moodGenres, excludeMovieIds, profileData);
+    const { moviePool, selectedPages } = await fetchMoviePool(cardType, moodGenres, excludeMovieIds, profileData);
 
     console.log('=== FINAL MOVIE POOL ===');
     console.log('Movie Pool Size:', moviePool.length);
     console.log('Movie Pool:', moviePool);
+    console.log('TMDB Pages Selected:', selectedPages);
 
     if (moviePool.length === 0) {
       console.error('ERROR: Movie pool is empty! Cannot make recommendation.');
@@ -375,7 +398,8 @@ Deno.serve(async (req) => {
           moodGenres,
           moviePoolSize: moviePool.length,
           moviePool: moviePool,
-          recentExcluded: recentMovieIds.length
+          recentExcluded: recentMovieIds.length,
+          tmdbPagesSelected: selectedPages
         }
       }),
       {
