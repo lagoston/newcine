@@ -21,7 +21,7 @@ interface RequestBody {
 interface ProfileData {
   arquetipo_primario: string;
   arquetipo_secundario: string;
-  subcategoria: string | null;
+  subcategoria_id: string | null;
 }
 
 async function fetchMoviePool(
@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
 
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('arquetipo_primario, arquetipo_secundario, subcategoria')
+      .select('arquetipo_primario, arquetipo_secundario, subcategoria_id')
       .eq('id', userId)
       .single();
 
