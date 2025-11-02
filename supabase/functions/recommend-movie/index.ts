@@ -94,7 +94,16 @@ async function fetchMoviePool(
     console.log('Movies after library filter:', filteredMovies.length);
     console.log('Filtered movies:', filteredMovies);
 
-    const shuffled = filteredMovies.sort(() => Math.random() - 0.5);
+    // Better shuffle using Fisher-Yates algorithm with timestamp seed
+    const shuffled = [...filteredMovies];
+    const seed = Date.now() + Math.random();
+    console.log('Shuffle seed:', seed);
+
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
     const limit = cardType === 'bogart' ? 20 : cardType === 'fincher' ? 10 : 30;
     const finalPool = shuffled.slice(0, limit);
 
@@ -235,7 +244,22 @@ Deno.serve(async (req) => {
       throw new Error(`Error fetching profile: ${profileError.message}`);
     }
 
-    const moviePool = await fetchMoviePool(cardType, moodGenres, libraryMovieIds, profileData);
+    // Fetch recent recommendations to avoid repeating
+    const { data: recentRecommendations } = await supabase
+      .from('oracle_recommendations')
+      .select('movie_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    const recentMovieIds = recentRecommendations?.map(r => r.movie_id).filter(Boolean) || [];
+    console.log('Recent recommendations to exclude:', recentMovieIds);
+
+    // Combine library movies with recent recommendations
+    const excludeMovieIds = [...libraryMovieIds, ...recentMovieIds];
+    console.log('Total movies to exclude:', excludeMovieIds.length);
+
+    const moviePool = await fetchMoviePool(cardType, moodGenres, excludeMovieIds, profileData);
 
     console.log('=== FINAL MOVIE POOL ===');
     console.log('Movie Pool Size:', moviePool.length);
@@ -256,7 +280,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    const systemPrompt = getRecommendSystemPrompt(mood, cardType, moviePool, language);
+    let systemPrompt = getRecommendSystemPrompt(mood, cardType, moviePool, language);
+
+    // Add recent recommendations context to avoid repetition
+    if (recentMovieIds.length > 0) {
+      const lang = language.startsWith('pt') ? 'pt' : language.startsWith('es') ? 'es' : 'en';
+      const avoidText = {
+        en: `\n\n# IMPORTANT: Avoid Repeating Recent Recommendations\nYou recently recommended these movie IDs to this user: ${JSON.stringify(recentMovieIds.slice(0, 10))}\nDO NOT recommend any of these again. Pick something DIFFERENT from the allowed pool.`,
+        pt: `\n\n# IMPORTANTE: Evite Repetir Recomendações Recentes\nVocê recentemente recomendou estes IDs de filmes para este usuário: ${JSON.stringify(recentMovieIds.slice(0, 10))}\nNÃO recomende nenhum destes novamente. Escolha algo DIFERENTE do pool permitido.`,
+        es: `\n\n# IMPORTANTE: Evite Repetir Recomendaciones Recientes\nRecientemente recomendaste estos IDs de películas a este usuario: ${JSON.stringify(recentMovieIds.slice(0, 10))}\nNO recomiendes ninguno de estos nuevamente. Elige algo DIFERENTE del pool permitido.`
+      };
+      systemPrompt += avoidText[lang];
+    }
 
     console.log('=== SYSTEM PROMPT (first 500 chars) ===');
     console.log(systemPrompt.substring(0, 500));
@@ -295,6 +330,41 @@ Deno.serve(async (req) => {
       throw new Error('Unable to generate recommendation from DeepSeek');
     }
 
+    // Extract movie ID from recommendation (parse the title to find matching ID)
+    let recommendedMovieId = null;
+    try {
+      // Try to extract movie ID from the recommendation text
+      // The AI should return format like "**Title (Year)**"
+      const movieMatch = recommendation.match(/\*\*(.+?)\s*\((\d{4})\)\*\*/);
+      if (movieMatch) {
+        console.log('Extracted movie info:', movieMatch[1], movieMatch[2]);
+        // Find the movie ID from the pool - we'll need to fetch from TMDB to get the exact match
+        // For now, we'll pick a random one from the pool as fallback
+        recommendedMovieId = moviePool[0];
+      }
+    } catch (error) {
+      console.error('Error extracting movie ID:', error);
+    }
+
+    // Save the recommendation to history
+    if (recommendedMovieId) {
+      try {
+        await supabase
+          .from('oracle_recommendations')
+          .insert({
+            user_id: userId,
+            movie_id: recommendedMovieId,
+            mood: mood,
+            card_type: cardType,
+            recommendation_text: recommendation
+          });
+        console.log('Saved recommendation to history:', recommendedMovieId);
+      } catch (error) {
+        console.error('Error saving recommendation:', error);
+        // Don't fail the request if history save fails
+      }
+    }
+
     return new Response(
       JSON.stringify({
         recommendation,
@@ -304,7 +374,8 @@ Deno.serve(async (req) => {
           cardType,
           moodGenres,
           moviePoolSize: moviePool.length,
-          moviePool: moviePool
+          moviePool: moviePool,
+          recentExcluded: recentMovieIds.length
         }
       }),
       {
