@@ -55,12 +55,12 @@ async function fetchMoviePool(
       allMovies.push(...movies);
 
     } else if (cardType === 'fincher') {
-      console.log('FINCHER: Fetching 3 random pages from 1-15 (Underground approach)');
+      console.log('FINCHER: Fetching 5 random pages from 1-50 (Underground approach)');
 
-      // Generate 3 random unique pages between 1 and 15
-      const availablePages = Array.from({ length: 15 }, (_, i) => i + 1);
+      // Generate 5 random unique pages between 1 and 50 for more diversity
+      const availablePages = Array.from({ length: 50 }, (_, i) => i + 1);
       const pages: number[] = [];
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 5; i++) {
         const randomIndex = Math.floor(Math.random() * availablePages.length);
         pages.push(availablePages[randomIndex]);
         availablePages.splice(randomIndex, 1);
@@ -82,12 +82,12 @@ async function fetchMoviePool(
       }
 
     } else if (cardType === 'cypher') {
-      console.log('CYPHER: Fetching 3 random pages from deep catalog (15-50) - Paradox approach');
+      console.log('CYPHER: Fetching 5 random pages from deep catalog (20-100) - Paradox approach');
 
-      // Generate 3 random unique pages between 15 and 50 for truly obscure films
-      const availablePages = Array.from({ length: 36 }, (_, i) => i + 15); // 15 to 50
+      // Generate 5 random unique pages between 20 and 100 for truly obscure films
+      const availablePages = Array.from({ length: 81 }, (_, i) => i + 20); // 20 to 100
       const pages: number[] = [];
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 5; i++) {
         const randomIndex = Math.floor(Math.random() * availablePages.length);
         pages.push(availablePages[randomIndex]);
         availablePages.splice(randomIndex, 1);
@@ -111,10 +111,38 @@ async function fetchMoviePool(
 
     console.log('Total movies before filter:', allMovies.length);
     console.log('All movies:', allMovies);
+    console.log('Library movies to exclude count:', libraryMovieIds.length);
+    console.log('Library movies sample (first 20):', libraryMovieIds.slice(0, 20));
 
     const filteredMovies = allMovies.filter(id => !libraryMovieIds.includes(id));
     console.log('Movies after library filter:', filteredMovies.length);
     console.log('Filtered movies:', filteredMovies);
+
+    // Debug: Check how many movies are actually in the library
+    const removedCount = allMovies.length - filteredMovies.length;
+    console.log(`REMOVED ${removedCount} movies that are in library`);
+
+    // FALLBACK: If filtered pool is too small, fetch from wider range
+    if (filteredMovies.length < 10 && cardType !== 'bogart') {
+      console.log('⚠️ FALLBACK ACTIVATED: Pool too small, fetching from wider range');
+
+      const fallbackPages = cardType === 'fincher'
+        ? [51, 52, 53, 54, 55] // Even deeper pages
+        : [101, 102, 103, 104, 105]; // Much deeper for cypher
+
+      console.log('Fallback pages:', fallbackPages);
+
+      for (const page of fallbackPages) {
+        const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        const movies = data.results?.map((m: any) => m.id).filter((id: number) => !libraryMovieIds.includes(id)) || [];
+        console.log(`Fallback Page ${page}: Added ${movies.length} new movies`);
+        filteredMovies.push(...movies);
+      }
+
+      console.log('After fallback, filtered movies count:', filteredMovies.length);
+    }
 
     // Better shuffle using Fisher-Yates algorithm with timestamp seed
     const shuffled = [...filteredMovies];
