@@ -245,6 +245,14 @@ export default function OracleRecommend() {
         throw new Error('No recommendation received from Oracle');
       }
 
+      console.log('=== RECOMMENDATION DEBUG ===');
+      console.log('Card Type:', data.debug?.cardType);
+      console.log('Mood Genres:', data.debug?.moodGenres);
+      console.log('Movie Pool Size:', data.debug?.moviePoolSize);
+      console.log('Movie Pool:', data.debug?.moviePool);
+      console.log('Recommendation:', data.recommendation);
+      console.log('=== END DEBUG ===');
+
       setPrediction(data.recommendation);
       setTicketsRemaining(data.ticketsRemaining);
     } catch (error) {
