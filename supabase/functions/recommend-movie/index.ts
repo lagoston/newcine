@@ -33,37 +33,76 @@ async function fetchMoviePool(
   const genresQuery = moodGenres.join(',');
   const allMovies: number[] = [];
 
+  console.log('=== FETCH MOVIE POOL DEBUG ===');
+  console.log('Card Type:', cardType);
+  console.log('Mood Genres:', moodGenres);
+  console.log('Library Movies Count:', libraryMovieIds.length);
+  console.log('Library Movies (first 10):', libraryMovieIds.slice(0, 10));
+
   try {
     if (cardType === 'bogart') {
-      const response = await fetch(
-        `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&vote_average.gte=5.5&sort_by=popularity.desc&page=1`
-      );
+      console.log('BOGART: Fetching page 1 with rating >= 5.5');
+      const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&vote_average.gte=5.5&sort_by=popularity.desc&page=1`;
+      console.log('BOGART URL:', url.replace(TMDB_API_KEY, 'HIDDEN'));
+
+      const response = await fetch(url);
       const data = await response.json();
-      allMovies.push(...(data.results?.map((m: any) => m.id) || []));
+      const movies = data.results?.map((m: any) => m.id) || [];
+      console.log('BOGART: Fetched', movies.length, 'movies');
+      console.log('BOGART Movies:', movies);
+      allMovies.push(...movies);
+
     } else if (cardType === 'fincher') {
+      console.log('FINCHER: Fetching pages 1, 3, 7 (NO rating filter)');
       const pages = [1, 3, 7];
+
       for (const page of pages) {
-        const response = await fetch(
-          `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`
-        );
+        const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`;
+        console.log(`FINCHER: Fetching page ${page}`);
+        console.log('FINCHER URL:', url.replace(TMDB_API_KEY, 'HIDDEN'));
+
+        const response = await fetch(url);
         const data = await response.json();
-        allMovies.push(...(data.results?.map((m: any) => m.id) || []));
+        const movies = data.results?.map((m: any) => m.id) || [];
+        console.log(`FINCHER Page ${page}: Fetched ${movies.length} movies`);
+        console.log(`FINCHER Page ${page} Movies:`, movies);
+        allMovies.push(...movies);
       }
+
     } else if (cardType === 'cypher') {
+      console.log('CYPHER: Fetching pages 1, 3, 7 with inverted subcategory');
       const pages = [1, 3, 7];
+
       for (const page of pages) {
-        const response = await fetch(
-          `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`
-        );
+        const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`;
+        console.log(`CYPHER: Fetching page ${page}`);
+        console.log('CYPHER URL:', url.replace(TMDB_API_KEY, 'HIDDEN'));
+
+        const response = await fetch(url);
         const data = await response.json();
-        allMovies.push(...(data.results?.map((m: any) => m.id) || []));
+        const movies = data.results?.map((m: any) => m.id) || [];
+        console.log(`CYPHER Page ${page}: Fetched ${movies.length} movies`);
+        console.log(`CYPHER Page ${page} Movies:`, movies);
+        allMovies.push(...movies);
       }
     }
 
+    console.log('Total movies before filter:', allMovies.length);
+    console.log('All movies:', allMovies);
+
     const filteredMovies = allMovies.filter(id => !libraryMovieIds.includes(id));
+    console.log('Movies after library filter:', filteredMovies.length);
+    console.log('Filtered movies:', filteredMovies);
+
     const shuffled = filteredMovies.sort(() => Math.random() - 0.5);
     const limit = cardType === 'bogart' ? 20 : cardType === 'fincher' ? 10 : 30;
-    return shuffled.slice(0, limit);
+    const finalPool = shuffled.slice(0, limit);
+
+    console.log(`Final pool (limit ${limit}):`, finalPool.length, 'movies');
+    console.log('Final pool IDs:', finalPool);
+    console.log('=== END FETCH MOVIE POOL DEBUG ===');
+
+    return finalPool;
 
   } catch (error) {
     console.error('Error fetching movie pool:', error);
@@ -198,7 +237,29 @@ Deno.serve(async (req) => {
 
     const moviePool = await fetchMoviePool(cardType, moodGenres, libraryMovieIds, profileData);
 
+    console.log('=== FINAL MOVIE POOL ===');
+    console.log('Movie Pool Size:', moviePool.length);
+    console.log('Movie Pool:', moviePool);
+
+    if (moviePool.length === 0) {
+      console.error('ERROR: Movie pool is empty! Cannot make recommendation.');
+      return new Response(
+        JSON.stringify({
+          recommendation: "⚠️ No movies found matching your criteria. Please try a different mood or card.",
+          mood: mood,
+          ticketsRemaining: ticketData.tickets_remaining - 50
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
+
     const systemPrompt = getRecommendSystemPrompt(mood, cardType, moviePool, language);
+
+    console.log('=== SYSTEM PROMPT (first 500 chars) ===');
+    console.log(systemPrompt.substring(0, 500));
 
     const response = await fetch(
       'https://api.deepseek.com/v1/chat/completions',
