@@ -135,39 +135,37 @@ export const getCurrentSeason = () => {
 };
 
 export const getSeasonalMovies = async (): Promise<Movie[]> => {
-  const month = new Date().getMonth() + 1;
-  let genreIds = '';
-  let keywords = '';
+  // TESTE: Forçar filmes de AÇÃO (gênero 28) para debug
+  const genreIds = '28'; // Action
 
-  if (month === 10) {
-    genreIds = '27';
-  } else if (month === 11 || month === 12) {
-    keywords = '207928,6024';
-  } else if (month === 1 || month === 7) {
-    keywords = '10683,4344';
-  } else if (month === 2 || month === 6) {
-    genreIds = '10749';
-  } else if (month === 3 || month === 4) {
-    genreIds = '10751,14';
-  } else if (month === 8 || month === 9) {
-    genreIds = '18';
-  }
+  console.log('🎬 TESTE: Buscando filmes de AÇÃO do TMDB');
+  console.log('Genre ID:', genreIds);
 
   let url = `${BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&sort_by=popularity.desc`;
 
   if (genreIds) {
     url += `&with_genres=${genreIds}`;
-  } else if (keywords) {
-    url += `&with_keywords=${keywords}`;
   }
+
+  console.log('URL (sem API key):', url.replace(TMDB_API_KEY || '', 'HIDDEN'));
 
   const response = await fetch(url);
 
+  console.log('Response status:', response.status);
+  console.log('Response ok:', response.ok);
+
   if (!response.ok) {
+    console.error('❌ TMDB API Error:', response.status, response.statusText);
     throw new Error('Failed to fetch seasonal movies');
   }
 
   const data = await response.json();
+  console.log('✅ TMDB retornou:', data.results?.length || 0, 'filmes');
+  console.log('Primeiros 5 filmes:', data.results?.slice(0, 5).map((m: Movie) => ({
+    id: m.id,
+    title: m.title
+  })));
+
   return data.results.slice(0, 20);
 };
 

@@ -577,10 +577,10 @@ const Home = () => {
         />
 
         <MovieCarousel
-          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>{getCurrentSeason().emoji}</span> {getCurrentSeason().name}</span>}
+          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>💥</span> Ação [TESTE TMDB]</span>}
           movies={seasonalMovies}
           loading={loading.seasonal}
-          category={getCurrentSeason().key}
+          category="action-test"
         />
 
         <MovieCarousel
