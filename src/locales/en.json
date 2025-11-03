@@ -166,14 +166,19 @@
     "moods": {
       "feelGood": "Feel-Good",
       "needCry": "Need a Cry",
-      "adrenaline": "Adrenaline", 
+      "adrenaline": "Adrenaline",
       "mindBlowing": "Mind-Blowing",
       "laughOutLoud": "Laugh Out Loud",
       "slowCalm": "Slow & Calm",
       "romantic": "Romantic",
       "darkScary": "Dark & Scary",
-      "familyTime": "Family Time", 
+      "familyTime": "Family Time",
       "randomSurprise": "Random Surprise"
+    },
+    "cards": {
+      "bogart": "Modern & Popular",
+      "fincher": "Classic & Cult",
+      "cypher": "Underground Gems"
     },
     "chamber": "Chamber",
     "speaksTitle": "The Oracle Speaks",

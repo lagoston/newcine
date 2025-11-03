@@ -6,128 +6,42 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const TMDB_API_KEY = Deno.env.get('TMDB_API_KEY');
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
-
 interface RequestBody {
   userId: string;
   mood: string;
   cardType: 'bogart' | 'fincher' | 'cypher';
-  moodGenres: number[];
-  libraryMovieIds: number[];
+  moodKey: string;
   language?: string;
 }
 
-interface ProfileData {
-  arquetipo_primario: string;
-  arquetipo_secundario: string;
-  subcategoria_id: string | null;
-}
+// Frases dos personagens
+const CHARACTER_PHRASES = {
+  bogart: [
+    "Filmes vêm, filmes vão… mas este aqui grudou na minha mente como mosquito em língua úmida.",
+    "Muitos buscam sentido nos filmes. Eu busco mosquitos. Ainda assim… veja este.",
+    "Anos vendo reflexos na água… e ainda assim este filme me fez ver o fundo do brejo.",
+    "Feche os olhos, respire o cheiro do lodo… se sentir vertigem, é sinal que este é o certo.",
+    "As massas aplaudem, os críticos bufam… e eu? Eu coaxo em êxtase."
+  ],
+  fincher: [
+    "Vi esse filme três vezes… na quarta, percebi que era eu quem estava sendo analisado.",
+    "Não confio em críticos, mas confio no meu faro — e ele cheira a obra-prima.",
+    "Filmes são mágicos, e eu sou especialista em truques. Quer cair nesse também?",
+    "Gravado quando o cinema ainda tinha alma — e atores que fumavam até nos créditos.",
+    "É o tipo de filme que envelhece como um crime perfeito."
+  ],
+  cypher: [
+    "Ah… esse aqui fede a genialidade mal executada. Meu veneno favorito.",
+    "Metade vai odiar, metade vai fingir que entendeu. E eu? Eu sorrio no escuro.",
+    "Shhh… não lute contra o impulso. Deixe a curiosidade te apertar um pouco mais.",
+    "Sente o frio subindo pela espinha? É o enredo te enrolando, bem devagar.",
+    "Proibido, tosco, hipnótico — uma heresia audiovisual que sussurra: 'assista-me, se ousar.'"
+  ]
+};
 
-async function fetchMoviePool(
-  cardType: string,
-  moodGenres: number[],
-  libraryMovieIds: number[],
-  profileData: ProfileData
-): Promise<{ moviePool: number[], selectedPages: number[] }> {
-  const genresQuery = moodGenres.join(',');
-  const allMovies: number[] = [];
-
-  console.log('=== SIMPLIFIED FETCH MOVIE POOL ===');
-  console.log('Card Type:', cardType);
-  console.log('Mood Genres:', genresQuery);
-  console.log('Movies to exclude:', libraryMovieIds.length);
-
-  try {
-    // SIMPLIFIED: Fetch multiple pages at once from TMDB by genre
-    const pagesToFetch = cardType === 'bogart' ? 3 : 1; // Bogart needs more for 50 movies
-    console.log(`Fetching ${pagesToFetch} pages from TMDB...`);
-
-    for (let page = 1; page <= pagesToFetch; page++) {
-      const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`;
-      console.log(`Fetching page ${page}...`);
-
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        console.error(`❌ TMDB API Error: ${response.status} ${response.statusText}`);
-        continue;
-      }
-
-      const data = await response.json();
-      const movies = data.results?.map((m: any) => m.id) || [];
-      console.log(`✅ Page ${page}: Got ${movies.length} movies from TMDB`);
-      console.log(`Sample IDs from page ${page}:`, movies.slice(0, 5));
-
-      allMovies.push(...movies);
-    }
-
-    console.log(`Total movies fetched from TMDB: ${allMovies.length}`);
-    console.log('All movie IDs:', allMovies);
-
-    // Filter out movies already in library
-    const filteredMovies = allMovies.filter(id => !libraryMovieIds.includes(id));
-    console.log(`✅ After excluding library: ${filteredMovies.length} movies`);
-    console.log('Filtered movie IDs:', filteredMovies);
-
-    if (filteredMovies.length === 0) {
-      console.error('❌ NO MOVIES LEFT after filtering library!');
-      return { moviePool: [], selectedPages: [] };
-    }
-
-    // Shuffle using Fisher-Yates
-    const shuffled = [...filteredMovies];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-
-    // Pick the amount based on card type
-    const limit = cardType === 'bogart' ? 50 : 10;
-    const finalPool = shuffled.slice(0, Math.min(limit, shuffled.length));
-
-    console.log(`✅ FINAL POOL: ${finalPool.length} movies (limit: ${limit})`);
-    console.log('Final pool IDs:', finalPool);
-    console.log('=== END FETCH ===');
-
-    return { moviePool: finalPool, selectedPages: [1, 2, 3] };
-
-  } catch (error) {
-    console.error('❌ Error fetching movie pool:', error);
-    return { moviePool: [], selectedPages: [] };
-  }
-}
-
-function getRecommendSystemPrompt(mood: string, cardType: string, moviePool: number[], language: string): string {
-  const lang = language.startsWith('pt') ? 'pt' : language.startsWith('es') ? 'es' : 'en';
-
-  const cardDescriptions = {
-    en: {
-      bogart: 'Classic approach - recommending popular, well-rated films',
-      fincher: 'Underground approach - recommending hidden gems and lesser-known films',
-      cypher: 'Paradox approach - recommending films that challenge expectations and invert polarities'
-    },
-    pt: {
-      bogart: 'Abordagem clássica - recomendando filmes populares e bem avaliados',
-      fincher: 'Abordagem underground - recomendando joias escondidas e filmes menos conhecidos',
-      cypher: 'Abordagem paradoxo - recomendando filmes que desafiam expectativas e invertem polaridades'
-    },
-    es: {
-      bogart: 'Enfoque clásico - recomendando películas populares y bien valoradas',
-      fincher: 'Enfoque underground - recomendando joyas ocultas y películas menos conocidas',
-      cypher: 'Enfoque paradoja - recomendando películas que desafían expectativas e invierten polaridades'
-    }
-  };
-
-  const prompts = {
-    en: `You are CineOracle's recommendation engine using the "${cardType.toUpperCase()}" card approach.\n\n# Card Type\n${cardDescriptions.en[cardType]}\n\n# Constraints\n✓ ONLY pick from these movie IDs: ${JSON.stringify(moviePool)}\n\n# Target Mood\n"${mood}"\n\n# Instructions\n1. Analyze the mood deeply—what emotions, themes, pacing, or tones does it imply?\n2. Select ONE film from the allowed pool that best captures this mood\n3. Format your response EXACTLY as:\n   **[Title] ([Year])**: [One compelling sentence explaining why it perfectly matches "${mood}"]\n\n# Examples\n- **Blade Runner 2049 (2017)**: Its slow-burn existential questions and stunning visuals deliver the perfect 'Contemplative' atmosphere.\n- **Mad Max: Fury Road (2015)**: Non-stop kinetic action and visceral intensity make it ideal for an 'Adrenaline Rush'.\n- **Moonlight (2016)**: Its intimate character study and emotional depth resonate with 'Melancholic' introspection.\n\nBe precise, insightful, and confident in your choice.`,
-
-    pt: `Você é o motor de recomendação do CineOracle usando a carta "${cardType.toUpperCase()}".\n\n# Tipo de Carta\n${cardDescriptions.pt[cardType]}\n\n# Restrições\n✓ APENAS escolha destes IDs de filmes: ${JSON.stringify(moviePool)}\n\n# Humor Alvo\n"${mood}"\n\n# Instruções\n1. Analise o humor profundamente—que emoções, temas, ritmo ou tons ele implica?\n2. Selecione UM filme do pool permitido que melhor capture este humor\n3. Formate sua resposta EXATAMENTE como:\n   **[Título] ([Ano])**: [Uma frase convincente explicando por que combina perfeitamente com "${mood}"]\n\n# Exemplos\n- **Blade Runner 2049 (2017)**: Suas questões existenciais de queima lenta e visuais deslumbrantes entregam a atmosfera 'Contemplativa' perfeita.\n- **Mad Max: Fury Road (2015)**: Ação cinética sem parar e intensidade visceral o tornam ideal para 'Descarga de Adrenalina'.\n- **Moonlight (2016)**: Seu estudo íntimo de personagem e profundidade emocional ressoam com introspecção 'Melancólica'.\n\nSeja preciso, perspicaz e confiante em sua escolha.`,
-
-    es: `Eres el motor de recomendación de CineOracle usando la carta "${cardType.toUpperCase()}".\n\n# Tipo de Carta\n${cardDescriptions.es[cardType]}\n\n# Restricciones\n✓ SOLO elige de estos IDs de películas: ${JSON.stringify(moviePool)}\n\n# Estado de Ánimo Objetivo\n"${mood}"\n\n# Instrucciones\n1. Analiza el estado de ánimo profundamente—¿qué emociones, temas, ritmo o tonos implica?\n2. Selecciona UNA película del pool permitido que mejor capture este estado de ánimo\n3. Formatea tu respuesta EXACTAMENTE como:\n   **[Título] ([Año])**: [Una oración convincente explicando por qué coincide perfectamente con "${mood}"]\n\n# Ejemplos\n- **Blade Runner 2049 (2017)**: Sus preguntas existenciales de lenta combustión y visuales impresionantes entregan la atmósfera 'Contemplativa' perfecta.\n- **Mad Max: Fury Road (2015)**: Acción cinética sin parar e intensidad visceral lo hacen ideal para 'Descarga de Adrenalina'.\n- **Moonlight (2016)**: Su estudio íntimo de personaje y profundidad emocional resuenan con introspección 'Melancólica'.\n\nSé preciso, perspicaz y confiado en tu elección.`
-  };
-
-  return prompts[lang];
+function getRandomPhrase(cardType: 'bogart' | 'fincher' | 'cypher'): string {
+  const phrases = CHARACTER_PHRASES[cardType];
+  return phrases[Math.floor(Math.random() * phrases.length)];
 }
 
 Deno.serve(async (req) => {
@@ -144,17 +58,19 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { userId, mood, cardType, moodGenres, libraryMovieIds, language = 'en' } = await req.json() as RequestBody;
+    const { userId, mood, cardType, moodKey, language = 'en' } = await req.json() as RequestBody;
 
-    const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
-    console.log('Starting recommendation request for user:', userId);
+    console.log('🎬 Starting recommendation request');
+    console.log('User:', userId);
     console.log('Mood:', mood);
     console.log('Card Type:', cardType);
+    console.log('Mood Key:', moodKey);
 
-    if (!userId || !mood) {
-      throw new Error('Missing required fields: userId and mood');
+    if (!userId || !mood || !cardType || !moodKey) {
+      throw new Error('Missing required fields');
     }
 
+    // Check and reset tickets
     await supabase.rpc('check_and_reset_tickets', { user_id_input: userId });
 
     const { data: ticketData, error: ticketError } = await supabase
@@ -180,6 +96,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check if user has rated enough movies
     const { count: ratedMoviesCount, error: countError } = await supabase
       .from('user_movies')
       .select('*', { count: 'exact', head: true })
@@ -204,54 +121,37 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { error: updateError } = await supabase
-      .from('user_tickets')
-      .update({ tickets_remaining: ticketData.tickets_remaining - 50 })
-      .eq('user_id', userId);
+    // Get available movies from pool
+    console.log('📦 Fetching available movies from pool...');
+    const { data: availableMoviesData, error: poolError } = await supabase
+      .rpc('get_available_movies_for_recommendation', {
+        p_user_id: userId,
+        p_card_type: cardType,
+        p_mood_key: moodKey
+      });
 
-    if (updateError) {
-      throw new Error(`Error updating tickets: ${updateError.message}`);
+    if (poolError) {
+      console.error('Error fetching pool:', poolError);
+      throw new Error(`Error fetching pool: ${poolError.message}`);
     }
 
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('arquetipo_primario, arquetipo_secundario, subcategoria_id')
-      .eq('id', userId)
-      .single();
+    const availableMovies = availableMoviesData || [];
+    console.log(`✅ Available movies: ${availableMovies.length}`);
 
-    if (profileError) {
-      throw new Error(`Error fetching profile: ${profileError.message}`);
-    }
+    if (availableMovies.length === 0) {
+      console.log('⚠️ No available movies in pool');
 
-    // Fetch recent recommendations to avoid repeating
-    const { data: recentRecommendations } = await supabase
-      .from('oracle_recommendations')
-      .select('movie_id')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(20);
+      // Refund tickets
+      await supabase
+        .from('user_tickets')
+        .update({ tickets_remaining: ticketData.tickets_remaining })
+        .eq('user_id', userId);
 
-    const recentMovieIds = recentRecommendations?.map(r => r.movie_id).filter(Boolean) || [];
-    console.log('Recent recommendations to exclude:', recentMovieIds);
-
-    // Combine library movies with recent recommendations
-    const excludeMovieIds = [...libraryMovieIds, ...recentMovieIds];
-    console.log('Total movies to exclude:', excludeMovieIds.length);
-
-    const { moviePool, selectedPages } = await fetchMoviePool(cardType, moodGenres, excludeMovieIds, profileData);
-
-    console.log('=== FINAL MOVIE POOL ===');
-    console.log('Movie Pool Size:', moviePool.length);
-    console.log('Movie Pool:', moviePool);
-    console.log('TMDB Pages Selected:', selectedPages);
-
-    if (moviePool.length === 0) {
-      console.error('ERROR: Movie pool is empty! Cannot make recommendation.');
       return new Response(
         JSON.stringify({
-          recommendation: "⚠️ No movies found matching your criteria. Please try a different mood or card.",
+          recommendation: "Desculpe, não tenho bons filmes para te recomendar no momento nessa categoria, tente novamente mais tarde.",
           mood: mood,
-          ticketsRemaining: ticketData.tickets_remaining - 50
+          ticketsRemaining: ticketData.tickets_remaining
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -260,103 +160,44 @@ Deno.serve(async (req) => {
       );
     }
 
-    let systemPrompt = getRecommendSystemPrompt(mood, cardType, moviePool, language);
+    // Pick random movie from available pool
+    const randomIndex = Math.floor(Math.random() * availableMovies.length);
+    const selectedMovieId = parseInt(availableMovies[randomIndex]);
+    console.log(`🎯 Selected movie ID: ${selectedMovieId}`);
 
-    // Add recent recommendations context to avoid repetition
-    if (recentMovieIds.length > 0) {
-      const lang = language.startsWith('pt') ? 'pt' : language.startsWith('es') ? 'es' : 'en';
-      const avoidText = {
-        en: `\n\n# IMPORTANT: Avoid Repeating Recent Recommendations\nYou recently recommended these movie IDs to this user: ${JSON.stringify(recentMovieIds.slice(0, 10))}\nDO NOT recommend any of these again. Pick something DIFFERENT from the allowed pool.`,
-        pt: `\n\n# IMPORTANTE: Evite Repetir Recomendações Recentes\nVocê recentemente recomendou estes IDs de filmes para este usuário: ${JSON.stringify(recentMovieIds.slice(0, 10))}\nNÃO recomende nenhum destes novamente. Escolha algo DIFERENTE do pool permitido.`,
-        es: `\n\n# IMPORTANTE: Evite Repetir Recomendaciones Recientes\nRecientemente recomendaste estos IDs de películas a este usuario: ${JSON.stringify(recentMovieIds.slice(0, 10))}\nNO recomiendes ninguno de estos nuevamente. Elige algo DIFERENTE del pool permitido.`
-      };
-      systemPrompt += avoidText[lang];
-    }
+    // Deduct tickets
+    await supabase
+      .from('user_tickets')
+      .update({ tickets_remaining: ticketData.tickets_remaining - 50 })
+      .eq('user_id', userId);
 
-    console.log('=== SYSTEM PROMPT (first 500 chars) ===');
-    console.log(systemPrompt.substring(0, 500));
+    // Record recommendation
+    await supabase.rpc('record_recommendation', {
+      p_user_id: userId,
+      p_movie_id: selectedMovieId,
+      p_card_type: cardType,
+      p_mood_key: moodKey
+    });
 
-    const response = await fetch(
-      'https://api.deepseek.com/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${deepseekApiKey}`
-        },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Based on the mood "${mood}", recommend a movie from the allowed pool.` }
-          ],
-          temperature: 0.8,
-          max_tokens: 200
-        })
-      }
-    );
+    console.log('✅ Recommendation recorded');
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('DeepSeek API error:', errorData);
-      throw new Error(`DeepSeek API error: ${response.status} - ${errorData}`);
-    }
+    // Get random character phrase
+    const characterPhrase = getRandomPhrase(cardType);
 
-    const data = await response.json();
-    const recommendation = data.choices?.[0]?.message?.content;
-
-    if (!recommendation) {
-      console.error('No recommendation in response:', JSON.stringify(data));
-      throw new Error('Unable to generate recommendation from DeepSeek');
-    }
-
-    // Extract movie ID from recommendation (parse the title to find matching ID)
-    let recommendedMovieId = null;
-    try {
-      // Try to extract movie ID from the recommendation text
-      // The AI should return format like "**Title (Year)**"
-      const movieMatch = recommendation.match(/\*\*(.+?)\s*\((\d{4})\)\*\*/);
-      if (movieMatch) {
-        console.log('Extracted movie info:', movieMatch[1], movieMatch[2]);
-        // Find the movie ID from the pool - we'll need to fetch from TMDB to get the exact match
-        // For now, we'll pick a random one from the pool as fallback
-        recommendedMovieId = moviePool[0];
-      }
-    } catch (error) {
-      console.error('Error extracting movie ID:', error);
-    }
-
-    // Save the recommendation to history
-    if (recommendedMovieId) {
-      try {
-        await supabase
-          .from('oracle_recommendations')
-          .insert({
-            user_id: userId,
-            movie_id: recommendedMovieId,
-            mood: mood,
-            card_type: cardType,
-            recommendation_text: recommendation
-          });
-        console.log('Saved recommendation to history:', recommendedMovieId);
-      } catch (error) {
-        console.error('Error saving recommendation:', error);
-        // Don't fail the request if history save fails
-      }
-    }
+    // Format response
+    const recommendation = `${characterPhrase}\n\n**Movie ID: ${selectedMovieId}**`;
 
     return new Response(
       JSON.stringify({
         recommendation,
         mood,
+        movieId: selectedMovieId,
         ticketsRemaining: ticketData.tickets_remaining - 50,
+        characterPhrase,
         debug: {
           cardType,
-          moodGenres,
-          moviePoolSize: moviePool.length,
-          moviePool: moviePool,
-          recentExcluded: recentMovieIds.length,
-          tmdbPagesSelected: selectedPages
+          moodKey,
+          availableMoviesCount: availableMovies.length
         }
       }),
       {

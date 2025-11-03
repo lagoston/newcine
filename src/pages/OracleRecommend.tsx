@@ -205,7 +205,21 @@ export default function OracleRecommend() {
       setLoading(true);
       setPrediction(null);
 
-      const moodGenres = getMoodGenres(selectedMood);
+      // Map mood to moodKey for backend
+      const moodKeyMap: Record<string, string> = {
+        [t('oracle.moods.feelGood')]: 'feel-good',
+        [t('oracle.moods.needCry')]: 'need-to-cry',
+        [t('oracle.moods.adrenaline')]: 'adrenaline',
+        [t('oracle.moods.mindBlowing')]: 'mind-blowing',
+        [t('oracle.moods.laughOutLoud')]: 'laugh-out-loud',
+        [t('oracle.moods.slowCalm')]: 'slow-and-calm',
+        [t('oracle.moods.romantic')]: 'romantic',
+        [t('oracle.moods.darkScary')]: 'dark-and-scary',
+        [t('oracle.moods.familyTime')]: 'family-time',
+        [t('oracle.moods.randomSurprise')]: 'random-surprise'
+      };
+
+      const moodKey = moodKeyMap[selectedMood] || 'random-surprise';
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recommend-movie`,
@@ -219,8 +233,7 @@ export default function OracleRecommend() {
             userId: session.user.id,
             mood: selectedMood,
             cardType: selectedCard,
-            moodGenres,
-            libraryMovieIds: libraryMovies,
+            moodKey,
             language: i18n.language
           })
         }

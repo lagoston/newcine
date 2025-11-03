@@ -166,14 +166,19 @@
     "moods": {
       "feelGood": "Bem-estar",
       "needCry": "Preciso Chorar",
-      "adrenaline": "Adrenalina", 
+      "adrenaline": "Adrenalina",
       "mindBlowing": "Mente Expandida",
       "laughOutLoud": "Muitas Risadas",
       "slowCalm": "Calmo e Tranquilo",
       "romantic": "Romântico",
       "darkScary": "Sombrio e Assustador",
-      "familyTime": "Família", 
+      "familyTime": "Família",
       "randomSurprise": "Surpresa Aleatória"
+    },
+    "cards": {
+      "bogart": "Moderno & Popular",
+      "fincher": "Clássico & Cult",
+      "cypher": "Underground Gems"
     },
     "chamber": "Câmara",
     "speaksTitle": "O Oráculo Fala",
