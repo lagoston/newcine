@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { getMoodGenres } from '../lib/mood-genres';
+import MovieDetailsModal from '../components/MovieDetailsModal';
 
 type CardType = 'bogart' | 'fincher' | 'cypher';
 
@@ -18,10 +19,13 @@ export default function OracleRecommend() {
   const [selectedCard, setSelectedCard] = useState<CardType>('bogart');
   const [loading, setLoading] = useState(false);
   const [prediction, setPrediction] = useState<string | null>(null);
+  const [recommendedMovie, setRecommendedMovie] = useState<any>(null);
+  const [characterPhrase, setCharacterPhrase] = useState<string | null>(null);
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
   const [nextReset, setNextReset] = useState<Date | null>(null);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [libraryMovies, setLibraryMovies] = useState<number[]>([]);
+  const [selectedMovieForDetails, setSelectedMovieForDetails] = useState<any>(null);
 
   const moods = [
     t('oracle.moods.feelGood'),
@@ -254,18 +258,29 @@ export default function OracleRecommend() {
         throw new Error(data.error);
       }
 
-      if (!data.recommendation) {
+      if (!data.movieId) {
         throw new Error('No recommendation received from Oracle');
       }
 
       console.log('=== RECOMMENDATION DEBUG ===');
-      console.log('Card Type:', data.debug?.cardType);
-      console.log('Mood Genres:', data.debug?.moodGenres);
-      console.log('Movie Pool Size:', data.debug?.moviePoolSize);
-      console.log('Movie Pool:', data.debug?.moviePool);
-      console.log('Recommendation:', data.recommendation);
+      console.log('Movie ID:', data.movieId);
+      console.log('Character Phrase:', data.characterPhrase);
+      console.log('Available Movies Count:', data.debug?.availableMoviesCount);
       console.log('=== END DEBUG ===');
 
+      // Fetch movie details from TMDB
+      const tmdbResponse = await fetch(
+        `https://api.themoviedb.org/3/movie/${data.movieId}?api_key=${import.meta.env.VITE_TMDB_API_KEY}&language=${i18n.language}`
+      );
+
+      if (!tmdbResponse.ok) {
+        throw new Error('Failed to fetch movie details from TMDB');
+      }
+
+      const movieData = await tmdbResponse.json();
+
+      setCharacterPhrase(data.characterPhrase);
+      setRecommendedMovie(movieData);
       setPrediction(data.recommendation);
       setTicketsRemaining(data.ticketsRemaining);
     } catch (error) {
@@ -594,14 +609,43 @@ export default function OracleRecommend() {
                 </motion.h2>
               </div>
               <motion.div
-                className="prose prose-lg prose-invert"
+                className="flex flex-col items-center gap-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
-                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
-                  {prediction}
-                </p>
+                {characterPhrase && (
+                  <p className="text-gray-300 leading-relaxed text-center italic max-w-2xl">
+                    "{characterPhrase}"
+                  </p>
+                )}
+
+                {recommendedMovie && (
+                  <motion.div
+                    className="cursor-pointer group/poster relative"
+                    onClick={() => setSelectedMovieForDetails(recommendedMovie)}
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <img
+                      src={`https://image.tmdb.org/t/p/w500${recommendedMovie.poster_path}`}
+                      alt={recommendedMovie.title}
+                      className="rounded-lg shadow-2xl w-48 h-auto border-2 border-pink-500/30 group-hover/poster:border-pink-500/60 transition-all"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/poster:opacity-100 transition-opacity rounded-lg flex items-end justify-center pb-4">
+                      <p className="text-white text-sm font-semibold">Click for details</p>
+                    </div>
+                  </motion.div>
+                )}
+
+                {recommendedMovie && (
+                  <div className="text-center">
+                    <h3 className="text-xl font-bold text-pink-400">{recommendedMovie.title}</h3>
+                    {recommendedMovie.release_date && (
+                      <p className="text-gray-400 text-sm">({recommendedMovie.release_date.substring(0, 4)})</p>
+                    )}
+                  </div>
+                )}
               </motion.div>
             </div>
           </motion.div>
@@ -704,6 +748,13 @@ export default function OracleRecommend() {
           </motion.div>
         </div>
       </motion.div>
+
+      {selectedMovieForDetails && (
+        <MovieDetailsModal
+          movie={selectedMovieForDetails}
+          onClose={() => setSelectedMovieForDetails(null)}
+        />
+      )}
     </motion.div>
   );
 }
