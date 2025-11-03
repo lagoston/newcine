@@ -32,139 +32,68 @@ async function fetchMoviePool(
 ): Promise<{ moviePool: number[], selectedPages: number[] }> {
   const genresQuery = moodGenres.join(',');
   const allMovies: number[] = [];
-  let selectedPages: number[] = [];
 
-  console.log('=== FETCH MOVIE POOL DEBUG ===');
+  console.log('=== SIMPLIFIED FETCH MOVIE POOL ===');
   console.log('Card Type:', cardType);
-  console.log('Mood Genres:', moodGenres);
-  console.log('Library Movies Count:', libraryMovieIds.length);
-  console.log('Library Movies (first 10):', libraryMovieIds.slice(0, 10));
+  console.log('Mood Genres:', genresQuery);
+  console.log('Movies to exclude:', libraryMovieIds.length);
 
   try {
-    if (cardType === 'bogart') {
-      console.log('BOGART: Fetching page 1 with rating >= 5.5');
-      selectedPages = [1];
-      const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&vote_average.gte=5.5&sort_by=popularity.desc&page=1`;
-      console.log('BOGART URL:', url.replace(TMDB_API_KEY, 'HIDDEN'));
+    // SIMPLIFIED: Fetch multiple pages at once from TMDB by genre
+    const pagesToFetch = cardType === 'bogart' ? 3 : 1; // Bogart needs more for 50 movies
+    console.log(`Fetching ${pagesToFetch} pages from TMDB...`);
+
+    for (let page = 1; page <= pagesToFetch; page++) {
+      const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`;
+      console.log(`Fetching page ${page}...`);
 
       const response = await fetch(url);
+
+      if (!response.ok) {
+        console.error(`❌ TMDB API Error: ${response.status} ${response.statusText}`);
+        continue;
+      }
+
       const data = await response.json();
       const movies = data.results?.map((m: any) => m.id) || [];
-      console.log('BOGART: Fetched', movies.length, 'movies');
-      console.log('BOGART Movies:', movies);
+      console.log(`✅ Page ${page}: Got ${movies.length} movies from TMDB`);
+      console.log(`Sample IDs from page ${page}:`, movies.slice(0, 5));
+
       allMovies.push(...movies);
-
-    } else if (cardType === 'fincher') {
-      console.log('FINCHER: Fetching 5 random pages from 1-50 (Underground approach)');
-
-      // Generate 5 random unique pages between 1 and 50 for more diversity
-      const availablePages = Array.from({ length: 50 }, (_, i) => i + 1);
-      const pages: number[] = [];
-      for (let i = 0; i < 5; i++) {
-        const randomIndex = Math.floor(Math.random() * availablePages.length);
-        pages.push(availablePages[randomIndex]);
-        availablePages.splice(randomIndex, 1);
-      }
-      pages.sort((a, b) => a - b);
-      selectedPages = pages;
-
-      console.log('FINCHER: Selected random pages:', pages);
-
-      for (const page of pages) {
-        const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`;
-        console.log(`FINCHER: Fetching page ${page}`);
-
-        const response = await fetch(url);
-        const data = await response.json();
-        const movies = data.results?.map((m: any) => m.id) || [];
-        console.log(`FINCHER Page ${page}: Fetched ${movies.length} movies`);
-        allMovies.push(...movies);
-      }
-
-    } else if (cardType === 'cypher') {
-      console.log('CYPHER: Fetching 5 random pages from deep catalog (20-100) - Paradox approach');
-
-      // Generate 5 random unique pages between 20 and 100 for truly obscure films
-      const availablePages = Array.from({ length: 81 }, (_, i) => i + 20); // 20 to 100
-      const pages: number[] = [];
-      for (let i = 0; i < 5; i++) {
-        const randomIndex = Math.floor(Math.random() * availablePages.length);
-        pages.push(availablePages[randomIndex]);
-        availablePages.splice(randomIndex, 1);
-      }
-      pages.sort((a, b) => a - b);
-      selectedPages = pages;
-
-      console.log('CYPHER: Selected random deep pages:', pages);
-
-      for (const page of pages) {
-        const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`;
-        console.log(`CYPHER: Fetching page ${page}`);
-
-        const response = await fetch(url);
-        const data = await response.json();
-        const movies = data.results?.map((m: any) => m.id) || [];
-        console.log(`CYPHER Page ${page}: Fetched ${movies.length} movies`);
-        allMovies.push(...movies);
-      }
     }
 
-    console.log('Total movies before filter:', allMovies.length);
-    console.log('All movies:', allMovies);
-    console.log('Library movies to exclude count:', libraryMovieIds.length);
-    console.log('Library movies sample (first 20):', libraryMovieIds.slice(0, 20));
+    console.log(`Total movies fetched from TMDB: ${allMovies.length}`);
+    console.log('All movie IDs:', allMovies);
 
+    // Filter out movies already in library
     const filteredMovies = allMovies.filter(id => !libraryMovieIds.includes(id));
-    console.log('Movies after library filter:', filteredMovies.length);
-    console.log('Filtered movies:', filteredMovies);
+    console.log(`✅ After excluding library: ${filteredMovies.length} movies`);
+    console.log('Filtered movie IDs:', filteredMovies);
 
-    // Debug: Check how many movies are actually in the library
-    const removedCount = allMovies.length - filteredMovies.length;
-    console.log(`REMOVED ${removedCount} movies that are in library`);
-
-    // FALLBACK: If filtered pool is too small, fetch from wider range
-    if (filteredMovies.length < 10 && cardType !== 'bogart') {
-      console.log('⚠️ FALLBACK ACTIVATED: Pool too small, fetching from wider range');
-
-      const fallbackPages = cardType === 'fincher'
-        ? [51, 52, 53, 54, 55] // Even deeper pages
-        : [101, 102, 103, 104, 105]; // Much deeper for cypher
-
-      console.log('Fallback pages:', fallbackPages);
-
-      for (const page of fallbackPages) {
-        const url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genresQuery}&sort_by=popularity.desc&page=${page}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        const movies = data.results?.map((m: any) => m.id).filter((id: number) => !libraryMovieIds.includes(id)) || [];
-        console.log(`Fallback Page ${page}: Added ${movies.length} new movies`);
-        filteredMovies.push(...movies);
-      }
-
-      console.log('After fallback, filtered movies count:', filteredMovies.length);
+    if (filteredMovies.length === 0) {
+      console.error('❌ NO MOVIES LEFT after filtering library!');
+      return { moviePool: [], selectedPages: [] };
     }
 
-    // Better shuffle using Fisher-Yates algorithm with timestamp seed
+    // Shuffle using Fisher-Yates
     const shuffled = [...filteredMovies];
-    const seed = Date.now() + Math.random();
-    console.log('Shuffle seed:', seed);
-
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    const limit = cardType === 'bogart' ? 20 : cardType === 'fincher' ? 10 : 30;
-    const finalPool = shuffled.slice(0, limit);
+    // Pick the amount based on card type
+    const limit = cardType === 'bogart' ? 50 : 10;
+    const finalPool = shuffled.slice(0, Math.min(limit, shuffled.length));
 
-    console.log(`Final pool (limit ${limit}):`, finalPool.length, 'movies');
+    console.log(`✅ FINAL POOL: ${finalPool.length} movies (limit: ${limit})`);
     console.log('Final pool IDs:', finalPool);
-    console.log('=== END FETCH MOVIE POOL DEBUG ===');
+    console.log('=== END FETCH ===');
 
-    return { moviePool: finalPool, selectedPages };
+    return { moviePool: finalPool, selectedPages: [1, 2, 3] };
 
   } catch (error) {
-    console.error('Error fetching movie pool:', error);
+    console.error('❌ Error fetching movie pool:', error);
     return { moviePool: [], selectedPages: [] };
   }
 }
