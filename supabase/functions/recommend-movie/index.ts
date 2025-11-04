@@ -92,16 +92,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Deduct ticket
-    const { error: updateError } = await supabase
-      .from('user_tickets')
-      .update({ tickets_remaining: ticketData.tickets_remaining - 1 })
-      .eq('user_id', userId);
-
-    if (updateError) {
-      throw new Error(`Error updating tickets: ${updateError.message}`);
-    }
-
     // Get user's rated movies to exclude from recommendations
     const { data: ratedMovies, error: ratingsError } = await supabase
       .from('user_ratings')
@@ -126,21 +116,10 @@ Deno.serve(async (req) => {
       throw new Error(`Error fetching pool: ${poolError.message}`);
     }
 
-    // Filter out already rated movies
-    const poolMovies = poolData?.movie_ids || [];
-    const availableMoviesData = poolMovies.filter(
-      (movieId: number) => !ratedMovieIds.includes(movieId)
-    );
-
     if (!poolData) {
       console.log(`⚠️ No pool found for ${cardType}/${moodKey}`);
-      
-      // Refund tickets
-      await supabase
-        .from('user_tickets')
-        .update({ tickets_remaining: ticketData.tickets_remaining })
-        .eq('user_id', userId);
 
+      // NO ticket deduction - pool doesn't exist
       return new Response(
         JSON.stringify({
           recommendation: UNAVAILABLE_PHRASES[cardType],
@@ -154,18 +133,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    const availableMovies = availableMoviesData || [];
+    // Filter out already rated movies
+    const poolMovies = poolData.movie_ids || [];
+    const availableMovies = poolMovies.filter(
+      (movieId: number) => !ratedMovieIds.includes(movieId)
+    );
+
     console.log(`✅ Available movies: ${availableMovies.length}`);
 
     if (availableMovies.length === 0) {
       console.log('⚠️ No available movies in pool');
 
-      // Refund tickets
-      await supabase
-        .from('user_tickets')
-        .update({ tickets_remaining: ticketData.tickets_remaining })
-        .eq('user_id', userId);
-
+      // NO ticket deduction - no movies available
       return new Response(
         JSON.stringify({
           recommendation: UNAVAILABLE_PHRASES[cardType],
@@ -179,9 +158,19 @@ Deno.serve(async (req) => {
       );
     }
 
+    // NOW deduct ticket (only after confirming we have a movie to recommend)
+    const { error: updateError } = await supabase
+      .from('user_tickets')
+      .update({ tickets_remaining: ticketData.tickets_remaining - 1 })
+      .eq('user_id', userId);
+
+    if (updateError) {
+      throw new Error(`Error updating tickets: ${updateError.message}`);
+    }
+
     // Pick random movie from available pool
     const randomIndex = Math.floor(Math.random() * availableMovies.length);
-    const selectedMovieId = parseInt(availableMovies[randomIndex]);
+    const selectedMovieId = availableMovies[randomIndex];
 
     console.log(`🎯 Selected movie ID: ${selectedMovieId}`);
 
