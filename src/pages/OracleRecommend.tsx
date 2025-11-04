@@ -751,6 +751,7 @@ export default function OracleRecommend() {
       {selectedMovieForDetails && (
         <MovieDetailsModal
           movie={selectedMovieForDetails}
+          isOpen={true}
           onClose={() => setSelectedMovieForDetails(null)}
         />
       )}

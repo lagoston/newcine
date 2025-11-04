@@ -263,7 +263,7 @@ export default function Library() {
         {/* Loading Progress Bar - Fixed at top */}
         {loadingProgress > 0 && loadingProgress < 100 && (
           <motion.div
-            className="sticky top-0 z-50 mb-6"
+            className="sticky top-0 z-40 mb-6"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
