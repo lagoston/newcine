@@ -619,7 +619,7 @@ export default function OracleRecommend() {
               <div className="flex flex-col items-center text-center gap-4">
                 <div className="text-5xl">⚠️</div>
                 <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">
-                  {t('oracle.speaksTitle')}
+                  {t('oracle.attention')}
                 </h2>
                 <p className="text-gray-300 leading-relaxed text-lg max-w-2xl">
                   {infoMessage}

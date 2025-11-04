@@ -4,6 +4,7 @@
     "error": "An error occurred",
     "save": "Save",
     "cancel": "Cancel",
+    "ok": "Ok",
     "delete": "Delete",
     "edit": "Edit",
     "close": "Close",
@@ -193,6 +194,7 @@
     },
     "chamber": "Chamber",
     "speaksTitle": "The Oracle Speaks",
+    "attention": "Attention",
     "whispers": "Oracle's Whispers",
     "mysticalMessages": {
       "1": "Whispering with Kubrick's ghost...",

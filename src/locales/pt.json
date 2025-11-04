@@ -4,6 +4,7 @@
     "error": "Ocorreu um erro",
     "save": "Salvar",
     "cancel": "Cancelar",
+    "ok": "Ok",
     "delete": "Excluir",
     "edit": "Editar",
     "close": "Fechar",
@@ -193,6 +194,7 @@
     },
     "chamber": "Câmara",
     "speaksTitle": "O Oráculo Fala",
+    "attention": "Atenção",
     "whispers": "Sussurros do Oráculo",
     "mysticalMessages": {
       "1": "Sussurrando com o fantasma de Kubrick...",
