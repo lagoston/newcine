@@ -28,6 +28,12 @@ export default function OracleRecommend() {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [selectedMovieForDetails, setSelectedMovieForDetails] = useState<any>(null);
 
+  // Debug: Log state changes
+  useEffect(() => {
+    console.log('📊 State Update - recommendation:', recommendation);
+    console.log('📊 State Update - loading:', loading);
+  }, [recommendation, loading]);
+
   const moods = [
     t('oracle.moods.feelGood'),
     t('oracle.moods.needCry'),
@@ -276,15 +282,21 @@ export default function OracleRecommend() {
       console.log('✅ Movie details received:', movieData.title);
 
       // Set the complete recommendation object
-      setRecommendation({
+      const recommendationObject = {
         movieId: data.movieId,
         characterPhrase: data.characterPhrase,
         movieData: movieData
-      });
+      };
+
+      console.log('🎯 Setting recommendation state:', recommendationObject);
+      setRecommendation(recommendationObject);
+      console.log('✅ Recommendation state set successfully!');
+
     } catch (error) {
-      console.error('Error getting recommendation:', error);
+      console.error('❌ Error getting recommendation:', error);
       toast.error(error instanceof Error ? error.message : t('common.error'));
     } finally {
+      console.log('🏁 Finally block - setting loading to false');
       setLoading(false);
     }
   };
@@ -564,6 +576,7 @@ export default function OracleRecommend() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
           >
+            {console.log('🔄 Rendering LOADING state')}
             <div className="inline-flex items-center justify-center p-8 rounded-full bg-pink-500/10 backdrop-blur-sm border border-pink-500/20 mb-4 relative">
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-500/30 to-pink-600/10 blur-md"></div>
               <motion.div
@@ -594,6 +607,7 @@ export default function OracleRecommend() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
           >
+            {console.log('✅ Rendering RECOMMENDATION state:', recommendation)}
             <div className="absolute -inset-1 bg-gradient-to-r from-pink-600/30 to-purple-600/30 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
             <div className="relative p-8 bg-gray-900/90 rounded-lg border border-pink-500/20 backdrop-blur-sm">
               <div className="flex items-center justify-between mb-6">
@@ -653,6 +667,7 @@ export default function OracleRecommend() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
           >
+            {console.log('💤 Rendering IDLE state')}
             <div className="absolute -inset-1 bg-gradient-to-r from-pink-600/30 to-purple-600/30 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
             <div className="relative p-8 bg-gray-900/90 rounded-lg border border-pink-500/20 backdrop-blur-sm">
               <div className="flex items-center justify-between mb-6">
