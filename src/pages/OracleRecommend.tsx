@@ -194,7 +194,7 @@ export default function OracleRecommend() {
   const handleGetRecommendation = async () => {
     if (!session?.user?.id || !selectedMood) return;
 
-    if (ticketsRemaining !== null && ticketsRemaining < 50) {
+    if (ticketsRemaining !== null && ticketsRemaining < 25) {
       toast.error(t('oracle.prediction.notEnough', { time: formatTimeUntilReset() }));
       return;
     }
