@@ -133,33 +133,18 @@ export default function OracleRecommend() {
   useEffect(() => {
     if (session?.user?.id) {
       fetchTicketInfo();
-      fetchMovieData();
     }
   }, [session?.user?.id]);
 
   useEffect(() => {
-    if (!loading && !prediction) {
+    if (!loading && !recommendation) {
       const interval = setInterval(() => {
         setCurrentMessageIndex((prev) => (prev + 1) % mysticalMessages.length);
       }, 6000);
       return () => clearInterval(interval);
     }
-  }, [loading, prediction, mysticalMessages.length]);
+  }, [loading, recommendation, mysticalMessages.length]);
 
-  const fetchMovieData = async () => {
-    try {
-      const { data: libraryData, error: libraryError } = await supabase
-        .rpc('get_user_library', { user_id_input: session?.user?.id });
-
-      if (libraryError) throw libraryError;
-
-      const userMovieIds = libraryData.map((item: { movie_id: number }) => item.movie_id);
-      setLibraryMovies(userMovieIds);
-    } catch (error) {
-      console.error('Error fetching movie data:', error);
-      toast.error(t('common.error'));
-    }
-  };
 
   const fetchTicketInfo = async () => {
     try {
