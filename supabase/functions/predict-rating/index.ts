@@ -391,7 +391,7 @@ Deno.serve(async (req) => {
       throw new Error(`Error fetching ticket data: ${ticketError.message}`);
     }
 
-    if (!ticketData || ticketData.tickets_remaining < 100) {
+    if (!ticketData || ticketData.tickets_remaining < 50) {
       return new Response(
         JSON.stringify({
           error: 'Insufficient tickets',
@@ -497,7 +497,7 @@ Deno.serve(async (req) => {
 
     const { error: updateError } = await supabase
       .from('user_tickets')
-      .update({ tickets_remaining: ticketData.tickets_remaining - 100 })
+      .update({ tickets_remaining: ticketData.tickets_remaining - 50 })
       .eq('user_id', userId);
 
     if (updateError) {
@@ -558,7 +558,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         prediction,
         movie: movieName,
-        ticketsRemaining: ticketData.tickets_remaining - 100
+        ticketsRemaining: ticketData.tickets_remaining - 50
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       throw new Error(`Error fetching ticket data: ${ticketError.message}`);
     }
 
-    if (!ticketData || ticketData.tickets_remaining < 50) {
+    if (!ticketData || ticketData.tickets_remaining < 25) {
       return new Response(
         JSON.stringify({
           error: 'Insufficient tickets',
@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
     // Deduct tickets
     await supabase
       .from('user_tickets')
-      .update({ tickets_remaining: ticketData.tickets_remaining - 50 })
+      .update({ tickets_remaining: ticketData.tickets_remaining - 25 })
       .eq('user_id', userId);
 
     // Record recommendation
@@ -181,8 +181,15 @@ Deno.serve(async (req) => {
 
     console.log('✅ Recommendation recorded');
 
-    // Get random character phrase
-    const characterPhrase = getRandomPhrase(cardType);
+    // Get random character phrase with character name
+    const characterNames = {
+      bogart: 'BOGART',
+      fincher: 'FINCHER',
+      cypher: 'CYPHER'
+    };
+    const characterName = characterNames[cardType];
+    const phrase = getRandomPhrase(cardType);
+    const characterPhrase = `${characterName}: "${phrase}"`;
 
     // Fetch movie details from TMDB through proxy
     console.log('🎬 Fetching movie details from TMDB...');
@@ -211,7 +218,7 @@ Deno.serve(async (req) => {
         mood,
         movieId: selectedMovieId,
         movieData, // Include full movie data
-        ticketsRemaining: ticketData.tickets_remaining - 50,
+        ticketsRemaining: ticketData.tickets_remaining - 25,
         characterPhrase,
         debug: {
           cardType,

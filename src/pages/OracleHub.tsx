@@ -760,7 +760,7 @@ export default function OracleHub() {
                 </p>
 
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity text-pink-200 text-sm font-medium mt-auto">
-                  50 tickets
+                  25 tickets
                 </div>
               </div>
             </Link>
@@ -827,7 +827,7 @@ export default function OracleHub() {
                 </p>
 
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity text-violet-200 text-sm font-medium mt-auto">
-                  100 tickets
+                  50 tickets
                 </div>
               </div>
             </Link>

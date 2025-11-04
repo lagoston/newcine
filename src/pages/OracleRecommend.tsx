@@ -616,33 +616,48 @@ export default function OracleRecommend() {
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
                 {/* Show character phrase */}
-                <p className="text-gray-300 leading-relaxed text-center italic max-w-2xl text-lg">
-                  "{recommendation.characterPhrase}"
+                <p className="text-gray-300 leading-relaxed text-center italic max-w-2xl text-lg mb-8">
+                  {recommendation.characterPhrase}
                 </p>
 
-                {/* Show movie poster */}
-                <motion.div
-                  className="cursor-pointer group/poster relative"
-                  onClick={() => setSelectedMovieForDetails(recommendation.movieData)}
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                >
-                  <img
-                    src={`https://image.tmdb.org/t/p/w500${recommendation.movieData.poster_path}`}
-                    alt={recommendation.movieData.title}
-                    className="rounded-lg shadow-2xl w-48 h-auto border-2 border-pink-500/30 group-hover/poster:border-pink-500/60 transition-all"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/poster:opacity-100 transition-opacity rounded-lg flex items-end justify-center pb-4">
-                    <p className="text-white text-sm font-semibold">Click for details</p>
-                  </div>
-                </motion.div>
+                {/* Movie details container - Poster left, info right */}
+                <div className="flex flex-col md:flex-row gap-6 items-start max-w-4xl mx-auto">
+                  {/* Movie poster - Left side */}
+                  <motion.div
+                    className="cursor-pointer group/poster relative flex-shrink-0"
+                    onClick={() => setSelectedMovieForDetails(recommendation.movieData)}
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <img
+                      src={`https://image.tmdb.org/t/p/w500${recommendation.movieData.poster_path}`}
+                      alt={recommendation.movieData.title}
+                      className="rounded-lg shadow-2xl w-48 h-auto border-2 border-pink-500/30 group-hover/poster:border-pink-500/60 transition-all"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/poster:opacity-100 transition-opacity rounded-lg flex items-end justify-center pb-4">
+                      <p className="text-white text-sm font-semibold">Click for details</p>
+                    </div>
+                  </motion.div>
 
-                {/* Show movie title and year */}
-                <div className="text-center">
-                  <h3 className="text-xl font-bold text-pink-400">{recommendation.movieData.title}</h3>
-                  {recommendation.movieData.release_date && (
-                    <p className="text-gray-400 text-sm">({recommendation.movieData.release_date.substring(0, 4)})</p>
-                  )}
+                  {/* Movie info - Right side */}
+                  <div className="flex-1 text-left">
+                    {/* Title and year */}
+                    <div className="mb-4">
+                      <h3 className="text-2xl font-bold text-pink-400 mb-1">
+                        {recommendation.movieData.title}
+                      </h3>
+                      {recommendation.movieData.release_date && (
+                        <p className="text-gray-400 text-lg">
+                          ({recommendation.movieData.release_date.substring(0, 4)})
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Synopsis */}
+                    <p className="text-gray-300 leading-relaxed">
+                      {recommendation.movieData.overview || 'No synopsis available.'}
+                    </p>
+                  </div>
                 </div>
               </motion.div>
             </div>
