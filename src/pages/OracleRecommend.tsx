@@ -254,8 +254,21 @@ export default function OracleRecommend() {
 
       const data = await response.json();
 
+      console.log('=== RECOMMENDATION RESPONSE ===');
+      console.log('Full response:', data);
+      console.log('=== END ===');
+
       if (data.error) {
         throw new Error(data.error);
+      }
+
+      // Check if it's a text-only recommendation (not enough movies rated, pool empty, etc.)
+      if (data.recommendation && !data.movieId) {
+        setPrediction(data.recommendation);
+        setTicketsRemaining(data.ticketsRemaining);
+        setRecommendedMovie(null);
+        setCharacterPhrase(null);
+        return;
       }
 
       if (!data.movieId) {
@@ -279,9 +292,14 @@ export default function OracleRecommend() {
 
       const movieData = await tmdbResponse.json();
 
+      console.log('=== TMDB MOVIE DATA ===');
+      console.log('Movie:', movieData.title);
+      console.log('Poster:', movieData.poster_path);
+      console.log('=== END ===');
+
       setCharacterPhrase(data.characterPhrase);
       setRecommendedMovie(movieData);
-      setPrediction(data.recommendation);
+      setPrediction('success');
       setTicketsRemaining(data.ticketsRemaining);
     } catch (error) {
       console.error('Error getting recommendation:', error);
@@ -614,12 +632,14 @@ export default function OracleRecommend() {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
+                {/* Show character phrase if available */}
                 {characterPhrase && (
-                  <p className="text-gray-300 leading-relaxed text-center italic max-w-2xl">
+                  <p className="text-gray-300 leading-relaxed text-center italic max-w-2xl text-lg">
                     "{characterPhrase}"
                   </p>
                 )}
 
+                {/* Show movie poster if available */}
                 {recommendedMovie && (
                   <motion.div
                     className="cursor-pointer group/poster relative"
@@ -638,6 +658,7 @@ export default function OracleRecommend() {
                   </motion.div>
                 )}
 
+                {/* Show movie title and year if available */}
                 {recommendedMovie && (
                   <div className="text-center">
                     <h3 className="text-xl font-bold text-pink-400">{recommendedMovie.title}</h3>
@@ -645,6 +666,13 @@ export default function OracleRecommend() {
                       <p className="text-gray-400 text-sm">({recommendedMovie.release_date.substring(0, 4)})</p>
                     )}
                   </div>
+                )}
+
+                {/* Fallback: show text-only prediction if no movie data */}
+                {!recommendedMovie && !characterPhrase && prediction !== 'success' && (
+                  <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                    {prediction}
+                  </p>
                 )}
               </motion.div>
             </div>
