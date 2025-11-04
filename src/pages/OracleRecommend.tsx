@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wand2, Loader2, Ticket, Plus, ArrowLeft } from 'lucide-react';
+import { Wand2, Loader2, Ticket, Plus, ArrowLeft, HelpCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -27,6 +27,7 @@ export default function OracleRecommend() {
   const [nextReset, setNextReset] = useState<Date | null>(null);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [selectedMovieForDetails, setSelectedMovieForDetails] = useState<any>(null);
+  const [showOracleInfoModal, setShowOracleInfoModal] = useState(false);
 
   // Debug: Log state changes
   useEffect(() => {
@@ -118,21 +119,21 @@ export default function OracleRecommend() {
   const cards = [
     {
       id: 'bogart' as CardType,
-      name: 'BOGART',
+      name: t('oracle.cards.bogart'),
       image: '/assets/BOGART.png',
-      description: t('oracle.cards.bogart', { defaultValue: 'Classic & Popular' })
+      description: t('oracle.cards.bogartSubtitle')
     },
     {
       id: 'fincher' as CardType,
-      name: 'FINCHER',
+      name: t('oracle.cards.fincher'),
       image: '/assets/FINCHER.png',
-      description: t('oracle.cards.fincher', { defaultValue: 'Underground Gems' })
+      description: t('oracle.cards.fincherSubtitle')
     },
     {
       id: 'cypher' as CardType,
-      name: 'CYPHER',
+      name: t('oracle.cards.cypher'),
       image: '/assets/CYPHER.png',
-      description: t('oracle.cards.cypher', { defaultValue: 'Paradox & Surprise' })
+      description: t('oracle.cards.cypherSubtitle')
     }
   ];
 
@@ -433,9 +434,17 @@ export default function OracleRecommend() {
 
         {/* Cards Selection */}
         <motion.div variants={itemVariants} className="mb-8">
-          <h2 className="text-xl font-bold text-pink-300 mb-4 text-center">
-            {t('oracle.cards.title', { defaultValue: 'Choose Your Oracle' })}
-          </h2>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <h2 className="text-xl font-bold text-pink-300 text-center">
+              {t('oracle.cards.title', { defaultValue: 'Choose Your Oracle' })}
+            </h2>
+            <button
+              onClick={() => setShowOracleInfoModal(true)}
+              className="text-pink-400 hover:text-pink-300 transition-colors"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+          </div>
           <div className="grid grid-cols-3 gap-4">
             {cards.map((card) => (
               <motion.button
@@ -552,7 +561,7 @@ export default function OracleRecommend() {
             ) : (
               <>
                 <Wand2 className="w-5 h-5" />
-                <span>{t('oracle.recommend.cost', { cost: 50 })}</span>
+                <span>{t('oracle.recommend.cost', { cost: 25 })}</span>
               </>
             )}
           </motion.button>
@@ -762,6 +771,104 @@ export default function OracleRecommend() {
           </motion.div>
         </div>
       </motion.div>
+
+      {/* Oracle Info Modal */}
+      <AnimatePresence>
+        {showOracleInfoModal && (
+          <motion.div
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowOracleInfoModal(false)}
+          >
+            <motion.div
+              className="bg-gradient-to-b from-gray-900 to-black border border-pink-500/30 rounded-2xl p-8 max-w-2xl w-full shadow-2xl relative overflow-hidden"
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Decorative background */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-0 left-0 w-32 h-32 bg-pink-500 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 right-0 w-32 h-32 bg-purple-500 rounded-full blur-3xl" />
+              </div>
+
+              {/* Close button */}
+              <button
+                onClick={() => setShowOracleInfoModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors z-10"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Content */}
+              <div className="relative z-10">
+                <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 mb-6 text-center">
+                  {t('oracle.cards.infoTitle', { defaultValue: 'Meet The Oracles' })}
+                </h2>
+
+                <div className="space-y-6">
+                  {/* Bogart - The Frog */}
+                  <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-emerald-500/30">
+                    <div className="flex items-start gap-4">
+                      <div className="text-4xl">🐸</div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-emerald-400 mb-2">
+                          {t('oracle.cards.bogart')} — {t('oracle.cards.bogartSubtitle', { defaultValue: 'Popular and Modern' })}
+                        </h3>
+                        <p className="text-gray-300 text-sm leading-relaxed">
+                          {t('oracle.cards.bogartDesc', { defaultValue: 'They say the Frog was an old critic who, after watching so many films, sank into his own armchair and was reborn in the swamp waters.' })}
+                        </p>
+                        <p className="text-emerald-300 text-sm mt-2 font-medium">
+                          {t('oracle.cards.bogartRec', { defaultValue: 'Recommends films after the 2000s, popular and well-rated' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fincher - The Fox */}
+                  <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-orange-500/30">
+                    <div className="flex items-start gap-4">
+                      <div className="text-4xl">🦊</div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-orange-400 mb-2">
+                          {t('oracle.cards.fincher')} — {t('oracle.cards.fincherSubtitle', { defaultValue: 'Classic and Cult' })}
+                        </h3>
+                        <p className="text-gray-300 text-sm leading-relaxed">
+                          {t('oracle.cards.fincherDesc', { defaultValue: 'The Fox was born among film reels and cigar smoke. Some say he was an assistant to directors that time has erased.' })}
+                        </p>
+                        <p className="text-orange-300 text-sm mt-2 font-medium">
+                          {t('oracle.cards.fincherRec', { defaultValue: 'Recommends films before the 2000s, popular and cult gems.' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cypher - The Snake */}
+                  <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-red-500/30">
+                    <div className="flex items-start gap-4">
+                      <div className="text-4xl">🐍</div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-red-400 mb-2">
+                          {t('oracle.cards.cypher')} — {t('oracle.cards.cypherSubtitle', { defaultValue: 'Underground and Bombs' })} ☠️
+                        </h3>
+                        <p className="text-gray-300 text-sm leading-relaxed">
+                          {t('oracle.cards.cypherDesc', { defaultValue: 'The Snake crawls through the damp corridors where films are banned, forgotten or booed. She worships error as art and chaos as style.' })}
+                        </p>
+                        <p className="text-red-300 text-sm mt-2 font-medium">
+                          {t('oracle.cards.cypherRec', { defaultValue: 'Recommends unpopular films regardless of their rating.' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {selectedMovieForDetails && (
         <MovieDetailsModal

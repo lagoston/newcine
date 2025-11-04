@@ -176,9 +176,20 @@
       "randomSurprise": "Random Surprise"
     },
     "cards": {
-      "bogart": "Modern & Popular",
-      "fincher": "Classic & Cult",
-      "cypher": "Underground Gems"
+      "title": "Choose Your Oracle",
+      "infoTitle": "Meet The Oracles",
+      "bogart": "The Frog",
+      "bogartSubtitle": "Popular and Modern",
+      "bogartDesc": "They say the Frog was an old critic who, after watching so many films, sank into his own armchair and was reborn in the swamp waters.",
+      "bogartRec": "Recommends films after the 2000s, popular and well-rated",
+      "fincher": "The Fox",
+      "fincherSubtitle": "Classic and Cult",
+      "fincherDesc": "The Fox was born among film reels and cigar smoke. Some say he was an assistant to directors that time has erased.",
+      "fincherRec": "Recommends films before the 2000s, popular and cult gems.",
+      "cypher": "The Snake",
+      "cypherSubtitle": "Underground and Bombs",
+      "cypherDesc": "The Snake crawls through the damp corridors where films are banned, forgotten or booed. She worships error as art and chaos as style.",
+      "cypherRec": "Recommends unpopular films regardless of their rating."
     },
     "chamber": "Chamber",
     "speaksTitle": "The Oracle Speaks",

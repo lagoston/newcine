@@ -641,7 +641,7 @@ export default function OraclePrediction() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={loading.prediction ? t('oracle.prediction.consulting') : t('oracle.prediction.cost', { cost: 100 })}
+                    placeholder={loading.prediction ? t('oracle.prediction.consulting') : t('oracle.prediction.cost', { cost: 50 })}
                     className="w-full px-4 py-3 bg-transparent text-white placeholder-purple-400 text-lg font-medium focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                     autoComplete="off"
                     disabled={loading.prediction}

@@ -176,9 +176,20 @@
       "randomSurprise": "Surpresa Aleatória"
     },
     "cards": {
-      "bogart": "Moderno & Popular",
-      "fincher": "Clássico & Cult",
-      "cypher": "Underground Gems"
+      "title": "Escolha Seu Oráculo",
+      "infoTitle": "Conheça Os Oráculos",
+      "bogart": "O Sapo",
+      "bogartSubtitle": "Popular e Moderno",
+      "bogartDesc": "Dizem que o Sapo era um velho crítico que, após assistir a tantos filmes, afundou em sua própria poltrona e renasceu nas águas do pântano.",
+      "bogartRec": "Recomenda filmes depois dos anos 2000, populares e bem avaliados",
+      "fincher": "O Raposo",
+      "fincherSubtitle": "Clássico e Cult",
+      "fincherDesc": "O Raposo nasceu entre rolos de filme e fumaça de charuto. Alguns dizem que foi assistente de diretores que o tempo apagou.",
+      "fincherRec": "Recomenda filmes anteriores aos anos 2000, populares e joias cult.",
+      "cypher": "A Cobra",
+      "cypherSubtitle": "Underground e Bombas",
+      "cypherDesc": "A Cobra rasteja pelos corredores úmidos onde filmes são banidos, esquecidos ou vaiados. Ela cultua o erro como arte e o caos como estilo.",
+      "cypherRec": "Recomenda filmes pouco populares independente de sua avaliação."
     },
     "chamber": "Câmara",
     "speaksTitle": "O Oráculo Fala",
