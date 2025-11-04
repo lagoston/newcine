@@ -191,21 +191,6 @@ Deno.serve(async (req) => {
     // Get random character phrase
     const characterPhrase = getRandomPhrase(cardType);
 
-    // Save recommendation to database
-    const { error: recError } = await supabase
-      .from('oracle_recommendations')
-      .insert({
-        user_id: userId,
-        movie_id: selectedMovieId,
-        card_type: cardType,
-        mood: mood,
-        recommendation_text: characterPhrase
-      });
-
-    if (recError) {
-      console.error('Error saving recommendation:', recError);
-    }
-
     return new Response(
       JSON.stringify({
         movieId: selectedMovieId,
