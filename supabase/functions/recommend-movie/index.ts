@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
 
     // Get user's rated movies to exclude from recommendations
     const { data: ratedMovies, error: ratingsError } = await supabase
-      .from('user_ratings')
+      .from('user_movies')
       .select('movie_id')
       .eq('user_id', userId);
 
@@ -188,22 +188,23 @@ Deno.serve(async (req) => {
 
     const movieData = await tmdbResponse.json();
 
+    // Get random character phrase
+    const characterPhrase = getRandomPhrase(cardType);
+
     // Save recommendation to database
     const { error: recError } = await supabase
       .from('oracle_recommendations')
       .insert({
         user_id: userId,
         movie_id: selectedMovieId,
-        oracle_type: cardType,
-        mood_key: moodKey
+        card_type: cardType,
+        mood: mood,
+        recommendation_text: characterPhrase
       });
 
     if (recError) {
       console.error('Error saving recommendation:', recError);
     }
-
-    // Get random character phrase
-    const characterPhrase = getRandomPhrase(cardType);
 
     return new Response(
       JSON.stringify({
