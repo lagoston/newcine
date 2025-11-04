@@ -23,6 +23,7 @@ export default function OracleRecommend() {
     characterPhrase: string;
     movieData: any;
   } | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
   const [nextReset, setNextReset] = useState<Date | null>(null);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
@@ -201,6 +202,7 @@ export default function OracleRecommend() {
     try {
       setLoading(true);
       setRecommendation(null);
+      setInfoMessage(null);
 
       // Map mood to moodKey for backend
       const moodKeyMap: Record<string, string> = {
@@ -272,7 +274,7 @@ export default function OracleRecommend() {
       // If no movieId, this is a text-only response (not enough ratings, pool empty, etc.)
       if (!data.movieId || !data.movieData) {
         console.log('⚠️ No movie data in response, showing text only');
-        toast.info(data.recommendation || t('common.error'));
+        setInfoMessage(data.recommendation || t('common.error'));
         return;
       }
 
@@ -602,6 +604,34 @@ export default function OracleRecommend() {
               {t('oracle.recommend.consulting')}
             </h2>
             <p className="text-gray-400">{t('oracle.recommend.description')}</p>
+          </motion.div>
+        )}
+
+        {infoMessage && !loading && (
+          <motion.div
+            className="relative group"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600/30 to-orange-600/30 rounded-lg blur opacity-25"></div>
+            <div className="relative p-8 bg-gray-900/90 rounded-lg border border-yellow-500/30 backdrop-blur-sm">
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="text-5xl">⚠️</div>
+                <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">
+                  {t('oracle.speaksTitle')}
+                </h2>
+                <p className="text-gray-300 leading-relaxed text-lg max-w-2xl">
+                  {infoMessage}
+                </p>
+                <button
+                  onClick={() => setInfoMessage(null)}
+                  className="mt-4 px-6 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 rounded-lg text-yellow-300 transition-all"
+                >
+                  {t('common.ok') || 'OK'}
+                </button>
+              </div>
+            </div>
           </motion.div>
         )}
 
