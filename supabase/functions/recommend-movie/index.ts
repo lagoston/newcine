@@ -184,6 +184,24 @@ Deno.serve(async (req) => {
     // Get random character phrase
     const characterPhrase = getRandomPhrase(cardType);
 
+    // Fetch movie details from TMDB through proxy
+    console.log('🎬 Fetching movie details from TMDB...');
+    const tmdbProxyUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/tmdb-proxy?endpoint=${encodeURIComponent(`/movie/${selectedMovieId}?language=${language}`)}`;
+
+    const tmdbResponse = await fetch(tmdbProxyUrl, {
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+      }
+    });
+
+    if (!tmdbResponse.ok) {
+      console.error('❌ Failed to fetch movie details from TMDB');
+      throw new Error('Failed to fetch movie details from TMDB');
+    }
+
+    const movieData = await tmdbResponse.json();
+    console.log('✅ Movie details fetched:', movieData.title);
+
     // Format response
     const recommendation = `${characterPhrase}\n\n**Movie ID: ${selectedMovieId}**`;
 
@@ -192,6 +210,7 @@ Deno.serve(async (req) => {
         recommendation,
         mood,
         movieId: selectedMovieId,
+        movieData, // Include full movie data
         ticketsRemaining: ticketData.tickets_remaining - 50,
         characterPhrase,
         debug: {

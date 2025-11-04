@@ -263,29 +263,18 @@ export default function OracleRecommend() {
       setTicketsRemaining(data.ticketsRemaining);
 
       // If no movieId, this is a text-only response (not enough ratings, pool empty, etc.)
-      if (!data.movieId) {
+      if (!data.movieId || !data.movieData) {
         toast.info(data.recommendation || t('common.error'));
         return;
       }
 
-      // Fetch movie details from TMDB
-      console.log('🎬 Fetching movie details for ID:', data.movieId);
-      const tmdbResponse = await fetch(
-        `https://api.themoviedb.org/3/movie/${data.movieId}?api_key=${import.meta.env.VITE_TMDB_API_KEY}&language=${i18n.language}`
-      );
-
-      if (!tmdbResponse.ok) {
-        throw new Error('Failed to fetch movie details from TMDB');
-      }
-
-      const movieData = await tmdbResponse.json();
-      console.log('✅ Movie details received:', movieData.title);
+      console.log('✅ Movie details received from backend:', data.movieData.title);
 
       // Set the complete recommendation object
       const recommendationObject = {
         movieId: data.movieId,
         characterPhrase: data.characterPhrase,
-        movieData: movieData
+        movieData: data.movieData
       };
 
       console.log('🎯 Setting recommendation state:', recommendationObject);

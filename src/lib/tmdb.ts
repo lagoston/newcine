@@ -1,7 +1,25 @@
 import { useDebounce } from 'use-debounce';
+import { supabase } from './supabase';
 
-const TMDB_API_KEY = '15da7a1d15ba5e2490acbad2f7394947';
-const BASE_URL = 'https://api.themoviedb.org/3';
+// Secure proxy endpoint
+const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tmdb-proxy`;
+
+// Helper function to call TMDB through secure proxy
+async function tmdbFetch(endpoint: string): Promise<any> {
+  const url = `${PROXY_URL}?endpoint=${encodeURIComponent(endpoint)}`;
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`TMDB request failed: ${response.statusText}`);
+  }
+
+  return response.json();
+}
 
 export interface Genre {
   id: number;
@@ -63,54 +81,22 @@ export interface Movie {
 }
 
 export const getTrending = async (): Promise<Movie[]> => {
-  const response = await fetch(
-    `${BASE_URL}/trending/movie/week?api_key=${TMDB_API_KEY}`
-  );
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch trending movies');
-  }
-  
-  const data = await response.json();
+  const data = await tmdbFetch('/trending/movie/week');
   return data.results;
 };
 
 export const getComingSoon = async (): Promise<Movie[]> => {
-  const response = await fetch(
-    `${BASE_URL}/movie/upcoming?api_key=${TMDB_API_KEY}&region=US`
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch upcoming movies');
-  }
-
-  const data = await response.json();
+  const data = await tmdbFetch('/movie/upcoming?region=US');
   return data.results;
 };
 
 export const getTopRatedGems = async (): Promise<Movie[]> => {
-  const response = await fetch(
-    `${BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&sort_by=vote_average.desc&vote_count.gte=5000&vote_average.gte=8`
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch top rated movies');
-  }
-
-  const data = await response.json();
+  const data = await tmdbFetch('/discover/movie?sort_by=vote_average.desc&vote_count.gte=5000&vote_average.gte=8');
   return data.results;
 };
 
 export const getHiddenIndies = async (): Promise<Movie[]> => {
-  const response = await fetch(
-    `${BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&sort_by=popularity.asc&popularity.lte=10&vote_count.gte=50&with_original_language=en`
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch indie movies');
-  }
-
-  const data = await response.json();
+  const data = await tmdbFetch('/discover/movie?sort_by=popularity.asc&popularity.lte=10&vote_count.gte=50&with_original_language=en');
   return data.results;
 };
 
@@ -141,25 +127,16 @@ export const getSeasonalMovies = async (): Promise<Movie[]> => {
   console.log('🎬 TESTE: Buscando filmes de AÇÃO do TMDB');
   console.log('Genre ID:', genreIds);
 
-  let url = `${BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&sort_by=popularity.desc`;
+  let endpoint = '/discover/movie?sort_by=popularity.desc';
 
   if (genreIds) {
-    url += `&with_genres=${genreIds}`;
+    endpoint += `&with_genres=${genreIds}`;
   }
 
-  console.log('URL (sem API key):', url.replace(TMDB_API_KEY || '', 'HIDDEN'));
+  console.log('Endpoint:', endpoint);
 
-  const response = await fetch(url);
+  const data = await tmdbFetch(endpoint);
 
-  console.log('Response status:', response.status);
-  console.log('Response ok:', response.ok);
-
-  if (!response.ok) {
-    console.error('❌ TMDB API Error:', response.status, response.statusText);
-    throw new Error('Failed to fetch seasonal movies');
-  }
-
-  const data = await response.json();
   console.log('✅ TMDB retornou:', data.results?.length || 0, 'filmes');
   console.log('Primeiros 5 filmes:', data.results?.slice(0, 5).map((m: Movie) => ({
     id: m.id,
@@ -171,51 +148,33 @@ export const getSeasonalMovies = async (): Promise<Movie[]> => {
 
 export const searchMovies = async (query: string): Promise<Movie[]> => {
   if (!query.trim()) return [];
-  
-  const response = await fetch(
-    `${BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&sort_by=popularity.desc`
-  );
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch movies');
-  }
-  
-  const data = await response.json();
+
+  const data = await tmdbFetch(`/search/movie?query=${encodeURIComponent(query)}&sort_by=popularity.desc`);
   return data.results;
 };
 
 export const getMovieDetails = async (movieId: number): Promise<Movie> => {
-  const [detailsResponse, providersResponse, releaseDatesResponse] = await Promise.all([
-    fetch(`${BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}&append_to_response=credits`),
-    fetch(`${BASE_URL}/movie/${movieId}/watch/providers?api_key=${TMDB_API_KEY}`),
-    fetch(`${BASE_URL}/movie/${movieId}/release_dates?api_key=${TMDB_API_KEY}`)
+  const [movieDetails, providersData, releaseDatesData] = await Promise.all([
+    tmdbFetch(`/movie/${movieId}?append_to_response=credits`),
+    tmdbFetch(`/movie/${movieId}/watch/providers`),
+    tmdbFetch(`/movie/${movieId}/release_dates`)
   ]);
-  
-  if (!detailsResponse.ok) {
-    throw new Error('Failed to fetch movie details');
-  }
 
-  const movieDetails = await detailsResponse.json();
-  
-  if (providersResponse.ok) {
-    const providersData = await providersResponse.json();
-    // Get providers for Brazil (BR) or fallback to US if not available
-    const countryData = providersData.results.BR || providersData.results.US;
-    if (countryData) {
-      movieDetails.watchProviders = {
-        link: countryData.link,
-        flatrate: countryData.flatrate,
-        rent: countryData.rent,
-        buy: countryData.buy
-      };
-    }
+  // Get providers for Brazil (BR) or fallback to US if not available
+  const countryData = providersData.results?.BR || providersData.results?.US;
+  if (countryData) {
+    movieDetails.watchProviders = {
+      link: countryData.link,
+      flatrate: countryData.flatrate,
+      rent: countryData.rent,
+      buy: countryData.buy
+    };
   }
 
   // Get content ratings
-  if (releaseDatesResponse.ok) {
-    const releaseDatesData = await releaseDatesResponse.json();
+  if (releaseDatesData && releaseDatesData.results) {
     const contentRatings: ContentRating[] = [];
-    
+
     // Process release dates to extract content ratings
     // Priority: US ratings first, then BR, then others
     const usReleases = releaseDatesData.results.find((r: any) => r.iso_3166_1 === 'US');
@@ -317,4 +276,3 @@ function getContentWarnings(certification: string, note?: string): string {
   return warningText;
 }
 
-export { TMDB_API_KEY };
