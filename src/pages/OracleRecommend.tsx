@@ -256,14 +256,21 @@ export default function OracleRecommend() {
 
       console.log('=== RECOMMENDATION RESPONSE ===');
       console.log('Full response:', data);
+      console.log('Has movieId?', !!data.movieId);
+      console.log('Has characterPhrase?', !!data.characterPhrase);
+      console.log('Has recommendation?', !!data.recommendation);
+      console.log('movieId value:', data.movieId);
+      console.log('characterPhrase value:', data.characterPhrase);
       console.log('=== END ===');
 
       if (data.error) {
+        console.error('Error in response:', data.error);
         throw new Error(data.error);
       }
 
       // Check if it's a text-only recommendation (not enough movies rated, pool empty, etc.)
       if (data.recommendation && !data.movieId) {
+        console.log('Text-only recommendation, no movie');
         setPrediction(data.recommendation);
         setTicketsRemaining(data.ticketsRemaining);
         setRecommendedMovie(null);
@@ -272,6 +279,7 @@ export default function OracleRecommend() {
       }
 
       if (!data.movieId) {
+        console.error('No movieId in response!');
         throw new Error('No recommendation received from Oracle');
       }
 
