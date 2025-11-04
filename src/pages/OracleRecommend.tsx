@@ -18,13 +18,14 @@ export default function OracleRecommend() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<CardType>('bogart');
   const [loading, setLoading] = useState(false);
-  const [prediction, setPrediction] = useState<string | null>(null);
-  const [recommendedMovie, setRecommendedMovie] = useState<any>(null);
-  const [characterPhrase, setCharacterPhrase] = useState<string | null>(null);
+  const [recommendation, setRecommendation] = useState<{
+    movieId: number;
+    characterPhrase: string;
+    movieData: any;
+  } | null>(null);
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
   const [nextReset, setNextReset] = useState<Date | null>(null);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-  const [libraryMovies, setLibraryMovies] = useState<number[]>([]);
   const [selectedMovieForDetails, setSelectedMovieForDetails] = useState<any>(null);
 
   const moods = [
@@ -207,7 +208,7 @@ export default function OracleRecommend() {
 
     try {
       setLoading(true);
-      setPrediction(null);
+      setRecommendation(null);
 
       // Map mood to moodKey for backend
       const moodKeyMap: Record<string, string> = {
@@ -224,6 +225,13 @@ export default function OracleRecommend() {
       };
 
       const moodKey = moodKeyMap[selectedMood] || 'random-surprise';
+
+      console.log('🎯 Requesting recommendation with:', {
+        userId: session.user.id,
+        mood: selectedMood,
+        cardType: selectedCard,
+        moodKey
+      });
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recommend-movie`,
@@ -254,42 +262,23 @@ export default function OracleRecommend() {
 
       const data = await response.json();
 
-      console.log('=== RECOMMENDATION RESPONSE ===');
-      console.log('Full response:', data);
-      console.log('Has movieId?', !!data.movieId);
-      console.log('Has characterPhrase?', !!data.characterPhrase);
-      console.log('Has recommendation?', !!data.recommendation);
-      console.log('movieId value:', data.movieId);
-      console.log('characterPhrase value:', data.characterPhrase);
-      console.log('=== END ===');
+      console.log('✅ Recommendation response received:', data);
 
       if (data.error) {
-        console.error('Error in response:', data.error);
         throw new Error(data.error);
       }
 
-      // Check if it's a text-only recommendation (not enough movies rated, pool empty, etc.)
-      if (data.recommendation && !data.movieId) {
-        console.log('Text-only recommendation, no movie');
-        setPrediction(data.recommendation);
-        setTicketsRemaining(data.ticketsRemaining);
-        setRecommendedMovie(null);
-        setCharacterPhrase(null);
+      // Update ticket count
+      setTicketsRemaining(data.ticketsRemaining);
+
+      // If no movieId, this is a text-only response (not enough ratings, pool empty, etc.)
+      if (!data.movieId) {
+        toast.info(data.recommendation || t('common.error'));
         return;
       }
 
-      if (!data.movieId) {
-        console.error('No movieId in response!');
-        throw new Error('No recommendation received from Oracle');
-      }
-
-      console.log('=== RECOMMENDATION DEBUG ===');
-      console.log('Movie ID:', data.movieId);
-      console.log('Character Phrase:', data.characterPhrase);
-      console.log('Available Movies Count:', data.debug?.availableMoviesCount);
-      console.log('=== END DEBUG ===');
-
       // Fetch movie details from TMDB
+      console.log('🎬 Fetching movie details for ID:', data.movieId);
       const tmdbResponse = await fetch(
         `https://api.themoviedb.org/3/movie/${data.movieId}?api_key=${import.meta.env.VITE_TMDB_API_KEY}&language=${i18n.language}`
       );
@@ -299,16 +288,14 @@ export default function OracleRecommend() {
       }
 
       const movieData = await tmdbResponse.json();
+      console.log('✅ Movie details received:', movieData.title);
 
-      console.log('=== TMDB MOVIE DATA ===');
-      console.log('Movie:', movieData.title);
-      console.log('Poster:', movieData.poster_path);
-      console.log('=== END ===');
-
-      setCharacterPhrase(data.characterPhrase);
-      setRecommendedMovie(movieData);
-      setPrediction('success');
-      setTicketsRemaining(data.ticketsRemaining);
+      // Set the complete recommendation object
+      setRecommendation({
+        movieId: data.movieId,
+        characterPhrase: data.characterPhrase,
+        movieData: movieData
+      });
     } catch (error) {
       console.error('Error getting recommendation:', error);
       toast.error(error instanceof Error ? error.message : t('common.error'));
@@ -615,7 +602,7 @@ export default function OracleRecommend() {
           </motion.div>
         )}
 
-        {prediction && (
+        {recommendation && (
           <motion.div
             className="relative group"
             initial={{ opacity: 0 }}
@@ -640,54 +627,41 @@ export default function OracleRecommend() {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
-                {/* Show character phrase if available */}
-                {characterPhrase && (
-                  <p className="text-gray-300 leading-relaxed text-center italic max-w-2xl text-lg">
-                    "{characterPhrase}"
-                  </p>
-                )}
+                {/* Show character phrase */}
+                <p className="text-gray-300 leading-relaxed text-center italic max-w-2xl text-lg">
+                  "{recommendation.characterPhrase}"
+                </p>
 
-                {/* Show movie poster if available */}
-                {recommendedMovie && (
-                  <motion.div
-                    className="cursor-pointer group/poster relative"
-                    onClick={() => setSelectedMovieForDetails(recommendedMovie)}
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  >
-                    <img
-                      src={`https://image.tmdb.org/t/p/w500${recommendedMovie.poster_path}`}
-                      alt={recommendedMovie.title}
-                      className="rounded-lg shadow-2xl w-48 h-auto border-2 border-pink-500/30 group-hover/poster:border-pink-500/60 transition-all"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/poster:opacity-100 transition-opacity rounded-lg flex items-end justify-center pb-4">
-                      <p className="text-white text-sm font-semibold">Click for details</p>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Show movie title and year if available */}
-                {recommendedMovie && (
-                  <div className="text-center">
-                    <h3 className="text-xl font-bold text-pink-400">{recommendedMovie.title}</h3>
-                    {recommendedMovie.release_date && (
-                      <p className="text-gray-400 text-sm">({recommendedMovie.release_date.substring(0, 4)})</p>
-                    )}
+                {/* Show movie poster */}
+                <motion.div
+                  className="cursor-pointer group/poster relative"
+                  onClick={() => setSelectedMovieForDetails(recommendation.movieData)}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <img
+                    src={`https://image.tmdb.org/t/p/w500${recommendation.movieData.poster_path}`}
+                    alt={recommendation.movieData.title}
+                    className="rounded-lg shadow-2xl w-48 h-auto border-2 border-pink-500/30 group-hover/poster:border-pink-500/60 transition-all"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/poster:opacity-100 transition-opacity rounded-lg flex items-end justify-center pb-4">
+                    <p className="text-white text-sm font-semibold">Click for details</p>
                   </div>
-                )}
+                </motion.div>
 
-                {/* Fallback: show text-only prediction if no movie data */}
-                {!recommendedMovie && !characterPhrase && prediction !== 'success' && (
-                  <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
-                    {prediction}
-                  </p>
-                )}
+                {/* Show movie title and year */}
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-pink-400">{recommendation.movieData.title}</h3>
+                  {recommendation.movieData.release_date && (
+                    <p className="text-gray-400 text-sm">({recommendation.movieData.release_date.substring(0, 4)})</p>
+                  )}
+                </div>
               </motion.div>
             </div>
           </motion.div>
         )}
 
-        {!loading && !prediction && (
+        {!loading && !recommendation && (
           <motion.div
             className="relative group"
             initial={{ opacity: 0 }}
