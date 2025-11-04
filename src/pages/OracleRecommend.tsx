@@ -255,6 +255,12 @@ export default function OracleRecommend() {
       const data = await response.json();
 
       console.log('✅ Recommendation response received:', data);
+      console.log('📊 Response structure:', {
+        hasMovieId: !!data.movieId,
+        hasMovieData: !!data.movieData,
+        hasCharacterPhrase: !!data.characterPhrase,
+        ticketsRemaining: data.ticketsRemaining
+      });
 
       if (data.error) {
         throw new Error(data.error);
@@ -265,6 +271,7 @@ export default function OracleRecommend() {
 
       // If no movieId, this is a text-only response (not enough ratings, pool empty, etc.)
       if (!data.movieId || !data.movieData) {
+        console.log('⚠️ No movie data in response, showing text only');
         toast.info(data.recommendation || t('common.error'));
         return;
       }
