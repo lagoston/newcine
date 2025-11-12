@@ -320,10 +320,10 @@ export default function OraclePrediction() {
             img.src = blobUrl;
           });
 
-          // Poster maior na esquerda
-          const posterWidth = 220;
-          const posterHeight = 330;
-          const posterX = 120;
+          // Poster maior na esquerda (+25% maior = 275x412px)
+          const posterWidth = 275;
+          const posterHeight = 412;
+          const posterX = 100;
           const posterY = currentY + 100;
           posterCenterY = posterY + (posterHeight / 2); // Calcular centro do poster
 
@@ -347,19 +347,19 @@ export default function OraclePrediction() {
 
       // Desenhar "NOTA PREVISTA:" centralizado verticalmente com o poster (direita)
       const noteX = 640; // Direita, centralizado
-      const noteLabelY = posterCenterY - 90; // Acima da nota
+      const noteLabelY = posterCenterY - 120; // Acima da nota (mais espaçado)
 
       ctx.fillStyle = '#CCCCCC';
       ctx.font = 'bold 36px Arial';
       ctx.textAlign = 'center';
       ctx.fillText('NOTA PREVISTA:', noteX, noteLabelY);
 
-      // Desenhar nota prevista centralizada com o poster
+      // Desenhar nota prevista centralizada com o poster (mais abaixo)
       ctx.fillStyle = '#FFD700';
       ctx.font = 'bold 120px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(rating.toFixed(1), noteX, posterCenterY);
+      ctx.fillText(rating.toFixed(1), noteX, posterCenterY + 20);
 
       // Desenhar texto de Ponderações (mais abaixo, com sombra escura)
       ctx.fillStyle = '#FFFFFF';

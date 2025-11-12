@@ -54,6 +54,9 @@ export default function Community() {
   const [friendsWatchlist, setFriendsWatchlist] = useState<FriendWatchlistMovie[]>([]);
   const [loadingWatchlist, setLoadingWatchlist] = useState(true);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const USERS_PER_PAGE = 12;
 
   // Animation variants for staggered animations
   const containerVariants = {
@@ -77,7 +80,7 @@ export default function Community() {
 
   useEffect(() => {
     fetchProfiles();
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -102,17 +105,29 @@ export default function Community() {
         return;
       }
 
+      // Calculate offset for pagination
+      const offset = (currentPage - 1) * USERS_PER_PAGE;
+
+      // First, get total count for pagination (including current user)
+      const { count: totalCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      if (totalCount) {
+        setTotalPages(Math.ceil(totalCount / USERS_PER_PAGE));
+      }
+
       // Try to use intelligent suggestions function, fallback to direct query
       const { data: suggestedUsers, error: suggestionsError } = await supabase
         .rpc('get_suggested_users', {
           p_user_id: session.user.id,
-          p_limit: 30
+          p_limit: USERS_PER_PAGE + 1 // +1 to include current user
         });
 
       if (suggestionsError) {
         console.error('Error with suggestions, falling back to direct query:', suggestionsError);
 
-        // Fallback: get profiles directly
+        // Fallback: get profiles directly with pagination
         const { data: allProfiles, error: profilesError } = await supabase
           .from('profiles')
           .select(`
@@ -125,9 +140,8 @@ export default function Community() {
             banner,
             active_tag
           `)
-          .neq('id', session.user.id)
           .order('created_at', { ascending: false })
-          .limit(30);
+          .range(offset, offset + USERS_PER_PAGE - 1);
 
         if (profilesError) throw profilesError;
 
@@ -295,19 +309,20 @@ export default function Community() {
           </div>
         </motion.div>
 
-        {/* Friends Watchlist Carousel */}
-        <motion.div
-          className="mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="w-6 h-6 text-purple-500" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {t('community.friendsPlanning')}
-            </h2>
-          </div>
+        {/* Friends Watchlist Carousel - Only on page 1 */}
+        {currentPage === 1 && (
+          <motion.div
+            className="mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-6 h-6 text-purple-500" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {t('community.friendsPlanning')}
+              </h2>
+            </div>
 
           {loadingWatchlist ? (
             <div className="flex items-center justify-center py-12">
@@ -356,7 +371,8 @@ export default function Community() {
               {t('common.noMoviesFound')}
             </div>
           )}
-        </motion.div>
+          </motion.div>
+        )}
 
         {filteredProfiles.length === 0 ? (
           <motion.div 
@@ -486,6 +502,61 @@ export default function Community() {
                 </div>
               </motion.div>
             ))}
+          </motion.div>
+        )}
+
+        {/* Pagination Controls */}
+        {!searchQuery && filteredProfiles.length > 0 && totalPages > 1 && (
+          <motion.div
+            className="flex items-center justify-center gap-2 mt-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              ← {t('common.back', { defaultValue: 'Back' })}
+            </button>
+
+            <div className="flex items-center gap-2">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                        : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {t('common.next', { defaultValue: 'Next' })} →
+            </button>
           </motion.div>
         )}
       </div>
