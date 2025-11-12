@@ -320,10 +320,17 @@ export default function OraclePrediction() {
             img.src = blobUrl;
           });
 
-          // Poster maior na esquerda (+25% maior = 275x412px)
+          // Poster e nota centralizados como conjunto
           const posterWidth = 275;
           const posterHeight = 412;
-          const posterX = 100;
+
+          // Calcular centro do conjunto (poster + espaço + nota)
+          const gapBetween = 80; // Espaço entre poster e área da nota
+          const noteAreaWidth = 300; // Largura aproximada da área da nota
+          const totalWidth = posterWidth + gapBetween + noteAreaWidth;
+          const groupStartX = (canvas.width - totalWidth) / 2; // Centralizar grupo
+
+          const posterX = groupStartX;
           const posterY = currentY + 100;
           posterCenterY = posterY + (posterHeight / 2); // Calcular centro do poster
 
@@ -345,8 +352,12 @@ export default function OraclePrediction() {
         }
       }
 
-      // Desenhar "NOTA PREVISTA:" centralizado verticalmente com o poster (direita)
-      const noteX = 640; // Direita, centralizado
+      // Desenhar "NOTA PREVISTA:" à direita do poster, centralizados como conjunto
+      const gapBetween = 80;
+      const noteAreaWidth = 300;
+      const totalWidth = 275 + gapBetween + noteAreaWidth;
+      const groupStartX = (canvas.width - totalWidth) / 2;
+      const noteX = groupStartX + 275 + gapBetween + (noteAreaWidth / 2); // Centro da área da nota
       const noteLabelY = posterCenterY - 120; // Acima da nota (mais espaçado)
 
       ctx.fillStyle = '#CCCCCC';

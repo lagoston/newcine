@@ -6,14 +6,46 @@ import MovieDetailsModal from '../components/MovieDetailsModal';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 
 const CategoryMovies = () => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { session } = useAuth();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+
+  const fetchFriendsWatching = async (): Promise<Movie[]> => {
+    try {
+      if (!session?.user?.id) {
+        return getTrending().then(movies => movies.slice(0, 50));
+      }
+
+      const { data, error } = await supabase
+        .rpc('get_friends_watchlist_movies', { user_id_param: session.user.id });
+
+      if (!error && data && data.length > 0) {
+        const movies = await Promise.all(
+          data.map(async (item: any) => {
+            try {
+              return await getMovieDetails(item.movie_id);
+            } catch (err) {
+              console.error(`Error fetching movie ${item.movie_id}:`, err);
+              return null;
+            }
+          })
+        );
+        return movies.filter((m): m is Movie => m !== null);
+      }
+      return getTrending().then(movies => movies.slice(0, 50));
+    } catch (error) {
+      console.error('Error fetching friends watching:', error);
+      return getTrending().then(movies => movies.slice(0, 50));
+    }
+  };
 
   const categoryConfig: Record<string, { title: string; emoji: string; fetch: () => Promise<Movie[]> }> = {
     trending: {
@@ -35,6 +67,11 @@ const CategoryMovies = () => {
       title: t('home.hiddenGems'),
       emoji: '💎',
       fetch: getHiddenIndies
+    },
+    'friends-watching': {
+      title: t('home.friendsWatching'),
+      emoji: '👥',
+      fetch: fetchFriendsWatching
     },
     personalized: {
       title: t('home.personalizedForYou'),
