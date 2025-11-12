@@ -9,7 +9,6 @@ import RatingBox from '../components/RatingBox';
 import LibraryEditModal from '../components/LibraryEditModal';
 import LinearProgressBar from '../components/LinearProgressBar';
 import { useAuth } from '../lib/auth';
-import pLimit from 'p-limit';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 
@@ -96,55 +95,37 @@ export default function Library() {
 
       setLoadingProgress(5);
 
-      // Carregamento progressivo: primeiro mostra os primeiros 20 filmes
-      const INITIAL_BATCH = 20;
-      const initialBatch = userMoviesData.slice(0, INITIAL_BATCH);
-      const remainingMovies = userMoviesData.slice(INITIAL_BATCH);
-
-      // Carregar primeiro lote rapidamente
-      const limit = pLimit(10);
+      // Carregamento paralelo completo (como UserProfile)
       let completed = 0;
       const totalToProcess = userMoviesData.length;
 
-      const loadBatch = async (batch: UserMovie[]) => {
-        const promises = batch.map((userMovie: UserMovie) =>
-          limit(async () => {
-            try {
-              const movieDetails = await getMovieDetails(userMovie.movie_id);
-              completed++;
-              const exactPercentage = 5 + ((completed / totalToProcess) * 95);
-              setProcessedMovies(completed);
-              setLoadingProgress(exactPercentage);
+      const movieDetails = await Promise.all(
+        userMoviesData.map(async (userMovie: UserMovie) => {
+          try {
+            const details = await getMovieDetails(userMovie.movie_id);
+            completed++;
+            const exactPercentage = 5 + ((completed / totalToProcess) * 95);
+            setProcessedMovies(completed);
+            setLoadingProgress(exactPercentage);
 
-              return {
-                ...movieDetails,
-                userRating: userMovie.rating,
-              };
-            } catch (err) {
-              console.warn(`Failed to fetch movie ${userMovie.movie_id}`);
-              completed++;
-              const exactPercentage = 5 + ((completed / totalToProcess) * 95);
-              setProcessedMovies(completed);
-              setLoadingProgress(exactPercentage);
-              return null;
-            }
-          })
-        );
-        return (await Promise.all(promises)).filter(Boolean);
-      };
+            return {
+              ...details,
+              userRating: userMovie.rating,
+            };
+          } catch (err) {
+            console.warn(`Failed to fetch movie ${userMovie.movie_id}`);
+            completed++;
+            const exactPercentage = 5 + ((completed / totalToProcess) * 95);
+            setProcessedMovies(completed);
+            setLoadingProgress(exactPercentage);
+            return null;
+          }
+        })
+      );
 
-      // Carregar primeiro lote
-      const firstBatchMovies = await loadBatch(initialBatch);
-      setUserMovies(firstBatchMovies);
+      const allMovies = movieDetails.filter(movie => movie !== null);
+      setUserMovies(allMovies);
       setInitialLoadComplete(true);
-
-      // Carregar restante em background
-      let allMovies = firstBatchMovies;
-      if (remainingMovies.length > 0) {
-        const remainingBatchMovies = await loadBatch(remainingMovies);
-        allMovies = [...firstBatchMovies, ...remainingBatchMovies];
-        setUserMovies(allMovies);
-      }
 
       cache.set(cacheKey, allMovies, CACHE_TTL.USER_LIBRARY);
       setLoadingProgress(100);
