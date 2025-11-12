@@ -155,6 +155,7 @@
       "consulting": "Consultando o Oráculo...",
       "cost": "Consultar o Oráculo ({{cost}} tickets)",
       "notEnough": "Tickets insuficientes! Próxima recarga em {{time}}",
+      "alreadyRated": "Não será possível fazer essa previsão pois o filme já foi avaliado.",
       "analyzing": "Analisando seu perfil...",
       "calculating": "Calculando compatibilidade...",
       "generating": "Gerando previsão...",

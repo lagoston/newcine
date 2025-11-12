@@ -155,6 +155,7 @@
       "consulting": "Consulting the Oracle...",
       "cost": "Consult the Oracle ({{cost}} tickets)",
       "notEnough": "Not enough tickets! Next reset in {{time}}",
+      "alreadyRated": "This prediction cannot be made because you have already rated this movie.",
       "analyzing": "Analyzing your profile...",
       "calculating": "Calculating compatibility...",
       "generating": "Generating prediction...",

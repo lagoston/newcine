@@ -133,7 +133,7 @@ export default function OraclePrediction() {
     return `${hours}h`;
   };
 
-  const getPrediction = async (movieName: string) => {
+  const getPrediction = async (movieName: string, movieId: number) => {
     if (!session?.user?.id) return;
 
     if (ticketsRemaining !== null && ticketsRemaining < 100) {
@@ -142,6 +142,33 @@ export default function OraclePrediction() {
     }
 
     try {
+      // Verificar se o filme já foi avaliado pelo usuário
+      const { data: existingRating, error: ratingError } = await supabase
+        .from('user_movies')
+        .select('rating')
+        .eq('user_id', session.user.id)
+        .eq('movie_id', movieId)
+        .maybeSingle();
+
+      if (ratingError) {
+        console.error('Error checking movie rating:', ratingError);
+      }
+
+      // Se o filme já foi avaliado (rating não é null), não permitir predição
+      if (existingRating && existingRating.rating !== null) {
+        // Mostrar mensagem automática do oráculo
+        const oracleMessage = t('oracle.prediction.alreadyRated');
+        setPrediction({
+          prediction: oracleMessage,
+          movie: movieName,
+          ticketsRemaining: ticketsRemaining || 0
+        });
+        setSelectedMovie(movieName);
+        setSearchQuery('');
+        setSearchResults([]);
+        return;
+      }
+
       setLoading(prev => ({ ...prev, prediction: true }));
       setPrediction(null);
       setSelectedMovie(movieName);
@@ -668,7 +695,7 @@ export default function OraclePrediction() {
                     {searchResults.map((movie) => (
                       <motion.button
                         key={movie.id}
-                        onClick={() => getPrediction(movie.title)}
+                        onClick={() => getPrediction(movie.title, movie.id)}
                         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-purple-500/10 transition-colors text-left"
                         whileHover={{ x: 4, backgroundColor: "rgba(168, 85, 247, 0.1)" }}
                       >
