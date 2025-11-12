@@ -193,9 +193,14 @@ export default function UserProfile() {
       });
       setRatingDistribution(distribution);
 
-      // Fetch complete movie details for each movie
-      const movieDetails = await Promise.all(
-        userMovies.map(async (userMovie) => {
+      // Carregamento incremental: primeiro 20 filmes
+      const INITIAL_BATCH = 20;
+      const initialBatch = userMovies.slice(0, INITIAL_BATCH);
+      const remainingMovies = userMovies.slice(INITIAL_BATCH);
+
+      // Carregar primeiro lote
+      const firstBatchDetails = await Promise.all(
+        initialBatch.map(async (userMovie) => {
           try {
             const details = await getMovieDetails(userMovie.movie_id);
             return {
@@ -209,8 +214,33 @@ export default function UserProfile() {
         })
       );
 
-      const validMovies = movieDetails.filter(movie => movie !== null);
-      setMovies(validMovies);
+      const firstBatchMovies = firstBatchDetails.filter(movie => movie !== null);
+      setMovies(firstBatchMovies);
+
+      // Carregar restante em background
+      if (remainingMovies.length > 0) {
+        const remainingDetails = await Promise.all(
+          remainingMovies.map(async (userMovie) => {
+            try {
+              const details = await getMovieDetails(userMovie.movie_id);
+              return {
+                ...details,
+                userRating: userMovie.rating
+              };
+            } catch (error) {
+              console.error(`Error fetching details for movie ${userMovie.movie_id}:`, error);
+              return null;
+            }
+          })
+        );
+
+        const remainingBatchMovies = remainingDetails.filter(movie => movie !== null);
+        const allMovies = [...firstBatchMovies, ...remainingBatchMovies];
+        setMovies(allMovies);
+        var validMovies = allMovies;
+      } else {
+        var validMovies = firstBatchMovies;
+      }
 
       // Calculate stats for rated movies only
       const ratedValidMovies = validMovies.filter(movie => movie.userRating !== null);

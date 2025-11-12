@@ -95,7 +95,12 @@ export default function Library() {
 
       setLoadingProgress(5);
 
-      // Simular progresso baseado em tempo estimado (8 segundos)
+      // Carregamento incremental: primeiro 20 filmes
+      const INITIAL_BATCH = 20;
+      const initialBatch = userMoviesData.slice(0, INITIAL_BATCH);
+      const remainingMovies = userMoviesData.slice(INITIAL_BATCH);
+
+      // Simular progresso baseado em tempo estimado
       const estimatedDuration = 8000;
       const startTime = Date.now();
       const progressInterval = setInterval(() => {
@@ -104,9 +109,9 @@ export default function Library() {
         setLoadingProgress(percentage);
       }, 100);
 
-      // Carregamento paralelo completo (como UserProfile)
-      const movieDetails = await Promise.all(
-        userMoviesData.map(async (userMovie: UserMovie) => {
+      // Carregar primeiro lote (20 filmes)
+      const firstBatchDetails = await Promise.all(
+        initialBatch.map(async (userMovie: UserMovie) => {
           try {
             const details = await getMovieDetails(userMovie.movie_id);
             return {
@@ -120,13 +125,38 @@ export default function Library() {
         })
       );
 
-      clearInterval(progressInterval);
-      const allMovies = movieDetails.filter(movie => movie !== null);
-      setUserMovies(allMovies);
-      setProcessedMovies(allMovies.length);
+      const firstBatchMovies = firstBatchDetails.filter(movie => movie !== null);
+      setUserMovies(firstBatchMovies);
+      setProcessedMovies(firstBatchMovies.length);
       setInitialLoadComplete(true);
 
-      cache.set(cacheKey, allMovies, CACHE_TTL.USER_LIBRARY);
+      // Carregar restante em background
+      if (remainingMovies.length > 0) {
+        const remainingDetails = await Promise.all(
+          remainingMovies.map(async (userMovie: UserMovie) => {
+            try {
+              const details = await getMovieDetails(userMovie.movie_id);
+              return {
+                ...details,
+                userRating: userMovie.rating,
+              };
+            } catch (err) {
+              console.warn(`Failed to fetch movie ${userMovie.movie_id}`);
+              return null;
+            }
+          })
+        );
+
+        const remainingBatchMovies = remainingDetails.filter(movie => movie !== null);
+        const allMovies = [...firstBatchMovies, ...remainingBatchMovies];
+        setUserMovies(allMovies);
+        setProcessedMovies(allMovies.length);
+        cache.set(cacheKey, allMovies, CACHE_TTL.USER_LIBRARY);
+      } else {
+        cache.set(cacheKey, firstBatchMovies, CACHE_TTL.USER_LIBRARY);
+      }
+
+      clearInterval(progressInterval);
       setLoadingProgress(100);
     } catch (error) {
       console.error('Error fetching user movies:', error);

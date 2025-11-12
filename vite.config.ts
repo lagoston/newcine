@@ -58,6 +58,18 @@ export default defineConfig({
                 maxAgeSeconds: 60 * 60 * 24 * 20 // 20 days
               }
             }
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/functions\/v1\/tmdb-proxy.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'tmdb-api',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 // 1 day
+              },
+              networkTimeoutSeconds: 10
+            }
           }
         ]
       }
