@@ -239,54 +239,106 @@ export default function OraclePrediction() {
     try {
       setLoading(prev => ({ ...prev, sharing: true }));
 
+      // Extrair nota e resumo da predição
       const ratingMatch = prediction.prediction.match(/📊.*?(\d+\.?\d*)\/10 \(±(\d+\.?\d*)\)/);
       const summaryMatch = prediction.prediction.match(/🧠.*?\n(.*?)(?=\n⚖️|\n🎬|\n🎭|$)/s);
 
-      const rating = ratingMatch ? ratingMatch[1] : '?';
-      const margin = ratingMatch ? ratingMatch[2] : '?';
+      const rating = ratingMatch ? parseFloat(ratingMatch[1]) : 0;
+      const margin = ratingMatch ? ratingMatch[2] : '0';
       const summary = summaryMatch ? summaryMatch[1].trim() : '';
 
-      const shareCard = document.createElement('div');
-      shareCard.style.cssText = `
-        position: fixed;
-        top: -9999px;
-        left: -9999px;
-        width: 1080px;
-        height: 1920px;
-        background: linear-gradient(to bottom, #1a1a2e, #16213e);
-        color: white;
-        padding: 120px 80px;
-        font-family: system-ui, -apple-system, sans-serif;
-      `;
+      // Criar canvas
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not supported');
 
-      shareCard.innerHTML = `
-        <div style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
-          <div style="text-align: center;">
-            <h1 style="font-size: 72px; margin-bottom: 40px; color: #e2e8f0;">${selectedMovie}</h1>
-            <div style="font-size: 96px; margin-bottom: 60px;">
-              <span style="color: #8b5cf6;">★</span> ${rating}/10 <span style="font-size: 64px; color: #94a3b8;">(±${margin})</span>
-            </div>
-            <p style="font-size: 48px; line-height: 1.5; color: #e2e8f0; padding: 0 40px;">
-              ${summary.length > 280 ? summary.substring(0, 280) + '...' : summary}
-            </p>
-          </div>
-          <div style="text-align: center; padding-bottom: 80px;">
-            <div style="font-size: 36px; color: #8b5cf6; margin-bottom: 20px;">CineOracle</div>
-            <div style="font-size: 24px; color: #94a3b8;">✨ The Oracle has spoken ✨</div>
-          </div>
-        </div>
-      `;
+      canvas.width = 1080;
+      canvas.height = 1920;
 
-      document.body.appendChild(shareCard);
-
-      const canvas = await html2canvas(shareCard, {
-        scale: 2,
-        logging: false,
-        backgroundColor: null
+      // Carregar fundo de predição
+      const background = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = '/assets/cineprev.png';
       });
 
-      document.body.removeChild(shareCard);
+      ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
 
+      // Desenhar título do filme (topo)
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 56px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
+      const titleY = 200;
+      const maxWidth = 900;
+
+      // Quebrar título em linhas
+      const words = selectedMovie.split(' ');
+      let line = '';
+      let currentY = titleY;
+
+      for (let i = 0; i < words.length; i++) {
+        const testLine = line + words[i] + ' ';
+        const metrics = ctx.measureText(testLine);
+
+        if (metrics.width > maxWidth && i > 0) {
+          ctx.fillText(line.trim(), canvas.width / 2, currentY);
+          line = words[i] + ' ';
+          currentY += 70;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line.trim(), canvas.width / 2, currentY);
+
+      // Desenhar nota prevista (centro)
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 160px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(rating.toFixed(1), canvas.width / 2, 700);
+
+      // Desenhar margem
+      ctx.fillStyle = '#CCCCCC';
+      ctx.font = 'bold 56px Arial';
+      ctx.fillText(`±${margin}`, canvas.width / 2, 850);
+
+      // Desenhar resumo (inferior) - fonte menor para não cortar
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '32px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
+      const summaryY = 1050;
+      const summaryMaxWidth = 900;
+      const summaryText = summary.length > 200 ? summary.substring(0, 200) + '...' : summary;
+      const summaryWords = summaryText.split(' ');
+      let summaryLine = '';
+      let summaryCurrentY = summaryY;
+      const lineHeight = 45;
+
+      for (let i = 0; i < summaryWords.length; i++) {
+        const testLine = summaryLine + summaryWords[i] + ' ';
+        const metrics = ctx.measureText(testLine);
+
+        if (metrics.width > summaryMaxWidth && i > 0) {
+          ctx.fillText(summaryLine.trim(), canvas.width / 2, summaryCurrentY);
+          summaryLine = summaryWords[i] + ' ';
+          summaryCurrentY += lineHeight;
+
+          // Limitar a 6 linhas
+          if (summaryCurrentY > summaryY + (lineHeight * 6)) break;
+        } else {
+          summaryLine = testLine;
+        }
+      }
+      if (summaryCurrentY <= summaryY + (lineHeight * 6)) {
+        ctx.fillText(summaryLine.trim(), canvas.width / 2, summaryCurrentY);
+      }
+
+      // Converter para blob
       const blob = await new Promise<Blob>((resolve) => {
         canvas.toBlob((blob) => resolve(blob!), 'image/png', 1.0);
       });

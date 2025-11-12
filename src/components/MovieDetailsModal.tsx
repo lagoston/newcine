@@ -167,228 +167,96 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
       const userRating = userMovie?.rating || null;
 
-      // Criar um canvas temporário para o story
+      // Criar canvas
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas not supported');
 
-      // Dimensões do Instagram Stories (1080x1920)
       canvas.width = 1080;
       canvas.height = 1920;
 
-      // Fundo gradiente
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, '#667eea');
-      gradient.addColorStop(1, '#764ba2');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Carregar fundo baseado na nota
+      let backgroundPath = '/assets/cinequero.png';
+      if (userRating !== null) {
+        backgroundPath = `/assets/cine${Math.round(userRating)}.png`;
+      }
 
-      // Logo "Cine Oracle" no topo
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 64px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('🎬 Cine Oracle', canvas.width / 2, 150);
+      const background = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = backgroundPath;
+      });
 
-      // Carregar poster FRESH da API TMDB (sem cache)
+      ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+
+      // Carregar e desenhar poster do filme
       if (movie.poster_path) {
         try {
-          const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}?t=${Date.now()}`;
-          console.log('[POSTER] 🔄 Buscando FRESH:', posterUrl);
-
-          // Fetch com no-cache para buscar direto da API
-          const response = await fetch(posterUrl, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache'
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-
+          const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+          const response = await fetch(posterUrl, { cache: 'no-store' });
           const blob = await response.blob();
-          console.log('[POSTER] 📦 Blob:', blob.size, 'bytes');
-
           const blobUrl = URL.createObjectURL(blob);
 
-          // Carregar e ESPERAR a imagem estar 100% pronta
-          const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-            const image = new Image();
-            let resolved = false;
-
-            const cleanup = () => {
-              image.onload = null;
-              image.onerror = null;
-            };
-
-            image.onload = () => {
-              if (resolved) return;
-              resolved = true;
-              cleanup();
-
-              // ESPERAR um frame para garantir que a imagem está decodificada
-              requestAnimationFrame(() => {
-                console.log('[POSTER] ✅ Carregada:', image.naturalWidth, 'x', image.naturalHeight);
-                resolve(image);
-              });
-            };
-
-            image.onerror = (e) => {
-              if (resolved) return;
-              resolved = true;
-              cleanup();
-              console.error('[POSTER] ❌ Erro ao carregar:', e);
-              reject(new Error('Falha ao carregar'));
-            };
-
-            // Timeout de segurança
-            setTimeout(() => {
-              if (!resolved) {
-                resolved = true;
-                cleanup();
-                reject(new Error('Timeout (10s)'));
-              }
-            }, 10000);
-
-            image.src = blobUrl;
+          const posterImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = blobUrl;
           });
 
-          // Verificar dimensões
-          if (!img.naturalWidth || !img.naturalHeight) {
-            throw new Error('Imagem inválida (sem dimensões)');
-          }
+          // Posicionar poster (centro-esquerda, ajuste conforme seu design)
+          const posterWidth = 350;
+          const posterHeight = 525;
+          const posterX = 100;
+          const posterY = 650;
 
-          // Desenhar no canvas
-          const posterWidth = 600;
-          const posterHeight = 900;
-          const posterX = (canvas.width - posterWidth) / 2;
-          const posterY = 300;
-
-          console.log('[POSTER] 🎨 Desenhando em:', posterX, posterY);
-
-          // Sombra
           ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
           ctx.shadowBlur = 20;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 10;
 
-          // Configurar qualidade
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(posterImg, posterX, posterY, posterWidth, posterHeight);
 
-          // Desenhar
-          ctx.drawImage(img, posterX, posterY, posterWidth, posterHeight);
-
-          // Resetar
           ctx.shadowColor = 'transparent';
           ctx.shadowBlur = 0;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 0;
 
-          // Limpar
           URL.revokeObjectURL(blobUrl);
-
-          console.log('[POSTER] ✅✅✅ SUCESSO TOTAL!');
         } catch (error) {
-          console.error('[POSTER] ❌❌❌ FALHA:', error);
-
-          // Desenhar placeholder
-          const posterX = (canvas.width - 600) / 2;
-          const posterY = 300;
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-          ctx.fillRect(posterX, posterY, 600, 900);
-          ctx.fillStyle = 'white';
-          ctx.font = 'bold 64px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText('🎬', canvas.width / 2, 750);
-          ctx.font = '24px Arial';
-          ctx.fillText('Poster indisponível', canvas.width / 2, 850);
+          console.error('Erro ao carregar poster:', error);
         }
-      } else {
-        console.log('[POSTER] ⚠️ Sem poster_path');
       }
 
-      // Título do filme (com quebra de linha se necessário)
-      ctx.fillStyle = 'white';
+      // Desenhar título do filme (direita do poster)
+      ctx.fillStyle = '#FFFFFF';
       ctx.font = 'bold 48px Arial';
-      ctx.textAlign = 'center';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
 
-      const maxTitleWidth = 900;
+      const titleX = 500;
+      const titleY = 750;
+      const maxWidth = 500;
+
+      // Quebrar título em linhas
       const words = movie.title.split(' ');
       let line = '';
-      let y = 1280;
+      let currentY = titleY;
 
       for (let i = 0; i < words.length; i++) {
         const testLine = line + words[i] + ' ';
         const metrics = ctx.measureText(testLine);
 
-        if (metrics.width > maxTitleWidth && i > 0) {
-          ctx.fillText(line, canvas.width / 2, y);
+        if (metrics.width > maxWidth && i > 0) {
+          ctx.fillText(line.trim(), titleX, currentY);
           line = words[i] + ' ';
-          y += 60;
+          currentY += 60;
         } else {
           line = testLine;
         }
       }
-      ctx.fillText(line, canvas.width / 2, y);
-
-      // Badge grande
-      const badgeY = y + 120;
-      const badgeRadius = 100;
-
-      if (userRating) {
-        // Usuário avaliou - mostrar nota
-        // Círculo de fundo
-        ctx.beginPath();
-        ctx.arc(canvas.width / 2, badgeY, badgeRadius, 0, Math.PI * 2);
-        ctx.fillStyle = '#fbbf24';
-        ctx.fill();
-
-        // Nota
-        ctx.fillStyle = '#1f2937';
-        ctx.font = 'bold 80px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(userRating.toString(), canvas.width / 2, badgeY);
-
-        // Estrela
-        ctx.fillStyle = '#1f2937';
-        ctx.font = '60px Arial';
-        ctx.fillText('★', canvas.width / 2, badgeY + 100);
-
-        // Texto "Minha nota"
-        ctx.fillStyle = 'white';
-        ctx.font = '32px Arial';
-        ctx.fillText('Minha nota', canvas.width / 2, badgeY + 160);
-      } else {
-        // Usuário não avaliou - mostrar "Vou assistir..."
-        const watchText = t('common.watchingSoon');
-
-        // Retângulo arredondado de fundo
-        const textWidth = ctx.measureText(watchText).width;
-        const padding = 40;
-        const rectWidth = textWidth + padding * 2;
-        const rectHeight = 80;
-        const rectX = (canvas.width - rectWidth) / 2;
-        const rectY = badgeY - rectHeight / 2;
-
-        ctx.fillStyle = '#3b82f6';
-        ctx.beginPath();
-        ctx.roundRect(rectX, rectY, rectWidth, rectHeight, 40);
-        ctx.fill();
-
-        // Texto
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 42px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(watchText, canvas.width / 2, badgeY);
-
-        // Ícone de filme
-        ctx.font = '60px Arial';
-        ctx.fillText('🎬', canvas.width / 2, badgeY + 100);
-      }
+      ctx.fillText(line.trim(), titleX, currentY);
 
       // Converter canvas para blob
       canvas.toBlob(async (blob) => {
