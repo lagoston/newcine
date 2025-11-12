@@ -1,5 +1,6 @@
 import { useDebounce } from 'use-debounce';
 import { supabase } from './supabase';
+import { cache, CACHE_KEYS, CACHE_TTL } from './cache';
 
 // Secure proxy endpoint
 const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tmdb-proxy`;
@@ -154,6 +155,13 @@ export const searchMovies = async (query: string): Promise<Movie[]> => {
 };
 
 export const getMovieDetails = async (movieId: number): Promise<Movie> => {
+  const cacheKey = CACHE_KEYS.MOVIE_DETAILS(movieId);
+  const cached = cache.get<Movie>(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
   const [movieDetails, providersData, releaseDatesData] = await Promise.all([
     tmdbFetch(`/movie/${movieId}?append_to_response=credits`),
     tmdbFetch(`/movie/${movieId}/watch/providers`),
@@ -223,7 +231,8 @@ export const getMovieDetails = async (movieId: number): Promise<Movie> => {
       movieDetails.content_ratings = contentRatings;
     }
   }
-  
+
+  cache.set(cacheKey, movieDetails, CACHE_TTL.MOVIE_DETAILS);
   return movieDetails;
 };
 

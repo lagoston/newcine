@@ -13,6 +13,7 @@ import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 
 interface Profile {
   id: string;
@@ -167,6 +168,21 @@ export default function Profile() {
   const fetchMovieStats = async () => {
     try {
       if (!session?.user?.id) return;
+
+      const cacheKey = CACHE_KEYS.USER_STATS(session.user.id);
+      const cachedStats = cache.get<any>(cacheKey);
+
+      if (cachedStats) {
+        setRatedMoviesCount(cachedStats.ratedMoviesCount);
+        setRatingDistribution(cachedStats.ratingDistribution);
+        setTotalWatchTime(cachedStats.totalWatchTime);
+        setFavoriteGenres(cachedStats.favoriteGenres);
+        setFavoriteDecade(cachedStats.favoriteDecade);
+        setTopActors(cachedStats.topActors || []);
+        setTopDirectors(cachedStats.topDirectors || []);
+        setLeastKnownGem(cachedStats.leastKnownGem || null);
+        return;
+      }
 
       const { data: userMovies, error: moviesError } = await supabase
         .from('user_movies')
@@ -330,6 +346,24 @@ export default function Profile() {
           userRating: leastRated.userRating
         });
       }
+
+      cache.set(cacheKey, {
+        ratedMoviesCount: userMovies.length,
+        ratingDistribution: distribution,
+        totalWatchTime: totalMinutes,
+        favoriteGenres: topGenres,
+        favoriteDecade: favoriteDecade,
+        topActors: mostFrequentActors,
+        topDirectors: mostFrequentDirectors,
+        leastKnownGem: ratedMoviesWithVoteCounts.length > 0 ? {
+          id: ratedMoviesWithVoteCounts[0].id,
+          title: ratedMoviesWithVoteCounts[0].title,
+          vote_count: ratedMoviesWithVoteCounts[0].vote_count || 0,
+          release_date: ratedMoviesWithVoteCounts[0].release_date,
+          vote_average: ratedMoviesWithVoteCounts[0].vote_average,
+          userRating: ratedMoviesWithVoteCounts[0].userRating
+        } : null
+      }, CACHE_TTL.USER_STATS);
 
     } catch (error) {
       console.error('Error fetching movie stats:', error);

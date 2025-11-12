@@ -11,6 +11,7 @@ import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
 import UserListsModal from '../components/UserListsModal';
 import { useTranslation } from 'react-i18next';
+import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 
 interface Profile {
   id: string;

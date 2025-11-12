@@ -11,6 +11,7 @@ import LinearProgressBar from '../components/LinearProgressBar';
 import { useAuth } from '../lib/auth';
 import pLimit from 'p-limit';
 import { useTranslation } from 'react-i18next';
+import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 
 interface UserMovie {
   id: string;
@@ -60,6 +61,19 @@ export default function Library() {
       setLoadingProgress(0);
       setProcessedMovies(0);
 
+      const cacheKey = CACHE_KEYS.USER_LIBRARY(session?.user?.id || '');
+      const cachedLibrary = cache.get<LibraryMovie[]>(cacheKey);
+
+      if (cachedLibrary) {
+        setUserMovies(cachedLibrary);
+        setTotalMovies(cachedLibrary.length);
+        setProcessedMovies(cachedLibrary.length);
+        setLoadingProgress(100);
+        setLoading(false);
+        setInitialLoadComplete(true);
+        return;
+      }
+
       const { data: userMoviesData, error } = await supabase
         .from('user_movies')
         .select('*')
@@ -71,7 +85,6 @@ export default function Library() {
       const total = (userMoviesData || []).length;
       setTotalMovies(total);
 
-      // Abrir interface imediatamente
       setLoading(false);
 
       if (total === 0) {
@@ -126,11 +139,14 @@ export default function Library() {
       setInitialLoadComplete(true);
 
       // Carregar restante em background
+      let allMovies = firstBatchMovies;
       if (remainingMovies.length > 0) {
         const remainingBatchMovies = await loadBatch(remainingMovies);
-        setUserMovies(prev => [...prev, ...remainingBatchMovies]);
+        allMovies = [...firstBatchMovies, ...remainingBatchMovies];
+        setUserMovies(allMovies);
       }
 
+      cache.set(cacheKey, allMovies, CACHE_TTL.USER_LIBRARY);
       setLoadingProgress(100);
     } catch (error) {
       console.error('Error fetching user movies:', error);
@@ -175,6 +191,8 @@ export default function Library() {
         )
       );
 
+      cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
+      cache.invalidatePattern('stats:');
       toast.success(rating === null ? t('library.ratingRemoved') : t('library.ratingUpdated'));
     } catch (error) {
       console.error('Error updating rating:', error);
@@ -193,6 +211,8 @@ export default function Library() {
       if (error) throw error;
 
       setUserMovies((movies) => movies.filter((movie) => movie.id !== movieId));
+      cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
+      cache.invalidatePattern('stats:');
       toast.success(t('library.movieRemoved'));
     } catch (error) {
       console.error('Error deleting movie:', error);
