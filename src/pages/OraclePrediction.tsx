@@ -29,6 +29,7 @@ export default function OraclePrediction() {
   const [debouncedQuery] = useDebounce(searchQuery, 300);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<string | null>(null);
+  const [selectedMoviePoster, setSelectedMoviePoster] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [loading, setLoading] = useState({
     search: false,
@@ -133,12 +134,17 @@ export default function OraclePrediction() {
     return `${hours}h`;
   };
 
-  const getPrediction = async (movieName: string, movieId: number) => {
+  const getPrediction = async (movieName: string, movieId: number, posterPath?: string) => {
     if (!session?.user?.id) return;
 
     if (ticketsRemaining !== null && ticketsRemaining < 100) {
       toast.error(t('oracle.prediction.notEnough', { time: formatTimeUntilReset() }));
       return;
+    }
+
+    // Armazenar poster do filme
+    if (posterPath) {
+      setSelectedMoviePoster(posterPath);
     }
 
     try {
@@ -297,31 +303,76 @@ export default function OraclePrediction() {
       }
       ctx.fillText(line.trim(), canvas.width / 2, currentY);
 
-      // Desenhar "NOTA PREVISTA:" logo abaixo do título
+      // Desenhar poster do filme (pequeno, ao lado da nota)
+      if (selectedMoviePoster) {
+        try {
+          const posterUrl = `https://image.tmdb.org/t/p/w200${selectedMoviePoster}`;
+          const response = await fetch(posterUrl, { cache: 'no-store' });
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+
+          const posterImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = blobUrl;
+          });
+
+          // Poster pequeno no canto esquerdo
+          const posterWidth = 180;
+          const posterHeight = 270;
+          const posterX = 150;
+          const posterY = currentY + 120;
+
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 20;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 10;
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(posterImg, posterX, posterY, posterWidth, posterHeight);
+
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+
+          URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+          console.error('Erro ao carregar poster:', error);
+        }
+      }
+
+      // Desenhar "NOTA PREVISTA:" logo abaixo do título (direita do poster)
       currentY += 100;
       ctx.fillStyle = '#CCCCCC';
-      ctx.font = 'bold 40px Arial';
-      ctx.fillText('NOTA PREVISTA:', canvas.width / 2, currentY);
+      ctx.font = 'bold 36px Arial';
+      ctx.fillText('NOTA PREVISTA:', canvas.width / 2 + 100, currentY);
 
-      // Desenhar nota prevista (grande, abaixo do texto)
-      currentY += 80;
+      // Desenhar nota prevista (menor, ao lado do poster)
+      currentY += 60;
       ctx.fillStyle = '#FFD700';
-      ctx.font = 'bold 160px Arial';
+      ctx.font = 'bold 120px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(rating.toFixed(1), canvas.width / 2, currentY + 80);
+      ctx.fillText(rating.toFixed(1), canvas.width / 2 + 100, currentY + 60);
 
-      // Desenhar texto de Ponderações (inferior)
+      // Desenhar texto de Ponderações (mais abaixo, com sombra)
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = '38px Arial'; // Fonte maior para melhor legibilidade
+      ctx.font = '38px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      const summaryY = 750;
+      // Adicionar sombra no texto para facilitar leitura
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      const summaryY = 850; // Movido mais para baixo
       const summaryMaxWidth = 900;
-      const lineHeight = 52; // Altura de linha aumentada
-      const maxLines = 16; // Mais linhas disponíveis
-      const bottomLimit = 1750; // Limite inferior da tela (deixa margem)
+      const lineHeight = 52;
+      const maxLines = 14; // Ajustado para novo posicionamento
+      const bottomLimit = 1750;
 
       const summaryWords = summary.split(' ');
       let summaryLine = '';
@@ -360,6 +411,12 @@ export default function OraclePrediction() {
           ctx.fillText(summaryLine.trim(), canvas.width / 2, summaryCurrentY);
         }
       }
+
+      // Resetar sombra
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
 
       // Converter para blob
       const blob = await new Promise<Blob>((resolve) => {
@@ -770,7 +827,7 @@ export default function OraclePrediction() {
                     {searchResults.map((movie) => (
                       <motion.button
                         key={movie.id}
-                        onClick={() => getPrediction(movie.title, movie.id)}
+                        onClick={() => getPrediction(movie.title, movie.id, movie.poster_path)}
                         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-purple-500/10 transition-colors text-left"
                         whileHover={{ x: 4, backgroundColor: "rgba(168, 85, 247, 0.1)" }}
                       >
