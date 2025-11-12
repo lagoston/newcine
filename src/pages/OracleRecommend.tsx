@@ -37,12 +37,12 @@ export default function OracleRecommend() {
   }, [recommendation, loading]);
 
   const moods = [
-    t('oracle.moods.feelGood'),
-    t('oracle.moods.needCry'),
+    t('oracle.moods.adventures'),
+    t('oracle.moods.catharsis'),
     t('oracle.moods.adrenaline'),
     t('oracle.moods.mindBlowing'),
     t('oracle.moods.laughOutLoud'),
-    t('oracle.moods.slowCalm'),
+    t('oracle.moods.drugTrip'),
     t('oracle.moods.romantic'),
     t('oracle.moods.darkScary'),
     t('oracle.moods.familyTime'),
@@ -50,12 +50,12 @@ export default function OracleRecommend() {
   ];
 
   const moodColors = {
-    [t('oracle.moods.feelGood')]: {
+    [t('oracle.moods.adventures')]: {
       bg: 'from-sky-500/80 to-sky-700/80',
       hover: 'from-sky-600/80 to-sky-800/80',
       text: 'text-sky-100'
     },
-    [t('oracle.moods.needCry')]: {
+    [t('oracle.moods.catharsis')]: {
       bg: 'from-blue-500/80 to-blue-700/80',
       hover: 'from-blue-600/80 to-blue-800/80',
       text: 'text-blue-100'
@@ -75,7 +75,7 @@ export default function OracleRecommend() {
       hover: 'from-green-600/80 to-green-800/80',
       text: 'text-green-100'
     },
-    [t('oracle.moods.slowCalm')]: {
+    [t('oracle.moods.drugTrip')]: {
       bg: 'from-emerald-500/80 to-emerald-700/80',
       hover: 'from-emerald-600/80 to-emerald-800/80',
       text: 'text-emerald-100'
@@ -206,12 +206,12 @@ export default function OracleRecommend() {
 
       // Map mood to moodKey for backend
       const moodKeyMap: Record<string, string> = {
-        [t('oracle.moods.feelGood')]: 'feel-good',
-        [t('oracle.moods.needCry')]: 'need-to-cry',
+        [t('oracle.moods.adventures')]: 'adventures',
+        [t('oracle.moods.catharsis')]: 'catharsis',
         [t('oracle.moods.adrenaline')]: 'adrenaline',
         [t('oracle.moods.mindBlowing')]: 'mind-blowing',
         [t('oracle.moods.laughOutLoud')]: 'laugh-out-loud',
-        [t('oracle.moods.slowCalm')]: 'slow-and-calm',
+        [t('oracle.moods.drugTrip')]: 'drug-trip',
         [t('oracle.moods.romantic')]: 'romantic',
         [t('oracle.moods.darkScary')]: 'dark-and-scary',
         [t('oracle.moods.familyTime')]: 'family-time',

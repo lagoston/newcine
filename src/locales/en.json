@@ -165,12 +165,12 @@
       "cost": "Consult the Oracle ({{cost}} tickets)"
     },
     "moods": {
-      "feelGood": "Feel-Good",
-      "needCry": "Need a Cry",
+      "adventures": "Adventures",
+      "catharsis": "Catharsis",
       "adrenaline": "Adrenaline",
       "mindBlowing": "Mind-Blowing",
       "laughOutLoud": "Laugh Out Loud",
-      "slowCalm": "Slow & Calm",
+      "drugTrip": "Drug-Trip",
       "romantic": "Romantic",
       "darkScary": "Dark & Scary",
       "familyTime": "Family Time",

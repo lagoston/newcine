@@ -165,12 +165,12 @@
       "cost": "Consultar o Oráculo ({{cost}} tickets)"
     },
     "moods": {
-      "feelGood": "Bem-estar",
-      "needCry": "Preciso Chorar",
+      "adventures": "Aventuras",
+      "catharsis": "Catarse",
       "adrenaline": "Adrenalina",
       "mindBlowing": "Mente Expandida",
       "laughOutLoud": "Muitas Risadas",
-      "slowCalm": "Calmo e Tranquilo",
+      "drugTrip": "Drug-Trip",
       "romantic": "Romântico",
       "darkScary": "Sombrio e Assustador",
       "familyTime": "Família",
