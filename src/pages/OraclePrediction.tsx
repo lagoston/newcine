@@ -313,35 +313,52 @@ export default function OraclePrediction() {
 
       // Desenhar texto de Ponderações (inferior)
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = '32px Arial';
+      ctx.font = '38px Arial'; // Fonte maior para melhor legibilidade
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
       const summaryY = 750;
       const summaryMaxWidth = 900;
-      const summaryText = summary.length > 300 ? summary.substring(0, 300) + '...' : summary;
-      const summaryWords = summaryText.split(' ');
+      const lineHeight = 52; // Altura de linha aumentada
+      const maxLines = 16; // Mais linhas disponíveis
+      const bottomLimit = 1750; // Limite inferior da tela (deixa margem)
+
+      const summaryWords = summary.split(' ');
       let summaryLine = '';
       let summaryCurrentY = summaryY;
-      const lineHeight = 45;
+      let lineCount = 0;
+      let wasTextCut = false;
 
       for (let i = 0; i < summaryWords.length; i++) {
         const testLine = summaryLine + summaryWords[i] + ' ';
         const metrics = ctx.measureText(testLine);
 
         if (metrics.width > summaryMaxWidth && i > 0) {
+          // Verificar se próxima linha ultrapassa limite
+          if (summaryCurrentY + lineHeight > bottomLimit || lineCount >= maxLines) {
+            // Adicionar ... na linha atual
+            ctx.fillText(summaryLine.trim() + '...', canvas.width / 2, summaryCurrentY);
+            wasTextCut = true;
+            break;
+          }
+
           ctx.fillText(summaryLine.trim(), canvas.width / 2, summaryCurrentY);
           summaryLine = summaryWords[i] + ' ';
           summaryCurrentY += lineHeight;
-
-          // Limitar a 10 linhas
-          if (summaryCurrentY > summaryY + (lineHeight * 10)) break;
+          lineCount++;
         } else {
           summaryLine = testLine;
         }
       }
-      if (summaryCurrentY <= summaryY + (lineHeight * 10)) {
-        ctx.fillText(summaryLine.trim(), canvas.width / 2, summaryCurrentY);
+
+      // Desenhar última linha se não foi cortado
+      if (!wasTextCut && summaryLine.trim()) {
+        if (summaryCurrentY + lineHeight > bottomLimit) {
+          // Última linha ultrapassa, adicionar ...
+          ctx.fillText(summaryLine.trim() + '...', canvas.width / 2, summaryCurrentY);
+        } else {
+          ctx.fillText(summaryLine.trim(), canvas.width / 2, summaryCurrentY);
+        }
       }
 
       // Converter para blob
