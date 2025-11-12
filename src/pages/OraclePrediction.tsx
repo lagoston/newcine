@@ -239,13 +239,17 @@ export default function OraclePrediction() {
     try {
       setLoading(prev => ({ ...prev, sharing: true }));
 
-      // Extrair nota e resumo da predição
-      const ratingMatch = prediction.prediction.match(/📊.*?(\d+\.?\d*)\/10 \(±(\d+\.?\d*)\)/);
-      const summaryMatch = prediction.prediction.match(/🧠.*?\n(.*?)(?=\n⚖️|\n🎬|\n🎭|$)/s);
+      // Extrair nota da primeira linha: "📊 Nota Prevista: X/10"
+      const ratingMatch = prediction.prediction.match(/📊\s*Nota Prevista:\s*(\d+\.?\d*)\/10/i);
+
+      // Extrair texto de Ponderações
+      const ponderacoesMatch = prediction.prediction.match(/⚖️\s*Ponderações[:\s]*\n(.*?)(?=\n🎬|\n🎭|\n📊|$)/s);
 
       const rating = ratingMatch ? parseFloat(ratingMatch[1]) : 0;
-      const margin = ratingMatch ? ratingMatch[2] : '0';
-      const summary = summaryMatch ? summaryMatch[1].trim() : '';
+      const summary = ponderacoesMatch ? ponderacoesMatch[1].trim() : '';
+
+      console.log('📊 Nota extraída:', rating);
+      console.log('⚖️ Ponderações:', summary);
 
       // Criar canvas
       const canvas = document.createElement('canvas');
@@ -293,27 +297,29 @@ export default function OraclePrediction() {
       }
       ctx.fillText(line.trim(), canvas.width / 2, currentY);
 
-      // Desenhar nota prevista (centro)
+      // Desenhar "NOTA PREVISTA:" logo abaixo do título
+      currentY += 100;
+      ctx.fillStyle = '#CCCCCC';
+      ctx.font = 'bold 40px Arial';
+      ctx.fillText('NOTA PREVISTA:', canvas.width / 2, currentY);
+
+      // Desenhar nota prevista (grande, abaixo do texto)
+      currentY += 80;
       ctx.fillStyle = '#FFD700';
       ctx.font = 'bold 160px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(rating.toFixed(1), canvas.width / 2, 700);
+      ctx.fillText(rating.toFixed(1), canvas.width / 2, currentY + 80);
 
-      // Desenhar margem
-      ctx.fillStyle = '#CCCCCC';
-      ctx.font = 'bold 56px Arial';
-      ctx.fillText(`±${margin}`, canvas.width / 2, 850);
-
-      // Desenhar resumo (inferior) - fonte menor para não cortar
+      // Desenhar texto de Ponderações (inferior)
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '32px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      const summaryY = 1050;
+      const summaryY = 750;
       const summaryMaxWidth = 900;
-      const summaryText = summary.length > 200 ? summary.substring(0, 200) + '...' : summary;
+      const summaryText = summary.length > 300 ? summary.substring(0, 300) + '...' : summary;
       const summaryWords = summaryText.split(' ');
       let summaryLine = '';
       let summaryCurrentY = summaryY;
@@ -328,13 +334,13 @@ export default function OraclePrediction() {
           summaryLine = summaryWords[i] + ' ';
           summaryCurrentY += lineHeight;
 
-          // Limitar a 6 linhas
-          if (summaryCurrentY > summaryY + (lineHeight * 6)) break;
+          // Limitar a 10 linhas
+          if (summaryCurrentY > summaryY + (lineHeight * 10)) break;
         } else {
           summaryLine = testLine;
         }
       }
-      if (summaryCurrentY <= summaryY + (lineHeight * 6)) {
+      if (summaryCurrentY <= summaryY + (lineHeight * 10)) {
         ctx.fillText(summaryLine.trim(), canvas.width / 2, summaryCurrentY);
       }
 

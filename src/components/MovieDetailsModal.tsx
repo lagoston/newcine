@@ -190,7 +190,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
       ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
 
-      // Carregar e desenhar poster do filme
+      // Carregar e desenhar poster do filme (CENTRALIZADO)
       if (movie.poster_path) {
         try {
           const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
@@ -205,11 +205,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
             img.src = blobUrl;
           });
 
-          // Posicionar poster (centro-esquerda, ajuste conforme seu design)
-          const posterWidth = 350;
-          const posterHeight = 525;
-          const posterX = 100;
-          const posterY = 650;
+          // Poster CENTRALIZADO e maior
+          const posterWidth = 450;
+          const posterHeight = 675;
+          const posterX = (canvas.width - posterWidth) / 2;
+          const posterY = 550;
 
           ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
           ctx.shadowBlur = 20;
@@ -229,15 +229,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         }
       }
 
-      // Desenhar título do filme (direita do poster)
+      // Desenhar título do filme (ABAIXO DO POSTER, centralizado)
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 48px Arial';
-      ctx.textAlign = 'left';
+      ctx.font = 'bold 52px Arial';
+      ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      const titleX = 500;
-      const titleY = 750;
-      const maxWidth = 500;
+      const titleY = 1280;
+      const maxWidth = 900;
 
       // Quebrar título em linhas
       const words = movie.title.split(' ');
@@ -249,14 +248,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         const metrics = ctx.measureText(testLine);
 
         if (metrics.width > maxWidth && i > 0) {
-          ctx.fillText(line.trim(), titleX, currentY);
+          ctx.fillText(line.trim(), canvas.width / 2, currentY);
           line = words[i] + ' ';
-          currentY += 60;
+          currentY += 65;
         } else {
           line = testLine;
         }
       }
-      ctx.fillText(line.trim(), titleX, currentY);
+      ctx.fillText(line.trim(), canvas.width / 2, currentY);
 
       // Converter canvas para blob
       canvas.toBlob(async (blob) => {
