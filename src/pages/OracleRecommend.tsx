@@ -900,6 +900,16 @@ export default function OracleRecommend() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Disclaimer */}
+                  <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl p-4 border border-gray-600/30 mt-6">
+                    <div className="flex items-start gap-3">
+                      <div className="text-xl flex-shrink-0">ℹ️</div>
+                      <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
+                        {t('oracle.cards.disclaimer', { defaultValue: 'Nenhum oráculo recomenda filmes que estão adicionados em sua biblioteca.' })}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>

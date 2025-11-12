@@ -303,10 +303,12 @@ export default function OraclePrediction() {
       }
       ctx.fillText(line.trim(), canvas.width / 2, currentY);
 
-      // Desenhar poster do filme (pequeno, ao lado da nota)
+      // Desenhar poster do filme (esquerda, maior)
+      let posterCenterY = currentY + 200; // Centro vertical do poster
+
       if (selectedMoviePoster) {
         try {
-          const posterUrl = `https://image.tmdb.org/t/p/w200${selectedMoviePoster}`;
+          const posterUrl = `https://image.tmdb.org/t/p/w300${selectedMoviePoster}`;
           const response = await fetch(posterUrl, { cache: 'no-store' });
           const blob = await response.blob();
           const blobUrl = URL.createObjectURL(blob);
@@ -318,11 +320,12 @@ export default function OraclePrediction() {
             img.src = blobUrl;
           });
 
-          // Poster pequeno no canto esquerdo
-          const posterWidth = 180;
-          const posterHeight = 270;
-          const posterX = 150;
-          const posterY = currentY + 120;
+          // Poster maior na esquerda
+          const posterWidth = 220;
+          const posterHeight = 330;
+          const posterX = 120;
+          const posterY = currentY + 100;
+          posterCenterY = posterY + (posterHeight / 2); // Calcular centro do poster
 
           ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
           ctx.shadowBlur = 20;
@@ -342,31 +345,33 @@ export default function OraclePrediction() {
         }
       }
 
-      // Desenhar "NOTA PREVISTA:" logo abaixo do título (direita do poster)
-      currentY += 100;
+      // Desenhar "NOTA PREVISTA:" centralizado verticalmente com o poster (direita)
+      const noteX = 640; // Direita, centralizado
+      const noteLabelY = posterCenterY - 90; // Acima da nota
+
       ctx.fillStyle = '#CCCCCC';
       ctx.font = 'bold 36px Arial';
-      ctx.fillText('NOTA PREVISTA:', canvas.width / 2 + 100, currentY);
+      ctx.textAlign = 'center';
+      ctx.fillText('NOTA PREVISTA:', noteX, noteLabelY);
 
-      // Desenhar nota prevista (menor, ao lado do poster)
-      currentY += 60;
+      // Desenhar nota prevista centralizada com o poster
       ctx.fillStyle = '#FFD700';
       ctx.font = 'bold 120px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(rating.toFixed(1), canvas.width / 2 + 100, currentY + 60);
+      ctx.fillText(rating.toFixed(1), noteX, posterCenterY);
 
-      // Desenhar texto de Ponderações (mais abaixo, com sombra)
+      // Desenhar texto de Ponderações (mais abaixo, com sombra escura)
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '38px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      // Adicionar sombra no texto para facilitar leitura
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
+      // Adicionar sombra mais escura no texto para facilitar leitura (+50%)
+      ctx.shadowColor = 'rgba(0, 0, 0, 1)'; // 0.8 → 1.0 (opacidade máxima)
+      ctx.shadowBlur = 12; // 8 → 12 (+50%)
+      ctx.shadowOffsetX = 3; // 2 → 3 (+50%)
+      ctx.shadowOffsetY = 3; // 2 → 3 (+50%)
 
       const summaryY = 850; // Movido mais para baixo
       const summaryMaxWidth = 900;

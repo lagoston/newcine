@@ -193,7 +193,8 @@
       "cypher": "The Snake",
       "cypherSubtitle": "Underground and Bombs",
       "cypherDesc": "The Snake crawls through the damp corridors where films are banned, forgotten or booed. She worships error as art and chaos as style.",
-      "cypherRec": "Recommends unpopular films regardless of their rating."
+      "cypherRec": "Recommends unpopular films regardless of their rating.",
+      "disclaimer": "No oracle recommends movies that are already in your library."
     },
     "chamber": "Chamber",
     "speaksTitle": "The Oracle Speaks",

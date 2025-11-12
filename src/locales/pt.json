@@ -193,7 +193,8 @@
       "cypher": "A Cobra",
       "cypherSubtitle": "Underground e Bombas",
       "cypherDesc": "A Cobra rasteja pelos corredores úmidos onde filmes são banidos, esquecidos ou vaiados. Ela cultua o erro como arte e o caos como estilo.",
-      "cypherRec": "Recomenda filmes pouco populares independente de sua avaliação."
+      "cypherRec": "Recomenda filmes pouco populares independente de sua avaliação.",
+      "disclaimer": "Nenhum oráculo recomenda filmes que estão adicionados em sua biblioteca."
     },
     "chamber": "Câmara",
     "speaksTitle": "O Oráculo Fala",
