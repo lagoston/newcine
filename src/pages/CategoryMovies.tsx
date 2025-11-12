@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Loader2 } from 'lucide-react';
-import { Movie, getTrending, getComingSoon, getTopRatedGems, getHiddenIndies, getMovieDetails, getSeasonalMovies, getCurrentSeason } from '../lib/tmdb';
+import { Movie, getTrending, getComingSoon, getTopRatedGems, getHiddenIndies, getMovieDetails } from '../lib/tmdb';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -15,8 +15,6 @@ const CategoryMovies = () => {
   const [loading, setLoading] = useState(true);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
-  const season = getCurrentSeason();
-
   const categoryConfig: Record<string, { title: string; emoji: string; fetch: () => Promise<Movie[]> }> = {
     trending: {
       title: t('home.popularNow'),
@@ -28,11 +26,6 @@ const CategoryMovies = () => {
       emoji: '🎬',
       fetch: getComingSoon
     },
-    [season.key]: {
-      title: season.name,
-      emoji: season.emoji,
-      fetch: getSeasonalMovies
-    },
     'top-rated': {
       title: t('home.topRated'),
       emoji: '⭐',
@@ -42,6 +35,11 @@ const CategoryMovies = () => {
       title: t('home.hiddenGems'),
       emoji: '💎',
       fetch: getHiddenIndies
+    },
+    personalized: {
+      title: t('home.personalizedForYou'),
+      emoji: '🎬',
+      fetch: getTopRatedGems
     }
   };
 

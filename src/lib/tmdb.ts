@@ -101,51 +101,6 @@ export const getHiddenIndies = async (): Promise<Movie[]> => {
   return data.results;
 };
 
-export const getCurrentSeason = () => {
-  const month = new Date().getMonth() + 1;
-
-  if (month === 10) {
-    return { name: 'Halloween', emoji: '🎃', key: 'halloween' };
-  } else if (month === 11 || month === 12) {
-    return { name: 'Natal', emoji: '🎄', key: 'christmas' };
-  } else if (month === 1 || month === 7) {
-    return { name: 'Férias', emoji: '🏖️', key: 'vacation' };
-  } else if (month === 2 || month === 6) {
-    return { name: 'Dia dos Namorados', emoji: '💕', key: 'valentines' };
-  } else if (month === 3 || month === 4) {
-    return { name: 'Páscoa', emoji: '🐰', key: 'easter' };
-  } else if (month === 8 || month === 9) {
-    return { name: 'Oscar & Cannes', emoji: '🏆', key: 'awards' };
-  }
-
-  return { name: 'Festividades', emoji: '🎭', key: 'festivals' };
-};
-
-export const getSeasonalMovies = async (): Promise<Movie[]> => {
-  // TESTE: Forçar filmes de AÇÃO (gênero 28) para debug
-  const genreIds = '28'; // Action
-
-  console.log('🎬 TESTE: Buscando filmes de AÇÃO do TMDB');
-  console.log('Genre ID:', genreIds);
-
-  let endpoint = '/discover/movie?sort_by=popularity.desc';
-
-  if (genreIds) {
-    endpoint += `&with_genres=${genreIds}`;
-  }
-
-  console.log('Endpoint:', endpoint);
-
-  const data = await tmdbFetch(endpoint);
-
-  console.log('✅ TMDB retornou:', data.results?.length || 0, 'filmes');
-  console.log('Primeiros 5 filmes:', data.results?.slice(0, 5).map((m: Movie) => ({
-    id: m.id,
-    title: m.title
-  })));
-
-  return data.results.slice(0, 20);
-};
 
 export const searchMovies = async (query: string): Promise<Movie[]> => {
   if (!query.trim()) return [];

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Library as LibraryIcon, Eye, Users, ArrowRight } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { Movie, getTrending, getMovieDetails, getComingSoon, getTopRatedGems, getHiddenIndies, getSeasonalMovies, getCurrentSeason } from '../lib/tmdb';
+import { Movie, getTrending, getMovieDetails, getComingSoon, getTopRatedGems, getHiddenIndies } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
+import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import Logo from '../components/Logo';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import OptimizedPoster from '../components/OptimizedPoster';
@@ -57,6 +58,116 @@ const Home = () => {
     }
   };
 
+  const fetchPersonalizedMovies = async (): Promise<Movie[]> => {
+    try {
+      if (!session?.user?.id) return [];
+
+      const cacheKey = CACHE_KEYS.USER_STATS(session.user.id);
+      const cachedStats = cache.get<any>(cacheKey);
+
+      let topActors = [];
+      let topDirectors = [];
+
+      if (cachedStats?.topActors && cachedStats?.topDirectors) {
+        topActors = cachedStats.topActors.slice(0, 3);
+        topDirectors = cachedStats.topDirectors.slice(0, 3);
+      } else {
+        const { data: userMovies } = await supabase
+          .from('user_movies')
+          .select('movie_id, rating')
+          .eq('user_id', session.user.id)
+          .not('rating', 'is', null);
+
+        if (userMovies && userMovies.length > 0) {
+          const movieDetails = await Promise.all(
+            userMovies.slice(0, 50).map(async (um) => {
+              try {
+                return await getMovieDetails(um.movie_id);
+              } catch {
+                return null;
+              }
+            })
+          );
+
+          const validMovies = movieDetails.filter(m => m !== null);
+
+          const actorCounts = {};
+          const directorCounts = {};
+
+          validMovies.forEach(movie => {
+            movie.credits?.cast?.slice(0, 5).forEach(actor => {
+              actorCounts[actor.id] = actorCounts[actor.id] || { id: actor.id, name: actor.name, count: 0 };
+              actorCounts[actor.id].count++;
+            });
+
+            const director = movie.credits?.crew?.find(person => person.job === 'Director');
+            if (director) {
+              directorCounts[director.id] = directorCounts[director.id] || { id: director.id, name: director.name, count: 0 };
+              directorCounts[director.id].count++;
+            }
+          });
+
+          topActors = Object.values(actorCounts)
+            .sort((a: any, b: any) => b.count - a.count)
+            .slice(0, 3);
+
+          topDirectors = Object.values(directorCounts)
+            .sort((a: any, b: any) => b.count - a.count)
+            .slice(0, 3);
+        }
+      }
+
+      const personalizedMovies: Movie[] = [];
+
+      for (const director of topDirectors) {
+        try {
+          const { data } = await supabase.functions.invoke('tmdb-proxy', {
+            body: { endpoint: `/discover/movie?with_crew=${director.id}&sort_by=popularity.desc&vote_count.gte=100` }
+          });
+          if (data?.results) {
+            const randomMovies = data.results.sort(() => Math.random() - 0.5).slice(0, 2);
+            personalizedMovies.push(...randomMovies);
+          }
+        } catch (err) {
+          console.warn(`Error fetching movies for director ${director.name}`);
+        }
+      }
+
+      for (const actor of topActors) {
+        try {
+          const { data } = await supabase.functions.invoke('tmdb-proxy', {
+            body: { endpoint: `/discover/movie?with_cast=${actor.id}&sort_by=popularity.desc&vote_count.gte=100` }
+          });
+          if (data?.results) {
+            const randomMovies = data.results.sort(() => Math.random() - 0.5).slice(0, 2);
+            personalizedMovies.push(...randomMovies);
+          }
+        } catch (err) {
+          console.warn(`Error fetching movies for actor ${actor.name}`);
+        }
+      }
+
+      if (personalizedMovies.length === 0) {
+        const { data } = await supabase.functions.invoke('tmdb-proxy', {
+          body: { endpoint: '/discover/movie?with_keywords=210024&sort_by=vote_average.desc&vote_count.gte=1000' }
+        });
+        return data?.results?.slice(0, 10) || [];
+      }
+
+      return personalizedMovies.slice(0, 10);
+    } catch (error) {
+      console.error('Error fetching personalized movies:', error);
+      try {
+        const { data } = await supabase.functions.invoke('tmdb-proxy', {
+          body: { endpoint: '/discover/movie?with_keywords=210024&sort_by=vote_average.desc&vote_count.gte=1000' }
+        });
+        return data?.results?.slice(0, 10) || [];
+      } catch {
+        return [];
+      }
+    }
+  };
+
   const fetchAllMovies = async () => {
     try {
       setLoading({
@@ -68,17 +179,17 @@ const Home = () => {
       });
       setError(null);
 
-      const [trending, comingSoon, seasonal, topRated, indie] = await Promise.all([
+      const [trending, comingSoon, personalized, topRated, indie] = await Promise.all([
         getTrending(),
         getComingSoon(),
-        getSeasonalMovies(),
+        fetchPersonalizedMovies(),
         getTopRatedGems(),
         getHiddenIndies()
       ]);
 
       setTrendingMovies(trending);
       setComingSoonMovies(comingSoon);
-      setSeasonalMovies(seasonal);
+      setSeasonalMovies(personalized);
       setTopRatedMovies(topRated);
       setIndieMovies(indie);
     } catch (error) {
@@ -577,10 +688,10 @@ const Home = () => {
         />
 
         <MovieCarousel
-          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>💥</span> Ação [TESTE TMDB]</span>}
+          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🎬</span> {t('home.personalizedForYou')}</span>}
           movies={seasonalMovies}
           loading={loading.seasonal}
-          category="action-test"
+          category="personalized"
         />
 
         <MovieCarousel

@@ -95,36 +95,35 @@ export default function Library() {
 
       setLoadingProgress(5);
 
-      // Carregamento paralelo completo (como UserProfile)
-      let completed = 0;
-      const totalToProcess = userMoviesData.length;
+      // Simular progresso baseado em tempo estimado (8 segundos)
+      const estimatedDuration = 8000;
+      const startTime = Date.now();
+      const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const percentage = Math.min(95, 5 + (elapsed / estimatedDuration) * 90);
+        setLoadingProgress(percentage);
+      }, 100);
 
+      // Carregamento paralelo completo (como UserProfile)
       const movieDetails = await Promise.all(
         userMoviesData.map(async (userMovie: UserMovie) => {
           try {
             const details = await getMovieDetails(userMovie.movie_id);
-            completed++;
-            const exactPercentage = 5 + ((completed / totalToProcess) * 95);
-            setProcessedMovies(completed);
-            setLoadingProgress(exactPercentage);
-
             return {
               ...details,
               userRating: userMovie.rating,
             };
           } catch (err) {
             console.warn(`Failed to fetch movie ${userMovie.movie_id}`);
-            completed++;
-            const exactPercentage = 5 + ((completed / totalToProcess) * 95);
-            setProcessedMovies(completed);
-            setLoadingProgress(exactPercentage);
             return null;
           }
         })
       );
 
+      clearInterval(progressInterval);
       const allMovies = movieDetails.filter(movie => movie !== null);
       setUserMovies(allMovies);
+      setProcessedMovies(allMovies.length);
       setInitialLoadComplete(true);
 
       cache.set(cacheKey, allMovies, CACHE_TTL.USER_LIBRARY);
