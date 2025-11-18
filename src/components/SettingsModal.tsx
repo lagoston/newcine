@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -13,16 +14,77 @@ interface SettingsModalProps {
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { session, isPremium } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'followers_only'>('public');
   const [feedback, setFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lastFeedbackTime, setLastFeedbackTime] = useState<Date | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && session?.user?.id) {
       fetchSettings();
+      checkFeedbackCooldown();
     }
   }, [isOpen, session?.user?.id]);
+
+  useEffect(() => {
+    if (lastFeedbackTime) {
+      const interval = setInterval(() => {
+        updateCooldownTimer();
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [lastFeedbackTime]);
+
+  const checkFeedbackCooldown = async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('feedback')
+        .select('created_at')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        const lastTime = new Date(data.created_at);
+        const now = new Date();
+        const hoursSince = (now.getTime() - lastTime.getTime()) / (1000 * 60 * 60);
+
+        if (hoursSince < 24) {
+          setLastFeedbackTime(lastTime);
+          updateCooldownTimer(lastTime);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking feedback cooldown:', error);
+    }
+  };
+
+  const updateCooldownTimer = (feedbackTime?: Date) => {
+    const lastTime = feedbackTime || lastFeedbackTime;
+    if (!lastTime) return;
+
+    const now = new Date();
+    const cooldownEnd = new Date(lastTime.getTime() + 24 * 60 * 60 * 1000);
+    const remaining = cooldownEnd.getTime() - now.getTime();
+
+    if (remaining <= 0) {
+      setLastFeedbackTime(null);
+      setCooldownRemaining(null);
+    } else {
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      setCooldownRemaining(t('settings.feedbackCooldown', { hours, minutes }));
+    }
+  };
 
   const fetchSettings = async () => {
     if (!session?.user?.id) return;
@@ -59,40 +121,50 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       if (error) throw error;
 
       setProfileVisibility(visibility);
-      toast.success('Visibility updated successfully');
+      toast.success(t('settings.visibilityUpdated'));
     } catch (error) {
       console.error('Error updating visibility:', error);
-      toast.error('Error updating visibility');
+      toast.error(t('settings.visibilityError'));
     }
   };
 
   const handleFeedbackSubmit = async () => {
     if (!session?.user?.id || !feedback.trim()) return;
 
+    if (lastFeedbackTime) {
+      toast.error(t('settings.feedbackCooldownActive'));
+      return;
+    }
+
     try {
       setSubmitting(true);
 
+      const now = new Date();
       const { error } = await supabase
         .from('feedback')
         .insert({
           user_id: session.user.id,
           message: feedback.trim(),
-          created_at: new Date().toISOString()
+          created_at: now.toISOString()
         });
 
       if (error) throw error;
 
-      toast.success('Feedback sent! We\'ll respond via email.');
+      toast.success(t('settings.feedbackSent'));
       setFeedback('');
+      setLastFeedbackTime(now);
+      updateCooldownTimer(now);
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      toast.error('Error submitting feedback');
+      toast.error(t('settings.feedbackError'));
     } finally {
       setSubmitting(false);
     }
   };
 
   if (!isOpen) return null;
+
+  const isFeedbackDisabled = !!lastFeedbackTime || !feedback.trim() || submitting;
 
   return (
     <div
@@ -103,10 +175,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Settings
+            {t('settings.title')}
           </h2>
           <button
             onClick={onClose}
@@ -116,40 +187,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Version */}
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-              App Version
+              {t('settings.appVersion')}
             </h3>
             <p className="text-lg font-semibold text-gray-900 dark:text-white">
               Beta 4.6
             </p>
           </div>
 
-          {/* Privacy */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Privacy
+              {t('settings.privacy')}
             </h3>
 
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-4">
               <div>
                 <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                  Email
+                  {t('settings.email')}
                 </h4>
                 <p className="text-gray-900 dark:text-white">
-                  {session?.user?.email || 'No email found'}
+                  {session?.user?.email || t('settings.noEmail')}
                 </p>
               </div>
 
               <div>
                 <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                  Profile Visibility
+                  {t('settings.profileVisibility')}
                 </h4>
                 {loading ? (
-                  <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+                  <div className="text-gray-500 dark:text-gray-400">{t('settings.loading')}</div>
                 ) : (
                   <div className="flex gap-3">
                     <button
@@ -160,7 +228,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                           : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
                       }`}
                     >
-                      Public
+                      {t('settings.public')}
                     </button>
                     <button
                       onClick={() => handleVisibilityChange('followers_only')}
@@ -170,42 +238,41 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                           : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
                       }`}
                     >
-                      Followers Only
+                      {t('settings.followersOnly')}
                     </button>
                   </div>
                 )}
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   {profileVisibility === 'public'
-                    ? 'Your profile is visible to everyone in the community'
-                    : 'Your profile is only visible to your followers'}
+                    ? t('settings.publicDescription')
+                    : t('settings.followersOnlyDescription')}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Subscription */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Subscription
+              {t('settings.subscription')}
             </h3>
 
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Account Status
+                    {t('settings.accountStatus')}
                   </h4>
                   <div className="flex items-center gap-2">
                     {isPremium ? (
                       <>
                         <Crown className="w-5 h-5 text-yellow-500" />
                         <span className="text-lg font-semibold text-yellow-600 dark:text-yellow-500">
-                          Premium
+                          {t('settings.premium')}
                         </span>
                       </>
                     ) : (
                       <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                        Free
+                        {t('settings.free')}
                       </span>
                     )}
                   </div>
@@ -219,37 +286,45 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 }}
                 className="w-full px-4 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-all font-semibold shadow-md hover:shadow-lg"
               >
-                Manage Subscription
+                {t('settings.manageSubscription')}
               </button>
             </div>
           </div>
 
-          {/* Feedback */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Feedback
+              {t('settings.feedback')}
             </h3>
 
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Report a bug or leave your question. Responses will be sent via email.
+                {t('settings.feedbackDescription')}
               </p>
+
+              {cooldownRemaining && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
+                    {cooldownRemaining}
+                  </p>
+                </div>
+              )}
 
               <textarea
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                placeholder="Type your feedback here..."
+                placeholder={t('settings.feedbackPlaceholder')}
                 rows={4}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                disabled={!!lastFeedbackTime}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               />
 
               <button
                 onClick={handleFeedbackSubmit}
-                disabled={!feedback.trim() || submitting}
+                disabled={isFeedbackDisabled}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold shadow-md hover:shadow-lg"
               >
                 <Send className="w-5 h-5" />
-                {submitting ? 'Sending...' : 'Send Feedback'}
+                {submitting ? t('settings.sending') : t('settings.sendFeedback')}
               </button>
             </div>
           </div>

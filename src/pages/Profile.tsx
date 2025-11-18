@@ -701,10 +701,21 @@ export default function Profile() {
           className="space-y-6"
         >
           {/* Profile Header Card */}
-          <motion.div 
+          <motion.div
             variants={itemVariants}
-            className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden ${getBannerClass(profile?.banner, isPremium)}`}
+            className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden ${getBannerClass(profile?.banner, isPremium)} relative`}
           >
+            {/* Settings Button - Desktop Only (Top Right) */}
+            <motion.button
+              onClick={() => setShowSettingsModal(true)}
+              className="hidden sm:block absolute top-6 right-6 p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </motion.button>
+
             <div className="p-6 sm:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6">
                 <div className="relative mx-auto sm:mx-0 mb-4 sm:mb-0">
@@ -872,15 +883,6 @@ export default function Profile() {
                         >
                           <Palette className="w-5 h-5 mr-2" />
                           {t('profile.customize')}
-                        </motion.button>
-                        <motion.button
-                          onClick={() => setShowSettingsModal(true)}
-                          className="px-4 py-2 bg-gray-600 text-white dark:bg-gray-700 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors flex items-center"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <Settings className="w-5 h-5 mr-2" />
-                          Settings
                         </motion.button>
                         {isEditing ? (
                           <>
