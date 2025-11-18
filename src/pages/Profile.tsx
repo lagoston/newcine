@@ -524,12 +524,29 @@ export default function Profile() {
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isEditing) return; // Only allow avatar changes in edit mode
-    
+
     const file = e.target.files?.[0];
     if (!file || !session?.user?.id) return;
 
+    // Check if file is animated (GIF, WEBP, APNG)
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    const animatedFormats = ['gif', 'webp', 'apng'];
+    const animatedMimeTypes = ['image/gif', 'image/webp', 'image/apng'];
+
+    const isAnimated =
+      animatedFormats.includes(fileExt || '') ||
+      animatedMimeTypes.includes(file.type);
+
+    if (isAnimated && !isPremium) {
+      toast.error(
+        '🌟 Animated avatars are a Premium feature! Upgrade to use GIFs and animated images.',
+        { duration: 5000 }
+      );
+      e.target.value = ''; // Reset file input
+      return;
+    }
+
     try {
-      const fileExt = file.name.split('.').pop();
       const filePath = `${session.user.id}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage

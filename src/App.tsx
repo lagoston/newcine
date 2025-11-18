@@ -42,9 +42,9 @@ function App() {
     <AuthProvider>
       <ThemeProvider>
         <BrowserRouter>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pt-[calc(env(safe-area-inset-top)+3.5rem)]">
             <Navbar />
-            <main className="flex-1">
+            <main>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
