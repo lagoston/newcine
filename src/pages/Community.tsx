@@ -117,61 +117,18 @@ export default function Community() {
         setTotalPages(Math.ceil(totalCount / USERS_PER_PAGE));
       }
 
-      // Try to use intelligent suggestions function, fallback to direct query
-      const { data: suggestedUsers, error: suggestionsError } = await supabase
-        .rpc('get_suggested_users', {
+      // Use new visibility-aware function
+      const { data: visibleProfiles, error: profilesError } = await supabase
+        .rpc('get_visible_profiles', {
           p_user_id: session.user.id,
-          p_limit: USERS_PER_PAGE + 1 // +1 to include current user
+          p_limit: USERS_PER_PAGE,
+          p_offset: offset
         });
 
-      if (suggestionsError) {
-        console.error('Error with suggestions, falling back to direct query:', suggestionsError);
+      if (profilesError) throw profilesError;
 
-        // Fallback: get profiles directly with pagination
-        const { data: allProfiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            username,
-            avatar_url,
-            bio,
-            plan_type,
-            avatar_frame,
-            banner,
-            active_tag
-          `)
-          .order('created_at', { ascending: false })
-          .range(offset, offset + USERS_PER_PAGE - 1);
-
-        if (profilesError) throw profilesError;
-
-        // Add followers/following counts
-        const profilesWithCounts = await Promise.all(
-          (allProfiles || []).map(async (profile) => {
-            const { count: followersCount } = await supabase
-              .from('follows')
-              .select('*', { count: 'exact', head: true })
-              .eq('following_id', profile.id);
-
-            const { count: followingCount } = await supabase
-              .from('follows')
-              .select('*', { count: 'exact', head: true })
-              .eq('follower_id', profile.id);
-
-            return {
-              ...profile,
-              followers_count: followersCount || 0,
-              following_count: followingCount || 0
-            };
-          })
-        );
-
-        setProfiles(profilesWithCounts);
-        setFilteredProfiles(profilesWithCounts);
-      } else {
-        setProfiles(suggestedUsers || []);
-        setFilteredProfiles(suggestedUsers || []);
-      }
+      setProfiles(visibleProfiles || []);
+      setFilteredProfiles(visibleProfiles || []);
     } catch (error) {
       console.error('Error fetching profiles:', error);
       toast.error(t('common.error'));
@@ -181,13 +138,28 @@ export default function Community() {
   };
 
   const searchProfiles = async () => {
-    setSearching(true);
-    const filtered = profiles.filter(profile =>
-      profile.username.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-      profile.bio?.toLowerCase().includes(debouncedQuery.toLowerCase())
-    );
-    setFilteredProfiles(filtered);
-    setSearching(false);
+    if (!session?.user?.id) return;
+
+    try {
+      setSearching(true);
+
+      // Use visibility-aware search function
+      const { data: searchResults, error } = await supabase
+        .rpc('search_visible_profiles', {
+          p_user_id: session.user.id,
+          p_search_query: debouncedQuery,
+          p_limit: 50
+        });
+
+      if (error) throw error;
+
+      setFilteredProfiles(searchResults || []);
+    } catch (error) {
+      console.error('Error searching profiles:', error);
+      toast.error(t('common.error'));
+    } finally {
+      setSearching(false);
+    }
   };
 
   const fetchFriendsWatchlist = async () => {

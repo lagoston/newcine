@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, ArchiveIcon, Award, Tv, TrendingDown, X, Loader2 } from 'lucide-react';
+import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, ArchiveIcon, Award, Tv, TrendingDown, X, Loader2, Settings } from 'lucide-react';
 import { supabase, getProfile } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Movie, getMovieDetails } from '../lib/tmdb';
@@ -8,6 +8,7 @@ import RatingBox from '../components/RatingBox';
 import FollowersModal from '../components/FollowersModal';
 import WhispersModal from '../components/WhispersModal';
 import CustomizeModal from '../components/CustomizeModal';
+import SettingsModal from '../components/SettingsModal';
 import { toast } from 'sonner';
 import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
@@ -93,6 +94,7 @@ export default function Profile() {
   const [showFollowModal, setShowFollowModal] = useState<'followers' | 'following' | null>(null);
   const [showWhispersModal, setShowWhispersModal] = useState(false);
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [totalWatchTime, setTotalWatchTime] = useState(0);
   const [unreadWhispers, setUnreadWhispers] = useState(0);
   const [favoriteGenres, setFavoriteGenres] = useState<Genre[]>([]);
@@ -871,6 +873,15 @@ export default function Profile() {
                           <Palette className="w-5 h-5 mr-2" />
                           {t('profile.customize')}
                         </motion.button>
+                        <motion.button
+                          onClick={() => setShowSettingsModal(true)}
+                          className="px-4 py-2 bg-gray-600 text-white dark:bg-gray-700 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors flex items-center"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <Settings className="w-5 h-5 mr-2" />
+                          Settings
+                        </motion.button>
                         {isEditing ? (
                           <>
                             <motion.button
@@ -944,6 +955,14 @@ export default function Profile() {
                           whileTap={{ scale: 0.97 }}
                         >
                           <Palette className="w-5 h-5" />
+                        </motion.button>
+                        <motion.button
+                          onClick={() => setShowSettingsModal(true)}
+                          className="px-4 py-2 bg-gray-600 text-white dark:bg-gray-700 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          <Settings className="w-5 h-5" />
                         </motion.button>
                       </div>
                       {isEditing ? (
@@ -1300,6 +1319,11 @@ export default function Profile() {
             // Recarregar perfil após salvar customização
             fetchProfile();
           }}
+        />
+
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
         />
       </div>
     </motion.div>
