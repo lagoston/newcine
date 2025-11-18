@@ -22,42 +22,7 @@ import { AuthProvider } from './lib/auth';
 import { ThemeProvider } from './lib/theme';
 import InstallPrompt from './components/InstallPrompt';
 import { registerSW } from 'virtual:pwa-register';
-import { useLibraryPreload } from './lib/useLibraryPreload';
 import './i18n';
-
-function AppContent() {
-  // Iniciar pré-carregamento da biblioteca em background
-  useLibraryPreload();
-
-  return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
-        <Navbar />
-        <main className="flex-1">
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/" element={<Home />} />
-            <Route path="/category/:category" element={<CategoryMovies />} />
-            <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
-            <Route path="/add-movies" element={<ProtectedRoute><AddMovies /></ProtectedRoute>} />
-            <Route path="/lists" element={<ProtectedRoute><PersonalLists /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/profile/:username" element={<UserProfile />} />
-            <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
-            <Route path="/oracle" element={<ProtectedRoute><OracleHub /></ProtectedRoute>} />
-            <Route path="/oracle/prediction" element={<ProtectedRoute><OraclePrediction /></ProtectedRoute>} />
-            <Route path="/oracle/recommend" element={<ProtectedRoute><OracleRecommend /></ProtectedRoute>} />
-            <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
-            <Route path="/premium/success" element={<ProtectedRoute><PremiumSuccess /></ProtectedRoute>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-        <InstallPrompt />
-      </div>
-    </BrowserRouter>
-  );
-}
 
 function App() {
   useEffect(() => {
@@ -76,7 +41,32 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <AppContent />
+        <BrowserRouter>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
+            <Navbar />
+            <main className="flex-1">
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/" element={<Home />} />
+                <Route path="/category/:category" element={<CategoryMovies />} />
+                <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
+                <Route path="/add-movies" element={<ProtectedRoute><AddMovies /></ProtectedRoute>} />
+                <Route path="/lists" element={<ProtectedRoute><PersonalLists /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/profile/:username" element={<UserProfile />} />
+                <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+                <Route path="/oracle" element={<ProtectedRoute><OracleHub /></ProtectedRoute>} />
+                <Route path="/oracle/prediction" element={<ProtectedRoute><OraclePrediction /></ProtectedRoute>} />
+                <Route path="/oracle/recommend" element={<ProtectedRoute><OracleRecommend /></ProtectedRoute>} />
+                <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
+                <Route path="/premium/success" element={<ProtectedRoute><PremiumSuccess /></ProtectedRoute>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </main>
+            <InstallPrompt />
+          </div>
+        </BrowserRouter>
         <Toaster position="bottom-right" />
       </ThemeProvider>
     </AuthProvider>
