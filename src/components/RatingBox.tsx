@@ -288,7 +288,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                           ) : (
                             // Standard Library options
                             <>
-                              {/* Show "Remove" option only if NOT in WatchList */}
+                              {/* Show "Change" option only if NOT in WatchList */}
                               {rating !== null && onRate && (
                                 <button
                                   onClick={(e) => {
@@ -299,7 +299,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                                   className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                                 >
                                   <Star className="w-4 h-4 mr-2" />
-                                  {t('common.remove')}
+                                  {t('library.changeRating')}
                                 </button>
                               )}
                               <button
@@ -472,7 +472,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                                   className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                                 >
                                   <Star className="w-4 h-4 mr-2" />
-                                  {t('common.remove')}
+                                  {t('library.changeRating')}
                                 </button>
                               )}
                               <button

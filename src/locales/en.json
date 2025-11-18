@@ -122,7 +122,9 @@
     "downloadSuccess": "File downloaded successfully!",
     "noRatedMovies": "You haven't rated any movies yet",
     "noWatchlistMovies": "Your watchlist is empty",
-    "loadingMovies": "Loading your library..."
+    "loadingMovies": "Loading your library...",
+    "changeRating": "Change",
+    "movedToWatchlist": "Movie moved to watchlist"
   },
   "movies": {
     "director": "Director",
