@@ -17,25 +17,25 @@ interface RequestBody {
 // Frases dos personagens para recomendações
 const CHARACTER_PHRASES = {
   bogart: [
-    "Filmes vêm, filmes vão… mas este aqui grudou na minha mente como mosquito em língua úmida.",
-    "Muitos buscam sentido nos filmes. Eu busco mosquitos. Ainda assim… veja este.",
-    "Anos vendo reflexos na água… e ainda assim este filme me fez ver o fundo do brejo.",
-    "Feche os olhos, respire o cheiro do lodo… se sentir vertigem, é sinal que este é o certo.",
-    "As massas aplaudem, os críticos bufam… e eu? Eu coaxo em êxtase."
+    "BOGART: Filmes vêm, filmes vão… mas este aqui grudou na minha mente como mosquito em língua úmida.",
+    "BOGART: Muitos buscam sentido nos filmes. Eu busco mosquitos. Ainda assim… veja este.",
+    "BOGART: Anos vendo reflexos na água… e ainda assim este filme me fez ver o fundo do brejo.",
+    "BOGART: Feche os olhos, respire o cheiro do lodo… se sentir vertigem, é sinal que este é o certo.",
+    "BOGART: As massas aplaudem, os críticos bufam… e eu? Eu coaxo em êxtase."
   ],
   fincher: [
-    "Vi esse filme três vezes… na quarta, percebi que era eu quem estava sendo analisado.",
-    "Não confio em críticos, mas confio no meu faro — e ele cheira a obra-prima.",
-    "Filmes são mágicos, e eu sou especialista em truques. Quer cair nesse também?",
-    "Gravado quando o cinema ainda tinha alma — e atores que fumavam até nos créditos.",
-    "É o tipo de filme que envelhece como um crime perfeito."
+    "FINCHER: Vi esse filme três vezes… na quarta, percebi que era eu quem estava sendo analisado.",
+    "FINCHER: Não confio em críticos, mas confio no meu faro — e ele cheira a obra-prima.",
+    "FINCHER: Filmes são mágicos, e eu sou especialista em truques. Quer cair nesse também?",
+    "FINCHER: Gravado quando o cinema ainda tinha alma — e atores que fumavam até nos créditos.",
+    "FINCHER: É o tipo de filme que envelhece como um crime perfeito."
   ],
   cypher: [
-    "Ah… esse aqui fede a genialidade mal executada. Meu veneno favorito.",
-    "Metade vai odiar, metade vai fingir que entendeu. E eu? Eu sorrio no escuro.",
-    "Shhh… não lute contra o impulso. Deixe a curiosidade te apertar um pouco mais.",
-    "Sente o frio subindo pela espinha? É o enredo te enrolando, bem devagar.",
-    "Proibido, tosco, hipnótico — uma heresia audiovisual que sussurra: 'assista-me, se ousar.'"
+    "CYPHER: Ah… esse aqui fede a genialidade mal executada. Meu veneno favorito.",
+    "CYPHER: Metade vai odiar, metade vai fingir que entendeu. E eu? Eu sorrio no escuro.",
+    "CYPHER: Shhh… não lute contra o impulso. Deixe a curiosidade te apertar um pouco mais.",
+    "CYPHER: Sente o frio subindo pela espinha? É o enredo te enrolando, bem devagar.",
+    "CYPHER: Proibido, tosco, hipnótico — uma heresia audiovisual que sussurra: 'assista-me, se ousar.'"
   ]
 };
 

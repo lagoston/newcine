@@ -708,7 +708,7 @@ export default function Profile() {
             {/* Settings Button - Desktop Only (Top Right) */}
             <motion.button
               onClick={() => setShowSettingsModal(true)}
-              className="hidden sm:block absolute top-6 right-6 p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="hidden sm:flex absolute top-8 right-8 items-center justify-center w-10 h-10 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               title="Settings"
