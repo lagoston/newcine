@@ -44,10 +44,24 @@ export default function Library() {
   // Track if this is the initial load
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
+  // Track active requests to allow cleanup
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (session?.user?.id) {
       fetchUserMovies();
     }
+
+    // Cleanup on unmount or when user changes
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
   }, [session?.user?.id]);
 
   useEffect(() => {
@@ -56,9 +70,19 @@ export default function Library() {
 
   const fetchUserMovies = async () => {
     try {
+      // Clear any existing intervals
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
+      // Create new AbortController for this fetch
+      abortControllerRef.current = new AbortController();
+
       setLoadingError(false);
       setLoadingProgress(0);
       setProcessedMovies(0);
+      setLoading(true);
 
       const cacheKey = CACHE_KEYS.USER_LIBRARY(session?.user?.id || '');
       const cachedLibrary = cache.get<LibraryMovie[]>(cacheKey);
@@ -103,7 +127,7 @@ export default function Library() {
       // Simular progresso baseado em tempo estimado
       const estimatedDuration = 8000;
       const startTime = Date.now();
-      const progressInterval = setInterval(() => {
+      progressIntervalRef.current = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const percentage = Math.min(95, 5 + (elapsed / estimatedDuration) * 90);
         setLoadingProgress(percentage);
@@ -147,7 +171,7 @@ export default function Library() {
           })
         );
 
-        const remainingBatchMovies = remainingDetails.filter(movie => movie !== null);
+          const remainingBatchMovies = remainingDetails.filter(movie => movie !== null);
         const allMovies = [...firstBatchMovies, ...remainingBatchMovies];
         setUserMovies(allMovies);
         setProcessedMovies(allMovies.length);
@@ -156,10 +180,21 @@ export default function Library() {
         cache.set(cacheKey, firstBatchMovies, CACHE_TTL.USER_LIBRARY);
       }
 
-      clearInterval(progressInterval);
+      // Clear interval and set progress to complete
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       setLoadingProgress(100);
     } catch (error) {
       console.error('Error fetching user movies:', error);
+
+      // Clear interval on error
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
       setLoadingError(true);
       setErrorMessage(t('common.error'));
       toast.error(t('common.error'));
