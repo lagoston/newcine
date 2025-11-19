@@ -56,28 +56,21 @@ export default function PremiumSuccess() {
 
           const nextBillingDate = subscriptionData.current_period_end
             ? new Date(subscriptionData.current_period_end * 1000).toLocaleDateString()
-            : plan === 'yearly'
-              ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString()
-              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString();
-
-          const isYearly = subscriptionData.price_id === products.premiumYearly.priceId || plan === 'yearly';
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString();
 
           setSubscription({
-            planName: isYearly ? 'Premium Yearly' : 'Premium Monthly',
-            price: isYearly ? `$${products.premiumYearly.price}` : `$${products.premium.price}`,
+            planName: 'Premium Monthly',
+            price: `$${products.premium.price}`,
             startDate,
             nextBillingDate,
             transactionId: subscriptionData.subscription_id || sessionId || 'Pending'
           });
         } else {
-          const isYearly = plan === 'yearly';
           setSubscription({
-            planName: isYearly ? 'Premium Yearly' : 'Premium Monthly',
-            price: isYearly ? `$${products.premiumYearly.price}` : `$${products.premium.price}`,
+            planName: 'Premium Monthly',
+            price: `$${products.premium.price}`,
             startDate: new Date().toLocaleDateString(),
-            nextBillingDate: isYearly
-              ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString()
-              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+            nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
             transactionId: sessionId || 'Pending'
           });
         }

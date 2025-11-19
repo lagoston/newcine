@@ -143,11 +143,10 @@ Deno.serve(async (req) => {
     }
 
     console.log('Creating checkout session...');
-    
-    // Determine if this is monthly or yearly plan
-    const isPremiumMonthly = priceId === 'price_1RKVHvElYXeJYKCBWjxJgaub';
-    const planType = isPremiumMonthly ? 'monthly' : 'yearly';
-    
+
+    // Always monthly plan (yearly removed)
+    const planType = 'monthly';
+
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [

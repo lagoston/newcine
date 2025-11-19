@@ -161,7 +161,12 @@ export default function Premium() {
 
     try {
       setLoading(prev => ({ ...prev, monthly: true }));
-      const checkoutUrl = await createCheckoutSession(session.user.id, 'monthly');
+
+      const checkoutUrl = await createCheckoutSession({
+        priceId: products.premium.priceId,
+        userId: session.user.id,
+        email: session.user.email || ''
+      });
 
       if (checkoutUrl) {
         sessionStorage.setItem('premium_plan_type', 'monthly');
