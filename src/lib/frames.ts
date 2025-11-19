@@ -34,6 +34,20 @@ export const frames = {
     requiredTag: 'flux-capacitor-fan',
     className: 'relative ring-4 ring-orange-400 dark:ring-orange-500 shadow-[0_0_25px_rgba(251,146,60,0.8),0_0_50px_rgba(251,146,60,0.4)] dark:shadow-[0_0_30px_rgba(251,146,60,0.9),0_0_60px_rgba(251,146,60,0.5)] animate-bttf-lightning before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-tr before:from-orange-200/30 before:via-yellow-300/40 before:to-orange-400/30 before:animate-bttf-energy after:absolute after:inset-0 after:rounded-full after:bg-[linear-gradient(45deg,transparent_25%,rgba(251,146,60,0.3)_25%,rgba(251,146,60,0.3)_50%,transparent_50%,transparent_75%,rgba(251,146,60,0.3)_75%)] after:bg-[length:20px_20px] after:animate-bttf-flux after:pointer-events-none'
   },
+  potter: {
+    id: 'potter',
+    name: 'Harry Potter Frame',
+    isPremium: true,
+    requiredTag: 'hogwarts-graduate',
+    className: 'relative ring-4 ring-purple-500 dark:ring-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.8),0_0_60px_rgba(168,85,247,0.4),inset_0_0_25px_rgba(168,85,247,0.3)] dark:shadow-[0_0_40px_rgba(168,85,247,0.9),0_0_70px_rgba(168,85,247,0.5),inset_0_0_30px_rgba(168,85,247,0.4)] animate-hp-magic before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-br before:from-purple-200/40 before:via-violet-300/30 before:to-purple-400/40 before:animate-hp-sparkle after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_30%_30%,rgba(168,85,247,0.4)_0%,transparent_40%),radial-gradient(circle_at_70%_70%,rgba(217,70,239,0.3)_0%,transparent_40%)] after:animate-hp-shimmer after:pointer-events-none'
+  },
+  avengers: {
+    id: 'avengers',
+    name: 'Avengers Frame',
+    isPremium: true,
+    requiredTag: 'infinity-gauntlet',
+    className: 'relative ring-4 ring-purple-600 dark:ring-purple-500 shadow-[0_0_30px_rgba(147,51,234,0.7),0_0_50px_rgba(59,130,246,0.4),0_0_70px_rgba(239,68,68,0.3)] dark:shadow-[0_0_40px_rgba(147,51,234,0.8),0_0_60px_rgba(59,130,246,0.5),0_0_80px_rgba(239,68,68,0.4)] animate-infinity-pulse before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-tr before:from-blue-400/30 before:via-purple-500/40 before:to-red-400/30 before:animate-infinity-stones after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.4)_0%,transparent_30%),radial-gradient(circle_at_80%_20%,rgba(239,68,68,0.4)_0%,transparent_30%),radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.4)_0%,transparent_40%),radial-gradient(circle_at_20%_80%,rgba(234,179,8,0.4)_0%,transparent_30%),radial-gradient(circle_at_80%_80%,rgba(34,197,94,0.4)_0%,transparent_30%)] after:animate-infinity-shimmer after:pointer-events-none'
+  },
   default: {
     id: 'default',
     name: 'Default',

@@ -537,12 +537,13 @@ export default function Profile() {
 
     const isAnimated =
       animatedFormats.includes(fileExt || '') ||
-      animatedMimeTypes.includes(file.type);
+      animatedMimeTypes.includes(file.type) ||
+      file.type.startsWith('image/') && (file.name.toLowerCase().includes('.gif'));
 
     if (isAnimated && !isPremium) {
       toast.error(
-        '🌟 Animated avatars are a Premium feature! Upgrade to use GIFs and animated images.',
-        { duration: 5000 }
+        '🌟 Avatares animados são um recurso Premium! Atualize para usar GIFs e imagens animadas.',
+        { duration: 5000, icon: '👑' }
       );
       e.target.value = ''; // Reset file input
       return;
@@ -859,31 +860,35 @@ export default function Profile() {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex gap-2">
-                        <motion.button
-                          onClick={handleWhispersClick}
-                          className={`relative px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center ${
-                            unreadWhispers > 0 ? 'animate-pulse shadow-lg shadow-orange-500/50' : ''
-                          }`}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <MessageCircle className="w-5 h-5 mr-2" />
-                          {t('profile.whispers')}
-                          {unreadWhispers > 0 && (
-                            <span className="ml-2 px-2 py-0.5 bg-white text-orange-600 text-xs font-bold rounded-full">
-                              {unreadWhispers}
-                            </span>
-                          )}
-                        </motion.button>
-                        <motion.button
-                          onClick={() => setShowCustomizeModal(true)}
-                          className="px-4 py-2 bg-indigo-600 text-white dark:bg-indigo-500 rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors flex items-center"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <Palette className="w-5 h-5 mr-2" />
-                          {t('profile.customize')}
-                        </motion.button>
+                        {!isEditing && (
+                          <>
+                            <motion.button
+                              onClick={handleWhispersClick}
+                              className={`relative px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center ${
+                                unreadWhispers > 0 ? 'animate-pulse shadow-lg shadow-orange-500/50' : ''
+                              }`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <MessageCircle className="w-5 h-5 mr-2" />
+                              {t('profile.whispers')}
+                              {unreadWhispers > 0 && (
+                                <span className="ml-2 px-2 py-0.5 bg-white text-orange-600 text-xs font-bold rounded-full">
+                                  {unreadWhispers}
+                                </span>
+                              )}
+                            </motion.button>
+                            <motion.button
+                              onClick={() => setShowCustomizeModal(true)}
+                              className="px-4 py-2 bg-indigo-600 text-white dark:bg-indigo-500 rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors flex items-center"
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <Palette className="w-5 h-5 mr-2" />
+                              {t('profile.customize')}
+                            </motion.button>
+                          </>
+                        )}
                         {isEditing ? (
                           <>
                             <motion.button
@@ -934,39 +939,41 @@ export default function Profile() {
                           {t('oracle.premium.upgrade')}
                         </motion.button>
                       )}
-                      <div className="flex gap-2">
-                        <motion.button
-                          onClick={handleWhispersClick}
-                          className={`relative flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center ${
-                            unreadWhispers > 0 ? 'animate-pulse shadow-lg shadow-orange-500/50' : ''
-                          }`}
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
-                        >
-                          <MessageCircle className="w-5 h-5" />
-                          {unreadWhispers > 0 && (
-                            <span className="ml-2 px-2 py-0.5 bg-white text-orange-600 text-xs font-bold rounded-full">
-                              {unreadWhispers}
-                            </span>
-                          )}
-                        </motion.button>
-                        <motion.button
-                          onClick={() => setShowCustomizeModal(true)}
-                          className="px-4 py-2 bg-indigo-600 text-white dark:bg-indigo-500 rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors flex items-center justify-center"
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
-                        >
-                          <Palette className="w-5 h-5" />
-                        </motion.button>
-                        <motion.button
-                          onClick={() => setShowSettingsModal(true)}
-                          className="px-4 py-2 bg-gray-600 text-white dark:bg-gray-700 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
-                        >
-                          <Settings className="w-5 h-5" />
-                        </motion.button>
-                      </div>
+                      {!isEditing && (
+                        <div className="flex gap-2">
+                          <motion.button
+                            onClick={handleWhispersClick}
+                            className={`relative flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center ${
+                              unreadWhispers > 0 ? 'animate-pulse shadow-lg shadow-orange-500/50' : ''
+                            }`}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                          >
+                            <MessageCircle className="w-5 h-5" />
+                            {unreadWhispers > 0 && (
+                              <span className="ml-2 px-2 py-0.5 bg-white text-orange-600 text-xs font-bold rounded-full">
+                                {unreadWhispers}
+                              </span>
+                            )}
+                          </motion.button>
+                          <motion.button
+                            onClick={() => setShowCustomizeModal(true)}
+                            className="px-4 py-2 bg-indigo-600 text-white dark:bg-indigo-500 rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors flex items-center justify-center"
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                          >
+                            <Palette className="w-5 h-5" />
+                          </motion.button>
+                          <motion.button
+                            onClick={() => setShowSettingsModal(true)}
+                            className="px-4 py-2 bg-gray-600 text-white dark:bg-gray-700 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                          >
+                            <Settings className="w-5 h-5" />
+                          </motion.button>
+                        </div>
+                      )}
                       {isEditing ? (
                         <>
                           <motion.button

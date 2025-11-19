@@ -40,6 +40,20 @@ export const banners = {
     isPremium: true,
     requiredTag: 'flux-capacitor-fan',
     className: 'relative overflow-hidden border-4 border-orange-400 dark:border-orange-500 bg-gradient-to-br from-orange-950/60 via-yellow-900/40 to-orange-900/60 dark:from-orange-950/80 dark:via-yellow-900/60 dark:to-orange-900/80 shadow-[0_0_35px_rgba(251,146,60,0.7),inset_0_0_30px_rgba(251,146,60,0.2)] dark:shadow-[0_0_45px_rgba(251,146,60,0.8),inset_0_0_40px_rgba(251,146,60,0.3)] before:absolute before:inset-0 before:bg-gradient-to-r before:from-orange-400/20 before:via-yellow-300/30 before:to-orange-400/20 before:animate-bttf-time-wave before:-z-10 before:pointer-events-none after:absolute after:inset-0 after:bg-[linear-gradient(45deg,transparent_40%,rgba(251,146,60,0.4)_50%,transparent_60%)] after:bg-[length:200%_200%] after:animate-bttf-lightning-strike after:-z-10 after:pointer-events-none'
+  },
+  potter: {
+    id: 'potter',
+    name: 'Harry Potter Banner',
+    isPremium: true,
+    requiredTag: 'hogwarts-graduate',
+    className: 'relative overflow-hidden border-4 border-purple-500 dark:border-purple-400 bg-gradient-to-br from-purple-950/70 via-violet-900/50 to-purple-950/70 dark:from-purple-950/90 dark:via-violet-900/70 dark:to-purple-950/90 shadow-[0_0_40px_rgba(168,85,247,0.7),inset_0_0_35px_rgba(168,85,247,0.25)] dark:shadow-[0_0_50px_rgba(168,85,247,0.8),inset_0_0_45px_rgba(168,85,247,0.35)] before:absolute before:inset-0 before:bg-gradient-to-br before:from-purple-300/30 before:via-violet-400/20 before:to-fuchsia-300/30 before:animate-hp-magic-wave before:-z-10 before:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_25%_25%,rgba(168,85,247,0.4)_0%,transparent_40%),radial-gradient(circle_at_75%_75%,rgba(217,70,239,0.3)_0%,transparent_40%),radial-gradient(circle_at_50%_50%,rgba(192,132,252,0.3)_0%,transparent_50%)] after:animate-hp-sparkle-banner after:-z-10 after:pointer-events-none'
+  },
+  avengers: {
+    id: 'avengers',
+    name: 'Avengers Banner',
+    isPremium: true,
+    requiredTag: 'infinity-gauntlet',
+    className: 'relative overflow-hidden border-4 border-purple-600 dark:border-purple-500 bg-gradient-to-br from-purple-950/70 via-indigo-950/60 to-purple-950/70 dark:from-purple-950/90 dark:via-indigo-950/80 dark:to-purple-950/90 shadow-[0_0_40px_rgba(147,51,234,0.7),0_0_60px_rgba(59,130,246,0.4),inset_0_0_35px_rgba(147,51,234,0.25)] dark:shadow-[0_0_50px_rgba(147,51,234,0.8),0_0_70px_rgba(59,130,246,0.5),inset_0_0_45px_rgba(147,51,234,0.35)] before:absolute before:inset-0 before:bg-gradient-to-r before:from-blue-400/20 before:via-purple-500/30 before:to-red-400/20 before:animate-infinity-wave before:-z-10 before:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.4)_0%,transparent_35%),radial-gradient(circle_at_80%_20%,rgba(239,68,68,0.4)_0%,transparent_35%),radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.4)_0%,transparent_40%),radial-gradient(circle_at_20%_80%,rgba(234,179,8,0.4)_0%,transparent_35%),radial-gradient(circle_at_80%_80%,rgba(34,197,94,0.4)_0%,transparent_35%),radial-gradient(circle_at_50%_20%,rgba(251,146,60,0.3)_0%,transparent_30%)] after:animate-infinity-stones-banner after:-z-10 after:pointer-events-none'
   }
 } as const;
 
