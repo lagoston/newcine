@@ -282,6 +282,13 @@ const THEME_TAGS: ThemeTag[] = [
     condition: { type: 'franchise', count: 10, value: 'Saw' }
   },
   {
+    id: 'nuts',
+    name: 'Nuts',
+    emoji: '🌰',
+    requirement: 'Ice Age Saga',
+    condition: { type: 'franchise', count: 6, value: 'Ice Age' }
+  },
+  {
     id: 'sharp-canine',
     name: 'Sharp Canine',
     emoji: '🦷',
@@ -329,6 +336,7 @@ const FRANCHISE_MOVIES = {
   'Hangover': [18785, 45243, 109439],
   'American Pie': [2105, 2770, 8273, 71552],
   'Saw': [176, 215, 214, 663, 11917, 22804, 41439, 298250, 602734, 951491],
+  'Ice Age': [425, 950, 8355, 57800, 278154, 774825],
   'Twilight': [122, 121, 240, 50619, 50620],
   'Apes Reboot': [61791, 119450, 281338, 653346]
 } as const;
@@ -672,8 +680,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
         {/* Rest of the frames */}
         {otherFrames.map((frame) => {
-          const isLocked = frame.isPremium && !isPremium;
-          
+          const isPremiumLocked = frame.isPremium && !isPremium;
+          const requiredTagProgress = frame.requiredTag ? (themeTagProgress[frame.requiredTag] || 0) : 0;
+          const requiredTagMet = !frame.requiredTag || (requiredTagProgress >= (THEME_TAGS.find(t => t.id === frame.requiredTag)?.condition.count || 0));
+          const isLocked = isPremiumLocked || !requiredTagMet;
+
           return (
             <div
               key={frame.id}
@@ -698,10 +709,17 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 </div>
                 {isLocked && (
                   <div className="absolute top-2 right-2">
-                    <div className="flex items-center gap-1 bg-yellow-400 text-black text-xs font-medium px-2 py-1 rounded-full">
-                      <Crown className="w-3 h-3" />
-                      <span>Premium</span>
-                    </div>
+                    {isPremiumLocked ? (
+                      <div className="flex items-center gap-1 bg-yellow-400 text-black text-xs font-medium px-2 py-1 rounded-full">
+                        <Crown className="w-3 h-3" />
+                        <span>Premium</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+                        <Lock className="w-3 h-3" />
+                        <span>Tag</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </button>
@@ -744,7 +762,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
         {/* Other banners - All same size */}
         {otherBanners.map((banner) => {
-          const isLocked = banner.isPremium && !isPremium;
+          const isPremiumLocked = banner.isPremium && !isPremium;
+          const requiredTagProgress = banner.requiredTag ? (themeTagProgress[banner.requiredTag] || 0) : 0;
+          const requiredTagMet = !banner.requiredTag || (requiredTagProgress >= (THEME_TAGS.find(t => t.id === banner.requiredTag)?.condition.count || 0));
+          const isLocked = isPremiumLocked || !requiredTagMet;
 
           return (
             <div
@@ -756,16 +777,25 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
               <button
                 onClick={() => !isLocked && handleBannerSelect(banner.id as BannerId)}
                 disabled={isLocked}
-                className="w-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="w-full h-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                <div className={`rounded-xl p-6 h-32 flex items-center justify-between ${banner.className}`}>
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white z-10 relative">
+                <div className={`rounded-xl p-6 h-32 flex items-center justify-center ${banner.className}`}>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white z-10 relative text-center max-w-full truncate px-2">
                     {banner.name}
                   </h3>
                   {isLocked && (
-                    <div className="flex items-center gap-1.5 bg-yellow-400 text-black text-xs font-bold px-3 py-1.5 rounded-full z-10 relative shadow-lg">
-                      <Crown className="w-4 h-4" />
-                      <span>Premium</span>
+                    <div className="absolute top-2 right-2 z-10">
+                      {isPremiumLocked ? (
+                        <div className="flex items-center gap-1.5 bg-yellow-400 text-black text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                          <Crown className="w-4 h-4" />
+                          <span>Premium</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 bg-gray-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                          <Lock className="w-4 h-4" />
+                          <span>Tag</span>
+                        </div>
+                      )}
                     </div>
                   )}
                   {!isLocked && selectedBanner === banner.id && (
