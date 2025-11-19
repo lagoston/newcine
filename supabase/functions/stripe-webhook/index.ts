@@ -118,21 +118,21 @@ Deno.serve(async (req) => {
             console.error('❌ Error retrieving subscription details:', subError);
             
             console.log('⚠️ Falling back to basic premium activation');
-            const { data: activationData, error: activationError } = await supabase.rpc('activate_premium_for_customer', {
-              customer_id_input: customerId
+            const { data: activationData, error: activationError } = await supabase.rpc('activate_premium_for_stripe_customer', {
+              customer_id_param: customerId
             });
-            
+
             if (activationError) {
               console.error('❌ Error with fallback activation:', activationError);
               throw activationError;
             }
-            
+
             console.log('✅ Fallback activation successful:', activationData);
           }
         } else {
           console.log('⚠️ No subscription ID found, using direct premium activation');
-          const { data: activationData, error: activationError } = await supabase.rpc('activate_premium_for_customer', {
-            customer_id_input: customerId
+          const { data: activationData, error: activationError } = await supabase.rpc('activate_premium_for_stripe_customer', {
+            customer_id_param: customerId
           });
           
           if (activationError) {
