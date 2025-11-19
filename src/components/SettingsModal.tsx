@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Crown, Send } from 'lucide-react';
+import { X, Crown, Send, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -21,6 +21,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [lastFeedbackTime, setLastFeedbackTime] = useState<Date | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (isOpen && session?.user?.id) {
@@ -162,9 +164,50 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!session?.user?.id) return;
+
+    const expectedText = t('common.language') === 'pt' ? 'EXCLUIR' : 'DELETE';
+
+    if (deleteConfirmation !== expectedText) {
+      toast.error(t('settings.confirmationRequired'));
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+
+      const { data, error } = await supabase.rpc('delete_user_account', {
+        user_id_param: session.user.id
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(t('settings.accountDeleted'));
+
+        // Sign out
+        await supabase.auth.signOut();
+
+        // Close modal and redirect
+        onClose();
+        navigate('/auth');
+      } else {
+        throw new Error(data?.error || 'Unknown error');
+      }
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      toast.error(t('settings.deleteAccountError'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const isFeedbackDisabled = !!lastFeedbackTime || !feedback.trim() || submitting;
+  const expectedDeleteText = t('common.language') === 'pt' ? 'EXCLUIR' : 'DELETE';
+  const isDeleteDisabled = deleteConfirmation !== expectedDeleteText || isDeleting;
 
   return (
     <div
@@ -325,6 +368,47 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               >
                 <Send className="w-5 h-5" />
                 {submitting ? t('settings.sending') : t('settings.sendFeedback')}
+              </button>
+            </div>
+          </div>
+
+          {/* Delete Account Section */}
+          <div className="space-y-4 pt-6 border-t border-red-200 dark:border-red-900">
+            <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              {t('settings.deleteAccount')}
+            </h3>
+
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 space-y-4 border-2 border-red-200 dark:border-red-800">
+              <div className="space-y-2">
+                <p className="text-sm text-red-800 dark:text-red-200 font-semibold">
+                  ⚠️ {t('common.warningPermanent')}
+                </p>
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  {t('settings.deleteAccountWarning')}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-red-800 dark:text-red-200">
+                  {t('settings.deleteAccountConfirm')}
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  placeholder={t('settings.typeDelete')}
+                  className="w-full px-4 py-2 rounded-lg border-2 border-red-300 dark:border-red-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-red-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleteDisabled}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold shadow-md hover:shadow-lg"
+              >
+                <AlertTriangle className="w-5 h-5" />
+                {isDeleting ? t('common.loading') : t('settings.deleteAccountButton')}
               </button>
             </div>
           </div>
