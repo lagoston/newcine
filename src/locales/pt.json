@@ -105,6 +105,7 @@
     "inLibrary": "Na Biblioteca",
     "addToLibrary": "Adicionar à Biblioteca",
     "movieRemoved": "Filme removido da biblioteca",
+    "movieDeleted": "Filme excluído da biblioteca",
     "ratingUpdated": "Avaliação atualizada com sucesso",
     "ratingRemoved": "Avaliação removida",
     "searchMovies": "Buscar filmes...",

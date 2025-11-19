@@ -745,15 +745,15 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         >
           <button
             onClick={() => handleBannerSelect(defaultBanner.id as BannerId)}
-            className="w-full relative group transition-all duration-300 hover:scale-[1.02]"
+            className="w-full h-full relative group transition-all duration-300 hover:scale-[1.02]"
           >
-            <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-xl p-6 h-32 flex items-center justify-center">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+            <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-xl p-6 h-32 w-full flex items-center justify-center">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white text-center line-clamp-2">
                 {defaultBanner.name}
               </h3>
             </div>
             {selectedBanner === defaultBanner.id && (
-              <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full">
+              <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full z-10">
                 <Check className="w-4 h-4" />
               </div>
             )}
@@ -777,10 +777,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
               <button
                 onClick={() => !isLocked && handleBannerSelect(banner.id as BannerId)}
                 disabled={isLocked}
-                className="w-full h-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="block w-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                <div className={`rounded-xl p-6 h-32 flex items-center justify-center ${banner.className}`}>
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white z-10 relative text-center max-w-full truncate px-2">
+                <div className={`rounded-xl p-6 h-32 w-full flex items-center justify-center ${banner.className}`}>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white z-10 relative text-center line-clamp-2 w-full px-8">
                     {banner.name}
                   </h3>
                   {isLocked && (

@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import IMDbImportModal from '../components/IMDbImportModal';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import { useTranslation } from 'react-i18next';
+import { cache, CACHE_KEYS } from '../lib/cache';
 
 export default function AddMovies() {
   const navigate = useNavigate();
@@ -124,6 +125,10 @@ export default function AddMovies() {
       if (error) throw error;
 
       setUserMovieIds(prev => new Set([...prev, movie.id]));
+
+      // Invalidate cache to force library refresh
+      cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
+
       toast.success(t('library.inLibrary'));
     } catch (error) {
       console.error('Error adding movie:', error);

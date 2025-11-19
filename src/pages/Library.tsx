@@ -247,27 +247,25 @@ export default function Library() {
 
   const handleDelete = async (movieId: number) => {
     try {
-      // Trocar nota: move o filme de volta para a watchlist (rating = null)
+      // Deletar o filme completamente da biblioteca
       const { error } = await supabase
         .from('user_movies')
-        .update({ rating: null })
+        .delete()
         .eq('movie_id', movieId)
         .eq('user_id', session?.user?.id);
 
       if (error) throw error;
 
-      // Atualizar localmente: mover para watchlist
+      // Remover localmente
       setUserMovies((movies) =>
-        movies.map((movie) =>
-          movie.id === movieId ? { ...movie, rating: null } : movie
-        )
+        movies.filter((movie) => movie.id !== movieId)
       );
 
       cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
       cache.invalidatePattern('stats:');
-      toast.success(t('library.movedToWatchlist'));
+      toast.success(t('library.movieDeleted'));
     } catch (error) {
-      console.error('Error moving to watchlist:', error);
+      console.error('Error deleting movie:', error);
       toast.error(t('common.error'));
     }
   };
