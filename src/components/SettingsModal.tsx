@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -167,7 +168,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const handleDeleteAccount = async () => {
     if (!session?.user?.id) return;
 
-    const expectedText = t('common.language') === 'pt' ? 'EXCLUIR' : 'DELETE';
+    const expectedText = i18n.language === 'pt' ? 'EXCLUIR' : 'DELETE';
 
     if (deleteConfirmation !== expectedText) {
       toast.error(t('settings.confirmationRequired'));
@@ -206,7 +207,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const isFeedbackDisabled = !!lastFeedbackTime || !feedback.trim() || submitting;
-  const expectedDeleteText = t('common.language') === 'pt' ? 'EXCLUIR' : 'DELETE';
+  const expectedDeleteText = i18n.language === 'pt' ? 'EXCLUIR' : 'DELETE';
   const isDeleteDisabled = deleteConfirmation !== expectedDeleteText || isDeleting;
 
   return (
