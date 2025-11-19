@@ -717,50 +717,60 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     const defaultBanner = banners.default;
     // Get all other banners
     const otherBanners = Object.values(banners).filter(banner => banner.id !== 'default');
-    
+
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Default banner always first */}
         <div
           key={defaultBanner.id}
-          className={`relative rounded-lg ${selectedBanner === defaultBanner.id ? 'ring-2 ring-blue-500' : ''}`}
+          className={`relative rounded-xl overflow-hidden ${selectedBanner === defaultBanner.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/50' : ''}`}
         >
           <button
             onClick={() => handleBannerSelect(defaultBanner.id as BannerId)}
-            className="w-full relative group"
+            className="w-full relative group transition-all duration-300 hover:scale-[1.02]"
           >
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 h-24 flex items-center justify-center">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-xl p-6 h-32 flex items-center justify-center">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">
                 {defaultBanner.name}
               </h3>
             </div>
+            {selectedBanner === defaultBanner.id && (
+              <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full">
+                <Check className="w-4 h-4" />
+              </div>
+            )}
           </button>
         </div>
-        
-        {/* Other banners */}
+
+        {/* Other banners - All same size */}
         {otherBanners.map((banner) => {
           const isLocked = banner.isPremium && !isPremium;
-          
+
           return (
             <div
               key={banner.id}
-              className={`relative rounded-lg ${
-                isLocked ? 'opacity-50' : ''
-              } ${selectedBanner === banner.id ? 'ring-2 ring-blue-500' : ''}`}
+              className={`relative rounded-xl overflow-hidden ${
+                isLocked ? 'opacity-60' : ''
+              } ${selectedBanner === banner.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/50' : ''}`}
             >
               <button
                 onClick={() => !isLocked && handleBannerSelect(banner.id as BannerId)}
                 disabled={isLocked}
-                className="w-full relative group"
+                className="w-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                <div className={`bg-white dark:bg-gray-800 rounded-lg p-4 h-24 flex items-center justify-between ${banner.className}`}>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white z-10">
+                <div className={`rounded-xl p-6 h-32 flex items-center justify-between ${banner.className}`}>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white z-10 relative">
                     {banner.name}
                   </h3>
                   {isLocked && (
-                    <div className="flex items-center gap-1 bg-yellow-400 text-black text-xs font-medium px-2 py-1 rounded-full z-10">
-                      <Crown className="w-3 h-3" />
+                    <div className="flex items-center gap-1.5 bg-yellow-400 text-black text-xs font-bold px-3 py-1.5 rounded-full z-10 relative shadow-lg">
+                      <Crown className="w-4 h-4" />
                       <span>Premium</span>
+                    </div>
+                  )}
+                  {!isLocked && selectedBanner === banner.id && (
+                    <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full z-10">
+                      <Check className="w-4 h-4" />
                     </div>
                   )}
                 </div>

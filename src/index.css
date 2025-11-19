@@ -116,452 +116,400 @@
   100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
 }
 
-@keyframes gold-pulse {
-  0% { 
-    box-shadow: 0 0 15px rgba(234, 179, 8, 0.3);
-    border-color: rgba(234, 179, 8, 0.8);
-  }
-  50% { 
-    box-shadow: 0 0 25px rgba(234, 179, 8, 0.5);
-    border-color: rgba(234, 179, 8, 1);
-  }
-  100% { 
-    box-shadow: 0 0 15px rgba(234, 179, 8, 0.3);
-    border-color: rgba(234, 179, 8, 0.8);
-  }
-}
+/* ============================================
+   GOLD EFFECTS - Luxurious, shimmering gold
+   ============================================ */
 
-@keyframes matrix-glitch {
+@keyframes gold-shimmer {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
-  }
-  20% {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8);
-    transform: translateY(-1px);
-  }
-  40% {
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.7);
-    transform: translateX(1px);
-  }
-  60% {
-    box-shadow: 0 0 25px rgba(16, 185, 129, 0.9);
-    transform: translateY(1px) translateX(-1px);
-  }
-  80% {
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
-    transform: translateX(-1px);
-  }
-}
-
-@keyframes matrix-squares {
-  0%, 100% {
-    background-position: 0% 0%;
-    opacity: 0.5;
-  }
-  25% {
-    background-position: 100% 0%;
-    opacity: 0.8;
+    filter: brightness(1) saturate(1);
   }
   50% {
-    background-position: 100% 100%;
+    filter: brightness(1.3) saturate(1.2);
+  }
+}
+
+@keyframes gold-rotate {
+  0% {
+    transform: rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
     opacity: 0.6;
   }
-  75% {
-    background-position: 0% 100%;
-    opacity: 0.9;
-  }
-}
-
-@keyframes ice-freeze {
-  0%, 100% {
-    opacity: 0.5;
-    box-shadow: 0 0 5px rgba(56, 189, 248, 0.3);
-  }
-  25% {
-    opacity: 0.7;
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-  }
-  50% {
-    opacity: 0.9;
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.7);
-  }
-  75% {
-    opacity: 0.7;
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-  }
-}
-
-@keyframes ice-crack {
-  0%, 100% {
-    clip-path: polygon(
-      0% 0%, 100% 0%, 100% 100%, 0% 100%
-    );
-  }
-  50% {
-    clip-path: polygon(
-      0% 0%, 45% 0%, 50% 10%, 55% 0%, 100% 0%,
-      100% 45%, 90% 50%, 100% 55%, 100% 100%,
-      55% 100%, 50% 90%, 45% 100%, 0% 100%,
-      0% 55%, 10% 50%, 0% 45%
-    );
-  }
-}
-
-@keyframes bttf-lightning {
-  0% {
+  100% {
+    transform: rotate(360deg);
     opacity: 0.3;
-    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
   }
-  20% {
-    opacity: 1;
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.9);
-  }
-  30% {
-    opacity: 0.2;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
-  }
-  40% {
-    opacity: 0.8;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
-  }
-  60% {
-    opacity: 0.2;
-    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
-  }
-  80% {
-    opacity: 0.9;
-    box-shadow: 0 0 25px rgba(59, 130, 246, 0.9);
+}
+
+@keyframes gold-sweep {
+  0% {
+    transform: translateX(-100%);
   }
   100% {
-    opacity: 0.3;
-    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    transform: translateX(200%);
   }
 }
 
-@keyframes bttf-time-ripple {
+@keyframes gold-shimmer-banner {
   0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* ============================================
+   MATRIX EFFECTS - Digital, glitchy, cyber
+   ============================================ */
+
+@keyframes matrix-digital {
+  0%, 100% {
+    filter: brightness(1) hue-rotate(0deg);
+  }
+  20% {
+    filter: brightness(1.2) hue-rotate(5deg);
+  }
+  40% {
+    filter: brightness(0.9) hue-rotate(-5deg);
+  }
+  60% {
+    filter: brightness(1.3) hue-rotate(10deg);
+  }
+  80% {
+    filter: brightness(0.95) hue-rotate(-3deg);
+  }
+}
+
+@keyframes matrix-scan {
+  0% {
+    transform: translateY(-100%) scaleY(1);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(100%) scaleY(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes matrix-pulse {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes matrix-code-rain {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 0% 200%;
+  }
+}
+
+@keyframes matrix-scan-horizontal {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ============================================
+   SAW EFFECTS - Dark, bloody, horrifying
+   ============================================ */
+
+@keyframes saw-throb {
+  0%, 100% {
+    filter: brightness(1) contrast(1);
+  }
+  50% {
+    filter: brightness(1.2) contrast(1.1);
+  }
+}
+
+@keyframes saw-drip {
+  0% {
+    transform: translateY(0) scaleY(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(5%) scaleY(1.1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+    opacity: 0.6;
+  }
+}
+
+@keyframes saw-flicker {
+  0%, 90%, 100% {
+    opacity: 0.3;
+  }
+  92%, 98% {
+    opacity: 0.8;
+  }
+  94%, 96% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes saw-blood-cascade {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+}
+
+@keyframes saw-pulse-intense {
+  0%, 100% {
+    opacity: 0.4;
     transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+/* ============================================
+   ICE AGE EFFECTS - Frozen, crystalline, cold
+   ============================================ */
+
+@keyframes ice-crystallize {
+  0%, 100% {
+    filter: brightness(1) saturate(1);
+  }
+  25% {
+    filter: brightness(1.2) saturate(1.1);
+  }
+  50% {
+    filter: brightness(1.4) saturate(1.2);
+  }
+  75% {
+    filter: brightness(1.2) saturate(1.1);
+  }
+}
+
+@keyframes ice-shimmer {
+  0% {
+    transform: rotate(0deg) scale(1);
     opacity: 0.4;
   }
   50% {
+    transform: rotate(180deg) scale(1.1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    opacity: 0.4;
+  }
+}
+
+@keyframes ice-sparkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    opacity: 0.8;
+    transform: scale(1.1) rotate(90deg);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.95) rotate(180deg);
+  }
+  75% {
+    opacity: 0.9;
+    transform: scale(1.05) rotate(270deg);
+  }
+}
+
+@keyframes ice-crystallize-banner {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
     transform: scale(1.05);
-    opacity: 0.7;
   }
 }
 
-@keyframes blood-fill {
+@keyframes ice-sparkle-banner {
   0%, 100% {
-    height: 0%;
+    opacity: 0.3;
+  }
+  33% {
     opacity: 0.7;
   }
+  66% {
+    opacity: 0.5;
+  }
+}
+
+/* ============================================
+   BTTF EFFECTS - Electric, time-traveling, energetic
+   ============================================ */
+
+@keyframes bttf-lightning {
+  0%, 90%, 100% {
+    filter: brightness(1) saturate(1);
+  }
+  92% {
+    filter: brightness(1.8) saturate(1.4);
+  }
+  94% {
+    filter: brightness(0.8) saturate(0.9);
+  }
+  96% {
+    filter: brightness(2) saturate(1.5);
+  }
+  98% {
+    filter: brightness(1.2) saturate(1.1);
+  }
+}
+
+@keyframes bttf-energy {
+  0% {
+    transform: scale(0.95) rotate(0deg);
+    opacity: 0.3;
+  }
   50% {
-    height: 100%;
+    transform: scale(1.05) rotate(180deg);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(0.95) rotate(360deg);
+    opacity: 0.3;
+  }
+}
+
+@keyframes bttf-flux {
+  0% {
+    transform: translateX(0) translateY(0);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateX(-10px) translateY(-10px);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(0) translateY(0);
+    opacity: 0.3;
+  }
+}
+
+@keyframes bttf-time-wave {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateX(200%) skewX(-15deg);
+    opacity: 0;
+  }
+}
+
+@keyframes bttf-lightning-strike {
+  0%, 90%, 100% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  92% {
+    opacity: 0.8;
+    transform: translate(-20px, -20px);
+  }
+  94% {
+    opacity: 0.3;
+    transform: translate(10px, 10px);
+  }
+  96% {
     opacity: 1;
+    transform: translate(-10px, -10px);
+  }
+  98% {
+    opacity: 0.5;
+    transform: translate(5px, 5px);
   }
 }
 
-@keyframes blood-drip-frame {
-  0%, 100% {
-    box-shadow: 0 0 8px rgba(185, 28, 28, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 15px rgba(185, 28, 28, 0.7);
-  }
+/* Apply animation classes */
+.animate-gold-shimmer {
+  animation: gold-shimmer 3s ease-in-out infinite;
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+.animate-gold-rotate {
+  animation: gold-rotate 10s linear infinite;
 }
 
-.animate-slide-up {
-  animation: slideUp 0.3s ease-out;
+.animate-matrix-digital {
+  animation: matrix-digital 2s ease-in-out infinite;
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+.animate-matrix-scan {
+  animation: matrix-scan 3s linear infinite;
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+.animate-matrix-pulse {
+  animation: matrix-pulse 2s ease-in-out infinite;
 }
 
-.animate-crystal {
-  animation: crystal-pulse 3s ease-in-out infinite;
+.animate-saw-throb {
+  animation: saw-throb 2s ease-in-out infinite;
 }
 
-.animate-eye-blink {
-  animation: eye-blink 4s ease-in-out infinite;
+.animate-saw-drip {
+  animation: saw-drip 4s ease-in-out infinite;
 }
 
-.animate-eye-glow {
-  animation: eye-glow 2s ease-in-out infinite;
+.animate-saw-flicker {
+  animation: saw-flicker 5s ease-in-out infinite;
 }
 
-.animate-gold-pulse {
-  animation: gold-pulse 2s ease-in-out infinite;
+.animate-ice-crystallize {
+  animation: ice-crystallize 4s ease-in-out infinite;
 }
 
-.animate-matrix-glitch {
-  animation: matrix-glitch 3s ease-in-out infinite;
-  position: relative;
+.animate-ice-shimmer {
+  animation: ice-shimmer 8s linear infinite;
 }
 
-/* Matrix digital rain effect */
-.matrix-digital-rain {
-  position: relative;
-  overflow: hidden;
+.animate-ice-sparkle {
+  animation: ice-sparkle 6s ease-in-out infinite;
 }
 
-.matrix-digital-rain::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: transparent;
-  z-index: 1;
-}
-
-.matrix-digital-rain::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: 
-    radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.7) 1%, transparent 1.5%),
-    radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.8) 1%, transparent 1.5%),
-    radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.6) 1%, transparent 1.5%),
-    radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.7) 1%, transparent 1.5%),
-    radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.8) 1%, transparent 1.5%),
-    radial-gradient(circle at 60% 60%, rgba(16, 185, 129, 0.6) 1%, transparent 1.5%),
-    radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.7) 1%, transparent 1.5%),
-    radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.8) 1%, transparent 1.5%),
-    radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.6) 1%, transparent 1.5%),
-    radial-gradient(circle at 15% 95%, rgba(16, 185, 129, 0.7) 1%, transparent 1.5%),
-    radial-gradient(circle at 25% 85%, rgba(16, 185, 129, 0.8) 1%, transparent 1.5%),
-    radial-gradient(circle at 35% 75%, rgba(16, 185, 129, 0.6) 1%, transparent 1.5%),
-    radial-gradient(circle at 45% 65%, rgba(16, 185, 129, 0.7) 1%, transparent 1.5%),
-    radial-gradient(circle at 55% 55%, rgba(16, 185, 129, 0.8) 1%, transparent 1.5%),
-    radial-gradient(circle at 65% 45%, rgba(16, 185, 129, 0.6) 1%, transparent 1.5%),
-    radial-gradient(circle at 75% 35%, rgba(16, 185, 129, 0.7) 1%, transparent 1.5%),
-    radial-gradient(circle at 85% 25%, rgba(16, 185, 129, 0.8) 1%, transparent 1.5%),
-    radial-gradient(circle at 95% 15%, rgba(16, 185, 129, 0.6) 1%, transparent 1.5%),
-    radial-gradient(circle at 10% 50%, rgba(16, 185, 129, 0.7) 1%, transparent 1.5%),
-    radial-gradient(circle at 20% 60%, rgba(16, 185, 129, 0.8) 1%, transparent 1.5%),
-    radial-gradient(circle at 30% 70%, rgba(16, 185, 129, 0.6) 1%, transparent 1.5%),
-    radial-gradient(circle at 40% 80%, rgba(16, 185, 129, 0.7) 1%, transparent 1.5%),
-    radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.8) 1%, transparent 1.5%),
-    radial-gradient(circle at 60% 10%, rgba(16, 185, 129, 0.6) 1%, transparent 1.5%),
-    radial-gradient(circle at 70% 20%, rgba(16, 185, 129, 0.7) 1%, transparent 1.5%),
-    radial-gradient(circle at 80% 30%, rgba(16, 185, 129, 0.8) 1%, transparent 1.5%),
-    radial-gradient(circle at 90% 40%, rgba(16, 185, 129, 0.6) 1%, transparent 1.5%);
-  background-size: 400% 400%;
-  animation: matrix-squares 5s linear infinite;
-  z-index: 1;
-}
-
-/* Saw blood effect for frame */
-.saw-blood-frame {
-  position: relative;
-  animation: blood-drip-frame 4s ease-in-out infinite;
-}
-
-.saw-blood-frame::before {
-  content: "";
-  position: absolute;
-  top: -3px;
-  left: -3px;
-  right: -3px;
-  bottom: -3px;
-  border-radius: 50%;
-  pointer-events: none;
-  background: linear-gradient(to bottom, rgba(185, 28, 28, 0.7) 0%, transparent 100%);
-  z-index: -1;
-  transform-origin: top center;
-  opacity: 0.8;
-}
-
-/* Saw blood effect for banner */
-.saw-blood-banner {
-  position: relative;
-  overflow: hidden;
-}
-
-.saw-blood-banner::before {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: linear-gradient(to top, rgba(185, 28, 28, 0.7), rgba(120, 10, 10, 0.9));
-  animation: blood-fill 8s ease-in-out infinite;
-  z-index: 1;
-  opacity: 0.8;
-  pointer-events: none;
-}
-
-/* Ice Age frame effect */
-.ice-frame {
-  position: relative;
-  animation: ice-freeze 4s ease-in-out infinite;
-}
-
-.ice-frame::before {
-  content: "";
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle, 
-    rgba(186, 230, 253, 0.7) 0%, 
-    rgba(56, 189, 248, 0.5) 50%, 
-    rgba(14, 165, 233, 0.3) 100%
-  );
-  z-index: -1;
-  opacity: 0.8;
-}
-
-.ice-frame::after {
-  content: "";
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.5) 0%, 
-    rgba(255, 255, 255, 0) 50%, 
-    rgba(255, 255, 255, 0.5) 100%
-  );
-  z-index: -1;
-  animation: ice-crack 6s ease-in-out infinite;
-}
-
-/* Ice Age banner effect */
-.ice-banner {
-  position: relative;
-  overflow: hidden;
-}
-
-.ice-banner::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg,
-    rgba(186, 230, 253, 0.7) 0%,
-    rgba(56, 189, 248, 0.5) 40%,
-    rgba(14, 165, 233, 0.3) 100%
-  );
-  z-index: 1;
-  opacity: 0.5;
-  animation: ice-freeze 4s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.ice-banner::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.6) 0%, 
-    rgba(255, 255, 255, 0) 50%, 
-    rgba(255, 255, 255, 0.6) 100%
-  );
-  z-index: 2;
-  animation: ice-crack 6s ease-in-out infinite;
-  pointer-events: none;
-}
-
-/* Back to the Future frame effect */
-.bttf-frame {
-  position: relative;
-  animation: bttf-lightning 3s ease-in-out infinite;
-}
-
-.bttf-frame::before {
-  content: "";
-  position: absolute;
-  top: -3px;
-  left: -3px;
-  right: -3px;
-  bottom: -3px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle, 
-    rgba(96, 165, 250, 0.8) 0%, 
-    rgba(59, 130, 246, 0.6) 40%, 
-    rgba(37, 99, 235, 0.4) 100%
-  );
-  z-index: -1;
-  animation: bttf-time-ripple 4s ease-in-out infinite;
-}
-
-.bttf-frame::after {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  background: 
-    linear-gradient(45deg, transparent 40%, rgba(96, 165, 250, 0.8) 45%, transparent 50%),
-    linear-gradient(135deg, transparent 40%, rgba(96, 165, 250, 0.8) 45%, transparent 50%),
-    linear-gradient(225deg, transparent 40%, rgba(96, 165, 250, 0.8) 45%, transparent 50%),
-    linear-gradient(315deg, transparent 40%, rgba(96, 165, 250, 0.8) 45%, transparent 50%);
-  opacity: 0;
-  z-index: -1;
-  animation: bttf-lightning 3s ease-in-out infinite;
-}
-
-/* Back to the Future banner effect */
-.bttf-banner {
-  position: relative;
-  overflow: hidden;
-}
-
-.bttf-banner::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg,
-    rgba(96, 165, 250, 0.5) 0%,
-    rgba(59, 130, 246, 0.3) 40%,
-    rgba(37, 99, 235, 0.2) 100%
-  );
-  z-index: 1;
-  animation: bttf-lightning 3s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.bttf-banner::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: 
-    linear-gradient(90deg, transparent 20%, rgba(255, 255, 255, 0.7) 22%, transparent 23%),
-    linear-gradient(90deg, transparent 45%, rgba(255, 255, 255, 0.8) 47%, transparent 48%),
-    linear-gradient(90deg, transparent 75%, rgba(255, 255, 255, 0.6) 77%, transparent 78%);
-  background-size: 300% 100%;
-  z-index: 2;
-  opacity: 0;
+.animate-bttf-lightning {
   animation: bttf-lightning 4s ease-in-out infinite;
-  pointer-events: none;
 }
 
+.animate-bttf-energy {
+  animation: bttf-energy 6s linear infinite;
+}
+
+.animate-bttf-flux {
+  animation: bttf-flux 3s ease-in-out infinite;
+}
 /* Rating box styles */
 .rating-box {
   @apply border-2 transition-all duration-300;
@@ -870,4 +818,31 @@ img[loading="lazy"] {
 
 .animate-bubble-appear {
   animation: bubble-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-crystal {
+  animation: crystal-pulse 3s ease-in-out infinite;
+}
+
+.animate-eye-blink {
+  animation: eye-blink 4s ease-in-out infinite;
+}
+
+.animate-eye-glow {
+  animation: eye-glow 2s ease-in-out infinite;
 }
