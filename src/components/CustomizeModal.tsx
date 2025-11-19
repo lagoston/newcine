@@ -296,11 +296,11 @@ const THEME_TAGS: ThemeTag[] = [
     condition: { type: 'franchise', count: 3, value: 'Dark Knight' }
   },
   {
-    id: 'infinity-gauntlet',
-    name: 'Infinity Gauntlet',
-    emoji: '🧤',
-    requirement: 'The Avengers Saga',
-    condition: { type: 'franchise', count: 4, value: 'Avengers' }
+    id: 'cybertron-sentinel',
+    name: 'Cybertron Sentinel',
+    emoji: '🤖',
+    requirement: 'Transformers Franchise',
+    condition: { type: 'franchise', count: 5, value: 'Transformers' }
   },
   {
     id: 'sharp-canine',
@@ -352,7 +352,7 @@ const FRANCHISE_MOVIES = {
   'Saw': [176, 215, 214, 663, 11917, 22804, 41439, 298250, 602734, 951491],
   'Ice Age': [425, 950, 8355, 57800, 278154, 774825],
   'Dark Knight': [272, 155, 49026],
-  'Avengers': [99861, 299534, 299536, 24428],
+  'Transformers': [1858, 8373, 8588, 424783, 521777],
   'Twilight': [122, 121, 240, 50619, 50620],
   'Apes Reboot': [61791, 119450, 281338, 653346]
 } as const;

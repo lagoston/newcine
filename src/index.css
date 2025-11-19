@@ -1038,3 +1038,90 @@ img[loading="lazy"] {
 .animate-infinity-stones-banner {
   animation: infinity-stones-banner 5s ease-in-out infinite;
 }
+
+/* ============================================
+   TRANSFORMERS EFFECTS - Mechanical, robotic black
+   ============================================ */
+
+@keyframes tf-mechanical {
+  0%, 100% {
+    filter: brightness(1) contrast(1.2);
+  }
+  50% {
+    filter: brightness(1.1) contrast(1.3);
+  }
+}
+
+@keyframes tf-gears {
+  0% {
+    transform: rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: rotate(360deg);
+    opacity: 0.3;
+  }
+}
+
+@keyframes tf-grid {
+  0% {
+    transform: translateX(0) translateY(0);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateX(40px) translateY(40px);
+    opacity: 0.1;
+  }
+}
+
+@keyframes tf-gears-banner {
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    opacity: 0.4;
+  }
+}
+
+@keyframes tf-circuit {
+  0% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0.2;
+    transform: translateY(4px);
+  }
+}
+
+/* Apply animation classes */
+.animate-tf-mechanical {
+  animation: tf-mechanical 4s ease-in-out infinite;
+}
+
+.animate-tf-gears {
+  animation: tf-gears 8s linear infinite;
+}
+
+.animate-tf-grid {
+  animation: tf-grid 3s linear infinite;
+}
+
+.animate-tf-gears-banner {
+  animation: tf-gears-banner 10s linear infinite;
+}
+
+.animate-tf-circuit {
+  animation: tf-circuit 2s ease-in-out infinite;
+}

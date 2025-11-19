@@ -92,11 +92,11 @@ const PlanCard = ({
 
       <ul className="space-y-3 mb-8">
         {[
-          '3000 Oracle tickets/month',
-          'Enhanced AI predictions',
-          'Unlimited history access',
-          'Exclusive customization',
-          'Priority support'
+          '3000 Tickets Monthly',
+          'Exclusive Customization',
+          'Priority Support',
+          'Cancel Anytime',
+          'More Features'
         ].map((feature, index) => (
           <li key={index} className="flex items-center text-gray-700 dark:text-gray-300">
             <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
@@ -137,7 +137,6 @@ export default function Premium() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState({
     monthly: false,
-    yearly: false,
     portal: false
   });
 
@@ -153,7 +152,7 @@ export default function Premium() {
     }
   }, [session, navigate]);
 
-  const handleSubscribe = async (plan: 'monthly' | 'yearly') => {
+  const handleSubscribe = async () => {
     if (!session?.user) {
       toast.error('Please sign in to subscribe');
       navigate('/auth');
@@ -161,18 +160,18 @@ export default function Premium() {
     }
 
     try {
-      setLoading(prev => ({ ...prev, [plan]: true }));
-      const checkoutUrl = await createCheckoutSession(session.user.id, plan);
+      setLoading(prev => ({ ...prev, monthly: true }));
+      const checkoutUrl = await createCheckoutSession(session.user.id, 'monthly');
 
       if (checkoutUrl) {
-        sessionStorage.setItem('premium_plan_type', plan);
+        sessionStorage.setItem('premium_plan_type', 'monthly');
         window.location.href = checkoutUrl;
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
       toast.error('Failed to start checkout. Please try again.');
     } finally {
-      setLoading(prev => ({ ...prev, [plan]: false }));
+      setLoading(prev => ({ ...prev, monthly: false }));
     }
   };
 
@@ -299,46 +298,91 @@ export default function Premium() {
               </p>
             </motion.div>
 
-            {/* Pricing Cards */}
-            <div className="grid md:grid-cols-2 gap-8 mb-16 max-w-5xl mx-auto">
-              <PlanCard
-                type="monthly"
-                price={products.premium.price}
-                period="month"
-                onSubscribe={() => handleSubscribe('monthly')}
-                isLoading={loading.monthly}
-              />
-              <PlanCard
-                type="yearly"
-                price={products.premiumYearly.price}
-                period="year"
-                savings="$9.89 (17%)"
-                onSubscribe={() => handleSubscribe('yearly')}
-                isLoading={loading.yearly}
-                popular
-              />
+            {/* Pricing Card */}
+            <div className="flex justify-center mb-16">
+              <motion.div
+                className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border-2 border-yellow-400 dark:border-yellow-500 max-w-md w-full"
+                whileHover={{ scale: 1.03, translateY: -8 }}
+                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 text-white text-sm font-bold px-4 py-2 text-center">
+                  <Sparkles className="w-4 h-4 inline-block mr-2" />
+                  PREMIUM PLAN
+                </div>
+                <div className="p-8 pt-16">
+                  <div className="text-center mb-6">
+                    <Crown className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                      Monthly
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                      Full access to premium features
+                    </p>
+                  </div>
+
+                  <div className="text-center mb-6">
+                    <div className="flex items-baseline justify-center mb-2">
+                      <span className="text-5xl font-extrabold bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
+                        $2.99
+                      </span>
+                      <span className="text-gray-500 dark:text-gray-400 ml-2 text-lg">/month</span>
+                    </div>
+                  </div>
+
+                  <ul className="space-y-3 mb-8">
+                    {[
+                      '3000 Tickets Monthly',
+                      'Exclusive Customization',
+                      'Priority Support',
+                      'Cancel Anytime',
+                      'More Features'
+                    ].map((feature, index) => (
+                      <motion.li
+                        key={index}
+                        className="flex items-center gap-3 text-gray-700 dark:text-gray-300"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <Check className="w-5 h-5 text-green-500 shrink-0" />
+                        <span>{feature}</span>
+                      </motion.li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={handleSubscribe}
+                    disabled={loading.monthly}
+                    className="w-full py-4 px-6 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600 hover:from-yellow-600 hover:via-orange-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+                  >
+                    {loading.monthly ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Crown className="w-5 h-5" />
+                        Subscribe Now
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
             </div>
 
             {/* Features Grid */}
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-5xl mx-auto">
               <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
-                Everything you need, and more
+                What's Included
               </h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Feature
                   icon={Zap}
                   title="3000 Tickets Monthly"
                   description="10x more tickets to explore predictions and recommendations without limits"
-                />
-                <Feature
-                  icon={BrainCircuit}
-                  title="Enhanced Oracle AI"
-                  description="Access to Oracle 2.0 with improved accuracy and deeper insights"
-                />
-                <Feature
-                  icon={History}
-                  title="Complete History"
-                  description="Never lose track - access your full prediction and recommendation history"
                 />
                 <Feature
                   icon={Palette}
@@ -354,6 +398,11 @@ export default function Premium() {
                   icon={Shield}
                   title="Cancel Anytime"
                   description="No commitments - manage or cancel your subscription at any time"
+                />
+                <Feature
+                  icon={Sparkles}
+                  title="More Features"
+                  description="Access to exclusive features and updates as they become available"
                 />
               </div>
             </div>

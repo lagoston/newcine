@@ -1,18 +1,10 @@
 export const products = {
   premium: {
-    id: 'prod_SEzGVeesZfkCgW',
-    priceId: 'price_1RKVHvElYXeJYKCBWjxJgaub',
+    id: 'prod_NEW_ID', // TODO: Replace with new product ID from Stripe
+    priceId: 'price_NEW_ID', // TODO: Replace with new price ID from Stripe
     name: 'Premium Monthly',
-    description: 'CineOracle Premium Monthly Subscription',
-    price: 4.99,
-    mode: 'subscription' as const,
-  },
-  premiumYearly: {
-    id: 'prod_SEysTJZmrOcRFa',
-    priceId: 'price_1RKUv4ElYXeJYKCBpd7qimYp',
-    name: 'Premium Yearly',
-    description: 'CineOracle Premium Yearly Subscription', 
-    price: 49.99,
+    description: 'CrystalBall Premium Monthly Subscription',
+    price: 2.99,
     mode: 'subscription' as const,
   }
 } as const;
