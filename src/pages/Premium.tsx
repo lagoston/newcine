@@ -229,10 +229,10 @@ export default function Premium() {
                 <Crown className="w-16 h-16 text-white" />
               </motion.div>
               <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">
-                You're Premium!
+                {t('premium.yourePremium')}
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-400">
-                Thank you for supporting CrystalBall
+                {t('premium.thankYou')}
               </p>
             </div>
 
@@ -240,17 +240,17 @@ export default function Premium() {
               <div className="bg-white dark:bg-gray-700/50 rounded-2xl p-6 text-center">
                 <Zap className="w-8 h-8 text-yellow-500 mx-auto mb-3" />
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">3000</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Tickets/Month</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.ticketsMonth')}</p>
               </div>
               <div className="bg-white dark:bg-gray-700/50 rounded-2xl p-6 text-center">
-                <BrainCircuit className="w-8 h-8 text-blue-500 mx-auto mb-3" />
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">Oracle 2.0</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Enhanced AI</p>
+                <Palette className="w-8 h-8 text-purple-500 mx-auto mb-3" />
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{t('premium.customization')}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.exclusiveFrames')}</p>
               </div>
               <div className="bg-white dark:bg-gray-700/50 rounded-2xl p-6 text-center">
                 <Shield className="w-8 h-8 text-green-500 mx-auto mb-3" />
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">Active</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Subscription</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{t('premium.active')}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.subscriptionActive')}</p>
               </div>
             </div>
 
@@ -263,12 +263,12 @@ export default function Premium() {
                 {loading.portal ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Loading...
+                    {t('common.loading')}
                   </>
                 ) : (
                   <>
                     <Settings className="w-5 h-5 mr-2" />
-                    Manage Subscription
+                    {t('premium.manageSubscription')}
                   </>
                 )}
               </button>
@@ -295,11 +295,11 @@ export default function Premium() {
               </motion.div>
               <h1 className="text-5xl sm:text-6xl font-extrabold mb-4">
                 <span className="bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600 bg-clip-text text-transparent">
-                  Upgrade to Premium
+                  {t('premium.title')}
                 </span>
               </h1>
               <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-                Unlock the full power of CrystalBall's AI Oracle
+                {t('premium.unlockFullPower')}
               </p>
             </motion.div>
 
@@ -314,16 +314,16 @@ export default function Premium() {
               >
                 <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 text-white text-sm font-bold px-4 py-2 text-center">
                   <Sparkles className="w-4 h-4 inline-block mr-2" />
-                  PREMIUM PLAN
+                  {t('premium.premiumPlan')}
                 </div>
                 <div className="p-8 pt-16">
                   <div className="text-center mb-6">
                     <Crown className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                      Monthly
+                      {t('premium.monthly')}
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400 text-sm">
-                      Full access to premium features
+                      {t('premium.fullAccess')}
                     </p>
                   </div>
 
@@ -338,11 +338,11 @@ export default function Premium() {
 
                   <ul className="space-y-3 mb-8">
                     {[
-                      '3000 Tickets Monthly',
-                      'Exclusive Customization',
-                      'Priority Support',
-                      'Cancel Anytime',
-                      'More Features'
+                      t('premium.3000TicketsMonthly'),
+                      t('premium.exclusiveCustomization'),
+                      t('premium.prioritySupport'),
+                      t('premium.cancelAnytime'),
+                      t('premium.moreFeatures')
                     ].map((feature, index) => (
                       <motion.li
                         key={index}
@@ -365,12 +365,12 @@ export default function Premium() {
                     {loading.monthly ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        Processing...
+                        {t('premium.processing')}
                       </>
                     ) : (
                       <>
                         <Crown className="w-5 h-5" />
-                        Subscribe Now
+                        {t('premium.subscribeNow')}
                       </>
                     )}
                   </button>
@@ -381,33 +381,33 @@ export default function Premium() {
             {/* Features Grid */}
             <div className="max-w-5xl mx-auto">
               <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
-                What's Included
+                {t('premium.whatsIncluded')}
               </h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Feature
                   icon={Zap}
-                  title="3000 Tickets Monthly"
-                  description="10x more tickets to explore predictions and recommendations without limits"
+                  title={t('premium.3000TicketsMonthly')}
+                  description={t('premium.3000TicketsDesc')}
                 />
                 <Feature
                   icon={Palette}
-                  title="Exclusive Customization"
-                  description="Unlock premium frames, banners, and profile customization options"
+                  title={t('premium.exclusiveCustomization')}
+                  description={t('premium.exclusiveCustomizationDesc')}
                 />
                 <Feature
                   icon={Star}
-                  title="Priority Support"
-                  description="Get help faster with dedicated premium customer support"
+                  title={t('premium.prioritySupport')}
+                  description={t('premium.prioritySupportDesc')}
                 />
                 <Feature
                   icon={Shield}
-                  title="Cancel Anytime"
-                  description="No commitments - manage or cancel your subscription at any time"
+                  title={t('premium.cancelAnytime')}
+                  description={t('premium.cancelAnytimeDesc')}
                 />
                 <Feature
                   icon={Sparkles}
-                  title="More Features"
-                  description="Access to exclusive features and updates as they become available"
+                  title={t('premium.moreFeatures')}
+                  description={t('premium.moreFeaturesDesc')}
                 />
               </div>
             </div>
@@ -416,10 +416,10 @@ export default function Premium() {
             <div className="mt-16 text-center">
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
                 <Shield className="w-4 h-4 inline-block mr-1" />
-                Secure payment powered by Stripe
+                {t('premium.securePayment')}
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500">
-                Your subscription will automatically renew. Cancel anytime from your settings.
+                {t('premium.autoRenew')}
               </p>
             </div>
           </>
