@@ -133,6 +133,27 @@ Deno.serve(async (req) => {
     }
 
     if (subData?.status === 'active') {
+      // Verificar se plan_type está sincronizado
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('plan_type')
+        .eq('id', userId)
+        .single();
+
+      // Se subscription está ativa MAS plan_type está como 'free', sincronizar
+      if (profileData?.plan_type === 'free') {
+        console.log(`⚠️ Inconsistency detected: active subscription but plan_type=free. Syncing user ${userId}`);
+
+        try {
+          await supabase.rpc('activate_premium_for_stripe_customer', {
+            customer_id_param: customerId
+          });
+          console.log(`✅ Premium status synced for user ${userId}`);
+        } catch (syncError) {
+          console.error('❌ Error syncing premium status:', syncError);
+        }
+      }
+
       return new Response(
         JSON.stringify({ error: 'User already has an active subscription' }),
         {
