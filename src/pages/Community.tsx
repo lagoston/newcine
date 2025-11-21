@@ -43,7 +43,7 @@ interface FriendWatchlistMovie {
 
 export default function Community() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery] = useDebounce(searchQuery, 300);
@@ -87,6 +87,22 @@ export default function Community() {
       fetchFriendsWatchlist();
     }
   }, [session?.user?.id]);
+
+  // Reload when language changes
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      console.log('🌍 Language changed in Community, reloading...');
+      fetchProfiles();
+      if (session?.user?.id) {
+        fetchFriendsWatchlist();
+      }
+    };
+
+    i18n.on('languageChanged', handleLanguageChange);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18n, session?.user?.id]);
 
   useEffect(() => {
     if (debouncedQuery) {

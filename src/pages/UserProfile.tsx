@@ -87,7 +87,7 @@ export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
   const { session } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [movies, setMovies] = useState<MovieWithRating[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -112,6 +112,28 @@ export default function UserProfile() {
       fetchProfileAndMovies();
     }
   }, [username]);
+
+  // Reload when language changes
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      console.log('🌍 Language changed in UserProfile, reloading...');
+      // Clear cache
+      if (profile?.id) {
+        const cacheKey = CACHE_KEYS.USER_PROFILE(profile.id);
+        cache.delete(cacheKey);
+      }
+      cache.clear();
+      // Reload
+      if (username) {
+        fetchProfileAndMovies();
+      }
+    };
+
+    i18n.on('languageChanged', handleLanguageChange);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18n, username, profile?.id]);
 
   const fetchProfileAndMovies = async () => {
     if (!username) return;

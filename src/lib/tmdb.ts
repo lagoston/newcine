@@ -25,6 +25,8 @@ async function tmdbFetch(endpoint: string): Promise<any> {
     finalEndpoint = `${endpoint}${separator}language=${language}`;
   }
 
+  console.log(`📡 TMDB Fetch: ${finalEndpoint}`);
+
   const url = `${PROXY_URL}?endpoint=${encodeURIComponent(finalEndpoint)}`;
 
   const response = await fetch(url, {
@@ -344,11 +346,19 @@ async function getCachedMovie(movieId: number, language: string): Promise<Movie 
 // Helper to save movie to cache
 async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 'tv'): Promise<void> {
   try {
+    console.log(`💾 Caching movie ${movieId} (${mediaType})...`);
+
     // Fetch both English and Portuguese versions
     const [enData, ptData] = await Promise.all([
       tmdbFetch(`/${mediaType === 'tv' ? 'tv' : 'movie'}/${movieId}?language=en-US&append_to_response=credits`),
       tmdbFetch(`/${mediaType === 'tv' ? 'tv' : 'movie'}/${movieId}?language=pt-BR&append_to_response=credits`)
     ]);
+
+    const enTitle = mediaType === 'tv' ? enData.name : enData.title;
+    const ptTitle = mediaType === 'tv' ? ptData.name : ptData.title;
+
+    console.log(`📝 EN: "${enTitle}" | PT: "${ptTitle}"`);
+    console.log(`🖼️ Poster EN: ${enData.poster_path} | PT: ${ptData.poster_path}`);
 
     const director = enData.credits?.crew?.find((person: any) => person.job === 'Director')?.name;
     const castMembers = enData.credits?.cast?.slice(0, 10).map((person: any) => ({
@@ -371,11 +381,11 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
       number_of_seasons: enData.number_of_seasons,
       release_date: mediaType === 'tv' ? enData.first_air_date : enData.release_date,
 
-      title_en: mediaType === 'tv' ? enData.name : enData.title,
+      title_en: enTitle,
       overview_en: enData.overview,
       genres_en: enData.genres,
 
-      title_pt: mediaType === 'tv' ? ptData.name : ptData.title,
+      title_pt: ptTitle,
       overview_pt: ptData.overview,
       genres_pt: ptData.genres,
 

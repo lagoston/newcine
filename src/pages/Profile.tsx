@@ -78,7 +78,7 @@ interface LeastKnownGem {
 export default function Profile() {
   const navigate = useNavigate();
   const { session, isPremium, checkPremiumStatus } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
   const [newUsername, setNewUsername] = useState('');
@@ -151,6 +151,21 @@ export default function Profile() {
       };
     }
   }, [session?.user?.id]);
+
+  // Reload when language changes
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      console.log('🌍 Language changed in Profile, reloading stats...');
+      if (session?.user?.id) {
+        fetchMovieStats();
+      }
+    };
+
+    i18n.on('languageChanged', handleLanguageChange);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18n, session?.user?.id]);
 
   const fetchUnreadWhispers = async () => {
     if (!session?.user?.id) return;

@@ -24,7 +24,7 @@ interface LibraryMovie extends Movie {
 
 export default function Library() {
   const { session } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [userMovies, setUserMovies] = useState<LibraryMovie[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -67,6 +67,28 @@ export default function Library() {
   useEffect(() => {
     localStorage.setItem('libraryAlternateNames', JSON.stringify(alternateNames));
   }, [alternateNames]);
+
+  // Reload movies when language changes
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      console.log('🌍 Language changed, reloading library...');
+      // Clear memory cache to force reload with new language
+      const cacheKey = CACHE_KEYS.USER_LIBRARY(session?.user?.id || '');
+      cache.delete(cacheKey);
+      // Also clear movie details cache
+      cache.clear();
+      // Reload movies
+      if (session?.user?.id) {
+        fetchUserMovies();
+      }
+    };
+
+    i18n.on('languageChanged', handleLanguageChange);
+
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [session?.user?.id, i18n]);
 
   const fetchUserMovies = async () => {
     try {
