@@ -244,32 +244,22 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                   {!isOtherUserProfile && (
                     <div className="absolute top-1 right-1 z-10">
                       <button
-                        onTouchStart={(e) => {
-                          e.stopPropagation();
-                        }}
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                        }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenMenuId(openMenuId === movie.id ? null : movie.id);
                         }}
-                        className="w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 active:bg-black/90 rounded-full text-white transition-all duration-200 touch-manipulation"
+                        className="w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full text-white transition-all duration-200"
                       >
-                        <MoreVertical className="w-4 h-4 pointer-events-none" />
+                        <MoreVertical className="w-4 h-4" />
                       </button>
                       {openMenuId === movie.id && (
                         <div
                           ref={menuRef}
                           className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
                         >
-                          {/* Show different options based on context */}
                           {isPersonalList ? (
-                            // Personal List specific options
                             <>
                               <button
-                                onTouchStart={(e) => e.stopPropagation()}
-                                onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (onRemoveFromList) {
@@ -277,14 +267,12 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                                   }
                                   setOpenMenuId(null);
                                 }}
-                                className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 flex items-center touch-manipulation"
+                                className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                               >
-                                <XCircle className="w-4 h-4 mr-2 pointer-events-none" />
+                                <XCircle className="w-4 h-4 mr-2" />
                                 {t('common.remove')}
                               </button>
                               <button
-                                onTouchStart={(e) => e.stopPropagation()}
-                                onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (enableDragDrop) {
@@ -292,16 +280,14 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                                   }
                                   setOpenMenuId(null);
                                 }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 flex items-center touch-manipulation"
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                               >
-                                <ArrowUpDown className="w-4 h-4 mr-2 pointer-events-none" />
+                                <ArrowUpDown className="w-4 h-4 mr-2" />
                                 {t('lists.reorder')}
                               </button>
                             </>
                           ) : (
-                            // Standard Library options
                             <>
-                              {/* Show "Change" option only if NOT in WatchList */}
                               {rating !== null && onRate && (
                                 <button
                                   onClick={(e) => {
