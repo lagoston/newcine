@@ -13,14 +13,19 @@ function getCurrentLanguage(): string {
   return lang === 'pt' ? 'pt-BR' : 'en-US';
 }
 
-// Helper function to call TMDB through secure proxy
+// Helper function to call TMDB through secure proxy (with automatic language)
 async function tmdbFetch(endpoint: string): Promise<any> {
-  // Add language parameter to endpoint
-  const language = getCurrentLanguage();
-  const separator = endpoint.includes('?') ? '&' : '?';
-  const endpointWithLanguage = `${endpoint}${separator}language=${language}`;
+  // Only add language if not already present in endpoint
+  const hasLanguage = endpoint.includes('language=');
 
-  const url = `${PROXY_URL}?endpoint=${encodeURIComponent(endpointWithLanguage)}`;
+  let finalEndpoint = endpoint;
+  if (!hasLanguage) {
+    const language = getCurrentLanguage();
+    const separator = endpoint.includes('?') ? '&' : '?';
+    finalEndpoint = `${endpoint}${separator}language=${language}`;
+  }
+
+  const url = `${PROXY_URL}?endpoint=${encodeURIComponent(finalEndpoint)}`;
 
   const response = await fetch(url, {
     headers: {
@@ -313,7 +318,7 @@ async function getCachedMovie(movieId: number, language: string): Promise<Movie 
     return {
       id: data.tmdb_id,
       title: isPortuguese && data.title_pt ? data.title_pt : data.title_en,
-      poster_path: data.poster_path,
+      poster_path: isPortuguese && data.poster_path_pt ? data.poster_path_pt : data.poster_path,
       backdrop_path: data.backdrop_path,
       overview: isPortuguese && data.overview_pt ? data.overview_pt : data.overview_en,
       release_date: data.release_date,
@@ -358,6 +363,7 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
       tmdb_id: movieId,
       media_type: mediaType,
       poster_path: enData.poster_path,
+      poster_path_pt: ptData.poster_path,
       backdrop_path: enData.backdrop_path,
       vote_average: enData.vote_average,
       popularity: enData.popularity,
@@ -418,7 +424,7 @@ export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number
         const movie: Movie = {
           id: cached.tmdb_id,
           title: isPortuguese && cached.title_pt ? cached.title_pt : cached.title_en,
-          poster_path: cached.poster_path,
+          poster_path: isPortuguese && cached.poster_path_pt ? cached.poster_path_pt : cached.poster_path,
           backdrop_path: cached.backdrop_path,
           overview: isPortuguese && cached.overview_pt ? cached.overview_pt : cached.overview_en,
           release_date: cached.release_date,
