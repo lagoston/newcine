@@ -1,13 +1,26 @@
 import { useDebounce } from 'use-debounce';
 import { supabase } from './supabase';
 import { cache, CACHE_KEYS, CACHE_TTL } from './cache';
+import i18n from '../i18n';
 
 // Secure proxy endpoint
 const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tmdb-proxy`;
 
+// Get current language for TMDB requests
+function getCurrentLanguage(): string {
+  const lang = i18n.language || 'en';
+  // TMDB expects language codes like 'pt-BR' or 'en-US'
+  return lang === 'pt' ? 'pt-BR' : 'en-US';
+}
+
 // Helper function to call TMDB through secure proxy
 async function tmdbFetch(endpoint: string): Promise<any> {
-  const url = `${PROXY_URL}?endpoint=${encodeURIComponent(endpoint)}`;
+  // Add language parameter to endpoint
+  const language = getCurrentLanguage();
+  const separator = endpoint.includes('?') ? '&' : '?';
+  const endpointWithLanguage = `${endpoint}${separator}language=${language}`;
+
+  const url = `${PROXY_URL}?endpoint=${encodeURIComponent(endpointWithLanguage)}`;
 
   const response = await fetch(url, {
     headers: {
