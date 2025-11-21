@@ -299,8 +299,8 @@ const THEME_TAGS: ThemeTag[] = [
     id: 'infinity-gauntlet',
     name: 'Infinity Gauntlet',
     emoji: '♾️',
-    requirement: 'All 4 Avengers movies',
-    condition: { type: 'franchise', count: 4, value: 'Avengers' }
+    requirement: 'All 4 Avengers movies (2012-2019)',
+    condition: { type: 'franchise', count: 4, value: [24428, 299536, 99861, 299534] }
   },
   {
     id: 'sharp-canine',
