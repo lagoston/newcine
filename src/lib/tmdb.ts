@@ -56,14 +56,18 @@ export interface ContentRating {
 export interface Movie {
   id: number;
   title: string;
+  name?: string;
   poster_path: string;
   overview: string;
   release_date: string;
+  first_air_date?: string;
   vote_average: number;
   runtime: number;
+  number_of_seasons?: number;
   genres: Genre[];
   userRating?: number | null;
   popularity?: number;
+  media_type?: 'movie' | 'tv';
   credits?: {
     cast: Cast[];
     crew: Array<{
@@ -105,11 +109,32 @@ export const getHiddenIndies = async (): Promise<Movie[]> => {
 export const searchMovies = async (query: string): Promise<Movie[]> => {
   if (!query.trim()) return [];
 
-  const data = await tmdbFetch(`/search/movie?query=${encodeURIComponent(query)}&sort_by=popularity.desc`);
-  return data.results;
+  // Search both movies and TV shows
+  const [movieData, tvData] = await Promise.all([
+    tmdbFetch(`/search/movie?query=${encodeURIComponent(query)}&sort_by=popularity.desc`),
+    tmdbFetch(`/search/tv?query=${encodeURIComponent(query)}&sort_by=popularity.desc`)
+  ]);
+
+  // Normalize TV shows to match Movie interface
+  const movies = movieData.results.map((movie: any) => ({
+    ...movie,
+    media_type: 'movie' as const
+  }));
+
+  const tvShows = tvData.results.map((show: any) => ({
+    ...show,
+    id: show.id,
+    title: show.name,
+    release_date: show.first_air_date,
+    media_type: 'tv' as const
+  }));
+
+  // Combine and sort by popularity
+  const combined = [...movies, ...tvShows];
+  return combined.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 };
 
-export const getMovieDetails = async (movieId: number): Promise<Movie> => {
+export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<Movie> => {
   const cacheKey = CACHE_KEYS.MOVIE_DETAILS(movieId);
   const cached = cache.get<Movie>(cacheKey);
 
@@ -117,11 +142,23 @@ export const getMovieDetails = async (movieId: number): Promise<Movie> => {
     return cached;
   }
 
+  const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
+  const releaseDateEndpoint = mediaType === 'tv' ? 'content_ratings' : 'release_dates';
+
   const [movieDetails, providersData, releaseDatesData] = await Promise.all([
-    tmdbFetch(`/movie/${movieId}?append_to_response=credits`),
-    tmdbFetch(`/movie/${movieId}/watch/providers`),
-    tmdbFetch(`/movie/${movieId}/release_dates`)
+    tmdbFetch(`/${endpoint}/${movieId}?append_to_response=credits`),
+    tmdbFetch(`/${endpoint}/${movieId}/watch/providers`),
+    tmdbFetch(`/${endpoint}/${movieId}/${releaseDateEndpoint}`)
   ]);
+
+  // Normalize TV show data to match Movie interface
+  if (mediaType === 'tv') {
+    movieDetails.title = movieDetails.name;
+    movieDetails.release_date = movieDetails.first_air_date;
+    movieDetails.media_type = 'tv';
+  } else {
+    movieDetails.media_type = 'movie';
+  }
 
   // Get providers for Brazil (BR) or fallback to US if not available
   const countryData = providersData.results?.BR || providersData.results?.US;
@@ -138,50 +175,83 @@ export const getMovieDetails = async (movieId: number): Promise<Movie> => {
   if (releaseDatesData && releaseDatesData.results) {
     const contentRatings: ContentRating[] = [];
 
-    // Process release dates to extract content ratings
-    // Priority: US ratings first, then BR, then others
-    const usReleases = releaseDatesData.results.find((r: any) => r.iso_3166_1 === 'US');
-    const brReleases = releaseDatesData.results.find((r: any) => r.iso_3166_1 === 'BR');
-    
-    if (usReleases && usReleases.release_dates) {
-      const usRating = usReleases.release_dates.find((rd: any) => rd.certification && rd.certification !== '');
-      if (usRating) {
+    if (mediaType === 'tv') {
+      // TV shows have different structure - array of ratings
+      const usRating = releaseDatesData.results.find((r: any) => r.iso_3166_1 === 'US');
+      const brRating = releaseDatesData.results.find((r: any) => r.iso_3166_1 === 'BR');
+
+      if (usRating && usRating.rating) {
         contentRatings.push({
           iso_3166_1: 'US',
-          certification: usRating.certification,
-          meaning: getContentWarnings(usRating.certification, usRating.note)
+          certification: usRating.rating,
+          meaning: getContentWarnings(usRating.rating, '')
         });
       }
-    }
-    
-    if (brReleases && brReleases.release_dates) {
-      const brRating = brReleases.release_dates.find((rd: any) => rd.certification && rd.certification !== '');
-      if (brRating) {
+
+      if (brRating && brRating.rating) {
         contentRatings.push({
           iso_3166_1: 'BR',
-          certification: brRating.certification,
-          meaning: getContentWarnings(brRating.certification, brRating.note)
+          certification: brRating.rating,
+          meaning: getContentWarnings(brRating.rating, '')
         });
       }
-    }
-    
-    // If no US or BR ratings, use the first available
-    if (contentRatings.length === 0) {
-      for (const countryReleases of releaseDatesData.results) {
-        if (countryReleases.release_dates) {
-          const rating = countryReleases.release_dates.find((rd: any) => rd.certification && rd.certification !== '');
-          if (rating) {
-            contentRatings.push({
-              iso_3166_1: countryReleases.iso_3166_1,
-              certification: rating.certification,
-              meaning: getContentWarnings(rating.certification, rating.note)
-            });
-            break;
+
+      // If no US or BR ratings, use first available
+      if (contentRatings.length === 0 && releaseDatesData.results.length > 0) {
+        const firstRating = releaseDatesData.results[0];
+        if (firstRating.rating) {
+          contentRatings.push({
+            iso_3166_1: firstRating.iso_3166_1,
+            certification: firstRating.rating,
+            meaning: getContentWarnings(firstRating.rating, '')
+          });
+        }
+      }
+    } else {
+      // Movies - existing logic
+      const usReleases = releaseDatesData.results.find((r: any) => r.iso_3166_1 === 'US');
+      const brReleases = releaseDatesData.results.find((r: any) => r.iso_3166_1 === 'BR');
+
+      if (usReleases && usReleases.release_dates) {
+        const usRating = usReleases.release_dates.find((rd: any) => rd.certification && rd.certification !== '');
+        if (usRating) {
+          contentRatings.push({
+            iso_3166_1: 'US',
+            certification: usRating.certification,
+            meaning: getContentWarnings(usRating.certification, usRating.note)
+          });
+        }
+      }
+
+      if (brReleases && brReleases.release_dates) {
+        const brRating = brReleases.release_dates.find((rd: any) => rd.certification && rd.certification !== '');
+        if (brRating) {
+          contentRatings.push({
+            iso_3166_1: 'BR',
+            certification: brRating.certification,
+            meaning: getContentWarnings(brRating.certification, brRating.note)
+          });
+        }
+      }
+
+      // If no US or BR ratings, use the first available
+      if (contentRatings.length === 0) {
+        for (const countryReleases of releaseDatesData.results) {
+          if (countryReleases.release_dates) {
+            const rating = countryReleases.release_dates.find((rd: any) => rd.certification && rd.certification !== '');
+            if (rating) {
+              contentRatings.push({
+                iso_3166_1: countryReleases.iso_3166_1,
+                certification: rating.certification,
+                meaning: getContentWarnings(rating.certification, rating.note)
+              });
+              break;
+            }
           }
         }
       }
     }
-    
+
     if (contentRatings.length > 0) {
       movieDetails.content_ratings = contentRatings;
     }
@@ -189,6 +259,21 @@ export const getMovieDetails = async (movieId: number): Promise<Movie> => {
 
   cache.set(cacheKey, movieDetails, CACHE_TTL.MOVIE_DETAILS);
   return movieDetails;
+};
+
+// Helper to get movie details with media_type from database
+export const getMovieDetailsFromDB = async (movieId: number): Promise<Movie> => {
+  const { supabase } = await import('./supabase');
+
+  // First fetch from database to get media_type
+  const { data: dbMovie } = await supabase
+    .from('movies')
+    .select('media_type')
+    .eq('id', movieId)
+    .maybeSingle();
+
+  const mediaType = dbMovie?.media_type || 'movie';
+  return getMovieDetails(movieId, mediaType);
 };
 
 // Helper function to generate content warnings based on certification and notes

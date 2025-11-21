@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Loader2, Calendar, Clock, User, Film, AlertCircle, Shield, Globe, Share2, Instagram } from 'lucide-react';
+import { X, Star, Loader2, Calendar, Clock, User, Film, AlertCircle, Shield, Globe, Share2, Instagram, Tv } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -356,8 +356,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const director = movie.credits?.crew?.find(person => person.job === 'Director')?.name || t('movies.unknown');
   const cast = movie.credits?.cast?.slice(0, 5) || [];
   const year = new Date(movie.release_date).getFullYear();
+  const isTvShow = movie.media_type === 'tv';
   const runtime = movie.runtime
     ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m`
+    : t('movies.unknown');
+  const seasons = movie.number_of_seasons
+    ? `${movie.number_of_seasons} ${movie.number_of_seasons === 1 ? 'Season' : 'Seasons'}`
     : t('movies.unknown');
 
   // Get content rating - prioritize US, then BR, then first available
@@ -602,11 +606,19 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
                     <div className="flex items-center justify-center mb-2">
-                      <Clock className="w-5 h-5 text-green-500" />
+                      {isTvShow ? (
+                        <Tv className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <Clock className="w-5 h-5 text-green-500" />
+                      )}
                     </div>
                     <div className="text-center">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.runtime')}</div>
-                      <div className="font-medium text-gray-900 dark:text-white text-sm">{runtime}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {isTvShow ? 'Seasons' : t('movies.runtime')}
+                      </div>
+                      <div className="font-medium text-gray-900 dark:text-white text-sm">
+                        {isTvShow ? seasons : runtime}
+                      </div>
                     </div>
                   </div>
 

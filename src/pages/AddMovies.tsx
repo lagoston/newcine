@@ -85,18 +85,23 @@ export default function AddMovies() {
 
   const addToLibrary = async (movie: Movie) => {
     try {
+      // Get media type from movie object
+      const mediaType = movie.media_type || 'movie';
+
       // First, ensure movie details are stored
-      const movieDetails = await getMovieDetails(movie.id);
+      const movieDetails = await getMovieDetails(movie.id, mediaType);
       const director = movieDetails.credits?.crew?.find(person => person.job === 'Director')?.name;
 
       const { error: movieError } = await supabase
         .from('movies')
         .upsert({
           id: movie.id,
-          title: movie.title,
-          release_date: movie.release_date,
+          title: movieDetails.title,
+          release_date: movieDetails.release_date,
           genres: movieDetails.genres.map(g => g.name),
-          director: director || null
+          director: director || null,
+          media_type: mediaType,
+          number_of_seasons: mediaType === 'tv' ? movieDetails.number_of_seasons : null
         });
 
       if (movieError) throw movieError;
@@ -140,7 +145,8 @@ export default function AddMovies() {
 
   const handleMovieClick = async (movie: Movie) => {
     try {
-      const details = await getMovieDetails(movie.id);
+      const mediaType = movie.media_type || 'movie';
+      const details = await getMovieDetails(movie.id, mediaType);
       setSelectedMovie(details);
       setShowMovieModal(true);
     } catch (error) {
