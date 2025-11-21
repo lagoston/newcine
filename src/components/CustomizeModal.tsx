@@ -19,7 +19,7 @@ interface Frame {
   className: string;
 }
 
-type TabType = 'frames' | 'banners' | 'tags';
+type TabType = 'frames' | 'banners' | 'tags' | 'cards';
 type TagCategory = 'basic' | 'theme' | 'community' | 'oracle';
 
 interface ProgressionTag {
@@ -58,6 +58,19 @@ interface ActiveTag {
   category: TagCategory;
   name: string;
   emoji: string;
+}
+
+export type CardStyle = 'default' | 'yugioh';
+
+interface OracleCard {
+  id: CardStyle;
+  name: string;
+  isPremium: boolean;
+  images: {
+    bogart: string;
+    fincher: string;
+    cypher: string;
+  };
 }
 
 const PROGRESSION_TAGS: ProgressionTag[] = [
@@ -342,7 +355,6 @@ const FRANCHISE_MOVIES = {
   'Final Destination': [9532, 9358, 9286, 19912, 55779],
   'Pirates': [22, 58, 285, 1865, 166426],
   'Fast Saga': [9799, 584, 9615, 13804, 51497, 82992, 168259, 337339, 385128, 385687],
-  'Transformers': [185, 8373, 38356, 91314, 335988, 424783, 667538],
   'Shrek': [808, 809, 810, 10192],
   'Jurassic': [329, 330, 331, 135397, 351286, 507086],
   'Minions': [39538, 93456, 324852, 211672, 438148],
@@ -352,10 +364,33 @@ const FRANCHISE_MOVIES = {
   'Saw': [176, 215, 214, 663, 11917, 22804, 41439, 298250, 602734, 951491],
   'Ice Age': [425, 950, 8355, 57800, 278154, 774825],
   'Dark Knight': [272, 155, 49026],
-  'Transformers': [1858, 8373, 8588, 424783, 521777],
+  'Transformers': [424783, 1858, 91314, 667538, 335988, 8373, 38356],
   'Twilight': [122, 121, 240, 50619, 50620],
   'Apes Reboot': [61791, 119450, 281338, 653346]
 } as const;
+
+const ORACLE_CARDS: Record<CardStyle, OracleCard> = {
+  default: {
+    id: 'default',
+    name: 'Default',
+    isPremium: false,
+    images: {
+      bogart: '/assets/BOGART.png',
+      fincher: '/assets/FINCHER.png',
+      cypher: '/assets/CYPHER.png'
+    }
+  },
+  yugioh: {
+    id: 'yugioh',
+    name: 'Yu-Gi-Oh!',
+    isPremium: true,
+    images: {
+      bogart: '/assets/BOGART2.png',
+      fincher: '/assets/FINCHER2.png',
+      cypher: '/assets/CYPHER2.png'
+    }
+  }
+};
 
 const getTagColorClasses = (category: string) => {
   switch (category) {
@@ -404,6 +439,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const [savingTag, setSavingTag] = useState(false);
   const [selectedFrame, setSelectedFrame] = useState<FrameId>('default');
   const [selectedBanner, setSelectedBanner] = useState<BannerId>('default');
+  const [selectedCard, setSelectedCard] = useState<CardStyle>('default');
 
   useEffect(() => {
     if (session?.user?.id && isOpen) {
@@ -420,7 +456,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('avatar_frame, banner')
+        .select('avatar_frame, banner, card_style')
         .eq('id', session?.user?.id)
         .single();
 
@@ -430,6 +466,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       }
       if (data?.banner) {
         setSelectedBanner(data.banner as BannerId);
+      }
+      if (data?.card_style) {
+        setSelectedCard(data.card_style as CardStyle);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -519,7 +558,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           banner: bannerId,
           updated_at: new Date().toISOString()
         })
@@ -532,6 +571,28 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     } catch (error) {
       console.error('Error updating banner:', error);
       toast.error('Failed to update banner');
+    }
+  };
+
+  const handleCardSelect = async (cardStyle: CardStyle) => {
+    if (!session?.user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          card_style: cardStyle,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', session.user.id);
+
+      if (error) throw error;
+
+      setSelectedCard(cardStyle);
+      toast.success('Card style updated successfully');
+    } catch (error) {
+      console.error('Error updating card style:', error);
+      toast.error('Failed to update card style');
     }
   };
 
@@ -630,15 +691,24 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       if (!userMoviesError && userMovies) {
         const ratedMovieIds = new Set(userMovies.map(movie => movie.movie_id));
 
+        // Handle string-based franchise tags
         Object.entries(FRANCHISE_MOVIES).forEach(([franchise, movieIds]) => {
           const watchedCount = movieIds.filter(id => ratedMovieIds.has(id)).length;
-          const tagId = THEME_TAGS.find(tag => 
-            tag.condition.type === 'franchise' && 
+          const tagId = THEME_TAGS.find(tag =>
+            tag.condition.type === 'franchise' &&
             tag.condition.value === franchise
           )?.id;
-          
+
           if (tagId) {
             progress[tagId] = watchedCount;
+          }
+        });
+
+        // Handle array-based franchise tags (like Infinity Gauntlet)
+        THEME_TAGS.forEach(tag => {
+          if (tag.condition.type === 'franchise' && Array.isArray(tag.condition.value)) {
+            const watchedCount = tag.condition.value.filter(id => ratedMovieIds.has(id)).length;
+            progress[tag.id] = watchedCount;
           }
         });
       }
@@ -654,7 +724,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const tabs = [
     { id: 'frames', label: 'Avatars', icon: ImageIcon },
     { id: 'banners', label: 'Banners', icon: Layout },
-    { id: 'tags', label: 'Tags', icon: Tag }
+    { id: 'tags', label: 'Tags', icon: Tag },
+    { id: 'cards', label: 'Cards', icon: Film }
   ] as const;
 
   const tagCategories = [
@@ -819,6 +890,79 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       <Check className="w-4 h-4" />
                     </div>
                   )}
+                </div>
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderCardContent = () => {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {Object.values(ORACLE_CARDS).map((card) => {
+          const isPremiumLocked = card.isPremium && !isPremium;
+
+          return (
+            <div
+              key={card.id}
+              className={`relative rounded-xl overflow-hidden border-2 ${
+                selectedCard === card.id
+                  ? 'border-blue-500 shadow-lg shadow-blue-500/50'
+                  : 'border-gray-200 dark:border-gray-700'
+              } ${isPremiumLocked ? 'opacity-60' : ''}`}
+            >
+              <button
+                onClick={() => !isPremiumLocked && handleCardSelect(card.id)}
+                disabled={isPremiumLocked}
+                className="w-full p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              >
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                      {card.name}
+                    </h3>
+                    {isPremiumLocked ? (
+                      <div className="flex items-center gap-1.5 bg-yellow-400 text-black text-xs font-bold px-3 py-1.5 rounded-full">
+                        <Crown className="w-4 h-4" />
+                        <span>Premium</span>
+                      </div>
+                    ) : selectedCard === card.id ? (
+                      <div className="bg-blue-500 text-white p-1.5 rounded-full">
+                        <Check className="w-4 h-4" />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="aspect-[2/3] rounded overflow-hidden">
+                      <img
+                        src={card.images.bogart}
+                        alt="Bogart"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="aspect-[2/3] rounded overflow-hidden">
+                      <img
+                        src={card.images.fincher}
+                        alt="Fincher"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="aspect-[2/3] rounded overflow-hidden">
+                      <img
+                        src={card.images.cypher}
+                        alt="Cypher"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                    Oracle Recommendation Cards
+                  </p>
                 </div>
               </button>
             </div>
@@ -1145,6 +1289,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
             <div className="min-h-[400px]">
               {activeTab === 'frames' && renderFrameContent()}
               {activeTab === 'banners' && renderBannerContent()}
+              {activeTab === 'cards' && renderCardContent()}
               {activeTab === 'tags' && (
                 <div className="space-y-6">
                   <div className="flex flex-wrap gap-2">
