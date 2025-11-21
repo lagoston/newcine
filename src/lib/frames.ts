@@ -48,6 +48,13 @@ export const frames = {
     requiredTag: 'cybertron-sentinel',
     className: 'relative ring-4 ring-gray-800 dark:ring-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3),inset_0_0_25px_rgba(59,130,246,0.15)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4),inset_0_0_30px_rgba(59,130,246,0.2)] animate-tf-mechanical before:absolute before:inset-0 before:rounded-full before:bg-[conic-gradient(from_0deg,rgba(23,23,23,0.8),rgba(59,130,246,0.3),rgba(23,23,23,0.8))] before:animate-tf-gears after:absolute after:inset-0 after:rounded-full after:bg-[linear-gradient(45deg,transparent_30%,rgba(59,130,246,0.2)_50%,transparent_70%)] after:bg-[length:40px_40px] after:animate-tf-grid after:pointer-events-none'
   },
+  avengers: {
+    id: 'avengers',
+    name: 'Infinity Gauntlet Frame',
+    isPremium: true,
+    requiredTag: 'infinity-gauntlet',
+    className: 'relative ring-4 ring-purple-600 dark:ring-purple-500 shadow-[0_0_35px_rgba(147,51,234,0.9),0_0_60px_rgba(168,85,247,0.5),inset_0_0_30px_rgba(147,51,234,0.3)] dark:shadow-[0_0_45px_rgba(147,51,234,1),0_0_70px_rgba(168,85,247,0.6),inset_0_0_35px_rgba(147,51,234,0.4)] animate-infinity-pulse before:absolute before:inset-0 before:rounded-full before:bg-[conic-gradient(from_0deg,rgba(239,68,68,0.3),rgba(251,146,60,0.3),rgba(250,204,21,0.3),rgba(34,197,94,0.3),rgba(59,130,246,0.3),rgba(147,51,234,0.3))] before:animate-infinity-stones after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_30%_30%,rgba(147,51,234,0.5)_0%,transparent_50%)] after:animate-infinity-glow after:pointer-events-none'
+  },
   default: {
     id: 'default',
     name: 'Default',

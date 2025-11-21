@@ -296,11 +296,11 @@ const THEME_TAGS: ThemeTag[] = [
     condition: { type: 'franchise', count: 3, value: 'Dark Knight' }
   },
   {
-    id: 'cybertron-sentinel',
-    name: 'Cybertron Sentinel',
-    emoji: '🤖',
-    requirement: 'Transformers Franchise',
-    condition: { type: 'franchise', count: 5, value: 'Transformers' }
+    id: 'infinity-gauntlet',
+    name: 'Infinity Gauntlet',
+    emoji: '♾️',
+    requirement: 'All 4 Avengers movies',
+    condition: { type: 'franchise', count: 4, value: 'Avengers' }
   },
   {
     id: 'sharp-canine',

@@ -54,6 +54,13 @@ export const banners = {
     isPremium: true,
     requiredTag: 'cybertron-sentinel',
     className: 'relative overflow-hidden border-4 border-gray-800 dark:border-gray-700 bg-gradient-to-br from-black/90 via-gray-950/80 to-black/90 dark:from-black dark:via-gray-950 dark:to-black shadow-[0_0_40px_rgba(23,23,23,0.9),0_0_60px_rgba(59,130,246,0.4),inset_0_0_40px_rgba(59,130,246,0.2)] dark:shadow-[0_0_50px_rgba(23,23,23,1),0_0_70px_rgba(59,130,246,0.5),inset_0_0_50px_rgba(59,130,246,0.25)] before:absolute before:inset-0 before:bg-[conic-gradient(from_90deg_at_50%_50%,transparent,rgba(59,130,246,0.3),transparent)] before:animate-tf-gears-banner before:-z-10 before:pointer-events-none after:absolute after:inset-0 after:bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(59,130,246,0.15)_2px,rgba(59,130,246,0.15)_4px),repeating-linear-gradient(90deg,transparent,transparent_2px,rgba(59,130,246,0.15)_2px,rgba(59,130,246,0.15)_4px)] after:animate-tf-circuit after:-z-10 after:pointer-events-none'
+  },
+  avengers: {
+    id: 'avengers',
+    name: 'Infinity Gauntlet Banner',
+    isPremium: true,
+    requiredTag: 'infinity-gauntlet',
+    className: 'relative overflow-hidden border-4 border-purple-600 dark:border-purple-500 bg-gradient-to-br from-purple-950/80 via-purple-900/60 to-purple-950/80 dark:from-purple-950 dark:via-purple-900/80 dark:to-purple-950 shadow-[0_0_45px_rgba(147,51,234,0.8),0_0_70px_rgba(168,85,247,0.5),inset_0_0_45px_rgba(147,51,234,0.25)] dark:shadow-[0_0_55px_rgba(147,51,234,0.9),0_0_80px_rgba(168,85,247,0.6),inset_0_0_55px_rgba(147,51,234,0.3)] before:absolute before:inset-0 before:bg-[conic-gradient(from_0deg_at_50%_50%,rgba(239,68,68,0.3),rgba(251,146,60,0.3),rgba(250,204,21,0.3),rgba(34,197,94,0.3),rgba(59,130,246,0.3),rgba(147,51,234,0.3))] before:animate-infinity-stones-banner before:-z-10 before:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_25%_25%,rgba(147,51,234,0.5)_0%,transparent_40%),radial-gradient(circle_at_75%_75%,rgba(168,85,247,0.4)_0%,transparent_40%)] after:animate-infinity-power after:-z-10 after:pointer-events-none'
   }
 } as const;
 

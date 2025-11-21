@@ -245,7 +245,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                           e.stopPropagation();
                           setOpenMenuId(openMenuId === movie.id ? null : movie.id);
                         }}
-                        className="w-6 h-6 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        className="w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full text-white transition-all duration-200"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
@@ -422,7 +422,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                           e.stopPropagation();
                           setOpenMenuId(openMenuId === movie.id ? null : movie.id);
                         }}
-                        className="w-6 h-6 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        className="w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full text-white transition-all duration-200"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
