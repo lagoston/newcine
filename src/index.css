@@ -87,6 +87,15 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
+@keyframes slideUpFull {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideUpFull 0.3s ease-out;
+}
+
 @keyframes float {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }

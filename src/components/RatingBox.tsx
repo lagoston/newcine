@@ -48,6 +48,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const [showAllMovies, setShowAllMovies] = useState(false);
   const [showAddToList, setShowAddToList] = useState<{movieId: number, title: string} | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [mobileMenuMovie, setMobileMenuMovie] = useState<Movie | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const listButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -242,98 +243,15 @@ const RatingBox: React.FC<RatingBoxProps> = ({
               <div className="relative group h-full">
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden h-full">
                   {!isOtherUserProfile && (
-                    <div className="absolute top-1 right-1 z-10">
-                      <button
-                        onClick={(e) => {
-                          console.log('🔴 MOBILE: Menu button clicked', movie.id);
-                          e.stopPropagation();
-                          setOpenMenuId(openMenuId === movie.id ? null : movie.id);
-                          console.log('🔴 MOBILE: openMenuId set to', openMenuId === movie.id ? null : movie.id);
-                        }}
-                        className="w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full text-white transition-all duration-200"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      {openMenuId === movie.id && (
-                        <div
-                          ref={menuRef}
-                          className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
-                        >
-                          {isPersonalList ? (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  console.log('🟠 MOBILE: Remove clicked', movie.id);
-                                  e.stopPropagation();
-                                  if (onRemoveFromList) {
-                                    onRemoveFromList(movie.id);
-                                  }
-                                  setOpenMenuId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                              >
-                                <XCircle className="w-4 h-4 mr-2" />
-                                {t('common.remove')}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  console.log('🟡 MOBILE: Reorder clicked', movie.id);
-                                  e.stopPropagation();
-                                  if (enableDragDrop) {
-                                    enableDragDrop();
-                                  }
-                                  setOpenMenuId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                              >
-                                <ArrowUpDown className="w-4 h-4 mr-2" />
-                                {t('lists.reorder')}
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              {rating !== null && onRate && (
-                                <button
-                                  onClick={(e) => {
-                                    console.log('🟢 MOBILE: Trocar clicked', movie.id, 'onRate:', onRate);
-                                    e.stopPropagation();
-                                    onRate(movie.id, null);
-                                    setOpenMenuId(null);
-                                  }}
-                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                                >
-                                  <Star className="w-4 h-4 mr-2" />
-                                  {t('library.changeRating')}
-                                </button>
-                              )}
-                              <button
-                                onClick={(e) => {
-                                  console.log('🟡 MOBILE: Listas clicked', movie.id, movie.title);
-                                  handleListButtonClick(e, movie.id, movie.title);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                              >
-                                <ListPlus className="w-4 h-4 mr-2" />
-                                {t('lists.title', { defaultValue: 'List' })}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  console.log('🔴 MOBILE: Excluir clicked', movie.id, 'setDeleteMovieId:', setDeleteMovieId);
-                                  e.stopPropagation();
-                                  setDeleteMovieId(movie.id);
-                                  setOpenMenuId(null);
-                                  console.log('🔴 MOBILE: deleteMovieId set to', movie.id);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                {t('common.delete')}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMobileMenuMovie(movie);
+                      }}
+                      className="absolute top-1 right-1 z-10 w-6 h-6 flex items-center justify-center bg-black/60 active:bg-black/80 rounded-full text-white"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
                   )}
                   <div className="absolute top-1 left-1 z-10 bg-black/40 rounded-md px-1.5 py-0.5 flex items-center">
                     <Star className="w-3.5 h-3.5 text-blue-400 fill-current" />
@@ -618,6 +536,110 @@ const RatingBox: React.FC<RatingBoxProps> = ({
         onClose={() => setShowAddToList(null)}
         position={menuPosition}
       />
+    )}
+
+    {/* MOBILE BOTTOM SHEET MENU */}
+    {mobileMenuMovie && (
+      <>
+        <div
+          className="fixed inset-0 bg-black/50 z-50 md:hidden"
+          onClick={() => setMobileMenuMovie(null)}
+        />
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl z-50 md:hidden animate-slide-up">
+          <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-3 mb-4" />
+
+          <div className="px-4 pb-6">
+            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <img
+                src={`https://image.tmdb.org/t/p/w92${mobileMenuMovie.poster_path}`}
+                alt={mobileMenuMovie.title}
+                className="w-12 h-18 object-cover rounded"
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                  {mobileMenuMovie.title}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {mobileMenuMovie.release_date?.split('-')[0] || 'N/A'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {isPersonalList ? (
+                <>
+                  <button
+                    onClick={() => {
+                      if (onRemoveFromList) {
+                        onRemoveFromList(mobileMenuMovie.id);
+                      }
+                      setMobileMenuMovie(null);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:bg-gray-200 dark:active:bg-gray-600"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    <span className="font-medium">{t('common.remove')}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (enableDragDrop) {
+                        enableDragDrop();
+                      }
+                      setMobileMenuMovie(null);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:bg-gray-200 dark:active:bg-gray-600"
+                  >
+                    <ArrowUpDown className="w-5 h-5" />
+                    <span className="font-medium">{t('lists.reorder')}</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  {rating !== null && onRate && (
+                    <button
+                      onClick={() => {
+                        onRate(mobileMenuMovie.id, null);
+                        setMobileMenuMovie(null);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:bg-gray-200 dark:active:bg-gray-600"
+                    >
+                      <Star className="w-5 h-5" />
+                      <span className="font-medium">{t('library.changeRating')}</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowAddToList({ movieId: mobileMenuMovie.id, title: mobileMenuMovie.title });
+                      setMobileMenuMovie(null);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:bg-gray-200 dark:active:bg-gray-600"
+                  >
+                    <ListPlus className="w-5 h-5" />
+                    <span className="font-medium">{t('lists.title', { defaultValue: 'List' })}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDeleteMovieId(mobileMenuMovie.id);
+                      setMobileMenuMovie(null);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:bg-gray-200 dark:active:bg-gray-600"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    <span className="font-medium">{t('common.delete')}</span>
+                  </button>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={() => setMobileMenuMovie(null)}
+              className="w-full mt-4 px-4 py-3 text-center font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"
+            >
+              {t('common.cancel', { defaultValue: 'Cancel' })}
+            </button>
+          </div>
+        </div>
+      </>
     )}
     </>
   );
