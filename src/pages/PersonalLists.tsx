@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ListPlus, Loader2, Trash2, Film, ArrowLeft, Edit } from 'lucide-react';
-import { Movie, getMovieDetails } from '../lib/tmdb';
+import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -118,7 +118,7 @@ export default function PersonalLists() {
           const movies = await Promise.all(
             movieIds.map(async ({ movie_id }) => {
               try {
-                const movieDetails = await getMovieDetails(movie_id);
+                const movieDetails = await getMovieDetailsFromDB(movie_id);
                 return {
                   ...movieDetails,
                   userRating: ratingsMap.get(movie_id) || null
@@ -161,7 +161,7 @@ export default function PersonalLists() {
       const moviesWithDetails = await Promise.all(
         (userMoviesData || []).map(async (userMovie: UserMovie) => {
           try {
-            const movieDetails = await getMovieDetails(userMovie.movie_id);
+            const movieDetails = await getMovieDetailsFromDB(userMovie.movie_id);
             return {
               ...movieDetails,
               userRating: userMovie.rating

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, ArchiveIcon, Award, TrendingDown, ListPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
-import { Movie, getMovieDetails } from '../lib/tmdb';
+import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import RatingBox from '../components/RatingBox';
 import FollowersModal from '../components/FollowersModal';
 import { toast } from 'sonner';
@@ -225,7 +225,7 @@ export default function UserProfile() {
       const firstBatchDetails = await Promise.all(
         initialBatch.map(async (userMovie) => {
           try {
-            const details = await getMovieDetails(userMovie.movie_id);
+            const details = await getMovieDetailsFromDB(userMovie.movie_id);
             return {
               ...details,
               userRating: userMovie.rating
@@ -245,7 +245,7 @@ export default function UserProfile() {
         const remainingDetails = await Promise.all(
           remainingMovies.map(async (userMovie) => {
             try {
-              const details = await getMovieDetails(userMovie.movie_id);
+              const details = await getMovieDetailsFromDB(userMovie.movie_id);
               return {
                 ...details,
                 userRating: userMovie.rating

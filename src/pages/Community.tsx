@@ -14,7 +14,7 @@ import 'swiper/css';
 import 'swiper/css/free-mode';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import { useAuth } from '../lib/auth';
-import { getMovieDetails, Movie, getTrending } from '../lib/tmdb';
+import { getMovieDetails, getMovieDetailsFromDB, Movie, getTrending } from '../lib/tmdb';
 
 interface Profile {
   id: string;
@@ -197,7 +197,7 @@ export default function Community() {
         const moviesWithDetails = await Promise.all(
           data.map(async (movie: FriendWatchlistMovie) => {
             try {
-              const details = await getMovieDetails(movie.movie_id);
+              const details = await getMovieDetailsFromDB(movie.movie_id);
               return { ...movie, movieDetails: details };
             } catch {
               return movie;

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, ListPlus, Film, Eye, Edit } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Movie, getMovieDetails } from '../lib/tmdb';
+import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import RatingBox from '../components/RatingBox';
@@ -159,7 +159,7 @@ export default function Library() {
       const firstBatchDetails = await Promise.all(
         initialBatch.map(async (userMovie: UserMovie) => {
           try {
-            const details = await getMovieDetails(userMovie.movie_id);
+            const details = await getMovieDetailsFromDB(userMovie.movie_id);
             return {
               ...details,
               userRating: userMovie.rating,
@@ -181,7 +181,7 @@ export default function Library() {
         const remainingDetails = await Promise.all(
           remainingMovies.map(async (userMovie: UserMovie) => {
             try {
-              const details = await getMovieDetails(userMovie.movie_id);
+              const details = await getMovieDetailsFromDB(userMovie.movie_id);
               return {
                 ...details,
                 userRating: userMovie.rating,
