@@ -301,39 +301,33 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                               {/* Show "Change" option only if NOT in WatchList */}
                               {rating !== null && onRate && (
                                 <button
-                                  onTouchStart={(e) => e.stopPropagation()}
-                                  onPointerDown={(e) => e.stopPropagation()}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     onRate(movie.id, null);
                                     setOpenMenuId(null);
                                   }}
-                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 flex items-center touch-manipulation"
+                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                                 >
-                                  <Star className="w-4 h-4 mr-2 pointer-events-none" />
+                                  <Star className="w-4 h-4 mr-2" />
                                   {t('library.changeRating')}
                                 </button>
                               )}
                               <button
-                                onTouchStart={(e) => e.stopPropagation()}
-                                onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => handleListButtonClick(e, movie.id, movie.title)}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 flex items-center touch-manipulation"
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                               >
-                                <ListPlus className="w-4 h-4 mr-2 pointer-events-none" />
+                                <ListPlus className="w-4 h-4 mr-2" />
                                 {t('lists.title', { defaultValue: 'List' })}
                               </button>
                               <button
-                                onTouchStart={(e) => e.stopPropagation()}
-                                onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setDeleteMovieId(movie.id);
                                   setOpenMenuId(null);
                                 }}
-                                className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 flex items-center touch-manipulation"
+                                className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                               >
-                                <Trash2 className="w-4 h-4 mr-2 pointer-events-none" />
+                                <Trash2 className="w-4 h-4 mr-2" />
                                 {t('common.delete')}
                               </button>
                             </>
