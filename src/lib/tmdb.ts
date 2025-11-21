@@ -147,13 +147,27 @@ export const searchMovies = async (query: string): Promise<Movie[]> => {
   return combined.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 };
 
-export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<Movie> => {
+export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv' = 'movie', useCache: boolean = true): Promise<Movie> => {
   const cacheKey = CACHE_KEYS.MOVIE_DETAILS(movieId);
-  const cached = cache.get<Movie>(cacheKey);
+  const memCached = cache.get<Movie>(cacheKey);
 
-  if (cached) {
-    return cached;
+  if (memCached) {
+    return memCached;
   }
+
+  // Try to get from database cache first (if enabled)
+  if (useCache) {
+    const language = getCurrentLanguage();
+    const dbCached = await getCachedMovie(movieId, language);
+
+    if (dbCached) {
+      console.log(`🎯 Using cached movie ${movieId} from database`);
+      cache.set(cacheKey, dbCached, CACHE_TTL.MOVIE_DETAILS);
+      return dbCached;
+    }
+  }
+
+  console.log(`🌐 Fetching movie ${movieId} from TMDB API`);
 
   const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
   const releaseDateEndpoint = mediaType === 'tv' ? 'content_ratings' : 'release_dates';
@@ -271,14 +285,180 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
   }
 
   cache.set(cacheKey, movieDetails, CACHE_TTL.MOVIE_DETAILS);
+
+  // Save to database cache in background (don't await to avoid slowing down response)
+  if (useCache) {
+    cacheMovie(movieId, movieDetails, mediaType).catch(err =>
+      console.error('Background cache save failed:', err)
+    );
+  }
+
   return movieDetails;
+};
+
+// Helper to get cached movie from database
+async function getCachedMovie(movieId: number, language: string): Promise<Movie | null> {
+  try {
+    const { data, error } = await supabase
+      .from('movie_cache')
+      .select('*')
+      .eq('tmdb_id', movieId)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    // Convert cached data to Movie interface based on language
+    const isPortuguese = language.startsWith('pt');
+
+    return {
+      id: data.tmdb_id,
+      title: isPortuguese && data.title_pt ? data.title_pt : data.title_en,
+      poster_path: data.poster_path,
+      backdrop_path: data.backdrop_path,
+      overview: isPortuguese && data.overview_pt ? data.overview_pt : data.overview_en,
+      release_date: data.release_date,
+      vote_average: data.vote_average,
+      runtime: data.runtime,
+      number_of_seasons: data.number_of_seasons,
+      media_type: data.media_type as 'movie' | 'tv',
+      genres: isPortuguese && data.genres_pt ? data.genres_pt : data.genres_en,
+      popularity: data.popularity,
+      credits: {
+        cast: data.cast_members || [],
+        crew: data.director ? [{ id: 0, name: data.director, job: 'Director' }] : []
+      },
+      watchProviders: data.watch_providers,
+      content_ratings: data.content_ratings
+    };
+  } catch (error) {
+    console.error('Error fetching from cache:', error);
+    return null;
+  }
+}
+
+// Helper to save movie to cache
+async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 'tv'): Promise<void> {
+  try {
+    // Fetch both English and Portuguese versions
+    const [enData, ptData] = await Promise.all([
+      tmdbFetch(`/${mediaType === 'tv' ? 'tv' : 'movie'}/${movieId}?language=en-US&append_to_response=credits`),
+      tmdbFetch(`/${mediaType === 'tv' ? 'tv' : 'movie'}/${movieId}?language=pt-BR&append_to_response=credits`)
+    ]);
+
+    const director = enData.credits?.crew?.find((person: any) => person.job === 'Director')?.name;
+    const castMembers = enData.credits?.cast?.slice(0, 10).map((person: any) => ({
+      id: person.id,
+      name: person.name,
+      character: person.character
+    })) || [];
+
+    // Prepare cache data
+    const cacheData = {
+      id: movieId,
+      tmdb_id: movieId,
+      media_type: mediaType,
+      poster_path: enData.poster_path,
+      backdrop_path: enData.backdrop_path,
+      vote_average: enData.vote_average,
+      popularity: enData.popularity,
+      runtime: enData.runtime,
+      number_of_seasons: enData.number_of_seasons,
+      release_date: mediaType === 'tv' ? enData.first_air_date : enData.release_date,
+
+      title_en: mediaType === 'tv' ? enData.name : enData.title,
+      overview_en: enData.overview,
+      genres_en: enData.genres,
+
+      title_pt: mediaType === 'tv' ? ptData.name : ptData.title,
+      overview_pt: ptData.overview,
+      genres_pt: ptData.genres,
+
+      director,
+      cast_members: castMembers,
+      watch_providers: movieData.watchProviders || {},
+      content_ratings: movieData.content_ratings || [],
+
+      updated_at: new Date().toISOString()
+    };
+
+    // Upsert to cache
+    const { error } = await supabase
+      .from('movie_cache')
+      .upsert(cacheData, { onConflict: 'tmdb_id' });
+
+    if (error) {
+      console.error('Error caching movie:', error);
+    } else {
+      console.log(`✅ Cached movie ${movieId} in database`);
+    }
+  } catch (error) {
+    console.error('Error in cacheMovie:', error);
+  }
+}
+
+// Helper to get multiple movies from cache efficiently
+export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number, Movie>> => {
+  const language = getCurrentLanguage();
+  const movieMap = new Map<number, Movie>();
+
+  if (movieIds.length === 0) return movieMap;
+
+  try {
+    const { data, error } = await supabase
+      .from('movie_cache')
+      .select('*')
+      .in('tmdb_id', movieIds);
+
+    if (error) throw error;
+
+    if (data) {
+      const isPortuguese = language.startsWith('pt');
+
+      data.forEach((cached: any) => {
+        const movie: Movie = {
+          id: cached.tmdb_id,
+          title: isPortuguese && cached.title_pt ? cached.title_pt : cached.title_en,
+          poster_path: cached.poster_path,
+          backdrop_path: cached.backdrop_path,
+          overview: isPortuguese && cached.overview_pt ? cached.overview_pt : cached.overview_en,
+          release_date: cached.release_date,
+          vote_average: cached.vote_average,
+          runtime: cached.runtime,
+          number_of_seasons: cached.number_of_seasons,
+          media_type: cached.media_type as 'movie' | 'tv',
+          genres: isPortuguese && cached.genres_pt ? cached.genres_pt : cached.genres_en,
+          popularity: cached.popularity,
+          credits: {
+            cast: cached.cast_members || [],
+            crew: cached.director ? [{ id: 0, name: cached.director, job: 'Director' }] : []
+          },
+          watchProviders: cached.watch_providers,
+          content_ratings: cached.content_ratings
+        };
+
+        movieMap.set(cached.tmdb_id, movie);
+      });
+
+      console.log(`🎯 Loaded ${movieMap.size}/${movieIds.length} movies from cache`);
+    }
+  } catch (error) {
+    console.error('Error fetching movies from cache:', error);
+  }
+
+  return movieMap;
 };
 
 // Helper to get movie details with media_type from database
 export const getMovieDetailsFromDB = async (movieId: number): Promise<Movie> => {
-  const { supabase } = await import('./supabase');
+  // First try cache
+  const language = getCurrentLanguage();
+  const cached = await getCachedMovie(movieId, language);
 
-  // First fetch from database to get media_type
+  if (cached) {
+    return cached;
+  }
+
+  // Fallback: fetch from movies table and then from API
   const { data: dbMovie } = await supabase
     .from('movies')
     .select('media_type')
