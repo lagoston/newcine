@@ -208,6 +208,9 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             preventInteractionOnTransition={false}
             allowTouchMove={true}
             touchStartForcePreventDefault={false}
+            touchStartPreventDefault={false}
+            preventClicks={false}
+            preventClicksPropagation={false}
             cssMode={false}
             breakpoints={{
               0: { slidesPerView: 2.4, spaceBetween: 12 },
