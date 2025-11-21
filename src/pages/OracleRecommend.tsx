@@ -29,6 +29,7 @@ export default function OracleRecommend() {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [selectedMovieForDetails, setSelectedMovieForDetails] = useState<any>(null);
   const [showOracleInfoModal, setShowOracleInfoModal] = useState(false);
+  const [cardStyle, setCardStyle] = useState<'default' | 'yugioh'>('default');
 
   // Debug: Log state changes
   useEffect(() => {
@@ -117,23 +118,33 @@ export default function OracleRecommend() {
     t('oracle.mysticalMessages.12')
   ];
 
+  const getCardImage = (cardId: CardType) => {
+    const suffix = cardStyle === 'yugioh' ? '2' : '';
+    const cardNames = {
+      bogart: 'BOGART',
+      fincher: 'FINCHER',
+      cypher: 'CYPHER'
+    };
+    return `/assets/${cardNames[cardId]}${suffix}.png`;
+  };
+
   const cards = [
     {
       id: 'bogart' as CardType,
       name: t('oracle.cards.bogart'),
-      image: '/assets/BOGART.png',
+      get image() { return getCardImage('bogart'); },
       description: t('oracle.cards.bogartSubtitle')
     },
     {
       id: 'fincher' as CardType,
       name: t('oracle.cards.fincher'),
-      image: '/assets/FINCHER.png',
+      get image() { return getCardImage('fincher'); },
       description: t('oracle.cards.fincherSubtitle')
     },
     {
       id: 'cypher' as CardType,
       name: t('oracle.cards.cypher'),
-      image: '/assets/CYPHER.png',
+      get image() { return getCardImage('cypher'); },
       description: t('oracle.cards.cypherSubtitle')
     }
   ];
@@ -141,8 +152,28 @@ export default function OracleRecommend() {
   useEffect(() => {
     if (session?.user?.id) {
       fetchTicketInfo();
+      fetchCardStyle();
     }
   }, [session?.user?.id]);
+
+  const fetchCardStyle = async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('card_style')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) throw error;
+      if (data?.card_style) {
+        setCardStyle(data.card_style as 'default' | 'yugioh');
+      }
+    } catch (error) {
+      console.error('Error fetching card style:', error);
+    }
+  };
 
   useEffect(() => {
     if (!loading && !recommendation) {
