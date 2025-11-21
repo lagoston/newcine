@@ -165,10 +165,10 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
   // Try to get from database cache first (if enabled)
   if (useCache) {
     const language = getCurrentLanguage();
-    const dbCached = await getCachedMovie(movieId, language);
+    const dbCached = await getCachedMovie(movieId, language, mediaType);
 
     if (dbCached) {
-      console.log(`🎯 Using cached movie ${movieId} from database`);
+      console.log(`🎯 Using cached ${mediaType} ${movieId} from database`);
       cache.set(cacheKey, dbCached, CACHE_TTL.MOVIE_DETAILS);
       return dbCached;
     }
@@ -304,12 +304,13 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
 };
 
 // Helper to get cached movie from database
-async function getCachedMovie(movieId: number, language: string): Promise<Movie | null> {
+async function getCachedMovie(movieId: number, language: string, mediaType: 'movie' | 'tv' = 'movie'): Promise<Movie | null> {
   try {
     const { data, error } = await supabase
       .from('movie_cache')
       .select('*')
       .eq('tmdb_id', movieId)
+      .eq('media_type', mediaType)
       .maybeSingle();
 
     if (error || !data) return null;
@@ -397,15 +398,15 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
       updated_at: new Date().toISOString()
     };
 
-    // Upsert to cache
+    // Upsert to cache (using composite key: tmdb_id + media_type)
     const { error } = await supabase
       .from('movie_cache')
-      .upsert(cacheData, { onConflict: 'tmdb_id' });
+      .upsert(cacheData, { onConflict: 'tmdb_id,media_type' });
 
     if (error) {
       console.error('Error caching movie:', error);
     } else {
-      console.log(`✅ Cached movie ${movieId} in database`);
+      console.log(`✅ Cached ${mediaType} ${movieId} in database`);
     }
   } catch (error) {
     console.error('Error in cacheMovie:', error);
@@ -466,15 +467,7 @@ export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number
 
 // Helper to get movie details with media_type from database
 export const getMovieDetailsFromDB = async (movieId: number): Promise<Movie> => {
-  // First try cache
-  const language = getCurrentLanguage();
-  const cached = await getCachedMovie(movieId, language);
-
-  if (cached) {
-    return cached;
-  }
-
-  // Fallback: fetch from movies table and then from API
+  // Fetch from movies table to get media_type
   const { data: dbMovie } = await supabase
     .from('movies')
     .select('media_type')
@@ -482,6 +475,16 @@ export const getMovieDetailsFromDB = async (movieId: number): Promise<Movie> => 
     .maybeSingle();
 
   const mediaType = dbMovie?.media_type || 'movie';
+
+  // Try cache with correct media_type
+  const language = getCurrentLanguage();
+  const cached = await getCachedMovie(movieId, language, mediaType);
+
+  if (cached) {
+    return cached;
+  }
+
+  // Fallback: fetch from API
   return getMovieDetails(movieId, mediaType);
 };
 

@@ -156,6 +156,11 @@ export default function Profile() {
   useEffect(() => {
     const handleLanguageChange = () => {
       console.log('🌍 Language changed in Profile, reloading stats...');
+      // Clear movie cache to reload with new language
+      if (typeof window !== 'undefined') {
+        const { cache } = require('../lib/cache');
+        cache.invalidatePattern('movie:');
+      }
       if (session?.user?.id) {
         fetchMovieStats();
       }

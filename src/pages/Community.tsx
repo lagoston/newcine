@@ -92,6 +92,11 @@ export default function Community() {
   useEffect(() => {
     const handleLanguageChange = () => {
       console.log('🌍 Language changed in Community, reloading...');
+      // Clear movie cache to reload with new language
+      if (typeof window !== 'undefined') {
+        const { cache } = require('../lib/cache');
+        cache.invalidatePattern('movie:');
+      }
       fetchProfiles();
       if (session?.user?.id) {
         fetchFriendsWatchlist();

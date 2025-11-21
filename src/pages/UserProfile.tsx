@@ -122,7 +122,8 @@ export default function UserProfile() {
         const cacheKey = CACHE_KEYS.USER_PROFILE(profile.id);
         cache.delete(cacheKey);
       }
-      cache.clear();
+      // Clear movie details cache to reload with new language
+      cache.invalidatePattern('movie:');
       // Reload
       if (username) {
         fetchProfileAndMovies();

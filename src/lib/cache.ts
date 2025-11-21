@@ -56,6 +56,10 @@ class CacheManager {
     this.cache.delete(key);
   }
 
+  delete(key: string): void {
+    this.cache.delete(key);
+  }
+
   invalidatePattern(pattern: string): void {
     const keys = Array.from(this.cache.keys());
     keys.forEach(key => {

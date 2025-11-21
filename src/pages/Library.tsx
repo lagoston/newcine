@@ -75,8 +75,8 @@ export default function Library() {
       // Clear memory cache to force reload with new language
       const cacheKey = CACHE_KEYS.USER_LIBRARY(session?.user?.id || '');
       cache.delete(cacheKey);
-      // Also clear movie details cache
-      cache.clear();
+      // Clear all movie details cache (so they reload with new language)
+      cache.invalidatePattern('movie:');
       // Reload movies
       if (session?.user?.id) {
         fetchUserMovies();
