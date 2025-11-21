@@ -245,8 +245,10 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                     <div className="absolute top-1 right-1 z-10">
                       <button
                         onClick={(e) => {
+                          console.log('🔴 MOBILE: Menu button clicked', movie.id);
                           e.stopPropagation();
                           setOpenMenuId(openMenuId === movie.id ? null : movie.id);
+                          console.log('🔴 MOBILE: openMenuId set to', openMenuId === movie.id ? null : movie.id);
                         }}
                         className="w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full text-white transition-all duration-200"
                       >
@@ -261,6 +263,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                             <>
                               <button
                                 onClick={(e) => {
+                                  console.log('🟠 MOBILE: Remove clicked', movie.id);
                                   e.stopPropagation();
                                   if (onRemoveFromList) {
                                     onRemoveFromList(movie.id);
@@ -274,6 +277,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                               </button>
                               <button
                                 onClick={(e) => {
+                                  console.log('🟡 MOBILE: Reorder clicked', movie.id);
                                   e.stopPropagation();
                                   if (enableDragDrop) {
                                     enableDragDrop();
@@ -291,6 +295,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                               {rating !== null && onRate && (
                                 <button
                                   onClick={(e) => {
+                                    console.log('🟢 MOBILE: Trocar clicked', movie.id, 'onRate:', onRate);
                                     e.stopPropagation();
                                     onRate(movie.id, null);
                                     setOpenMenuId(null);
@@ -302,7 +307,10 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                                 </button>
                               )}
                               <button
-                                onClick={(e) => handleListButtonClick(e, movie.id, movie.title)}
+                                onClick={(e) => {
+                                  console.log('🟡 MOBILE: Listas clicked', movie.id, movie.title);
+                                  handleListButtonClick(e, movie.id, movie.title);
+                                }}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                               >
                                 <ListPlus className="w-4 h-4 mr-2" />
@@ -310,9 +318,11 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                               </button>
                               <button
                                 onClick={(e) => {
+                                  console.log('🔴 MOBILE: Excluir clicked', movie.id, 'setDeleteMovieId:', setDeleteMovieId);
                                   e.stopPropagation();
                                   setDeleteMovieId(movie.id);
                                   setOpenMenuId(null);
+                                  console.log('🔴 MOBILE: deleteMovieId set to', movie.id);
                                 }}
                                 className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                               >
