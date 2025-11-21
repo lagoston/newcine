@@ -249,7 +249,6 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          e.preventDefault();
                           setOpenMenuId(openMenuId === movie.id ? null : movie.id);
                         }}
                         className="w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 active:bg-black/90 rounded-full text-white transition-all duration-200 touch-manipulation"
@@ -270,7 +269,6 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  e.preventDefault();
                                   if (onRemoveFromList) {
                                     onRemoveFromList(movie.id);
                                   }
@@ -286,7 +284,6 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  e.preventDefault();
                                   if (enableDragDrop) {
                                     enableDragDrop();
                                   }
@@ -308,7 +305,6 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                                   onPointerDown={(e) => e.stopPropagation()}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    e.preventDefault();
                                     onRate(movie.id, null);
                                     setOpenMenuId(null);
                                   }}
@@ -321,11 +317,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                               <button
                                 onTouchStart={(e) => e.stopPropagation()}
                                 onPointerDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  handleListButtonClick(e, movie.id, movie.title);
-                                }}
+                                onClick={(e) => handleListButtonClick(e, movie.id, movie.title)}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 flex items-center touch-manipulation"
                               >
                                 <ListPlus className="w-4 h-4 mr-2 pointer-events-none" />
@@ -336,7 +328,6 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  e.preventDefault();
                                   setDeleteMovieId(movie.id);
                                   setOpenMenuId(null);
                                 }}
