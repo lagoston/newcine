@@ -27,12 +27,35 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [alternateName, setAlternateName] = useState(alternateNames[rating?.toString() ?? 'unrated'] || '');
   const [isDownloading, setIsDownloading] = useState(false);
+  const [tvOrder, setTvOrder] = useState<'auto' | 'first' | 'last'>('auto');
+  const [chromaBoxEnabled, setChromaBoxEnabled] = useState(false);
   const { session } = useAuth();
   const { t } = useTranslation();
 
   useEffect(() => {
     setAlternateName(alternateNames[rating?.toString() ?? 'unrated'] || '');
   }, [alternateNames, rating]);
+
+  useEffect(() => {
+    const loadPreferences = async () => {
+      if (!session?.user?.id) return;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('tv_order, chroma_box_enabled')
+        .eq('id', session.user.id)
+        .single();
+
+      if (data) {
+        setTvOrder(data.tv_order || 'auto');
+        setChromaBoxEnabled(data.chroma_box_enabled || false);
+      }
+    };
+
+    if (isOpen) {
+      loadPreferences();
+    }
+  }, [isOpen, session?.user?.id]);
 
   const handleResetLibrary = async () => {
     if (!session?.user?.id) return;
@@ -57,6 +80,51 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
   const handleAlternateNameSave = () => {
     onAlternateNameChange(rating, alternateName);
     toast.success(t('common.success'));
+  };
+
+  const handleTvOrderChange = async (newOrder: 'auto' | 'first' | 'last') => {
+    if (!session?.user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ tv_order: newOrder })
+        .eq('id', session.user.id);
+
+      if (error) throw error;
+
+      setTvOrder(newOrder);
+      toast.success(t('common.success'));
+
+      // Force reload page to apply order
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating tv_order:', error);
+      toast.error(t('common.error'));
+    }
+  };
+
+  const handleChromaBoxToggle = async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      const newValue = !chromaBoxEnabled;
+      const { error } = await supabase
+        .from('profiles')
+        .update({ chroma_box_enabled: newValue })
+        .eq('id', session.user.id);
+
+      if (error) throw error;
+
+      setChromaBoxEnabled(newValue);
+      toast.success(t('common.success'));
+
+      // Force reload page to apply effects
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating chroma_box_enabled:', error);
+      toast.error(t('common.error'));
+    }
   };
 
   const handleDownloadMovieList = async () => {
@@ -235,30 +303,117 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
           </button>
         </div>
         <div className="p-4 space-y-6">
-          <div>
-            <label
-              htmlFor="alternateName"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
-              {t('lists.enterName')} {rating === null ? t('library.watchList') : t('library.rating', { value: rating })}
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                id="alternateName"
-                value={alternateName}
-                onChange={(e) => setAlternateName(e.target.value)}
-                maxLength={30}
-                placeholder={t('lists.enterName')}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleAlternateNameSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          {/* Only show rename for rated boxes, not watchlist */}
+          {rating !== null && (
+            <div>
+              <label
+                htmlFor="alternateName"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
-                {t('common.save')}
-              </button>
+                {t('lists.enterName')} {t('library.rating', { value: rating })}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  id="alternateName"
+                  value={alternateName}
+                  onChange={(e) => setAlternateName(e.target.value)}
+                  maxLength={30}
+                  placeholder={t('lists.enterName')}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleAlternateNameSave}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  {t('common.save')}
+                </button>
+              </div>
             </div>
+          )}
+
+          {/* TV Series Order */}
+          <div className={rating !== null ? 'border-t border-gray-200 dark:border-gray-700 pt-6' : ''}>
+            <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+              TV Series Order
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              Control how TV series are displayed in rating boxes
+            </p>
+            <div className="space-y-2">
+              <label className="flex items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <input
+                  type="radio"
+                  name="tvOrder"
+                  value="auto"
+                  checked={tvOrder === 'auto'}
+                  onChange={() => handleTvOrderChange('auto')}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <div className="ml-3">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">Automatic</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Mixed order (default)</div>
+                </div>
+              </label>
+
+              <label className="flex items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <input
+                  type="radio"
+                  name="tvOrder"
+                  value="first"
+                  checked={tvOrder === 'first'}
+                  onChange={() => handleTvOrderChange('first')}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <div className="ml-3">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">Series First</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Show all series before movies</div>
+                </div>
+              </label>
+
+              <label className="flex items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <input
+                  type="radio"
+                  name="tvOrder"
+                  value="last"
+                  checked={tvOrder === 'last'}
+                  onChange={() => handleTvOrderChange('last')}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <div className="ml-3">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">Series Last</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Show all series after movies</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Chroma Box */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+              Chroma Box
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              Color-coded rating boxes with visual effects
+            </p>
+            <label className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <div className="flex-1">
+                <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">Enable Chroma Box</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">10: Gold | 9-7: Green | 6-4: Yellow | 3-1: Red | 0: Glitch</div>
+              </div>
+              <button
+                onClick={handleChromaBoxToggle}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  chromaBoxEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition duration-200 ease-in-out ${
+                    chromaBoxEnabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </label>
           </div>
 
           <div className="border-t border-gray-200 dark:border-gray-700 pt-6">

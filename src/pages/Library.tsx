@@ -33,14 +33,18 @@ export default function Library() {
     const saved = localStorage.getItem('libraryAlternateNames');
     return saved ? JSON.parse(saved) : {};
   });
-  
+
+  // Library preferences
+  const [tvOrder, setTvOrder] = useState<'auto' | 'first' | 'last'>('auto');
+  const [chromaBoxEnabled, setChromaBoxEnabled] = useState(false);
+
   // Progress tracking states
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [totalMovies, setTotalMovies] = useState(0);
   const [processedMovies, setProcessedMovies] = useState(0);
   const [loadingError, setLoadingError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  
+
   // Track if this is the initial load
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
@@ -49,7 +53,23 @@ export default function Library() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    const loadPreferences = async () => {
+      if (!session?.user?.id) return;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('tv_order, chroma_box_enabled')
+        .eq('id', session.user.id)
+        .single();
+
+      if (data) {
+        setTvOrder(data.tv_order || 'auto');
+        setChromaBoxEnabled(data.chroma_box_enabled || false);
+      }
+    };
+
     if (session?.user?.id) {
+      loadPreferences();
       fetchUserMovies();
     }
 
@@ -313,6 +333,27 @@ export default function Library() {
     { unrated: [], ...Array.from({ length: 11 }, () => []) }
   );
 
+  // Apply TV order preference
+  const sortMoviesByTvOrder = (movies: LibraryMovie[]) => {
+    if (tvOrder === 'auto') {
+      return movies; // Keep original order
+    }
+
+    const tvShows = movies.filter(m => m.media_type === 'tv');
+    const films = movies.filter(m => m.media_type !== 'tv');
+
+    if (tvOrder === 'first') {
+      return [...tvShows, ...films];
+    } else {
+      return [...films, ...tvShows];
+    }
+  };
+
+  // Apply sorting to all rating categories
+  Object.keys(moviesByRating).forEach(key => {
+    moviesByRating[key] = sortMoviesByTvOrder(moviesByRating[key]);
+  });
+
   // Loading screen with container animation
 
   // Container animations for main content
@@ -466,9 +507,10 @@ export default function Library() {
               onDelete={handleDelete}
               isNotRated
               className=""
+              chromaBoxEnabled={chromaBoxEnabled}
             />
           </motion.div>
-          
+
           {[...Array(11)].map((_, i) => {
             const rating = 10 - i;
             return (
@@ -481,6 +523,7 @@ export default function Library() {
                   onRate={handleRate}
                   onDelete={handleDelete}
                   className=""
+                  chromaBoxEnabled={chromaBoxEnabled}
                 />
               </motion.div>
             );

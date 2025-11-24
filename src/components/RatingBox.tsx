@@ -25,6 +25,7 @@ interface RatingBoxProps {
   onAddToLibrary?: () => void;
   isPersonalList?: boolean; // New prop to identify Personal List context
   enableDragDrop?: () => void; // New prop for enabling drag & drop
+  chromaBoxEnabled?: boolean; // New prop for chroma box effects
 }
 
 const RatingBox: React.FC<RatingBoxProps> = ({
@@ -40,6 +41,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   onAddToLibrary,
   isPersonalList = false, // Default to false
   enableDragDrop,
+  chromaBoxEnabled = false,
 }) => {
   const { t } = useTranslation();
   const [deleteMovieId, setDeleteMovieId] = useState<number | null>(null);
@@ -133,9 +135,29 @@ const RatingBox: React.FC<RatingBoxProps> = ({
 
   if (movies.length === 0) return null;
 
+  // Chroma Box Effects
+  const getChromaBoxClasses = () => {
+    if (!chromaBoxEnabled || rating === null) return '';
+
+    if (rating === 10) {
+      return 'chroma-box-gold';
+    } else if (rating >= 7 && rating <= 9) {
+      return 'chroma-box-green';
+    } else if (rating >= 4 && rating <= 6) {
+      return 'chroma-box-yellow';
+    } else if (rating >= 1 && rating <= 3) {
+      return 'chroma-box-red';
+    } else if (rating === 0) {
+      return 'chroma-box-glitch';
+    }
+    return '';
+  };
+
+  const chromaClass = getChromaBoxClasses();
+
   return (
     <>
-    <div className="relative mb-12 p-6 sm:p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl transition-all duration-300">
+    <div className={`relative mb-12 p-6 sm:p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl transition-all duration-300 ${chromaClass}`}>
       {/* Padrão decorativo de fundo - com overflow hidden */}
       <div className="absolute inset-0 opacity-30 dark:opacity-20 overflow-hidden rounded-3xl pointer-events-none">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
@@ -341,7 +363,11 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 className="relative group flex-shrink-0"
                 style={{ width: '200px' }}
               >
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden h-full">
+                <div className={`rounded-lg overflow-hidden h-full ${
+                  movie.media_type === 'tv'
+                    ? 'bg-purple-50/70 dark:bg-purple-900/20'
+                    : 'bg-gray-50 dark:bg-gray-700/50'
+                }`}>
                   {!isOtherUserProfile && (
                     <div className="absolute top-1 right-1 z-10">
                       <button
