@@ -398,8 +398,7 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
             </p>
             <label className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <div className="flex-1">
-                <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t('library.enableChromaBox')}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">{t('library.chromaBoxLegend')}</div>
+                <div className="text-sm font-medium text-gray-900 dark:text-white">{t('library.enableChromaBox')}</div>
               </div>
               <button
                 onClick={handleChromaBoxToggle}

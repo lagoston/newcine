@@ -1136,37 +1136,9 @@ img[loading="lazy"] {
 }
 
 /* Chroma Box Effects */
-@keyframes goldShimmer {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), 0 0 40px rgba(255, 215, 0, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3);
-  }
-}
-
-@keyframes glitch {
-  0%, 100% {
-    transform: translate(0);
-  }
-  20% {
-    transform: translate(-2px, 2px);
-  }
-  40% {
-    transform: translate(-2px, -2px);
-  }
-  60% {
-    transform: translate(2px, 2px);
-  }
-  80% {
-    transform: translate(2px, -2px);
-  }
-}
-
 .chroma-box-gold {
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 223, 0, 0.05)) !important;
   border-color: rgba(255, 215, 0, 0.4) !important;
-  animation: goldShimmer 3s ease-in-out infinite;
 }
 
 .chroma-box-green {
@@ -1185,8 +1157,7 @@ img[loading="lazy"] {
 }
 
 .chroma-box-glitch {
-  background: linear-gradient(135deg, rgba(107, 114, 128, 0.2), rgba(75, 85, 99, 0.1)) !important;
-  border-color: rgba(107, 114, 128, 0.4) !important;
-  animation: glitch 0.3s infinite;
+  background: linear-gradient(135deg, rgba(30, 30, 30, 0.3), rgba(0, 0, 0, 0.15)) !important;
+  border-color: rgba(40, 40, 40, 0.5) !important;
 }
 

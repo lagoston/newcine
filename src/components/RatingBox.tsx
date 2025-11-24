@@ -278,7 +278,11 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             {movies.map((movie, index) => (
               <SwiperSlide key={movie.id}>
               <div className="relative group h-full">
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden h-full">
+                <div className={`rounded-lg overflow-hidden h-full ${
+                  movie.media_type === 'tv'
+                    ? 'bg-purple-50/70 dark:bg-purple-900/20'
+                    : 'bg-gray-50 dark:bg-gray-700/50'
+                }`}>
                   {!isOtherUserProfile && (
                     <button
                       onClick={(e) => {
