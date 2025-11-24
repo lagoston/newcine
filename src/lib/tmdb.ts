@@ -317,6 +317,12 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
 
     if (error || !data) return null;
 
+    // Skip cache if movie has no rating (0.0) - fetch fresh data from API
+    if (data.vote_average === 0 || data.vote_average === null) {
+      console.log(`Movie ${movieId} has no rating, fetching fresh data from API`);
+      return null;
+    }
+
     // Convert cached data to Movie interface based on language
     const isPortuguese = language.startsWith('pt');
 
@@ -341,7 +347,8 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
         crew: data.director ? [{ id: 0, name: data.director, job: 'Director' }] : []
       },
       watchProviders: data.watch_providers,
-      content_ratings: data.content_ratings
+      content_ratings: data.content_ratings,
+      seasons: data.seasons_data
     };
   } catch (error) {
     console.error('Error fetching from cache:', error);
@@ -381,10 +388,11 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
       character: person.character
     })) || [];
 
-    // Calculate runtime for TV shows
+    // Calculate runtime for TV shows and fetch seasons data
     let totalRuntime = enData.runtime;
     let episodeRuntime = null;
     let totalEpisodes = null;
+    let seasonsData = null;
 
     if (mediaType === 'tv') {
       // For TV shows, calculate total runtime
@@ -396,6 +404,36 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
           enData.episode_run_time.reduce((a: number, b: number) => a + b, 0) / enData.episode_run_time.length
         );
         totalRuntime = totalEpisodes * episodeRuntime;
+      }
+
+      // Fetch seasons data with episodes
+      if (enData.number_of_seasons && enData.number_of_seasons > 0) {
+        const seasons = [];
+        for (let i = 1; i <= enData.number_of_seasons; i++) {
+          try {
+            const seasonData = await tmdbFetch(`/tv/${movieId}/season/${i}?language=${getCurrentLanguage()}`);
+            seasons.push({
+              season_number: seasonData.season_number,
+              name: seasonData.name,
+              episode_count: seasonData.episodes?.length || 0,
+              air_date: seasonData.air_date,
+              overview: seasonData.overview,
+              poster_path: seasonData.poster_path,
+              episodes: seasonData.episodes?.map((ep: any) => ({
+                episode_number: ep.episode_number,
+                name: ep.name,
+                air_date: ep.air_date,
+                runtime: ep.runtime,
+                overview: ep.overview,
+                still_path: ep.still_path,
+                vote_average: ep.vote_average
+              })) || []
+            });
+          } catch (error) {
+            console.warn(`Failed to fetch season ${i} for TV ${movieId}:`, error);
+          }
+        }
+        seasonsData = seasons;
       }
     }
 
@@ -428,6 +466,7 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
       cast_members: castMembers,
       watch_providers: movieData.watchProviders || {},
       content_ratings: movieData.content_ratings || [],
+      seasons_data: seasonsData,
 
       updated_at: new Date().toISOString()
     };

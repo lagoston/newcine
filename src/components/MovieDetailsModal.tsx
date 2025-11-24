@@ -38,6 +38,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [loadingFriends, setLoadingFriends] = useState(true);
   const [showRecommendModal, setShowRecommendModal] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [showSeasonsModal, setShowSeasonsModal] = useState(false);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -627,7 +628,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                  <div
+                    className={`bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 ${isTvShow && movie.seasons ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-colors' : ''}`}
+                    onClick={() => isTvShow && movie.seasons && setShowSeasonsModal(true)}
+                  >
                     <div className="flex items-center justify-center mb-2">
                       {isTvShow ? (
                         <Tv className="w-5 h-5 text-green-500" />
@@ -744,6 +748,101 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         moviePoster={movie.poster_path}
         mediaType={movie.media_type}
       />
+
+      {/* Seasons Modal */}
+      {showSeasonsModal && movie.seasons && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center z-10">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                {movie.title} - Seasons & Episodes
+              </h3>
+              <button
+                onClick={() => setShowSeasonsModal(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {movie.seasons.map((season: any) => (
+                <div key={season.season_number} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 p-4">
+                    <div className="flex items-start gap-4">
+                      {season.poster_path && (
+                        <img
+                          src={`https://image.tmdb.org/t/p/w92${season.poster_path}`}
+                          alt={season.name}
+                          className="w-16 h-24 object-cover rounded"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {season.name}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {season.episode_count} Episodes
+                          {season.air_date && ` • ${new Date(season.air_date).getFullYear()}`}
+                        </p>
+                        {season.overview && (
+                          <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">
+                            {season.overview}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {season.episodes.map((episode: any) => (
+                      <div key={episode.episode_number} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                        <div className="flex items-start gap-3">
+                          {episode.still_path && (
+                            <img
+                              src={`https://image.tmdb.org/t/p/w185${episode.still_path}`}
+                              alt={episode.name}
+                              className="w-32 h-18 object-cover rounded"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <h5 className="font-medium text-gray-900 dark:text-white">
+                                {episode.episode_number}. {episode.name}
+                              </h5>
+                              {episode.runtime && (
+                                <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                  {episode.runtime}min
+                                </span>
+                              )}
+                            </div>
+                            {episode.air_date && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {new Date(episode.air_date).toLocaleDateString()}
+                              </p>
+                            )}
+                            {episode.overview && (
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
+                                {episode.overview}
+                              </p>
+                            )}
+                            {episode.vote_average > 0 && (
+                              <div className="flex items-center gap-1 mt-2">
+                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                  {episode.vote_average.toFixed(1)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
