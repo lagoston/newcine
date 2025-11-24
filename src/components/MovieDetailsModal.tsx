@@ -584,7 +584,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   if (!isOpen) return null;
 
   const hasStreamingProviders = movie.watchProviders?.flatrate && movie.watchProviders.flatrate.length > 0;
-  const director = movie.credits?.crew?.find(person => person.job === 'Director')?.name || t('movies.unknown');
+
+  // For TV shows, look for Creator or Director; for movies, look for Director
+  let director = t('movies.unknown');
+  if (movie.credits?.crew) {
+    const directorPerson = movie.credits.crew.find(person =>
+      person.job === 'Director' || person.job === 'Creator' || person.job === 'Executive Producer'
+    );
+    if (directorPerson) {
+      director = directorPerson.name;
+    }
+  }
+
   const cast = movie.credits?.cast?.slice(0, 5) || [];
   const year = new Date(movie.release_date).getFullYear();
   const isTvShow = movie.media_type === 'tv';

@@ -268,6 +268,15 @@ export default function UserProfile() {
       // Calculate stats for rated movies only
       const ratedValidMovies = validMovies.filter(movie => movie.userRating !== null);
 
+      console.log('🔍 UserProfile Debug:', {
+        totalMovies: validMovies.length,
+        ratedMovies: ratedValidMovies.length,
+        firstMovie: ratedValidMovies[0],
+        hasGenres: ratedValidMovies[0]?.genres,
+        genresType: typeof ratedValidMovies[0]?.genres,
+        genresValue: ratedValidMovies[0]?.genres
+      });
+
       // Calculate total watch time (rated movies only) including TV episodes
       let totalWatchTime = 0;
 
@@ -301,15 +310,29 @@ export default function UserProfile() {
       // Calculate genre counts (rated movies only)
       const genreCounts = {};
       ratedValidMovies.forEach(movie => {
-        movie.genres?.forEach(genre => {
-          genreCounts[genre.id] = genreCounts[genre.id] || { id: genre.id, name: genre.name, count: 0 };
-          genreCounts[genre.id].count++;
-        });
+        if (movie.genres && Array.isArray(movie.genres)) {
+          movie.genres.forEach(genre => {
+            // Handle both object format {id, name} and string format
+            if (typeof genre === 'object' && genre.id && genre.name) {
+              genreCounts[genre.id] = genreCounts[genre.id] || { id: genre.id, name: genre.name, count: 0 };
+              genreCounts[genre.id].count++;
+            } else if (typeof genre === 'string') {
+              // If genre is just a string, create a simple object
+              const key = genre;
+              genreCounts[key] = genreCounts[key] || { id: key, name: genre, count: 0 };
+              genreCounts[key].count++;
+            }
+          });
+        }
       });
+
+      console.log('🎬 Genre Counts:', genreCounts);
 
       const favoriteGenres = Object.values(genreCounts)
         .sort((a: any, b: any) => b.count - a.count)
         .slice(0, 3);
+
+      console.log('⭐ Top 3 Genres:', favoriteGenres);
 
       setFavoriteGenres(favoriteGenres);
 
@@ -364,42 +387,78 @@ export default function UserProfile() {
 
       // Calculate top actors
       const actorCounts = {};
-      ratedValidMovies.forEach(movie => {
-        movie.credits?.cast?.slice(0, 5).forEach(actor => {
-          actorCounts[actor.id] = actorCounts[actor.id] || { 
-            id: actor.id, 
-            name: actor.name,
-            character: actor.character, 
-            count: 0 
-          };
-          actorCounts[actor.id].count++;
-        });
+      console.log('🎭 Processing actors for', ratedValidMovies.length, 'movies');
+
+      ratedValidMovies.forEach((movie, idx) => {
+        if (movie.credits?.cast && Array.isArray(movie.credits.cast)) {
+          movie.credits.cast.slice(0, 5).forEach(actor => {
+            if (actor && actor.id && actor.name) {
+              actorCounts[actor.id] = actorCounts[actor.id] || {
+                id: actor.id,
+                name: actor.name,
+                character: actor.character,
+                count: 0
+              };
+              actorCounts[actor.id].count++;
+            }
+          });
+        }
+
+        if (idx === 0) {
+          console.log('📽️ First movie cast:', {
+            title: movie.title,
+            hasCast: !!movie.credits?.cast,
+            castLength: movie.credits?.cast?.length,
+            firstActor: movie.credits?.cast?.[0]
+          });
+        }
       });
+
+      console.log('🎭 Total actors counted:', Object.keys(actorCounts).length);
 
       const mostFrequentActors = Object.values(actorCounts)
         .sort((a: any, b: any) => b.count - a.count)
         .slice(0, 3);
-      
+
+      console.log('⭐ Top 3 actors:', mostFrequentActors);
       setTopActors(mostFrequentActors);
 
       // Calculate top directors
       const directorCounts = {};
-      ratedValidMovies.forEach(movie => {
-        const director = movie.credits?.crew?.find(person => person.job === 'Director');
-        if (director) {
-          directorCounts[director.name] = directorCounts[director.name] || { 
-            id: director.id,
-            name: director.name, 
-            count: 0 
-          };
-          directorCounts[director.name].count++;
+      console.log('🎬 Processing directors for', ratedValidMovies.length, 'movies');
+
+      ratedValidMovies.forEach((movie, idx) => {
+        if (movie.credits?.crew && Array.isArray(movie.credits.crew)) {
+          const director = movie.credits.crew.find(person =>
+            person.job === 'Director' || person.job === 'Creator' || person.job === 'Executive Producer'
+          );
+          if (director && director.name) {
+            directorCounts[director.name] = directorCounts[director.name] || {
+              id: director.id || 0,
+              name: director.name,
+              count: 0
+            };
+            directorCounts[director.name].count++;
+          }
+
+          if (idx === 0) {
+            console.log('🎬 First movie crew:', {
+              title: movie.title,
+              hasCrew: !!movie.credits?.crew,
+              crewLength: movie.credits?.crew?.length,
+              director: director
+            });
+          }
         }
       });
+
+      console.log('🎬 Total directors counted:', Object.keys(directorCounts).length);
 
       const mostFrequentDirectors = Object.values(directorCounts)
         .sort((a: any, b: any) => b.count - a.count)
         .slice(0, 3);
-      
+
+      console.log('⭐ Top 3 directors:', mostFrequentDirectors);
       setTopDirectors(mostFrequentDirectors);
 
       // Find least-known gem (movie with lowest vote_count that the user has rated)
