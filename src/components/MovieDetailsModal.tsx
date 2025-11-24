@@ -64,11 +64,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   const checkIfInLibrary = async () => {
     try {
+      // Check if movie is in library with correct media_type
       const { data, error } = await supabase
         .from('user_movies')
-        .select('id')
+        .select(`
+          id,
+          movies!inner(media_type)
+        `)
         .eq('user_id', session?.user?.id)
         .eq('movie_id', movie.id)
+        .eq('movies.media_type', movie.media_type || 'movie')
         .maybeSingle();
 
       if (error) {
@@ -102,11 +107,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
       const followingIds = followingData.map(f => f.following_id);
 
-      // Step 2: Get ratings from friends for this movie
+      // Step 2: Get ratings from friends for this movie (with correct media_type)
       const { data: ratingsData, error: ratingsError } = await supabase
         .from('user_movies')
-        .select('user_id, rating')
+        .select(`
+          user_id,
+          rating,
+          movies!inner(media_type)
+        `)
         .eq('movie_id', movie.id)
+        .eq('movies.media_type', movie.media_type || 'movie')
         .in('user_id', followingIds)
         .not('rating', 'is', null);
 
@@ -719,6 +729,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         movieId={movie.id}
         movieTitle={movie.title}
         moviePoster={movie.poster_path}
+        mediaType={movie.media_type}
       />
     </div>
   );

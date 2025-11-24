@@ -5,7 +5,7 @@ import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
 import ConfirmationModal from './ConfirmationModal';
 import MovieDetailsModal from './MovieDetailsModal';
-import { Movie, getMovieDetails } from '../lib/tmdb';
+import { Movie, getMovieDetails, getMovieDetailsFromDB } from '../lib/tmdb';
 
 interface WhispersModalProps {
   isOpen: boolean;
@@ -24,6 +24,7 @@ interface Recommendation {
   message?: string;
   read: boolean;
   created_at: string;
+  media_type?: 'movie' | 'tv';
   from_user: {
     username: string;
     avatar_url: string | null;
@@ -120,10 +121,13 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
     }
   };
 
-  const handleOpenMovie = async (movieId: number) => {
+  const handleOpenMovie = async (movieId: number, mediaType?: 'movie' | 'tv') => {
     try {
       setLoadingMovie(true);
-      const movie = await getMovieDetails(movieId);
+      // Use getMovieDetailsFromDB if mediaType is not provided (will fetch from database)
+      const movie = mediaType
+        ? await getMovieDetails(movieId, mediaType)
+        : await getMovieDetailsFromDB(movieId);
       setSelectedMovie(movie);
       setShowMovieModal(true);
     } catch (error) {
@@ -229,7 +233,7 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
                                 src={`https://image.tmdb.org/t/p/w200${rec.movie_poster}`}
                                 alt={rec.movie_title}
                                 className="w-20 h-30 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={() => handleOpenMovie(rec.movie_id!)}
+                                onClick={() => handleOpenMovie(rec.movie_id!, rec.media_type)}
                                 onError={(e) => {
                                   e.currentTarget.src = 'https://via.placeholder.com/200x300?text=No+Image';
                                 }}
@@ -237,7 +241,7 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
                               <div className="flex-1">
                                 <h3
                                   className="text-lg font-semibold text-gray-900 dark:text-white mb-2 cursor-pointer hover:text-orange-500 transition-colors"
-                                  onClick={() => handleOpenMovie(rec.movie_id!)}
+                                  onClick={() => handleOpenMovie(rec.movie_id!, rec.media_type)}
                                 >
                                   {rec.movie_title}
                                 </h3>
@@ -250,7 +254,7 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
                             {/* Ações - Filme */}
                             <div className="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-600 pt-4">
                               <button
-                                onClick={() => handleOpenMovie(rec.movie_id!)}
+                                onClick={() => handleOpenMovie(rec.movie_id!, rec.media_type)}
                                 disabled={loadingMovie}
                                 className="flex items-center px-3 py-1.5 text-sm rounded-md text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors disabled:opacity-50"
                               >

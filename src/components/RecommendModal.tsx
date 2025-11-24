@@ -16,9 +16,10 @@ interface RecommendModalProps {
   movieId: number;
   movieTitle: string;
   moviePoster: string;
+  mediaType?: 'movie' | 'tv';
 }
 
-const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster }: RecommendModalProps) => {
+const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, mediaType = 'movie' }: RecommendModalProps) => {
   const { session } = useAuth();
   const [followers, setFollowers] = useState<Follower[]>([]);
   const [filteredFollowers, setFilteredFollowers] = useState<Follower[]>([]);
@@ -140,7 +141,8 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster }: R
           movie_title: movieTitle,
           movie_poster: moviePoster,
           message: message.trim(),
-          read: false
+          read: false,
+          media_type: mediaType
         });
 
       if (error) throw error;
