@@ -44,6 +44,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [watchedEpisodes, setWatchedEpisodes] = useState<Set<string>>(new Set());
   const [userRating, setUserRating] = useState<number | null>(null);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
+  const [seasons, setSeasons] = useState<any[]>(movie.seasons || []);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -214,32 +215,44 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
     setLoadingSeasons(true);
     try {
+      console.log('🔍 Fetching seasons for TV show:', movie.id);
+
       // Try to get from cache first
-      const { data: cached } = await supabase
+      const { data: cached, error: cacheError } = await supabase
         .from('movie_cache')
         .select('seasons_data')
         .eq('tmdb_id', movie.id)
         .eq('media_type', 'tv')
         .maybeSingle();
 
+      console.log('📦 Cache result:', cached?.seasons_data?.length || 0, 'seasons');
+
       if (cached?.seasons_data && cached.seasons_data.length > 0) {
-        // Update movie object with cached seasons
+        // Update state with cached seasons
+        console.log('✅ Using cached seasons');
+        setSeasons(cached.seasons_data);
         movie.seasons = cached.seasons_data;
         setLoadingSeasons(false);
         return;
       }
 
-      // If not in cache, trigger background fetch via API
-      // The getMovieDetails function will fetch and cache seasons
+      // If not in cache, fetch from API
+      console.log('⚡ Fetching from API...');
       const details = await import('../lib/tmdb').then(m =>
         m.getMovieDetails(movie.id, 'tv')
       );
 
-      if (details.seasons) {
+      console.log('📺 API returned:', details.seasons?.length || 0, 'seasons');
+
+      if (details.seasons && details.seasons.length > 0) {
+        setSeasons(details.seasons);
         movie.seasons = details.seasons;
+        console.log('✅ Seasons loaded and state updated');
+      } else {
+        console.warn('⚠️ No seasons in API response');
       }
     } catch (error) {
-      console.error('Error fetching seasons:', error);
+      console.error('❌ Error fetching seasons:', error);
     } finally {
       setLoadingSeasons(false);
     }
@@ -249,8 +262,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     setShowSeasonsModal(true);
 
     // If no seasons yet, fetch them
-    if (!movie.seasons || movie.seasons.length === 0) {
+    if (!seasons || seasons.length === 0) {
+      console.log('🚀 Opening seasons modal, fetching data...');
       await fetchSeasons();
+    } else {
+      console.log('✅ Seasons already loaded:', seasons.length);
     }
   };
 
@@ -575,7 +591,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const runtime = movie.runtime
     ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m`
     : t('movies.unknown');
-  const seasons = movie.number_of_seasons
+  const seasonsText = movie.number_of_seasons
     ? `${movie.number_of_seasons} ${movie.number_of_seasons === 1 ? 'Season' : 'Seasons'}`
     : t('movies.unknown');
 
@@ -848,7 +864,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                         {isTvShow ? 'Seasons' : t('movies.runtime')}
                       </div>
                       <div className="font-medium text-gray-900 dark:text-white text-sm">
-                        {isTvShow ? seasons : runtime}
+                        {isTvShow ? seasonsText : runtime}
                       </div>
                     </div>
                   </div>
@@ -954,7 +970,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       />
 
       {/* Seasons Modal */}
-      {showSeasonsModal && movie.seasons && (
+      {showSeasonsModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center z-10">
@@ -974,12 +990,42 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
                   <p className="text-gray-500 dark:text-gray-400 mt-2">Loading seasons...</p>
                 </div>
-              ) : !movie.seasons || movie.seasons.length === 0 ? (
+              ) : !seasons || seasons.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   Season information not available yet. Try again in a moment.
                 </div>
               ) : (
-                movie.seasons.map((season: any) => {
+                <>
+                  {/* Progress Bar */}
+                  {userRating && (() => {
+                    const totalEpisodes = seasons.reduce((sum, s) => sum + (s.episodes?.length || 0), 0);
+                    const watchedCount = Array.from(watchedEpisodes).length;
+                    const progress = totalEpisodes > 0 ? (watchedCount / totalEpisodes) * 100 : 0;
+
+                    return (
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Progress
+                          </span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {watchedCount} / {totalEpisodes} episodes
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-green-500 to-green-600 h-full rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
+                          {progress.toFixed(1)}% complete
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  {seasons.map((season: any) => {
                   if (!season.episodes || season.episodes.length === 0) {
                     return null;
                   }
@@ -990,7 +1036,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
                   return (
                   <div key={season.season_number} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 dark:bg-gray-700/50 p-4">
+                    <div className={`p-4 transition-colors ${allWatched && userRating ? 'bg-green-50 dark:bg-green-900/20' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
                       <div className="flex items-start gap-4">
                         {season.poster_path && (
                           <img
@@ -999,20 +1045,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                             className="w-16 h-24 object-cover rounded"
                           />
                         )}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            {userRating && (
-                              <input
-                                type="checkbox"
-                                checked={allWatched}
-                                onChange={() => toggleSeason(season)}
-                                className="w-5 h-5 text-green-500 rounded border-gray-300 focus:ring-green-500 cursor-pointer"
-                              />
-                            )}
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                              {season.name}
-                            </h4>
-                          </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            {season.name}
+                          </h4>
                           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             {season.episode_count} Episodes
                             {season.air_date && ` • ${new Date(season.air_date).getFullYear()}`}
@@ -1023,6 +1059,24 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                             </p>
                           )}
                         </div>
+                        {userRating && (
+                          <button
+                            onClick={() => toggleSeason(season)}
+                            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                              allWatched
+                                ? 'bg-green-500 hover:bg-green-600'
+                                : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                            }`}
+                          >
+                            {allWatched ? (
+                              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <div className="w-3 h-3 rounded-full bg-white dark:bg-gray-800" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -1030,45 +1084,64 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                         const isWatched = watchedEpisodes.has(`${season.season_number}-${episode.episode_number}`);
 
                         return (
-                          <div key={episode.episode_number} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                          <div
+                            key={episode.episode_number}
+                            className={`p-4 transition-colors ${
+                              isWatched && userRating
+                                ? 'bg-green-50/50 dark:bg-green-900/10 hover:bg-green-100/50 dark:hover:bg-green-900/20'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                            }`}
+                          >
                             <div className="flex items-start gap-3">
-                              {userRating && (
-                                <input
-                                  type="checkbox"
-                                  checked={isWatched}
-                                  onChange={() => toggleEpisode(season.season_number, episode.episode_number)}
-                                  className="w-4 h-4 text-green-500 rounded border-gray-300 focus:ring-green-500 cursor-pointer mt-1"
-                                />
-                              )}
                               <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <h5 className="font-medium text-gray-900 dark:text-white">
-                                {episode.episode_number}. {episode.name}
-                              </h5>
-                              {episode.runtime && (
-                                <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                  {episode.runtime}min
-                                </span>
-                              )}
-                            </div>
-                            {episode.air_date && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                {new Date(episode.air_date).toLocaleDateString()}
-                              </p>
-                            )}
-                            {episode.overview && (
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
-                                {episode.overview}
-                              </p>
-                            )}
-                            {episode.vote_average > 0 && (
-                              <div className="flex items-center gap-1 mt-2">
-                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                <span className="text-sm text-gray-700 dark:text-gray-300">
-                                  {episode.vote_average.toFixed(1)}
-                                </span>
-                              </div>
-                            )}
+                                <div className="flex items-start justify-between gap-2">
+                                  <h5 className="font-medium text-gray-900 dark:text-white">
+                                    {episode.episode_number}. {episode.name}
+                                  </h5>
+                                  <div className="flex items-center gap-3 flex-shrink-0">
+                                    {episode.runtime && (
+                                      <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                        {episode.runtime}min
+                                      </span>
+                                    )}
+                                    {userRating && (
+                                      <button
+                                        onClick={() => toggleEpisode(season.season_number, episode.episode_number)}
+                                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                                          isWatched
+                                            ? 'bg-green-500 hover:bg-green-600'
+                                            : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                                        }`}
+                                      >
+                                        {isWatched ? (
+                                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        ) : (
+                                          <div className="w-2 h-2 rounded-full bg-white dark:bg-gray-800" />
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                                {episode.air_date && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {new Date(episode.air_date).toLocaleDateString()}
+                                  </p>
+                                )}
+                                {episode.overview && (
+                                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
+                                    {episode.overview}
+                                  </p>
+                                )}
+                                {episode.vote_average > 0 && (
+                                  <div className="flex items-center gap-1 mt-2">
+                                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                                      {episode.vote_average.toFixed(1)}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1077,7 +1150,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     </div>
                   </div>
                   );
-                })
+                  })}
+                </>
               )}
             </div>
           </div>
