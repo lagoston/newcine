@@ -166,9 +166,19 @@ export default function Profile() {
       }
     };
 
+    const handleEpisodeToggled = () => {
+      console.log('📺 Episode toggled, reloading stats...');
+      if (session?.user?.id) {
+        fetchMovieStats();
+      }
+    };
+
     i18n.on('languageChanged', handleLanguageChange);
+    window.addEventListener('episodeToggled', handleEpisodeToggled);
+
     return () => {
       i18n.off('languageChanged', handleLanguageChange);
+      window.removeEventListener('episodeToggled', handleEpisodeToggled);
     };
   }, [i18n, session?.user?.id]);
 

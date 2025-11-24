@@ -21,14 +21,16 @@ interface MovieDetailsModalProps {
   onClose: () => void;
   isOtherUserProfile?: boolean;
   onAddToLibrary?: () => void;
+  onEpisodeToggle?: () => void;
 }
 
-const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({ 
-  movie, 
-  isOpen, 
+const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
+  movie,
+  isOpen,
   onClose,
   isOtherUserProfile = false,
-  onAddToLibrary
+  onAddToLibrary,
+  onEpisodeToggle
 }) => {
   const { session } = useAuth();
   const { t } = useTranslation();
@@ -241,6 +243,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       }
 
       setWatchedEpisodes(newWatched);
+
+      // Trigger parent component refresh
+      if (onEpisodeToggle) {
+        onEpisodeToggle();
+      }
+
+      // Dispatch custom event for profile stats refresh
+      window.dispatchEvent(new CustomEvent('episodeToggled'));
     } catch (error) {
       console.error('Error toggling episode:', error);
       toast.error('Failed to update episode status');
@@ -294,6 +304,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         });
         setWatchedEpisodes(newWatched);
       }
+
+      // Trigger parent component refresh
+      if (onEpisodeToggle) {
+        onEpisodeToggle();
+      }
+
+      // Dispatch custom event for profile stats refresh
+      window.dispatchEvent(new CustomEvent('episodeToggled'));
     } catch (error) {
       console.error('Error toggling season:', error);
       toast.error('Failed to update season status');
@@ -905,12 +923,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               </button>
             </div>
             <div className="p-4 space-y-4">
-              {movie.seasons.map((season: any) => {
-                const allWatched = season.episodes.every((ep: any) =>
-                  watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
-                );
+              {!movie.seasons || movie.seasons.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  Season information not available yet. Try again in a moment.
+                </div>
+              ) : (
+                movie.seasons.map((season: any) => {
+                  if (!season.episodes || season.episodes.length === 0) {
+                    return null;
+                  }
 
-                return (
+                  const allWatched = season.episodes.every((ep: any) =>
+                    watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
+                  );
+
+                  return (
                   <div key={season.season_number} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                     <div className="bg-gray-50 dark:bg-gray-700/50 p-4">
                       <div className="flex items-start gap-4">
@@ -998,8 +1025,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       })}
                     </div>
                   </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
