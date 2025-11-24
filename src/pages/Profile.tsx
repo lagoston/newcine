@@ -246,7 +246,34 @@ export default function Profile() {
 
       const validMovies = movieDetails.filter(movie => movie !== null);
 
-      const totalMinutes = validMovies.reduce((sum, movie) => sum + (movie.runtime || 0), 0);
+      // Calculate watch time including TV episodes
+      let totalMinutes = 0;
+
+      for (const movie of validMovies) {
+        if (movie.media_type === 'tv') {
+          // For TV shows, count only watched episodes
+          const { data: watchedEps } = await supabase
+            .from('watched_episodes')
+            .select('season_number, episode_number')
+            .eq('user_id', session.user.id)
+            .eq('tmdb_id', movie.id);
+
+          if (watchedEps && watchedEps.length > 0 && movie.seasons) {
+            // Calculate runtime from watched episodes
+            watchedEps.forEach(ep => {
+              const season = movie.seasons.find((s: any) => s.season_number === ep.season_number);
+              const episode = season?.episodes.find((e: any) => e.episode_number === ep.episode_number);
+              if (episode?.runtime) {
+                totalMinutes += episode.runtime;
+              }
+            });
+          }
+        } else {
+          // For movies, use full runtime
+          totalMinutes += movie.runtime || 0;
+        }
+      }
+
       setTotalWatchTime(totalMinutes);
 
       const genreCounts = {};

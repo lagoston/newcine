@@ -90,7 +90,6 @@ Deno.serve(async (req: Request) => {
                 air_date: ep.air_date,
                 runtime: ep.runtime,
                 overview: ep.overview,
-                still_path: ep.still_path,
                 vote_average: ep.vote_average
               })) || []
             });

@@ -39,11 +39,17 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [showRecommendModal, setShowRecommendModal] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [showSeasonsModal, setShowSeasonsModal] = useState(false);
+  const [watchedEpisodes, setWatchedEpisodes] = useState<Set<string>>(new Set());
+  const [userRating, setUserRating] = useState<number | null>(null);
 
   useEffect(() => {
     if (session?.user?.id) {
       checkIfInLibrary();
       loadFriendRatings();
+      loadUserRating();
+      if (movie.media_type === 'tv') {
+        loadWatchedEpisodes();
+      }
     }
   }, [session?.user?.id, movie.id]);
 
@@ -157,6 +163,140 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       setFriendRatings([]);
     } finally {
       setLoadingFriends(false);
+    }
+  };
+
+  const loadUserRating = async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('user_movies')
+        .select('rating')
+        .eq('user_id', session.user.id)
+        .eq('movie_id', movie.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      setUserRating(data?.rating || null);
+    } catch (error) {
+      console.error('Error loading user rating:', error);
+    }
+  };
+
+  const loadWatchedEpisodes = async () => {
+    if (!session?.user?.id || movie.media_type !== 'tv') return;
+
+    try {
+      const { data, error } = await supabase
+        .from('watched_episodes')
+        .select('season_number, episode_number')
+        .eq('user_id', session.user.id)
+        .eq('tmdb_id', movie.id);
+
+      if (error) throw error;
+
+      const watched = new Set<string>();
+      data?.forEach(ep => {
+        watched.add(`${ep.season_number}-${ep.episode_number}`);
+      });
+      setWatchedEpisodes(watched);
+    } catch (error) {
+      console.error('Error loading watched episodes:', error);
+    }
+  };
+
+  const toggleEpisode = async (seasonNumber: number, episodeNumber: number) => {
+    if (!session?.user?.id || !userRating) return;
+
+    const key = `${seasonNumber}-${episodeNumber}`;
+    const newWatched = new Set(watchedEpisodes);
+
+    try {
+      if (watchedEpisodes.has(key)) {
+        // Unmark episode
+        const { error } = await supabase
+          .from('watched_episodes')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('tmdb_id', movie.id)
+          .eq('season_number', seasonNumber)
+          .eq('episode_number', episodeNumber);
+
+        if (error) throw error;
+        newWatched.delete(key);
+      } else {
+        // Mark episode
+        const { error } = await supabase
+          .from('watched_episodes')
+          .insert({
+            user_id: session.user.id,
+            tmdb_id: movie.id,
+            season_number: seasonNumber,
+            episode_number: episodeNumber
+          });
+
+        if (error) throw error;
+        newWatched.add(key);
+      }
+
+      setWatchedEpisodes(newWatched);
+    } catch (error) {
+      console.error('Error toggling episode:', error);
+      toast.error('Failed to update episode status');
+    }
+  };
+
+  const toggleSeason = async (season: any) => {
+    if (!session?.user?.id || !userRating) return;
+
+    const allWatched = season.episodes.every((ep: any) =>
+      watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
+    );
+
+    try {
+      if (allWatched) {
+        // Unmark all episodes in season
+        const { error } = await supabase
+          .from('watched_episodes')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('tmdb_id', movie.id)
+          .eq('season_number', season.season_number);
+
+        if (error) throw error;
+
+        const newWatched = new Set(watchedEpisodes);
+        season.episodes.forEach((ep: any) => {
+          newWatched.delete(`${season.season_number}-${ep.episode_number}`);
+        });
+        setWatchedEpisodes(newWatched);
+      } else {
+        // Mark all episodes in season
+        const episodesToInsert = season.episodes.map((ep: any) => ({
+          user_id: session.user.id,
+          tmdb_id: movie.id,
+          season_number: season.season_number,
+          episode_number: ep.episode_number
+        }));
+
+        const { error } = await supabase
+          .from('watched_episodes')
+          .upsert(episodesToInsert, {
+            onConflict: 'user_id,tmdb_id,season_number,episode_number'
+          });
+
+        if (error) throw error;
+
+        const newWatched = new Set(watchedEpisodes);
+        season.episodes.forEach((ep: any) => {
+          newWatched.add(`${season.season_number}-${ep.episode_number}`);
+        });
+        setWatchedEpisodes(newWatched);
+      }
+    } catch (error) {
+      console.error('Error toggling season:', error);
+      toast.error('Failed to update season status');
     }
   };
 
@@ -765,45 +905,64 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               </button>
             </div>
             <div className="p-4 space-y-4">
-              {movie.seasons.map((season: any) => (
-                <div key={season.season_number} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                  <div className="bg-gray-50 dark:bg-gray-700/50 p-4">
-                    <div className="flex items-start gap-4">
-                      {season.poster_path && (
-                        <img
-                          src={`https://image.tmdb.org/t/p/w92${season.poster_path}`}
-                          alt={season.name}
-                          className="w-16 h-24 object-cover rounded"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {season.name}
-                        </h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {season.episode_count} Episodes
-                          {season.air_date && ` • ${new Date(season.air_date).getFullYear()}`}
-                        </p>
-                        {season.overview && (
-                          <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">
-                            {season.overview}
-                          </p>
+              {movie.seasons.map((season: any) => {
+                const allWatched = season.episodes.every((ep: any) =>
+                  watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
+                );
+
+                return (
+                  <div key={season.season_number} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 p-4">
+                      <div className="flex items-start gap-4">
+                        {season.poster_path && (
+                          <img
+                            src={`https://image.tmdb.org/t/p/w92${season.poster_path}`}
+                            alt={season.name}
+                            className="w-16 h-24 object-cover rounded"
+                          />
                         )}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            {userRating && (
+                              <input
+                                type="checkbox"
+                                checked={allWatched}
+                                onChange={() => toggleSeason(season)}
+                                className="w-5 h-5 text-green-500 rounded border-gray-300 focus:ring-green-500 cursor-pointer"
+                              />
+                            )}
+                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {season.name}
+                            </h4>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {season.episode_count} Episodes
+                            {season.air_date && ` • ${new Date(season.air_date).getFullYear()}`}
+                          </p>
+                          {season.overview && (
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">
+                              {season.overview}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {season.episodes.map((episode: any) => (
-                      <div key={episode.episode_number} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                        <div className="flex items-start gap-3">
-                          {episode.still_path && (
-                            <img
-                              src={`https://image.tmdb.org/t/p/w185${episode.still_path}`}
-                              alt={episode.name}
-                              className="w-32 h-18 object-cover rounded"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0">
+                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {season.episodes.map((episode: any) => {
+                        const isWatched = watchedEpisodes.has(`${season.season_number}-${episode.episode_number}`);
+
+                        return (
+                          <div key={episode.episode_number} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                            <div className="flex items-start gap-3">
+                              {userRating && (
+                                <input
+                                  type="checkbox"
+                                  checked={isWatched}
+                                  onChange={() => toggleEpisode(season.season_number, episode.episode_number)}
+                                  className="w-4 h-4 text-green-500 rounded border-gray-300 focus:ring-green-500 cursor-pointer mt-1"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
                               <h5 className="font-medium text-gray-900 dark:text-white">
                                 {episode.episode_number}. {episode.name}
@@ -832,13 +991,15 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                 </span>
                               </div>
                             )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

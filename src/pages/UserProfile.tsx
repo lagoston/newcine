@@ -268,8 +268,34 @@ export default function UserProfile() {
       // Calculate stats for rated movies only
       const ratedValidMovies = validMovies.filter(movie => movie.userRating !== null);
 
-      // Calculate total watch time (rated movies only)
-      const totalWatchTime = ratedValidMovies.reduce((sum, movie) => sum + (movie.runtime || 0), 0);
+      // Calculate total watch time (rated movies only) including TV episodes
+      let totalWatchTime = 0;
+
+      for (const movie of ratedValidMovies) {
+        if (movie.media_type === 'tv') {
+          // For TV shows, count only watched episodes
+          const { data: watchedEps } = await supabase
+            .from('watched_episodes')
+            .select('season_number, episode_number')
+            .eq('user_id', userId)
+            .eq('tmdb_id', movie.id);
+
+          if (watchedEps && watchedEps.length > 0 && movie.seasons) {
+            // Calculate runtime from watched episodes
+            watchedEps.forEach(ep => {
+              const season = movie.seasons.find((s: any) => s.season_number === ep.season_number);
+              const episode = season?.episodes.find((e: any) => e.episode_number === ep.episode_number);
+              if (episode?.runtime) {
+                totalWatchTime += episode.runtime;
+              }
+            });
+          }
+        } else {
+          // For movies, use full runtime
+          totalWatchTime += movie.runtime || 0;
+        }
+      }
+
       setTotalWatchTime(totalWatchTime);
 
       // Calculate genre counts (rated movies only)
