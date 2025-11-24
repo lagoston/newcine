@@ -194,7 +194,8 @@ export default function Profile() {
       const cacheKey = CACHE_KEYS.USER_STATS(session.user.id);
       const cachedStats = cache.get<any>(cacheKey);
 
-      if (cachedStats) {
+      // Only use cache if it has valid data
+      if (cachedStats && cachedStats.ratedMoviesCount > 0) {
         setRatedMoviesCount(cachedStats.ratedMoviesCount);
         setRatingDistribution(cachedStats.ratingDistribution);
         setTotalWatchTime(cachedStats.totalWatchTime);
@@ -265,6 +266,7 @@ export default function Profile() {
       // Calculate favorite decade
       const decadeCounts: DecadeCount = {};
       let totalRatedMovies = 0;
+      let calculatedFavoriteDecade: FavoriteDecade | null = null;
 
       validMovies.forEach(movie => {
         if (movie.release_date) {
@@ -303,13 +305,15 @@ export default function Profile() {
           label = 'Modern Lover';
         }
 
-        setFavoriteDecade({
+        calculatedFavoriteDecade = {
           decade: topDecade,
           count: topCount,
           label,
           percentage: percentage,
-          allDecades: decadeCounts // Adiciona todas as décadas
-        });
+          allDecades: decadeCounts
+        };
+
+        setFavoriteDecade(calculatedFavoriteDecade);
       }
 
       // Calculate top actors
@@ -374,7 +378,7 @@ export default function Profile() {
         ratingDistribution: distribution,
         totalWatchTime: totalMinutes,
         favoriteGenres: topGenres,
-        favoriteDecade: favoriteDecade,
+        favoriteDecade: calculatedFavoriteDecade,
         topActors: mostFrequentActors,
         topDirectors: mostFrequentDirectors,
         leastKnownGem: ratedMoviesWithPopularity.length > 0 ? {
