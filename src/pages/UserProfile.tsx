@@ -376,20 +376,20 @@ export default function UserProfile() {
       
       setTopDirectors(mostFrequentDirectors);
 
-      // Find least-known gem (movie with lowest popularity that the user has rated)
-      const ratedMoviesWithPopularity = ratedValidMovies
-        .filter(movie => movie.userRating !== null && movie.popularity !== undefined && movie.popularity !== null)
-        .sort((a, b) => (a.popularity || 0) - (b.popularity || 0));
+      // Find least-known gem (movie with lowest vote_count that the user has rated)
+      const ratedMoviesWithVoteCounts = ratedValidMovies
+        .filter(movie => movie.userRating !== null && movie.vote_count !== undefined && movie.vote_count !== null)
+        .sort((a, b) => (a.vote_count || 0) - (b.vote_count || 0));
 
-      if (ratedMoviesWithPopularity.length > 0) {
-        const leastPopular = ratedMoviesWithPopularity[0];
+      if (ratedMoviesWithVoteCounts.length > 0) {
+        const leastKnown = ratedMoviesWithVoteCounts[0];
         setLeastKnownGem({
-          id: leastPopular.id,
-          title: leastPopular.title,
-          vote_count: leastPopular.popularity || 0,
-          release_date: leastPopular.release_date,
-          vote_average: leastPopular.vote_average,
-          userRating: leastPopular.userRating
+          id: leastKnown.id,
+          title: leastKnown.title,
+          vote_count: leastKnown.vote_count || 0,
+          release_date: leastKnown.release_date,
+          vote_average: leastKnown.vote_average,
+          userRating: leastKnown.userRating
         });
       }
 

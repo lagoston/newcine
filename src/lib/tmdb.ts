@@ -328,6 +328,7 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
       overview: isPortuguese && data.overview_pt ? data.overview_pt : data.overview_en,
       release_date: data.release_date,
       vote_average: data.vote_average,
+      vote_count: data.vote_count,
       runtime: data.runtime,
       number_of_seasons: data.number_of_seasons,
       number_of_episodes: data.number_of_episodes,
@@ -335,7 +336,6 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
       origin_country: data.origin_country,
       media_type: data.media_type as 'movie' | 'tv',
       genres: isPortuguese && data.genres_pt ? data.genres_pt : data.genres_en,
-      popularity: data.popularity,
       credits: {
         cast: data.cast_members || [],
         crew: data.director ? [{ id: 0, name: data.director, job: 'Director' }] : []
@@ -408,7 +408,7 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
       poster_path_pt: ptData.poster_path,
       backdrop_path: enData.backdrop_path,
       vote_average: enData.vote_average,
-      popularity: enData.popularity,
+      vote_count: enData.vote_count,
       runtime: totalRuntime,
       number_of_seasons: enData.number_of_seasons,
       number_of_episodes: totalEpisodes,

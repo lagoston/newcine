@@ -356,20 +356,20 @@ export default function Profile() {
       
       setTopDirectors(mostFrequentDirectors);
 
-      // Find least-known gem (movie with lowest popularity that the user has rated)
-      const ratedMoviesWithPopularity = validMovies
-        .filter(movie => movie.userRating !== null && movie.popularity !== undefined && movie.popularity !== null)
-        .sort((a, b) => (a.popularity || 0) - (b.popularity || 0));
+      // Find least-known gem (movie with lowest vote_count that the user has rated)
+      const ratedMoviesWithVoteCounts = validMovies
+        .filter(movie => movie.userRating !== null && movie.vote_count !== undefined && movie.vote_count !== null)
+        .sort((a, b) => (a.vote_count || 0) - (b.vote_count || 0));
 
-      if (ratedMoviesWithPopularity.length > 0) {
-        const leastPopular = ratedMoviesWithPopularity[0];
+      if (ratedMoviesWithVoteCounts.length > 0) {
+        const leastKnown = ratedMoviesWithVoteCounts[0];
         setLeastKnownGem({
-          id: leastPopular.id,
-          title: leastPopular.title,
-          vote_count: leastPopular.popularity || 0,
-          release_date: leastPopular.release_date,
-          vote_average: leastPopular.vote_average,
-          userRating: leastPopular.userRating
+          id: leastKnown.id,
+          title: leastKnown.title,
+          vote_count: leastKnown.vote_count || 0,
+          release_date: leastKnown.release_date,
+          vote_average: leastKnown.vote_average,
+          userRating: leastKnown.userRating
         });
       }
 
@@ -381,13 +381,13 @@ export default function Profile() {
         favoriteDecade: calculatedFavoriteDecade,
         topActors: mostFrequentActors,
         topDirectors: mostFrequentDirectors,
-        leastKnownGem: ratedMoviesWithPopularity.length > 0 ? {
-          id: ratedMoviesWithPopularity[0].id,
-          title: ratedMoviesWithPopularity[0].title,
-          vote_count: ratedMoviesWithPopularity[0].popularity || 0,
-          release_date: ratedMoviesWithPopularity[0].release_date,
-          vote_average: ratedMoviesWithPopularity[0].vote_average,
-          userRating: ratedMoviesWithPopularity[0].userRating
+        leastKnownGem: ratedMoviesWithVoteCounts.length > 0 ? {
+          id: ratedMoviesWithVoteCounts[0].id,
+          title: ratedMoviesWithVoteCounts[0].title,
+          vote_count: ratedMoviesWithVoteCounts[0].vote_count || 0,
+          release_date: ratedMoviesWithVoteCounts[0].release_date,
+          vote_average: ratedMoviesWithVoteCounts[0].vote_average,
+          userRating: ratedMoviesWithVoteCounts[0].userRating
         } : null
       }, CACHE_TTL.USER_STATS);
 
