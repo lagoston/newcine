@@ -43,6 +43,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [showSeasonsModal, setShowSeasonsModal] = useState(false);
   const [watchedEpisodes, setWatchedEpisodes] = useState<Set<string>>(new Set());
   const [userRating, setUserRating] = useState<number | null>(null);
+  const [loadingSeasons, setLoadingSeasons] = useState(false);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -205,6 +206,51 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       setWatchedEpisodes(watched);
     } catch (error) {
       console.error('Error loading watched episodes:', error);
+    }
+  };
+
+  const fetchSeasons = async () => {
+    if (movie.media_type !== 'tv' || loadingSeasons) return;
+
+    setLoadingSeasons(true);
+    try {
+      // Try to get from cache first
+      const { data: cached } = await supabase
+        .from('movie_cache')
+        .select('seasons_data')
+        .eq('tmdb_id', movie.id)
+        .eq('media_type', 'tv')
+        .maybeSingle();
+
+      if (cached?.seasons_data && cached.seasons_data.length > 0) {
+        // Update movie object with cached seasons
+        movie.seasons = cached.seasons_data;
+        setLoadingSeasons(false);
+        return;
+      }
+
+      // If not in cache, trigger background fetch via API
+      // The getMovieDetails function will fetch and cache seasons
+      const details = await import('../lib/tmdb').then(m =>
+        m.getMovieDetails(movie.id, 'tv')
+      );
+
+      if (details.seasons) {
+        movie.seasons = details.seasons;
+      }
+    } catch (error) {
+      console.error('Error fetching seasons:', error);
+    } finally {
+      setLoadingSeasons(false);
+    }
+  };
+
+  const handleOpenSeasons = async () => {
+    setShowSeasonsModal(true);
+
+    // If no seasons yet, fetch them
+    if (!movie.seasons || movie.seasons.length === 0) {
+      await fetchSeasons();
     }
   };
 
@@ -787,8 +833,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   </div>
 
                   <div
-                    className={`bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 ${isTvShow && movie.seasons ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-colors' : ''}`}
-                    onClick={() => isTvShow && movie.seasons && setShowSeasonsModal(true)}
+                    className={`bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 ${isTvShow ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-colors' : ''}`}
+                    onClick={() => isTvShow && handleOpenSeasons()}
                   >
                     <div className="flex items-center justify-center mb-2">
                       {isTvShow ? (
@@ -923,7 +969,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               </button>
             </div>
             <div className="p-4 space-y-4">
-              {!movie.seasons || movie.seasons.length === 0 ? (
+              {loadingSeasons ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+                  <p className="text-gray-500 dark:text-gray-400 mt-2">Loading seasons...</p>
+                </div>
+              ) : !movie.seasons || movie.seasons.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   Season information not available yet. Try again in a moment.
                 </div>

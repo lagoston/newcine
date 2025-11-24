@@ -323,6 +323,18 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
       return null;
     }
 
+    // Skip cache if TV series is ongoing (not ended) - fetch fresh data to check for new seasons
+    if (mediaType === 'tv' && data.status && data.status !== 'Ended') {
+      console.log(`TV Series ${movieId} is ongoing (${data.status}), fetching fresh data from API`);
+      return null;
+    }
+
+    // Also skip if series is in production
+    if (mediaType === 'tv' && data.in_production === true) {
+      console.log(`TV Series ${movieId} is in production, fetching fresh data from API`);
+      return null;
+    }
+
     // Convert cached data to Movie interface based on language
     const isPortuguese = language.startsWith('pt');
 
@@ -466,6 +478,11 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
       watch_providers: movieData.watchProviders || {},
       content_ratings: movieData.content_ratings || [],
       seasons_data: seasonsData,
+
+      // TV Series status tracking
+      status: mediaType === 'tv' ? enData.status : null,
+      in_production: mediaType === 'tv' ? enData.in_production : false,
+      last_air_date: mediaType === 'tv' ? enData.last_air_date : null,
 
       updated_at: new Date().toISOString()
     };
