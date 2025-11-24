@@ -135,6 +135,9 @@ const RatingBox: React.FC<RatingBoxProps> = ({
 
   if (movies.length === 0) return null;
 
+  // Check if box contains any TV series
+  const hasTvSeries = movies.some(m => m.media_type === 'tv');
+
   // Chroma Box Effects
   const getChromaBoxClasses = () => {
     if (!chromaBoxEnabled || rating === null) return '';
@@ -173,9 +176,17 @@ const RatingBox: React.FC<RatingBoxProps> = ({
       {/* Header da seção */}
       <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-1.5 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-full"></div>
+          <div className={`h-12 w-1.5 rounded-full ${
+            hasTvSeries
+              ? 'bg-gradient-to-b from-purple-500 via-purple-600 to-purple-700'
+              : 'bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500'
+          }`}></div>
           <div>
-            <h3 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 pb-1 leading-relaxed flex items-center">
+            <h3 className={`text-2xl sm:text-3xl font-bold text-transparent bg-clip-text pb-1 leading-relaxed flex items-center ${
+              hasTvSeries
+                ? 'bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400'
+                : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400'
+            }`}>
               {rating !== null && (
                 <Star className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-500 fill-yellow-500 mr-2" />
               )}
@@ -183,7 +194,11 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 {rating !== null ? rating : title}
               </span>
             </h3>
-            <div className="mt-1 inline-flex items-center text-xs font-semibold bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 backdrop-blur-sm border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-lg">
+            <div className={`mt-1 inline-flex items-center text-xs font-semibold backdrop-blur-sm px-3 py-1 rounded-lg ${
+              hasTvSeries
+                ? 'bg-gradient-to-r from-purple-500/20 to-purple-600/20 dark:from-purple-500/30 dark:to-purple-600/30 border border-purple-500/30 text-purple-700 dark:text-purple-300'
+                : 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300'
+            }`}>
               <Film className="w-3 h-3 mr-1.5" />
               {movies.length} {movies.length === 1 ? t('community.film') : t('community.films')}
             </div>

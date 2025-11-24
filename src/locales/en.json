@@ -125,7 +125,19 @@
     "noWatchlistMovies": "Your watchlist is empty",
     "loadingMovies": "Loading your library...",
     "changeRating": "Change",
-    "movedToWatchlist": "Movie moved to watchlist"
+    "movedToWatchlist": "Movie moved to watchlist",
+    "tvSeriesOrder": "TV Series Order",
+    "tvSeriesOrderDesc": "Control how TV series are displayed in rating boxes",
+    "orderAutomatic": "Automatic",
+    "orderAutomaticDesc": "Mixed order (default)",
+    "orderSeriesFirst": "Series First",
+    "orderSeriesFirstDesc": "Show all series before movies",
+    "orderSeriesLast": "Series Last",
+    "orderSeriesLastDesc": "Show all series after movies",
+    "chromaBox": "Chroma Box",
+    "chromaBoxDesc": "Color-coded rating boxes with visual effects",
+    "enableChromaBox": "Enable Chroma Box",
+    "chromaBoxLegend": "10: Gold | 9-7: Green | 6-4: Yellow | 3-1: Red | 0: Glitch"
   },
   "movies": {
     "director": "Director",
@@ -144,7 +156,15 @@
     "unknown": "Unknown",
     "friendRating": "Friend's rating:",
     "addingToLibrary": "Adding to library...",
-    "inLibrary": "In Library"
+    "inLibrary": "In Library",
+    "seasons": "Seasons",
+    "episodes": "Episodes",
+    "episode": "Episode",
+    "loadingSeasons": "Loading seasons...",
+    "noSeasonsAvailable": "Season information not available yet. Try again in a moment.",
+    "progress": "Progress",
+    "complete": "complete",
+    "seasonsAndEpisodes": "Seasons & Episodes"
   },
   "oracle": {
     "title": "THE ORACLE",

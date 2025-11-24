@@ -125,7 +125,19 @@
     "noWatchlistMovies": "Sua watchlist está vazia",
     "loadingMovies": "Carregando sua biblioteca...",
     "changeRating": "Trocar",
-    "movedToWatchlist": "Filme movido para a watchlist"
+    "movedToWatchlist": "Filme movido para a watchlist",
+    "tvSeriesOrder": "Ordem das Séries",
+    "tvSeriesOrderDesc": "Controle como séries de TV são exibidas nas caixas de avaliação",
+    "orderAutomatic": "Automático",
+    "orderAutomaticDesc": "Ordem mista (padrão)",
+    "orderSeriesFirst": "Séries Primeiro",
+    "orderSeriesFirstDesc": "Mostrar todas as séries antes dos filmes",
+    "orderSeriesLast": "Séries Por Último",
+    "orderSeriesLastDesc": "Mostrar todas as séries depois dos filmes",
+    "chromaBox": "Chroma Box",
+    "chromaBoxDesc": "Caixas de avaliação com cores e efeitos visuais",
+    "enableChromaBox": "Ativar Chroma Box",
+    "chromaBoxLegend": "10: Dourado | 9-7: Verde | 6-4: Amarelo | 3-1: Vermelho | 0: Glitch"
   },
   "movies": {
     "director": "Diretor",
@@ -144,7 +156,15 @@
     "unknown": "Desconhecido",
     "friendRating": "Avaliação do amigo:",
     "addingToLibrary": "Adicionando à biblioteca...",
-    "inLibrary": "Na Biblioteca"
+    "inLibrary": "Na Biblioteca",
+    "seasons": "Temporadas",
+    "episodes": "Episódios",
+    "episode": "Episódio",
+    "loadingSeasons": "Carregando temporadas...",
+    "noSeasonsAvailable": "Informações de temporada não disponíveis ainda. Tente novamente em instantes.",
+    "progress": "Progresso",
+    "complete": "completo",
+    "seasonsAndEpisodes": "Temporadas e Episódios"
   },
   "oracle": {
     "title": "O ORÁCULO",

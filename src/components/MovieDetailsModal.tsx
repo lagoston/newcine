@@ -975,7 +975,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center z-10">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                {movie.title} - Seasons & Episodes
+                {movie.title} - {t('movies.seasonsAndEpisodes')}
               </h3>
               <button
                 onClick={() => setShowSeasonsModal(false)}
@@ -988,11 +988,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               {loadingSeasons ? (
                 <div className="text-center py-8">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
-                  <p className="text-gray-500 dark:text-gray-400 mt-2">Loading seasons...</p>
+                  <p className="text-gray-500 dark:text-gray-400 mt-2">{t('movies.loadingSeasons')}</p>
                 </div>
               ) : !seasons || seasons.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  Season information not available yet. Try again in a moment.
+                  {t('movies.noSeasonsAvailable')}
                 </div>
               ) : (
                 <>
@@ -1006,10 +1006,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       <div className="mb-6">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Progress
+                            {t('movies.progress')}
                           </span>
                           <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {watchedCount} / {totalEpisodes} episodes
+                            {watchedCount} / {totalEpisodes} {t('movies.episodes').toLowerCase()}
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
@@ -1019,7 +1019,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           />
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
-                          {progress.toFixed(1)}% complete
+                          {progress.toFixed(1)}% {t('movies.complete')}
                         </p>
                       </div>
                     );
@@ -1050,7 +1050,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                             {season.name}
                           </h4>
                           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            {season.episode_count} Episodes
+                            {season.episode_count} {t('movies.episodes')}
                             {season.air_date && ` • ${new Date(season.air_date).getFullYear()}`}
                           </p>
                           {season.overview && (

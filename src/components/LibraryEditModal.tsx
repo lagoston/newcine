@@ -289,9 +289,9 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col my-8">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             {t('library.title')} {t('common.edit')}
           </h3>
@@ -302,7 +302,7 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-6 overflow-y-auto flex-1">
           {/* Only show rename for rated boxes, not watchlist */}
           {rating !== null && (
             <div>
@@ -335,10 +335,10 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
           {/* TV Series Order */}
           <div className={rating !== null ? 'border-t border-gray-200 dark:border-gray-700 pt-6' : ''}>
             <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-              TV Series Order
+              {t('library.tvSeriesOrder')}
             </h4>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Control how TV series are displayed in rating boxes
+              {t('library.tvSeriesOrderDesc')}
             </p>
             <div className="space-y-2">
               <label className="flex items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
@@ -351,8 +351,8 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
                   className="w-4 h-4 text-blue-600"
                 />
                 <div className="ml-3">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">Automatic</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Mixed order (default)</div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">{t('library.orderAutomatic')}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{t('library.orderAutomaticDesc')}</div>
                 </div>
               </label>
 
@@ -366,8 +366,8 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
                   className="w-4 h-4 text-blue-600"
                 />
                 <div className="ml-3">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">Series First</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Show all series before movies</div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">{t('library.orderSeriesFirst')}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{t('library.orderSeriesFirstDesc')}</div>
                 </div>
               </label>
 
@@ -381,8 +381,8 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
                   className="w-4 h-4 text-blue-600"
                 />
                 <div className="ml-3">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">Series Last</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Show all series after movies</div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">{t('library.orderSeriesLast')}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{t('library.orderSeriesLastDesc')}</div>
                 </div>
               </label>
             </div>
@@ -391,15 +391,15 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
           {/* Chroma Box */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
             <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-              Chroma Box
+              {t('library.chromaBox')}
             </h4>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Color-coded rating boxes with visual effects
+              {t('library.chromaBoxDesc')}
             </p>
             <label className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <div className="flex-1">
-                <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">Enable Chroma Box</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">10: Gold | 9-7: Green | 6-4: Yellow | 3-1: Red | 0: Glitch</div>
+                <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">{t('library.enableChromaBox')}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{t('library.chromaBoxLegend')}</div>
               </div>
               <button
                 onClick={handleChromaBoxToggle}
