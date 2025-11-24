@@ -366,7 +366,15 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
     console.log(`📝 EN: "${enTitle}" | PT: "${ptTitle}"`);
     console.log(`🖼️ Poster EN: ${enData.poster_path} | PT: ${ptData.poster_path}`);
 
-    const director = enData.credits?.crew?.find((person: any) => person.job === 'Director')?.name;
+    // For TV shows, use "created_by" instead of director
+    let director;
+    if (mediaType === 'tv') {
+      director = enData.created_by && enData.created_by.length > 0
+        ? enData.created_by[0].name
+        : null;
+    } else {
+      director = enData.credits?.crew?.find((person: any) => person.job === 'Director')?.name;
+    }
     const castMembers = enData.credits?.cast?.slice(0, 10).map((person: any) => ({
       id: person.id,
       name: person.name,

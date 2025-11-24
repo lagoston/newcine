@@ -23,11 +23,11 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all cached movies that need updating (missing origin_country or other fields)
+    // Get all cached movies that need updating (missing origin_country, popularity, or director for TV shows)
     const { data: cachedMovies, error: fetchError } = await supabase
       .from('movie_cache')
-      .select('tmdb_id, media_type, origin_country, popularity')
-      .or('origin_country.is.null,popularity.is.null');
+      .select('tmdb_id, media_type, origin_country, popularity, director')
+      .or('origin_country.is.null,popularity.is.null,and(media_type.eq.tv,director.is.null)');
 
     if (fetchError) {
       console.error('Error fetching cached movies:', fetchError);
@@ -95,11 +95,22 @@ Deno.serve(async (req: Request) => {
               }
             }
 
+            // Get director/creator
+            let director;
+            if (movie.media_type === 'tv') {
+              director = enData.created_by && enData.created_by.length > 0
+                ? enData.created_by[0].name
+                : null;
+            } else {
+              director = enData.credits?.crew?.find((person: any) => person.job === 'Director')?.name;
+            }
+
             // Prepare update data
             const updateData: any = {
               popularity: enData.popularity,
               origin_country: enData.origin_country || enData.production_countries?.map((c: any) => c.iso_3166_1) || [],
               runtime: totalRuntime,
+              director: director,
               updated_at: new Date().toISOString()
             };
 
