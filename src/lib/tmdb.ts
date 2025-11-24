@@ -84,6 +84,8 @@ export interface Movie {
   vote_average: number;
   runtime: number;
   number_of_seasons?: number;
+  number_of_episodes?: number;
+  episode_run_time?: number | number[];
   genres: Genre[];
   userRating?: number | null;
   popularity?: number;
@@ -328,6 +330,9 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
       vote_average: data.vote_average,
       runtime: data.runtime,
       number_of_seasons: data.number_of_seasons,
+      number_of_episodes: data.number_of_episodes,
+      episode_run_time: data.episode_run_time,
+      origin_country: data.origin_country,
       media_type: data.media_type as 'movie' | 'tv',
       genres: isPortuguese && data.genres_pt ? data.genres_pt : data.genres_en,
       popularity: data.popularity,
@@ -368,6 +373,24 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
       character: person.character
     })) || [];
 
+    // Calculate runtime for TV shows
+    let totalRuntime = enData.runtime;
+    let episodeRuntime = null;
+    let totalEpisodes = null;
+
+    if (mediaType === 'tv') {
+      // For TV shows, calculate total runtime
+      totalEpisodes = enData.number_of_episodes || 0;
+
+      // Get average episode runtime (API returns array, use first value or calculate average)
+      if (enData.episode_run_time && enData.episode_run_time.length > 0) {
+        episodeRuntime = Math.round(
+          enData.episode_run_time.reduce((a: number, b: number) => a + b, 0) / enData.episode_run_time.length
+        );
+        totalRuntime = totalEpisodes * episodeRuntime;
+      }
+    }
+
     // Prepare cache data
     const cacheData = {
       id: movieId,
@@ -378,8 +401,11 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
       backdrop_path: enData.backdrop_path,
       vote_average: enData.vote_average,
       popularity: enData.popularity,
-      runtime: enData.runtime,
+      runtime: totalRuntime,
       number_of_seasons: enData.number_of_seasons,
+      number_of_episodes: totalEpisodes,
+      episode_run_time: episodeRuntime,
+      origin_country: enData.origin_country || enData.production_countries?.map((c: any) => c.iso_3166_1) || [],
       release_date: mediaType === 'tv' ? enData.first_air_date : enData.release_date,
 
       title_en: enTitle,
