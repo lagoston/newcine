@@ -338,6 +338,25 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
     // Convert cached data to Movie interface based on language
     const isPortuguese = language.startsWith('pt');
 
+    // Parse genres to ensure correct format
+    const rawGenres = isPortuguese && data.genres_pt ? data.genres_pt : data.genres_en;
+    let parsedGenres: any[] = [];
+
+    if (rawGenres) {
+      // If genres is already an array of objects with id and name, use it
+      if (Array.isArray(rawGenres) && rawGenres.length > 0) {
+        if (typeof rawGenres[0] === 'object' && rawGenres[0].id && rawGenres[0].name) {
+          parsedGenres = rawGenres;
+        } else if (typeof rawGenres[0] === 'string') {
+          // If it's an array of strings, convert to objects
+          parsedGenres = rawGenres.map((name: string, index: number) => ({
+            id: index,
+            name: name
+          }));
+        }
+      }
+    }
+
     return {
       id: data.tmdb_id,
       title: isPortuguese && data.title_pt ? data.title_pt : data.title_en,
@@ -353,7 +372,7 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
       episode_run_time: data.episode_run_time,
       origin_country: data.origin_country,
       media_type: data.media_type as 'movie' | 'tv',
-      genres: isPortuguese && data.genres_pt ? data.genres_pt : data.genres_en,
+      genres: parsedGenres,
       credits: {
         cast: data.cast_members || [],
         crew: data.director ? [{ id: 0, name: data.director, job: 'Director' }] : []
@@ -385,12 +404,19 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
     console.log(`📝 EN: "${enTitle}" | PT: "${ptTitle}"`);
     console.log(`🖼️ Poster EN: ${enData.poster_path} | PT: ${ptData.poster_path}`);
 
-    // For TV shows, use "created_by" instead of director
+    // For TV shows, use "created_by" instead of director, with fallback to executive producers
     let director;
     if (mediaType === 'tv') {
-      director = enData.created_by && enData.created_by.length > 0
-        ? enData.created_by[0].name
-        : null;
+      // Try created_by first
+      if (enData.created_by && enData.created_by.length > 0) {
+        director = enData.created_by[0].name;
+      } else {
+        // Fallback to executive producer from credits
+        const execProducer = enData.credits?.crew?.find(
+          (person: any) => person.job === 'Executive Producer'
+        );
+        director = execProducer?.name || 'Unknown';
+      }
     } else {
       director = enData.credits?.crew?.find((person: any) => person.job === 'Director')?.name;
     }

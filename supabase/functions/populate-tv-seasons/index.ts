@@ -63,15 +63,31 @@ Deno.serve(async (req: Request) => {
 
         const seasons = [];
 
-        // Fetch each season data
-        for (let i = 1; i <= show.number_of_seasons; i++) {
+        // First, get TV show details to know actual number of seasons
+        const tvDetailsResponse = await fetch(
+          `${TMDB_BASE_URL}/tv/${show.tmdb_id}?api_key=${TMDB_API_KEY}&language=en-US`
+        );
+
+        if (!tvDetailsResponse.ok) {
+          console.warn(`Failed to fetch TV details for ${show.title_en}`);
+          skipped++;
+          continue;
+        }
+
+        const tvDetails = await tvDetailsResponse.json();
+        const actualSeasons = tvDetails.seasons || [];
+
+        // Fetch each season data (excluding specials - season 0)
+        for (const seasonInfo of actualSeasons) {
+          if (seasonInfo.season_number === 0) continue; // Skip specials
+
           try {
             const response = await fetch(
-              `${TMDB_BASE_URL}/tv/${show.tmdb_id}/season/${i}?api_key=${TMDB_API_KEY}&language=pt-BR`
+              `${TMDB_BASE_URL}/tv/${show.tmdb_id}/season/${seasonInfo.season_number}?api_key=${TMDB_API_KEY}&language=pt-BR`
             );
 
             if (!response.ok) {
-              console.warn(`Failed to fetch season ${i} for ${show.title_en}`);
+              console.warn(`Failed to fetch season ${seasonInfo.season_number} for ${show.title_en}`);
               continue;
             }
 
@@ -97,7 +113,7 @@ Deno.serve(async (req: Request) => {
             // Small delay between season requests
             await new Promise((resolve) => setTimeout(resolve, 100));
           } catch (error) {
-            console.error(`Error fetching season ${i}:`, error);
+            console.error(`Error fetching season ${seasonInfo.season_number}:`, error);
           }
         }
 

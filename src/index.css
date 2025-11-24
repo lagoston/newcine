@@ -1137,8 +1137,8 @@ img[loading="lazy"] {
 
 /* Chroma Box Effects */
 .chroma-box-gold {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 223, 0, 0.05)) !important;
-  border-color: rgba(255, 215, 0, 0.4) !important;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(219, 39, 119, 0.05)) !important;
+  border-color: rgba(236, 72, 153, 0.4) !important;
 }
 
 .chroma-box-green {
