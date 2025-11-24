@@ -379,10 +379,23 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     || movie.content_ratings?.find(r => r.iso_3166_1 === 'BR')
     || (movie.content_ratings && movie.content_ratings.length > 0 ? movie.content_ratings[0] : null);
 
-  // Get origin country
-  const originCountry = movie.production_countries && movie.production_countries.length > 0
-    ? movie.production_countries[0]
-    : null;
+  // Get origin country - support both API format (production_countries) and cache format (origin_country)
+  const getOriginCountry = () => {
+    // Try cache format first (origin_country: ["US"])
+    if (movie.origin_country && movie.origin_country.length > 0) {
+      return {
+        iso_3166_1: movie.origin_country[0],
+        name: '' // Name will be displayed as flag emoji
+      };
+    }
+    // Fallback to API format (production_countries: [{iso_3166_1: "US", name: "United States"}])
+    if (movie.production_countries && movie.production_countries.length > 0) {
+      return movie.production_countries[0];
+    }
+    return null;
+  };
+
+  const originCountry = getOriginCountry();
 
   // Function to get flag emoji from country code
   const getCountryFlag = (countryCode: string) => {
