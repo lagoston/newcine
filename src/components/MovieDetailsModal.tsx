@@ -585,6 +585,17 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   const hasStreamingProviders = movie.watchProviders?.flatrate && movie.watchProviders.flatrate.length > 0;
 
+  // Debug: Log movie data when modal opens
+  console.log('🎬 MovieDetailsModal - Movie data:', {
+    title: movie.title,
+    id: movie.id,
+    hasCredits: !!movie.credits,
+    hasCrew: !!movie.credits?.crew,
+    crewLength: movie.credits?.crew?.length,
+    firstCrewMember: movie.credits?.crew?.[0],
+    allCrewJobs: movie.credits?.crew?.map(c => c.job).slice(0, 10)
+  });
+
   // For TV shows, look for Creator or Director; for movies, look for Director
   let director = t('movies.unknown');
   if (movie.credits?.crew) {
@@ -594,6 +605,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     if (directorPerson) {
       director = directorPerson.name;
     }
+    console.log('👤 Director found:', director);
+  } else {
+    console.log('❌ No credits.crew found in movie data');
   }
 
   const cast = movie.credits?.cast?.slice(0, 5) || [];

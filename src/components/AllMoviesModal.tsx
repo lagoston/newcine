@@ -71,7 +71,11 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
           {movies.map((movie) => (
             <div
               key={movie.id}
-              className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+              className={`rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer ${
+                movie.media_type === 'tv'
+                  ? 'bg-purple-50/70 dark:bg-purple-900/20'
+                  : 'bg-gray-50 dark:bg-gray-700/50'
+              }`}
               onClick={() => handleMovieClick(movie)}
             >
               <div className="relative aspect-[2/3]">
