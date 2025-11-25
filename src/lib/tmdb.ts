@@ -323,16 +323,19 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
       return null;
     }
 
-    // Skip cache if TV series is ongoing (not ended) - fetch fresh data to check for new seasons
-    if (mediaType === 'tv' && data.status && data.status !== 'Ended') {
-      console.log(`TV Series ${movieId} is ongoing (${data.status}), fetching fresh data from API`);
-      return null;
+    // For TV series, only skip cache if it's ongoing AND doesn't have seasons_data yet
+    // If it already has seasons_data, use it (even if ongoing) to preserve episode information
+    if (mediaType === 'tv' && !data.seasons_data) {
+      if ((data.status && data.status !== 'Ended') || data.in_production === true) {
+        console.log(`TV Series ${movieId} is ongoing (${data.status}) and has no seasons_data, fetching fresh data from API`);
+        return null;
+      }
     }
 
-    // Also skip if series is in production
-    if (mediaType === 'tv' && data.in_production === true) {
-      console.log(`TV Series ${movieId} is in production, fetching fresh data from API`);
-      return null;
+    // If TV series has seasons_data, always use cache (even if ongoing)
+    // This preserves the detailed episode information
+    if (mediaType === 'tv' && data.seasons_data) {
+      console.log(`TV Series ${movieId} using cached seasons_data (${data.seasons_data.length} seasons)`);
     }
 
     // Convert cached data to Movie interface based on language

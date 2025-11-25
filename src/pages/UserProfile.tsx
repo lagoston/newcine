@@ -286,7 +286,7 @@ export default function UserProfile() {
           const { data: watchedEps } = await supabase
             .from('watched_episodes')
             .select('season_number, episode_number')
-            .eq('user_id', userId)
+            .eq('user_id', profileData.id)
             .eq('tmdb_id', movie.id);
 
           if (watchedEps && watchedEps.length > 0 && movie.seasons) {
