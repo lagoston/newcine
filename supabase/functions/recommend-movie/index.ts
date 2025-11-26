@@ -174,8 +174,10 @@ Deno.serve(async (req) => {
 
     console.log(`🎯 Selected movie ID: ${selectedMovieId}`);
 
-    // Fetch movie details from TMDB via proxy
-    const tmdbUrl = `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=/movie/${selectedMovieId}${language ? `?language=${language}` : ''}`;
+    // Fetch movie details from TMDB via proxy with credits
+    const languageParam = language ? `language=${language}&` : '';
+    const tmdbUrl = `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=/movie/${selectedMovieId}?${languageParam}append_to_response=credits`;
+    console.log(`📡 Fetching from: ${tmdbUrl}`);
     const tmdbResponse = await fetch(tmdbUrl, {
       headers: {
         'Authorization': req.headers.get('Authorization') || '',
@@ -187,6 +189,14 @@ Deno.serve(async (req) => {
     }
 
     const movieData = await tmdbResponse.json();
+
+    // Debug: Check if credits came through
+    console.log(`✅ Movie data received:`, {
+      title: movieData.title,
+      hasCredits: !!movieData.credits,
+      hasCrew: !!movieData.credits?.crew,
+      crewLength: movieData.credits?.crew?.length
+    });
 
     // Get random character phrase
     const characterPhrase = getRandomPhrase(cardType);
