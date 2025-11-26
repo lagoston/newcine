@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { getMoodGenres } from '../lib/mood-genres';
+import { getMovieDetails } from '../lib/tmdb';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 
 type CardType = 'bogart' | 'fincher' | 'cypher';
@@ -30,12 +31,6 @@ export default function OracleRecommend() {
   const [selectedMovieForDetails, setSelectedMovieForDetails] = useState<any>(null);
   const [showOracleInfoModal, setShowOracleInfoModal] = useState(false);
   const [cardStyle, setCardStyle] = useState<'default' | 'yugioh'>('default');
-
-  // Debug: Log state changes
-  useEffect(() => {
-    console.log('📊 State Update - recommendation:', recommendation);
-    console.log('📊 State Update - loading:', loading);
-  }, [recommendation, loading]);
 
   const moods = [
     t('oracle.moods.adventures'),
@@ -251,13 +246,6 @@ export default function OracleRecommend() {
 
       const moodKey = moodKeyMap[selectedMood] || 'random-surprise';
 
-      console.log('🎯 Requesting recommendation with:', {
-        userId: session.user.id,
-        mood: selectedMood,
-        cardType: selectedCard,
-        moodKey
-      });
-
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recommend-movie`,
         {
@@ -287,14 +275,6 @@ export default function OracleRecommend() {
 
       const data = await response.json();
 
-      console.log('✅ Recommendation response received:', data);
-      console.log('📊 Response structure:', {
-        hasMovieId: !!data.movieId,
-        hasMovieData: !!data.movieData,
-        hasCharacterPhrase: !!data.characterPhrase,
-        ticketsRemaining: data.ticketsRemaining
-      });
-
       if (data.error) {
         throw new Error(data.error);
       }
@@ -304,29 +284,27 @@ export default function OracleRecommend() {
 
       // If no movieId, this is a text-only response (not enough ratings, pool empty, etc.)
       if (!data.movieId || !data.movieData) {
-        console.log('⚠️ No movie data in response, showing text only');
         setInfoMessage(data.recommendation || t('common.error'));
         return;
       }
 
-      console.log('✅ Movie details received from backend:', data.movieData.title);
+      // Fetch complete movie details with ratings and full credits
+      const mediaType = data.movieData.media_type || 'movie';
+      const completeMovieData = await getMovieDetails(data.movieId, mediaType);
 
-      // Set the complete recommendation object
+      // Set the complete recommendation object with full data
       const recommendationObject = {
         movieId: data.movieId,
         characterPhrase: data.characterPhrase,
-        movieData: data.movieData
+        movieData: completeMovieData
       };
 
-      console.log('🎯 Setting recommendation state:', recommendationObject);
       setRecommendation(recommendationObject);
-      console.log('✅ Recommendation state set successfully!');
 
     } catch (error) {
-      console.error('❌ Error getting recommendation:', error);
+      console.error('Error getting recommendation:', error);
       toast.error(error instanceof Error ? error.message : t('common.error'));
     } finally {
-      console.log('🏁 Finally block - setting loading to false');
       setLoading(false);
     }
   };
@@ -614,7 +592,6 @@ export default function OracleRecommend() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
           >
-            {console.log('🔄 Rendering LOADING state')}
             <div className="inline-flex items-center justify-center p-8 rounded-full bg-pink-500/10 backdrop-blur-sm border border-pink-500/20 mb-4 relative">
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-pink-500/30 to-pink-600/10 blur-md"></div>
               <motion.div
@@ -673,7 +650,6 @@ export default function OracleRecommend() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
           >
-            {console.log('✅ Rendering RECOMMENDATION state:', recommendation)}
             <div className="absolute -inset-1 bg-gradient-to-r from-pink-600/30 to-purple-600/30 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
             <div className="relative p-8 bg-gray-900/90 rounded-lg border border-pink-500/20 backdrop-blur-sm">
               <div className="flex items-center justify-between mb-6">
@@ -748,7 +724,6 @@ export default function OracleRecommend() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
           >
-            {console.log('💤 Rendering IDLE state')}
             <div className="absolute -inset-1 bg-gradient-to-r from-pink-600/30 to-purple-600/30 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
             <div className="relative p-8 bg-gray-900/90 rounded-lg border border-pink-500/20 backdrop-blur-sm">
               <div className="flex items-center justify-between mb-6">

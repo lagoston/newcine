@@ -25,8 +25,6 @@ async function tmdbFetch(endpoint: string): Promise<any> {
     finalEndpoint = `${endpoint}${separator}language=${language}`;
   }
 
-  console.log(`📡 TMDB Fetch: ${finalEndpoint}`);
-
   const url = `${PROXY_URL}?endpoint=${encodeURIComponent(finalEndpoint)}`;
 
   const response = await fetch(url, {
@@ -170,13 +168,10 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
     const dbCached = await getCachedMovie(movieId, language, mediaType);
 
     if (dbCached) {
-      console.log(`🎯 Using cached ${mediaType} ${movieId} from database`);
       cache.set(cacheKey, dbCached, CACHE_TTL.MOVIE_DETAILS);
       return dbCached;
     }
   }
-
-  console.log(`🌐 Fetching movie ${movieId} from TMDB API`);
 
   const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
   const releaseDateEndpoint = mediaType === 'tv' ? 'content_ratings' : 'release_dates';
@@ -319,7 +314,6 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
 
     // Skip cache if movie has no rating (0.0) - fetch fresh data from API
     if (data.vote_average === 0 || data.vote_average === null) {
-      console.log(`Movie ${movieId} has no rating, fetching fresh data from API`);
       return null;
     }
 
@@ -327,16 +321,12 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
     // If it already has seasons_data, use it (even if ongoing) to preserve episode information
     if (mediaType === 'tv' && !data.seasons_data) {
       if ((data.status && data.status !== 'Ended') || data.in_production === true) {
-        console.log(`TV Series ${movieId} is ongoing (${data.status}) and has no seasons_data, fetching fresh data from API`);
         return null;
       }
     }
 
     // If TV series has seasons_data, always use cache (even if ongoing)
     // This preserves the detailed episode information
-    if (mediaType === 'tv' && data.seasons_data) {
-      console.log(`TV Series ${movieId} using cached seasons_data (${data.seasons_data.length} seasons)`);
-    }
 
     // Convert cached data to Movie interface based on language
     const isPortuguese = language.startsWith('pt');
@@ -393,8 +383,6 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
 // Helper to save movie to cache
 async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 'tv'): Promise<void> {
   try {
-    console.log(`💾 Caching movie ${movieId} (${mediaType})...`);
-
     // Fetch both English and Portuguese versions
     const [enData, ptData] = await Promise.all([
       tmdbFetch(`/${mediaType === 'tv' ? 'tv' : 'movie'}/${movieId}?language=en-US&append_to_response=credits`),
@@ -403,9 +391,6 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
 
     const enTitle = mediaType === 'tv' ? enData.name : enData.title;
     const ptTitle = mediaType === 'tv' ? ptData.name : ptData.title;
-
-    console.log(`📝 EN: "${enTitle}" | PT: "${ptTitle}"`);
-    console.log(`🖼️ Poster EN: ${enData.poster_path} | PT: ${ptData.poster_path}`);
 
     // For TV shows, use "created_by" instead of director, with fallback to executive producers
     let director;
@@ -523,8 +508,6 @@ async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 
 
     if (error) {
       console.error('Error caching movie:', error);
-    } else {
-      console.log(`✅ Cached ${mediaType} ${movieId} in database`);
     }
   } catch (error) {
     console.error('Error in cacheMovie:', error);
@@ -573,8 +556,6 @@ export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number
 
         movieMap.set(cached.tmdb_id, movie);
       });
-
-      console.log(`🎯 Loaded ${movieMap.size}/${movieIds.length} movies from cache`);
     }
   } catch (error) {
     console.error('Error fetching movies from cache:', error);
