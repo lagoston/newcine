@@ -153,7 +153,10 @@
     "noFollowers": "You don't have any followers yet",
     "dailyLimit": "You've reached your daily limit of {{limit}} indications. Try again tomorrow!",
     "premiumDailyLimit": "You've reached the daily limit of {{limit}} indications for Premium users. Try again tomorrow!",
-    "upgradeToPremium": "Upgrade to Premium and send up to 20 indications per day!"
+    "upgradeToPremium": "Upgrade to Premium and send up to 20 indications per day!",
+    "deleted": "Indication deleted successfully",
+    "deleteError": "Error deleting indication",
+    "loadError": "Error loading indications"
   },
   "movies": {
     "director": "Director",

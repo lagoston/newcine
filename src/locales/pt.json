@@ -153,7 +153,10 @@
     "noFollowers": "Você não tem seguidores ainda",
     "dailyLimit": "Você atingiu o limite diário de {{limit}} indicações. Tente novamente amanhã!",
     "premiumDailyLimit": "Você atingiu o limite diário de {{limit}} indicações para usuários Premium. Tente novamente amanhã!",
-    "upgradeToPremium": "Faça upgrade para Premium e envie até 20 indicações por dia!"
+    "upgradeToPremium": "Faça upgrade para Premium e envie até 20 indicações por dia!",
+    "deleted": "Indicação deletada com sucesso",
+    "deleteError": "Erro ao deletar indicação",
+    "loadError": "Erro ao carregar indicações"
   },
   "movies": {
     "director": "Diretor",

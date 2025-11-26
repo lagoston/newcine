@@ -85,7 +85,7 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
       }
     } catch (error) {
       console.error('Error fetching indications:', error);
-      toast.error('Erro ao carregar recomendações');
+      toast.error(t('indications.loadError'));
     } finally {
       setLoading(false);
     }
@@ -105,17 +105,20 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
 
     try {
       const { error } = await supabase
-        .from('recommendations')
+        .from('friend_indications')
         .delete()
         .match({ id: deletingId, to_user_id: session.user.id });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting indication:', error);
+        throw error;
+      }
 
       setRecommendations(prev => prev.filter(r => r.id !== deletingId));
-      toast.success('Recomendação deletada');
+      toast.success(t('indications.deleted'));
     } catch (error) {
-      console.error('Error deleting recommendation:', error);
-      toast.error('Erro ao deletar recomendação');
+      console.error('Error deleting indication:', error);
+      toast.error(t('indications.deleteError'));
     } finally {
       setDeletingId(null);
     }
