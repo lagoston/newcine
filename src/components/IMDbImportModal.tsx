@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { searchMovies, getMovieDetails } from '../lib/tmdb';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import * as XLSX from 'xlsx';
 
 interface IMDbImportModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ interface SyncStats {
 
 const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { t } = useTranslation();
+  const [importMethod, setImportMethod] = useState<'select' | 'imdb' | 'cineoracle'>('select');
   const [file, setFile] = useState<File | null>(null);
   const [parsedMovies, setParsedMovies] = useState<IMDbMovie[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -120,13 +122,58 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
     }
   };
 
+  const parseCineOracleFile = async (file: File) => {
+    try {
+      setUploading(true);
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      const movies: IMDbMovie[] = [];
+
+      for (const row of jsonData as any[]) {
+        const id = row['ID'];
+        const title = row['Título'];
+        const rating = row['Nota'];
+
+        if (id && title) {
+          movies.push({
+            title,
+            year: 0,
+            rating: rating || 0,
+            imdbId: String(id)
+          });
+        }
+      }
+
+      if (movies.length === 0) {
+        throw new Error('Nenhum filme encontrado na planilha');
+      }
+
+      setParsedMovies(movies);
+      setSyncStats(null);
+      toast.success(`${movies.length} filmes/séries encontrados`);
+    } catch (error) {
+      console.error('Error parsing CineOracle file:', error);
+      toast.error('Erro ao processar arquivo CineOracle');
+      setParsedMovies([]);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile && selectedFile.name.endsWith('.csv')) {
+    if (selectedFile) {
       setFile(selectedFile);
-      parseCSV(selectedFile);
-    } else {
-      toast.error(t('common.error'));
+      if (importMethod === 'cineoracle' && (selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls'))) {
+        parseCineOracleFile(selectedFile);
+      } else if (importMethod === 'imdb' && selectedFile.name.endsWith('.csv')) {
+        parseCSV(selectedFile);
+      } else {
+        toast.error(t('common.error'));
+      }
     }
   };
 
@@ -169,19 +216,35 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
     try {
       for (const movie of parsedMovies) {
         try {
-          // Search for the movie in TMDb
-          const searchResults = await searchMovies(movie.title);
-          const bestMatch = searchResults.find(result => 
-            result.title.toLowerCase() === movie.title.toLowerCase() &&
-            (!movie.year || new Date(result.release_date).getFullYear() === movie.year)
-          ) || searchResults[0];
+          let movieDetails;
 
-          if (!bestMatch) {
-            throw new Error(t('common.error'));
+          if (importMethod === 'cineoracle') {
+            // For CineOracle, use ID directly
+            const movieId = parseInt(movie.imdbId);
+
+            // Check database for media_type
+            const { data: dbMovie } = await supabase
+              .from('movies')
+              .select('media_type')
+              .eq('id', movieId)
+              .maybeSingle();
+
+            const mediaType = dbMovie?.media_type || 'movie';
+            movieDetails = await getMovieDetails(movieId, mediaType);
+          } else {
+            // For IMDb, search by title
+            const searchResults = await searchMovies(movie.title);
+            const bestMatch = searchResults.find(result =>
+              result.title.toLowerCase() === movie.title.toLowerCase() &&
+              (!movie.year || new Date(result.release_date).getFullYear() === movie.year)
+            ) || searchResults[0];
+
+            if (!bestMatch) {
+              throw new Error(t('common.error'));
+            }
+
+            movieDetails = await getMovieDetails(bestMatch.id);
           }
-
-          // Get full movie details
-          const movieDetails = await getMovieDetails(bestMatch.id);
           
           // Store movie metadata
           const { error: movieError } = await supabase
@@ -191,7 +254,9 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
               title: movieDetails.title,
               release_date: movieDetails.release_date,
               genres: movieDetails.genres.map(g => g.name),
-              director: movieDetails.credits?.crew?.find(person => person.job === 'Director')?.name
+              director: movieDetails.credits?.crew?.find(person => person.job === 'Director')?.name,
+              media_type: movieDetails.media_type || 'movie',
+              number_of_seasons: movieDetails.media_type === 'tv' ? movieDetails.number_of_seasons : null
             });
 
           if (movieError) throw movieError;
@@ -264,74 +329,144 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
 
   const syncProgress = syncStats ? (syncStats.processed / syncStats.total) * 100 : 0;
 
+  const handleClose = () => {
+    setImportMethod('select');
+    setFile(null);
+    setParsedMovies([]);
+    setSyncStats(null);
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={handleClose} />
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-xl shadow-xl transform transition-all">
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              {t('library.importFromImdb')}
+              {importMethod === 'select' ? t('common.import') : importMethod === 'imdb' ? t('library.importFromImdb') : 'Importar do CineOracle'}
             </h2>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
             >
               <X className="w-6 h-6" />
             </button>
           </div>
 
+          {importMethod === 'select' && (
+            <div className="p-6 space-y-6">
+              <p className="text-gray-600 dark:text-gray-400">
+                Escolha o método de importação:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => setImportMethod('imdb')}
+                  className="flex flex-col items-center justify-center p-8 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg hover:shadow-lg transition-all"
+                >
+                  <div className="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center mb-4">
+                    <FileUp className="w-8 h-8 text-black" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    IMDb
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                    Importar suas avaliações do IMDb usando arquivo CSV
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setImportMethod('cineoracle')}
+                  className="flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg hover:shadow-lg transition-all"
+                >
+                  <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mb-4">
+                    <Star className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    CineOracle
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                    Importar usando planilha exportada do CineOracle
+                  </p>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {importMethod !== 'select' && (
           <div className="p-6 space-y-6">
             <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 dark:text-blue-400 font-bold">1</span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                    Login no IMDb
-                  </h3>
-                  <p className="mt-1 text-gray-600 dark:text-gray-400">
-                    Faça login no site do IMDb e acesse a página "Your Ratings".
-                  </p>
-                </div>
-              </div>
+              {importMethod === 'imdb' && (
+                <>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">1</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Login no IMDb
+                      </h3>
+                      <p className="mt-1 text-gray-600 dark:text-gray-400">
+                        Faça login no site do IMDb e acesse a página "Your Ratings".
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">2</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Download the .CSV
+                      </h3>
+                      <p className="mt-1 text-gray-600 dark:text-gray-400">
+                        Clique no botão "Export", acesse a página de exportações e baixe o arquivo .CSV com suas notas.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {importMethod === 'cineoracle' && (
+                <>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">1</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Exportar sua Biblioteca
+                      </h3>
+                      <p className="mt-1 text-gray-600 dark:text-gray-400">
+                        Vá em "Minha Biblioteca" → "Editar" → Clique no botão de "Exportar" para baixar sua planilha do CineOracle.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 dark:text-blue-400 font-bold">2</span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                    Download the .CSV
-                  </h3>
-                  <p className="mt-1 text-gray-600 dark:text-gray-400">
-                    Clique no botão "Export", acesse a página de exportações e baixe o arquivo .CSV com suas notas.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 dark:text-blue-400 font-bold">3</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-bold">{importMethod === 'cineoracle' ? '2' : '3'}</span>
                 </div>
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                     Upload the File
                   </h3>
                   <p className="mt-1 text-gray-600 dark:text-gray-400">
-                    Faça o upload do arquivo aqui em baixo.
+                    Faça o upload do arquivo {importMethod === 'cineoracle' ? '.xlsx' : '.csv'} aqui em baixo.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 dark:text-blue-400 font-bold">4</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-bold">{importMethod === 'cineoracle' ? '3' : '4'}</span>
                 </div>
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                    Sync
+                    Sincronizar
                   </h3>
                   <p className="mt-1 text-gray-600 dark:text-gray-400">
                     Clique no botão verde "Sincronizar" para atualizar sua biblioteca.
@@ -507,6 +642,7 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
               </div>
             </div>
           </div>
+          )}
 
           <div className="flex justify-end gap-4 p-6 border-t border-gray-200 dark:border-gray-700">
             <button

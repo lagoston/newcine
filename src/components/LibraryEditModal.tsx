@@ -127,128 +127,96 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
     }
   };
 
-  const handleDownloadMovieList = async () => {
+  const handleDownloadLibrary = async () => {
     if (!session?.user?.id) return;
 
     try {
       setIsDownloading(true);
 
+      // Fetch ALL movies (rated and watchlist)
       const { data: userMoviesData, error } = await supabase
         .from('user_movies')
-        .select('movie_id, rating')
-        .eq('user_id', session.user.id)
-        .not('rating', 'is', null)
-        .order('rating', { ascending: false });
+        .select('movie_id, rating, created_at')
+        .eq('user_id', session.user.id);
 
       if (error) throw error;
 
       if (!userMoviesData || userMoviesData.length === 0) {
-        toast.error(t('library.noRatedMovies'));
+        toast.error(t('library.noMovies'));
         return;
       }
 
+      // Fetch movie details and determine media_type
       const moviesWithDetails = await Promise.all(
         userMoviesData.map(async (movie) => {
           try {
-            const details = await getMovieDetails(movie.movie_id);
+            // First check database for media_type
+            const { data: dbMovie } = await supabase
+              .from('movies')
+              .select('media_type')
+              .eq('id', movie.movie_id)
+              .maybeSingle();
+
+            const mediaType = dbMovie?.media_type || 'movie';
+            const details = await getMovieDetails(movie.movie_id, mediaType);
+
             return {
+              id: movie.movie_id,
               title: details.title,
-              rating: movie.rating
-            };
-          } catch (err) {
-            console.warn(`Failed to fetch details for movie ${movie.movie_id}`);
-            return {
-              title: 'Título não disponível',
-              rating: movie.rating
-            };
-          }
-        })
-      );
-
-      const worksheetData = moviesWithDetails.map((movie, index) => ({
-        '#': index + 1,
-        'Filme': movie.title,
-        'Nota': movie.rating
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Filmes Avaliados');
-
-      worksheet['!cols'] = [
-        { wch: 5 },
-        { wch: 50 },
-        { wch: 10 }
-      ];
-
-      XLSX.writeFile(workbook, 'minha_lista_filmes.xls');
-      toast.success(t('library.downloadSuccess'));
-    } catch (error) {
-      console.error('Error downloading movie list:', error);
-      toast.error(t('common.error'));
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleDownloadWatchlist = async () => {
-    if (!session?.user?.id) return;
-
-    try {
-      setIsDownloading(true);
-
-      const { data: userMoviesData, error } = await supabase
-        .from('user_movies')
-        .select('movie_id, created_at')
-        .eq('user_id', session.user.id)
-        .is('rating', null)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      if (!userMoviesData || userMoviesData.length === 0) {
-        toast.error(t('library.noWatchlistMovies'));
-        return;
-      }
-
-      const moviesWithDetails = await Promise.all(
-        userMoviesData.map(async (movie) => {
-          try {
-            const details = await getMovieDetails(movie.movie_id);
-            return {
-              title: details.title,
+              rating: movie.rating,
+              mediaType: mediaType,
               created_at: movie.created_at
             };
           } catch (err) {
             console.warn(`Failed to fetch details for movie ${movie.movie_id}`);
             return {
+              id: movie.movie_id,
               title: 'Título não disponível',
+              rating: movie.rating,
+              mediaType: 'movie',
               created_at: movie.created_at
             };
           }
         })
       );
 
-      const worksheetData = moviesWithDetails.map((movie, index) => ({
+      // Sort: rated movies first (by rating desc), then watchlist (by date added)
+      const ratedMovies = moviesWithDetails
+        .filter(m => m.rating !== null)
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+      const watchlistMovies = moviesWithDetails
+        .filter(m => m.rating === null)
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      const sortedMovies = [...ratedMovies, ...watchlistMovies];
+
+      // Create worksheet data with all columns
+      const worksheetData = sortedMovies.map((movie, index) => ({
         '#': index + 1,
-        'Filme': movie.title,
-        'Adicionado em': new Date(movie.created_at).toLocaleDateString()
+        'Título': movie.title,
+        'Tipo': movie.mediaType === 'tv' ? 'Série' : 'Filme',
+        'Nota': movie.rating || '',
+        'ID': movie.id
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(worksheetData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Watchlist');
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Minha Biblioteca');
 
+      // Set column widths
       worksheet['!cols'] = [
-        { wch: 5 },
-        { wch: 50 },
-        { wch: 15 }
+        { wch: 5 },   // #
+        { wch: 50 },  // Título
+        { wch: 10 },  // Tipo
+        { wch: 10 },  // Nota
+        { wch: 10 }   // ID
       ];
 
-      XLSX.writeFile(workbook, 'minha_watchlist.xls');
+      XLSX.writeFile(workbook, 'cineoracle_biblioteca.xlsx');
       toast.success(t('library.downloadSuccess'));
     } catch (error) {
-      console.error('Error downloading watchlist:', error);
+      console.error('Error downloading library:', error);
       toast.error(t('common.error'));
     } finally {
       setIsDownloading(false);
@@ -419,25 +387,14 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
             <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
               {t('common.export')}
             </h4>
-            <div className="space-y-3">
-              <button
-                onClick={handleDownloadMovieList}
-                disabled={isDownloading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                <Download className="w-5 h-5" />
-                <span>{isDownloading ? t('library.downloading') : t('library.downloadMovieList')}</span>
-              </button>
-
-              <button
-                onClick={handleDownloadWatchlist}
-                disabled={isDownloading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-md hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                <List className="w-5 h-5" />
-                <span>{isDownloading ? t('library.downloading') : t('library.downloadWatchlist')}</span>
-              </button>
-            </div>
+            <button
+              onClick={handleDownloadLibrary}
+              disabled={isDownloading}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              <Download className="w-5 h-5" />
+              <span>{isDownloading ? t('library.downloading') : t('library.exportLibrary')}</span>
+            </button>
           </div>
 
           <div className="border-t border-gray-200 dark:border-gray-700 pt-6">

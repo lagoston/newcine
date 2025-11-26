@@ -215,7 +215,7 @@ export default function AddMovies() {
               className="flex items-center px-2 py-1 bg-yellow-400 hover:bg-yellow-500 text-black rounded-md transition-colors shadow-sm text-xs"
             >
               <Import className="w-3 h-3 mr-1" />
-              <span className="font-medium">{t('library.importFromImdb')}</span>
+              <span className="font-medium">{t('common.import')}</span>
             </button>
           </div>
         </div>
@@ -226,7 +226,7 @@ export default function AddMovies() {
             className="hidden sm:flex items-center px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg transition-colors shadow-sm"
           >
             <Import className="w-4 h-4 mr-2" />
-            <span className="font-medium">{t('library.importFromImdb')}</span>
+            <span className="font-medium">{t('common.import')}</span>
           </button>
         </div>
 
