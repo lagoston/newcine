@@ -448,13 +448,87 @@ const Home = () => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(168,85,247,0.1),transparent_50%)] dark:bg-[radial-gradient(circle_at_70%_80%,rgba(168,85,247,0.05),transparent_50%)]"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 relative z-10">
           <div className="text-center">
-            <motion.div 
-              className="flex justify-center items-center mb-8"
+            <motion.div
+              className="flex justify-center items-center mb-8 relative"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
-              <Logo size="large" />
+              {/* Holographic glow effects */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <motion.div
+                  className="absolute w-32 h-32 rounded-full blur-2xl opacity-60"
+                  style={{
+                    background: 'radial-gradient(circle, rgba(139, 92, 246, 0.4), rgba(59, 130, 246, 0.3), transparent)'
+                  }}
+                  animate={{
+                    scale: [1, 1.2, 1],
+                    opacity: [0.4, 0.6, 0.4],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+                <motion.div
+                  className="absolute w-32 h-32 rounded-full blur-xl opacity-50"
+                  style={{
+                    background: 'conic-gradient(from 0deg, #06b6d4, #3b82f6, #8b5cf6, #d946ef, #06b6d4)'
+                  }}
+                  animate={{
+                    rotate: 360,
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                />
+              </div>
+
+              {/* Logo with holographic effect */}
+              <div className="relative z-10">
+                <motion.div
+                  animate={{
+                    filter: [
+                      'hue-rotate(0deg) saturate(1.5) brightness(1.1)',
+                      'hue-rotate(90deg) saturate(1.5) brightness(1.2)',
+                      'hue-rotate(180deg) saturate(1.5) brightness(1.1)',
+                      'hue-rotate(270deg) saturate(1.5) brightness(1.2)',
+                      'hue-rotate(360deg) saturate(1.5) brightness(1.1)',
+                    ],
+                  }}
+                  transition={{
+                    duration: 6,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                  style={{
+                    filter: 'drop-shadow(0 0 15px rgba(139, 92, 246, 0.6)) drop-shadow(0 0 30px rgba(59, 130, 246, 0.4))'
+                  }}
+                >
+                  <Logo size="large" />
+                </motion.div>
+
+                {/* Shimmer overlay */}
+                <motion.div
+                  className="absolute inset-0 w-32 h-32"
+                  style={{
+                    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+                    mixBlendMode: 'overlay',
+                  }}
+                  animate={{
+                    x: [-150, 150],
+                  }}
+                  transition={{
+                    duration: 2.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    repeatDelay: 1,
+                  }}
+                />
+              </div>
             </motion.div>
             
             <motion.h1 
