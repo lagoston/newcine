@@ -317,16 +317,35 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
       return null;
     }
 
-    // For TV series, only skip cache if it's ongoing AND doesn't have seasons_data yet
-    // If it already has seasons_data, use it (even if ongoing) to preserve episode information
-    if (mediaType === 'tv' && !data.seasons_data) {
-      if ((data.status && data.status !== 'Ended') || data.in_production === true) {
-        return null;
+    // For TV series, check if cache needs update
+    if (mediaType === 'tv') {
+      // If no seasons_data yet, skip cache for ongoing series
+      if (!data.seasons_data) {
+        if ((data.status && data.status !== 'Ended') || data.in_production === true) {
+          return null;
+        }
+      } else {
+        // If has seasons_data, check if any episodes have 0.0 rating (need update)
+        const seasonsData = data.seasons_data as any[];
+        const hasUnratedEpisodes = seasonsData.some((season: any) =>
+          season.episodes && season.episodes.some((ep: any) =>
+            ep.vote_average === 0 || ep.vote_average === null
+          )
+        );
+
+        // Skip cache if ongoing series has unrated episodes (to fetch latest ratings)
+        if (hasUnratedEpisodes && ((data.status && data.status !== 'Ended') || data.in_production === true)) {
+          return null;
+        }
+
+        // Also skip cache if it's older than 7 days and series is ongoing
+        const cacheAge = Date.now() - new Date(data.updated_at).getTime();
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        if (cacheAge > sevenDays && ((data.status && data.status !== 'Ended') || data.in_production === true)) {
+          return null;
+        }
       }
     }
-
-    // If TV series has seasons_data, always use cache (even if ongoing)
-    // This preserves the detailed episode information
 
     // Convert cached data to Movie interface based on language
     const isPortuguese = language.startsWith('pt');
