@@ -3,6 +3,7 @@ import { X, Search, Send, Loader2, Film } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 interface Follower {
   id: string;
@@ -21,6 +22,7 @@ interface RecommendModalProps {
 
 const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, mediaType = 'movie' }: RecommendModalProps) => {
   const { session } = useAuth();
+  const { t } = useTranslation();
   const [followers, setFollowers] = useState<Follower[]>([]);
   const [filteredFollowers, setFilteredFollowers] = useState<Follower[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -93,21 +95,21 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
   const handleSendRecommendation = async () => {
     if (!selectedFollower || !session?.user?.id) return;
     if (message.trim().length === 0) {
-      toast.error('Por favor, escreva uma mensagem');
+      toast.error(t('indications.writeMessage'));
       return;
     }
 
     try {
       setSending(true);
 
-      const { data: canSend, error: checkError } = await supabase.rpc('can_send_recommendation', {
+      const { data: canSend, error: checkError } = await supabase.rpc('can_send_indication', {
         user_id_input: session.user.id
       });
 
       if (checkError) throw checkError;
 
       if (!canSend) {
-        const { data: limit, error: limitError } = await supabase.rpc('get_user_recommendation_limit', {
+        const { data: limit, error: limitError } = await supabase.rpc('get_user_indication_limit', {
           user_id_input: session.user.id
         });
 
@@ -115,16 +117,16 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
           console.error('Error getting limit:', limitError);
         }
 
-        const isPremium = limit === 50;
+        const isPremium = limit === 20;
 
         if (isPremium) {
           toast.error(
-            'Você atingiu o limite semanal de 50 recomendações para usuários Premium. Tente novamente na próxima semana!',
+            t('indications.premiumDailyLimit', { limit: 20 }),
             { duration: 5000 }
           );
         } else {
           toast.error(
-            'Você atingiu o limite semanal de 10 recomendações. Faça upgrade para Premium e envie até 50 recomendações por semana!',
+            t('indications.dailyLimit', { limit: 5 }) + ' ' + t('indications.upgradeToPremium'),
             { duration: 5000 }
           );
         }
@@ -133,7 +135,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
       }
 
       const { error } = await supabase
-        .from('recommendations')
+        .from('friend_indications')
         .insert({
           from_user_id: session.user.id,
           to_user_id: selectedFollower.id,
@@ -147,14 +149,14 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
 
       if (error) throw error;
 
-      toast.success(`Recomendação enviada para ${selectedFollower.username}!`);
+      toast.success(t('indications.indicationSent', { username: selectedFollower.username }));
       onClose();
       setSelectedFollower(null);
       setMessage('');
       setSearchQuery('');
     } catch (error) {
-      console.error('Error sending recommendation:', error);
-      toast.error('Erro ao enviar recomendação');
+      console.error('Error sending indication:', error);
+      toast.error('Erro ao enviar indicação');
     } finally {
       setSending(false);
     }
@@ -169,7 +171,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
         <div className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl transform transition-all">
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Recomendar Filme
+              {t('indications.indicateMovie')}
             </h2>
             <button
               onClick={onClose}
@@ -189,7 +191,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Buscar seguidor..."
+                      placeholder={t('indications.selectFollower')}
                       className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
@@ -198,7 +200,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <Loader2 className="w-10 h-10 text-orange-500 animate-spin mb-3" />
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Carregando seguidores...</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('indications.selectFollower')}...</p>
                   </div>
                 ) : filteredFollowers.length === 0 ? (
                   <div className="text-center py-12">
@@ -206,7 +208,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
                       <Search className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-gray-500 dark:text-gray-400 font-medium">
-                      {followers.length === 0 ? 'Você ainda não tem seguidores' : 'Nenhum seguidor encontrado'}
+                      {followers.length === 0 ? t('indications.noFollowers') : 'Nenhum seguidor encontrado'}
                     </p>
                     {followers.length === 0 && (
                       <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
@@ -241,7 +243,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
                             @{follower.username}
                           </div>
                           <div className="text-sm text-gray-500 dark:text-gray-400">
-                            Enviar recomendação
+                            {t('indications.sendIndication')}
                           </div>
                         </div>
                         <div className="flex-shrink-0">
@@ -291,12 +293,12 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Sua mensagem
+                    {t('indications.writeMessage')}
                   </label>
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Escreva por que está recomendando este filme..."
+                    placeholder={t('indications.writeMessage') + '...'}
                     rows={4}
                     maxLength={500}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
@@ -314,12 +316,12 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
                   {sending ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Enviando...
+                      {t('indications.sendIndication')}...
                     </>
                   ) : (
                     <>
                       <Send className="w-5 h-5" />
-                      Enviar Recomendação
+                      {t('indications.sendIndication')}
                     </>
                   )}
                 </button>

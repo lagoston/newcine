@@ -47,10 +47,10 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('recommendations')
+        .from('friend_indications')
         .select(`
           *,
-          from_user:profiles!recommendations_from_user_id_fkey (
+          from_user:profiles!friend_indications_from_user_id_fkey (
             username,
             avatar_url
           )
@@ -71,7 +71,7 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
       const unreadIds = formattedData.filter((r: Recommendation) => !r.read).map((r: Recommendation) => r.id);
       if (unreadIds.length > 0 && !hasMarkedAsRead) {
         await supabase
-          .from('recommendations')
+          .from('friend_indications')
           .update({ read: true })
           .in('id', unreadIds);
         setHasMarkedAsRead(true);
@@ -84,7 +84,7 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
         }, 500);
       }
     } catch (error) {
-      console.error('Error fetching recommendations:', error);
+      console.error('Error fetching indications:', error);
       toast.error('Erro ao carregar recomendações');
     } finally {
       setLoading(false);

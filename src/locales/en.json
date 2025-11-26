@@ -142,6 +142,19 @@
     "exportLibrary": "Export Library",
     "noMovies": "You don't have any movies or series in your library yet"
   },
+  "indications": {
+    "indicate": "Indicate",
+    "indicateMovie": "Indicate Movie",
+    "indicateToFriend": "Indicate to Friend",
+    "sendIndication": "Send Indication",
+    "indicationSent": "Indication sent to {{username}}!",
+    "writeMessage": "Write a message",
+    "selectFollower": "Select a follower",
+    "noFollowers": "You don't have any followers yet",
+    "dailyLimit": "You've reached your daily limit of {{limit}} indications. Try again tomorrow!",
+    "premiumDailyLimit": "You've reached the daily limit of {{limit}} indications for Premium users. Try again tomorrow!",
+    "upgradeToPremium": "Upgrade to Premium and send up to 20 indications per day!"
+  },
   "movies": {
     "director": "Director",
     "cast": "Cast",

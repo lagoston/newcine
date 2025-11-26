@@ -39,7 +39,7 @@ function Navbar() {
           {
             event: '*',
             schema: 'public',
-            table: 'recommendations',
+            table: 'friend_indications',
             filter: `to_user_id=eq.${user.id}`
           },
           () => {
@@ -58,7 +58,7 @@ function Navbar() {
     if (!user?.id) return;
 
     try {
-      const { data, error } = await supabase.rpc('count_unread_recommendations', {
+      const { data, error } = await supabase.rpc('count_unread_indications', {
         user_id_input: user.id
       });
 

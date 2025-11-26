@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Loader2, Calendar, Clock, User, Film, AlertCircle, Shield, Globe, Share2, Instagram, Tv } from 'lucide-react';
+import { X, Star, Loader2, Calendar, Clock, User, Film, AlertCircle, Shield, Globe, Share2, Instagram, Tv, Users } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -824,18 +824,27 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   ))}
 
                   {session?.user && (
-                    <button
-                      onClick={handleShareToInstagram}
-                      disabled={isSharing}
-                      className="ml-auto p-1 text-purple-500 hover:text-pink-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Compartilhar no Instagram"
-                    >
-                      {isSharing ? (
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                      ) : (
-                        <Instagram className="w-6 h-6" />
-                      )}
-                    </button>
+                    <div className="ml-auto flex items-center gap-2">
+                      <button
+                        onClick={() => setShowRecommendModal(true)}
+                        className="p-1 text-orange-500 hover:text-orange-600 transition-colors"
+                        title={t('indications.indicateToFriend')}
+                      >
+                        <Users className="w-6 h-6" />
+                      </button>
+                      <button
+                        onClick={handleShareToInstagram}
+                        disabled={isSharing}
+                        className="p-1 text-purple-500 hover:text-pink-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Compartilhar no Instagram"
+                      >
+                        {isSharing ? (
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                        ) : (
+                          <Instagram className="w-6 h-6" />
+                        )}
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -940,14 +949,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
             {/* Action Buttons */}
             {session?.user && (
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setShowRecommendModal(true)}
-                    className="px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 active:bg-orange-700 transition-all flex items-center justify-center font-medium text-sm shadow-lg hover:shadow-xl"
-                  >
-                    📤 Recomendar
-                  </button>
-
+                <div className="grid grid-cols-1 gap-3">
                   {!isInLibrary ? (
                     <button
                       onClick={handleAddToLibrary}

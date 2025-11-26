@@ -533,7 +533,7 @@ export default function UserProfile() {
         if (canSend) {
           // Criar notificação de seguidor
           await supabase
-            .from('recommendations')
+            .from('friend_indications')
             .insert({
               from_user_id: session.user.id,
               to_user_id: profile.id,
