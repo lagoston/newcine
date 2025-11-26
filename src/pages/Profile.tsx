@@ -1349,9 +1349,6 @@ export default function Profile() {
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    {t('profile.stats.onlyVotes', { count: leastKnownGem.vote_count })} {t('profile.stats.votesOnTmdb')}
-                  </p>
                 </div>
               ) : (
                 <div className="text-center text-gray-500 dark:text-gray-400 py-4">

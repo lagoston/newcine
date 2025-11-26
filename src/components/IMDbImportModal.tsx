@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { X, FileUp, AlertCircle, Loader2, Star } from 'lucide-react';
+import { X, FileUp, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { searchMovies, getMovieDetails } from '../lib/tmdb';
@@ -380,7 +380,7 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
                   className="flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg hover:shadow-lg transition-all"
                 >
                   <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mb-4">
-                    <Star className="w-8 h-8 text-white" />
+                    <FileUp className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                     CineOracle
@@ -626,32 +626,42 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
               </div>
             )}
 
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
-              <div className="flex">
-                <AlertCircle className="h-5 w-5 text-yellow-400" />
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                    {t('common.importantNote')}
-                  </h3>
-                  <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-                    <p>
-                      {t('common.importNote')}
-                    </p>
+            {importMethod === 'imdb' && (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
+                <div className="flex">
+                  <AlertCircle className="h-5 w-5 text-yellow-400" />
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                      {t('common.importantNote')}
+                    </h3>
+                    <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                      <p>
+                        {t('common.importNote')}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
           )}
 
-          <div className="flex justify-end gap-4 p-6 border-t border-gray-200 dark:border-gray-700">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-            >
-              {t('common.close')}
-            </button>
-          </div>
+          {importMethod !== 'select' && (
+            <div className="flex justify-start p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => {
+                  setImportMethod('select');
+                  setFile(null);
+                  setParsedMovies([]);
+                  setSyncStats(null);
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {t('common.back')}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

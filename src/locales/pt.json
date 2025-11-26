@@ -41,6 +41,7 @@
     "dragAndDrop": "ou arraste e solte",
     "filesOnly": "apenas arquivos",
     "export": "Exportar",
+    "import": "Importar",
     "saving": "Salvando...",
     "importantNote": "Nota Importante",
     "customName": "Nome Personalizado",
@@ -137,7 +138,9 @@
     "chromaBox": "Chroma Box",
     "chromaBoxDesc": "Caixas de avaliação com cores e efeitos visuais",
     "enableChromaBox": "Ativar Chroma Box",
-    "chromaBoxLegend": "10: Dourado | 9-7: Verde | 6-4: Amarelo | 3-1: Vermelho | 0: Glitch"
+    "chromaBoxLegend": "10: Dourado | 9-7: Verde | 6-4: Amarelo | 3-1: Vermelho | 0: Glitch",
+    "exportLibrary": "Exportar Biblioteca",
+    "noMovies": "Você ainda não tem filmes ou séries na sua biblioteca"
   },
   "movies": {
     "director": "Diretor",
