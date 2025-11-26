@@ -74,9 +74,9 @@
   "home": {
     "welcome": "Welcome back, {{username}}!",
     "yourLibrary": "Your Library",
-    "viewManage": "View and manage your movie collection",
-    "consultOracle": "Consult the Oracle",
-    "getPersonalized": "Get personalized movie predictions",
+    "viewManage": "View and manage your movie and series collection",
+    "consultOracle": "Oracle",
+    "getPersonalized": "Get personalized predictions and recommendations",
     "popularNow": "Popular Now",
     "comingSoon": "Coming Soon",
     "topRatedGems": "Top-Rated Gems",

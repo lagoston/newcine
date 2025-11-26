@@ -74,9 +74,9 @@
   "home": {
     "welcome": "Bem-vindo de volta, {{username}}!",
     "yourLibrary": "Sua Biblioteca",
-    "viewManage": "Visualize e gerencie sua coleção de filmes",
-    "consultOracle": "Consulte o Oráculo",
-    "getPersonalized": "Obtenha previsões personalizadas de filmes",
+    "viewManage": "Visualize e gerencie sua coleção de filmes e séries",
+    "consultOracle": "Oráculo",
+    "getPersonalized": "Obtenha previsões e recomendações personalizadas",
     "popularNow": "Popular Agora",
     "comingSoon": "Em Breve",
     "topRatedGems": "Joias Bem Avaliadas",
