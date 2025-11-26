@@ -144,10 +144,14 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
           movie_poster: moviePoster,
           message: message.trim(),
           read: false,
+          type: 'movie',
           media_type: mediaType
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting indication:', error);
+        throw error;
+      }
 
       toast.success(t('indications.indicationSent', { username: selectedFollower.username }));
       onClose();
