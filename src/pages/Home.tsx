@@ -488,9 +488,8 @@ const Home = () => {
               </div>
 
               {/* Logo with holographic effect */}
-              <div className="relative z-10 w-32 h-32 overflow-hidden rounded-full">
+              <div className="relative z-10">
                 <motion.div
-                  className="w-full h-full flex items-center justify-center"
                   animate={{
                     filter: [
                       'hue-rotate(0deg) saturate(1.5) brightness(1.1)',
@@ -511,24 +510,6 @@ const Home = () => {
                 >
                   <Logo size="large" />
                 </motion.div>
-
-                {/* Shimmer overlay */}
-                <motion.div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
-                    mixBlendMode: 'overlay',
-                  }}
-                  animate={{
-                    x: [-150, 150],
-                  }}
-                  transition={{
-                    duration: 2.5,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    repeatDelay: 1,
-                  }}
-                />
               </div>
             </motion.div>
             
