@@ -50,7 +50,7 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
         .from('friend_indications')
         .select(`
           *,
-          from_user:profiles!friend_indications_from_user_id_fkey (
+          from_user:profiles!from_user_id (
             username,
             avatar_url
           )
