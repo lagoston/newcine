@@ -46,6 +46,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [loadingSeasons, setLoadingSeasons] = useState(false);
   const [seasons, setSeasons] = useState<any[]>(movie.seasons || []);
 
+  // Reset seasons when movie changes
+  useEffect(() => {
+    setSeasons(movie.seasons || []);
+    setLoadingSeasons(false);
+  }, [movie.id]);
+
   useEffect(() => {
     if (session?.user?.id) {
       checkIfInLibrary();

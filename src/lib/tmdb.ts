@@ -317,37 +317,6 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
       return null;
     }
 
-    // For TV series, check if cache needs update
-    if (mediaType === 'tv' && data.seasons_data) {
-      // Only check for updates if we already have seasons data
-      // Determine if series is ended (explicitly)
-      const isEnded = data.status === 'Ended' && data.in_production === false;
-
-      // If series is NOT ended (ongoing or unknown), check if needs update
-      if (!isEnded) {
-        const seasonsData = data.seasons_data as any[];
-
-        // Check if any episodes have 0.0 rating (need update)
-        const hasUnratedEpisodes = seasonsData.some((season: any) =>
-          season.episodes && season.episodes.some((ep: any) =>
-            ep.vote_average === 0 || ep.vote_average === null
-          )
-        );
-
-        // Skip cache if has unrated episodes (to fetch latest ratings)
-        if (hasUnratedEpisodes) {
-          return null;
-        }
-
-        // Also skip cache if it's older than 7 days
-        const cacheAge = Date.now() - new Date(data.updated_at).getTime();
-        const sevenDays = 7 * 24 * 60 * 60 * 1000;
-        if (cacheAge > sevenDays) {
-          return null;
-        }
-      }
-    }
-
     // Convert cached data to Movie interface based on language
     const isPortuguese = language.startsWith('pt');
 
