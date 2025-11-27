@@ -189,7 +189,7 @@
     "title": "O ORÁCULO",
     "choosePath": "Escolha seu caminho...",
     "prediction": {
-      "title": "Oráculo",
+      "title": "Câmara de Previsão",
       "description": "Sussurre o nome do filme – o Oráculo revelará como você poderá julgá-lo.",
       "tickets": "{{count}} tickets",
       "nextReset": "Próxima recarga: {{time}}",

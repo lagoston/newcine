@@ -29,6 +29,8 @@ interface Profile {
   avatar_frame?: string;
   banner?: string;
   plan_type?: string;
+  oracle_predictions_count?: number;
+  oracle_recommendations_count?: number;
 }
 
 interface RatingDistribution {

@@ -189,7 +189,7 @@
     "title": "THE ORACLE",
     "choosePath": "Choose your path...",
     "prediction": {
-      "title": "Oracle",
+      "title": "Prediction Chamber",
       "description": "Whisper the film's name – the Oracle will reveal how you might judge it.",
       "tickets": "{{count}} tickets",
       "nextReset": "Next reset: {{time}}",
