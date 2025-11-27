@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, ListPlus, Film, Eye, Edit } from 'lucide-react';
+import { Plus, ListPlus, Film, MessageSquare, Edit } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import RatingBox from '../components/RatingBox';
 import LibraryEditModal from '../components/LibraryEditModal';
+import UserReviewsModal from '../components/UserReviewsModal';
 import LinearProgressBar from '../components/LinearProgressBar';
 import { useAuth } from '../lib/auth';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +29,8 @@ export default function Library() {
   const [userMovies, setUserMovies] = useState<LibraryMovie[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
+  const [username, setUsername] = useState<string>('');
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [alternateNames, setAlternateNames] = useState<Record<string, string>>(() => {
     const saved = localStorage.getItem('libraryAlternateNames');
@@ -58,13 +61,14 @@ export default function Library() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('tv_order, chroma_box_enabled')
+        .select('tv_order, chroma_box_enabled, username')
         .eq('id', session.user.id)
         .single();
 
       if (data) {
         setTvOrder(data.tv_order || 'auto');
         setChromaBoxEnabled(data.chroma_box_enabled || false);
+        setUsername(data.username || '');
       }
     };
 
@@ -457,13 +461,13 @@ export default function Library() {
               </div>
           
               <div className="relative z-10 flex flex-wrap gap-2 justify-end">
-                <Link
-                  to="/oracle"
+                <button
+                  onClick={() => setIsReviewsModalOpen(true)}
                   className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
                 >
-                  <Eye className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('nav.oracle')}</span>
-                </Link>
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t('profile.reviews')}</span>
+                </button>
 
                 <button
                   onClick={() => setIsEditModalOpen(true)}
@@ -541,6 +545,14 @@ export default function Library() {
           alternateNames={alternateNames}
           onAlternateNameChange={handleAlternateNameChange}
         />
+
+        {isReviewsModalOpen && session?.user?.id && (
+          <UserReviewsModal
+            userId={session.user.id}
+            username={username}
+            onClose={() => setIsReviewsModalOpen(false)}
+          />
+        )}
       </motion.div>
     </div>
   );
