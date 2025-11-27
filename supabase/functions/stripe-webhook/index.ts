@@ -2,6 +2,12 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import Stripe from 'npm:stripe@17.7.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey, stripe-signature',
+};
+
 const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')!;
 const stripeWebhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!;
 const stripe = new Stripe(stripeSecret, {
@@ -18,7 +24,10 @@ Deno.serve(async (req) => {
     console.log("🎯 Webhook received");
     
     if (req.method === 'OPTIONS') {
-      return new Response(null, { status: 204 });
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders
+      });
     }
 
     if (req.method !== 'POST') {
@@ -310,9 +319,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ received: true });
+    return Response.json({ received: true }, { headers: corsHeaders });
   } catch (error: any) {
     console.error('❌ Error processing webhook:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
   }
 });
