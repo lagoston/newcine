@@ -54,6 +54,15 @@ interface CommunityTag {
   description: string;
 }
 
+interface OracleTag {
+  name: string;
+  emoji: string;
+  type: 'prediction' | 'recommendation';
+  minCount: number;
+  maxCount?: number;
+  description: string;
+}
+
 interface ActiveTag {
   category: TagCategory;
   name: string;
@@ -340,6 +349,25 @@ const COMMUNITY_TAGS: CommunityTag[] = [
   { name: 'Cult Legend', emoji: '🌟', minFollowers: 200, description: '200+ followers' }
 ];
 
+const ORACLE_TAGS: OracleTag[] = [
+  // Prediction tags
+  { name: 'Curious Seeker', emoji: '🔍', type: 'prediction', minCount: 10, maxCount: 24, description: '10 - 24 predictions' },
+  { name: 'Pattern Hunter', emoji: '🧩', type: 'prediction', minCount: 25, maxCount: 49, description: '25 - 49 predictions' },
+  { name: 'Mind Decoder', emoji: '🧠', type: 'prediction', minCount: 50, maxCount: 99, description: '50 - 99 predictions' },
+  { name: 'Future Whisperer', emoji: '🌘', type: 'prediction', minCount: 100, maxCount: 199, description: '100 - 199 predictions' },
+  { name: 'Oracle\'s Chosen', emoji: '🌑', type: 'prediction', minCount: 200, maxCount: 499, description: '200 - 499 predictions' },
+  { name: 'Fate Architect', emoji: '🜂', type: 'prediction', minCount: 500, maxCount: 999, description: '500 - 999 predictions' },
+  { name: 'Timeline Overlord', emoji: '⛓️', type: 'prediction', minCount: 1000, description: '1000+ predictions' },
+  // Recommendation tags
+  { name: 'Popcorn Taster', emoji: '🌽', type: 'recommendation', minCount: 10, maxCount: 24, description: '10 - 24 recommendations' },
+  { name: 'Hidden Gem Hunter', emoji: '🔶', type: 'recommendation', minCount: 25, maxCount: 49, description: '25 - 49 recommendations' },
+  { name: 'Genre Explorer', emoji: '🗺️', type: 'recommendation', minCount: 50, maxCount: 99, description: '50 - 99 recommendations' },
+  { name: 'Taste Alchemist', emoji: '🧪', type: 'recommendation', minCount: 100, maxCount: 199, description: '100 - 199 recommendations' },
+  { name: 'Recommendation Lord', emoji: '⚜️', type: 'recommendation', minCount: 200, maxCount: 499, description: '200 - 499 recommendations' },
+  { name: 'Galaxy Curator', emoji: '🧮', type: 'recommendation', minCount: 500, maxCount: 999, description: '500 - 999 recommendations' },
+  { name: 'Multiverse Sommelier', emoji: '🎎', type: 'recommendation', minCount: 1000, description: '1000+ recommendations' }
+];
+
 const FRANCHISE_MOVIES = {
   'Jumanji-Zathura': [8844, 6795],
   'Harry Potter': [671, 672, 673, 674, 675, 767, 12444, 12445],
@@ -435,6 +463,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const [loading, setLoading] = useState(true);
   const [themeTagProgress, setThemeTagProgress] = useState<Record<string, number>>({});
   const [basicTagProgress, setBasicTagProgress] = useState<Record<string, number>>({});
+  const [oracleTagProgress, setOracleTagProgress] = useState<Record<string, number>>({});
   const [activeTag, setActiveTag] = useState<ActiveTag | null>(null);
   const [savingTag, setSavingTag] = useState(false);
   const [selectedFrame, setSelectedFrame] = useState<FrameId>('default');
@@ -447,6 +476,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       fetchRatedMoviesCount();
       fetchThemeTagProgress();
       fetchBasicTagProgress();
+      fetchOracleTagProgress();
       fetchActiveTag();
       fetchFollowersCount();
     }
@@ -716,6 +746,38 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       setThemeTagProgress(progress);
     } catch (error) {
       console.error('Error fetching theme tag progress:', error);
+    }
+  };
+
+  const fetchOracleTagProgress = async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('oracle_predictions_count, oracle_recommendations_count')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (error) throw error;
+
+      const progress: Record<string, number> = {};
+
+      if (profileData) {
+        // Get counts from profile
+        const predictionsCount = profileData.oracle_predictions_count || 0;
+        const recommendationsCount = profileData.oracle_recommendations_count || 0;
+
+        // Set progress for each tag based on counts
+        ORACLE_TAGS.forEach(tag => {
+          const count = tag.type === 'prediction' ? predictionsCount : recommendationsCount;
+          progress[tag.name] = count;
+        });
+      }
+
+      setOracleTagProgress(progress);
+    } catch (error) {
+      console.error('Error fetching oracle tag progress:', error);
     }
   };
 
@@ -1079,10 +1141,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                   key={tag.id}
                   className={`relative group rounded-lg border ${
                     isUnlocked
-                      ? 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10'
+                      ? 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/10'
                       : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
                   } p-4 transition-all duration-200 ${
-                    isUnlocked ? 'hover:border-purple-300 dark:hover:border-purple-700' : ''
+                    isUnlocked ? 'hover:border-yellow-300 dark:hover:border-yellow-700' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -1091,7 +1153,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         <span className="text-2xl">{tag.emoji}</span>
                         <span className={`text-sm font-medium ${
                           isUnlocked
-                            ? 'text-purple-700 dark:text-purple-400'
+                            ? 'text-yellow-700 dark:text-yellow-400'
                             : 'text-gray-400 dark:text-gray-500'
                         }`}>
                           {tag.name}
@@ -1101,7 +1163,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         {tag.requirement}
                       </p>
                       <div className="mt-2 text-sm">
-                        <span className={isUnlocked ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}>
+                        <span className={isUnlocked ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}>
                           {progress}
                         </span>
                         <span className="text-gray-400 dark:text-gray-500">
@@ -1136,7 +1198,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${
                         isUnlocked
-                          ? 'bg-purple-500 dark:bg-purple-400'
+                          ? 'bg-yellow-500 dark:bg-yellow-400'
                           : 'bg-gray-300 dark:bg-gray-600'
                       }`}
                       style={{ width: `${Math.min(100, (progress / tag.condition.count) * 100)}%` }}
@@ -1239,12 +1301,91 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
       case 'oracle':
         return (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            <div className="h-10 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-400 dark:text-gray-500">
-              Oracle Whisperer
+          <div className="space-y-6">
+            <div className="text-sm text-gray-500 dark:text-gray-400 mb-4 space-y-1">
+              <div>Predictions: {oracleTagProgress['Curious Seeker'] || 0}</div>
+              <div>Recommendations: {oracleTagProgress['Popcorn Taster'] || 0}</div>
             </div>
-            <div className="h-10 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-400 dark:text-gray-500">
-              Prediction Master
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {ORACLE_TAGS.map((tag) => {
+                const progress = oracleTagProgress[tag.name] || 0;
+                const isUnlocked = progress >= tag.minCount;
+                const progressPercentage = tag.maxCount
+                  ? Math.min(100, (progress - tag.minCount) / (tag.maxCount - tag.minCount) * 100)
+                  : progress >= tag.minCount ? 100 : (progress / tag.minCount) * 100;
+                const isActive = activeTag?.name === tag.name;
+
+                return (
+                  <div
+                    key={tag.name}
+                    className={`relative group rounded-lg border ${
+                      isUnlocked
+                        ? 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10'
+                        : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
+                    } p-4 transition-all duration-200 ${
+                      isUnlocked ? 'hover:border-purple-300 dark:hover:border-purple-700' : ''
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{tag.emoji}</span>
+                          <span className={`text-sm font-medium ${
+                            isUnlocked
+                              ? 'text-purple-700 dark:text-purple-400'
+                              : 'text-gray-400 dark:text-gray-500'
+                          }`}>
+                            {tag.name}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                          {tag.description}
+                        </p>
+                        <div className="mt-2 text-sm">
+                          <span className={isUnlocked ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}>
+                            {progress}
+                          </span>
+                          <span className="text-gray-400 dark:text-gray-500">
+                            /{tag.maxCount || tag.minCount}+
+                          </span>
+                        </div>
+                      </div>
+                      {!isUnlocked ? (
+                        <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                      ) : (
+                        <button
+                          onClick={() => handleUseTag(tag, 'oracle')}
+                          disabled={savingTag}
+                          className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                            getCategoryButtonStyle(isActive, 'oracle')
+                          }`}
+                        >
+                          {isActive ? (
+                            <span className="flex items-center">
+                              <Check className="w-4 h-4 mr-1" />
+                              Active
+                            </span>
+                          ) : savingTag ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            'Use'
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-3 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isUnlocked
+                            ? 'bg-purple-500 dark:bg-purple-400'
+                            : 'bg-gray-300 dark:bg-gray-600'
+                        }`}
+                        style={{ width: `${progressPercentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
