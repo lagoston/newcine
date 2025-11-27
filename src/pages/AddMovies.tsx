@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Star, Import, Loader2, Film, ArrowLeft } from 'lucide-react';
+import { Search, Star, Import, Loader2, Film, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Movie, searchMovies, getMovieDetails } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -19,6 +19,7 @@ export default function AddMovies() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery] = useDebounce(searchQuery, 300);
   const [searchResults, setSearchResults] = useState<Movie[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState({
     search: false,
     prediction: false
@@ -28,6 +29,13 @@ export default function AddMovies() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [showMovieModal, setShowMovieModal] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const ITEMS_PER_PAGE = 9;
+  const totalPages = Math.ceil(searchResults.length / ITEMS_PER_PAGE);
+  const paginatedResults = searchResults.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   useEffect(() => {
     const urlSearch = searchParams.get('search');
@@ -70,7 +78,8 @@ export default function AddMovies() {
     try {
       setLoading(prev => ({ ...prev, search: true }));
       const results = await searchMovies(debouncedQuery);
-      setSearchResults(results.slice(0, 8));
+      setSearchResults(results.slice(0, 18));
+      setCurrentPage(1);
     } catch (error) {
       console.error('Error searching movies:', error);
       toast.error(t('common.error'));
@@ -232,8 +241,9 @@ export default function AddMovies() {
 
         {/* Search Results */}
         {searchResults.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-            {searchResults.map((movie) => (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+              {paginatedResults.map((movie) => (
               <div
                 key={movie.id}
                 className="flex bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
@@ -281,8 +291,48 @@ export default function AddMovies() {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t('common.back')}</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-10 h-10 rounded-lg transition-colors ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                >
+                  <span className="hidden sm:inline">{t('common.next')}</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {searchResults.length === 0 && searchQuery && !loading.search && (

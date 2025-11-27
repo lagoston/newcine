@@ -460,13 +460,13 @@ const Home = () => {
               className="relative"
               animate={{
                 filter: [
-                  'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 20px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.6))',
-                  'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 30px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 50px rgba(255, 255, 255, 0.7))',
-                  'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 20px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.6))',
+                  'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 12px rgba(255, 255, 255, 0.4)) drop-shadow(0 0 24px rgba(255, 255, 255, 0.3))',
+                  'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 16px rgba(168, 85, 247, 0.5)) drop-shadow(0 0 32px rgba(168, 85, 247, 0.4))',
+                  'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 12px rgba(255, 255, 255, 0.4)) drop-shadow(0 0 24px rgba(255, 255, 255, 0.3))',
                 ]
               }}
               transition={{
-                duration: 3,
+                duration: 4,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
