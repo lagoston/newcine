@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, ArchiveIcon, Award, TrendingDown, ListPlus } from 'lucide-react';
+import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
 import UserListsModal from '../components/UserListsModal';
+import UserReviewsModal from '../components/UserReviewsModal';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 
@@ -97,6 +98,7 @@ export default function UserProfile() {
   const [ratingDistribution, setRatingDistribution] = useState<RatingDistribution>({});
   const [showFollowModal, setShowFollowModal] = useState<'followers' | 'following' | null>(null);
   const [showUserListsModal, setShowUserListsModal] = useState(false);
+  const [showUserReviewsModal, setShowUserReviewsModal] = useState(false);
   const [totalWatchTime, setTotalWatchTime] = useState(0);
   const [favoriteGenres, setFavoriteGenres] = useState<Genre[]>([]);
   const [favoriteDecade, setFavoriteDecade] = useState<FavoriteDecade | null>(null);
@@ -725,6 +727,13 @@ export default function UserProfile() {
                       {t('lists.userLists')}
                     </button>
                     <button
+                      onClick={() => setShowUserReviewsModal(true)}
+                      className="px-6 py-2 rounded-lg font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
+                    >
+                      <MessageSquare className="w-5 h-5 mr-2" />
+                      Reviews
+                    </button>
+                    <button
                       onClick={handleFollowToggle}
                       disabled={isToggling}
                       className={`px-6 py-2 rounded-lg font-medium transition-colors ${
@@ -1090,6 +1099,14 @@ export default function UserProfile() {
             isOpen={true}
             onClose={() => setShowUserListsModal(false)}
             userId={profile.id}
+          />
+        )}
+
+        {showUserReviewsModal && profile.id && (
+          <UserReviewsModal
+            userId={profile.id}
+            username={profile.username}
+            onClose={() => setShowUserReviewsModal(false)}
           />
         )}
       </div>

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Star, AlertTriangle, Eye, EyeOff, Loader2, Pencil, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Star, AlertTriangle, Eye, EyeOff, Loader2, Pencil, Trash2, ArrowUpDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Movie } from '../lib/tmdb';
@@ -14,6 +14,7 @@ interface Review {
   title: string;
   content: string;
   has_spoilers: boolean;
+  rating: number;
   created_at: string;
   updated_at: string;
   profiles?: {
@@ -36,6 +37,7 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
   const [loading, setLoading] = useState(true);
   const [showWriteForm, setShowWriteForm] = useState(false);
   const [revealedSpoilers, setRevealedSpoilers] = useState<Set<string>>(new Set());
+  const [sortOrder, setSortOrder] = useState<'highest' | 'lowest' | 'recent'>('recent');
 
   // Form state
   const [title, setTitle] = useState('');
@@ -109,7 +111,8 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
         media_type: mediaType,
         title: title.trim(),
         content: content.trim(),
-        has_spoilers: hasSpoilers
+        has_spoilers: hasSpoilers,
+        rating: userRating
       };
 
       if (userReview) {
@@ -175,6 +178,16 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
     });
   };
 
+  const sortedReviews = useMemo(() => {
+    const reviewsCopy = [...reviews];
+    if (sortOrder === 'highest') {
+      return reviewsCopy.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortOrder === 'lowest') {
+      return reviewsCopy.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+    }
+    return reviewsCopy; // recent (already sorted by created_at desc)
+  }, [reviews, sortOrder]);
+
   const renderReview = (review: Review, isUserReview: boolean = false) => {
     const isRevealed = revealedSpoilers.has(review.id);
     const showSpoilerBlur = review.has_spoilers && !isRevealed;
@@ -202,14 +215,22 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
               </div>
             )}
             <div>
-              <p className="font-medium text-gray-900 dark:text-white">
-                {review.profiles?.username}
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-gray-900 dark:text-white">
+                  {review.profiles?.username}
+                </p>
                 {isUserReview && (
-                  <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded">
+                  <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded">
                     You
                   </span>
                 )}
-              </p>
+                <div className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-0.5 rounded">
+                  <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                  <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-400">
+                    {review.rating}
+                  </span>
+                </div>
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {new Date(review.created_at).toLocaleDateString()}
               </p>
@@ -423,11 +444,25 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
             </div>
           ) : reviews.length > 0 ? (
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
-                Community Reviews ({reviews.length})
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  Community Reviews ({reviews.length})
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Sort by:</span>
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as 'highest' | 'lowest' | 'recent')}
+                    className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="recent">Most Recent</option>
+                    <option value="highest">Highest Rating</option>
+                    <option value="lowest">Lowest Rating</option>
+                  </select>
+                </div>
+              </div>
               <div className="space-y-4">
-                {reviews.map(review => renderReview(review))}
+                {sortedReviews.map(review => renderReview(review))}
               </div>
             </div>
           ) : (
