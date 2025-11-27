@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Loader2, Calendar, Clock, User, Film, AlertCircle, Shield, Globe, Share2, Instagram, Tv, Users } from 'lucide-react';
+import { X, Star, Loader2, Calendar, Clock, User, Film, AlertCircle, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import RecommendModal from './RecommendModal';
+import ReviewsModal from './ReviewsModal';
 import html2canvas from 'html2canvas';
 
 interface FriendRating {
@@ -45,6 +46,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [userRating, setUserRating] = useState<number | null>(null);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
   const [seasons, setSeasons] = useState<any[]>(movie.seasons || []);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
 
   // Reset seasons when movie changes
   useEffect(() => {
@@ -973,6 +975,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       <span>✓ {t('movies.inLibrary')}</span>
                     </div>
                   )}
+                  <button
+                    onClick={() => setShowReviewsModal(true)}
+                    className="px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2 font-medium text-sm shadow-md hover:shadow-lg"
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                    Reviews
+                  </button>
                 </div>
               </div>
             )}
@@ -1175,6 +1184,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {showReviewsModal && (
+        <ReviewsModal
+          movie={movie}
+          onClose={() => setShowReviewsModal(false)}
+          userRating={userRating}
+        />
       )}
     </div>
   );
