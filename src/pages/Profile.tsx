@@ -665,12 +665,40 @@ export default function Profile() {
       case 'basic':
         return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
       case 'theme':
-        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400';
+        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
       case 'community':
         return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
+      case 'oracle':
+        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400';
       default:
         return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
     }
+  };
+
+  const getOracleTags = () => {
+    const tags = [];
+    const predictions = profile?.oracle_predictions_count || 0;
+    const recommendations = profile?.oracle_recommendations_count || 0;
+
+    // Prediction tags
+    if (predictions >= 1000) tags.push({ emoji: '⛓️', name: 'Timeline Overlord', progress: predictions, total: 1000, category: 'oracle' });
+    else if (predictions >= 500) tags.push({ emoji: '🜂', name: 'Fate Architect', progress: predictions, total: 500, category: 'oracle' });
+    else if (predictions >= 200) tags.push({ emoji: '🌑', name: 'Oracle\'s Chosen', progress: predictions, total: 200, category: 'oracle' });
+    else if (predictions >= 100) tags.push({ emoji: '🌘', name: 'Future Whisperer', progress: predictions, total: 100, category: 'oracle' });
+    else if (predictions >= 50) tags.push({ emoji: '🧠', name: 'Mind Decoder', progress: predictions, total: 50, category: 'oracle' });
+    else if (predictions >= 25) tags.push({ emoji: '🧩', name: 'Pattern Hunter', progress: predictions, total: 25, category: 'oracle' });
+    else if (predictions >= 10) tags.push({ emoji: '🔍', name: 'Curious Seeker', progress: predictions, total: 10, category: 'oracle' });
+
+    // Recommendation tags
+    if (recommendations >= 1000) tags.push({ emoji: '🎎', name: 'Multiverse Sommelier', progress: recommendations, total: 1000, category: 'oracle' });
+    else if (recommendations >= 500) tags.push({ emoji: '🧮', name: 'Galaxy Curator', progress: recommendations, total: 500, category: 'oracle' });
+    else if (recommendations >= 200) tags.push({ emoji: '⚜️', name: 'Recommendation Lord', progress: recommendations, total: 200, category: 'oracle' });
+    else if (recommendations >= 100) tags.push({ emoji: '🧪', name: 'Taste Alchemist', progress: recommendations, total: 100, category: 'oracle' });
+    else if (recommendations >= 50) tags.push({ emoji: '🗺️', name: 'Genre Explorer', progress: recommendations, total: 50, category: 'oracle' });
+    else if (recommendations >= 25) tags.push({ emoji: '🔶', name: 'Hidden Gem Hunter', progress: recommendations, total: 25, category: 'oracle' });
+    else if (recommendations >= 10) tags.push({ emoji: '🌽', name: 'Popcorn Taster', progress: recommendations, total: 10, category: 'oracle' });
+
+    return tags;
   };
 
   const handleWhispersClick = () => {
@@ -1130,6 +1158,30 @@ export default function Profile() {
               </div>
             </motion.div>
           </motion.div>
+
+          {/* Oracle Tags */}
+          {getOracleTags().length > 0 && (
+            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Oracle Tags
+                </h2>
+                <div className="text-2xl">🔮</div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {getOracleTags().map((tag, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full ${getTagColorClasses(tag.category)} font-medium text-sm transition-all duration-200 hover:scale-105`}
+                  >
+                    <span className="text-lg">{tag.emoji}</span>
+                    <span>{tag.name}</span>
+                    <span className="ml-1 opacity-70">{tag.progress}/{tag.total}+</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           {/* Rating Distribution */}
           <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">

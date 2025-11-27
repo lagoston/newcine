@@ -10,10 +10,10 @@ export async function getProfile(userId: string) {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, avatar_url, bio, plan_type, avatar_frame, banner, active_tag')
+      .select('id, username, avatar_url, bio, plan_type, avatar_frame, banner, active_tag, oracle_predictions_count, oracle_recommendations_count')
       .eq('id', userId)
       .single();
-      
+
     if (error) throw error;
     return { data, error: null };
   } catch (error) {

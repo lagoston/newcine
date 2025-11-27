@@ -14,36 +14,34 @@ interface RequestBody {
   language?: string;
 }
 
-// Frases dos personagens para recomendações
 const CHARACTER_PHRASES = {
   bogart: [
-    "BOGART: Filmes vêm, filmes vão… mas este aqui grudou na minha mente como mosquito em língua úmida.",
-    "BOGART: Muitos buscam sentido nos filmes. Eu busco mosquitos. Ainda assim… veja este.",
-    "BOGART: Anos vendo reflexos na água… e ainda assim este filme me fez ver o fundo do brejo.",
-    "BOGART: Feche os olhos, respire o cheiro do lodo… se sentir vertigem, é sinal que este é o certo.",
-    "BOGART: As massas aplaudem, os críticos bufam… e eu? Eu coaxo em êxtase."
+    "BOGART: Filmes v\u00eam, filmes v\u00e3o\u2026 mas este aqui grudou na minha mente como mosquito em l\u00edngua \u00famida.",
+    "BOGART: Muitos buscam sentido nos filmes. Eu busco mosquitos. Ainda assim\u2026 veja este.",
+    "BOGART: Anos vendo reflexos na \u00e1gua\u2026 e ainda assim este filme me fez ver o fundo do brejo.",
+    "BOGART: Feche os olhos, respire o cheiro do lodo\u2026 se sentir vertigem, \u00e9 sinal que este \u00e9 o certo.",
+    "BOGART: As massas aplaudem, os cr\u00edticos bufam\u2026 e eu? Eu coaxo em \u00eaxtase."
   ],
   fincher: [
-    "FINCHER: Vi esse filme três vezes… na quarta, percebi que era eu quem estava sendo analisado.",
-    "FINCHER: Não confio em críticos, mas confio no meu faro — e ele cheira a obra-prima.",
-    "FINCHER: Filmes são mágicos, e eu sou especialista em truques. Quer cair nesse também?",
-    "FINCHER: Gravado quando o cinema ainda tinha alma — e atores que fumavam até nos créditos.",
-    "FINCHER: É o tipo de filme que envelhece como um crime perfeito."
+    "FINCHER: Vi esse filme tr\u00eas vezes\u2026 na quarta, percebi que era eu quem estava sendo analisado.",
+    "FINCHER: N\u00e3o confio em cr\u00edticos, mas confio no meu faro \u2014 e ele cheira a obra-prima.",
+    "FINCHER: Filmes s\u00e3o m\u00e1gicos, e eu sou especialista em truques. Quer cair nesse tamb\u00e9m?",
+    "FINCHER: Gravado quando o cinema ainda tinha alma \u2014 e atores que fumavam at\u00e9 nos cr\u00e9ditos.",
+    "FINCHER: \u00c9 o tipo de filme que envelhece como um crime perfeito."
   ],
   cypher: [
-    "CYPHER: Ah… esse aqui fede a genialidade mal executada. Meu veneno favorito.",
+    "CYPHER: Ah\u2026 esse aqui fede a genialidade mal executada. Meu veneno favorito.",
     "CYPHER: Metade vai odiar, metade vai fingir que entendeu. E eu? Eu sorrio no escuro.",
-    "CYPHER: Shhh… não lute contra o impulso. Deixe a curiosidade te apertar um pouco mais.",
-    "CYPHER: Sente o frio subindo pela espinha? É o enredo te enrolando, bem devagar.",
-    "CYPHER: Proibido, tosco, hipnótico — uma heresia audiovisual que sussurra: 'assista-me, se ousar.'"
+    "CYPHER: Shhh\u2026 n\u00e3o lute contra o impulso. Deixe a curiosidade te apertar um pouco mais.",
+    "CYPHER: Sente o frio subindo pela espinha? \u00c9 o enredo te enrolando, bem devagar.",
+    "CYPHER: Proibido, tosco, hipn\u00f3tico \u2014 uma heresia audiovisual que sussurra: \u2018assista-me, se ousar.\u2019"
   ]
 };
 
-// Frases de indisponibilidade por personagem
 const UNAVAILABLE_PHRASES = {
-  bogart: "BOGART: Hmm… o pântano hoje está silencioso. Nenhuma história borbulha na lama. Tente outro humor, quem sabe o reflexo muda.",
-  fincher: "FINCHER: Nada digno da minha recomendação agora. Volte com outro humor... talvez eu pense em algo.",
-  cypher: "CYPHER: Shhh… até o subsolo dorme às vezes. Nenhum filme rasteja para mim hoje. Mude o humor… e talvez eu volte a sussurrar."
+  bogart: "BOGART: Hmm\u2026 o p\u00e2ntano hoje est\u00e1 silencioso. Nenhuma hist\u00f3ria borbulha na lama. Tente outro humor, quem sabe o reflexo muda.",
+  fincher: "FINCHER: Nada digno da minha recomenda\u00e7\u00e3o agora. Volte com outro humor... talvez eu pense em algo.",
+  cypher: "CYPHER: Shhh\u2026 at\u00e9 o subsolo dorme \u00e0s vezes. Nenhum filme rasteja para mim hoje. Mude o humor\u2026 e talvez eu volte a sussurrar."
 };
 
 function getRandomPhrase(cardType: 'bogart' | 'fincher' | 'cypher'): string {
@@ -66,9 +64,8 @@ Deno.serve(async (req) => {
 
     const { userId, mood, cardType, moodKey, language = 'en' }: RequestBody = await req.json();
 
-    console.log(`🎬 Recommend movie request: user=${userId}, mood=${mood}, card=${cardType}`);
+    console.log(`\ud83c\udfac Recommend movie request: user=${userId}, mood=${mood}, card=${cardType}`);
 
-    // Get user's tickets
     const { data: ticketData, error: ticketError } = await supabase
       .from('user_tickets')
       .select('tickets_remaining')
@@ -92,7 +89,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get user's rated movies to exclude from recommendations
     const { data: ratedMovies, error: ratingsError } = await supabase
       .from('user_movies')
       .select('movie_id')
@@ -104,7 +100,6 @@ Deno.serve(async (req) => {
 
     const ratedMovieIds = ratedMovies?.map(r => r.movie_id) || [];
 
-    // Get recommendation pool for this card/mood combination
     const { data: poolData, error: poolError } = await supabase
       .from('recommendation_pools')
       .select('movie_ids')
@@ -117,9 +112,8 @@ Deno.serve(async (req) => {
     }
 
     if (!poolData) {
-      console.log(`⚠️ No pool found for ${cardType}/${moodKey}`);
+      console.log(`\u26a0\ufe0f No pool found for ${cardType}/${moodKey}`);
 
-      // NO ticket deduction - pool doesn't exist
       return new Response(
         JSON.stringify({
           recommendation: UNAVAILABLE_PHRASES[cardType],
@@ -133,18 +127,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Filter out already rated movies
     const poolMovies = poolData.movie_ids || [];
     const availableMovies = poolMovies.filter(
       (movieId: number) => !ratedMovieIds.includes(movieId)
     );
 
-    console.log(`✅ Available movies: ${availableMovies.length}`);
+    console.log(`\u2705 Available movies: ${availableMovies.length}`);
 
     if (availableMovies.length === 0) {
-      console.log('⚠️ No available movies in pool');
+      console.log('\u26a0\ufe0f No available movies in pool');
 
-      // NO ticket deduction - no movies available
       return new Response(
         JSON.stringify({
           recommendation: UNAVAILABLE_PHRASES[cardType],
@@ -158,7 +150,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // NOW deduct 25 tickets (only after confirming we have a movie to recommend)
     const { error: updateError } = await supabase
       .from('user_tickets')
       .update({ tickets_remaining: ticketData.tickets_remaining - 25 })
@@ -168,16 +159,16 @@ Deno.serve(async (req) => {
       throw new Error(`Error updating tickets: ${updateError.message}`);
     }
 
-    // Pick random movie from available pool
+    await supabase.rpc('increment_oracle_recommendations', { p_user_id: userId });
+
     const randomIndex = Math.floor(Math.random() * availableMovies.length);
     const selectedMovieId = availableMovies[randomIndex];
 
-    console.log(`🎯 Selected movie ID: ${selectedMovieId}`);
+    console.log(`\ud83c\udfaf Selected movie ID: ${selectedMovieId}`);
 
-    // Fetch movie details from TMDB via proxy with credits
     const languageParam = language ? `language=${language}&` : '';
     const tmdbUrl = `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=/movie/${selectedMovieId}?${languageParam}append_to_response=credits`;
-    console.log(`📡 Fetching from: ${tmdbUrl}`);
+    console.log(`\ud83d\udce1 Fetching from: ${tmdbUrl}`);
     const tmdbResponse = await fetch(tmdbUrl, {
       headers: {
         'Authorization': req.headers.get('Authorization') || '',
@@ -190,15 +181,13 @@ Deno.serve(async (req) => {
 
     const movieData = await tmdbResponse.json();
 
-    // Debug: Check if credits came through
-    console.log(`✅ Movie data received:`, {
+    console.log(`\u2705 Movie data received:`, {
       title: movieData.title,
       hasCredits: !!movieData.credits,
       hasCrew: !!movieData.credits?.crew,
       crewLength: movieData.credits?.crew?.length
     });
 
-    // Get random character phrase
     const characterPhrase = getRandomPhrase(cardType);
 
     return new Response(
@@ -215,7 +204,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('❌ Error in recommend-movie:', error);
+    console.error('\u274c Error in recommend-movie:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

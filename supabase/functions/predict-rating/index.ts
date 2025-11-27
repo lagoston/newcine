@@ -504,6 +504,9 @@ Deno.serve(async (req) => {
       throw new Error(`Error updating tickets: ${updateError.message}`);
     }
 
+    // Increment oracle predictions counter
+    await supabase.rpc('increment_oracle_predictions', { p_user_id: userId });
+
     const hybridPrompt = getHybridPrompt(
       personalityData.archetype_name || 'Unknown',
       personalityData.complete_personality || 'XXX',
