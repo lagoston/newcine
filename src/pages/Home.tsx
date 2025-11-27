@@ -65,8 +65,8 @@ const Home = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.6 }}
         >
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold mb-4">
-            <span className="text-white">Bem-vindo ao </span>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 px-4">
+            <span className="text-white">{t('home.welcomeTo')} </span>
             <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
               CineOracle
             </span>
@@ -75,14 +75,12 @@ const Home = () => {
 
         {/* Subtítulo */}
         <motion.p
-          className="text-gray-300 text-lg sm:text-xl text-center max-w-2xl mb-16 px-4"
+          className="text-gray-300 text-base sm:text-lg md:text-xl text-center max-w-2xl mb-16 px-4"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.6 }}
         >
-          Seu companheiro pessoal de cinema. Descubra, avalie e construa sua
-          <br />
-          coleção definitiva de filmes.
+          {t('home.welcomeDesc')}
         </motion.p>
 
         {/* Cards de Funcionalidades */}
@@ -95,29 +93,29 @@ const Home = () => {
           {[
             {
               icon: <Star className="w-12 h-12 text-yellow-400 mb-4" />,
-              title: 'Classificação',
-              description: 'Avalie filmes e receba estatísticas personalizadas',
+              titleKey: 'home.homeClassification',
+              descriptionKey: 'home.homeClassificationDesc',
               gradient: 'from-yellow-500/20 to-orange-500/20',
               borderGradient: 'from-yellow-500/50 to-orange-500/50'
             },
             {
               icon: <LibraryIcon className="w-12 h-12 text-blue-400 mb-4" />,
-              title: 'Sua Biblioteca',
-              description: 'Visualize e gerencie sua coleção de filmes e séries',
+              titleKey: 'home.homeLibrary',
+              descriptionKey: 'home.homeLibraryDesc',
               gradient: 'from-blue-500/20 to-cyan-500/20',
               borderGradient: 'from-blue-500/50 to-cyan-500/50'
             },
             {
               icon: <Eye className="w-12 h-12 text-purple-400 mb-4" />,
-              title: 'Câmara de Previsão',
-              description: 'Obtenha previsões e recomendações personalizadas',
+              titleKey: 'home.homeOracle',
+              descriptionKey: 'home.homeOracleDesc',
               gradient: 'from-purple-500/20 to-pink-500/20',
               borderGradient: 'from-purple-500/50 to-pink-500/50'
             },
             {
               icon: <Users className="w-12 h-12 text-green-400 mb-4" />,
-              title: 'Comunidade',
-              description: 'Siga amigos e crie um perfil único',
+              titleKey: 'home.homeCommunity',
+              descriptionKey: 'home.homeCommunityDesc',
               gradient: 'from-green-500/20 to-emerald-500/20',
               borderGradient: 'from-green-500/50 to-emerald-500/50'
             }
@@ -138,14 +136,14 @@ const Home = () => {
                 }}
               ></div>
 
-              <div className={`relative bg-gradient-to-br ${feature.gradient} backdrop-blur-xl rounded-2xl p-8 border border-white/10 h-full transition-all duration-300 group-hover:border-white/20`}>
+              <div className={`relative bg-gradient-to-br ${feature.gradient} backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-white/10 h-full transition-all duration-300 group-hover:border-white/20`}>
                 <div className="flex flex-col items-center text-center">
                   {feature.icon}
-                  <h3 className="text-xl font-bold text-white mb-3">
-                    {feature.title}
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3">
+                    {t(feature.titleKey)}
                   </h3>
-                  <p className="text-gray-300 text-sm leading-relaxed">
-                    {feature.description}
+                  <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
+                    {t(feature.descriptionKey)}
                   </p>
                 </div>
               </div>
@@ -161,10 +159,10 @@ const Home = () => {
         >
           <Link
             to="/auth"
-            className="group relative inline-flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white text-lg font-bold rounded-full overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/50"
+            className="group relative inline-flex items-center justify-center gap-3 px-8 sm:px-12 py-4 sm:py-5 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white text-base sm:text-lg font-bold rounded-full overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/50"
           >
-            <span className="relative z-10">Cadastrar</span>
-            <Logo className="relative z-10 w-6 h-6 transition-transform duration-300 group-hover:rotate-12" />
+            <span className="relative z-10">{t('home.signUpButton')}</span>
+            <Logo className="relative z-10 w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 group-hover:rotate-12" />
 
             {/* Efeito de brilho animado */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
@@ -173,14 +171,14 @@ const Home = () => {
 
         {/* Link para login */}
         <motion.p
-          className="mt-6 text-gray-400 text-sm"
+          className="mt-6 text-gray-400 text-xs sm:text-sm px-4 text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.4, duration: 0.5 }}
         >
-          Já tem uma conta?{' '}
+          {t('home.alreadyHaveAccount')}{' '}
           <Link to="/auth" className="text-purple-400 hover:text-purple-300 font-semibold underline transition-colors">
-            Entrar
+            {t('home.signInLink')}
           </Link>
         </motion.p>
       </div>

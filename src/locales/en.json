@@ -87,6 +87,18 @@
     "friendsWatching": "Friends Are Watching",
     "welcomeTitle": "Welcome to CineOracle",
     "welcomeDesc": "Your personal movie companion. Discover, rate, and build your ultimate movie collection.",
+    "welcomeTo": "Welcome to",
+    "homeClassification": "Classification",
+    "homeClassificationDesc": "Rate movies and receive personalized statistics",
+    "homeLibrary": "Your Library",
+    "homeLibraryDesc": "View and manage your movie and series collection",
+    "homeOracle": "Oracle",
+    "homeOracleDesc": "Get predictions and personalized recommendations",
+    "homeCommunity": "Community",
+    "homeCommunityDesc": "Follow friends and create a unique profile",
+    "signUpButton": "Sign Up",
+    "alreadyHaveAccount": "Already have an account?",
+    "signInLink": "Sign In",
     "rateMoviesHelp": "Rate movies and get personalized statistics"
   },
   "library": {

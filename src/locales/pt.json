@@ -87,7 +87,19 @@
     "friendsWatching": "Amigos Planejando Assistir",
     "welcomeTitle": "Bem-vindo ao CineOracle",
     "welcomeDesc": "Seu companheiro pessoal de cinema. Descubra, avalie e construa sua coleção definitiva de filmes.",
-    "rateMoviesHelp": "Avalie filmes e receba estatísticas personalizadas"
+    "rateMoviesHelp": "Avalie filmes e receba estatísticas personalizadas",
+    "welcomeTo": "Bem-vindo ao",
+    "homeClassification": "Classificação",
+    "homeClassificationDesc": "Avalie filmes e receba estatísticas personalizadas",
+    "homeLibrary": "Sua Biblioteca",
+    "homeLibraryDesc": "Visualize e gerencie sua coleção de filmes e séries",
+    "homeOracle": "Oráculo",
+    "homeOracleDesc": "Obtenha previsões e recomendações personalizadas",
+    "homeCommunity": "Comunidade",
+    "homeCommunityDesc": "Siga amigos e crie um perfil único",
+    "signUpButton": "Cadastrar",
+    "alreadyHaveAccount": "Já tem uma conta?",
+    "signInLink": "Entrar"
   },
   "library": {
     "title": "Minha Biblioteca",
