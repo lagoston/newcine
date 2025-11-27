@@ -22,6 +22,10 @@ interface RelevantMovie {
   title: string;
   rating: number;
   matchType: string;
+  review?: {
+    title: string;
+    content: string;
+  };
 }
 
 interface FishingResult {
@@ -83,11 +87,13 @@ async function fishForRelevantMovies(
       .from('user_movies')
       .select(`
         rating,
+        movie_id,
         movies!inner (
           id,
           title,
           director,
-          genres
+          genres,
+          media_type
         )
       `)
       .eq('user_id', userId)
@@ -99,6 +105,25 @@ async function fishForRelevantMovies(
       return { signals, filters };
     }
 
+    // Fetch all reviews for this user at once for efficiency
+    const { data: userReviews, error: reviewsError } = await supabase
+      .from('reviews')
+      .select('movie_id, media_type, title, content')
+      .eq('user_id', userId);
+
+    if (reviewsError) {
+      console.error('Error fetching reviews:', reviewsError);
+    }
+
+    // Create a map of reviews by movie_id for quick lookup
+    const reviewsMap = new Map<string, { title: string; content: string }>();
+    if (userReviews) {
+      for (const review of userReviews) {
+        const key = `${review.movie_id}_${review.media_type}`;
+        reviewsMap.set(key, { title: review.title, content: review.content });
+      }
+    }
+
     const addedMovies = new Set<string>();
 
     if (targetMovieData.director) {
@@ -106,10 +131,14 @@ async function fishForRelevantMovies(
         if (signals.length + filters.length >= 5) break;
 
         if (movie.movies.director === targetMovieData.director && !addedMovies.has(movie.movies.title)) {
+          const reviewKey = `${movie.movie_id}_${movie.movies.media_type || 'movie'}`;
+          const review = reviewsMap.get(reviewKey);
+
           const entry: RelevantMovie = {
             title: movie.movies.title,
             rating: movie.rating,
-            matchType: 'Director'
+            matchType: 'Director',
+            ...(review && { review })
           };
 
           if (movie.rating >= 7.0) {
@@ -127,9 +156,11 @@ async function fishForRelevantMovies(
         .from('user_movies')
         .select(`
           rating,
+          movie_id,
           movies!inner (
             id,
-            title
+            title,
+            media_type
           )
         `)
         .eq('user_id', userId)
@@ -154,10 +185,14 @@ async function fishForRelevantMovies(
             const hasCommonActor = movieCast.some((actor: string) => targetMovieData.cast?.includes(actor));
 
             if (hasCommonActor) {
+              const reviewKey = `${movie.movie_id}_${movie.movies.media_type || 'movie'}`;
+              const review = reviewsMap.get(reviewKey);
+
               const entry: RelevantMovie = {
                 title: movie.movies.title,
                 rating: movie.rating,
-                matchType: 'Actor'
+                matchType: 'Actor',
+                ...(review && { review })
               };
 
               if (movie.rating >= 7.0) {
@@ -182,10 +217,14 @@ async function fishForRelevantMovies(
         if (addedMovies.has(movie.movies.title)) continue;
 
         if (movie.movies.genres && movie.movies.genres.includes(primaryGenre)) {
+          const reviewKey = `${movie.movie_id}_${movie.movies.media_type || 'movie'}`;
+          const review = reviewsMap.get(reviewKey);
+
           const entry: RelevantMovie = {
             title: movie.movies.title,
             rating: movie.rating,
-            matchType: 'Genre'
+            matchType: 'Genre',
+            ...(review && { review })
           };
 
           if (movie.rating >= 7.0) {
@@ -220,7 +259,13 @@ function getHybridPrompt(
 
   const formatMatches = (matches: RelevantMovie[]): string => {
     if (matches.length === 0) return 'None';
-    return matches.map(m => `"${m.title}" (${m.rating}/10) - Same ${m.matchType}`).join('\n');
+    return matches.map(m => {
+      let matchStr = `"${m.title}" (${m.rating}/10) - Same ${m.matchType}`;
+      if (m.review) {
+        matchStr += `\n  📝 User's Review: "${m.review.title}"\n  ${m.review.content}`;
+      }
+      return matchStr;
+    }).join('\n\n');
   };
 
   const prompts = {
@@ -232,6 +277,7 @@ function getHybridPrompt(
 3. **LENS:** Use the "Personality Profile" as the primary lens to justify your analysis.
 4. **FINAL SCORE:** Provide a specific rating (e.g., 8.5/10). **NEVER** use ranges (e.g., "±1.0"). Be confident.
 5. **NATURAL LANGUAGE:** Write as if analyzing a real person. Avoid technical jargon or methodology terms. Be conversational and insightful.
+6. **EXTREME RATINGS ALLOWED:** If there is strong evidence from the user's reviews or history (e.g., they explicitly hate Japanese films and this is a Japanese film, or they love a specific director and this is by that director), DO NOT hesitate to predict very high (9.0-10.0) or very low (0.0-2.0) ratings. Be bold when the evidence is clear.
 
 # PREDICTION DATA
 
@@ -245,6 +291,7 @@ function getHybridPrompt(
 * **Anchor (Public Average):** ${movieAnchor.toFixed(1)}/10
 
 ## 3. RELEVANT USER HISTORY
+**IMPORTANT:** When a user has written a review for a film below, pay EXTRA ATTENTION to their specific comments. These reviews reveal exactly what they loved or hated, and should heavily influence your prediction if the target film shares those characteristics.
 
 ### Films They Loved (7.0+):
 ${formatMatches(signals)}
@@ -274,6 +321,7 @@ ${formatMatches(filters)}
 3. **LENTE:** Use o "Perfil de Personalidade" como a lente principal para justificar sua análise.
 4. **NOTA FINAL:** Forneça uma nota específica (ex: 8.5/10). **NUNCA** use intervalos (ex: "±1.0"). Seja confiante.
 5. **LINGUAGEM NATURAL:** Escreva como se estivesse analisando uma pessoa real. Evite jargão técnico ou termos metodológicos. Seja conversacional e perspicaz.
+6. **NOTAS EXTREMAS PERMITIDAS:** Se houver fortes evidências das reviews ou histórico do usuário (ex: ele odeia explicitamente filmes japoneses e este é um filme japonês, ou ele ama um diretor específico e este filme é desse diretor), NÃO hesite em prever notas muito altas (9.0-10.0) ou muito baixas (0.0-2.0). Seja ousado quando as evidências forem claras.
 
 # DADOS DA PREVISÃO
 
@@ -287,6 +335,7 @@ ${formatMatches(filters)}
 * **Âncora (Nota Média do Público):** ${movieAnchor.toFixed(1)}/10
 
 ## 3. HISTÓRICO RELEVANTE DO USUÁRIO
+**IMPORTANTE:** Quando um usuário escreveu uma review para um filme abaixo, preste ATENÇÃO ESPECIAL aos comentários específicos dele. Essas reviews revelam exatamente o que ele amou ou odiou, e devem influenciar fortemente sua previsão se o filme-alvo compartilhar essas características.
 
 ### Filmes que Amou (7.0+):
 ${formatMatches(signals)}
@@ -316,6 +365,7 @@ ${formatMatches(filters)}
 3. **LENTE:** Usa el "Perfil de Personalidad" como la lente principal para justificar tu análisis.
 4. **CALIFICACIÓN FINAL:** Proporciona una calificación específica (ej: 8.5/10). **NUNCA** uses rangos (ej: "±1.0"). Sé confiado.
 5. **LENGUAJE NATURAL:** Escribe como si estuvieras analizando a una persona real. Evita jerga técnica o términos metodológicos. Sé conversacional y perspicaz.
+6. **CALIFICACIONES EXTREMAS PERMITIDAS:** Si hay evidencia fuerte de las reseñas o historial del usuario (ej: odia explícitamente las películas japonesas y esta es una película japonesa, o ama a un director específico y esta película es de ese director), NO dudes en predecir calificaciones muy altas (9.0-10.0) o muy bajas (0.0-2.0). Sé audaz cuando la evidencia sea clara.
 
 # DATOS DE LA PREDICCIÓN
 
@@ -329,6 +379,7 @@ ${formatMatches(filters)}
 * **Ancla (Promedio Público):** ${movieAnchor.toFixed(1)}/10
 
 ## 3. HISTORIAL RELEVANTE DEL USUARIO
+**IMPORTANTE:** Cuando un usuario ha escrito una reseña para una película abajo, presta ATENCIÓN ESPECIAL a sus comentarios específicos. Estas reseñas revelan exactamente lo que amó u odió, y deben influir fuertemente en tu predicción si la película objetivo comparte esas características.
 
 ### Películas que Amó (7.0+):
 ${formatMatches(signals)}
