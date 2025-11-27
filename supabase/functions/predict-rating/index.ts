@@ -97,8 +97,7 @@ async function fishForRelevantMovies(
         )
       `)
       .eq('user_id', userId)
-      .not('rating', 'is', null)
-      .order('rating', { ascending: false });
+      .not('rating', 'is', null);
 
     if (error || !userMovies) {
       console.error('Error fetching user movies:', error);
@@ -125,6 +124,74 @@ async function fishForRelevantMovies(
     }
 
     const addedMovies = new Set<string>();
+
+    // Helper function to get balanced selection from a pool of movies
+    const selectBalancedMovies = (pool: any[], maxCount: number): void => {
+      // Separate into high (7.0+), mid (6.0-7.0), and low (< 6.0) ratings
+      const high = pool.filter(m => m.rating >= 7.0);
+      const mid = pool.filter(m => m.rating > 6.0 && m.rating < 7.0);
+      const low = pool.filter(m => m.rating <= 6.0);
+
+      // Shuffle each category for randomness
+      const shuffle = (arr: any[]) => {
+        const shuffled = [...arr];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+      };
+
+      const shuffledHigh = shuffle(high);
+      const shuffledMid = shuffle(mid);
+      const shuffledLow = shuffle(low);
+
+      // Try to get a balanced mix: alternate between high, mid, and low
+      const categories = [
+        { movies: shuffledHigh, type: 'high' },
+        { movies: shuffledMid, type: 'mid' },
+        { movies: shuffledLow, type: 'low' }
+      ];
+
+      let categoryIndex = 0;
+      let added = 0;
+
+      // Round-robin selection from each category
+      while (added < maxCount && (shuffledHigh.length > 0 || shuffledMid.length > 0 || shuffledLow.length > 0)) {
+        const category = categories[categoryIndex % 3];
+
+        if (category.movies.length > 0) {
+          const movie = category.movies.shift();
+          if (movie && !addedMovies.has(movie.movies.title)) {
+            const reviewKey = `${movie.movie_id}_${movie.movies.media_type || 'movie'}`;
+            const review = reviewsMap.get(reviewKey);
+
+            const entry: RelevantMovie = {
+              title: movie.movies.title,
+              rating: movie.rating,
+              matchType: movie.matchType || 'Genre',
+              ...(review && { review })
+            };
+
+            if (movie.rating >= 7.0) {
+              signals.push(entry);
+            } else if (movie.rating <= 6.0) {
+              filters.push(entry);
+            }
+
+            addedMovies.add(movie.movies.title);
+            added++;
+          }
+        }
+
+        categoryIndex++;
+
+        // Break if all categories are empty
+        if (shuffledHigh.length === 0 && shuffledMid.length === 0 && shuffledLow.length === 0) {
+          break;
+        }
+      }
+    };
 
     if (targetMovieData.director) {
       for (const movie of userMovies) {
@@ -165,16 +232,15 @@ async function fishForRelevantMovies(
         `)
         .eq('user_id', userId)
         .not('rating', 'is', null)
-        .limit(10);
+        .limit(30);
 
       if (castResponse.data) {
-        let checkedCount = 0;
-        for (const movie of castResponse.data) {
-          if (signals.length + filters.length >= 5) break;
-          if (addedMovies.has(movie.movies.title)) continue;
-          if (checkedCount >= 5) break;
+        // Collect actor matches
+        const actorMatches: any[] = [];
 
-          checkedCount++;
+        for (const movie of castResponse.data) {
+          if (addedMovies.has(movie.movies.title)) continue;
+          if (actorMatches.length >= 15) break; // Check up to 15 movies
 
           try {
             const movieDetailsUrl = `https://api.themoviedb.org/3/movie/${movie.movies.id}?api_key=${Deno.env.get('TMDB_API_KEY')}&append_to_response=credits`;
@@ -185,26 +251,20 @@ async function fishForRelevantMovies(
             const hasCommonActor = movieCast.some((actor: string) => targetMovieData.cast?.includes(actor));
 
             if (hasCommonActor) {
-              const reviewKey = `${movie.movie_id}_${movie.movies.media_type || 'movie'}`;
-              const review = reviewsMap.get(reviewKey);
-
-              const entry: RelevantMovie = {
-                title: movie.movies.title,
-                rating: movie.rating,
-                matchType: 'Actor',
-                ...(review && { review })
-              };
-
-              if (movie.rating >= 7.0) {
-                signals.push(entry);
-              } else if (movie.rating <= 6.0) {
-                filters.push(entry);
-              }
-              addedMovies.add(movie.movies.title);
+              actorMatches.push({
+                ...movie,
+                matchType: 'Actor'
+              });
             }
           } catch (error) {
             console.error('Error fetching cast for movie:', movie.movies.title, error);
           }
+        }
+
+        // Use balanced selection for actor matches
+        if (actorMatches.length > 0) {
+          const remainingSlots = 5 - (signals.length + filters.length);
+          selectBalancedMovies(actorMatches, remainingSlots);
         }
       }
     }
@@ -212,29 +272,21 @@ async function fishForRelevantMovies(
     if (signals.length + filters.length < 5 && targetMovieData.genres && targetMovieData.genres.length > 0) {
       const primaryGenre = targetMovieData.genres[0];
 
-      for (const movie of userMovies) {
-        if (signals.length + filters.length >= 5) break;
-        if (addedMovies.has(movie.movies.title)) continue;
+      // Collect all genre matches first
+      const genreMatches = userMovies
+        .filter(movie =>
+          !addedMovies.has(movie.movies.title) &&
+          movie.movies.genres &&
+          movie.movies.genres.includes(primaryGenre)
+        )
+        .map(movie => ({
+          ...movie,
+          matchType: 'Genre'
+        }));
 
-        if (movie.movies.genres && movie.movies.genres.includes(primaryGenre)) {
-          const reviewKey = `${movie.movie_id}_${movie.movies.media_type || 'movie'}`;
-          const review = reviewsMap.get(reviewKey);
-
-          const entry: RelevantMovie = {
-            title: movie.movies.title,
-            rating: movie.rating,
-            matchType: 'Genre',
-            ...(review && { review })
-          };
-
-          if (movie.rating >= 7.0) {
-            signals.push(entry);
-          } else if (movie.rating <= 6.0) {
-            filters.push(entry);
-          }
-          addedMovies.add(movie.movies.title);
-        }
-      }
+      // Use balanced selection for genre matches
+      const remainingSlots = 5 - (signals.length + filters.length);
+      selectBalancedMovies(genreMatches, remainingSlots);
     }
 
   } catch (error) {
