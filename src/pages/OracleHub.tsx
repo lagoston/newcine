@@ -618,7 +618,7 @@ export default function OracleHub() {
             letterSpacing: '0.1em'
           }}
         >
-          O Santuário
+          O Oráculo
         </motion.h1>
 
         {/* Personality Display */}

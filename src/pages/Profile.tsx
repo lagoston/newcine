@@ -1161,30 +1161,6 @@ export default function Profile() {
             </motion.div>
           </motion.div>
 
-          {/* Oracle Tags */}
-          {getOracleTags().length > 0 && (
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Oracle Tags
-                </h2>
-                <div className="text-2xl">🔮</div>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {getOracleTags().map((tag, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full ${getTagColorClasses(tag.category)} font-medium text-sm transition-all duration-200 hover:scale-105`}
-                  >
-                    <span className="text-lg">{tag.emoji}</span>
-                    <span>{tag.name}</span>
-                    <span className="ml-1 opacity-70">{tag.progress}/{tag.total}+</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
           {/* Rating Distribution */}
           <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
             <div className="flex items-center justify-between mb-6">

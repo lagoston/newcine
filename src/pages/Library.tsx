@@ -463,7 +463,7 @@ export default function Library() {
               <div className="relative z-10 flex flex-wrap gap-2 justify-end">
                 <button
                   onClick={() => setIsReviewsModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
                 >
                   <MessageSquare className="w-4 h-4" />
                   <span className="hidden sm:inline">{t('profile.reviews')}</span>
