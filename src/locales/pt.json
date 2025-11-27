@@ -422,6 +422,7 @@
     "manageSubscription": "Gerenciar Assinatura",
     "feedback": "Suporte",
     "feedbackDescription": "Reporte um bug ou deixe sua dúvida. Respostas serão enviadas por e-mail.",
+    "feedbackEmailAlternative": "Ou envie um e-mail para support@cineoracle.com",
     "feedbackPlaceholder": "Digite sua mensagem aqui...",
     "sendFeedback": "Enviar Mensagem",
     "sending": "Enviando...",

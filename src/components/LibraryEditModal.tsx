@@ -191,8 +191,8 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
 
       const sortedMovies = [...ratedMovies, ...watchlistMovies];
 
-      // Create worksheet data with all columns
-      const worksheetData = sortedMovies.map((movie, index) => ({
+      // Create CSV data
+      const csvData = sortedMovies.map((movie, index) => ({
         '#': index + 1,
         'Título': movie.title,
         'Tipo': movie.mediaType === 'tv' ? 'Série' : 'Filme',
@@ -200,20 +200,20 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
         'ID': movie.id
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Minha Biblioteca');
+      // Convert to CSV format
+      const worksheet = XLSX.utils.json_to_sheet(csvData);
+      const csv = XLSX.utils.sheet_to_csv(worksheet);
 
-      // Set column widths
-      worksheet['!cols'] = [
-        { wch: 5 },   // #
-        { wch: 50 },  // Título
-        { wch: 10 },  // Tipo
-        { wch: 10 },  // Nota
-        { wch: 10 }   // ID
-      ];
-
-      XLSX.writeFile(workbook, 'cineoracle_biblioteca.xlsx');
+      // Create blob and download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'cineoracle_biblioteca.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       toast.success(t('library.downloadSuccess'));
     } catch (error) {
       console.error('Error downloading library:', error);

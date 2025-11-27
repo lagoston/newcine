@@ -344,6 +344,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {t('settings.feedbackDescription')}
               </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                {t('settings.feedbackEmailAlternative')}
+              </p>
 
               {cooldownRemaining && (
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">

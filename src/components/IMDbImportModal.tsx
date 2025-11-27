@@ -125,14 +125,41 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
   const parseCineOracleFile = async (file: File) => {
     try {
       setUploading(true);
-      const arrayBuffer = await file.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      let jsonData: any[];
+
+      // Check if CSV or Excel file
+      if (file.name.endsWith('.csv')) {
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+
+        if (lines.length < 2) {
+          throw new Error('Arquivo CSV vazio ou inválido');
+        }
+
+        // Get headers
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^"(.*)"$/, '$1'));
+
+        // Parse rows
+        jsonData = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',').map(v => v.trim().replace(/^"(.*)"$/, '$1'));
+          const row: any = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] || '';
+          });
+          jsonData.push(row);
+        }
+      } else {
+        // Excel file
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        jsonData = XLSX.utils.sheet_to_json(worksheet);
+      }
 
       const movies: IMDbMovie[] = [];
 
-      for (const row of jsonData as any[]) {
+      for (const row of jsonData) {
         const id = row['ID'];
         const title = row['Título'];
         const rating = row['Nota'];
@@ -148,7 +175,7 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
       }
 
       if (movies.length === 0) {
-        throw new Error('Nenhum filme encontrado na planilha');
+        throw new Error('Nenhum filme encontrado no arquivo');
       }
 
       setParsedMovies(movies);
@@ -167,7 +194,7 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
-      if (importMethod === 'cineoracle' && (selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls'))) {
+      if (importMethod === 'cineoracle' && (selectedFile.name.endsWith('.csv') || selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls'))) {
         parseCineOracleFile(selectedFile);
       } else if (importMethod === 'imdb' && selectedFile.name.endsWith('.csv')) {
         parseCSV(selectedFile);
@@ -193,13 +220,19 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
     setDragActive(false);
 
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.name.endsWith('.csv')) {
+    if (droppedFile) {
+      const fileName = droppedFile.name.toLowerCase();
       setFile(droppedFile);
-      parseCSV(droppedFile);
-    } else {
-      toast.error(t('common.error'));
+
+      if (importMethod === 'cineoracle' && (fileName.endsWith('.csv') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls'))) {
+        parseCineOracleFile(droppedFile);
+      } else if (importMethod === 'imdb' && fileName.endsWith('.csv')) {
+        parseCSV(droppedFile);
+      } else {
+        toast.error(t('common.error'));
+      }
     }
-  }, []);
+  }, [importMethod]);
 
   const handleSync = async () => {
     if (!session?.user?.id || parsedMovies.length === 0) return;
@@ -455,7 +488,7 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
                     Upload the File
                   </h3>
                   <p className="mt-1 text-gray-600 dark:text-gray-400">
-                    Faça o upload do arquivo {importMethod === 'cineoracle' ? '.xlsx' : '.csv'} aqui em baixo.
+                    Faça o upload do arquivo .csv aqui em baixo.
                   </p>
                 </div>
               </div>
@@ -501,7 +534,7 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
                         id="file-upload"
                         name="file-upload"
                         type="file"
-                        accept=".csv"
+                        accept=".csv,.xlsx,.xls"
                         className="sr-only"
                         onChange={handleFileChange}
                       />

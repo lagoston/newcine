@@ -422,6 +422,7 @@
     "manageSubscription": "Manage Subscription",
     "feedback": "Support",
     "feedbackDescription": "Report a bug or leave your question. Responses will be sent via email.",
+    "feedbackEmailAlternative": "Or send an email to support@cineoracle.com",
     "feedbackPlaceholder": "Type your message here...",
     "sendFeedback": "Send Message",
     "sending": "Sending...",
