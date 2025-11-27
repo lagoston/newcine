@@ -119,9 +119,10 @@ export default function PersonalLists() {
             movieIds.map(async ({ movie_id }) => {
               try {
                 const movieDetails = await getMovieDetailsFromDB(movie_id);
+                const rating = ratingsMap.get(movie_id);
                 return {
                   ...movieDetails,
-                  userRating: ratingsMap.get(movie_id) || null
+                  userRating: rating !== undefined ? rating : null
                 };
               } catch (error) {
                 console.error(`Failed to fetch details for movie ${movie_id}:`, error);

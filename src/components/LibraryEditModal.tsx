@@ -196,7 +196,7 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
         '#': index + 1,
         'Título': movie.title,
         'Tipo': movie.mediaType === 'tv' ? 'Série' : 'Filme',
-        'Nota': movie.rating || '',
+        'Nota': movie.rating !== null && movie.rating !== undefined ? movie.rating : '',
         'ID': movie.id
       }));
 

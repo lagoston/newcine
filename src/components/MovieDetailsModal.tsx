@@ -190,7 +190,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         .maybeSingle();
 
       if (error) throw error;
-      setUserRating(data?.rating || null);
+      setUserRating(data?.rating !== undefined ? data.rating : null);
     } catch (error) {
       console.error('Error loading user rating:', error);
     }
@@ -404,7 +404,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
       if (ratingError) throw ratingError;
 
-      const userRating = userMovie?.rating || null;
+      const userRating = userMovie?.rating !== undefined ? userMovie.rating : null;
 
       // Criar canvas
       const canvas = document.createElement('canvas');
