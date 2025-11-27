@@ -456,11 +456,15 @@ export default function Community() {
 
                         {profile.active_tag && (
                           <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                            profile.active_tag.category === 'theme'
-                              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
-                              : profile.active_tag.category === 'basic'
+                            profile.active_tag.category === 'basic'
                               ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                              : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                              : profile.active_tag.category === 'theme'
+                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                              : profile.active_tag.category === 'community'
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                              : profile.active_tag.category === 'oracle'
+                              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                              : 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400'
                           }`}>
                             <span>{profile.active_tag.emoji}</span>
                             <span className="truncate max-w-[120px]">{profile.active_tag.name}</span>
