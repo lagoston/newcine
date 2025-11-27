@@ -69,12 +69,13 @@ interface ActiveTag {
   emoji: string;
 }
 
-export type CardStyle = 'default' | 'yugioh';
+export type CardStyle = 'default' | 'yugioh' | 'horror';
 
 interface OracleCard {
   id: CardStyle;
   name: string;
   isPremium: boolean;
+  requiredTag?: string;
   images: {
     bogart: string;
     fincher: string;
@@ -417,6 +418,17 @@ const ORACLE_CARDS: Record<CardStyle, OracleCard> = {
       fincher: '/assets/FINCHER2.png',
       cypher: '/assets/CYPHER2.png'
     }
+  },
+  horror: {
+    id: 'horror',
+    name: 'Horror',
+    isPremium: true,
+    requiredTag: 'Bloody Mary',
+    images: {
+      bogart: '/assets/BOGART3.png',
+      fincher: '/assets/FINCHER3.png',
+      cypher: '/assets/CYPHER3.png'
+    }
   }
 };
 
@@ -547,7 +559,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
     try {
       setSavingTag(true);
-      const newTag: ActiveTag = { category, name: tag.name, emoji: tag.emoji };
+
+      // If clicking on the currently active tag, remove it
+      const isCurrentlyActive = activeTag?.name === tag.name;
+      const newTag = isCurrentlyActive ? null : { category, name: tag.name, emoji: tag.emoji };
 
       const { error } = await supabase
         .from('profiles')
@@ -557,7 +572,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       if (error) throw error;
 
       setActiveTag(newTag);
-      toast.success('Tag updated successfully');
+      toast.success(isCurrentlyActive ? 'Tag removed' : 'Tag updated successfully');
     } catch (error) {
       console.error('Error updating tag:', error);
       toast.error('Failed to update tag');
@@ -972,6 +987,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {Object.values(ORACLE_CARDS).map((card) => {
           const isPremiumLocked = card.isPremium && !isPremium;
+          const requiredTagProgress = card.requiredTag ? (themeTagProgress[card.requiredTag] || 0) : 0;
+          const isTagUnlocked = card.requiredTag ? requiredTagProgress >= 50 : true;
+          const isLocked = isPremiumLocked || !isTagUnlocked;
 
           return (
             <div
@@ -980,11 +998,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 selectedCard === card.id
                   ? 'border-blue-500 shadow-lg shadow-blue-500/50'
                   : 'border-gray-200 dark:border-gray-700'
-              } ${isPremiumLocked ? 'opacity-60' : ''}`}
+              } ${isLocked ? 'opacity-60' : ''}`}
             >
               <button
-                onClick={() => !isPremiumLocked && handleCardSelect(card.id)}
-                disabled={isPremiumLocked}
+                onClick={() => !isLocked && handleCardSelect(card.id)}
+                disabled={isLocked}
                 className="w-full p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 <div className="flex flex-col gap-3">
@@ -996,6 +1014,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       <div className="flex items-center gap-1.5 bg-yellow-400 text-black text-xs font-bold px-3 py-1.5 rounded-full">
                         <Crown className="w-4 h-4" />
                         <span>Premium</span>
+                      </div>
+                    ) : !isTagUnlocked ? (
+                      <div className="flex items-center gap-1.5 bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full">
+                        <Lock className="w-4 h-4" />
+                        <span>{card.requiredTag}</span>
                       </div>
                     ) : selectedCard === card.id ? (
                       <div className="bg-blue-500 text-white p-1.5 rounded-full">
