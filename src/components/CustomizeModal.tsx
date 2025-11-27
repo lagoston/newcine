@@ -762,7 +762,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('oracle_predictions_count, oracle_recommendations_count')
-        .eq('user_id', session.user.id)
+        .eq('id', session.user.id)
         .single();
 
       if (error) throw error;
