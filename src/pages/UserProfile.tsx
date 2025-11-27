@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare } from 'lucide-react';
+import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
@@ -721,22 +721,22 @@ export default function UserProfile() {
                   <div className="flex justify-center sm:justify-end mt-6 gap-3">
                     <button
                       onClick={() => setShowUserListsModal(true)}
-                      className="px-6 py-2 rounded-lg font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
+                      className="px-3 sm:px-6 py-2 rounded-lg font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
                     >
-                      <ListPlus className="w-5 h-5 mr-2" />
-                      {t('lists.userLists')}
+                      <ListPlus className="w-5 h-5 sm:mr-2" />
+                      <span className="hidden sm:inline">{t('lists.userLists')}</span>
                     </button>
                     <button
                       onClick={() => setShowUserReviewsModal(true)}
-                      className="px-6 py-2 rounded-lg font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
+                      className="px-3 sm:px-6 py-2 rounded-lg font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
                     >
-                      <MessageSquare className="w-5 h-5 mr-2" />
-                      Reviews
+                      <MessageSquare className="w-5 h-5 sm:mr-2" />
+                      <span className="hidden sm:inline">Reviews</span>
                     </button>
                     <button
                       onClick={handleFollowToggle}
                       disabled={isToggling}
-                      className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                      className={`px-3 sm:px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center ${
                         isFollowing
                           ? 'bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
                           : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
@@ -745,9 +745,15 @@ export default function UserProfile() {
                       {isToggling ? (
                         <Loader2 className="w-5 h-5 animate-spin mx-auto" />
                       ) : isFollowing ? (
-                        t('profile.following')
+                        <>
+                          <UserCheck className="w-5 h-5 sm:mr-2" />
+                          <span className="hidden sm:inline">{t('profile.following')}</span>
+                        </>
                       ) : (
-                        t('profile.follow')
+                        <>
+                          <UserPlus className="w-5 h-5 sm:mr-2" />
+                          <span className="hidden sm:inline">{t('profile.follow')}</span>
+                        </>
                       )}
                     </button>
                   </div>
