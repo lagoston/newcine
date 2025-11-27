@@ -425,9 +425,11 @@ const getTagColorClasses = (category: string) => {
     case 'basic':
       return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
     case 'theme':
-      return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400';
+      return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
     case 'community':
       return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
+    case 'oracle':
+      return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400';
     default:
       return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
   }
@@ -441,12 +443,16 @@ const getCategoryButtonStyle = (isActive: boolean, category: string) => {
         : 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600';
     case 'theme':
       return isActive
-        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-        : 'bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600';
+        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+        : 'bg-yellow-600 text-white hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600';
     case 'community':
       return isActive
         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
         : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600';
+    case 'oracle':
+      return isActive
+        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+        : 'bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600';
     default:
       return isActive
         ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
