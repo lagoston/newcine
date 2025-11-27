@@ -504,8 +504,13 @@ Deno.serve(async (req) => {
       throw new Error(`Error updating tickets: ${updateError.message}`);
     }
 
-    // Increment oracle predictions counter
-    await supabase.rpc('increment_oracle_predictions', { p_user_id: userId });
+    console.log('🔮 Incrementing oracle predictions counter for user:', userId);
+    const { error: incrementError } = await supabase.rpc('increment_oracle_predictions', { p_user_id: userId });
+    if (incrementError) {
+      console.error('❌ Error incrementing predictions counter:', incrementError);
+    } else {
+      console.log('✅ Predictions counter incremented successfully');
+    }
 
     const hybridPrompt = getHybridPrompt(
       personalityData.archetype_name || 'Unknown',
