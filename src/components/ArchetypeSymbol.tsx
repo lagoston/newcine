@@ -20,7 +20,7 @@ const SUBCATEGORY_COLORS = {
 
 const DEFAULT_COLOR = '#9CA3AF'; // Cinza padrão
 
-export default function ArchetypeSymbol({
+const ArchetypeSymbol = React.memo(function ArchetypeSymbol({
   archetypeId,
   subcategoryId,
   size = 64,
@@ -375,4 +375,6 @@ export default function ArchetypeSymbol({
   }
 
   return symbol;
-}
+});
+
+export default ArchetypeSymbol;

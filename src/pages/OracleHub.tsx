@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, Wand2, BrainCircuit, Loader2, Scroll, Info, X, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

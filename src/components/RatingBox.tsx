@@ -690,4 +690,4 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   );
 };
 
-export default RatingBox;
+export default React.memo(RatingBox);

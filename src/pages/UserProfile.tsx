@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, ArchiveIcon, Award, TrendingDown, ListPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -576,11 +576,11 @@ export default function UserProfile() {
     return `${hours}h ${minutes % 60}m`;
   };
 
-  const getMaxRatingCount = () => {
+  const getMaxRatingCount = useMemo(() => {
     return Math.max(...Object.values(ratingDistribution), 1);
-  };
+  }, [ratingDistribution]);
 
-  const getTagColorClasses = (category: string) => {
+  const getTagColorClasses = useCallback((category: string) => {
     switch (category) {
       case 'basic':
         return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
@@ -593,7 +593,7 @@ export default function UserProfile() {
       default:
         return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
     }
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -839,7 +839,7 @@ export default function UserProfile() {
                       <div
                         className="h-full bg-blue-500 dark:bg-blue-600 rounded-full transition-all duration-300"
                         style={{
-                          width: `${(ratingDistribution[rating] / getMaxRatingCount()) * 100}%`
+                          width: `${(ratingDistribution[rating] / getMaxRatingCount) * 100}%`
                         }}
                       />
                     </div>

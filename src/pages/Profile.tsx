@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, ArchiveIcon, Award, Tv, TrendingDown, X, Loader2, Settings } from 'lucide-react';
 import { supabase, getProfile } from '../lib/supabase';
@@ -658,11 +658,11 @@ export default function Profile() {
     return `${hours}h ${minutes % 60}m`;
   };
 
-  const getMaxRatingCount = () => {
+  const getMaxRatingCount = useMemo(() => {
     return Math.max(...Object.values(ratingDistribution), 1);
-  };
+  }, [ratingDistribution]);
 
-  const getTagColorClasses = (category: string) => {
+  const getTagColorClasses = useCallback((category: string) => {
     switch (category) {
       case 'basic':
         return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
@@ -675,7 +675,7 @@ export default function Profile() {
       default:
         return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
     }
-  };
+  }, []);
 
   const getOracleTags = () => {
     const tags = [];
@@ -1196,7 +1196,7 @@ export default function Profile() {
             <div className="space-y-2">
               {[...Array(11)].map((_, i) => {
                 const rating = 10 - i;
-                const percentage = (ratingDistribution[rating] / getMaxRatingCount()) * 100;
+                const percentage = (ratingDistribution[rating] / getMaxRatingCount) * 100;
                 return (
                   <div key={rating} className="flex items-center gap-2">
                     <div className="w-12 text-sm text-gray-600 dark:text-gray-400 flex items-center">

@@ -71,4 +71,4 @@ const OptimizedPoster: React.FC<OptimizedPosterProps> = ({
   );
 };
 
-export default OptimizedPoster;
+export default React.memo(OptimizedPoster);
