@@ -58,15 +58,23 @@ export default function Auth() {
           }
         }
 
+        // Check for signup mode parameter
+        const signup = searchParams.get('signup');
+        if (signup === 'true') {
+          setMode('signup');
+          // Clean URL without reloading
+          window.history.replaceState({}, '', location.pathname);
+        }
+
         // Check for verification parameter
         const verified = searchParams.get('verified');
         if (verified === 'true' && !processedVerifiedParam.current) {
           console.log('🔑 Email verification detected from URL params');
           processedVerifiedParam.current = true;
-          
+
           // Clean URL without reloading
           window.history.replaceState({}, '', location.pathname);
-          
+
           toast.success('Email verified successfully! Please sign in');
           setMode('signin');
           await refreshSession();

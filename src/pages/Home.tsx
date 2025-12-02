@@ -570,7 +570,7 @@ const Home = () => {
             transition={{ delay: 1.2, duration: 0.5 }}
           >
             <Link
-              to="/auth"
+              to="/auth?signup=true"
               className="group relative inline-flex items-center justify-center gap-3 px-8 sm:px-12 py-4 sm:py-5 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white text-base sm:text-lg font-bold rounded-full overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/50"
             >
               <span className="relative z-10">{t('home.signUpButton')}</span>
