@@ -77,6 +77,15 @@ interface LeastKnownGem {
   userRating?: number;
 }
 
+interface FollowedUserCarousel {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  avatar_frame: string | null;
+  plan_type: string | null;
+  lastRatedTitle: string | null;
+}
+
 export default function Profile() {
   const navigate = useNavigate();
   const { session, isPremium, checkPremiumStatus } = useAuth();
@@ -105,6 +114,8 @@ export default function Profile() {
   const [topDirectors, setTopDirectors] = useState<DirectorCount[]>([]);
   const [leastKnownGem, setLeastKnownGem] = useState<LeastKnownGem | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [showStats, setShowStats] = useState(false);
+  const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
 
   // Animation variants for staggered animations
   const containerVariants = {
@@ -131,6 +142,7 @@ export default function Profile() {
       fetchProfile();
       fetchMovieStats();
       fetchUnreadWhispers();
+      fetchFollowedUsersForCarousel();
 
       const channel = supabase
         .channel('profile-whispers-updates')
@@ -196,6 +208,81 @@ export default function Profile() {
       setUnreadWhispers(data || 0);
     } catch (error) {
       console.error('Error fetching unread whispers:', error);
+    }
+  };
+
+  const fetchFollowedUsersForCarousel = async () => {
+    if (!session?.user?.id) return;
+    try {
+      const { data: follows, error: followsError } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', session.user.id);
+
+      if (followsError) throw followsError;
+      if (!follows || follows.length === 0) {
+        setFollowedUsersCarousel([]);
+        return;
+      }
+
+      const followingIds = follows.map((f: any) => f.following_id);
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, avatar_frame, plan_type')
+        .in('id', followingIds);
+
+      if (profilesError) throw profilesError;
+
+      const { data: lastRatings, error: ratingsError } = await supabase
+        .from('movies')
+        .select('user_id, tmdb_id, media_type, updated_at')
+        .in('user_id', followingIds)
+        .order('updated_at', { ascending: false });
+
+      if (ratingsError) throw ratingsError;
+
+      const lastRatingPerUser = new Map<string, { tmdb_id: number; media_type: string }>();
+      (lastRatings || []).forEach((r: any) => {
+        if (!lastRatingPerUser.has(r.user_id)) {
+          lastRatingPerUser.set(r.user_id, { tmdb_id: r.tmdb_id, media_type: r.media_type });
+        }
+      });
+
+      const tmdbIds = Array.from(lastRatingPerUser.values()).map(r => r.tmdb_id);
+      let titlesMap = new Map<string, string>();
+
+      if (tmdbIds.length > 0) {
+        const isPortuguese = i18n.language.startsWith('pt');
+        const { data: cacheData } = await supabase
+          .from('movie_cache')
+          .select('tmdb_id, media_type, title_en, title_pt')
+          .in('tmdb_id', tmdbIds);
+
+        (cacheData || []).forEach((c: any) => {
+          const key = `${c.tmdb_id}:${c.media_type}`;
+          titlesMap.set(key, isPortuguese && c.title_pt ? c.title_pt : c.title_en);
+        });
+      }
+
+      const shuffled = [...(profiles || [])].sort(() => Math.random() - 0.5);
+
+      const result: FollowedUserCarousel[] = shuffled.map((p: any) => {
+        const lastRating = lastRatingPerUser.get(p.id);
+        const titleKey = lastRating ? `${lastRating.tmdb_id}:${lastRating.media_type}` : null;
+        return {
+          id: p.id,
+          username: p.username,
+          avatar_url: p.avatar_url,
+          avatar_frame: p.avatar_frame,
+          plan_type: p.plan_type,
+          lastRatedTitle: titleKey ? (titlesMap.get(titleKey) || null) : null,
+        };
+      });
+
+      setFollowedUsersCarousel(result);
+    } catch (error) {
+      console.error('Error fetching followed users carousel:', error);
     }
   };
 
@@ -1161,6 +1248,99 @@ export default function Profile() {
             </motion.div>
           </motion.div>
 
+          {/* Community Activity Box */}
+          <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {t('profile.followingActivity')}
+              </h2>
+              <Users className="w-6 h-6 text-blue-500" />
+            </div>
+
+            <button
+              onClick={() => navigate('/community')}
+              className="w-full mb-4 py-2.5 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 text-sm shadow-sm"
+            >
+              <Users className="w-4 h-4" />
+              {t('profile.accessCommunity')}
+            </button>
+
+            {followedUsersCarousel.length > 0 && (
+              <div className="relative overflow-hidden">
+                <div className="flex gap-6 items-end py-4 overflow-x-auto scrollbar-hide">
+                  {followedUsersCarousel.map((user, index) => (
+                    <motion.div
+                      key={user.id}
+                      className="flex-shrink-0 flex flex-col items-center"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.07, type: 'spring', stiffness: 260, damping: 20 }}
+                    >
+                      <div className="relative mb-2">
+                        {user.lastRatedTitle && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 pointer-events-none">
+                            <div className="relative bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-2.5 py-1.5 shadow-md max-w-[120px]">
+                              <p className="text-[10px] font-medium text-gray-700 dark:text-gray-200 text-center leading-tight line-clamp-2 whitespace-normal">
+                                {user.lastRatedTitle}
+                              </p>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-white dark:border-t-gray-700" />
+                            </div>
+                          </div>
+                        )}
+                        <motion.button
+                          onClick={() => navigate(`/user/${user.username}`)}
+                          className="block"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                          animate={{ y: [0, -4, 0] }}
+                          transition={{
+                            y: { duration: 2.5 + index * 0.3, repeat: Infinity, ease: 'easeInOut', delay: index * 0.4 },
+                          }}
+                        >
+                          <div className={`w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-md ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
+                            {user.avatar_url ? (
+                              <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                                <User className="w-6 h-6 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        </motion.button>
+                      </div>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center max-w-[52px] truncate">
+                        {user.username}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Show All Statistics Button */}
+          {ratedMoviesCount > 0 && (
+            <motion.button
+              variants={itemVariants}
+              onClick={() => setShowStats(!showStats)}
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl p-4 shadow-md transition-all duration-300 flex items-center justify-center gap-2 font-medium"
+            >
+              <BarChart3 className="w-5 h-5" />
+              {showStats ? t('profile.hideStats') : t('profile.showStats')}
+              <svg
+                className={`w-5 h-5 transition-transform duration-300 ${showStats ? 'rotate-180' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </motion.button>
+          )}
+
+          {showStats && (
+          <>
+
           {/* Rating Distribution */}
           <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
             <div className="flex items-center justify-between mb-6">
@@ -1387,6 +1567,9 @@ export default function Profile() {
               )}
             </motion.div>
           </motion.div>
+
+          </>
+          )}
         </motion.div>
 
         {/* Modals */}

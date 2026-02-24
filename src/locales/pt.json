@@ -296,6 +296,8 @@
     "noMoviesYet": "Este usuário ainda não adicionou nenhum filme à sua coleção.",
     "showStats": "Mostrar Todas as Estatísticas",
     "hideStats": "Ocultar Estatísticas",
+    "accessCommunity": "Acesse a Comunidade",
+    "followingActivity": "Atividade dos Seguindo",
     "stats": {
       "ratedMovies": "Filmes Avaliados",
       "favoriteGenres": "Gêneros Favoritos",
