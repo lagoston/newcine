@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Star, Import, Loader2, Film, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Movie, searchMovies, getMovieDetails, updateMovieCache } from '../lib/tmdb';
+import { Movie, searchMovies, getMovieDetails, updateMovieCache, ensureMovieCached } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useDebounce } from 'use-debounce';
@@ -104,9 +104,12 @@ export default function AddMovies() {
       // Get media type from movie object
       const mediaType = movie.media_type || 'movie';
 
-      // First, ensure movie details are stored
+      // First, ensure movie details are stored and cache is up to date
       const movieDetails = await getMovieDetails(movie.id, mediaType);
       const director = movieDetails.credits?.crew?.find(person => person.job === 'Director')?.name;
+
+      // Save/update movie_cache with fresh data (runs in background)
+      ensureMovieCached(movie.id, mediaType).catch(() => {});
 
       const { error: movieError } = await supabase
         .from('movies')

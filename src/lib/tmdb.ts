@@ -356,7 +356,86 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
   }
 }
 
-// Called on every search in AddMovies: fetches fresh TMDB data and upserts into cache
+// Called when adding a movie to library: inserts or updates the full movie_cache entry
+export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 'tv'): Promise<void> {
+  try {
+    const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
+    const [enData, ptData] = await Promise.all([
+      tmdbFetch(`/${endpoint}/${movieId}?language=en-US&append_to_response=credits`),
+      tmdbFetch(`/${endpoint}/${movieId}?language=pt-BR&append_to_response=credits`)
+    ]);
+
+    const enTitle = mediaType === 'tv' ? enData.name : enData.title;
+    const ptTitle = mediaType === 'tv' ? ptData.name : ptData.title;
+
+    let director: string | null = null;
+    if (mediaType === 'tv') {
+      director = enData.created_by?.[0]?.name ||
+        enData.credits?.crew?.find((p: any) => p.job === 'Executive Producer')?.name || null;
+    } else {
+      director = enData.credits?.crew?.find((p: any) => p.job === 'Director')?.name || null;
+    }
+
+    const castMembers = enData.credits?.cast?.slice(0, 10).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      character: p.character
+    })) || [];
+
+    let totalRuntime = enData.runtime || 0;
+    let episodeRuntime: number | null = null;
+
+    if (mediaType === 'tv' && enData.episode_run_time?.length > 0) {
+      episodeRuntime = Math.round(
+        enData.episode_run_time.reduce((a: number, b: number) => a + b, 0) / enData.episode_run_time.length
+      );
+      totalRuntime = (enData.number_of_episodes || 0) * episodeRuntime;
+    }
+
+    const cacheData = {
+      id: movieId,
+      tmdb_id: movieId,
+      media_type: mediaType,
+      release_date: mediaType === 'tv' ? enData.first_air_date : enData.release_date,
+      vote_average: enData.vote_average,
+      vote_count: enData.vote_count,
+      runtime: totalRuntime,
+      episode_run_time: episodeRuntime,
+      number_of_seasons: enData.number_of_seasons || null,
+      number_of_episodes: enData.number_of_episodes || null,
+      origin_country: enData.origin_country || enData.production_countries?.map((c: any) => c.iso_3166_1) || [],
+      poster_path: enData.poster_path,
+      poster_path_pt: ptData.poster_path,
+      backdrop_path: enData.backdrop_path,
+      title_en: enTitle,
+      overview_en: enData.overview,
+      genres_en: enData.genres,
+      title_pt: ptTitle,
+      overview_pt: ptData.overview,
+      genres_pt: ptData.genres,
+      director,
+      cast_members: castMembers,
+      status: mediaType === 'tv' ? enData.status : null,
+      in_production: mediaType === 'tv' ? (enData.in_production ?? false) : false,
+      last_air_date: mediaType === 'tv' ? enData.last_air_date : null,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase
+      .from('movie_cache')
+      .upsert(cacheData, { onConflict: 'tmdb_id,media_type' });
+
+    if (error) {
+      console.error('Error saving movie cache:', error);
+    } else {
+      cache.invalidate(CACHE_KEYS.MOVIE_DETAILS(movieId));
+    }
+  } catch (error) {
+    console.error('Error in ensureMovieCached:', error);
+  }
+}
+
+// Called on every search in AddMovies: updates ONLY existing movie_cache entries with fresh TMDB data
 export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv'): Promise<void> {
   try {
     const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
@@ -420,12 +499,17 @@ export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv
       updated_at: new Date().toISOString()
     };
 
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('movie_cache')
-      .upsert(updateData, { onConflict: 'tmdb_id,media_type' });
+      .update(updateData)
+      .eq('tmdb_id', movieId)
+      .eq('media_type', mediaType)
+      .select('tmdb_id', { count: 'exact', head: true });
 
     if (error) {
       console.error('Error updating movie cache:', error);
+    } else if (count && count > 0) {
+      cache.invalidate(CACHE_KEYS.MOVIE_DETAILS(movieId));
     }
   } catch (error) {
     console.error('Error in updateMovieCache:', error);
