@@ -392,7 +392,12 @@ export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 't
       totalRuntime = (enData.number_of_episodes || 0) * episodeRuntime;
     }
 
-    const cacheData = {
+    let seasonsData: any[] | null = null;
+    if (mediaType === 'tv' && enData.number_of_seasons > 0) {
+      seasonsData = await fetchTVSeasonsData(movieId, enData.number_of_seasons);
+    }
+
+    const cacheData: Record<string, any> = {
       id: movieId,
       tmdb_id: movieId,
       media_type: mediaType,
@@ -421,6 +426,10 @@ export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 't
       updated_at: new Date().toISOString()
     };
 
+    if (seasonsData !== null) {
+      cacheData.seasons_data = seasonsData;
+    }
+
     const { error } = await supabase
       .from('movie_cache')
       .upsert(cacheData, { onConflict: 'tmdb_id,media_type' });
@@ -433,6 +442,32 @@ export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 't
   } catch (error) {
     console.error('Error in ensureMovieCached:', error);
   }
+}
+
+// Fetches all seasons with their episodes for a TV show from TMDB API
+export async function fetchTVSeasonsData(showId: number, numberOfSeasons: number): Promise<any[]> {
+  const seasonPromises = Array.from({ length: numberOfSeasons }, (_, i) =>
+    tmdbFetch(`/tv/${showId}/season/${i + 1}?language=en-US`).catch(() => null)
+  );
+  const seasonResults = await Promise.all(seasonPromises);
+  return seasonResults
+    .filter(Boolean)
+    .map((s: any) => ({
+      season_number: s.season_number,
+      name: s.name,
+      episode_count: s.episodes?.length || 0,
+      air_date: s.air_date || null,
+      overview: s.overview || null,
+      poster_path: s.poster_path || null,
+      episodes: (s.episodes || []).map((ep: any) => ({
+        episode_number: ep.episode_number,
+        name: ep.name,
+        air_date: ep.air_date || null,
+        runtime: ep.runtime || null,
+        overview: ep.overview || null,
+        vote_average: ep.vote_average || 0
+      }))
+    }));
 }
 
 // Called on every search in AddMovies: updates ONLY existing movie_cache entries with fresh TMDB data
@@ -471,7 +506,12 @@ export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv
       totalRuntime = (enData.number_of_episodes || 0) * episodeRuntime;
     }
 
-    const updateData = {
+    let seasonsData: any[] | null = null;
+    if (mediaType === 'tv' && enData.number_of_seasons > 0) {
+      seasonsData = await fetchTVSeasonsData(movieId, enData.number_of_seasons);
+    }
+
+    const updateData: Record<string, any> = {
       tmdb_id: movieId,
       media_type: mediaType,
       release_date: mediaType === 'tv' ? enData.first_air_date : enData.release_date,
@@ -498,6 +538,10 @@ export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv
       last_air_date: mediaType === 'tv' ? enData.last_air_date : null,
       updated_at: new Date().toISOString()
     };
+
+    if (seasonsData !== null) {
+      updateData.seasons_data = seasonsData;
+    }
 
     const { error, count } = await supabase
       .from('movie_cache')

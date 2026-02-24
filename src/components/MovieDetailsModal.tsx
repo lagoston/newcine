@@ -223,44 +223,42 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
     setLoadingSeasons(true);
     try {
-      console.log('🔍 Fetching seasons for TV show:', movie.id);
-
-      // Try to get from cache first
-      const { data: cached, error: cacheError } = await supabase
+      const { data: cached } = await supabase
         .from('movie_cache')
-        .select('seasons_data')
+        .select('seasons_data, number_of_seasons')
         .eq('tmdb_id', movie.id)
         .eq('media_type', 'tv')
         .maybeSingle();
 
-      console.log('📦 Cache result:', cached?.seasons_data?.length || 0, 'seasons');
+      const cachedHasEpisodes =
+        cached?.seasons_data?.length > 0 &&
+        cached.seasons_data[0]?.episodes?.length > 0;
 
-      if (cached?.seasons_data && cached.seasons_data.length > 0) {
-        // Update state with cached seasons
-        console.log('✅ Using cached seasons');
+      if (cachedHasEpisodes) {
         setSeasons(cached.seasons_data);
         movie.seasons = cached.seasons_data;
-        setLoadingSeasons(false);
         return;
       }
 
-      // If not in cache, fetch from API
-      console.log('⚡ Fetching from API...');
-      const details = await import('../lib/tmdb').then(m =>
-        m.getMovieDetails(movie.id, 'tv')
-      );
+      const numberOfSeasons = cached?.number_of_seasons || movie.number_of_seasons || 0;
+      if (numberOfSeasons <= 0) return;
 
-      console.log('📺 API returned:', details.seasons?.length || 0, 'seasons');
+      const { fetchTVSeasonsData } = await import('../lib/tmdb');
+      const freshSeasons = await fetchTVSeasonsData(movie.id, numberOfSeasons);
 
-      if (details.seasons && details.seasons.length > 0) {
-        setSeasons(details.seasons);
-        movie.seasons = details.seasons;
-        console.log('✅ Seasons loaded and state updated');
-      } else {
-        console.warn('⚠️ No seasons in API response');
+      if (freshSeasons.length > 0) {
+        setSeasons(freshSeasons);
+        movie.seasons = freshSeasons;
+
+        supabase
+          .from('movie_cache')
+          .update({ seasons_data: freshSeasons, updated_at: new Date().toISOString() })
+          .eq('tmdb_id', movie.id)
+          .eq('media_type', 'tv')
+          .then(() => {});
       }
     } catch (error) {
-      console.error('❌ Error fetching seasons:', error);
+      console.error('Error fetching seasons:', error);
     } finally {
       setLoadingSeasons(false);
     }
@@ -269,12 +267,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const handleOpenSeasons = async () => {
     setShowSeasonsModal(true);
 
-    // If no seasons yet, fetch them
-    if (!seasons || seasons.length === 0) {
-      console.log('🚀 Opening seasons modal, fetching data...');
+    const hasDetailedSeasons = seasons.length > 0 && seasons[0]?.episodes?.length > 0;
+    if (!hasDetailedSeasons) {
       await fetchSeasons();
-    } else {
-      console.log('✅ Seasons already loaded:', seasons.length);
     }
   };
 
