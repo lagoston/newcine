@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 
 interface Profile {
@@ -84,6 +84,7 @@ interface FollowedUserCarousel {
   avatar_frame: string | null;
   plan_type: string | null;
   lastRatedTitle: string | null;
+  lastRating: number | null;
 }
 
 export default function Profile() {
@@ -116,6 +117,33 @@ export default function Profile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showStats, setShowStats] = useState(false);
   const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
+  const [carouselOffset, setCarouselOffset] = useState(0);
+  const CAROUSEL_PAGE_SIZE = 4;
+
+  useEffect(() => {
+    if (followedUsersCarousel.length <= CAROUSEL_PAGE_SIZE) return;
+    const timer = setInterval(() => {
+      setCarouselOffset(prev => {
+        const next = prev + CAROUSEL_PAGE_SIZE;
+        return next >= followedUsersCarousel.length ? 0 : next;
+      });
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [followedUsersCarousel.length]);
+
+  const visibleCarouselUsers = followedUsersCarousel.length > 0
+    ? Array.from({ length: Math.min(CAROUSEL_PAGE_SIZE, followedUsersCarousel.length) }, (_, i) =>
+        followedUsersCarousel[(carouselOffset + i) % followedUsersCarousel.length]
+      )
+    : [];
+
+  const getBubbleStyle = (rating: number | null): { bubble: string; titleText: string; ratingText: string; arrow: string } => {
+    if (rating === null) return { bubble: 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-gray-400', arrow: 'border-t-white dark:border-t-gray-700' };
+    if (rating === 10) return { bubble: 'bg-pink-50 dark:bg-pink-900/30 border-pink-300 dark:border-pink-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-pink-600 dark:text-pink-400', arrow: 'border-t-pink-50 dark:border-t-pink-900' };
+    if (rating >= 7) return { bubble: 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-green-600 dark:text-green-400', arrow: 'border-t-green-50 dark:border-t-green-900' };
+    if (rating >= 4) return { bubble: 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-yellow-600 dark:text-yellow-400', arrow: 'border-t-yellow-50 dark:border-t-yellow-900' };
+    return { bubble: 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-red-600 dark:text-red-400', arrow: 'border-t-red-50 dark:border-t-red-900' };
+  };
 
   // Animation variants for staggered animations
   const containerVariants = {
@@ -236,16 +264,16 @@ export default function Profile() {
 
       const { data: lastRatings, error: ratingsError } = await supabase
         .from('user_movies')
-        .select('user_id, created_at, movies!inner(title)')
+        .select('user_id, rating, created_at, movies!inner(title)')
         .in('user_id', followingIds)
         .order('created_at', { ascending: false });
 
       if (ratingsError) throw ratingsError;
 
-      const lastTitlePerUser = new Map<string, string>();
+      const lastEntryPerUser = new Map<string, { title: string; rating: number | null }>();
       (lastRatings || []).forEach((r: any) => {
-        if (!lastTitlePerUser.has(r.user_id) && r.movies?.title) {
-          lastTitlePerUser.set(r.user_id, r.movies.title);
+        if (!lastEntryPerUser.has(r.user_id) && r.movies?.title) {
+          lastEntryPerUser.set(r.user_id, { title: r.movies.title, rating: r.rating ?? null });
         }
       });
 
@@ -257,7 +285,8 @@ export default function Profile() {
         avatar_url: p.avatar_url,
         avatar_frame: p.avatar_frame,
         plan_type: p.plan_type,
-        lastRatedTitle: lastTitlePerUser.get(p.id) || null,
+        lastRatedTitle: lastEntryPerUser.get(p.id)?.title || null,
+        lastRating: lastEntryPerUser.get(p.id)?.rating ?? null,
       }));
 
       setFollowedUsersCarousel(result);
@@ -1244,54 +1273,76 @@ export default function Profile() {
             </div>
 
             {followedUsersCarousel.length > 0 && (
-              <div className="relative">
-                <div className="flex gap-6 items-end pt-16 pb-4 overflow-x-auto scrollbar-hide">
-                  {followedUsersCarousel.map((user, index) => (
-                    <motion.div
-                      key={user.id}
-                      className="flex-shrink-0 flex flex-col items-center"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.07, type: 'spring', stiffness: 260, damping: 20 }}
-                    >
-                      <div className="relative mb-2">
-                        {user.lastRatedTitle && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 pointer-events-none">
-                            <div className="relative bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-2.5 py-1.5 shadow-md max-w-[120px]">
-                              <p className="text-[10px] font-medium text-gray-700 dark:text-gray-200 text-center leading-tight line-clamp-2 whitespace-normal">
-                                {user.lastRatedTitle}
-                              </p>
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-white dark:border-t-gray-700" />
-                            </div>
-                          </div>
-                        )}
-                        <motion.button
-                          onClick={() => navigate(`/profile/${user.username}`)}
-                          className="block"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                          animate={{ y: [0, -4, 0] }}
-                          transition={{
-                            y: { duration: 2.5 + index * 0.3, repeat: Infinity, ease: 'easeInOut', delay: index * 0.4 },
-                          }}
-                        >
-                          <div className={`w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-md ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
-                            {user.avatar_url ? (
-                              <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                                <User className="w-6 h-6 text-white" />
+              <div className="relative pt-2">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={carouselOffset}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.35, ease: 'easeInOut' }}
+                    className="flex gap-5 justify-center items-end pt-20 pb-3"
+                  >
+                    {visibleCarouselUsers.map((user, index) => {
+                      const bubbleStyle = getBubbleStyle(user.lastRating);
+                      return (
+                        <div key={user.id} className="flex-shrink-0 flex flex-col items-center">
+                          <div className="relative mb-2">
+                            {user.lastRatedTitle && (
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 pointer-events-none">
+                                <div className={`relative border rounded-xl px-2.5 py-1.5 shadow-sm w-[90px] ${bubbleStyle.bubble}`}>
+                                  <p className={`text-[9px] font-medium text-center leading-tight line-clamp-2 whitespace-normal ${bubbleStyle.titleText}`}>
+                                    {user.lastRatedTitle}
+                                  </p>
+                                  {user.lastRating !== null && (
+                                    <p className={`text-[10px] font-bold text-center mt-0.5 ${bubbleStyle.ratingText}`}>
+                                      ★ {user.lastRating}
+                                    </p>
+                                  )}
+                                  <div className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent ${bubbleStyle.arrow}`} />
+                                </div>
                               </div>
                             )}
+                            <motion.button
+                              onClick={() => navigate(`/profile/${user.username}`)}
+                              className="block"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                              animate={{ y: [0, -4, 0] }}
+                              transition={{
+                                y: { duration: 2.5 + index * 0.3, repeat: Infinity, ease: 'easeInOut', delay: index * 0.4 },
+                              }}
+                            >
+                              <div className={`w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-md ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
+                                {user.avatar_url ? (
+                                  <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                                    <User className="w-7 h-7 text-white" />
+                                  </div>
+                                )}
+                              </div>
+                            </motion.button>
                           </div>
-                        </motion.button>
-                      </div>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center max-w-[52px] truncate">
-                        {user.username}
-                      </span>
-                    </motion.div>
-                  ))}
-                </div>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center max-w-[56px] truncate">
+                            {user.username}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </motion.div>
+                </AnimatePresence>
+                {followedUsersCarousel.length > CAROUSEL_PAGE_SIZE && (
+                  <div className="flex justify-center gap-1.5 mt-1 pb-1">
+                    {Array.from({ length: Math.ceil(followedUsersCarousel.length / CAROUSEL_PAGE_SIZE) }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCarouselOffset(i * CAROUSEL_PAGE_SIZE)}
+                        className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-blue-500 w-3' : 'bg-gray-300 dark:bg-gray-600'}`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
