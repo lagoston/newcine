@@ -100,7 +100,19 @@
     "homeCommunityDesc": "Siga amigos e crie um perfil único",
     "signUpButton": "Cadastrar",
     "alreadyHaveAccount": "Já tem uma conta?",
-    "signInLink": "Entrar"
+    "signInLink": "Entrar",
+    "panels": {
+      "welcomeBack": "Bem-vindo de volta",
+      "yourLibrary": "Sua Biblioteca",
+      "films": "filmes",
+      "film": "filme",
+      "openLibrary": "Abrir",
+      "nextTag": "Próxima Tag",
+      "allTagsUnlocked": "Todas as tags desbloqueadas!",
+      "dailyRecommendation": "Recomendação do Dia",
+      "noRecommendationToday": "Nenhuma recomendação disponível hoje",
+      "anotherRecommendation": "Outra Recomendação"
+    }
   },
   "library": {
     "title": "Minha Biblioteca",

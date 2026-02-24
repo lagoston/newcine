@@ -100,7 +100,19 @@
     "signUpButton": "Sign Up",
     "alreadyHaveAccount": "Already have an account?",
     "signInLink": "Sign In",
-    "rateMoviesHelp": "Rate movies and get personalized statistics"
+    "rateMoviesHelp": "Rate movies and get personalized statistics",
+    "panels": {
+      "welcomeBack": "Welcome back",
+      "yourLibrary": "Your Library",
+      "films": "films",
+      "film": "film",
+      "openLibrary": "Open",
+      "nextTag": "Next Tag",
+      "allTagsUnlocked": "All tags unlocked!",
+      "dailyRecommendation": "Daily Recommendation",
+      "noRecommendationToday": "No recommendation available today",
+      "anotherRecommendation": "Another Recommendation"
+    }
   },
   "library": {
     "title": "My Library",
