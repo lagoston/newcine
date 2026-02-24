@@ -289,14 +289,6 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
   }
 
   cache.set(cacheKey, movieDetails, CACHE_TTL.MOVIE_DETAILS);
-
-  // Save to database cache in background (don't await to avoid slowing down response)
-  if (useCache) {
-    cacheMovie(movieId, movieDetails, mediaType).catch(err =>
-      console.error('Background cache save failed:', err)
-    );
-  }
-
   return movieDetails;
 };
 
@@ -311,11 +303,6 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
       .maybeSingle();
 
     if (error || !data) return null;
-
-    // Skip cache if movie has no rating (0.0) - fetch fresh data from API
-    if (data.vote_average === 0 || data.vote_average === null) {
-      return null;
-    }
 
     // Convert cached data to Movie interface based on language
     const isPortuguese = language.startsWith('pt');
@@ -369,137 +356,79 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
   }
 }
 
-// Helper to save movie to cache
-async function cacheMovie(movieId: number, movieData: any, mediaType: 'movie' | 'tv'): Promise<void> {
+// Called on every search in AddMovies: fetches fresh TMDB data and upserts into cache
+export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv'): Promise<void> {
   try {
-    // Fetch both English and Portuguese versions
+    const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
     const [enData, ptData] = await Promise.all([
-      tmdbFetch(`/${mediaType === 'tv' ? 'tv' : 'movie'}/${movieId}?language=en-US&append_to_response=credits`),
-      tmdbFetch(`/${mediaType === 'tv' ? 'tv' : 'movie'}/${movieId}?language=pt-BR&append_to_response=credits`)
+      tmdbFetch(`/${endpoint}/${movieId}?language=en-US&append_to_response=credits`),
+      tmdbFetch(`/${endpoint}/${movieId}?language=pt-BR&append_to_response=credits`)
     ]);
 
     const enTitle = mediaType === 'tv' ? enData.name : enData.title;
     const ptTitle = mediaType === 'tv' ? ptData.name : ptData.title;
 
-    // For TV shows, use "created_by" instead of director, with fallback to executive producers
-    let director;
+    let director: string | null = null;
     if (mediaType === 'tv') {
-      // Try created_by first
-      if (enData.created_by && enData.created_by.length > 0) {
-        director = enData.created_by[0].name;
-      } else {
-        // Fallback to executive producer from credits
-        const execProducer = enData.credits?.crew?.find(
-          (person: any) => person.job === 'Executive Producer'
-        );
-        director = execProducer?.name || 'Unknown';
-      }
+      director = enData.created_by?.[0]?.name ||
+        enData.credits?.crew?.find((p: any) => p.job === 'Executive Producer')?.name || null;
     } else {
-      director = enData.credits?.crew?.find((person: any) => person.job === 'Director')?.name;
+      director = enData.credits?.crew?.find((p: any) => p.job === 'Director')?.name || null;
     }
-    const castMembers = enData.credits?.cast?.slice(0, 10).map((person: any) => ({
-      id: person.id,
-      name: person.name,
-      character: person.character
+
+    const castMembers = enData.credits?.cast?.slice(0, 10).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      character: p.character
     })) || [];
 
-    // Calculate runtime for TV shows and fetch seasons data
-    let totalRuntime = enData.runtime;
-    let episodeRuntime = null;
-    let totalEpisodes = null;
-    let seasonsData = null;
+    let totalRuntime = enData.runtime || 0;
+    let episodeRuntime: number | null = null;
 
-    if (mediaType === 'tv') {
-      // For TV shows, calculate total runtime
-      totalEpisodes = enData.number_of_episodes || 0;
-
-      // Get average episode runtime (API returns array, use first value or calculate average)
-      if (enData.episode_run_time && enData.episode_run_time.length > 0) {
-        episodeRuntime = Math.round(
-          enData.episode_run_time.reduce((a: number, b: number) => a + b, 0) / enData.episode_run_time.length
-        );
-        totalRuntime = totalEpisodes * episodeRuntime;
-      }
-
-      // Fetch seasons data with episodes
-      if (enData.number_of_seasons && enData.number_of_seasons > 0) {
-        const seasons = [];
-        for (let i = 1; i <= enData.number_of_seasons; i++) {
-          try {
-            const seasonData = await tmdbFetch(`/tv/${movieId}/season/${i}?language=${getCurrentLanguage()}`);
-            seasons.push({
-              season_number: seasonData.season_number,
-              name: seasonData.name,
-              episode_count: seasonData.episodes?.length || 0,
-              air_date: seasonData.air_date,
-              overview: seasonData.overview,
-              poster_path: seasonData.poster_path,
-              episodes: seasonData.episodes?.map((ep: any) => ({
-                episode_number: ep.episode_number,
-                name: ep.name,
-                air_date: ep.air_date,
-                runtime: ep.runtime,
-                overview: ep.overview,
-                vote_average: ep.vote_average
-              })) || []
-            });
-          } catch (error) {
-            console.warn(`Failed to fetch season ${i} for TV ${movieId}:`, error);
-          }
-        }
-        seasonsData = seasons;
-      }
+    if (mediaType === 'tv' && enData.episode_run_time?.length > 0) {
+      episodeRuntime = Math.round(
+        enData.episode_run_time.reduce((a: number, b: number) => a + b, 0) / enData.episode_run_time.length
+      );
+      totalRuntime = (enData.number_of_episodes || 0) * episodeRuntime;
     }
 
-    // Prepare cache data
-    const cacheData = {
-      id: movieId,
+    const updateData = {
       tmdb_id: movieId,
       media_type: mediaType,
-      poster_path: enData.poster_path,
-      poster_path_pt: ptData.poster_path,
-      backdrop_path: enData.backdrop_path,
+      release_date: mediaType === 'tv' ? enData.first_air_date : enData.release_date,
       vote_average: enData.vote_average,
       vote_count: enData.vote_count,
       runtime: totalRuntime,
-      number_of_seasons: enData.number_of_seasons,
-      number_of_episodes: totalEpisodes,
       episode_run_time: episodeRuntime,
+      number_of_seasons: enData.number_of_seasons || null,
+      number_of_episodes: enData.number_of_episodes || null,
       origin_country: enData.origin_country || enData.production_countries?.map((c: any) => c.iso_3166_1) || [],
-      release_date: mediaType === 'tv' ? enData.first_air_date : enData.release_date,
-
+      poster_path: enData.poster_path,
+      poster_path_pt: ptData.poster_path,
+      backdrop_path: enData.backdrop_path,
       title_en: enTitle,
       overview_en: enData.overview,
       genres_en: enData.genres,
-
       title_pt: ptTitle,
       overview_pt: ptData.overview,
       genres_pt: ptData.genres,
-
       director,
       cast_members: castMembers,
-      watch_providers: movieData.watchProviders || {},
-      content_ratings: movieData.content_ratings || [],
-      seasons_data: seasonsData,
-
-      // TV Series status tracking
       status: mediaType === 'tv' ? enData.status : null,
-      in_production: mediaType === 'tv' ? enData.in_production : false,
+      in_production: mediaType === 'tv' ? (enData.in_production ?? false) : false,
       last_air_date: mediaType === 'tv' ? enData.last_air_date : null,
-
       updated_at: new Date().toISOString()
     };
 
-    // Upsert to cache (using composite key: tmdb_id + media_type)
     const { error } = await supabase
       .from('movie_cache')
-      .upsert(cacheData, { onConflict: 'tmdb_id,media_type' });
+      .upsert(updateData, { onConflict: 'tmdb_id,media_type' });
 
     if (error) {
-      console.error('Error caching movie:', error);
+      console.error('Error updating movie cache:', error);
     }
   } catch (error) {
-    console.error('Error in cacheMovie:', error);
+    console.error('Error in updateMovieCache:', error);
   }
 }
 

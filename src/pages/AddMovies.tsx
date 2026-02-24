@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Star, Import, Loader2, Film, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Movie, searchMovies, getMovieDetails } from '../lib/tmdb';
+import { Movie, searchMovies, getMovieDetails, updateMovieCache } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useDebounce } from 'use-debounce';
@@ -78,8 +78,15 @@ export default function AddMovies() {
     try {
       setLoading(prev => ({ ...prev, search: true }));
       const results = await searchMovies(debouncedQuery);
-      setSearchResults(results.slice(0, 18));
+      const sliced = results.slice(0, 18);
+      setSearchResults(sliced);
       setCurrentPage(1);
+
+      // Update cache for all results in background (no await)
+      sliced.forEach(movie => {
+        const mediaType = movie.media_type || 'movie';
+        updateMovieCache(movie.id, mediaType).catch(() => {});
+      });
     } catch (error) {
       console.error('Error searching movies:', error);
       toast.error(t('common.error'));
