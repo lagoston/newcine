@@ -84,7 +84,7 @@ class CacheManager {
 export const cache = new CacheManager();
 
 export const CACHE_KEYS = {
-  MOVIE_DETAILS: (movieId: number) => `movie:${movieId}`,
+  MOVIE_DETAILS: (movieId: number, mediaType: string = 'movie') => `movie:${mediaType}:${movieId}`,
   USER_LIBRARY: (userId: string) => `library:${userId}`,
   USER_PROFILE: (userId: string) => `profile:${userId}`,
   USER_STATS: (userId: string) => `stats:${userId}`,

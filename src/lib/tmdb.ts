@@ -155,7 +155,7 @@ export const searchMovies = async (query: string): Promise<Movie[]> => {
 };
 
 export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv' = 'movie', useCache: boolean = true): Promise<Movie> => {
-  const cacheKey = CACHE_KEYS.MOVIE_DETAILS(movieId);
+  const cacheKey = CACHE_KEYS.MOVIE_DETAILS(movieId, mediaType);
   const memCached = cache.get<Movie>(cacheKey);
 
   if (memCached) {
@@ -437,7 +437,7 @@ export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 't
     if (error) {
       console.error('Error saving movie cache:', error);
     } else {
-      cache.invalidate(CACHE_KEYS.MOVIE_DETAILS(movieId));
+      cache.invalidate(CACHE_KEYS.MOVIE_DETAILS(movieId, mediaType));
     }
   } catch (error) {
     console.error('Error in ensureMovieCached:', error);
@@ -553,7 +553,7 @@ export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv
     if (error) {
       console.error('Error updating movie cache:', error);
     } else if (count && count > 0) {
-      cache.invalidate(CACHE_KEYS.MOVIE_DETAILS(movieId));
+      cache.invalidate(CACHE_KEYS.MOVIE_DETAILS(movieId, mediaType));
     }
   } catch (error) {
     console.error('Error in updateMovieCache:', error);
