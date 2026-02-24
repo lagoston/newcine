@@ -8,6 +8,7 @@ import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import Logo from '../components/Logo';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import OptimizedPoster from '../components/OptimizedPoster';
+import HomeUserPanels from '../components/HomeUserPanels';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import { motion } from 'framer-motion';
@@ -21,13 +22,11 @@ const Home = () => {
   const { t } = useTranslation();
   const [trendingMovies, setTrendingMovies] = React.useState<Movie[]>([]);
   const [comingSoonMovies, setComingSoonMovies] = React.useState<Movie[]>([]);
-  const [seasonalMovies, setSeasonalMovies] = React.useState<Movie[]>([]);
   const [topRatedMovies, setTopRatedMovies] = React.useState<Movie[]>([]);
   const [indieMovies, setIndieMovies] = React.useState<Movie[]>([]);
   const [loading, setLoading] = React.useState({
     trending: false,
     comingSoon: false,
-    seasonal: false,
     topRated: false,
     indie: false
   });
@@ -58,79 +57,25 @@ const Home = () => {
     }
   };
 
-  const fetchPersonalizedMovies = async (): Promise<Movie[]> => {
-    try {
-      if (!session?.user?.id) {
-        const { data, error } = await supabase
-          .rpc('get_friends_watchlist_movies', { user_id_param: session?.user?.id || '' });
-
-        if (!error && data && data.length > 0) {
-          const movies = await Promise.all(
-            data.slice(0, 10).map(async (item: any) => {
-              try {
-                return await getMovieDetails(item.movie_id);
-              } catch {
-                return null;
-              }
-            })
-          );
-          return movies.filter(m => m !== null);
-        }
-        return getTrending().then(movies => movies.slice(0, 10));
-      }
-
-      const { data, error } = await supabase
-        .rpc('get_friends_watchlist_movies', { user_id_param: session.user.id });
-
-      if (!error && data && data.length > 0) {
-        const movies = await Promise.all(
-          data.slice(0, 10).map(async (item: any) => {
-            try {
-              return await getMovieDetails(item.movie_id);
-            } catch {
-              return null;
-            }
-          })
-        );
-        const filteredMovies = movies.filter(m => m !== null);
-        if (filteredMovies.length > 0) {
-          return filteredMovies;
-        }
-      }
-
-      return getTrending().then(movies => movies.slice(0, 10));
-    } catch (error) {
-      console.error('Error fetching personalized movies:', error);
-      try {
-        return getTrending().then(movies => movies.slice(0, 10));
-      } catch {
-        return [];
-      }
-    }
-  };
-
   const fetchAllMovies = async () => {
     try {
       setLoading({
         trending: true,
         comingSoon: true,
-        seasonal: true,
         topRated: true,
         indie: true
       });
       setError(null);
 
-      const [trending, comingSoon, personalized, topRated, indie] = await Promise.all([
+      const [trending, comingSoon, topRated, indie] = await Promise.all([
         getTrending(),
         getComingSoon(),
-        fetchPersonalizedMovies(),
         getTopRatedGems(),
         getHiddenIndies()
       ]);
 
       setTrendingMovies(trending);
       setComingSoonMovies(comingSoon);
-      setSeasonalMovies(personalized);
       setTopRatedMovies(topRated);
       setIndieMovies(indie);
     } catch (error) {
@@ -140,7 +85,6 @@ const Home = () => {
       setLoading({
         trending: false,
         comingSoon: false,
-        seasonal: false,
         topRated: false,
         indie: false
       });
@@ -616,50 +560,12 @@ const Home = () => {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-40 bg-gradient-to-b from-blue-500/5 to-transparent dark:from-blue-400/5 blur-2xl"></div>
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <motion.h1
-            className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            {t('home.welcome', { username })}
-          </motion.h1>
-
-          <motion.div
-            className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-          >
-            <Link
-              to="/library"
-              className="glass-effect bg-gradient-to-br from-blue-500/5 to-cyan-500/5 p-10 rounded-2xl shadow-lg border border-blue-200/30 dark:border-blue-700/30 group flex flex-col items-center justify-center card-interactive backdrop-blur-xl hover:shadow-blue-500/50 hover:shadow-2xl transition-all duration-200"
-            >
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 mb-5 transition-all duration-200 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-blue-500/50">
-                <LibraryIcon className="h-10 w-10 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{t('home.yourLibrary')}</h2>
-              <p className="text-gray-700 dark:text-gray-300 text-center">{t('home.viewManage')}</p>
-            </Link>
-
-            <Link
-              to="/oracle"
-              className="glass-effect bg-gradient-to-br from-purple-500/5 to-pink-500/5 p-10 rounded-2xl shadow-lg border border-purple-200/30 dark:border-purple-700/30 group flex flex-col items-center justify-center card-interactive backdrop-blur-xl hover:shadow-purple-500/50 hover:shadow-2xl transition-all duration-200"
-            >
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 mb-5 transition-all duration-200 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-purple-500/50">
-                <Eye className="h-10 w-10 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{t('home.consultOracle')}</h2>
-              <p className="text-gray-700 dark:text-gray-300 text-center">{t('home.getPersonalized')}</p>
-            </Link>
-          </motion.div>
-        </motion.div>
+        {session?.user && (
+          <HomeUserPanels
+            userId={session.user.id}
+            username={username}
+          />
+        )}
 
         <MovieCarousel
           title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🔥</span> {t('home.popularNow')}</span>}
@@ -673,13 +579,6 @@ const Home = () => {
           movies={comingSoonMovies}
           loading={loading.comingSoon}
           category="coming-soon"
-        />
-
-        <MovieCarousel
-          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>👥</span> {t('home.friendsWatching')}</span>}
-          movies={seasonalMovies}
-          loading={loading.seasonal}
-          category="friends-watching"
         />
 
         <MovieCarousel
