@@ -118,7 +118,21 @@ export default function Profile() {
   const [showStats, setShowStats] = useState(false);
   const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
   const [carouselOffset, setCarouselOffset] = useState(0);
-  const CAROUSEL_PAGE_SIZE = 4;
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktop(prev => {
+        if (prev !== desktop) setCarouselOffset(0);
+        return desktop;
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const CAROUSEL_PAGE_SIZE = isDesktop ? 8 : 4;
 
   useEffect(() => {
     if (followedUsersCarousel.length <= CAROUSEL_PAGE_SIZE) return;
@@ -129,7 +143,7 @@ export default function Profile() {
       });
     }, 6000);
     return () => clearInterval(timer);
-  }, [followedUsersCarousel.length]);
+  }, [followedUsersCarousel.length, CAROUSEL_PAGE_SIZE]);
 
   const visibleCarouselUsers = followedUsersCarousel.slice(carouselOffset, carouselOffset + CAROUSEL_PAGE_SIZE);
 
@@ -1334,7 +1348,8 @@ export default function Profile() {
                       <button
                         key={i}
                         onClick={() => setCarouselOffset(i * CAROUSEL_PAGE_SIZE)}
-                        className={`h-1 rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-blue-500 w-1.5' : 'bg-gray-300 dark:bg-gray-600 w-1'}`}
+                        className={`rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                        style={{ height: '3px', width: carouselOffset === i * CAROUSEL_PAGE_SIZE ? '6px' : '3px' }}
                       />
                     ))}
                   </div>
