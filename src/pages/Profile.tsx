@@ -118,15 +118,7 @@ export default function Profile() {
   const [showStats, setShowStats] = useState(false);
   const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
   const [carouselOffset, setCarouselOffset] = useState(0);
-  const [isMd, setIsMd] = useState(() => window.innerWidth >= 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMd(window.innerWidth >= 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const CAROUSEL_PAGE_SIZE = isMd ? 6 : 4;
+  const CAROUSEL_PAGE_SIZE = 4;
 
   useEffect(() => {
     if (followedUsersCarousel.length <= CAROUSEL_PAGE_SIZE) return;
@@ -137,20 +129,16 @@ export default function Profile() {
       });
     }, 6000);
     return () => clearInterval(timer);
-  }, [followedUsersCarousel.length, CAROUSEL_PAGE_SIZE]);
+  }, [followedUsersCarousel.length]);
 
-  const visibleCarouselUsers = followedUsersCarousel.length > 0
-    ? Array.from({ length: Math.min(CAROUSEL_PAGE_SIZE, followedUsersCarousel.length) }, (_, i) =>
-        followedUsersCarousel[(carouselOffset + i) % followedUsersCarousel.length]
-      )
-    : [];
+  const visibleCarouselUsers = followedUsersCarousel.slice(carouselOffset, carouselOffset + CAROUSEL_PAGE_SIZE);
 
-  const getBubbleStyle = (rating: number | null): { bubble: string; titleText: string; ratingText: string; arrow: string; arrowDown: string } => {
-    if (rating === null) return { bubble: 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-gray-400', arrow: 'border-t-white dark:border-t-gray-700', arrowDown: 'border-b-white dark:border-b-gray-700' };
-    if (rating === 10) return { bubble: 'bg-pink-50 dark:bg-pink-950 border-pink-300 dark:border-pink-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-pink-600 dark:text-pink-400', arrow: 'border-t-pink-50 dark:border-t-pink-950', arrowDown: 'border-b-pink-50 dark:border-b-pink-950' };
-    if (rating >= 7) return { bubble: 'bg-green-50 dark:bg-green-950 border-green-300 dark:border-green-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-green-600 dark:text-green-400', arrow: 'border-t-green-50 dark:border-t-green-950', arrowDown: 'border-b-green-50 dark:border-b-green-950' };
-    if (rating >= 4) return { bubble: 'bg-yellow-50 dark:bg-yellow-950 border-yellow-300 dark:border-yellow-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-yellow-600 dark:text-yellow-400', arrow: 'border-t-yellow-50 dark:border-t-yellow-950', arrowDown: 'border-b-yellow-50 dark:border-b-yellow-950' };
-    return { bubble: 'bg-red-50 dark:bg-red-950 border-red-300 dark:border-red-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-red-600 dark:text-red-400', arrow: 'border-t-red-50 dark:border-t-red-950', arrowDown: 'border-b-red-50 dark:border-b-red-950' };
+  const getBubbleStyle = (rating: number | null): { bubble: string; titleText: string; ratingText: string; arrow: string } => {
+    if (rating === null) return { bubble: 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-gray-400', arrow: 'border-t-white dark:border-t-gray-700' };
+    if (rating === 10) return { bubble: 'bg-pink-50 dark:bg-pink-900/30 border-pink-300 dark:border-pink-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-pink-600 dark:text-pink-400', arrow: 'border-t-pink-50 dark:border-t-pink-900' };
+    if (rating >= 7) return { bubble: 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-green-600 dark:text-green-400', arrow: 'border-t-green-50 dark:border-t-green-900' };
+    if (rating >= 4) return { bubble: 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-yellow-600 dark:text-yellow-400', arrow: 'border-t-yellow-50 dark:border-t-yellow-900' };
+    return { bubble: 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-red-600 dark:text-red-400', arrow: 'border-t-red-50 dark:border-t-red-900' };
   };
 
   // Animation variants for staggered animations
@@ -1267,13 +1255,13 @@ export default function Profile() {
 
           {/* Community Activity Box */}
           <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+            <div className="flex items-center justify-between mb-2">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {t('profile.friendsActivity')}
               </h2>
               <button
                 onClick={() => navigate('/community')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-medium transition-all duration-200 shadow-sm self-start sm:self-auto"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-medium transition-all duration-200 shadow-sm"
               >
                 <Users className="w-3.5 h-3.5" />
                 {t('profile.accessCommunity')}
@@ -1281,7 +1269,7 @@ export default function Profile() {
             </div>
 
             {followedUsersCarousel.length > 0 && (
-              <div className="relative overflow-visible">
+              <div className="relative pt-2">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={carouselOffset}
@@ -1289,22 +1277,21 @@ export default function Profile() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.35, ease: 'easeInOut' }}
-                    className="flex gap-3 justify-center items-start pt-[88px] pb-[88px]"
+                    className="flex gap-5 justify-center items-end pt-20 pb-3"
                   >
                     {visibleCarouselUsers.map((user, index) => {
                       const bubbleStyle = getBubbleStyle(user.lastRating);
-                      const isAbove = index % 2 === 0;
                       return (
-                        <div key={user.id} className="flex-shrink-0 flex flex-col items-center w-[60px]">
-                          <div className="relative">
-                            {isAbove && user.lastRatedTitle && (
+                        <div key={user.id} className="flex-shrink-0 flex flex-col items-center">
+                          <div className="relative mb-2">
+                            {user.lastRatedTitle && (
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 pointer-events-none">
-                                <div className={`relative border rounded-xl px-2 py-1.5 shadow-sm w-[80px] ${bubbleStyle.bubble}`}>
-                                  <p className={`text-[8.5px] font-medium text-center leading-tight line-clamp-2 whitespace-normal ${bubbleStyle.titleText}`}>
+                                <div className={`relative border rounded-xl px-2.5 py-1.5 shadow-sm w-[90px] ${bubbleStyle.bubble}`}>
+                                  <p className={`text-[9px] font-medium text-center leading-tight line-clamp-2 whitespace-normal ${bubbleStyle.titleText}`}>
                                     {user.lastRatedTitle}
                                   </p>
                                   {user.lastRating !== null && (
-                                    <p className={`text-[9.5px] font-bold text-center mt-0.5 ${bubbleStyle.ratingText}`}>
+                                    <p className={`text-[10px] font-bold text-center mt-0.5 ${bubbleStyle.ratingText}`}>
                                       ★ {user.lastRating}
                                     </p>
                                   )}
@@ -1332,23 +1319,8 @@ export default function Profile() {
                                 )}
                               </div>
                             </motion.button>
-                            {!isAbove && user.lastRatedTitle && (
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-10 pointer-events-none">
-                                <div className={`relative border rounded-xl px-2 py-1.5 shadow-sm w-[80px] ${bubbleStyle.bubble}`}>
-                                  <div className={`absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-b-[6px] border-l-transparent border-r-transparent ${bubbleStyle.arrowDown}`} />
-                                  <p className={`text-[8.5px] font-medium text-center leading-tight line-clamp-2 whitespace-normal ${bubbleStyle.titleText}`}>
-                                    {user.lastRatedTitle}
-                                  </p>
-                                  {user.lastRating !== null && (
-                                    <p className={`text-[9.5px] font-bold text-center mt-0.5 ${bubbleStyle.ratingText}`}>
-                                      ★ {user.lastRating}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            )}
                           </div>
-                          <span className={`text-[10px] text-gray-500 dark:text-gray-400 text-center max-w-[60px] truncate ${!isAbove ? 'mt-[72px]' : 'mt-2'}`}>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center max-w-[56px] truncate">
                             {user.username}
                           </span>
                         </div>
@@ -1357,12 +1329,12 @@ export default function Profile() {
                   </motion.div>
                 </AnimatePresence>
                 {followedUsersCarousel.length > CAROUSEL_PAGE_SIZE && (
-                  <div className="flex justify-center gap-1 pb-2">
+                  <div className="flex justify-center gap-1 mt-1 pb-1">
                     {Array.from({ length: Math.ceil(followedUsersCarousel.length / CAROUSEL_PAGE_SIZE) }).map((_, i) => (
                       <button
                         key={i}
                         onClick={() => setCarouselOffset(i * CAROUSEL_PAGE_SIZE)}
-                        className={`h-[3px] rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-blue-500 w-[6px]' : 'bg-gray-300 dark:bg-gray-600 w-[3px]'}`}
+                        className={`h-1 rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-blue-500 w-1.5' : 'bg-gray-300 dark:bg-gray-600 w-1'}`}
                       />
                     ))}
                   </div>
