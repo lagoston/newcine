@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Loader2, Calendar, Clock, User, Film, AlertCircle, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare } from 'lucide-react';
+import { X, Star, Loader2, Calendar, Clock, User, Film, AlertCircle, Globe, Share2, Instagram, Tv, Users, MessageSquare } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -609,11 +609,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     ? `${movie.number_of_seasons} ${movie.number_of_seasons === 1 ? 'Season' : 'Seasons'}`
     : t('movies.unknown');
 
-  // Get content rating - prioritize US, then BR, then first available
-  const contentRating = movie.content_ratings?.find(r => r.iso_3166_1 === 'US')
-    || movie.content_ratings?.find(r => r.iso_3166_1 === 'BR')
-    || (movie.content_ratings && movie.content_ratings.length > 0 ? movie.content_ratings[0] : null);
-
   // Get origin country - support both API format (production_countries) and cache format (origin_country)
   const getOriginCountry = () => {
     // Try cache format first (origin_country: ["US"])
@@ -640,17 +635,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       .split('')
       .map(char => 127397 + char.charCodeAt(0));
     return String.fromCodePoint(...codePoints);
-  };
-
-  // Function to get rating badge color
-  const getRatingBadgeColor = (certification: string) => {
-    const rating = certification.toUpperCase();
-    if (rating === 'G' || rating === 'L') return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
-    if (rating === 'PG' || rating === '10') return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-    if (rating === 'PG-13' || rating === '12' || rating === '14') return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
-    if (rating === 'R' || rating === '16') return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400';
-    if (rating === 'NC-17' || rating === '18') return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400';
-    return 'bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300';
   };
 
   // Função para obter cor da bolha baseada na nota
@@ -932,19 +916,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     </div>
                   </div>
                 )}
-
-                {/* Classificação indicativa - com altura fixa */}
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 min-h-[120px] flex flex-col">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shield className="w-4 h-4 text-amber-500" />
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {t('movies.contentRating')}
-                    </h3>
-                  </div>
-                  <div className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed flex-1">
-                    {contentRating?.meaning || t('movies.noContentRating')}
-                  </div>
-                </div>
 
               </div>
             </div>

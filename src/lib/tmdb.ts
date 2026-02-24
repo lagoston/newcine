@@ -64,13 +64,6 @@ export interface WatchProviders {
   buy?: StreamingProvider[];
 }
 
-export interface ContentRating {
-  iso_3166_1: string;
-  certification: string;
-  meaning?: string;
-  order?: number;
-}
-
 export interface Movie {
   id: number;
   title: string;
@@ -97,7 +90,6 @@ export interface Movie {
     }>;
   };
   watchProviders?: WatchProviders;
-  content_ratings?: ContentRating[];
   production_countries?: Array<{
     iso_3166_1: string;
     name: string;
@@ -174,12 +166,10 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
   }
 
   const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
-  const releaseDateEndpoint = mediaType === 'tv' ? 'content_ratings' : 'release_dates';
 
-  const [movieDetails, providersData, releaseDatesData] = await Promise.all([
+  const [movieDetails, providersData] = await Promise.all([
     tmdbFetch(`/${endpoint}/${movieId}?append_to_response=credits`),
     tmdbFetch(`/${endpoint}/${movieId}/watch/providers`),
-    tmdbFetch(`/${endpoint}/${movieId}/${releaseDateEndpoint}`)
   ]);
 
   // Normalize TV show data to match Movie interface
@@ -200,92 +190,6 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
       rent: countryData.rent,
       buy: countryData.buy
     };
-  }
-
-  // Get content ratings
-  if (releaseDatesData && releaseDatesData.results) {
-    const contentRatings: ContentRating[] = [];
-
-    if (mediaType === 'tv') {
-      // TV shows have different structure - array of ratings
-      const usRating = releaseDatesData.results.find((r: any) => r.iso_3166_1 === 'US');
-      const brRating = releaseDatesData.results.find((r: any) => r.iso_3166_1 === 'BR');
-
-      if (usRating && usRating.rating) {
-        contentRatings.push({
-          iso_3166_1: 'US',
-          certification: usRating.rating,
-          meaning: getContentWarnings(usRating.rating, '')
-        });
-      }
-
-      if (brRating && brRating.rating) {
-        contentRatings.push({
-          iso_3166_1: 'BR',
-          certification: brRating.rating,
-          meaning: getContentWarnings(brRating.rating, '')
-        });
-      }
-
-      // If no US or BR ratings, use first available
-      if (contentRatings.length === 0 && releaseDatesData.results.length > 0) {
-        const firstRating = releaseDatesData.results[0];
-        if (firstRating.rating) {
-          contentRatings.push({
-            iso_3166_1: firstRating.iso_3166_1,
-            certification: firstRating.rating,
-            meaning: getContentWarnings(firstRating.rating, '')
-          });
-        }
-      }
-    } else {
-      // Movies - existing logic
-      const usReleases = releaseDatesData.results.find((r: any) => r.iso_3166_1 === 'US');
-      const brReleases = releaseDatesData.results.find((r: any) => r.iso_3166_1 === 'BR');
-
-      if (usReleases && usReleases.release_dates) {
-        const usRating = usReleases.release_dates.find((rd: any) => rd.certification && rd.certification !== '');
-        if (usRating) {
-          contentRatings.push({
-            iso_3166_1: 'US',
-            certification: usRating.certification,
-            meaning: getContentWarnings(usRating.certification, usRating.note)
-          });
-        }
-      }
-
-      if (brReleases && brReleases.release_dates) {
-        const brRating = brReleases.release_dates.find((rd: any) => rd.certification && rd.certification !== '');
-        if (brRating) {
-          contentRatings.push({
-            iso_3166_1: 'BR',
-            certification: brRating.certification,
-            meaning: getContentWarnings(brRating.certification, brRating.note)
-          });
-        }
-      }
-
-      // If no US or BR ratings, use the first available
-      if (contentRatings.length === 0) {
-        for (const countryReleases of releaseDatesData.results) {
-          if (countryReleases.release_dates) {
-            const rating = countryReleases.release_dates.find((rd: any) => rd.certification && rd.certification !== '');
-            if (rating) {
-              contentRatings.push({
-                iso_3166_1: countryReleases.iso_3166_1,
-                certification: rating.certification,
-                meaning: getContentWarnings(rating.certification, rating.note)
-              });
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    if (contentRatings.length > 0) {
-      movieDetails.content_ratings = contentRatings;
-    }
   }
 
   cache.set(cacheKey, movieDetails, CACHE_TTL.MOVIE_DETAILS);
@@ -347,7 +251,6 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
         crew: data.director ? [{ id: 0, name: data.director, job: 'Director' }] : []
       },
       watchProviders: data.watch_providers,
-      content_ratings: data.content_ratings,
       seasons: data.seasons_data
     };
   } catch (error) {
@@ -633,52 +536,4 @@ export const getMovieDetailsFromDB = async (movieId: number): Promise<Movie> => 
   return getMovieDetails(movieId, mediaType);
 };
 
-// Helper function to generate content warnings based on certification and notes
-function getContentWarnings(certification: string, note?: string): string {
-  // Default warnings based on common certifications
-  const defaultWarnings: Record<string, string> = {
-    'G': 'Suitable for all ages',
-    'PG': 'Parental guidance suggested',
-    'PG-13': 'Parents strongly cautioned - May be inappropriate for children under 13',
-    'R': 'Restricted - Under 17 requires accompanying parent or adult guardian',
-    'NC-17': 'Adults Only - No one 17 and under admitted',
-    
-    // Brazilian ratings
-    'L': 'Livre - Suitable for all ages',
-    '10': '10+ - Not recommended for children under 10',
-    '12': '12+ - Not recommended for children under 12',
-    '14': '14+ - Not recommended for children under 14',
-    '16': '16+ - Not recommended for people under 16',
-    '18': '18+ - Not recommended for people under 18',
-  };
-
-  // Common content warnings based on ratings
-  const commonWarnings: Record<string, string[]> = {
-    'PG': ['Mild language', 'Brief violence'],
-    'PG-13': ['Some violence', 'Brief strong language', 'Suggestive content'],
-    'R': ['Strong language', 'Violence', 'Sexual content', 'Drug use'],
-    'NC-17': ['Explicit content'],
-    '12': ['Mild violence', 'Mild language'],
-    '14': ['Violence', 'Some strong language', 'Some suggestive content'],
-    '16': ['Strong violence', 'Strong language', 'Sexual content', 'Drug references'],
-    '18': ['Explicit content', 'Graphic violence', 'Strong sexual content', 'Drug abuse']
-  };
-  
-  // Parse note for specific warnings
-  let warningText = defaultWarnings[certification] || `Rating: ${certification}`;
-  
-  // Add common warnings if available
-  if (commonWarnings[certification]) {
-    if (!note) {
-      warningText += ` - May contain: ${commonWarnings[certification].join(', ')}`;
-    }
-  }
-  
-  // If there's a note from the API, use it instead of default warnings
-  if (note && note.length > 5 && !note.includes('http')) {
-    warningText = `${certification} - ${note}`;
-  }
-  
-  return warningText;
-}
 
