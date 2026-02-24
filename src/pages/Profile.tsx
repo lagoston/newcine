@@ -957,7 +957,7 @@ export default function Profile() {
                           <strong className="text-gray-900 dark:text-white">
                             {followersCount}
                           </strong>{' '}
-                          {followersCount === 1 ? 'follower' : 'followers'}
+                          {t('profile.followersLabel')}
                         </span>
                       </motion.button>
                       <motion.button
@@ -1230,24 +1230,22 @@ export default function Profile() {
 
           {/* Community Activity Box */}
           <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('profile.followingActivity')}
+                {t('profile.friendsActivity')}
               </h2>
-              <Users className="w-6 h-6 text-blue-500" />
+              <button
+                onClick={() => navigate('/community')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-medium transition-all duration-200 shadow-sm"
+              >
+                <Users className="w-3.5 h-3.5" />
+                {t('profile.accessCommunity')}
+              </button>
             </div>
 
-            <button
-              onClick={() => navigate('/community')}
-              className="w-full mb-4 py-2.5 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 text-sm shadow-sm"
-            >
-              <Users className="w-4 h-4" />
-              {t('profile.accessCommunity')}
-            </button>
-
             {followedUsersCarousel.length > 0 && (
-              <div className="relative overflow-hidden">
-                <div className="flex gap-6 items-end py-4 overflow-x-auto scrollbar-hide">
+              <div className="relative">
+                <div className="flex gap-6 items-end pt-16 pb-4 overflow-x-auto scrollbar-hide">
                   {followedUsersCarousel.map((user, index) => (
                     <motion.div
                       key={user.id}
@@ -1268,7 +1266,7 @@ export default function Profile() {
                           </div>
                         )}
                         <motion.button
-                          onClick={() => navigate(`/user/${user.username}`)}
+                          onClick={() => navigate(`/profile/${user.username}`)}
                           className="block"
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}

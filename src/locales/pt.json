@@ -277,6 +277,7 @@
   },
   "profile": {
     "followers": "{{count}} seguidores",
+    "followersLabel": "Seguidores",
     "following": "{{count}} seguindo",
     "joined": "Entrou em {{date}}",
     "editProfile": "Editar Perfil",
@@ -296,8 +297,9 @@
     "noMoviesYet": "Este usuário ainda não adicionou nenhum filme à sua coleção.",
     "showStats": "Mostrar Todas as Estatísticas",
     "hideStats": "Ocultar Estatísticas",
-    "accessCommunity": "Acesse a Comunidade",
+    "accessCommunity": "Comunidade",
     "followingActivity": "Atividade dos Seguindo",
+    "friendsActivity": "Atividade dos Amigos",
     "stats": {
       "ratedMovies": "Filmes Avaliados",
       "favoriteGenres": "Gêneros Favoritos",

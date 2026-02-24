@@ -277,6 +277,7 @@
   },
   "profile": {
     "followers": "{{count}} followers",
+    "followersLabel": "Followers",
     "following": "{{count}} following",
     "joined": "Joined {{date}}",
     "editProfile": "Edit Profile",
@@ -298,6 +299,7 @@
     "hideStats": "Hide Statistics",
     "accessCommunity": "Access Community",
     "followingActivity": "Following Activity",
+    "friendsActivity": "Friends Activity",
     "stats": {
       "ratedMovies": "Rated Movies",
       "favoriteGenres": "Favorite Genres",
