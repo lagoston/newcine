@@ -235,50 +235,30 @@ export default function Profile() {
       if (profilesError) throw profilesError;
 
       const { data: lastRatings, error: ratingsError } = await supabase
-        .from('movies')
-        .select('user_id, tmdb_id, media_type, updated_at')
+        .from('user_movies')
+        .select('user_id, created_at, movies!inner(title)')
         .in('user_id', followingIds)
-        .order('updated_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (ratingsError) throw ratingsError;
 
-      const lastRatingPerUser = new Map<string, { tmdb_id: number; media_type: string }>();
+      const lastTitlePerUser = new Map<string, string>();
       (lastRatings || []).forEach((r: any) => {
-        if (!lastRatingPerUser.has(r.user_id)) {
-          lastRatingPerUser.set(r.user_id, { tmdb_id: r.tmdb_id, media_type: r.media_type });
+        if (!lastTitlePerUser.has(r.user_id) && r.movies?.title) {
+          lastTitlePerUser.set(r.user_id, r.movies.title);
         }
       });
 
-      const tmdbIds = Array.from(lastRatingPerUser.values()).map(r => r.tmdb_id);
-      let titlesMap = new Map<string, string>();
-
-      if (tmdbIds.length > 0) {
-        const isPortuguese = i18n.language.startsWith('pt');
-        const { data: cacheData } = await supabase
-          .from('movie_cache')
-          .select('tmdb_id, media_type, title_en, title_pt')
-          .in('tmdb_id', tmdbIds);
-
-        (cacheData || []).forEach((c: any) => {
-          const key = `${c.tmdb_id}:${c.media_type}`;
-          titlesMap.set(key, isPortuguese && c.title_pt ? c.title_pt : c.title_en);
-        });
-      }
-
       const shuffled = [...(profiles || [])].sort(() => Math.random() - 0.5);
 
-      const result: FollowedUserCarousel[] = shuffled.map((p: any) => {
-        const lastRating = lastRatingPerUser.get(p.id);
-        const titleKey = lastRating ? `${lastRating.tmdb_id}:${lastRating.media_type}` : null;
-        return {
-          id: p.id,
-          username: p.username,
-          avatar_url: p.avatar_url,
-          avatar_frame: p.avatar_frame,
-          plan_type: p.plan_type,
-          lastRatedTitle: titleKey ? (titlesMap.get(titleKey) || null) : null,
-        };
-      });
+      const result: FollowedUserCarousel[] = shuffled.map((p: any) => ({
+        id: p.id,
+        username: p.username,
+        avatar_url: p.avatar_url,
+        avatar_frame: p.avatar_frame,
+        plan_type: p.plan_type,
+        lastRatedTitle: lastTitlePerUser.get(p.id) || null,
+      }));
 
       setFollowedUsersCarousel(result);
     } catch (error) {

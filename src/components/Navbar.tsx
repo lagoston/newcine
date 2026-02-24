@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LibraryIcon, LogIn, LogOut, User, Users, Menu, X, Eye, Search } from 'lucide-react';
+import { LibraryIcon, LogIn, LogOut, User, Menu, X, Eye, Search } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -132,7 +132,6 @@ function Navbar() {
             {user ? (
               <>
                 <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
-                <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
                 <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
                 <NavLink to="/profile" icon={User} showBadge={true}>{t('nav.profile')}</NavLink>
                 <button
@@ -186,7 +185,6 @@ function Navbar() {
             {user ? (
               <>
                 <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
-                <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
                 <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
                 <NavLink to="/profile" icon={User} showBadge={true}>{t('nav.profile')}</NavLink>
                 <button
