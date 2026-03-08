@@ -59,13 +59,17 @@ const OptimizedPoster: React.FC<OptimizedPosterProps> = ({
       <img
         src={src}
         alt={alt}
+        draggable={false}
         className={`${className} ${!imageLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
+        onDragStart={(e) => e.preventDefault()}
         style={{
           contentVisibility: 'auto',
-          willChange: imageLoaded ? 'auto' : 'opacity'
-        }}
+          willChange: imageLoaded ? 'auto' : 'opacity',
+          userSelect: 'none',
+          WebkitUserDrag: 'none',
+        } as React.CSSProperties}
       />
     </>
   );
