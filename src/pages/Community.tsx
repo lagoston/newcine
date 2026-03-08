@@ -8,10 +8,6 @@ import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { FreeMode } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/free-mode';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import { useAuth } from '../lib/auth';
 import { getMovieDetails, getMovieDetailsFromDB, Movie, getTrending } from '../lib/tmdb';
@@ -322,43 +318,41 @@ export default function Community() {
               <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
             </div>
           ) : friendsWatchlist.length > 0 ? (
-
-            <Swiper
-              modules={[FreeMode]}
-              spaceBetween={16}
-              slidesPerView="auto"
-              freeMode={true}
-              className="!pb-4"
+            <div
+              className="overflow-x-auto pb-2"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
             >
-              {friendsWatchlist.map((movie) => (
-                <SwiperSlide key={`${movie.movie_id}-${movie.friend_id}`} className="!w-40">
+              <div className="flex gap-4">
+                {friendsWatchlist.map((movie) => (
                   <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ duration: 0.2 }}
-                    className="relative group cursor-pointer"
+                    key={`${movie.movie_id}-${movie.friend_id}`}
+                    className="relative group cursor-pointer flex-shrink-0 rounded-xl overflow-hidden shadow-lg"
+                    style={{ width: '160px', willChange: 'transform' }}
                     onClick={() => movie.movieDetails && setSelectedMovie(movie.movieDetails)}
+                    whileHover={{ scale: 1.05, y: -6 }}
+                    whileTap={{ scale: 0.97 }}
                   >
                     {movie.movieDetails?.poster_path && (
                       <img
                         src={`https://image.tmdb.org/t/p/w342${movie.movieDetails.poster_path}`}
                         alt={movie.title}
-                        className="w-full rounded-lg shadow-lg"
+                        className="w-full aspect-[2/3] object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
                         loading="lazy"
                       />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col justify-end p-3">
-                      <p className="text-white text-xs font-medium truncate">{movie.title}</p>
-                      <p className="text-gray-300 text-xs truncate">@{movie.friend_username}</p>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 pointer-events-none">
+                      <p className="text-white text-xs font-semibold truncate drop-shadow">{movie.title}</p>
+                      <p className="text-gray-300 text-[10px] truncate">@{movie.friend_username}</p>
                     </div>
                     {movie.movieDetails?.vote_average && movie.movieDetails.vote_average > 0 && (
-                      <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
+                      <div className="absolute top-2 right-2 bg-yellow-500 text-white px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-lg">
                         ★ {movie.movieDetails.vote_average.toFixed(1)}
                       </div>
                     )}
                   </motion.div>
-                </SwiperSlide>
-              ))}
-            </Swiper>
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               {t('common.noMoviesFound')}

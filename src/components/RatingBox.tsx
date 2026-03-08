@@ -1,15 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film } from 'lucide-react';
+import React, { useState } from 'react';
+import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import ConfirmationModal from './ConfirmationModal';
 import MovieDetailsModal from './MovieDetailsModal';
 import AllMoviesModal from './AllMoviesModal';
 import AddToListMenu from './AddToListMenu';
 import RateMenuSheet from './RateMenuSheet';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { FreeMode } from 'swiper/modules';
 import { useTranslation } from 'react-i18next';
-import 'swiper/css';
 import OptimizedPoster from './OptimizedPoster';
 import { motion } from 'framer-motion';
 
@@ -46,94 +43,12 @@ const RatingBox: React.FC<RatingBoxProps> = ({
 }) => {
   const { t } = useTranslation();
   const [deleteMovieId, setDeleteMovieId] = useState<number | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [rateMenuMovie, setRateMenuMovie] = useState<Movie | null>(null);
   const [showAllMovies, setShowAllMovies] = useState(false);
   const [showAddToList, setShowAddToList] = useState<{movieId: number, title: string} | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [mobileMenuMovie, setMobileMenuMovie] = useState<Movie | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const listButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Desktop scroll states
-  const [isDraggingDesktop, setIsDraggingDesktop] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const dragDistanceRef = useRef(0);
-
-  // Swiper mobile state
-  const swiperMoved = useRef(false);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpenMenuId(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleListButtonClick = (e: React.MouseEvent, movieId: number, title: string) => {
-    e.stopPropagation();
-
-    // Calculate center position for the menu
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    const menuWidth = 256; // Width of menu in pixels (matches w-64 class)
-
-    const position = {
-      top: Math.max(window.scrollY + (windowHeight / 2) - 150, window.scrollY + 20),
-      left: (windowWidth / 2) - (menuWidth / 2)
-    };
-
-    setMenuPosition(position);
-    setOpenMenuId(null);
-    setShowAddToList({ movieId, title });
-  };
-
-  // Desktop drag handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!scrollContainerRef.current) return;
-    setIsDraggingDesktop(true);
-    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
-    setScrollLeft(scrollContainerRef.current.scrollLeft);
-    dragDistanceRef.current = 0;
-    scrollContainerRef.current.style.cursor = 'grabbing';
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDraggingDesktop || !scrollContainerRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 2;
-    dragDistanceRef.current = Math.abs(walk);
-    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  const handleMouseUp = () => {
-    setIsDraggingDesktop(false);
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.style.cursor = 'grab';
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setIsDraggingDesktop(false);
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.style.cursor = 'grab';
-    }
-  };
-
-  const handleMovieClickDesktop = (movie: Movie) => {
-    if (dragDistanceRef.current > 5) {
-      return;
-    }
-    setSelectedMovie(movie);
-  };
 
   if (movies.length === 0) return null;
 
@@ -216,322 +131,86 @@ const RatingBox: React.FC<RatingBoxProps> = ({
         </button>
       </div>
 
-      {/* Container do carrossel - Desktop: Native Scroll / Mobile: Swiper */}
-      <div className="relative z-10 overflow-hidden py-4">
-        {/* MOBILE: Swiper */}
-        <div className="block lg:hidden">
-          <Swiper
-            modules={[FreeMode]}
-            slidesPerView={1.2}
-            spaceBetween={16}
-            speed={400}
-            freeMode={{
-              enabled: true,
-              momentum: true,
-              momentumRatio: 1,
-              momentumVelocityRatio: 1,
-              momentumBounce: false,
-              sticky: false,
-              minimumVelocity: 0.02
-            }}
-            grabCursor={true}
-            resistance={true}
-            resistanceRatio={0.85}
-            touchRatio={1}
-            touchAngle={45}
-            threshold={5}
-            longSwipesRatio={0.5}
-            shortSwipes={true}
-            longSwipes={true}
-            followFinger={true}
-            watchSlidesProgress={true}
-            preventInteractionOnTransition={false}
-            allowTouchMove={true}
-            touchStartForcePreventDefault={false}
-            touchStartPreventDefault={false}
-            preventClicks={false}
-            preventClicksPropagation={false}
-            cssMode={false}
-            breakpoints={{
-              0: { slidesPerView: 2.4, spaceBetween: 12 },
-              480: { slidesPerView: 3.2, spaceBetween: 16 },
-              640: { slidesPerView: 4.1, spaceBetween: 16 },
-              768: { slidesPerView: 5.1, spaceBetween: 20 }
-            }}
-            onTouchStart={() => {
-              swiperMoved.current = false;
-            }}
-            onSliderMove={() => {
-              swiperMoved.current = true;
-            }}
-            onTouchEnd={() => {
-              setTimeout(() => {
-                swiperMoved.current = false;
-              }, 50);
-            }}
-            onClick={(swiper, event) => {
-              if (swiperMoved.current) {
-                event.preventDefault();
-                event.stopPropagation();
-              }
-            }}
-            className="pb-4"
-          >
-            {movies.map((movie, index) => (
-              <SwiperSlide key={movie.id}>
-              <div className="relative group h-full">
-                <div className={`rounded-lg overflow-hidden h-full ${
-                  movie.media_type === 'tv'
-                    ? 'bg-purple-50/70 dark:bg-purple-900/20'
-                    : 'bg-gray-50 dark:bg-gray-700/50'
-                }`}>
-                  {!isOtherUserProfile && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMobileMenuMovie(movie);
-                      }}
-                      className="absolute top-1 right-1 z-10 w-6 h-6 flex items-center justify-center bg-black/60 active:bg-black/80 rounded-full text-white"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  )}
-                  <div className="absolute top-1 left-1 z-10 bg-black/40 rounded-md px-1.5 py-0.5 flex items-center">
-                    <Star className="w-3.5 h-3.5 text-blue-400 fill-current" />
-                    <span className="text-white text-xs ml-1">{movie.vote_average.toFixed(1)}</span>
-                  </div>
-                  <button
-                    onClick={() => setSelectedMovie(movie)}
-                    className="relative w-full aspect-[2/3] block"
-                  >
-                    <img
-                      src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
-                      alt={movie.title}
-                      className="w-full h-full object-cover rounded-t-lg"
-                      width={185}
-                      height={278}
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://via.placeholder.com/185x278?text=No+Image';
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg">
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <h3 className="text-white text-sm font-medium line-clamp-1">
-                          {movie.title}
-                        </h3>
-                        <p className="text-gray-300 text-xs">
-                          {new Date(movie.release_date).getFullYear()}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                  <div className="p-2">
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">
-                      {movie.title}
-                    </h4>
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {new Date(movie.release_date).getFullYear()}
-                      </p>
-                      {!isNotRated && movie.userRating !== null && (
-                        <div className="bg-black/40 rounded-md px-1.5 py-0.5 flex items-center">
-                          <Star className="w-3.5 h-3.5 text-yellow-400 fill-current" />
-                          <span className="text-white text-xs ml-1">{movie.userRating}</span>
-                        </div>
-                      )}
-                    </div>
-                    {isNotRated && onRate && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRateMenuMovie(movie);
-                        }}
-                        className="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-all duration-150 shadow-sm shadow-blue-600/20"
-                      >
-                        {t('movies.rating')}
-                        <Star className="w-3 h-3 fill-current" />
-                      </button>
-                    )}
-                  </div>
-                </div>
+      {/* Carrossel unificado - scroll nativo suave em todos os dispositivos */}
+      <div
+        className="relative z-10 overflow-x-auto py-4 pb-2"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+      >
+        <div className="flex gap-3">
+          {movies.map((movie) => (
+            <div
+              key={movie.id}
+              className="relative group flex-shrink-0"
+              style={{ width: '140px' }}
+            >
+              {!isOtherUserProfile && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMobileMenuMovie(movie);
+                  }}
+                  className="absolute top-1 right-1 z-10 w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 active:bg-black/90 rounded-full text-white transition-colors"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+              )}
+              <div className="absolute top-1 left-1 z-10 bg-black/40 rounded-md px-1.5 py-0.5 flex items-center">
+                <Star className="w-3 h-3 text-blue-400 fill-current" />
+                <span className="text-white text-[10px] ml-1">{movie.vote_average.toFixed(1)}</span>
               </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
-        </div>
-
-        {/* DESKTOP: Native Scroll */}
-        <div
-          className="hidden lg:block overflow-x-auto scrollbar-hide cursor-grab active:cursor-grabbing pb-4"
-          ref={scrollContainerRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
-          <div className="flex gap-6" style={{ minWidth: 'min-content' }}>
-            {movies.map((movie, index) => (
-              <div
-                key={movie.id}
-                className="relative group flex-shrink-0"
-                style={{ width: '200px' }}
+              <motion.button
+                onClick={() => setSelectedMovie(movie)}
+                className="relative w-full aspect-[2/3] block rounded-xl overflow-hidden shadow-lg"
+                whileHover={{ scale: 1.04, y: -5 }}
+                whileTap={{ scale: 0.97 }}
+                style={{ willChange: 'transform' }}
               >
-                <div className={`rounded-lg overflow-hidden h-full ${
-                  movie.media_type === 'tv'
-                    ? 'bg-purple-50/70 dark:bg-purple-900/20'
-                    : 'bg-gray-50 dark:bg-gray-700/50'
-                }`}>
-                  {!isOtherUserProfile && (
-                    <div className="absolute top-1 right-1 z-10">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId(openMenuId === movie.id ? null : movie.id);
-                        }}
-                        className="w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full text-white transition-all duration-200"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      {openMenuId === movie.id && (
-                        <div
-                          ref={menuRef}
-                          className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
-                        >
-                          {isPersonalList ? (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (onRemoveFromList) {
-                                    onRemoveFromList(movie.id);
-                                  }
-                                  setOpenMenuId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                              >
-                                <XCircle className="w-4 h-4 mr-2" />
-                                {t('common.remove')}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (enableDragDrop) {
-                                    enableDragDrop();
-                                  }
-                                  setOpenMenuId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                              >
-                                <ArrowUpDown className="w-4 h-4 mr-2" />
-                                {t('lists.reorder')}
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              {rating !== null && onRate && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onRate(movie.id, null);
-                                    setOpenMenuId(null);
-                                  }}
-                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                                >
-                                  <Star className="w-4 h-4 mr-2" />
-                                  {t('library.changeRating')}
-                                </button>
-                              )}
-                              <button
-                                onClick={(e) => handleListButtonClick(e, movie.id, movie.title)}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                              >
-                                <ListPlus className="w-4 h-4 mr-2" />
-                                {t('lists.title', { defaultValue: 'List' })}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteMovieId(movie.id);
-                                  setOpenMenuId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                {t('common.delete')}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div className="absolute top-1 left-1 z-10 bg-black/40 rounded-md px-1.5 py-0.5 flex items-center">
-                    <Star className="w-3.5 h-3.5 text-blue-400 fill-current" />
-                    <span className="text-white text-xs ml-1">{movie.vote_average.toFixed(1)}</span>
-                  </div>
-                  <button
-                    onClick={() => handleMovieClickDesktop(movie)}
-                    className="relative w-full aspect-[2/3] block"
-                  >
-                    <img
-                      src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
-                      alt={movie.title}
-                      className="w-full h-full object-cover rounded-t-lg pointer-events-none"
-                      width={185}
-                      height={278}
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://via.placeholder.com/185x278?text=No+Image';
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg pointer-events-none">
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <h3 className="text-white text-sm font-medium line-clamp-1">
-                          {movie.title}
-                        </h3>
-                        <p className="text-gray-300 text-xs">
-                          {new Date(movie.release_date).getFullYear()}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                  <div className="p-2">
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">
+                <OptimizedPoster
+                  src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
+                  alt={movie.title}
+                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                  <div className="absolute bottom-0 left-0 right-0 p-2">
+                    <h3 className="text-white text-xs font-semibold line-clamp-2 drop-shadow">
                       {movie.title}
-                    </h4>
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {new Date(movie.release_date).getFullYear()}
-                      </p>
-                      {!isNotRated && movie.userRating !== null && (
-                        <div className="bg-black/40 rounded-md px-1.5 py-0.5 flex items-center">
-                          <Star className="w-3.5 h-3.5 text-yellow-400 fill-current" />
-                          <span className="text-white text-xs ml-1">{movie.userRating}</span>
-                        </div>
-                      )}
-                    </div>
-                    {isNotRated && onRate && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRateMenuMovie(movie);
-                        }}
-                        className="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-all duration-150 shadow-sm shadow-blue-600/20"
-                      >
-                        {t('movies.rating')}
-                        <Star className="w-3 h-3 fill-current" />
-                      </button>
-                    )}
+                    </h3>
+                    <p className="text-gray-300 text-[10px] mt-0.5">
+                      {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}
+                    </p>
                   </div>
                 </div>
+              </motion.button>
+              <div className="pt-1.5 px-0.5">
+                <h4 className="text-xs font-medium text-gray-900 dark:text-white line-clamp-1">
+                  {movie.title}
+                </h4>
+                <div className="flex items-center justify-between mt-0.5">
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                    {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}
+                  </p>
+                  {!isNotRated && movie.userRating !== null && (
+                    <div className="bg-black/30 dark:bg-black/50 rounded px-1 py-0.5 flex items-center">
+                      <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                      <span className="text-white text-[10px] ml-0.5">{movie.userRating}</span>
+                    </div>
+                  )}
+                </div>
+                {isNotRated && onRate && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRateMenuMovie(movie);
+                    }}
+                    className="mt-1.5 w-full flex items-center justify-center gap-1 px-1.5 py-1 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-[10px] font-semibold rounded-lg transition-all duration-150"
+                  >
+                    {t('movies.rating')}
+                    <Star className="w-2.5 h-2.5 fill-current" />
+                  </button>
+                )}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -661,6 +340,12 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                   )}
                   <button
                     onClick={() => {
+                      const ww = window.innerWidth;
+                      const wh = window.innerHeight;
+                      setMenuPosition({
+                        top: Math.max(window.scrollY + (wh / 2) - 150, window.scrollY + 20),
+                        left: (ww / 2) - 128
+                      });
                       setShowAddToList({ movieId: mobileMenuMovie.id, title: mobileMenuMovie.title });
                       setMobileMenuMovie(null);
                     }}
