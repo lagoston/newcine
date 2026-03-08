@@ -8,6 +8,7 @@ import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
 import IMDbImportModal from '../components/IMDbImportModal';
 import MovieDetailsModal from '../components/MovieDetailsModal';
+import QuickAddMenu from '../components/QuickAddMenu';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS } from '../lib/cache';
 
@@ -28,6 +29,7 @@ export default function AddMovies() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [showMovieModal, setShowMovieModal] = useState(false);
+  const [quickAddTarget, setQuickAddTarget] = useState<Movie | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const ITEMS_PER_PAGE = 9;
@@ -99,65 +101,47 @@ export default function AddMovies() {
     handleSearch();
   }, [debouncedQuery]);
 
-  const addToLibrary = async (movie: Movie) => {
-    try {
-      // Get media type from movie object
-      const mediaType = movie.media_type || 'movie';
+  const addToLibrary = async (movie: Movie, rating?: number) => {
+    const mediaType = movie.media_type || 'movie';
 
-      // First, ensure movie details are stored and cache is up to date
-      const movieDetails = await getMovieDetails(movie.id, mediaType);
-      const director = movieDetails.credits?.crew?.find(person => person.job === 'Director')?.name;
+    const movieDetails = await getMovieDetails(movie.id, mediaType);
+    const director = movieDetails.credits?.crew?.find(person => person.job === 'Director')?.name;
 
-      // Save/update movie_cache with fresh data (runs in background)
-      ensureMovieCached(movie.id, mediaType).catch(() => {});
+    ensureMovieCached(movie.id, mediaType).catch(() => {});
 
-      const { error: movieError } = await supabase
-        .from('movies')
-        .upsert({
-          id: movie.id,
-          title: movieDetails.title,
-          release_date: movieDetails.release_date,
-          genres: movieDetails.genres.map(g => g.name),
-          director: director || null,
-          media_type: mediaType,
-          number_of_seasons: mediaType === 'tv' ? movieDetails.number_of_seasons : null
-        });
+    const { error: movieError } = await supabase
+      .from('movies')
+      .upsert({
+        id: movie.id,
+        title: movieDetails.title,
+        release_date: movieDetails.release_date,
+        genres: movieDetails.genres.map(g => g.name),
+        director: director || null,
+        media_type: mediaType,
+        number_of_seasons: mediaType === 'tv' ? movieDetails.number_of_seasons : null
+      });
 
-      if (movieError) throw movieError;
+    if (movieError) throw movieError;
 
-      // Cache genres for Espectrograma Cinematográfico
-      if (movie.genres && movie.genres.length > 0) {
-        try {
-          await supabase
-            .rpc('cache_movie_genres', {
-              p_movie_id: movie.id,
-              p_genres: movie.genres
-            });
-        } catch (cacheError) {
-          console.warn('Failed to cache movie genres:', cacheError);
-        }
-      }
-
-      // Then add to user's library
-      const { error } = await supabase
-        .from('user_movies')
-        .insert({
-          movie_id: movie.id,
-          user_id: session?.user.id,
-        });
-
-      if (error) throw error;
-
-      setUserMovieIds(prev => new Set([...prev, movie.id]));
-
-      // Invalidate cache to force library refresh
-      cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
-
-      toast.success(t('library.inLibrary'));
-    } catch (error) {
-      console.error('Error adding movie:', error);
-      toast.error(t('common.error'));
+    if (movie.genres && movie.genres.length > 0) {
+      supabase.rpc('cache_movie_genres', { p_movie_id: movie.id, p_genres: movie.genres }).catch(() => {});
     }
+
+    const insertData: Record<string, unknown> = {
+      movie_id: movie.id,
+      user_id: session?.user.id,
+    };
+    if (rating !== undefined) insertData.rating = rating;
+
+    const { error } = await supabase
+      .from('user_movies')
+      .insert(insertData);
+
+    if (error) throw error;
+
+    setUserMovieIds(prev => new Set([...prev, movie.id]));
+    cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
+    toast.success(t('library.inLibrary'));
   };
 
   const isInLibrary = (movieId: number) => userMovieIds.has(movieId);
@@ -176,8 +160,8 @@ export default function AddMovies() {
 
   const handleAddFromModal = () => {
     if (selectedMovie) {
-      addToLibrary(selectedMovie);
-      setShowMovieModal(false);
+      setUserMovieIds(prev => new Set([...prev, selectedMovie.id]));
+      cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
     }
   };
 
@@ -287,7 +271,7 @@ export default function AddMovies() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          addToLibrary(movie);
+                          setQuickAddTarget(movie);
                         }}
                         className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors"
                       >
@@ -363,6 +347,15 @@ export default function AddMovies() {
           isOpen={showMovieModal}
           onClose={() => setShowMovieModal(false)}
           onAddToLibrary={handleAddFromModal}
+        />
+      )}
+
+      {quickAddTarget && (
+        <QuickAddMenu
+          movieTitle={quickAddTarget.title}
+          isOpen={true}
+          onClose={() => setQuickAddTarget(null)}
+          onAdd={(rating) => addToLibrary(quickAddTarget, rating)}
         />
       )}
     </div>

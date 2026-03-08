@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import RecommendModal from './RecommendModal';
 import ReviewsModal from './ReviewsModal';
+import QuickAddMenu from './QuickAddMenu';
 import html2canvas from 'html2canvas';
 
 interface FriendRating {
@@ -35,7 +36,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 }) => {
   const { session } = useAuth();
   const { t } = useTranslation();
-  const [adding, setAdding] = useState(false);
   const [isInLibrary, setIsInLibrary] = useState(false);
   const [friendRatings, setFriendRatings] = useState<FriendRating[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
@@ -47,6 +47,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [loadingSeasons, setLoadingSeasons] = useState(false);
   const [seasons, setSeasons] = useState<any[]>(movie.seasons || []);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   // Reset seasons when movie changes
   useEffect(() => {
@@ -542,45 +543,37 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     toast.success('Imagem baixada! Compartilhe no Instagram Stories.');
   };
 
-  const handleAddToLibrary = async () => {
-    if (!session?.user?.id || adding) return;
+  const handleAddToLibrary = async (rating?: number) => {
+    if (!session?.user?.id) return;
 
-    try {
-      setAdding(true);
+    const { error: movieError } = await supabase
+      .from('movies')
+      .upsert({
+        id: movie.id,
+        title: movie.title,
+        release_date: movie.release_date,
+        genres: movie.genres?.map(g => g.name),
+        director: movie.credits?.crew?.find(person => person.job === 'Director')?.name
+      });
 
-      // First, ensure movie details are stored
-      const { error: movieError } = await supabase
-        .from('movies')
-        .upsert({
-          id: movie.id,
-          title: movie.title,
-          release_date: movie.release_date,
-          genres: movie.genres?.map(g => g.name),
-          director: movie.credits?.crew?.find(person => person.job === 'Director')?.name
-        });
+    if (movieError) throw movieError;
 
-      if (movieError) throw movieError;
+    const insertData: Record<string, unknown> = {
+      movie_id: movie.id,
+      user_id: session.user.id,
+    };
+    if (rating !== undefined) insertData.rating = rating;
 
-      // Then add to user's library
-      const { error: libraryError } = await supabase
-        .from('user_movies')
-        .insert({
-          movie_id: movie.id,
-          user_id: session.user.id,
-        });
+    const { error: libraryError } = await supabase
+      .from('user_movies')
+      .insert(insertData);
 
-      if (libraryError) throw libraryError;
+    if (libraryError) throw libraryError;
 
-      setIsInLibrary(true);
-      toast.success(t('library.inLibrary'));
-      if (onAddToLibrary) {
-        onAddToLibrary();
-      }
-    } catch (error) {
-      console.error('Error adding movie:', error);
-      toast.error(t('library.addToLibrary'));
-    } finally {
-      setAdding(false);
+    setIsInLibrary(true);
+    toast.success(t('library.inLibrary'));
+    if (onAddToLibrary) {
+      onAddToLibrary();
     }
   };
 
@@ -926,15 +919,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                 <div className="grid grid-cols-1 gap-3">
                   {!isInLibrary ? (
                     <button
-                      onClick={handleAddToLibrary}
-                      disabled={adding}
-                      className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-medium text-sm shadow-lg hover:shadow-xl"
+                      onClick={() => setShowQuickAdd(true)}
+                      className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-all flex items-center justify-center font-medium text-sm shadow-lg hover:shadow-xl"
                     >
-                      {adding ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <>{t('library.addToLibrary')}</>
-                      )}
+                      {t('library.addToLibrary')}
                     </button>
                   ) : (
                     <div className="px-4 py-3 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-center font-medium flex items-center justify-center text-sm shadow-md">
@@ -961,6 +949,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         movieTitle={movie.title}
         moviePoster={movie.poster_path}
         mediaType={movie.media_type}
+      />
+
+      <QuickAddMenu
+        movieTitle={movie.title}
+        isOpen={showQuickAdd}
+        onClose={() => setShowQuickAdd(false)}
+        onAdd={handleAddToLibrary}
       />
 
       {/* Seasons Modal */}
