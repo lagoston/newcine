@@ -392,7 +392,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                       {archetypeInfo!.description}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-2 flex-shrink-0">
+                  <div className="flex flex-row gap-2 flex-shrink-0">
                     <motion.button
                       onClick={() => setShowRevelationModal(true)}
                       whileHover={{ scale: 1.1 }}
