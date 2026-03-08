@@ -1,18 +1,34 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { Library as LibraryIcon, Lock, Star, Film, Clock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
+import { Library as LibraryIcon, Lock, Star, Film, Clock, Scroll, Info, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { getMovieDetails, Movie } from '../lib/tmdb';
 import OptimizedPoster from './OptimizedPoster';
 import MovieDetailsModal from './MovieDetailsModal';
+import ArchetypeSymbol from './ArchetypeSymbol';
 
 interface LockedTag {
   name: string;
   emoji: string;
   hint: string;
   hintPt: string;
+}
+
+interface UserPersonality {
+  subcategoria_id: string | null;
+  personalidade_completa: string | null;
+  arquetipo_primario: string | null;
+  arquetipo_secundario: string | null;
+}
+
+interface ArchetypeInfo {
+  archetype_name: string;
+  subcategory_name: string;
+  description: string;
+  archetype_description: string;
+  subcategory_description: string;
 }
 
 const PROGRESSION_TIERS = [
@@ -113,6 +129,20 @@ function formatCountdown(ms: number): string {
   return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
 }
 
+function getArchetypeColor(personalidade: string | null): string {
+  if (!personalidade) return '#3b82f6';
+  const third = personalidade.charAt(2);
+  const map: Record<string, string> = {
+    'A': '#fbbf24',
+    'B': '#64748b',
+    'K': '#ef4444',
+    'X': '#3b82f6',
+    'D': '#6b7280',
+    'L': '#10b981',
+  };
+  return map[third] || '#3b82f6';
+}
+
 interface Props {
   userId: string;
   username: string;
@@ -120,6 +150,7 @@ interface Props {
 
 const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const isPt = i18n.language.startsWith('pt');
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -131,10 +162,25 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const tagPickedRef = useRef(false);
 
+  const [personality, setPersonality] = useState<UserPersonality | null>(null);
+  const [archetypeInfo, setArchetypeInfo] = useState<ArchetypeInfo | null>(null);
+  const [personalityLoading, setPersonalityLoading] = useState(true);
+  const [showRevelationModal, setShowRevelationModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+
   useEffect(() => {
     const interval = setInterval(() => setCountdown(getMidnightCountdown()), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (showRevelationModal || showInfoModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [showRevelationModal, showInfoModal]);
 
   const fetchUserStats = useCallback(async () => {
     try {
@@ -175,6 +221,32 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
     }
   }, [userId, isPt]);
 
+  const fetchPersonality = useCallback(async () => {
+    try {
+      setPersonalityLoading(true);
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!profileData?.personalidade_completa) {
+        setPersonality(profileData ?? { subcategoria_id: null, personalidade_completa: null, arquetipo_primario: null, arquetipo_secundario: null });
+        return;
+      }
+      setPersonality(profileData);
+
+      const { data: archetypeData } = await supabase
+        .rpc('get_user_complete_personality', { p_user_id: userId })
+        .maybeSingle();
+      setArchetypeInfo(archetypeData ?? null);
+    } catch (err) {
+      console.error('HomeUserPanels: personality fetch error', err);
+    } finally {
+      setPersonalityLoading(false);
+    }
+  }, [userId]);
+
   const fetchDailyRecommendation = useCallback(async () => {
     try {
       setLoadingMovie(true);
@@ -191,16 +263,22 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
   useEffect(() => {
     fetchUserStats();
+    fetchPersonality();
     fetchDailyRecommendation();
-  }, [fetchUserStats, fetchDailyRecommendation]);
+  }, [fetchUserStats, fetchPersonality, fetchDailyRecommendation]);
 
   const panelBase = 'relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden';
   const tagHint = nextTag ? (isPt ? nextTag.hintPt : nextTag.hint) : '';
+  const archetypeColor = getArchetypeColor(personality?.personalidade_completa ?? null);
+  const archetypeId = personality?.personalidade_completa?.slice(0, 2);
+  const subcategoryId = personality?.personalidade_completa?.slice(2, 3);
+
+  const hasEssence = !personalityLoading && personality?.personalidade_completa && archetypeInfo;
 
   return (
     <>
       <div className="flex flex-col gap-5 mb-10 max-w-2xl mx-auto w-full">
-        {/* Panel 1 — Welcome + Stats */}
+        {/* Panel 1 — Welcome + Stats + Essence */}
         <motion.div
           className={panelBase}
           initial={{ opacity: 0, y: 20 }}
@@ -213,6 +291,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
           </div>
 
           <div className="relative z-10 p-6">
+            {/* Avatar + Welcome */}
             <Link to="/profile" className="flex items-center gap-4 group mb-5">
               <div className="relative flex-shrink-0">
                 <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/50 dark:border-gray-600/50 shadow-lg group-hover:border-blue-400/60 transition-all duration-300 group-hover:scale-105">
@@ -238,7 +317,8 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
             <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
 
-            <div className="flex items-center justify-between">
+            {/* Library count */}
+            <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-blue-500/10 dark:bg-blue-500/15">
                   <Film className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -259,9 +339,10 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               </Link>
             </div>
 
-            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent my-5" />
+            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
 
-            <div className="flex items-center gap-3">
+            {/* Next Tag */}
+            <div className="flex items-center gap-3 mb-5">
               <div className="p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15">
                 <Lock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
               </div>
@@ -280,6 +361,81 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 )}
               </div>
             </div>
+
+            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
+
+            {/* Cinematic Essence */}
+            {!personalityLoading && (
+              hasEssence ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    <ArchetypeSymbol
+                      archetypeId={archetypeId || ''}
+                      subcategoryId={subcategoryId || null}
+                      size={48}
+                      animated={false}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium mb-0.5" style={{ color: archetypeColor }}>
+                      {isPt ? 'Essência Cinematográfica' : 'Cinematic Essence'}
+                    </p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-sm font-bold" style={{ color: archetypeColor }}>
+                        {personality!.personalidade_completa}
+                      </span>
+                      <span className="text-xs text-gray-700 dark:text-gray-300 font-semibold">
+                        {archetypeInfo!.archetype_name} {archetypeInfo!.subcategory_name}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mt-0.5 leading-relaxed">
+                      {archetypeInfo!.description}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 flex-shrink-0">
+                    <motion.button
+                      onClick={() => setShowRevelationModal(true)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-400/20 transition-all duration-200"
+                      title={isPt ? 'Revelação' : 'Revelation'}
+                    >
+                      <Scroll className="w-3.5 h-3.5" />
+                    </motion.button>
+                    <motion.button
+                      onClick={() => setShowInfoModal(true)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-400/20 transition-all duration-200"
+                      title="Info"
+                    >
+                      <Info className="w-3.5 h-3.5" />
+                    </motion.button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">
+                      {isPt ? 'Essência Cinematográfica' : 'Cinematic Essence'}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2 leading-relaxed">
+                      {isPt
+                        ? 'Descubra o arquétipo que define seu gosto cinematográfico.'
+                        : 'Discover the archetype that defines your cinematic taste.'}
+                    </p>
+                  </div>
+                  <motion.button
+                    onClick={() => navigate('/oracle')}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="flex-shrink-0 px-3.5 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold rounded-xl transition-all duration-200 shadow-md shadow-violet-500/20 hover:shadow-violet-500/40 whitespace-nowrap border border-violet-500/30"
+                  >
+                    {isPt ? 'Descubra sua Essência' : 'Discover your Essence'}
+                  </motion.button>
+                </div>
+              )
+            )}
           </div>
         </motion.div>
 
@@ -376,6 +532,172 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
           onClose={() => setSelectedMovie(null)}
         />
       )}
+
+      {/* Revelation Modal */}
+      <AnimatePresence>
+        {showRevelationModal && archetypeInfo && personality && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowRevelationModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              transition={{ type: 'spring', duration: 0.4 }}
+              className="relative max-w-xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="relative bg-gray-900/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700/60 p-8">
+                <button
+                  onClick={() => setShowRevelationModal(false)}
+                  className="absolute top-4 right-4 z-10 p-2.5 bg-gray-700/60 hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-300" />
+                </button>
+
+                <div className="flex items-center justify-center gap-3 mb-6">
+                  <Scroll className="w-8 h-8 text-amber-400" style={{ filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.5))' }} />
+                  <h2 className="text-2xl font-bold text-white">{isPt ? 'Revelação' : 'Revelation'}</h2>
+                </div>
+
+                <div className="text-center mb-6 rounded-xl p-5 border border-gray-700/60 bg-gray-800/50">
+                  <p className="text-3xl font-bold mb-1" style={{ color: archetypeColor }}>
+                    {personality.personalidade_completa}
+                  </p>
+                  <p className="text-lg text-gray-200 font-semibold">
+                    {archetypeInfo.archetype_name} {archetypeInfo.subcategory_name}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
+                    <h3 className="text-base font-bold text-amber-400 mb-2">
+                      {isPt ? 'Sua Essência (As Duas Primeiras Letras)' : 'Your Essence (First Two Letters)'}
+                    </h3>
+                    <p className="text-gray-300 text-sm leading-relaxed">{archetypeInfo.archetype_description}</p>
+                  </div>
+                  <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
+                    <h3 className="text-base font-bold text-blue-400 mb-2">
+                      {isPt ? 'Sua Sintonia (A Terceira Letra)' : 'Your Attunement (Third Letter)'}
+                    </h3>
+                    <p className="text-gray-300 text-sm leading-relaxed">{archetypeInfo.subcategory_description}</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Info Modal */}
+      <AnimatePresence>
+        {showInfoModal && personality && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowInfoModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              transition={{ type: 'spring', duration: 0.4 }}
+              className="relative max-w-xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="relative bg-gray-900/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700/60 p-8">
+                <button
+                  onClick={() => setShowInfoModal(false)}
+                  className="absolute top-4 right-4 z-10 p-2.5 bg-gray-700/60 hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-300" />
+                </button>
+
+                <div className="flex items-center justify-center gap-3 mb-6">
+                  <Info className="w-8 h-8 text-blue-400" style={{ filter: 'drop-shadow(0 0 8px rgba(96,165,250,0.5))' }} />
+                  <h2 className="text-2xl font-bold text-white">
+                    {isPt ? 'A Arquitetura da Alma' : "The Soul's Architecture"}
+                  </h2>
+                </div>
+
+                <p className="text-center italic text-gray-400 text-sm mb-6">
+                  {isPt
+                    ? 'Seu Arquétipo não é adivinhação. É a arquitetura de seus gostos, construída em duas etapas:'
+                    : 'Your Archetype is not guesswork. It is the architecture of your tastes, built in two stages:'}
+                </p>
+
+                <div className="space-y-4">
+                  <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
+                    <h3 className="text-base font-bold text-blue-300 mb-2 flex items-center gap-2">
+                      <span>1.</span> {isPt ? 'A Essência (As Duas Primeiras Letras)' : 'The Essence (First Two Letters)'}
+                    </h3>
+                    <p className="text-gray-300 text-sm leading-relaxed mb-3">
+                      {isPt
+                        ? `Seu perfil principal (${personality.arquetipo_primario}${personality.arquetipo_secundario}) é a soma matemática do que você ama e odeia. Cada filme que você avalia move cinco balanças: Emocional (E), Intelectual (I), Cultural (C), Sensorial (S) e Recreativa (R).`
+                        : `Your main profile (${personality.arquetipo_primario}${personality.arquetipo_secundario}) is the mathematical sum of what you love and hate. Every film you rate moves five scales: Emotional (E), Intellectual (I), Cultural (C), Sensorial (S), and Recreational (R).`}
+                    </p>
+                    <div className="bg-black/30 rounded-lg p-3 mb-2">
+                      <p className="text-gray-400 text-xs font-bold mb-1">{isPt ? 'A Lógica:' : 'The Logic:'}</p>
+                      <p className="text-gray-300 text-xs leading-relaxed">
+                        {isPt
+                          ? 'Uma nota 10.0 em um Drama adiciona peso máximo à sua balança E. Uma nota 0.0 em uma Comédia remove peso da sua balança R. A nota 5.0 é o equilíbrio neutro.'
+                          : 'A 10.0 rating on a Drama adds maximum weight to your E scale. A 0.0 on a Comedy removes weight from your R scale. A 5.0 is the neutral balance point.'}
+                      </p>
+                    </div>
+                    <div className="bg-black/30 rounded-lg p-3">
+                      <p className="text-gray-400 text-xs font-bold mb-1">{isPt ? 'O Resultado:' : 'The Result:'}</p>
+                      <p className="text-gray-300 text-xs leading-relaxed">
+                        {isPt
+                          ? 'Seu Arquétipo é formado pelas duas balanças com maior pontuação, as forças que hoje brilham mais forte em você.'
+                          : 'Your Archetype is formed by the two highest-scoring scales — the forces that shine brightest in you today.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
+                    <h3 className="text-base font-bold text-amber-300 mb-2 flex items-center gap-2">
+                      <span>2.</span> {isPt ? 'A Sintonia (A Terceira Letra)' : 'The Attunement (Third Letter)'}
+                    </h3>
+                    <p className="text-gray-300 text-sm leading-relaxed mb-3">
+                      {isPt
+                        ? `O Sub-arquétipo (${personality.subcategoria_id}) representa sua inclinação ou tom. Ela não é calculada pelos gêneros, mas pela Calibragem que você fez ao responder o questionário inicial.`
+                        : `The Sub-archetype (${personality.subcategoria_id}) represents your inclination or tone. It is not calculated by genres, but by the Calibration you performed when answering the initial questionnaire.`}
+                    </p>
+                    <p className="text-gray-400 text-xs mb-2">
+                      {isPt
+                        ? 'Ao responder às balanças, você definiu sua tendência em três eixos opostos:'
+                        : 'By answering the scales, you defined your tendency across three opposing axes:'}
+                    </p>
+                    <ul className="space-y-1.5 text-xs">
+                      {[
+                        { a: isPt ? 'Radiante (A)' : 'Radiant (A)', b: isPt ? 'Sombrio (B)' : 'Shadow (B)', desc: isPt ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#64748b' },
+                        { a: isPt ? 'Clássico (K)' : 'Classic (K)', b: isPt ? 'Experimental (X)' : 'Experimental (X)', desc: isPt ? 'Tradição vs. Ousadia' : 'Tradition vs. Boldness', ca: '#ef4444', cb: '#3b82f6' },
+                        { a: isPt ? 'Denso (D)' : 'Dense (D)', b: isPt ? 'Leve (L)' : 'Light (L)', desc: isPt ? 'Complexidade vs. Acessibilidade' : 'Complexity vs. Accessibility', ca: '#6b7280', cb: '#10b981' },
+                      ].map((row, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-gray-500 mt-0.5">•</span>
+                          <span className="text-gray-300">
+                            <span className="font-semibold" style={{ color: row.ca }}>{row.a}</span>
+                            {' vs. '}
+                            <span className="font-semibold" style={{ color: row.cb }}>{row.b}</span>
+                            {' — '}{row.desc}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
