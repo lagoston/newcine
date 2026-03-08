@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, User, Users, Loader2, Crown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -53,6 +53,32 @@ export default function Community() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const USERS_PER_PAGE = 12;
+
+  const watchlistScrollRef = useRef<HTMLDivElement>(null);
+  const watchlistDragging = useRef(false);
+  const watchlistStartX = useRef(0);
+  const watchlistScrollStart = useRef(0);
+  const watchlistDragDist = useRef(0);
+
+  const handleWatchlistMouseDown = (e: React.MouseEvent) => {
+    if (!watchlistScrollRef.current) return;
+    watchlistDragging.current = true;
+    watchlistStartX.current = e.pageX - watchlistScrollRef.current.offsetLeft;
+    watchlistScrollStart.current = watchlistScrollRef.current.scrollLeft;
+    watchlistDragDist.current = 0;
+    watchlistScrollRef.current.style.cursor = 'grabbing';
+  };
+  const handleWatchlistMouseMove = (e: React.MouseEvent) => {
+    if (!watchlistDragging.current || !watchlistScrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - watchlistScrollRef.current.offsetLeft;
+    watchlistDragDist.current = Math.abs(x - watchlistStartX.current);
+    watchlistScrollRef.current.scrollLeft = watchlistScrollStart.current - (x - watchlistStartX.current) * 2;
+  };
+  const handleWatchlistMouseUp = () => {
+    watchlistDragging.current = false;
+    if (watchlistScrollRef.current) watchlistScrollRef.current.style.cursor = 'grab';
+  };
 
   // Animation variants for staggered animations
   const containerVariants = {
@@ -319,7 +345,12 @@ export default function Community() {
             </div>
           ) : friendsWatchlist.length > 0 ? (
             <div
-              className="overflow-x-auto pb-2"
+              ref={watchlistScrollRef}
+              className="overflow-x-auto pb-2 cursor-grab select-none"
+              onMouseDown={handleWatchlistMouseDown}
+              onMouseMove={handleWatchlistMouseMove}
+              onMouseUp={handleWatchlistMouseUp}
+              onMouseLeave={handleWatchlistMouseUp}
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
             >
               <div className="flex gap-4">
@@ -328,7 +359,7 @@ export default function Community() {
                     key={`${movie.movie_id}-${movie.friend_id}`}
                     className="relative group cursor-pointer flex-shrink-0 rounded-xl overflow-hidden shadow-lg"
                     style={{ width: '160px', willChange: 'transform' }}
-                    onClick={() => movie.movieDetails && setSelectedMovie(movie.movieDetails)}
+                    onClick={() => { if (watchlistDragDist.current > 5) return; movie.movieDetails && setSelectedMovie(movie.movieDetails); }}
                     whileHover={{ scale: 1.05, y: -6 }}
                     whileTap={{ scale: 0.97 }}
                   >

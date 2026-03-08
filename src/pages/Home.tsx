@@ -103,6 +103,32 @@ const Home = () => {
   };
 
   const MovieCarousel = ({ title, movies, loading, category }: { title: string | JSX.Element; movies: Movie[]; loading: boolean; category: string }) => {
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+    const isDraggingRef = React.useRef(false);
+    const startXRef = React.useRef(0);
+    const scrollStartRef = React.useRef(0);
+    const dragDistanceRef = React.useRef(0);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      if (!scrollRef.current) return;
+      isDraggingRef.current = true;
+      startXRef.current = e.pageX - scrollRef.current.offsetLeft;
+      scrollStartRef.current = scrollRef.current.scrollLeft;
+      dragDistanceRef.current = 0;
+      scrollRef.current.style.cursor = 'grabbing';
+    };
+    const handleMouseMove = (e: React.MouseEvent) => {
+      if (!isDraggingRef.current || !scrollRef.current) return;
+      e.preventDefault();
+      const x = e.pageX - scrollRef.current.offsetLeft;
+      dragDistanceRef.current = Math.abs(x - startXRef.current);
+      scrollRef.current.scrollLeft = scrollStartRef.current - (x - startXRef.current) * 2;
+    };
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
+    };
+
     if (loading) {
       return (
         <div className="relative mb-12 p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl">
@@ -148,7 +174,12 @@ const Home = () => {
         </div>
 
         <div
-          className="relative z-10 overflow-x-auto py-4 pb-2"
+          ref={scrollRef}
+          className="relative z-10 overflow-x-auto py-4 pb-2 cursor-grab select-none"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
         >
           <div className="flex gap-4">
@@ -157,7 +188,7 @@ const Home = () => {
                 key={movie.id}
                 className="relative rounded-2xl overflow-hidden cursor-pointer group flex-shrink-0 shadow-xl"
                 style={{ width: '160px', height: '240px', willChange: 'transform' }}
-                onClick={() => handleMovieClick(movie)}
+                onClick={() => { if (dragDistanceRef.current > 5) return; handleMovieClick(movie); }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.3 }}

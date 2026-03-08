@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import ConfirmationModal from './ConfirmationModal';
@@ -49,6 +49,32 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const [showAddToList, setShowAddToList] = useState<{movieId: number, title: string} | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [mobileMenuMovie, setMobileMenuMovie] = useState<Movie | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollStartRef = useRef(0);
+  const dragDistanceRef = useRef(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    isDraggingRef.current = true;
+    startXRef.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollStartRef.current = scrollRef.current.scrollLeft;
+    dragDistanceRef.current = 0;
+    scrollRef.current.style.cursor = 'grabbing';
+  };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    dragDistanceRef.current = Math.abs(x - startXRef.current);
+    scrollRef.current.scrollLeft = scrollStartRef.current - (x - startXRef.current) * 2;
+  };
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+    if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
+  };
 
   if (movies.length === 0) return null;
 
@@ -133,7 +159,12 @@ const RatingBox: React.FC<RatingBoxProps> = ({
 
       {/* Carrossel unificado - scroll nativo suave em todos os dispositivos */}
       <div
-        className="relative z-10 overflow-x-auto py-4 pb-2"
+        ref={scrollRef}
+        className="relative z-10 overflow-x-auto py-4 pb-2 cursor-grab select-none"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
         <div className="flex gap-3">
@@ -159,7 +190,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 <span className="text-white text-[10px] ml-1">{movie.vote_average.toFixed(1)}</span>
               </div>
               <motion.button
-                onClick={() => setSelectedMovie(movie)}
+                onClick={() => { if (dragDistanceRef.current > 5) return; setSelectedMovie(movie); }}
                 className="relative w-full aspect-[2/3] block rounded-xl overflow-hidden shadow-lg"
                 whileHover={{ scale: 1.04, y: -5 }}
                 whileTap={{ scale: 0.97 }}
