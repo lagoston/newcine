@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { BookmarkPlus, Star, X } from 'lucide-react';
+import { Star, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-interface QuickAddMenuProps {
+interface RateMenuSheetProps {
   movieTitle: string;
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (rating?: number) => Promise<void>;
+  onRate: (rating: number) => Promise<void>;
 }
 
 const ratingColors: Record<number, string> = {
@@ -24,10 +24,10 @@ const ratingColors: Record<number, string> = {
   0:  'bg-gray-700 text-gray-300 shadow-gray-700/30',
 };
 
-const QuickAddMenu: React.FC<QuickAddMenuProps> = ({ movieTitle, isOpen, onClose, onAdd }) => {
+const RateMenuSheet: React.FC<RateMenuSheetProps> = ({ movieTitle, isOpen, onClose, onRate }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language === 'pt';
-  const [loading, setLoading] = useState<number | 'watchlist' | null>(null);
+  const [loading, setLoading] = useState<number | null>(null);
 
   if (!isOpen) return null;
 
@@ -35,25 +35,11 @@ const QuickAddMenu: React.FC<QuickAddMenuProps> = ({ movieTitle, isOpen, onClose
     if (loading !== null) return;
     setLoading(rating);
     try {
-      await onAdd(rating);
+      await onRate(rating);
       onClose();
     } catch (err) {
-      console.error('Error adding to library:', err);
-      toast.error('Erro ao adicionar à biblioteca');
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleWatchlist = async () => {
-    if (loading !== null) return;
-    setLoading('watchlist');
-    try {
-      await onAdd(undefined);
-      onClose();
-    } catch (err) {
-      console.error('Error adding to watchlist:', err);
-      toast.error('Erro ao adicionar à Watchlist');
+      console.error('Error rating movie:', err);
+      toast.error(isPt ? 'Erro ao classificar' : 'Error rating');
     } finally {
       setLoading(null);
     }
@@ -103,27 +89,6 @@ const QuickAddMenu: React.FC<QuickAddMenuProps> = ({ movieTitle, isOpen, onClose
             </div>
           </div>
 
-          <div className="mb-3">
-            <div className="flex items-center gap-1.5 mb-2.5">
-              <BookmarkPlus className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                {isPt ? 'Quero Assistir' : 'Watchlist'}
-              </span>
-            </div>
-            <button
-              onClick={handleWatchlist}
-              disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed shadow-md shadow-blue-600/20"
-            >
-              {loading === 'watchlist' ? (
-                <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-              ) : (
-                <BookmarkPlus className="w-4 h-4" />
-              )}
-              {isPt ? 'Adicionar à Watchlist' : 'Add to Watchlist'}
-            </button>
-          </div>
-
           <button
             onClick={onClose}
             disabled={loading !== null}
@@ -138,4 +103,4 @@ const QuickAddMenu: React.FC<QuickAddMenuProps> = ({ movieTitle, isOpen, onClose
   );
 };
 
-export default QuickAddMenu;
+export default RateMenuSheet;

@@ -5,6 +5,7 @@ import ConfirmationModal from './ConfirmationModal';
 import MovieDetailsModal from './MovieDetailsModal';
 import AllMoviesModal from './AllMoviesModal';
 import AddToListMenu from './AddToListMenu';
+import RateMenuSheet from './RateMenuSheet';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import { useTranslation } from 'react-i18next';
@@ -47,6 +48,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const [deleteMovieId, setDeleteMovieId] = useState<number | null>(null);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [rateMenuMovie, setRateMenuMovie] = useState<Movie | null>(null);
   const [showAllMovies, setShowAllMovies] = useState(false);
   const [showAddToList, setShowAddToList] = useState<{movieId: number, title: string} | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -340,19 +342,16 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                       )}
                     </div>
                     {isNotRated && onRate && (
-                      <select
-                        onChange={(e) => {
+                      <button
+                        onClick={(e) => {
                           e.stopPropagation();
-                          onRate(movie.id, parseInt(e.target.value));
+                          setRateMenuMovie(movie);
                         }}
-                        className="mt-2 w-full text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white py-1"
-                        defaultValue=""
+                        className="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-all duration-150 shadow-sm shadow-blue-600/20"
                       >
-                        <option value="" disabled>{t('movies.rating')}</option>
-                        {[...Array(11)].map((_, i) => (
-                          <option key={i} value={i}>{i}</option>
-                        ))}
-                      </select>
+                        {t('movies.rating')}
+                        <Star className="w-3 h-3 fill-current" />
+                      </button>
                     )}
                   </div>
                 </div>
@@ -517,19 +516,16 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                       )}
                     </div>
                     {isNotRated && onRate && (
-                      <select
-                        onChange={(e) => {
+                      <button
+                        onClick={(e) => {
                           e.stopPropagation();
-                          onRate(movie.id, parseInt(e.target.value));
+                          setRateMenuMovie(movie);
                         }}
-                        className="mt-2 w-full text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white py-1"
-                        defaultValue=""
+                        className="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-all duration-150 shadow-sm shadow-blue-600/20"
                       >
-                        <option value="" disabled>{t('movies.rating')}</option>
-                        {[...Array(11)].map((_, i) => (
-                          <option key={i} value={i}>{i}</option>
-                        ))}
-                      </select>
+                        {t('movies.rating')}
+                        <Star className="w-3 h-3 fill-current" />
+                      </button>
                     )}
                   </div>
                 </div>
@@ -580,6 +576,17 @@ const RatingBox: React.FC<RatingBoxProps> = ({
         isOpen={true}
         onClose={() => setShowAddToList(null)}
         position={menuPosition}
+      />
+    )}
+
+    {rateMenuMovie && onRate && (
+      <RateMenuSheet
+        movieTitle={rateMenuMovie.title}
+        isOpen={true}
+        onClose={() => setRateMenuMovie(null)}
+        onRate={async (rating) => {
+          onRate(rateMenuMovie.id, rating);
+        }}
       />
     )}
 
