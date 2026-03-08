@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Star, Sparkles, Eye } from 'lucide-react';
+import { Clock, Star, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
@@ -132,42 +132,47 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
             </div>
           ) : (
             <div className="overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              <div className="flex gap-3 min-w-max">
+              <div className="flex gap-4">
                 {movies.map((movie, idx) => (
-                  <motion.button
+                  <motion.div
                     key={movie.id}
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: idx * 0.07 }}
+                    transition={{ delay: idx * 0.05, duration: 0.3 }}
+                    className="relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer group flex-shrink-0 shadow-xl hover:shadow-2xl"
+                    style={{ width: '160px', height: '240px', transition: 'all 0.2s ease-out', willChange: 'transform' }}
                     onClick={() => setSelectedMovie(movie)}
-                    className="group flex-shrink-0 w-[100px] text-left focus:outline-none"
+                    whileHover={{ scale: 1.05, y: -8 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-lg border border-white/20 dark:border-gray-700/40 group-hover:shadow-xl group-hover:scale-[1.04] transition-all duration-300">
-                      <OptimizedPoster
-                        src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
-                        alt={movie.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl">
-                        <div className="absolute bottom-0 left-0 right-0 p-2">
-                          <Eye className="w-4 h-4 text-white mx-auto" />
+                    <div
+                      className="absolute top-2 left-2 bg-gradient-to-br from-amber-500 to-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg"
+                      style={{ zIndex: 30, transform: 'translateZ(0)' }}
+                    >
+                      #{idx + 1}
+                    </div>
+
+                    <OptimizedPoster
+                      src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                      alt={movie.title}
+                      className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
+                    />
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-sm pointer-events-none">
+                      <div className="p-3">
+                        <h3 className="text-white font-bold mb-1.5 line-clamp-2 text-sm drop-shadow-lg">{movie.title}</h3>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="flex items-center bg-gradient-to-r from-yellow-500/30 to-orange-500/30 backdrop-blur-md px-2 py-1 rounded-lg border border-yellow-500/30 shadow-lg">
+                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                            <span className="ml-1 text-yellow-100 font-bold text-xs">{movie.vote_average?.toFixed(1)}</span>
+                          </div>
+                          <span className="text-gray-200 text-xs font-semibold bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg">
+                            {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}
+                          </span>
                         </div>
                       </div>
-                      <div className="absolute top-1.5 left-1.5 bg-black/50 backdrop-blur-sm rounded-md px-1.5 py-0.5 flex items-center gap-0.5">
-                        <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-                        <span className="text-white text-[10px] font-bold">{movie.vote_average?.toFixed(1)}</span>
-                      </div>
-                      <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-sm">
-                        <span className="text-white font-black" style={{ fontSize: '9px' }}>{idx + 1}</span>
-                      </div>
                     </div>
-                    <p className="mt-1.5 text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-1 leading-tight">
-                      {movie.title}
-                    </p>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                      {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}
-                    </p>
-                  </motion.button>
+                  </motion.div>
                 ))}
               </div>
             </div>
