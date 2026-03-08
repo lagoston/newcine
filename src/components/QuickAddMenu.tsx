@@ -82,14 +82,14 @@ const QuickAddMenu: React.FC<QuickAddMenuProps> = ({ movieTitle, isOpen, onClose
               </span>
             </div>
 
-            <div className="grid grid-cols-11 gap-1.5">
+            <div className="grid grid-cols-11 gap-1">
               {Array.from({ length: 11 }, (_, i) => i).map((n) => (
                 <button
                   key={n}
                   onClick={() => handleRate(n)}
                   disabled={loading !== null}
                   className={`
-                    aspect-square rounded-lg text-sm font-bold shadow-md transition-all duration-150
+                    aspect-square rounded-md text-xs font-bold shadow-sm transition-all duration-150
                     active:scale-90 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed
                     flex items-center justify-center
                     ${loading === n ? 'opacity-60 animate-pulse' : ''}

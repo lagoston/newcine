@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { cache, CACHE_KEYS } from '../lib/cache';
 import RecommendModal from './RecommendModal';
 import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
@@ -571,6 +572,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     if (libraryError) throw libraryError;
 
     setIsInLibrary(true);
+    cache.invalidate(CACHE_KEYS.USER_LIBRARY(session.user.id));
+    cache.invalidatePattern('stats:');
     toast.success(t('library.inLibrary'));
     if (onAddToLibrary) {
       onAddToLibrary();
