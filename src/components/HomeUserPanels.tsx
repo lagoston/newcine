@@ -115,10 +115,13 @@ function getLockedThemeTags(userMovieIds: Set<number>): LockedTag[] {
 }
 
 function getMidnightCountdown(): number {
-  const midnight = new Date();
-  midnight.setUTCDate(midnight.getUTCDate() + 1);
-  midnight.setUTCHours(0, 0, 0, 0);
-  return Math.max(0, midnight.getTime() - Date.now());
+  const now = new Date();
+  const target = new Date(now);
+  target.setUTCHours(3, 0, 0, 0);
+  if (now >= target) {
+    target.setUTCDate(target.getUTCDate() + 1);
+  }
+  return Math.max(0, target.getTime() - now.getTime());
 }
 
 function formatCountdown(ms: number): string {

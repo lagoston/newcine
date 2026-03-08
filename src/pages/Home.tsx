@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Library as LibraryIcon, Eye, Users, ArrowRight } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { Movie, getTrending, getMovieDetails, getComingSoon, getTopRatedGems, getHiddenIndies } from '../lib/tmdb';
+import { Movie, getTrending, getMovieDetails, getComingSoon, getTopRatedGems } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import Logo from '../components/Logo';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import OptimizedPoster from '../components/OptimizedPoster';
 import HomeUserPanels from '../components/HomeUserPanels';
+import OracleForYouBox from '../components/OracleForYouBox';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import { motion } from 'framer-motion';
@@ -23,12 +24,11 @@ const Home = () => {
   const [trendingMovies, setTrendingMovies] = React.useState<Movie[]>([]);
   const [comingSoonMovies, setComingSoonMovies] = React.useState<Movie[]>([]);
   const [topRatedMovies, setTopRatedMovies] = React.useState<Movie[]>([]);
-  const [indieMovies, setIndieMovies] = React.useState<Movie[]>([]);
+  const [userPersonalidade, setUserPersonalidade] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState({
     trending: false,
     comingSoon: false,
     topRated: false,
-    indie: false
   });
   const [error, setError] = React.useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = React.useState<Movie | null>(null);
@@ -39,6 +39,7 @@ const Home = () => {
     if (session?.user) {
       fetchUsername();
       fetchAllMovies();
+      fetchUserEssence();
     }
   }, [session?.user]);
 
@@ -59,35 +60,37 @@ const Home = () => {
 
   const fetchAllMovies = async () => {
     try {
-      setLoading({
-        trending: true,
-        comingSoon: true,
-        topRated: true,
-        indie: true
-      });
+      setLoading({ trending: true, comingSoon: true, topRated: true });
       setError(null);
 
-      const [trending, comingSoon, topRated, indie] = await Promise.all([
+      const [trending, comingSoon, topRated] = await Promise.all([
         getTrending(),
         getComingSoon(),
         getTopRatedGems(),
-        getHiddenIndies()
       ]);
 
       setTrendingMovies(trending);
       setComingSoonMovies(comingSoon);
       setTopRatedMovies(topRated);
-      setIndieMovies(indie);
     } catch (error) {
       console.error('Error fetching movies:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch movies');
     } finally {
-      setLoading({
-        trending: false,
-        comingSoon: false,
-        topRated: false,
-        indie: false
-      });
+      setLoading({ trending: false, comingSoon: false, topRated: false });
+    }
+  };
+
+  const fetchUserEssence = async () => {
+    if (!session?.user?.id) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('personalidade_completa')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      setUserPersonalidade(data?.personalidade_completa ?? null);
+    } catch {
+      // ignore
     }
   };
 
@@ -588,12 +591,13 @@ const Home = () => {
           category="top-rated"
         />
 
-        <MovieCarousel
-          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>💎</span> {t('home.hiddenIndiePicks')}</span>}
-          movies={indieMovies}
-          loading={loading.indie}
-          category="indie"
-        />
+        {session?.user && (
+          <OracleForYouBox
+            userId={session.user.id}
+            hasEssence={!!(userPersonalidade && userPersonalidade.length >= 3)}
+            personalidade={userPersonalidade}
+          />
+        )}
 
         {selectedMovie && (
           <MovieDetailsModal
