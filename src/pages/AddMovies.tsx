@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import IMDbImportModal from '../components/IMDbImportModal';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import QuickAddMenu from '../components/QuickAddMenu';
+import OracleForYouBox from '../components/OracleForYouBox';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS } from '../lib/cache';
 
@@ -28,6 +29,7 @@ export default function AddMovies() {
   const [userMovieIds, setUserMovieIds] = useState<Set<number>>(new Set());
   const [showImportModal, setShowImportModal] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [userPersonalidade, setUserPersonalidade] = useState<string | null>(null);
   const [showMovieModal, setShowMovieModal] = useState(false);
   const [quickAddTarget, setQuickAddTarget] = useState<Movie | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +51,7 @@ export default function AddMovies() {
   useEffect(() => {
     if (session?.user?.id) {
       fetchUserMovies();
+      fetchUserEssence();
     }
   }, [session?.user?.id]);
 
@@ -58,12 +61,26 @@ export default function AddMovies() {
         .from('user_movies')
         .select('movie_id')
         .eq('user_id', session?.user?.id);
-      
+
       if (data) {
         setUserMovieIds(new Set(data.map(item => item.movie_id)));
       }
     } catch (error) {
       console.error('Error fetching user movies:', error);
+    }
+  };
+
+  const fetchUserEssence = async () => {
+    if (!session?.user?.id) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('personalidade_completa')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      setUserPersonalidade(data?.personalidade_completa ?? null);
+    } catch {
+      // ignore
     }
   };
 
@@ -232,6 +249,13 @@ export default function AddMovies() {
             <span className="font-medium">{t('common.import')}</span>
           </button>
         </div>
+
+        {!searchQuery.trim() && session?.user && (
+          <OracleForYouBox
+            userId={session.user.id}
+            hasEssence={!!(userPersonalidade && userPersonalidade.length >= 3)}
+          />
+        )}
 
         {/* Search Results */}
         {searchResults.length > 0 && (

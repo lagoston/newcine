@@ -595,7 +595,6 @@ const Home = () => {
           <OracleForYouBox
             userId={session.user.id}
             hasEssence={!!(userPersonalidade && userPersonalidade.length >= 3)}
-            personalidade={userPersonalidade}
           />
         )}
 

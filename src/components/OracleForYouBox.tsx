@@ -11,7 +11,6 @@ import OptimizedPoster from './OptimizedPoster';
 interface Props {
   userId: string;
   hasEssence: boolean;
-  personalidade?: string | null;
 }
 
 function getBrasiliaCountdown(): number {
@@ -32,7 +31,7 @@ function formatCountdown(ms: number): string {
   return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
 }
 
-const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence, personalidade }) => {
+const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
 
@@ -174,24 +173,6 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence, personalidade })
             </div>
           )}
 
-          {hasEssence && personalidade && (
-            <div className="mt-4 pt-4 border-t border-gray-200/60 dark:border-gray-700/60 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {isPt ? 'Baseado na essência' : 'Based on essence'}
-                  {' '}
-                  <span className="font-bold text-amber-600 dark:text-amber-400">{personalidade}</span>
-                </span>
-              </div>
-              <Link
-                to="/oracle/recommend"
-                className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-500 dark:hover:text-amber-300 transition-colors"
-              >
-                {isPt ? 'Explorar Oráculo →' : 'Explore Oracle →'}
-              </Link>
-            </div>
-          )}
         </div>
       </motion.div>
 
