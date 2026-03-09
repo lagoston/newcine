@@ -196,7 +196,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           {movies.map((movie) => (
             <div
               key={movie.id}
-              className="relative group flex-shrink-0 rounded-xl"
+              className="relative group flex-shrink-0 rounded-t-xl"
               style={{ width: '140px' }}
             >
               {!isOtherUserProfile && (
@@ -216,7 +216,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
               </div>
               <motion.button
                 onClick={() => { if (dragDistanceRef.current > 5) return; setSelectedMovie(movie); }}
-                className="relative w-full aspect-[2/3] block rounded-xl overflow-hidden shadow-lg"
+                className="relative w-full aspect-[2/3] block rounded-t-xl overflow-hidden shadow-lg"
                 whileHover={{ scale: 1.04, y: -5 }}
                 whileTap={{ scale: 0.97 }}
                 style={{ willChange: 'transform' }}
@@ -226,7 +226,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                   alt={movie.title}
                   className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
                 />
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                <div className="absolute inset-0 rounded-t-xl bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                   <div className="absolute bottom-0 left-0 right-0 p-2">
                     <h3 className="text-white text-xs font-semibold line-clamp-2 drop-shadow">
                       {movie.title}
@@ -237,9 +237,9 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                   </div>
                 </div>
               </motion.button>
-              <div className={`pt-1.5 px-1 pb-1.5 rounded-b-xl ${
+              <div className={`pt-1.5 px-1 pb-1.5 ${
                 movie.media_type === 'tv'
-                  ? 'bg-slate-200 dark:bg-slate-700/90'
+                  ? 'bg-blue-100 dark:bg-blue-900/80'
                   : 'bg-gray-100 dark:bg-gray-800/95'
               }`}>
                 <h4 className="text-xs font-medium text-gray-900 dark:text-white line-clamp-1">
