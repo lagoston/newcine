@@ -196,11 +196,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           {movies.map((movie) => (
             <div
               key={movie.id}
-              className={`relative group flex-shrink-0 rounded-xl border ${
-                movie.media_type === 'tv'
-                  ? 'border-purple-400/50 dark:border-purple-500/50'
-                  : 'border-gray-300/70 dark:border-gray-600/50'
-              }`}
+              className="relative group flex-shrink-0 rounded-xl"
               style={{ width: '140px' }}
             >
               {!isOtherUserProfile && (
@@ -243,7 +239,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
               </motion.button>
               <div className={`pt-1.5 px-1 pb-1.5 rounded-b-xl ${
                 movie.media_type === 'tv'
-                  ? 'bg-purple-100 dark:bg-purple-950/90'
+                  ? 'bg-slate-200 dark:bg-slate-700/90'
                   : 'bg-gray-100 dark:bg-gray-800/95'
               }`}>
                 <h4 className="text-xs font-medium text-gray-900 dark:text-white line-clamp-1">
