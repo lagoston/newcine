@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import ConfirmationModal from './ConfirmationModal';
@@ -10,6 +10,7 @@ import PredictMenuSheet from './PredictMenuSheet';
 import { useTranslation } from 'react-i18next';
 import OptimizedPoster from './OptimizedPoster';
 import { motion } from 'framer-motion';
+import { supabase } from '../lib/supabase';
 
 interface RatingBoxProps {
   title: string;
@@ -52,6 +53,27 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const [showAddToList, setShowAddToList] = useState<{movieId: number, title: string} | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [mobileMenuMovie, setMobileMenuMovie] = useState<Movie | null>(null);
+  const [cachedPredictionIds, setCachedPredictionIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!isNotRated || movies.length === 0) return;
+    (async () => {
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user?.id;
+      if (!userId) return;
+      const movieIds = movies.map(m => m.id).filter(Boolean);
+      if (movieIds.length === 0) return;
+      const { data } = await supabase
+        .from('prediction_cache')
+        .select('movie_id')
+        .eq('user_id', userId)
+        .in('movie_id', movieIds)
+        .gte('expires_at', new Date().toISOString());
+      if (data) {
+        setCachedPredictionIds(new Set(data.map(r => r.movie_id)));
+      }
+    })();
+  }, [isNotRated, movies]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -247,7 +269,11 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                         e.stopPropagation();
                         setPredictMenuMovie(movie);
                       }}
-                      className="w-full flex items-center justify-center gap-1 px-1.5 py-1 bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white text-[10px] font-semibold rounded-lg transition-all duration-150"
+                      className={`w-full flex items-center justify-center gap-1 px-1.5 py-1 text-white text-[10px] font-semibold rounded-lg transition-all duration-150 ${
+                        cachedPredictionIds.has(movie.id)
+                          ? 'bg-purple-900 hover:bg-purple-800 active:bg-[#2e0a5e]'
+                          : 'bg-purple-700 hover:bg-purple-600 active:bg-purple-800'
+                      }`}
                     >
                       {isPt ? 'Prever' : 'Predict'}
                       <Star className="w-2.5 h-2.5 fill-current" />

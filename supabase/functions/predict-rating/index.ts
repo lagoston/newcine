@@ -471,7 +471,7 @@ Deno.serve(async (req) => {
 
     const { data: ticketData, error: ticketError } = await supabase
       .from('user_tickets')
-      .select('tickets_remaining, plan_type')
+      .select('tickets_remaining, plan_type, next_reset')
       .eq('user_id', userId)
       .single();
 
@@ -493,7 +493,8 @@ Deno.serve(async (req) => {
           JSON.stringify({
             prediction: cached.prediction,
             movie: movieName,
-            ticketsRemaining: ticketData.tickets_remaining
+            ticketsRemaining: ticketData.tickets_remaining,
+            nextReset: ticketData.next_reset
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
@@ -504,7 +505,8 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: 'Insufficient tickets',
-          ticketsRemaining: ticketData?.tickets_remaining || 0
+          ticketsRemaining: ticketData?.tickets_remaining || 0,
+          nextReset: ticketData?.next_reset
         } as TicketError),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -528,7 +530,8 @@ Deno.serve(async (req) => {
         JSON.stringify({
           prediction: "⚠️ Not enough data: Please rate at least 15 movies so I can better understand your taste. You currently have " + (ratedMoviesCount || 0) + " rated movies.",
           movie: movieName,
-          ticketsRemaining: ticketData.tickets_remaining
+          ticketsRemaining: ticketData.tickets_remaining,
+          nextReset: ticketData.next_reset
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -546,7 +549,8 @@ Deno.serve(async (req) => {
         JSON.stringify({
           prediction: "⚠️ Error loading personality profile. Please try again.",
           movie: movieName,
-          ticketsRemaining: ticketData.tickets_remaining
+          ticketsRemaining: ticketData.tickets_remaining,
+          nextReset: ticketData.next_reset
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -563,7 +567,8 @@ Deno.serve(async (req) => {
         JSON.stringify({
           prediction: "⚠️ Personality profile not found. Please complete the Oracle questionnaire first.",
           movie: movieName,
-          ticketsRemaining: ticketData.tickets_remaining
+          ticketsRemaining: ticketData.tickets_remaining,
+          nextReset: ticketData.next_reset
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -584,7 +589,8 @@ Deno.serve(async (req) => {
         JSON.stringify({
           prediction: `⚠️ Could not find "${movieName}" in the movie database. Please check the spelling and try again.`,
           movie: movieName,
-          ticketsRemaining: ticketData.tickets_remaining
+          ticketsRemaining: ticketData.tickets_remaining,
+          nextReset: ticketData.next_reset
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -607,7 +613,8 @@ Deno.serve(async (req) => {
           JSON.stringify({
             prediction: cached.prediction,
             movie: movieName,
-            ticketsRemaining: ticketData.tickets_remaining
+            ticketsRemaining: ticketData.tickets_remaining,
+            nextReset: ticketData.next_reset
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
@@ -712,7 +719,8 @@ Deno.serve(async (req) => {
       JSON.stringify({
         prediction,
         movie: movieName,
-        ticketsRemaining: ticketData.tickets_remaining - 1
+        ticketsRemaining: ticketData.tickets_remaining - 1,
+        nextReset: ticketData.next_reset
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
