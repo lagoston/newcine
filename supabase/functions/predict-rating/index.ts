@@ -645,7 +645,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         prediction,
         movie: movieName,
-        ticketsRemaining: ticketData.tickets_remaining - 50
+        ticketsRemaining: ticketData.tickets_remaining - 1
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -66,6 +66,8 @@ Deno.serve(async (req) => {
 
     console.log(`\ud83c\udfac Recommend movie request: user=${userId}, mood=${mood}, card=${cardType}`);
 
+    await supabase.rpc('check_and_reset_tickets', { user_id_param: userId });
+
     const { data: ticketData, error: ticketError } = await supabase
       .from('user_tickets')
       .select('tickets_remaining')
@@ -196,7 +198,7 @@ Deno.serve(async (req) => {
         movieData: movieData,
         characterPhrase: characterPhrase,
         mood: mood,
-        ticketsRemaining: ticketData.tickets_remaining - 25
+        ticketsRemaining: ticketData.tickets_remaining - 1
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
