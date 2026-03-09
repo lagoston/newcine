@@ -146,9 +146,9 @@ const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, movieId
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60]" onClick={onClose} />
 
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-950 rounded-t-2xl z-50 shadow-2xl border-t border-purple-500/30">
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-950 rounded-t-2xl z-[60] shadow-2xl border-t border-purple-500/30">
         <div className="w-12 h-1 bg-gray-700 rounded-full mx-auto mt-3 mb-1" />
 
         <div className="px-4 pb-8 pt-3 max-h-[80vh] overflow-y-auto">

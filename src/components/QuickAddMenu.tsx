@@ -62,11 +62,11 @@ const QuickAddMenu: React.FC<QuickAddMenuProps> = ({ movieTitle, isOpen, onClose
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/60 z-50"
+        className="fixed inset-0 bg-black/60 z-[60]"
         onClick={onClose}
       />
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl z-50 shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl z-[60] shadow-2xl">
         <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-3 mb-1" />
 
         <div className="px-3 pb-6 pt-2">
