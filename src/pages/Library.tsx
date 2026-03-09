@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, ListPlus, Film, MessageSquare, Edit } from 'lucide-react';
+import { Plus, ListPlus, Film, MessageSquare, FileEdit as Edit } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
