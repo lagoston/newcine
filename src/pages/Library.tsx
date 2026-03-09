@@ -39,7 +39,7 @@ export default function Library() {
 
   // Library preferences
   const [tvOrder, setTvOrder] = useState<'auto' | 'first' | 'last'>('auto');
-  const [chromaBoxEnabled, setChromaBoxEnabled] = useState(false);
+  const [chromaBoxEnabled, setChromaBoxEnabled] = useState(true);
 
   // Progress tracking states
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -67,7 +67,7 @@ export default function Library() {
 
       if (data) {
         setTvOrder(data.tv_order || 'auto');
-        setChromaBoxEnabled(data.chroma_box_enabled || false);
+        setChromaBoxEnabled(data.chroma_box_enabled ?? true);
         setUsername(data.username || '');
       }
     };

@@ -237,7 +237,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                   </div>
                 </div>
               </motion.button>
-              <div className={`pt-1.5 px-1 pb-1.5 ${
+              <div className={`pt-1.5 px-1 pb-1.5 rounded-b-xl ${
                 movie.media_type === 'tv'
                   ? 'bg-blue-100 dark:bg-blue-900/80'
                   : 'bg-gray-100 dark:bg-gray-800/95'
