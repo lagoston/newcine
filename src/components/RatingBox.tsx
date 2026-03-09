@@ -6,6 +6,7 @@ import MovieDetailsModal from './MovieDetailsModal';
 import AllMoviesModal from './AllMoviesModal';
 import AddToListMenu from './AddToListMenu';
 import RateMenuSheet from './RateMenuSheet';
+import PredictMenuSheet from './PredictMenuSheet';
 import { useTranslation } from 'react-i18next';
 import OptimizedPoster from './OptimizedPoster';
 import { motion } from 'framer-motion';
@@ -41,10 +42,12 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   enableDragDrop,
   chromaBoxEnabled = false,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isPt = i18n.language === 'pt';
   const [deleteMovieId, setDeleteMovieId] = useState<number | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [rateMenuMovie, setRateMenuMovie] = useState<Movie | null>(null);
+  const [predictMenuMovie, setPredictMenuMovie] = useState<Movie | null>(null);
   const [showAllMovies, setShowAllMovies] = useState(false);
   const [showAddToList, setShowAddToList] = useState<{movieId: number, title: string} | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -228,16 +231,28 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                   )}
                 </div>
                 {isNotRated && onRate && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRateMenuMovie(movie);
-                    }}
-                    className="mt-1.5 w-full flex items-center justify-center gap-1 px-1.5 py-1 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-[10px] font-semibold rounded-lg transition-all duration-150"
-                  >
-                    {t('movies.rating')}
-                    <Star className="w-2.5 h-2.5 fill-current" />
-                  </button>
+                  <div className="mt-1.5 flex flex-col gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRateMenuMovie(movie);
+                      }}
+                      className="w-full flex items-center justify-center gap-1 px-1.5 py-1 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-[10px] font-semibold rounded-lg transition-all duration-150"
+                    >
+                      {t('movies.rating')}
+                      <Star className="w-2.5 h-2.5 fill-current" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPredictMenuMovie(movie);
+                      }}
+                      className="w-full flex items-center justify-center gap-1 px-1.5 py-1 bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white text-[10px] font-semibold rounded-lg transition-all duration-150"
+                    >
+                      {isPt ? 'Prever' : 'Predict'}
+                      <Star className="w-2.5 h-2.5 fill-current" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -297,6 +312,14 @@ const RatingBox: React.FC<RatingBoxProps> = ({
         onRate={async (rating) => {
           onRate(rateMenuMovie.id, rating);
         }}
+      />
+    )}
+
+    {predictMenuMovie && (
+      <PredictMenuSheet
+        movieTitle={predictMenuMovie.title}
+        isOpen={true}
+        onClose={() => setPredictMenuMovie(null)}
       />
     )}
 
