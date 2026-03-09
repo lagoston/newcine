@@ -352,18 +352,10 @@ ${formatMatches(signals)}
 ${formatMatches(filters)}
 
 # RESPONSE FRAMEWORK (Follow EXACTLY)
+You MUST generate ONLY two lines. Be extremely minimalist. NEVER add other paragraphs.
 
 📊 Predicted Rating: X.X/10
-(Your final, confident rating. No "±" estimates.)
-
-🧠 Personalized Analysis
-(Explain how their personality type and past reactions to similar films inform your prediction. Reference specific titles naturally without labeling them as "signals" or "filters". Be analytical but conversational. NEVER mention the public average, anchor, baseline, or any methodology - just analyze the user's taste.)
-
-⚖️ Weightings
-(Identify the SINGLE decisive factor. What will make this user love or hate this film? Use concrete examples from their history.)
-
-🎬 Oracle's Verdict
-(Close with a sharp, memorable one-liner.)`,
+🎬 Oracle's Verdict: (Write ONE direct, sharp sentence to the user, using "you". NEVER mention the archetype name. Be specific: cite an actor, a genre, the movie's vibe, or a past movie from their history. Ex: "Has a hint of [Movie X] that you liked", "Actor Y at their peak", or "If you want to cry tonight, this is it". Maximum 15 words.)`,
 
     pt: `Você é o CineOracle. Sua tarefa é prever a nota (0.0 a 10.0) de um usuário para um filme-alvo, usando uma análise Bayesiana Ponderada.
 
@@ -396,18 +388,10 @@ ${formatMatches(signals)}
 ${formatMatches(filters)}
 
 # FRAMEWORK DA RESPOSTA (Siga EXATAMENTE)
+Você DEVE gerar APENAS duas linhas. Seja extremamente minimalista. NUNCA adicione outros parágrafos.
 
 📊 Nota Prevista: X.X/10
-(Sua nota final e confiante. Sem estimações "±".)
-
-🧠 Análise Personalizada
-(Explique como o tipo de personalidade dele e reações passadas a filmes similares informam sua previsão. Referencie títulos específicos naturalmente, sem rotulá-los como "sinais" ou "filtros". Seja analítico mas conversacional. NUNCA mencione média pública, âncora, linha de base ou qualquer metodologia - apenas analise o gosto do usuário.)
-
-⚖️ Ponderações
-(Identifique o ÚNICO fator decisivo. O que fará este usuário amar ou odiar este filme? Use exemplos concretos do histórico dele.)
-
-🎬 Veredito do Oráculo
-(Feche com uma frase marcante e afiada.)`,
+🎬 Veredito do Oráculo: (Escreva UMA frase direta e afiada para o usuário, usando "você". NUNCA mencione o nome do arquétipo. Seja específico: cite um ator, um gênero, o clima do filme ou um filme anterior do histórico dele. Ex: "Tem um toque de [Filme X] que você amou", "Ator Y no seu auge", ou "Se quiser chorar hoje à noite, é este". Máximo de 15 palavras.)`,
 
     es: `Eres CineOracle. Tu tarea es predecir la calificación (0.0 a 10.0) de un usuario para una película objetivo, usando un Análisis Bayesiano Ponderado.
 
@@ -440,18 +424,10 @@ ${formatMatches(signals)}
 ${formatMatches(filters)}
 
 # MARCO DE RESPUESTA (Sigue EXACTAMENTE)
+Debes generar SOLO dos líneas. Sé extremadamente minimalista. NUNCA agregues otros párrafos.
 
 📊 Calificación Predicha: X.X/10
-(Tu calificación final y confiada. Sin estimaciones "±".)
-
-🧠 Análisis Personalizado
-(Explica cómo su tipo de personalidad y reacciones pasadas a películas similares informan tu predicción. Referencia títulos específicos naturalmente, sin etiquetarlos como "señales" o "filtros". Sé analítico pero conversacional. NUNCA menciones promedio público, ancla, línea base o cualquier metodología - solo analiza el gusto del usuario.)
-
-⚖️ Ponderaciones
-(Identifica el ÚNICO factor decisivo. ¿Qué hará que este usuario ame u odie esta película? Usa ejemplos concretos de su historial.)
-
-🎬 Veredicto del Oráculo
-(Cierra con una frase memorable y aguda.)`
+🎬 Veredicto del Oráculo: (Escribe UNA frase directa y aguda para el usuario, usando "tú". NUNCA menciones el nombre del arquetipo. Sé específico: cita un actor, un género, el ambiente de la película o una película anterior de su historial. Ej: "Tiene un toque de [Película X] que te gustó", "Actor Y en su mejor momento", o "Si quieres llorar esta noche, es esta". Máximo 15 palabras.)`
   };
 
   return prompts[lang];
@@ -640,10 +616,10 @@ Deno.serve(async (req) => {
           model: 'deepseek-chat',
           messages: [
             { role: 'system', content: hybridPrompt },
-            { role: 'user', content: `Predict this user's rating for "${movieName}" using the hybrid Bayesian + Spectrogram model.` }
+            { role: 'user', content: `Predict this user's rating for "${movieName}". Reply with EXACTLY two lines as specified. Nothing more.` }
           ],
           temperature: 0.7,
-          max_tokens: 500
+          max_tokens: 80
         })
       }
     );

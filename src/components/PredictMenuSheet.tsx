@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Star, Ticket, X } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -11,27 +12,41 @@ interface PredictMenuSheetProps {
 }
 
 const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, isOpen, onClose }) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isPt = i18n.language === 'pt';
   const [loading, setLoading] = useState(true);
   const [prediction, setPrediction] = useState<string | null>(null);
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
       setPrediction(null);
       setError(null);
       setLoading(true);
+      setProgress(0);
       return;
     }
     fetchPrediction();
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [isOpen]);
 
   const fetchPrediction = async () => {
     setLoading(true);
     setPrediction(null);
     setError(null);
+    setProgress(0);
+
+    intervalRef.current = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 12;
+      });
+    }, 400);
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -59,6 +74,9 @@ const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, isOpen,
         }
       );
 
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      setProgress(100);
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -81,6 +99,7 @@ const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, isOpen,
       setPrediction(data.prediction);
       setTicketsRemaining(data.ticketsRemaining ?? null);
     } catch (err) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
       const message =
         err instanceof Error ? err.message : isPt ? 'Erro inesperado' : 'Unexpected error';
       setError(message);
@@ -91,6 +110,13 @@ const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, isOpen,
   };
 
   if (!isOpen) return null;
+
+  const progressLabel =
+    progress < 30
+      ? t('oracle.prediction.analyzing')
+      : progress < 60
+      ? t('oracle.prediction.calculating')
+      : t('oracle.prediction.generating');
 
   return (
     <>
@@ -123,16 +149,16 @@ const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, isOpen,
           </p>
 
           {loading && (
-            <div className="flex flex-col items-center gap-4 py-10">
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 rounded-full bg-purple-500/10 flex items-center justify-center">
-                  <Star className="w-7 h-7 text-purple-400 fill-purple-400/30" />
-                </div>
-                <div className="absolute inset-0 rounded-full border-2 border-purple-500/20 border-t-purple-400 animate-spin" />
+            <div className="flex flex-col gap-3 py-6">
+              <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-purple-600 to-pink-500"
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${Math.min(progress, 100)}%` }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                />
               </div>
-              <p className="text-gray-400 text-sm">
-                {isPt ? 'O Oráculo está consultando...' : 'The Oracle is consulting...'}
-              </p>
+              <p className="text-center text-xs text-gray-400">{progressLabel}</p>
             </div>
           )}
 
