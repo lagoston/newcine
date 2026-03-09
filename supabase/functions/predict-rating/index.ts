@@ -447,7 +447,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { userId, movieName, language = 'en' } = await req.json() as RequestBody;
+    const { userId, movieName, movieId: requestMovieId, language = 'en' } = await req.json() as RequestBody;
 
     const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
     const startTime = Date.now();
@@ -468,6 +468,27 @@ Deno.serve(async (req) => {
 
     if (ticketError) {
       throw new Error(`Error fetching ticket data: ${ticketError.message}`);
+    }
+
+    if (requestMovieId) {
+      const { data: cached } = await supabase
+        .from('prediction_cache')
+        .select('prediction')
+        .eq('user_id', userId)
+        .eq('movie_id', requestMovieId)
+        .gte('expires_at', new Date().toISOString())
+        .maybeSingle();
+
+      if (cached) {
+        return new Response(
+          JSON.stringify({
+            prediction: cached.prediction,
+            movie: movieName,
+            ticketsRemaining: ticketData.tickets_remaining
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
     }
 
     if (!ticketData || ticketData.tickets_remaining < 1) {
@@ -563,6 +584,27 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (!requestMovieId && movieData.id) {
+      const { data: cached } = await supabase
+        .from('prediction_cache')
+        .select('prediction')
+        .eq('user_id', userId)
+        .eq('movie_id', movieData.id)
+        .gte('expires_at', new Date().toISOString())
+        .maybeSingle();
+
+      if (cached) {
+        return new Response(
+          JSON.stringify({
+            prediction: cached.prediction,
+            movie: movieName,
+            ticketsRemaining: ticketData.tickets_remaining
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+    }
+
     console.log('Movie anchor score:', movieData.vote_average);
 
     const fishingStart = Date.now();
@@ -639,6 +681,22 @@ Deno.serve(async (req) => {
     if (!prediction) {
       console.error('No prediction in response:', JSON.stringify(data));
       throw new Error('Unable to generate prediction from DeepSeek');
+    }
+
+    const cacheMovieId = requestMovieId || movieData.id;
+    if (cacheMovieId) {
+      await supabase
+        .from('prediction_cache')
+        .upsert(
+          {
+            user_id: userId,
+            movie_id: cacheMovieId,
+            prediction,
+            created_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          { onConflict: 'user_id,movie_id' }
+        );
     }
 
     return new Response(

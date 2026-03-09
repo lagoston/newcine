@@ -200,6 +200,7 @@ export default function OraclePrediction() {
           body: JSON.stringify({
             userId: session.user.id,
             movieName,
+            movieId,
             language: i18n.language
           })
         }

@@ -7,11 +7,12 @@ import { supabase } from '../lib/supabase';
 
 interface PredictMenuSheetProps {
   movieTitle: string;
+  movieId?: number;
   isOpen: boolean;
   onClose: () => void;
 }
 
-const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, isOpen, onClose }) => {
+const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, movieId, isOpen, onClose }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language === 'pt';
   const [loading, setLoading] = useState(true);
@@ -69,6 +70,7 @@ const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, isOpen,
           body: JSON.stringify({
             userId,
             movieName: movieTitle,
+            movieId,
             language: i18n.language,
           }),
         }

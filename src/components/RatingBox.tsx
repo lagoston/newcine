@@ -318,6 +318,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
     {predictMenuMovie && (
       <PredictMenuSheet
         movieTitle={predictMenuMovie.title}
+        movieId={predictMenuMovie.id}
         isOpen={true}
         onClose={() => setPredictMenuMovie(null)}
       />
