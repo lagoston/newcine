@@ -220,7 +220,7 @@ export default function OracleRecommend() {
   const handleGetRecommendation = async () => {
     if (!session?.user?.id || !selectedMood) return;
 
-    if (ticketsRemaining !== null && ticketsRemaining < 25) {
+    if (ticketsRemaining !== null && ticketsRemaining < 1) {
       toast.error(t('oracle.prediction.notEnough', { time: formatTimeUntilReset() }));
       return;
     }
@@ -579,7 +579,7 @@ export default function OracleRecommend() {
             ) : (
               <>
                 <Wand2 className="w-5 h-5" />
-                <span>{t('oracle.recommend.cost', { cost: 25 })}</span>
+                <span>{t('oracle.recommend.cost', { cost: 1 })}</span>
               </>
             )}
           </motion.button>

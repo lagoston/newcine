@@ -137,7 +137,7 @@ export default function OraclePrediction() {
   const getPrediction = async (movieName: string, movieId: number, posterPath?: string) => {
     if (!session?.user?.id) return;
 
-    if (ticketsRemaining !== null && ticketsRemaining < 100) {
+    if (ticketsRemaining !== null && ticketsRemaining < 1) {
       toast.error(t('oracle.prediction.notEnough', { time: formatTimeUntilReset() }));
       return;
     }
@@ -816,7 +816,7 @@ export default function OraclePrediction() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={loading.prediction ? t('oracle.prediction.consulting') : t('oracle.prediction.cost', { cost: 50 })}
+                    placeholder={loading.prediction ? t('oracle.prediction.consulting') : t('oracle.prediction.cost', { cost: 1 })}
                     className="w-full px-4 py-3 bg-transparent text-white placeholder-purple-400 text-lg font-medium focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                     autoComplete="off"
                     disabled={loading.prediction}

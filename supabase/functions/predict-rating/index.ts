@@ -482,7 +482,7 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields: userId and movieName');
     }
 
-    await supabase.rpc('check_and_reset_tickets', { user_id_input: userId });
+    await supabase.rpc('check_and_reset_tickets', { user_id_param: userId });
 
     const { data: ticketData, error: ticketError } = await supabase
       .from('user_tickets')
@@ -494,7 +494,7 @@ Deno.serve(async (req) => {
       throw new Error(`Error fetching ticket data: ${ticketError.message}`);
     }
 
-    if (!ticketData || ticketData.tickets_remaining < 50) {
+    if (!ticketData || ticketData.tickets_remaining < 1) {
       return new Response(
         JSON.stringify({
           error: 'Insufficient tickets',
@@ -600,7 +600,7 @@ Deno.serve(async (req) => {
 
     const { error: updateError } = await supabase
       .from('user_tickets')
-      .update({ tickets_remaining: ticketData.tickets_remaining - 50 })
+      .update({ tickets_remaining: ticketData.tickets_remaining - 1 })
       .eq('user_id', userId);
 
     if (updateError) {
