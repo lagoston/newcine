@@ -411,7 +411,7 @@ const Home = () => {
 
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-40 bg-gradient-to-b from-blue-500/5 to-transparent dark:from-blue-400/5 blur-2xl"></div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="max-w-7xl mx-auto">
         {session?.user && (
           <HomeUserPanels
             userId={session.user.id}
@@ -446,17 +446,17 @@ const Home = () => {
             hasEssence={!!(userPersonalidade && userPersonalidade.length >= 3)}
           />
         )}
-
-        {selectedMovie && (
-          <MovieDetailsModal
-            movie={selectedMovie}
-            isOpen={true}
-            onClose={() => setSelectedMovie(null)}
-            isOtherUserProfile={false}
-            onAddToLibrary={handleAddToLibrary}
-          />
-        )}
       </div>
+
+      {selectedMovie && (
+        <MovieDetailsModal
+          movie={selectedMovie}
+          isOpen={true}
+          onClose={() => setSelectedMovie(null)}
+          isOtherUserProfile={false}
+          onAddToLibrary={handleAddToLibrary}
+        />
+      )}
     </div>
   );
 };

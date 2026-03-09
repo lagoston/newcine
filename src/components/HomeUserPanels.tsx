@@ -543,7 +543,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center px-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4"
             onClick={() => setShowRevelationModal(false)}
           >
             <motion.div
@@ -551,7 +551,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 30 }}
               transition={{ type: 'spring', duration: 0.4 }}
-              className="relative max-w-xl w-full max-h-[90vh] overflow-y-auto"
+              className="relative max-w-xl w-full max-h-[calc(100vh-5rem)] overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
               <div className="relative bg-gray-900/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700/60 p-8">
@@ -603,7 +603,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center px-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4"
             onClick={() => setShowInfoModal(false)}
           >
             <motion.div
@@ -611,7 +611,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 30 }}
               transition={{ type: 'spring', duration: 0.4 }}
-              className="relative max-w-xl w-full max-h-[90vh] overflow-y-auto"
+              className="relative max-w-xl w-full max-h-[calc(100vh-5rem)] overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
               <div className="relative bg-gray-900/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700/60 p-8">
