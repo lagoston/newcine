@@ -379,7 +379,7 @@ export default function Community() {
                       <p className="text-gray-300 text-[10px] truncate">@{movie.friend_username}</p>
                     </div>
                     {movie.movieDetails?.vote_average && movie.movieDetails.vote_average > 0 && (
-                      <div className="absolute top-2 right-2 bg-yellow-500 text-white px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-lg">
+                      <div className="absolute top-2 right-2 bg-blue-500/80 text-white px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-lg">
                         ★ {movie.movieDetails.vote_average.toFixed(1)}
                       </div>
                     )}

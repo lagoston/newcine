@@ -158,13 +158,13 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
                       className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
                     />
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-sm pointer-events-none">
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-sm pointer-events-none">
                       <div className="p-3">
                         <h3 className="text-white font-bold mb-1.5 line-clamp-2 text-sm drop-shadow-lg">{movie.title}</h3>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <div className="flex items-center bg-gradient-to-r from-yellow-500/30 to-orange-500/30 backdrop-blur-md px-2 py-1 rounded-lg border border-yellow-500/30 shadow-lg">
-                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                            <span className="ml-1 text-yellow-100 font-bold text-xs">{movie.vote_average?.toFixed(1)}</span>
+                          <div className="flex items-center bg-gradient-to-r from-blue-500/30 to-blue-600/30 backdrop-blur-md px-2 py-1 rounded-lg border border-blue-400/30 shadow-lg">
+                            <Star className="w-3 h-3 fill-blue-400 text-blue-400" />
+                            <span className="ml-1 text-blue-100 font-bold text-xs">{movie.vote_average?.toFixed(1)}</span>
                           </div>
                           <span className="text-gray-200 text-xs font-semibold bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg">
                             {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}

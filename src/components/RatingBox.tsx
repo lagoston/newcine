@@ -196,7 +196,11 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           {movies.map((movie) => (
             <div
               key={movie.id}
-              className="relative group flex-shrink-0"
+              className={`relative group flex-shrink-0 rounded-xl border ${
+                movie.media_type === 'tv'
+                  ? 'border-purple-400/50 dark:border-purple-500/50'
+                  : 'border-gray-300/70 dark:border-gray-600/50'
+              }`}
               style={{ width: '140px' }}
             >
               {!isOtherUserProfile && (
@@ -237,7 +241,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                   </div>
                 </div>
               </motion.button>
-              <div className="pt-1.5 px-0.5">
+              <div className="pt-1.5 px-1 pb-1.5">
                 <h4 className="text-xs font-medium text-gray-900 dark:text-white line-clamp-1">
                   {movie.title}
                 </h4>
@@ -259,7 +263,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                         e.stopPropagation();
                         setRateMenuMovie(movie);
                       }}
-                      className="w-full flex items-center justify-center gap-1 px-1.5 py-1 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-[10px] font-semibold rounded-lg transition-all duration-150"
+                      className="w-full flex items-center justify-center gap-1 px-1.5 py-1 bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 text-white text-[10px] font-semibold rounded-lg transition-all duration-150"
                     >
                       {t('movies.rating')}
                       <Star className="w-2.5 h-2.5 fill-current" />
