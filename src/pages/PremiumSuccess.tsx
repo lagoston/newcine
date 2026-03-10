@@ -189,8 +189,8 @@ export default function PremiumSuccess() {
                     whileHover={{ scale: 1.05 }}
                   >
                     <Zap className="w-8 h-8 text-yellow-600 dark:text-yellow-400 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">3000</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Tickets</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">20</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Tickets/Day</p>
                   </motion.div>
                   <motion.div
                     className="text-center p-4 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20"
@@ -268,7 +268,7 @@ export default function PremiumSuccess() {
                   </h3>
                   <ul className="space-y-3">
                     {[
-                      '3000 Oracle tickets every month',
+                      '20 Oracle tickets every day',
                       'Enhanced predictions with Oracle 2.0',
                       'Complete prediction & recommendation history',
                       'Exclusive profile frames and banners',

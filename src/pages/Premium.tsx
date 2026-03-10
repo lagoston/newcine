@@ -92,7 +92,7 @@ const PlanCard = ({
 
       <ul className="space-y-3 mb-8">
         {[
-          '3000 Tickets Monthly',
+          '20 Daily Tickets',
           'Exclusive Customization',
           'Priority Support',
           'Cancel Anytime',
@@ -239,8 +239,8 @@ export default function Premium() {
             <div className="grid sm:grid-cols-3 gap-6 mb-8">
               <div className="bg-white dark:bg-gray-700/50 rounded-2xl p-6 text-center">
                 <Zap className="w-8 h-8 text-yellow-500 mx-auto mb-3" />
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">3000</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.ticketsMonth')}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">20</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.ticketsDay')}</p>
               </div>
               <div className="bg-white dark:bg-gray-700/50 rounded-2xl p-6 text-center">
                 <Palette className="w-8 h-8 text-purple-500 mx-auto mb-3" />
@@ -338,7 +338,7 @@ export default function Premium() {
 
                   <ul className="space-y-3 mb-8">
                     {[
-                      t('premium.3000TicketsMonthly'),
+                      t('premium.20DailyTickets'),
                       t('premium.exclusiveCustomization'),
                       t('premium.prioritySupport'),
                       t('premium.cancelAnytime'),
@@ -386,8 +386,8 @@ export default function Premium() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Feature
                   icon={Zap}
-                  title={t('premium.3000TicketsMonthly')}
-                  description={t('premium.3000TicketsDesc')}
+                  title={t('premium.20DailyTickets')}
+                  description={t('premium.20DailyTicketsDesc')}
                 />
                 <Feature
                   icon={Palette}
