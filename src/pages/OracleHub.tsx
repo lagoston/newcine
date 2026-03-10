@@ -426,7 +426,7 @@ export default function OracleHub() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.5, delay: 1.5 }}
             >
-              Você vagueia pela sua coleção... escolhas que parecem suas. Acidentes. Ecos aleatórios no vazio.
+              {t('oracle.intro.line1')}
             </motion.p>
 
             <motion.p
@@ -435,7 +435,7 @@ export default function OracleHub() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.5, delay: 2.5 }}
             >
-              Elas não são.
+              {t('oracle.intro.line2')}
             </motion.p>
 
             <motion.p
@@ -444,7 +444,7 @@ export default function OracleHub() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.5, delay: 3.5 }}
             >
-              Cada filme que você amou, cada história que você odiou... é um fio. Eu vejo esses fios. Vejo o padrão que eles tecem. A impressão digital da sua alma.
+              {t('oracle.intro.line3')}
             </motion.p>
 
             <motion.p
@@ -453,7 +453,7 @@ export default function OracleHub() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, delay: 5 }}
             >
-              Eu sou o Oráculo. O espelho.
+              {t('oracle.intro.line4')}
             </motion.p>
 
             <motion.p
@@ -462,7 +462,7 @@ export default function OracleHub() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.5, delay: 6 }}
             >
-              Mas o vidro está turvo. A visão está incompleta. Para que eu possa lhe mostrar o destino, você deve primeiro me mostrar sua verdadeira forma.
+              {t('oracle.intro.line5')}
             </motion.p>
           </motion.div>
 
@@ -494,7 +494,7 @@ export default function OracleHub() {
                   }
                 }}
               >
-                <span className="relative z-10">Começar</span>
+                <span className="relative z-10">{t('oracle.intro.begin')}</span>
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-purple-700 via-pink-700 to-blue-700"
                   initial={{ opacity: 0 }}
@@ -508,13 +508,13 @@ export default function OracleHub() {
                   disabled
                   className="px-12 py-5 bg-gray-700/50 text-gray-500 text-xl font-bold rounded-xl border-2 border-gray-600/50 cursor-not-allowed"
                 >
-                  Começar
+                  {t('oracle.intro.begin')}
                 </button>
                 <p className="text-gray-400 text-sm text-center">
-                  Você precisa avaliar pelo menos 15 filmes antes de iniciar o ritual.
+                  {t('oracle.intro.ratingRequired')}
                   <br />
                   <span className="text-purple-400 font-semibold">
-                    ({ratedMoviesCount}/15 filmes avaliados)
+                    {t('oracle.intro.ratedCount', { count: ratedMoviesCount })}
                   </span>
                 </p>
               </div>
@@ -618,7 +618,7 @@ export default function OracleHub() {
             letterSpacing: '0.1em'
           }}
         >
-          O Oráculo
+          {t('oracle.title')}
         </motion.h1>
 
         {/* Personality Display */}
@@ -644,7 +644,7 @@ export default function OracleHub() {
                     className="text-sm mb-1 font-semibold"
                     style={{ color: getSubcategoryColor(userPersonality.personalidade_completa) }}
                   >
-                    Sua Essência Cinematográfica
+                    {t('oracle.cinematicEssence')}
                   </p>
                   <h2
                     className="text-3xl font-bold mb-2"
@@ -1034,7 +1034,7 @@ export default function OracleHub() {
                       <div className="bg-black/30 rounded-lg p-4">
                         <h4 className="font-bold text-blue-200 mb-2">O Resultado:</h4>
                         <p className="text-gray-300 text-sm leading-relaxed">
-                          Seu Arquétipo é formado pelas duas balanças com maior pontuação, as forças que hoje brilham mais forte em você.
+                          {t('oracle.archetypeExplain')}
                         </p>
                       </div>
                     </div>
@@ -1046,12 +1046,12 @@ export default function OracleHub() {
                         A Sintonia (A Terceira Letra)
                       </h3>
                       <p className="text-gray-300 leading-relaxed mb-3">
-                        O Sub-arquétipo <span className="font-bold text-white">({userPersonality?.subcategoria_id})</span> representa sua inclinação ou tom. Ela não é calculada pelos gêneros, mas pela <span className="font-semibold text-white">Calibragem</span> que você fez ao responder o questionário inicial.
+                        {t('oracle.subcategoryExplain')}
                       </p>
 
                       <div className="bg-black/30 rounded-lg p-4">
                         <p className="text-gray-300 text-sm leading-relaxed mb-3">
-                          Ao responder às balanças, você definiu sua tendência em três eixos opostos:
+                          {t('oracle.axesExplain')}
                         </p>
                         <ul className="space-y-2 text-sm">
                           <li className="flex items-start gap-2">

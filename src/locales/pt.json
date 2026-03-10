@@ -314,6 +314,31 @@
       "required": "Recurso Premium",
       "whispers": "Sussurros do Oráculo é um recurso premium. Faça upgrade para acessar seu histórico de previsões!",
       "upgrade": "Upgrade para Premium"
+    },
+    "intro": {
+      "line1": "Você vagueia pela sua coleção... escolhas que parecem suas. Acidentes. Ecos aleatórios no vazio.",
+      "line2": "Elas não são.",
+      "line3": "Cada filme que você amou, cada história que você odiou... é um fio. Eu vejo esses fios. Vejo o padrão que eles tecem. A impressão digital da sua alma.",
+      "line4": "Eu sou o Oráculo. O espelho.",
+      "line5": "Mas o vidro está turvo. A visão está incompleta. Para que eu possa lhe mostrar o destino, você deve primeiro me mostrar sua verdadeira forma.",
+      "begin": "Começar",
+      "ratingRequired": "Você precisa avaliar pelo menos 15 filmes antes de iniciar o ritual.",
+      "ratedCount": "({{count}}/15 filmes avaliados)"
+    },
+    "cinematicEssence": "Sua Essência Cinematográfica",
+    "archetypeExplain": "Seu Arquétipo é formado pelas duas balanças com maior pontuação, as forças que hoje brilham mais forte em você.",
+    "subcategoryExplain": "O Sub-arquétipo representa sua inclinação ou tom. Ela não é calculada pelos gêneros, mas pela Calibragem que você fez ao responder o questionário inicial.",
+    "axesExplain": "Ao responder às balanças, você definiu sua tendência em três eixos opostos:",
+    "questionnaire": {
+      "loadError": "Falha ao carregar questionário",
+      "answerError": "Erro ao registrar resposta",
+      "tiebreakerError": "Erro ao resolver desempate",
+      "calculateError": "Erro ao calcular resultado",
+      "tiebreakerLoadError": "Erro ao carregar pergunta de desempate",
+      "preparing": "Preparando as perguntas...",
+      "loadFailed": "Erro ao carregar questionário",
+      "progress": "Pergunta {{current}} de {{total}}",
+      "watching": "O Oráculo observa atentamente suas escolhas..."
     }
   },
   "profile": {

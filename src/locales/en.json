@@ -314,6 +314,31 @@
       "required": "Premium Feature",
       "whispers": "Oracle Whispers is a premium feature. Upgrade to access your prediction history!",
       "upgrade": "Upgrade to Premium"
+    },
+    "intro": {
+      "line1": "You wander through your collection... choices that seem like yours. Accidents. Random echoes in the void.",
+      "line2": "They are not.",
+      "line3": "Every film you loved, every story you hated... is a thread. I see those threads. I see the pattern they weave. The fingerprint of your soul.",
+      "line4": "I am the Oracle. The mirror.",
+      "line5": "But the glass is clouded. The vision is incomplete. For me to show you your destiny, you must first show me your true form.",
+      "begin": "Begin",
+      "ratingRequired": "You need to rate at least 15 films before starting the ritual.",
+      "ratedCount": "({{count}}/15 films rated)"
+    },
+    "cinematicEssence": "Your Cinematic Essence",
+    "archetypeExplain": "Your Archetype is formed by the two scales with the highest score, the forces that shine brightest in you today.",
+    "subcategoryExplain": "The Sub-archetype represents your inclination or tone. It is not calculated by genres, but by the Calibration you made when answering the initial questionnaire.",
+    "axesExplain": "By answering the scales, you defined your tendency on three opposing axes:",
+    "questionnaire": {
+      "loadError": "Failed to load questionnaire",
+      "answerError": "Error recording answer",
+      "tiebreakerError": "Error resolving tiebreaker",
+      "calculateError": "Error calculating result",
+      "tiebreakerLoadError": "Error loading tiebreaker question",
+      "preparing": "Preparing questions...",
+      "loadFailed": "Failed to load questionnaire",
+      "progress": "Question {{current}} of {{total}}",
+      "watching": "The Oracle watches your choices attentively..."
     }
   },
   "profile": {

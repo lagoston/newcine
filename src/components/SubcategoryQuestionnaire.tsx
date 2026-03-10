@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface QuestionOption {
   option_id: number;
@@ -22,6 +23,7 @@ interface SubcategoryQuestionnaireProps {
 }
 
 export default function SubcategoryQuestionnaire({ userId, onComplete }: SubcategoryQuestionnaireProps) {
+  const { t, i18n } = useTranslation();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [sessionId] = useState(() => crypto.randomUUID());
@@ -36,14 +38,15 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
   const loadQuestions = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc('start_subcategory_questionnaire');
+      const lang = i18n.language?.startsWith('en') ? 'en' : 'pt';
+      const { data, error } = await supabase.rpc('start_subcategory_questionnaire', { p_language: lang });
 
       if (error) throw error;
 
       setQuestions(data || []);
     } catch (error) {
       console.error('Error loading questions:', error);
-      toast.error('Falha ao carregar questionário');
+      toast.error(t('oracle.questionnaire.loadError'));
     } finally {
       setLoading(false);
     }
@@ -83,7 +86,7 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
       }
     } catch (error) {
       console.error('Error recording answer:', error);
-      toast.error('Erro ao registrar resposta');
+      toast.error(t('oracle.questionnaire.answerError'));
     } finally {
       setIsAnswering(false);
     }
@@ -104,7 +107,7 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
       onComplete(data);
     } catch (error) {
       console.error('Error resolving tiebreaker:', error);
-      toast.error('Erro ao resolver desempate');
+      toast.error(t('oracle.questionnaire.tiebreakerError'));
     }
   };
 
@@ -128,7 +131,7 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
       }
     } catch (error) {
       console.error('Error calculating result:', error);
-      toast.error('Erro ao calcular resultado');
+      toast.error(t('oracle.questionnaire.calculateError'));
     }
   };
 
@@ -136,8 +139,10 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
     try {
       console.log('🔥 Tiebreaker Handler Called with:', tiedCategories);
 
+      const lang = i18n.language?.startsWith('en') ? 'en' : 'pt';
       const { data, error } = await supabase.rpc('get_tiebreaker_question', {
-        p_tied_categories: tiedCategories
+        p_tied_categories: tiedCategories,
+        p_language: lang
       });
 
       console.log('🔥 Tiebreaker Question Response:', data);
@@ -171,7 +176,7 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
       }
     } catch (error) {
       console.error('Error loading tiebreaker:', error);
-      toast.error('Erro ao carregar pergunta de desempate');
+      toast.error(t('oracle.questionnaire.tiebreakerLoadError'));
     }
   };
 
@@ -184,7 +189,7 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
           className="text-center"
         >
           <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Preparando as perguntas...</p>
+          <p className="text-gray-400">{t('oracle.questionnaire.preparing')}</p>
         </motion.div>
       </div>
     );
@@ -193,7 +198,7 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
   if (questions.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-400">Erro ao carregar questionário</p>
+        <p className="text-gray-400">{t('oracle.questionnaire.loadFailed')}</p>
       </div>
     );
   }
@@ -243,7 +248,7 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
         >
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-gray-400">
-              Pergunta {currentQuestionIndex + 1} de {questions.length}
+              {t('oracle.questionnaire.progress', { current: currentQuestionIndex + 1, total: questions.length })}
             </span>
             <span className="text-sm text-purple-400 font-medium">
               {Math.round(progress)}%
@@ -347,7 +352,7 @@ export default function SubcategoryQuestionnaire({ userId, onComplete }: Subcate
           transition={{ delay: 0.8 }}
           className="text-center text-purple-300/70 text-sm italic"
         >
-          O Oráculo observa atentamente suas escolhas...
+          {t('oracle.questionnaire.watching')}
         </motion.div>
       </div>
     </div>
