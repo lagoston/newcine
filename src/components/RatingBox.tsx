@@ -358,10 +358,10 @@ const RatingBox: React.FC<RatingBoxProps> = ({
     {mobileMenuMovie && (
       <>
         <div
-          className="fixed inset-0 bg-black/50 z-50 md:hidden"
+          className="fixed inset-0 bg-black/50 z-50"
           onClick={() => setMobileMenuMovie(null)}
         />
-        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl z-50 md:hidden animate-slide-up">
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl z-50 animate-slide-up">
           <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-3 mb-4" />
 
           <div className="px-4 pb-6">
