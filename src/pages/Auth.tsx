@@ -135,7 +135,7 @@ export default function Auth() {
   useEffect(() => {
     if (user && location.pathname === '/auth') {
       console.log('🔑 User already logged in, redirecting from auth page');
-      const destination = location.state?.from?.pathname || '/library';
+      const destination = location.state?.from?.pathname || '/';
       navigate(destination, { replace: true });
     }
   }, [user, navigate, location]);
@@ -228,7 +228,7 @@ export default function Auth() {
           }
 
           if (signInResult?.session) {
-            const destination = location.state?.from?.pathname || '/library';
+            const destination = location.state?.from?.pathname || '/';
             navigate(destination, { replace: true });
           }
           break;
