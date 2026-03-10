@@ -39,6 +39,7 @@ export default function Auth() {
   // State tracking refs
   const processedVerifiedParam = useRef(false);
   const resendTimeoutRef = useRef<number>();
+  const pollingIntervalRef = useRef<number>();
 
   useEffect(() => {
     localStorage.setItem('rememberMe', JSON.stringify(rememberMe));
@@ -93,8 +94,40 @@ export default function Auth() {
       if (resendTimeoutRef.current) {
         clearTimeout(resendTimeoutRef.current);
       }
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
     };
   }, []);
+
+  // Reset verification screen when user navigates back to /auth (e.g. via Navbar "Entrar" button)
+  useEffect(() => {
+    setShowVerificationMessage(false);
+    setMode('signin');
+    setError('');
+  }, [location.key]);
+
+  // Poll for session while on verification screen (handles same-browser tab confirmation + cross-device)
+  useEffect(() => {
+    if (!showVerificationMessage) {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = undefined;
+      }
+      return;
+    }
+
+    pollingIntervalRef.current = window.setInterval(async () => {
+      await refreshSession();
+    }, 4000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = undefined;
+      }
+    };
+  }, [showVerificationMessage, refreshSession]);
   
   // Redirect if user is already logged in
   useEffect(() => {
@@ -354,19 +387,23 @@ export default function Auth() {
                 </button>
               </motion.div>
               <motion.div
-                className="pt-2"
+                className="pt-4 border-t border-gray-700/50"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.7 }}
               >
+                <p className="text-xs text-gray-500 mb-3 flex items-center justify-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                  Waiting for confirmation...
+                </p>
                 <button
                   onClick={() => {
                     setShowVerificationMessage(false);
                     setMode('signin');
                   }}
-                  className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                  className="w-full py-2.5 px-4 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 hover:text-blue-300 text-sm font-medium transition-all duration-200"
                 >
-                  Back to sign in
+                  Already confirmed? Sign in
                 </button>
               </motion.div>
             </div>
