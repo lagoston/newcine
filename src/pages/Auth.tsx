@@ -5,6 +5,7 @@ import { Loader2, Mail, LogIn, UserPlus, Lock, ArrowLeft, AlertCircle, Eye } fro
 import toast from 'react-hot-toast';
 import Logo from '../components/Logo';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -19,7 +20,8 @@ export default function Auth() {
     user, 
     refreshSession 
   } = useAuth();
-  
+  const { t } = useTranslation();
+
   // Authentication flow states
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot-password'>('signin');
   const [email, setEmail] = useState('');
@@ -344,7 +346,7 @@ export default function Auth() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                Check your email
+                {t('auth.checkEmailTitle')}
               </motion.h2>
               <motion.div
                 className="mx-auto w-16 h-16 mb-6 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center border border-blue-400/30"
@@ -360,8 +362,8 @@ export default function Auth() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
               >
-                We sent a verification link to <strong className="text-white">{email}</strong>.<br />
-                Please check your inbox and spam folder to verify your account.
+                {t('auth.checkEmailSent')} <strong className="text-white">{email}</strong>.<br />
+                {t('auth.checkEmailInbox')}
               </motion.p>
               <motion.div
                 className="pt-4"
@@ -377,12 +379,12 @@ export default function Auth() {
                   {loading ? (
                     <div className="flex items-center justify-center">
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Sending...
+                      {t('auth.sending')}
                     </div>
                   ) : resendCooldown > 0 ? (
-                    `Wait ${resendCooldown}s to resend`
+                    t('auth.resendCooldown', { seconds: resendCooldown })
                   ) : (
-                    "Didn't receive the email? Click to resend"
+                    t('auth.resendEmail')
                   )}
                 </button>
               </motion.div>
@@ -394,7 +396,7 @@ export default function Auth() {
               >
                 <p className="text-xs text-gray-500 mb-3 flex items-center justify-center gap-2">
                   <span className="inline-block w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                  Waiting for confirmation...
+                  {t('auth.waitingConfirmation')}
                 </p>
                 <button
                   onClick={() => {
@@ -403,7 +405,7 @@ export default function Auth() {
                   }}
                   className="w-full py-2.5 px-4 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 hover:text-blue-300 text-sm font-medium transition-all duration-200"
                 >
-                  Already confirmed? Sign in
+                  {t('auth.alreadyConfirmed')}
                 </button>
               </motion.div>
             </div>
@@ -471,10 +473,10 @@ export default function Auth() {
                 transition={{ delay: 0.3 }}
               >
                 {mode === 'forgot-password'
-                  ? 'Reset Your Password'
+                  ? t('auth.resetYourPassword')
                   : mode === 'signup'
-                  ? 'Create Your Account'
-                  : 'Sign In to CineOracle'}
+                  ? t('auth.createAccountTitle')
+                  : t('auth.signInTitle')}
               </motion.h2>
 
               {mode === 'forgot-password' && (
@@ -484,7 +486,7 @@ export default function Auth() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
                 >
-                  Enter your email and we'll send you instructions to reset your password.
+                  {t('auth.resetPasswordDesc')}
                 </motion.p>
               )}
             </div>
@@ -501,7 +503,7 @@ export default function Auth() {
                       transition={{ duration: 0.3 }}
                     >
                       <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">
-                        Username
+                        {t('auth.username')}
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -513,7 +515,7 @@ export default function Auth() {
                           type="text"
                           required
                           className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all sm:text-sm"
-                          placeholder="Enter username (letters, numbers, underscores)"
+                          placeholder={t('auth.usernamePlaceholder')}
                           pattern="^[a-zA-Z0-9_]+$"
                           minLength={3}
                           maxLength={20}
@@ -528,7 +530,7 @@ export default function Auth() {
 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
-                    Email address
+                    {t('auth.emailAddress')}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -540,7 +542,7 @@ export default function Auth() {
                       type="email"
                       required
                       className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all sm:text-sm"
-                      placeholder="Enter your email address"
+                      placeholder={t('auth.emailPlaceholder')}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={isSubmitting || loading}
@@ -558,7 +560,7 @@ export default function Auth() {
                       transition={{ duration: 0.3 }}
                     >
                       <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
-                        Password
+                        {t('auth.password')}
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -570,7 +572,7 @@ export default function Auth() {
                           type="password"
                           required
                           className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all sm:text-sm"
-                          placeholder="Enter your password"
+                          placeholder={t('auth.passwordPlaceholder')}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           disabled={isSubmitting || loading}
@@ -600,7 +602,7 @@ export default function Auth() {
                         className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-600 rounded bg-gray-700"
                       />
                       <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-300">
-                        Remember me
+                        {t('auth.rememberMe')}
                       </label>
                     </div>
                   </motion.div>
@@ -634,20 +636,20 @@ export default function Auth() {
                     <div className="flex items-center">
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
                       {mode === 'forgot-password'
-                        ? 'Sending reset link...'
+                        ? t('auth.sendingResetLink')
                         : mode === 'signup'
-                        ? 'Creating account...'
-                        : 'Signing in...'}
+                        ? t('auth.creatingAccount')
+                        : t('auth.signingIn')}
                     </div>
                   ) : (
                     <>
                       {mode === 'signin' && <LogIn className="w-5 h-5 mr-2" />}
                       {mode === 'signup' && <UserPlus className="w-5 h-5 mr-2" />}
                       {mode === 'forgot-password'
-                        ? 'Send Reset Link'
+                        ? t('auth.sendResetLink')
                         : mode === 'signup'
-                        ? 'Create Account'
-                        : 'Sign In'}
+                        ? t('auth.createAccountBtn')
+                        : t('auth.signInBtn')}
                     </>
                   )}
                 </button>
@@ -666,7 +668,7 @@ export default function Auth() {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                     >
-                      Forgot your password?
+                      {t('auth.forgotPasswordLink')}
                     </motion.button>
                   )}
 
@@ -682,7 +684,7 @@ export default function Auth() {
                       exit={{ opacity: 0 }}
                     >
                       <ArrowLeft className="w-4 h-4 mr-2" />
-                      Back to sign in
+                      {t('auth.backToSignIn')}
                     </motion.button>
                   )}
 
@@ -698,8 +700,8 @@ export default function Auth() {
                       exit={{ opacity: 0 }}
                     >
                       {mode === 'signin'
-                        ? "Don't have an account? Sign up"
-                        : "Already have an account? Sign in"}
+                        ? t('auth.noAccountSignUp')
+                        : t('auth.haveAccountSignIn')}
                     </motion.button>
                   )}
                 </AnimatePresence>
