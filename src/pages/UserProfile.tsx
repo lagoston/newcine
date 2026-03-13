@@ -628,9 +628,11 @@ export default function UserProfile() {
                     )}
                   </div>
                   {profile.active_tag && (
-                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${getTagColorClasses(profile.active_tag.category)}`}>
-                      <span>{profile.active_tag.emoji}</span>
-                      <span className="text-sm font-medium">{profile.active_tag.name}</span>
+                    <div className="flex justify-center sm:justify-start w-full sm:w-auto">
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${getTagColorClasses(profile.active_tag.category)}`}>
+                        <span>{profile.active_tag.emoji}</span>
+                        <span className="text-sm font-medium">{profile.active_tag.name}</span>
+                      </div>
                     </div>
                   )}
                 </div>

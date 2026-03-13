@@ -85,65 +85,65 @@ interface OracleCard {
 }
 
 const PROGRESSION_TAGS: ProgressionTag[] = [
-  { name: 'Balcony Regular', emoji: '', minMovies: 1, maxMovies: 19, description: '1 - 19 movies' },
-  { name: 'Seat Warmer', emoji: '', minMovies: 20, maxMovies: 49, description: '20 - 49 movies' },
-  { name: 'Popcorn Pro', emoji: '', minMovies: 50, maxMovies: 99, description: '50 - 99 movies' },
-  { name: 'Reel Addict', emoji: '', minMovies: 100, maxMovies: 199, description: '100 - 199 movies' },
-  { name: 'Cine Elite', emoji: '', minMovies: 200, maxMovies: 499, description: '200 - 499 movies' },
-  { name: 'Projectionist Supreme', emoji: '', minMovies: 500, maxMovies: 999, description: '500 - 999 movies' },
-  { name: 'Cinematic Guru', emoji: '', minMovies: 1000, description: '1000+ movies' },
+  { name: 'Balcony Regular', emoji: '🎬', minMovies: 1, maxMovies: 19, description: '1 - 19 movies' },
+  { name: 'Seat Warmer', emoji: '🪑', minMovies: 20, maxMovies: 49, description: '20 - 49 movies' },
+  { name: 'Popcorn Pro', emoji: '🍿', minMovies: 50, maxMovies: 99, description: '50 - 99 movies' },
+  { name: 'Reel Addict', emoji: '🎞️', minMovies: 100, maxMovies: 199, description: '100 - 199 movies' },
+  { name: 'Cine Elite', emoji: '🏆', minMovies: 200, maxMovies: 499, description: '200 - 499 movies' },
+  { name: 'Projectionist Supreme', emoji: '📽️', minMovies: 500, maxMovies: 999, description: '500 - 999 movies' },
+  { name: 'Cinematic Guru', emoji: '🧙', minMovies: 1000, description: '1000+ movies' },
   {
     name: 'CineHater',
-    emoji: '',
+    emoji: '👎',
     minMovies: 20,
     description: '20 movies rated 0-2/10',
     condition: { type: 'rating', value: [0, 1, 2] }
   },
   {
     name: 'Golden Reel',
-    emoji: '',
+    emoji: '🌟',
     minMovies: 20,
     description: '20 movies rated 10/10',
     condition: { type: 'rating', value: 10 }
   },
   {
     name: 'Bloody Mary',
-    emoji: '',
+    emoji: '🩸',
     minMovies: 50,
     description: '50 Horror movies',
     condition: { type: 'genre', value: 'Horror' }
   },
   {
     name: 'Punchliner',
-    emoji: '',
+    emoji: '😂',
     minMovies: 50,
     description: '50 Comedy movies',
     condition: { type: 'genre', value: 'Comedy' }
   },
   {
     name: 'Star Gazer',
-    emoji: '',
+    emoji: '🚀',
     minMovies: 50,
     description: '50 Sci-Fi movies',
     condition: { type: 'genre', value: 'Science Fiction' }
   },
   {
     name: 'Cine Cupid',
-    emoji: '',
+    emoji: '💕',
     minMovies: 50,
     description: '50 Romance movies',
     condition: { type: 'genre', value: 'Romance' }
   },
   {
     name: 'Truth Digger',
-    emoji: '',
+    emoji: '📹',
     minMovies: 50,
     description: '50 Documentary movies',
     condition: { type: 'genre', value: 'Documentary' }
   },
   {
     name: "Director's Cut",
-    emoji: '',
+    emoji: '🎥',
     minMovies: 10,
     description: '10 movies from the same director',
     condition: { type: 'director' }
@@ -154,218 +154,218 @@ const THEME_TAGS: ThemeTag[] = [
   {
     id: 'mockingjay-victor',
     name: 'Mockingjay Victor',
-    emoji: '',
+    emoji: '🏹',
     requirement: 'All 5 Hunger Games movies',
     condition: { type: 'franchise', count: 5, value: 'Hunger Games' }
   },
   {
     id: 'lucky-player',
     name: 'Lucky Player',
-    emoji: '',
+    emoji: '🎲',
     requirement: 'Jumanji (1995) and Zathura (2005)',
     condition: { type: 'franchise', count: 2, value: 'Jumanji-Zathura' }
   },
   {
     id: 'death-dodger',
     name: 'Death Dodger',
-    emoji: '',
+    emoji: '💀',
     requirement: 'All 5 Final Destination movies',
     condition: { type: 'franchise', count: 5, value: 'Final Destination' }
   },
   {
     id: 'hogwarts-graduate',
     name: 'Hogwarts Graduate',
-    emoji: '',
+    emoji: '🧙‍♂️',
     requirement: 'All 8 Harry Potter movies',
     condition: { type: 'franchise', count: 8, value: 'Harry Potter' }
   },
   {
     id: 'force-founder',
     name: 'Force Founder',
-    emoji: '',
+    emoji: '⚔️',
     requirement: 'Star Wars Original Trilogy (IV-V-VI)',
     condition: { type: 'franchise', count: 3, value: 'Star Wars Original' }
   },
   {
     id: 'don-of-cinema',
     name: 'Don of Cinema',
-    emoji: '',
+    emoji: '🎩',
     requirement: 'The Godfather Trilogy (I-II-III)',
     condition: { type: 'franchise', count: 3, value: 'The Godfather' }
   },
   {
     id: 'trap-builder',
     name: 'Trap Builder',
-    emoji: '',
+    emoji: '🏠',
     requirement: 'Home Alone 1 & 2',
     condition: { type: 'franchise', count: 2, value: 'Home Alone' }
   },
   {
     id: 'red-pill-adept',
     name: 'Red-Pill Adept',
-    emoji: '',
+    emoji: '💊',
     requirement: 'The Matrix Trilogy',
     condition: { type: 'franchise', count: 3, value: 'The Matrix' }
   },
   {
     id: 'flux-capacitor-fan',
     name: 'Flux-Capacitor Fan',
-    emoji: '',
+    emoji: '⚡',
     requirement: 'Back to the Future Trilogy',
     condition: { type: 'franchise', count: 3, value: 'Back to the Future' }
   },
   {
     id: 'ring-expert',
     name: 'Ring Expert',
-    emoji: '',
+    emoji: '💍',
     requirement: 'LOTR Extended Trilogy',
     condition: { type: 'franchise', count: 3, value: 'The Lord of the Rings' }
   },
   {
     id: 'toy-collector',
     name: 'Toy Collector',
-    emoji: '',
+    emoji: '🧸',
     requirement: 'All 4 Toy Story movies',
     condition: { type: 'franchise', count: 4, value: 'Toy Story' }
   },
   {
     id: 'whip-crack-scholar',
     name: 'Whip-Crack Scholar',
-    emoji: '',
+    emoji: '🤠',
     requirement: 'Indiana Jones Quadrilogy',
     condition: { type: 'franchise', count: 4, value: 'Indiana Jones' }
   },
   {
     id: 'sailor',
     name: 'Sailor',
-    emoji: '',
+    emoji: '🏴‍☠️',
     requirement: 'All 5 Pirates of the Caribbean movies',
     condition: { type: 'franchise', count: 5, value: 'Pirates' }
   },
   {
     id: 'senior-mechanic',
     name: 'Senior Mechanic',
-    emoji: '',
+    emoji: '🏎️',
     requirement: 'All 10 Fast & Furious main saga movies',
     condition: { type: 'franchise', count: 10, value: 'Fast Saga' }
   },
   {
     id: 'cybertron-sentinel',
     name: 'Cybertron Sentinel',
-    emoji: '',
+    emoji: '🤖',
     requirement: 'All 7 live-action Transformers movies',
     condition: { type: 'franchise', count: 7, value: 'Transformers' }
   },
   {
     id: 'swamp-royalty',
     name: 'Swamp Royalty',
-    emoji: '',
+    emoji: '👹',
     requirement: 'All 4 Shrek movies',
     condition: { type: 'franchise', count: 4, value: 'Shrek' }
   },
   {
     id: 'dino-tamer',
     name: 'Dino Tamer',
-    emoji: '',
+    emoji: '🦖',
     requirement: 'All 6 Jurassic Park/World movies',
     condition: { type: 'franchise', count: 6, value: 'Jurassic' }
   },
   {
     id: 'banana-boss',
     name: 'Banana Boss',
-    emoji: '',
+    emoji: '🍌',
     requirement: 'All 5 Despicable Me/Minions movies',
     condition: { type: 'franchise', count: 5, value: 'Minions' }
   },
   {
     id: 'baba-yaga',
     name: 'Baba Yaga',
-    emoji: '',
+    emoji: '🔫',
     requirement: 'John Wick Saga',
     condition: { type: 'franchise', count: 4, value: 'John Wick' }
   },
   {
     id: 'casual-drinker',
     name: 'Casual Drinker',
-    emoji: '',
+    emoji: '🍺',
     requirement: 'The Hangover Trilogy',
     condition: { type: 'franchise', count: 3, value: 'Hangover' }
   },
   {
     id: 'sweetie-pie',
     name: 'Sweetie Pie',
-    emoji: '',
+    emoji: '🥧',
     requirement: 'American Pie (original four)',
     condition: { type: 'franchise', count: 4, value: 'American Pie' }
   },
   {
     id: 'visceral-gamer',
     name: 'Visceral Gamer',
-    emoji: '',
+    emoji: '🎮',
     requirement: 'Saw Franchise',
     condition: { type: 'franchise', count: 10, value: 'Saw' }
   },
   {
     id: 'nuts',
     name: 'Nuts',
-    emoji: '',
+    emoji: '🐿️',
     requirement: 'Ice Age Saga',
     condition: { type: 'franchise', count: 6, value: 'Ice Age' }
   },
   {
     id: 'dark-spirit',
     name: 'Dark Spirit',
-    emoji: '',
+    emoji: '🦇',
     requirement: 'The Dark Knight Trilogy',
     condition: { type: 'franchise', count: 3, value: 'Dark Knight' }
   },
   {
     id: 'infinity-gauntlet',
     name: 'Infinity Gauntlet',
-    emoji: '',
+    emoji: '🧤',
     requirement: 'All 4 Avengers movies (2012-2019)',
     condition: { type: 'franchise', count: 4, value: [24428, 299536, 99861, 299534] }
   },
   {
     id: 'sharp-canine',
     name: 'Sharp Canine',
-    emoji: '',
+    emoji: '🧛',
     requirement: 'Twilight Saga',
     condition: { type: 'franchise', count: 5, value: 'Twilight' }
   },
   {
     id: 'primal-essence',
     name: 'Primal Essence',
-    emoji: '',
+    emoji: '🦍',
     requirement: 'Planet of the Apes (2011 reboot line)',
     condition: { type: 'franchise', count: 4, value: 'Apes Reboot' }
   }
 ];
 
 const COMMUNITY_TAGS: CommunityTag[] = [
-  { name: 'Spotlight Spark', emoji: '', minFollowers: 1, maxFollowers: 9, description: '1 - 9 followers' },
-  { name: 'Rising Star', emoji: '', minFollowers: 10, maxFollowers: 24, description: '10 - 24 followers' },
-  { name: 'Red-Carpet Regular', emoji: '', minFollowers: 25, maxFollowers: 49, description: '25 - 49 followers' },
-  { name: 'Festival Favorite', emoji: '', minFollowers: 50, maxFollowers: 99, description: '50 - 99 followers' },
-  { name: 'Blockbuster', emoji: '', minFollowers: 100, maxFollowers: 199, description: '100 - 199 followers' },
-  { name: 'Cult Legend', emoji: '', minFollowers: 200, description: '200+ followers' }
+  { name: 'Spotlight Spark', emoji: '✨', minFollowers: 1, maxFollowers: 9, description: '1 - 9 followers' },
+  { name: 'Rising Star', emoji: '⭐', minFollowers: 10, maxFollowers: 24, description: '10 - 24 followers' },
+  { name: 'Red-Carpet Regular', emoji: '🎭', minFollowers: 25, maxFollowers: 49, description: '25 - 49 followers' },
+  { name: 'Festival Favorite', emoji: '🎪', minFollowers: 50, maxFollowers: 99, description: '50 - 99 followers' },
+  { name: 'Blockbuster', emoji: '💥', minFollowers: 100, maxFollowers: 199, description: '100 - 199 followers' },
+  { name: 'Cult Legend', emoji: '👑', minFollowers: 200, description: '200+ followers' }
 ];
 
 const ORACLE_TAGS: OracleTag[] = [
-  { name: 'Curious Seeker', emoji: '', type: 'prediction', minCount: 10, maxCount: 24, description: '10 - 24 predictions' },
-  { name: 'Pattern Hunter', emoji: '', type: 'prediction', minCount: 25, maxCount: 49, description: '25 - 49 predictions' },
-  { name: 'Mind Decoder', emoji: '', type: 'prediction', minCount: 50, maxCount: 99, description: '50 - 99 predictions' },
-  { name: 'Future Whisperer', emoji: '', type: 'prediction', minCount: 100, maxCount: 199, description: '100 - 199 predictions' },
-  { name: 'Oracle\'s Chosen', emoji: '', type: 'prediction', minCount: 200, maxCount: 499, description: '200 - 499 predictions' },
-  { name: 'Fate Architect', emoji: '', type: 'prediction', minCount: 500, maxCount: 999, description: '500 - 999 predictions' },
-  { name: 'Timeline Overlord', emoji: '', type: 'prediction', minCount: 1000, description: '1000+ predictions' },
-  { name: 'Popcorn Taster', emoji: '', type: 'recommendation', minCount: 10, maxCount: 24, description: '10 - 24 recommendations' },
-  { name: 'Hidden Gem Hunter', emoji: '', type: 'recommendation', minCount: 25, maxCount: 49, description: '25 - 49 recommendations' },
-  { name: 'Genre Explorer', emoji: '', type: 'recommendation', minCount: 50, maxCount: 99, description: '50 - 99 recommendations' },
-  { name: 'Taste Alchemist', emoji: '', type: 'recommendation', minCount: 100, maxCount: 199, description: '100 - 199 recommendations' },
-  { name: 'Recommendation Lord', emoji: '', type: 'recommendation', minCount: 200, maxCount: 499, description: '200 - 499 recommendations' },
-  { name: 'Galaxy Curator', emoji: '', type: 'recommendation', minCount: 500, maxCount: 999, description: '500 - 999 recommendations' },
-  { name: 'Multiverse Sommelier', emoji: '', type: 'recommendation', minCount: 1000, description: '1000+ recommendations' }
+  { name: 'Curious Seeker', emoji: '🔍', type: 'prediction', minCount: 10, maxCount: 24, description: '10 - 24 predictions' },
+  { name: 'Pattern Hunter', emoji: '🎯', type: 'prediction', minCount: 25, maxCount: 49, description: '25 - 49 predictions' },
+  { name: 'Mind Decoder', emoji: '🧠', type: 'prediction', minCount: 50, maxCount: 99, description: '50 - 99 predictions' },
+  { name: 'Future Whisperer', emoji: '🔮', type: 'prediction', minCount: 100, maxCount: 199, description: '100 - 199 predictions' },
+  { name: 'Oracle\'s Chosen', emoji: '👁️', type: 'prediction', minCount: 200, maxCount: 499, description: '200 - 499 predictions' },
+  { name: 'Fate Architect', emoji: '⚡', type: 'prediction', minCount: 500, maxCount: 999, description: '500 - 999 predictions' },
+  { name: 'Timeline Overlord', emoji: '⏳', type: 'prediction', minCount: 1000, description: '1000+ predictions' },
+  { name: 'Popcorn Taster', emoji: '🍿', type: 'recommendation', minCount: 10, maxCount: 24, description: '10 - 24 recommendations' },
+  { name: 'Hidden Gem Hunter', emoji: '💎', type: 'recommendation', minCount: 25, maxCount: 49, description: '25 - 49 recommendations' },
+  { name: 'Genre Explorer', emoji: '🗺️', type: 'recommendation', minCount: 50, maxCount: 99, description: '50 - 99 recommendations' },
+  { name: 'Taste Alchemist', emoji: '⚗️', type: 'recommendation', minCount: 100, maxCount: 199, description: '100 - 199 recommendations' },
+  { name: 'Recommendation Lord', emoji: '🏰', type: 'recommendation', minCount: 200, maxCount: 499, description: '200 - 499 recommendations' },
+  { name: 'Galaxy Curator', emoji: '🌌', type: 'recommendation', minCount: 500, maxCount: 999, description: '500 - 999 recommendations' },
+  { name: 'Multiverse Sommelier', emoji: '🍷', type: 'recommendation', minCount: 1000, description: '1000+ recommendations' }
 ];
 
 const FRANCHISE_MOVIES = {
@@ -1431,15 +1431,15 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="fixed inset-0 z-[100] overflow-y-auto">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[100]"
           onClick={onClose}
         />
-        <div className="flex min-h-full items-center justify-center p-4">
+        <div className="flex min-h-full items-center justify-center p-4 relative z-[101]">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

@@ -332,7 +332,7 @@ export default function Community() {
           </div>
         </motion.div>
 
-        {currentPage === 1 && (
+        {currentPage === 1 && !searchQuery && (
           <motion.div
             className="mb-10"
             initial={{ opacity: 0, y: 20 }}
@@ -346,24 +346,13 @@ export default function Community() {
               </div>
 
               <div className="relative z-10">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-400/30">
-                      <Sparkles className="w-6 h-6 text-purple-500 dark:text-purple-400" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">
-                      {t('community.friendsPlanning')}
-                    </h2>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-400/30">
+                    <Sparkles className="w-6 h-6 text-purple-500 dark:text-purple-400" />
                   </div>
-                  <motion.button
-                    onClick={() => navigate('/community')}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition-all"
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    <span>{t('community.accessCommunity', { defaultValue: 'Explore Community' })}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </motion.button>
+                  <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">
+                    {t('community.friendsPlanning')}
+                  </h2>
                 </div>
 
                 {loadingWatchlist ? (

@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, Award, Tv, TrendingDown, X, Loader2, Settings } from 'lucide-react';
+import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, Award, TrendingDown, X, Loader2, Settings, ChevronDown } from 'lucide-react';
 import { supabase, getProfile } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
-import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
-import RatingBox from '../components/RatingBox';
+import { getMovieDetailsFromDB } from '../lib/tmdb';
 import FollowersModal from '../components/FollowersModal';
 import WhispersModal from '../components/WhispersModal';
 import CustomizeModal from '../components/CustomizeModal';
@@ -155,25 +154,6 @@ export default function Profile() {
     return { bubble: 'bg-red-50/90 dark:bg-red-900/40 border-red-300 dark:border-red-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-red-600 dark:text-red-400', arrow: 'border-t-red-50 dark:border-t-red-900' };
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 300, damping: 24 }
-    }
-  };
-
   useEffect(() => {
     if (session?.user?.id) {
       fetchProfile();
@@ -205,9 +185,7 @@ export default function Profile() {
 
   useEffect(() => {
     const handleLanguageChange = () => {
-      console.log('Language changed in Profile, reloading stats...');
       if (typeof window !== 'undefined') {
-        const { cache } = require('../lib/cache');
         cache.invalidatePattern('movie:');
       }
       if (session?.user?.id) {
@@ -216,7 +194,6 @@ export default function Profile() {
     };
 
     const handleEpisodeToggled = () => {
-      console.log('Episode toggled, reloading stats...');
       if (session?.user?.id) {
         fetchMovieStats();
       }
@@ -760,901 +737,622 @@ export default function Profile() {
     }
   }, []);
 
-  const getOracleTags = () => {
-    const tags = [];
-    const predictions = profile?.oracle_predictions_count || 0;
-    const recommendations = profile?.oracle_recommendations_count || 0;
-
-    if (predictions >= 1000) tags.push({ emoji: '', name: 'Timeline Overlord', progress: predictions, total: 1000, category: 'oracle' });
-    else if (predictions >= 500) tags.push({ emoji: '', name: 'Fate Architect', progress: predictions, total: 500, category: 'oracle' });
-    else if (predictions >= 200) tags.push({ emoji: '', name: 'Oracle\'s Chosen', progress: predictions, total: 200, category: 'oracle' });
-    else if (predictions >= 100) tags.push({ emoji: '', name: 'Future Whisperer', progress: predictions, total: 100, category: 'oracle' });
-    else if (predictions >= 50) tags.push({ emoji: '', name: 'Mind Decoder', progress: predictions, total: 50, category: 'oracle' });
-    else if (predictions >= 25) tags.push({ emoji: '', name: 'Pattern Hunter', progress: predictions, total: 25, category: 'oracle' });
-    else if (predictions >= 10) tags.push({ emoji: '', name: 'Curious Seeker', progress: predictions, total: 10, category: 'oracle' });
-
-    if (recommendations >= 1000) tags.push({ emoji: '', name: 'Multiverse Sommelier', progress: recommendations, total: 1000, category: 'oracle' });
-    else if (recommendations >= 500) tags.push({ emoji: '', name: 'Galaxy Curator', progress: recommendations, total: 500, category: 'oracle' });
-    else if (recommendations >= 200) tags.push({ emoji: '', name: 'Recommendation Lord', progress: recommendations, total: 200, category: 'oracle' });
-    else if (recommendations >= 100) tags.push({ emoji: '', name: 'Taste Alchemist', progress: recommendations, total: 100, category: 'oracle' });
-    else if (recommendations >= 50) tags.push({ emoji: '', name: 'Genre Explorer', progress: recommendations, total: 50, category: 'oracle' });
-    else if (recommendations >= 25) tags.push({ emoji: '', name: 'Hidden Gem Hunter', progress: recommendations, total: 25, category: 'oracle' });
-    else if (recommendations >= 10) tags.push({ emoji: '', name: 'Popcorn Taster', progress: recommendations, total: 10, category: 'oracle' });
-
-    return tags;
-  };
-
   const handleWhispersClick = () => {
     setShowWhispersModal(true);
   };
 
   if (loading) {
     return (
-      <motion.div
-        className="min-h-[calc(100vh-4rem)] flex justify-center items-center bg-gradient-to-br from-blue-50/80 via-cyan-50/50 to-teal-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-cyan-950/50 relative overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }}
-      >
+      <div className="min-h-[calc(100vh-4rem)] flex justify-center items-center bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-400/20 dark:bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-cyan-400/20 dark:bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl" />
+          <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl" />
         </div>
-        <div className="p-8 rounded-2xl bg-white/60 dark:bg-gray-800/60 shadow-2xl border border-white/60 dark:border-gray-700/60 backdrop-blur-xl">
+        <div className="p-8 rounded-2xl bg-white/60 dark:bg-gray-800/60 shadow-2xl border border-white/60 dark:border-gray-700/60 backdrop-blur-xl relative z-10">
           <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto" />
           <p className="mt-4 text-gray-600 dark:text-gray-300 font-medium text-center">
             {t('common.loading')}
           </p>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   if (!profileExists) {
     return (
-      <motion.div
-        className="container mx-auto px-4 py-8 min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-blue-50/80 via-cyan-50/50 to-teal-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-cyan-950/50 relative overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
+      <div className="container mx-auto px-4 py-8 min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-400/20 dark:bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-cyan-400/20 dark:bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl" />
+          <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl" />
         </div>
-        <div className="max-w-2xl mx-auto bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
+        <div className="max-w-2xl mx-auto bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl border border-white/60 dark:border-gray-700/60 relative z-10">
           <div className="p-8 text-center">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className="mb-6"
-            >
+            <div className="mb-6">
               <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                 <User className="w-10 h-10 text-white" />
               </div>
-            </motion.div>
-            <motion.h2
-              className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 mb-4"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.5 }}
-            >
+            </div>
+            <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 mb-4">
               Welcome! Let's set up your profile
-            </motion.h2>
-            <motion.p
-              className="text-gray-600 dark:text-gray-300 mb-6"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
               It looks like you haven't created a profile yet. Click below to get started.
-            </motion.p>
-            <motion.button
+            </p>
+            <button
               onClick={createProfile}
               className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-colors shadow-lg"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
             >
               Create Profile
-            </motion.button>
+            </button>
           </div>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div
-      className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-cyan-50/50 to-teal-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-cyan-950/50 py-8 px-4 relative overflow-hidden"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
-    >
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 py-8 px-4 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 -left-20 w-96 h-96 bg-blue-400/20 dark:bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute top-1/2 -right-20 w-80 h-80 bg-cyan-400/20 dark:bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-teal-400/15 dark:bg-teal-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-        <div
-          className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(59, 130, 246, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.5) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px'
-          }}
-        />
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl" />
+        <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400/15 to-rose-400/15 dark:from-pink-600/8 dark:to-rose-600/8 rounded-full blur-3xl" />
       </div>
 
-      <div className="container mx-auto max-w-4xl relative z-10">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="space-y-6"
-        >
-          <motion.div
-            variants={itemVariants}
-            className={`bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl border border-white/60 dark:border-gray-700/60 ${getBannerClass(profile?.banner, isPremium)} relative`}
-          >
-            <motion.button
-              onClick={() => setShowSettingsModal(true)}
-              className="hidden sm:flex absolute top-8 right-8 items-center justify-center w-10 h-10 bg-white/60 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              title="Settings"
-            >
-              <Settings className="w-5 h-5" />
-            </motion.button>
+      <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" style={{
+        backgroundImage: 'linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }} />
 
-            <div className="p-6 sm:p-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6">
-                <div className="relative mx-auto sm:mx-0 mb-4 sm:mb-0">
-                  <div className={`w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 ${getFrameClass(profile?.avatar_frame, isPremium)}`}>
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={username}
-                        className="w-full h-full object-cover"
+      <div className="container mx-auto max-w-5xl relative z-10 space-y-6">
+        <div className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden ${getBannerClass(profile?.banner, isPremium)}`}>
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-cyan-500/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-400/10 to-pink-500/10 rounded-full blur-3xl" />
+          </div>
+
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="hidden sm:flex absolute top-6 right-6 items-center justify-center w-10 h-10 bg-white/60 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40 z-10"
+            title="Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+
+          <div className="relative z-10 p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-6">
+              <div className="relative mx-auto sm:mx-0 flex-shrink-0">
+                <div className={`w-28 h-28 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile?.avatar_frame, isPremium)}`}>
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={username}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-full h-full p-5 text-gray-400" />
+                  )}
+                </div>
+                {isEditing && (
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 hover:opacity-100 cursor-pointer rounded-full transition-opacity">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarChange}
+                    />
+                    <span className="text-sm">Change</span>
+                  </label>
+                )}
+              </div>
+
+              <div className="flex-1 text-center sm:text-left">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                  <div className="flex items-center justify-center sm:justify-start gap-2">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={newUsername}
+                        onChange={(e) => setNewUsername(e.target.value)}
+                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+                        maxLength={20}
+                        placeholder="Username"
                       />
                     ) : (
-                      <User className="w-full h-full p-4 text-gray-400" />
+                      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                        @{username}
+                      </h1>
+                    )}
+                    {isPremium && (
+                      <Crown className="w-6 h-6 text-yellow-400" title="Premium member" />
                     )}
                   </div>
-                  {isEditing && (
-                    <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 hover:opacity-100 cursor-pointer rounded-full transition-opacity">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleAvatarChange}
-                      />
-                      <span className="text-sm">Change</span>
-                    </label>
+                  {profile?.active_tag && (
+                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${getTagColorClasses(profile.active_tag.category)}`}>
+                      <span>{profile.active_tag.emoji}</span>
+                      <span className="text-sm font-medium">{profile.active_tag.name}</span>
+                    </div>
                   )}
                 </div>
 
-                <div className="flex-1 text-center sm:text-left">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                    <div className="flex flex-col sm:flex-row items-center sm:items-center gap-2">
-                      {isEditing ? (
-                        <div className="w-full sm:w-auto">
-                          <input
-                            type="text"
-                            value={newUsername}
-                            onChange={(e) => setNewUsername(e.target.value)}
-                            className="w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
-                            maxLength={20}
-                            placeholder="Username"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center">
-                          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                            @{username}
-                          </h1>
-                          {isPremium && (
-                            <motion.div
-                              whileHover={{ rotate: 360 }}
-                              transition={{ duration: 0.5 }}
-                              className="inline-block align-middle ml-2"
-                            >
-                              <Crown className="w-5 h-5 text-yellow-400" title="Premium member" />
-                            </motion.div>
-                          )}
-                        </div>
-                      )}
-                      {profile?.active_tag && (
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full backdrop-blur-sm ${
-                          getTagColorClasses(profile.active_tag.category)
-                        }`}>
-                          <span>{profile.active_tag.emoji}</span>
-                          <span className="text-sm font-medium">
-                            {profile.active_tag.name}
+                {isEditing ? (
+                  <textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    maxLength={160}
+                    rows={3}
+                    className="w-full bg-white/60 dark:bg-gray-700/60 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 backdrop-blur-sm mb-4"
+                    placeholder="Write something about yourself..."
+                  />
+                ) : bio ? (
+                  <p className="text-gray-600 dark:text-gray-300 mb-4 max-w-2xl">
+                    {bio}
+                  </p>
+                ) : null}
+
+                <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  <button
+                    onClick={() => setShowFollowModal('followers')}
+                    className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <Users className="w-5 h-5 mr-2" />
+                    <span>
+                      <strong className="text-gray-900 dark:text-white">{followersCount}</strong>{' '}
+                      {t('profile.followersLabel')}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setShowFollowModal('following')}
+                    className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <Users className="w-5 h-5 mr-2" />
+                    <span>
+                      <strong className="text-gray-900 dark:text-white">{followingCount}</strong>{' '}
+                      {t('profile.following', { count: followingCount })}
+                    </span>
+                  </button>
+                  <div className="flex items-center">
+                    <Calendar className="w-5 h-5 mr-2" />
+                    <span>{t('profile.joined', { date: createdAt ? formatDate(createdAt) : 'Unknown' })}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                  {!isEditing && (
+                    <>
+                      <button
+                        onClick={handleWhispersClick}
+                        className={`relative px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-colors flex items-center shadow-lg ${
+                          unreadWhispers > 0 ? 'animate-pulse shadow-orange-500/50' : ''
+                        }`}
+                      >
+                        <MessageCircle className="w-5 h-5 mr-2" />
+                        {t('profile.whispers')}
+                        {unreadWhispers > 0 && (
+                          <span className="ml-2 px-2 py-0.5 bg-white text-orange-600 text-xs font-bold rounded-full">
+                            {unreadWhispers}
                           </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap justify-center sm:justify-between items-center gap-4 sm:gap-6 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    <div className="flex items-center gap-4 sm:gap-6">
-                      <motion.button
-                        onClick={() => setShowFollowModal('followers')}
-                        className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <Users className="w-5 h-5 mr-2" />
-                        <span>
-                          <strong className="text-gray-900 dark:text-white">
-                            {followersCount}
-                          </strong>{' '}
-                          {t('profile.followersLabel')}
-                        </span>
-                      </motion.button>
-                      <motion.button
-                        onClick={() => setShowFollowModal('following')}
-                        className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <Users className="w-5 h-5 mr-2" />
-                        <span>
-                          <strong className="text-gray-900 dark:text-white">
-                            {followingCount}
-                          </strong>{' '}
-                          {t('profile.following', { count: followingCount })}
-                        </span>
-                      </motion.button>
-                    </div>
-                    {!isPremium && (
-                      <motion.button
-                        onClick={() => navigate('/premium')}
-                        className="hidden sm:flex items-center px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-black rounded-xl hover:from-yellow-500 hover:to-amber-600 transition-colors font-medium shadow-lg hover:shadow-md"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Crown className="w-4 h-4 mr-2" />
-                        {t('oracle.premium.upgrade')}
-                      </motion.button>
-                    )}
-                  </div>
-
-                  <div className="sm:hidden text-xs text-gray-600 dark:text-gray-400 mb-4">
-                    <div className="flex items-center justify-center">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      <span>{t('profile.joined', { date: createdAt ? formatDate(createdAt) : 'Unknown' })}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 sm:mt-0">
-                    {isEditing ? (
-                      <textarea
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value)}
-                        maxLength={160}
-                        rows={3}
-                        className="w-full bg-white/60 dark:bg-gray-700/60 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
-                        placeholder="Write something about yourself..."
-                      />
-                    ) : (
-                      <p className="text-gray-600 dark:text-gray-300 sm:mb-4">
-                        {bio || t('profile.bio')}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="hidden sm:flex items-center justify-between mt-6">
-                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                      <Calendar className="w-5 h-5 mr-2" />
-                      <span>{t('profile.joined', { date: createdAt ? formatDate(createdAt) : 'Unknown' })}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-2">
-                        {!isEditing && (
-                          <>
-                            <motion.button
-                              onClick={handleWhispersClick}
-                              className={`relative px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-colors flex items-center shadow-lg ${
-                                unreadWhispers > 0 ? 'animate-pulse shadow-orange-500/50' : ''
-                              }`}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              <MessageCircle className="w-5 h-5 mr-2" />
-                              {t('profile.whispers')}
-                              {unreadWhispers > 0 && (
-                                <span className="ml-2 px-2 py-0.5 bg-white text-orange-600 text-xs font-bold rounded-full">
-                                  {unreadWhispers}
-                                </span>
-                              )}
-                            </motion.button>
-                            <motion.button
-                              onClick={() => setShowCustomizeModal(true)}
-                              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-colors flex items-center shadow-lg"
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              <Palette className="w-5 h-5 mr-2" />
-                              {t('profile.customize')}
-                            </motion.button>
-                          </>
                         )}
-                        {isEditing ? (
-                          <>
-                            <motion.button
-                              onClick={handleUpdateProfile}
-                              className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-colors shadow-lg"
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              {t('profile.saveChanges')}
-                            </motion.button>
-                            <motion.button
-                              onClick={() => {
-                                setIsEditing(false);
-                                setNewUsername(username);
-                                setBio(bio);
-                              }}
-                              className="px-4 py-2 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              {t('common.cancel')}
-                            </motion.button>
-                          </>
-                        ) : (
-                          <motion.button
-                            onClick={() => setIsEditing(true)}
-                            className="px-4 py-2 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            {t('profile.editProfile')}
-                          </motion.button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 sm:hidden">
-                    <div className="flex flex-col gap-2">
+                      </button>
+                      <button
+                        onClick={() => setShowCustomizeModal(true)}
+                        className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-colors flex items-center shadow-lg"
+                      >
+                        <Palette className="w-5 h-5 mr-2" />
+                        {t('profile.customize')}
+                      </button>
                       {!isPremium && (
-                        <motion.button
+                        <button
                           onClick={() => navigate('/premium')}
-                          className="w-full px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-black rounded-xl hover:from-yellow-500 hover:to-amber-600 transition-colors flex items-center justify-center font-medium shadow-lg hover:shadow-xl"
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
+                          className="px-4 py-2.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-black rounded-xl hover:from-yellow-500 hover:to-amber-600 transition-colors font-medium shadow-lg flex items-center"
                         >
                           <Crown className="w-5 h-5 mr-2" />
                           {t('oracle.premium.upgrade')}
-                        </motion.button>
+                        </button>
                       )}
-                      {!isEditing && (
-                        <div className="flex gap-2">
-                          <motion.button
-                            onClick={handleWhispersClick}
-                            className={`relative flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-colors flex items-center justify-center shadow-lg ${
-                              unreadWhispers > 0 ? 'animate-pulse shadow-orange-500/50' : ''
-                            }`}
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                          >
-                            <MessageCircle className="w-5 h-5" />
-                            {unreadWhispers > 0 && (
-                              <span className="ml-2 px-2 py-0.5 bg-white text-orange-600 text-xs font-bold rounded-full">
-                                {unreadWhispers}
-                              </span>
-                            )}
-                          </motion.button>
-                          <motion.button
-                            onClick={() => setShowCustomizeModal(true)}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-colors flex items-center justify-center shadow-lg"
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                          >
-                            <Palette className="w-5 h-5" />
-                          </motion.button>
-                          <motion.button
-                            onClick={() => setShowSettingsModal(true)}
-                            className="px-4 py-2 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-white rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors flex items-center justify-center backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                          >
-                            <Settings className="w-5 h-5" />
-                          </motion.button>
-                        </div>
-                      )}
-                      {isEditing ? (
-                        <>
-                          <motion.button
-                            onClick={handleUpdateProfile}
-                            className="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-colors shadow-lg"
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                          >
-                            {t('profile.saveChanges')}
-                          </motion.button>
-                          <motion.button
-                            onClick={() => {
-                              setIsEditing(false);
-                              setNewUsername(username);
-                              setBio(bio);
-                            }}
-                            className="w-full px-4 py-2 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm"
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                          >
-                            {t('common.cancel')}
-                          </motion.button>
-                        </>
-                      ) : (
-                        <motion.button
-                          onClick={() => setIsEditing(true)}
-                          className="w-full px-4 py-2 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm"
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
-                        >
-                          {t('profile.editProfile')}
-                        </motion.button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            variants={itemVariants}
-            className="bg-gradient-to-br from-blue-500/10 via-cyan-500/10 to-teal-500/10 dark:from-blue-500/20 dark:via-cyan-500/20 dark:to-teal-500/20 rounded-2xl shadow-2xl p-6 transform transition-all duration-300 hover:shadow-xl backdrop-blur-xl border-2 border-blue-300/50 dark:border-blue-500/30"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-white" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {t('profile.friendsActivity')}
-                </h2>
-              </div>
-              <motion.button
-                onClick={() => navigate('/community')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Users className="w-4 h-4" />
-                {t('profile.accessCommunity')}
-              </motion.button>
-            </div>
-
-            {followedUsersCarousel.length > 0 ? (
-              <div className="relative pt-2">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={carouselOffset}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.35, ease: 'easeInOut' }}
-                    className="flex gap-5 justify-center items-end pt-20 pb-3"
-                  >
-                    {visibleCarouselUsers.map((user, index) => {
-                      const bubbleStyle = getBubbleStyle(user.lastRating);
-                      return (
-                        <div key={user.id} className="flex-shrink-0 flex flex-col items-center">
-                          <div className="relative mb-2">
-                            {user.lastRatedTitle && (
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 pointer-events-none">
-                                <div className={`relative border rounded-xl px-2.5 py-1.5 shadow-lg backdrop-blur-sm w-[90px] ${bubbleStyle.bubble}`}>
-                                  <p className={`text-[9px] font-medium text-center leading-tight line-clamp-2 whitespace-normal ${bubbleStyle.titleText}`}>
-                                    {user.lastRatedTitle}
-                                  </p>
-                                  {user.lastRating !== null && (
-                                    <p className={`text-[10px] font-bold text-center mt-0.5 ${bubbleStyle.ratingText}`}>
-                                      {user.lastRating}
-                                    </p>
-                                  )}
-                                  <div className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent ${bubbleStyle.arrow}`} />
-                                </div>
-                              </div>
-                            )}
-                            <motion.button
-                              onClick={() => navigate(`/profile/${user.username}`)}
-                              className="block"
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.95 }}
-                              animate={{ y: [0, -4, 0] }}
-                              transition={{
-                                y: { duration: 2.5 + index * 0.3, repeat: Infinity, ease: 'easeInOut', delay: index * 0.4 },
-                              }}
-                            >
-                              <div className={`w-14 h-14 rounded-full overflow-hidden border-2 border-white/80 dark:border-gray-700/80 shadow-lg ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
-                                {user.avatar_url ? (
-                                  <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center">
-                                    <User className="w-7 h-7 text-white" />
-                                  </div>
-                                )}
-                              </div>
-                            </motion.button>
-                          </div>
-                          <span className="text-[10px] text-gray-600 dark:text-gray-400 text-center max-w-[56px] truncate font-medium">
-                            {user.username}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </motion.div>
-                </AnimatePresence>
-                {followedUsersCarousel.length > CAROUSEL_PAGE_SIZE && (
-                  <div className="flex justify-center gap-1.5 mt-2 pb-1">
-                    {Array.from({ length: Math.ceil(followedUsersCarousel.length / CAROUSEL_PAGE_SIZE) }).map((_, i) => (
+                    </>
+                  )}
+                  {isEditing ? (
+                    <>
                       <button
-                        key={i}
-                        onClick={() => setCarouselOffset(i * CAROUSEL_PAGE_SIZE)}
-                        className={`rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-blue-500 w-4' : 'bg-gray-300 dark:bg-gray-600 w-2'}`}
-                        style={{ height: '6px' }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">Follow users to see their activity here</p>
-              </div>
-            )}
-          </motion.div>
-
-          <motion.div
-            variants={containerVariants}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {t('profile.stats.ratedMovies')}
-                </h2>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
-                  <Star className="w-5 h-5 text-white" />
-                </div>
-              </div>
-              <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400">
-                {ratedMoviesCount}
-              </div>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {t('profile.stats.favoriteGenres')}
-                </h2>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center">
-                  <Film className="w-5 h-5 text-white" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                {favoriteGenres.map((genre, index) => (
-                  <div
-                    key={genre.id}
-                    className={`text-${index === 0 ? 'xl' : 'base'} ${
-                      index === 0 ? 'font-bold' : 'font-medium'
-                    } text-gray-900 dark:text-white text-center`}
+                        onClick={handleUpdateProfile}
+                        className="px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-colors shadow-lg"
+                      >
+                        {t('profile.saveChanges')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsEditing(false);
+                          setNewUsername(username);
+                          setBio(bio);
+                        }}
+                        className="px-4 py-2.5 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
+                      >
+                        {t('common.cancel')}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="px-4 py-2.5 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
+                    >
+                      {t('profile.editProfile')}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowSettingsModal(true)}
+                    className="sm:hidden px-4 py-2.5 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-white rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors flex items-center backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
                   >
-                    {genre.name}
-                  </div>
-                ))}
-                {favoriteGenres.length === 0 && (
-                  <div className="text-gray-500 dark:text-gray-400 text-center">
-                    {t('profile.stats.noGenresYet')}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {t('profile.stats.timeWatching')}
-                </h2>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-white" />
+                    <Settings className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
-              <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400">
-                {formatWatchTime(totalWatchTime)}
+            </div>
+          </div>
+        </div>
+
+        <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border-2 border-blue-300/50 dark:border-blue-500/30 shadow-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                <Users className="w-5 h-5 text-white" />
               </div>
-            </motion.div>
-          </motion.div>
-
-          {ratedMoviesCount > 0 && (
-            <motion.button
-              variants={itemVariants}
-              onClick={() => setShowStats(!showStats)}
-              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-2xl p-4 shadow-xl transition-all duration-300 flex items-center justify-center gap-2 font-semibold"
-            >
-              <BarChart3 className="w-5 h-5" />
-              {showStats ? t('profile.hideStats') : t('profile.showStats')}
-              <svg
-                className={`w-5 h-5 transition-transform duration-300 ${showStats ? 'rotate-180' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </motion.button>
-          )}
-
-          {showStats && (
-          <>
-          <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-                {t('profile.stats.ratingDistribution')}
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {t('profile.friendsActivity')}
               </h2>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-white" />
-              </div>
             </div>
-            <div className="space-y-2">
-              {[...Array(11)].map((_, i) => {
-                const rating = 10 - i;
-                const percentage = (ratingDistribution[rating] / getMaxRatingCount) * 100;
-                return (
-                  <div key={rating} className="flex items-center gap-2">
-                    <div className="w-12 text-sm text-gray-600 dark:text-gray-400 flex items-center">
-                      {rating}<Star className="w-3 h-3 ml-0.5 inline fill-current" />
-                    </div>
-                    <div className="flex-1 h-4 bg-gray-100/80 dark:bg-gray-700/80 rounded-full overflow-hidden backdrop-blur-sm">
-                      <motion.div
-                        className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 dark:from-blue-400 dark:to-cyan-400 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${percentage}%` }}
-                        transition={{ duration: 0.8, delay: i * 0.05, ease: "easeOut" }}
-                      />
-                    </div>
-                    <div className="w-8 text-sm text-right text-gray-600 dark:text-gray-400">
-                      {ratingDistribution[rating]}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </motion.div>
+            <button
+              onClick={() => navigate('/community')}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              <Users className="w-4 h-4" />
+              {t('profile.accessCommunity')}
+            </button>
+          </div>
 
-          {favoriteDecade && (
-            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {t('profile.stats.favoriteDecade')}
-                </h2>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                  <ArchiveIcon className="w-5 h-5 text-white" />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="text-center">
-                  <div className={`text-4xl font-bold mb-1 ${
-                    favoriteDecade.label === 'Grandpa Cinema' ? 'text-amber-600 dark:text-amber-400' :
-                    favoriteDecade.label === 'Nostalgic' ? 'text-blue-600 dark:text-blue-400' :
-                    'text-emerald-600 dark:text-emerald-400'
-                  }`}>
-                    {favoriteDecade.decade.replace('s', '')}
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                    {favoriteDecade.count} {t('community.films')} - {Math.round(favoriteDecade.percentage)}%
-                  </div>
-                  <div className={`text-xs font-medium mt-1 ${
-                    favoriteDecade.label === 'Grandpa Cinema' ? 'text-amber-600 dark:text-amber-400' :
-                    favoriteDecade.label === 'Nostalgic' ? 'text-blue-600 dark:text-blue-400' :
-                    'text-emerald-600 dark:text-emerald-400'
-                  }`}>
-                    {favoriteDecade.label === 'Grandpa Cinema' ? 'Grandpa Cinema' :
-                     favoriteDecade.label === 'Nostalgic' ? 'Nostalgic' :
-                     'Modern Lover'}
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <div className="h-3 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden backdrop-blur-sm">
-                    <motion.div
-                      className={`h-full rounded-full ${
-                        favoriteDecade.label === 'Grandpa Cinema' ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
-                        favoriteDecade.label === 'Nostalgic' ? 'bg-gradient-to-r from-blue-400 to-cyan-500' :
-                        'bg-gradient-to-r from-emerald-400 to-teal-500'
-                      }`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, favoriteDecade.percentage)}%` }}
-                      transition={{ duration: 1, delay: 0.3 }}
-                    />
-                  </div>
-                </div>
-
-                {favoriteDecade.allDecades && Object.keys(favoriteDecade.allDecades).length > 1 && (
-                  <div className="space-y-2">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                      {t('profile.stats.otherDecades')}
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {Object.entries(favoriteDecade.allDecades)
-                        .sort(([a], [b]) => parseInt(b) - parseInt(a))
-                        .filter(([decade]) => decade !== favoriteDecade.decade)
-                        .map(([decade, count]) => {
-                          const totalMovies = Object.values(favoriteDecade.allDecades!).reduce((sum, c) => sum + c, 0);
-                          const percentage = (count / totalMovies) * 100;
-
-                          return (
-                            <div
-                              key={decade}
-                              className="flex items-center justify-between px-3 py-2 bg-white/40 dark:bg-gray-700/40 rounded-xl backdrop-blur-sm"
-                            >
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                {decade.replace('s', '')}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {count}
-                                </span>
-                                <div className="w-12 h-1.5 bg-gray-200/80 dark:bg-gray-600/80 rounded-full overflow-hidden">
-                                  <motion.div
-                                    className="h-full bg-gray-400 dark:bg-gray-500 rounded-full"
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${percentage}%` }}
-                                    transition={{ duration: 0.8, delay: 0.5 }}
-                                  />
-                                </div>
+          {followedUsersCarousel.length > 0 ? (
+            <div className="relative pt-2">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={carouselOffset}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.35, ease: 'easeInOut' }}
+                  className="flex gap-5 justify-center items-end pt-20 pb-3"
+                >
+                  {visibleCarouselUsers.map((user, index) => {
+                    const bubbleStyle = getBubbleStyle(user.lastRating);
+                    return (
+                      <div key={user.id} className="flex-shrink-0 flex flex-col items-center">
+                        <div className="relative mb-2">
+                          {user.lastRatedTitle && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 pointer-events-none">
+                              <div className={`relative border rounded-xl px-2.5 py-1.5 shadow-lg backdrop-blur-sm w-[90px] ${bubbleStyle.bubble}`}>
+                                <p className={`text-[9px] font-medium text-center leading-tight line-clamp-2 whitespace-normal ${bubbleStyle.titleText}`}>
+                                  {user.lastRatedTitle}
+                                </p>
+                                {user.lastRating !== null && (
+                                  <p className={`text-[10px] font-bold text-center mt-0.5 ${bubbleStyle.ratingText}`}>
+                                    {user.lastRating}
+                                  </p>
+                                )}
+                                <div className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent ${bubbleStyle.arrow}`} />
                               </div>
                             </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          <motion.div variants={containerVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {t('profile.stats.favoriteActors')}
-                </h2>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center">
-                  <Award className="w-5 h-5 text-white" />
-                </div>
-              </div>
-              {topActors.length > 0 ? (
-                <div className="space-y-2">
-                  {topActors.map((actor, index) => (
-                    <div key={actor.id} className="flex items-center justify-between">
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {index + 1}. {actor.name}
-                      </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {actor.count} {actor.count === 1 ? t('community.film') : t('community.films')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                  {t('common.no_data')}
-                </div>
-              )}
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {t('profile.stats.favoriteDirectors')}
-                </h2>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
-                  <Film className="w-5 h-5 text-white" />
-                </div>
-              </div>
-              {topDirectors.length > 0 ? (
-                <div className="space-y-2">
-                  {topDirectors.map((director, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {index + 1}. {director.name}
-                      </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {director.count} {director.count === 1 ? t('community.film') : t('community.films')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                  {t('common.no_data')}
-                </div>
-              )}
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {t('profile.stats.leastKnownGem')}
-                </h2>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                  <TrendingDown className="w-5 h-5 text-white" />
-                </div>
-              </div>
-              {leastKnownGem ? (
-                <div className="flex flex-col">
-                  <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
-                    {leastKnownGem.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                    {new Date(leastKnownGem.release_date).getFullYear()}
-                  </p>
-                  <div className="flex items-center gap-4 mt-1">
-                    <div className="flex items-center text-yellow-500">
-                      <Star className="w-4 h-4 fill-current mr-1" />
-                      <span className="text-sm">{leastKnownGem.vote_average.toFixed(1)}</span>
-                    </div>
-                    {leastKnownGem.userRating && (
-                      <div className="flex items-center">
-                        <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">{t('movies.yourRating')}:</span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{leastKnownGem.userRating}/10</span>
+                          )}
+                          <button
+                            onClick={() => navigate(`/profile/${user.username}`)}
+                            className="block"
+                          >
+                            <div className={`w-14 h-14 rounded-full overflow-hidden border-2 border-white/80 dark:border-gray-700/80 shadow-lg ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
+                              {user.avatar_url ? (
+                                <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center">
+                                  <User className="w-7 h-7 text-white" />
+                                </div>
+                              )}
+                            </div>
+                          </button>
+                        </div>
+                        <span className="text-[10px] text-gray-600 dark:text-gray-400 text-center max-w-[56px] truncate font-medium">
+                          {user.username}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                  {t('profile.stats.noHiddenGems')}
+                    );
+                  })}
+                </motion.div>
+              </AnimatePresence>
+              {followedUsersCarousel.length > CAROUSEL_PAGE_SIZE && (
+                <div className="flex justify-center gap-1.5 mt-2 pb-1">
+                  {Array.from({ length: Math.ceil(followedUsersCarousel.length / CAROUSEL_PAGE_SIZE) }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCarouselOffset(i * CAROUSEL_PAGE_SIZE)}
+                      className={`rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-blue-500 w-4' : 'bg-gray-300 dark:bg-gray-600 w-2'}`}
+                      style={{ height: '6px' }}
+                    />
+                  ))}
                 </div>
               )}
-            </motion.div>
-          </motion.div>
-
-          </>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">Follow users to see their activity here</p>
+            </div>
           )}
-        </motion.div>
+        </div>
 
-        {showWhispersModal && session?.user?.id && (
-          <WhispersModal
-            isOpen={showWhispersModal}
-            onClose={() => setShowWhispersModal(false)}
-            userId={session.user.id}
-            onMarkAsRead={fetchUnreadWhispers}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                {t('profile.stats.ratedMovies')}
+              </h2>
+              <Star className="w-5 h-5 text-yellow-500" />
+            </div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+              {ratedMoviesCount}
+            </div>
+          </div>
+
+          <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                {t('profile.stats.favoriteGenres')}
+              </h2>
+              <Film className="w-5 h-5 text-purple-500" />
+            </div>
+            <div className="space-y-1">
+              {favoriteGenres.map((genre, index) => (
+                <div
+                  key={genre.id}
+                  className={`text-${index === 0 ? 'lg' : 'sm'} ${index === 0 ? 'font-bold' : 'font-medium'} text-gray-900 dark:text-white`}
+                >
+                  {genre.name}
+                </div>
+              ))}
+              {favoriteGenres.length === 0 && (
+                <div className="text-gray-500 dark:text-gray-400 text-sm">
+                  {t('profile.stats.noGenresYet')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                {t('profile.stats.timeWatching')}
+              </h2>
+              <Clock className="w-5 h-5 text-green-500" />
+            </div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+              {formatWatchTime(totalWatchTime)}
+            </div>
+          </div>
+        </div>
+
+        {ratedMoviesCount > 0 && (
+          <button
+            onClick={() => setShowStats(!showStats)}
+            className="w-full relative rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4 shadow-xl hover:shadow-2xl hover:shadow-blue-500/25 transition-all flex items-center justify-center gap-2 font-semibold"
+          >
+            <BarChart3 className="w-5 h-5" />
+            {showStats ? t('profile.hideStats') : t('profile.showStats')}
+            <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${showStats ? 'rotate-180' : ''}`} />
+          </button>
         )}
 
-        {showFollowModal && session?.user?.id && (
-          <FollowersModal
-            isOpen={true}
-            onClose={() => setShowFollowModal(null)}
-            userId={session.user.id}
-            type={showFollowModal}
-            onFollowChange={fetchProfile}
-          />
-        )}
+        <AnimatePresence>
+          {showStats && ratedMoviesCount > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 overflow-hidden"
+            >
+              <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {t('profile.stats.ratingDistribution')}
+                  </h2>
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
+                </div>
+                <div className="space-y-2">
+                  {[...Array(11)].map((_, i) => {
+                    const rating = 10 - i;
+                    return (
+                      <div key={rating} className="flex items-center gap-2">
+                        <div className="w-10 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                          {rating}<Star className="w-3 h-3 ml-0.5 inline fill-current" />
+                        </div>
+                        <div className="flex-1 h-3 bg-gray-200/50 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
+                            style={{ width: `${(ratingDistribution[rating] / getMaxRatingCount) * 100}%` }}
+                          />
+                        </div>
+                        <div className="w-8 text-sm text-right text-gray-600 dark:text-gray-400">
+                          {ratingDistribution[rating]}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-        <CustomizeModal
-          isOpen={showCustomizeModal}
-          onClose={() => setShowCustomizeModal(false)}
-          onSave={() => {
-            fetchProfile();
-          }}
-        />
+              {favoriteDecade && (
+                <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {t('profile.stats.favoriteDecade')}
+                    </h2>
+                    <ArchiveIcon className="w-5 h-5 text-amber-500" />
+                  </div>
 
-        <SettingsModal
-          isOpen={showSettingsModal}
-          onClose={() => setShowSettingsModal(false)}
-        />
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                        {favoriteDecade.decade}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {favoriteDecade.count} {t('community.films')}
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <div className={`text-lg font-medium mb-2 ${
+                        favoriteDecade.label === 'Grandpa Cinema' ? 'text-amber-600 dark:text-amber-400' :
+                        favoriteDecade.label === 'Nostalgic' ? 'text-indigo-600 dark:text-indigo-400' :
+                        'text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        {favoriteDecade.label}
+                      </div>
+
+                      <div className="h-3 bg-gray-200/50 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            favoriteDecade.label === 'Grandpa Cinema' ? 'bg-amber-500' :
+                            favoriteDecade.label === 'Nostalgic' ? 'bg-indigo-500' :
+                            'bg-emerald-500'
+                          }`}
+                          style={{ width: `${Math.min(100, favoriteDecade.percentage)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                      {t('profile.stats.favoriteActors')}
+                    </h2>
+                    <Award className="w-5 h-5 text-pink-500" />
+                  </div>
+                  {topActors.length > 0 ? (
+                    <div className="space-y-2">
+                      {topActors.map((actor, index) => (
+                        <div key={actor.id} className="flex items-center justify-between">
+                          <span className="font-medium text-gray-900 dark:text-white text-sm">
+                            {index + 1}. {actor.name}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {actor.count} {actor.count === 1 ? t('community.film') : t('community.films')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-2 text-sm">
+                      {t('common.no_data')}
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                      {t('profile.stats.favoriteDirectors')}
+                    </h2>
+                    <Film className="w-5 h-5 text-indigo-500" />
+                  </div>
+                  {topDirectors.length > 0 ? (
+                    <div className="space-y-2">
+                      {topDirectors.map((director, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <span className="font-medium text-gray-900 dark:text-white text-sm">
+                            {index + 1}. {director.name}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {director.count} {director.count === 1 ? t('community.film') : t('community.films')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-2 text-sm">
+                      {t('common.no_data')}
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                      {t('profile.stats.leastKnownGem')}
+                    </h2>
+                    <TrendingDown className="w-5 h-5 text-emerald-500" />
+                  </div>
+                  {leastKnownGem ? (
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white mb-1 text-sm">
+                        {leastKnownGem.title}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        {new Date(leastKnownGem.release_date).getFullYear()}
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center text-yellow-500">
+                          <Star className="w-4 h-4 fill-current mr-1" />
+                          <span className="text-sm">{leastKnownGem.vote_average.toFixed(1)}</span>
+                        </div>
+                        {leastKnownGem.userRating && (
+                          <div className="flex items-center text-xs">
+                            <span className="text-gray-500 dark:text-gray-400 mr-1">{t('movies.yourRating')}:</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{leastKnownGem.userRating}/10</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-2 text-sm">
+                      {t('profile.stats.noHiddenGems')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </motion.div>
+
+      {showWhispersModal && session?.user?.id && (
+        <WhispersModal
+          isOpen={showWhispersModal}
+          onClose={() => setShowWhispersModal(false)}
+          userId={session.user.id}
+          onMarkAsRead={fetchUnreadWhispers}
+        />
+      )}
+
+      {showFollowModal && session?.user?.id && (
+        <FollowersModal
+          isOpen={true}
+          onClose={() => setShowFollowModal(null)}
+          userId={session.user.id}
+          type={showFollowModal}
+          onFollowChange={fetchProfile}
+        />
+      )}
+
+      <CustomizeModal
+        isOpen={showCustomizeModal}
+        onClose={() => setShowCustomizeModal(false)}
+        onSave={() => {
+          fetchProfile();
+        }}
+      />
+
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+      />
+    </div>
   );
 }
