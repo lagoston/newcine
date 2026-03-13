@@ -131,7 +131,7 @@ const Home = () => {
 
     if (loading) {
       return (
-        <div className="relative mb-12 p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl">
+        <div className="relative mb-10 p-6 sm:p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
@@ -141,35 +141,36 @@ const Home = () => {
 
     return (
       <motion.div
-        className="relative mb-12 p-6 sm:p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden"
+        className="relative mb-10 p-6 sm:p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="absolute inset-0 opacity-30 dark:opacity-20 pointer-events-none">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-pink-500/20 to-blue-500/20 rounded-full blur-3xl"></div>
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-blue-500/10 to-cyan-400/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-pink-500/8 to-blue-400/5 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" style={{
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
           backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
           backgroundSize: '24px 24px'
         }}></div>
 
         <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-1.5 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-full"></div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 pb-1 leading-relaxed">
+            <div className="h-10 w-1 bg-gradient-to-b from-blue-400 via-cyan-400 to-blue-500 rounded-full"></div>
+            <h2 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 leading-relaxed">
               {title}
             </h2>
           </div>
           <Link
             to={`/category/${category}`}
-            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+            className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/25 rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 overflow-hidden relative group"
           >
-            <span className="hidden sm:inline">{t('common.view_all')}</span>
-            <span className="sm:hidden">Ver</span>
-            <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+            <span className="relative z-10 hidden sm:inline">{t('common.view_all')}</span>
+            <span className="relative z-10 sm:hidden">Ver</span>
+            <ArrowRight className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Link>
         </div>
 
@@ -186,7 +187,7 @@ const Home = () => {
             {movies.map((movie, index) => (
               <motion.div
                 key={movie.id}
-                className="relative rounded-2xl overflow-hidden cursor-pointer group flex-shrink-0 shadow-xl"
+                className="relative rounded-2xl overflow-hidden cursor-pointer group flex-shrink-0 shadow-xl border border-white/10"
                 style={{ width: '160px', height: '240px', willChange: 'transform' }}
                 onClick={() => { if (dragDistanceRef.current > 5) return; handleMovieClick(movie); }}
                 initial={{ opacity: 0, y: 20 }}
@@ -196,7 +197,7 @@ const Home = () => {
                 whileTap={{ scale: 0.97 }}
               >
                 <div
-                  className="absolute top-2 left-2 bg-gradient-to-br from-blue-600 to-blue-700 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg"
+                  className="absolute top-2 left-2 bg-blue-500/80 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg border border-blue-400/30"
                   style={{ zIndex: 30, transform: 'translateZ(0)' }}
                 >
                   #{index + 1}
@@ -208,15 +209,15 @@ const Home = () => {
                   className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
                 />
 
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-sm pointer-events-none">
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-[2px] pointer-events-none">
                   <div className="p-3">
                     <h3 className="text-white font-bold mb-1.5 line-clamp-2 text-sm drop-shadow-lg">{movie.title}</h3>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <div className="flex items-center bg-gradient-to-r from-blue-500/30 to-blue-600/30 backdrop-blur-md px-2 py-1 rounded-lg border border-blue-400/30 shadow-lg">
+                      <div className="flex items-center bg-blue-500/20 backdrop-blur-md px-2 py-1 rounded-lg border border-blue-400/30">
                         <Star className="w-3 h-3 fill-blue-400 text-blue-400" />
                         <span className="ml-1 text-blue-100 font-bold text-xs">{movie.vote_average.toFixed(1)}</span>
                       </div>
-                      <span className="text-gray-200 text-xs font-semibold bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg">
+                      <span className="text-gray-200 text-xs font-semibold bg-white/10 backdrop-blur-sm px-2 py-1 rounded-lg border border-white/10">
                         {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}
                       </span>
                     </div>
@@ -418,26 +419,20 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 transition-all duration-500 py-8 px-4 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400/15 to-rose-400/15 dark:from-pink-600/8 dark:to-rose-600/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-900 via-blue-950/90 to-slate-900 transition-all duration-500 py-8 px-4 relative overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-500/15 to-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-pink-500/12 to-rose-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-40 left-1/3 w-72 h-72 bg-gradient-to-br from-cyan-500/10 to-blue-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-20 right-1/4 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-indigo-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '3s' }}></div>
       </div>
 
-      <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" style={{
-        backgroundImage: 'linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)',
-        backgroundSize: '50px 50px'
-      }}></div>
-
-      <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.03]" style={{
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
         backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
         backgroundSize: '30px 30px'
       }}></div>
 
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-40 bg-gradient-to-b from-blue-500/5 to-transparent dark:from-blue-400/5 blur-2xl"></div>
-
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto relative z-10">
         {session?.user && (
           <HomeUserPanels
             userId={session.user.id}
