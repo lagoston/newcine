@@ -346,8 +346,8 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
             {/* Next Tag */}
             <div className="flex items-center gap-3 mb-5">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15">
-                <Lock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+              <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15">
+                <Lock className="w-4 h-4 text-pink-500 dark:text-pink-400" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.nextTag')}</p>
@@ -400,7 +400,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                       onClick={() => setShowRevelationModal(true)}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-400/20 transition-all duration-200"
+                      className="p-2 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 border border-pink-400/20 transition-all duration-200"
                       title={isPt ? 'Revelação' : 'Revelation'}
                     >
                       <Scroll className="w-3.5 h-3.5" />
@@ -563,7 +563,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 </button>
 
                 <div className="flex items-center justify-center gap-3 mb-6">
-                  <Scroll className="w-8 h-8 text-amber-400" style={{ filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.5))' }} />
+                  <Scroll className="w-8 h-8 text-pink-400" style={{ filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.5))' }} />
                   <h2 className="text-2xl font-bold text-white">{isPt ? 'Revelação' : 'Revelation'}</h2>
                 </div>
 
@@ -577,8 +577,8 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
-                    <h3 className="text-base font-bold text-amber-400 mb-2">
+                  <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
+                    <h3 className="text-base font-bold text-pink-400 mb-2">
                       {isPt ? 'Sua Essência (As Duas Primeiras Letras)' : 'Your Essence (First Two Letters)'}
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed">{archetypeInfo.archetype_description}</p>
