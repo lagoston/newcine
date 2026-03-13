@@ -824,18 +824,16 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         >
           <button
             onClick={() => handleFrameSelect(defaultFrame.id as FrameId)}
-            className="w-full h-full p-4 relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300"
+            className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 flex flex-col items-center justify-center p-3"
           >
-            <div className={`w-full h-full rounded-full overflow-hidden ${defaultFrame.className} shadow-xl`}>
+            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ${defaultFrame.className} shadow-xl flex-shrink-0`}>
               <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
-                <User className="w-1/2 h-1/2 text-white" />
+                <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
               </div>
             </div>
-            <div className="absolute inset-x-0 bottom-2 flex items-center justify-center">
-              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
-                {defaultFrame.name}
-              </span>
-            </div>
+            <span className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
+              {defaultFrame.name}
+            </span>
             {selectedFrame === defaultFrame.id && (
               <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full">
                 <Check className="w-4 h-4" />
@@ -863,29 +861,25 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
               <button
                 onClick={() => !isLocked && handleFrameSelect(frame.id as FrameId)}
                 disabled={isLocked}
-                className="w-full h-full p-4 relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 disabled:cursor-not-allowed disabled:hover:from-gray-100 disabled:hover:to-gray-200 dark:disabled:hover:from-gray-700 dark:disabled:hover:to-gray-800"
+                className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 disabled:cursor-not-allowed disabled:hover:from-gray-100 disabled:hover:to-gray-200 dark:disabled:hover:from-gray-700 dark:disabled:hover:to-gray-800 flex flex-col items-center justify-center p-3"
               >
-                <div className={`w-full h-full rounded-full overflow-hidden ${frame.className} shadow-xl`}>
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ${frame.className} shadow-xl flex-shrink-0`}>
                   <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
-                    <User className="w-1/2 h-1/2 text-white" />
+                    <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                   </div>
                 </div>
-                <div className="absolute inset-x-0 bottom-2 flex items-center justify-center">
-                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
-                    {frame.name}
-                  </span>
-                </div>
+                <span className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm text-center line-clamp-1">
+                  {frame.name}
+                </span>
                 {isLocked && (
                   <div className="absolute top-2 right-2 z-10">
                     {isPremiumLocked ? (
-                      <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2.5 py-1 rounded-full shadow-lg">
-                        <Crown className="w-3.5 h-3.5" />
-                        <span>Premium</span>
+                      <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                        <Crown className="w-3 h-3" />
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg">
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Tag</span>
+                      <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                        <Lock className="w-3 h-3" />
                       </div>
                     )}
                   </div>
@@ -908,7 +902,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     const otherBanners = Object.values(banners).filter(banner => banner.id !== 'default');
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <motion.div
           key={defaultBanner.id}
           initial={{ opacity: 0, y: 10 }}
@@ -918,16 +912,16 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         >
           <button
             onClick={() => handleBannerSelect(defaultBanner.id as BannerId)}
-            className="w-full h-full relative group transition-all duration-300 hover:scale-[1.02]"
+            className="w-full relative group transition-all duration-300 hover:scale-[1.02]"
           >
-            <div className="bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 rounded-2xl p-8 h-36 w-full flex items-center justify-center">
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white text-center">
+            <div className="bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 rounded-2xl h-28 w-full flex items-center justify-center px-4">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-white text-center">
                 {defaultBanner.name}
               </h3>
             </div>
             {selectedBanner === defaultBanner.id && (
-              <div className="absolute top-3 right-3 bg-blue-500 text-white p-1.5 rounded-full z-10">
-                <Check className="w-4 h-4" />
+              <div className="absolute top-2 right-2 bg-blue-500 text-white p-1 rounded-full z-10">
+                <Check className="w-3 h-3" />
               </div>
             )}
           </button>
@@ -954,31 +948,29 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 disabled={isLocked}
                 className="block w-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                <div className={`rounded-2xl p-8 h-36 w-full flex items-center justify-center ${banner.className}`}>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white z-10 relative text-center line-clamp-2 w-full px-8">
+                <div className={`rounded-2xl h-28 w-full flex items-center justify-center px-4 ${banner.className}`}>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white z-10 relative text-center line-clamp-2">
                     {banner.name}
                   </h3>
-                  {isLocked && (
-                    <div className="absolute top-3 right-3 z-10">
-                      {isPremiumLocked ? (
-                        <div className="flex items-center gap-1.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                          <Crown className="w-4 h-4" />
-                          <span>Premium</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 bg-gray-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                          <Lock className="w-4 h-4" />
-                          <span>Tag</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {!isLocked && selectedBanner === banner.id && (
-                    <div className="absolute top-3 right-3 bg-blue-500 text-white p-1.5 rounded-full z-10">
-                      <Check className="w-4 h-4" />
-                    </div>
-                  )}
                 </div>
+                {isLocked && (
+                  <div className="absolute top-2 right-2 z-10">
+                    {isPremiumLocked ? (
+                      <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                        <Crown className="w-3 h-3" />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                        <Lock className="w-3 h-3" />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!isLocked && selectedBanner === banner.id && (
+                  <div className="absolute top-2 right-2 bg-blue-500 text-white p-1 rounded-full z-10">
+                    <Check className="w-3 h-3" />
+                  </div>
+                )}
               </button>
             </motion.div>
           );
