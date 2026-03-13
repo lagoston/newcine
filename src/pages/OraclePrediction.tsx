@@ -6,7 +6,6 @@ import { useAuth } from '../lib/auth';
 import { searchMovies } from '../lib/tmdb';
 import { useDebounce } from 'use-debounce';
 import { supabase } from '../lib/supabase';
-import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
@@ -14,6 +13,7 @@ interface Prediction {
   prediction: string;
   movie: string;
   ticketsRemaining: number;
+  id?: string;
 }
 
 interface TicketError {
@@ -31,11 +31,7 @@ export default function OraclePrediction() {
   const [selectedMovie, setSelectedMovie] = useState<string | null>(null);
   const [selectedMoviePoster, setSelectedMoviePoster] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
-  const [loading, setLoading] = useState({
-    search: false,
-    prediction: false,
-    sharing: false
-  });
+  const [loading, setLoading] = useState({ search: false, prediction: false, sharing: false });
   const [predictionProgress, setPredictionProgress] = useState(0);
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
   const [nextReset, setNextReset] = useState<Date | null>(null);
@@ -58,11 +54,8 @@ export default function OraclePrediction() {
   ];
 
   useEffect(() => {
-    if (session?.user?.id) {
-      fetchTicketInfo();
-    }
+    if (session?.user?.id) fetchTicketInfo();
   }, [session?.user?.id]);
-
 
   useEffect(() => {
     if (!loading.prediction && !prediction) {
@@ -75,15 +68,11 @@ export default function OraclePrediction() {
 
   const fetchTicketInfo = async () => {
     try {
-      const { data, error } = await supabase
-        .rpc('check_and_reset_tickets', { user_id_param: session?.user?.id });
-
+      const { data, error } = await supabase.rpc('check_and_reset_tickets', { user_id_param: session?.user?.id });
       if (error) throw error;
-
       if (data && data.length > 0) {
-        const ticketInfo = data[0];
-        setTicketsRemaining(ticketInfo.tickets_remaining);
-        setNextReset(new Date(ticketInfo.next_reset));
+        setTicketsRemaining(data[0].tickets_remaining);
+        setNextReset(new Date(data[0].next_reset));
       }
     } catch (error) {
       console.error('Error fetching ticket info:', error);
@@ -93,13 +82,11 @@ export default function OraclePrediction() {
     }
   };
 
-
   const handleSearch = async () => {
     if (!debouncedQuery.trim() || loading.prediction) {
       setSearchResults([]);
       return;
     }
-
     try {
       setLoading(prev => ({ ...prev, search: true }));
       const results = await searchMovies(debouncedQuery);
@@ -118,37 +105,25 @@ export default function OraclePrediction() {
 
   const formatTimeUntilReset = () => {
     if (!nextReset) return '';
-    
     const now = new Date();
     const diff = nextReset.getTime() - now.getTime();
-    
-    // If nextReset is in the past, return "Now"
     if (diff <= 0) return t('common.now');
-    
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
-    if (days > 0) {
-      return `${days}d ${hours}h`;
-    }
+    if (days > 0) return `${days}d ${hours}h`;
     return `${hours}h`;
   };
 
   const getPrediction = async (movieName: string, movieId: number, posterPath?: string) => {
     if (!session?.user?.id) return;
-
     if (ticketsRemaining !== null && ticketsRemaining < 1) {
       toast.error(t('oracle.prediction.notEnough', { time: formatTimeUntilReset() }));
       return;
     }
 
-    // Armazenar poster do filme
-    if (posterPath) {
-      setSelectedMoviePoster(posterPath);
-    }
+    if (posterPath) setSelectedMoviePoster(posterPath);
 
     try {
-      // Verificar se o filme já foi avaliado pelo usuário
       const { data: existingRating, error: ratingError } = await supabase
         .from('user_movies')
         .select('rating')
@@ -156,19 +131,11 @@ export default function OraclePrediction() {
         .eq('movie_id', movieId)
         .maybeSingle();
 
-      if (ratingError) {
-        console.error('Error checking movie rating:', ratingError);
-      }
+      if (ratingError) console.error('Error checking movie rating:', ratingError);
 
-      // Se o filme já foi avaliado (rating não é null), não permitir predição
       if (existingRating && existingRating.rating !== null) {
-        // Mostrar mensagem automática do oráculo
         const oracleMessage = t('oracle.prediction.alreadyRated');
-        setPrediction({
-          prediction: oracleMessage,
-          movie: movieName,
-          ticketsRemaining: ticketsRemaining || 0
-        });
+        setPrediction({ prediction: oracleMessage, movie: movieName, ticketsRemaining: ticketsRemaining || 0 });
         setSelectedMovie(movieName);
         setSearchQuery('');
         setSearchResults([]);
@@ -183,10 +150,7 @@ export default function OraclePrediction() {
       setPredictionProgress(0);
 
       const progressInterval = setInterval(() => {
-        setPredictionProgress(prev => {
-          if (prev >= 90) return prev;
-          return prev + Math.random() * 15;
-        });
+        setPredictionProgress(prev => (prev >= 90 ? prev : prev + Math.random() * 15));
       }, 400);
 
       const response = await fetch(
@@ -197,12 +161,7 @@ export default function OraclePrediction() {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            userId: session.user.id,
-            movieName,
-            movieId,
-            language: i18n.language
-          })
+          body: JSON.stringify({ userId: session.user.id, movieName, movieId, language: i18n.language })
         }
       );
 
@@ -220,13 +179,8 @@ export default function OraclePrediction() {
         throw new Error(data.error || t('common.error'));
       }
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      if (!data.prediction) {
-        throw new Error('No prediction received from Oracle');
-      }
+      if (data.error) throw new Error(data.error);
+      if (!data.prediction) throw new Error('No prediction received from Oracle');
 
       setPrediction(data);
       setTicketsRemaining(data.ticketsRemaining);
@@ -238,27 +192,18 @@ export default function OraclePrediction() {
     }
   };
 
-
-
   const handleShare = async () => {
     if (!prediction?.prediction || !selectedMovie || loading.sharing) return;
 
     try {
       setLoading(prev => ({ ...prev, sharing: true }));
 
-      // Extrair nota da primeira linha: "📊 Nota Prevista: X/10"
-      const ratingMatch = prediction.prediction.match(/📊\s*Nota Prevista:\s*(\d+\.?\d*)\/10/i);
-
-      // Extrair texto de Ponderações
-      const ponderacoesMatch = prediction.prediction.match(/⚖️\s*Ponderações[:\s]*\n(.*?)(?=\n🎬|\n🎭|\n📊|$)/s);
+      const ratingMatch = prediction.prediction.match(/Nota Prevista:\s*(\d+\.?\d*)\/10/i);
+      const ponderacoesMatch = prediction.prediction.match(/Ponderacoes[:\s]*\n(.*?)(?=\n|$)/s);
 
       const rating = ratingMatch ? parseFloat(ratingMatch[1]) : 0;
       const summary = ponderacoesMatch ? ponderacoesMatch[1].trim() : '';
 
-      console.log('📊 Nota extraída:', rating);
-      console.log('⚖️ Ponderações:', summary);
-
-      // Criar canvas
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas not supported');
@@ -266,7 +211,6 @@ export default function OraclePrediction() {
       canvas.width = 1080;
       canvas.height = 1920;
 
-      // Carregar fundo de predição
       const background = await new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve(img);
@@ -275,8 +219,6 @@ export default function OraclePrediction() {
       });
 
       ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
-
-      // Desenhar título do filme (topo)
       ctx.fillStyle = '#FFFFFF';
       ctx.font = 'bold 56px Arial';
       ctx.textAlign = 'center';
@@ -284,8 +226,6 @@ export default function OraclePrediction() {
 
       const titleY = 200;
       const maxWidth = 900;
-
-      // Quebrar título em linhas
       const words = selectedMovie.split(' ');
       let line = '';
       let currentY = titleY;
@@ -293,7 +233,6 @@ export default function OraclePrediction() {
       for (let i = 0; i < words.length; i++) {
         const testLine = line + words[i] + ' ';
         const metrics = ctx.measureText(testLine);
-
         if (metrics.width > maxWidth && i > 0) {
           ctx.fillText(line.trim(), canvas.width / 2, currentY);
           line = words[i] + ' ';
@@ -304,8 +243,7 @@ export default function OraclePrediction() {
       }
       ctx.fillText(line.trim(), canvas.width / 2, currentY);
 
-      // Desenhar poster do filme (esquerda, maior)
-      let posterCenterY = currentY + 200; // Centro vertical do poster
+      let posterCenterY = currentY + 200;
 
       if (selectedMoviePoster) {
         try {
@@ -321,74 +259,63 @@ export default function OraclePrediction() {
             img.src = blobUrl;
           });
 
-          // Poster e nota centralizados como conjunto
           const posterWidth = 275;
           const posterHeight = 412;
-
-          // Calcular centro do conjunto (poster + espaço + nota)
-          const gapBetween = 80; // Espaço entre poster e área da nota
-          const noteAreaWidth = 300; // Largura aproximada da área da nota
+          const gapBetween = 80;
+          const noteAreaWidth = 300;
           const totalWidth = posterWidth + gapBetween + noteAreaWidth;
-          const groupStartX = (canvas.width - totalWidth) / 2; // Centralizar grupo
-
+          const groupStartX = (canvas.width - totalWidth) / 2;
           const posterX = groupStartX;
           const posterY = currentY + 100;
-          posterCenterY = posterY + (posterHeight / 2); // Calcular centro do poster
+          posterCenterY = posterY + (posterHeight / 2);
 
           ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
           ctx.shadowBlur = 20;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 10;
-
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(posterImg, posterX, posterY, posterWidth, posterHeight);
-
           ctx.shadowColor = 'transparent';
           ctx.shadowBlur = 0;
 
           URL.revokeObjectURL(blobUrl);
         } catch (error) {
-          console.error('Erro ao carregar poster:', error);
+          console.error('Error loading poster:', error);
         }
       }
 
-      // Desenhar "NOTA PREVISTA:" à direita do poster, centralizados como conjunto
       const gapBetween = 80;
       const noteAreaWidth = 300;
       const totalWidth = 275 + gapBetween + noteAreaWidth;
       const groupStartX = (canvas.width - totalWidth) / 2;
-      const noteX = groupStartX + 275 + gapBetween + (noteAreaWidth / 2); // Centro da área da nota
-      const noteLabelY = posterCenterY - 120; // Acima da nota (mais espaçado)
+      const noteX = groupStartX + 275 + gapBetween + (noteAreaWidth / 2);
+      const noteLabelY = posterCenterY - 120;
 
       ctx.fillStyle = '#CCCCCC';
       ctx.font = 'bold 36px Arial';
       ctx.textAlign = 'center';
       ctx.fillText('NOTA PREVISTA:', noteX, noteLabelY);
 
-      // Desenhar nota prevista centralizada com o poster (mais abaixo)
       ctx.fillStyle = '#FFD700';
       ctx.font = 'bold 120px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(rating.toFixed(1), noteX, posterCenterY + 20);
 
-      // Desenhar texto de Ponderações (mais abaixo, com sombra escura)
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '38px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
+      ctx.shadowColor = 'rgba(0, 0, 0, 1)';
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 3;
 
-      // Adicionar sombra mais escura no texto para facilitar leitura (+50%)
-      ctx.shadowColor = 'rgba(0, 0, 0, 1)'; // 0.8 → 1.0 (opacidade máxima)
-      ctx.shadowBlur = 12; // 8 → 12 (+50%)
-      ctx.shadowOffsetX = 3; // 2 → 3 (+50%)
-      ctx.shadowOffsetY = 3; // 2 → 3 (+50%)
-
-      const summaryY = 850; // Movido mais para baixo
+      const summaryY = 850;
       const summaryMaxWidth = 900;
       const lineHeight = 52;
-      const maxLines = 14; // Ajustado para novo posicionamento
+      const maxLines = 14;
       const bottomLimit = 1750;
 
       const summaryWords = summary.split(' ');
@@ -400,16 +327,12 @@ export default function OraclePrediction() {
       for (let i = 0; i < summaryWords.length; i++) {
         const testLine = summaryLine + summaryWords[i] + ' ';
         const metrics = ctx.measureText(testLine);
-
         if (metrics.width > summaryMaxWidth && i > 0) {
-          // Verificar se próxima linha ultrapassa limite
           if (summaryCurrentY + lineHeight > bottomLimit || lineCount >= maxLines) {
-            // Adicionar ... na linha atual
             ctx.fillText(summaryLine.trim() + '...', canvas.width / 2, summaryCurrentY);
             wasTextCut = true;
             break;
           }
-
           ctx.fillText(summaryLine.trim(), canvas.width / 2, summaryCurrentY);
           summaryLine = summaryWords[i] + ' ';
           summaryCurrentY += lineHeight;
@@ -419,35 +342,31 @@ export default function OraclePrediction() {
         }
       }
 
-      // Desenhar última linha se não foi cortado
       if (!wasTextCut && summaryLine.trim()) {
         if (summaryCurrentY + lineHeight > bottomLimit) {
-          // Última linha ultrapassa, adicionar ...
           ctx.fillText(summaryLine.trim() + '...', canvas.width / 2, summaryCurrentY);
         } else {
           ctx.fillText(summaryLine.trim(), canvas.width / 2, summaryCurrentY);
         }
       }
 
-      // Resetar sombra
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
 
-      // Converter para blob
-      const blob = await new Promise<Blob>((resolve) => {
+      const imageBlob = await new Promise<Blob>((resolve) => {
         canvas.toBlob((blob) => resolve(blob!), 'image/png', 1.0);
       });
 
-      if (navigator.share && navigator.canShare({ files: [new File([blob], 'prediction.png', { type: 'image/png' })] })) {
+      if (navigator.share && navigator.canShare({ files: [new File([imageBlob], 'prediction.png', { type: 'image/png' })] })) {
         await navigator.share({
-          files: [new File([blob], 'prediction.png', { type: 'image/png' })],
+          files: [new File([imageBlob], 'prediction.png', { type: 'image/png' })],
           title: `CineOracle Prediction: ${selectedMovie}`,
           text: `Check out this movie prediction from CineOracle!`
         });
       } else {
-        const url = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(imageBlob);
         const link = document.createElement('a');
         link.href = url;
         link.download = `cineoracle-${selectedMovie.toLowerCase().replace(/\s+/g, '-')}.png`;
@@ -455,17 +374,12 @@ export default function OraclePrediction() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        
         toast.success('Image downloaded successfully!');
       }
 
-      const { error: saveError } = await supabase
-        .from('saved_predictions')
-        .update({ is_public: true })
-        .eq('id', prediction.id);
-
-      if (saveError) throw saveError;
-
+      if (prediction.id) {
+        await supabase.from('saved_predictions').update({ is_public: true }).eq('id', prediction.id);
+      }
     } catch (error) {
       console.error('Error sharing prediction:', error);
       toast.error('Failed to share prediction');
@@ -474,69 +388,55 @@ export default function OraclePrediction() {
     }
   };
 
-  const ShareButton = ({ mobile = false }) => (
+  const ShareButton = () => (
     <button
       onClick={handleShare}
       disabled={loading.sharing}
-      className={`p-2 text-purple-400 hover:text-purple-300 transition-colors rounded-full hover:bg-purple-500/10 ${
-        loading.sharing ? 'opacity-50 cursor-not-allowed' : ''
-      }`}
+      className={`p-2.5 text-violet-500 hover:text-violet-400 transition-colors rounded-full bg-violet-500/10 hover:bg-violet-500/20 ${loading.sharing ? 'opacity-50 cursor-not-allowed' : ''}`}
       title={t('oracle.prediction.title')}
     >
-      {loading.sharing ? (
-        <Loader2 className="w-5 h-5 animate-spin" />
-      ) : (
-        <Share2 className="w-5 h-5" />
-      )}
+      {loading.sharing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Share2 className="w-5 h-5" />}
     </button>
   );
-
 
   const renderCrystalBall = () => {
     if (loading.prediction) {
       return (
         <motion.div
-          className="text-center"
+          className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-8 text-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
         >
-          <div className="inline-flex items-center justify-center p-8 rounded-full bg-purple-500/10 backdrop-blur-sm border border-purple-500/20 mb-4 relative">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500/30 to-purple-600/10 blur-md"></div>
-            <motion.div
-              animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.8, 1, 0.8]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatType: "reverse"
-              }}
-            >
-              <BrainCircuit className="w-12 h-12 text-purple-400 relative z-10" />
-            </motion.div>
-          </div>
-          <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-2">
-            {t('oracle.prediction.consulting')}
-          </h2>
-          <p className="text-gray-400 mb-4">{t('oracle.prediction.description')}</p>
-
-          <div className="max-w-xs mx-auto">
-            <div className="w-full bg-gray-800/50 rounded-full h-2 overflow-hidden backdrop-blur-sm border border-purple-500/20">
+          <div className="flex flex-col items-center gap-4">
+            <div className="p-6 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-400/30">
               <motion.div
-                className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
-                initial={{ width: '0%' }}
-                animate={{ width: `${predictionProgress}%` }}
-                transition={{ duration: 0.3 }}
-              />
+                animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <BrainCircuit className="w-10 h-10 text-violet-500" />
+              </motion.div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              {predictionProgress < 30 ? t('oracle.prediction.analyzing') :
-               predictionProgress < 60 ? t('oracle.prediction.calculating') :
-               predictionProgress < 90 ? t('oracle.prediction.generating') :
-               t('oracle.prediction.finalizing')}
-            </p>
+            <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-purple-500">
+              {t('oracle.prediction.consulting')}
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400">{t('oracle.prediction.description')}</p>
+
+            <div className="w-full max-w-xs">
+              <div className="w-full bg-gray-200/50 dark:bg-gray-700/50 rounded-full h-2 overflow-hidden border border-violet-400/20">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-violet-500 to-purple-500"
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${predictionProgress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {predictionProgress < 30 ? t('oracle.prediction.analyzing') :
+                 predictionProgress < 60 ? t('oracle.prediction.calculating') :
+                 predictionProgress < 90 ? t('oracle.prediction.generating') :
+                 t('oracle.prediction.finalizing')}
+              </p>
+            </div>
           </div>
         </motion.div>
       );
@@ -544,53 +444,40 @@ export default function OraclePrediction() {
 
     if (prediction) {
       return (
-        <motion.div 
-          className="relative group"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 }}
+        <motion.div
+          className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
         >
-          <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/30 to-pink-600/30 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-          <div className="relative p-8 bg-gray-900/90 rounded-lg border border-purple-500/20 backdrop-blur-sm">
+          <div className="absolute inset-0 pointer-events-none rounded-3xl">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-violet-400/10 to-purple-500/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-blue-400/10 to-cyan-500/10 rounded-full blur-3xl" />
+          </div>
+
+          <div className="relative z-10">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <motion.h2 
-                  className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400"
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                >
-                  ✨ {t('oracle.speaksTitle')}
-                </motion.h2>
+                <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-purple-500 flex items-center gap-2">
+                  <span className="text-2xl">Sparkles</span> {t('oracle.speaksTitle')}
+                </h2>
                 <div className="hidden md:flex items-center gap-2">
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                     <ShareButton />
                   </motion.div>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-2 md:hidden">
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <ShareButton mobile />
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                  <ShareButton />
                 </motion.div>
               </div>
 
-              <motion.div 
-                className="prose prose-lg prose-invert mt-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-              >
-                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+              <div className="prose prose-lg prose-gray dark:prose-invert mt-4">
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                   {prediction.prediction}
                 </p>
-              </motion.div>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -598,236 +485,162 @@ export default function OraclePrediction() {
     }
 
     return (
-      <motion.div 
-        className="relative group"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
+      <motion.div
+        className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
       >
-        <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/30 to-pink-600/30 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-        <div className="relative p-8 bg-gray-900/90 rounded-lg border border-purple-500/20 backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-6">
-            <motion.h2 
-              className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
+        <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-purple-500 mb-6 text-center flex items-center justify-center gap-2">
+          <span className="text-2xl">Sparkles</span> {t('oracle.speaksTitle')}
+        </h2>
+
+        <div className="flex flex-col items-center justify-center py-6">
+          <motion.div
+            className="w-28 h-28 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-400/30 flex items-center justify-center mb-6"
+            animate={{ boxShadow: ['0 0 15px rgba(139,92,246,0.3)', '0 0 25px rgba(139,92,246,0.5)', '0 0 15px rgba(139,92,246,0.3)'] }}
+            transition={{ duration: 4, repeat: Infinity }}
+          >
+            <motion.div
+              className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500/30 to-purple-500/30 flex items-center justify-center"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 3, repeat: Infinity }}
             >
-              ✨ {t('oracle.speaksTitle')}
-            </motion.h2>
-          </div>
-          <div className="flex flex-col items-center justify-center py-8">
-            <motion.div 
-              className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-purple-500/30 flex items-center justify-center mb-6"
-              animate={{ 
-                boxShadow: [
-                  '0 0 15px rgba(168, 85, 247, 0.4)',
-                  '0 0 25px rgba(168, 85, 247, 0.6)',
-                  '0 0 15px rgba(168, 85, 247, 0.4)'
-                ],
-              }}
-              transition={{ duration: 4, repeat: Infinity }}
-            >
-              <motion.div 
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-600/40 to-pink-600/40 flex items-center justify-center"
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                <div className="relative w-12 h-12 flex items-center justify-center">
-                  <div className="absolute w-full h-full rounded-full bg-purple-400/20"></div>
-                  <motion.div 
-                    className="w-8 h-8 bg-purple-400 rounded-full flex items-center justify-center"
-                    animate={{ scaleY: [1, 0.1, 1] }}
-                    transition={{ 
-                      duration: 0.1,
-                      times: [0, 0.5, 1],
-                      repeat: Infinity,
-                      repeatDelay: 4
-                    }}
-                  >
-                    <div className="absolute w-4 h-4 bg-gray-900 rounded-full"></div>
-                    <motion.div 
-                      className="absolute w-2 h-2 bg-white rounded-full" 
-                      style={{ top: '25%', right: '25%' }}
-                    />
-                  </motion.div>
-                </div>
-              </motion.div>
+              <div className="relative w-10 h-10 flex items-center justify-center">
+                <div className="absolute w-full h-full rounded-full bg-violet-400/20" />
+                <motion.div
+                  className="w-7 h-7 bg-violet-500 rounded-full flex items-center justify-center"
+                  animate={{ scaleY: [1, 0.1, 1] }}
+                  transition={{ duration: 0.1, times: [0, 0.5, 1], repeat: Infinity, repeatDelay: 4 }}
+                >
+                  <div className="absolute w-3.5 h-3.5 bg-gray-900 rounded-full" />
+                  <motion.div className="absolute w-1.5 h-1.5 bg-white rounded-full" style={{ top: '25%', right: '25%' }} />
+                </motion.div>
+              </div>
             </motion.div>
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={currentMessageIndex}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5 }}
-                className="text-purple-300 text-lg text-center italic"
-                style={{ 
-                  textShadow: '0 0 10px rgba(168, 85, 247, 0.2)'
-                }}
-              >
-                {mysticalMessages[currentMessageIndex]}
-              </motion.p>
-            </AnimatePresence>
-          </div>
+          </motion.div>
+
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={currentMessageIndex}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="text-violet-600 dark:text-violet-300 text-lg text-center italic"
+            >
+              {mysticalMessages[currentMessageIndex]}
+            </motion.p>
+          </AnimatePresence>
         </div>
       </motion.div>
     );
   };
 
   return (
-    <motion.div 
-      className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 via-purple-900/30 to-blue-900/30 py-8 px-4 overflow-hidden relative"
+    <motion.div
+      className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 py-8 px-4 relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.6 }}
+      transition={{ duration: 0.5 }}
     >
-      {/* Background particle effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 20 }).map((_, i) => (
-          <motion.div
-            key={`bg-particle-${i}`}
-            className="absolute w-1 h-1 rounded-full bg-purple-500/30"
-            initial={{ 
-              x: Math.random() * 100 + "%", 
-              y: Math.random() * 100 + "%",
-              opacity: 0.3 + Math.random() * 0.3
-            }}
-            animate={{ 
-              y: [
-                Math.random() * 100 + "%", 
-                Math.random() * 100 + "%",
-                Math.random() * 100 + "%"
-              ],
-              opacity: [
-                0.3 + Math.random() * 0.3,
-                0.1 + Math.random() * 0.2,
-                0.3 + Math.random() * 0.3
-              ]
-            }}
-            transition={{ 
-              duration: 15 + Math.random() * 15,
-              repeat: Infinity
-            }}
-          />
-        ))}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-violet-400/20 to-purple-400/20 dark:from-violet-600/10 dark:to-purple-600/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400/15 to-rose-400/15 dark:from-pink-600/8 dark:to-rose-600/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
-      
+
+      <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" style={{
+        backgroundImage: 'linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }} />
+
       <div className="max-w-2xl mx-auto relative z-10">
         <motion.button
           onClick={() => navigate(-1)}
-          className="p-2 hover:bg-gray-800/50 backdrop-blur-sm rounded-full transition-colors mb-8"
+          className="p-2.5 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl hover:bg-white/60 dark:hover:bg-gray-800/60 border border-white/60 dark:border-gray-700/60 rounded-full transition-colors mb-8"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <ArrowLeft className="w-6 h-6 text-gray-400" />
+          <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </motion.button>
 
-        <motion.div 
-          className="text-center mb-12"
-          initial={{ opacity: 0, y: 20 }}
+        <motion.div
+          className="text-center mb-10"
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <motion.div 
+          <motion.div
             className="flex justify-center mb-4"
-            whileHover={{ rotate: [0, 5, -5, 0] }}
-            transition={{ duration: 0.5 }}
+            animate={{ y: [-5, 5, -5] }}
+            transition={{ duration: 4, repeat: Infinity, repeatType: "reverse" }}
           >
-            <motion.div
-              initial={{ y: 0 }}
-              animate={{ y: [-10, 10, -10] }}
-              transition={{ 
-                duration: 6,
-                repeat: Infinity,
-                repeatType: "reverse"
-              }}
-            >
-              <BrainCircuit className="w-20 h-20 text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
-            </motion.div>
+            <div className="p-4 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 dark:from-violet-500/30 dark:to-purple-500/30 border border-violet-400/30">
+              <BrainCircuit className="w-12 h-12 text-violet-500 dark:text-violet-400" style={{ filter: 'drop-shadow(0 0 15px rgba(139, 92, 246, 0.4))' }} />
+            </div>
           </motion.div>
 
-          <motion.h1 
-            className="text-3xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 tracking-widest mb-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 via-purple-500 to-violet-500 tracking-wide mb-3">
             {t('oracle.prediction.title')}
-          </motion.h1>
+          </h1>
 
-          <motion.p 
-            className="text-gray-300 text-lg mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
+          <p className="text-gray-600 dark:text-gray-300 text-lg mb-8">
             {t('oracle.prediction.description')}
-          </motion.p>
+          </p>
 
-          <motion.div 
-            className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-between items-stretch sm:items-center mb-10"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+          <motion.div
+            className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 p-4 mb-8 inline-flex flex-col sm:flex-row items-center gap-4 sm:gap-8"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
           >
-            <div className="bg-gradient-to-r from-purple-900/50 via-purple-700/50 to-purple-900/50 p-4 rounded-2xl shadow-inner border border-purple-500/30 backdrop-blur-sm flex flex-row items-center justify-between sm:gap-6 text-white text-sm">
-              <div className="flex items-center">
-                <motion.div
-                  whileHover={{ rotate: 360 }}
-                  transition={{ duration: 1 }}
-                >
-                  <Ticket className="w-5 h-5 mr-2 text-yellow-400" />
-                </motion.div>
-                <span className="font-semibold">{ticketsRemaining ?? '...'}</span>
-                <span>&nbsp;tickets</span>
-              </div>
-              {nextReset && (
-                <>
-                  <div className="w-px h-4 bg-purple-400/30 mx-4" />
-                  <div>
-                    <span className="font-semibold">Next reset:</span> {formatTimeUntilReset()}
-                  </div>
-                </>
-              )}
+            <div className="flex items-center gap-2">
+              <Ticket className="w-5 h-5 text-amber-500" />
+              <span className="font-semibold text-gray-700 dark:text-gray-200">{ticketsRemaining ?? '...'}</span>
+              <span className="text-gray-500 dark:text-gray-400">tickets</span>
             </div>
+            {nextReset && (
+              <>
+                <div className="hidden sm:block w-px h-5 bg-gray-300 dark:bg-gray-600" />
+                <div className="text-gray-600 dark:text-gray-300 text-sm">
+                  <span className="font-semibold">Reset:</span> {formatTimeUntilReset()}
+                </div>
+              </>
+            )}
             <motion.button
               onClick={() => navigate('/premium')}
-              className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl border border-yellow-300 dark:border-yellow-600/50"
-              whileHover={{ scale: 1.03, y: -2 }}
+              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all text-sm flex items-center gap-2"
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
-              <Plus className="w-5 h-5 mr-2" />
+              <Plus className="w-4 h-4" />
               {t('oracle.prediction.addMore')}
             </motion.button>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="relative mb-12"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
+            transition={{ delay: 0.3 }}
           >
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/30 to-pink-600/30 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative bg-gray-900/80 border border-purple-500/30 rounded-lg leading-none backdrop-blur-sm">
-                <div className="flex items-center p-4">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={loading.prediction ? t('oracle.prediction.consulting') : t('oracle.prediction.cost', { cost: 1 })}
-                    className="w-full px-4 py-3 bg-transparent text-white placeholder-purple-400 text-lg font-medium focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                    autoComplete="off"
-                    disabled={loading.prediction}
-                  />
-                  {loading.search ? (
-                    <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
-                  ) : (
-                    <Search className="w-6 h-6 text-purple-400" />
-                  )}
-                </div>
+            <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-lg overflow-hidden">
+              <div className="flex items-center p-4">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={loading.prediction ? t('oracle.prediction.consulting') : t('oracle.prediction.cost', { cost: 1 })}
+                  className="w-full px-4 py-3 bg-transparent text-gray-800 dark:text-white placeholder-violet-400 dark:placeholder-violet-300 text-lg font-medium focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  autoComplete="off"
+                  disabled={loading.prediction}
+                />
+                {loading.search ? (
+                  <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
+                ) : (
+                  <Search className="w-6 h-6 text-violet-500" />
+                )}
               </div>
             </div>
 
@@ -840,33 +653,29 @@ export default function OraclePrediction() {
                   transition={{ duration: 0.2 }}
                   className="absolute z-50 w-full mt-2"
                 >
-                  <div className="bg-gray-900/90 backdrop-blur-md rounded-lg shadow-xl border border-purple-500/30 overflow-hidden">
+                  <div className="rounded-2xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-xl border border-white/60 dark:border-gray-700/60 overflow-hidden">
                     {searchResults.map((movie) => (
                       <motion.button
                         key={movie.id}
                         onClick={() => getPrediction(movie.title, movie.id, movie.poster_path)}
-                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-purple-500/10 transition-colors text-left"
-                        whileHover={{ x: 4, backgroundColor: "rgba(168, 85, 247, 0.1)" }}
+                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-violet-500/10 transition-colors text-left"
+                        whileHover={{ x: 4 }}
                       >
-                        <div className="w-12 h-18 rounded-md overflow-hidden shadow-md">
+                        <div className="w-12 h-18 rounded-lg overflow-hidden shadow-md">
                           <img
                             src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
                             alt={movie.title}
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = 'https://via.placeholder.com/92x138?text=No+Image';
-                            }}
+                            onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/92x138?text=No+Image'; }}
                           />
                         </div>
                         <div>
-                          <h3 className="font-medium text-white">
-                            {movie.title}
-                          </h3>
-                          <div className="flex items-center text-sm text-purple-300">
+                          <h3 className="font-medium text-gray-800 dark:text-white">{movie.title}</h3>
+                          <div className="flex items-center text-sm text-violet-600 dark:text-violet-300">
                             <span>{new Date(movie.release_date).getFullYear()}</span>
-                            <span className="mx-2">•</span>
+                            <span className="mx-2">-</span>
                             <div className="flex items-center">
-                              <Star className="w-4 h-4 text-yellow-500 fill-current mr-1" />
+                              <Star className="w-4 h-4 text-amber-500 fill-current mr-1" />
                               <span>{movie.vote_average.toFixed(1)}</span>
                             </div>
                           </div>
