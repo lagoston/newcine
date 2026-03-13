@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, ArchiveIcon, Award, Tv, TrendingDown, X, Loader2, Settings } from 'lucide-react';
+import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, Award, Tv, TrendingDown, X, Loader2, Settings } from 'lucide-react';
 import { supabase, getProfile } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
@@ -50,9 +50,9 @@ interface DecadeCount {
 interface FavoriteDecade {
   decade: string;
   count: number;
-  label: string; // "Grandpa Cinema", "Nostalgic", or "Modern Lover"
+  label: string;
   percentage: number;
-  allDecades?: DecadeCount; // Todas as décadas com contagens
+  allDecades?: DecadeCount;
 }
 
 interface ActorCount {
@@ -148,14 +148,13 @@ export default function Profile() {
   const visibleCarouselUsers = followedUsersCarousel.slice(carouselOffset, carouselOffset + CAROUSEL_PAGE_SIZE);
 
   const getBubbleStyle = (rating: number | null): { bubble: string; titleText: string; ratingText: string; arrow: string } => {
-    if (rating === null) return { bubble: 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-gray-400', arrow: 'border-t-white dark:border-t-gray-700' };
-    if (rating === 10) return { bubble: 'bg-pink-50 dark:bg-pink-900/30 border-pink-300 dark:border-pink-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-pink-600 dark:text-pink-400', arrow: 'border-t-pink-50 dark:border-t-pink-900' };
-    if (rating >= 7) return { bubble: 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-green-600 dark:text-green-400', arrow: 'border-t-green-50 dark:border-t-green-900' };
-    if (rating >= 4) return { bubble: 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-yellow-600 dark:text-yellow-400', arrow: 'border-t-yellow-50 dark:border-t-yellow-900' };
-    return { bubble: 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-red-600 dark:text-red-400', arrow: 'border-t-red-50 dark:border-t-red-900' };
+    if (rating === null) return { bubble: 'bg-white/90 dark:bg-gray-700/90 border-gray-200 dark:border-gray-600', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-gray-400', arrow: 'border-t-white dark:border-t-gray-700' };
+    if (rating === 10) return { bubble: 'bg-pink-50/90 dark:bg-pink-900/40 border-pink-300 dark:border-pink-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-pink-600 dark:text-pink-400', arrow: 'border-t-pink-50 dark:border-t-pink-900' };
+    if (rating >= 7) return { bubble: 'bg-green-50/90 dark:bg-green-900/40 border-green-300 dark:border-green-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-green-600 dark:text-green-400', arrow: 'border-t-green-50 dark:border-t-green-900' };
+    if (rating >= 4) return { bubble: 'bg-yellow-50/90 dark:bg-yellow-900/40 border-yellow-300 dark:border-yellow-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-yellow-600 dark:text-yellow-400', arrow: 'border-t-yellow-50 dark:border-t-yellow-900' };
+    return { bubble: 'bg-red-50/90 dark:bg-red-900/40 border-red-300 dark:border-red-500/50', titleText: 'text-gray-700 dark:text-gray-200', ratingText: 'text-red-600 dark:text-red-400', arrow: 'border-t-red-50 dark:border-t-red-900' };
   };
 
-  // Animation variants for staggered animations
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -204,11 +203,9 @@ export default function Profile() {
     }
   }, [session?.user?.id]);
 
-  // Reload when language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      console.log('🌍 Language changed in Profile, reloading stats...');
-      // Clear movie cache to reload with new language
+      console.log('Language changed in Profile, reloading stats...');
       if (typeof window !== 'undefined') {
         const { cache } = require('../lib/cache');
         cache.invalidatePattern('movie:');
@@ -219,7 +216,7 @@ export default function Profile() {
     };
 
     const handleEpisodeToggled = () => {
-      console.log('📺 Episode toggled, reloading stats...');
+      console.log('Episode toggled, reloading stats...');
       if (session?.user?.id) {
         fetchMovieStats();
       }
@@ -312,7 +309,6 @@ export default function Profile() {
       const cacheKey = CACHE_KEYS.USER_STATS(session.user.id);
       const cachedStats = cache.get<any>(cacheKey);
 
-      // Only use cache if it has valid data
       if (cachedStats && cachedStats.ratedMoviesCount > 0) {
         setRatedMoviesCount(cachedStats.ratedMoviesCount);
         setRatingDistribution(cachedStats.ratingDistribution);
@@ -364,12 +360,10 @@ export default function Profile() {
 
       const validMovies = movieDetails.filter(movie => movie !== null);
 
-      // Calculate watch time including TV episodes
       let totalMinutes = 0;
 
       for (const movie of validMovies) {
         if (movie.media_type === 'tv') {
-          // For TV shows, count only watched episodes
           const { data: watchedEps } = await supabase
             .from('watched_episodes')
             .select('season_number, episode_number')
@@ -377,7 +371,6 @@ export default function Profile() {
             .eq('tmdb_id', movie.id);
 
           if (watchedEps && watchedEps.length > 0 && movie.seasons) {
-            // Calculate runtime from watched episodes
             watchedEps.forEach(ep => {
               const season = movie.seasons.find((s: any) => s.season_number === ep.season_number);
               const episode = season?.episodes.find((e: any) => e.episode_number === ep.episode_number);
@@ -387,7 +380,6 @@ export default function Profile() {
             });
           }
         } else {
-          // For movies, use full runtime
           totalMinutes += movie.runtime || 0;
         }
       }
@@ -408,7 +400,6 @@ export default function Profile() {
 
       setFavoriteGenres(topGenres);
 
-      // Calculate favorite decade
       const decadeCounts: DecadeCount = {};
       let totalRatedMovies = 0;
       let calculatedFavoriteDecade: FavoriteDecade | null = null;
@@ -424,7 +415,6 @@ export default function Profile() {
       });
 
       if (totalRatedMovies > 0) {
-        // Find decade with most movies
         let topDecade = '';
         let topCount = 0;
 
@@ -435,10 +425,8 @@ export default function Profile() {
           }
         }
 
-        // Calculate percentage
         const percentage = (topCount / totalRatedMovies) * 100;
 
-        // Determine label based on decade
         let label = '';
         const decadeNum = parseInt(topDecade);
 
@@ -461,15 +449,14 @@ export default function Profile() {
         setFavoriteDecade(calculatedFavoriteDecade);
       }
 
-      // Calculate top actors
       const actorCounts = {};
       validMovies.forEach(movie => {
         movie.credits?.cast?.slice(0, 5).forEach(actor => {
-          actorCounts[actor.id] = actorCounts[actor.id] || { 
-            id: actor.id, 
+          actorCounts[actor.id] = actorCounts[actor.id] || {
+            id: actor.id,
             name: actor.name,
-            character: actor.character, 
-            count: 0 
+            character: actor.character,
+            count: 0
           };
           actorCounts[actor.id].count++;
         });
@@ -478,18 +465,17 @@ export default function Profile() {
       const mostFrequentActors = Object.values(actorCounts)
         .sort((a: any, b: any) => b.count - a.count)
         .slice(0, 3);
-      
+
       setTopActors(mostFrequentActors);
 
-      // Calculate top directors
       const directorCounts = {};
       validMovies.forEach(movie => {
         const director = movie.credits?.crew?.find(person => person.job === 'Director');
         if (director) {
-          directorCounts[director.name] = directorCounts[director.name] || { 
+          directorCounts[director.name] = directorCounts[director.name] || {
             id: director.id,
-            name: director.name, 
-            count: 0 
+            name: director.name,
+            count: 0
           };
           directorCounts[director.name].count++;
         }
@@ -498,10 +484,9 @@ export default function Profile() {
       const mostFrequentDirectors = Object.values(directorCounts)
         .sort((a: any, b: any) => b.count - a.count)
         .slice(0, 3);
-      
+
       setTopDirectors(mostFrequentDirectors);
 
-      // Find least-known gem (movie with lowest vote_count that the user has rated)
       const ratedMoviesWithVoteCounts = validMovies
         .filter(movie => movie.userRating !== null && movie.vote_count !== undefined && movie.vote_count !== null)
         .sort((a, b) => (a.vote_count || 0) - (b.vote_count || 0));
@@ -546,7 +531,6 @@ export default function Profile() {
     try {
       if (!session?.user?.id) return;
 
-      // Use standardized profile fetching function
       const { data: profileData, error } = await getProfile(session.user.id);
 
       if (error) throw error;
@@ -556,7 +540,6 @@ export default function Profile() {
         return;
       }
 
-      // Get follower count
       const { count: followersCount, error: followersError } = await supabase
         .from('follows')
         .select('*', { count: 'exact', head: true })
@@ -564,7 +547,6 @@ export default function Profile() {
 
       if (followersError) throw followersError;
 
-      // Get the following count
       const { count: followingCount, error: followingError } = await supabase
         .from('follows')
         .select('*', { count: 'exact', head: true })
@@ -585,11 +567,10 @@ export default function Profile() {
         setCreatedAt(session.user.created_at);
       }
 
-      // Force refresh premium status in auth context
       if (checkPremiumStatus) {
         await checkPremiumStatus();
       }
-      
+
     } catch (error) {
       console.error('Error loading profile:', error);
       toast.error('Error loading profile');
@@ -603,7 +584,6 @@ export default function Profile() {
       if (!session?.user?.id) return;
 
       setLoading(true);
-      // Use the standardized function from supabase.ts
       const { data, error } = await supabase
         .from('profiles')
         .insert({
@@ -644,7 +624,6 @@ export default function Profile() {
     try {
       if (!session?.user?.id) return;
 
-      // Username validation
       if (!newUsername.trim()) {
         toast.error('Username cannot be empty');
         return;
@@ -655,7 +634,6 @@ export default function Profile() {
         return;
       }
 
-      // Check if username is already taken (only if username changed)
       if (newUsername !== username) {
         const { data: existingUsers, error: checkError } = await supabase
           .from('profiles')
@@ -684,7 +662,7 @@ export default function Profile() {
 
       setUsername(newUsername);
       await fetchProfile();
-      
+
       toast.success('Profile updated successfully');
       setIsEditing(false);
     } catch (error) {
@@ -694,12 +672,11 @@ export default function Profile() {
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isEditing) return; // Only allow avatar changes in edit mode
+    if (!isEditing) return;
 
     const file = e.target.files?.[0];
     if (!file || !session?.user?.id) return;
 
-    // Check if file is animated (GIF, WEBP, APNG)
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     const animatedFormats = ['gif', 'webp', 'apng'];
     const animatedMimeTypes = ['image/gif', 'image/webp', 'image/apng'];
@@ -711,10 +688,10 @@ export default function Profile() {
 
     if (isAnimated && !isPremium) {
       toast.error(
-        '🌟 Avatares animados são um recurso Premium! Atualize para usar GIFs e imagens animadas.',
-        { duration: 5000, icon: '👑' }
+        'Avatares animados sao um recurso Premium! Atualize para usar GIFs e imagens animadas.',
+        { duration: 5000, icon: '' }
       );
-      e.target.value = ''; // Reset file input
+      e.target.value = '';
       return;
     }
 
@@ -757,7 +734,7 @@ export default function Profile() {
   const formatWatchTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) {
       return `${days}d ${hours % 24}h`;
     }
@@ -777,7 +754,7 @@ export default function Profile() {
       case 'community':
         return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
       case 'oracle':
-        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400';
+        return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400';
       default:
         return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
     }
@@ -788,23 +765,21 @@ export default function Profile() {
     const predictions = profile?.oracle_predictions_count || 0;
     const recommendations = profile?.oracle_recommendations_count || 0;
 
-    // Prediction tags
-    if (predictions >= 1000) tags.push({ emoji: '⛓️', name: 'Timeline Overlord', progress: predictions, total: 1000, category: 'oracle' });
-    else if (predictions >= 500) tags.push({ emoji: '🜂', name: 'Fate Architect', progress: predictions, total: 500, category: 'oracle' });
-    else if (predictions >= 200) tags.push({ emoji: '🌑', name: 'Oracle\'s Chosen', progress: predictions, total: 200, category: 'oracle' });
-    else if (predictions >= 100) tags.push({ emoji: '🌘', name: 'Future Whisperer', progress: predictions, total: 100, category: 'oracle' });
-    else if (predictions >= 50) tags.push({ emoji: '🧠', name: 'Mind Decoder', progress: predictions, total: 50, category: 'oracle' });
-    else if (predictions >= 25) tags.push({ emoji: '🧩', name: 'Pattern Hunter', progress: predictions, total: 25, category: 'oracle' });
-    else if (predictions >= 10) tags.push({ emoji: '🔍', name: 'Curious Seeker', progress: predictions, total: 10, category: 'oracle' });
+    if (predictions >= 1000) tags.push({ emoji: '', name: 'Timeline Overlord', progress: predictions, total: 1000, category: 'oracle' });
+    else if (predictions >= 500) tags.push({ emoji: '', name: 'Fate Architect', progress: predictions, total: 500, category: 'oracle' });
+    else if (predictions >= 200) tags.push({ emoji: '', name: 'Oracle\'s Chosen', progress: predictions, total: 200, category: 'oracle' });
+    else if (predictions >= 100) tags.push({ emoji: '', name: 'Future Whisperer', progress: predictions, total: 100, category: 'oracle' });
+    else if (predictions >= 50) tags.push({ emoji: '', name: 'Mind Decoder', progress: predictions, total: 50, category: 'oracle' });
+    else if (predictions >= 25) tags.push({ emoji: '', name: 'Pattern Hunter', progress: predictions, total: 25, category: 'oracle' });
+    else if (predictions >= 10) tags.push({ emoji: '', name: 'Curious Seeker', progress: predictions, total: 10, category: 'oracle' });
 
-    // Recommendation tags
-    if (recommendations >= 1000) tags.push({ emoji: '🎎', name: 'Multiverse Sommelier', progress: recommendations, total: 1000, category: 'oracle' });
-    else if (recommendations >= 500) tags.push({ emoji: '🧮', name: 'Galaxy Curator', progress: recommendations, total: 500, category: 'oracle' });
-    else if (recommendations >= 200) tags.push({ emoji: '⚜️', name: 'Recommendation Lord', progress: recommendations, total: 200, category: 'oracle' });
-    else if (recommendations >= 100) tags.push({ emoji: '🧪', name: 'Taste Alchemist', progress: recommendations, total: 100, category: 'oracle' });
-    else if (recommendations >= 50) tags.push({ emoji: '🗺️', name: 'Genre Explorer', progress: recommendations, total: 50, category: 'oracle' });
-    else if (recommendations >= 25) tags.push({ emoji: '🔶', name: 'Hidden Gem Hunter', progress: recommendations, total: 25, category: 'oracle' });
-    else if (recommendations >= 10) tags.push({ emoji: '🌽', name: 'Popcorn Taster', progress: recommendations, total: 10, category: 'oracle' });
+    if (recommendations >= 1000) tags.push({ emoji: '', name: 'Multiverse Sommelier', progress: recommendations, total: 1000, category: 'oracle' });
+    else if (recommendations >= 500) tags.push({ emoji: '', name: 'Galaxy Curator', progress: recommendations, total: 500, category: 'oracle' });
+    else if (recommendations >= 200) tags.push({ emoji: '', name: 'Recommendation Lord', progress: recommendations, total: 200, category: 'oracle' });
+    else if (recommendations >= 100) tags.push({ emoji: '', name: 'Taste Alchemist', progress: recommendations, total: 100, category: 'oracle' });
+    else if (recommendations >= 50) tags.push({ emoji: '', name: 'Genre Explorer', progress: recommendations, total: 50, category: 'oracle' });
+    else if (recommendations >= 25) tags.push({ emoji: '', name: 'Hidden Gem Hunter', progress: recommendations, total: 25, category: 'oracle' });
+    else if (recommendations >= 10) tags.push({ emoji: '', name: 'Popcorn Taster', progress: recommendations, total: 10, category: 'oracle' });
 
     return tags;
   };
@@ -815,14 +790,18 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <motion.div 
-        className="min-h-[calc(100vh-4rem)] flex justify-center items-center bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/5 dark:to-purple-900/5"
+      <motion.div
+        className="min-h-[calc(100vh-4rem)] flex justify-center items-center bg-gradient-to-br from-blue-50/80 via-cyan-50/50 to-teal-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-cyan-950/50 relative overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="p-8 rounded-xl bg-white/80 dark:bg-gray-800/80 shadow-xl border border-gray-100 dark:border-gray-700/30 backdrop-blur-sm">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-400/20 dark:bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-cyan-400/20 dark:bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        <div className="p-8 rounded-2xl bg-white/60 dark:bg-gray-800/60 shadow-2xl border border-white/60 dark:border-gray-700/60 backdrop-blur-xl">
           <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto" />
           <p className="mt-4 text-gray-600 dark:text-gray-300 font-medium text-center">
             {t('common.loading')}
@@ -834,13 +813,17 @@ export default function Profile() {
 
   if (!profileExists) {
     return (
-      <motion.div 
-        className="container mx-auto px-4 py-8 min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/5 dark:to-purple-900/5"
+      <motion.div
+        className="container mx-auto px-4 py-8 min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-blue-50/80 via-cyan-50/50 to-teal-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-cyan-950/50 relative overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-400/20 dark:bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-cyan-400/20 dark:bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        <div className="max-w-2xl mx-auto bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
           <div className="p-8 text-center">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -848,17 +831,19 @@ export default function Profile() {
               transition={{ duration: 0.5 }}
               className="mb-6"
             >
-              <User className="w-16 h-16 mx-auto text-blue-500" />
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <User className="w-10 h-10 text-white" />
+              </div>
             </motion.div>
-            <motion.h2 
-              className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-4"
+            <motion.h2
+              className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 mb-4"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.1, duration: 0.5 }}
             >
               Welcome! Let's set up your profile
             </motion.h2>
-            <motion.p 
+            <motion.p
               className="text-gray-600 dark:text-gray-300 mb-6"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -868,7 +853,7 @@ export default function Profile() {
             </motion.p>
             <motion.button
               onClick={createProfile}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:from-blue-600 hover:to-purple-600 transition-colors shadow-lg"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-colors shadow-lg"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.5 }}
@@ -884,29 +869,40 @@ export default function Profile() {
   }
 
   return (
-    <motion.div 
-      className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/5 dark:to-purple-900/5 py-8 px-4"
+    <motion.div
+      className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-cyan-50/50 to-teal-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-cyan-950/50 py-8 px-4 relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="container mx-auto max-w-4xl">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 -left-20 w-96 h-96 bg-blue-400/20 dark:bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-1/2 -right-20 w-80 h-80 bg-cyan-400/20 dark:bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-teal-400/15 dark:bg-teal-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div
+          className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(59, 130, 246, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.5) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px'
+          }}
+        />
+      </div>
+
+      <div className="container mx-auto max-w-4xl relative z-10">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           className="space-y-6"
         >
-          {/* Profile Header Card */}
           <motion.div
             variants={itemVariants}
-            className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden ${getBannerClass(profile?.banner, isPremium)} relative`}
+            className={`bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl border border-white/60 dark:border-gray-700/60 ${getBannerClass(profile?.banner, isPremium)} relative`}
           >
-            {/* Settings Button - Desktop Only (Top Right) */}
             <motion.button
               onClick={() => setShowSettingsModal(true)}
-              className="hidden sm:flex absolute top-8 right-8 items-center justify-center w-10 h-10 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="hidden sm:flex absolute top-8 right-8 items-center justify-center w-10 h-10 bg-white/60 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               title="Settings"
@@ -917,7 +913,7 @@ export default function Profile() {
             <div className="p-6 sm:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6">
                 <div className="relative mx-auto sm:mx-0 mb-4 sm:mb-0">
-                  <div className={`w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile?.avatar_frame, isPremium)}`}>
+                  <div className={`w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 ${getFrameClass(profile?.avatar_frame, isPremium)}`}>
                     {avatarUrl ? (
                       <img
                         src={avatarUrl}
@@ -940,7 +936,7 @@ export default function Profile() {
                     </label>
                   )}
                 </div>
-                
+
                 <div className="flex-1 text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                     <div className="flex flex-col sm:flex-row items-center sm:items-center gap-2">
@@ -950,7 +946,7 @@ export default function Profile() {
                             type="text"
                             value={newUsername}
                             onChange={(e) => setNewUsername(e.target.value)}
-                            className="w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
                             maxLength={20}
                             placeholder="Username"
                           />
@@ -972,7 +968,7 @@ export default function Profile() {
                         </div>
                       )}
                       {profile?.active_tag && (
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${
+                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full backdrop-blur-sm ${
                           getTagColorClasses(profile.active_tag.category)
                         }`}>
                           <span>{profile.active_tag.emoji}</span>
@@ -1016,7 +1012,7 @@ export default function Profile() {
                     {!isPremium && (
                       <motion.button
                         onClick={() => navigate('/premium')}
-                        className="hidden sm:flex items-center px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-colors font-medium shadow-lg hover:shadow-md"
+                        className="hidden sm:flex items-center px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-black rounded-xl hover:from-yellow-500 hover:to-amber-600 transition-colors font-medium shadow-lg hover:shadow-md"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
@@ -1040,7 +1036,7 @@ export default function Profile() {
                         onChange={(e) => setBio(e.target.value)}
                         maxLength={160}
                         rows={3}
-                        className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full bg-white/60 dark:bg-gray-700/60 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
                         placeholder="Write something about yourself..."
                       />
                     ) : (
@@ -1061,8 +1057,8 @@ export default function Profile() {
                           <>
                             <motion.button
                               onClick={handleWhispersClick}
-                              className={`relative px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center ${
-                                unreadWhispers > 0 ? 'animate-pulse shadow-lg shadow-orange-500/50' : ''
+                              className={`relative px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-colors flex items-center shadow-lg ${
+                                unreadWhispers > 0 ? 'animate-pulse shadow-orange-500/50' : ''
                               }`}
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
@@ -1077,7 +1073,7 @@ export default function Profile() {
                             </motion.button>
                             <motion.button
                               onClick={() => setShowCustomizeModal(true)}
-                              className="px-4 py-2 bg-indigo-600 text-white dark:bg-indigo-500 rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors flex items-center"
+                              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-colors flex items-center shadow-lg"
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                             >
@@ -1090,7 +1086,7 @@ export default function Profile() {
                           <>
                             <motion.button
                               onClick={handleUpdateProfile}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                              className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-colors shadow-lg"
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                             >
@@ -1102,7 +1098,7 @@ export default function Profile() {
                                 setNewUsername(username);
                                 setBio(bio);
                               }}
-                              className="px-4 py-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                              className="px-4 py-2 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                             >
@@ -1112,7 +1108,7 @@ export default function Profile() {
                         ) : (
                           <motion.button
                             onClick={() => setIsEditing(true)}
-                            className="px-4 py-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                            className="px-4 py-2 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                           >
@@ -1128,7 +1124,7 @@ export default function Profile() {
                       {!isPremium && (
                         <motion.button
                           onClick={() => navigate('/premium')}
-                          className="w-full px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-colors flex items-center justify-center font-medium shadow-md hover:shadow-lg"
+                          className="w-full px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-black rounded-xl hover:from-yellow-500 hover:to-amber-600 transition-colors flex items-center justify-center font-medium shadow-lg hover:shadow-xl"
                           whileHover={{ scale: 1.03 }}
                           whileTap={{ scale: 0.97 }}
                         >
@@ -1140,8 +1136,8 @@ export default function Profile() {
                         <div className="flex gap-2">
                           <motion.button
                             onClick={handleWhispersClick}
-                            className={`relative flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center ${
-                              unreadWhispers > 0 ? 'animate-pulse shadow-lg shadow-orange-500/50' : ''
+                            className={`relative flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-colors flex items-center justify-center shadow-lg ${
+                              unreadWhispers > 0 ? 'animate-pulse shadow-orange-500/50' : ''
                             }`}
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
@@ -1155,7 +1151,7 @@ export default function Profile() {
                           </motion.button>
                           <motion.button
                             onClick={() => setShowCustomizeModal(true)}
-                            className="px-4 py-2 bg-indigo-600 text-white dark:bg-indigo-500 rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors flex items-center justify-center"
+                            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-colors flex items-center justify-center shadow-lg"
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
                           >
@@ -1163,7 +1159,7 @@ export default function Profile() {
                           </motion.button>
                           <motion.button
                             onClick={() => setShowSettingsModal(true)}
-                            className="px-4 py-2 bg-gray-600 text-white dark:bg-gray-700 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
+                            className="px-4 py-2 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-white rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors flex items-center justify-center backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
                           >
@@ -1175,7 +1171,7 @@ export default function Profile() {
                         <>
                           <motion.button
                             onClick={handleUpdateProfile}
-                            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            className="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-colors shadow-lg"
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
                           >
@@ -1187,7 +1183,7 @@ export default function Profile() {
                               setNewUsername(username);
                               setBio(bio);
                             }}
-                            className="w-full px-4 py-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                            className="w-full px-4 py-2 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm"
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
                           >
@@ -1197,7 +1193,7 @@ export default function Profile() {
                       ) : (
                         <motion.button
                           onClick={() => setIsEditing(true)}
-                          className="w-full px-4 py-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                          className="w-full px-4 py-2 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm"
                           whileHover={{ scale: 1.03 }}
                           whileTap={{ scale: 0.97 }}
                         >
@@ -1211,29 +1207,137 @@ export default function Profile() {
             </div>
           </motion.div>
 
-          {/* Stats Cards */}
-          <motion.div 
-            variants={containerVariants} 
+          <motion.div
+            variants={itemVariants}
+            className="bg-gradient-to-br from-blue-500/10 via-cyan-500/10 to-teal-500/10 dark:from-blue-500/20 dark:via-cyan-500/20 dark:to-teal-500/20 rounded-2xl shadow-2xl p-6 transform transition-all duration-300 hover:shadow-xl backdrop-blur-xl border-2 border-blue-300/50 dark:border-blue-500/30"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {t('profile.friendsActivity')}
+                </h2>
+              </div>
+              <motion.button
+                onClick={() => navigate('/community')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Users className="w-4 h-4" />
+                {t('profile.accessCommunity')}
+              </motion.button>
+            </div>
+
+            {followedUsersCarousel.length > 0 ? (
+              <div className="relative pt-2">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={carouselOffset}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.35, ease: 'easeInOut' }}
+                    className="flex gap-5 justify-center items-end pt-20 pb-3"
+                  >
+                    {visibleCarouselUsers.map((user, index) => {
+                      const bubbleStyle = getBubbleStyle(user.lastRating);
+                      return (
+                        <div key={user.id} className="flex-shrink-0 flex flex-col items-center">
+                          <div className="relative mb-2">
+                            {user.lastRatedTitle && (
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 pointer-events-none">
+                                <div className={`relative border rounded-xl px-2.5 py-1.5 shadow-lg backdrop-blur-sm w-[90px] ${bubbleStyle.bubble}`}>
+                                  <p className={`text-[9px] font-medium text-center leading-tight line-clamp-2 whitespace-normal ${bubbleStyle.titleText}`}>
+                                    {user.lastRatedTitle}
+                                  </p>
+                                  {user.lastRating !== null && (
+                                    <p className={`text-[10px] font-bold text-center mt-0.5 ${bubbleStyle.ratingText}`}>
+                                      {user.lastRating}
+                                    </p>
+                                  )}
+                                  <div className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent ${bubbleStyle.arrow}`} />
+                                </div>
+                              </div>
+                            )}
+                            <motion.button
+                              onClick={() => navigate(`/profile/${user.username}`)}
+                              className="block"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                              animate={{ y: [0, -4, 0] }}
+                              transition={{
+                                y: { duration: 2.5 + index * 0.3, repeat: Infinity, ease: 'easeInOut', delay: index * 0.4 },
+                              }}
+                            >
+                              <div className={`w-14 h-14 rounded-full overflow-hidden border-2 border-white/80 dark:border-gray-700/80 shadow-lg ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
+                                {user.avatar_url ? (
+                                  <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center">
+                                    <User className="w-7 h-7 text-white" />
+                                  </div>
+                                )}
+                              </div>
+                            </motion.button>
+                          </div>
+                          <span className="text-[10px] text-gray-600 dark:text-gray-400 text-center max-w-[56px] truncate font-medium">
+                            {user.username}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </motion.div>
+                </AnimatePresence>
+                {followedUsersCarousel.length > CAROUSEL_PAGE_SIZE && (
+                  <div className="flex justify-center gap-1.5 mt-2 pb-1">
+                    {Array.from({ length: Math.ceil(followedUsersCarousel.length / CAROUSEL_PAGE_SIZE) }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCarouselOffset(i * CAROUSEL_PAGE_SIZE)}
+                        className={`rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-blue-500 w-4' : 'bg-gray-300 dark:bg-gray-600 w-2'}`}
+                        style={{ height: '6px' }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">Follow users to see their activity here</p>
+              </div>
+            )}
+          </motion.div>
+
+          <motion.div
+            variants={containerVariants}
             className="grid grid-cols-1 md:grid-cols-3 gap-6"
           >
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
+            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {t('profile.stats.ratedMovies')}
                 </h2>
-                <Star className="w-6 h-6 text-yellow-500" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
+                  <Star className="w-5 h-5 text-white" />
+                </div>
               </div>
-              <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+              <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400">
                 {ratedMoviesCount}
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
+            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {t('profile.stats.favoriteGenres')}
                 </h2>
-                <Film className="w-6 h-6 text-purple-500" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center">
+                  <Film className="w-5 h-5 text-white" />
+                </div>
               </div>
               <div className="space-y-2">
                 {favoriteGenres.map((genre, index) => (
@@ -1254,116 +1358,26 @@ export default function Profile() {
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
+            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {t('profile.stats.timeWatching')}
                 </h2>
-                <Clock className="w-6 h-6 text-green-500" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-white" />
+                </div>
               </div>
-              <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+              <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400">
                 {formatWatchTime(totalWatchTime)}
               </div>
             </motion.div>
           </motion.div>
 
-          {/* Community Activity Box */}
-          <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('profile.friendsActivity')}
-              </h2>
-              <button
-                onClick={() => navigate('/community')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-medium transition-all duration-200 shadow-sm"
-              >
-                <Users className="w-3.5 h-3.5" />
-                {t('profile.accessCommunity')}
-              </button>
-            </div>
-
-            {followedUsersCarousel.length > 0 && (
-              <div className="relative pt-2">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={carouselOffset}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.35, ease: 'easeInOut' }}
-                    className="flex gap-5 justify-center items-end pt-20 pb-3"
-                  >
-                    {visibleCarouselUsers.map((user, index) => {
-                      const bubbleStyle = getBubbleStyle(user.lastRating);
-                      return (
-                        <div key={user.id} className="flex-shrink-0 flex flex-col items-center">
-                          <div className="relative mb-2">
-                            {user.lastRatedTitle && (
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 pointer-events-none">
-                                <div className={`relative border rounded-xl px-2.5 py-1.5 shadow-sm w-[90px] ${bubbleStyle.bubble}`}>
-                                  <p className={`text-[9px] font-medium text-center leading-tight line-clamp-2 whitespace-normal ${bubbleStyle.titleText}`}>
-                                    {user.lastRatedTitle}
-                                  </p>
-                                  {user.lastRating !== null && (
-                                    <p className={`text-[10px] font-bold text-center mt-0.5 ${bubbleStyle.ratingText}`}>
-                                      ★ {user.lastRating}
-                                    </p>
-                                  )}
-                                  <div className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent ${bubbleStyle.arrow}`} />
-                                </div>
-                              </div>
-                            )}
-                            <motion.button
-                              onClick={() => navigate(`/profile/${user.username}`)}
-                              className="block"
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.95 }}
-                              animate={{ y: [0, -4, 0] }}
-                              transition={{
-                                y: { duration: 2.5 + index * 0.3, repeat: Infinity, ease: 'easeInOut', delay: index * 0.4 },
-                              }}
-                            >
-                              <div className={`w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-md ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
-                                {user.avatar_url ? (
-                                  <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                                    <User className="w-7 h-7 text-white" />
-                                  </div>
-                                )}
-                              </div>
-                            </motion.button>
-                          </div>
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center max-w-[56px] truncate">
-                            {user.username}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </motion.div>
-                </AnimatePresence>
-                {followedUsersCarousel.length > CAROUSEL_PAGE_SIZE && (
-                  <div className="flex justify-center gap-1 mt-1 pb-1">
-                    {Array.from({ length: Math.ceil(followedUsersCarousel.length / CAROUSEL_PAGE_SIZE) }).map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setCarouselOffset(i * CAROUSEL_PAGE_SIZE)}
-                        className={`rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-                        style={{ height: '3px', width: carouselOffset === i * CAROUSEL_PAGE_SIZE ? '6px' : '3px' }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </motion.div>
-
-          {/* Show All Statistics Button */}
           {ratedMoviesCount > 0 && (
             <motion.button
               variants={itemVariants}
               onClick={() => setShowStats(!showStats)}
-              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl p-4 shadow-md transition-all duration-300 flex items-center justify-center gap-2 font-medium"
+              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-2xl p-4 shadow-xl transition-all duration-300 flex items-center justify-center gap-2 font-semibold"
             >
               <BarChart3 className="w-5 h-5" />
               {showStats ? t('profile.hideStats') : t('profile.showStats')}
@@ -1380,14 +1394,14 @@ export default function Profile() {
 
           {showStats && (
           <>
-
-          {/* Rating Distribution */}
-          <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
+          <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
                 {t('profile.stats.ratingDistribution')}
               </h2>
-              <BarChart3 className="w-6 h-6 text-blue-500" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
+                <BarChart3 className="w-5 h-5 text-white" />
+              </div>
             </div>
             <div className="space-y-2">
               {[...Array(11)].map((_, i) => {
@@ -1398,9 +1412,9 @@ export default function Profile() {
                     <div className="w-12 text-sm text-gray-600 dark:text-gray-400 flex items-center">
                       {rating}<Star className="w-3 h-3 ml-0.5 inline fill-current" />
                     </div>
-                    <div className="flex-1 h-4 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="flex-1 h-4 bg-gray-100/80 dark:bg-gray-700/80 rounded-full overflow-hidden backdrop-blur-sm">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 dark:from-blue-400 dark:to-purple-400 rounded-full"
+                        className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 dark:from-blue-400 dark:to-cyan-400 rounded-full"
                         initial={{ width: 0 }}
                         animate={{ width: `${percentage}%` }}
                         transition={{ duration: 0.8, delay: i * 0.05, ease: "easeOut" }}
@@ -1415,35 +1429,32 @@ export default function Profile() {
             </div>
           </motion.div>
 
-          {/* Favorite Decade */}
           {favoriteDecade && (
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
+            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {t('profile.stats.favoriteDecade')}
                 </h2>
-                <ArchiveIcon className="w-6 h-6 text-amber-500" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                  <ArchiveIcon className="w-5 h-5 text-white" />
+                </div>
               </div>
 
               <div className="space-y-4">
-                {/* Década favorita em destaque */}
                 <div className="text-center">
                   <div className={`text-4xl font-bold mb-1 ${
                     favoriteDecade.label === 'Grandpa Cinema' ? 'text-amber-600 dark:text-amber-400' :
-                    favoriteDecade.label === 'Nostalgic' ? 'text-indigo-600 dark:text-indigo-400' :
+                    favoriteDecade.label === 'Nostalgic' ? 'text-blue-600 dark:text-blue-400' :
                     'text-emerald-600 dark:text-emerald-400'
                   }`}>
-                    {favoriteDecade.label === 'Grandpa Cinema' && '🎬 '}
-                    {favoriteDecade.label === 'Nostalgic' && '📼 '}
-                    {favoriteDecade.label === 'Modern Lover' && '📱 '}
                     {favoriteDecade.decade.replace('s', '')}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                    {favoriteDecade.count} {t('community.films')} • {Math.round(favoriteDecade.percentage)}%
+                    {favoriteDecade.count} {t('community.films')} - {Math.round(favoriteDecade.percentage)}%
                   </div>
                   <div className={`text-xs font-medium mt-1 ${
                     favoriteDecade.label === 'Grandpa Cinema' ? 'text-amber-600 dark:text-amber-400' :
-                    favoriteDecade.label === 'Nostalgic' ? 'text-indigo-600 dark:text-indigo-400' :
+                    favoriteDecade.label === 'Nostalgic' ? 'text-blue-600 dark:text-blue-400' :
                     'text-emerald-600 dark:text-emerald-400'
                   }`}>
                     {favoriteDecade.label === 'Grandpa Cinema' ? 'Grandpa Cinema' :
@@ -1452,14 +1463,13 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Barra de progresso principal com destaque */}
                 <div className="relative">
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="h-3 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden backdrop-blur-sm">
                     <motion.div
                       className={`h-full rounded-full ${
-                        favoriteDecade.label === 'Grandpa Cinema' ? 'bg-amber-500 dark:bg-amber-600' :
-                        favoriteDecade.label === 'Nostalgic' ? 'bg-indigo-500 dark:bg-indigo-600' :
-                        'bg-emerald-500 dark:bg-emerald-600'
+                        favoriteDecade.label === 'Grandpa Cinema' ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
+                        favoriteDecade.label === 'Nostalgic' ? 'bg-gradient-to-r from-blue-400 to-cyan-500' :
+                        'bg-gradient-to-r from-emerald-400 to-teal-500'
                       }`}
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min(100, favoriteDecade.percentage)}%` }}
@@ -1468,7 +1478,6 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Todas as décadas - Grid */}
                 {favoriteDecade.allDecades && Object.keys(favoriteDecade.allDecades).length > 1 && (
                   <div className="space-y-2">
                     <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -1485,7 +1494,7 @@ export default function Profile() {
                           return (
                             <div
                               key={decade}
-                              className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                              className="flex items-center justify-between px-3 py-2 bg-white/40 dark:bg-gray-700/40 rounded-xl backdrop-blur-sm"
                             >
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 {decade.replace('s', '')}
@@ -1494,7 +1503,7 @@ export default function Profile() {
                                 <span className="text-xs text-gray-500 dark:text-gray-400">
                                   {count}
                                 </span>
-                                <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                                <div className="w-12 h-1.5 bg-gray-200/80 dark:bg-gray-600/80 rounded-full overflow-hidden">
                                   <motion.div
                                     className="h-full bg-gray-400 dark:bg-gray-500 rounded-full"
                                     initial={{ width: 0 }}
@@ -1513,15 +1522,15 @@ export default function Profile() {
             </motion.div>
           )}
 
-          {/* New Row for Frequent Actors, Directors, and Least-Known Gem */}
           <motion.div variants={containerVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Most Frequent Actors */}
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
+            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {t('profile.stats.favoriteActors')}
                 </h2>
-                <Award className="w-6 h-6 text-pink-500" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center">
+                  <Award className="w-5 h-5 text-white" />
+                </div>
               </div>
               {topActors.length > 0 ? (
                 <div className="space-y-2">
@@ -1543,13 +1552,14 @@ export default function Profile() {
               )}
             </motion.div>
 
-            {/* Most Frequent Directors */}
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
+            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {t('profile.stats.favoriteDirectors')}
                 </h2>
-                <Film className="w-6 h-6 text-indigo-500" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
+                  <Film className="w-5 h-5 text-white" />
+                </div>
               </div>
               {topDirectors.length > 0 ? (
                 <div className="space-y-2">
@@ -1571,13 +1581,14 @@ export default function Profile() {
               )}
             </motion.div>
 
-            {/* Least-Known Gem */}
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl">
+            <motion.div variants={itemVariants} className="bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl backdrop-blur-xl border border-white/60 dark:border-gray-700/60">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {t('profile.stats.leastKnownGem')}
                 </h2>
-                <TrendingDown className="w-6 h-6 text-emerald-500" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                  <TrendingDown className="w-5 h-5 text-white" />
+                </div>
               </div>
               {leastKnownGem ? (
                 <div className="flex flex-col">
@@ -1612,7 +1623,6 @@ export default function Profile() {
           )}
         </motion.div>
 
-        {/* Modals */}
         {showWhispersModal && session?.user?.id && (
           <WhispersModal
             isOpen={showWhispersModal}
@@ -1636,7 +1646,6 @@ export default function Profile() {
           isOpen={showCustomizeModal}
           onClose={() => setShowCustomizeModal(false)}
           onSave={() => {
-            // Recarregar perfil após salvar customização
             fetchProfile();
           }}
         />

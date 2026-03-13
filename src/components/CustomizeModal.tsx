@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, ImageIcon, Tag, Layout, Crown, Star, BrainCircuit, Users, Lock, Loader2, Check, Palette, User, Film } from 'lucide-react';
+import { X, Image as ImageIcon, Tag, Layout, Crown, Star, BrainCircuit, Users, Lock, Loader2, Check, Palette, User, Film } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { frames, FrameId } from '../lib/frames';
 import { banners, BannerId } from '../lib/banners';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CustomizeModalProps {
   isOpen: boolean;
@@ -84,66 +85,66 @@ interface OracleCard {
 }
 
 const PROGRESSION_TAGS: ProgressionTag[] = [
-  { name: 'Balcony Regular', emoji: '🎫', minMovies: 1, maxMovies: 19, description: '1 - 19 movies' },
-  { name: 'Seat Warmer', emoji: '💺', minMovies: 20, maxMovies: 49, description: '20 - 49 movies' },
-  { name: 'Popcorn Pro', emoji: '🍿', minMovies: 50, maxMovies: 99, description: '50 - 99 movies' },
-  { name: 'Reel Addict', emoji: '📽', minMovies: 100, maxMovies: 199, description: '100 - 199 movies' },
-  { name: 'Cine Elite', emoji: '🎞', minMovies: 200, maxMovies: 499, description: '200 - 499 movies' },
-  { name: 'Projectionist Supreme', emoji: '🎬', minMovies: 500, maxMovies: 999, description: '500 - 999 movies' },
-  { name: 'Cinematic Guru', emoji: '🎭', minMovies: 1000, description: '1000+ movies' },
-  { 
-    name: 'CineHater', 
-    emoji: '🔥', 
-    minMovies: 20, 
+  { name: 'Balcony Regular', emoji: '', minMovies: 1, maxMovies: 19, description: '1 - 19 movies' },
+  { name: 'Seat Warmer', emoji: '', minMovies: 20, maxMovies: 49, description: '20 - 49 movies' },
+  { name: 'Popcorn Pro', emoji: '', minMovies: 50, maxMovies: 99, description: '50 - 99 movies' },
+  { name: 'Reel Addict', emoji: '', minMovies: 100, maxMovies: 199, description: '100 - 199 movies' },
+  { name: 'Cine Elite', emoji: '', minMovies: 200, maxMovies: 499, description: '200 - 499 movies' },
+  { name: 'Projectionist Supreme', emoji: '', minMovies: 500, maxMovies: 999, description: '500 - 999 movies' },
+  { name: 'Cinematic Guru', emoji: '', minMovies: 1000, description: '1000+ movies' },
+  {
+    name: 'CineHater',
+    emoji: '',
+    minMovies: 20,
     description: '20 movies rated 0-2/10',
     condition: { type: 'rating', value: [0, 1, 2] }
   },
-  { 
-    name: 'Golden Reel', 
-    emoji: '🏆', 
-    minMovies: 20, 
+  {
+    name: 'Golden Reel',
+    emoji: '',
+    minMovies: 20,
     description: '20 movies rated 10/10',
     condition: { type: 'rating', value: 10 }
   },
-  { 
-    name: 'Bloody Mary', 
-    emoji: '🩸', 
-    minMovies: 50, 
+  {
+    name: 'Bloody Mary',
+    emoji: '',
+    minMovies: 50,
     description: '50 Horror movies',
     condition: { type: 'genre', value: 'Horror' }
   },
-  { 
-    name: 'Punchliner', 
-    emoji: '🤣', 
-    minMovies: 50, 
+  {
+    name: 'Punchliner',
+    emoji: '',
+    minMovies: 50,
     description: '50 Comedy movies',
     condition: { type: 'genre', value: 'Comedy' }
   },
-  { 
-    name: 'Star Gazer', 
-    emoji: '🚀', 
-    minMovies: 50, 
+  {
+    name: 'Star Gazer',
+    emoji: '',
+    minMovies: 50,
     description: '50 Sci-Fi movies',
     condition: { type: 'genre', value: 'Science Fiction' }
   },
-  { 
-    name: 'Cine Cupid', 
-    emoji: '💖', 
-    minMovies: 50, 
+  {
+    name: 'Cine Cupid',
+    emoji: '',
+    minMovies: 50,
     description: '50 Romance movies',
     condition: { type: 'genre', value: 'Romance' }
   },
-  { 
-    name: 'Truth Digger', 
-    emoji: '📚', 
-    minMovies: 50, 
+  {
+    name: 'Truth Digger',
+    emoji: '',
+    minMovies: 50,
     description: '50 Documentary movies',
     condition: { type: 'genre', value: 'Documentary' }
   },
-  { 
-    name: "Director's Cut", 
-    emoji: '🎥', 
-    minMovies: 10, 
+  {
+    name: "Director's Cut",
+    emoji: '',
+    minMovies: 10,
     description: '10 movies from the same director',
     condition: { type: 'director' }
   }
@@ -153,220 +154,218 @@ const THEME_TAGS: ThemeTag[] = [
   {
     id: 'mockingjay-victor',
     name: 'Mockingjay Victor',
-    emoji: '🏹',
+    emoji: '',
     requirement: 'All 5 Hunger Games movies',
     condition: { type: 'franchise', count: 5, value: 'Hunger Games' }
   },
   {
     id: 'lucky-player',
     name: 'Lucky Player',
-    emoji: '🎲',
+    emoji: '',
     requirement: 'Jumanji (1995) and Zathura (2005)',
     condition: { type: 'franchise', count: 2, value: 'Jumanji-Zathura' }
   },
   {
     id: 'death-dodger',
     name: 'Death Dodger',
-    emoji: '☠️',
+    emoji: '',
     requirement: 'All 5 Final Destination movies',
     condition: { type: 'franchise', count: 5, value: 'Final Destination' }
   },
   {
     id: 'hogwarts-graduate',
     name: 'Hogwarts Graduate',
-    emoji: '🧙',
+    emoji: '',
     requirement: 'All 8 Harry Potter movies',
     condition: { type: 'franchise', count: 8, value: 'Harry Potter' }
   },
   {
     id: 'force-founder',
     name: 'Force Founder',
-    emoji: '🌌',
+    emoji: '',
     requirement: 'Star Wars Original Trilogy (IV-V-VI)',
     condition: { type: 'franchise', count: 3, value: 'Star Wars Original' }
   },
   {
     id: 'don-of-cinema',
     name: 'Don of Cinema',
-    emoji: '🍷',
+    emoji: '',
     requirement: 'The Godfather Trilogy (I-II-III)',
     condition: { type: 'franchise', count: 3, value: 'The Godfather' }
   },
   {
     id: 'trap-builder',
     name: 'Trap Builder',
-    emoji: '🪤',
+    emoji: '',
     requirement: 'Home Alone 1 & 2',
     condition: { type: 'franchise', count: 2, value: 'Home Alone' }
   },
   {
     id: 'red-pill-adept',
     name: 'Red-Pill Adept',
-    emoji: '💊',
+    emoji: '',
     requirement: 'The Matrix Trilogy',
     condition: { type: 'franchise', count: 3, value: 'The Matrix' }
   },
   {
     id: 'flux-capacitor-fan',
     name: 'Flux-Capacitor Fan',
-    emoji: '⚡',
+    emoji: '',
     requirement: 'Back to the Future Trilogy',
     condition: { type: 'franchise', count: 3, value: 'Back to the Future' }
   },
   {
     id: 'ring-expert',
     name: 'Ring Expert',
-    emoji: '💍',
+    emoji: '',
     requirement: 'LOTR Extended Trilogy',
     condition: { type: 'franchise', count: 3, value: 'The Lord of the Rings' }
   },
   {
     id: 'toy-collector',
     name: 'Toy Collector',
-    emoji: '🦖',
+    emoji: '',
     requirement: 'All 4 Toy Story movies',
     condition: { type: 'franchise', count: 4, value: 'Toy Story' }
   },
   {
     id: 'whip-crack-scholar',
     name: 'Whip-Crack Scholar',
-    emoji: '🥾',
+    emoji: '',
     requirement: 'Indiana Jones Quadrilogy',
     condition: { type: 'franchise', count: 4, value: 'Indiana Jones' }
   },
   {
     id: 'sailor',
     name: 'Sailor',
-    emoji: '🏴‍☠️',
+    emoji: '',
     requirement: 'All 5 Pirates of the Caribbean movies',
     condition: { type: 'franchise', count: 5, value: 'Pirates' }
   },
   {
     id: 'senior-mechanic',
     name: 'Senior Mechanic',
-    emoji: '🔧',
+    emoji: '',
     requirement: 'All 10 Fast & Furious main saga movies',
     condition: { type: 'franchise', count: 10, value: 'Fast Saga' }
   },
   {
     id: 'cybertron-sentinel',
     name: 'Cybertron Sentinel',
-    emoji: '🤖',
+    emoji: '',
     requirement: 'All 7 live-action Transformers movies',
     condition: { type: 'franchise', count: 7, value: 'Transformers' }
   },
   {
     id: 'swamp-royalty',
     name: 'Swamp Royalty',
-    emoji: '🧅',
+    emoji: '',
     requirement: 'All 4 Shrek movies',
     condition: { type: 'franchise', count: 4, value: 'Shrek' }
   },
   {
     id: 'dino-tamer',
     name: 'Dino Tamer',
-    emoji: '🦴',
+    emoji: '',
     requirement: 'All 6 Jurassic Park/World movies',
     condition: { type: 'franchise', count: 6, value: 'Jurassic' }
   },
   {
     id: 'banana-boss',
     name: 'Banana Boss',
-    emoji: '🍌',
+    emoji: '',
     requirement: 'All 5 Despicable Me/Minions movies',
     condition: { type: 'franchise', count: 5, value: 'Minions' }
   },
   {
     id: 'baba-yaga',
     name: 'Baba Yaga',
-    emoji: '🃏',
+    emoji: '',
     requirement: 'John Wick Saga',
     condition: { type: 'franchise', count: 4, value: 'John Wick' }
   },
   {
     id: 'casual-drinker',
     name: 'Casual Drinker',
-    emoji: '🥃',
+    emoji: '',
     requirement: 'The Hangover Trilogy',
     condition: { type: 'franchise', count: 3, value: 'Hangover' }
   },
   {
     id: 'sweetie-pie',
     name: 'Sweetie Pie',
-    emoji: '🥧',
+    emoji: '',
     requirement: 'American Pie (original four)',
     condition: { type: 'franchise', count: 4, value: 'American Pie' }
   },
   {
     id: 'visceral-gamer',
     name: 'Visceral Gamer',
-    emoji: '♟️',
+    emoji: '',
     requirement: 'Saw Franchise',
     condition: { type: 'franchise', count: 10, value: 'Saw' }
   },
   {
     id: 'nuts',
     name: 'Nuts',
-    emoji: '🌰',
+    emoji: '',
     requirement: 'Ice Age Saga',
     condition: { type: 'franchise', count: 6, value: 'Ice Age' }
   },
   {
     id: 'dark-spirit',
     name: 'Dark Spirit',
-    emoji: '🦇',
+    emoji: '',
     requirement: 'The Dark Knight Trilogy',
     condition: { type: 'franchise', count: 3, value: 'Dark Knight' }
   },
   {
     id: 'infinity-gauntlet',
     name: 'Infinity Gauntlet',
-    emoji: '♾️',
+    emoji: '',
     requirement: 'All 4 Avengers movies (2012-2019)',
     condition: { type: 'franchise', count: 4, value: [24428, 299536, 99861, 299534] }
   },
   {
     id: 'sharp-canine',
     name: 'Sharp Canine',
-    emoji: '🦷',
+    emoji: '',
     requirement: 'Twilight Saga',
     condition: { type: 'franchise', count: 5, value: 'Twilight' }
   },
   {
     id: 'primal-essence',
     name: 'Primal Essence',
-    emoji: '🦍',
+    emoji: '',
     requirement: 'Planet of the Apes (2011 reboot line)',
     condition: { type: 'franchise', count: 4, value: 'Apes Reboot' }
   }
 ];
 
 const COMMUNITY_TAGS: CommunityTag[] = [
-  { name: 'Spotlight Spark', emoji: '✨', minFollowers: 1, maxFollowers: 9, description: '1 - 9 followers' },
-  { name: 'Rising Star', emoji: '🌠', minFollowers: 10, maxFollowers: 24, description: '10 - 24 followers' },
-  { name: 'Red-Carpet Regular', emoji: '👠', minFollowers: 25, maxFollowers: 49, description: '25 - 49 followers' },
-  { name: 'Festival Favorite', emoji: '🏵️', minFollowers: 50, maxFollowers: 99, description: '50 - 99 followers' },
-  { name: 'Blockbuster', emoji: '💥', minFollowers: 100, maxFollowers: 199, description: '100 - 199 followers' },
-  { name: 'Cult Legend', emoji: '🌟', minFollowers: 200, description: '200+ followers' }
+  { name: 'Spotlight Spark', emoji: '', minFollowers: 1, maxFollowers: 9, description: '1 - 9 followers' },
+  { name: 'Rising Star', emoji: '', minFollowers: 10, maxFollowers: 24, description: '10 - 24 followers' },
+  { name: 'Red-Carpet Regular', emoji: '', minFollowers: 25, maxFollowers: 49, description: '25 - 49 followers' },
+  { name: 'Festival Favorite', emoji: '', minFollowers: 50, maxFollowers: 99, description: '50 - 99 followers' },
+  { name: 'Blockbuster', emoji: '', minFollowers: 100, maxFollowers: 199, description: '100 - 199 followers' },
+  { name: 'Cult Legend', emoji: '', minFollowers: 200, description: '200+ followers' }
 ];
 
 const ORACLE_TAGS: OracleTag[] = [
-  // Prediction tags
-  { name: 'Curious Seeker', emoji: '🔍', type: 'prediction', minCount: 10, maxCount: 24, description: '10 - 24 predictions' },
-  { name: 'Pattern Hunter', emoji: '🧩', type: 'prediction', minCount: 25, maxCount: 49, description: '25 - 49 predictions' },
-  { name: 'Mind Decoder', emoji: '🧠', type: 'prediction', minCount: 50, maxCount: 99, description: '50 - 99 predictions' },
-  { name: 'Future Whisperer', emoji: '🌘', type: 'prediction', minCount: 100, maxCount: 199, description: '100 - 199 predictions' },
-  { name: 'Oracle\'s Chosen', emoji: '🌑', type: 'prediction', minCount: 200, maxCount: 499, description: '200 - 499 predictions' },
-  { name: 'Fate Architect', emoji: '🜂', type: 'prediction', minCount: 500, maxCount: 999, description: '500 - 999 predictions' },
-  { name: 'Timeline Overlord', emoji: '⛓️', type: 'prediction', minCount: 1000, description: '1000+ predictions' },
-  // Recommendation tags
-  { name: 'Popcorn Taster', emoji: '🌽', type: 'recommendation', minCount: 10, maxCount: 24, description: '10 - 24 recommendations' },
-  { name: 'Hidden Gem Hunter', emoji: '🔶', type: 'recommendation', minCount: 25, maxCount: 49, description: '25 - 49 recommendations' },
-  { name: 'Genre Explorer', emoji: '🗺️', type: 'recommendation', minCount: 50, maxCount: 99, description: '50 - 99 recommendations' },
-  { name: 'Taste Alchemist', emoji: '🧪', type: 'recommendation', minCount: 100, maxCount: 199, description: '100 - 199 recommendations' },
-  { name: 'Recommendation Lord', emoji: '⚜️', type: 'recommendation', minCount: 200, maxCount: 499, description: '200 - 499 recommendations' },
-  { name: 'Galaxy Curator', emoji: '🧮', type: 'recommendation', minCount: 500, maxCount: 999, description: '500 - 999 recommendations' },
-  { name: 'Multiverse Sommelier', emoji: '🎎', type: 'recommendation', minCount: 1000, description: '1000+ recommendations' }
+  { name: 'Curious Seeker', emoji: '', type: 'prediction', minCount: 10, maxCount: 24, description: '10 - 24 predictions' },
+  { name: 'Pattern Hunter', emoji: '', type: 'prediction', minCount: 25, maxCount: 49, description: '25 - 49 predictions' },
+  { name: 'Mind Decoder', emoji: '', type: 'prediction', minCount: 50, maxCount: 99, description: '50 - 99 predictions' },
+  { name: 'Future Whisperer', emoji: '', type: 'prediction', minCount: 100, maxCount: 199, description: '100 - 199 predictions' },
+  { name: 'Oracle\'s Chosen', emoji: '', type: 'prediction', minCount: 200, maxCount: 499, description: '200 - 499 predictions' },
+  { name: 'Fate Architect', emoji: '', type: 'prediction', minCount: 500, maxCount: 999, description: '500 - 999 predictions' },
+  { name: 'Timeline Overlord', emoji: '', type: 'prediction', minCount: 1000, description: '1000+ predictions' },
+  { name: 'Popcorn Taster', emoji: '', type: 'recommendation', minCount: 10, maxCount: 24, description: '10 - 24 recommendations' },
+  { name: 'Hidden Gem Hunter', emoji: '', type: 'recommendation', minCount: 25, maxCount: 49, description: '25 - 49 recommendations' },
+  { name: 'Genre Explorer', emoji: '', type: 'recommendation', minCount: 50, maxCount: 99, description: '50 - 99 recommendations' },
+  { name: 'Taste Alchemist', emoji: '', type: 'recommendation', minCount: 100, maxCount: 199, description: '100 - 199 recommendations' },
+  { name: 'Recommendation Lord', emoji: '', type: 'recommendation', minCount: 200, maxCount: 499, description: '200 - 499 recommendations' },
+  { name: 'Galaxy Curator', emoji: '', type: 'recommendation', minCount: 500, maxCount: 999, description: '500 - 999 recommendations' },
+  { name: 'Multiverse Sommelier', emoji: '', type: 'recommendation', minCount: 1000, description: '1000+ recommendations' }
 ];
 
 const FRANCHISE_MOVIES = {
@@ -441,7 +440,7 @@ const getTagColorClasses = (category: string) => {
     case 'community':
       return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
     case 'oracle':
-      return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400';
+      return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400';
     default:
       return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
   }
@@ -463,8 +462,8 @@ const getCategoryButtonStyle = (isActive: boolean, category: string) => {
         : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600';
     case 'oracle':
       return isActive
-        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-        : 'bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600';
+        ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'
+        : 'bg-pink-600 text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600';
     default:
       return isActive
         ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
@@ -560,7 +559,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     try {
       setSavingTag(true);
 
-      // If clicking on the currently active tag, remove it
       const isCurrentlyActive = activeTag?.name === tag.name;
       const newTag = isCurrentlyActive ? null : { category, name: tag.name, emoji: tag.emoji };
 
@@ -587,7 +585,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           avatar_frame: frameId,
           updated_at: new Date().toISOString()
         })
@@ -687,7 +685,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       if (userMoviesError) throw userMoviesError;
 
       if (userMovies) {
-        // Track ratings
         const ratingCounts = {
           lowRatings: userMovies.filter(m => m.rating <= 2).length,
           perfectRatings: userMovies.filter(m => m.rating === 10).length
@@ -696,7 +693,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         progress['CineHater'] = ratingCounts.lowRatings;
         progress['Golden Reel'] = ratingCounts.perfectRatings;
 
-        // Track genres
         const genreCounts: Record<string, number> = {};
         const directorCounts: Record<string, number> = {};
 
@@ -717,7 +713,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         progress['Cine Cupid'] = genreCounts['Romance'] || 0;
         progress['Truth Digger'] = genreCounts['Documentary'] || 0;
 
-        // Track director with most movies
         progress["Director's Cut"] = Math.max(...Object.values(directorCounts), 0);
       }
 
@@ -742,7 +737,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       if (!userMoviesError && userMovies) {
         const ratedMovieIds = new Set(userMovies.map(movie => movie.movie_id));
 
-        // Handle string-based franchise tags
         Object.entries(FRANCHISE_MOVIES).forEach(([franchise, movieIds]) => {
           const watchedCount = movieIds.filter(id => ratedMovieIds.has(id)).length;
           const tagId = THEME_TAGS.find(tag =>
@@ -755,7 +749,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           }
         });
 
-        // Handle array-based franchise tags (like Infinity Gauntlet)
         THEME_TAGS.forEach(tag => {
           if (tag.condition.type === 'franchise' && Array.isArray(tag.condition.value)) {
             const watchedCount = tag.condition.value.filter(id => ratedMovieIds.has(id)).length;
@@ -785,11 +778,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       const progress: Record<string, number> = {};
 
       if (profileData) {
-        // Get counts from profile
         const predictionsCount = profileData.oracle_predictions_count || 0;
         const recommendationsCount = profileData.oracle_recommendations_count || 0;
 
-        // Set progress for each tag based on counts
         ORACLE_TAGS.forEach(tag => {
           const count = tag.type === 'prediction' ? predictionsCount : recommendationsCount;
           progress[tag.name] = count;
@@ -819,81 +810,93 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   ] as const;
 
   const renderFrameContent = () => {
-    // Get default frame first
     const defaultFrame = frames.default;
-    // Get all other frames
     const otherFrames = Object.values(frames).filter(frame => frame.id !== 'default');
-    
+
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {/* Default frame always first */}
-        <div
+        <motion.div
           key={defaultFrame.id}
-          className={`relative aspect-square rounded-lg border border-transparent ${selectedFrame === defaultFrame.id ? 'ring-2 ring-blue-500' : ''}`}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.2 }}
+          className={`relative aspect-square rounded-2xl overflow-hidden ${selectedFrame === defaultFrame.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
         >
           <button
             onClick={() => handleFrameSelect(defaultFrame.id as FrameId)}
-            className="w-full h-full p-4 relative group"
+            className="w-full h-full p-4 relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300"
           >
-            <div className={`w-full h-full rounded-full overflow-hidden ${defaultFrame.className}`}>
-              <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                <User className="w-1/2 h-1/2 text-gray-400" />
+            <div className={`w-full h-full rounded-full overflow-hidden ${defaultFrame.className} shadow-xl`}>
+              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
+                <User className="w-1/2 h-1/2 text-white" />
               </div>
             </div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-sm font-medium text-gray-900 dark:text-white bg-white/80 dark:bg-black/50 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute inset-x-0 bottom-2 flex items-center justify-center">
+              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
                 {defaultFrame.name}
               </span>
             </div>
+            {selectedFrame === defaultFrame.id && (
+              <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full">
+                <Check className="w-4 h-4" />
+              </div>
+            )}
           </button>
-        </div>
+        </motion.div>
 
-        {/* Rest of the frames */}
-        {otherFrames.map((frame) => {
+        {otherFrames.map((frame, index) => {
           const isPremiumLocked = frame.isPremium && !isPremium;
           const requiredTagProgress = frame.requiredTag ? (themeTagProgress[frame.requiredTag] || 0) : 0;
           const requiredTagMet = !frame.requiredTag || (requiredTagProgress >= (THEME_TAGS.find(t => t.id === frame.requiredTag)?.condition.count || 0));
           const isLocked = isPremiumLocked || !requiredTagMet;
 
           return (
-            <div
+            <motion.div
               key={frame.id}
-              className={`relative aspect-square rounded-lg border ${
-                isLocked ? 'border-gray-200 dark:border-gray-700 opacity-50' : 'border-transparent'
-              } ${selectedFrame === frame.id ? 'ring-2 ring-blue-500' : ''}`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2, delay: (index + 1) * 0.03 }}
+              className={`relative aspect-square rounded-2xl overflow-hidden ${
+                isLocked ? 'opacity-60' : ''
+              } ${selectedFrame === frame.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
             >
               <button
                 onClick={() => !isLocked && handleFrameSelect(frame.id as FrameId)}
                 disabled={isLocked}
-                className="w-full h-full p-4 relative group"
+                className="w-full h-full p-4 relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 disabled:cursor-not-allowed disabled:hover:from-gray-100 disabled:hover:to-gray-200 dark:disabled:hover:from-gray-700 dark:disabled:hover:to-gray-800"
               >
-                <div className={`w-full h-full rounded-full overflow-hidden ${frame.className}`}>
-                  <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <User className="w-1/2 h-1/2 text-gray-400" />
+                <div className={`w-full h-full rounded-full overflow-hidden ${frame.className} shadow-xl`}>
+                  <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
+                    <User className="w-1/2 h-1/2 text-white" />
                   </div>
                 </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white bg-white/80 dark:bg-black/50 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute inset-x-0 bottom-2 flex items-center justify-center">
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
                     {frame.name}
                   </span>
                 </div>
                 {isLocked && (
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 right-2 z-10">
                     {isPremiumLocked ? (
-                      <div className="flex items-center gap-1 bg-yellow-400 text-black text-xs font-medium px-2 py-1 rounded-full">
-                        <Crown className="w-3 h-3" />
+                      <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2.5 py-1 rounded-full shadow-lg">
+                        <Crown className="w-3.5 h-3.5" />
                         <span>Premium</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-                        <Lock className="w-3 h-3" />
+                      <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg">
+                        <Lock className="w-3.5 h-3.5" />
                         <span>Tag</span>
                       </div>
                     )}
                   </div>
                 )}
+                {!isLocked && selectedFrame === frame.id && (
+                  <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full">
+                    <Check className="w-4 h-4" />
+                  </div>
+                )}
               </button>
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -901,62 +904,64 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   };
 
   const renderBannerContent = () => {
-    // Get default banner first
     const defaultBanner = banners.default;
-    // Get all other banners
     const otherBanners = Object.values(banners).filter(banner => banner.id !== 'default');
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Default banner always first */}
-        <div
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <motion.div
           key={defaultBanner.id}
-          className={`relative rounded-xl overflow-hidden ${selectedBanner === defaultBanner.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/50' : ''}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className={`relative rounded-2xl overflow-hidden ${selectedBanner === defaultBanner.id ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
         >
           <button
             onClick={() => handleBannerSelect(defaultBanner.id as BannerId)}
             className="w-full h-full relative group transition-all duration-300 hover:scale-[1.02]"
           >
-            <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-xl p-6 h-32 w-full flex items-center justify-center">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white text-center line-clamp-2">
+            <div className="bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 rounded-2xl p-8 h-36 w-full flex items-center justify-center">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white text-center">
                 {defaultBanner.name}
               </h3>
             </div>
             {selectedBanner === defaultBanner.id && (
-              <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full z-10">
+              <div className="absolute top-3 right-3 bg-blue-500 text-white p-1.5 rounded-full z-10">
                 <Check className="w-4 h-4" />
               </div>
             )}
           </button>
-        </div>
+        </motion.div>
 
-        {/* Other banners - All same size */}
-        {otherBanners.map((banner) => {
+        {otherBanners.map((banner, index) => {
           const isPremiumLocked = banner.isPremium && !isPremium;
           const requiredTagProgress = banner.requiredTag ? (themeTagProgress[banner.requiredTag] || 0) : 0;
           const requiredTagMet = !banner.requiredTag || (requiredTagProgress >= (THEME_TAGS.find(t => t.id === banner.requiredTag)?.condition.count || 0));
           const isLocked = isPremiumLocked || !requiredTagMet;
 
           return (
-            <div
+            <motion.div
               key={banner.id}
-              className={`relative rounded-xl overflow-hidden ${
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: (index + 1) * 0.05 }}
+              className={`relative rounded-2xl overflow-hidden ${
                 isLocked ? 'opacity-60' : ''
-              } ${selectedBanner === banner.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/50' : ''}`}
+              } ${selectedBanner === banner.id ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
             >
               <button
                 onClick={() => !isLocked && handleBannerSelect(banner.id as BannerId)}
                 disabled={isLocked}
                 className="block w-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                <div className={`rounded-xl p-6 h-32 w-full flex items-center justify-center ${banner.className}`}>
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white z-10 relative text-center line-clamp-2 w-full px-8">
+                <div className={`rounded-2xl p-8 h-36 w-full flex items-center justify-center ${banner.className}`}>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white z-10 relative text-center line-clamp-2 w-full px-8">
                     {banner.name}
                   </h3>
                   {isLocked && (
-                    <div className="absolute top-2 right-2 z-10">
+                    <div className="absolute top-3 right-3 z-10">
                       {isPremiumLocked ? (
-                        <div className="flex items-center gap-1.5 bg-yellow-400 text-black text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                        <div className="flex items-center gap-1.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
                           <Crown className="w-4 h-4" />
                           <span>Premium</span>
                         </div>
@@ -969,13 +974,13 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     </div>
                   )}
                   {!isLocked && selectedBanner === banner.id && (
-                    <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full z-10">
+                    <div className="absolute top-3 right-3 bg-blue-500 text-white p-1.5 rounded-full z-10">
                       <Check className="w-4 h-4" />
                     </div>
                   )}
                 </div>
               </button>
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -985,33 +990,36 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const renderCardContent = () => {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {Object.values(ORACLE_CARDS).map((card) => {
+        {Object.values(ORACLE_CARDS).map((card, index) => {
           const isPremiumLocked = card.isPremium && !isPremium;
           const requiredTagProgress = card.requiredTag ? (themeTagProgress[card.requiredTag] || 0) : 0;
           const isTagUnlocked = card.requiredTag ? requiredTagProgress >= 50 : true;
           const isLocked = isPremiumLocked || !isTagUnlocked;
 
           return (
-            <div
+            <motion.div
               key={card.id}
-              className={`relative rounded-xl overflow-hidden border-2 ${
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className={`relative rounded-2xl overflow-hidden border-2 ${
                 selectedCard === card.id
-                  ? 'border-blue-500 shadow-lg shadow-blue-500/50'
-                  : 'border-gray-200 dark:border-gray-700'
-              } ${isLocked ? 'opacity-60' : ''}`}
+                  ? 'border-blue-500 shadow-xl shadow-blue-500/30'
+                  : 'border-white/20 dark:border-gray-700/60'
+              } ${isLocked ? 'opacity-60' : ''} bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl`}
             >
               <button
                 onClick={() => !isLocked && handleCardSelect(card.id)}
                 disabled={isLocked}
-                className="w-full p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                className="w-full p-5 hover:bg-white/30 dark:hover:bg-gray-700/30 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                       {card.name}
                     </h3>
                     {isPremiumLocked ? (
-                      <div className="flex items-center gap-1.5 bg-yellow-400 text-black text-xs font-bold px-3 py-1.5 rounded-full">
+                      <div className="flex items-center gap-1.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-3 py-1.5 rounded-full">
                         <Crown className="w-4 h-4" />
                         <span>Premium</span>
                       </div>
@@ -1027,22 +1035,22 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     ) : null}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="aspect-[2/3] rounded overflow-hidden">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
                       <img
                         src={card.images.bogart}
                         alt="Bogart"
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="aspect-[2/3] rounded overflow-hidden">
+                    <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
                       <img
                         src={card.images.fincher}
                         alt="Fincher"
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="aspect-[2/3] rounded overflow-hidden">
+                    <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
                       <img
                         src={card.images.cypher}
                         alt="Cypher"
@@ -1056,7 +1064,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                   </p>
                 </div>
               </button>
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -1077,7 +1085,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                   ? basicTagProgress[tag.name] || 0
                   : ratedMoviesCount;
                 const isUnlocked = progress >= tag.minMovies;
-                const progressPercentage = tag.maxMovies 
+                const progressPercentage = tag.maxMovies
                   ? Math.min(100, (progress - tag.minMovies) / (tag.maxMovies - tag.minMovies) * 100)
                   : progress >= tag.minMovies ? 100 : (progress / tag.minMovies) * 100;
                 const isActive = activeTag?.name === tag.name;
@@ -1085,12 +1093,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 return (
                   <div
                     key={tag.name}
-                    className={`relative group rounded-lg border ${
+                    className={`relative group rounded-2xl border ${
                       isUnlocked
-                        ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10'
-                        : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
-                    } p-4 transition-all duration-200 ${
-                      isUnlocked ? 'hover:border-green-300 dark:hover:border-green-700' : ''
+                        ? 'border-green-300/50 dark:border-green-700/50 bg-green-50/50 dark:bg-green-900/20'
+                        : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
+                    } p-4 transition-all duration-200 backdrop-blur-sm ${
+                      isUnlocked ? 'hover:border-green-400 dark:hover:border-green-600' : ''
                     }`}
                   >
                     <div className="flex items-start justify-between">
@@ -1123,7 +1131,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         <button
                           onClick={() => handleUseTag(tag, 'basic')}
                           disabled={savingTag}
-                          className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                          className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                             getCategoryButtonStyle(isActive, 'basic')
                           }`}
                         >
@@ -1140,11 +1148,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         </button>
                       )}
                     </div>
-                    <div className="mt-3 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
                           isUnlocked
-                            ? 'bg-green-500 dark:bg-green-400'
+                            ? 'bg-gradient-to-r from-green-400 to-emerald-500'
                             : 'bg-gray-300 dark:bg-gray-600'
                         }`}
                         style={{ width: `${progressPercentage}%` }}
@@ -1168,12 +1176,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
               return (
                 <div
                   key={tag.id}
-                  className={`relative group rounded-lg border ${
+                  className={`relative group rounded-2xl border ${
                     isUnlocked
-                      ? 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/10'
-                      : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
-                  } p-4 transition-all duration-200 ${
-                    isUnlocked ? 'hover:border-yellow-300 dark:hover:border-yellow-700' : ''
+                      ? 'border-yellow-300/50 dark:border-yellow-700/50 bg-yellow-50/50 dark:bg-yellow-900/20'
+                      : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
+                  } p-4 transition-all duration-200 backdrop-blur-sm ${
+                    isUnlocked ? 'hover:border-yellow-400 dark:hover:border-yellow-600' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -1206,7 +1214,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       <button
                         onClick={() => handleUseTag(tag, 'theme')}
                         disabled={savingTag}
-                        className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                        className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                           getCategoryButtonStyle(isActive, 'theme')
                         }`}
                       >
@@ -1223,11 +1231,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       </button>
                     )}
                   </div>
-                  <div className="mt-3 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${
                         isUnlocked
-                          ? 'bg-yellow-500 dark:bg-yellow-400'
+                          ? 'bg-gradient-to-r from-yellow-400 to-amber-500'
                           : 'bg-gray-300 dark:bg-gray-600'
                       }`}
                       style={{ width: `${Math.min(100, (progress / tag.condition.count) * 100)}%` }}
@@ -1256,12 +1264,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 return (
                   <div
                     key={tag.name}
-                    className={`relative group rounded-lg border ${
+                    className={`relative group rounded-2xl border ${
                       isUnlocked
-                        ? 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10'
-                        : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
-                    } p-4 transition-all duration-200 ${
-                      isUnlocked ? 'hover:border-blue-300 dark:hover:border-blue-700' : ''
+                        ? 'border-blue-300/50 dark:border-blue-700/50 bg-blue-50/50 dark:bg-blue-900/20'
+                        : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
+                    } p-4 transition-all duration-200 backdrop-blur-sm ${
+                      isUnlocked ? 'hover:border-blue-400 dark:hover:border-blue-600' : ''
                     }`}
                   >
                     <div className="flex items-start justify-between">
@@ -1294,7 +1302,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         <button
                           onClick={() => handleUseTag(tag, 'community')}
                           disabled={savingTag}
-                          className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                          className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                             getCategoryButtonStyle(isActive, 'community')
                           }`}
                         >
@@ -1311,11 +1319,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         </button>
                       )}
                     </div>
-                    <div className="mt-3 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
                           isUnlocked
-                            ? 'bg-blue-500 dark:bg-blue-400'
+                            ? 'bg-gradient-to-r from-blue-400 to-cyan-500'
                             : 'bg-gray-300 dark:bg-gray-600'
                         }`}
                         style={{ width: `${progress}%` }}
@@ -1347,12 +1355,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 return (
                   <div
                     key={tag.name}
-                    className={`relative group rounded-lg border ${
+                    className={`relative group rounded-2xl border ${
                       isUnlocked
-                        ? 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10'
-                        : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
-                    } p-4 transition-all duration-200 ${
-                      isUnlocked ? 'hover:border-purple-300 dark:hover:border-purple-700' : ''
+                        ? 'border-pink-300/50 dark:border-pink-700/50 bg-pink-50/50 dark:bg-pink-900/20'
+                        : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
+                    } p-4 transition-all duration-200 backdrop-blur-sm ${
+                      isUnlocked ? 'hover:border-pink-400 dark:hover:border-pink-600' : ''
                     }`}
                   >
                     <div className="flex items-start justify-between">
@@ -1361,7 +1369,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                           <span className="text-2xl">{tag.emoji}</span>
                           <span className={`text-sm font-medium ${
                             isUnlocked
-                              ? 'text-purple-700 dark:text-purple-400'
+                              ? 'text-pink-700 dark:text-pink-400'
                               : 'text-gray-400 dark:text-gray-500'
                           }`}>
                             {tag.name}
@@ -1371,7 +1379,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                           {tag.description}
                         </p>
                         <div className="mt-2 text-sm">
-                          <span className={isUnlocked ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}>
+                          <span className={isUnlocked ? 'text-pink-600 dark:text-pink-400' : 'text-gray-500 dark:text-gray-400'}>
                             {progress}
                           </span>
                           <span className="text-gray-400 dark:text-gray-500">
@@ -1385,7 +1393,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         <button
                           onClick={() => handleUseTag(tag, 'oracle')}
                           disabled={savingTag}
-                          className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                          className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                             getCategoryButtonStyle(isActive, 'oracle')
                           }`}
                         >
@@ -1402,11 +1410,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         </button>
                       )}
                     </div>
-                    <div className="mt-3 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
                           isUnlocked
-                            ? 'bg-purple-500 dark:bg-purple-400'
+                            ? 'bg-gradient-to-r from-pink-400 to-rose-500'
                             : 'bg-gray-300 dark:bg-gray-600'
                         }`}
                         style={{ width: `${progressPercentage}%` }}
@@ -1422,91 +1430,105 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={onClose} />
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-xl shadow-xl transform transition-all">
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Customize Profile
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-
-          <div className="p-6">
-            <div className="flex space-x-4 border-b border-gray-200 dark:border-gray-700 mb-6">
-              {tabs.map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id)}
-                  className={`flex items-center px-4 py-2 -mb-px text-sm font-medium transition-colors ${
-                    activeTab === id
-                      ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
-                >
-                  <Icon className="w-4 h-4 mr-2 hidden sm:block" />
-                  {label}
-                </button>
-              ))}
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+          onClick={onClose}
+        />
+        <div className="flex min-h-full items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.3 }}
+            className="relative w-full max-w-4xl bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-2xl transform transition-all backdrop-blur-xl border border-white/20 dark:border-gray-700/50"
+          >
+            <div className="flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400">
+                Customize Profile
+              </h2>
+              <button
+                onClick={onClose}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
 
-            <div className="min-h-[400px]">
-              {activeTab === 'frames' && renderFrameContent()}
-              {activeTab === 'banners' && renderBannerContent()}
-              {activeTab === 'cards' && renderCardContent()}
-              {activeTab === 'tags' && (
-                <div className="space-y-6">
-                  <div className="flex flex-wrap gap-2">
-                    {tagCategories.map(({ id, label, icon: Icon }) => (
-                      <button
-                        key={id}
-                        onClick={() => setActiveTagCategory(id)}
-                        className={`flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                          activeTagCategory === id
-                            ? getTagColorClasses(id)
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700/50 dark:text-gray-400 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4 mr-2 hidden sm:block" />
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
-                    {loading ? (
-                      <div className="flex items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                      </div>
-                    ) : (
-                      renderTagContent(activeTagCategory)
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+            <div className="p-6">
+              <div className="flex space-x-2 border-b border-gray-200/50 dark:border-gray-700/50 mb-6 pb-2">
+                {tabs.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => setActiveTab(id)}
+                    className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-xl transition-all ${
+                      activeTab === id
+                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    {label}
+                  </button>
+                ))}
+              </div>
 
-          <div className="flex justify-end gap-4 p-6 border-t border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => {
-                if (onSave) onSave();
-                onClose();
-              }}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center gap-2"
-            >
-              <Check className="w-4 h-4" />
-              Salvar
-            </button>
-          </div>
+              <div className="min-h-[400px] max-h-[60vh] overflow-y-auto pr-2">
+                {activeTab === 'frames' && renderFrameContent()}
+                {activeTab === 'banners' && renderBannerContent()}
+                {activeTab === 'cards' && renderCardContent()}
+                {activeTab === 'tags' && (
+                  <div className="space-y-6">
+                    <div className="flex flex-wrap gap-2">
+                      {tagCategories.map(({ id, label, icon: Icon }) => (
+                        <button
+                          key={id}
+                          onClick={() => setActiveTagCategory(id)}
+                          className={`flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                            activeTagCategory === id
+                              ? getTagColorClasses(id)
+                              : 'bg-gray-100/80 text-gray-600 hover:bg-gray-200 dark:bg-gray-700/50 dark:text-gray-400 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4 mr-2" />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="bg-gray-50/80 dark:bg-gray-700/30 rounded-2xl p-6 backdrop-blur-sm">
+                      {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                        </div>
+                      ) : (
+                        renderTagContent(activeTagCategory)
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4 p-6 border-t border-gray-200/50 dark:border-gray-700/50">
+              <button
+                onClick={() => {
+                  if (onSave) onSave();
+                  onClose();
+                }}
+                className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                <Check className="w-4 h-4" />
+                Salvar
+              </button>
+            </div>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 };
 
