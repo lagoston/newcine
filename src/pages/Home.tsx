@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import Logo from '../components/Logo';
 import MovieDetailsModal from '../components/MovieDetailsModal';
+import AllMoviesModal from '../components/AllMoviesModal';
 import OptimizedPoster from '../components/OptimizedPoster';
 import HomeUserPanels from '../components/HomeUserPanels';
 import OracleForYouBox from '../components/OracleForYouBox';
@@ -29,6 +30,7 @@ const Home = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = React.useState<Movie | null>(null);
   const [username, setUsername] = React.useState('');
+  const [allMoviesModal, setAllMoviesModal] = React.useState<{ isOpen: boolean; title: string; movies: Movie[] }>({ isOpen: false, title: '', movies: [] });
   useEffect(() => {
     if (session?.user) {
       fetchUsername();
@@ -102,7 +104,7 @@ const Home = () => {
     // Modal handles the library state internally
   };
 
-  const MovieCarousel = ({ title, movies, loading, category }: { title: string | JSX.Element; movies: Movie[]; loading: boolean; category: string }) => {
+  const MovieCarousel = ({ title, movies, loading, category, onViewAll }: { title: string | JSX.Element; movies: Movie[]; loading: boolean; category: string; onViewAll: () => void }) => {
     const scrollRef = React.useRef<HTMLDivElement>(null);
     const isDraggingRef = React.useRef(false);
     const startXRef = React.useRef(0);
@@ -163,15 +165,15 @@ const Home = () => {
               {title}
             </h2>
           </div>
-          <Link
-            to={`/category/${category}`}
+          <button
+            onClick={onViewAll}
             className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/25 rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 overflow-hidden relative group"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
             <span className="relative z-10 hidden sm:inline">{t('common.view_all')}</span>
             <span className="relative z-10 sm:hidden">Ver</span>
             <ArrowRight className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </Link>
+          </button>
         </div>
 
         <div
@@ -438,7 +440,7 @@ const Home = () => {
 
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-40 bg-gradient-to-b from-blue-500/5 to-transparent dark:from-blue-400/5 blur-2xl"></div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="max-w-7xl mx-auto relative">
         {session?.user && (
           <HomeUserPanels
             userId={session.user.id}
@@ -451,6 +453,7 @@ const Home = () => {
           movies={trendingMovies}
           loading={loading.trending}
           category="trending"
+          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.popularNow'), movies: trendingMovies })}
         />
 
         <MovieCarousel
@@ -458,6 +461,7 @@ const Home = () => {
           movies={comingSoonMovies}
           loading={loading.comingSoon}
           category="coming-soon"
+          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.comingSoon'), movies: comingSoonMovies })}
         />
 
         <MovieCarousel
@@ -465,6 +469,7 @@ const Home = () => {
           movies={topRatedMovies}
           loading={loading.topRated}
           category="top-rated"
+          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.topRatedGems'), movies: topRatedMovies })}
         />
 
         {session?.user && (
@@ -484,6 +489,15 @@ const Home = () => {
           onAddToLibrary={handleAddToLibrary}
         />
       )}
+
+      <AllMoviesModal
+        isOpen={allMoviesModal.isOpen}
+        onClose={() => setAllMoviesModal({ isOpen: false, title: '', movies: [] })}
+        title={allMoviesModal.title}
+        movies={allMoviesModal.movies}
+        rating={null}
+        onAddToLibrary={handleAddToLibrary}
+      />
     </div>
   );
 };

@@ -346,8 +346,8 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
             {/* Next Tag */}
             <div className="flex items-center gap-3 mb-5">
-              <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15">
-                <Lock className="w-4 h-4 text-pink-500 dark:text-pink-400" />
+              <div className="p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15">
+                <Lock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.nextTag')}</p>
