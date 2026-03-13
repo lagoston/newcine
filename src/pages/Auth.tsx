@@ -288,426 +288,419 @@ export default function Auth() {
     }
   };
   
-  // Show verification message screen
   if (showVerificationMessage) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20 relative overflow-hidden">
-        {/* Animated background particles */}
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-blue-950/90 to-slate-900 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {Array.from({ length: 30 }).map((_, i) => (
-            <motion.div
-              key={`particle-${i}`}
-              className="absolute w-1 h-1 rounded-full bg-blue-400/20"
-              initial={{
-                x: Math.random() * 100 + "%",
-                y: Math.random() * 100 + "%",
-                opacity: 0.3 + Math.random() * 0.3
-              }}
-              animate={{
-                y: [
-                  Math.random() * 100 + "%",
-                  Math.random() * 100 + "%",
-                  Math.random() * 100 + "%"
-                ],
-                opacity: [
-                  0.3 + Math.random() * 0.3,
-                  0.1 + Math.random() * 0.2,
-                  0.3 + Math.random() * 0.3
-                ]
-              }}
-              transition={{
-                duration: 15 + Math.random() * 15,
-                repeat: Infinity
-              }}
-            />
-          ))}
+          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-500/15 to-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute top-40 right-20 w-80 h-80 bg-gradient-to-br from-pink-500/12 to-rose-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute bottom-40 left-1/3 w-72 h-72 bg-gradient-to-br from-cyan-500/10 to-blue-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
         </div>
 
         <motion.div
-          className="max-w-md w-full mx-4 text-center relative z-10"
-          initial={{ opacity: 0, y: 20 }}
+          className="relative rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden max-w-md w-full mx-4"
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
         >
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/30 to-purple-600/30 rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-1000" />
-            <div className="relative bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-blue-500/20">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-500/15 to-cyan-400/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-pink-500/10 to-blue-400/10 rounded-full blur-3xl" />
+          </div>
+          <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+            backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+            backgroundSize: '20px 20px'
+          }}></div>
+
+          <div className="relative z-10 p-8 text-center">
+            <motion.div
+              className="flex justify-center mb-6"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
               <motion.div
-                className="flex justify-center mb-6"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
+                animate={{
+                  filter: [
+                    'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.3))',
+                    'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 14px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 28px rgba(59, 130, 246, 0.4))',
+                    'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.3))',
+                  ]
+                }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               >
                 <Logo size="large" />
               </motion.div>
-              <motion.h2
-                className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
+            </motion.div>
+
+            <motion.h2
+              className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 mb-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              {t('auth.checkEmailTitle')}
+            </motion.h2>
+
+            <motion.div
+              className="mx-auto w-16 h-16 mb-6 bg-blue-500/15 rounded-2xl flex items-center justify-center border border-blue-400/20"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+            >
+              <Mail className="w-8 h-8 text-blue-400" />
+            </motion.div>
+
+            <motion.p
+              className="text-gray-300/80 mb-6 text-sm leading-relaxed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              {t('auth.checkEmailSent')} <strong className="text-white">{email}</strong>.<br />
+              {t('auth.checkEmailInbox')}
+            </motion.p>
+
+            <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-5"></div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+            >
+              <button
+                onClick={handleResendEmail}
+                disabled={loading || resendCooldown > 0}
+                className="text-sm text-blue-400 hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {t('auth.checkEmailTitle')}
-              </motion.h2>
-              <motion.div
-                className="mx-auto w-16 h-16 mb-6 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center border border-blue-400/30"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    {t('auth.sending')}
+                  </div>
+                ) : resendCooldown > 0 ? (
+                  t('auth.resendCooldown', { seconds: resendCooldown })
+                ) : (
+                  t('auth.resendEmail')
+                )}
+              </button>
+            </motion.div>
+
+            <motion.div
+              className="mt-5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+            >
+              <p className="text-xs text-gray-500 mb-3 flex items-center justify-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                {t('auth.waitingConfirmation')}
+              </p>
+              <button
+                onClick={() => {
+                  setShowVerificationMessage(false);
+                  setMode('signin');
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-400/20 text-blue-400 hover:text-blue-300 text-sm font-medium transition-all duration-200"
               >
-                <Mail className="w-8 h-8 text-blue-400" />
-              </motion.div>
-              <motion.p
-                className="text-gray-300 mb-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                {t('auth.checkEmailSent')} <strong className="text-white">{email}</strong>.<br />
-                {t('auth.checkEmailInbox')}
-              </motion.p>
-              <motion.div
-                className="pt-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-              >
-                <button
-                  onClick={handleResendEmail}
-                  disabled={loading || resendCooldown > 0}
-                  className="text-sm text-blue-400 hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center">
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      {t('auth.sending')}
-                    </div>
-                  ) : resendCooldown > 0 ? (
-                    t('auth.resendCooldown', { seconds: resendCooldown })
-                  ) : (
-                    t('auth.resendEmail')
-                  )}
-                </button>
-              </motion.div>
-              <motion.div
-                className="pt-4 border-t border-gray-700/50"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-              >
-                <p className="text-xs text-gray-500 mb-3 flex items-center justify-center gap-2">
-                  <span className="inline-block w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                  {t('auth.waitingConfirmation')}
-                </p>
-                <button
-                  onClick={() => {
-                    setShowVerificationMessage(false);
-                    setMode('signin');
-                  }}
-                  className="w-full py-2.5 px-4 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 hover:text-blue-300 text-sm font-medium transition-all duration-200"
-                >
-                  {t('auth.alreadyConfirmed')}
-                </button>
-              </motion.div>
-            </div>
+                {t('auth.alreadyConfirmed')}
+              </button>
+            </motion.div>
           </div>
         </motion.div>
       </div>
     );
   }
   
-  // Main auth form
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20 relative overflow-hidden">
-      {/* Animated background particles */}
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-blue-950/90 to-slate-900 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <motion.div
-            key={`particle-${i}`}
-            className="absolute w-1 h-1 rounded-full bg-blue-400/20"
-            initial={{
-              x: Math.random() * 100 + "%",
-              y: Math.random() * 100 + "%",
-              opacity: 0.3 + Math.random() * 0.3
-            }}
-            animate={{
-              y: [
-                Math.random() * 100 + "%",
-                Math.random() * 100 + "%",
-                Math.random() * 100 + "%"
-              ],
-              opacity: [
-                0.3 + Math.random() * 0.3,
-                0.1 + Math.random() * 0.2,
-                0.3 + Math.random() * 0.3
-              ]
-            }}
-            transition={{
-              duration: 15 + Math.random() * 15,
-              repeat: Infinity
-            }}
-          />
-        ))}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-500/15 to-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-40 right-20 w-80 h-80 bg-gradient-to-br from-pink-500/12 to-rose-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-40 left-1/3 w-72 h-72 bg-gradient-to-br from-cyan-500/10 to-blue-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-20 right-1/4 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-indigo-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '3s' }}></div>
       </div>
 
       <motion.div
-        className="max-w-md w-full relative z-10"
-        initial={{ opacity: 0, y: 20 }}
+        className="relative rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden max-w-md w-full"
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
       >
-        <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/30 to-purple-600/30 rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-1000" />
-          <div className="relative bg-gray-800/90 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-blue-500/20">
-            <div className="flex flex-col items-center mb-8">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-500/15 to-cyan-400/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-pink-500/10 to-blue-400/10 rounded-full blur-3xl" />
+        </div>
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+          backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+          backgroundSize: '20px 20px'
+        }}></div>
+
+        <div className="relative z-10 p-8">
+          <div className="flex flex-col items-center mb-8">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
               <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
+                className="mb-4"
+                animate={{
+                  filter: [
+                    'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.3))',
+                    'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 14px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 28px rgba(59, 130, 246, 0.4))',
+                    'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.3))',
+                  ]
+                }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Logo size="large" className="mb-4" />
+                <Logo size="large" />
               </motion.div>
-              <motion.h2
-                className="text-center text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400"
+            </motion.div>
+            <motion.h2
+              className="text-center text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              {mode === 'forgot-password'
+                ? t('auth.resetYourPassword')
+                : mode === 'signup'
+                ? t('auth.createAccountTitle')
+                : t('auth.signInTitle')}
+            </motion.h2>
+
+            {mode === 'forgot-password' && (
+              <motion.p
+                className="mt-2 text-center text-sm text-gray-400"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
+                transition={{ delay: 0.4 }}
               >
-                {mode === 'forgot-password'
-                  ? t('auth.resetYourPassword')
-                  : mode === 'signup'
-                  ? t('auth.createAccountTitle')
-                  : t('auth.signInTitle')}
-              </motion.h2>
+                {t('auth.resetPasswordDesc')}
+              </motion.p>
+            )}
+          </div>
 
-              {mode === 'forgot-password' && (
-                <motion.p
-                  className="mt-2 text-center text-sm text-gray-400"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  {t('auth.resetPasswordDesc')}
-                </motion.p>
-              )}
-            </div>
-
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <AnimatePresence mode="wait">
-                  {mode === 'signup' && (
-                    <motion.div
-                      key="username"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">
-                        {t('auth.username')}
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <UserPlus className="h-5 w-5 text-gray-500" />
-                        </div>
-                        <input
-                          id="username"
-                          name="username"
-                          type="text"
-                          required
-                          className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all sm:text-sm"
-                          placeholder={t('auth.usernamePlaceholder')}
-                          pattern="^[a-zA-Z0-9_]+$"
-                          minLength={3}
-                          maxLength={20}
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          disabled={isSubmitting || loading}
-                        />
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              <AnimatePresence mode="wait">
+                {mode === 'signup' && (
+                  <motion.div
+                    key="username"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1.5">
+                      {t('auth.username')}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <UserPlus className="h-5 w-5 text-gray-500" />
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
-                    {t('auth.emailAddress')}
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-500" />
+                      <input
+                        id="username"
+                        name="username"
+                        type="text"
+                        required
+                        className="appearance-none rounded-xl relative block w-full pl-11 pr-3 py-3 border border-white/10 placeholder-gray-500 text-white bg-white/5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all sm:text-sm"
+                        placeholder={t('auth.usernamePlaceholder')}
+                        pattern="^[a-zA-Z0-9_]+$"
+                        minLength={3}
+                        maxLength={20}
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        disabled={isSubmitting || loading}
+                      />
                     </div>
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      required
-                      className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all sm:text-sm"
-                      placeholder={t('auth.emailPlaceholder')}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={isSubmitting || loading}
-                    />
-                  </div>
-                </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                <AnimatePresence mode="wait">
-                  {mode !== 'forgot-password' && (
-                    <motion.div
-                      key="password"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
-                        {t('auth.password')}
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Lock className="h-5 w-5 text-gray-500" />
-                        </div>
-                        <input
-                          id="password"
-                          name="password"
-                          type="password"
-                          required
-                          className="appearance-none rounded-lg relative block w-full pl-10 pr-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all sm:text-sm"
-                          placeholder={t('auth.passwordPlaceholder')}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          disabled={isSubmitting || loading}
-                          minLength={6}
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1.5">
+                  {t('auth.emailAddress')}
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-500" />
+                  </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    className="appearance-none rounded-xl relative block w-full pl-11 pr-3 py-3 border border-white/10 placeholder-gray-500 text-white bg-white/5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all sm:text-sm"
+                    placeholder={t('auth.emailPlaceholder')}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isSubmitting || loading}
+                  />
+                </div>
               </div>
 
               <AnimatePresence mode="wait">
-                {mode === 'signin' && (
+                {mode !== 'forgot-password' && (
                   <motion.div
-                    className="flex items-center justify-between"
+                    key="password"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1.5">
+                      {t('auth.password')}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <Lock className="h-5 w-5 text-gray-500" />
+                      </div>
+                      <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        className="appearance-none rounded-xl relative block w-full pl-11 pr-3 py-3 border border-white/10 placeholder-gray-500 text-white bg-white/5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all sm:text-sm"
+                        placeholder={t('auth.passwordPlaceholder')}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isSubmitting || loading}
+                        minLength={6}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <AnimatePresence mode="wait">
+              {mode === 'signin' && (
+                <motion.div
+                  className="flex items-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <div className="flex items-center">
+                    <input
+                      id="remember-me"
+                      name="remember-me"
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-white/20 rounded bg-white/5"
+                    />
+                    <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-400">
+                      {t('auth.rememberMe')}
+                    </label>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence mode="wait">
+              {error && (
+                <motion.div
+                  className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 flex items-start"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                  <AlertCircle className="w-5 h-5 text-red-400 mr-3 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-red-300">{error}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <button
+                type="submit"
+                disabled={isSubmitting || loading}
+                className="group relative w-full flex justify-center py-3.5 px-4 text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                {isSubmitting || loading ? (
+                  <div className="flex items-center relative z-10">
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    {mode === 'forgot-password'
+                      ? t('auth.sendingResetLink')
+                      : mode === 'signup'
+                      ? t('auth.creatingAccount')
+                      : t('auth.signingIn')}
+                  </div>
+                ) : (
+                  <span className="flex items-center relative z-10">
+                    {mode === 'signin' && <LogIn className="w-5 h-5 mr-2" />}
+                    {mode === 'signup' && <UserPlus className="w-5 h-5 mr-2" />}
+                    {mode === 'forgot-password'
+                      ? t('auth.sendResetLink')
+                      : mode === 'signup'
+                      ? t('auth.createAccountBtn')
+                      : t('auth.signInBtn')}
+                  </span>
+                )}
+              </button>
+            </motion.div>
+
+            <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-2"></div>
+
+            <div className="flex flex-col space-y-2 text-center text-sm">
+              <AnimatePresence mode="wait">
+                {mode === 'signin' && (
+                  <motion.button
+                    key="forgot-btn"
+                    type="button"
+                    onClick={() => changeMode('forgot-password')}
+                    className="text-blue-400 hover:text-blue-300 transition-colors"
+                    disabled={isSubmitting || loading}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <div className="flex items-center">
-                      <input
-                        id="remember-me"
-                        name="remember-me"
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-600 rounded bg-gray-700"
-                      />
-                      <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-300">
-                        {t('auth.rememberMe')}
-                      </label>
-                    </div>
-                  </motion.div>
+                    {t('auth.forgotPasswordLink')}
+                  </motion.button>
                 )}
-              </AnimatePresence>
 
-              <AnimatePresence mode="wait">
-                {error && (
-                  <motion.div
-                    className="bg-red-900/30 border border-red-500/50 rounded-lg px-4 py-3 flex items-start backdrop-blur-sm"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                {mode === 'forgot-password' && (
+                  <motion.button
+                    key="back-btn"
+                    type="button"
+                    onClick={() => changeMode('signin')}
+                    className="flex items-center justify-center text-blue-400 hover:text-blue-300 transition-colors"
+                    disabled={isSubmitting || loading}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
                   >
-                    <AlertCircle className="w-5 h-5 text-red-400 mr-3 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-red-300">{error}</p>
-                  </motion.div>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    {t('auth.backToSignIn')}
+                  </motion.button>
+                )}
+
+                {(mode === 'signin' || mode === 'signup') && (
+                  <motion.button
+                    key="toggle-btn"
+                    type="button"
+                    onClick={() => changeMode(mode === 'signin' ? 'signup' : 'signin')}
+                    className="text-gray-400 hover:text-white transition-colors"
+                    disabled={isSubmitting || loading}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {mode === 'signin'
+                      ? t('auth.noAccountSignUp')
+                      : t('auth.haveAccountSignIn')}
+                  </motion.button>
                 )}
               </AnimatePresence>
-
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <button
-                  type="submit"
-                  disabled={isSubmitting || loading}
-                  className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all"
-                >
-                  {isSubmitting || loading ? (
-                    <div className="flex items-center">
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                      {mode === 'forgot-password'
-                        ? t('auth.sendingResetLink')
-                        : mode === 'signup'
-                        ? t('auth.creatingAccount')
-                        : t('auth.signingIn')}
-                    </div>
-                  ) : (
-                    <>
-                      {mode === 'signin' && <LogIn className="w-5 h-5 mr-2" />}
-                      {mode === 'signup' && <UserPlus className="w-5 h-5 mr-2" />}
-                      {mode === 'forgot-password'
-                        ? t('auth.sendResetLink')
-                        : mode === 'signup'
-                        ? t('auth.createAccountBtn')
-                        : t('auth.signInBtn')}
-                    </>
-                  )}
-                </button>
-              </motion.div>
-
-              <div className="flex flex-col space-y-2 text-center text-sm">
-                <AnimatePresence mode="wait">
-                  {mode === 'signin' && (
-                    <motion.button
-                      key="forgot-btn"
-                      type="button"
-                      onClick={() => changeMode('forgot-password')}
-                      className="text-blue-400 hover:text-blue-300 transition-colors"
-                      disabled={isSubmitting || loading}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      {t('auth.forgotPasswordLink')}
-                    </motion.button>
-                  )}
-
-                  {mode === 'forgot-password' && (
-                    <motion.button
-                      key="back-btn"
-                      type="button"
-                      onClick={() => changeMode('signin')}
-                      className="flex items-center justify-center text-blue-400 hover:text-blue-300 transition-colors"
-                      disabled={isSubmitting || loading}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      {t('auth.backToSignIn')}
-                    </motion.button>
-                  )}
-
-                  {(mode === 'signin' || mode === 'signup') && (
-                    <motion.button
-                      key="toggle-btn"
-                      type="button"
-                      onClick={() => changeMode(mode === 'signin' ? 'signup' : 'signin')}
-                      className="text-blue-400 hover:text-blue-300 transition-colors"
-                      disabled={isSubmitting || loading}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      {mode === 'signin'
-                        ? t('auth.noAccountSignUp')
-                        : t('auth.haveAccountSignIn')}
-                    </motion.button>
-                  )}
-                </AnimatePresence>
-              </div>
-            </form>
-          </div>
+            </div>
+          </form>
         </div>
       </motion.div>
     </div>

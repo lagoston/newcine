@@ -329,9 +329,9 @@ const Home = () => {
                 icon: <Eye className="w-8 h-8" />,
                 titleKey: 'home.homeOracle',
                 descriptionKey: 'home.homeOracleDesc',
-                iconBg: 'bg-cyan-500/15',
-                iconColor: 'text-cyan-400',
-                accentColor: 'from-cyan-500/10 to-teal-500/5'
+                iconBg: 'bg-purple-500/15',
+                iconColor: 'text-purple-400',
+                accentColor: 'from-purple-500/10 to-violet-500/5'
               },
               {
                 icon: <Users className="w-8 h-8" />,
