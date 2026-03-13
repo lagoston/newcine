@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, BrainCircuit, Loader2, Ticket, Plus, Share2, ArrowLeft } from 'lucide-react';
+import { Search, Star, BrainCircuit, Loader2, Ticket, Plus, Share2, ArrowLeft, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { searchMovies } from '../lib/tmdb';
@@ -458,7 +458,7 @@ export default function OraclePrediction() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-purple-500 flex items-center gap-2">
-                  <span className="text-2xl">Sparkles</span> {t('oracle.speaksTitle')}
+                  <Sparkles className="w-6 h-6 text-violet-500" /> {t('oracle.speaksTitle')}
                 </h2>
                 <div className="hidden md:flex items-center gap-2">
                   <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
@@ -492,7 +492,7 @@ export default function OraclePrediction() {
         transition={{ delay: 0.5 }}
       >
         <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-purple-500 mb-6 text-center flex items-center justify-center gap-2">
-          <span className="text-2xl">Sparkles</span> {t('oracle.speaksTitle')}
+          <Sparkles className="w-6 h-6 text-violet-500" /> {t('oracle.speaksTitle')}
         </h2>
 
         <div className="flex flex-col items-center justify-center py-6">

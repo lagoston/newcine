@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus } from 'lucide-react';
+import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, Archive as ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
@@ -13,6 +13,7 @@ import UserListsModal from '../components/UserListsModal';
 import UserReviewsModal from '../components/UserReviewsModal';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Profile {
   id: string;
@@ -58,7 +59,7 @@ interface DecadeCount {
 interface FavoriteDecade {
   decade: string;
   count: number;
-  label: string; // "Grandpa Cinema", "Nostalgic", or "Modern Lover"
+  label: string;
   percentage: number;
 }
 
@@ -115,18 +116,13 @@ export default function UserProfile() {
     }
   }, [username]);
 
-  // Reload when language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      console.log('🌍 Language changed in UserProfile, reloading...');
-      // Clear cache
       if (profile?.id) {
         const cacheKey = CACHE_KEYS.USER_PROFILE(profile.id);
         cache.delete(cacheKey);
       }
-      // Clear movie details cache to reload with new language
       cache.invalidatePattern('movie:');
-      // Reload
       if (username) {
         fetchProfileAndMovies();
       }
@@ -144,7 +140,6 @@ export default function UserProfile() {
     try {
       setLoading(true);
 
-      // Fetch basic profile data first
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -152,14 +147,13 @@ export default function UserProfile() {
         .single();
 
       if (profileError) throw profileError;
-      
+
       if (!profileData) {
         setProfile(null);
         setLoading(false);
         return;
       }
 
-      // Now get followers count
       const { count: followersCount, error: followersError } = await supabase
         .from('follows')
         .select('*', { count: 'exact', head: true })
@@ -167,7 +161,6 @@ export default function UserProfile() {
 
       if (followersError) throw followersError;
 
-      // Get following count
       const { count: followingCount, error: followingError } = await supabase
         .from('follows')
         .select('*', { count: 'exact', head: true })
@@ -179,7 +172,6 @@ export default function UserProfile() {
       setFollowersCount(followersCount || 0);
       setFollowingCount(followingCount || 0);
 
-      // Check follow status if logged in
       if (session?.user?.id) {
         const { data: followData } = await supabase
           .from('follows')
@@ -191,7 +183,6 @@ export default function UserProfile() {
         setIsFollowing(!!followData);
       }
 
-      // Fetch user's movies with ratings
       const { data: userMovies, error: moviesError } = await supabase
         .from('user_movies')
         .select('*')
@@ -200,17 +191,14 @@ export default function UserProfile() {
 
       if (moviesError) throw moviesError;
 
-      // Calculate rated movies count and distribution
       const ratedMovies = (userMovies || []).filter(movie => movie.rating !== null);
       setRatedMoviesCount(ratedMovies.length);
 
-      // Initialize rating distribution
       const distribution: RatingDistribution = {};
       for (let i = 0; i <= 10; i++) {
         distribution[i] = 0;
       }
 
-      // Count ratings
       ratedMovies.forEach(movie => {
         if (movie.rating !== null) {
           distribution[movie.rating]++;
@@ -218,12 +206,10 @@ export default function UserProfile() {
       });
       setRatingDistribution(distribution);
 
-      // Carregamento incremental: primeiro 20 filmes
       const INITIAL_BATCH = 20;
       const initialBatch = userMovies.slice(0, INITIAL_BATCH);
       const remainingMovies = userMovies.slice(INITIAL_BATCH);
 
-      // Carregar primeiro lote
       const firstBatchDetails = await Promise.all(
         initialBatch.map(async (userMovie) => {
           try {
@@ -242,7 +228,6 @@ export default function UserProfile() {
       const firstBatchMovies = firstBatchDetails.filter(movie => movie !== null);
       setMovies(firstBatchMovies);
 
-      // Carregar restante em background
       if (remainingMovies.length > 0) {
         const remainingDetails = await Promise.all(
           remainingMovies.map(async (userMovie) => {
@@ -267,24 +252,12 @@ export default function UserProfile() {
         var validMovies = firstBatchMovies;
       }
 
-      // Calculate stats for rated movies only
       const ratedValidMovies = validMovies.filter(movie => movie.userRating !== null);
 
-      console.log('🔍 UserProfile Debug:', {
-        totalMovies: validMovies.length,
-        ratedMovies: ratedValidMovies.length,
-        firstMovie: ratedValidMovies[0],
-        hasGenres: ratedValidMovies[0]?.genres,
-        genresType: typeof ratedValidMovies[0]?.genres,
-        genresValue: ratedValidMovies[0]?.genres
-      });
-
-      // Calculate total watch time (rated movies only) including TV episodes
       let totalWatchTime = 0;
 
       for (const movie of ratedValidMovies) {
         if (movie.media_type === 'tv') {
-          // For TV shows, count only watched episodes
           const { data: watchedEps } = await supabase
             .from('watched_episodes')
             .select('season_number, episode_number')
@@ -292,7 +265,6 @@ export default function UserProfile() {
             .eq('tmdb_id', movie.id);
 
           if (watchedEps && watchedEps.length > 0 && movie.seasons) {
-            // Calculate runtime from watched episodes
             watchedEps.forEach(ep => {
               const season = movie.seasons.find((s: any) => s.season_number === ep.season_number);
               const episode = season?.episodes.find((e: any) => e.episode_number === ep.episode_number);
@@ -302,24 +274,20 @@ export default function UserProfile() {
             });
           }
         } else {
-          // For movies, use full runtime
           totalWatchTime += movie.runtime || 0;
         }
       }
 
       setTotalWatchTime(totalWatchTime);
 
-      // Calculate genre counts (rated movies only)
       const genreCounts = {};
       ratedValidMovies.forEach(movie => {
         if (movie.genres && Array.isArray(movie.genres)) {
           movie.genres.forEach(genre => {
-            // Handle both object format {id, name} and string format
             if (typeof genre === 'object' && genre.id && genre.name) {
               genreCounts[genre.id] = genreCounts[genre.id] || { id: genre.id, name: genre.name, count: 0 };
               genreCounts[genre.id].count++;
             } else if (typeof genre === 'string') {
-              // If genre is just a string, create a simple object
               const key = genre;
               genreCounts[key] = genreCounts[key] || { id: key, name: genre, count: 0 };
               genreCounts[key].count++;
@@ -328,20 +296,15 @@ export default function UserProfile() {
         }
       });
 
-      console.log('🎬 Genre Counts:', genreCounts);
-
       const favoriteGenres = Object.values(genreCounts)
         .sort((a: any, b: any) => b.count - a.count)
         .slice(0, 3);
 
-      console.log('⭐ Top 3 Genres:', favoriteGenres);
-
       setFavoriteGenres(favoriteGenres);
 
-      // Calculate favorite decade
       const decadeCounts: DecadeCount = {};
       let totalRatedMovies = 0;
-      
+
       ratedValidMovies.forEach(movie => {
         if (movie.release_date) {
           const year = new Date(movie.release_date).getFullYear();
@@ -351,26 +314,23 @@ export default function UserProfile() {
           totalRatedMovies++;
         }
       });
-      
+
       if (totalRatedMovies > 0) {
-        // Find decade with most movies
         let topDecade = '';
         let topCount = 0;
-        
+
         for (const [decade, count] of Object.entries(decadeCounts)) {
           if (count > topCount) {
             topDecade = decade;
             topCount = count;
           }
         }
-        
-        // Calculate percentage
+
         const percentage = (topCount / totalRatedMovies) * 100;
-        
-        // Determine label based on decade
+
         let label = '';
         const decadeNum = parseInt(topDecade);
-        
+
         if (decadeNum < 1980) {
           label = 'Grandpa Cinema';
         } else if (decadeNum < 2010) {
@@ -378,7 +338,7 @@ export default function UserProfile() {
         } else {
           label = 'Modern Lover';
         }
-        
+
         setFavoriteDecade({
           decade: topDecade,
           count: topCount,
@@ -387,9 +347,7 @@ export default function UserProfile() {
         });
       }
 
-      // Calculate top actors
       const actorCounts = {};
-      console.log('🎭 Processing actors for', ratedValidMovies.length, 'movies');
 
       ratedValidMovies.forEach((movie, idx) => {
         if (movie.credits?.cast && Array.isArray(movie.credits.cast)) {
@@ -405,29 +363,15 @@ export default function UserProfile() {
             }
           });
         }
-
-        if (idx === 0) {
-          console.log('📽️ First movie cast:', {
-            title: movie.title,
-            hasCast: !!movie.credits?.cast,
-            castLength: movie.credits?.cast?.length,
-            firstActor: movie.credits?.cast?.[0]
-          });
-        }
       });
-
-      console.log('🎭 Total actors counted:', Object.keys(actorCounts).length);
 
       const mostFrequentActors = Object.values(actorCounts)
         .sort((a: any, b: any) => b.count - a.count)
         .slice(0, 3);
 
-      console.log('⭐ Top 3 actors:', mostFrequentActors);
       setTopActors(mostFrequentActors);
 
-      // Calculate top directors
       const directorCounts = {};
-      console.log('🎬 Processing directors for', ratedValidMovies.length, 'movies');
 
       ratedValidMovies.forEach((movie, idx) => {
         if (movie.credits?.crew && Array.isArray(movie.credits.crew)) {
@@ -442,28 +386,15 @@ export default function UserProfile() {
             };
             directorCounts[director.name].count++;
           }
-
-          if (idx === 0) {
-            console.log('🎬 First movie crew:', {
-              title: movie.title,
-              hasCrew: !!movie.credits?.crew,
-              crewLength: movie.credits?.crew?.length,
-              director: director
-            });
-          }
         }
       });
-
-      console.log('🎬 Total directors counted:', Object.keys(directorCounts).length);
 
       const mostFrequentDirectors = Object.values(directorCounts)
         .sort((a: any, b: any) => b.count - a.count)
         .slice(0, 3);
 
-      console.log('⭐ Top 3 directors:', mostFrequentDirectors);
       setTopDirectors(mostFrequentDirectors);
 
-      // Find least-known gem (movie with lowest vote_count that the user has rated)
       const ratedMoviesWithVoteCounts = ratedValidMovies
         .filter(movie => movie.userRating !== null && movie.vote_count !== undefined && movie.vote_count !== null)
         .sort((a, b) => (a.vote_count || 0) - (b.vote_count || 0));
@@ -525,7 +456,6 @@ export default function UserProfile() {
         setFollowersCount(prev => prev + 1);
         toast.success(`Following @${profile.username}`);
 
-        // Verificar se pode enviar notificação (anti-spam 24h)
         const { data: canSend } = await supabase
           .rpc('can_send_follower_notification', {
             p_from_user_id: session.user.id,
@@ -533,7 +463,6 @@ export default function UserProfile() {
           });
 
         if (canSend) {
-          // Criar notificação de seguidor
           await supabase
             .from('friend_indications')
             .insert({
@@ -543,7 +472,6 @@ export default function UserProfile() {
               read: false
             });
 
-          // Registrar no log para controle anti-spam
           await supabase
             .from('follower_notifications_log')
             .insert({
@@ -571,7 +499,7 @@ export default function UserProfile() {
   const formatWatchTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) {
       return `${days}d ${hours % 24}h`;
     }
@@ -599,15 +527,25 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
-        <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center relative z-10"
+        >
+          <Loader2 className="w-12 h-12 text-blue-500 dark:text-blue-400 animate-spin mx-auto mb-4" />
+        </motion.div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             {t('profile.notFound')}
@@ -635,13 +573,38 @@ export default function UserProfile() {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden ${getBannerClass(profile?.banner, profile.plan_type === 'premium')}`}>
-          <div className="p-4 sm:p-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6">
-              <div className="relative mx-auto sm:mx-0 mb-4 sm:mb-0">
-                <div className={`w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile?.avatar_frame, profile.plan_type === 'premium')}`}>
+    <motion.div
+      className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 py-8 px-4 relative overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400/15 to-rose-400/15 dark:from-pink-600/8 dark:to-rose-600/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
+
+      <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" style={{
+        backgroundImage: 'linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }} />
+
+      <div className="max-w-5xl mx-auto relative z-10 space-y-6">
+        <motion.div
+          className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden ${getBannerClass(profile?.banner, profile.plan_type === 'premium')}`}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-cyan-500/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-400/10 to-pink-500/10 rounded-full blur-3xl" />
+          </div>
+
+          <div className="relative z-10 p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-6">
+              <div className="relative mx-auto sm:mx-0 flex-shrink-0">
+                <div className={`w-28 h-28 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile?.avatar_frame, profile.plan_type === 'premium')}`}>
                   {profile?.avatar_url ? (
                     <img
                       src={profile.avatar_url}
@@ -649,51 +612,43 @@ export default function UserProfile() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <User className="w-full h-full p-4 text-gray-400" />
+                    <User className="w-full h-full p-5 text-gray-400" />
                   )}
                 </div>
               </div>
-              
+
               <div className="flex-1 text-center sm:text-left">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                  <div className="flex flex-col sm:flex-row items-center sm:items-center gap-2">
-                    <div className="flex items-center">
-                      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        @{profile.username}
-                      </h1>
-                      {profile.plan_type === 'premium' && (
-                        <Crown className="inline-block align-middle ml-2 w-5 h-5 text-yellow-400" title="Premium member" />
-                      )}
-                    </div>
-                    {profile.active_tag && (
-                      <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${
-                        getTagColorClasses(profile.active_tag.category)
-                      }`}>
-                        <span>{profile.active_tag.emoji}</span>
-                        <span className="text-sm font-medium">
-                          {profile.active_tag.name}
-                        </span>
-                      </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                  <div className="flex items-center justify-center sm:justify-start gap-2">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                      @{profile.username}
+                    </h1>
+                    {profile.plan_type === 'premium' && (
+                      <Crown className="w-6 h-6 text-yellow-400" title="Premium member" />
                     )}
                   </div>
+                  {profile.active_tag && (
+                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${getTagColorClasses(profile.active_tag.category)}`}>
+                      <span>{profile.active_tag.emoji}</span>
+                      <span className="text-sm font-medium">{profile.active_tag.name}</span>
+                    </div>
+                  )}
                 </div>
-                
+
                 {profile.bio && (
-                  <p className="mt-4 text-gray-600 dark:text-gray-300">
+                  <p className="text-gray-600 dark:text-gray-300 mb-4 max-w-2xl">
                     {profile.bio}
                   </p>
                 )}
 
-                <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm text-gray-600 dark:text-gray-400 mt-4">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm text-gray-600 dark:text-gray-400 mb-4">
                   <button
                     onClick={() => setShowFollowModal('followers')}
                     className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
                   >
                     <Users className="w-5 h-5 mr-2" />
                     <span>
-                      <strong className="text-gray-900 dark:text-white">
-                        {followersCount}
-                      </strong>{' '}
+                      <strong className="text-gray-900 dark:text-white">{followersCount}</strong>{' '}
                       {followersCount === 1 ? 'follower' : 'followers'}
                     </span>
                   </button>
@@ -703,354 +658,334 @@ export default function UserProfile() {
                   >
                     <Users className="w-5 h-5 mr-2" />
                     <span>
-                      <strong className="text-gray-900 dark:text-white">
-                        {followingCount}
-                      </strong>{' '}
+                      <strong className="text-gray-900 dark:text-white">{followingCount}</strong>{' '}
                       {t('profile.following', { count: followingCount })}
                     </span>
                   </button>
                   <div className="flex items-center">
                     <Calendar className="w-5 h-5 mr-2" />
-                    <span>
-                      {t('profile.joined', { date: formatDate(profile.created_at) })}
-                    </span>
+                    <span>{t('profile.joined', { date: formatDate(profile.created_at) })}</span>
                   </div>
                 </div>
 
                 {session?.user?.id !== profile.id && (
-                  <div className="flex justify-center sm:justify-end mt-6 gap-3">
-                    <button
+                  <div className="flex flex-wrap justify-center sm:justify-start gap-3">
+                    <motion.button
                       onClick={() => setShowUserListsModal(true)}
-                      className="px-3 sm:px-6 py-2 rounded-lg font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
+                      className="px-4 py-2.5 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 text-gray-700 dark:text-gray-200 font-medium hover:bg-white/70 dark:hover:bg-gray-600/70 transition-all flex items-center gap-2"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      <ListPlus className="w-5 h-5 sm:mr-2" />
+                      <ListPlus className="w-5 h-5" />
                       <span className="hidden sm:inline">{t('lists.userLists')}</span>
-                    </button>
-                    <button
+                    </motion.button>
+                    <motion.button
                       onClick={() => setShowUserReviewsModal(true)}
-                      className="px-3 sm:px-6 py-2 rounded-lg font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
+                      className="px-4 py-2.5 rounded-xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 text-gray-700 dark:text-gray-200 font-medium hover:bg-white/70 dark:hover:bg-gray-600/70 transition-all flex items-center gap-2"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      <MessageSquare className="w-5 h-5 sm:mr-2" />
+                      <MessageSquare className="w-5 h-5" />
                       <span className="hidden sm:inline">Reviews</span>
-                    </button>
-                    <button
+                    </motion.button>
+                    <motion.button
                       onClick={handleFollowToggle}
                       disabled={isToggling}
-                      className={`px-3 sm:px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center ${
+                      className={`px-5 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2 ${
                         isFollowing
-                          ? 'bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
-                          : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
+                          ? 'bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-600/70'
+                          : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:shadow-lg hover:shadow-blue-500/25'
                       }`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
                       {isToggling ? (
-                        <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                        <Loader2 className="w-5 h-5 animate-spin" />
                       ) : isFollowing ? (
                         <>
-                          <UserCheck className="w-5 h-5 sm:mr-2" />
+                          <UserCheck className="w-5 h-5" />
                           <span className="hidden sm:inline">{t('profile.following')}</span>
                         </>
                       ) : (
                         <>
-                          <UserPlus className="w-5 h-5 sm:mr-2" />
+                          <UserPlus className="w-5 h-5" />
                           <span className="hidden sm:inline">{t('profile.follow')}</span>
                         </>
                       )}
-                    </button>
+                    </motion.button>
                   </div>
                 )}
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
                 {t('profile.stats.ratedMovies')}
               </h2>
-              <Star className="w-6 h-6 text-yellow-500" />
+              <Star className="w-5 h-5 text-yellow-500" />
             </div>
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
               {ratedMoviesCount}
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
                 {t('profile.stats.favoriteGenres')}
               </h2>
-              <Film className="w-6 h-6 text-purple-500" />
+              <Film className="w-5 h-5 text-purple-500" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               {favoriteGenres.map((genre, index) => (
                 <div
                   key={genre.id}
-                  className={`text-${index === 0 ? 'xl' : 'base'} ${
-                    index === 0 ? 'font-bold' : 'font-medium'
-                  } text-gray-900 dark:text-white text-center`}
+                  className={`text-${index === 0 ? 'lg' : 'sm'} ${index === 0 ? 'font-bold' : 'font-medium'} text-gray-900 dark:text-white`}
                 >
                   {genre.name}
                 </div>
               ))}
               {favoriteGenres.length === 0 && (
-                <div className="text-gray-500 dark:text-gray-400 text-center">
+                <div className="text-gray-500 dark:text-gray-400 text-sm">
                   {t('profile.stats.noGenresYet')}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
                 {t('profile.stats.timeWatching')}
               </h2>
-              <Clock className="w-6 h-6 text-green-500" />
+              <Clock className="w-5 h-5 text-green-500" />
             </div>
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
               {formatWatchTime(totalWatchTime)}
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Toggle de Estatísticas */}
         {ratedMoviesCount > 0 && (
-          <button
+          <motion.button
             onClick={() => setShowStats(!showStats)}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg p-4 shadow-md transition-all duration-300 flex items-center justify-center gap-2 font-medium"
+            className="w-full relative rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4 shadow-xl hover:shadow-2xl hover:shadow-blue-500/25 transition-all flex items-center justify-center gap-2 font-semibold"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
           >
             <BarChart3 className="w-5 h-5" />
             {showStats ? t('profile.hideStats') : t('profile.showStats')}
-            <svg
-              className={`w-5 h-5 transition-transform duration-300 ${showStats ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${showStats ? 'rotate-180' : ''}`} />
+          </motion.button>
+        )}
+
+        <AnimatePresence>
+          {showStats && ratedMoviesCount > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 overflow-hidden"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        )}
-
-        {showStats && ratedMoviesCount > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('profile.stats.ratingDistribution')}
-              </h2>
-              <BarChart3 className="w-6 h-6 text-blue-500" />
-            </div>
-            <div className="space-y-2">
-              {[...Array(11)].map((_, i) => {
-                const rating = 10 - i;
-                return (
-                  <div key={rating} className="flex items-center gap-2">
-                    <div className="w-12 text-sm text-gray-600 dark:text-gray-400 flex items-center">
-                      {rating}<Star className="w-3 h-3 ml-0.5 inline fill-current" />
-                    </div>
-                    <div className="flex-1 h-4 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500 dark:bg-blue-600 rounded-full transition-all duration-300"
-                        style={{
-                          width: `${(ratingDistribution[rating] / getMaxRatingCount) * 100}%`
-                        }}
-                      />
-                    </div>
-                    <div className="w-8 text-sm text-right text-gray-600 dark:text-gray-400">
-                      {ratingDistribution[rating]}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {showStats && favoriteDecade && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('profile.stats.favoriteDecade')}
-              </h2>
-              <ArchiveIcon className="w-6 h-6 text-amber-500" />
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {favoriteDecade.decade}
+              <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {t('profile.stats.ratingDistribution')}
+                  </h2>
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
                 </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {favoriteDecade.count} {t('community.films')}
+                <div className="space-y-2">
+                  {[...Array(11)].map((_, i) => {
+                    const rating = 10 - i;
+                    return (
+                      <div key={rating} className="flex items-center gap-2">
+                        <div className="w-10 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                          {rating}<Star className="w-3 h-3 ml-0.5 inline fill-current" />
+                        </div>
+                        <div className="flex-1 h-3 bg-gray-200/50 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(ratingDistribution[rating] / getMaxRatingCount) * 100}%` }}
+                            transition={{ duration: 0.5, delay: i * 0.05 }}
+                          />
+                        </div>
+                        <div className="w-8 text-sm text-right text-gray-600 dark:text-gray-400">
+                          {ratingDistribution[rating]}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              
-              <div className="sm:col-span-2">
-                <div className="flex flex-col space-y-2">
-                  <div className={`text-lg font-medium ${
-                    favoriteDecade.label === 'Grandpa Cinema' ? 'text-amber-600 dark:text-amber-400' :
-                    favoriteDecade.label === 'Nostalgic' ? 'text-indigo-600 dark:text-indigo-400' :
-                    'text-emerald-600 dark:text-emerald-400'
-                  }`}>
-                    {favoriteDecade.label === 'Grandpa Cinema' && '🎬 '}
-                    {favoriteDecade.label === 'Nostalgic' && '📼 '}
-                    {favoriteDecade.label === 'Modern Lover' && '📱 '}
-                    {favoriteDecade.label === 'Grandpa Cinema' ? 'Grandpa Cinema' :
-                     favoriteDecade.label === 'Nostalgic' ? 'Nostalgic' :
-                     'Modern Lover'}
+
+              {favoriteDecade && (
+                <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {t('profile.stats.favoriteDecade')}
+                    </h2>
+                    <ArchiveIcon className="w-5 h-5 text-amber-500" />
                   </div>
-                  
-                  <div className="relative">
-                    <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${
-                          favoriteDecade.label === 'Grandpa Cinema' ? 'bg-amber-500 dark:bg-amber-600' :
-                          favoriteDecade.label === 'Nostalgic' ? 'bg-indigo-500 dark:bg-indigo-600' :
-                          'bg-emerald-500 dark:bg-emerald-600'
-                        }`}
-                        style={{ width: `${Math.min(100, favoriteDecade.percentage)}%` }}
-                      />
-                    </div>
-                    
-                    {/* Labels beneath progress bar */}
-                    <div className="flex text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      <div 
-                        className={`text-${
-                          favoriteDecade.label === 'Grandpa Cinema' ? 'amber-600 dark:text-amber-400' :
-                          favoriteDecade.label === 'Nostalgic' ? 'indigo-600 dark:text-indigo-400' :
-                          'emerald-600 dark:text-emerald-400'
-                        }`}
-                        style={{ width: `${Math.min(100, favoriteDecade.percentage)}%` }}
-                      >
+
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-gray-900 dark:text-white">
                         {favoriteDecade.decade}
                       </div>
-                      {favoriteDecade.percentage < 100 && (
-                        <div
-                          style={{ width: `${Math.max(0, 100 - favoriteDecade.percentage)}%` }}
-                        >
-                          {t('profile.stats.otherDecades')}
-                        </div>
-                      )}
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {favoriteDecade.count} {t('community.films')}
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <div className={`text-lg font-medium mb-2 ${
+                        favoriteDecade.label === 'Grandpa Cinema' ? 'text-amber-600 dark:text-amber-400' :
+                        favoriteDecade.label === 'Nostalgic' ? 'text-indigo-600 dark:text-indigo-400' :
+                        'text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        {favoriteDecade.label === 'Grandpa Cinema' && '🎬 '}
+                        {favoriteDecade.label === 'Nostalgic' && '📼 '}
+                        {favoriteDecade.label === 'Modern Lover' && '📱 '}
+                        {favoriteDecade.label}
+                      </div>
+
+                      <div className="h-3 bg-gray-200/50 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                        <motion.div
+                          className={`h-full rounded-full ${
+                            favoriteDecade.label === 'Grandpa Cinema' ? 'bg-amber-500' :
+                            favoriteDecade.label === 'Nostalgic' ? 'bg-indigo-500' :
+                            'bg-emerald-500'
+                          }`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, favoriteDecade.percentage)}%` }}
+                          transition={{ duration: 0.5 }}
+                        />
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {favoriteDecade.label === 'Grandpa Cinema' ? t('profile.stats.classicFilm') : 
-                     favoriteDecade.label === 'Nostalgic' ? t('profile.stats.nostalgic') : 
-                     t('profile.stats.modern')}
-                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
+              )}
 
-        {/* New Row for Frequent Actors, Directors, and Least-Known Gem */}
-        {showStats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Most Frequent Actors */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('profile.stats.favoriteActors')}
-              </h2>
-              <Award className="w-6 h-6 text-pink-500" />
-            </div>
-            {topActors.length > 0 ? (
-              <div className="space-y-2">
-                {topActors.map((actor, index) => (
-                  <div key={actor.id} className="flex items-center justify-between">
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {index + 1}. {actor.name}
-                    </span>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {actor.count} {actor.count === 1 ? t('community.film') : t('community.films')}
-                    </span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                      {t('profile.stats.favoriteActors')}
+                    </h2>
+                    <Award className="w-5 h-5 text-pink-500" />
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                {t('common.no_data')}
-              </div>
-            )}
-          </div>
+                  {topActors.length > 0 ? (
+                    <div className="space-y-2">
+                      {topActors.map((actor, index) => (
+                        <div key={actor.id} className="flex items-center justify-between">
+                          <span className="font-medium text-gray-900 dark:text-white text-sm">
+                            {index + 1}. {actor.name}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {actor.count} {actor.count === 1 ? t('community.film') : t('community.films')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-2 text-sm">
+                      {t('common.no_data')}
+                    </div>
+                  )}
+                </div>
 
-          {/* Most Frequent Directors */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('profile.stats.favoriteDirectors')}
-              </h2>
-              <Film className="w-6 h-6 text-indigo-500" />
-            </div>
-            {topDirectors.length > 0 ? (
-              <div className="space-y-2">
-                {topDirectors.map((director, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {index + 1}. {director.name}
-                    </span>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {director.count} {director.count === 1 ? t('community.film') : t('community.films')}
-                    </span>
+                <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                      {t('profile.stats.favoriteDirectors')}
+                    </h2>
+                    <Film className="w-5 h-5 text-indigo-500" />
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                {t('common.no_data')}
-              </div>
-            )}
-          </div>
+                  {topDirectors.length > 0 ? (
+                    <div className="space-y-2">
+                      {topDirectors.map((director, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <span className="font-medium text-gray-900 dark:text-white text-sm">
+                            {index + 1}. {director.name}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {director.count} {director.count === 1 ? t('community.film') : t('community.films')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-2 text-sm">
+                      {t('common.no_data')}
+                    </div>
+                  )}
+                </div>
 
-          {/* Least-Known Gem */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('profile.stats.leastKnownGem')}
-              </h2>
-              <TrendingDown className="w-6 h-6 text-emerald-500" />
-            </div>
-            {leastKnownGem ? (
-              <div className="flex flex-col">
-                <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
-                  {leastKnownGem.title}
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                  {new Date(leastKnownGem.release_date).getFullYear()}
-                </p>
-                <div className="flex items-center gap-4 mt-1">
-                  <div className="flex items-center text-yellow-500">
-                    <Star className="w-4 h-4 fill-current mr-1" />
-                    <span className="text-sm">{leastKnownGem.vote_average.toFixed(1)}</span>
+                <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                      {t('profile.stats.leastKnownGem')}
+                    </h2>
+                    <TrendingDown className="w-5 h-5 text-emerald-500" />
                   </div>
-                  {leastKnownGem.userRating && (
-                    <div className="flex items-center">
-                      <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">{t('movies.friendRating')}:</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{leastKnownGem.userRating}/10</span>
+                  {leastKnownGem ? (
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white mb-1 text-sm">
+                        {leastKnownGem.title}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        {new Date(leastKnownGem.release_date).getFullYear()}
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center text-yellow-500">
+                          <Star className="w-4 h-4 fill-current mr-1" />
+                          <span className="text-sm">{leastKnownGem.vote_average.toFixed(1)}</span>
+                        </div>
+                        {leastKnownGem.userRating && (
+                          <div className="flex items-center text-xs">
+                            <span className="text-gray-500 dark:text-gray-400 mr-1">{t('movies.friendRating')}:</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{leastKnownGem.userRating}/10</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-2 text-sm">
+                      {t('profile.stats.noHiddenGems')}
                     </div>
                   )}
                 </div>
               </div>
-            ) : (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                {t('profile.stats.noHiddenGems')}
-              </div>
-            )}
-          </div>
-        </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <div className="mt-8">
+        <motion.div
+          className="mt-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
             {t('profile.movieCollection')}
           </h2>
-          
+
           {movies.length === 0 ? (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
+            <div className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-12 text-center">
               <Film className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 {t('profile.noMoviesYet')}
@@ -1088,7 +1023,7 @@ export default function UserProfile() {
               )}
             </>
           )}
-        </div>
+        </motion.div>
 
         {showFollowModal && profile.id && (
           <FollowersModal
@@ -1099,7 +1034,7 @@ export default function UserProfile() {
             onFollowChange={fetchProfileAndMovies}
           />
         )}
-        
+
         {showUserListsModal && profile.id && (
           <UserListsModal
             isOpen={true}
@@ -1116,6 +1051,6 @@ export default function UserProfile() {
           />
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, User, Users, Loader2, Crown } from 'lucide-react';
+import { Search, User, Users, Loader2, Crown, ArrowRight, Sparkles, Film } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
 import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import { useAuth } from '../lib/auth';
 import { getMovieDetails, getMovieDetailsFromDB, Movie, getTrending } from '../lib/tmdb';
@@ -80,7 +80,6 @@ export default function Community() {
     if (watchlistScrollRef.current) watchlistScrollRef.current.style.cursor = 'grab';
   };
 
-  // Animation variants for staggered animations
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -110,11 +109,8 @@ export default function Community() {
     }
   }, [session?.user?.id]);
 
-  // Reload when language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      console.log('🌍 Language changed in Community, reloading...');
-      // Clear movie cache to reload with new language
       if (typeof window !== 'undefined') {
         const { cache } = require('../lib/cache');
         cache.invalidatePattern('movie:');
@@ -148,10 +144,8 @@ export default function Community() {
         return;
       }
 
-      // Calculate offset for pagination
       const offset = (currentPage - 1) * USERS_PER_PAGE;
 
-      // First, get total count for pagination (including current user)
       const { count: totalCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
@@ -160,7 +154,6 @@ export default function Community() {
         setTotalPages(Math.ceil(totalCount / USERS_PER_PAGE));
       }
 
-      // Use new visibility-aware function
       const { data: visibleProfiles, error: profilesError } = await supabase
         .rpc('get_visible_profiles', {
           p_user_id: session.user.id,
@@ -186,7 +179,6 @@ export default function Community() {
     try {
       setSearching(true);
 
-      // Use visibility-aware search function
       const { data: searchResults, error } = await supabase
         .rpc('search_visible_profiles', {
           p_user_id: session.user.id,
@@ -264,13 +256,17 @@ export default function Community() {
 
   if (loading) {
     return (
-      <motion.div 
-        className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/5 dark:to-purple-900/5"
+      <motion.div
+        className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="p-8 rounded-xl bg-white dark:bg-gray-800/80 shadow-xl border border-gray-100 dark:border-gray-700/30 backdrop-blur-sm">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        <div className="relative z-10 p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl">
           <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto" />
           <p className="mt-4 text-gray-600 dark:text-gray-300 font-medium text-center">
             {t('common.loading')}
@@ -281,15 +277,26 @@ export default function Community() {
   }
 
   return (
-    <motion.div 
-      className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/5 dark:to-purple-900/5 py-8 px-4"
+    <motion.div
+      className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 py-8 px-4 relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="container mx-auto max-w-7xl">
-        <motion.div 
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400/15 to-rose-400/15 dark:from-pink-600/8 dark:to-rose-600/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
+
+      <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" style={{
+        backgroundImage: 'linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }} />
+
+      <div className="container mx-auto max-w-7xl relative z-10">
+        <motion.div
           className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8"
           variants={itemVariants}
           initial="hidden"
@@ -299,105 +306,130 @@ export default function Community() {
             <motion.div
               whileHover={{ rotate: [0, -10, 0], scale: 1.05 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
+              className="p-3 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30"
             >
-              <Users className="w-8 h-8 text-blue-500" />
+              <Users className="w-8 h-8 text-blue-500 dark:text-blue-400" />
             </motion.div>
-            <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+            <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500">
               {t('community.title')}
             </h1>
           </div>
           <div className="w-full md:w-96">
-            <div className="relative">
+            <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-lg overflow-hidden">
               <input
                 type="text"
                 placeholder={t('community.searchMembers')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md hover:shadow-lg transition-shadow"
+                className="w-full pl-12 pr-10 py-3 bg-transparent text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none"
                 aria-label={t('community.searchMembers')}
               />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               {searching && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 animate-spin text-blue-500" />
+                <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 animate-spin text-blue-500" />
               )}
             </div>
           </div>
         </motion.div>
 
-        {/* Friends Watchlist Carousel - Only on page 1 */}
         {currentPage === 1 && (
           <motion.div
-            className="mb-8"
+            className="mb-10"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="w-6 h-6 text-purple-500" />
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {t('community.friendsPlanning')}
-              </h2>
-            </div>
+            <div className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden p-6">
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-400/10 to-pink-500/10 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-400/10 to-cyan-500/10 rounded-full blur-3xl" />
+              </div>
 
-          {loadingWatchlist ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-            </div>
-          ) : friendsWatchlist.length > 0 ? (
-            <div
-              ref={watchlistScrollRef}
-              className="overflow-x-auto pb-2 cursor-grab select-none"
-              onMouseDown={handleWatchlistMouseDown}
-              onMouseMove={handleWatchlistMouseMove}
-              onMouseUp={handleWatchlistMouseUp}
-              onMouseLeave={handleWatchlistMouseUp}
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
-            >
-              <div className="flex gap-4">
-                {friendsWatchlist.map((movie) => (
-                  <motion.div
-                    key={`${movie.movie_id}-${movie.friend_id}`}
-                    className="relative group cursor-pointer flex-shrink-0 rounded-xl overflow-hidden shadow-lg"
-                    style={{ width: '160px', willChange: 'transform' }}
-                    onClick={() => { if (watchlistDragDist.current > 5) return; movie.movieDetails && setSelectedMovie(movie.movieDetails); }}
-                    whileHover={{ scale: 1.05, y: -6 }}
+              <div className="relative z-10">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-400/30">
+                      <Sparkles className="w-6 h-6 text-purple-500 dark:text-purple-400" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">
+                      {t('community.friendsPlanning')}
+                    </h2>
+                  </div>
+                  <motion.button
+                    onClick={() => navigate('/community')}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition-all"
+                    whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                   >
-                    {movie.movieDetails?.poster_path && (
-                      <img
-                        src={`https://image.tmdb.org/t/p/w342${movie.movieDetails.poster_path}`}
-                        alt={movie.title}
-                        draggable={false}
-                        onDragStart={(e) => e.preventDefault()}
-                        className="w-full aspect-[2/3] object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
-                        loading="lazy"
-                        style={{ userSelect: 'none', WebkitUserDrag: 'none' } as React.CSSProperties}
-                      />
-                    )}
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 pointer-events-none">
-                      <p className="text-white text-xs font-semibold truncate drop-shadow">{movie.title}</p>
-                      <p className="text-gray-300 text-[10px] truncate">@{movie.friend_username}</p>
+                    <span>{t('community.accessCommunity', { defaultValue: 'Explore Community' })}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </motion.button>
+                </div>
+
+                {loadingWatchlist ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                  </div>
+                ) : friendsWatchlist.length > 0 ? (
+                  <div
+                    ref={watchlistScrollRef}
+                    className="overflow-x-auto pb-2 cursor-grab select-none"
+                    onMouseDown={handleWatchlistMouseDown}
+                    onMouseMove={handleWatchlistMouseMove}
+                    onMouseUp={handleWatchlistMouseUp}
+                    onMouseLeave={handleWatchlistMouseUp}
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+                  >
+                    <div className="flex gap-4">
+                      {friendsWatchlist.map((movie) => (
+                        <motion.div
+                          key={`${movie.movie_id}-${movie.friend_id}`}
+                          className="relative group cursor-pointer flex-shrink-0 rounded-xl overflow-hidden shadow-lg"
+                          style={{ width: '160px', willChange: 'transform' }}
+                          onClick={() => { if (watchlistDragDist.current > 5) return; movie.movieDetails && setSelectedMovie(movie.movieDetails); }}
+                          whileHover={{ scale: 1.05, y: -6 }}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          {movie.movieDetails?.poster_path && (
+                            <img
+                              src={`https://image.tmdb.org/t/p/w342${movie.movieDetails.poster_path}`}
+                              alt={movie.title}
+                              draggable={false}
+                              onDragStart={(e) => e.preventDefault()}
+                              className="w-full aspect-[2/3] object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
+                              loading="lazy"
+                              style={{ userSelect: 'none', WebkitUserDrag: 'none' } as React.CSSProperties}
+                            />
+                          )}
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 pointer-events-none">
+                            <p className="text-white text-xs font-semibold truncate drop-shadow">{movie.title}</p>
+                            {movie.friend_username && (
+                              <p className="text-gray-300 text-[10px] truncate">@{movie.friend_username}</p>
+                            )}
+                          </div>
+                          {movie.movieDetails?.vote_average && movie.movieDetails.vote_average > 0 && (
+                            <div className="absolute top-2 right-2 bg-purple-500/90 text-white px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-lg backdrop-blur-sm">
+                              ★ {movie.movieDetails.vote_average.toFixed(1)}
+                            </div>
+                          )}
+                        </motion.div>
+                      ))}
                     </div>
-                    {movie.movieDetails?.vote_average && movie.movieDetails.vote_average > 0 && (
-                      <div className="absolute top-2 right-2 bg-blue-500/80 text-white px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-lg">
-                        ★ {movie.movieDetails.vote_average.toFixed(1)}
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Film className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>{t('common.noMoviesFound')}</p>
+                  </div>
+                )}
               </div>
             </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              {t('common.noMoviesFound')}
-            </div>
-          )}
           </motion.div>
         )}
 
         {filteredProfiles.length === 0 ? (
-          <motion.div 
-            className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700"
+          <motion.div
+            className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-12 text-center"
             variants={itemVariants}
             initial="hidden"
             animate="visible"
@@ -409,7 +441,7 @@ export default function Community() {
             >
               <Users className="w-20 h-20 text-gray-400 mx-auto mb-4" />
             </motion.div>
-            <motion.h2 
+            <motion.h2
               className="text-2xl font-semibold text-gray-900 dark:text-white mb-2"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -417,7 +449,7 @@ export default function Community() {
             >
               {t('community.noMembers')}
             </motion.h2>
-            <motion.p 
+            <motion.p
               className="text-gray-600 dark:text-gray-400 max-w-md mx-auto"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -429,7 +461,7 @@ export default function Community() {
             </motion.p>
           </motion.div>
         ) : (
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             variants={containerVariants}
             initial="hidden"
@@ -438,90 +470,86 @@ export default function Community() {
             {filteredProfiles.map((profile) => (
               <motion.div
                 key={profile.id}
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl cursor-pointer ${getBannerClass(profile.banner, profile.plan_type === 'premium')}`}
+                className={`relative rounded-2xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl overflow-hidden cursor-pointer group ${getBannerClass(profile.banner, profile.plan_type === 'premium')}`}
                 onClick={() => navigateToProfile(profile.username)}
                 role="button"
                 tabIndex={0}
                 aria-label={`View ${profile.username}'s profile`}
                 variants={itemVariants}
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -4 }}
                 whileTap={{ scale: 0.98 }}
-                style={{ transition: 'all 0.15s ease-out' }}
               >
-                <div className="relative h-full flex flex-col">
-                  {/* Avatar e informações principais */}
-                  <div className="p-6 flex-1 flex flex-col">
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className="relative flex-shrink-0">
-                        <div className={`w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile.avatar_frame, profile.plan_type === 'premium')}`}>
-                          {profile.avatar_url ? (
-                            <img
-                              src={profile.avatar_url}
-                              alt={profile.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <User className="w-full h-full p-3 text-gray-400" />
-                          )}
-                        </div>
-                      </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-                            @{profile.username}
-                          </h2>
-                          {profile.plan_type === 'premium' && (
-                            <motion.div
-                              whileHover={{ rotate: 360 }}
-                              transition={{ duration: 0.3, ease: "easeOut" }}
-                              className="flex-shrink-0"
-                            >
-                              <Crown className="w-5 h-5 text-yellow-400" title={t('premium.title')} />
-                            </motion.div>
-                          )}
-                        </div>
-
-                        {profile.active_tag && (
-                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                            profile.active_tag.category === 'basic'
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                              : profile.active_tag.category === 'theme'
-                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                              : profile.active_tag.category === 'community'
-                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                              : profile.active_tag.category === 'oracle'
-                              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
-                              : 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400'
-                          }`}>
-                            <span>{profile.active_tag.emoji}</span>
-                            <span className="truncate max-w-[120px]">{profile.active_tag.name}</span>
-                          </div>
+                <div className="relative h-full flex flex-col p-6">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="relative flex-shrink-0">
+                      <div className={`w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile.avatar_frame, profile.plan_type === 'premium')}`}>
+                        {profile.avatar_url ? (
+                          <img
+                            src={profile.avatar_url}
+                            alt={profile.username}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-full h-full p-3 text-gray-400" />
                         )}
                       </div>
                     </div>
 
-                    {/* Bio */}
-                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-4 flex-1">
-                      {profile.bio || t('profile.bio')}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                          @{profile.username}
+                        </h2>
+                        {profile.plan_type === 'premium' && (
+                          <motion.div
+                            whileHover={{ rotate: 360 }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
+                            className="flex-shrink-0"
+                          >
+                            <Crown className="w-5 h-5 text-yellow-400" title={t('premium.title')} />
+                          </motion.div>
+                        )}
+                      </div>
 
-                    {/* Stats na parte inferior */}
-                    <div className="flex items-center gap-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">
-                          <span className="font-bold text-gray-900 dark:text-white">{profile.followers_count}</span>
-                          <span className="text-gray-500 dark:text-gray-400 ml-1">{profile.followers_count === 1 ? 'follower' : 'followers'}</span>
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <User className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">
-                          <span className="font-bold text-gray-900 dark:text-white">{profile.following_count}</span>
-                          <span className="text-gray-500 dark:text-gray-400 ml-1">following</span>
-                        </span>
-                      </div>
+                      {profile.active_tag && (
+                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                          profile.active_tag.category === 'basic'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                            : profile.active_tag.category === 'theme'
+                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                            : profile.active_tag.category === 'community'
+                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                            : profile.active_tag.category === 'oracle'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                            : 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400'
+                        }`}>
+                          <span>{profile.active_tag.emoji}</span>
+                          <span className="truncate max-w-[120px]">{profile.active_tag.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-4 flex-1">
+                    {profile.bio || t('profile.bio')}
+                  </p>
+
+                  <div className="flex items-center gap-6 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
+                    <div className="flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm">
+                        <span className="font-bold text-gray-900 dark:text-white">{profile.followers_count}</span>
+                        <span className="text-gray-500 dark:text-gray-400 ml-1">{profile.followers_count === 1 ? 'follower' : 'followers'}</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm">
+                        <span className="font-bold text-gray-900 dark:text-white">{profile.following_count}</span>
+                        <span className="text-gray-500 dark:text-gray-400 ml-1">following</span>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -530,10 +558,9 @@ export default function Community() {
           </motion.div>
         )}
 
-        {/* Pagination Controls */}
         {!searchQuery && filteredProfiles.length > 0 && totalPages > 1 && (
           <motion.div
-            className="flex items-center justify-center gap-2 mt-8"
+            className="flex items-center justify-center gap-2 mt-10"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
@@ -541,7 +568,7 @@ export default function Community() {
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2.5 rounded-xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 text-gray-700 dark:text-gray-300 font-medium hover:bg-white/60 dark:hover:bg-gray-700/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               ← {t('common.back', { defaultValue: 'Back' })}
             </button>
@@ -563,10 +590,10 @@ export default function Community() {
                   <button
                     key={pageNum}
                     onClick={() => setCurrentPage(pageNum)}
-                    className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                    className={`w-10 h-10 rounded-xl font-medium transition-all ${
                       currentPage === pageNum
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                        : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
+                        : 'bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 text-gray-700 dark:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-700/60'
                     }`}
                   >
                     {pageNum}
@@ -578,7 +605,7 @@ export default function Community() {
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2.5 rounded-xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 text-gray-700 dark:text-gray-300 font-medium hover:bg-white/60 dark:hover:bg-gray-700/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {t('common.next', { defaultValue: 'Next' })} →
             </button>
@@ -586,39 +613,6 @@ export default function Community() {
         )}
       </div>
 
-      {/* Background animated elements */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        {Array.from({ length: 15 }).map((_, i) => (
-          <motion.div
-            key={`bg-particle-${i}`}
-            className="absolute w-1 h-1 rounded-full bg-blue-500/20 dark:bg-blue-600/20"
-            initial={{ 
-              x: `${Math.random() * 100}%`, 
-              y: `${Math.random() * 100}%`,
-              opacity: Math.random() * 0.5
-            }}
-            animate={{ 
-              y: [
-                `${Math.random() * 100}%`, 
-                `${Math.random() * 100}%`,
-                `${Math.random() * 100}%`
-              ],
-              opacity: [
-                Math.random() * 0.5,
-                Math.random() * 0.3,
-                Math.random() * 0.5
-              ]
-            }}
-            transition={{ 
-              duration: 20 + Math.random() * 30,
-              repeat: Infinity,
-              repeatType: "mirror"
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Movie Details Modal */}
       {selectedMovie && (
         <MovieDetailsModal
           movie={selectedMovie}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wand2, Loader2, Ticket, Plus, ArrowLeft, HelpCircle, X } from 'lucide-react';
+import { Wand2, Loader2, Ticket, Plus, ArrowLeft, HelpCircle, X, Sparkles, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -505,7 +505,7 @@ export default function OracleRecommend() {
 
             <div className="relative z-10">
               <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500 mb-6 flex items-center gap-2">
-                <span className="text-2xl">Sparkles</span> {t('oracle.speaksTitle')}
+                <Sparkles className="w-6 h-6 text-pink-500" /> {t('oracle.speaksTitle')}
               </h2>
 
               <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center italic text-lg mb-8 max-w-2xl mx-auto">
@@ -555,7 +555,7 @@ export default function OracleRecommend() {
             transition={{ delay: 0.5 }}
           >
             <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500 mb-6 text-center flex items-center justify-center gap-2">
-              <span className="text-2xl">Sparkles</span> {t('oracle.speaksTitle')}
+              <Sparkles className="w-6 h-6 text-pink-500" /> {t('oracle.speaksTitle')}
             </h2>
 
             <div className="flex flex-col items-center justify-center py-6">
@@ -628,9 +628,20 @@ export default function OracleRecommend() {
               </h2>
 
               <div className="space-y-4">
+                <div className="rounded-xl p-4 border-2 border-pink-400/60 dark:border-pink-500/50 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/30 dark:to-rose-900/30 shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <Info className="w-5 h-5 text-pink-500 flex-shrink-0" />
+                    <p className="text-pink-700 dark:text-pink-300 text-sm font-medium leading-relaxed">
+                      {t('oracle.cards.disclaimer', { defaultValue: 'Nenhum oraculo recomenda filmes que estao adicionados em sua biblioteca.' })}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="rounded-xl p-5 border border-emerald-300/50 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/10">
                   <div className="flex items-start gap-4">
-                    <div className="text-3xl flex-shrink-0">Frog</div>
+                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 dark:bg-emerald-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
+                      🐸
+                    </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mb-2">
                         {t('oracle.cards.bogart')} - {t('oracle.cards.bogartSubtitle', { defaultValue: 'Popular and Modern' })}
@@ -647,7 +658,9 @@ export default function OracleRecommend() {
 
                 <div className="rounded-xl p-5 border border-red-300/50 dark:border-red-500/30 bg-red-50/50 dark:bg-red-500/10">
                   <div className="flex items-start gap-4">
-                    <div className="text-3xl flex-shrink-0">Fox</div>
+                    <div className="w-12 h-12 rounded-full bg-red-500/20 dark:bg-red-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
+                      🦊
+                    </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">
                         {t('oracle.cards.fincher')} - {t('oracle.cards.fincherSubtitle', { defaultValue: 'Classic and Cult' })}
@@ -664,10 +677,12 @@ export default function OracleRecommend() {
 
                 <div className="rounded-xl p-5 border border-orange-300/50 dark:border-orange-500/30 bg-orange-50/50 dark:bg-orange-500/10">
                   <div className="flex items-start gap-4">
-                    <div className="text-3xl flex-shrink-0">Snake</div>
+                    <div className="w-12 h-12 rounded-full bg-orange-500/20 dark:bg-orange-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
+                      🐍
+                    </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-bold text-orange-600 dark:text-orange-400 mb-2">
-                        {t('oracle.cards.cypher')} - {t('oracle.cards.cypherSubtitle', { defaultValue: 'Underground and Bombs' })} Skull
+                        {t('oracle.cards.cypher')} - {t('oracle.cards.cypherSubtitle', { defaultValue: 'Underground and Bombs' })}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
                         {t('oracle.cards.cypherDesc', { defaultValue: 'The Snake crawls through the damp corridors where films are banned, forgotten or booed. She worships error as art and chaos as style.' })}
@@ -676,15 +691,6 @@ export default function OracleRecommend() {
                         {t('oracle.cards.cypherRec', { defaultValue: 'Recommends unpopular films regardless of their rating.' })}
                       </p>
                     </div>
-                  </div>
-                </div>
-
-                <div className="rounded-xl p-4 border border-gray-300/50 dark:border-gray-600/30 bg-gray-100/50 dark:bg-gray-700/30 mt-6">
-                  <div className="flex items-start gap-3">
-                    <div className="text-xl flex-shrink-0">Info</div>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
-                      {t('oracle.cards.disclaimer', { defaultValue: 'Nenhum oraculo recomenda filmes que estao adicionados em sua biblioteca.' })}
-                    </p>
                   </div>
                 </div>
               </div>
