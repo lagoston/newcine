@@ -97,6 +97,21 @@ export interface Movie {
   origin_country?: string[];
 }
 
+export const findByImdbId = async (imdbId: string): Promise<{ id: number; media_type: 'movie' | 'tv' } | null> => {
+  try {
+    const data = await tmdbFetch(`/find/${imdbId}?external_source=imdb_id&language=en-US`);
+    if (data.movie_results?.length > 0) {
+      return { id: data.movie_results[0].id, media_type: 'movie' };
+    }
+    if (data.tv_results?.length > 0) {
+      return { id: data.tv_results[0].id, media_type: 'tv' };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 export const getTrending = async (): Promise<Movie[]> => {
   const data = await tmdbFetch('/trending/movie/week');
   return data.results;
