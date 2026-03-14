@@ -100,17 +100,22 @@ function Navbar() {
           paddingBottom: '1rem',
           minHeight: 'calc(env(safe-area-inset-top) + 3.5rem)'
         }}>
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center text-white group">
               <div className="transform transition-transform duration-300 group-hover:scale-110">
                 <Logo className="mr-2" />
               </div>
               <span className="text-xl font-bold hidden xs:block bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">CineOracle</span>
             </Link>
+            {!user && (
+              <div className="hidden md:block">
+                <NavbarSearch onMovieSelect={handleMovieSelect} />
+              </div>
+            )}
           </div>
 
           <div className="hidden md:flex items-center space-x-3">
-            <NavbarSearch onMovieSelect={handleMovieSelect} />
+            {user && <NavbarSearch onMovieSelect={handleMovieSelect} />}
             {user ? (
               <>
                 <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>

@@ -648,12 +648,12 @@ const Home = () => {
                   >
                     <div className={`relative rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 ${feature.border} p-5 h-full transition-all duration-300 overflow-hidden`}>
                       <div className={`absolute inset-0 bg-gradient-to-br ${feature.glow} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
-                      <div className="relative z-10 flex items-start gap-4">
-                        <div className={`flex-shrink-0 p-3 rounded-xl ${feature.iconBg} ${feature.iconColor}`}>
+                      <div className="relative z-10 flex items-center gap-4">
+                        <div className={`flex-shrink-0 flex items-center justify-center w-14 h-14 rounded-xl ${feature.iconBg} ${feature.iconColor}`}>
                           {feature.icon}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-sm sm:text-base font-bold text-white mb-1.5 leading-tight">{t(feature.titleKey)}</h3>
+                          <h3 className="text-sm sm:text-base font-bold text-white mb-1 leading-tight">{t(feature.titleKey)}</h3>
                           <p className="text-gray-400 text-xs leading-relaxed">{t(feature.descriptionKey)}</p>
                         </div>
                       </div>
