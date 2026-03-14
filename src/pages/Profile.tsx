@@ -868,9 +868,11 @@ export default function Profile() {
                     )}
                   </div>
                   {profile?.active_tag && (
-                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${getTagColorClasses(profile.active_tag.category)}`}>
-                      <span>{profile.active_tag.emoji}</span>
-                      <span className="text-sm font-medium">{profile.active_tag.name}</span>
+                    <div className="flex justify-center sm:justify-start w-full sm:w-auto">
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${getTagColorClasses(profile.active_tag.category)}`}>
+                        <span>{profile.active_tag.emoji}</span>
+                        <span className="text-sm font-medium">{profile.active_tag.name}</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -917,7 +919,8 @@ export default function Profile() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                {/* Desktop buttons */}
+                <div className="hidden sm:flex flex-wrap justify-start gap-2">
                   {!isEditing && (
                     <>
                       <button
@@ -979,12 +982,77 @@ export default function Profile() {
                       {t('profile.editProfile')}
                     </button>
                   )}
-                  <button
-                    onClick={() => setShowSettingsModal(true)}
-                    className="sm:hidden px-4 py-2.5 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-white rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors flex items-center backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
-                  >
-                    <Settings className="w-5 h-5" />
-                  </button>
+                </div>
+
+                {/* Mobile buttons */}
+                <div className="flex sm:hidden flex-col gap-2 w-full">
+                  {!isEditing && (
+                    <>
+                      {!isPremium && (
+                        <button
+                          onClick={() => navigate('/premium')}
+                          className="w-full px-4 py-2.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-black rounded-xl hover:from-yellow-500 hover:to-amber-600 transition-colors font-medium shadow-lg flex items-center justify-center"
+                        >
+                          <Crown className="w-5 h-5 mr-2" />
+                          {t('oracle.premium.upgrade')}
+                        </button>
+                      )}
+                      <div className="flex gap-2 w-full">
+                        <button
+                          onClick={handleWhispersClick}
+                          className={`relative flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-colors flex items-center justify-center shadow-lg ${
+                            unreadWhispers > 0 ? 'animate-pulse shadow-orange-500/50' : ''
+                          }`}
+                        >
+                          <MessageCircle className="w-5 h-5 mr-2" />
+                          {t('profile.whispers')}
+                          {unreadWhispers > 0 && (
+                            <span className="ml-2 px-2 py-0.5 bg-white text-orange-600 text-xs font-bold rounded-full">
+                              {unreadWhispers}
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setShowCustomizeModal(true)}
+                          className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-colors flex items-center justify-center shadow-lg"
+                        >
+                          <Palette className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => setShowSettingsModal(true)}
+                          className="px-4 py-2.5 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-white rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors flex items-center justify-center backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
+                        >
+                          <Settings className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="w-full px-4 py-2.5 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
+                      >
+                        {t('profile.editProfile')}
+                      </button>
+                    </>
+                  )}
+                  {isEditing && (
+                    <div className="flex gap-2 w-full">
+                      <button
+                        onClick={handleUpdateProfile}
+                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-colors shadow-lg"
+                      >
+                        {t('profile.saveChanges')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsEditing(false);
+                          setNewUsername(username);
+                          setBio(bio);
+                        }}
+                        className="flex-1 px-4 py-2.5 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
+                      >
+                        {t('common.cancel')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
