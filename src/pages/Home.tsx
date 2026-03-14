@@ -648,7 +648,7 @@ const Home = () => {
                   >
                     <div className={`relative rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 ${feature.border} p-5 h-full transition-all duration-300 overflow-hidden flex flex-col justify-center`}>
                       <div className={`absolute inset-0 bg-gradient-to-br ${feature.glow} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
-                      <div className="relative z-10 flex flex-col items-center gap-3 text-center">
+                      <div className="relative z-10 flex flex-row sm:flex-col items-center sm:items-center gap-3 sm:text-center text-left">
                         <div className={`flex-shrink-0 p-3 rounded-xl ${feature.iconBg} ${feature.iconColor}`}>
                           {feature.icon}
                         </div>

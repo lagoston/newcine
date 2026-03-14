@@ -105,9 +105,11 @@ export default function Auth() {
   // Reset verification screen when user navigates back to /auth (e.g. via Navbar "Entrar" button)
   useEffect(() => {
     setShowVerificationMessage(false);
-    setMode('signin');
+    if (searchParams.get('signup') !== 'true') {
+      setMode('signin');
+    }
     setError('');
-  }, [location.key]);
+  }, [location.key, searchParams]);
 
   // Poll for session while on verification screen (handles same-browser tab confirmation + cross-device)
   useEffect(() => {
