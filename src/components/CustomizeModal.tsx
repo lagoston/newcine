@@ -814,7 +814,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     const otherFrames = Object.values(frames).filter(frame => frame.id !== 'default');
 
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
         <motion.div
           key={defaultFrame.id}
           initial={{ opacity: 0, scale: 0.9 }}
@@ -902,7 +902,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     const otherBanners = Object.values(banners).filter(banner => banner.id !== 'default');
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1">
         <motion.div
           key={defaultBanner.id}
           initial={{ opacity: 0, y: 10 }}
