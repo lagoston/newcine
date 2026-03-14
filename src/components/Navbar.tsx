@@ -1,31 +1,24 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Library as LibraryIcon, LogIn, LogOut, User, Menu, X, Eye, Home } from 'lucide-react';
-import { useTheme } from '../lib/theme';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import Logo from './Logo';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import NavbarSearch from './NavbarSearch';
+import MovieDetailsModal from './MovieDetailsModal';
+import { Movie } from '../lib/tmdb';
 
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme } = useTheme();
-  const { user, signOut } = useAuth();
+  const { user, session } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [unreadWhispers, setUnreadWhispers] = useState(0);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const { t } = useTranslation();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/auth');
-    } catch (error) {
-      console.error('Error during sign out:', error);
-    }
-  };
 
   useEffect(() => {
     if (user?.id) {
@@ -68,6 +61,11 @@ function Navbar() {
     }
   };
 
+  const handleMovieSelect = (movie: Movie) => {
+    setIsMenuOpen(false);
+    setSelectedMovie(movie);
+  };
+
   const NavLink = ({ to, icon: Icon, children, showBadge = false }: {
     to: string;
     icon: React.ElementType;
@@ -94,6 +92,7 @@ function Navbar() {
   );
 
   return (
+    <>
     <nav className="fixed top-0 left-0 right-0 z-40 bg-slate-900/70 backdrop-blur-2xl border-b border-white/10 shadow-lg transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between" style={{
@@ -111,20 +110,14 @@ function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center space-x-3">
-            <NavbarSearch />
+            <NavbarSearch onMovieSelect={handleMovieSelect} />
             {user ? (
               <>
                 <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
                 <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
                 <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
                 <NavLink to="/profile" icon={User} showBadge={true}>{t('nav.profile')}</NavLink>
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center px-4 py-2 text-gray-300 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-red-500/20"
-                >
-                  <LogOut className="h-5 w-5 mr-2" />
-                  <span>{t('auth.signOut')}</span>
-                </button>
+                <SignOutButton onSignOut={() => navigate('/auth')} t={t} />
               </>
             ) : (
               <Link
@@ -159,7 +152,7 @@ function Navbar() {
         <div className="md:hidden border-t border-white/10 bg-slate-900/95 backdrop-blur-2xl">
           <div className="px-4 py-3 space-y-2">
             <div className="mb-3">
-              <NavbarSearch fullWidth onClose={() => setIsMenuOpen(false)} />
+              <NavbarSearch fullWidth onClose={() => setIsMenuOpen(false)} onMovieSelect={handleMovieSelect} />
             </div>
             {user ? (
               <>
@@ -167,13 +160,7 @@ function Navbar() {
                 <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
                 <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
                 <NavLink to="/profile" icon={User} showBadge={true}>{t('nav.profile')}</NavLink>
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center w-full px-4 py-3 text-gray-300 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-300 font-medium"
-                >
-                  <LogOut className="h-5 w-5 mr-3" />
-                  <span>{t('auth.signOut')}</span>
-                </button>
+                <SignOutButton onSignOut={() => { setIsMenuOpen(false); navigate('/auth'); }} t={t} />
               </>
             ) : (
               <Link
@@ -189,6 +176,40 @@ function Navbar() {
         </div>
       )}
     </nav>
+
+    {selectedMovie && createPortal(
+      <MovieDetailsModal
+        movie={selectedMovie}
+        isOpen={true}
+        onClose={() => setSelectedMovie(null)}
+        onAddToLibrary={() => {
+          if (!session) navigate('/auth');
+        }}
+      />,
+      document.body
+    )}
+    </>
+  );
+}
+
+function SignOutButton({ onSignOut, t }: { onSignOut: () => void; t: (key: string) => string }) {
+  const { signOut } = useAuth();
+  const handleClick = async () => {
+    try {
+      await signOut();
+      onSignOut();
+    } catch (error) {
+      console.error('Error during sign out:', error);
+    }
+  };
+  return (
+    <button
+      onClick={handleClick}
+      className="flex items-center px-4 py-2 text-gray-300 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-red-500/20"
+    >
+      <LogOut className="h-5 w-5 mr-2" />
+      <span>{t('auth.signOut')}</span>
+    </button>
   );
 }
 

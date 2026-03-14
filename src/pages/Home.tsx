@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Star, Library as LibraryIcon, Eye, Users, ArrowRight, Sparkles, Lock, Clock } from 'lucide-react';
 import { useAuth } from '../lib/auth';
@@ -13,6 +13,24 @@ import OracleForYouBox from '../components/OracleForYouBox';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+
+const detailsCache = new Map<string, Promise<Movie>>();
+
+function prefetchMovie(id: number, mediaType: 'movie' | 'tv' = 'movie') {
+  const key = `${mediaType}:${id}`;
+  if (!detailsCache.has(key)) {
+    detailsCache.set(key, getMovieDetails(id, mediaType));
+  }
+}
+
+async function getOrFetchDetails(id: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<Movie> {
+  const key = `${mediaType}:${id}`;
+  const pending = detailsCache.get(key);
+  if (pending) return pending;
+  const promise = getMovieDetails(id, mediaType);
+  detailsCache.set(key, promise);
+  return promise;
+}
 
 function getBrasiliaCountdown(): number {
   const now = new Date();
@@ -45,6 +63,10 @@ const GuestMovieCarousel: React.FC<GuestMovieCarouselProps> = ({ title, movies, 
   const startXRef = useRef(0);
   const scrollStartRef = useRef(0);
   const dragDistanceRef = useRef(0);
+
+  const handleHover = useCallback((movie: Movie) => {
+    prefetchMovie(movie.id, movie.media_type || 'movie');
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!scrollRef.current) return;
@@ -133,6 +155,7 @@ const GuestMovieCarousel: React.FC<GuestMovieCarouselProps> = ({ title, movies, 
               className="relative rounded-2xl overflow-hidden cursor-pointer group flex-shrink-0 shadow-xl border border-white/10"
               style={{ width: '160px', height: '240px', willChange: 'transform' }}
               onClick={() => { if (dragDistanceRef.current > 5) return; onMovieClick(movie); }}
+              onMouseEnter={() => handleHover(movie)}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.04, duration: 0.3 }}
@@ -274,6 +297,10 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
   const scrollStartRef = useRef(0);
   const dragDistanceRef = useRef(0);
 
+  const handleHover = useCallback((movie: Movie) => {
+    prefetchMovie(movie.id, movie.media_type || 'movie');
+  }, []);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!scrollRef.current) return;
     isDraggingRef.current = true;
@@ -352,6 +379,7 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
               className="relative rounded-2xl overflow-hidden cursor-pointer group flex-shrink-0 shadow-xl border border-white/10"
               style={{ width: '160px', height: '240px', willChange: 'transform' }}
               onClick={() => { if (dragDistanceRef.current > 5) return; onMovieClick(movie); }}
+              onMouseEnter={() => handleHover(movie)}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05, duration: 0.3 }}
@@ -427,6 +455,7 @@ const Home = () => {
       setGuestLoadingTrending(true);
       const trending = await getTrending();
       setGuestTrendingMovies(trending);
+      trending.slice(0, 5).forEach(m => prefetchMovie(m.id, 'movie'));
     } catch (err) {
       console.error('Error fetching guest trending:', err);
     } finally {
@@ -481,12 +510,12 @@ const Home = () => {
   };
 
   const handleMovieClick = async (movie: Movie) => {
+    setSelectedMovie(movie);
     try {
-      const details = await getMovieDetails(movie.id);
+      const details = await getOrFetchDetails(movie.id, movie.media_type || 'movie');
       setSelectedMovie(details);
     } catch (error) {
       console.error('Error fetching movie details:', error);
-      toast.error('Failed to load movie details');
     }
   };
 
