@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Library as LibraryIcon, LogIn, LogOut, User, Menu, X, Eye, Search, Home } from 'lucide-react';
+import { Library as LibraryIcon, LogIn, LogOut, User, Menu, X, Eye, Home } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import Logo from './Logo';
-import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
+import NavbarSearch from './NavbarSearch';
 
 function Navbar() {
   const navigate = useNavigate();
@@ -15,7 +15,6 @@ function Navbar() {
   const { theme } = useTheme();
   const { user, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [unreadWhispers, setUnreadWhispers] = useState(0);
   const { t } = useTranslation();
 
@@ -69,16 +68,12 @@ function Navbar() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/add-movies?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery('');
-      setIsMenuOpen(false);
-    }
-  };
-
-  const NavLink = ({ to, icon: Icon, children, showBadge = false }) => (
+  const NavLink = ({ to, icon: Icon, children, showBadge = false }: {
+    to: string;
+    icon: React.ElementType;
+    children: React.ReactNode;
+    showBadge?: boolean;
+  }) => (
     <Link
       to={to}
       onClick={() => setIsMenuOpen(false)}
@@ -116,18 +111,7 @@ function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center space-x-3">
-            {user && (
-              <form onSubmit={handleSearch} className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('nav.searchMovies')}
-                  className="w-48 lg:w-64 px-3 py-2 pl-9 text-sm bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-white placeholder-gray-400 transition-all"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              </form>
-            )}
+            <NavbarSearch />
             {user ? (
               <>
                 <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
@@ -174,18 +158,9 @@ function Navbar() {
       {isMenuOpen && (
         <div className="md:hidden border-t border-white/10 bg-slate-900/95 backdrop-blur-2xl">
           <div className="px-4 py-3 space-y-2">
-            {user && (
-              <form onSubmit={handleSearch} className="relative mb-3">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('nav.searchMovies')}
-                  className="w-full px-3 py-2.5 pl-9 text-sm bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white placeholder-gray-400"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              </form>
-            )}
+            <div className="mb-3">
+              <NavbarSearch fullWidth onClose={() => setIsMenuOpen(false)} />
+            </div>
             {user ? (
               <>
                 <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
