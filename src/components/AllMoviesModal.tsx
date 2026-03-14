@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Star, Dices } from 'lucide-react';
-import { Movie } from '../lib/tmdb';
+import { X, Star, Dices, Loader2 } from 'lucide-react';
+import { Movie, getMovieDetails } from '../lib/tmdb';
 import MovieDetailsModal from './MovieDetailsModal';
 
 interface AllMoviesModalProps {
@@ -23,21 +23,31 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
   onAddToLibrary,
 }) => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleMovieClick = (movie: Movie) => {
-    setSelectedMovie(movie);
+  const handleMovieClick = async (movie: Movie) => {
+    try {
+      setLoadingDetails(true);
+      const mediaType = movie.media_type || 'movie';
+      const details = await getMovieDetails(movie.id, mediaType);
+      setSelectedMovie(details);
+    } catch {
+      setSelectedMovie(movie);
+    } finally {
+      setLoadingDetails(false);
+    }
   };
 
   const handleCloseDetails = () => {
     setSelectedMovie(null);
   };
 
-  const handleRandomMovie = () => {
+  const handleRandomMovie = async () => {
     if (movies.length === 0) return;
     const randomIndex = Math.floor(Math.random() * movies.length);
-    setSelectedMovie(movies[randomIndex]);
+    await handleMovieClick(movies[randomIndex]);
   };
 
   return (
@@ -72,6 +82,8 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
             <div
               key={movie.id}
               className={`rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer ${
+                loadingDetails ? 'pointer-events-none opacity-70' : ''
+              } ${
                 movie.media_type === 'tv'
                   ? 'bg-purple-50/70 dark:bg-purple-900/20'
                   : 'bg-gray-50 dark:bg-gray-700/50'
@@ -118,11 +130,11 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-center">
           <button
             onClick={handleRandomMovie}
-            disabled={movies.length === 0}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+            disabled={movies.length === 0 || loadingDetails}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
             title="Random movie from this list"
           >
-            <Dices className="w-5 h-5" />
+            {loadingDetails ? <Loader2 className="w-5 h-5 animate-spin" /> : <Dices className="w-5 h-5" />}
             <span className="font-semibold">Random Movie</span>
           </button>
         </div>

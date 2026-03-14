@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Loader2, Star, Film, Tv, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -186,7 +187,7 @@ export default function NavbarSearch({ onClose, fullWidth = false }: NavbarSearc
         )}
       </div>
 
-      {selectedMovie && (
+      {selectedMovie && createPortal(
         <MovieDetailsModal
           movie={selectedMovie}
           isOpen={showModal}
@@ -199,7 +200,8 @@ export default function NavbarSearch({ onClose, fullWidth = false }: NavbarSearc
               navigate('/auth');
             }
           }}
-        />
+        />,
+        document.body
       )}
     </>
   );
