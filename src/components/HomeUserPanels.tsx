@@ -280,10 +280,10 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
   return (
     <>
-      <div className="flex flex-col gap-5 mb-10 max-w-2xl mx-auto w-full">
+      <div className="flex flex-col md:flex-row gap-5 mb-10 max-w-5xl mx-auto w-full md:items-start">
         {/* Panel 1 — Welcome + Stats + Essence */}
         <motion.div
-          className={panelBase}
+          className={`${panelBase} md:flex-1`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -444,7 +444,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
         {/* Panel 2 — Daily Recommendation */}
         <motion.div
-          className={panelBase}
+          className={`${panelBase} md:flex-1`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.12 }}
