@@ -280,7 +280,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
   return (
     <>
-      <div className="flex flex-col md:flex-row gap-5 mb-10 max-w-5xl mx-auto w-full md:items-start">
+      <div className="flex flex-col md:flex-row gap-5 mb-10 max-w-5xl mx-auto w-full md:items-stretch">
         {/* Panel 1 — Welcome + Stats + Essence */}
         <motion.div
           className={`${panelBase} md:flex-1`}
@@ -454,7 +454,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
             <div className="absolute bottom-0 right-0 w-40 h-40 bg-gradient-to-tl from-orange-400/10 to-rose-500/10 rounded-full blur-3xl" />
           </div>
 
-          <div className="relative z-10 p-6">
+          <div className="relative z-10 p-6 flex flex-col h-full">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-1 bg-gradient-to-b from-rose-500 to-pink-500 rounded-full" />
@@ -468,6 +468,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               </div>
             </div>
 
+            <div className="flex-1">
             {loadingMovie ? (
               <div className="flex items-center justify-center py-10">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-rose-500" />
@@ -515,7 +516,9 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               </div>
             )}
 
-            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-4" />
+            </div>
+
+            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-4 mt-auto" />
 
             <Link
               to="/oracle/recommend"
