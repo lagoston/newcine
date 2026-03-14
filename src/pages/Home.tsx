@@ -526,109 +526,138 @@ const Home = () => {
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/90 to-slate-900">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-500/15 to-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute top-40 right-20 w-80 h-80 bg-gradient-to-br from-pink-500/12 to-rose-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-40 right-20 w-80 h-80 bg-gradient-to-br from-violet-500/12 to-purple-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
           <div className="absolute bottom-40 left-1/3 w-72 h-72 bg-gradient-to-br from-cyan-500/10 to-blue-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute bottom-20 right-1/4 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-sky-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '3s' }}></div>
+          <div className="absolute bottom-20 right-1/4 w-64 h-64 bg-gradient-to-br from-purple-400/10 to-violet-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '3s' }}></div>
         </div>
 
         <div className="relative z-10 min-h-screen flex flex-col items-center px-4 py-8 sm:py-12">
-          <motion.div
-            className="relative rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden max-w-lg w-full mb-8 mt-8 sm:mt-12"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-          >
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-500/15 to-cyan-400/10 rounded-full blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-pink-500/10 to-blue-400/10 rounded-full blur-3xl" />
-            </div>
-            <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
-              backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
-              backgroundSize: '20px 20px'
-            }}></div>
-            <div className="relative z-10 p-8 sm:p-10 flex flex-col items-center text-center">
-              <motion.div
-                className="mb-6"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.6 }}
-              >
-                <motion.div
-                  className="relative"
-                  animate={{
-                    filter: [
-                      'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.3))',
-                      'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 14px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 28px rgba(59, 130, 246, 0.4))',
-                      'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.3))',
-                    ]
-                  }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <Logo size="large" className="w-24 h-24 sm:w-28 sm:h-28" />
-                </motion.div>
-              </motion.div>
-              <motion.div
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-              >
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3">
-                  <span className="text-white">{t('home.welcomeTo')} </span>
-                  <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                    CineOracle
-                  </span>
-                </h1>
-              </motion.div>
-              <motion.p
-                className="text-gray-300/80 text-sm sm:text-base leading-relaxed max-w-md"
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-              >
-                {t('home.welcomeDesc')}
-              </motion.p>
-            </div>
-          </motion.div>
 
-          <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl w-full mb-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6, duration: 0.6 }}
-          >
-            {[
-              { icon: <Star className="w-8 h-8" />, titleKey: 'home.homeClassification', descriptionKey: 'home.homeClassificationDesc', iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400', accentColor: 'from-amber-500/10 to-orange-500/5' },
-              { icon: <LibraryIcon className="w-8 h-8" />, titleKey: 'home.homeLibrary', descriptionKey: 'home.homeLibraryDesc', iconBg: 'bg-blue-500/15', iconColor: 'text-blue-400', accentColor: 'from-blue-500/10 to-cyan-500/5' },
-              { icon: <Eye className="w-8 h-8" />, titleKey: 'home.homeOracle', descriptionKey: 'home.homeOracleDesc', iconBg: 'bg-sky-500/15', iconColor: 'text-sky-400', accentColor: 'from-sky-500/10 to-cyan-500/5' },
-              { icon: <Users className="w-8 h-8" />, titleKey: 'home.homeCommunity', descriptionKey: 'home.homeCommunityDesc', iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400', accentColor: 'from-emerald-500/10 to-green-500/5' }
-            ].map((feature, index) => (
+          {/* Hero: welcome left + features right */}
+          <div className="w-full max-w-6xl mb-8 mt-8 sm:mt-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+
+              {/* Left: Welcome box */}
               <motion.div
-                key={index}
-                className="relative group"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.7 + (index * 0.1), duration: 0.4 }}
-                whileHover={{ y: -4, scale: 1.02 }}
+                className="relative rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden"
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
               >
-                <div className="relative rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 p-5 sm:p-6 h-full transition-all duration-300 group-hover:border-white/20 overflow-hidden">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.accentColor} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
-                  <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{
-                    backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
-                    backgroundSize: '16px 16px'
-                  }}></div>
-                  <div className="relative z-10 flex items-start gap-4">
-                    <div className={`flex-shrink-0 p-3 rounded-xl ${feature.iconBg} ${feature.iconColor}`}>
-                      {feature.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base sm:text-lg font-bold text-white mb-1.5 leading-tight">{t(feature.titleKey)}</h3>
-                      <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">{t(feature.descriptionKey)}</p>
-                    </div>
-                  </div>
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-500/15 to-cyan-400/10 rounded-full blur-3xl" />
+                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-violet-500/10 to-blue-400/10 rounded-full blur-3xl" />
+                </div>
+                <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+                  backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+                  backgroundSize: '20px 20px'
+                }}></div>
+                <div className="relative z-10 p-8 sm:p-10 flex flex-col items-center text-center h-full justify-center">
+                  <motion.div
+                    className="mb-6"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.6 }}
+                  >
+                    <motion.div
+                      className="relative"
+                      animate={{
+                        filter: [
+                          'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.3))',
+                          'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 14px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 28px rgba(139, 92, 246, 0.4))',
+                          'brightness(0) saturate(100%) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.3))',
+                        ]
+                      }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Logo size="large" className="w-24 h-24 sm:w-28 sm:h-28" />
+                    </motion.div>
+                  </motion.div>
+                  <motion.div
+                    initial={{ y: 15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.4, duration: 0.5 }}
+                  >
+                    <h1 className="text-3xl sm:text-4xl font-bold mb-3">
+                      <span className="text-white">{t('home.welcomeTo')} </span>
+                      <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                        CineOracle
+                      </span>
+                    </h1>
+                  </motion.div>
+                  <motion.p
+                    className="text-gray-300/80 text-sm sm:text-base leading-relaxed max-w-md mb-8"
+                    initial={{ y: 15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 0.5 }}
+                  >
+                    {t('home.welcomeDesc')}
+                  </motion.p>
+                  <motion.div
+                    className="w-full"
+                    initial={{ y: 15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 0.5 }}
+                  >
+                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
+                      <Link
+                        to="/auth?signup=true"
+                        className="group relative flex items-center justify-center gap-3 w-full px-8 py-4 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 text-white text-base font-bold rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30"
+                      >
+                        <span className="relative z-10">{t('home.signUpButton')}</span>
+                        <Logo className="relative z-10 w-5 h-5 transition-transform duration-300 group-hover:rotate-12" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                      </Link>
+                    </motion.div>
+                    <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-4"></div>
+                    <p className="text-gray-400 text-sm">
+                      {t('home.alreadyHaveAccount')}{' '}
+                      <Link to="/auth" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
+                        {t('home.signInLink')}
+                      </Link>
+                    </p>
+                  </motion.div>
                 </div>
               </motion.div>
-            ))}
-          </motion.div>
+
+              {/* Right: Feature cards 2x2 */}
+              <motion.div
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
+              >
+                {[
+                  { icon: <Star className="w-7 h-7" />, titleKey: 'home.homeClassification', descriptionKey: 'home.homeClassificationDesc', iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400', border: 'hover:border-amber-500/30', glow: 'from-amber-500/8 to-orange-500/5' },
+                  { icon: <LibraryIcon className="w-7 h-7" />, titleKey: 'home.homeLibrary', descriptionKey: 'home.homeLibraryDesc', iconBg: 'bg-blue-500/15', iconColor: 'text-blue-400', border: 'hover:border-blue-500/30', glow: 'from-blue-500/8 to-cyan-500/5' },
+                  { icon: <Eye className="w-7 h-7" />, titleKey: 'home.homeOracle', descriptionKey: 'home.homeOracleDesc', iconBg: 'bg-violet-500/15', iconColor: 'text-violet-400', border: 'hover:border-violet-500/30', glow: 'from-violet-500/8 to-purple-500/5' },
+                  { icon: <Users className="w-7 h-7" />, titleKey: 'home.homeCommunity', descriptionKey: 'home.homeCommunityDesc', iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400', border: 'hover:border-emerald-500/30', glow: 'from-emerald-500/8 to-green-500/5' }
+                ].map((feature, index) => (
+                  <motion.div
+                    key={index}
+                    className="relative group"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.25 + (index * 0.08), duration: 0.4 }}
+                    whileHover={{ y: -4, scale: 1.02 }}
+                  >
+                    <div className={`relative rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 ${feature.border} p-5 h-full transition-all duration-300 overflow-hidden`}>
+                      <div className={`absolute inset-0 bg-gradient-to-br ${feature.glow} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                      <div className="relative z-10 flex items-start gap-4">
+                        <div className={`flex-shrink-0 p-3 rounded-xl ${feature.iconBg} ${feature.iconColor}`}>
+                          {feature.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm sm:text-base font-bold text-white mb-1.5 leading-tight">{t(feature.titleKey)}</h3>
+                          <p className="text-gray-400 text-xs leading-relaxed">{t(feature.descriptionKey)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+          </div>
 
           <div className="w-full max-w-6xl mb-8">
             <GuestMovieCarousel
@@ -645,40 +674,9 @@ const Home = () => {
             className="w-full max-w-6xl mb-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.95, duration: 0.5 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
           >
             <GuestDailyRecommendationBox onSignUp={() => navigate('/auth?signup=true')} countdown={countdown} />
-          </motion.div>
-
-          <motion.div
-            className="relative rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden max-w-lg w-full p-6 sm:p-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.1, duration: 0.5 }}
-          >
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-cyan-400/5 rounded-full blur-2xl" />
-              <div className="absolute bottom-0 right-0 w-28 h-28 bg-gradient-to-tr from-cyan-500/8 to-blue-400/5 rounded-full blur-2xl" />
-            </div>
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} className="w-full">
-                <Link
-                  to="/auth?signup=true"
-                  className="group relative flex items-center justify-center gap-3 w-full px-8 py-4 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 text-white text-base sm:text-lg font-bold rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30"
-                >
-                  <span className="relative z-10">{t('home.signUpButton')}</span>
-                  <Logo className="relative z-10 w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 group-hover:rotate-12" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                </Link>
-              </motion.div>
-              <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-5"></div>
-              <p className="text-gray-400 text-sm">
-                {t('home.alreadyHaveAccount')}{' '}
-                <Link to="/auth" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
-                  {t('home.signInLink')}
-                </Link>
-              </p>
-            </div>
           </motion.div>
         </div>
 
