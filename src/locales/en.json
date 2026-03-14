@@ -131,6 +131,10 @@
     "alreadyHaveAccount": "Already have an account?",
     "signInLink": "Sign In",
     "rateMoviesHelp": "Rate movies and get personalized statistics",
+    "guestDailyTitle": "Daily Recommendation",
+    "guestDailySubtitle": "Films selected for your profile, renewed daily",
+    "guestDailyLockText": "Create your account to receive personalized recommendations every day",
+    "guestDailySignUpBtn": "Create free account",
     "panels": {
       "welcomeBack": "Welcome back",
       "yourLibrary": "Your Library",

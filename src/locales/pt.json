@@ -131,6 +131,10 @@
     "signUpButton": "Cadastrar",
     "alreadyHaveAccount": "Já tem uma conta?",
     "signInLink": "Entrar",
+    "guestDailyTitle": "Recomendação do Dia",
+    "guestDailySubtitle": "Filmes selecionados para o seu perfil, renovados diariamente",
+    "guestDailyLockText": "Crie sua conta para receber recomendações personalizadas todos os dias",
+    "guestDailySignUpBtn": "Criar conta gratuita",
     "panels": {
       "welcomeBack": "Bem-vindo de volta",
       "yourLibrary": "Sua Biblioteca",

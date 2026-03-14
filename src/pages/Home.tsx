@@ -201,12 +201,17 @@ interface GuestDailyBoxProps {
 }
 
 const GuestDailyRecommendationBox: React.FC<GuestDailyBoxProps> = ({ onSignUp, countdown }) => {
+  const { t } = useTranslation();
   const dummyPosters = [
     '/t/p/w185/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
     '/t/p/w185/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg',
     '/t/p/w185/saHP97rTPS5eLmrLQEcANmKrsFl.jpg',
     '/t/p/w185/q719jXXEzOoYaps6babgKnONONX.jpg',
     '/t/p/w185/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg',
+    '/t/p/w185/8Vt6mWEReuy4Of61Lnj5Xj704m8.jpg',
+    '/t/p/w185/rCzpDGLbOoPwLjy3OAm5sF7B1My.jpg',
+    '/t/p/w185/hek3koDUyRQk7FIhPXsa6mT2Zc3.jpg',
+    '/t/p/w185/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
   ];
 
   return (
@@ -227,9 +232,9 @@ const GuestDailyRecommendationBox: React.FC<GuestDailyBoxProps> = ({ onSignUp, c
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 leading-relaxed flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-cyan-400 flex-shrink-0" />
-                Recomendação do Dia
+                {t('home.guestDailyTitle')}
               </h2>
-              <p className="text-xs text-gray-400 mt-0.5">Filmes selecionados para o seu perfil, renovados diariamente</p>
+              <p className="text-xs text-gray-400 mt-0.5">{t('home.guestDailySubtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
@@ -261,7 +266,7 @@ const GuestDailyRecommendationBox: React.FC<GuestDailyBoxProps> = ({ onSignUp, c
             <div className="flex items-center gap-2.5 bg-black/40 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-3 text-center max-w-sm">
               <Lock className="w-4 h-4 text-cyan-400 flex-shrink-0" />
               <p className="text-sm text-gray-200 leading-snug">
-                Crie sua conta para receber recomendações personalizadas todos os dias
+                {t('home.guestDailyLockText')}
               </p>
             </div>
             <motion.button
@@ -272,7 +277,7 @@ const GuestDailyRecommendationBox: React.FC<GuestDailyBoxProps> = ({ onSignUp, c
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
               <Sparkles className="relative z-10 w-4 h-4" />
-              <span className="relative z-10">Criar conta gratuita</span>
+              <span className="relative z-10">{t('home.guestDailySignUpBtn')}</span>
             </motion.button>
           </div>
         </div>
