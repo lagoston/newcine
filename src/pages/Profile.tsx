@@ -804,7 +804,7 @@ export default function Profile() {
       }} />
 
       <div className="container mx-auto max-w-5xl relative z-10 space-y-6">
-        <div className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden ${getBannerClass(profile?.banner, isPremium)}`}>
+        <div className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl ${getBannerClass(profile?.banner, isPremium)}`}>
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-cyan-500/10 rounded-full blur-3xl" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-400/10 to-pink-500/10 rounded-full blur-3xl" />
@@ -813,7 +813,7 @@ export default function Profile() {
 
           <button
             onClick={() => setShowSettingsModal(true)}
-            className="hidden sm:flex absolute top-6 right-6 items-center justify-center w-10 h-10 bg-white/60 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40 z-10"
+            className="hidden sm:flex absolute top-6 right-6 items-center justify-center w-10 h-10 bg-white/60 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40 z-20"
             title="Settings"
           >
             <Settings className="w-5 h-5" />

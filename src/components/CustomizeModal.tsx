@@ -820,11 +820,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2 }}
-          className={`relative aspect-square rounded-2xl overflow-hidden ${selectedFrame === defaultFrame.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
+          className={`relative aspect-square rounded-2xl ${selectedFrame === defaultFrame.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
         >
           <button
             onClick={() => handleFrameSelect(defaultFrame.id as FrameId)}
-            className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 flex flex-col items-center justify-center p-3"
+            className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 flex flex-col items-center justify-center p-3 rounded-2xl overflow-hidden"
           >
             <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ${defaultFrame.className} shadow-xl flex-shrink-0`}>
               <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
@@ -854,14 +854,14 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.2, delay: (index + 1) * 0.03 }}
-              className={`relative aspect-square rounded-2xl overflow-hidden ${
+              className={`relative aspect-square rounded-2xl ${
                 isLocked ? 'opacity-60' : ''
               } ${selectedFrame === frame.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
             >
               <button
                 onClick={() => !isLocked && handleFrameSelect(frame.id as FrameId)}
                 disabled={isLocked}
-                className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 disabled:cursor-not-allowed disabled:hover:from-gray-100 disabled:hover:to-gray-200 dark:disabled:hover:from-gray-700 dark:disabled:hover:to-gray-800 flex flex-col items-center justify-center p-3"
+                className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 disabled:cursor-not-allowed disabled:hover:from-gray-100 disabled:hover:to-gray-200 dark:disabled:hover:from-gray-700 dark:disabled:hover:to-gray-800 flex flex-col items-center justify-center p-3 rounded-2xl overflow-hidden"
               >
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ${frame.className} shadow-xl flex-shrink-0`}>
                   <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
@@ -908,11 +908,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className={`relative rounded-2xl overflow-hidden ${selectedBanner === defaultBanner.id ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
+          className={`relative rounded-2xl ${selectedBanner === defaultBanner.id ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
         >
           <button
             onClick={() => handleBannerSelect(defaultBanner.id as BannerId)}
-            className="w-full relative group transition-all duration-300 hover:scale-[1.02]"
+            className="w-full relative group transition-all duration-300 hover:scale-[1.02] rounded-2xl overflow-hidden"
           >
             <div className="bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 rounded-2xl h-28 w-full flex items-center justify-center px-4">
               <h3 className="text-sm font-bold text-gray-800 dark:text-white text-center">
@@ -939,14 +939,14 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: (index + 1) * 0.05 }}
-              className={`relative rounded-2xl overflow-hidden ${
+              className={`relative rounded-2xl ${
                 isLocked ? 'opacity-60' : ''
               } ${selectedBanner === banner.id ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
             >
               <button
                 onClick={() => !isLocked && handleBannerSelect(banner.id as BannerId)}
                 disabled={isLocked}
-                className="block w-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="block w-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100 rounded-2xl overflow-hidden"
               >
                 <div className={`rounded-2xl h-28 w-full flex items-center justify-center px-4 ${banner.className}`}>
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white z-10 relative text-center line-clamp-2">
