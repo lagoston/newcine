@@ -258,6 +258,139 @@ const GuestDailyRecommendationBox: React.FC<GuestDailyBoxProps> = ({ onSignUp, c
   );
 };
 
+interface MovieCarouselProps {
+  title: string | JSX.Element;
+  movies: Movie[];
+  loading: boolean;
+  onViewAll: () => void;
+  onMovieClick: (movie: Movie) => void;
+  viewAllLabel: string;
+}
+
+const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, onViewAll, onMovieClick, viewAllLabel }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollStartRef = useRef(0);
+  const dragDistanceRef = useRef(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    isDraggingRef.current = true;
+    startXRef.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollStartRef.current = scrollRef.current.scrollLeft;
+    dragDistanceRef.current = 0;
+    scrollRef.current.style.cursor = 'grabbing';
+  };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    dragDistanceRef.current = Math.abs(x - startXRef.current);
+    scrollRef.current.scrollLeft = scrollStartRef.current - (x - startXRef.current) * 2;
+  };
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+    if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
+  };
+
+  if (loading) {
+    return (
+      <div className="relative mb-10 p-6 sm:p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      className="relative mb-10 p-6 sm:p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-blue-500/10 to-cyan-400/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-pink-500/8 to-blue-400/5 rounded-full blur-3xl"></div>
+      </div>
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+        backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+        backgroundSize: '24px 24px'
+      }}></div>
+      <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-1 bg-gradient-to-b from-blue-400 via-cyan-400 to-blue-500 rounded-full"></div>
+          <h2 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 leading-relaxed">
+            {title}
+          </h2>
+        </div>
+        <button
+          onClick={onViewAll}
+          className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/25 rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 overflow-hidden relative group"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+          <span className="relative z-10 hidden sm:inline">{viewAllLabel}</span>
+          <span className="relative z-10 sm:hidden">Ver</span>
+          <ArrowRight className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        </button>
+      </div>
+      <div
+        ref={scrollRef}
+        className="relative z-10 overflow-x-auto py-4 pb-2 cursor-grab select-none"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+      >
+        <div className="flex gap-4">
+          {movies.map((movie, index) => (
+            <motion.div
+              key={movie.id}
+              className="relative rounded-2xl overflow-hidden cursor-pointer group flex-shrink-0 shadow-xl border border-white/10"
+              style={{ width: '160px', height: '240px', willChange: 'transform' }}
+              onClick={() => { if (dragDistanceRef.current > 5) return; onMovieClick(movie); }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05, duration: 0.3 }}
+              whileHover={{ scale: 1.05, y: -8 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              <div
+                className="absolute top-2 left-2 bg-blue-500/80 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg border border-blue-400/30"
+                style={{ zIndex: 30, transform: 'translateZ(0)' }}
+              >
+                #{index + 1}
+              </div>
+              <OptimizedPoster
+                src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                alt={movie.title}
+                className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
+              />
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-[2px] pointer-events-none">
+                <div className="p-3">
+                  <h3 className="text-white font-bold mb-1.5 line-clamp-2 text-sm drop-shadow-lg">{movie.title}</h3>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-center bg-blue-500/20 backdrop-blur-md px-2 py-1 rounded-lg border border-blue-400/30">
+                      <Star className="w-3 h-3 fill-blue-400 text-blue-400" />
+                      <span className="ml-1 text-blue-100 font-bold text-xs">{movie.vote_average.toFixed(1)}</span>
+                    </div>
+                    <span className="text-gray-200 text-xs font-semibold bg-white/10 backdrop-blur-sm px-2 py-1 rounded-lg border border-white/10">
+                      {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 const Home = () => {
   const { session } = useAuth();
   const { t } = useTranslation();
@@ -358,130 +491,6 @@ const Home = () => {
   };
 
   const handleAddToLibrary = () => {};
-
-  const MovieCarousel = ({ title, movies, loading, category, onViewAll }: { title: string | JSX.Element; movies: Movie[]; loading: boolean; category: string; onViewAll: () => void }) => {
-    const scrollRef = React.useRef<HTMLDivElement>(null);
-    const isDraggingRef = React.useRef(false);
-    const startXRef = React.useRef(0);
-    const scrollStartRef = React.useRef(0);
-    const dragDistanceRef = React.useRef(0);
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-      if (!scrollRef.current) return;
-      isDraggingRef.current = true;
-      startXRef.current = e.pageX - scrollRef.current.offsetLeft;
-      scrollStartRef.current = scrollRef.current.scrollLeft;
-      dragDistanceRef.current = 0;
-      scrollRef.current.style.cursor = 'grabbing';
-    };
-    const handleMouseMove = (e: React.MouseEvent) => {
-      if (!isDraggingRef.current || !scrollRef.current) return;
-      e.preventDefault();
-      const x = e.pageX - scrollRef.current.offsetLeft;
-      dragDistanceRef.current = Math.abs(x - startXRef.current);
-      scrollRef.current.scrollLeft = scrollStartRef.current - (x - startXRef.current) * 2;
-    };
-    const handleMouseUp = () => {
-      isDraggingRef.current = false;
-      if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
-    };
-
-    if (loading) {
-      return (
-        <div className="relative mb-10 p-6 sm:p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <motion.div
-        className="relative mb-10 p-6 sm:p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-blue-500/10 to-cyan-400/5 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-pink-500/8 to-blue-400/5 rounded-full blur-3xl"></div>
-        </div>
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
-          backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
-          backgroundSize: '24px 24px'
-        }}></div>
-        <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-1 bg-gradient-to-b from-blue-400 via-cyan-400 to-blue-500 rounded-full"></div>
-            <h2 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 leading-relaxed">
-              {title}
-            </h2>
-          </div>
-          <button
-            onClick={onViewAll}
-            className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/25 rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 overflow-hidden relative group"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-            <span className="relative z-10 hidden sm:inline">{t('common.view_all')}</span>
-            <span className="relative z-10 sm:hidden">Ver</span>
-            <ArrowRight className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </button>
-        </div>
-        <div
-          ref={scrollRef}
-          className="relative z-10 overflow-x-auto py-4 pb-2 cursor-grab select-none"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
-        >
-          <div className="flex gap-4">
-            {movies.map((movie, index) => (
-              <motion.div
-                key={movie.id}
-                className="relative rounded-2xl overflow-hidden cursor-pointer group flex-shrink-0 shadow-xl border border-white/10"
-                style={{ width: '160px', height: '240px', willChange: 'transform' }}
-                onClick={() => { if (dragDistanceRef.current > 5) return; handleMovieClick(movie); }}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.3 }}
-                whileHover={{ scale: 1.05, y: -8 }}
-                whileTap={{ scale: 0.97 }}
-              >
-                <div
-                  className="absolute top-2 left-2 bg-blue-500/80 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg border border-blue-400/30"
-                  style={{ zIndex: 30, transform: 'translateZ(0)' }}
-                >
-                  #{index + 1}
-                </div>
-                <OptimizedPoster
-                  src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
-                  alt={movie.title}
-                  className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
-                />
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-[2px] pointer-events-none">
-                  <div className="p-3">
-                    <h3 className="text-white font-bold mb-1.5 line-clamp-2 text-sm drop-shadow-lg">{movie.title}</h3>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <div className="flex items-center bg-blue-500/20 backdrop-blur-md px-2 py-1 rounded-lg border border-blue-400/30">
-                        <Star className="w-3 h-3 fill-blue-400 text-blue-400" />
-                        <span className="ml-1 text-blue-100 font-bold text-xs">{movie.vote_average.toFixed(1)}</span>
-                      </div>
-                      <span className="text-gray-200 text-xs font-semibold bg-white/10 backdrop-blur-sm px-2 py-1 rounded-lg border border-white/10">
-                        {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
 
   if (!session) {
     return (
@@ -691,22 +700,25 @@ const Home = () => {
           title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🔥</span> {t('home.popularNow')}</span>}
           movies={trendingMovies}
           loading={loading.trending}
-          category="trending"
           onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.popularNow'), movies: trendingMovies })}
+          onMovieClick={handleMovieClick}
+          viewAllLabel={t('common.view_all')}
         />
         <MovieCarousel
           title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🎬</span> {t('home.comingSoon')}</span>}
           movies={comingSoonMovies}
           loading={loading.comingSoon}
-          category="coming-soon"
           onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.comingSoon'), movies: comingSoonMovies })}
+          onMovieClick={handleMovieClick}
+          viewAllLabel={t('common.view_all')}
         />
         <MovieCarousel
           title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>⭐</span> {t('home.topRatedGems')}</span>}
           movies={topRatedMovies}
           loading={loading.topRated}
-          category="top-rated"
           onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.topRatedGems'), movies: topRatedMovies })}
+          onMovieClick={handleMovieClick}
+          viewAllLabel={t('common.view_all')}
         />
         {session?.user && (
           <OracleForYouBox
