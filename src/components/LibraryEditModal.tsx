@@ -344,8 +344,8 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
             </div>
           )}
 
-          {/* TV Series Order */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          {/* TV Series Order - only shown in Notes layout */}
+          {ratedLayout === 'notes' && <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
             <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
               {t('library.tvSeriesOrder')}
             </h4>
@@ -398,7 +398,7 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
                 </div>
               </label>
             </div>
-          </div>
+          </div>}
 
           {/* Chroma Box */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-6">

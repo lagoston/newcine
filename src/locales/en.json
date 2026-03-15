@@ -204,7 +204,9 @@
     "ratedLayoutDesc": "Choose how rated titles are displayed in your library",
     "ratedLayoutNotes": "Notes",
     "ratedLayoutOneGrid": "One Grid",
-    "ratedTitle": "Rated"
+    "ratedTitle": "Rated",
+    "ratedMoviesTitle": "Rated Movies",
+    "ratedSeriesTitle": "Rated Series"
   },
   "indications": {
     "indicate": "Indicate",

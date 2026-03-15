@@ -1161,3 +1161,8 @@ img[loading="lazy"] {
   border-color: rgba(40, 40, 40, 0.5) !important;
 }
 
+.chroma-box-blue {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(37, 99, 235, 0.05)) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+

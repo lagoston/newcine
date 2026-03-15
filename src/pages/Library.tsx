@@ -523,22 +523,47 @@ export default function Library() {
             />
           </motion.div>
 
-          {ratedLayout === 'onegrid' ? (
-            <motion.div variants={itemVariants}>
-              <RatingBox
-                title={t('library.ratedTitle')}
-                movies={[...Array(11)].reduce((acc, _, i) => {
-                  const r = 10 - i;
-                  return [...acc, ...(moviesByRating[r] || [])];
-                }, [] as LibraryMovie[])}
-                rating={-1}
-                onRate={handleRate}
-                onDelete={handleDelete}
-                className=""
-                chromaBoxEnabled={chromaBoxEnabled}
-              />
-            </motion.div>
-          ) : (
+          {ratedLayout === 'onegrid' ? (() => {
+            const allRated: LibraryMovie[] = [...Array(11)].reduce((acc: LibraryMovie[], _, i) => {
+              const r = 10 - i;
+              return [...acc, ...(moviesByRating[r] || [])];
+            }, []);
+            const ratedMovies = allRated.filter(m => m.media_type !== 'tv');
+            const ratedSeries = allRated.filter(m => m.media_type === 'tv');
+            return (
+              <>
+                {ratedMovies.length > 0 && (
+                  <motion.div variants={itemVariants}>
+                    <RatingBox
+                      title={t('library.ratedMoviesTitle')}
+                      movies={ratedMovies}
+                      rating={null}
+                      onRate={handleRate}
+                      onDelete={handleDelete}
+                      className=""
+                      chromaBoxEnabled={false}
+                      isOneGrid
+                    />
+                  </motion.div>
+                )}
+                {ratedSeries.length > 0 && (
+                  <motion.div variants={itemVariants}>
+                    <RatingBox
+                      title={t('library.ratedSeriesTitle')}
+                      movies={ratedSeries}
+                      rating={null}
+                      onRate={handleRate}
+                      onDelete={handleDelete}
+                      className=""
+                      chromaBoxEnabled={chromaBoxEnabled}
+                      isOneGrid
+                      isOneGridTv
+                    />
+                  </motion.div>
+                )}
+              </>
+            );
+          })() : (
             [...Array(11)].map((_, i) => {
               const rating = 10 - i;
               return (

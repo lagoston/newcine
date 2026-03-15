@@ -18,14 +18,16 @@ interface RatingBoxProps {
   rating: number | null;
   onRate?: (movieId: number, rating: number | null) => void;
   onDelete?: (movieId: number) => void;
-  onRemoveFromList?: (movieId: number) => void; // New prop for removing from a list
+  onRemoveFromList?: (movieId: number) => void;
   isNotRated?: boolean;
   className?: string;
   isOtherUserProfile?: boolean;
   onAddToLibrary?: () => void;
-  isPersonalList?: boolean; // New prop to identify Personal List context
-  enableDragDrop?: () => void; // New prop for enabling drag & drop
-  chromaBoxEnabled?: boolean; // New prop for chroma box effects
+  isPersonalList?: boolean;
+  enableDragDrop?: () => void;
+  chromaBoxEnabled?: boolean;
+  isOneGrid?: boolean;
+  isOneGridTv?: boolean;
 }
 
 const RatingBox: React.FC<RatingBoxProps> = ({
@@ -39,9 +41,11 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   className,
   isOtherUserProfile = false,
   onAddToLibrary,
-  isPersonalList = false, // Default to false
+  isPersonalList = false,
   enableDragDrop,
   chromaBoxEnabled = false,
+  isOneGrid = false,
+  isOneGridTv = false,
 }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language === 'pt';
@@ -108,6 +112,9 @@ const RatingBox: React.FC<RatingBoxProps> = ({
 
   // Chroma Box Effects
   const getChromaBoxClasses = () => {
+    if (isOneGrid && isOneGridTv && chromaBoxEnabled) {
+      return 'chroma-box-blue';
+    }
     if (!chromaBoxEnabled || rating === null) return '';
 
     if (rating === 10) {
@@ -145,25 +152,31 @@ const RatingBox: React.FC<RatingBoxProps> = ({
       <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-3">
           <div className={`h-12 w-1.5 rounded-full ${
-            hasTvSeries
+            isOneGridTv
+              ? 'bg-gradient-to-b from-blue-400 via-blue-500 to-blue-700'
+              : hasTvSeries
               ? 'bg-gradient-to-b from-purple-500 via-purple-600 to-purple-700'
               : 'bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500'
           }`}></div>
           <div>
             <h3 className={`text-2xl sm:text-3xl font-bold text-transparent bg-clip-text pb-1 leading-relaxed flex items-center ${
-              hasTvSeries
+              isOneGridTv
+                ? 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 dark:from-blue-400 dark:via-blue-300 dark:to-blue-400'
+                : hasTvSeries
                 ? 'bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400'
                 : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400'
             }`}>
-              {rating !== null && (
+              {rating !== null && !isOneGrid && (
                 <Star className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-500 fill-yellow-500 mr-2" />
               )}
               <span>
-                {rating !== null ? rating : title}
+                {isOneGrid ? title : (rating !== null ? rating : title)}
               </span>
             </h3>
             <div className={`mt-1 inline-flex items-center text-xs font-semibold backdrop-blur-sm px-3 py-1 rounded-lg ${
-              hasTvSeries
+              isOneGridTv
+                ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 dark:from-blue-500/30 dark:to-blue-600/30 border border-blue-500/30 text-blue-700 dark:text-blue-300'
+                : hasTvSeries
                 ? 'bg-gradient-to-r from-purple-500/20 to-purple-600/20 dark:from-purple-500/30 dark:to-purple-600/30 border border-purple-500/30 text-purple-700 dark:text-purple-300'
                 : 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300'
             }`}>
@@ -411,10 +424,10 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 </>
               ) : (
                 <>
-                  {rating !== null && onRate && (
+                  {(rating !== null || isOneGrid) && onRate && (
                     <button
                       onClick={() => {
-                        onRate(mobileMenuMovie.id, null);
+                        setRateMenuMovie(mobileMenuMovie);
                         setMobileMenuMovie(null);
                       }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:bg-gray-200 dark:active:bg-gray-600"

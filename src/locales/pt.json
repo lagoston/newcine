@@ -204,7 +204,9 @@
     "ratedLayoutDesc": "Escolha como os títulos avaliados são exibidos na biblioteca",
     "ratedLayoutNotes": "Notas",
     "ratedLayoutOneGrid": "One Grid",
-    "ratedTitle": "Avaliados"
+    "ratedTitle": "Avaliados",
+    "ratedMoviesTitle": "Filmes Avaliados",
+    "ratedSeriesTitle": "Séries Avaliadas"
   },
   "indications": {
     "indicate": "Indicar",
