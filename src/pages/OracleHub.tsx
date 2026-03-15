@@ -498,17 +498,8 @@ export default function OracleHub() {
           </motion.div>
         )}
 
-        <motion.p
-          className="text-gray-500 dark:text-gray-400 text-sm mb-6 text-center italic"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          {t('oracle.choosePath')}
-        </motion.p>
-
         <motion.div
-          className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-10"
+          className="grid md:grid-cols-2 gap-6 mb-10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
