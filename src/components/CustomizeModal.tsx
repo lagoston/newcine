@@ -708,11 +708,14 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           }
         });
 
-        progress['Bloody Mary'] = genreCounts['Horror'] || 0;
-        progress['Punchliner'] = genreCounts['Comedy'] || 0;
-        progress['Star Gazer'] = genreCounts['Science Fiction'] || 0;
-        progress['Cine Cupid'] = genreCounts['Romance'] || 0;
-        progress['Truth Digger'] = genreCounts['Documentary'] || 0;
+        const countGenres = (...keys: string[]) =>
+          keys.reduce((sum, k) => sum + (genreCounts[k] || 0), 0);
+
+        progress['Bloody Mary'] = countGenres('Horror', 'Terror');
+        progress['Punchliner'] = countGenres('Comedy', 'Comédia');
+        progress['Star Gazer'] = countGenres('Science Fiction', 'Ficção científica', 'Sci-Fi & Fantasy');
+        progress['Cine Cupid'] = countGenres('Romance');
+        progress['Truth Digger'] = countGenres('Documentary', 'Documentário');
 
         progress["Director's Cut"] = Math.max(...Object.values(directorCounts), 0);
       }
