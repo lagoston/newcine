@@ -40,6 +40,9 @@ export default function Library() {
   // Library preferences
   const [tvOrder, setTvOrder] = useState<'auto' | 'first' | 'last'>('auto');
   const [chromaBoxEnabled, setChromaBoxEnabled] = useState(true);
+  const [ratedLayout, setRatedLayout] = useState<'notes' | 'onegrid'>(() => {
+    return (localStorage.getItem('libraryRatedLayout') as 'notes' | 'onegrid') || 'notes';
+  });
 
   // Progress tracking states
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -323,6 +326,11 @@ export default function Library() {
     }));
   };
 
+  const handleRatedLayoutChange = (layout: 'notes' | 'onegrid') => {
+    setRatedLayout(layout);
+    localStorage.setItem('libraryRatedLayout', layout);
+  };
+
   const moviesByRating = userMovies.reduce(
     (acc, movie) => {
       const rating = movie.userRating;
@@ -515,23 +523,40 @@ export default function Library() {
             />
           </motion.div>
 
-          {[...Array(11)].map((_, i) => {
-            const rating = 10 - i;
-            return (
-              <motion.div key={rating} variants={itemVariants}>
-                <RatingBox
-                  key={rating}
-                  title={alternateNames[rating] || t('library.rating', { value: rating })}
-                  movies={moviesByRating[rating] || []}
-                  rating={rating}
-                  onRate={handleRate}
-                  onDelete={handleDelete}
-                  className=""
-                  chromaBoxEnabled={chromaBoxEnabled}
-                />
-              </motion.div>
-            );
-          })}
+          {ratedLayout === 'onegrid' ? (
+            <motion.div variants={itemVariants}>
+              <RatingBox
+                title={t('library.ratedTitle')}
+                movies={[...Array(11)].reduce((acc, _, i) => {
+                  const r = 10 - i;
+                  return [...acc, ...(moviesByRating[r] || [])];
+                }, [] as LibraryMovie[])}
+                rating={-1}
+                onRate={handleRate}
+                onDelete={handleDelete}
+                className=""
+                chromaBoxEnabled={chromaBoxEnabled}
+              />
+            </motion.div>
+          ) : (
+            [...Array(11)].map((_, i) => {
+              const rating = 10 - i;
+              return (
+                <motion.div key={rating} variants={itemVariants}>
+                  <RatingBox
+                    key={rating}
+                    title={alternateNames[rating] || t('library.rating', { value: rating })}
+                    movies={moviesByRating[rating] || []}
+                    rating={rating}
+                    onRate={handleRate}
+                    onDelete={handleDelete}
+                    className=""
+                    chromaBoxEnabled={chromaBoxEnabled}
+                  />
+                </motion.div>
+              );
+            })
+          )}
         </motion.div>
 
         <LibraryEditModal
@@ -544,6 +569,8 @@ export default function Library() {
           rating={selectedRating}
           alternateNames={alternateNames}
           onAlternateNameChange={handleAlternateNameChange}
+          ratedLayout={ratedLayout}
+          onRatedLayoutChange={handleRatedLayoutChange}
         />
 
         {isReviewsModalOpen && session?.user?.id && (

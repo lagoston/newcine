@@ -199,7 +199,12 @@
     "enableChromaBox": "Ativar Chroma Box",
     "chromaBoxLegend": "10: Dourado | 9-7: Verde | 6-4: Amarelo | 3-1: Vermelho | 0: Glitch",
     "exportLibrary": "Exportar Biblioteca",
-    "noMovies": "Você ainda não tem filmes ou séries na sua biblioteca"
+    "noMovies": "Você ainda não tem filmes ou séries na sua biblioteca",
+    "ratedLayoutTitle": "Organização dos Avaliados",
+    "ratedLayoutDesc": "Escolha como os títulos avaliados são exibidos na biblioteca",
+    "ratedLayoutNotes": "Notas",
+    "ratedLayoutOneGrid": "One Grid",
+    "ratedTitle": "Avaliados"
   },
   "indications": {
     "indicate": "Indicar",

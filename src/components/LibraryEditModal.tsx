@@ -14,6 +14,8 @@ interface LibraryEditModalProps {
   rating: number | null;
   alternateNames: Record<string, string>;
   onAlternateNameChange: (rating: number | null, name: string) => void;
+  ratedLayout: 'notes' | 'onegrid';
+  onRatedLayoutChange: (layout: 'notes' | 'onegrid') => void;
 }
 
 const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
@@ -23,6 +25,8 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
   rating,
   alternateNames,
   onAlternateNameChange,
+  ratedLayout,
+  onRatedLayoutChange,
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [alternateName, setAlternateName] = useState(alternateNames[rating?.toString() ?? 'unrated'] || '');
@@ -271,9 +275,49 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
           </button>
         </div>
         <div className="p-4 space-y-6 overflow-y-auto flex-1">
+          {/* Rated Layout */}
+          <div>
+            <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
+              {t('library.ratedLayoutTitle')}
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              {t('library.ratedLayoutDesc')}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => onRatedLayoutChange('notes')}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${
+                  ratedLayout === 'notes'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                    : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'
+                }`}
+              >
+                <div className="flex flex-col gap-1 w-full">
+                  <div className="h-2 rounded bg-current opacity-80 w-full"></div>
+                  <div className="h-2 rounded bg-current opacity-60 w-3/4"></div>
+                  <div className="h-2 rounded bg-current opacity-40 w-1/2"></div>
+                </div>
+                <span className="text-xs font-semibold">{t('library.ratedLayoutNotes')}</span>
+              </button>
+              <button
+                onClick={() => onRatedLayoutChange('onegrid')}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${
+                  ratedLayout === 'onegrid'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                    : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'
+                }`}
+              >
+                <div className="flex flex-col gap-1 w-full">
+                  <div className="h-6 rounded bg-current opacity-70 w-full"></div>
+                </div>
+                <span className="text-xs font-semibold">{t('library.ratedLayoutOneGrid')}</span>
+              </button>
+            </div>
+          </div>
+
           {/* Only show rename for rated boxes, not watchlist */}
           {rating !== null && (
-            <div>
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
               <label
                 htmlFor="alternateName"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -301,7 +345,7 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
           )}
 
           {/* TV Series Order */}
-          <div className={rating !== null ? 'border-t border-gray-200 dark:border-gray-700 pt-6' : ''}>
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
             <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
               {t('library.tvSeriesOrder')}
             </h4>
