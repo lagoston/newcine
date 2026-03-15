@@ -62,6 +62,7 @@ interface FavoriteDecade {
   count: number;
   label: string;
   percentage: number;
+  allDecades?: DecadeCount;
 }
 
 interface ActorCount {
@@ -344,7 +345,8 @@ export default function UserProfile() {
           decade: topDecade,
           count: topCount,
           label,
-          percentage: percentage
+          percentage: percentage,
+          allDecades: decadeCounts
         });
       }
 
@@ -863,18 +865,55 @@ export default function UserProfile() {
                         {favoriteDecade.label}
                       </div>
 
-                      <div className="h-3 bg-gray-200/50 dark:bg-gray-700/50 rounded-full overflow-hidden">
-                        <motion.div
-                          className={`h-full rounded-full ${
-                            favoriteDecade.label === 'Grandpa Cinema' ? 'bg-amber-500' :
-                            favoriteDecade.label === 'Nostalgic' ? 'bg-indigo-500' :
-                            'bg-emerald-500'
-                          }`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(100, favoriteDecade.percentage)}%` }}
-                          transition={{ duration: 0.5 }}
-                        />
-                      </div>
+                      {(() => {
+                        const allDecades = favoriteDecade.allDecades || {};
+                        const topDecadeNum = parseInt(favoriteDecade.decade);
+                        const segments = [1920,1930,1940,1950,1960,1970,1980,1990,2000,2010,2020];
+                        const total = Object.values(allDecades).reduce((a, b) => a + (b as number), 0) || 1;
+                        const accentColor =
+                          favoriteDecade.label === 'Grandpa Cinema' ? { bg: 'bg-amber-500', glow: 'rgba(245,158,11,0.5)' } :
+                          favoriteDecade.label === 'Nostalgic' ? { bg: 'bg-blue-500', glow: 'rgba(59,130,246,0.5)' } :
+                          { bg: 'bg-emerald-500', glow: 'rgba(16,185,129,0.5)' };
+                        return (
+                          <div className="space-y-1.5">
+                            <div className="flex gap-0.5 h-4 rounded-lg overflow-hidden">
+                              {segments.map((dec) => {
+                                const key = `${dec}s`;
+                                const cnt = (allDecades[key] as number) || 0;
+                                const pct = (cnt / total) * 100;
+                                const isFav = dec === topDecadeNum;
+                                return (
+                                  <motion.div
+                                    key={dec}
+                                    title={`${key}: ${cnt} films`}
+                                    className={`h-full transition-all duration-300 ${isFav ? accentColor.bg : 'bg-gray-300/60 dark:bg-gray-600/60'}`}
+                                    initial={{ opacity: 0, scaleY: 0.5 }}
+                                    animate={{ opacity: 1, scaleY: 1 }}
+                                    transition={{ duration: 0.4, delay: 0.05 * segments.indexOf(dec) }}
+                                    style={{
+                                      width: `${Math.max(pct, cnt > 0 ? 2 : 0.5)}%`,
+                                      boxShadow: isFav ? `0 0 8px ${accentColor.glow}` : undefined,
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
+                            <div className="flex gap-0.5">
+                              {segments.map((dec) => {
+                                const isFav = dec === topDecadeNum;
+                                return (
+                                  <div
+                                    key={dec}
+                                    className={`flex-1 text-center text-[9px] font-medium truncate ${isFav ? (favoriteDecade.label === 'Grandpa Cinema' ? 'text-amber-500' : favoriteDecade.label === 'Nostalgic' ? 'text-blue-500' : 'text-emerald-500') : 'text-gray-400 dark:text-gray-600'}`}
+                                  >
+                                    {`'${String(dec).slice(2)}`}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
