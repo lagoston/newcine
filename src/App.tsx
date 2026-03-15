@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './lib/auth';
 import { ThemeProvider } from './lib/theme';
 import InstallPrompt from './components/InstallPrompt';
+import GlassLoader from './components/GlassLoader';
 import { registerSW } from 'virtual:pwa-register';
 import './i18n';
 
@@ -25,11 +26,6 @@ const Premium = lazy(() => import('./pages/Premium'));
 const PremiumSuccess = lazy(() => import('./pages/PremiumSuccess'));
 const CategoryMovies = lazy(() => import('./pages/CategoryMovies'));
 
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-  </div>
-);
 
 function App() {
   useEffect(() => {
@@ -52,7 +48,7 @@ function App() {
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pt-[calc(env(safe-area-inset-top)+3.5rem)]">
             <Navbar />
             <main>
-              <Suspense fallback={<LoadingFallback />}>
+              <Suspense fallback={<GlassLoader fullPage size="lg" />}>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
