@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, ListPlus, Loader2, Film, Eye } from 'lucide-react';
+import { X, ListPlus, Film, Eye } from 'lucide-react';
+import GlassLoader from './GlassLoader';
 import { supabase } from '../lib/supabase';
 import { Movie, getMovieDetails } from '../lib/tmdb';
 import { toast } from 'sonner';
@@ -131,7 +132,7 @@ export default function UserListsModal({ isOpen, onClose, userId }: UserListsMod
         <div className="flex-1 overflow-y-auto p-6">
           {loading ? (
             <div className="flex justify-center items-center h-40">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              <GlassLoader size="md" />
             </div>
           ) : error ? (
             <div className="text-center py-12 text-red-500">

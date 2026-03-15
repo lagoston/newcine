@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Search, Loader2, Star } from 'lucide-react';
+import GlassLoader from './GlassLoader';
 import { Movie } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -302,7 +303,7 @@ export default function EditListModal({
 
               {loading ? (
                 <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                  <GlassLoader size="md" />
                 </div>
               ) : (
                 <div className="max-h-[400px] overflow-y-auto">

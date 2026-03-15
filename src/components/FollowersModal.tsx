@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Loader2, Crown } from 'lucide-react';
+import GlassLoader from './GlassLoader';
 import { supabase, getProfile } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useNavigate } from 'react-router-dom';
@@ -246,8 +247,8 @@ export default function FollowersModal({
             )}
 
             {loading && (
-              <div className="p-4 text-center">
-                <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+              <div className="p-4 flex justify-center">
+                <GlassLoader size="sm" />
               </div>
             )}
 

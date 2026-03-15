@@ -107,7 +107,7 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder={t('nav.searchMovies')}
-          className={`${fullWidth ? 'w-full' : 'w-full'} px-3 py-2 pl-9 pr-8 text-sm bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-white placeholder-gray-400 transition-all`}
+          className={`${fullWidth ? 'w-full' : 'w-full'} px-3 py-2 pl-9 pr-8 text-sm bg-white/5 border border-white/10 rounded-xl outline-none ring-0 ring-transparent focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-white placeholder-gray-400 transition-colors duration-150`}
           autoComplete="off"
         />
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />

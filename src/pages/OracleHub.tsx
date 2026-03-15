@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, Wand2, BrainCircuit, Loader2, Scroll, Info, X, RefreshCw, Sparkles } from 'lucide-react';
+import GlassLoader from '../components/GlassLoader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
@@ -241,14 +242,7 @@ export default function OracleHub() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 flex items-center justify-center">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-500 dark:text-blue-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">{isPt ? 'Carregando Oráculo...' : 'Loading Oracle...'}</p>
-        </motion.div>
-      </div>
-    );
+    return <GlassLoader fullPage size="lg" label={isPt ? 'Carregando Oráculo...' : 'Loading Oracle...'} />;
   }
 
   if (!userPersonality?.subcategoria_id) {

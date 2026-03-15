@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { Loader2 } from 'lucide-react';
+import GlassLoader from './GlassLoader';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -18,11 +18,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   // Only show loading during initial auth check
   if (loading) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    );
+    return <GlassLoader fullPage size="md" />;
   }
 
   // Redirect to auth if not authenticated

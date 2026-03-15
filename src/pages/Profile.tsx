@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, Award, TrendingDown, X, Loader2, Settings, ChevronDown } from 'lucide-react';
+import GlassLoader from '../components/GlassLoader';
 import { supabase, getProfile } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { getMovieDetailsFromDB } from '../lib/tmdb';
@@ -742,20 +743,7 @@ export default function Profile() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] flex justify-center items-center bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl" />
-          <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl" />
-        </div>
-        <div className="p-8 rounded-2xl bg-white/60 dark:bg-gray-800/60 shadow-2xl border border-white/60 dark:border-gray-700/60 backdrop-blur-xl relative z-10">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto" />
-          <p className="mt-4 text-gray-600 dark:text-gray-300 font-medium text-center">
-            {t('common.loading')}
-          </p>
-        </div>
-      </div>
-    );
+    return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
   }
 
   if (!profileExists) {

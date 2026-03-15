@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Search, Send, Loader2, Film } from 'lucide-react';
+import GlassLoader from './GlassLoader';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -203,8 +204,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
 
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-12">
-                    <Loader2 className="w-10 h-10 text-orange-500 animate-spin mb-3" />
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('indications.selectFollower')}...</p>
+                    <GlassLoader size="md" label={`${t('indications.selectFollower')}...`} />
                   </div>
                 ) : filteredFollowers.length === 0 ? (
                   <div className="text-center py-12">

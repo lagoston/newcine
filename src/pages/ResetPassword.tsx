@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Lock } from 'lucide-react';
+import GlassLoader from '../components/GlassLoader';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -118,16 +119,7 @@ export default function ResetPassword() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
-          <h2 className="text-xl font-medium text-gray-900 dark:text-white">
-            Validating your reset link...
-          </h2>
-        </div>
-      </div>
-    );
+    return <GlassLoader fullPage size="lg" label="Validating your reset link..." />;
   }
 
   return (

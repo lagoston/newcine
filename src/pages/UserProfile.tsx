@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, Archive as ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus, ChevronDown } from 'lucide-react';
+import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, Archive as ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus, ChevronDown, ArrowLeft } from 'lucide-react';
+import GlassLoader from '../components/GlassLoader';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
@@ -526,21 +527,7 @@ export default function UserProfile() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center relative z-10"
-        >
-          <Loader2 className="w-12 h-12 text-blue-500 dark:text-blue-400 animate-spin mx-auto mb-4" />
-        </motion.div>
-      </div>
-    );
+    return <GlassLoader fullPage size="lg" />;
   }
 
   if (!profile) {
@@ -590,6 +577,17 @@ export default function UserProfile() {
       }} />
 
       <div className="max-w-5xl mx-auto relative z-10 space-y-6">
+        <motion.button
+          onClick={() => navigate(-1)}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 border border-white/60 dark:border-gray-700/60 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm font-medium backdrop-blur-sm transition-all duration-200 shadow-sm"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>{t('common.back')}</span>
+        </motion.button>
+
         <motion.div
           className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden ${getBannerClass(profile?.banner, profile.plan_type === 'premium')}`}
           initial={{ opacity: 0, y: 20 }}

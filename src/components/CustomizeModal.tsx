@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Image as ImageIcon, Tag, Layout, Crown, Star, BrainCircuit, Users, Lock, Loader2, Check, Palette, User, Film } from 'lucide-react';
+import GlassLoader from './GlassLoader';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
@@ -1494,7 +1495,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     <div className="bg-gray-50/80 dark:bg-gray-700/30 rounded-2xl p-6 backdrop-blur-sm">
                       {loading ? (
                         <div className="flex items-center justify-center py-12">
-                          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                          <GlassLoader size="md" />
                         </div>
                       ) : (
                         renderTagContent(activeTagCategory)

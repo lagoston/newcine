@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, MessageCircle, Loader2, Calendar, Trash2, Film, User } from 'lucide-react';
+import GlassLoader from './GlassLoader';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -175,7 +176,7 @@ export default function WhispersModal({ isOpen, onClose, userId, onMarkAsRead }:
             <div className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto">
               {loading ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+                  <GlassLoader size="md" />
                 </div>
               ) : recommendations.length === 0 ? (
                 <div className="text-center py-8">

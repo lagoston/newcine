@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, User, Users, Loader2, Crown, ArrowRight, Sparkles, Film } from 'lucide-react';
+import GlassLoader from '../components/GlassLoader';
 import { supabase } from '../lib/supabase';
 import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
@@ -255,25 +256,7 @@ export default function Community() {
   };
 
   if (loading) {
-    return (
-      <motion.div
-        className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
-        <div className="relative z-10 p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto" />
-          <p className="mt-4 text-gray-600 dark:text-gray-300 font-medium text-center">
-            {t('common.loading')}
-          </p>
-        </div>
-      </motion.div>
-    );
+    return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
   }
 
   return (

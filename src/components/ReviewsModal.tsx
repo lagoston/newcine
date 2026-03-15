@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Star, AlertTriangle, Eye, EyeOff, Loader2, Pencil, Trash2, ArrowUpDown } from 'lucide-react';
+import GlassLoader from './GlassLoader';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Movie } from '../lib/tmdb';
@@ -440,7 +441,7 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              <GlassLoader size="md" />
             </div>
           ) : reviews.length > 0 ? (
             <div>

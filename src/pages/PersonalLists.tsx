@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ListPlus, Loader2, Trash2, Film, ArrowLeft, Edit } from 'lucide-react';
+import { ListPlus, Loader2, Trash2, Film, ArrowLeft, FileEdit as Edit } from 'lucide-react';
+import GlassLoader from '../components/GlassLoader';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -339,11 +340,7 @@ export default function PersonalLists() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    );
+    return <GlassLoader fullPage size="lg" />;
   }
 
   return (

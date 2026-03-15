@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ListPlus, Loader2, Check, X, PlusSquare as SquarePlus } from 'lucide-react';
+import GlassLoader from './GlassLoader';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { toast } from 'sonner';
@@ -149,7 +150,7 @@ const AddToListMenu: React.FC<AddToListMenuProps> = ({
         <div className="max-h-60 overflow-y-auto">
           {loading ? (
             <div className="py-8 flex justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+              <GlassLoader size="sm" />
             </div>
           ) : lists.length === 0 ? (
             <div className="p-4 text-center">
