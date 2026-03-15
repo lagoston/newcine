@@ -1271,43 +1271,56 @@ export default function Profile() {
 
                       {(() => {
                         const allDecades = favoriteDecade.allDecades || {};
-                        const topDecadeNum = parseInt(favoriteDecade.decade);
-                        const segments = [1920,1930,1940,1950,1960,1970,1980,1990,2000,2010,2020];
-                        const total = Object.values(allDecades).reduce((a, b) => a + (b as number), 0) || 1;
-                        const accentColor =
-                          favoriteDecade.label === 'Grandpa Cinema' ? { bg: 'bg-amber-500', glow: 'rgba(245,158,11,0.5)' } :
-                          favoriteDecade.label === 'Nostalgic' ? { bg: 'bg-blue-500', glow: 'rgba(59,130,246,0.5)' } :
-                          { bg: 'bg-emerald-500', glow: 'rgba(16,185,129,0.5)' };
+                        const sorted = Object.entries(allDecades)
+                          .map(([k, v]) => ({ decade: k, count: v as number }))
+                          .filter(d => d.count > 0)
+                          .sort((a, b) => b.count - a.count);
+                        const total = sorted.reduce((a, b) => a + b.count, 0) || 1;
+                        const top3 = sorted.slice(0, 3);
+                        const othersCount = sorted.slice(3).reduce((a, b) => a + b.count, 0);
+                        const accentBg =
+                          favoriteDecade.label === 'Grandpa Cinema' ? 'bg-amber-500' :
+                          favoriteDecade.label === 'Nostalgic' ? 'bg-blue-500' : 'bg-emerald-500';
+                        const accentText =
+                          favoriteDecade.label === 'Grandpa Cinema' ? 'text-amber-500' :
+                          favoriteDecade.label === 'Nostalgic' ? 'text-blue-500' : 'text-emerald-500';
+                        const accentGlow =
+                          favoriteDecade.label === 'Grandpa Cinema' ? 'rgba(245,158,11,0.5)' :
+                          favoriteDecade.label === 'Nostalgic' ? 'rgba(59,130,246,0.5)' : 'rgba(16,185,129,0.5)';
+                        const segs = [
+                          ...top3.map((d, i) => ({ key: d.decade, count: d.count, rank: i })),
+                          ...(othersCount > 0 ? [{ key: 'outros', count: othersCount, rank: 3 }] : [])
+                        ];
                         return (
                           <div className="space-y-1.5">
-                            <div className="flex gap-0.5 h-4 rounded-lg overflow-hidden">
-                              {segments.map((dec) => {
-                                const key = `${dec}s`;
-                                const cnt = (allDecades[key] as number) || 0;
-                                const pct = (cnt / total) * 100;
-                                const isFav = dec === topDecadeNum;
+                            <div className="flex gap-1 h-4 rounded-lg overflow-hidden">
+                              {segs.map((seg) => {
+                                const pct = (seg.count / total) * 100;
+                                const isFirst = seg.rank === 0;
                                 return (
                                   <div
-                                    key={dec}
-                                    title={`${key}: ${cnt} films`}
-                                    className={`h-full transition-all duration-300 ${isFav ? accentColor.bg : 'bg-gray-300/60 dark:bg-gray-600/60'}`}
+                                    key={seg.key}
+                                    title={`${seg.key}: ${seg.count} filmes`}
+                                    className={`h-full rounded-sm transition-all duration-300 ${isFirst ? accentBg : seg.rank === 3 ? 'bg-gray-200/60 dark:bg-gray-700/50' : 'bg-gray-300/70 dark:bg-gray-600/60'}`}
                                     style={{
-                                      width: `${Math.max(pct, cnt > 0 ? 2 : 0.5)}%`,
-                                      boxShadow: isFav ? `0 0 8px ${accentColor.glow}` : undefined,
+                                      width: `${pct}%`,
+                                      boxShadow: isFirst ? `0 0 8px ${accentGlow}` : undefined,
                                     }}
                                   />
                                 );
                               })}
                             </div>
-                            <div className="flex gap-0.5">
-                              {segments.map((dec) => {
-                                const isFav = dec === topDecadeNum;
+                            <div className="flex gap-1">
+                              {segs.map((seg) => {
+                                const pct = (seg.count / total) * 100;
+                                const isFirst = seg.rank === 0;
                                 return (
                                   <div
-                                    key={dec}
-                                    className={`flex-1 text-center text-[9px] font-medium truncate ${isFav ? (favoriteDecade.label === 'Grandpa Cinema' ? 'text-amber-500' : favoriteDecade.label === 'Nostalgic' ? 'text-blue-500' : 'text-emerald-500') : 'text-gray-400 dark:text-gray-600'}`}
+                                    key={seg.key}
+                                    className={`text-center text-[9px] font-semibold truncate ${isFirst ? accentText : 'text-gray-400 dark:text-gray-500'}`}
+                                    style={{ width: `${pct}%` }}
                                   >
-                                    {`'${String(dec).slice(2)}`}
+                                    {seg.key}
                                   </div>
                                 );
                               })}
@@ -1410,6 +1423,138 @@ export default function Profile() {
                   )}
                 </div>
               </div>
+
+              {(favoriteGenres.length > 0 || favoriteDecade || topDirectors.length > 0) && (() => {
+                const avgRating = Object.entries(ratingDistribution).reduce((sum, [r, c]) => sum + Number(r) * c, 0) /
+                  Math.max(Object.values(ratingDistribution).reduce((a, b) => a + b, 0), 1);
+                const topGenre = favoriteGenres[0]?.name || '';
+                const era = favoriteDecade?.label || '';
+                const topDir = topDirectors[0]?.name || '';
+
+                const archetypes: Array<{ cond: boolean; title: string; desc: string; color: string; accent: string; dot: string }> = [
+                  {
+                    cond: topGenre === 'Drama' && avgRating >= 7,
+                    title: 'O Contemplativo',
+                    desc: 'Você busca profundidade emocional e narrativas que ficam na memória. Drama é o seu universo natural — histórias de gente real, sentimentos reais.',
+                    color: 'from-blue-500/10 to-sky-500/5',
+                    accent: 'text-blue-500',
+                    dot: 'bg-blue-500'
+                  },
+                  {
+                    cond: topGenre === 'Action' || topGenre === 'Ação',
+                    title: 'O Adrenalina',
+                    desc: 'Cinema para você é adrenalina pura. Você aprecia ritmo, tensão e sequências que prendem a respiração do começo ao fim.',
+                    color: 'from-red-500/10 to-orange-500/5',
+                    accent: 'text-red-500',
+                    dot: 'bg-red-500'
+                  },
+                  {
+                    cond: topGenre === 'Horror' || topGenre === 'Terror',
+                    title: 'O Corajoso',
+                    desc: 'Você não foge do desconforto — vai em busca dele. O horror é a sua tela, onde o medo se transforma em fascinação.',
+                    color: 'from-gray-700/20 to-gray-800/10',
+                    accent: 'text-gray-400',
+                    dot: 'bg-gray-500'
+                  },
+                  {
+                    cond: topGenre === 'Comedy' || topGenre === 'Comédia',
+                    title: 'O Levado',
+                    desc: 'Para você, cinema é também alegria. Você valoriza o humor inteligente e a leveza que bons filmes podem oferecer.',
+                    color: 'from-yellow-400/10 to-amber-400/5',
+                    accent: 'text-amber-500',
+                    dot: 'bg-amber-500'
+                  },
+                  {
+                    cond: topGenre === 'Science Fiction' || topGenre === 'Ficção científica',
+                    title: 'O Visionário',
+                    desc: 'Você pensa além do presente. Ficção científica é o seu playground de ideias — mundos impossíveis que revelam verdades sobre o nosso.',
+                    color: 'from-cyan-500/10 to-teal-500/5',
+                    accent: 'text-cyan-500',
+                    dot: 'bg-cyan-500'
+                  },
+                  {
+                    cond: era === 'Grandpa Cinema',
+                    title: 'O Arqueólogo',
+                    desc: 'Você mergulha no passado do cinema com reverência. Clássicos são sua especialidade — você conhece o cinema antes de todos os outros.',
+                    color: 'from-amber-500/10 to-yellow-500/5',
+                    accent: 'text-amber-600',
+                    dot: 'bg-amber-500'
+                  },
+                  {
+                    cond: avgRating <= 5.5 && ratedMoviesCount >= 20,
+                    title: 'O Crítico Rigoroso',
+                    desc: 'Você tem padrões elevados e não distribui notas altas facilmente. Cada 7 que você dá vale por três avaliações de outro espectador.',
+                    color: 'from-rose-500/10 to-pink-500/5',
+                    accent: 'text-rose-500',
+                    dot: 'bg-rose-500'
+                  },
+                  {
+                    cond: avgRating >= 7.5 && ratedMoviesCount >= 20,
+                    title: 'O Apaixonado',
+                    desc: 'Você assiste filmes com o coração aberto. Sua generosidade nas notas reflete um amor genuíno pela sétima arte.',
+                    color: 'from-pink-500/10 to-rose-500/5',
+                    accent: 'text-pink-500',
+                    dot: 'bg-pink-500'
+                  },
+                  {
+                    cond: topGenre === 'Thriller',
+                    title: 'O Tensionado',
+                    desc: 'Você vive pelo suspense. Cada reviravolta, cada pista — sua mente está sempre um passo à frente tentando desvendar o próximo ato.',
+                    color: 'from-slate-500/10 to-gray-500/5',
+                    accent: 'text-slate-500',
+                    dot: 'bg-slate-500'
+                  },
+                  {
+                    cond: topGenre === 'Animation' || topGenre === 'Animação',
+                    title: 'O Eterno Jovem',
+                    desc: 'Você sabe que histórias profundas não precisam de atores reais. Animação é arte, emoção e narrativa em sua forma mais pura.',
+                    color: 'from-emerald-500/10 to-green-500/5',
+                    accent: 'text-emerald-500',
+                    dot: 'bg-emerald-500'
+                  },
+                ];
+
+                const matched = archetypes.find(a => a.cond) || {
+                  title: 'O Explorador',
+                  desc: 'Você não se prende a um único gênero ou era. Cinema para você é um universo a ser explorado sem barreiras — curioso, aberto e eclético.',
+                  color: 'from-teal-500/10 to-emerald-500/5',
+                  accent: 'text-teal-500',
+                  dot: 'bg-teal-500'
+                };
+
+                const traits: Array<{ label: string; value: string }> = [];
+                if (topGenre) traits.push({ label: 'Gênero dominante', value: topGenre });
+                if (era) traits.push({ label: 'Era preferida', value: era });
+                if (topDir) traits.push({ label: 'Diretor favorito', value: topDir });
+                if (ratedMoviesCount > 0) traits.push({ label: 'Filmes avaliados', value: String(ratedMoviesCount) });
+                traits.push({ label: 'Nota média', value: avgRating > 0 ? avgRating.toFixed(1) : '—' });
+
+                return (
+                  <div className={`relative rounded-2xl bg-gradient-to-br ${matched.color} bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-6 overflow-hidden`}>
+                    <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-5 blur-3xl bg-current pointer-events-none" />
+                    <div className="flex items-start justify-between mb-5">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">Essencia Cinematografica</p>
+                        <h2 className={`text-2xl font-bold ${matched.accent}`}>{matched.title}</h2>
+                      </div>
+                      <div className={`w-10 h-10 rounded-xl ${matched.dot} opacity-20 flex items-center justify-center`}>
+                        <Film className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-6">{matched.desc}</p>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                      {traits.map((trait) => (
+                        <div key={trait.label} className="bg-white/50 dark:bg-gray-700/40 rounded-xl px-3 py-2.5 text-center">
+                          <div className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">{trait.label}</div>
+                          <div className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">{trait.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </motion.div>
           )}
         </AnimatePresence>
