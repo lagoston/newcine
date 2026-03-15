@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, X } from 'lucide-react';
+import { Star, X, Bookmark } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -7,7 +7,7 @@ interface RateMenuSheetProps {
   movieTitle: string;
   isOpen: boolean;
   onClose: () => void;
-  onRate: (rating: number) => Promise<void>;
+  onRate: (rating: number | null) => Promise<void>;
 }
 
 const ratingColors: Record<number, string> = {
@@ -27,7 +27,7 @@ const ratingColors: Record<number, string> = {
 const RateMenuSheet: React.FC<RateMenuSheetProps> = ({ movieTitle, isOpen, onClose, onRate }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language === 'pt';
-  const [loading, setLoading] = useState<number | null>(null);
+  const [loading, setLoading] = useState<number | 'watchlist' | null>(null);
 
   if (!isOpen) return null;
 
@@ -40,6 +40,20 @@ const RateMenuSheet: React.FC<RateMenuSheetProps> = ({ movieTitle, isOpen, onClo
     } catch (err) {
       console.error('Error rating movie:', err);
       toast.error(isPt ? 'Erro ao classificar' : 'Error rating');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleMoveToWatchlist = async () => {
+    if (loading !== null) return;
+    setLoading('watchlist');
+    try {
+      await onRate(null);
+      onClose();
+    } catch (err) {
+      console.error('Error moving to watchlist:', err);
+      toast.error(isPt ? 'Erro ao mover para Watchlist' : 'Error moving to watchlist');
     } finally {
       setLoading(null);
     }
@@ -88,6 +102,15 @@ const RateMenuSheet: React.FC<RateMenuSheetProps> = ({ movieTitle, isOpen, onClo
               ))}
             </div>
           </div>
+
+          <button
+            onClick={handleMoveToWatchlist}
+            disabled={loading !== null}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-3 mb-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-medium rounded-xl border border-blue-200 dark:border-blue-700/50 transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed ${loading === 'watchlist' ? 'animate-pulse' : ''}`}
+          >
+            <Bookmark className="w-4 h-4" />
+            {isPt ? 'Mover para Watchlist' : 'Move to Watchlist'}
+          </button>
 
           <button
             onClick={onClose}
