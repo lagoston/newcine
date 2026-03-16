@@ -1,17 +1,14 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
-const TMDB_API_KEY = '15da7a1d15ba5e2490acbad2f7394947';
+const TMDB_API_KEY = Deno.env.get('TMDB_API_KEY') || '';
 const BASE_URL = 'https://api.themoviedb.org/3';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
 Deno.serve(async (req: Request) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
       headers: corsHeaders,
@@ -21,7 +18,7 @@ Deno.serve(async (req: Request) => {
   try {
     const url = new URL(req.url);
     const endpoint = url.searchParams.get('endpoint');
-    
+
     if (!endpoint) {
       return new Response(
         JSON.stringify({ error: 'Missing endpoint parameter' }),
@@ -32,16 +29,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Build TMDB URL
     const tmdbUrl = `${BASE_URL}${endpoint}${endpoint.includes('?') ? '&' : '?'}api_key=${TMDB_API_KEY}`;
 
-    console.log('🎬 TMDB Proxy request:', endpoint);
-
-    // Fetch from TMDB
     const tmdbResponse = await fetch(tmdbUrl);
 
     if (!tmdbResponse.ok) {
-      console.error('❌ TMDB API error:', tmdbResponse.status, tmdbResponse.statusText);
       return new Response(
         JSON.stringify({ error: 'TMDB API error', status: tmdbResponse.status }),
         {
@@ -61,7 +53,6 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
-    console.error('❌ Proxy error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
       {

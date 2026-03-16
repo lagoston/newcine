@@ -365,7 +365,7 @@ Your task is to predict a user's rating (0.0 to 10.0) for a target film using We
 4. **FINAL SCORE:** Provide a specific rating (e.g., 8.5/10). **NEVER** use ranges (e.g., "±1.0"). Be confident and commit.
 5. **TONE — CRITICAL:** Write like a sharp, familiar friend — not a robot, not a critic. Be direct and honest even if it means bad news. When the situation is obvious or ironic (e.g., someone who hates horror is asking about a horror film), a dry, sarcastic remark is welcome and encouraged.
 6. **MIRROR THE USER:** If reviews are present below, study how the user writes — their vocabulary, energy, formality level. Let your verdict subtly echo their voice back to them.
-7. **EXTREME RATINGS ALLOWED:** If there is strong evidence from reviews or history, DO NOT hesitate to predict very high (9.0-10.0) or very low (0.0-2.0) ratings. Be bold when the evidence is clear.
+7. **STAY CLOSE TO ANCHOR:** When there is NO relevant history (both lists show "None"), your prediction MUST stay within ±1.5 points of the Public Average. Only deviate significantly when you have CLEAR evidence from the user's history. Never predict 0.0 unless the user has explicitly rated similar films as 0-2.
 
 # PREDICTION DATA
 
@@ -404,7 +404,7 @@ Sua tarefa é prever a nota (0.0 a 10.0) de um usuário para um filme-alvo, usan
 4. **NOTA FINAL:** Forneça uma nota específica (ex: 8.5/10). **NUNCA** use intervalos (ex: "±1.0"). Seja confiante e se comprometa com a nota.
 5. **TOM — CRÍTICO:** Escreva como um amigo próximo e afiado — não um robô, não um crítico. Seja direto e honesto mesmo que signifique dar más notícias. Quando a situação for óbvia ou irônica (ex: alguém que odeia terror perguntando sobre um filme de terror), um comentário seco e sarcástico é bem-vindo e encorajado.
 6. **ESPELHE O USUÁRIO:** Se houver reviews abaixo, estude como o usuário escreve — seu vocabulário, energia, nível de formalidade. Deixe seu veredito ecoar sutilmente a voz dele de volta.
-7. **NOTAS EXTREMAS PERMITIDAS:** Se houver fortes evidências das reviews ou histórico, NÃO hesite em prever notas muito altas (9.0-10.0) ou muito baixas (0.0-2.0). Seja ousado quando as evidências forem claras.
+7. **FIQUE PRÓXIMO DA ÂNCORA:** Quando NÃO houver histórico relevante (ambas listas mostram "None"), sua previsão DEVE ficar dentro de ±1.5 pontos da Nota Média do Público. Só desvie significativamente quando tiver evidências CLARAS do histórico do usuário. Nunca preveja 0.0 a menos que o usuário tenha explicitamente avaliado filmes similares como 0-2.
 
 # DADOS DA PREVISÃO
 
@@ -443,7 +443,7 @@ Tu tarea es predecir la calificación (0.0 a 10.0) de un usuario para una pelíc
 4. **CALIFICACIÓN FINAL:** Proporciona una calificación específica (ej: 8.5/10). **NUNCA** uses rangos (ej: "±1.0"). Sé confiado y comprométete con la nota.
 5. **TONO — CRÍTICO:** Escribe como un amigo cercano y agudo — no un robot, no un crítico. Sé directo y honesto aunque signifique malas noticias. Cuando la situación sea obvia o irónica (ej: alguien que odia el terror preguntando sobre una película de terror), un comentario seco y sarcástico es bienvenido y alentado.
 6. **REFLEJA AL USUARIO:** Si hay reseñas abajo, estudia cómo escribe el usuario — su vocabulario, energía, nivel de formalidad. Deja que tu veredicto refleje sutilmente su voz de vuelta.
-7. **CALIFICACIONES EXTREMAS PERMITIDAS:** Si hay evidencia fuerte de reseñas o historial, NO dudes en predecir calificaciones muy altas (9.0-10.0) o muy bajas (0.0-2.0). Sé audaz cuando la evidencia sea clara.
+7. **QUÉDATE CERCA DEL ANCLA:** Cuando NO haya historial relevante (ambas listas muestran "None"), tu predicción DEBE quedarse dentro de ±1.5 puntos del Promedio Público. Solo desvíate significativamente cuando tengas evidencia CLARA del historial del usuario. Nunca predijas 0.0 a menos que el usuario haya calificado explícitamente películas similares como 0-2.
 
 # DATOS DE LA PREDICCIÓN
 
