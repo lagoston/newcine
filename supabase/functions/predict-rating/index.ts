@@ -33,7 +33,7 @@ interface FishingResult {
   filters: RelevantMovie[];
 }
 
-async function getMovieDataFromTMDB(movieName: string): Promise<{ vote_average: number; id: number; director?: string; cast?: string[]; genres?: string[] } | null> {
+async function getMovieDataFromTMDB(movieName: string): Promise<{ vote_average: number; id: number; media_type: string; director?: string; cast?: string[]; genres?: string[] } | null> {
   const tmdbApiKey = Deno.env.get('TMDB_API_KEY');
   if (!tmdbApiKey) {
     console.error('TMDB_API_KEY not found');
@@ -41,29 +41,62 @@ async function getMovieDataFromTMDB(movieName: string): Promise<{ vote_average: 
   }
 
   try {
-    const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${tmdbApiKey}&query=${encodeURIComponent(movieName)}&language=en-US`;
-    const searchResponse = await fetch(searchUrl);
-    const searchData = await searchResponse.json();
+    const [movieRes, tvRes] = await Promise.all([
+      fetch(`https://api.themoviedb.org/3/search/movie?api_key=${tmdbApiKey}&query=${encodeURIComponent(movieName)}&language=en-US`),
+      fetch(`https://api.themoviedb.org/3/search/tv?api_key=${tmdbApiKey}&query=${encodeURIComponent(movieName)}&language=en-US`)
+    ]);
 
-    if (!searchData.results || searchData.results.length === 0) {
-      console.log('Movie not found in TMDB:', movieName);
+    const [movieData, tvData] = await Promise.all([movieRes.json(), tvRes.json()]);
+
+    const movieResults = movieData.results || [];
+    const tvResults = tvData.results || [];
+
+    let result: any = null;
+    let mediaType = 'movie';
+
+    if (movieResults.length > 0 && tvResults.length > 0) {
+      const topMovie = movieResults[0];
+      const topTv = tvResults[0];
+      if ((topTv.vote_count || 0) >= (topMovie.vote_count || 0)) {
+        result = topTv;
+        mediaType = 'tv';
+      } else {
+        result = topMovie;
+        mediaType = 'movie';
+      }
+    } else if (movieResults.length > 0) {
+      result = movieResults[0];
+      mediaType = 'movie';
+    } else if (tvResults.length > 0) {
+      result = tvResults[0];
+      mediaType = 'tv';
+    } else {
+      console.log('Not found in TMDB:', movieName);
       return null;
     }
 
-    const movie = searchData.results[0];
-    const movieId = movie.id;
-
-    const detailsUrl = `https://api.themoviedb.org/3/movie/${movieId}?api_key=${tmdbApiKey}&append_to_response=credits&language=en-US`;
+    const itemId = result.id;
+    const detailsUrl = `https://api.themoviedb.org/3/${mediaType}/${itemId}?api_key=${tmdbApiKey}&append_to_response=credits&language=en-US`;
     const detailsResponse = await fetch(detailsUrl);
     const detailsData = await detailsResponse.json();
 
-    const director = detailsData.credits?.crew?.find((person: any) => person.job === 'Director')?.name;
-    const cast = detailsData.credits?.cast?.slice(0, 5).map((actor: any) => actor.name) || [];
+    let director: string | undefined;
+    let cast: string[] = [];
+
+    if (mediaType === 'movie') {
+      director = detailsData.credits?.crew?.find((p: any) => p.job === 'Director')?.name;
+      cast = detailsData.credits?.cast?.slice(0, 5).map((a: any) => a.name) || [];
+    } else {
+      director = detailsData.created_by?.[0]?.name;
+      cast = detailsData.credits?.cast?.slice(0, 5).map((a: any) => a.name) || [];
+    }
+
     const genres = detailsData.genres?.map((g: any) => g.name) || [];
 
     return {
-      vote_average: movie.vote_average || 0,
-      id: movieId,
+      vote_average: result.vote_average || 0,
+      id: itemId,
+      media_type: mediaType,
       director,
       cast,
       genres
