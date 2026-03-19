@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { frames, FrameId } from '../lib/frames';
 import { banners, BannerId } from '../lib/banners';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 interface CustomizeModalProps {
   isOpen: boolean;
@@ -491,6 +492,7 @@ const getCategoryButtonStyle = (isActive: boolean, category: string) => {
 };
 
 const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave }) => {
+  const { t } = useTranslation();
   const { session, isPremium } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('frames');
   const [activeTagCategory, setActiveTagCategory] = useState<TagCategory>('basic');
@@ -591,10 +593,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       if (error) throw error;
 
       setActiveTag(newTag);
-      toast.success(isCurrentlyActive ? 'Tag removed' : 'Tag updated successfully');
+      toast.success(isCurrentlyActive ? t('customize.tagRemoved') : t('customize.tagUpdated'));
     } catch (error) {
       console.error('Error updating tag:', error);
-      toast.error('Failed to update tag');
+      toast.error(t('customize.updateError'));
     } finally {
       setSavingTag(false);
     }
@@ -615,10 +617,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       if (error) throw error;
 
       setSelectedFrame(frameId);
-      toast.success('Frame updated successfully');
+      toast.success(t('customize.frameUpdated'));
     } catch (error) {
       console.error('Error updating frame:', error);
-      toast.error('Failed to update frame');
+      toast.error(t('customize.updateError'));
     }
   };
 
@@ -637,10 +639,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       if (error) throw error;
 
       setSelectedBanner(bannerId);
-      toast.success('Banner updated successfully');
+      toast.success(t('customize.bannerUpdated'));
     } catch (error) {
       console.error('Error updating banner:', error);
-      toast.error('Failed to update banner');
+      toast.error(t('customize.updateError'));
     }
   };
 
@@ -659,10 +661,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       if (error) throw error;
 
       setSelectedCard(cardStyle);
-      toast.success('Card style updated successfully');
+      toast.success(t('customize.cardUpdated'));
     } catch (error) {
       console.error('Error updating card style:', error);
-      toast.error('Failed to update card style');
+      toast.error(t('customize.updateError'));
     }
   };
 
@@ -878,19 +880,19 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'frames', label: 'Avatars', icon: ImageIcon },
-    { id: 'banners', label: 'Banners', icon: Layout },
-    { id: 'tags', label: 'Tags', icon: Tag },
-    { id: 'cards', label: 'Cards', icon: Film }
-  ] as const;
+    { id: 'frames', label: t('customize.tabs.avatars'), icon: ImageIcon },
+    { id: 'banners', label: t('customize.tabs.banners'), icon: Layout },
+    { id: 'tags', label: t('customize.tabs.tags'), icon: Tag },
+    { id: 'cards', label: t('customize.tabs.cards'), icon: Film }
+  ];
 
   const tagCategories = [
-    { id: 'basic', label: 'Basic', icon: Tag },
-    { id: 'theme', label: 'Theme', icon: Palette },
-    { id: 'community', label: 'Community', icon: Users },
-    { id: 'oracle', label: 'Oracle', icon: BrainCircuit },
-    { id: 'special', label: 'Special', icon: Sparkles }
-  ] as const;
+    { id: 'basic', label: t('customize.categories.basic'), icon: Tag },
+    { id: 'theme', label: t('customize.categories.theme'), icon: Palette },
+    { id: 'community', label: t('customize.categories.community'), icon: Users },
+    { id: 'oracle', label: t('customize.categories.oracle'), icon: BrainCircuit },
+    { id: 'special', label: t('customize.categories.special'), icon: Sparkles }
+  ];
 
   const renderFrameContent = () => {
     const defaultFrame = frames.default;
@@ -1135,7 +1137,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                   </div>
 
                   <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                    Oracle Recommendation Cards
+                    {t('customize.cards.oracleCards')}
                   </p>
                 </div>
               </button>
@@ -1152,7 +1154,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         return (
           <div className="space-y-6">
             <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Progress: {ratedMoviesCount} movies rated
+              {t('customize.progress.moviesRated', { count: ratedMoviesCount })}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {PROGRESSION_TAGS.map((tag) => {
@@ -1213,12 +1215,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                           {isActive ? (
                             <span className="flex items-center">
                               <Check className="w-4 h-4 mr-1" />
-                              Active
+                              {t('customize.tags.active')}
                             </span>
                           ) : savingTag ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            'Use'
+                            t('customize.tags.use')
                           )}
                         </button>
                       )}
@@ -1326,7 +1328,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         return (
           <div className="space-y-6">
             <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Progress: {followersCount} followers
+              {t('customize.progress.followers', { count: followersCount })}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {COMMUNITY_TAGS.map((tag) => {
@@ -1384,12 +1386,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                           {isActive ? (
                             <span className="flex items-center">
                               <Check className="w-4 h-4 mr-1" />
-                              Active
+                              {t('customize.tags.active')}
                             </span>
                           ) : savingTag ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            'Use'
+                            t('customize.tags.use')
                           )}
                         </button>
                       )}
@@ -1415,8 +1417,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         return (
           <div className="space-y-6">
             <div className="text-sm text-gray-500 dark:text-gray-400 mb-4 space-y-1">
-              <div>Predictions: {oracleTagProgress['Curious Seeker'] || 0}</div>
-              <div>Recommendations: {oracleTagProgress['Popcorn Taster'] || 0}</div>
+              <div>{t('customize.progress.predictions')}: {oracleTagProgress['Curious Seeker'] || 0}</div>
+              <div>{t('customize.progress.recommendations')}: {oracleTagProgress['Popcorn Taster'] || 0}</div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {ORACLE_TAGS.map((tag) => {
@@ -1475,12 +1477,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                           {isActive ? (
                             <span className="flex items-center">
                               <Check className="w-4 h-4 mr-1" />
-                              Active
+                              {t('customize.tags.active')}
                             </span>
                           ) : savingTag ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            'Use'
+                            t('customize.tags.use')
                           )}
                         </button>
                       )}
@@ -1506,12 +1508,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         return (
           <div className="space-y-6">
             <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Limited-time and seasonal tags
+              {t('customize.tags.limitedTime')}
             </div>
             {specialTags.length === 0 ? (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No special tags available at the moment</p>
+                <p>{t('customize.tags.noSpecialTags')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1523,10 +1525,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       key={tag.id}
                       className={`relative group rounded-2xl border ${
                         tag.is_unlocked
-                          ? 'border-gray-600/50 dark:border-gray-400/30 bg-gray-900/10 dark:bg-gray-100/5'
+                          ? 'border-gray-800/50 dark:border-gray-500/30 bg-gray-100 dark:bg-gray-800/50'
                           : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
                       } p-4 transition-all duration-200 backdrop-blur-sm ${
-                        tag.is_unlocked ? 'hover:border-gray-500 dark:hover:border-gray-400' : ''
+                        tag.is_unlocked ? 'hover:border-gray-700 dark:hover:border-gray-400' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between">
@@ -1541,10 +1543,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                               {tag.name}
                             </span>
                           </div>
-                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
                             {tag.description}
                           </p>
-                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
+                          <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
                             {tag.requirement_description}
                           </p>
                           {tag.ends_at && (
@@ -1580,8 +1582,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         )}
                       </div>
                       {tag.is_unlocked && (
-                        <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
-                          <div className="h-full w-full rounded-full bg-gradient-to-r from-gray-700 to-gray-900 dark:from-gray-300 dark:to-gray-100" />
+                        <div className="mt-3 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
+                          <div className="h-full w-full rounded-full bg-gradient-to-r from-gray-800 to-gray-950 dark:from-gray-400 dark:to-gray-200" />
                         </div>
                       )}
                     </div>
@@ -1614,7 +1616,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           >
             <div className="flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50">
               <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400">
-                Customize Profile
+                {t('customize.title')}
               </h2>
               <button
                 onClick={onClose}
@@ -1687,7 +1689,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
               >
                 <Check className="w-4 h-4" />
-                Salvar
+                {t('customize.save')}
               </button>
             </div>
           </motion.div>

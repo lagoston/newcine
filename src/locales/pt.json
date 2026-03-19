@@ -534,5 +534,43 @@
     "allRights": "Todos os direitos reservados",
     "privacy": "Política de Privacidade",
     "terms": "Termos de Serviço"
+  },
+  "customize": {
+    "title": "Personalizar Perfil",
+    "tabs": {
+      "avatars": "Avatares",
+      "banners": "Banners",
+      "tags": "Tags",
+      "cards": "Cards"
+    },
+    "categories": {
+      "basic": "Básico",
+      "theme": "Tema",
+      "community": "Comunidade",
+      "oracle": "Oráculo",
+      "special": "Especial"
+    },
+    "progress": {
+      "moviesRated": "Progresso: {{count}} filmes avaliados",
+      "followers": "Progresso: {{count}} seguidores",
+      "predictions": "Previsões",
+      "recommendations": "Recomendações"
+    },
+    "tags": {
+      "use": "Usar",
+      "active": "Ativo",
+      "limitedTime": "Tags de tempo limitado e sazonais",
+      "noSpecialTags": "Nenhuma tag especial disponível no momento"
+    },
+    "cards": {
+      "oracleCards": "Cards de Recomendação do Oráculo"
+    },
+    "save": "Salvar",
+    "tagRemoved": "Tag removida",
+    "tagUpdated": "Tag atualizada com sucesso",
+    "frameUpdated": "Moldura atualizada com sucesso",
+    "bannerUpdated": "Banner atualizado com sucesso",
+    "cardUpdated": "Estilo de card atualizado com sucesso",
+    "updateError": "Falha ao atualizar"
   }
 }

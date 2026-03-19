@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import ConfirmationModal from './ConfirmationModal';
@@ -367,8 +368,8 @@ const RatingBox: React.FC<RatingBoxProps> = ({
       />
     )}
 
-    {/* MOBILE BOTTOM SHEET MENU */}
-    {mobileMenuMovie && (
+    {/* MOBILE BOTTOM SHEET MENU - rendered via portal to escape transform context */}
+    {mobileMenuMovie && createPortal(
       <>
         <div
           className="fixed inset-0 bg-black/50 z-[9999]"
@@ -474,7 +475,8 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             </button>
           </div>
         </div>
-      </>
+      </>,
+      document.body
     )}
     </>
   );

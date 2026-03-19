@@ -119,6 +119,7 @@ export default function Profile() {
   const [showStats, setShowStats] = useState(false);
   const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
   const [carouselOffset, setCarouselOffset] = useState(0);
+  const [carouselAutoPaused, setCarouselAutoPaused] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
   const [essencePersonality, setEssencePersonality] = useState<{ subcategoria_id: string | null; personalidade_completa: string | null; arquetipo_primario: string | null; arquetipo_secundario: string | null } | null>(null);
   const [essenceArchetype, setEssenceArchetype] = useState<{ archetype_name: string; subcategory_name: string; description: string; archetype_description: string; subcategory_description: string } | null>(null);
@@ -141,7 +142,7 @@ export default function Profile() {
   const CAROUSEL_PAGE_SIZE = isDesktop ? 8 : 4;
 
   useEffect(() => {
-    if (followedUsersCarousel.length <= CAROUSEL_PAGE_SIZE) return;
+    if (followedUsersCarousel.length <= CAROUSEL_PAGE_SIZE || carouselAutoPaused) return;
     const timer = setInterval(() => {
       setCarouselOffset(prev => {
         const next = prev + CAROUSEL_PAGE_SIZE;
@@ -149,7 +150,7 @@ export default function Profile() {
       });
     }, 6000);
     return () => clearInterval(timer);
-  }, [followedUsersCarousel.length, CAROUSEL_PAGE_SIZE]);
+  }, [followedUsersCarousel.length, CAROUSEL_PAGE_SIZE, carouselAutoPaused]);
 
   const visibleCarouselUsers = followedUsersCarousel.slice(carouselOffset, carouselOffset + CAROUSEL_PAGE_SIZE);
 
@@ -1078,7 +1079,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="relative rounded-2xl bg-violet-100/20 dark:bg-violet-900/10 backdrop-blur-xl border border-violet-200/40 dark:border-violet-800/20 shadow-xl p-6">
+        <div className="relative rounded-2xl bg-violet-50/10 dark:bg-violet-950/5 backdrop-blur-xl border border-violet-200/20 dark:border-violet-800/10 shadow-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
@@ -1156,7 +1157,10 @@ export default function Profile() {
                   {Array.from({ length: Math.ceil(followedUsersCarousel.length / CAROUSEL_PAGE_SIZE) }).map((_, i) => (
                     <button
                       key={i}
-                      onClick={() => setCarouselOffset(i * CAROUSEL_PAGE_SIZE)}
+                      onClick={() => {
+                        setCarouselAutoPaused(true);
+                        setCarouselOffset(i * CAROUSEL_PAGE_SIZE);
+                      }}
                       className="rounded-full transition-all duration-300"
                       style={{
                         width: carouselOffset === i * CAROUSEL_PAGE_SIZE ? '6px' : '4px',

@@ -534,5 +534,43 @@
     "allRights": "All rights reserved",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service"
+  },
+  "customize": {
+    "title": "Customize Profile",
+    "tabs": {
+      "avatars": "Avatars",
+      "banners": "Banners",
+      "tags": "Tags",
+      "cards": "Cards"
+    },
+    "categories": {
+      "basic": "Basic",
+      "theme": "Theme",
+      "community": "Community",
+      "oracle": "Oracle",
+      "special": "Special"
+    },
+    "progress": {
+      "moviesRated": "Progress: {{count}} movies rated",
+      "followers": "Progress: {{count}} followers",
+      "predictions": "Predictions",
+      "recommendations": "Recommendations"
+    },
+    "tags": {
+      "use": "Use",
+      "active": "Active",
+      "limitedTime": "Limited-time and seasonal tags",
+      "noSpecialTags": "No special tags available at the moment"
+    },
+    "cards": {
+      "oracleCards": "Oracle Recommendation Cards"
+    },
+    "save": "Save",
+    "tagRemoved": "Tag removed",
+    "tagUpdated": "Tag updated successfully",
+    "frameUpdated": "Frame updated successfully",
+    "bannerUpdated": "Banner updated successfully",
+    "cardUpdated": "Card style updated successfully",
+    "updateError": "Failed to update"
   }
 }
