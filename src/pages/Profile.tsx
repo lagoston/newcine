@@ -1078,7 +1078,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="relative rounded-2xl bg-violet-50/40 dark:bg-violet-950/30 backdrop-blur-xl border-2 border-violet-300/50 dark:border-violet-500/30 shadow-xl p-6">
+        <div className="relative rounded-2xl bg-violet-100/20 dark:bg-violet-900/10 backdrop-blur-xl border border-violet-200/40 dark:border-violet-800/20 shadow-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
@@ -1152,13 +1152,19 @@ export default function Profile() {
                 </motion.div>
               </AnimatePresence>
               {followedUsersCarousel.length > CAROUSEL_PAGE_SIZE && (
-                <div className="flex justify-center gap-1 mt-2 pb-1">
+                <div className="flex justify-center gap-0.5 mt-2 pb-1">
                   {Array.from({ length: Math.ceil(followedUsersCarousel.length / CAROUSEL_PAGE_SIZE) }).map((_, i) => (
                     <button
                       key={i}
                       onClick={() => setCarouselOffset(i * CAROUSEL_PAGE_SIZE)}
-                      className={`rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-violet-500 w-2' : 'bg-gray-300 dark:bg-gray-600 w-1'}`}
-                      style={{ height: '3px' }}
+                      className="rounded-full transition-all duration-300"
+                      style={{
+                        width: carouselOffset === i * CAROUSEL_PAGE_SIZE ? '6px' : '4px',
+                        height: '4px',
+                        backgroundColor: carouselOffset === i * CAROUSEL_PAGE_SIZE
+                          ? 'rgb(139 92 246 / 0.7)'
+                          : 'rgb(156 163 175 / 0.5)'
+                      }}
                     />
                   ))}
                 </div>

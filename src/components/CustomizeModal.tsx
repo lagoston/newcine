@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Image as ImageIcon, Tag, Layout, Crown, Star, BrainCircuit, Users, Lock, Loader2, Check, Palette, User, Film } from 'lucide-react';
+import { X, Image as ImageIcon, Tag, Layout, Crown, Star, BrainCircuit, Users, Lock, Loader2, Check, Palette, User, Film, Sparkles, Clock } from 'lucide-react';
 import GlassLoader from './GlassLoader';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -22,7 +22,7 @@ interface Frame {
 }
 
 type TabType = 'frames' | 'banners' | 'tags' | 'cards';
-type TagCategory = 'basic' | 'theme' | 'community' | 'oracle';
+type TagCategory = 'basic' | 'theme' | 'community' | 'oracle' | 'special';
 
 interface ProgressionTag {
   name: string;
@@ -63,6 +63,18 @@ interface OracleTag {
   minCount: number;
   maxCount?: number;
   description: string;
+}
+
+interface SpecialTag {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  requirement_description: string;
+  starts_at: string;
+  ends_at: string | null;
+  is_unlocked: boolean;
+  unlocked_at?: string;
 }
 
 interface ActiveTag {
@@ -442,6 +454,8 @@ const getTagColorClasses = (category: string) => {
       return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
     case 'oracle':
       return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400';
+    case 'special':
+      return 'bg-gray-900 dark:bg-gray-100/10 text-white dark:text-gray-200';
     default:
       return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
   }
@@ -465,6 +479,10 @@ const getCategoryButtonStyle = (isActive: boolean, category: string) => {
       return isActive
         ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'
         : 'bg-pink-600 text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600';
+    case 'special':
+      return isActive
+        ? 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900'
+        : 'bg-gray-900 text-white hover:bg-black dark:bg-gray-800 dark:hover:bg-gray-700';
     default:
       return isActive
         ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
@@ -482,6 +500,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const [themeTagProgress, setThemeTagProgress] = useState<Record<string, number>>({});
   const [basicTagProgress, setBasicTagProgress] = useState<Record<string, number>>({});
   const [oracleTagProgress, setOracleTagProgress] = useState<Record<string, number>>({});
+  const [specialTags, setSpecialTags] = useState<SpecialTag[]>([]);
   const [activeTag, setActiveTag] = useState<ActiveTag | null>(null);
   const [savingTag, setSavingTag] = useState(false);
   const [selectedFrame, setSelectedFrame] = useState<FrameId>('default');
@@ -495,6 +514,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       fetchThemeTagProgress();
       fetchBasicTagProgress();
       fetchOracleTagProgress();
+      fetchSpecialTags();
       fetchActiveTag();
       fetchFollowersCount();
     }
@@ -797,6 +817,64 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     }
   };
 
+  const fetchSpecialTags = async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      const { data: allTags, error: tagsError } = await supabase
+        .from('special_tags')
+        .select('*')
+        .or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`);
+
+      if (tagsError) throw tagsError;
+
+      const { data: userTags, error: userTagsError } = await supabase
+        .from('user_special_tags')
+        .select('tag_id, unlocked_at')
+        .eq('user_id', session.user.id);
+
+      if (userTagsError) throw userTagsError;
+
+      const userTagsMap = new Map(userTags?.map(ut => [ut.tag_id, ut.unlocked_at]) || []);
+
+      const tagsWithStatus: SpecialTag[] = (allTags || []).map(tag => ({
+        id: tag.id,
+        name: tag.name,
+        emoji: tag.emoji,
+        description: tag.description,
+        requirement_description: tag.requirement_description,
+        starts_at: tag.starts_at,
+        ends_at: tag.ends_at,
+        is_unlocked: userTagsMap.has(tag.id),
+        unlocked_at: userTagsMap.get(tag.id)
+      }));
+
+      setSpecialTags(tagsWithStatus);
+    } catch (error) {
+      console.error('Error fetching special tags:', error);
+    }
+  };
+
+  const formatTimeRemaining = (endsAt: string) => {
+    const now = new Date();
+    const end = new Date(endsAt);
+    const diff = end.getTime() - now.getTime();
+
+    if (diff <= 0) return 'Expired';
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    if (days > 30) {
+      const months = Math.floor(days / 30);
+      return `${months} month${months > 1 ? 's' : ''} left`;
+    }
+    if (days > 0) {
+      return `${days}d ${hours}h left`;
+    }
+    return `${hours}h left`;
+  };
+
   if (!isOpen) return null;
 
   const tabs = [
@@ -810,7 +888,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     { id: 'basic', label: 'Basic', icon: Tag },
     { id: 'theme', label: 'Theme', icon: Palette },
     { id: 'community', label: 'Community', icon: Users },
-    { id: 'oracle', label: 'Oracle', icon: BrainCircuit }
+    { id: 'oracle', label: 'Oracle', icon: BrainCircuit },
+    { id: 'special', label: 'Special', icon: Sparkles }
   ] as const;
 
   const renderFrameContent = () => {
@@ -1420,6 +1499,96 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 );
               })}
             </div>
+          </div>
+        );
+
+      case 'special':
+        return (
+          <div className="space-y-6">
+            <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Limited-time and seasonal tags
+            </div>
+            {specialTags.length === 0 ? (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No special tags available at the moment</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {specialTags.map((tag) => {
+                  const isActive = activeTag?.name === tag.name;
+
+                  return (
+                    <div
+                      key={tag.id}
+                      className={`relative group rounded-2xl border ${
+                        tag.is_unlocked
+                          ? 'border-gray-600/50 dark:border-gray-400/30 bg-gray-900/10 dark:bg-gray-100/5'
+                          : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
+                      } p-4 transition-all duration-200 backdrop-blur-sm ${
+                        tag.is_unlocked ? 'hover:border-gray-500 dark:hover:border-gray-400' : ''
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{tag.emoji}</span>
+                            <span className={`text-sm font-medium ${
+                              tag.is_unlocked
+                                ? 'text-gray-900 dark:text-gray-100'
+                                : 'text-gray-400 dark:text-gray-500'
+                            }`}>
+                              {tag.name}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                            {tag.description}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
+                            {tag.requirement_description}
+                          </p>
+                          {tag.ends_at && (
+                            <div className="mt-2 flex items-center gap-1.5 text-xs">
+                              <Clock className="w-3.5 h-3.5 text-amber-500" />
+                              <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                {formatTimeRemaining(tag.ends_at)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        {!tag.is_unlocked ? (
+                          <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                        ) : (
+                          <button
+                            onClick={() => handleUseTag({ name: tag.name, emoji: tag.emoji }, 'special')}
+                            disabled={savingTag}
+                            className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                              getCategoryButtonStyle(isActive, 'special')
+                            }`}
+                          >
+                            {isActive ? (
+                              <span className="flex items-center">
+                                <Check className="w-4 h-4 mr-1" />
+                                Active
+                              </span>
+                            ) : savingTag ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              'Use'
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      {tag.is_unlocked && (
+                        <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
+                          <div className="h-full w-full rounded-full bg-gradient-to-r from-gray-700 to-gray-900 dark:from-gray-300 dark:to-gray-100" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
     }

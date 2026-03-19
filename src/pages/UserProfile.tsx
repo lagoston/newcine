@@ -595,6 +595,7 @@ export default function UserProfile() {
   );
 
   return (
+    <>
     <motion.div
       className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 py-8 px-4 relative overflow-hidden"
       initial={{ opacity: 0 }}
@@ -1175,130 +1176,127 @@ export default function UserProfile() {
             </>
           )}
         </motion.div>
-
-        {showFollowModal && profile.id && (
-          <FollowersModal
-            isOpen={true}
-            onClose={() => setShowFollowModal(null)}
-            userId={profile.id}
-            type={showFollowModal}
-            onFollowChange={fetchProfileAndMovies}
-          />
-        )}
-
-        {showUserListsModal && profile.id && (
-          <UserListsModal
-            isOpen={true}
-            onClose={() => setShowUserListsModal(false)}
-            userId={profile.id}
-          />
-        )}
-
-        {showUserReviewsModal && profile.id && (
-          <UserReviewsModal
-            userId={profile.id}
-            username={profile.username}
-            onClose={() => setShowUserReviewsModal(false)}
-          />
-        )}
-
-        <AnimatePresence>
-          {showEssenceRevelation && essenceArchetype && essencePersonality && (
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center px-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4"
-              onClick={() => setShowEssenceRevelation(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 30 }} transition={{ type: 'spring', duration: 0.4 }}
-                className="relative max-w-xl w-full max-h-[calc(100vh-5rem)] overflow-y-auto"
-                onClick={e => e.stopPropagation()}
-              >
-                <div className="relative bg-gray-900/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700/60 p-8">
-                  <button onClick={() => setShowEssenceRevelation(false)} className="absolute top-4 right-4 z-10 p-2.5 bg-gray-700/60 hover:bg-gray-700 rounded-full transition-colors">
-                    <X className="w-5 h-5 text-gray-300" />
-                  </button>
-                  <div className="flex items-center justify-center gap-3 mb-6">
-                    <Scroll className="w-8 h-8 text-pink-400" style={{ filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.5))' }} />
-                    <h2 className="text-2xl font-bold text-white">{i18n.language.startsWith('pt') ? 'Revelação' : 'Revelation'}</h2>
-                  </div>
-                  <div className="text-center mb-6 rounded-xl p-5 border border-gray-700/60 bg-gray-800/50">
-                    <p className="text-3xl font-bold mb-1" style={{ color: (() => { const t = essencePersonality.personalidade_completa?.charAt(2) ?? ''; return ({ A: '#fbbf24', B: '#64748b', K: '#ef4444', X: '#3b82f6', D: '#6b7280', L: '#10b981' } as Record<string,string>)[t] || '#3b82f6'; })() }}>
-                      {essencePersonality.personalidade_completa}
-                    </p>
-                    <p className="text-lg text-gray-200 font-semibold">{essenceArchetype.archetype_name} {essenceArchetype.subcategory_name}</p>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
-                      <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? 'A Essência (As Duas Primeiras Letras)' : 'The Essence (First Two Letters)'}</h3>
-                      <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.archetype_description}</p>
-                    </div>
-                    <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
-                      <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? 'A Sintonia (A Terceira Letra)' : 'The Attunement (Third Letter)'}</h3>
-                      <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.subcategory_description}</p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {showEssenceInfo && essencePersonality && (
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center px-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4"
-              onClick={() => setShowEssenceInfo(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 30 }} transition={{ type: 'spring', duration: 0.4 }}
-                className="relative max-w-xl w-full max-h-[calc(100vh-5rem)] overflow-y-auto"
-                onClick={e => e.stopPropagation()}
-              >
-                <div className="relative bg-gray-900/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700/60 p-8">
-                  <button onClick={() => setShowEssenceInfo(false)} className="absolute top-4 right-4 z-10 p-2.5 bg-gray-700/60 hover:bg-gray-700 rounded-full transition-colors">
-                    <X className="w-5 h-5 text-gray-300" />
-                  </button>
-                  <div className="flex items-center justify-center gap-3 mb-6">
-                    <Info className="w-8 h-8 text-blue-400" style={{ filter: 'drop-shadow(0 0 8px rgba(96,165,250,0.5))' }} />
-                    <h2 className="text-2xl font-bold text-white">{i18n.language.startsWith('pt') ? 'A Arquitetura da Alma' : "The Soul's Architecture"}</h2>
-                  </div>
-                  <p className="text-center italic text-gray-400 text-sm mb-6">
-                    {i18n.language.startsWith('pt')
-                      ? 'O Arquétipo não é adivinhação. É a arquitetura dos gostos, construída em duas etapas:'
-                      : 'The Archetype is not guesswork. It is the architecture of tastes, built in two stages:'}
-                  </p>
-                  <div className="space-y-4">
-                    <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
-                      <h3 className="text-base font-bold text-blue-300 mb-2 flex items-center gap-2">
-                        <span>1.</span> {i18n.language.startsWith('pt') ? 'A Essência (As Duas Primeiras Letras)' : 'The Essence (First Two Letters)'}
-                      </h3>
-                      <p className="text-gray-300 text-sm leading-relaxed">
-                        {i18n.language.startsWith('pt')
-                          ? 'O perfil principal é a soma matemática do que ama e odeia. Cada filme avaliado move cinco balanças: Emocional (E), Intelectual (I), Cultural (C), Sensorial (S) e Recreativa (R).'
-                          : 'The main profile is the mathematical sum of what they love and hate. Every film rated moves five scales: Emotional (E), Intellectual (I), Cultural (C), Sensorial (S), and Recreational (R).'}
-                      </p>
-                    </div>
-                    <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
-                      <h3 className="text-base font-bold text-amber-300 mb-2 flex items-center gap-2">
-                        <span>2.</span> {i18n.language.startsWith('pt') ? 'A Sintonia (A Terceira Letra)' : 'The Attunement (Third Letter)'}
-                      </h3>
-                      <p className="text-gray-300 text-sm leading-relaxed">
-                        {i18n.language.startsWith('pt')
-                          ? 'A terceira letra vem de um questionário de 12 perguntas. Ela revela a sintonia emocional com o cinema: Radiante (A), Sombrio (B), Clássico (K), Experimental (X), Denso (D) ou Leve (L).'
-                          : 'The third letter comes from a 12-question questionnaire. It reveals the emotional attunement to cinema: Radiant (A), Dark (B), Classic (K), Experimental (X), Dense (D), or Light (L).'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </motion.div>
+
+    {showFollowModal && profile.id && (
+      <FollowersModal
+        isOpen={true}
+        onClose={() => setShowFollowModal(null)}
+        userId={profile.id}
+        type={showFollowModal}
+        onFollowChange={fetchProfileAndMovies}
+      />
+    )}
+
+    {showUserListsModal && profile.id && (
+      <UserListsModal
+        isOpen={true}
+        onClose={() => setShowUserListsModal(false)}
+        userId={profile.id}
+      />
+    )}
+
+    {showUserReviewsModal && profile.id && (
+      <UserReviewsModal
+        userId={profile.id}
+        username={profile.username}
+        onClose={() => setShowUserReviewsModal(false)}
+      />
+    )}
+
+    <AnimatePresence>
+      {showEssenceRevelation && essenceArchetype && essencePersonality && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center px-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4"
+          onClick={() => setShowEssenceRevelation(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 30 }} transition={{ type: 'spring', duration: 0.4 }}
+            className="relative max-w-xl w-full max-h-[calc(100vh-5rem)] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="relative bg-gray-900/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700/60 p-8">
+              <button onClick={() => setShowEssenceRevelation(false)} className="absolute top-4 right-4 z-10 p-2.5 bg-gray-700/60 hover:bg-gray-700 rounded-full transition-colors">
+                <X className="w-5 h-5 text-gray-300" />
+              </button>
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <Scroll className="w-8 h-8 text-pink-400" style={{ filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.5))' }} />
+                <h2 className="text-2xl font-bold text-white">{i18n.language.startsWith('pt') ? 'Revelacao' : 'Revelation'}</h2>
+              </div>
+              <div className="text-center mb-6 rounded-xl p-5 border border-gray-700/60 bg-gray-800/50">
+                <p className="text-3xl font-bold mb-1" style={{ color: (() => { const t = essencePersonality.personalidade_completa?.charAt(2) ?? ''; return ({ A: '#fbbf24', B: '#64748b', K: '#ef4444', X: '#3b82f6', D: '#6b7280', L: '#10b981' } as Record<string,string>)[t] || '#3b82f6'; })() }}>
+                  {essencePersonality.personalidade_completa}
+                </p>
+                <p className="text-lg text-gray-200 font-semibold">{essenceArchetype.archetype_name} {essenceArchetype.subcategory_name}</p>
+              </div>
+              <div className="space-y-4">
+                <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
+                  <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? 'A Essencia (As Duas Primeiras Letras)' : 'The Essence (First Two Letters)'}</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.archetype_description}</p>
+                </div>
+                <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
+                  <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? 'A Sintonia (A Terceira Letra)' : 'The Attunement (Third Letter)'}</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.subcategory_description}</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {showEssenceInfo && essencePersonality && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center px-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4"
+          onClick={() => setShowEssenceInfo(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 30 }} transition={{ type: 'spring', duration: 0.4 }}
+            className="relative max-w-xl w-full max-h-[calc(100vh-5rem)] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="relative bg-gray-900/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700/60 p-8">
+              <button onClick={() => setShowEssenceInfo(false)} className="absolute top-4 right-4 z-10 p-2.5 bg-gray-700/60 hover:bg-gray-700 rounded-full transition-colors">
+                <X className="w-5 h-5 text-gray-300" />
+              </button>
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <Info className="w-8 h-8 text-blue-400" style={{ filter: 'drop-shadow(0 0 8px rgba(96,165,250,0.5))' }} />
+                <h2 className="text-2xl font-bold text-white">{i18n.language.startsWith('pt') ? 'A Arquitetura da Alma' : "The Soul's Architecture"}</h2>
+              </div>
+              <p className="text-center italic text-gray-400 text-sm mb-6">
+                {i18n.language.startsWith('pt')
+                  ? 'O Arquetipo nao e adivinhacao. E a arquitetura dos gostos, construida em duas etapas:'
+                  : 'The Archetype is not guesswork. It is the architecture of tastes, built in two stages:'}
+              </p>
+              <div className="space-y-4">
+                <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
+                  <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? '1. A Essencia (As Duas Primeiras Letras)' : '1. The Essence (First Two Letters)'}</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    {i18n.language.startsWith('pt')
+                      ? 'As duas primeiras letras sao calculadas automaticamente com base nos generos dos filmes que voce avaliou. Cada avaliacao alimenta um algoritmo que identifica seus padroes de preferencia.'
+                      : 'The first two letters are automatically calculated based on the genres of the movies you have rated. Each rating feeds an algorithm that identifies your preference patterns.'}
+                  </p>
+                </div>
+                <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
+                  <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? '2. A Sintonia (A Terceira Letra)' : '2. The Attunement (Third Letter)'}</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    {i18n.language.startsWith('pt')
+                      ? 'A terceira letra vem de um questionario de 12 perguntas. Ela revela a sintonia emocional com o cinema: Radiante (A), Sombrio (B), Classico (K), Experimental (X), Denso (D) ou Leve (L).'
+                      : 'The third letter comes from a 12-question questionnaire. It reveals the emotional attunement to cinema: Radiant (A), Dark (B), Classic (K), Experimental (X), Dense (D), or Light (L).'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }
