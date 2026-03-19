@@ -1079,7 +1079,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="relative rounded-2xl bg-violet-50/10 dark:bg-violet-950/5 backdrop-blur-xl border border-violet-200/20 dark:border-violet-800/10 shadow-xl p-6">
+        <div className="relative rounded-2xl bg-violet-50/10 dark:bg-violet-950/5 backdrop-blur-xl border border-violet-300/40 dark:border-violet-700/30 shadow-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">

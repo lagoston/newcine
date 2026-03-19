@@ -305,67 +305,72 @@ const RatingBox: React.FC<RatingBoxProps> = ({
       </div>
     </div>
 
-    {/* Modals - Fora do container para evitar overflow */}
-    <ConfirmationModal
-      isOpen={deleteMovieId !== null}
-      onClose={() => setDeleteMovieId(null)}
-      onConfirm={() => {
-        if (deleteMovieId && onDelete) {
-          onDelete(deleteMovieId);
-        }
-      }}
-      title={t('common.delete')}
-      message={t('library.movieRemoved')}
-    />
+    {/* Modals - rendered via portal to escape any parent stacking context */}
+    {createPortal(
+      <>
+        <ConfirmationModal
+          isOpen={deleteMovieId !== null}
+          onClose={() => setDeleteMovieId(null)}
+          onConfirm={() => {
+            if (deleteMovieId && onDelete) {
+              onDelete(deleteMovieId);
+            }
+          }}
+          title={t('common.delete')}
+          message={t('library.movieRemoved')}
+        />
 
-    {selectedMovie && (
-      <MovieDetailsModal
-        movie={selectedMovie}
-        isOpen={true}
-        onClose={() => setSelectedMovie(null)}
-        isOtherUserProfile={isOtherUserProfile}
-        onAddToLibrary={onAddToLibrary}
-      />
-    )}
+        {selectedMovie && (
+          <MovieDetailsModal
+            movie={selectedMovie}
+            isOpen={true}
+            onClose={() => setSelectedMovie(null)}
+            isOtherUserProfile={isOtherUserProfile}
+            onAddToLibrary={onAddToLibrary}
+          />
+        )}
 
-    <AllMoviesModal
-      isOpen={showAllMovies}
-      onClose={() => setShowAllMovies(false)}
-      title={rating !== null ? t('library.rating', { value: rating }) : title}
-      movies={movies}
-      rating={rating}
-      isOtherUserProfile={isOtherUserProfile}
-      onAddToLibrary={onAddToLibrary}
-    />
+        <AllMoviesModal
+          isOpen={showAllMovies}
+          onClose={() => setShowAllMovies(false)}
+          title={rating !== null ? t('library.rating', { value: rating }) : title}
+          movies={movies}
+          rating={rating}
+          isOtherUserProfile={isOtherUserProfile}
+          onAddToLibrary={onAddToLibrary}
+        />
 
-    {showAddToList && (
-      <AddToListMenu
-        movieId={showAddToList.movieId}
-        movieTitle={showAddToList.title}
-        isOpen={true}
-        onClose={() => setShowAddToList(null)}
-        position={menuPosition}
-      />
-    )}
+        {showAddToList && (
+          <AddToListMenu
+            movieId={showAddToList.movieId}
+            movieTitle={showAddToList.title}
+            isOpen={true}
+            onClose={() => setShowAddToList(null)}
+            position={menuPosition}
+          />
+        )}
 
-    {rateMenuMovie && onRate && (
-      <RateMenuSheet
-        movieTitle={rateMenuMovie.title}
-        isOpen={true}
-        onClose={() => setRateMenuMovie(null)}
-        onRate={async (rating) => {
-          onRate(rateMenuMovie.id, rating);
-        }}
-      />
-    )}
+        {rateMenuMovie && onRate && (
+          <RateMenuSheet
+            movieTitle={rateMenuMovie.title}
+            isOpen={true}
+            onClose={() => setRateMenuMovie(null)}
+            onRate={async (rating) => {
+              onRate(rateMenuMovie.id, rating);
+            }}
+          />
+        )}
 
-    {predictMenuMovie && (
-      <PredictMenuSheet
-        movieTitle={predictMenuMovie.title}
-        movieId={predictMenuMovie.id}
-        isOpen={true}
-        onClose={() => setPredictMenuMovie(null)}
-      />
+        {predictMenuMovie && (
+          <PredictMenuSheet
+            movieTitle={predictMenuMovie.title}
+            movieId={predictMenuMovie.id}
+            isOpen={true}
+            onClose={() => setPredictMenuMovie(null)}
+          />
+        )}
+      </>,
+      document.body
     )}
 
     {/* MOBILE BOTTOM SHEET MENU - rendered via portal to escape transform context */}
