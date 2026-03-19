@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Crown, Star, Palette, Check, Settings, Loader2, Zap, Shield, Sparkles } from 'lucide-react';
+import { ArrowLeft, Crown, Star, Palette, Check, Settings, Loader2, Zap, Shield, Sparkles, Infinity } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { createCheckoutSession, createPortalSession } from '../lib/stripe';
 import { toast } from 'sonner';
@@ -29,7 +29,7 @@ const Feature = ({ icon: Icon, title, description }: FeatureProps) => (
 export default function Premium() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { session, isPremium } = useAuth();
+  const { session, isPremium, isLifetimePremium } = useAuth();
   const { t } = useTranslation();
   const [loading, setLoading] = useState({
     monthly: false,
@@ -133,17 +133,25 @@ export default function Premium() {
             <div className="relative z-10">
               <div className="text-center mb-8">
                 <motion.div
-                  className="inline-block p-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mb-4 shadow-xl"
+                  className={`inline-block p-4 rounded-full mb-4 shadow-xl ${
+                    isLifetimePremium
+                      ? 'bg-gradient-to-br from-emerald-400 to-teal-600'
+                      : 'bg-gradient-to-br from-yellow-400 to-orange-500'
+                  }`}
                   animate={{ rotate: [0, 10, -10, 0] }}
                   transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                 >
-                  <Crown className="w-12 h-12 text-white" />
+                  {isLifetimePremium ? (
+                    <Infinity className="w-12 h-12 text-white" />
+                  ) : (
+                    <Crown className="w-12 h-12 text-white" />
+                  )}
                 </motion.div>
                 <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white mb-2">
-                  {t('premium.yourePremium')}
+                  {isLifetimePremium ? t('premium.lifetimePremium') : t('premium.yourePremium')}
                 </h2>
                 <p className="text-lg text-gray-600 dark:text-gray-400">
-                  {t('premium.thankYou')}
+                  {isLifetimePremium ? t('premium.lifetimeThankYou') : t('premium.thankYou')}
                 </p>
               </div>
 
@@ -159,31 +167,43 @@ export default function Premium() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.exclusiveFrames')}</p>
                 </div>
                 <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 p-5 text-center">
-                  <Shield className="w-8 h-8 text-green-500 mx-auto mb-3" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{t('premium.active')}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.subscriptionActive')}</p>
-                </div>
-              </div>
-
-              <div className="text-center">
-                <button
-                  onClick={handleManageSubscription}
-                  disabled={loading.portal}
-                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-xl hover:from-gray-800 hover:to-gray-900 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium text-lg"
-                >
-                  {loading.portal ? (
+                  {isLifetimePremium ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                      {t('common.loading')}
+                      <Infinity className="w-8 h-8 text-emerald-500 mx-auto mb-3" />
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{t('premium.lifetime')}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.neverExpires')}</p>
                     </>
                   ) : (
                     <>
-                      <Settings className="w-5 h-5 mr-2" />
-                      {t('premium.manageSubscription')}
+                      <Shield className="w-8 h-8 text-green-500 mx-auto mb-3" />
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{t('premium.active')}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.subscriptionActive')}</p>
                     </>
                   )}
-                </button>
+                </div>
               </div>
+
+              {!isLifetimePremium && (
+                <div className="text-center">
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={loading.portal}
+                    className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-xl hover:from-gray-800 hover:to-gray-900 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium text-lg"
+                  >
+                    {loading.portal ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        {t('common.loading')}
+                      </>
+                    ) : (
+                      <>
+                        <Settings className="w-5 h-5 mr-2" />
+                        {t('premium.manageSubscription')}
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         ) : (

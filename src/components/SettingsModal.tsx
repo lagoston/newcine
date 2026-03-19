@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Crown, Send, AlertTriangle } from 'lucide-react';
+import { X, Crown, Send, AlertTriangle, Infinity } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -13,7 +13,7 @@ interface SettingsModalProps {
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { session, isPremium } = useAuth();
+  const { session, isPremium, isLifetimePremium } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'followers_only'>('public');
@@ -307,7 +307,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     {t('settings.accountStatus')}
                   </h4>
                   <div className="flex items-center gap-2">
-                    {isPremium ? (
+                    {isLifetimePremium ? (
+                      <>
+                        <Infinity className="w-5 h-5 text-emerald-500" />
+                        <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-500">
+                          {t('premium.lifetimePremium')}
+                        </span>
+                      </>
+                    ) : isPremium ? (
                       <>
                         <Crown className="w-5 h-5 text-yellow-500" />
                         <span className="text-lg font-semibold text-yellow-600 dark:text-yellow-500">
@@ -323,15 +330,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  navigate('/premium');
-                  onClose();
-                }}
-                className="w-full px-4 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-all font-semibold shadow-md hover:shadow-lg"
-              >
-                {t('settings.manageSubscription')}
-              </button>
+              {!isLifetimePremium && (
+                <button
+                  onClick={() => {
+                    navigate('/premium');
+                    onClose();
+                  }}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-all font-semibold shadow-md hover:shadow-lg"
+                >
+                  {t('settings.manageSubscription')}
+                </button>
+              )}
             </div>
           </div>
 

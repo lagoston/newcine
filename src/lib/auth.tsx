@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isPremium: boolean;
+  isLifetimePremium: boolean;
   signIn: (email: string, password: string, options?: { storeSession: 'localStorage' | 'sessionStorage' }) => Promise<any>;
   signUp: (email: string, password: string, username: string) => Promise<any>;
   signOut: () => Promise<void>;
@@ -24,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
+  const [isLifetimePremium, setIsLifetimePremium] = useState(false);
 
   useEffect(() => {
     console.log("🔄 Auth: Initializing...");
@@ -100,7 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setUser(null);
     setIsPremium(false);
-    
+    setIsLifetimePremium(false);
+
     try {
       localStorage.removeItem('supabase.auth.token');
       localStorage.removeItem('supabase.auth.refreshToken');
@@ -117,36 +120,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkPremiumStatus = async () => {
     if (!user?.id) return;
-    
+
     try {
       console.log("🔍 Checking premium status...");
-      
-      // IMPORTANT: Changed to use a direct RPC call to get the latest status
-      // This bypasses any potential caching and ensures we get the latest data
-      const { data, error } = await supabase.rpc('get_user_premium_status', {
-        user_id_input: user.id
-      });
 
-      if (error) {
-        console.error('Error getting premium status:', error);
-        return;
+      const [premiumResult, lifetimeResult] = await Promise.all([
+        supabase.rpc('get_user_premium_status', { p_user_id: user.id }),
+        supabase.rpc('is_lifetime_premium', { p_user_id: user.id })
+      ]);
+
+      if (premiumResult.error) {
+        console.error('Error getting premium status:', premiumResult.error);
+      } else {
+        const isPremiumUser = premiumResult.data || false;
+        setIsPremium(isPremiumUser);
+        console.log(`Premium status: ${isPremiumUser ? 'Premium' : 'Free'}`);
       }
 
-      // Set premium status based on RPC result, which will be a boolean
-      const isPremiumUser = data || false;
-      setIsPremium(isPremiumUser);
-      
-      console.log(`Premium status check result: ${isPremiumUser ? 'Premium' : 'Free'}`);
+      if (lifetimeResult.error) {
+        console.error('Error getting lifetime status:', lifetimeResult.error);
+      } else {
+        const isLifetime = lifetimeResult.data || false;
+        setIsLifetimePremium(isLifetime);
+        if (isLifetime) {
+          console.log('User has LIFETIME premium');
+        }
+      }
     } catch (error) {
       console.error('Error checking premium status:', error);
-      // Default to what the profile says
       const { data } = await supabase
         .from('profiles')
-        .select('plan_type')
+        .select('plan_type, lifetime_premium')
         .eq('id', user.id)
         .single();
-      
+
       setIsPremium(data?.plan_type === 'premium');
+      setIsLifetimePremium(data?.lifetime_premium || false);
     }
   };
 
@@ -364,6 +373,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     loading,
     isPremium,
+    isLifetimePremium,
     signIn,
     signUp,
     signOut,
