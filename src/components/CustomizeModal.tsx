@@ -306,7 +306,7 @@ const getTagColorClasses = (category: string) => {
     case 'oracle':
       return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400';
     case 'special':
-      return 'bg-gray-900 dark:bg-gray-100/10 text-white dark:text-gray-200';
+      return 'bg-red-900 dark:bg-red-900/60 text-white dark:text-red-100';
     default:
       return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
   }
@@ -332,8 +332,8 @@ const getCategoryButtonStyle = (isActive: boolean, category: string) => {
         : 'bg-pink-600 text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600';
     case 'special':
       return isActive
-        ? 'bg-gray-700 text-white dark:bg-gray-600 dark:text-gray-100'
-        : 'bg-gray-900 text-white hover:bg-black dark:bg-gray-700 dark:hover:bg-gray-600';
+        ? 'bg-red-800 text-white dark:bg-red-900/70 dark:text-red-100'
+        : 'bg-red-900 text-white hover:bg-red-800 dark:bg-red-900 dark:hover:bg-red-800';
     default:
       return isActive
         ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'

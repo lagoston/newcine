@@ -765,6 +765,8 @@ export default function Profile() {
         return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
       case 'oracle':
         return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400';
+      case 'special':
+        return 'bg-red-900 dark:bg-red-900/60 text-white dark:text-red-100';
       default:
         return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
     }
