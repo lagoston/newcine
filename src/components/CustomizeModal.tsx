@@ -1376,10 +1376,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       key={tag.id}
                       className={`relative group rounded-2xl border ${
                         tag.is_unlocked
-                          ? 'border-gray-600/50 dark:border-gray-500/40 bg-gray-900/[0.06] dark:bg-gray-900/30'
-                          : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
+                          ? 'border-red-800/50 dark:border-red-700/40 bg-red-900/[0.06] dark:bg-red-900/20'
+                          : 'border-red-200/50 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20'
                       } p-4 transition-all duration-200 backdrop-blur-sm ${
-                        tag.is_unlocked ? 'hover:border-gray-700/70 dark:hover:border-gray-400/50' : ''
+                        tag.is_unlocked ? 'hover:border-red-700/70 dark:hover:border-red-600/50' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between">
@@ -1433,8 +1433,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         )}
                       </div>
                       {tag.is_unlocked && (
-                        <div className="mt-3 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div className="h-full w-full rounded-full bg-gradient-to-r from-gray-700 to-gray-950 dark:from-gray-500 dark:to-gray-300" />
+                        <div className="mt-3 h-1.5 bg-red-200 dark:bg-red-900/40 rounded-full overflow-hidden">
+                          <div className="h-full w-full rounded-full bg-gradient-to-r from-red-700 to-red-950 dark:from-red-600 dark:to-red-400" />
                         </div>
                       )}
                     </div>

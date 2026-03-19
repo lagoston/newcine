@@ -756,9 +756,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   )}
                 </div>
 
-                {/* Assistir em */}
+                {/* Assistir em - desktop only (mobile shows after cast) */}
                 {hasStreamingProviders && (
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <div className="hidden md:block bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
                       {t('movies.watchOn')}
                     </h3>
@@ -909,6 +909,32 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                         <div key={actor.id} className="flex items-center justify-between">
                           <span className="text-sm text-gray-600 dark:text-gray-400">{actor.character}</span>
                           <span className="text-sm text-gray-900 dark:text-white">{actor.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Assistir em - mobile only (desktop shows in left column) */}
+                {hasStreamingProviders && (
+                  <div className="md:hidden bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                      {t('movies.watchOn')}
+                    </h3>
+                    <div className="flex flex-wrap gap-3">
+                      {movie.watchProviders.flatrate.map((provider) => (
+                        <div
+                          key={provider.provider_id}
+                          className="relative group"
+                        >
+                          <img
+                            src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
+                            alt={provider.provider_name}
+                            className="h-10 w-10 rounded-lg object-contain"
+                          />
+                          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            {provider.provider_name}
+                          </div>
                         </div>
                       ))}
                     </div>
