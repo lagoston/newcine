@@ -1078,7 +1078,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border-2 border-blue-300/50 dark:border-blue-500/30 shadow-xl p-6">
+        <div className="relative rounded-2xl bg-violet-50/40 dark:bg-violet-950/30 backdrop-blur-xl border-2 border-violet-300/50 dark:border-violet-500/30 shadow-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
@@ -1152,13 +1152,13 @@ export default function Profile() {
                 </motion.div>
               </AnimatePresence>
               {followedUsersCarousel.length > CAROUSEL_PAGE_SIZE && (
-                <div className="flex justify-center gap-1.5 mt-2 pb-1">
+                <div className="flex justify-center gap-1 mt-2 pb-1">
                   {Array.from({ length: Math.ceil(followedUsersCarousel.length / CAROUSEL_PAGE_SIZE) }).map((_, i) => (
                     <button
                       key={i}
                       onClick={() => setCarouselOffset(i * CAROUSEL_PAGE_SIZE)}
-                      className={`rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-blue-500 w-4' : 'bg-gray-300 dark:bg-gray-600 w-2'}`}
-                      style={{ height: '6px' }}
+                      className={`rounded-full transition-all duration-300 ${carouselOffset === i * CAROUSEL_PAGE_SIZE ? 'bg-violet-500 w-2' : 'bg-gray-300 dark:bg-gray-600 w-1'}`}
+                      style={{ height: '3px' }}
                     />
                   ))}
                 </div>
@@ -1270,6 +1270,16 @@ export default function Profile() {
                     );
                   })}
                 </div>
+                {ratedMoviesCount > 0 && (() => {
+                  const totalSum = Object.entries(ratingDistribution).reduce((acc, [r, count]) => acc + Number(r) * count, 0);
+                  const avg = totalSum / ratedMoviesCount;
+                  return (
+                    <div className="mt-4 pt-3 border-t border-gray-200/50 dark:border-gray-700/50 flex items-center justify-end gap-2">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{t('profile.stats.averageRating')}:</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{avg.toFixed(1)}</span>
+                    </div>
+                  );
+                })()}
               </div>
 
               {favoriteDecade && (

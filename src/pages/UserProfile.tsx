@@ -865,6 +865,16 @@ export default function UserProfile() {
                     );
                   })}
                 </div>
+                {ratedMoviesCount > 0 && (() => {
+                  const totalSum = Object.entries(ratingDistribution).reduce((acc, [r, count]) => acc + Number(r) * count, 0);
+                  const avg = totalSum / ratedMoviesCount;
+                  return (
+                    <div className="mt-4 pt-3 border-t border-gray-200/50 dark:border-gray-700/50 flex items-center justify-end gap-2">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{t('profile.stats.averageRating')}:</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{avg.toFixed(1)}</span>
+                    </div>
+                  );
+                })()}
               </div>
 
               {favoriteDecade && (

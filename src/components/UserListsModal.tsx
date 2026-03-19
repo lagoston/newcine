@@ -114,7 +114,7 @@ export default function UserListsModal({ isOpen, onClose, userId }: UserListsMod
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/50 flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+4rem)]">
       <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-xl shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center">
