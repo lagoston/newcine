@@ -125,8 +125,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("🔍 Checking premium status...");
 
       const [premiumResult, lifetimeResult] = await Promise.all([
-        supabase.rpc('get_user_premium_status', { p_user_id: user.id }),
-        supabase.rpc('is_lifetime_premium', { p_user_id: user.id })
+        supabase.rpc('get_user_premium_status', { user_id_input: user.id }),
+        supabase.rpc('is_lifetime_premium', { user_id_input: user.id })
       ]);
 
       if (premiumResult.error) {
