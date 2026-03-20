@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getEssenceLabel } from '../lib/mood-genres';
 import { Link } from 'react-router-dom';
 import { Eye, Wand2, BrainCircuit, Loader2, Scroll, Info, X, RefreshCw, Sparkles } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
@@ -623,7 +624,7 @@ export default function OracleHub() {
                 <div className="space-y-4">
                   <div className="rounded-xl p-5 border border-pink-300/50 dark:border-pink-500/30 bg-pink-50/50 dark:bg-pink-500/10">
                     <h3 className="text-base font-bold text-pink-600 dark:text-pink-400 mb-2">
-                      {isPt ? `Sua Essencia (${archetypeInfo.archetype_name})` : `Your Essence (${archetypeInfo.archetype_name})`}
+                      {isPt ? `Sua Essencia (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'pt')})` : `Your Essence (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'en')})`}
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{archetypeInfo.archetype_description}</p>
                   </div>
@@ -678,7 +679,7 @@ export default function OracleHub() {
                   <div className="rounded-xl p-5 border border-blue-300/50 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/10">
                     <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
                       <span className="text-2xl">1.</span>
-                      {isPt ? `A Essencia (${archetypeInfo.archetype_name})` : `The Essence (${archetypeInfo.archetype_name})`}
+                      {isPt ? `A Essencia (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'pt')})` : `The Essence (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'en')})`}
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-3">
                       {isPt

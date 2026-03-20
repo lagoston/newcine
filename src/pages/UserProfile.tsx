@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { getEssenceLabel } from '../lib/mood-genres';
 import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, Archive as ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus, ChevronDown, ArrowLeft, Scroll, Info, X } from 'lucide-react';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import GlassLoader from '../components/GlassLoader';
@@ -1236,7 +1237,7 @@ export default function UserProfile() {
               </div>
               <div className="space-y-4">
                 <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
-                  <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? `A Essencia (${essenceArchetype.archetype_name})` : `The Essence (${essenceArchetype.archetype_name})`}</h3>
+                  <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? `A Essencia (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'pt')})` : `The Essence (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'en')})`}</h3>
                   <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.archetype_description}</p>
                 </div>
                 <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
@@ -1278,7 +1279,7 @@ export default function UserProfile() {
               </p>
               <div className="space-y-4">
                 <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
-                  <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? `1. A Essencia (${essenceArchetype?.archetype_name})` : `1. The Essence (${essenceArchetype?.archetype_name})`}</h3>
+                  <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? `1. A Essencia (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'pt')})` : `1. The Essence (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'en')})`}</h3>
                   <p className="text-gray-300 text-sm leading-relaxed">
                     {i18n.language.startsWith('pt')
                       ? 'As duas primeiras letras sao calculadas automaticamente com base nos generos dos filmes que voce avaliou. Cada avaliacao alimenta um algoritmo que identifica seus padroes de preferencia.'
