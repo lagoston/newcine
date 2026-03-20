@@ -623,13 +623,13 @@ export default function OracleHub() {
                 <div className="space-y-4">
                   <div className="rounded-xl p-5 border border-pink-300/50 dark:border-pink-500/30 bg-pink-50/50 dark:bg-pink-500/10">
                     <h3 className="text-base font-bold text-pink-600 dark:text-pink-400 mb-2">
-                      {isPt ? 'Sua Essencia (As Duas Primeiras Letras)' : 'Your Essence (First Two Letters)'}
+                      {isPt ? `Sua Essencia (${archetypeInfo.archetype_name})` : `Your Essence (${archetypeInfo.archetype_name})`}
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{archetypeInfo.archetype_description}</p>
                   </div>
                   <div className="rounded-xl p-5 border border-blue-300/50 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/10">
                     <h3 className="text-base font-bold text-blue-600 dark:text-blue-400 mb-2">
-                      {isPt ? 'Sua Sintonia (A Terceira Letra)' : 'Your Attunement (Third Letter)'}
+                      {isPt ? `Sua Sintonia (${archetypeInfo.subcategory_name})` : `Your Attunement (${archetypeInfo.subcategory_name})`}
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{archetypeInfo.subcategory_description}</p>
                   </div>
@@ -678,7 +678,7 @@ export default function OracleHub() {
                   <div className="rounded-xl p-5 border border-blue-300/50 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/10">
                     <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
                       <span className="text-2xl">1.</span>
-                      {isPt ? 'A Essencia (As Duas Primeiras Letras)' : 'The Essence (First Two Letters)'}
+                      {isPt ? `A Essencia (${archetypeInfo.archetype_name})` : `The Essence (${archetypeInfo.archetype_name})`}
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-3">
                       {isPt
@@ -696,7 +696,7 @@ export default function OracleHub() {
                   <div className="rounded-xl p-5 border border-purple-300/50 dark:border-purple-500/30 bg-purple-50/50 dark:bg-purple-500/10">
                     <h3 className="text-lg font-bold text-purple-600 dark:text-purple-400 mb-3 flex items-center gap-2">
                       <span className="text-2xl">2.</span>
-                      {isPt ? 'A Sintonia (A Terceira Letra)' : 'The Attunement (Third Letter)'}
+                      {isPt ? `A Sintonia (${archetypeInfo.subcategory_name})` : `The Attunement (${archetypeInfo.subcategory_name})`}
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
                       {t('oracle.subcategoryExplain')}

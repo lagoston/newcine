@@ -582,13 +582,13 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 <div className="space-y-4">
                   <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
                     <h3 className="text-base font-bold text-pink-400 mb-2">
-                      {isPt ? 'Sua Essência (As Duas Primeiras Letras)' : 'Your Essence (First Two Letters)'}
+                      {isPt ? `Sua Essência (${archetypeInfo.archetype_name})` : `Your Essence (${archetypeInfo.archetype_name})`}
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed">{archetypeInfo.archetype_description}</p>
                   </div>
                   <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
                     <h3 className="text-base font-bold text-blue-400 mb-2">
-                      {isPt ? 'Sua Sintonia (A Terceira Letra)' : 'Your Attunement (Third Letter)'}
+                      {isPt ? `Sua Sintonia (${archetypeInfo.subcategory_name})` : `Your Attunement (${archetypeInfo.subcategory_name})`}
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed">{archetypeInfo.subcategory_description}</p>
                   </div>
@@ -641,7 +641,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 <div className="space-y-4">
                   <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
                     <h3 className="text-base font-bold text-blue-300 mb-2 flex items-center gap-2">
-                      <span>1.</span> {isPt ? 'A Essência (As Duas Primeiras Letras)' : 'The Essence (First Two Letters)'}
+                      <span>1.</span> {isPt ? `A Essência (${archetypeInfo.archetype_name})` : `The Essence (${archetypeInfo.archetype_name})`}
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed mb-3">
                       {isPt
@@ -668,7 +668,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
                   <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
                     <h3 className="text-base font-bold text-amber-300 mb-2 flex items-center gap-2">
-                      <span>2.</span> {isPt ? 'A Sintonia (A Terceira Letra)' : 'The Attunement (Third Letter)'}
+                      <span>2.</span> {isPt ? `A Sintonia (${archetypeInfo.subcategory_name})` : `The Attunement (${archetypeInfo.subcategory_name})`}
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed mb-3">
                       {isPt

@@ -1615,11 +1615,11 @@ export default function Profile() {
                 </div>
                 <div className="space-y-4">
                   <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
-                    <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? 'Sua Essência (As Duas Primeiras Letras)' : 'Your Essence (First Two Letters)'}</h3>
+                    <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? `Sua Essência (${essenceArchetype.archetype_name})` : `Your Essence (${essenceArchetype.archetype_name})`}</h3>
                     <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.archetype_description}</p>
                   </div>
                   <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
-                    <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? 'Sua Sintonia (A Terceira Letra)' : 'Your Attunement (Third Letter)'}</h3>
+                    <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? `Sua Sintonia (${essenceArchetype.subcategory_name})` : `Your Attunement (${essenceArchetype.subcategory_name})`}</h3>
                     <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.subcategory_description}</p>
                   </div>
                 </div>
@@ -1658,7 +1658,7 @@ export default function Profile() {
                 <div className="space-y-4">
                   <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
                     <h3 className="text-base font-bold text-blue-300 mb-2 flex items-center gap-2">
-                      <span>1.</span> {i18n.language.startsWith('pt') ? 'A Essência (As Duas Primeiras Letras)' : 'The Essence (First Two Letters)'}
+                      <span>1.</span> {i18n.language.startsWith('pt') ? `A Essência (${essenceArchetype?.archetype_name})` : `The Essence (${essenceArchetype?.archetype_name})`}
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed mb-3">
                       {i18n.language.startsWith('pt')
@@ -1668,7 +1668,7 @@ export default function Profile() {
                   </div>
                   <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
                     <h3 className="text-base font-bold text-amber-300 mb-2 flex items-center gap-2">
-                      <span>2.</span> {i18n.language.startsWith('pt') ? 'A Sintonia (A Terceira Letra)' : 'The Attunement (Third Letter)'}
+                      <span>2.</span> {i18n.language.startsWith('pt') ? `A Sintonia (${essenceArchetype?.subcategory_name})` : `The Attunement (${essenceArchetype?.subcategory_name})`}
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed">
                       {i18n.language.startsWith('pt')

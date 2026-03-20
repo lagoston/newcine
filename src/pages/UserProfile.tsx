@@ -1236,11 +1236,11 @@ export default function UserProfile() {
               </div>
               <div className="space-y-4">
                 <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
-                  <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? 'A Essencia (As Duas Primeiras Letras)' : 'The Essence (First Two Letters)'}</h3>
+                  <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? `A Essencia (${essenceArchetype.archetype_name})` : `The Essence (${essenceArchetype.archetype_name})`}</h3>
                   <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.archetype_description}</p>
                 </div>
                 <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
-                  <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? 'A Sintonia (A Terceira Letra)' : 'The Attunement (Third Letter)'}</h3>
+                  <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? `A Sintonia (${essenceArchetype.subcategory_name})` : `The Attunement (${essenceArchetype.subcategory_name})`}</h3>
                   <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.subcategory_description}</p>
                 </div>
               </div>
@@ -1278,7 +1278,7 @@ export default function UserProfile() {
               </p>
               <div className="space-y-4">
                 <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
-                  <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? '1. A Essencia (As Duas Primeiras Letras)' : '1. The Essence (First Two Letters)'}</h3>
+                  <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? `1. A Essencia (${essenceArchetype?.archetype_name})` : `1. The Essence (${essenceArchetype?.archetype_name})`}</h3>
                   <p className="text-gray-300 text-sm leading-relaxed">
                     {i18n.language.startsWith('pt')
                       ? 'As duas primeiras letras sao calculadas automaticamente com base nos generos dos filmes que voce avaliou. Cada avaliacao alimenta um algoritmo que identifica seus padroes de preferencia.'
@@ -1286,7 +1286,7 @@ export default function UserProfile() {
                   </p>
                 </div>
                 <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
-                  <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? '2. A Sintonia (A Terceira Letra)' : '2. The Attunement (Third Letter)'}</h3>
+                  <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? `2. A Sintonia (${essenceArchetype?.subcategory_name})` : `2. The Attunement (${essenceArchetype?.subcategory_name})`}</h3>
                   <p className="text-gray-300 text-sm leading-relaxed">
                     {i18n.language.startsWith('pt')
                       ? 'A terceira letra vem de um questionario de 12 perguntas. Ela revela a sintonia emocional com o cinema: Radiante (A), Sombrio (B), Classico (K), Experimental (X), Denso (D) ou Leve (L).'
