@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEssenceLabel } from '../lib/mood-genres';
+import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, Award, TrendingDown, X, Loader2, Settings, ChevronDown, Scroll, Info, RefreshCw } from 'lucide-react';
 import PentagonGraph from '../components/PentagonGraph';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
@@ -1632,7 +1632,7 @@ export default function Profile() {
                     <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.archetype_description}</p>
                   </div>
                   <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
-                    <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? `Sua Sintonia (${essenceArchetype.subcategory_name})` : `Your Attunement (${essenceArchetype.subcategory_name})`}</h3>
+                    <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? `Sua Sintonia (${getSubcategoryName(essenceArchetype.subcategory_name, 'pt')})` : `Your Attunement (${getSubcategoryName(essenceArchetype.subcategory_name, 'en')})`}</h3>
                     <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.subcategory_description}</p>
                   </div>
                 </div>
@@ -1697,7 +1697,7 @@ export default function Profile() {
                   </div>
                   <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
                     <h3 className="text-base font-bold text-amber-300 mb-2 flex items-center gap-2">
-                      <span>2.</span> {i18n.language.startsWith('pt') ? `A Sintonia (${essenceArchetype?.subcategory_name})` : `The Attunement (${essenceArchetype?.subcategory_name})`}
+                      <span>2.</span> {i18n.language.startsWith('pt') ? `A Sintonia (${getSubcategoryName(essenceArchetype?.subcategory_name, 'pt')})` : `The Attunement (${getSubcategoryName(essenceArchetype?.subcategory_name, 'en')})`}
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed mb-3">
                       {i18n.language.startsWith('pt')
@@ -1711,7 +1711,7 @@ export default function Profile() {
                     </p>
                     <ul className="space-y-1.5 text-xs">
                       {[
-                        { a: i18n.language.startsWith('pt') ? 'Radiante (A)' : 'Radiant (A)', b: i18n.language.startsWith('pt') ? 'Sombrio (B)' : 'Shadow (B)', desc: i18n.language.startsWith('pt') ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#64748b' },
+                        { a: i18n.language.startsWith('pt') ? 'Radiante (A)' : 'Radiant (A)', b: i18n.language.startsWith('pt') ? 'Sombrio (B)' : 'Shadowy (B)', desc: i18n.language.startsWith('pt') ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#8b5cf6' },
                         { a: i18n.language.startsWith('pt') ? 'Clássico (K)' : 'Classic (K)', b: i18n.language.startsWith('pt') ? 'Experimental (X)' : 'Experimental (X)', desc: i18n.language.startsWith('pt') ? 'Tradição vs. Ousadia' : 'Tradition vs. Boldness', ca: '#ef4444', cb: '#3b82f6' },
                         { a: i18n.language.startsWith('pt') ? 'Denso (D)' : 'Dense (D)', b: i18n.language.startsWith('pt') ? 'Leve (L)' : 'Light (L)', desc: i18n.language.startsWith('pt') ? 'Complexidade vs. Acessibilidade' : 'Complexity vs. Accessibility', ca: '#6b7280', cb: '#10b981' },
                       ].map((row, idx) => (

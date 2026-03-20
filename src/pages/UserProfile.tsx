@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getEssenceLabel } from '../lib/mood-genres';
+import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, Archive as ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus, ChevronDown, ArrowLeft, Scroll, Info, X } from 'lucide-react';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import GlassLoader from '../components/GlassLoader';
@@ -1238,7 +1238,7 @@ export default function UserProfile() {
               </button>
               <div className="flex items-center justify-center gap-3 mb-6">
                 <Scroll className="w-8 h-8 text-pink-400" style={{ filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.5))' }} />
-                <h2 className="text-2xl font-bold text-white">{i18n.language.startsWith('pt') ? 'Revelacao' : 'Revelation'}</h2>
+                <h2 className="text-2xl font-bold text-white">{i18n.language.startsWith('pt') ? 'Revelação' : 'Revelation'}</h2>
               </div>
               <div className="text-center mb-6 rounded-xl p-5 border border-gray-700/60 bg-gray-800/50">
                 <p className="text-3xl font-bold mb-1" style={{ color: (() => { const t = essencePersonality.personalidade_completa?.charAt(2) ?? ''; return ({ A: '#fbbf24', B: '#64748b', K: '#ef4444', X: '#3b82f6', D: '#6b7280', L: '#10b981' } as Record<string,string>)[t] || '#3b82f6'; })() }}>
@@ -1252,7 +1252,7 @@ export default function UserProfile() {
                   <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.archetype_description}</p>
                 </div>
                 <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
-                  <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? `A Sintonia (${essenceArchetype.subcategory_name})` : `The Attunement (${essenceArchetype.subcategory_name})`}</h3>
+                  <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? `A Sintonia (${getSubcategoryName(essenceArchetype.subcategory_name, 'pt')})` : `The Attunement (${getSubcategoryName(essenceArchetype.subcategory_name, 'en')})`}</h3>
                   <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.subcategory_description}</p>
                 </div>
               </div>
@@ -1317,7 +1317,7 @@ export default function UserProfile() {
                 </div>
                 <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
                   <h3 className="text-base font-bold text-amber-300 mb-2 flex items-center gap-2">
-                    <span>2.</span> {i18n.language.startsWith('pt') ? `A Sintonia (${essenceArchetype?.subcategory_name})` : `The Attunement (${essenceArchetype?.subcategory_name})`}
+                    <span>2.</span> {i18n.language.startsWith('pt') ? `A Sintonia (${getSubcategoryName(essenceArchetype?.subcategory_name, 'pt')})` : `The Attunement (${getSubcategoryName(essenceArchetype?.subcategory_name, 'en')})`}
                   </h3>
                   <p className="text-gray-300 text-sm leading-relaxed mb-3">
                     {i18n.language.startsWith('pt')
@@ -1331,7 +1331,7 @@ export default function UserProfile() {
                   </p>
                   <ul className="space-y-1.5 text-xs">
                     {[
-                      { a: i18n.language.startsWith('pt') ? 'Radiante (A)' : 'Radiant (A)', b: i18n.language.startsWith('pt') ? 'Sombrio (B)' : 'Shadow (B)', desc: i18n.language.startsWith('pt') ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#64748b' },
+                      { a: i18n.language.startsWith('pt') ? 'Radiante (A)' : 'Radiant (A)', b: i18n.language.startsWith('pt') ? 'Sombrio (B)' : 'Shadowy (B)', desc: i18n.language.startsWith('pt') ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#8b5cf6' },
                       { a: i18n.language.startsWith('pt') ? 'Clássico (K)' : 'Classic (K)', b: i18n.language.startsWith('pt') ? 'Experimental (X)' : 'Experimental (X)', desc: i18n.language.startsWith('pt') ? 'Tradição vs. Ousadia' : 'Tradition vs. Boldness', ca: '#ef4444', cb: '#3b82f6' },
                       { a: i18n.language.startsWith('pt') ? 'Denso (D)' : 'Dense (D)', b: i18n.language.startsWith('pt') ? 'Leve (L)' : 'Light (L)', desc: i18n.language.startsWith('pt') ? 'Complexidade vs. Acessibilidade' : 'Complexity vs. Accessibility', ca: '#6b7280', cb: '#10b981' },
                     ].map((row, idx) => (

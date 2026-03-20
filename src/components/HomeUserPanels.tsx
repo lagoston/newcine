@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getEssenceLabel } from '../lib/mood-genres';
+import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link, useNavigate } from 'react-router-dom';
 import { Library as LibraryIcon, Lock, Star, Film, Clock, Scroll, Info, X, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -604,7 +604,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                   </div>
                   <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
                     <h3 className="text-base font-bold text-blue-400 mb-2">
-                      {isPt ? `Sua Sintonia (${archetypeInfo.subcategory_name})` : `Your Attunement (${archetypeInfo.subcategory_name})`}
+                      {isPt ? `Sua Sintonia (${getSubcategoryName(archetypeInfo.subcategory_name, 'pt')})` : `Your Attunement (${getSubcategoryName(archetypeInfo.subcategory_name, 'en')})`}
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed">{archetypeInfo.subcategory_description}</p>
                   </div>
@@ -684,7 +684,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
                   <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
                     <h3 className="text-base font-bold text-amber-300 mb-2 flex items-center gap-2">
-                      <span>2.</span> {isPt ? `A Sintonia (${archetypeInfo.subcategory_name})` : `The Attunement (${archetypeInfo.subcategory_name})`}
+                      <span>2.</span> {isPt ? `A Sintonia (${getSubcategoryName(archetypeInfo.subcategory_name, 'pt')})` : `The Attunement (${getSubcategoryName(archetypeInfo.subcategory_name, 'en')})`}
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed mb-3">
                       {isPt
@@ -698,7 +698,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                     </p>
                     <ul className="space-y-1.5 text-xs">
                       {[
-                        { a: isPt ? 'Radiante (A)' : 'Radiant (A)', b: isPt ? 'Sombrio (B)' : 'Shadow (B)', desc: isPt ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#64748b' },
+                        { a: isPt ? 'Radiante (A)' : 'Radiant (A)', b: isPt ? 'Sombrio (B)' : 'Shadowy (B)', desc: isPt ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#8b5cf6' },
                         { a: isPt ? 'Clássico (K)' : 'Classic (K)', b: isPt ? 'Experimental (X)' : 'Experimental (X)', desc: isPt ? 'Tradição vs. Ousadia' : 'Tradition vs. Boldness', ca: '#ef4444', cb: '#3b82f6' },
                         { a: isPt ? 'Denso (D)' : 'Dense (D)', b: isPt ? 'Leve (L)' : 'Light (L)', desc: isPt ? 'Complexidade vs. Acessibilidade' : 'Complexity vs. Accessibility', ca: '#6b7280', cb: '#10b981' },
                       ].map((row, i) => (

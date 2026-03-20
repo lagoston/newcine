@@ -70,3 +70,18 @@ export function getEssenceLabel(
   const b = (letter2 && map[letter2]) || '';
   return [a, b].filter(Boolean).join(' ');
 }
+
+const SUBCATEGORY_NAME_EN: Record<string, string> = {
+  'Radiante': 'Radiant',
+  'Sombrio': 'Shadowy',
+  'Clássico': 'Classic',
+  'Experimental': 'Experimental',
+  'Denso': 'Dense',
+  'Leve': 'Light',
+};
+
+export function getSubcategoryName(ptName: string | null | undefined, lang: 'pt' | 'en'): string {
+  if (!ptName) return '';
+  if (lang === 'pt') return ptName;
+  return SUBCATEGORY_NAME_EN[ptName] || ptName;
+}

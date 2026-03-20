@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getEssenceLabel } from '../lib/mood-genres';
+import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link } from 'react-router-dom';
 import { Eye, Wand2, BrainCircuit, Loader2, Scroll, Info, X, RefreshCw, Sparkles } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
@@ -391,7 +391,7 @@ export default function OracleHub() {
                   className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl hover:shadow-lg hover:shadow-pink-500/25 transition-all text-sm font-semibold"
                 >
                   <Scroll className="w-4 h-4" />
-                  <span>{isPt ? 'Revelacao' : 'Revelation'}</span>
+                  <span>{isPt ? 'Revelação' : 'Revelation'}</span>
                 </motion.button>
 
                 <motion.button
@@ -518,7 +518,7 @@ export default function OracleHub() {
 
                 <div className="flex items-center justify-center gap-3 mb-6">
                   <Scroll className="w-8 h-8 text-pink-500" style={{ filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.5))' }} />
-                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{isPt ? 'Revelacao' : 'Revelation'}</h2>
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{isPt ? 'Revelação' : 'Revelation'}</h2>
                 </div>
 
                 <div className="text-center mb-6 rounded-xl p-5 border border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-700/50">
@@ -539,7 +539,7 @@ export default function OracleHub() {
                   </div>
                   <div className="rounded-xl p-5 border border-blue-300/50 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/10">
                     <h3 className="text-base font-bold text-blue-600 dark:text-blue-400 mb-2">
-                      {isPt ? `Sua Sintonia (${archetypeInfo.subcategory_name})` : `Your Attunement (${archetypeInfo.subcategory_name})`}
+                      {isPt ? `Sua Sintonia (${getSubcategoryName(archetypeInfo.subcategory_name, 'pt')})` : `Your Attunement (${getSubcategoryName(archetypeInfo.subcategory_name, 'en')})`}
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{archetypeInfo.subcategory_description}</p>
                   </div>
@@ -616,7 +616,7 @@ export default function OracleHub() {
                   <div className="rounded-xl p-5 border border-amber-300/50 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/5">
                     <h3 className="text-base font-bold text-amber-600 dark:text-amber-300 mb-2 flex items-center gap-2">
                       <span>2.</span>
-                      {isPt ? `A Sintonia (${archetypeInfo.subcategory_name})` : `The Attunement (${archetypeInfo.subcategory_name})`}
+                      {isPt ? `A Sintonia (${getSubcategoryName(archetypeInfo.subcategory_name, 'pt')})` : `The Attunement (${getSubcategoryName(archetypeInfo.subcategory_name, 'en')})`}
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-3">
                       {isPt
@@ -630,7 +630,7 @@ export default function OracleHub() {
                     </p>
                     <ul className="space-y-1.5 text-xs">
                       {[
-                        { a: isPt ? 'Radiante (A)' : 'Radiant (A)', b: isPt ? 'Sombrio (B)' : 'Shadow (B)', desc: isPt ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#64748b' },
+                        { a: isPt ? 'Radiante (A)' : 'Radiant (A)', b: isPt ? 'Sombrio (B)' : 'Shadowy (B)', desc: isPt ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#8b5cf6' },
                         { a: isPt ? 'Clássico (K)' : 'Classic (K)', b: isPt ? 'Experimental (X)' : 'Experimental (X)', desc: isPt ? 'Tradição vs. Ousadia' : 'Tradition vs. Boldness', ca: '#ef4444', cb: '#3b82f6' },
                         { a: isPt ? 'Denso (D)' : 'Dense (D)', b: isPt ? 'Leve (L)' : 'Light (L)', desc: isPt ? 'Complexidade vs. Acessibilidade' : 'Complexity vs. Accessibility', ca: '#6b7280', cb: '#10b981' },
                       ].map((row, i) => (
