@@ -32,17 +32,6 @@ const ArchetypeSymbol = React.memo(function ArchetypeSymbol({
   const getSymbolPath = () => {
     switch (archetypeId) {
       // Espectro Emocional (E)
-      case 'EE': // Alma Sensível
-        return (
-          <g>
-            <circle cx="32" cy="32" r="24" fill="none" stroke={color} strokeWidth="2.5" />
-            <path d="M20,32 Q32,20 44,32 Q32,44 20,32" fill={color} opacity="0.3" />
-            <circle cx="28" cy="28" r="3" fill={color} />
-            <circle cx="36" cy="28" r="3" fill={color} />
-            <path d="M24,36 Q32,42 40,36" stroke={color} strokeWidth="2.5" fill="none" strokeLinecap="round" />
-          </g>
-        );
-
       case 'EI': // Filósofo do Coração
         return (
           <g>
@@ -96,20 +85,6 @@ const ArchetypeSymbol = React.memo(function ArchetypeSymbol({
             <circle cx="32" cy="32" r="3" fill={color} />
             <path d="M32,8 L32,18 M32,46 L32,56 M8,32 L18,32 M46,32 L56,32"
               stroke={color} strokeWidth="2" strokeLinecap="round" />
-          </g>
-        );
-
-      case 'II': // Arquiteto da Lógica
-        return (
-          <g>
-            <rect x="12" y="12" width="40" height="40" fill="none" stroke={color} strokeWidth="2.5" />
-            <rect x="18" y="18" width="28" height="28" fill="none" stroke={color} strokeWidth="2" />
-            <rect x="24" y="24" width="16" height="16" fill="none" stroke={color} strokeWidth="2" />
-            <circle cx="32" cy="32" r="4" fill={color} />
-            <line x1="12" y1="12" x2="20" y2="20" stroke={color} strokeWidth="1.5" />
-            <line x1="52" y1="12" x2="44" y2="20" stroke={color} strokeWidth="1.5" />
-            <line x1="12" y1="52" x2="20" y2="44" stroke={color} strokeWidth="1.5" />
-            <line x1="52" y1="52" x2="44" y2="44" stroke={color} strokeWidth="1.5" />
           </g>
         );
 
@@ -176,18 +151,6 @@ const ArchetypeSymbol = React.memo(function ArchetypeSymbol({
           </g>
         );
 
-      case 'CC': // Patrono da História
-        return (
-          <g>
-            <path d="M32,12 L42,22 L42,52 L22,52 L22,22 Z" fill="none" stroke={color} strokeWidth="2.5" />
-            <path d="M22,22 L32,12 L32,22 Z" fill={color} opacity="0.3" />
-            <line x1="26" y1="28" x2="38" y2="28" stroke={color} strokeWidth="2" />
-            <line x1="26" y1="34" x2="38" y2="34" stroke={color} strokeWidth="2" />
-            <line x1="26" y1="40" x2="38" y2="40" stroke={color} strokeWidth="2" />
-            <circle cx="32" cy="46" r="2" fill={color} />
-          </g>
-        );
-
       case 'CS': // Esteta Clássico
         return (
           <g>
@@ -250,18 +213,6 @@ const ArchetypeSymbol = React.memo(function ArchetypeSymbol({
           </g>
         );
 
-      case 'SS': // Arquiteto dos Sentidos
-        return (
-          <g>
-            <path d="M32,12 L48,24 L48,44 L32,56 L16,44 L16,24 Z"
-              fill="none" stroke={color} strokeWidth="2.5" />
-            <path d="M32,20 L42,28 L42,40 L32,48 L22,40 L22,28 Z"
-              fill="none" stroke={color} strokeWidth="2" />
-            <circle cx="32" cy="32" r="6" fill={color} opacity="0.3" />
-            <circle cx="32" cy="32" r="3" fill={color} />
-          </g>
-        );
-
       case 'SR': // Mestre do Espetáculo
         return (
           <g>
@@ -318,18 +269,6 @@ const ArchetypeSymbol = React.memo(function ArchetypeSymbol({
               stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
             <circle cx="28" cy="28" r="2" fill={color} />
             <circle cx="36" cy="28" r="2" fill={color} />
-          </g>
-        );
-
-      case 'RR': // Espírito Livre
-        return (
-          <g>
-            <circle cx="32" cy="32" r="24" fill="none" stroke={color} strokeWidth="2.5" />
-            <circle cx="32" cy="32" r="16" fill="none" stroke={color} strokeWidth="2" strokeDasharray="4 4" />
-            <circle cx="32" cy="32" r="8" fill="none" stroke={color} strokeWidth="2" />
-            <circle cx="28" cy="28" r="2" fill={color} />
-            <circle cx="36" cy="28" r="2" fill={color} />
-            <path d="M26,36 Q32,40 38,36" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
           </g>
         );
 
