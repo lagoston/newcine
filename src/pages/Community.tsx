@@ -370,6 +370,7 @@ export default function Community() {
                               onDragStart={(e) => e.preventDefault()}
                               className="w-full aspect-[2/3] object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
                               loading="lazy"
+                              decoding="async"
                               style={{ userSelect: 'none', WebkitUserDrag: 'none' } as React.CSSProperties}
                             />
                           )}
@@ -462,6 +463,8 @@ export default function Community() {
                             src={profile.avatar_url}
                             alt={profile.username}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <User className="w-full h-full p-3 text-gray-400" />

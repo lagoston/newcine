@@ -215,6 +215,8 @@ export default function FollowersModal({
                             src={profile.avatar_url}
                             alt={profile.username}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <User className="w-full h-full p-2 text-gray-400" />

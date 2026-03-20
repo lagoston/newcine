@@ -723,7 +723,10 @@ export default function Profile() {
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '31536000',
+          upsert: true
+        });
 
       if (uploadError) throw uploadError;
 

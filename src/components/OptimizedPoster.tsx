@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Film } from 'lucide-react';
 
 interface OptimizedPosterProps {
@@ -19,25 +19,14 @@ const OptimizedPoster: React.FC<OptimizedPosterProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  useEffect(() => {
-    // Preload image
-    const img = new Image();
-    img.src = src;
+  const handleLoad = () => {
+    setImageLoaded(true);
+    onLoad?.();
+  };
 
-    img.onload = () => {
-      setImageLoaded(true);
-      onLoad?.();
-    };
-
-    img.onerror = () => {
-      setImageError(true);
-    };
-
-    return () => {
-      img.onload = null;
-      img.onerror = null;
-    };
-  }, [src, onLoad]);
+  const handleError = () => {
+    setImageError(true);
+  };
 
   if (imageError) {
     return (
@@ -63,6 +52,8 @@ const OptimizedPoster: React.FC<OptimizedPosterProps> = ({
         className={`${className} ${!imageLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
+        onLoad={handleLoad}
+        onError={handleError}
         onDragStart={(e) => e.preventDefault()}
         style={{
           contentVisibility: 'auto',

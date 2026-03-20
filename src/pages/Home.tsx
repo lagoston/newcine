@@ -255,6 +255,8 @@ const GuestDailyRecommendationBox: React.FC<GuestDailyBoxProps> = ({ onSignUp, c
                   src={`https://image.tmdb.org${poster}`}
                   alt=""
                   className="w-full h-full object-cover opacity-40 blur-[1px]"
+                  loading="lazy"
+                  decoding="async"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
                 <div className="absolute inset-0 bg-slate-800/60" />
