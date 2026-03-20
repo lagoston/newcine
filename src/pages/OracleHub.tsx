@@ -3,6 +3,7 @@ import { getEssenceLabel } from '../lib/mood-genres';
 import { Link } from 'react-router-dom';
 import { Eye, Wand2, BrainCircuit, Loader2, Scroll, Info, X, RefreshCw, Sparkles } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
+import PentagonGraph from '../components/PentagonGraph';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
@@ -26,98 +27,6 @@ interface ArchetypeInfo {
   archetype_description: string;
   subcategory_description: string;
 }
-
-const PentagonGraph: React.FC<{ points: { e: number; i: number; c: number; s: number; r: number }; subcategoryId: string }> = ({ points, subcategoryId }) => {
-  const size = 280;
-  const center = size / 2;
-  const radius = size / 2 - 40;
-
-  const maxPoint = Math.max(points.e, points.i, points.c, points.s, points.r, 1);
-  const normalized = {
-    e: (points.e / maxPoint) * 100,
-    i: (points.i / maxPoint) * 100,
-    c: (points.c / maxPoint) * 100,
-    s: (points.s / maxPoint) * 100,
-    r: (points.r / maxPoint) * 100,
-  };
-
-  const getSubcategoryColor = (id: string) => {
-    if (!id) return '#3b82f6';
-    const thirdLetter = id?.charAt(2);
-    const colors: Record<string, string> = {
-      'A': '#fbbf24',
-      'B': '#8b5cf6',
-      'K': '#ef4444',
-      'X': '#3b82f6',
-      'D': '#6b7280',
-      'L': '#10b981',
-    };
-    return colors[thirdLetter] || '#3b82f6';
-  };
-
-  const color = getSubcategoryColor(subcategoryId);
-  const angle = (Math.PI * 2) / 5;
-  const labels = ['E', 'I', 'C', 'S', 'R'];
-  const labelNames: Record<string, string> = {
-    'E': 'Emocional',
-    'I': 'Intelectual',
-    'C': 'Complexo',
-    'S': 'Simples',
-    'R': 'Realista'
-  };
-  const values = [normalized.e, normalized.i, normalized.c, normalized.s, normalized.r];
-
-  const getPoint = (index: number, value: number) => {
-    const pointRadius = (radius * value) / 100;
-    const x = center + pointRadius * Math.sin(angle * index - Math.PI / 2);
-    const y = center - pointRadius * Math.cos(angle * index - Math.PI / 2);
-    return { x, y };
-  };
-
-  const getLabelPoint = (index: number) => {
-    const labelRadius = radius + 25;
-    const x = center + labelRadius * Math.sin(angle * index - Math.PI / 2);
-    const y = center - labelRadius * Math.cos(angle * index - Math.PI / 2);
-    return { x, y };
-  };
-
-  const dataPoints = values.map((value, i) => getPoint(i, value));
-  const dataPath = dataPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
-  const gridLevels = [20, 40, 60, 80, 100];
-
-  return (
-    <svg width={size} height={size} className="drop-shadow-lg">
-      {gridLevels.map((level) => {
-        const gridPoints = labels.map((_, i) => getPoint(i, level));
-        const gridPath = gridPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
-        return (
-          <path key={level} d={gridPath} fill="none" stroke="#ffffff15" strokeWidth="1" />
-        );
-      })}
-      {labels.map((_, i) => {
-        const point = getPoint(i, 100);
-        return (
-          <line key={`axis-${i}`} x1={center} y1={center} x2={point.x} y2={point.y} stroke="#ffffff15" strokeWidth="1" />
-        );
-      })}
-      <path d={dataPath} fill={`${color}40`} stroke={color} strokeWidth="2.5" strokeLinejoin="round" />
-      {dataPoints.map((point, i) => (
-        <circle key={`point-${i}`} cx={point.x} cy={point.y} r="4" fill={color} stroke="#fff" strokeWidth="2" />
-      ))}
-      {labels.map((label, i) => {
-        const labelPoint = getLabelPoint(i);
-        return (
-          <g key={`label-${i}`} className="cursor-help">
-            <title>{labelNames[label]}</title>
-            <text x={labelPoint.x} y={labelPoint.y} textAnchor="middle" dominantBaseline="middle" className="text-lg font-bold fill-white" style={{ pointerEvents: 'all' }}>
-              {label}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-};
 
 const getSubcategoryColor = (personalityId: string | null) => {
   if (!personalityId || personalityId.length < 3) return '#3b82f6';
@@ -673,35 +582,69 @@ export default function OracleHub() {
 
                 <div className="space-y-5 text-gray-700 dark:text-gray-200">
                   <p className="text-center italic text-gray-600 dark:text-gray-400">
-                    {isPt ? 'Seu Arquetipo nao e adivinhacao. E a arquitetura de seus gostos, construida em duas etapas:' : 'Your Archetype is not divination. It is the architecture of your tastes, built in two stages:'}
+                    {isPt ? 'Seu Arquétipo não é adivinhação. É a arquitetura de seus gostos, construída em duas etapas:' : 'Your Archetype is not guesswork. It is the architecture of your tastes, built in two stages:'}
                   </p>
 
                   <div className="rounded-xl p-5 border border-blue-300/50 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/10">
-                    <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
-                      <span className="text-2xl">1.</span>
-                      {isPt ? `A Essencia (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'pt')})` : `The Essence (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'en')})`}
+                    <h3 className="text-base font-bold text-blue-600 dark:text-blue-300 mb-2 flex items-center gap-2">
+                      <span>1.</span>
+                      {isPt ? `A Essência (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'pt')})` : `The Essence (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'en')})`}
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-3">
                       {isPt
-                        ? `Seu perfil principal (${userPersonality?.arquetipo_primario}${userPersonality?.arquetipo_secundario}) e a soma matematica do que voce ama e odeia.`
-                        : `Your main profile (${userPersonality?.arquetipo_primario}${userPersonality?.arquetipo_secundario}) is the mathematical sum of what you love and hate.`
-                      }
+                        ? `Seu perfil principal (${userPersonality?.arquetipo_primario}${userPersonality?.arquetipo_secundario}) é a soma matemática do que você ama e odeia. Cada filme que você avalia move cinco balanças: Emocional (E), Intelectual (I), Cultural (C), Sensorial (S) e Recreativa (R).`
+                        : `Your main profile (${userPersonality?.arquetipo_primario}${userPersonality?.arquetipo_secundario}) is the mathematical sum of what you love and hate. Every film you rate moves five scales: Emotional (E), Intellectual (I), Cultural (C), Sensorial (S), and Recreational (R).`}
                     </p>
-                    <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-4">
-                      <p className="text-gray-600 dark:text-gray-400 text-xs leading-relaxed">
-                        {t('oracle.archetypeExplain')}
+                    <div className="bg-black/10 dark:bg-black/30 rounded-lg p-3 mb-2">
+                      <p className="text-gray-500 dark:text-gray-400 text-xs font-bold mb-1">{isPt ? 'A Lógica:' : 'The Logic:'}</p>
+                      <p className="text-gray-700 dark:text-gray-300 text-xs leading-relaxed">
+                        {isPt
+                          ? 'Uma nota 10.0 em um Drama adiciona peso máximo à sua balança E. Uma nota 0.0 em uma Comédia remove peso da sua balança R. A nota 5.0 é o equilíbrio neutro.'
+                          : 'A 10.0 rating on a Drama adds maximum weight to your E scale. A 0.0 on a Comedy removes weight from your R scale. A 5.0 is the neutral balance point.'}
+                      </p>
+                    </div>
+                    <div className="bg-black/10 dark:bg-black/30 rounded-lg p-3">
+                      <p className="text-gray-500 dark:text-gray-400 text-xs font-bold mb-1">{isPt ? 'O Resultado:' : 'The Result:'}</p>
+                      <p className="text-gray-700 dark:text-gray-300 text-xs leading-relaxed">
+                        {isPt
+                          ? 'Seu Arquétipo é formado pelas duas balanças com maior pontuação, as forças que hoje brilham mais forte em você.'
+                          : 'Your Archetype is formed by the two highest-scoring scales — the forces that shine brightest in you today.'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="rounded-xl p-5 border border-purple-300/50 dark:border-purple-500/30 bg-purple-50/50 dark:bg-purple-500/10">
-                    <h3 className="text-lg font-bold text-purple-600 dark:text-purple-400 mb-3 flex items-center gap-2">
-                      <span className="text-2xl">2.</span>
+                  <div className="rounded-xl p-5 border border-amber-300/50 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/5">
+                    <h3 className="text-base font-bold text-amber-600 dark:text-amber-300 mb-2 flex items-center gap-2">
+                      <span>2.</span>
                       {isPt ? `A Sintonia (${archetypeInfo.subcategory_name})` : `The Attunement (${archetypeInfo.subcategory_name})`}
                     </h3>
-                    <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
-                      {t('oracle.subcategoryExplain')}
+                    <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-3">
+                      {isPt
+                        ? `O Sub-arquétipo (${userPersonality?.subcategoria_id}) representa sua inclinação ou tom. Ela não é calculada pelos gêneros, mas pela Calibragem que você fez ao responder o questionário inicial.`
+                        : `The Sub-archetype (${userPersonality?.subcategoria_id}) represents your inclination or tone. It is not calculated by genres, but by the Calibration you performed when answering the initial questionnaire.`}
                     </p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs mb-2">
+                      {isPt
+                        ? 'Ao responder às balanças, você definiu sua tendência em três eixos opostos:'
+                        : 'By answering the scales, you defined your tendency across three opposing axes:'}
+                    </p>
+                    <ul className="space-y-1.5 text-xs">
+                      {[
+                        { a: isPt ? 'Radiante (A)' : 'Radiant (A)', b: isPt ? 'Sombrio (B)' : 'Shadow (B)', desc: isPt ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#64748b' },
+                        { a: isPt ? 'Clássico (K)' : 'Classic (K)', b: isPt ? 'Experimental (X)' : 'Experimental (X)', desc: isPt ? 'Tradição vs. Ousadia' : 'Tradition vs. Boldness', ca: '#ef4444', cb: '#3b82f6' },
+                        { a: isPt ? 'Denso (D)' : 'Dense (D)', b: isPt ? 'Leve (L)' : 'Light (L)', desc: isPt ? 'Complexidade vs. Acessibilidade' : 'Complexity vs. Accessibility', ca: '#6b7280', cb: '#10b981' },
+                      ].map((row, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-gray-400 mt-0.5">•</span>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            <span className="font-semibold" style={{ color: row.ca }}>{row.a}</span>
+                            {' vs. '}
+                            <span className="font-semibold" style={{ color: row.cb }}>{row.b}</span>
+                            {' — '}{row.desc}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
                   <div className="rounded-xl p-5 border border-cyan-300/50 dark:border-cyan-500/30 bg-cyan-50/50 dark:bg-cyan-500/10">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEssenceLabel } from '../lib/mood-genres';
-import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, Award, TrendingDown, X, Loader2, Settings, ChevronDown, Scroll, Info } from 'lucide-react';
+import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, Award, TrendingDown, X, Loader2, Settings, ChevronDown, Scroll, Info, RefreshCw } from 'lucide-react';
+import PentagonGraph from '../components/PentagonGraph';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import GlassLoader from '../components/GlassLoader';
 import { supabase, getProfile } from '../lib/supabase';
@@ -127,6 +128,8 @@ export default function Profile() {
   const [essenceLoading, setEssenceLoading] = useState(true);
   const [showEssenceRevelation, setShowEssenceRevelation] = useState(false);
   const [showEssenceInfo, setShowEssenceInfo] = useState(false);
+  const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
+  const [showRetakeQuizModal, setShowRetakeQuizModal] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -169,7 +172,7 @@ export default function Profile() {
       setEssenceLoading(true);
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario')
+        .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario, pontos_e, pontos_i, pontos_c, pontos_s, pontos_r')
         .eq('id', session.user.id)
         .maybeSingle();
       if (!profileData?.personalidade_completa) {
@@ -177,6 +180,15 @@ export default function Profile() {
         return;
       }
       setEssencePersonality(profileData);
+      if (profileData) {
+        setSpectrumPoints({
+          e: Number(profileData.pontos_e) || 0,
+          i: Number(profileData.pontos_i) || 0,
+          c: Number(profileData.pontos_c) || 0,
+          s: Number(profileData.pontos_s) || 0,
+          r: Number(profileData.pontos_r) || 0,
+        });
+      }
       const { data: archetypeData } = await supabase
         .rpc('get_user_complete_personality', { p_user_id: session.user.id })
         .maybeSingle();
@@ -1666,18 +1678,124 @@ export default function Profile() {
                         ? `Seu perfil principal (${essencePersonality.arquetipo_primario}${essencePersonality.arquetipo_secundario}) é a soma matemática do que você ama e odeia. Cada filme que você avalia move cinco balanças: Emocional (E), Intelectual (I), Cultural (C), Sensorial (S) e Recreativa (R).`
                         : `Your main profile (${essencePersonality.arquetipo_primario}${essencePersonality.arquetipo_secundario}) is the mathematical sum of what you love and hate. Every film you rate moves five scales: Emotional (E), Intellectual (I), Cultural (C), Sensorial (S), and Recreational (R).`}
                     </p>
+                    <div className="bg-black/30 rounded-lg p-3 mb-2">
+                      <p className="text-gray-400 text-xs font-bold mb-1">{i18n.language.startsWith('pt') ? 'A Lógica:' : 'The Logic:'}</p>
+                      <p className="text-gray-300 text-xs leading-relaxed">
+                        {i18n.language.startsWith('pt')
+                          ? 'Uma nota 10.0 em um Drama adiciona peso máximo à sua balança E. Uma nota 0.0 em uma Comédia remove peso da sua balança R. A nota 5.0 é o equilíbrio neutro.'
+                          : 'A 10.0 rating on a Drama adds maximum weight to your E scale. A 0.0 on a Comedy removes weight from your R scale. A 5.0 is the neutral balance point.'}
+                      </p>
+                    </div>
+                    <div className="bg-black/30 rounded-lg p-3">
+                      <p className="text-gray-400 text-xs font-bold mb-1">{i18n.language.startsWith('pt') ? 'O Resultado:' : 'The Result:'}</p>
+                      <p className="text-gray-300 text-xs leading-relaxed">
+                        {i18n.language.startsWith('pt')
+                          ? 'Seu Arquétipo é formado pelas duas balanças com maior pontuação, as forças que hoje brilham mais forte em você.'
+                          : 'Your Archetype is formed by the two highest-scoring scales — the forces that shine brightest in you today.'}
+                      </p>
+                    </div>
                   </div>
                   <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
                     <h3 className="text-base font-bold text-amber-300 mb-2 flex items-center gap-2">
                       <span>2.</span> {i18n.language.startsWith('pt') ? `A Sintonia (${essenceArchetype?.subcategory_name})` : `The Attunement (${essenceArchetype?.subcategory_name})`}
                     </h3>
-                    <p className="text-gray-300 text-sm leading-relaxed">
+                    <p className="text-gray-300 text-sm leading-relaxed mb-3">
                       {i18n.language.startsWith('pt')
-                        ? 'A terceira letra vem de um questionário de 12 perguntas. Ela revela sua sintonia emocional com o cinema: Radiante (A), Sombrio (B), Clássico (K), Experimental (X), Denso (D) ou Leve (L).'
-                        : 'The third letter comes from a 12-question questionnaire. It reveals your emotional attunement to cinema: Radiant (A), Dark (B), Classic (K), Experimental (X), Dense (D), or Light (L).'}
+                        ? `O Sub-arquétipo (${essencePersonality.subcategoria_id}) representa sua inclinação ou tom. Ela não é calculada pelos gêneros, mas pela Calibragem que você fez ao responder o questionário inicial.`
+                        : `The Sub-archetype (${essencePersonality.subcategoria_id}) represents your inclination or tone. It is not calculated by genres, but by the Calibration you performed when answering the initial questionnaire.`}
                     </p>
+                    <p className="text-gray-400 text-xs mb-2">
+                      {i18n.language.startsWith('pt')
+                        ? 'Ao responder às balanças, você definiu sua tendência em três eixos opostos:'
+                        : 'By answering the scales, you defined your tendency across three opposing axes:'}
+                    </p>
+                    <ul className="space-y-1.5 text-xs">
+                      {[
+                        { a: i18n.language.startsWith('pt') ? 'Radiante (A)' : 'Radiant (A)', b: i18n.language.startsWith('pt') ? 'Sombrio (B)' : 'Shadow (B)', desc: i18n.language.startsWith('pt') ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#64748b' },
+                        { a: i18n.language.startsWith('pt') ? 'Clássico (K)' : 'Classic (K)', b: i18n.language.startsWith('pt') ? 'Experimental (X)' : 'Experimental (X)', desc: i18n.language.startsWith('pt') ? 'Tradição vs. Ousadia' : 'Tradition vs. Boldness', ca: '#ef4444', cb: '#3b82f6' },
+                        { a: i18n.language.startsWith('pt') ? 'Denso (D)' : 'Dense (D)', b: i18n.language.startsWith('pt') ? 'Leve (L)' : 'Light (L)', desc: i18n.language.startsWith('pt') ? 'Complexidade vs. Acessibilidade' : 'Complexity vs. Accessibility', ca: '#6b7280', cb: '#10b981' },
+                      ].map((row, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-gray-500 mt-0.5">•</span>
+                          <span className="text-gray-300">
+                            <span className="font-semibold" style={{ color: row.ca }}>{row.a}</span>
+                            {' vs. '}
+                            <span className="font-semibold" style={{ color: row.cb }}>{row.b}</span>
+                            {' — '}{row.desc}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-xl p-5 border border-cyan-500/20 bg-cyan-500/5">
+                    <h3 className="text-base font-bold text-cyan-300 mb-4 flex items-center gap-2">
+                      <span>3.</span> {i18n.language.startsWith('pt') ? 'O Gráfico' : 'The Graph'}
+                    </h3>
+                    <div className="flex justify-center mb-4">
+                      <PentagonGraph points={spectrumPoints} subcategoryId={essencePersonality?.personalidade_completa || ''} />
+                    </div>
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => setShowRetakeQuizModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-lg transition-all text-sm font-semibold"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        <span>{i18n.language.startsWith('pt') ? 'Refazer Questionário' : 'Retake Quiz'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showRetakeQuizModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
+            onClick={() => setShowRetakeQuizModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-md w-full rounded-2xl bg-gray-900/95 backdrop-blur-xl shadow-2xl border border-gray-700/60 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-2xl font-bold text-white mb-4 text-center">
+                {i18n.language.startsWith('pt') ? 'Refazer Questionário?' : 'Retake Quiz?'}
+              </h3>
+              <p className="text-gray-300 text-center mb-6">
+                {i18n.language.startsWith('pt')
+                  ? 'Tem certeza que deseja refazer o questionário de personalidade? Isso irá atualizar sua subcategoria.'
+                  : 'Are you sure you want to retake the personality quiz? This will update your subcategory.'}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowRetakeQuizModal(false)}
+                  className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-all font-medium"
+                >
+                  {i18n.language.startsWith('pt') ? 'Cancelar' : 'Cancel'}
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowRetakeQuizModal(false);
+                    setShowEssenceInfo(false);
+                    await supabase
+                      .from('profiles')
+                      .update({ subcategoria_id: null })
+                      .eq('id', session?.user?.id);
+                    await fetchEssence();
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all font-medium"
+                >
+                  {i18n.language.startsWith('pt') ? 'Confirmar' : 'Confirm'}
+                </button>
               </div>
             </motion.div>
           </motion.div>

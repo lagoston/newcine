@@ -4,6 +4,7 @@ import { getEssenceLabel } from '../lib/mood-genres';
 import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, Archive as ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus, ChevronDown, ArrowLeft, Scroll, Info, X } from 'lucide-react';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import GlassLoader from '../components/GlassLoader';
+import PentagonGraph from '../components/PentagonGraph';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
@@ -118,6 +119,7 @@ export default function UserProfile() {
   const [essenceLoading, setEssenceLoading] = useState(true);
   const [showEssenceRevelation, setShowEssenceRevelation] = useState(false);
   const [showEssenceInfo, setShowEssenceInfo] = useState(false);
+  const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
 
   useEffect(() => {
     if (username) {
@@ -436,7 +438,7 @@ export default function UserProfile() {
         setEssenceLoading(true);
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario')
+          .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario, pontos_e, pontos_i, pontos_c, pontos_s, pontos_r')
           .eq('id', profile.id)
           .maybeSingle();
         if (!profileData?.personalidade_completa) {
@@ -444,6 +446,15 @@ export default function UserProfile() {
           return;
         }
         setEssencePersonality(profileData);
+        if (profileData) {
+          setSpectrumPoints({
+            e: Number(profileData.pontos_e) || 0,
+            i: Number(profileData.pontos_i) || 0,
+            c: Number(profileData.pontos_c) || 0,
+            s: Number(profileData.pontos_s) || 0,
+            r: Number(profileData.pontos_r) || 0,
+          });
+        }
         const { data: archetypeData } = await supabase
           .rpc('get_user_complete_personality', { p_user_id: profile.id })
           .maybeSingle();
@@ -1274,25 +1285,75 @@ export default function UserProfile() {
               </div>
               <p className="text-center italic text-gray-400 text-sm mb-6">
                 {i18n.language.startsWith('pt')
-                  ? 'O Arquetipo nao e adivinhacao. E a arquitetura dos gostos, construida em duas etapas:'
+                  ? 'O Arquétipo não é adivinhação. É a arquitetura dos gostos, construída em duas etapas:'
                   : 'The Archetype is not guesswork. It is the architecture of tastes, built in two stages:'}
               </p>
               <div className="space-y-4">
-                <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
-                  <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? `1. A Essencia (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'pt')})` : `1. The Essence (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'en')})`}</h3>
-                  <p className="text-gray-300 text-sm leading-relaxed">
-                    {i18n.language.startsWith('pt')
-                      ? 'As duas primeiras letras sao calculadas automaticamente com base nos generos dos filmes que voce avaliou. Cada avaliacao alimenta um algoritmo que identifica seus padroes de preferencia.'
-                      : 'The first two letters are automatically calculated based on the genres of the movies you have rated. Each rating feeds an algorithm that identifies your preference patterns.'}
-                  </p>
-                </div>
                 <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
-                  <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? `2. A Sintonia (${essenceArchetype?.subcategory_name})` : `2. The Attunement (${essenceArchetype?.subcategory_name})`}</h3>
-                  <p className="text-gray-300 text-sm leading-relaxed">
+                  <h3 className="text-base font-bold text-blue-300 mb-2 flex items-center gap-2">
+                    <span>1.</span> {i18n.language.startsWith('pt') ? `A Essência (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'pt')})` : `The Essence (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'en')})`}
+                  </h3>
+                  <p className="text-gray-300 text-sm leading-relaxed mb-3">
                     {i18n.language.startsWith('pt')
-                      ? 'A terceira letra vem de um questionario de 12 perguntas. Ela revela a sintonia emocional com o cinema: Radiante (A), Sombrio (B), Classico (K), Experimental (X), Denso (D) ou Leve (L).'
-                      : 'The third letter comes from a 12-question questionnaire. It reveals the emotional attunement to cinema: Radiant (A), Dark (B), Classic (K), Experimental (X), Dense (D), or Light (L).'}
+                      ? `Perfil principal (${essencePersonality?.arquetipo_primario}${essencePersonality?.arquetipo_secundario}) é a soma matemática do que avalia. Cada filme move cinco balanças: Emocional (E), Intelectual (I), Cultural (C), Sensorial (S) e Recreativa (R).`
+                      : `Main profile (${essencePersonality?.arquetipo_primario}${essencePersonality?.arquetipo_secundario}) is the mathematical sum of what was rated. Every film moves five scales: Emotional (E), Intellectual (I), Cultural (C), Sensorial (S), and Recreational (R).`}
                   </p>
+                  <div className="bg-black/30 rounded-lg p-3 mb-2">
+                    <p className="text-gray-400 text-xs font-bold mb-1">{i18n.language.startsWith('pt') ? 'A Lógica:' : 'The Logic:'}</p>
+                    <p className="text-gray-300 text-xs leading-relaxed">
+                      {i18n.language.startsWith('pt')
+                        ? 'Uma nota 10.0 em um Drama adiciona peso máximo à balança E. Uma nota 0.0 em uma Comédia remove peso da balança R. A nota 5.0 é o equilíbrio neutro.'
+                        : 'A 10.0 rating on a Drama adds maximum weight to the E scale. A 0.0 on a Comedy removes weight from the R scale. A 5.0 is the neutral balance point.'}
+                    </p>
+                  </div>
+                  <div className="bg-black/30 rounded-lg p-3">
+                    <p className="text-gray-400 text-xs font-bold mb-1">{i18n.language.startsWith('pt') ? 'O Resultado:' : 'The Result:'}</p>
+                    <p className="text-gray-300 text-xs leading-relaxed">
+                      {i18n.language.startsWith('pt')
+                        ? 'O Arquétipo é formado pelas duas balanças com maior pontuação, as forças que brilham mais forte.'
+                        : 'The Archetype is formed by the two highest-scoring scales — the forces that shine brightest.'}
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
+                  <h3 className="text-base font-bold text-amber-300 mb-2 flex items-center gap-2">
+                    <span>2.</span> {i18n.language.startsWith('pt') ? `A Sintonia (${essenceArchetype?.subcategory_name})` : `The Attunement (${essenceArchetype?.subcategory_name})`}
+                  </h3>
+                  <p className="text-gray-300 text-sm leading-relaxed mb-3">
+                    {i18n.language.startsWith('pt')
+                      ? `O Sub-arquétipo (${essencePersonality?.subcategoria_id}) representa a inclinação ou tom. Não é calculado pelos gêneros, mas pela Calibragem ao responder o questionário inicial.`
+                      : `The Sub-archetype (${essencePersonality?.subcategoria_id}) represents the inclination or tone. It is not calculated by genres, but by the Calibration from the initial questionnaire.`}
+                  </p>
+                  <p className="text-gray-400 text-xs mb-2">
+                    {i18n.language.startsWith('pt')
+                      ? 'Ao responder às balanças, a tendência foi definida em três eixos opostos:'
+                      : 'By answering the scales, the tendency was defined across three opposing axes:'}
+                  </p>
+                  <ul className="space-y-1.5 text-xs">
+                    {[
+                      { a: i18n.language.startsWith('pt') ? 'Radiante (A)' : 'Radiant (A)', b: i18n.language.startsWith('pt') ? 'Sombrio (B)' : 'Shadow (B)', desc: i18n.language.startsWith('pt') ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#64748b' },
+                      { a: i18n.language.startsWith('pt') ? 'Clássico (K)' : 'Classic (K)', b: i18n.language.startsWith('pt') ? 'Experimental (X)' : 'Experimental (X)', desc: i18n.language.startsWith('pt') ? 'Tradição vs. Ousadia' : 'Tradition vs. Boldness', ca: '#ef4444', cb: '#3b82f6' },
+                      { a: i18n.language.startsWith('pt') ? 'Denso (D)' : 'Dense (D)', b: i18n.language.startsWith('pt') ? 'Leve (L)' : 'Light (L)', desc: i18n.language.startsWith('pt') ? 'Complexidade vs. Acessibilidade' : 'Complexity vs. Accessibility', ca: '#6b7280', cb: '#10b981' },
+                    ].map((row, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="text-gray-500 mt-0.5">•</span>
+                        <span className="text-gray-300">
+                          <span className="font-semibold" style={{ color: row.ca }}>{row.a}</span>
+                          {' vs. '}
+                          <span className="font-semibold" style={{ color: row.cb }}>{row.b}</span>
+                          {' — '}{row.desc}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl p-5 border border-cyan-500/20 bg-cyan-500/5">
+                  <h3 className="text-base font-bold text-cyan-300 mb-4 flex items-center gap-2">
+                    <span>3.</span> {i18n.language.startsWith('pt') ? 'O Gráfico' : 'The Graph'}
+                  </h3>
+                  <div className="flex justify-center">
+                    <PentagonGraph points={spectrumPoints} subcategoryId={essencePersonality?.personalidade_completa || ''} />
+                  </div>
                 </div>
               </div>
             </div>

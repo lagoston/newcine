@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getEssenceLabel } from '../lib/mood-genres';
 import { Link, useNavigate } from 'react-router-dom';
-import { Library as LibraryIcon, Lock, Star, Film, Clock, Scroll, Info, X } from 'lucide-react';
+import { Library as LibraryIcon, Lock, Star, Film, Clock, Scroll, Info, X, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 import { getMovieDetails, Movie } from '../lib/tmdb';
 import OptimizedPoster from './OptimizedPoster';
 import MovieDetailsModal from './MovieDetailsModal';
 import ArchetypeSymbol from './ArchetypeSymbol';
+import PentagonGraph from './PentagonGraph';
 
 interface LockedTag {
   name: string;
@@ -156,6 +158,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const isPt = i18n.language.startsWith('pt');
+  const { session, isPremium } = useAuth();
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [libraryCount, setLibraryCount] = useState<number>(0);
@@ -171,6 +174,9 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const [personalityLoading, setPersonalityLoading] = useState(true);
   const [showRevelationModal, setShowRevelationModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
+  const [showRetakeQuizModal, setShowRetakeQuizModal] = useState(false);
+  const [showPremiumRequiredModal, setShowPremiumRequiredModal] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setCountdown(getMidnightCountdown()), 1000);
@@ -230,7 +236,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
       setPersonalityLoading(true);
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario')
+        .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario, pontos_e, pontos_i, pontos_c, pontos_s, pontos_r')
         .eq('id', userId)
         .maybeSingle();
 
@@ -239,6 +245,15 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
         return;
       }
       setPersonality(profileData);
+      if (profileData) {
+        setSpectrumPoints({
+          e: Number(profileData.pontos_e) || 0,
+          i: Number(profileData.pontos_i) || 0,
+          c: Number(profileData.pontos_c) || 0,
+          s: Number(profileData.pontos_s) || 0,
+          r: Number(profileData.pontos_r) || 0,
+        });
+      }
 
       const { data: archetypeData } = await supabase
         .rpc('get_user_complete_personality', { p_user_id: userId })
@@ -699,7 +714,126 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                       ))}
                     </ul>
                   </div>
+
+                  <div className="rounded-xl p-5 border border-cyan-500/20 bg-cyan-500/5">
+                    <h3 className="text-base font-bold text-cyan-300 mb-4 flex items-center gap-2">
+                      <span>3.</span> {isPt ? 'O Gráfico' : 'The Graph'}
+                    </h3>
+                    <div className="flex justify-center mb-4">
+                      <PentagonGraph points={spectrumPoints} subcategoryId={personality?.personalidade_completa || ''} />
+                    </div>
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => {
+                          if (isPremium) {
+                            setShowRetakeQuizModal(true);
+                          } else {
+                            setShowPremiumRequiredModal(true);
+                          }
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-lg transition-all text-sm font-semibold"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        <span>{isPt ? 'Refazer Questionário' : 'Retake Quiz'}</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showRetakeQuizModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
+            onClick={() => setShowRetakeQuizModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-md w-full rounded-2xl bg-gray-900/95 backdrop-blur-xl shadow-2xl border border-gray-700/60 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-2xl font-bold text-white mb-4 text-center">
+                {isPt ? 'Refazer Questionário?' : 'Retake Quiz?'}
+              </h3>
+              <p className="text-gray-300 text-center mb-6">
+                {isPt
+                  ? 'Tem certeza que deseja refazer o questionário de personalidade? Isso irá atualizar sua subcategoria.'
+                  : 'Are you sure you want to retake the personality quiz? This will update your subcategory.'}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowRetakeQuizModal(false)}
+                  className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-all font-medium"
+                >
+                  {isPt ? 'Cancelar' : 'Cancel'}
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowRetakeQuizModal(false);
+                    setShowInfoModal(false);
+                    await supabase
+                      .from('profiles')
+                      .update({ subcategoria_id: null })
+                      .eq('id', session?.user?.id);
+                    await fetchPersonality();
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all font-medium"
+                >
+                  {isPt ? 'Confirmar' : 'Confirm'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showPremiumRequiredModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
+            onClick={() => setShowPremiumRequiredModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-md w-full rounded-2xl bg-gray-900/95 backdrop-blur-xl shadow-2xl border border-gray-700/60 p-6 text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-4xl mb-3">🔒</div>
+              <h3 className="text-xl font-bold text-white mb-2">
+                {isPt ? 'Recurso Premium' : 'Premium Feature'}
+              </h3>
+              <p className="text-gray-300 text-sm mb-6">
+                {isPt
+                  ? 'Refazer o questionário é um recurso exclusivo para assinantes Premium.'
+                  : 'Retaking the quiz is an exclusive feature for Premium subscribers.'}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPremiumRequiredModal(false)}
+                  className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-all font-medium"
+                >
+                  {isPt ? 'Fechar' : 'Close'}
+                </button>
+                <button
+                  onClick={() => { setShowPremiumRequiredModal(false); navigate('/premium'); }}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl transition-all font-medium"
+                >
+                  {isPt ? 'Ver Premium' : 'View Premium'}
+                </button>
               </div>
             </motion.div>
           </motion.div>
