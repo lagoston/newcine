@@ -792,9 +792,13 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (!file || !session?.user?.id) return;
 
+    console.log('[Avatar Upload] File selected:', file.name, '| MIME:', file.type, '| Size:', (file.size / 1024).toFixed(1) + 'KB');
+
     const isGif = file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
     const isUserPremium = isPremium || profile?.plan_type === 'premium';
     const isPremiumGif = isGif && isUserPremium;
+
+    console.log('[Avatar Upload] isPremium (auth):', isPremium, '| profile.plan_type:', profile?.plan_type, '| isUserPremium:', isUserPremium, '| isGif:', isGif, '| isPremiumGif:', isPremiumGif);
 
     if (isPremiumGif) {
       const GIF_MAX_BYTES = 2 * 1024 * 1024;
@@ -816,18 +820,23 @@ export default function Profile() {
       let contentType: string;
 
       if (isPremiumGif) {
+        console.log('[Avatar Upload] Path: GIF bypass (Premium) — uploading raw GIF');
         uploadBlob = file;
         ext = 'gif';
         contentType = 'image/gif';
       } else {
+        console.log('[Avatar Upload] Path: Canvas → WebP conversion (free user or non-GIF)');
         uploadBlob = await convertImageToWebP(file);
         ext = 'webp';
         contentType = 'image/webp';
       }
 
-      const filePath = `${session.user.id}/${Date.now()}.${ext}`;
+      console.log('[Avatar Upload] uploadBlob size:', (uploadBlob.size / 1024).toFixed(1) + 'KB', '| ext:', ext, '| contentType:', contentType);
 
-      const { error: uploadError } = await supabase.storage
+      const filePath = `${session.user.id}/${Date.now()}.${ext}`;
+      console.log('[Avatar Upload] filePath:', filePath);
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, uploadBlob, {
           contentType,
@@ -835,11 +844,17 @@ export default function Profile() {
           upsert: true
         });
 
+      console.log('[Avatar Upload] Storage upload result:', { uploadData, uploadError });
+
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
+
+      const displayUrl = isPremiumGif ? `${publicUrl}?t=${Date.now()}` : publicUrl;
+
+      console.log('[Avatar Upload] publicUrl:', publicUrl, '| displayUrl:', displayUrl);
 
       const oldPath = avatarUrl ? extractAvatarStoragePath(avatarUrl) : null;
 
@@ -848,16 +863,19 @@ export default function Profile() {
         .update({ avatar_url: publicUrl })
         .eq('id', session.user.id);
 
+      console.log('[Avatar Upload] DB update error:', updateError);
+
       if (updateError) throw updateError;
 
       if (oldPath && oldPath !== filePath) {
         await supabase.storage.from('avatars').remove([oldPath]);
       }
 
-      setAvatarUrl(publicUrl);
+      setAvatarUrl(displayUrl);
+      console.log('[Avatar Upload] Done — avatarUrl state set to:', displayUrl);
       toast.success('Avatar updated');
     } catch (error) {
-      console.error('Error updating avatar:', error);
+      console.error('[Avatar Upload] ERROR:', error);
       toast.error('Error updating avatar');
     } finally {
       setIsUploadingAvatar(false);
@@ -995,7 +1013,7 @@ export default function Profile() {
                   <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 hover:opacity-100 cursor-pointer rounded-full transition-opacity">
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/gif,image/webp,image/png,image/jpeg,image/jpg"
                       className="hidden"
                       onChange={handleAvatarChange}
                     />
