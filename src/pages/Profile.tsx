@@ -90,11 +90,63 @@ interface FollowedUserCarousel {
   lastRating: number | null;
 }
 
+const AVATAR_MAX_DIMENSION = 500;
+const AVATAR_MAX_INPUT_BYTES = 15 * 1024 * 1024;
+const STORAGE_AVATARS_PATH_MARKER = '/storage/v1/object/public/avatars/';
+
+const convertImageToWebP = (file: File): Promise<Blob> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+
+      if (width > AVATAR_MAX_DIMENSION || height > AVATAR_MAX_DIMENSION) {
+        if (width >= height) {
+          height = Math.round((height * AVATAR_MAX_DIMENSION) / width);
+          width = AVATAR_MAX_DIMENSION;
+        } else {
+          width = Math.round((width * AVATAR_MAX_DIMENSION) / height);
+          height = AVATAR_MAX_DIMENSION;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Canvas not available'));
+
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        blob => (blob ? resolve(blob) : reject(new Error('WebP conversion failed'))),
+        'image/webp',
+        0.85
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Failed to load image'));
+    };
+
+    img.src = objectUrl;
+  });
+
+const extractAvatarStoragePath = (url: string): string | null => {
+  const idx = url.indexOf(STORAGE_AVATARS_PATH_MARKER);
+  if (idx === -1) return null;
+  return url.slice(idx + STORAGE_AVATARS_PATH_MARKER.length).split('?')[0];
+};
+
 export default function Profile() {
   const navigate = useNavigate();
   const { session, isPremium, checkPremiumStatus } = useAuth();
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [username, setUsername] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [bio, setBio] = useState('');
@@ -700,31 +752,23 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (!file || !session?.user?.id) return;
 
-    const fileExt = file.name.split('.').pop()?.toLowerCase();
-    const animatedFormats = ['gif', 'webp', 'apng'];
-    const animatedMimeTypes = ['image/gif', 'image/webp', 'image/apng'];
-
-    const isAnimated =
-      animatedFormats.includes(fileExt || '') ||
-      animatedMimeTypes.includes(file.type) ||
-      file.type.startsWith('image/') && (file.name.toLowerCase().includes('.gif'));
-
-    if (isAnimated && !isPremium) {
-      toast.error(
-        'Avatares animados sao um recurso Premium! Atualize para usar GIFs e imagens animadas.',
-        { duration: 5000, icon: '' }
-      );
+    if (file.size > AVATAR_MAX_INPUT_BYTES) {
+      toast.error('Image too large. Maximum input size is 15MB.');
       e.target.value = '';
       return;
     }
 
+    setIsUploadingAvatar(true);
     try {
-      const filePath = `${session.user.id}/${Date.now()}.${fileExt}`;
+      const webpBlob = await convertImageToWebP(file);
+
+      const filePath = `${session.user.id}/${Date.now()}.webp`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, {
-          cacheControl: '31536000',
+        .upload(filePath, webpBlob, {
+          contentType: 'image/webp',
+          cacheControl: '3600',
           upsert: true
         });
 
@@ -734,6 +778,8 @@ export default function Profile() {
         .from('avatars')
         .getPublicUrl(filePath);
 
+      const oldPath = avatarUrl ? extractAvatarStoragePath(avatarUrl) : null;
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
@@ -741,11 +787,18 @@ export default function Profile() {
 
       if (updateError) throw updateError;
 
+      if (oldPath && oldPath !== filePath) {
+        await supabase.storage.from('avatars').remove([oldPath]);
+      }
+
       setAvatarUrl(publicUrl);
-      toast.success('Avatar updated successfully');
+      toast.success('Avatar updated');
     } catch (error) {
       console.error('Error updating avatar:', error);
       toast.error('Error updating avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+      e.target.value = '';
     }
   };
 
@@ -861,7 +914,11 @@ export default function Profile() {
             <div className="flex flex-col sm:flex-row sm:items-start gap-6">
               <div className="relative mx-auto sm:mx-0 flex-shrink-0">
                 <div className={`w-28 h-28 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile?.avatar_frame, isPremium)}`}>
-                  {avatarUrl ? (
+                  {isUploadingAvatar ? (
+                    <div className="w-full h-full flex items-center justify-center bg-black/40">
+                      <Loader2 className="w-8 h-8 text-white animate-spin" />
+                    </div>
+                  ) : avatarUrl ? (
                     <img
                       src={avatarUrl}
                       alt={username}
@@ -871,7 +928,7 @@ export default function Profile() {
                     <User className="w-full h-full p-5 text-gray-400" />
                   )}
                 </div>
-                {isEditing && (
+                {isEditing && !isUploadingAvatar && (
                   <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 hover:opacity-100 cursor-pointer rounded-full transition-opacity">
                     <input
                       type="file"
