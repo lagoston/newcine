@@ -311,7 +311,7 @@ export default function Profile() {
     if (!session?.user?.id) return;
 
     try {
-      const { data, error } = await supabase.rpc('count_unread_recommendations', {
+      const { data, error } = await supabase.rpc('count_unread_indications', {
         user_id_input: session.user.id
       });
 
@@ -793,7 +793,8 @@ export default function Profile() {
     if (!file || !session?.user?.id) return;
 
     const isGif = file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
-    const isPremiumGif = isGif && isPremium;
+    const isUserPremium = isPremium || profile?.plan_type === 'premium';
+    const isPremiumGif = isGif && isUserPremium;
 
     if (isPremiumGif) {
       const GIF_MAX_BYTES = 2 * 1024 * 1024;
