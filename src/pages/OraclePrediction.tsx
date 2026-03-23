@@ -215,7 +215,7 @@ export default function OraclePrediction() {
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = reject;
-        img.src = '/assets/cineprev.png';
+        img.src = '/assets/cineprev.webp';
       });
 
       ctx.drawImage(background, 0, 0, canvas.width, canvas.height);

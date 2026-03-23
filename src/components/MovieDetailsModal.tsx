@@ -412,9 +412,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       canvas.height = 1920;
 
       // Carregar fundo baseado na nota
-      let backgroundPath = '/assets/cinequero.png';
+      let backgroundPath = '/assets/cinequero.webp';
       if (userRating !== null) {
-        backgroundPath = `/assets/cine${Math.round(userRating)}.png`;
+        backgroundPath = `/assets/cine${Math.round(userRating)}.webp`;
       }
 
       const background = await new Promise<HTMLImageElement>((resolve, reject) => {

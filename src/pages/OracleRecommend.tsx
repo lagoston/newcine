@@ -125,7 +125,7 @@ export default function OracleRecommend() {
   const getCardImage = (cardId: CardType) => {
     const suffix = cardStyle === 'yugioh' ? '2' : '';
     const cardNames = { bogart: 'BOGART', fincher: 'FINCHER', cypher: 'CYPHER' };
-    return `/assets/${cardNames[cardId]}${suffix}.png`;
+    return `/assets/${cardNames[cardId]}${suffix}.webp`;
   };
 
   const cards = [

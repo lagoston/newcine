@@ -267,9 +267,9 @@ const ORACLE_CARDS: Record<CardStyle, OracleCard> = {
     name: 'Default',
     isPremium: false,
     images: {
-      bogart: '/assets/BOGART.png',
-      fincher: '/assets/FINCHER.png',
-      cypher: '/assets/CYPHER.png'
+      bogart: '/assets/BOGART.webp',
+      fincher: '/assets/FINCHER.webp',
+      cypher: '/assets/CYPHER.webp'
     }
   },
   yugioh: {
@@ -277,9 +277,9 @@ const ORACLE_CARDS: Record<CardStyle, OracleCard> = {
     name: 'Yu-Gi-Oh!',
     isPremium: true,
     images: {
-      bogart: '/assets/BOGART2.png',
-      fincher: '/assets/FINCHER2.png',
-      cypher: '/assets/CYPHER2.png'
+      bogart: '/assets/BOGART2.webp',
+      fincher: '/assets/FINCHER2.webp',
+      cypher: '/assets/CYPHER2.webp'
     }
   },
   horror: {
@@ -288,9 +288,9 @@ const ORACLE_CARDS: Record<CardStyle, OracleCard> = {
     isPremium: true,
     requiredTag: 'Bloody Mary',
     images: {
-      bogart: '/assets/BOGART3.png',
-      fincher: '/assets/FINCHER3.png',
-      cypher: '/assets/CYPHER3.png'
+      bogart: '/assets/BOGART3.webp',
+      fincher: '/assets/FINCHER3.webp',
+      cypher: '/assets/CYPHER3.webp'
     }
   }
 };
