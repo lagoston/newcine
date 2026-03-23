@@ -152,6 +152,7 @@ export default function Profile() {
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [originalBio, setOriginalBio] = useState('');
   const [profileExists, setProfileExists] = useState(true);
   const [ratedMoviesCount, setRatedMoviesCount] = useState(0);
   const [ratingDistribution, setRatingDistribution] = useState<RatingDistribution>({});
@@ -746,13 +747,62 @@ export default function Profile() {
     }
   };
 
+  const handleStartEditing = () => {
+    setOriginalBio(bio);
+    setNewUsername(username);
+    setIsEditing(true);
+  };
+
+  const handleCancelEditing = () => {
+    setIsEditing(false);
+    setNewUsername(username);
+    setBio(originalBio);
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!session?.user?.id) return;
+    setIsUploadingAvatar(true);
+    try {
+      const oldPath = avatarUrl ? extractAvatarStoragePath(avatarUrl) : null;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', session.user.id);
+
+      if (updateError) throw updateError;
+
+      if (oldPath) {
+        await supabase.storage.from('avatars').remove([oldPath]);
+      }
+
+      setAvatarUrl('');
+      toast.success('Avatar removed');
+    } catch (error) {
+      console.error('Error removing avatar:', error);
+      toast.error('Error removing avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isEditing) return;
 
     const file = e.target.files?.[0];
     if (!file || !session?.user?.id) return;
 
-    if (file.size > AVATAR_MAX_INPUT_BYTES) {
+    const isGif = file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
+    const isPremiumGif = isGif && isPremium;
+
+    if (isPremiumGif) {
+      const GIF_MAX_BYTES = 2 * 1024 * 1024;
+      if (file.size > GIF_MAX_BYTES) {
+        toast.error('Para manter a performance do site, GIFs animados devem ter no máximo 2MB.');
+        e.target.value = '';
+        return;
+      }
+    } else if (file.size > AVATAR_MAX_INPUT_BYTES) {
       toast.error('Image too large. Maximum input size is 15MB.');
       e.target.value = '';
       return;
@@ -760,14 +810,26 @@ export default function Profile() {
 
     setIsUploadingAvatar(true);
     try {
-      const webpBlob = await convertImageToWebP(file);
+      let uploadBlob: Blob;
+      let ext: string;
+      let contentType: string;
 
-      const filePath = `${session.user.id}/${Date.now()}.webp`;
+      if (isPremiumGif) {
+        uploadBlob = file;
+        ext = 'gif';
+        contentType = 'image/gif';
+      } else {
+        uploadBlob = await convertImageToWebP(file);
+        ext = 'webp';
+        contentType = 'image/webp';
+      }
+
+      const filePath = `${session.user.id}/${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, webpBlob, {
-          contentType: 'image/webp',
+        .upload(filePath, uploadBlob, {
+          contentType,
           cacheControl: '3600',
           upsert: true
         });
@@ -939,6 +1001,15 @@ export default function Profile() {
                     <span className="text-sm">Change</span>
                   </label>
                 )}
+                {isEditing && avatarUrl && !isUploadingAvatar && (
+                  <button
+                    onClick={handleRemoveAvatar}
+                    className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"
+                    title="Remove avatar"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <div className="flex-1 text-center sm:text-left">
@@ -1059,11 +1130,7 @@ export default function Profile() {
                         {t('profile.saveChanges')}
                       </button>
                       <button
-                        onClick={() => {
-                          setIsEditing(false);
-                          setNewUsername(username);
-                          setBio(bio);
-                        }}
+                        onClick={handleCancelEditing}
                         className="px-4 py-2.5 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
                       >
                         {t('common.cancel')}
@@ -1071,7 +1138,7 @@ export default function Profile() {
                     </>
                   ) : (
                     <button
-                      onClick={() => setIsEditing(true)}
+                      onClick={handleStartEditing}
                       className="px-4 py-2.5 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
                     >
                       {t('profile.editProfile')}
@@ -1121,7 +1188,7 @@ export default function Profile() {
                         </button>
                       </div>
                       <button
-                        onClick={() => setIsEditing(true)}
+                        onClick={handleStartEditing}
                         className="w-full px-4 py-2.5 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
                       >
                         {t('profile.editProfile')}
@@ -1137,11 +1204,7 @@ export default function Profile() {
                         {t('profile.saveChanges')}
                       </button>
                       <button
-                        onClick={() => {
-                          setIsEditing(false);
-                          setNewUsername(username);
-                          setBio(bio);
-                        }}
+                        onClick={handleCancelEditing}
                         className="flex-1 px-4 py-2.5 bg-white/60 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300 rounded-xl hover:bg-white/80 dark:hover:bg-gray-600/80 transition-colors backdrop-blur-sm border border-white/40 dark:border-gray-600/40"
                       >
                         {t('common.cancel')}

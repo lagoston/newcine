@@ -7,6 +7,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+const isLegacyFile = (filename: string, isPremiumUser: boolean): boolean => {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith(".webp")) return false;
+  if (lower.endsWith(".gif") && isPremiumUser) return false;
+  return true;
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -27,7 +34,7 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           error: 'Send { "confirm": true } to execute this destructive migration.',
           warning:
-            "This will delete all non-WebP avatar files and clear avatar_url for affected users.",
+            "Deletes non-WebP avatars for free users. Preserves .gif files for premium users.",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -36,6 +43,18 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: premiumProfiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, plan_type, lifetime_premium");
+
+    if (profilesError) throw profilesError;
+
+    const premiumUserIds = new Set(
+      (premiumProfiles ?? [])
+        .filter((p) => p.plan_type === "premium" || p.lifetime_premium === true)
+        .map((p) => p.id as string)
     );
 
     let totalFilesDeleted = 0;
@@ -53,6 +72,8 @@ Deno.serve(async (req: Request) => {
       const userId = folder.name;
       if (!userId) continue;
 
+      const isPremiumUser = premiumUserIds.has(userId);
+
       const { data: files, error: filesError } = await supabase.storage
         .from("avatars")
         .list(userId, { limit: 200 });
@@ -63,11 +84,11 @@ Deno.serve(async (req: Request) => {
       }
 
       const allFiles = files ?? [];
-      const nonWebp = allFiles.filter((f) => !f.name.toLowerCase().endsWith(".webp"));
+      const toDelete = allFiles.filter((f) => isLegacyFile(f.name, isPremiumUser));
 
-      if (nonWebp.length === 0) continue;
+      if (toDelete.length === 0) continue;
 
-      const paths = nonWebp.map((f) => `${userId}/${f.name}`);
+      const paths = toDelete.map((f) => `${userId}/${f.name}`);
       const { error: deleteError } = await supabase.storage.from("avatars").remove(paths);
 
       if (deleteError) {
@@ -77,8 +98,8 @@ Deno.serve(async (req: Request) => {
 
       totalFilesDeleted += paths.length;
 
-      const remainingWebp = allFiles.filter((f) => f.name.toLowerCase().endsWith(".webp"));
-      if (remainingWebp.length === 0) {
+      const remaining = allFiles.filter((f) => !isLegacyFile(f.name, isPremiumUser));
+      if (remaining.length === 0) {
         usersToNull.push(userId);
       }
     }
@@ -101,6 +122,7 @@ Deno.serve(async (req: Request) => {
         success: true,
         filesDeleted: totalFilesDeleted,
         usersCleared: totalUsersCleared,
+        premiumUsersPreserved: premiumUserIds.size,
         errors: errors.length > 0 ? errors : undefined,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
