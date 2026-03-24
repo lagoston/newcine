@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("✅ Auth: Session restored");
         setSession(data.session);
         setUser(data.session.user);
-        checkPremiumStatus();
+        checkPremiumStatus(data.session.user.id);
       } else {
         console.log("ℹ️ Auth: No session found");
         setSession(null);
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(currentSession.user);
           
           if (event === 'SIGNED_IN') {
-            checkPremiumStatus();
+            checkPremiumStatus(currentSession.user.id);
           }
         }
         
@@ -118,15 +118,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   };
 
-  const checkPremiumStatus = async () => {
-    if (!user?.id) return;
+  const checkPremiumStatus = async (userId?: string) => {
+    const id = userId ?? user?.id;
+    if (!id) return;
 
     try {
       console.log("🔍 Checking premium status...");
 
       const [premiumResult, lifetimeResult] = await Promise.all([
-        supabase.rpc('get_user_premium_status', { user_id_input: user.id }),
-        supabase.rpc('is_lifetime_premium', { user_id_input: user.id })
+        supabase.rpc('get_user_premium_status', { user_id_input: id }),
+        supabase.rpc('is_lifetime_premium', { user_id_input: id })
       ]);
 
       if (premiumResult.error) {
@@ -151,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await supabase
         .from('profiles')
         .select('plan_type, lifetime_premium')
-        .eq('id', user.id)
+        .eq('id', id)
         .single();
 
       setIsPremium(data?.plan_type === 'premium');

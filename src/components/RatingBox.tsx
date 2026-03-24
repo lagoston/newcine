@@ -358,6 +358,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             onRate={async (rating) => {
               onRate(rateMenuMovie.id, rating);
             }}
+            showMoveToWatchlist={!isNotRated}
           />
         )}
 
