@@ -803,7 +803,7 @@ export default function Profile() {
     if (isPremiumGif) {
       const GIF_MAX_BYTES = 2 * 1024 * 1024;
       if (file.size > GIF_MAX_BYTES) {
-        toast.error('Para manter a performance do site, GIFs animados devem ter no máximo 2MB.');
+        toast.error('Erro: Seu GIF tem mais de 2MB. Por favor, comprima a imagem para utilizar o avatar animado.');
         e.target.value = '';
         return;
       }
@@ -811,6 +811,10 @@ export default function Profile() {
       toast.error('Image too large. Maximum input size is 15MB.');
       e.target.value = '';
       return;
+    }
+
+    if (isGif && !isUserPremium) {
+      toast.info('Seu GIF foi adicionado como uma imagem estática. Assine o plano Premium para habilitar avatares animados no seu perfil!');
     }
 
     setIsUploadingAvatar(true);
