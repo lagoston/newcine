@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, BrainCircuit, Loader2, Ticket, Plus, Share2, ArrowLeft, Sparkles } from 'lucide-react';
+import { Search, Star, BrainCircuit, Loader2, Ticket, Plus, Instagram, ArrowLeft, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { searchMovies } from '../lib/tmdb';
@@ -198,11 +198,11 @@ export default function OraclePrediction() {
     try {
       setLoading(prev => ({ ...prev, sharing: true }));
 
-      const ratingMatch = prediction.prediction.match(/Nota Prevista:\s*(\d+\.?\d*)\/10/i);
-      const ponderacoesMatch = prediction.prediction.match(/Ponderacoes[:\s]*\n(.*?)(?=\n|$)/s);
+      const ratingMatch = prediction.prediction.match(/(?:Nota Prevista|Predicted Rating|Calificación Predicha)[:\s]*(\d+\.?\d*)\/10/i);
+      const verdictMatch = prediction.prediction.match(/🎬[^:]*:\s*(.+)/s);
 
       const rating = ratingMatch ? parseFloat(ratingMatch[1]) : 0;
-      const summary = ponderacoesMatch ? ponderacoesMatch[1].trim() : '';
+      const summary = verdictMatch ? verdictMatch[1].trim() : '';
 
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -392,10 +392,10 @@ export default function OraclePrediction() {
     <button
       onClick={handleShare}
       disabled={loading.sharing}
-      className={`p-2.5 text-violet-500 hover:text-violet-400 transition-colors rounded-full bg-violet-500/10 hover:bg-violet-500/20 ${loading.sharing ? 'opacity-50 cursor-not-allowed' : ''}`}
-      title={t('oracle.prediction.title')}
+      className={`p-1 text-purple-500 hover:text-pink-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${loading.sharing ? 'opacity-50 cursor-not-allowed' : ''}`}
+      title="Compartilhar no Instagram"
     >
-      {loading.sharing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Share2 className="w-5 h-5" />}
+      {loading.sharing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Instagram className="w-6 h-6" />}
     </button>
   );
 

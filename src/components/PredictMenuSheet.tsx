@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Star, Ticket, Timer, X } from 'lucide-react';
+import { Star, Ticket, Timer, X, Instagram, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -8,14 +8,16 @@ import { supabase } from '../lib/supabase';
 interface PredictMenuSheetProps {
   movieTitle: string;
   movieId?: number;
+  moviePoster?: string;
   isOpen: boolean;
   onClose: () => void;
 }
 
-const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, movieId, isOpen, onClose }) => {
+const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, movieId, moviePoster, isOpen, onClose }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language === 'pt';
   const [loading, setLoading] = useState(true);
+  const [isSharing, setIsSharing] = useState(false);
   const [prediction, setPrediction] = useState<string | null>(null);
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
   const [nextReset, setNextReset] = useState<string | null>(null);
@@ -135,6 +137,197 @@ const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, movieId
     }
   };
 
+  const handleShare = async () => {
+    if (!prediction || isSharing) return;
+    try {
+      setIsSharing(true);
+
+      const ratingMatch = prediction.match(/(?:Nota Prevista|Predicted Rating|Calificación Predicha)[:\s]*(\d+\.?\d*)\/10/i);
+      const verdictMatch = prediction.match(/🎬[^:]*:\s*(.+)/s);
+      const rating = ratingMatch ? parseFloat(ratingMatch[1]) : 0;
+      const summary = verdictMatch ? verdictMatch[1].trim() : '';
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not supported');
+
+      canvas.width = 1080;
+      canvas.height = 1920;
+
+      const background = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = '/assets/cineprev.webp';
+      });
+
+      ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 56px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
+      const titleY = 200;
+      const maxWidth = 900;
+      const words = movieTitle.split(' ');
+      let line = '';
+      let currentY = titleY;
+
+      for (let i = 0; i < words.length; i++) {
+        const testLine = line + words[i] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && i > 0) {
+          ctx.fillText(line.trim(), canvas.width / 2, currentY);
+          line = words[i] + ' ';
+          currentY += 70;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line.trim(), canvas.width / 2, currentY);
+
+      let posterCenterY = currentY + 200;
+
+      if (moviePoster) {
+        try {
+          const posterUrl = `https://image.tmdb.org/t/p/w300${moviePoster}`;
+          const response = await fetch(posterUrl, { cache: 'no-store' });
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+
+          const posterImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = blobUrl;
+          });
+
+          const posterWidth = 275;
+          const posterHeight = 412;
+          const gapBetween = 80;
+          const noteAreaWidth = 300;
+          const totalWidth = posterWidth + gapBetween + noteAreaWidth;
+          const groupStartX = (canvas.width - totalWidth) / 2;
+          const posterX = groupStartX;
+          const posterY = currentY + 100;
+          posterCenterY = posterY + (posterHeight / 2);
+
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 20;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 10;
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(posterImg, posterX, posterY, posterWidth, posterHeight);
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+
+          URL.revokeObjectURL(blobUrl);
+        } catch {
+          // continue without poster
+        }
+      }
+
+      const gapBetween = 80;
+      const noteAreaWidth = 300;
+      const totalWidth = 275 + gapBetween + noteAreaWidth;
+      const groupStartX = (canvas.width - totalWidth) / 2;
+      const noteX = groupStartX + 275 + gapBetween + (noteAreaWidth / 2);
+      const noteLabelY = posterCenterY - 120;
+
+      ctx.fillStyle = '#CCCCCC';
+      ctx.font = 'bold 36px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(isPt ? 'NOTA PREVISTA:' : 'PREDICTED RATING:', noteX, noteLabelY);
+
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 120px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(rating.toFixed(1), noteX, posterCenterY + 20);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '38px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.shadowColor = 'rgba(0, 0, 0, 1)';
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 3;
+
+      const summaryY = 850;
+      const summaryMaxWidth = 900;
+      const lineHeight = 52;
+      const maxLines = 14;
+      const bottomLimit = 1750;
+
+      const summaryWords = summary.split(' ');
+      let summaryLine = '';
+      let summaryCurrentY = summaryY;
+      let lineCount = 0;
+      let wasTextCut = false;
+
+      for (let i = 0; i < summaryWords.length; i++) {
+        const testLine = summaryLine + summaryWords[i] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > summaryMaxWidth && i > 0) {
+          if (summaryCurrentY + lineHeight > bottomLimit || lineCount >= maxLines) {
+            ctx.fillText(summaryLine.trim() + '...', canvas.width / 2, summaryCurrentY);
+            wasTextCut = true;
+            break;
+          }
+          ctx.fillText(summaryLine.trim(), canvas.width / 2, summaryCurrentY);
+          summaryLine = summaryWords[i] + ' ';
+          summaryCurrentY += lineHeight;
+          lineCount++;
+        } else {
+          summaryLine = testLine;
+        }
+      }
+
+      if (!wasTextCut && summaryLine.trim()) {
+        if (summaryCurrentY + lineHeight > bottomLimit) {
+          ctx.fillText(summaryLine.trim() + '...', canvas.width / 2, summaryCurrentY);
+        } else {
+          ctx.fillText(summaryLine.trim(), canvas.width / 2, summaryCurrentY);
+        }
+      }
+
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      const imageBlob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => resolve(blob!), 'image/png', 1.0);
+      });
+
+      if (navigator.share && navigator.canShare({ files: [new File([imageBlob], 'prediction.png', { type: 'image/png' })] })) {
+        await navigator.share({
+          files: [new File([imageBlob], 'prediction.png', { type: 'image/png' })],
+          title: `CineOracle: ${movieTitle}`,
+          text: `CineOracle prediction for ${movieTitle}`
+        });
+      } else {
+        const url = URL.createObjectURL(imageBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `cineoracle-${movieTitle.toLowerCase().replace(/\s+/g, '-')}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success(isPt ? 'Imagem salva!' : 'Image saved!');
+      }
+    } catch (error) {
+      console.error('Error sharing prediction:', error);
+      toast.error(isPt ? 'Erro ao compartilhar' : 'Failed to share');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const progressLabel =
@@ -209,6 +402,16 @@ const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, movieId
                 <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
                   {prediction}
                 </p>
+                <div className="flex justify-end mt-3 pt-3 border-t border-purple-500/20">
+                  <button
+                    onClick={handleShare}
+                    disabled={isSharing}
+                    className="p-1 text-purple-500 hover:text-pink-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Compartilhar no Instagram"
+                  >
+                    {isSharing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Instagram className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
             </div>
           )}
