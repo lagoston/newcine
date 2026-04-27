@@ -209,7 +209,7 @@ const GuestDailyRecommendationBox: React.FC<GuestDailyBoxProps> = ({ onSignUp, c
     '/t/p/w185/q719jXXEzOoYaps6babgKnONONX.jpg',
     '/t/p/w185/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg',
     '/t/p/w185/8Vt6mWEReuy4Of61Lnj5Xj704m8.jpg',
-    '/t/p/w185/rCzpDGLbOoPwLjy3OAm5sF7B1My.jpg',
+    '/t/p/w185/krKnsfvSJM1PL40tLicRhVQ6kuG.jpg',
     '/t/p/w185/hek3koDUyRQk7FIhPXsa6mT2Zc3.jpg',
     '/t/p/w185/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
   ];
