@@ -72,7 +72,7 @@ export default function OracleHub() {
     if (session?.user?.id) {
       loadUserData();
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, i18n.language]);
 
   const loadUserData = async () => {
     try {
@@ -108,7 +108,7 @@ export default function OracleHub() {
 
       if (profileData?.personalidade_completa) {
         const { data: archetypeData, error: archetypeError } = await supabase
-          .rpc('get_user_complete_personality', { p_user_id: session?.user?.id })
+          .rpc('get_user_complete_personality', { p_user_id: session?.user?.id, p_language: i18n.language.startsWith('pt') ? 'pt' : 'en' })
           .single();
         if (archetypeError) throw archetypeError;
         setArchetypeInfo(archetypeData);

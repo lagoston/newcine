@@ -456,7 +456,7 @@ export default function UserProfile() {
           });
         }
         const { data: archetypeData } = await supabase
-          .rpc('get_user_complete_personality', { p_user_id: profile.id })
+          .rpc('get_user_complete_personality', { p_user_id: profile.id, p_language: i18n.language.startsWith('pt') ? 'pt' : 'en' })
           .maybeSingle();
         setEssenceArchetype(archetypeData ?? null);
       } catch {
@@ -465,7 +465,7 @@ export default function UserProfile() {
       }
     };
     fetchEssence();
-  }, [profile?.id]);
+  }, [profile?.id, i18n.language]);
 
   const handleFollowToggle = async () => {
     if (!session) {

@@ -256,7 +256,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
       }
 
       const { data: archetypeData } = await supabase
-        .rpc('get_user_complete_personality', { p_user_id: userId })
+        .rpc('get_user_complete_personality', { p_user_id: userId, p_language: i18n.language.startsWith('pt') ? 'pt' : 'en' })
         .maybeSingle();
       setArchetypeInfo(archetypeData ?? null);
     } catch (err) {
@@ -264,7 +264,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
     } finally {
       setPersonalityLoading(false);
     }
-  }, [userId]);
+  }, [userId, i18n.language]);
 
   const fetchDailyRecommendation = useCallback(async () => {
     try {

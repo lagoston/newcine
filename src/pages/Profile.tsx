@@ -243,14 +243,14 @@ export default function Profile() {
         });
       }
       const { data: archetypeData } = await supabase
-        .rpc('get_user_complete_personality', { p_user_id: session.user.id })
+        .rpc('get_user_complete_personality', { p_user_id: session.user.id, p_language: i18n.language.startsWith('pt') ? 'pt' : 'en' })
         .maybeSingle();
       setEssenceArchetype(archetypeData ?? null);
     } catch {
     } finally {
       setEssenceLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, i18n.language]);
 
   useEffect(() => {
     if (session?.user?.id) {
