@@ -240,18 +240,43 @@ Deno.serve(async (req) => {
         if (invoice.subscription) {
           console.log('💰 Invoice payment succeeded for subscription:', invoice.subscription);
 
-          const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
-            event_type: event.type,
-            customer_id: invoice.customer as string,
-            subscription_id: invoice.subscription as string
-          });
+          try {
+            // Fetch full subscription to get the updated current_period_end after renewal
+            const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
 
-          if (error) {
-            console.error('❌ Error processing invoice.payment_succeeded:', error);
-            throw error;
+            console.log('📅 Renewal period end:', subscription.current_period_end);
+            console.log('📝 Subscription status:', subscription.status);
+
+            const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
+              event_type: event.type,
+              customer_id: invoice.customer as string,
+              subscription_id: invoice.subscription as string,
+              status: subscription.status,
+              price_id: subscription.items.data[0]?.price.id,
+              current_period_start: subscription.current_period_start,
+              current_period_end: subscription.current_period_end
+            });
+
+            if (error) {
+              console.error('❌ Error processing invoice.payment_succeeded:', error);
+              throw error;
+            }
+
+            console.log('✅ Invoice payment processed successfully with real period data:', data);
+          } catch (subError) {
+            console.error('❌ Error retrieving subscription for invoice.payment_succeeded:', subError);
+            // Fallback: process without period data (keeps existing values via COALESCE)
+            const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
+              event_type: event.type,
+              customer_id: invoice.customer as string,
+              subscription_id: invoice.subscription as string
+            });
+            if (error) {
+              console.error('❌ Fallback processing also failed:', error);
+              throw error;
+            }
+            console.log('✅ Invoice payment processed (fallback):', data);
           }
-
-          console.log('✅ Invoice payment processed successfully:', data);
 
           const { data: syncData, error: syncError } = await supabase.rpc('sync_customer_subscription_status', {
             customer_id_input: invoice.customer as string
