@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface PentagonGraphProps {
   points: { e: number; i: number; c: number; s: number; r: number };
@@ -20,6 +21,7 @@ const getSubcategoryColor = (id: string): string => {
 };
 
 const PentagonGraph: React.FC<PentagonGraphProps> = ({ points, subcategoryId }) => {
+  const { t } = useTranslation();
   const size = 280;
   const center = size / 2;
   const radius = size / 2 - 40;
@@ -37,11 +39,11 @@ const PentagonGraph: React.FC<PentagonGraphProps> = ({ points, subcategoryId }) 
   const angle = (Math.PI * 2) / 5;
   const labels = ['E', 'I', 'C', 'S', 'R'];
   const labelNames: Record<string, string> = {
-    'E': 'Emocional',
-    'I': 'Intelectual',
-    'C': 'Cultural',
-    'S': 'Sensorial',
-    'R': 'Recreativo',
+    'E': t('oracle.spectrum.E'),
+    'I': t('oracle.spectrum.I'),
+    'C': t('oracle.spectrum.C'),
+    'S': t('oracle.spectrum.S'),
+    'R': t('oracle.spectrum.R'),
   };
   const values = [normalized.e, normalized.i, normalized.c, normalized.s, normalized.r];
 

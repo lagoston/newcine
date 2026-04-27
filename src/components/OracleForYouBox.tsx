@@ -32,8 +32,7 @@ function formatCountdown(ms: number): string {
 }
 
 const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
-  const { t, i18n } = useTranslation();
-  const isPt = i18n.language.startsWith('pt');
+  const { t } = useTranslation();
 
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,7 +116,7 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
                 to="/oracle"
                 className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               >
-                {isPt ? 'Descobrir minha Essência' : 'Discover my Essence'}
+                {t('oracle.discoverEssence')}
               </Link>
             </div>
           ) : loading ? (
@@ -127,7 +126,7 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
           ) : movies.length === 0 ? (
             <div className="flex items-center justify-center py-10">
               <p className="text-sm text-gray-400 dark:text-gray-500">
-                {isPt ? 'Nenhuma recomendação disponível hoje' : 'No recommendations available today'}
+                {t('oracle.noRecommendationsToday')}
               </p>
             </div>
           ) : (

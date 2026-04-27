@@ -44,7 +44,6 @@ const getSubcategoryColor = (personalityId: string | null) => {
 
 export default function OracleHub() {
   const { t, i18n } = useTranslation();
-  const isPt = i18n.language?.startsWith('pt');
   const { session } = useAuth();
   const [loading, setLoading] = useState(true);
   const [userPersonality, setUserPersonality] = useState<UserPersonality | null>(null);
@@ -152,7 +151,7 @@ export default function OracleHub() {
   }
 
   if (loading) {
-    return <GlassLoader fullPage size="lg" label={isPt ? 'Carregando Oráculo...' : 'Loading Oracle...'} />;
+    return <GlassLoader fullPage size="lg" label={t('oracle.loadingOracle')} />;
   }
 
   if (!userPersonality?.subcategoria_id) {
@@ -391,7 +390,7 @@ export default function OracleHub() {
                   className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl hover:shadow-lg hover:shadow-pink-500/25 transition-all text-sm font-semibold"
                 >
                   <Scroll className="w-4 h-4" />
-                  <span>{isPt ? 'Revelação' : 'Revelation'}</span>
+                  <span>{t('oracle.revelation')}</span>
                 </motion.button>
 
                 <motion.button
@@ -518,7 +517,7 @@ export default function OracleHub() {
 
                 <div className="flex items-center justify-center gap-3 mb-6">
                   <Scroll className="w-8 h-8 text-pink-500" style={{ filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.5))' }} />
-                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{isPt ? 'Revelação' : 'Revelation'}</h2>
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('oracle.revelation')}</h2>
                 </div>
 
                 <div className="text-center mb-6 rounded-xl p-5 border border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-700/50">
@@ -533,13 +532,13 @@ export default function OracleHub() {
                 <div className="space-y-4">
                   <div className="rounded-xl p-5 border border-pink-300/50 dark:border-pink-500/30 bg-pink-50/50 dark:bg-pink-500/10">
                     <h3 className="text-base font-bold text-pink-600 dark:text-pink-400 mb-2">
-                      {isPt ? `Sua Essencia (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'pt')})` : `Your Essence (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'en')})`}
+                      {t('oracle.yourEssence')} ({getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, i18n.language.startsWith('pt') ? 'pt' : 'en')})
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{archetypeInfo.archetype_description}</p>
                   </div>
                   <div className="rounded-xl p-5 border border-blue-300/50 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/10">
                     <h3 className="text-base font-bold text-blue-600 dark:text-blue-400 mb-2">
-                      {isPt ? `Sua Sintonia (${getSubcategoryName(archetypeInfo.subcategory_name, 'pt')})` : `Your Attunement (${getSubcategoryName(archetypeInfo.subcategory_name, 'en')})`}
+                      {t('oracle.yourAttunement')} ({getSubcategoryName(archetypeInfo.subcategory_name, i18n.language.startsWith('pt') ? 'pt' : 'en')})
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{archetypeInfo.subcategory_description}</p>
                   </div>
@@ -577,38 +576,32 @@ export default function OracleHub() {
 
                 <div className="flex items-center justify-center gap-3 mb-6">
                   <Eye className="w-8 h-8 text-blue-500" style={{ filter: 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))' }} />
-                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{isPt ? 'A Arquitetura da Alma' : 'The Architecture of the Soul'}</h2>
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('oracle.architectureTitle')}</h2>
                 </div>
 
                 <div className="space-y-5 text-gray-700 dark:text-gray-200">
                   <p className="text-center italic text-gray-600 dark:text-gray-400">
-                    {isPt ? 'Seu Arquétipo não é adivinhação. É a arquitetura de seus gostos, construída em duas etapas:' : 'Your Archetype is not guesswork. It is the architecture of your tastes, built in two stages:'}
+                    {t('oracle.architectureIntro')}
                   </p>
 
                   <div className="rounded-xl p-5 border border-blue-300/50 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/10">
                     <h3 className="text-base font-bold text-blue-600 dark:text-blue-300 mb-2 flex items-center gap-2">
                       <span>1.</span>
-                      {isPt ? `A Essência (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'pt')})` : `The Essence (${getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, 'en')})`}
+                      {t('oracle.theEssence')} ({getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, i18n.language.startsWith('pt') ? 'pt' : 'en')})
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-3">
-                      {isPt
-                        ? `Seu perfil principal (${userPersonality?.arquetipo_primario}${userPersonality?.arquetipo_secundario}) é a soma matemática do que você ama e odeia. Cada filme que você avalia move cinco balanças: Emocional (E), Intelectual (I), Cultural (C), Sensorial (S) e Recreativa (R).`
-                        : `Your main profile (${userPersonality?.arquetipo_primario}${userPersonality?.arquetipo_secundario}) is the mathematical sum of what you love and hate. Every film you rate moves five scales: Emotional (E), Intellectual (I), Cultural (C), Sensorial (S), and Recreational (R).`}
+                      {t('oracle.essenceProfileText', { profile: `${userPersonality?.arquetipo_primario}${userPersonality?.arquetipo_secundario}` })}
                     </p>
                     <div className="bg-black/10 dark:bg-black/30 rounded-lg p-3 mb-2">
-                      <p className="text-gray-500 dark:text-gray-400 text-xs font-bold mb-1">{isPt ? 'A Lógica:' : 'The Logic:'}</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-xs font-bold mb-1">{t('oracle.essenceLogicLabel')}</p>
                       <p className="text-gray-700 dark:text-gray-300 text-xs leading-relaxed">
-                        {isPt
-                          ? 'Uma nota 10.0 em um Drama adiciona peso máximo à sua balança E. Uma nota 0.0 em uma Comédia remove peso da sua balança R. A nota 5.0 é o equilíbrio neutro.'
-                          : 'A 10.0 rating on a Drama adds maximum weight to your E scale. A 0.0 on a Comedy removes weight from your R scale. A 5.0 is the neutral balance point.'}
+                        {t('oracle.essenceLogicText')}
                       </p>
                     </div>
                     <div className="bg-black/10 dark:bg-black/30 rounded-lg p-3">
-                      <p className="text-gray-500 dark:text-gray-400 text-xs font-bold mb-1">{isPt ? 'O Resultado:' : 'The Result:'}</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-xs font-bold mb-1">{t('oracle.essenceResultLabel')}</p>
                       <p className="text-gray-700 dark:text-gray-300 text-xs leading-relaxed">
-                        {isPt
-                          ? 'Seu Arquétipo é formado pelas duas balanças com maior pontuação, as forças que hoje brilham mais forte em você.'
-                          : 'Your Archetype is formed by the two highest-scoring scales — the forces that shine brightest in you today.'}
+                        {t('oracle.essenceResultText')}
                       </p>
                     </div>
                   </div>
@@ -616,23 +609,19 @@ export default function OracleHub() {
                   <div className="rounded-xl p-5 border border-amber-300/50 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/5">
                     <h3 className="text-base font-bold text-amber-600 dark:text-amber-300 mb-2 flex items-center gap-2">
                       <span>2.</span>
-                      {isPt ? `A Sintonia (${getSubcategoryName(archetypeInfo.subcategory_name, 'pt')})` : `The Attunement (${getSubcategoryName(archetypeInfo.subcategory_name, 'en')})`}
+                      {t('oracle.theAttunement')} ({getSubcategoryName(archetypeInfo.subcategory_name, i18n.language.startsWith('pt') ? 'pt' : 'en')})
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-3">
-                      {isPt
-                        ? `O Sub-arquétipo (${userPersonality?.subcategoria_id}) representa sua inclinação ou tom. Ela não é calculada pelos gêneros, mas pela Calibragem que você fez ao responder o questionário inicial.`
-                        : `The Sub-archetype (${userPersonality?.subcategoria_id}) represents your inclination or tone. It is not calculated by genres, but by the Calibration you performed when answering the initial questionnaire.`}
+                      {t('oracle.subarchetypeText', { id: userPersonality?.subcategoria_id })}
                     </p>
                     <p className="text-gray-500 dark:text-gray-400 text-xs mb-2">
-                      {isPt
-                        ? 'Ao responder às balanças, você definiu sua tendência em três eixos opostos:'
-                        : 'By answering the scales, you defined your tendency across three opposing axes:'}
+                      {t('oracle.axesListTitle')}
                     </p>
                     <ul className="space-y-1.5 text-xs">
                       {[
-                        { a: isPt ? 'Radiante (A)' : 'Radiant (A)', b: isPt ? 'Sombrio (B)' : 'Shadowy (B)', desc: isPt ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#8b5cf6' },
-                        { a: isPt ? 'Clássico (K)' : 'Classic (K)', b: isPt ? 'Experimental (X)' : 'Experimental (X)', desc: isPt ? 'Tradição vs. Ousadia' : 'Tradition vs. Boldness', ca: '#ef4444', cb: '#3b82f6' },
-                        { a: isPt ? 'Denso (D)' : 'Dense (D)', b: isPt ? 'Leve (L)' : 'Light (L)', desc: isPt ? 'Complexidade vs. Acessibilidade' : 'Complexity vs. Accessibility', ca: '#6b7280', cb: '#10b981' },
+                        { a: t('oracle.axisRadiant'), b: t('oracle.axisShadowy'), desc: t('oracle.axisOptimismMelancholy'), ca: '#fbbf24', cb: '#8b5cf6' },
+                        { a: t('oracle.axisClassic'), b: t('oracle.axisExperimental'), desc: t('oracle.axisTraditionBoldness'), ca: '#ef4444', cb: '#3b82f6' },
+                        { a: t('oracle.axisDense'), b: t('oracle.axisLight'), desc: t('oracle.axisComplexityAccessibility'), ca: '#6b7280', cb: '#10b981' },
                       ].map((row, i) => (
                         <li key={i} className="flex items-start gap-2">
                           <span className="text-gray-400 mt-0.5">•</span>
@@ -650,7 +639,7 @@ export default function OracleHub() {
                   <div className="rounded-xl p-5 border border-cyan-300/50 dark:border-cyan-500/30 bg-cyan-50/50 dark:bg-cyan-500/10">
                     <h3 className="text-lg font-bold text-cyan-600 dark:text-cyan-400 mb-4 flex items-center gap-2">
                       <span className="text-2xl">3.</span>
-                      {isPt ? 'O Grafico' : 'The Graph'}
+                      {t('oracle.theGraph')}
                     </h3>
 
                     <div className="flex justify-center mb-4">
@@ -669,7 +658,7 @@ export default function OracleHub() {
                         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-lg transition-all text-sm font-semibold"
                       >
                         <RefreshCw className="w-4 h-4" />
-                        <span>{isPt ? 'Refazer Questionario' : 'Retake Quiz'}</span>
+                        <span>{t('oracle.retakeQuiz')}</span>
                       </button>
                     </div>
                   </div>
@@ -697,20 +686,17 @@ export default function OracleHub() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">
-                {isPt ? 'Refazer Questionario?' : 'Retake Quiz?'}
+                {t('oracle.retakeQuizTitle')}
               </h3>
               <p className="text-gray-600 dark:text-gray-300 text-center mb-6">
-                {isPt
-                  ? 'Tem certeza que deseja refazer o questionario de personalidade? Isso ira atualizar sua subcategoria.'
-                  : 'Are you sure you want to retake the personality quiz? This will update your subcategory.'
-                }
+                {t('oracle.retakeQuizConfirm')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowRetakeQuizModal(false)}
                   className="flex-1 px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-xl transition-all font-medium"
                 >
-                  {isPt ? 'Cancelar' : 'Cancel'}
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={async () => {
@@ -724,7 +710,7 @@ export default function OracleHub() {
                   }}
                   className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all font-medium"
                 >
-                  {isPt ? 'Confirmar' : 'Confirm'}
+                  {t('common.confirm')}
                 </button>
               </div>
             </motion.div>
@@ -749,26 +735,23 @@ export default function OracleHub() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-4 text-center">
-                {isPt ? 'Funcao Premium' : 'Premium Feature'}
+                {t('oracle.premiumFeatureTitle')}
               </h3>
               <p className="text-gray-600 dark:text-gray-300 text-center mb-6">
-                {isPt
-                  ? 'Refazer o questionario de personalidade e uma funcao exclusiva para usuarios Premium.'
-                  : 'Retaking the personality quiz is an exclusive feature for Premium users.'
-                }
+                {t('oracle.premiumFeatureRetake')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowPremiumRequiredModal(false)}
                   className="flex-1 px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-xl transition-all font-medium"
                 >
-                  {isPt ? 'Fechar' : 'Close'}
+                  {t('common.close')}
                 </button>
                 <Link
                   to="/premium"
                   className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl transition-all text-center font-medium"
                 >
-                  {isPt ? 'Ver Premium' : 'View Premium'}
+                  {t('oracle.viewPremium')}
                 </Link>
               </div>
             </motion.div>

@@ -1650,7 +1650,7 @@ export default function Profile() {
                 return hasEssence ? (
                   <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
                     <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-4">
-                      {isPt ? 'Essência Cinematográfica' : 'Cinematic Essence'}
+                      {t('oracle.cinematicEssenceLabel')}
                     </p>
                     <div className="flex items-center gap-4">
                       <div className="flex-shrink-0">
@@ -1674,7 +1674,7 @@ export default function Profile() {
                           onClick={() => setShowEssenceRevelation(true)}
                           whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                           className="p-2 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 border border-pink-400/20 transition-all duration-200"
-                          title={isPt ? 'Revelação' : 'Revelation'}
+                          title={t('oracle.revelation')}
                         >
                           <Scroll className="w-4 h-4" />
                         </motion.button>
@@ -1694,12 +1694,10 @@ export default function Profile() {
                     <div className="flex items-center justify-between gap-4">
                       <div className="min-w-0">
                         <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">
-                          {isPt ? 'Essência Cinematográfica' : 'Cinematic Essence'}
+                          {t('oracle.cinematicEssenceLabel')}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                          {isPt
-                            ? 'Descubra o arquétipo que define seu gosto cinematográfico.'
-                            : 'Discover the archetype that defines your cinematic taste.'}
+                          {t('oracle.subcategoryExplain')}
                         </p>
                       </div>
                       <motion.button
@@ -1707,7 +1705,7 @@ export default function Profile() {
                         whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                         className="flex-shrink-0 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-md whitespace-nowrap"
                       >
-                        {isPt ? 'Descubra sua Essência' : 'Discover your Essence'}
+                        {t('oracle.discoverYourEssence')}
                       </motion.button>
                     </div>
                   </div>
@@ -1764,21 +1762,21 @@ export default function Profile() {
                 </button>
                 <div className="flex items-center justify-center gap-3 mb-6">
                   <Scroll className="w-8 h-8 text-pink-400" style={{ filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.5))' }} />
-                  <h2 className="text-2xl font-bold text-white">{i18n.language.startsWith('pt') ? 'Revelação' : 'Revelation'}</h2>
+                  <h2 className="text-2xl font-bold text-white">{t('oracle.revelation')}</h2>
                 </div>
                 <div className="text-center mb-6 rounded-xl p-5 border border-gray-700/60 bg-gray-800/50">
-                  <p className="text-3xl font-bold mb-1" style={{ color: (() => { const t = essencePersonality.personalidade_completa?.charAt(2) ?? ''; return ({ A: '#fbbf24', B: '#64748b', K: '#ef4444', X: '#3b82f6', D: '#6b7280', L: '#10b981' } as Record<string,string>)[t] || '#3b82f6'; })() }}>
+                  <p className="text-3xl font-bold mb-1" style={{ color: (() => { const c = essencePersonality.personalidade_completa?.charAt(2) ?? ''; return ({ A: '#fbbf24', B: '#64748b', K: '#ef4444', X: '#3b82f6', D: '#6b7280', L: '#10b981' } as Record<string,string>)[c] || '#3b82f6'; })() }}>
                     {essencePersonality.personalidade_completa}
                   </p>
                   <p className="text-lg text-gray-200 font-semibold">{essenceArchetype.archetype_name} {essenceArchetype.subcategory_name}</p>
                 </div>
                 <div className="space-y-4">
                   <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
-                    <h3 className="text-base font-bold text-pink-400 mb-2">{i18n.language.startsWith('pt') ? `Sua Essência (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'pt')})` : `Your Essence (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'en')})`}</h3>
+                    <h3 className="text-base font-bold text-pink-400 mb-2">{t('oracle.yourEssence')} ({getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, i18n.language.startsWith('pt') ? 'pt' : 'en')})</h3>
                     <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.archetype_description}</p>
                   </div>
                   <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
-                    <h3 className="text-base font-bold text-blue-400 mb-2">{i18n.language.startsWith('pt') ? `Sua Sintonia (${getSubcategoryName(essenceArchetype.subcategory_name, 'pt')})` : `Your Attunement (${getSubcategoryName(essenceArchetype.subcategory_name, 'en')})`}</h3>
+                    <h3 className="text-base font-bold text-blue-400 mb-2">{t('oracle.yourAttunement')} ({getSubcategoryName(essenceArchetype.subcategory_name, i18n.language.startsWith('pt') ? 'pt' : 'en')})</h3>
                     <p className="text-gray-300 text-sm leading-relaxed">{essenceArchetype.subcategory_description}</p>
                   </div>
                 </div>
@@ -1807,59 +1805,43 @@ export default function Profile() {
                 </button>
                 <div className="flex items-center justify-center gap-3 mb-6">
                   <Info className="w-8 h-8 text-blue-400" style={{ filter: 'drop-shadow(0 0 8px rgba(96,165,250,0.5))' }} />
-                  <h2 className="text-2xl font-bold text-white">{i18n.language.startsWith('pt') ? 'A Arquitetura da Alma' : "The Soul's Architecture"}</h2>
+                  <h2 className="text-2xl font-bold text-white">{t('oracle.architectureTitle')}</h2>
                 </div>
                 <p className="text-center italic text-gray-400 text-sm mb-6">
-                  {i18n.language.startsWith('pt')
-                    ? 'Seu Arquétipo não é adivinhação. É a arquitetura de seus gostos, construída em duas etapas:'
-                    : 'Your Archetype is not guesswork. It is the architecture of your tastes, built in two stages:'}
+                  {t('oracle.architectureIntro')}
                 </p>
                 <div className="space-y-4">
                   <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
                     <h3 className="text-base font-bold text-blue-300 mb-2 flex items-center gap-2">
-                      <span>1.</span> {i18n.language.startsWith('pt') ? `A Essência (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'pt')})` : `The Essence (${getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, 'en')})`}
+                      <span>1.</span> {t('oracle.theEssence')} ({getEssenceLabel(essencePersonality?.arquetipo_primario, essencePersonality?.arquetipo_secundario, i18n.language.startsWith('pt') ? 'pt' : 'en')})
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed mb-3">
-                      {i18n.language.startsWith('pt')
-                        ? `Seu perfil principal (${essencePersonality.arquetipo_primario}${essencePersonality.arquetipo_secundario}) é a soma matemática do que você ama e odeia. Cada filme que você avalia move cinco balanças: Emocional (E), Intelectual (I), Cultural (C), Sensorial (S) e Recreativa (R).`
-                        : `Your main profile (${essencePersonality.arquetipo_primario}${essencePersonality.arquetipo_secundario}) is the mathematical sum of what you love and hate. Every film you rate moves five scales: Emotional (E), Intellectual (I), Cultural (C), Sensorial (S), and Recreational (R).`}
+                      {t('oracle.essenceProfileText', { profile: `${essencePersonality.arquetipo_primario}${essencePersonality.arquetipo_secundario}` })}
                     </p>
                     <div className="bg-black/30 rounded-lg p-3 mb-2">
-                      <p className="text-gray-400 text-xs font-bold mb-1">{i18n.language.startsWith('pt') ? 'A Lógica:' : 'The Logic:'}</p>
-                      <p className="text-gray-300 text-xs leading-relaxed">
-                        {i18n.language.startsWith('pt')
-                          ? 'Uma nota 10.0 em um Drama adiciona peso máximo à sua balança E. Uma nota 0.0 em uma Comédia remove peso da sua balança R. A nota 5.0 é o equilíbrio neutro.'
-                          : 'A 10.0 rating on a Drama adds maximum weight to your E scale. A 0.0 on a Comedy removes weight from your R scale. A 5.0 is the neutral balance point.'}
-                      </p>
+                      <p className="text-gray-400 text-xs font-bold mb-1">{t('oracle.essenceLogicLabel')}</p>
+                      <p className="text-gray-300 text-xs leading-relaxed">{t('oracle.essenceLogicText')}</p>
                     </div>
                     <div className="bg-black/30 rounded-lg p-3">
-                      <p className="text-gray-400 text-xs font-bold mb-1">{i18n.language.startsWith('pt') ? 'O Resultado:' : 'The Result:'}</p>
-                      <p className="text-gray-300 text-xs leading-relaxed">
-                        {i18n.language.startsWith('pt')
-                          ? 'Seu Arquétipo é formado pelas duas balanças com maior pontuação, as forças que hoje brilham mais forte em você.'
-                          : 'Your Archetype is formed by the two highest-scoring scales — the forces that shine brightest in you today.'}
-                      </p>
+                      <p className="text-gray-400 text-xs font-bold mb-1">{t('oracle.essenceResultLabel')}</p>
+                      <p className="text-gray-300 text-xs leading-relaxed">{t('oracle.essenceResultText')}</p>
                     </div>
                   </div>
                   <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
                     <h3 className="text-base font-bold text-amber-300 mb-2 flex items-center gap-2">
-                      <span>2.</span> {i18n.language.startsWith('pt') ? `A Sintonia (${getSubcategoryName(essenceArchetype?.subcategory_name, 'pt')})` : `The Attunement (${getSubcategoryName(essenceArchetype?.subcategory_name, 'en')})`}
+                      <span>2.</span> {t('oracle.theAttunement')} ({getSubcategoryName(essenceArchetype?.subcategory_name, i18n.language.startsWith('pt') ? 'pt' : 'en')})
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed mb-3">
-                      {i18n.language.startsWith('pt')
-                        ? `O Sub-arquétipo (${essencePersonality.subcategoria_id}) representa sua inclinação ou tom. Ela não é calculada pelos gêneros, mas pela Calibragem que você fez ao responder o questionário inicial.`
-                        : `The Sub-archetype (${essencePersonality.subcategoria_id}) represents your inclination or tone. It is not calculated by genres, but by the Calibration you performed when answering the initial questionnaire.`}
+                      {t('oracle.subarchetypeText', { id: essencePersonality.subcategoria_id })}
                     </p>
                     <p className="text-gray-400 text-xs mb-2">
-                      {i18n.language.startsWith('pt')
-                        ? 'Ao responder às balanças, você definiu sua tendência em três eixos opostos:'
-                        : 'By answering the scales, you defined your tendency across three opposing axes:'}
+                      {t('oracle.axesListTitle')}
                     </p>
                     <ul className="space-y-1.5 text-xs">
                       {[
-                        { a: i18n.language.startsWith('pt') ? 'Radiante (A)' : 'Radiant (A)', b: i18n.language.startsWith('pt') ? 'Sombrio (B)' : 'Shadowy (B)', desc: i18n.language.startsWith('pt') ? 'Otimismo vs. Melancolia' : 'Optimism vs. Melancholy', ca: '#fbbf24', cb: '#8b5cf6' },
-                        { a: i18n.language.startsWith('pt') ? 'Clássico (K)' : 'Classic (K)', b: i18n.language.startsWith('pt') ? 'Experimental (X)' : 'Experimental (X)', desc: i18n.language.startsWith('pt') ? 'Tradição vs. Ousadia' : 'Tradition vs. Boldness', ca: '#ef4444', cb: '#3b82f6' },
-                        { a: i18n.language.startsWith('pt') ? 'Denso (D)' : 'Dense (D)', b: i18n.language.startsWith('pt') ? 'Leve (L)' : 'Light (L)', desc: i18n.language.startsWith('pt') ? 'Complexidade vs. Acessibilidade' : 'Complexity vs. Accessibility', ca: '#6b7280', cb: '#10b981' },
+                        { a: t('oracle.axisRadiant'), b: t('oracle.axisShadowy'), desc: t('oracle.axisOptimismMelancholy'), ca: '#fbbf24', cb: '#8b5cf6' },
+                        { a: t('oracle.axisClassic'), b: t('oracle.axisExperimental'), desc: t('oracle.axisTraditionBoldness'), ca: '#ef4444', cb: '#3b82f6' },
+                        { a: t('oracle.axisDense'), b: t('oracle.axisLight'), desc: t('oracle.axisComplexityAccessibility'), ca: '#6b7280', cb: '#10b981' },
                       ].map((row, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           <span className="text-gray-500 mt-0.5">•</span>
@@ -1875,7 +1857,7 @@ export default function Profile() {
                   </div>
                   <div className="rounded-xl p-5 border border-cyan-500/20 bg-cyan-500/5">
                     <h3 className="text-base font-bold text-cyan-300 mb-4 flex items-center gap-2">
-                      <span>3.</span> {i18n.language.startsWith('pt') ? 'O Gráfico' : 'The Graph'}
+                      <span>3.</span> {t('oracle.theGraph')}
                     </h3>
                     <div className="flex justify-center mb-4">
                       <PentagonGraph points={spectrumPoints} subcategoryId={essencePersonality?.personalidade_completa || ''} />
@@ -1886,7 +1868,7 @@ export default function Profile() {
                         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-lg transition-all text-sm font-semibold"
                       >
                         <RefreshCw className="w-4 h-4" />
-                        <span>{i18n.language.startsWith('pt') ? 'Refazer Questionário' : 'Retake Quiz'}</span>
+                        <span>{t('oracle.retakeQuiz')}</span>
                       </button>
                     </div>
                   </div>
@@ -1914,19 +1896,17 @@ export default function Profile() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-2xl font-bold text-white mb-4 text-center">
-                {i18n.language.startsWith('pt') ? 'Refazer Questionário?' : 'Retake Quiz?'}
+                {t('oracle.retakeQuizTitle')}
               </h3>
               <p className="text-gray-300 text-center mb-6">
-                {i18n.language.startsWith('pt')
-                  ? 'Tem certeza que deseja refazer o questionário de personalidade? Isso irá atualizar sua subcategoria.'
-                  : 'Are you sure you want to retake the personality quiz? This will update your subcategory.'}
+                {t('oracle.retakeQuizConfirm')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowRetakeQuizModal(false)}
                   className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-all font-medium"
                 >
-                  {i18n.language.startsWith('pt') ? 'Cancelar' : 'Cancel'}
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={async () => {
@@ -1940,7 +1920,7 @@ export default function Profile() {
                   }}
                   className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all font-medium"
                 >
-                  {i18n.language.startsWith('pt') ? 'Confirmar' : 'Confirm'}
+                  {t('common.confirm')}
                 </button>
               </div>
             </motion.div>
