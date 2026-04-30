@@ -14,39 +14,75 @@ interface RequestBody {
   language?: string;
 }
 
-const CHARACTER_PHRASES = {
+const CHARACTER_PHRASES_PT = {
   bogart: [
-    "BOGART: Filmes v\u00eam, filmes v\u00e3o\u2026 mas este aqui grudou na minha mente como mosquito em l\u00edngua \u00famida.",
-    "BOGART: Muitos buscam sentido nos filmes. Eu busco mosquitos. Ainda assim\u2026 veja este.",
-    "BOGART: Anos vendo reflexos na \u00e1gua\u2026 e ainda assim este filme me fez ver o fundo do brejo.",
-    "BOGART: Feche os olhos, respire o cheiro do lodo\u2026 se sentir vertigem, \u00e9 sinal que este \u00e9 o certo.",
-    "BOGART: As massas aplaudem, os cr\u00edticos bufam\u2026 e eu? Eu coaxo em \u00eaxtase."
+    "BOGART: Filmes vêm, filmes vão… mas este aqui grudou na minha mente como mosquito em língua úmida.",
+    "BOGART: Muitos buscam sentido nos filmes. Eu busco mosquitos. Ainda assim… veja este.",
+    "BOGART: Anos vendo reflexos na água… e ainda assim este filme me fez ver o fundo do brejo.",
+    "BOGART: Feche os olhos, respire o cheiro do lodo… se sentir vertigem, é sinal que este é o certo.",
+    "BOGART: As massas aplaudem, os críticos bufam… e eu? Eu coaxo em êxtase."
   ],
   fincher: [
-    "FINCHER: Vi esse filme tr\u00eas vezes\u2026 na quarta, percebi que era eu quem estava sendo analisado.",
-    "FINCHER: N\u00e3o confio em cr\u00edticos, mas confio no meu faro \u2014 e ele cheira a obra-prima.",
-    "FINCHER: Filmes s\u00e3o m\u00e1gicos, e eu sou especialista em truques. Quer cair nesse tamb\u00e9m?",
-    "FINCHER: Gravado quando o cinema ainda tinha alma \u2014 e atores que fumavam at\u00e9 nos cr\u00e9ditos.",
-    "FINCHER: \u00c9 o tipo de filme que envelhece como um crime perfeito."
+    "FINCHER: Vi esse filme três vezes… na quarta, percebi que era eu quem estava sendo analisado.",
+    "FINCHER: Não confio em críticos, mas confio no meu faro — e ele cheira a obra-prima.",
+    "FINCHER: Filmes são mágicos, e eu sou especialista em truques. Quer cair nesse também?",
+    "FINCHER: Gravado quando o cinema ainda tinha alma — e atores que fumavam até nos créditos.",
+    "FINCHER: É o tipo de filme que envelhece como um crime perfeito."
   ],
   cypher: [
-    "CYPHER: Ah\u2026 esse aqui fede a genialidade mal executada. Meu veneno favorito.",
+    "CYPHER: Ah… esse aqui fede a genialidade mal executada. Meu veneno favorito.",
     "CYPHER: Metade vai odiar, metade vai fingir que entendeu. E eu? Eu sorrio no escuro.",
-    "CYPHER: Shhh\u2026 n\u00e3o lute contra o impulso. Deixe a curiosidade te apertar um pouco mais.",
-    "CYPHER: Sente o frio subindo pela espinha? \u00c9 o enredo te enrolando, bem devagar.",
-    "CYPHER: Proibido, tosco, hipn\u00f3tico \u2014 uma heresia audiovisual que sussurra: \u2018assista-me, se ousar.\u2019"
+    "CYPHER: Shhh… não lute contra o impulso. Deixe a curiosidade te apertar um pouco mais.",
+    "CYPHER: Sente o frio subindo pela espinha? É o enredo te enrolando, bem devagar.",
+    "CYPHER: Proibido, tosco, hipnótico — uma heresia audiovisual que sussurra: 'assista-me, se ousar.'"
   ]
 };
 
-const UNAVAILABLE_PHRASES = {
-  bogart: "BOGART: Hmm\u2026 o p\u00e2ntano hoje est\u00e1 silencioso. Nenhuma hist\u00f3ria borbulha na lama. Tente outro humor, quem sabe o reflexo muda.",
-  fincher: "FINCHER: Nada digno da minha recomenda\u00e7\u00e3o agora. Volte com outro humor... talvez eu pense em algo.",
-  cypher: "CYPHER: Shhh\u2026 at\u00e9 o subsolo dorme \u00e0s vezes. Nenhum filme rasteja para mim hoje. Mude o humor\u2026 e talvez eu volte a sussurrar."
+const CHARACTER_PHRASES_EN = {
+  bogart: [
+    "BOGART: Films come, films go… but this one stuck to my mind like a mosquito on a wet tongue.",
+    "BOGART: Many seek meaning in films. I seek mosquitoes. Even so… watch this one.",
+    "BOGART: Years staring at reflections in the water… and still, this film made me see the bottom of the swamp.",
+    "BOGART: Close your eyes, breathe in the smell of mud… if you feel dizzy, that's the sign this one's right.",
+    "BOGART: The masses applaud, the critics scoff… and me? I croak in ecstasy."
+  ],
+  fincher: [
+    "FINCHER: I watched this film three times… on the fourth, I realized it was me being analyzed.",
+    "FINCHER: I don't trust critics, but I trust my instincts — and they smell a masterpiece.",
+    "FINCHER: Films are magic, and I'm an expert in tricks. Care to fall for this one too?",
+    "FINCHER: Filmed when cinema still had a soul — and actors who smoked through the credits.",
+    "FINCHER: It's the kind of film that ages like a perfect crime."
+  ],
+  cypher: [
+    "CYPHER: Ah… this one reeks of poorly executed genius. My favorite poison.",
+    "CYPHER: Half will hate it, half will pretend they understood it. And me? I smile in the dark.",
+    "CYPHER: Shhh… don't fight the impulse. Let curiosity squeeze you a little tighter.",
+    "CYPHER: Feel the cold creeping up your spine? That's the plot wrapping around you, nice and slow.",
+    "CYPHER: Forbidden, raw, hypnotic — an audiovisual heresy that whispers: 'watch me, if you dare.'"
+  ]
 };
 
-function getRandomPhrase(cardType: 'bogart' | 'fincher' | 'cypher'): string {
-  const phrases = CHARACTER_PHRASES[cardType];
+const UNAVAILABLE_PHRASES_PT = {
+  bogart: "BOGART: Hmm… o pântano hoje está silencioso. Nenhuma história borbulha na lama. Tente outro humor, quem sabe o reflexo muda.",
+  fincher: "FINCHER: Nada digno da minha recomendação agora. Volte com outro humor... talvez eu pense em algo.",
+  cypher: "CYPHER: Shhh… até o subsolo dorme às vezes. Nenhum filme rasteja para mim hoje. Mude o humor… e talvez eu volte a sussurrar."
+};
+
+const UNAVAILABLE_PHRASES_EN = {
+  bogart: "BOGART: Hmm… the swamp is quiet today. No story bubbles up from the mud. Try another mood — maybe the reflection will change.",
+  fincher: "FINCHER: Nothing worthy of my recommendation right now. Come back with a different mood... perhaps something will come to mind.",
+  cypher: "CYPHER: Shhh… even the underground sleeps sometimes. No film crawls to me today. Change the mood… and maybe I'll start whispering again."
+};
+
+function getRandomPhrase(cardType: 'bogart' | 'fincher' | 'cypher', language: string): string {
+  const isPortuguese = language.startsWith('pt');
+  const phrases = isPortuguese ? CHARACTER_PHRASES_PT[cardType] : CHARACTER_PHRASES_EN[cardType];
   return phrases[Math.floor(Math.random() * phrases.length)];
+}
+
+function getUnavailablePhrase(cardType: 'bogart' | 'fincher' | 'cypher', language: string): string {
+  const isPortuguese = language.startsWith('pt');
+  return isPortuguese ? UNAVAILABLE_PHRASES_PT[cardType] : UNAVAILABLE_PHRASES_EN[cardType];
 }
 
 Deno.serve(async (req) => {
@@ -64,7 +100,7 @@ Deno.serve(async (req) => {
 
     const { userId, mood, cardType, moodKey, language = 'en' }: RequestBody = await req.json();
 
-    console.log(`\ud83c\udfac Recommend movie request: user=${userId}, mood=${mood}, card=${cardType}`);
+    console.log(`🎬 Recommend movie request: user=${userId}, mood=${mood}, card=${cardType}, lang=${language}`);
 
     await supabase.rpc('check_and_reset_tickets', { user_id_param: userId });
 
@@ -114,11 +150,11 @@ Deno.serve(async (req) => {
     }
 
     if (!poolData) {
-      console.log(`\u26a0\ufe0f No pool found for ${cardType}/${moodKey}`);
+      console.log(`⚠️ No pool found for ${cardType}/${moodKey}`);
 
       return new Response(
         JSON.stringify({
-          recommendation: UNAVAILABLE_PHRASES[cardType],
+          recommendation: getUnavailablePhrase(cardType, language),
           mood: mood,
           ticketsRemaining: ticketData.tickets_remaining
         }),
@@ -134,14 +170,14 @@ Deno.serve(async (req) => {
       (movieId: number) => !ratedMovieIds.includes(movieId)
     );
 
-    console.log(`\u2705 Available movies: ${availableMovies.length}`);
+    console.log(`✅ Available movies: ${availableMovies.length}`);
 
     if (availableMovies.length === 0) {
-      console.log('\u26a0\ufe0f No available movies in pool');
+      console.log('⚠️ No available movies in pool');
 
       return new Response(
         JSON.stringify({
-          recommendation: UNAVAILABLE_PHRASES[cardType],
+          recommendation: getUnavailablePhrase(cardType, language),
           mood: mood,
           ticketsRemaining: ticketData.tickets_remaining
         }),
@@ -166,11 +202,11 @@ Deno.serve(async (req) => {
     const randomIndex = Math.floor(Math.random() * availableMovies.length);
     const selectedMovieId = availableMovies[randomIndex];
 
-    console.log(`\ud83c\udfaf Selected movie ID: ${selectedMovieId}`);
+    console.log(`🎯 Selected movie ID: ${selectedMovieId}`);
 
-    const languageParam = language ? `language=${language}&` : '';
-    const tmdbUrl = `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=/movie/${selectedMovieId}?${languageParam}append_to_response=credits`;
-    console.log(`\ud83d\udce1 Fetching from: ${tmdbUrl}`);
+    const tmdbLang = language.startsWith('pt') ? 'pt-BR' : 'en-US';
+    const tmdbUrl = `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=/movie/${selectedMovieId}?language=${tmdbLang}&append_to_response=credits`;
+    console.log(`📡 Fetching from: ${tmdbUrl}`);
     const tmdbResponse = await fetch(tmdbUrl, {
       headers: {
         'Authorization': req.headers.get('Authorization') || '',
@@ -183,14 +219,14 @@ Deno.serve(async (req) => {
 
     const movieData = await tmdbResponse.json();
 
-    console.log(`\u2705 Movie data received:`, {
+    console.log(`✅ Movie data received:`, {
       title: movieData.title,
       hasCredits: !!movieData.credits,
       hasCrew: !!movieData.credits?.crew,
       crewLength: movieData.credits?.crew?.length
     });
 
-    const characterPhrase = getRandomPhrase(cardType);
+    const characterPhrase = getRandomPhrase(cardType, language);
 
     return new Response(
       JSON.stringify({
@@ -206,7 +242,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('\u274c Error in recommend-movie:', error);
+    console.error('❌ Error in recommend-movie:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

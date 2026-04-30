@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import { useAuth } from '../lib/auth';
 import { getMovieDetails, getMovieDetailsFromDB, Movie, getTrending } from '../lib/tmdb';
+import { cache } from '../lib/cache';
 
 interface Profile {
   id: string;
@@ -112,10 +113,7 @@ export default function Community() {
 
   useEffect(() => {
     const handleLanguageChange = () => {
-      if (typeof window !== 'undefined') {
-        const { cache } = require('../lib/cache');
-        cache.invalidatePattern('movie:');
-      }
+      cache.invalidatePattern('movie:');
       fetchProfiles();
       if (session?.user?.id) {
         fetchFriendsWatchlist();

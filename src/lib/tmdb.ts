@@ -162,7 +162,8 @@ export const searchMovies = async (query: string): Promise<Movie[]> => {
 };
 
 export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv' = 'movie', useCache: boolean = true): Promise<Movie> => {
-  const cacheKey = CACHE_KEYS.MOVIE_DETAILS(movieId, mediaType);
+  const language = getCurrentLanguage();
+  const cacheKey = `${CACHE_KEYS.MOVIE_DETAILS(movieId, mediaType)}:${language}`;
   const memCached = cache.get<Movie>(cacheKey);
 
   if (memCached) {
@@ -171,7 +172,6 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
 
   // Try to get from database cache first (if enabled)
   if (useCache) {
-    const language = getCurrentLanguage();
     const dbCached = await getCachedMovie(movieId, language, mediaType);
 
     if (dbCached) {
@@ -538,13 +538,19 @@ export const getMovieDetailsFromDB = async (movieId: number): Promise<Movie> => 
     .maybeSingle();
 
   const mediaType = dbMovie?.media_type || 'movie';
-
-  // Try cache with correct media_type
   const language = getCurrentLanguage();
-  const cached = await getCachedMovie(movieId, language, mediaType);
+  const cacheKey = `${CACHE_KEYS.MOVIE_DETAILS(movieId, mediaType)}:${language}`;
+  const memCached = cache.get<Movie>(cacheKey);
 
-  if (cached) {
-    return cached;
+  if (memCached) {
+    return memCached;
+  }
+
+  const dbCached = await getCachedMovie(movieId, language, mediaType);
+
+  if (dbCached) {
+    cache.set(cacheKey, dbCached, CACHE_TTL.MOVIE_DETAILS);
+    return dbCached;
   }
 
   // Fallback: fetch from API
