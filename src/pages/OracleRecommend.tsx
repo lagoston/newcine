@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Wand2, Loader2, Ticket, Plus, ArrowLeft, HelpCircle, X, Sparkles, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { getMovieDetails } from '../lib/tmdb';
@@ -216,11 +216,11 @@ export default function OracleRecommend() {
       const moodKey = moodKeyMap[selectedMood] || 'random-surprise';
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recommend-movie`,
+        `${supabaseUrl}/functions/v1/recommend-movie`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({

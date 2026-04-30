@@ -1,10 +1,10 @@
 import { useDebounce } from 'use-debounce';
-import { supabase } from './supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from './supabase';
 import { cache, CACHE_KEYS, CACHE_TTL } from './cache';
 import i18n from '../i18n';
 
 // Secure proxy endpoint
-const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tmdb-proxy`;
+const PROXY_URL = `${supabaseUrl}/functions/v1/tmdb-proxy`;
 
 // Get current language for TMDB requests
 function getCurrentLanguage(): string {
@@ -29,7 +29,7 @@ async function tmdbFetch(endpoint: string): Promise<any> {
 
   const response = await fetch(url, {
     headers: {
-      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
     },
   });
 

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { searchMovies } from '../lib/tmdb';
 import { useDebounce } from 'use-debounce';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
@@ -154,11 +154,11 @@ export default function OraclePrediction() {
       }, 400);
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/predict-rating`,
+        `${supabaseUrl}/functions/v1/predict-rating`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ userId: session.user.id, movieName, movieId, language: i18n.language })

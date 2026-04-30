@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from './supabase';
 
 interface CheckoutOptions {
   priceId: string;
@@ -14,11 +14,11 @@ export async function createCheckoutSession({ priceId, userId, email }: Checkout
     console.log('Creating checkout session for:', { priceId, userId });
     
     const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`,
+      `${supabaseUrl}/functions/v1/stripe-checkout`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ priceId, userId, email }),
@@ -81,11 +81,11 @@ export async function createPortalSession(userId: string) {
     console.log(`Creating portal session for user: ${userId}, customer: ${customerId || 'unknown'}`);
     
     const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-portal`,
+      `${supabaseUrl}/functions/v1/stripe-portal`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
