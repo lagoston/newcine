@@ -363,7 +363,7 @@ export default function Community() {
                           {movie.movieDetails?.poster_path && (
                             <img
                               src={`https://image.tmdb.org/t/p/w342${movie.movieDetails.poster_path}`}
-                              alt={movie.title}
+                              alt={movie.movieDetails?.title || movie.title}
                               draggable={false}
                               onDragStart={(e) => e.preventDefault()}
                               className="w-full aspect-[2/3] object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
@@ -373,7 +373,7 @@ export default function Community() {
                             />
                           )}
                           <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 pointer-events-none">
-                            <p className="text-white text-xs font-semibold truncate drop-shadow">{movie.title}</p>
+                            <p className="text-white text-xs font-semibold truncate drop-shadow">{movie.movieDetails?.title || movie.title}</p>
                             {movie.friend_username && (
                               <p className="text-gray-300 text-[10px] truncate">@{movie.friend_username}</p>
                             )}
