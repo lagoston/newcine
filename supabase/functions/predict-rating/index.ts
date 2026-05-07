@@ -33,17 +33,22 @@ interface FishingResult {
   filters: RelevantMovie[];
 }
 
-async function getMovieDataFromTMDB(movieName: string): Promise<{ vote_average: number; id: number; media_type: string; director?: string; cast?: string[]; genres?: string[] } | null> {
+async function getMovieDataFromTMDB(
+  movieName: string,
+  language: string
+): Promise<{ vote_average: number; id: number; media_type: string; director?: string; cast?: string[]; genres?: string[] } | null> {
   const tmdbApiKey = Deno.env.get('TMDB_API_KEY');
   if (!tmdbApiKey) {
     console.error('TMDB_API_KEY not found');
     return null;
   }
 
+  const tmdbLang = language.startsWith('pt') ? 'pt-BR' : language.startsWith('es') ? 'es-ES' : 'en-US';
+
   try {
     const [movieRes, tvRes] = await Promise.all([
-      fetch(`https://api.themoviedb.org/3/search/movie?api_key=${tmdbApiKey}&query=${encodeURIComponent(movieName)}&language=en-US`),
-      fetch(`https://api.themoviedb.org/3/search/tv?api_key=${tmdbApiKey}&query=${encodeURIComponent(movieName)}&language=en-US`)
+      fetch(`https://api.themoviedb.org/3/search/movie?api_key=${tmdbApiKey}&query=${encodeURIComponent(movieName)}&language=${tmdbLang}`),
+      fetch(`https://api.themoviedb.org/3/search/tv?api_key=${tmdbApiKey}&query=${encodeURIComponent(movieName)}&language=${tmdbLang}`)
     ]);
 
     const [movieData, tvData] = await Promise.all([movieRes.json(), tvRes.json()]);
@@ -76,7 +81,7 @@ async function getMovieDataFromTMDB(movieName: string): Promise<{ vote_average: 
     }
 
     const itemId = result.id;
-    const detailsUrl = `https://api.themoviedb.org/3/${mediaType}/${itemId}?api_key=${tmdbApiKey}&append_to_response=credits&language=en-US`;
+    const detailsUrl = `https://api.themoviedb.org/3/${mediaType}/${itemId}?api_key=${tmdbApiKey}&append_to_response=credits&language=${tmdbLang}`;
     const detailsResponse = await fetch(detailsUrl);
     const detailsData = await detailsResponse.json();
 
@@ -137,7 +142,6 @@ async function fishForRelevantMovies(
       return { signals, filters };
     }
 
-    // Fetch all reviews for this user at once for efficiency
     const { data: userReviews, error: reviewsError } = await supabase
       .from('reviews')
       .select('movie_id, media_type, title, content')
@@ -147,7 +151,6 @@ async function fishForRelevantMovies(
       console.error('Error fetching reviews:', reviewsError);
     }
 
-    // Create a map of reviews by movie_id for quick lookup
     const reviewsMap = new Map<string, { title: string; content: string }>();
     if (userReviews) {
       for (const review of userReviews) {
@@ -158,14 +161,28 @@ async function fishForRelevantMovies(
 
     const addedMovies = new Set<string>();
 
-    // Helper function to get balanced selection from a pool of movies
-    const selectBalancedMovies = (pool: any[], maxCount: number): void => {
-      // Separate into high (7.0+), mid (6.0-7.0), and low (< 6.0) ratings
+    const pushMovieEntry = (movie: any, matchType: string) => {
+      const reviewKey = `${movie.movie_id}_${movie.movies.media_type || 'movie'}`;
+      const review = reviewsMap.get(reviewKey);
+      const entry: RelevantMovie = {
+        title: movie.movies.title,
+        rating: movie.rating,
+        matchType,
+        ...(review && { review })
+      };
+      if (movie.rating >= 7.0) {
+        signals.push(entry);
+      } else if (movie.rating <= 6.0) {
+        filters.push(entry);
+      }
+      addedMovies.add(movie.movies.title);
+    };
+
+    const selectBalancedMovies = (pool: any[], maxCount: number, matchType: string): void => {
       const high = pool.filter(m => m.rating >= 7.0);
       const mid = pool.filter(m => m.rating > 6.0 && m.rating < 7.0);
       const low = pool.filter(m => m.rating <= 6.0);
 
-      // Shuffle each category for randomness
       const shuffle = (arr: any[]) => {
         const shuffled = [...arr];
         for (let i = shuffled.length - 1; i > 0; i--) {
@@ -179,147 +196,87 @@ async function fishForRelevantMovies(
       const shuffledMid = shuffle(mid);
       const shuffledLow = shuffle(low);
 
-      // Try to get a balanced mix: alternate between high, mid, and low
-      const categories = [
-        { movies: shuffledHigh, type: 'high' },
-        { movies: shuffledMid, type: 'mid' },
-        { movies: shuffledLow, type: 'low' }
-      ];
-
       let categoryIndex = 0;
       let added = 0;
 
-      // Round-robin selection from each category
       while (added < maxCount && (shuffledHigh.length > 0 || shuffledMid.length > 0 || shuffledLow.length > 0)) {
+        const categories = [shuffledHigh, shuffledMid, shuffledLow];
         const category = categories[categoryIndex % 3];
 
-        if (category.movies.length > 0) {
-          const movie = category.movies.shift();
+        if (category.length > 0) {
+          const movie = category.shift();
           if (movie && !addedMovies.has(movie.movies.title)) {
-            const reviewKey = `${movie.movie_id}_${movie.movies.media_type || 'movie'}`;
-            const review = reviewsMap.get(reviewKey);
-
-            const entry: RelevantMovie = {
-              title: movie.movies.title,
-              rating: movie.rating,
-              matchType: movie.matchType || 'Genre',
-              ...(review && { review })
-            };
-
-            if (movie.rating >= 7.0) {
-              signals.push(entry);
-            } else if (movie.rating <= 6.0) {
-              filters.push(entry);
-            }
-
-            addedMovies.add(movie.movies.title);
+            pushMovieEntry(movie, matchType);
             added++;
           }
         }
-
         categoryIndex++;
 
-        // Break if all categories are empty
-        if (shuffledHigh.length === 0 && shuffledMid.length === 0 && shuffledLow.length === 0) {
-          break;
-        }
+        if (shuffledHigh.length === 0 && shuffledMid.length === 0 && shuffledLow.length === 0) break;
       }
     };
 
+    // 1. DIRECTOR matches (highest priority)
     if (targetMovieData.director) {
       for (const movie of userMovies) {
         if (signals.length + filters.length >= 5) break;
-
         if (movie.movies.director === targetMovieData.director && !addedMovies.has(movie.movies.title)) {
-          const reviewKey = `${movie.movie_id}_${movie.movies.media_type || 'movie'}`;
-          const review = reviewsMap.get(reviewKey);
-
-          const entry: RelevantMovie = {
-            title: movie.movies.title,
-            rating: movie.rating,
-            matchType: 'Director',
-            ...(review && { review })
-          };
-
-          if (movie.rating >= 7.0) {
-            signals.push(entry);
-          } else if (movie.rating <= 6.0) {
-            filters.push(entry);
-          }
-          addedMovies.add(movie.movies.title);
+          pushMovieEntry(movie, 'Director');
         }
       }
     }
 
+    // 2. ACTOR matches (second priority)
     if (signals.length + filters.length < 5 && targetMovieData.cast && targetMovieData.cast.length > 0) {
-      const castResponse = await supabase
-        .from('user_movies')
-        .select(`
-          rating,
-          movie_id,
-          movies!inner (
-            id,
-            title,
-            media_type
-          )
-        `)
-        .eq('user_id', userId)
-        .not('rating', 'is', null)
-        .limit(30);
+      const tmdbApiKey = Deno.env.get('TMDB_API_KEY');
+      const candidatePool = userMovies.filter((m: any) => !addedMovies.has(m.movies.title));
+      const shuffledPool = [...candidatePool];
+      for (let i = shuffledPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledPool[i], shuffledPool[j]] = [shuffledPool[j], shuffledPool[i]];
+      }
 
-      if (castResponse.data) {
-        // Collect actor matches
-        const actorMatches: any[] = [];
+      const MAX_TMDB_CHECKS = 25;
+      const actorMatches: any[] = [];
 
-        for (const movie of castResponse.data) {
-          if (addedMovies.has(movie.movies.title)) continue;
-          if (actorMatches.length >= 15) break; // Check up to 15 movies
-
-          try {
-            const movieDetailsUrl = `https://api.themoviedb.org/3/movie/${movie.movies.id}?api_key=${Deno.env.get('TMDB_API_KEY')}&append_to_response=credits`;
-            const detailsResponse = await fetch(movieDetailsUrl);
-            const detailsData = await detailsResponse.json();
-
-            const movieCast = detailsData.credits?.cast?.slice(0, 5).map((actor: any) => actor.name) || [];
-            const hasCommonActor = movieCast.some((actor: string) => targetMovieData.cast?.includes(actor));
-
-            if (hasCommonActor) {
-              actorMatches.push({
-                ...movie,
-                matchType: 'Actor'
-              });
-            }
-          } catch (error) {
-            console.error('Error fetching cast for movie:', movie.movies.title, error);
+      for (let i = 0; i < Math.min(shuffledPool.length, MAX_TMDB_CHECKS); i++) {
+        if (actorMatches.length >= 10) break;
+        const movie = shuffledPool[i];
+        try {
+          const mType = movie.movies.media_type === 'tv' ? 'tv' : 'movie';
+          const movieDetailsUrl = `https://api.themoviedb.org/3/${mType}/${movie.movies.id}?api_key=${tmdbApiKey}&append_to_response=credits`;
+          const detailsResponse = await fetch(movieDetailsUrl);
+          if (!detailsResponse.ok) continue;
+          const detailsData = await detailsResponse.json();
+          const movieCast: string[] = detailsData.credits?.cast?.slice(0, 5).map((a: any) => a.name) || [];
+          const hasCommonActor = movieCast.some((actor) => targetMovieData.cast?.includes(actor));
+          if (hasCommonActor) {
+            actorMatches.push(movie);
           }
+        } catch (err) {
+          console.error('Error fetching cast for', movie.movies.title, err);
         }
+      }
 
-        // Use balanced selection for actor matches
-        if (actorMatches.length > 0) {
-          const remainingSlots = 5 - (signals.length + filters.length);
-          selectBalancedMovies(actorMatches, remainingSlots);
-        }
+      if (actorMatches.length > 0) {
+        const remainingSlots = 5 - (signals.length + filters.length);
+        selectBalancedMovies(actorMatches, remainingSlots, 'Actor');
       }
     }
 
+    // 3. GENRE matches (third priority) — match against ALL target genres, not just primary
     if (signals.length + filters.length < 5 && targetMovieData.genres && targetMovieData.genres.length > 0) {
-      const primaryGenre = targetMovieData.genres[0];
+      const targetGenresLower = targetMovieData.genres.map(g => g.toLowerCase());
 
-      // Collect all genre matches first
-      const genreMatches = userMovies
-        .filter(movie =>
-          !addedMovies.has(movie.movies.title) &&
-          movie.movies.genres &&
-          movie.movies.genres.includes(primaryGenre)
-        )
-        .map(movie => ({
-          ...movie,
-          matchType: 'Genre'
-        }));
+      const genreMatches = userMovies.filter((movie: any) => {
+        if (addedMovies.has(movie.movies.title)) return false;
+        if (!movie.movies.genres || movie.movies.genres.length === 0) return false;
+        const movieGenresLower = movie.movies.genres.map((g: string) => g.toLowerCase());
+        return movieGenresLower.some((g: string) => targetGenresLower.includes(g));
+      });
 
-      // Use balanced selection for genre matches
       const remainingSlots = 5 - (signals.length + filters.length);
-      selectBalancedMovies(genreMatches, remainingSlots);
+      selectBalancedMovies(genreMatches, remainingSlots, 'Genre');
     }
 
   } catch (error) {
@@ -331,7 +288,6 @@ async function fishForRelevantMovies(
 
 function getHybridPrompt(
   archetypeName: string,
-  archetypeCode: string,
   archetypeDescription: string,
   subcategoryDescription: string,
   movieName: string,
@@ -347,7 +303,7 @@ function getHybridPrompt(
     return matches.map(m => {
       let matchStr = `"${m.title}" (${m.rating}/10) - Same ${m.matchType}`;
       if (m.review) {
-        matchStr += `\n  📝 User's Review: "${m.review.title}"\n  ${m.review.content}`;
+        matchStr += `\n  User's Review: "${m.review.title}"\n  ${m.review.content}`;
       }
       return matchStr;
     }).join('\n\n');
@@ -371,7 +327,7 @@ Your task is to predict a user's rating (0.0 to 10.0) for a target film using We
 # PREDICTION DATA
 
 ## 1. THE USER (Silent Context — Do NOT quote or paraphrase in the verdict)
-* **Internal Profile:** ${archetypeName} (${archetypeCode})
+* **Internal Profile:** ${archetypeName}
 * **What drives their taste:** ${archetypeDescription}
 * **Additional nuance:** ${subcategoryDescription}
 
@@ -389,10 +345,10 @@ ${formatMatches(signals)}
 ${formatMatches(filters)}
 
 # RESPONSE FRAMEWORK (Follow EXACTLY)
-You MUST generate a maximum of three lines. Be minimalist. NEVER add other paragraphs.
+You must generate a maximum of four lines.
 
-📊 Predicted Rating: X.X/10
-🎬 Oracle's Verdict: (ONE sharp, direct sentence to the user, using "you". ANCHOR IT TO THE FILM — cite the director's style, a specific actor, the film's atmosphere, a genre pattern, or a direct comparison to a title from their history. AVOID: words or concepts from the archetype/subcategory labels. The personality is your compass, not your script. Can be warm, dry, or brutally honest. Sarcasm welcome when it fits. Ex — tone/style inspiration only, do not copy directly: "Director Y doing Director Y things", "Even [Actor Name] can't save this lazy script.", "This one has a permanent seat in your Top 10 of the year.", "You'll love it — save it for friends and some beers.", "Same energy as [Movie X]. Go in without hesitation." Maximum 15 words.)`,
+Predicted Rating: X.X/10
+Oracle's Verdict: (ONE sharp, direct sentence to the user, using "you". ANCHOR IT TO THE FILM — cite the director's style, a specific actor, the film's atmosphere, a genre pattern, or a direct comparison to a title from their history. AVOID: words or concepts from the archetype/subcategory labels. The personality is your compass, not your script. Can be warm, dry, or brutally honest. Sarcasm welcome when it fits. Maximum 15 words.)`,
 
     pt: `Você é o CineOracle — não um crítico formal, mas um velho amigo entendido que já viu de tudo e fala o que pensa na sua cara. Você tem experiência, mas nunca é pedante. Mantém a proximidade, a informalidade e a honestidade — mesmo quando a notícia não é boa.
 
@@ -411,7 +367,7 @@ Sua tarefa é prever a nota (0.0 a 10.0) de um usuário para um filme-alvo, usan
 # DADOS DA PREVISÃO
 
 ## 1. O USUÁRIO (Contexto Silencioso — NÃO cite nem parafraseie no veredito)
-* **Perfil interno:** ${archetypeName} (${archetypeCode})
+* **Perfil interno:** ${archetypeName}
 * **O que guia o gosto dele:** ${archetypeDescription}
 * **Nuance adicional:** ${subcategoryDescription}
 
@@ -429,10 +385,10 @@ ${formatMatches(signals)}
 ${formatMatches(filters)}
 
 # FRAMEWORK DA RESPOSTA (Siga EXATAMENTE)
-Você DEVE gerar no máximo três linhas. Seja minimalista. NUNCA adicione outros parágrafos.
+Você deve gerar no máximo quatro linhas.
 
-📊 Nota Prevista: X.X/10
-🎬 Veredito do Oráculo: (UMA frase direta e afiada para o usuário, usando "você". ANCORE NO FILME — cite o estilo do diretor, um ator específico, a atmosfera do filme, um padrão de gênero ou uma comparação direta com um título do histórico. EVITE: palavras ou conceitos dos rótulos do arquétipo/subcategoria. A personalidade é sua bússola, não seu roteiro. Pode ser caloroso, seco ou brutalmente honesto. Sarcasmo bem-vindo quando couber. Ex — inspiração de tom e estilo, não copie diretamente: "Diretor Y sendo Diretor Y", "Nem o [Nome de um Ator do filme] consegue salvar esse roteiro preguiçoso.", "Esse tem cadeira cativa no seu Top 10 do ano.", "Vai adorar, mas reserve esse para ver com amigos e umas cervejas.", "Tem a mesma energia do [Filme X], pode ir sem medo." Máximo de 15 palavras.)`,
+Nota Prevista: X.X/10
+Veredito do Oráculo: (UMA frase direta e afiada para o usuário, usando "você". ANCORE NO FILME — cite o estilo do diretor, um ator específico, a atmosfera do filme, um padrão de gênero ou uma comparação direta com um título do histórico. EVITE: palavras ou conceitos dos rótulos do arquétipo/subcategoria. A personalidade é sua bússola, não seu roteiro. Pode ser caloroso, seco ou brutalmente honesto. Sarcasmo bem-vindo quando couber. Máximo de 15 palavras.)`,
 
     es: `Eres CineOracle — no un crítico formal, sino un viejo amigo entendido que ha visto de todo y te dice exactamente lo que piensa. Tienes experiencia, pero nunca eres pedante. Mantienes la cercanía, la informalidad y la honestidad — incluso cuando las noticias no son buenas.
 
@@ -451,7 +407,7 @@ Tu tarea es predecir la calificación (0.0 a 10.0) de un usuario para una pelíc
 # DATOS DE LA PREDICCIÓN
 
 ## 1. EL USUARIO (Contexto Silencioso — NO cites ni parafrasees en el veredicto)
-* **Perfil interno:** ${archetypeName} (${archetypeCode})
+* **Perfil interno:** ${archetypeName}
 * **Lo que guía su gusto:** ${archetypeDescription}
 * **Matiz adicional:** ${subcategoryDescription}
 
@@ -469,10 +425,10 @@ ${formatMatches(signals)}
 ${formatMatches(filters)}
 
 # MARCO DE RESPUESTA (Sigue EXACTAMENTE)
-Debes generar un máximo de tres líneas. Sé minimalista. NUNCA agregues otros párrafos.
+Debes generar un máximo de cuatro líneas.
 
-📊 Calificación Predicha: X.X/10
-🎬 Veredicto del Oráculo: (UNA frase directa y aguda para el usuario, usando "tú". ANCLA EN LA PELÍCULA — cita el estilo del director, un actor específico, la atmósfera del film, un patrón de género o una comparación directa con un título de su historial. EVITE: palabras o conceptos de las etiquetas del arquetipo/subcategoría. La personalidad es tu brújula, no tu guión. Puede ser cálido, seco o brutalmente honesto. El sarcasmo es bienvenido cuando encaja. Ej — inspiración de tono y estilo, no copies directamente: "Director Y siendo Director Y", "Ni [Nombre del Actor] puede salvar este guión perezoso.", "Este tiene un lugar fijo en tu Top 10 del año.", "Lo vas a amar — guárdalo para verlo con amigos y unas cervezas.", "Tiene la misma energía de [Película X], puedes verla sin miedo." Máximo 15 palabras.)`
+Calificación Predicha: X.X/10
+Veredicto del Oráculo: (UNA frase directa y aguda para el usuario, usando "tú". ANCLA EN LA PELÍCULA — cita el estilo del director, un actor específico, la atmósfera del film, un patrón de género o una comparación directa con un título de su historial. EVITA: palabras o conceptos de las etiquetas del arquetipo/subcategoría. La personalidad es tu brújula, no tu guión. Puede ser cálido, seco o brutalmente honesto. El sarcasmo es bienvenido cuando encaja. Máximo 15 palabras.)`
   };
 
   return prompts[lang];
@@ -497,7 +453,7 @@ Deno.serve(async (req) => {
     const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
     const startTime = Date.now();
     console.log('Starting hybrid prediction for user:', userId);
-    console.log('Movie name:', movieName);
+    console.log('Movie name:', movieName, '| language:', language);
 
     if (!userId || !movieName) {
       throw new Error('Missing required fields: userId and movieName');
@@ -577,7 +533,7 @@ Deno.serve(async (req) => {
     }
 
     const { data: personalityDataArray, error: personalityError } = await supabase
-      .rpc('get_user_complete_personality', { p_user_id: userId });
+      .rpc('get_user_complete_personality', { p_user_id: userId, p_language: language.startsWith('pt') ? 'pt' : 'en' });
 
     if (personalityError) {
       console.error('Error fetching personality:', personalityError);
@@ -613,12 +569,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Personality data:', personalityData);
+    console.log('Personality:', {
+      archetype_name: personalityData.archetype_name,
+      subcategory_name: personalityData.subcategory_name
+    });
     console.log('⏱️ Personality fetch:', Date.now() - startTime, 'ms');
 
     const tmdbStart = Date.now();
-    const movieData = await getMovieDataFromTMDB(movieName);
+    const movieData = await getMovieDataFromTMDB(movieName, language);
     console.log('⏱️ TMDB fetch:', Date.now() - tmdbStart, 'ms');
+    console.log('Target movie data:', {
+      director: movieData?.director,
+      cast: movieData?.cast,
+      genres: movieData?.genres
+    });
 
     if (!movieData) {
       return new Response(
@@ -667,6 +631,8 @@ Deno.serve(async (req) => {
     });
     console.log('⏱️ Fishing:', Date.now() - fishingStart, 'ms');
     console.log('Fishing result - Signals:', fishingResult.signals.length, 'Filters:', fishingResult.filters.length);
+    console.log('Signals:', fishingResult.signals.map(s => `${s.title} (${s.matchType})${s.review ? ' [review]' : ''}`));
+    console.log('Filters:', fishingResult.filters.map(f => `${f.title} (${f.matchType})${f.review ? ' [review]' : ''}`));
 
     const { error: updateError } = await supabase
       .from('user_tickets')
@@ -687,7 +653,6 @@ Deno.serve(async (req) => {
 
     const hybridPrompt = getHybridPrompt(
       personalityData.archetype_name || 'Unknown',
-      personalityData.complete_personality || 'XXX',
       personalityData.archetype_description || '',
       personalityData.subcategory_description || '',
       movieName,
@@ -713,7 +678,7 @@ Deno.serve(async (req) => {
             { role: 'user', content: `Predict this user's rating for "${movieName}". Reply with EXACTLY two lines as specified. Nothing more.` }
           ],
           temperature: 0.7,
-          max_tokens: 80
+          max_tokens: 120
         })
       }
     );
