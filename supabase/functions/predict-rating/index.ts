@@ -668,12 +668,12 @@ Deno.serve(async (req) => {
     //   'deepseek-chat'      → rápido e econômico (= futuro deepseek-v4-flash)
     //   'deepseek-reasoner'  → mais capaz, com raciocínio (= futuro deepseek-v4-pro)
     // Após 2026-07-24 você pode trocar para 'deepseek-v4-flash' ou 'deepseek-v4-pro'.
-    const AI_MODEL = 'deepseek-reasoner';
+    const AI_MODEL = 'deepseek-v4-flash';
     // ------------------------------
 
     const aiStart = Date.now();
     const response = await fetch(
-      'https://api.deepseek.com/v1/chat/completions',
+      'https://api.deepseek.com',
       {
         method: 'POST',
         headers: {
@@ -706,7 +706,7 @@ Deno.serve(async (req) => {
 
     if (!prediction) {
       console.error('No prediction in response:', JSON.stringify(data));
-      throw new Error('Unable to generate prediction from DeepSeek');
+      throw new Error('Unable to generate prediction');
     }
 
     const cacheMovieId = requestMovieId || movieData.id;
