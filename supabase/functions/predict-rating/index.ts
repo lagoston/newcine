@@ -662,9 +662,17 @@ Deno.serve(async (req) => {
       language
     );
 
+    // --- AI MODEL CONFIGURATION ---
+    // Both models use the same endpoint and OpenAI-compatible format.
+    // To switch models, change the `model` value below:
+    //   'deepseek-v4-flash' → fast, cost-efficient (formerly 'deepseek-chat')
+    //   'deepseek-v4-pro'   → slower, more capable, supports thinking mode
+    const AI_MODEL = 'deepseek-v4-flash';
+    // ------------------------------
+
     const aiStart = Date.now();
     const response = await fetch(
-      'https://api.deepseek.com/anthropic',
+      'https://api.deepseek.com/v1/chat/completions',
       {
         method: 'POST',
         headers: {
@@ -672,7 +680,7 @@ Deno.serve(async (req) => {
           'Authorization': `Bearer ${deepseekApiKey}`
         },
         body: JSON.stringify({
-          model: 'deepseek-v4-pro',
+          model: AI_MODEL,
           messages: [
             { role: 'system', content: hybridPrompt },
             { role: 'user', content: `Predict this user's rating for "${movieName}". Reply with EXACTLY two lines as specified. Nothing more.` }
