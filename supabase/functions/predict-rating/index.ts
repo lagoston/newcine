@@ -668,7 +668,7 @@ Deno.serve(async (req) => {
     //   'deepseek-chat'      → rápido e econômico (= futuro deepseek-v4-flash)
     //   'deepseek-reasoner'  → mais capaz, com raciocínio (= futuro deepseek-v4-pro)
     // Após 2026-07-24 você pode trocar para 'deepseek-v4-flash' ou 'deepseek-v4-pro'.
-    const AI_MODEL = 'deepseek-chat';
+    const AI_MODEL = 'deepseek-reasoner';
     // ------------------------------
 
     const aiStart = Date.now();
