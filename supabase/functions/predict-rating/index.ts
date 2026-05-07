@@ -664,7 +664,7 @@ Deno.serve(async (req) => {
 
     const aiStart = Date.now();
     const response = await fetch(
-      'https://api.deepseek.com/v1/chat/completions',
+      'https://api.deepseek.com',
       {
         method: 'POST',
         headers: {
