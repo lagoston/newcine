@@ -663,11 +663,12 @@ Deno.serve(async (req) => {
     );
 
     // --- AI MODEL CONFIGURATION ---
-    // Both models use the same endpoint and OpenAI-compatible format.
-    // To switch models, change the `model` value below:
-    //   'deepseek-v4-flash' → fast, cost-efficient (formerly 'deepseek-chat')
-    //   'deepseek-v4-pro'   → slower, more capable, supports thinking mode
-    const AI_MODEL = 'deepseek-v4-flash';
+    // Os nomes novos (deepseek-v4-flash / deepseek-v4-pro) só entram em vigor em 2026-07-24.
+    // Até lá, os nomes válidos na API são:
+    //   'deepseek-chat'      → rápido e econômico (= futuro deepseek-v4-flash)
+    //   'deepseek-reasoner'  → mais capaz, com raciocínio (= futuro deepseek-v4-pro)
+    // Após 2026-07-24 você pode trocar para 'deepseek-v4-flash' ou 'deepseek-v4-pro'.
+    const AI_MODEL = 'deepseek-chat';
     // ------------------------------
 
     const aiStart = Date.now();
