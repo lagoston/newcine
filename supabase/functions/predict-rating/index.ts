@@ -672,7 +672,7 @@ Deno.serve(async (req) => {
           'Authorization': `Bearer ${deepseekApiKey}`
         },
         body: JSON.stringify({
-          model: 'deepseek-chat',
+          model: 'deepseek-v4-pro',
           messages: [
             { role: 'system', content: hybridPrompt },
             { role: 'user', content: `Predict this user's rating for "${movieName}". Reply with EXACTLY two lines as specified. Nothing more.` }
