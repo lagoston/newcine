@@ -664,7 +664,7 @@ Deno.serve(async (req) => {
 
     const aiStart = Date.now();
     const response = await fetch(
-      'https://api.deepseek.com',
+      'https://api.deepseek.com/anthropic',
       {
         method: 'POST',
         headers: {
