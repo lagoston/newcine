@@ -547,6 +547,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const handleAddToLibrary = async (rating?: number) => {
     if (!session?.user?.id) return;
 
+    const mediaType = movie.media_type || 'movie';
+    const isTv = mediaType === 'tv';
+    const director = movie.credits?.crew?.find(
+      p => p.job === 'Director' || (isTv && p.job === 'Creator')
+    )?.name;
+
     const { error: movieError } = await supabase
       .from('movies')
       .upsert({
@@ -554,13 +560,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         title: movie.title,
         release_date: movie.release_date,
         genres: movie.genres?.map(g => g.name),
-        director: movie.credits?.crew?.find(person => person.job === 'Director')?.name
-      });
+        director: director || null,
+        media_type: mediaType,
+        number_of_seasons: isTv ? (movie.number_of_seasons || null) : null
+      }, { onConflict: 'id,media_type' });
 
     if (movieError) throw movieError;
 
     const insertData: Record<string, unknown> = {
       movie_id: movie.id,
+      media_type: mediaType,
       user_id: session.user.id,
     };
     if (rating !== undefined) insertData.rating = rating;

@@ -136,7 +136,7 @@ export default function AddMovies() {
         director: director || null,
         media_type: mediaType,
         number_of_seasons: mediaType === 'tv' ? movieDetails.number_of_seasons : null
-      });
+      }, { onConflict: 'id,media_type' });
 
     if (movieError) throw movieError;
 
@@ -146,6 +146,7 @@ export default function AddMovies() {
 
     const insertData: Record<string, unknown> = {
       movie_id: movie.id,
+      media_type: mediaType,
       user_id: session?.user.id,
     };
     if (rating !== undefined) insertData.rating = rating;
