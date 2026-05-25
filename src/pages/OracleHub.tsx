@@ -12,6 +12,7 @@ import SubcategoryQuestionnaire from '../components/SubcategoryQuestionnaire';
 import PersonalityCompletionModal from '../components/PersonalityCompletionModal';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import OracleForYouBox from '../components/OracleForYouBox';
+import CinematicPersonaCard from '../components/CinematicPersonaCard';
 
 interface UserPersonality {
   subcategoria_id: string | null;
@@ -469,6 +470,13 @@ export default function OracleHub() {
             </Link>
           </motion.div>
         </motion.div>
+
+        {userPersonality?.personalidade_completa && userPersonality.personalidade_completa.length >= 3 && (
+          <CinematicPersonaCard
+            personalityId={userPersonality.personalidade_completa}
+            language={i18n.language}
+          />
+        )}
 
         {session?.user && userPersonality?.personalidade_completa && userPersonality.personalidade_completa.length >= 3 && (
           <OracleForYouBox
