@@ -234,13 +234,13 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
               <div className="absolute top-0 inset-x-0 h-1" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }} />
 
               {/* Background glow */}
-              <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-10"
+              <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-10 pointer-events-none"
                 style={{ background: accentColor }} />
 
               {/* Close button */}
               <button
                 onClick={() => setShowModal(false)}
-                className="absolute top-4 right-4 z-10 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+                className="absolute top-4 right-4 z-50 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5 text-white" />
               </button>
