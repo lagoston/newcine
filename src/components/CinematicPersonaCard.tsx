@@ -191,7 +191,7 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
 
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: accentColor }}>
-                {t('oracle.persona.title', 'Seu Personagem Cinematográfico')}
+                {isEn ? 'Your Persona' : 'Sua Persona'}
               </p>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white truncate">
                 {persona.name}
