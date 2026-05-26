@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Globe } from 'lucide-react';
+import { X, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface Persona {
