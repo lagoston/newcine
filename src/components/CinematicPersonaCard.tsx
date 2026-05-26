@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User } from 'lucide-react';
+import { X, User, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface Persona {
@@ -145,11 +145,12 @@ interface Props {
 export default function CinematicPersonaCard({ personalityId, language }: Props) {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
+  const [showEnglish, setShowEnglish] = useState(false);
 
   const persona = PERSONAS[personalityId];
   if (!persona) return null;
 
-  const isEn = language.startsWith('en');
+  const isEn = language.startsWith('en') || showEnglish;
   const description = isEn ? persona.descriptionEn : persona.descriptionPt;
 
   const accentColor = (() => {
@@ -234,13 +235,13 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
               <div className="absolute top-0 inset-x-0 h-1" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }} />
 
               {/* Background glow */}
-              <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-10 pointer-events-none"
+              <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-10"
                 style={{ background: accentColor }} />
 
               {/* Close button */}
               <button
                 onClick={() => setShowModal(false)}
-                className="absolute top-4 right-4 z-50 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+                className="absolute top-4 right-4 z-10 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
               >
                 <X className="w-5 h-5 text-white" />
               </button>
