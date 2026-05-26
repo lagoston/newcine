@@ -277,21 +277,6 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
                   {description}
                 </p>
 
-                {/* Translate toggle */}
-                <button
-                  onClick={() => setShowEnglish(v => !v)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all duration-200"
-                  style={{
-                    background: showEnglish ? `${accentColor}30` : 'rgba(255,255,255,0.07)',
-                    color: showEnglish ? accentColor : 'rgba(255,255,255,0.6)',
-                    border: `1px solid ${showEnglish ? accentColor + '60' : 'rgba(255,255,255,0.1)'}`,
-                  }}
-                >
-                  <Globe className="w-4 h-4" />
-                  {showEnglish
-                    ? t('oracle.persona.showOriginal', 'Ver em Português')
-                    : t('oracle.persona.translateEn', 'Ver em Inglês')}
-                </button>
               </div>
             </motion.div>
           </motion.div>
