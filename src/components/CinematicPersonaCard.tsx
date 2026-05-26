@@ -257,7 +257,7 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
                   </div>
                 </div>
 
-               {/* Essence badge */}
+              {/* Essence badge */}
                 <div className="flex justify-center mb-2">
                   <span
                     className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
