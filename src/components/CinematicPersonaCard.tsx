@@ -257,13 +257,13 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
                   </div>
                 </div>
 
-                {/* Essence badge */}
+               {/* Essence badge */}
                 <div className="flex justify-center mb-2">
                   <span
                     className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
                     style={{ background: `${accentColor}25`, color: accentColor, border: `1px solid ${accentColor}50` }}
                   >
-                    {personalityId} — {t('oracle.persona.badge', 'Sua Essência')}
+                    {personalityId}
                   </span>
                 </div>
 
