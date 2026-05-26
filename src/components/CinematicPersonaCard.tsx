@@ -145,12 +145,11 @@ interface Props {
 export default function CinematicPersonaCard({ personalityId, language }: Props) {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
-  const [showEnglish, setShowEnglish] = useState(false);
 
   const persona = PERSONAS[personalityId];
   if (!persona) return null;
 
-  const isEn = language.startsWith('en') || showEnglish;
+  const isEn = language.startsWith('en');
   const description = isEn ? persona.descriptionEn : persona.descriptionPt;
 
   const accentColor = (() => {
