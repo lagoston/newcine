@@ -156,7 +156,7 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
   const accentColor = (() => {
     if (!personalityId || personalityId.length < 3) return '#3b82f6';
     const sub = personalityId.charAt(2);
-    const map: Record<string, string> = { A: '#f59e0b', B: '#8b5cf6', K: '#ef4444', X: '#3b82f6', D: '#FFFFFF', L: '#10b981' };
+    const map: Record<string, string> = { A: '#f59e0b', B: '#8b5cf6', K: '#ef4444', X: '#3b82f6', D: '#6b7280', L: '#10b981' };
     return map[sub] || '#3b82f6';
   })();
 
@@ -191,7 +191,7 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
 
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: accentColor }}>
-                {isEn ? 'Your Persona' : 'Sua Persona'}
+                {t('oracle.persona.title', 'Seu Personagem Cinematográfico')}
               </p>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white truncate">
                 {persona.name}
@@ -263,7 +263,7 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
                     className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
                     style={{ background: `${accentColor}25`, color: accentColor, border: `1px solid ${accentColor}50` }}
                   >
-                    {personalityId}
+                    {personalityId} — {t('oracle.persona.badge', 'Sua Essência')}
                   </span>
                 </div>
 
@@ -277,6 +277,21 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
                   {description}
                 </p>
 
+                {/* Translate toggle */}
+                <button
+                  onClick={() => setShowEnglish(v => !v)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all duration-200"
+                  style={{
+                    background: showEnglish ? `${accentColor}30` : 'rgba(255,255,255,0.07)',
+                    color: showEnglish ? accentColor : 'rgba(255,255,255,0.6)',
+                    border: `1px solid ${showEnglish ? accentColor + '60' : 'rgba(255,255,255,0.1)'}`,
+                  }}
+                >
+                  <Globe className="w-4 h-4" />
+                  {showEnglish
+                    ? t('oracle.persona.showOriginal', 'Ver em Português')
+                    : t('oracle.persona.translateEn', 'Ver em Inglês')}
+                </button>
               </div>
             </motion.div>
           </motion.div>
