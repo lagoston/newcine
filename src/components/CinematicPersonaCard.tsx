@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User } from 'lucide-react';
+import { X, User, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface Persona {
@@ -8,16 +8,15 @@ interface Persona {
   descriptionPt: string;
   descriptionEn: string;
   imageQuery: string;
-  imageUrl?: string;
 }
 
 const PERSONAS: Record<string, Persona> = {
-  EIA: { name: 'Forrest Gump', imageQuery: 'forrest-gump-1994', imageUrl: 'https://upload.wikimedia.org/wikipedia/pt/thumb/9/97/Forest_Gump_Personagem.jpg/250px-Forest_Gump_Personagem.jpg', descriptionPt: 'Forrest Gump é o protagonista homônimo do romance de 1986 de Winston Groom e de sua premiada adaptação cinematográfica de 1994 dirigida por Robert Zemeckis. Retratado por Tom Hanks, o personagem é um homem de coração puro e intelecto limitado que, de forma inocente, participa de momentos decisivos da história dos Estados Unidos no século XX.', descriptionEn: 'Forrest Gump is the title character of Winston Groom\'s 1986 novel and its acclaimed 1994 film adaptation directed by Robert Zemeckis. Portrayed by Tom Hanks, he is a pure-hearted man of limited intellect who innocently participates in pivotal moments of 20th-century American history.' },
-  EIB: { name: 'Nina Sayers', imageQuery: 'black-swan-nina', imageUrl: 'https://upload.wikimedia.org/wikipedia/pt/2/2c/Natalie-portman-black-swan-mirror-image1.jpg', descriptionPt: 'Nina Sayers é a protagonista do filme psicológico Black Swan, dirigido por Darren Aronofsky. Interpretada por Natalie Portman, ela é uma bailarina nova-iorquina obcecada pela perfeição que mergulha em um colapso psicológico ao buscar encarnar as dualidades do "Cisne Branco" e do "Cisne Negro" em uma produção de O Lago dos Cisnes.', descriptionEn: 'Nina Sayers is the protagonist of Darren Aronofsky\'s psychological film Black Swan. Played by Natalie Portman, she is a New York ballerina obsessed with perfection who descends into psychological collapse while attempting to embody both the White Swan and Black Swan in a production of Swan Lake.' },
-  EIX: { name: 'Joel Barish', imageQuery: 'eternal-sunshine-joel', imageUrl: 'https://m.media-amazon.com/images/M/MV5BMTg0MjgxMzA1OF5BMl5BanBnXkFtZTcwMjU5ODMyMw@@._V1_QL75_UX411_.jpg', descriptionPt: 'Joel Barish é o protagonista do filme Eternal Sunshine of the Spotless Mind, dirigido por Michel Gondry e escrito por Charlie Kaufman. Interpretado por Jim Carrey, Joel é um homem introspectivo que busca apagar as memórias de um relacionamento fracassado, tornando-se o centro emocional de uma história sobre amor, perda e identidade.', descriptionEn: 'Joel Barish is the protagonist of Eternal Sunshine of the Spotless Mind, directed by Michel Gondry and written by Charlie Kaufman. Played by Jim Carrey, Joel is an introspective man who seeks to erase memories of a failed relationship, becoming the emotional center of a story about love, loss, and identity.' },
-  EIK: { name: 'Rick Blaine', imageQuery: 'casablanca-humphrey-bogart', imageUrl: 'https://static.wikia.nocookie.net/junglecruise/images/0/0b/Humphrey_Bogart_1940.webp/revision/latest?cb=20210703031117', descriptionPt: 'Rick Blaine é o protagonista do filme clássico Casablanca, interpretado por Humphrey Bogart. Dono do bar Rick\'s Café Américain na cidade de Casablanca, ele é um expatriado americano cínico e desencantado que se vê dividido entre o amor e o dever em meio à Segunda Guerra Mundial.', descriptionEn: 'Rick Blaine is the protagonist of the classic film Casablanca, played by Humphrey Bogart. Owner of Rick\'s Café Américain in Casablanca, he is a cynical American expatriate torn between love and duty during World War II.' },
-  EID: { name: 'Rust Cohle', imageQuery: 'true-detective-rust-cohle', imageUrl: 'https://upload.wikimedia.org/wikipedia/en/8/8a/Rustin_Cohle.jpg', descriptionPt: 'Rustin Spencer "Rust" Cohle é o protagonista da primeira temporada da série True Detective (2014), criada por Nic Pizzolatto. Interpretado por Matthew McConaughey, Cohle é um detetive brilhante, profundamente atormentado e marcado por visões filosóficas e existenciais sobre a natureza da vida e do mal.', descriptionEn: 'Rust Cohle is the protagonist of the first season of True Detective (2014). Played by Matthew McConaughey, Cohle is a brilliant, deeply tormented detective shaped by philosophical and existential views on the nature of life and evil.' },
-  EIL: { name: 'Amélie Poulain', imageQuery: 'amelie-poulain-audrey-tautou', imageUrl: 'https://rollingstone.com.br/wp-content/uploads/reproducao_fabusolo_destino_amelie_pulain_curiosidades.jpg', descriptionPt: 'Amélie Poulain é a personagem principal do filme francês Le Fabuleux Destin d\'Amélie Poulain, dirigido por Jean-Pierre Jeunet. Interpretada por Audrey Tautou, Amélie tornou-se um ícone da cultura pop por seu olhar poético e imaginativo sobre a vida cotidiana em Paris.', descriptionEn: 'Amélie Poulain is the main character of the French film Amélie, directed by Jean-Pierre Jeunet. Played by Audrey Tautou, she became a pop culture icon for her poetic and imaginative view of everyday life in Paris.' },
+  EIA: { name: 'Forrest Gump', imageQuery: 'forrest-gump-1994', descriptionPt: 'Forrest Gump é o protagonista homônimo do romance de 1986 de Winston Groom e de sua premiada adaptação cinematográfica de 1994 dirigida por Robert Zemeckis. Retratado por Tom Hanks, o personagem é um homem de coração puro e intelecto limitado que, de forma inocente, participa de momentos decisivos da história dos Estados Unidos no século XX.', descriptionEn: 'Forrest Gump is the title character of Winston Groom\'s 1986 novel and its acclaimed 1994 film adaptation directed by Robert Zemeckis. Portrayed by Tom Hanks, he is a pure-hearted man of limited intellect who innocently participates in pivotal moments of 20th-century American history.' },
+  EIB: { name: 'Nina Sayers', imageQuery: 'black-swan-nina', descriptionPt: 'Nina Sayers é a protagonista do filme psicológico Black Swan, dirigido por Darren Aronofsky. Interpretada por Natalie Portman, ela é uma bailarina nova-iorquina obcecada pela perfeição que mergulha em um colapso psicológico ao buscar encarnar as dualidades do "Cisne Branco" e do "Cisne Negro" em uma produção de O Lago dos Cisnes.', descriptionEn: 'Nina Sayers is the protagonist of Darren Aronofsky\'s psychological film Black Swan. Played by Natalie Portman, she is a New York ballerina obsessed with perfection who descends into psychological collapse while attempting to embody both the White Swan and Black Swan in a production of Swan Lake.' },
+  EIX: { name: 'Joel Barish', imageQuery: 'eternal-sunshine-joel', descriptionPt: 'Joel Barish é o protagonista do filme Eternal Sunshine of the Spotless Mind, dirigido por Michel Gondry e escrito por Charlie Kaufman. Interpretado por Jim Carrey, Joel é um homem introspectivo que busca apagar as memórias de um relacionamento fracassado, tornando-se o centro emocional de uma história sobre amor, perda e identidade.', descriptionEn: 'Joel Barish is the protagonist of Eternal Sunshine of the Spotless Mind, directed by Michel Gondry and written by Charlie Kaufman. Played by Jim Carrey, Joel is an introspective man who seeks to erase memories of a failed relationship, becoming the emotional center of a story about love, loss, and identity.' },
+  EIK: { name: 'Rick Blaine', imageQuery: 'casablanca-humphrey-bogart', descriptionPt: 'Rick Blaine é o protagonista do filme clássico Casablanca, interpretado por Humphrey Bogart. Dono do bar Rick\'s Café Américain na cidade de Casablanca, ele é um expatriado americano cínico e desencantado que se vê dividido entre o amor e o dever em meio à Segunda Guerra Mundial.', descriptionEn: 'Rick Blaine is the protagonist of the classic film Casablanca, played by Humphrey Bogart. Owner of Rick\'s Café Américain in Casablanca, he is a cynical American expatriate torn between love and duty during World War II.' },
+  EID: { name: 'Rust Cohle', imageQuery: 'true-detective-rust-cohle', descriptionPt: 'Rustin Spencer "Rust" Cohle é o protagonista da primeira temporada da série True Detective (2014), criada por Nic Pizzolatto. Interpretado por Matthew McConaughey, Cohle é um detetive brilhante, profundamente atormentado e marcado por visões filosóficas e existenciais sobre a natureza da vida e do mal.', descriptionEn: 'Rust Cohle is the protagonist of the first season of True Detective (2014). Played by Matthew McConaughey, Cohle is a brilliant, deeply tormented detective shaped by philosophical and existential views on the nature of life and evil.' },
+  EIL: { name: 'Amélie Poulain', imageQuery: 'amelie-poulain-audrey-tautou', descriptionPt: 'Amélie Poulain é a personagem principal do filme francês Le Fabuleux Destin d\'Amélie Poulain, dirigido por Jean-Pierre Jeunet. Interpretada por Audrey Tautou, Amélie tornou-se um ícone da cultura pop por seu olhar poético e imaginativo sobre a vida cotidiana em Paris.', descriptionEn: 'Amélie Poulain is the main character of the French film Amélie, directed by Jean-Pierre Jeunet. Played by Audrey Tautou, she became a pop culture icon for her poetic and imaginative view of everyday life in Paris.' },
   ECA: { name: 'Salvatore Di Vita', imageQuery: 'cinema-paradiso-salvatore', descriptionPt: 'Salvatore Di Vita é o protagonista do filme italiano Nuovo Cinema Paradiso, dirigido por Giuseppe Tornatore. Sua história retrata o crescimento de um menino apaixonado por cinema em uma pequena cidade siciliana e sua trajetória até se tornar um renomado cineasta, refletindo sobre memória, amizade e perda.', descriptionEn: 'Salvatore Di Vita is the protagonist of the Italian film Cinema Paradiso, directed by Giuseppe Tornatore. His story depicts a boy\'s love for cinema in a small Sicilian town and his journey to becoming a renowned filmmaker, reflecting on memory, friendship, and loss.' },
   ECB: { name: 'Michael Corleone', imageQuery: 'godfather-michael-corleone-al-pacino', descriptionPt: 'Michael Corleone é o protagonista fictício da saga cinematográfica The Godfather, criada por Mario Puzo e dirigida por Francis Ford Coppola. Interpretado por Al Pacino, ele é o terceiro filho de Vito Corleone e se torna o chefe da família após uma trajetória marcada por lealdade, violência e tragédia.', descriptionEn: 'Michael Corleone is the fictional protagonist of The Godfather film saga, created by Mario Puzo and directed by Francis Ford Coppola. Played by Al Pacino, he is the third son of Vito Corleone who becomes the family patriarch after a path marked by loyalty, violence, and tragedy.' },
   ECX: { name: 'Betty Elms', imageQuery: 'mulholland-drive-naomi-watts', descriptionPt: 'Betty Elms é uma personagem fictícia do filme Mulholland Drive, dirigido por David Lynch. Interpretada por Naomi Watts, Betty representa uma aspirante a atriz recém-chegada a Los Angeles, cuja história mistura sonho, identidade e ilusão.', descriptionEn: 'Betty Elms is a fictional character in Mulholland Drive, directed by David Lynch. Played by Naomi Watts, Betty represents an aspiring actress newly arrived in Los Angeles whose story blends dream, identity, and illusion.' },
@@ -146,17 +145,18 @@ interface Props {
 export default function CinematicPersonaCard({ personalityId, language }: Props) {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
+  const [showEnglish, setShowEnglish] = useState(false);
 
   const persona = PERSONAS[personalityId];
   if (!persona) return null;
 
-  const isEn = language.startsWith('en');
+  const isEn = language.startsWith('en') || showEnglish;
   const description = isEn ? persona.descriptionEn : persona.descriptionPt;
 
   const accentColor = (() => {
     if (!personalityId || personalityId.length < 3) return '#3b82f6';
     const sub = personalityId.charAt(2);
-    const map: Record<string, string> = { A: '#f59e0b', B: '#8b5cf6', K: '#ef4444', X: '#3b82f6', D: '#d508ce', L: '#10b981' };
+    const map: Record<string, string> = { A: '#f59e0b', B: '#8b5cf6', K: '#ef4444', X: '#3b82f6', D: '#6b7280', L: '#10b981' };
     return map[sub] || '#3b82f6';
   })();
 
@@ -183,19 +183,15 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
           <div className="relative z-10 flex items-center gap-5">
             {/* Avatar placeholder */}
             <div
-              className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center border-2 shadow-lg overflow-hidden"
+              className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center border-2 shadow-lg"
               style={{ borderColor: `${accentColor}60`, background: `${accentColor}20` }}
             >
-              {persona.imageUrl ? (
-                <img src={persona.imageUrl} alt={persona.name} className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-8 h-8" style={{ color: accentColor }} />
-              )}
+              <User className="w-8 h-8" style={{ color: accentColor }} />
             </div>
 
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: accentColor }}>
-                {isEn ? 'Your Persona' : 'Sua Persona'}
+                {t('oracle.persona.title', 'Seu Personagem Cinematográfico')}
               </p>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white truncate">
                 {persona.name}
@@ -239,13 +235,13 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
               <div className="absolute top-0 inset-x-0 h-1" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }} />
 
               {/* Background glow */}
-              <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-10 pointer-events-none"
+              <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-10"
                 style={{ background: accentColor }} />
 
               {/* Close button */}
               <button
                 onClick={() => setShowModal(false)}
-                className="absolute top-4 right-4 z-50 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+                className="absolute top-4 right-4 z-10 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
               >
                 <X className="w-5 h-5 text-white" />
               </button>
@@ -254,14 +250,10 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
                 {/* Avatar */}
                 <div className="flex justify-center mb-5">
                   <div
-                    className="w-28 h-28 rounded-2xl flex items-center justify-center border-2 shadow-xl overflow-hidden"
+                    className="w-28 h-28 rounded-2xl flex items-center justify-center border-2 shadow-xl"
                     style={{ borderColor: `${accentColor}80`, background: `${accentColor}25` }}
                   >
-                    {persona.imageUrl ? (
-                      <img src={persona.imageUrl} alt={persona.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-14 h-14" style={{ color: accentColor }} />
-                    )}
+                    <User className="w-14 h-14" style={{ color: accentColor }} />
                   </div>
                 </div>
 
@@ -271,7 +263,7 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
                     className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
                     style={{ background: `${accentColor}25`, color: accentColor, border: `1px solid ${accentColor}50` }}
                   >
-                    {personalityId}
+                    {personalityId} — {t('oracle.persona.badge', 'Sua Essência')}
                   </span>
                 </div>
 
@@ -285,6 +277,21 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
                   {description}
                 </p>
 
+                {/* Translate toggle */}
+                <button
+                  onClick={() => setShowEnglish(v => !v)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all duration-200"
+                  style={{
+                    background: showEnglish ? `${accentColor}30` : 'rgba(255,255,255,0.07)',
+                    color: showEnglish ? accentColor : 'rgba(255,255,255,0.6)',
+                    border: `1px solid ${showEnglish ? accentColor + '60' : 'rgba(255,255,255,0.1)'}`,
+                  }}
+                >
+                  <Globe className="w-4 h-4" />
+                  {showEnglish
+                    ? t('oracle.persona.showOriginal', 'Ver em Português')
+                    : t('oracle.persona.translateEn', 'Ver em Inglês')}
+                </button>
               </div>
             </motion.div>
           </motion.div>
