@@ -156,7 +156,7 @@ export default function CinematicPersonaCard({ personalityId, language }: Props)
   const accentColor = (() => {
     if (!personalityId || personalityId.length < 3) return '#3b82f6';
     const sub = personalityId.charAt(2);
-    const map: Record<string, string> = { A: '#f59e0b', B: '#8b5cf6', K: '#ef4444', X: '#3b82f6', D: '#2f492d', L: '#10b981' };
+    const map: Record<string, string> = { A: '#f59e0b', B: '#8b5cf6', K: '#ef4444', X: '#3b82f6', D: '#d508ce', L: '#10b981' };
     return map[sub] || '#3b82f6';
   })();
 
