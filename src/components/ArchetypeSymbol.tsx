@@ -14,7 +14,7 @@ const SUBCATEGORY_COLORS = {
   B: '#8B5CF6', // Sombrio - Roxo
   K: '#EF4444', // Clássico - Vermelho
   X: '#3B82F6', // Experimental - Azul
-  D: '#7cbfc2', // Denso - Branco
+  D: '#edb2d4', // Denso - Rosa
   L: '#10B981', // Leve - Verde
 };
 
