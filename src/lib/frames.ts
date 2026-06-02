@@ -15,25 +15,10 @@ export const frames = {
   },
   saw: {
     id: 'saw',
-    name: 'Saw Banner',
+    name: 'Saw Frame',
     isPremium: true,
     requiredTag: 'visceral-gamer',
-    className: [
-      'relative overflow-hidden',
-      'bg-[radial-gradient(ellipse_at_50%_0%,#3b0000_0%,#1c0000_50%,#0d0000_100%)]',
-      'border-[3px] border-red-700',
-      'shadow-[0_0_35px_rgba(185,28,28,0.6)_inset,0_0_20px_rgba(185,28,28,0.4)]',
-      // pulsing core radial that breathes like a heartbeat
-      'before:absolute before:inset-0',
-      'before:bg-[radial-gradient(ellipse_at_50%_30%,rgba(220,38,38,0.45),transparent_65%)]',
-      'before:animate-[saw-banner-pulse_1.2s_ease-in-out_infinite]',
-      'before:pointer-events-none',
-      // dripping top edge: bright line that fades downward
-      'after:absolute after:top-0 after:left-0 after:right-0 after:h-[3px]',
-      'after:bg-gradient-to-r after:from-transparent after:via-red-500 after:to-transparent',
-      'after:shadow-[0_0_8px_#ef4444,0_2px_16px_rgba(220,38,38,0.6)]',
-      'after:animate-[saw-banner-drip_2.5s_ease-in-out_infinite]',
-    ].join(' '),
+    className: 'relative ring-4 ring-red-700 dark:ring-red-600 shadow-[0_0_20px_rgba(185,28,28,0.7),0_0_40px_rgba(185,28,28,0.4),inset_0_0_20px_rgba(185,28,28,0.2)] dark:shadow-[0_0_25px_rgba(185,28,28,0.8),0_0_50px_rgba(185,28,28,0.5),inset_0_0_25px_rgba(185,28,28,0.3)] animate-saw-throb before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-b before:from-transparent before:via-red-900/20 before:to-red-950/60 before:animate-saw-drip after:absolute after:top-0 after:left-0 after:right-0 after:h-1/2 after:rounded-t-full after:bg-gradient-to-b after:from-red-600/30 after:to-transparent after:animate-saw-flicker after:pointer-events-none'
   },
   ice: {
     id: 'ice',
