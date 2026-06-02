@@ -11,342 +11,427 @@ const corsHeaders = {
 const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')!;
 const stripeWebhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!;
 const stripe = new Stripe(stripeSecret, {
-  appInfo: {
-    name: 'Bolt Integration',
-    version: '1.0.0',
-  },
+  appInfo: { name: 'Bolt Integration', version: '1.0.0' },
 });
 
-const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+);
+
+// Structured log helper — every line has event_id for cross-referencing with Stripe dashboard
+function log(level: 'INFO' | 'WARN' | 'ERROR', eventId: string, message: string, data?: unknown) {
+  const entry = {
+    level,
+    event_id: eventId,
+    ts: new Date().toISOString(),
+    message,
+    ...(data !== undefined ? { data } : {}),
+  };
+  if (level === 'ERROR') {
+    console.error(JSON.stringify(entry));
+  } else if (level === 'WARN') {
+    console.warn(JSON.stringify(entry));
+  } else {
+    console.log(JSON.stringify(entry));
+  }
+}
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
+  }
+
+  const signature = req.headers.get('stripe-signature');
+  if (!signature) {
+    console.error(JSON.stringify({ level: 'ERROR', message: 'No stripe-signature header' }));
+    return new Response('No signature found', { status: 400 });
+  }
+
+  const body = await req.text();
+  let event: Stripe.Event;
+
   try {
-    console.log("🎯 Webhook received");
-    
-    if (req.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: corsHeaders
-      });
-    }
+    event = await stripe.webhooks.constructEventAsync(body, signature, stripeWebhookSecret);
+  } catch (err: any) {
+    console.error(JSON.stringify({ level: 'ERROR', message: 'Signature verification failed', error: err.message }));
+    return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
+  }
 
-    if (req.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405 });
-    }
+  const eid = event.id;
 
-    const signature = req.headers.get('stripe-signature');
+  log('INFO', eid, 'Webhook received', {
+    type: event.type,
+    created: new Date(event.created * 1000).toISOString(),
+    livemode: event.livemode,
+  });
 
-    if (!signature) {
-      console.error('❌ No signature found');
-      return new Response('No signature found', { status: 400 });
-    }
-
-    const body = await req.text();
-    console.log('📦 Raw webhook body received');
-
-    let event: Stripe.Event;
-
-    try {
-      event = await stripe.webhooks.constructEventAsync(body, signature, stripeWebhookSecret);
-      console.log('✅ Webhook signature verified');
-    } catch (error: any) {
-      console.error(`❌ Webhook signature verification failed: ${error.message}`);
-      return new Response(`Webhook signature verification failed: ${error.message}`, { status: 400 });
-    }
-
-    console.log(`📣 Event type: ${event.type}`);
-
+  try {
     switch (event.type) {
+
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        console.log('💳 Processing checkout session:', session.id);
-        
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
         const userId = session.metadata?.user_id;
-        
+
+        log('INFO', eid, 'checkout.session.completed', {
+          session_id: session.id,
+          customer_id: customerId,
+          subscription_id: subscriptionId,
+          user_id: userId,
+        });
+
         if (!customerId) {
-          console.error('❌ No customer ID found in session');
+          log('ERROR', eid, 'No customer_id in checkout session');
           return new Response('No customer ID found in session', { status: 400 });
         }
 
-        console.log(`👤 User ID from metadata: ${userId}, Customer ID: ${customerId}, Subscription ID: ${subscriptionId}`);
-        
         if (userId) {
-          const { data: existingCustomer } = await supabase
+          const { data: existing } = await supabase
             .from('stripe_customers')
-            .select('*')
+            .select('customer_id')
             .eq('customer_id', customerId)
             .maybeSingle();
-            
-          if (!existingCustomer) {
-            console.log(`⚠️ Customer ${customerId} not found in database, creating entry for user ${userId}`);
-            const { error: customerError } = await supabase
+
+          if (!existing) {
+            log('WARN', eid, 'Customer not in DB — creating', { customer_id: customerId, user_id: userId });
+            const { error: insErr } = await supabase
               .from('stripe_customers')
-              .insert([
-                { user_id: userId, customer_id: customerId }
-              ]);
-              
-            if (customerError) {
-              console.error('❌ Error creating customer record:', customerError);
+              .insert([{ user_id: userId, customer_id: customerId }]);
+            if (insErr) {
+              log('ERROR', eid, 'Failed to create stripe_customers record', { error: insErr });
             } else {
-              console.log('✅ Customer record created successfully');
+              log('INFO', eid, 'stripe_customers record created');
             }
-          } else {
-            console.log(`✅ Found existing customer record for ${customerId}`);
           }
         }
-        
+
         if (subscriptionId) {
+          log('INFO', eid, 'Retrieving full subscription from Stripe', { subscription_id: subscriptionId });
+          let processed = false;
+
           try {
-            console.log('🔄 Retrieving full subscription details:', subscriptionId);
-            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-            
-            console.log('📝 Subscription status:', subscription.status);
-            console.log('💰 Price ID:', subscription.items.data[0]?.price.id);
-            console.log('📅 Current period start:', subscription.current_period_start);
-            console.log('📅 Current period end:', subscription.current_period_end);
-            
-            const { data, error } = await supabase.rpc('process_stripe_webhook_event', { 
+            const sub = await stripe.subscriptions.retrieve(subscriptionId);
+            log('INFO', eid, 'Subscription retrieved', {
+              status: sub.status,
+              current_period_start: sub.current_period_start,
+              current_period_end: sub.current_period_end,
+              period_end_readable: new Date(sub.current_period_end * 1000).toISOString(),
+            });
+
+            const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
               event_type: event.type,
               customer_id: customerId,
               subscription_id: subscriptionId,
-              status: subscription.status,
-              price_id: subscription.items.data[0]?.price.id,
-              current_period_start: subscription.current_period_start,
-              current_period_end: subscription.current_period_end
+              status: sub.status,
+              price_id: sub.items.data[0]?.price.id,
+              current_period_start: sub.current_period_start,
+              current_period_end: sub.current_period_end,
             });
-            
+
             if (error) {
-              console.error('❌ Error processing checkout.session.completed with full subscription data:', error);
+              log('ERROR', eid, 'process_stripe_webhook_event failed', { error });
               throw error;
             }
-            
-            console.log('✅ Subscription processed successfully with full data:', data);
-          } catch (subError) {
-            console.error('❌ Error retrieving subscription details:', subError);
-            
-            console.log('⚠️ Falling back to basic premium activation');
-            const { data: activationData, error: activationError } = await supabase.rpc('activate_premium_for_stripe_customer', {
-              customer_id_param: customerId
+
+            log('INFO', eid, 'process_stripe_webhook_event succeeded', { result: data });
+            processed = true;
+          } catch (subErr: any) {
+            log('ERROR', eid, 'Failed to retrieve subscription — using fallback activation', {
+              error: subErr?.message ?? subErr,
             });
 
-            if (activationError) {
-              console.error('❌ Error with fallback activation:', activationError);
-              throw activationError;
+            const { data, error } = await supabase.rpc('activate_premium_for_stripe_customer', {
+              customer_id_param: customerId,
+            });
+
+            if (error) {
+              log('ERROR', eid, 'Fallback activate_premium_for_stripe_customer failed', { error });
+              throw error;
             }
 
-            console.log('✅ Fallback activation successful:', activationData);
+            log('WARN', eid, 'Fallback activation succeeded (period dates not updated)', { result: data });
+            processed = true;
+          }
+
+          if (processed) {
+            const { data: syncData, error: syncErr } = await supabase.rpc('sync_customer_subscription_status', {
+              customer_id_input: customerId,
+            });
+            if (syncErr) {
+              log('WARN', eid, 'sync_customer_subscription_status failed', { error: syncErr });
+            } else {
+              log('INFO', eid, 'sync_customer_subscription_status succeeded', { result: syncData });
+            }
           }
         } else {
-          console.log('⚠️ No subscription ID found, using direct premium activation');
-          const { data: activationData, error: activationError } = await supabase.rpc('activate_premium_for_stripe_customer', {
-            customer_id_param: customerId
+          log('WARN', eid, 'No subscription_id — using direct activation', { customer_id: customerId });
+          const { data, error } = await supabase.rpc('activate_premium_for_stripe_customer', {
+            customer_id_param: customerId,
           });
-          
-          if (activationError) {
-            console.error('❌ Error with direct activation:', activationError);
-            throw activationError;
+          if (error) {
+            log('ERROR', eid, 'activate_premium_for_stripe_customer failed', { error });
+            throw error;
           }
-          
-          console.log('✅ Direct activation successful:', activationData);
-        }
-        
-        try {
-          const { data: syncData, error: syncError } = await supabase.rpc('sync_customer_subscription_status', { 
-            customer_id_input: customerId
-          });
-          
-          if (syncError) {
-            console.error('⚠️ Warning: Error syncing subscription status:', syncError);
-          } else {
-            console.log('✅ Explicitly synced subscription status:', syncData);
-          }
-        } catch (syncError) {
-          console.error('⚠️ Error in explicit subscription sync:', syncError);
+          log('INFO', eid, 'Direct activation succeeded', { result: data });
         }
         break;
       }
-      
+
       case 'customer.subscription.created': {
-        const subscription = event.data.object as Stripe.Subscription;
-        console.log('🔔 New subscription created:', subscription.id);
-        
+        const sub = event.data.object as Stripe.Subscription;
+        log('INFO', eid, 'customer.subscription.created', {
+          subscription_id: sub.id,
+          customer_id: sub.customer,
+          status: sub.status,
+          current_period_end: sub.current_period_end,
+          period_end_readable: new Date(sub.current_period_end * 1000).toISOString(),
+        });
+
         const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
           event_type: event.type,
-          customer_id: subscription.customer as string,
-          subscription_id: subscription.id,
-          status: subscription.status,
-          price_id: subscription.items.data[0]?.price.id,
-          current_period_start: subscription.current_period_start,
-          current_period_end: subscription.current_period_end
+          customer_id: sub.customer as string,
+          subscription_id: sub.id,
+          status: sub.status,
+          price_id: sub.items.data[0]?.price.id,
+          current_period_start: sub.current_period_start,
+          current_period_end: sub.current_period_end,
         });
-        
+
         if (error) {
-          console.error('❌ Error processing customer.subscription.created:', error);
+          log('ERROR', eid, 'process_stripe_webhook_event failed', { error });
           throw error;
         }
-        
-        console.log('✅ New subscription processed successfully:', data);
-        
-        const { data: syncData, error: syncError } = await supabase.rpc('sync_customer_subscription_status', { 
-          customer_id_input: subscription.customer as string
+        log('INFO', eid, 'process_stripe_webhook_event succeeded', { result: data });
+
+        const { data: syncData, error: syncErr } = await supabase.rpc('sync_customer_subscription_status', {
+          customer_id_input: sub.customer as string,
         });
-        
-        if (syncError) {
-          console.error('⚠️ Warning: Error syncing subscription status:', syncError);
+        if (syncErr) {
+          log('WARN', eid, 'sync_customer_subscription_status failed', { error: syncErr });
         } else {
-          console.log('✅ Explicitly synced subscription status:', syncData);
+          log('INFO', eid, 'sync_customer_subscription_status succeeded', { result: syncData });
         }
         break;
       }
-      
+
       case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription;
-        console.log('🔄 Subscription updated:', subscription.id, 'Status:', subscription.status);
-        
+        const sub = event.data.object as Stripe.Subscription;
+        log('INFO', eid, 'customer.subscription.updated', {
+          subscription_id: sub.id,
+          customer_id: sub.customer,
+          status: sub.status,
+          current_period_start: sub.current_period_start,
+          current_period_end: sub.current_period_end,
+          period_end_readable: new Date(sub.current_period_end * 1000).toISOString(),
+          cancel_at_period_end: sub.cancel_at_period_end,
+        });
+
         const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
           event_type: event.type,
-          customer_id: subscription.customer as string,
-          subscription_id: subscription.id,
-          status: subscription.status,
-          price_id: subscription.items.data[0]?.price.id,
-          current_period_start: subscription.current_period_start,
-          current_period_end: subscription.current_period_end
+          customer_id: sub.customer as string,
+          subscription_id: sub.id,
+          status: sub.status,
+          price_id: sub.items.data[0]?.price.id,
+          current_period_start: sub.current_period_start,
+          current_period_end: sub.current_period_end,
         });
-        
+
         if (error) {
-          console.error('❌ Error processing customer.subscription.updated:', error);
+          log('ERROR', eid, 'process_stripe_webhook_event failed', { error });
           throw error;
         }
-        
-        console.log('✅ Subscription update processed successfully:', data);
-        
-        const { data: syncData, error: syncError } = await supabase.rpc('sync_customer_subscription_status', { 
-          customer_id_input: subscription.customer as string
+        log('INFO', eid, 'process_stripe_webhook_event succeeded', { result: data });
+
+        const { data: syncData, error: syncErr } = await supabase.rpc('sync_customer_subscription_status', {
+          customer_id_input: sub.customer as string,
         });
-        
-        if (syncError) {
-          console.error('⚠️ Warning: Error syncing subscription status:', syncError);
+        if (syncErr) {
+          log('WARN', eid, 'sync_customer_subscription_status failed', { error: syncErr });
         } else {
-          console.log('✅ Explicitly synced subscription status:', syncData);
+          log('INFO', eid, 'sync_customer_subscription_status succeeded', { result: syncData });
         }
         break;
       }
-      
+
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
 
-        if (invoice.subscription) {
-          console.log('💰 Invoice payment succeeded for subscription:', invoice.subscription);
+        log('INFO', eid, 'invoice.payment_succeeded', {
+          invoice_id: invoice.id,
+          customer_id: invoice.customer,
+          subscription_id: invoice.subscription,
+          billing_reason: invoice.billing_reason,  // 'subscription_cycle' on renewal, 'subscription_create' on first
+          amount_paid: invoice.amount_paid,
+        });
 
-          try {
-            // Fetch full subscription to get the updated current_period_end after renewal
-            const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        if (!invoice.subscription) {
+          log('WARN', eid, 'invoice.payment_succeeded has no subscription_id — skipping');
+          break;
+        }
 
-            console.log('📅 Renewal period end:', subscription.current_period_end);
-            console.log('📝 Subscription status:', subscription.status);
+        const subscriptionId = invoice.subscription as string;
+        const customerId = invoice.customer as string;
 
-            const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
-              event_type: event.type,
-              customer_id: invoice.customer as string,
-              subscription_id: invoice.subscription as string,
-              status: subscription.status,
-              price_id: subscription.items.data[0]?.price.id,
-              current_period_start: subscription.current_period_start,
-              current_period_end: subscription.current_period_end
-            });
+        log('INFO', eid, 'Retrieving full subscription from Stripe to get updated period', {
+          subscription_id: subscriptionId,
+        });
 
-            if (error) {
-              console.error('❌ Error processing invoice.payment_succeeded:', error);
-              throw error;
-            }
+        let subRetrieved = false;
+        try {
+          const sub = await stripe.subscriptions.retrieve(subscriptionId);
+          subRetrieved = true;
 
-            console.log('✅ Invoice payment processed successfully with real period data:', data);
-          } catch (subError) {
-            console.error('❌ Error retrieving subscription for invoice.payment_succeeded:', subError);
-            // Fallback: process without period data (keeps existing values via COALESCE)
-            const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
-              event_type: event.type,
-              customer_id: invoice.customer as string,
-              subscription_id: invoice.subscription as string
-            });
-            if (error) {
-              console.error('❌ Fallback processing also failed:', error);
-              throw error;
-            }
-            console.log('✅ Invoice payment processed (fallback):', data);
-          }
-
-          const { data: syncData, error: syncError } = await supabase.rpc('sync_customer_subscription_status', {
-            customer_id_input: invoice.customer as string
+          log('INFO', eid, 'Subscription retrieved successfully', {
+            status: sub.status,
+            current_period_start: sub.current_period_start,
+            current_period_end: sub.current_period_end,
+            period_end_readable: new Date(sub.current_period_end * 1000).toISOString(),
           });
 
-          if (syncError) {
-            console.error('⚠️ Warning: Error syncing subscription status:', syncError);
-          } else {
-            console.log('✅ Explicitly synced subscription status:', syncData);
+          const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
+            event_type: event.type,
+            customer_id: customerId,
+            subscription_id: subscriptionId,
+            status: sub.status,
+            price_id: sub.items.data[0]?.price.id,
+            current_period_start: sub.current_period_start,
+            current_period_end: sub.current_period_end,
+          });
+
+          if (error) {
+            log('ERROR', eid, 'process_stripe_webhook_event failed', { error });
+            throw error;
           }
+
+          log('INFO', eid, 'process_stripe_webhook_event succeeded — period_end updated', { result: data });
+        } catch (subErr: any) {
+          // If we already retrieved the sub but the RPC failed, re-throw — don't silently skip
+          if (subRetrieved) {
+            log('ERROR', eid, 'process_stripe_webhook_event threw after successful sub retrieval', {
+              error: subErr?.message ?? subErr,
+            });
+            throw subErr;
+          }
+
+          // Subscription retrieval itself failed — fallback WITHOUT period data
+          // IMPORTANT: current_period_end will NOT be updated (COALESCE keeps old value).
+          // The subscription status is still valid via is_premium_active() trusting status='active'.
+          log('ERROR', eid, 'stripe.subscriptions.retrieve failed — fallback WITHOUT period update', {
+            error: subErr?.message ?? subErr,
+            warning: 'current_period_end will remain stale in DB',
+          });
+
+          const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
+            event_type: event.type,
+            customer_id: customerId,
+            subscription_id: subscriptionId,
+            // Intentionally omitting period fields — COALESCE keeps existing values
+          });
+
+          if (error) {
+            log('ERROR', eid, 'Fallback process_stripe_webhook_event also failed', { error });
+            throw error;
+          }
+
+          log('WARN', eid, 'Fallback process succeeded — period_end NOT updated, check Stripe for actual renewal date', {
+            result: data,
+          });
+        }
+
+        const { data: syncData, error: syncErr } = await supabase.rpc('sync_customer_subscription_status', {
+          customer_id_input: customerId,
+        });
+        if (syncErr) {
+          log('WARN', eid, 'sync_customer_subscription_status failed', { error: syncErr });
+        } else {
+          log('INFO', eid, 'sync_customer_subscription_status succeeded', { result: syncData });
         }
         break;
       }
 
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
-        console.log('🗑️ Subscription deleted/canceled:', subscription.id);
+        const sub = event.data.object as Stripe.Subscription;
+        log('INFO', eid, 'customer.subscription.deleted', {
+          subscription_id: sub.id,
+          customer_id: sub.customer,
+          current_period_end: sub.current_period_end,
+          period_end_readable: new Date(sub.current_period_end * 1000).toISOString(),
+        });
 
         const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
           event_type: event.type,
-          customer_id: subscription.customer as string,
-          subscription_id: subscription.id,
-          status: 'canceled'
+          customer_id: sub.customer as string,
+          subscription_id: sub.id,
+          status: 'canceled',
         });
 
         if (error) {
-          console.error('❌ Error processing customer.subscription.deleted:', error);
+          log('ERROR', eid, 'process_stripe_webhook_event failed', { error });
           throw error;
         }
+        log('INFO', eid, 'process_stripe_webhook_event succeeded — subscription canceled', { result: data });
 
-        console.log('✅ Subscription deletion processed successfully:', data);
-
-        const { data: syncData, error: syncError } = await supabase.rpc('sync_customer_subscription_status', {
-          customer_id_input: subscription.customer as string
+        const { data: syncData, error: syncErr } = await supabase.rpc('sync_customer_subscription_status', {
+          customer_id_input: sub.customer as string,
         });
-
-        if (syncError) {
-          console.error('⚠️ Warning: Error syncing subscription status:', syncError);
+        if (syncErr) {
+          log('WARN', eid, 'sync_customer_subscription_status failed', { error: syncErr });
         } else {
-          console.log('✅ User downgraded to free:', syncData);
+          log('INFO', eid, 'sync_customer_subscription_status succeeded — user downgraded', { result: syncData });
         }
         break;
       }
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
+        log('WARN', eid, 'invoice.payment_failed', {
+          invoice_id: invoice.id,
+          customer_id: invoice.customer,
+          subscription_id: invoice.subscription,
+          attempt_count: invoice.attempt_count,
+          next_payment_attempt: invoice.next_payment_attempt,
+        });
 
-        if (invoice.subscription) {
-          console.log('❌ Invoice payment failed for subscription:', invoice.subscription);
-
-          const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
-            event_type: event.type,
-            customer_id: invoice.customer as string,
-            subscription_id: invoice.subscription as string,
-            status: 'past_due'
-          });
-
-          if (error) {
-            console.error('❌ Error processing invoice.payment_failed:', error);
-          } else {
-            console.log('⚠️ Subscription marked as past_due:', data);
-          }
+        if (!invoice.subscription) {
+          log('WARN', eid, 'invoice.payment_failed has no subscription_id — skipping');
+          break;
         }
+
+        const { data, error } = await supabase.rpc('process_stripe_webhook_event', {
+          event_type: event.type,
+          customer_id: invoice.customer as string,
+          subscription_id: invoice.subscription as string,
+          status: 'past_due',
+        });
+
+        if (error) {
+          log('ERROR', eid, 'process_stripe_webhook_event failed', { error });
+        } else {
+          log('WARN', eid, 'Subscription marked as past_due', { result: data });
+        }
+        break;
+      }
+
+      default: {
+        log('INFO', eid, `Unhandled event type — ignored`, { type: event.type });
         break;
       }
     }
 
+    log('INFO', eid, 'Webhook processing complete');
     return Response.json({ received: true }, { headers: corsHeaders });
-  } catch (error: any) {
-    console.error('❌ Error processing webhook:', error);
-    return Response.json({ error: error.message }, { status: 500, headers: corsHeaders });
+
+  } catch (err: any) {
+    log('ERROR', eid ?? 'unknown', 'Unhandled exception — returning 500', {
+      error: err?.message ?? String(err),
+      stack: err?.stack,
+    });
+    return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
   }
 });
