@@ -35,19 +35,18 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Creating checkout for user: ${userId}, email: ${email}, priceId: ${priceId}`);
-    
-    // Check if user is already premium
-    const { data: ticketData, error: ticketError } = await supabase
-      .from('user_tickets')
-      .select('plan_type')
-      .eq('user_id', userId)
-      .single();
 
-    if (ticketError && ticketError.code !== 'PGRST116') {
-      throw ticketError;
+    // Check if user is already premium using the same RPC as frontend
+    // This ensures consistency between client and server premium status
+    const { data: isPremium, error: premiumError } = await supabase
+      .rpc('get_user_premium_status', { user_id_input: userId });
+
+    if (premiumError) {
+      console.error('Error checking premium status:', premiumError);
+      throw premiumError;
     }
 
-    if (ticketData?.plan_type === 'premium') {
+    if (isPremium === true) {
       return new Response(
         JSON.stringify({ error: 'User already has premium access' }),
         {
