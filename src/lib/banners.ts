@@ -55,7 +55,22 @@ export const banners = {
     name: 'Saw Banner',
     isPremium: true,
     requiredTag: 'visceral-gamer',
-    className: 'relative overflow-hidden border-4 border-red-700 dark:border-red-600 bg-gradient-to-br from-red-950/70 via-red-900/50 to-red-950/70 dark:from-red-950/90 dark:via-red-900/70 dark:to-red-950/90 shadow-[0_0_30px_rgba(185,28,28,0.6),inset_0_0_30px_rgba(185,28,28,0.2)] dark:shadow-[0_0_40px_rgba(185,28,28,0.7),inset_0_0_40px_rgba(185,28,28,0.3)] before:absolute before:top-0 before:left-0 before:right-0 before:h-full before:bg-gradient-to-b before:from-red-600/40 before:via-transparent before:to-transparent before:animate-saw-blood-cascade before:-z-10 before:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_center,rgba(185,28,28,0.4)_0%,transparent_70%)] after:animate-saw-pulse-intense after:-z-10 after:pointer-events-none'
+    className: [
+      'relative overflow-hidden',
+      'bg-[radial-gradient(ellipse_at_50%_0%,#3b0000_0%,#1c0000_50%,#0d0000_100%)]',
+      'border-[3px] border-red-700',
+      'shadow-[0_0_35px_rgba(185,28,28,0.6)_inset,0_0_20px_rgba(185,28,28,0.4)]',
+      // pulsing core radial that breathes like a heartbeat
+      'before:absolute before:inset-0',
+      'before:bg-[radial-gradient(ellipse_at_50%_30%,rgba(220,38,38,0.45),transparent_65%)]',
+      'before:animate-[saw-banner-pulse_1.2s_ease-in-out_infinite]',
+      'before:pointer-events-none',
+      // dripping top edge: bright line that fades downward
+      'after:absolute after:top-0 after:left-0 after:right-0 after:h-[3px]',
+      'after:bg-gradient-to-r after:from-transparent after:via-red-500 after:to-transparent',
+      'after:shadow-[0_0_8px_#ef4444,0_2px_16px_rgba(220,38,38,0.6)]',
+      'after:animate-[saw-banner-drip_2.5s_ease-in-out_infinite]',
+    ].join(' '),
   },
   ice: {
     id: 'ice',
