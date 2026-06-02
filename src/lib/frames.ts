@@ -1,10 +1,22 @@
 export const frames = {
-  gold: {
+gold: {
     id: 'gold',
     name: 'Gold Frame',
     isPremium: true,
     requiredTag: null,
-    className: 'relative ring-4 ring-yellow-400 dark:ring-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.6)] dark:shadow-[0_0_40px_rgba(234,179,8,0.8)] animate-gold-shimmer before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-tr before:from-yellow-200/30 before:via-yellow-400/20 before:to-yellow-600/30 before:animate-gold-rotate before:pointer-events-none'
+    className: [
+      // outer glow
+      'drop-shadow-[0_0_10px_rgba(251,191,36,0.9)]',
+      'drop-shadow-[0_0_28px_rgba(245,158,11,0.55)]',
+      // container
+      'relative w-16 h-16',
+      // spinning metallic ring via pseudo
+      'before:absolute before:-inset-1 before:rounded-full',
+      'before:bg-[conic-gradient(from_0deg,#f59e0b,#fde68a_15%,#b45309_30%,#fde68a_45%,#f59e0b_55%,#d97706_70%,#fde68a_85%,#f59e0b)]',
+      'before:animate-[gold-ring-spin_3s_linear_infinite]',
+      // avatar sits on top
+      'before:z-0 [&>img]:relative [&>img]:z-10 [&>img]:m-1',
+    ].join(' '),
   },
   matrix: {
     id: 'matrix',
