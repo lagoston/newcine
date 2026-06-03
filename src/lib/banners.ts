@@ -103,16 +103,16 @@ export const banners = {
       'bg-[radial-gradient(ellipse_at_50%_50%,#150d00,#0a0500_60%,#030200_100%)]',
       'border-[3px] border-orange-500',
       'shadow-[0_0_40px_rgba(251,146,60,0.5)_inset,0_0_25px_rgba(251,146,60,0.4)]',
-      // speed warp: converging horizontal lines from center
+      // warp lines
       'before:absolute before:inset-0',
       'before:bg-[repeating-linear-gradient(90deg,transparent,transparent_19px,rgba(251,191,36,0.1)_19px,rgba(251,191,36,0.1)_20px)]',
       'before:animate-[bttf-banner-warp_0.4s_linear_infinite]',
       'before:pointer-events-none',
-      // vertical lightning bolt sweeping left to right
-      'after:absolute after:top-0 after:bottom-0 after:w-[2px]',
-      'after:bg-gradient-to-b after:from-transparent after:via-yellow-300 after:to-transparent',
-      'after:shadow-[0_0_10px_#fbbf24,0_0_20px_rgba(249,115,22,0.7)]',
-      'after:animate-[bttf-banner-bolt_0.8s_ease-in-out_infinite]',
+      // teleport flash azul+laranja
+      'after:absolute after:inset-0',
+      'after:bg-[radial-gradient(ellipse_at_48%_50%,rgba(59,130,246,0.85)_0%,rgba(251,146,60,0.6)_35%,transparent_65%)]',
+      'after:animate-[bttf-banner-flash_3.5s_ease-in-out_infinite]',
+      'after:pointer-events-none',
     ].join(' '),
   },
   potter: {
