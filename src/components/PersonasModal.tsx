@@ -58,7 +58,7 @@ const SPECTRUM_RING: Record<string, string> = {
 };
 
 const SUBCATEGORY_COLOR: Record<string, string> = {
-  A: '#fbbf24', B: '#64748b', K: '#ef4444', X: '#3b82f6', D: '#9ca3af', L: '#10b981',
+  A: '#fbbf24', B: '#a855f7', K: '#ef4444', X: '#3b82f6', D: '#9ca3af', L: '#10b981',
 };
 
 const SUBCATEGORY_ORDER = ['A', 'B', 'K', 'X', 'D', 'L'];
@@ -148,7 +148,7 @@ const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPerso
           exit={{ y: 40, opacity: 0 }}
           transition={{ type: 'spring', damping: 28, stiffness: 280 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-6xl my-1 sm:my-6 mx-1 sm:mx-4 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-950 to-black border border-white/10 shadow-2xl overflow-hidden flex flex-col"
+          className="relative w-full max-w-6xl my-1 sm:my-6 mx-1 sm:mx-4 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-950 to-black border border-white/10 shadow-2xl overflow-hidden flex flex-col pt-[env(safe-area-inset-top)]"
         >
           {/* Header */}
           <div className="flex items-center justify-between gap-2 px-3 sm:px-5 py-3 sm:py-4 border-b border-white/10 bg-gradient-to-r from-gray-900/90 to-gray-950/90 backdrop-blur-xl flex-shrink-0 min-w-0">
