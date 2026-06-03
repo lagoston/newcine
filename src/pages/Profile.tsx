@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
-import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, Award, TrendingDown, X, Loader2, Settings, ChevronDown, Scroll, Info, RefreshCw } from 'lucide-react';
+import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, Award, TrendingDown, X, Loader2, Settings, ChevronDown, Scroll, Info, RefreshCw, LayoutGrid, Share2 } from 'lucide-react';
 import PentagonGraph from '../components/PentagonGraph';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import GlassLoader from '../components/GlassLoader';
@@ -12,6 +12,8 @@ import FollowersModal from '../components/FollowersModal';
 import WhispersModal from '../components/WhispersModal';
 import CustomizeModal from '../components/CustomizeModal';
 import SettingsModal from '../components/SettingsModal';
+import PersonasModal from '../components/PersonasModal';
+import PersonaShareModal from '../components/PersonaShareModal';
 import { toast } from 'sonner';
 import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
@@ -181,6 +183,8 @@ export default function Profile() {
   const [essenceLoading, setEssenceLoading] = useState(true);
   const [showEssenceRevelation, setShowEssenceRevelation] = useState(false);
   const [showEssenceInfo, setShowEssenceInfo] = useState(false);
+  const [showPersonasModal, setShowPersonasModal] = useState(false);
+  const [showPersonaShare, setShowPersonaShare] = useState(false);
   const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
   const [showRetakeQuizModal, setShowRetakeQuizModal] = useState(false);
 
@@ -1686,6 +1690,22 @@ export default function Profile() {
                         >
                           <Info className="w-4 h-4" />
                         </motion.button>
+                        <motion.button
+                          onClick={() => setShowPersonasModal(true)}
+                          whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                          className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 dark:bg-emerald-500/15 dark:hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-400/20 transition-all duration-200"
+                          title={isPt ? 'Ver Personas' : 'View Personas'}
+                        >
+                          <LayoutGrid className="w-4 h-4" />
+                        </motion.button>
+                        <motion.button
+                          onClick={() => setShowPersonaShare(true)}
+                          whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                          className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-400/20 transition-all duration-200"
+                          title={isPt ? 'Compartilhar' : 'Share'}
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </motion.button>
                       </div>
                     </div>
                   </div>
@@ -1743,6 +1763,26 @@ export default function Profile() {
         }}
       />
 
+      {session?.user?.id && (
+        <PersonasModal
+          isOpen={showPersonasModal}
+          onClose={() => setShowPersonasModal(false)}
+          viewerId={session.user.id}
+          viewerPersonaCode={essencePersonality?.personalidade_completa ?? null}
+          onUserClick={(uname) => navigate(`/profile/${uname}`)}
+        />
+      )}
+
+      {essencePersonality?.personalidade_completa && essenceArchetype && (
+        <PersonaShareModal
+          isOpen={showPersonaShare}
+          onClose={() => setShowPersonaShare(false)}
+          personaCode={essencePersonality.personalidade_completa}
+          archetypeName={essenceArchetype.archetype_name}
+          subcategoryName={essenceArchetype.subcategory_name}
+          username={profile?.username}
+        />
+      )}
       <AnimatePresence>
         {showEssenceRevelation && essenceArchetype && essencePersonality && (
           <motion.div
