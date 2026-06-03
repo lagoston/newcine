@@ -148,27 +148,27 @@ const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPerso
           exit={{ y: 40, opacity: 0 }}
           transition={{ type: 'spring', damping: 28, stiffness: 280 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-6xl my-2 sm:my-6 mx-2 sm:mx-4 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-950 to-black border border-white/10 shadow-2xl overflow-hidden flex flex-col"
+          className="relative w-full max-w-6xl my-1 sm:my-6 mx-1 sm:mx-4 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-950 to-black border border-white/10 shadow-2xl overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10 bg-gradient-to-r from-gray-900/90 to-gray-950/90 backdrop-blur-xl flex-shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center justify-between gap-2 px-3 sm:px-5 py-3 sm:py-4 border-b border-white/10 bg-gradient-to-r from-gray-900/90 to-gray-950/90 backdrop-blur-xl flex-shrink-0 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               {selected && (
                 <button
                   onClick={() => setSelected(null)}
-                  className="p-2 rounded-lg hover:bg-white/10 transition text-gray-300"
+                  className="p-1.5 sm:p-2 rounded-lg hover:bg-white/10 transition text-gray-300 flex-shrink-0"
                   aria-label="Voltar"
                 >
-                  <ArrowLeft className="w-5 h-5" />
+                  <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               )}
-              <div className="min-w-0">
-                <h2 className="text-base sm:text-lg font-bold text-white truncate">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm sm:text-base font-bold text-white truncate leading-tight">
                   {selected
                     ? (isPt ? 'Detalhes do Arquétipo' : 'Archetype Details')
                     : (isPt ? 'Os 120 Arquétipos' : 'The 120 Archetypes')}
                 </h2>
-                <p className="text-[11px] text-gray-400 truncate">
+                <p className="text-[10px] sm:text-[11px] text-gray-400 truncate">
                   {selected
                     ? `${selected.persona_code} · ${isPt ? selected.archetype_name : selected.archetype_name_en}`
                     : (isPt
@@ -179,10 +179,10 @@ const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPerso
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-white/10 transition text-gray-300"
+              className="p-1.5 sm:p-2 rounded-lg hover:bg-white/10 transition text-gray-300 flex-shrink-0"
               aria-label="Fechar"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
 
@@ -430,7 +430,6 @@ const PersonaDetail: React.FC<{
                   {isPt ? persona.archetype_name : persona.archetype_name_en}
                   <span className="text-gray-400 font-medium"> · {isPt ? persona.subcategory_name : persona.subcategory_name_en}</span>
                 </h3>
-                <p className="text-xs text-gray-500">{spectrumName} + {secondaryName} · {persona.pair_name}</p>
               </div>
             </div>
 

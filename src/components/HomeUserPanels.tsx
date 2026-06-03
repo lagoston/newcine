@@ -412,15 +412,12 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                     </p>
                   </div>
                   <div className="flex flex-row gap-2 flex-shrink-0">
-                    <Link to="/oracle">
-                      <motion.div
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-400/20 transition-all duration-200"
-                        title={i18n.language.startsWith('pt') ? 'Ir para o Oráculo' : 'Go to Oracle'}
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                      </motion.div>
+                    <Link
+                      to="/oracle"
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      {i18n.language.startsWith('pt') ? 'Abrir' : 'Open'}
                     </Link>
                   </div>
                 </div>

@@ -388,45 +388,45 @@ export default function OracleHub() {
                 </p>
               </div>
 
-              <div className="flex md:flex-col gap-3 md:ml-auto w-full md:w-auto justify-center md:justify-start">
+              <div className="grid grid-cols-2 gap-2 md:ml-auto w-full md:w-auto mt-4 md:mt-0">
                 <motion.button
                   onClick={() => setShowRevelationModal(true)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl hover:shadow-lg hover:shadow-pink-500/25 transition-all text-sm font-semibold"
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl hover:shadow-lg hover:shadow-pink-500/25 transition-all text-sm font-semibold"
                 >
-                  <Scroll className="w-4 h-4" />
-                  <span>{t('oracle.revelation')}</span>
+                  <Scroll className="w-4 h-4 flex-shrink-0" />
+                  <span className="hidden md:inline">{t('oracle.revelation')}</span>
                 </motion.button>
 
                 <motion.button
                   onClick={() => setShowInfoModal(true)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all text-sm font-semibold"
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all text-sm font-semibold"
                 >
-                  <Info className="w-4 h-4" />
-                  <span>Info</span>
+                  <Info className="w-4 h-4 flex-shrink-0" />
+                  <span className="hidden md:inline">Info</span>
                 </motion.button>
 
                 <motion.button
                   onClick={() => setShowPersonasModal(true)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all text-sm font-semibold"
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all text-sm font-semibold"
                 >
-                  <LayoutGrid className="w-4 h-4" />
-                  <span>{i18n.language.startsWith('pt') ? 'Arquétipos' : 'Archetypes'}</span>
+                  <LayoutGrid className="w-4 h-4 flex-shrink-0" />
+                  <span className="hidden md:inline">{i18n.language.startsWith('pt') ? 'Arquétipos' : 'Archetypes'}</span>
                 </motion.button>
 
                 <motion.button
                   onClick={() => setShowPersonaShare(true)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all text-sm font-semibold"
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all text-sm font-semibold"
                 >
-                  <Share2 className="w-4 h-4" />
-                  <span>{i18n.language.startsWith('pt') ? 'Compartilhar' : 'Share'}</span>
+                  <Share2 className="w-4 h-4 flex-shrink-0" />
+                  <span className="hidden md:inline">{i18n.language.startsWith('pt') ? 'Compartilhar' : 'Share'}</span>
                 </motion.button>
               </div>
             </div>

@@ -1690,22 +1690,6 @@ export default function Profile() {
                         >
                           <Info className="w-4 h-4" />
                         </motion.button>
-                        <motion.button
-                          onClick={() => setShowPersonasModal(true)}
-                          whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                          className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 dark:bg-emerald-500/15 dark:hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-400/20 transition-all duration-200"
-                          title={isPt ? 'Ver Personas' : 'View Personas'}
-                        >
-                          <LayoutGrid className="w-4 h-4" />
-                        </motion.button>
-                        <motion.button
-                          onClick={() => setShowPersonaShare(true)}
-                          whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                          className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-400/20 transition-all duration-200"
-                          title={isPt ? 'Compartilhar' : 'Share'}
-                        >
-                          <Share2 className="w-4 h-4" />
-                        </motion.button>
                       </div>
                     </div>
                   </div>
