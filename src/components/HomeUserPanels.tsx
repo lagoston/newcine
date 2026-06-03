@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link, useNavigate } from 'react-router-dom';
-import { Library as LibraryIcon, Lock, Star, Film, Clock, Scroll, Info, X, RefreshCw } from 'lucide-react';
+import { Library as LibraryIcon, Lock, Star, Film, Clock, Sparkles, RefreshCw, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
@@ -412,24 +412,16 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                     </p>
                   </div>
                   <div className="flex flex-row gap-2 flex-shrink-0">
-                    <motion.button
-                      onClick={() => setShowRevelationModal(true)}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-2 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 border border-pink-400/20 transition-all duration-200"
-                      title={t('oracle.revelation')}
-                    >
-                      <Scroll className="w-3.5 h-3.5" />
-                    </motion.button>
-                    <motion.button
-                      onClick={() => setShowInfoModal(true)}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-400/20 transition-all duration-200"
-                      title="Info"
-                    >
-                      <Info className="w-3.5 h-3.5" />
-                    </motion.button>
+                    <Link to="/oracle">
+                      <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 border border-blue-400/20 transition-all duration-200"
+                        title={i18n.language.startsWith('pt') ? 'Ir para o Oráculo' : 'Go to Oracle'}
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </motion.div>
+                    </Link>
                   </div>
                 </div>
               ) : (
@@ -552,184 +544,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
           onClose={() => setSelectedMovie(null)}
         />
       )}
-
-      {/* Revelation Modal */}
-      <AnimatePresence>
-        {showRevelationModal && archetypeInfo && personality && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center px-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4"
-            onClick={() => setShowRevelationModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 30 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 30 }}
-              transition={{ type: 'spring', duration: 0.4 }}
-              className="relative max-w-xl w-full max-h-[calc(100vh-5rem)] overflow-y-auto"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="relative bg-gray-900/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700/60 p-8">
-                <button
-                  onClick={() => setShowRevelationModal(false)}
-                  className="absolute top-4 right-4 z-10 p-2.5 bg-gray-700/60 hover:bg-gray-700 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-300" />
-                </button>
-
-                <div className="flex items-center justify-center gap-3 mb-6">
-                  <Scroll className="w-8 h-8 text-pink-400" style={{ filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.5))' }} />
-                  <h2 className="text-2xl font-bold text-white">{t('oracle.revelation')}</h2>
-                </div>
-
-                <div className="text-center mb-6 rounded-xl p-5 border border-gray-700/60 bg-gray-800/50">
-                  <p className="text-3xl font-bold mb-1" style={{ color: archetypeColor }}>
-                    {personality.personalidade_completa}
-                  </p>
-                  <p className="text-lg text-gray-200 font-semibold">
-                    {archetypeInfo.archetype_name} {archetypeInfo.subcategory_name}
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-xl p-5 border border-pink-500/20 bg-pink-500/5">
-                    <h3 className="text-base font-bold text-pink-400 mb-2">
-                      {t('oracle.yourEssence')} ({getEssenceLabel(personality.arquetipo_primario, personality.arquetipo_secundario, i18n.language.startsWith('pt') ? 'pt' : 'en')})
-                    </h3>
-                    <p className="text-gray-300 text-sm leading-relaxed">{archetypeInfo.archetype_description}</p>
-                  </div>
-                  <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
-                    <h3 className="text-base font-bold text-blue-400 mb-2">
-                      {t('oracle.yourAttunement')} ({getSubcategoryName(archetypeInfo.subcategory_name, i18n.language.startsWith('pt') ? 'pt' : 'en')})
-                    </h3>
-                    <p className="text-gray-300 text-sm leading-relaxed">{archetypeInfo.subcategory_description}</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Info Modal */}
-      <AnimatePresence>
-        {showInfoModal && personality && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center px-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4"
-            onClick={() => setShowInfoModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 30 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 30 }}
-              transition={{ type: 'spring', duration: 0.4 }}
-              className="relative max-w-xl w-full max-h-[calc(100vh-5rem)] overflow-y-auto"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="relative bg-gray-900/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700/60 p-8">
-                <button
-                  onClick={() => setShowInfoModal(false)}
-                  className="absolute top-4 right-4 z-10 p-2.5 bg-gray-700/60 hover:bg-gray-700 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-300" />
-                </button>
-
-                <div className="flex items-center justify-center gap-3 mb-6">
-                  <Info className="w-8 h-8 text-blue-400" style={{ filter: 'drop-shadow(0 0 8px rgba(96,165,250,0.5))' }} />
-                  <h2 className="text-2xl font-bold text-white">
-                    {t('oracle.architectureTitle')}
-                  </h2>
-                </div>
-
-                <p className="text-center italic text-gray-400 text-sm mb-6">
-                  {t('oracle.architectureIntro')}
-                </p>
-
-                <div className="space-y-4">
-                  <div className="rounded-xl p-5 border border-blue-500/20 bg-blue-500/5">
-                    <h3 className="text-base font-bold text-blue-300 mb-2 flex items-center gap-2">
-                      <span>1.</span> {t('oracle.theEssence')} ({getEssenceLabel(personality.arquetipo_primario, personality.arquetipo_secundario, i18n.language.startsWith('pt') ? 'pt' : 'en')})
-                    </h3>
-                    <p className="text-gray-300 text-sm leading-relaxed mb-3">
-                      {t('oracle.essenceProfileText', { profile: `${personality.arquetipo_primario}${personality.arquetipo_secundario}` })}
-                    </p>
-                    <div className="bg-black/30 rounded-lg p-3 mb-2">
-                      <p className="text-gray-400 text-xs font-bold mb-1">{t('oracle.essenceLogicLabel')}</p>
-                      <p className="text-gray-300 text-xs leading-relaxed">
-                        {t('oracle.essenceLogicText')}
-                      </p>
-                    </div>
-                    <div className="bg-black/30 rounded-lg p-3">
-                      <p className="text-gray-400 text-xs font-bold mb-1">{t('oracle.essenceResultLabel')}</p>
-                      <p className="text-gray-300 text-xs leading-relaxed">
-                        {t('oracle.essenceResultText')}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl p-5 border border-amber-500/20 bg-amber-500/5">
-                    <h3 className="text-base font-bold text-amber-300 mb-2 flex items-center gap-2">
-                      <span>2.</span> {t('oracle.theAttunement')} ({getSubcategoryName(archetypeInfo.subcategory_name, i18n.language.startsWith('pt') ? 'pt' : 'en')})
-                    </h3>
-                    <p className="text-gray-300 text-sm leading-relaxed mb-3">
-                      {t('oracle.subarchetypeText', { id: personality.subcategoria_id })}
-                    </p>
-                    <p className="text-gray-400 text-xs mb-2">
-                      {t('oracle.axesListTitle')}
-                    </p>
-                    <ul className="space-y-1.5 text-xs">
-                      {[
-                        { a: t('oracle.axisRadiant'), b: t('oracle.axisShadowy'), desc: t('oracle.axisOptimismMelancholy'), ca: '#fbbf24', cb: '#8b5cf6' },
-                        { a: t('oracle.axisClassic'), b: t('oracle.axisExperimental'), desc: t('oracle.axisTraditionBoldness'), ca: '#ef4444', cb: '#3b82f6' },
-                        { a: t('oracle.axisDense'), b: t('oracle.axisLight'), desc: t('oracle.axisComplexityAccessibility'), ca: '#6b7280', cb: '#10b981' },
-                      ].map((row, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-gray-500 mt-0.5">•</span>
-                          <span className="text-gray-300">
-                            <span className="font-semibold" style={{ color: row.ca }}>{row.a}</span>
-                            {' vs. '}
-                            <span className="font-semibold" style={{ color: row.cb }}>{row.b}</span>
-                            {' — '}{row.desc}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="rounded-xl p-5 border border-cyan-500/20 bg-cyan-500/5">
-                    <h3 className="text-base font-bold text-cyan-300 mb-4 flex items-center gap-2">
-                      <span>3.</span> {t('oracle.theGraph')}
-                    </h3>
-                    <div className="flex justify-center mb-4">
-                      <PentagonGraph points={spectrumPoints} subcategoryId={personality?.personalidade_completa || ''} />
-                    </div>
-                    <div className="flex justify-center">
-                      <button
-                        onClick={() => {
-                          if (isPremium) {
-                            setShowRetakeQuizModal(true);
-                          } else {
-                            setShowPremiumRequiredModal(true);
-                          }
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-lg transition-all text-sm font-semibold"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        <span>{t('oracle.retakeQuiz')}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {showRetakeQuizModal && (

@@ -134,6 +134,8 @@ const PERSONAS: Record<string, Persona> = {
   SRL: { name: 'Jack Sparrow', imageQuery: 'pirates-caribbean-jack-sparrow-johnny-depp', imageUrl: 'https://static.wikia.nocookie.net/piratas-do-caribe/images/d/dc/Bluesteel_d0f846ee.jpeg/revision/latest?cb=20200320204117&path-prefix=pt-br', descriptionPt: 'Capitão Jack Sparrow é o protagonista da franquia Pirates of the Caribbean, interpretado por Johnny Depp. Um pirata carismático e imprevisível que tornou-se um ícone da cultura pop.', descriptionEn: 'Captain Jack Sparrow is the protagonist of the Pirates of the Caribbean franchise, played by Johnny Depp. A charismatic and unpredictable pirate who became a pop culture icon.' },
 };
 
+export const PERSONAS_MAP: Record<string, { name: string; imageUrl?: string; descriptionPt: string; descriptionEn: string }> = PERSONAS;
+
 const PEXELS_IMAGES: Record<string, string> = {
   // Pexels doesn't have specific character images; we use a cinematic/film aesthetic placeholder
 };

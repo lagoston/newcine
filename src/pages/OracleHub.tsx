@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link } from 'react-router-dom';
-import { Eye, Wand2, BrainCircuit, Loader2, Scroll, Info, X, RefreshCw, Sparkles } from 'lucide-react';
+import { Eye, Wand2, BrainCircuit, Loader2, Scroll, Info, X, RefreshCw, Sparkles, LayoutGrid, Share2 } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import PentagonGraph from '../components/PentagonGraph';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,8 @@ import PersonalityCompletionModal from '../components/PersonalityCompletionModal
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import OracleForYouBox from '../components/OracleForYouBox';
 import CinematicPersonaCard from '../components/CinematicPersonaCard';
+import PersonasModal from '../components/PersonasModal';
+import PersonaShareModal from '../components/PersonaShareModal';
 
 interface UserPersonality {
   subcategoria_id: string | null;
@@ -59,6 +61,8 @@ export default function OracleHub() {
   const [showPremiumRequiredModal, setShowPremiumRequiredModal] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
+  const [showPersonasModal, setShowPersonasModal] = useState(false);
+  const [showPersonaShare, setShowPersonaShare] = useState(false);
 
   useEffect(() => {
     if (showRevelationModal || showInfoModal) {
@@ -302,6 +306,7 @@ export default function OracleHub() {
   const subcategoryId = userPersonality.personalidade_completa?.slice(2, 3);
 
   return (
+    <>
     <motion.div
       className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50/80 via-purple-50/50 to-pink-50/80 dark:from-gray-900 dark:via-blue-950/50 dark:to-purple-950/50 py-8 px-4 relative overflow-hidden"
       initial={{ opacity: 0 }}
@@ -402,6 +407,26 @@ export default function OracleHub() {
                 >
                   <Info className="w-4 h-4" />
                   <span>Info</span>
+                </motion.button>
+
+                <motion.button
+                  onClick={() => setShowPersonasModal(true)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all text-sm font-semibold"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span>{i18n.language.startsWith('pt') ? 'Arquétipos' : 'Archetypes'}</span>
+                </motion.button>
+
+                <motion.button
+                  onClick={() => setShowPersonaShare(true)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all text-sm font-semibold"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>{i18n.language.startsWith('pt') ? 'Compartilhar' : 'Share'}</span>
                 </motion.button>
               </div>
             </div>
@@ -767,5 +792,26 @@ export default function OracleHub() {
         )}
       </AnimatePresence>
     </motion.div>
+
+    {session?.user?.id && (
+      <PersonasModal
+        isOpen={showPersonasModal}
+        onClose={() => setShowPersonasModal(false)}
+        viewerId={session.user.id}
+        viewerPersonaCode={userPersonality?.personalidade_completa ?? null}
+      />
+    )}
+
+    {userPersonality?.personalidade_completa && archetypeInfo && (
+      <PersonaShareModal
+        isOpen={showPersonaShare}
+        onClose={() => setShowPersonaShare(false)}
+        personaCode={userPersonality.personalidade_completa}
+        archetypeName={archetypeInfo.archetype_name}
+        subcategoryName={archetypeInfo.subcategory_name}
+        username={session?.user?.email?.split('@')[0]}
+      />
+    )}
+    </>
   );
 }
