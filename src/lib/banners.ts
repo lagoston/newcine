@@ -158,6 +158,7 @@ export const banners = {
       'after:pointer-events-none',
     ].join(' '),
   },
+  
 } as const;
 
 export type BannerId = keyof typeof banners;
