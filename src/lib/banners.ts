@@ -158,29 +158,6 @@ export const banners = {
       'after:pointer-events-none',
     ].join(' '),
   },
-  apes: {
-  id: 'apes',
-  name: 'Planet of the Apes Banner',
-  isPremium: true,
-  requiredTag: 'primal-essence',
-  className: [
-    'relative overflow-hidden',
-    'bg-[linear-gradient(180deg,#1a0a00_0%,#2d1500_40%,#3d1f00_70%,#1a0a00_100%)]',
-    'border-[3px] border-amber-900',
-    'shadow-[0_0_50px_rgba(120,53,15,0.6)_inset,0_0_30px_rgba(161,98,7,0.4)]',
-    // sol e poeira no céu
-    'before:absolute before:inset-0',
-    'before:bg-[radial-gradient(ellipse_at_20%_0%,rgba(180,83,9,0.45),transparent_55%),radial-gradient(ellipse_at_80%_0%,rgba(120,53,15,0.3),transparent_45%)]',
-    'before:animate-[apes-banner-sun_4s_ease-in-out_infinite]',
-    'before:pointer-events-none',
-    // névoa rasteira pulsando
-    'after:absolute after:bottom-0 after:-left-1/5 after:-right-1/5 after:h-10',
-    'after:bg-gradient-to-t after:from-amber-950/50 after:to-transparent',
-    'after:rounded-[50%]',
-    'after:animate-[apes-banner-fog_7s_ease-in-out_infinite]',
-    'after:pointer-events-none',
-  ].join(' '),
-},
 } as const;
 
 export type BannerId = keyof typeof banners;
