@@ -61,16 +61,15 @@ export default {
         'potter-banner-orbs':    { '0%,100%': { transform: 'scale(1) rotate(-3deg)', opacity: '0.7' }, '50%': { transform: 'scale(1.05) rotate(3deg)', opacity: '1' } },
         'potter-banner-shimmer': { '0%,100%': { transform: 'translateX(-60%)' }, '50%': { transform: 'translateX(60%)' } },
         'tf-banner-scan':        { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(200%)' } },
-        'fd-banner-heartbeat': {
-  '0%,100%': { opacity: '0.4', transform: 'scale(1)' },
-  '15%':     { opacity: '1',   transform: 'scale(1.04)' },
-  '30%':     { opacity: '0.5', transform: 'scale(1)' },
-  '45%':     { opacity: '0.9', transform: 'scale(1.02)' },
-},
-'fd-banner-scan': {
-  '0%':   { transform: 'translateY(-100%)', opacity: '0.6' },
-  '100%': { transform: 'translateY(4000%)', opacity: '0' },
-      },
+ 'fd-banner-grid':  { '0%,100%': { opacity: '0.04' }, '50%': { opacity: '0.09' } },
+'fd-banner-laser': {
+  '0%':   { transform: 'translateY(0%)',    opacity: '0' },
+  '3%':   { opacity: '1' },
+  '48%':  { opacity: '1' },
+  '50%':  { opacity: '0.05' },
+  '52%':  { opacity: '1' },
+  '97%':  { opacity: '1' },
+  '100%': { transform: 'translateY(5000%)', opacity: '0' },
         },
       animation: {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
