@@ -158,6 +158,28 @@ export const banners = {
       'after:pointer-events-none',
     ].join(' '),
   },
+  fd: {
+  id: 'fd',
+  name: 'Final Destination Banner',
+  isPremium: true,
+  requiredTag: 'death-dodger',
+  className: [
+    'relative overflow-hidden',
+    'bg-[#050000]',
+    'border-[3px] border-red-900',
+    'shadow-[0_0_60px_rgba(127,29,29,0.7)_inset,0_0_25px_rgba(185,28,28,0.4)]',
+    // veias pulsando
+    'before:absolute before:inset-0',
+    'before:bg-[radial-gradient(ellipse_at_50%_50%,rgba(185,28,28,0.12),transparent_65%)]',
+    'before:animate-[fd-banner-heartbeat_2.5s_ease-in-out_infinite]',
+    'before:pointer-events-none',
+    // scanline vermelha descendo
+    'after:absolute after:left-0 after:right-0 after:h-[2px]',
+    'after:bg-[linear-gradient(90deg,transparent,rgba(220,38,38,0.6),rgba(185,28,28,0.8),rgba(220,38,38,0.6),transparent)]',
+    'after:shadow-[0_0_8px_rgba(220,38,38,0.5)]',
+    'after:animate-[fd-banner-scan_5s_linear_infinite]',
+  ].join(' '),
+},
 } as const;
 
 export type BannerId = keyof typeof banners;
