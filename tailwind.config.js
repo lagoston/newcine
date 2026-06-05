@@ -71,6 +71,7 @@ export default {
   '0%':   { transform: 'translateY(-100%)', opacity: '0.6' },
   '100%': { transform: 'translateY(4000%)', opacity: '0' },
       },
+        },
       animation: {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
         'gold-ring-spin':   'gold-ring-spin 3s linear infinite',
