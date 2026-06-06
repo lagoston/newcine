@@ -61,6 +61,15 @@ export default {
         'potter-banner-orbs':    { '0%,100%': { transform: 'scale(1) rotate(-3deg)', opacity: '0.7' }, '50%': { transform: 'scale(1.05) rotate(3deg)', opacity: '1' } },
         'potter-banner-shimmer': { '0%,100%': { transform: 'translateX(-60%)' }, '50%': { transform: 'translateX(60%)' } },
         'tf-banner-scan':        { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(200%)' } },
+        // ── Death Dodger ────────────────────────────────────────────────────
+        'doom-flicker':       { '0%,100%': { opacity: '0.5', transform: 'scale(0.96)' }, '50%': { opacity: '1', transform: 'scale(1.04)' } },
+        'doom-spin':          { to: { transform: 'rotate(360deg)' } },
+        'doom-banner-pulse':  { '0%,100%': { opacity: '0.55' }, '50%': { opacity: '1' } },
+        'doom-banner-scroll': { from: { backgroundPosition: '0 0' }, to: { backgroundPosition: '0 8px' } },
+        // ── Casual Drinker ───────────────────────────────────────────────────
+        'beer-bubble':        { '0%,100%': { opacity: '0.7', transform: 'translateY(0)' }, '50%': { opacity: '1', transform: 'translateY(-4%)' } },
+        'beer-banner-glow':   { '0%,100%': { opacity: '0.65', transform: 'scale(1)' }, '50%': { opacity: '1', transform: 'scale(1.06)' } },
+        'beer-banner-foam':   { '0%,100%': { transform: 'translateY(0)', opacity: '0.7' }, '50%': { transform: 'translateY(-10%)', opacity: '1' } },
         },
       animation: {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
@@ -88,6 +97,15 @@ export default {
         'potter-banner-orbs':    'potter-banner-orbs 4s ease-in-out infinite',
         'potter-banner-shimmer': 'potter-banner-shimmer 6s ease-in-out infinite',
         'tf-banner-scan':        'tf-banner-scan 3s linear infinite',
+        // ── Death Dodger ────────────────────────────────────────────────────
+        'doom-flicker':       'doom-flicker 1.8s ease-in-out infinite',
+        'doom-spin':          'doom-spin 7s linear infinite',
+        'doom-banner-pulse':  'doom-banner-pulse 2s ease-in-out infinite',
+        'doom-banner-scroll': 'doom-banner-scroll 0.8s linear infinite',
+        // ── Casual Drinker ───────────────────────────────────────────────────
+        'beer-bubble':        'beer-bubble 2.5s ease-in-out infinite',
+        'beer-banner-glow':   'beer-banner-glow 3s ease-in-out infinite',
+        'beer-banner-foam':   'beer-banner-foam 3.5s ease-in-out infinite',
       },
     },
   },

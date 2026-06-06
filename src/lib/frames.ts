@@ -48,6 +48,20 @@ export const frames = {
     requiredTag: 'cybertron-sentinel',
     className: 'relative ring-4 ring-gray-800 dark:ring-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3),inset_0_0_25px_rgba(59,130,246,0.15)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4),inset_0_0_30px_rgba(59,130,246,0.2)] animate-tf-mechanical before:absolute before:inset-0 before:rounded-full before:bg-[conic-gradient(from_0deg,rgba(23,23,23,0.8),rgba(59,130,246,0.3),rgba(23,23,23,0.8))] before:animate-tf-gears after:absolute after:inset-0 after:rounded-full after:bg-[linear-gradient(45deg,transparent_30%,rgba(59,130,246,0.2)_50%,transparent_70%)] after:bg-[length:40px_40px] after:animate-tf-grid after:pointer-events-none'
   },
+  'death-dodger': {
+    id: 'death-dodger',
+    name: 'Death Dodger Frame',
+    isPremium: true,
+    requiredTag: 'death-dodger',
+    className: 'relative ring-4 ring-[#39ff14] shadow-[0_0_18px_rgba(57,255,20,0.75),0_0_40px_rgba(57,255,20,0.35),inset_0_0_15px_rgba(57,255,20,0.15)] before:absolute before:inset-0 before:rounded-full before:bg-[radial-gradient(circle_at_50%_50%,rgba(57,255,20,0.22),transparent_60%)] before:animate-doom-flicker before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-[conic-gradient(from_0deg,rgba(57,255,20,0.28),transparent_40%,rgba(57,255,20,0.12),transparent_70%)] after:animate-doom-spin after:pointer-events-none'
+  },
+  'casual-drinker': {
+    id: 'casual-drinker',
+    name: 'Casual Drinker Frame',
+    isPremium: true,
+    requiredTag: 'casual-drinker',
+    className: 'relative ring-4 ring-amber-400 dark:ring-amber-300 shadow-[0_0_22px_rgba(251,191,36,0.75),0_0_45px_rgba(245,158,11,0.35),inset_0_0_18px_rgba(251,191,36,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-b before:from-amber-200/35 before:via-yellow-400/20 before:to-amber-500/35 before:animate-beer-bubble before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.45)_0%,transparent_35%),radial-gradient(circle_at_65%_70%,rgba(251,191,36,0.3)_0%,transparent_35%)] after:pointer-events-none'
+  },
   default: {
     id: 'default',
     name: 'Default',

@@ -158,6 +158,50 @@ export const banners = {
       'after:pointer-events-none',
     ].join(' '),
   },
+  'death-dodger': {
+    id: 'death-dodger',
+    name: 'Death Dodger Banner',
+    isPremium: true,
+    requiredTag: 'death-dodger',
+    className: [
+      'relative overflow-hidden',
+      'bg-[radial-gradient(ellipse_at_50%_30%,#001800,#000c00_55%,#000400_100%)]',
+      'border-[3px] border-[#39ff14]',
+      'shadow-[0_0_35px_rgba(57,255,20,0.4)_inset,0_0_20px_rgba(57,255,20,0.5)]',
+      // eerie radial glow breathing
+      'before:absolute before:inset-0',
+      'before:bg-[radial-gradient(ellipse_at_50%_50%,rgba(57,255,20,0.13),transparent_65%)]',
+      'before:animate-doom-banner-pulse',
+      'before:pointer-events-none',
+      // scan line overlay scrolling upward
+      'after:absolute after:inset-0',
+      'after:bg-[repeating-linear-gradient(0deg,transparent,transparent_7px,rgba(57,255,20,0.05)_7px,rgba(57,255,20,0.05)_8px)]',
+      'after:animate-doom-banner-scroll',
+      'after:pointer-events-none',
+    ].join(' '),
+  },
+  'casual-drinker': {
+    id: 'casual-drinker',
+    name: 'Casual Drinker Banner',
+    isPremium: true,
+    requiredTag: 'casual-drinker',
+    className: [
+      'relative overflow-hidden',
+      'bg-[radial-gradient(ellipse_at_45%_55%,#1a0d00,#0d0600_55%,#050300_100%)]',
+      'border-[3px] border-amber-500',
+      'shadow-[0_0_40px_rgba(245,158,11,0.45)_inset,0_0_25px_rgba(251,191,36,0.5)]',
+      // warm dual-orb glow pulsing
+      'before:absolute before:inset-0',
+      'before:bg-[radial-gradient(circle_at_25%_50%,rgba(251,191,36,0.18),transparent_45%),radial-gradient(circle_at_75%_50%,rgba(252,211,77,0.13),transparent_45%)]',
+      'before:animate-beer-banner-glow',
+      'before:pointer-events-none',
+      // rising foam effect from bottom
+      'after:absolute after:inset-0',
+      'after:bg-[linear-gradient(180deg,transparent_50%,rgba(251,191,36,0.18)_75%,rgba(255,255,255,0.12)_100%)]',
+      'after:animate-beer-banner-foam',
+      'after:pointer-events-none',
+    ].join(' '),
+  },
 } as const;
 
 export type BannerId = keyof typeof banners;

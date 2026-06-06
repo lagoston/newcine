@@ -545,20 +545,13 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
       const { data: userMovies, error: userMoviesError } = await supabase
         .from('user_movies')
-        .select(`
-          movie_id,
-          rating,
-          movies:movie_id (
-            genres,
-            director
-          )
-        `)
+        .select('movie_id, rating')
         .eq('user_id', session.user.id)
         .not('rating', 'is', null);
 
       if (userMoviesError) throw userMoviesError;
 
-      if (userMovies) {
+      if (userMovies && userMovies.length > 0) {
         const ratingCounts = {
           lowRatings: userMovies.filter(m => m.rating <= 2).length,
           perfectRatings: userMovies.filter(m => m.rating === 10).length
@@ -567,17 +560,30 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         progress['CineHater'] = ratingCounts.lowRatings;
         progress['Golden Reel'] = ratingCounts.perfectRatings;
 
+        const movieIds = [...new Set(userMovies.map(m => m.movie_id))];
+        const { data: cacheData } = await supabase
+          .from('movie_cache')
+          .select('tmdb_id, genres_en, director')
+          .in('tmdb_id', movieIds);
+
+        type CacheGenre = { id: number; name: string };
+        type CacheEntry = { tmdb_id: number; genres_en: CacheGenre[] | null; director: string | null };
+        const cacheMap = new Map<number, CacheEntry>(
+          ((cacheData as CacheEntry[]) || []).map(m => [m.tmdb_id, m])
+        );
+
         const genreCounts: Record<string, number> = {};
         const directorCounts: Record<string, number> = {};
 
-        userMovies.forEach(({ movies }) => {
-          if (movies?.genres) {
-            movies.genres.forEach(genre => {
-              genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+        userMovies.forEach(({ movie_id }) => {
+          const cached = cacheMap.get(movie_id);
+          if (cached?.genres_en) {
+            cached.genres_en.forEach(genre => {
+              genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1;
             });
           }
-          if (movies?.director) {
-            directorCounts[movies.director] = (directorCounts[movies.director] || 0) + 1;
+          if (cached?.director) {
+            directorCounts[cached.director] = (directorCounts[cached.director] || 0) + 1;
           }
         });
 
