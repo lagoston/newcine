@@ -32,7 +32,7 @@ export const banners = {
     id: 'matrix',
     name: 'Matrix Banner',
     isPremium: true,
-    requiredTag: 'red-pill-adept',
+    requiredTag: null,
     className: [
       'relative overflow-hidden',
       'bg-[#000e00]',
