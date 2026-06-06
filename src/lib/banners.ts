@@ -158,8 +158,8 @@ export const banners = {
       'after:pointer-events-none',
     ].join(' '),
   },
-  death-dodger/: {
-    id: 'death-dodger',
+  deathdodger: {
+    id: 'deathdodger',
     name: 'Final Destination Banner',
     isPremium: true,
     requiredTag: 'death-dodger',
