@@ -158,28 +158,6 @@ export const banners = {
       'after:pointer-events-none',
     ].join(' '),
   },
- fd: {
-  id: 'fd',
-  name: 'Final Destination Banner',
-  isPremium: true,
-  requiredTag: null,
-  className: [
-    'relative overflow-hidden',
-    'bg-[#060606]',
-    'border-[2px] border-[#1f1f1f]',
-    'shadow-[0_0_0_1px_#2a2a2a_inset,0_0_40px_rgba(0,0,0,0.9)]',
-    // grade cirúrgica cinza
-    'before:absolute before:inset-0',
-    'before:bg-[repeating-linear-gradient(0deg,transparent,transparent_17px,rgba(180,180,180,0.06)_17px,rgba(180,180,180,0.06)_18px),repeating-linear-gradient(90deg,transparent,transparent_17px,rgba(180,180,180,0.06)_17px,rgba(180,180,180,0.06)_18px)]',
-    'before:animate-[fd-banner-grid_4s_ease-in-out_infinite]',
-    'before:pointer-events-none',
-    // laser vermelho varrendo
-    'after:absolute after:left-0 after:right-0 after:h-[1px]',
-    'after:bg-[linear-gradient(90deg,transparent_0%,rgba(239,68,68,0.15)_5%,rgba(239,68,68,0.9)_20%,rgba(255,80,80,1)_50%,rgba(239,68,68,0.9)_80%,rgba(239,68,68,0.15)_95%,transparent_100%)]',
-    'after:shadow-[0_0_3px_#ef4444,0_0_8px_rgba(239,68,68,0.6)]',
-    'after:animate-[fd-banner-laser_8s_linear_infinite]',
-  ].join(' '),
-},
 } as const;
 
 export type BannerId = keyof typeof banners;
