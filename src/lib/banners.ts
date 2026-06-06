@@ -119,7 +119,7 @@ export const banners = {
     id: 'potter',
     name: 'Harry Potter Banner',
     isPremium: true,
-    requiredTag: 'hogwarts-graduate',
+    requiredTag: null,
     className: [
       'relative overflow-hidden',
       'bg-[radial-gradient(ellipse_at_30%_50%,#1a0030,#0d0014_55%,#060008_100%)]',
@@ -141,7 +141,7 @@ export const banners = {
     id: 'transformers',
     name: 'Transformers Banner',
     isPremium: true,
-    requiredTag: null,
+    requiredTag: 'cybertron-sentinel',
     className: [
       'relative overflow-hidden',
       'bg-[#020202]',
