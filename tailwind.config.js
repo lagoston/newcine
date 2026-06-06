@@ -62,8 +62,8 @@ export default {
         'potter-banner-shimmer': { '0%,100%': { transform: 'translateX(-60%)' }, '50%': { transform: 'translateX(60%)' } },
         'tf-banner-scan':        { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(200%)' } },
         // ── Death Dodger ────────────────────────────────────────────────────
-'death-dodger-banner-grid':  { '0%,100%': { opacity: '0.04' }, '50%': { opacity: '0.09' } },
-'death-dodger-banner-laser': {
+'fd-banner-grid':  { '0%,100%': { opacity: '0.04' }, '50%': { opacity: '0.09' } },
+'fd-banner-laser': {
   '0%':   { transform: 'translateY(0%)',    opacity: '0' },
   '3%':   { opacity: '1' },
   '48%':  { opacity: '1' },
@@ -104,8 +104,8 @@ export default {
         'potter-banner-shimmer': 'potter-banner-shimmer 6s ease-in-out infinite',
         'tf-banner-scan':        'tf-banner-scan 3s linear infinite',
         // ── Death Dodger ────────────────────────────────────────────────────
-        'death-dodger-banner-grid':  'fd-banner-grid 4s ease-in-out infinite',
-        'death-dodger-banner-laser': 'fd-banner-laser 8s linear infinite',
+        'fd-banner-grid':  'fd-banner-grid 4s ease-in-out infinite',
+        'fd-banner-laser': 'fd-banner-laser 8s linear infinite',
         // ── Casual Drinker ───────────────────────────────────────────────────
         'beer-bubble':        'beer-bubble 2.5s ease-in-out infinite',
         'beer-banner-glow':   'beer-banner-glow 3s ease-in-out infinite',
