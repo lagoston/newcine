@@ -97,7 +97,7 @@ export const banners = {
     id: 'bttf',
     name: 'Back to the Future Banner',
     isPremium: true,
-    requiredTag: 'flux-capacitor-fan',
+    requiredTag: null,
     className: [
       'relative overflow-hidden',
       'bg-[radial-gradient(ellipse_at_50%_50%,#150d00,#0a0500_60%,#030200_100%)]',
@@ -119,7 +119,7 @@ export const banners = {
     id: 'potter',
     name: 'Harry Potter Banner',
     isPremium: true,
-    requiredTag: null,
+    requiredTag: 'hogwarts-graduate',
     className: [
       'relative overflow-hidden',
       'bg-[radial-gradient(ellipse_at_30%_50%,#1a0030,#0d0014_55%,#060008_100%)]',
