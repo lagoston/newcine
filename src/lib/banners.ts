@@ -175,7 +175,7 @@ export const banners = {
       'after:absolute after:left-0 after:right-0 after:h-[1px] after:z-[999]',
       'after:bg-[linear-gradient(90deg,transparent_0%,rgba(239,68,68,0.3)_5%,rgba(239,68,68,1)_20%,rgba(255,80,80,1)_50%,rgba(239,68,68,1)_80%,rgba(239,68,68,0.3)_95%,transparent_100%)]',
       'after:shadow-[0_0_4px_#ef4444,0_0_12px_rgba(239,68,68,0.8)]',
-      'after:animate-[death-dodger-banner-laser_8s_linear_infinite]',
+      'after:animate-[deathdodger-banner-laser_8s_linear_infinite]',
     ].join(' '),
   },
   'casual-drinker': {
