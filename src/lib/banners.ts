@@ -76,7 +76,7 @@ export const banners = {
     id: 'ice',
     name: 'Ice Age Banner',
     isPremium: true,
-    requiredTag: null,
+    requiredTag: 'nuts',
     className: [
       'relative overflow-hidden',
       'bg-[radial-gradient(ellipse_at_40%_60%,#00243f,#001a2e_55%,#000c18_100%)]',
