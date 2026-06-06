@@ -162,7 +162,7 @@ deathdodger: {
   id: 'deathdodger',
   name: 'Final Destination Banner',
   isPremium: true,
-  requiredTag: null,
+  requiredTag: 'death-dodger',
   className: [
     'relative overflow-hidden',
     // fundo forçado via shadow inset cobrindo tudo
