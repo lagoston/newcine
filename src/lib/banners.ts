@@ -162,7 +162,7 @@ export const banners = {
     id: 'deathdodger',
     name: 'Final Destination Banner',
     isPremium: true,
-    requiredTag: 'death-dodger',
+    requiredTag: null,
     className: [
       'relative overflow-hidden',
       'bg-[#111111]',
