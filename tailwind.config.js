@@ -104,8 +104,8 @@ export default {
         'potter-banner-shimmer': 'potter-banner-shimmer 6s ease-in-out infinite',
         'tf-banner-scan':        'tf-banner-scan 3s linear infinite',
         // ── Death Dodger ────────────────────────────────────────────────────
-        'fd-banner-grid':  'fd-banner-grid 4s ease-in-out infinite',
-        'fd-banner-laser': 'fd-banner-laser 8s linear infinite',
+        'death-dodger-banner-grid':  'fd-banner-grid 4s ease-in-out infinite',
+        'death-dodger-banner-laser': 'fd-banner-laser 8s linear infinite',
         // ── Casual Drinker ───────────────────────────────────────────────────
         'beer-bubble':        'beer-bubble 2.5s ease-in-out infinite',
         'beer-banner-glow':   'beer-banner-glow 3s ease-in-out infinite',
