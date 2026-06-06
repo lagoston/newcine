@@ -76,7 +76,7 @@ export const banners = {
     id: 'ice',
     name: 'Ice Age Banner',
     isPremium: true,
-    requiredTag: 'nuts',
+    requiredTag: null,
     className: [
       'relative overflow-hidden',
       'bg-[radial-gradient(ellipse_at_40%_60%,#00243f,#001a2e_55%,#000c18_100%)]',
@@ -97,7 +97,7 @@ export const banners = {
     id: 'bttf',
     name: 'Back to the Future Banner',
     isPremium: true,
-    requiredTag: null,
+    requiredTag: 'flux-capacitor-fan',
     className: [
       'relative overflow-hidden',
       'bg-[radial-gradient(ellipse_at_50%_50%,#150d00,#0a0500_60%,#030200_100%)]',
