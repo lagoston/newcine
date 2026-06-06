@@ -161,25 +161,25 @@ export const banners = {
   'death-dodger': {
     id: 'death-dodger',
     name: 'Death Dodger Banner',
-    isPremium: true,
-    requiredTag: 'death-dodger',
-    className: [
-      'relative overflow-hidden',
-      'bg-[radial-gradient(ellipse_at_50%_30%,#001800,#000c00_55%,#000400_100%)]',
-      'border-[3px] border-[#39ff14]',
-      'shadow-[0_0_35px_rgba(57,255,20,0.4)_inset,0_0_20px_rgba(57,255,20,0.5)]',
-      // eerie radial glow breathing
-      'before:absolute before:inset-0',
-      'before:bg-[radial-gradient(ellipse_at_50%_50%,rgba(57,255,20,0.13),transparent_65%)]',
-      'before:animate-doom-banner-pulse',
-      'before:pointer-events-none',
-      // scan line overlay scrolling upward
-      'after:absolute after:inset-0',
-      'after:bg-[repeating-linear-gradient(0deg,transparent,transparent_7px,rgba(57,255,20,0.05)_7px,rgba(57,255,20,0.05)_8px)]',
-      'after:animate-doom-banner-scroll',
-      'after:pointer-events-none',
-    ].join(' '),
-  },
+  isPremium: true,
+  requiredTag: 'death-dodger',
+  className: [
+    'relative overflow-hidden',
+    'bg-[#060606]',
+    'border-[2px] border-[#1f1f1f]',
+    'shadow-[0_0_0_1px_#2a2a2a_inset,0_0_40px_rgba(0,0,0,0.9)]',
+    // grade cirúrgica cinza
+    'before:absolute before:inset-0',
+    'before:bg-[repeating-linear-gradient(0deg,transparent,transparent_17px,rgba(180,180,180,0.06)_17px,rgba(180,180,180,0.06)_18px),repeating-linear-gradient(90deg,transparent,transparent_17px,rgba(180,180,180,0.06)_17px,rgba(180,180,180,0.06)_18px)]',
+    'before:animate-[fd-banner-grid_4s_ease-in-out_infinite]',
+    'before:pointer-events-none',
+    // laser vermelho varrendo
+    'after:absolute after:left-0 after:right-0 after:h-[1px]',
+    'after:bg-[linear-gradient(90deg,transparent_0%,rgba(239,68,68,0.15)_5%,rgba(239,68,68,0.9)_20%,rgba(255,80,80,1)_50%,rgba(239,68,68,0.9)_80%,rgba(239,68,68,0.15)_95%,transparent_100%)]',
+    'after:shadow-[0_0_3px_#ef4444,0_0_8px_rgba(239,68,68,0.6)]',
+    'after:animate-[fd-banner-laser_8s_linear_infinite]',
+  ].join(' '),
+},
   'casual-drinker': {
     id: 'casual-drinker',
     name: 'Casual Drinker Banner',
