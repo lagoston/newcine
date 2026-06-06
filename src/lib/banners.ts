@@ -32,7 +32,7 @@ export const banners = {
     id: 'matrix',
     name: 'Matrix Banner',
     isPremium: true,
-    requiredTag: null,
+    requiredTag: 'red-pill-adept',
     className: [
       'relative overflow-hidden',
       'bg-[#000e00]',
@@ -54,7 +54,7 @@ export const banners = {
     id: 'saw',
     name: 'Saw Banner',
     isPremium: true,
-    requiredTag: 'visceral-gamer',
+    requiredTag: null,
     className: [
       'relative overflow-hidden',
       'bg-[radial-gradient(ellipse_at_50%_0%,#3b0000_0%,#1c0000_50%,#0d0000_100%)]',
