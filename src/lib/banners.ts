@@ -165,19 +165,18 @@ export const banners = {
   requiredTag: 'death-dodger',
   className: [
     'relative overflow-hidden',
-    // fundo cinza escuro distinto do preto do site
     'bg-[#111111]',
-    // borda vermelha visível
-    'border-[2px] border-red-900',
-    // glow vermelho para marcar presença
-    'shadow-[0_0_0_1px_#3f0000_inset,0_0_30px_rgba(185,28,28,0.35)]',
-    // grade cinza — opacidade aumentada para ser visível
-    'before:absolute before:inset-0',
-    'before:bg-[repeating-linear-gradient(0deg,transparent,transparent_17px,rgba(200,200,200,0.12)_17px,rgba(200,200,200,0.12)_18px),repeating-linear-gradient(90deg,transparent,transparent_17px,rgba(200,200,200,0.12)_17px,rgba(200,200,200,0.12)_18px)]',
-    'before:animate-[death-dodger-banner-grid_4s_ease-in-out_infinite]',
+    // borda vermelha visível como o Saw
+    'border-[3px] border-red-900',
+    // box-shadow externo (nunca coberto por filhos)
+    'shadow-[0_0_0_1px_#3f0000_inset,0_0_35px_rgba(185,28,28,0.5),0_0_60px_rgba(100,0,0,0.3)]',
+    // grade cinza via outline trick no before — mas com z-index explícito
+    'before:absolute before:inset-0 before:z-[999]',
+    'before:bg-[repeating-linear-gradient(0deg,transparent,transparent_17px,rgba(200,200,200,0.07)_17px,rgba(200,200,200,0.07)_18px),repeating-linear-gradient(90deg,transparent,transparent_17px,rgba(200,200,200,0.07)_17px,rgba(200,200,200,0.07)_18px)]',
     'before:pointer-events-none',
-    // laser vermelho varrendo
-    'after:absolute after:left-0 after:right-0 after:h-[1px]',
+    'before:animate-[death-dodger-banner-grid_4s_ease-in-out_infinite]',
+    // laser via after com z-index explícito alto
+    'after:absolute after:left-0 after:right-0 after:h-[1px] after:z-[999]',
     'after:bg-[linear-gradient(90deg,transparent_0%,rgba(239,68,68,0.3)_5%,rgba(239,68,68,1)_20%,rgba(255,80,80,1)_50%,rgba(239,68,68,1)_80%,rgba(239,68,68,0.3)_95%,transparent_100%)]',
     'after:shadow-[0_0_4px_#ef4444,0_0_12px_rgba(239,68,68,0.8)]',
     'after:animate-[death-dodger-banner-laser_8s_linear_infinite]',
