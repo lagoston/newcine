@@ -165,7 +165,7 @@ deathdodger: {
   requiredTag: null,
   className: [
     'relative overflow-hidden',
-    'bg-black',
+    'bg-[#1a1a1a]',
     'border-[3px] border-red-900',
     'shadow-[0_0_0_1px_#3f0000_inset,0_0_35px_rgba(185,28,28,0.6),0_0_60px_rgba(100,0,0,0.4)]',
     'before:absolute before:inset-0',
