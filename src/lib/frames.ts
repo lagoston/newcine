@@ -52,7 +52,7 @@ export const frames = {
   id: 'death-dodger',
   name: 'Death Dodger Frame',
   isPremium: true,
-  requiredTag: 'death-dodger',
+  requiredTag: null,
   className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(185,28,28,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-[radial-gradient(circle_at_50%_50%,rgba(185,28,28,0.2),transparent_60%)] before:animate-doom-flicker before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-[conic-gradient(from_0deg,rgba(185,28,28,0.3),transparent_40%,rgba(100,0,0,0.15),transparent_70%)] after:animate-doom-spin after:pointer-events-none'
 },
   'casual-drinker': {
