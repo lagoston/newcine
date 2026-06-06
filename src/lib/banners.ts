@@ -165,9 +165,9 @@ deathdodger: {
   requiredTag: null,
   className: [
     'relative overflow-hidden',
-    'bg-[#1a1a1a]',
+    // fundo forçado via shadow inset cobrindo tudo
+    'shadow-[inset_0_0_0_9999px_#0a0a0a,0_0_0_1px_#3f0000,0_0_35px_rgba(185,28,28,0.6),0_0_60px_rgba(100,0,0,0.4)]',
     'border-[3px] border-red-900',
-    'shadow-[0_0_0_1px_#3f0000_inset,0_0_35px_rgba(185,28,28,0.6),0_0_60px_rgba(100,0,0,0.4)]',
     'before:absolute before:inset-0',
     'before:bg-[repeating-linear-gradient(0deg,transparent,transparent_17px,rgba(180,180,180,0.08)_17px,rgba(180,180,180,0.08)_18px),repeating-linear-gradient(90deg,transparent,transparent_17px,rgba(180,180,180,0.08)_17px,rgba(180,180,180,0.08)_18px)]',
     'before:pointer-events-none',
