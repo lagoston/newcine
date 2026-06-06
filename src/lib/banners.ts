@@ -171,7 +171,7 @@ export const banners = {
       'before:absolute before:inset-0 before:z-[999]',
       'before:bg-[repeating-linear-gradient(0deg,transparent,transparent_17px,rgba(200,200,200,0.07)_17px,rgba(200,200,200,0.07)_18px),repeating-linear-gradient(90deg,transparent,transparent_17px,rgba(200,200,200,0.07)_17px,rgba(200,200,200,0.07)_18px)]',
       'before:pointer-events-none',
-      'before:animate-[death-dodger-banner-grid_4s_ease-in-out_infinite]',
+      'before:animate-[deathdodger-banner-grid_4s_ease-in-out_infinite]',
       'after:absolute after:left-0 after:right-0 after:h-[1px] after:z-[999]',
       'after:bg-[linear-gradient(90deg,transparent_0%,rgba(239,68,68,0.3)_5%,rgba(239,68,68,1)_20%,rgba(255,80,80,1)_50%,rgba(239,68,68,1)_80%,rgba(239,68,68,0.3)_95%,transparent_100%)]',
       'after:shadow-[0_0_4px_#ef4444,0_0_12px_rgba(239,68,68,0.8)]',
