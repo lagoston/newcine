@@ -61,16 +61,6 @@ export default {
         'potter-banner-orbs':    { '0%,100%': { transform: 'scale(1) rotate(-3deg)', opacity: '0.7' }, '50%': { transform: 'scale(1.05) rotate(3deg)', opacity: '1' } },
         'potter-banner-shimmer': { '0%,100%': { transform: 'translateX(-60%)' }, '50%': { transform: 'translateX(60%)' } },
         'tf-banner-scan':        { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(200%)' } },
- 'fd-banner-grid':  { '0%,100%': { opacity: '0.04' }, '50%': { opacity: '0.09' } },
-'fd-banner-laser': {
-  '0%':   { transform: 'translateY(0%)',    opacity: '0' },
-  '3%':   { opacity: '1' },
-  '48%':  { opacity: '1' },
-  '50%':  { opacity: '0.05' },
-  '52%':  { opacity: '1' },
-  '97%':  { opacity: '1' },
-  '100%': { transform: 'translateY(5000%)', opacity: '0' },
-        },
         },
       animation: {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
@@ -98,8 +88,6 @@ export default {
         'potter-banner-orbs':    'potter-banner-orbs 4s ease-in-out infinite',
         'potter-banner-shimmer': 'potter-banner-shimmer 6s ease-in-out infinite',
         'tf-banner-scan':        'tf-banner-scan 3s linear infinite',
-        'fd-banner-grid':  'fd-banner-grid 4s ease-in-out infinite',
-        'fd-banner-laser': 'fd-banner-laser 8s linear infinite',
       },
     },
   },
