@@ -62,7 +62,10 @@ export default {
         'potter-banner-shimmer': { '0%,100%': { transform: 'translateX(-60%)' }, '50%': { transform: 'translateX(60%)' } },
         'tf-banner-scan':        { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(200%)' } },
         // ── Death Dodger ────────────────────────────────────────────────────
-'fd-banner-grid':  { '0%,100%': { opacity: '0.04' }, '50%': { opacity: '0.09' } },
+'fd-banner-grid': {
+  '0%,100%': { opacity: '0.04' },
+  '50%':     { opacity: '0.09' },
+},
 'fd-banner-laser': {
   '0%':   { transform: 'translateY(0%)',    opacity: '0' },
   '3%':   { opacity: '1' },
