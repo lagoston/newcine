@@ -141,7 +141,7 @@ export const banners = {
     id: 'transformers',
     name: 'Transformers Banner',
     isPremium: true,
-    requiredTag: 'cybertron-sentinel',
+    requiredTag: null,
     className: [
       'relative overflow-hidden',
       'bg-[#020202]',
@@ -162,7 +162,7 @@ export const banners = {
   id: 'death-dodger',
   name: 'Final Destination Banner',
   isPremium: true,
-  requiredTag: null,
+  requiredTag: 'death-dodger',
   className: [
     'relative overflow-hidden',
     'bg-[#060606]',
