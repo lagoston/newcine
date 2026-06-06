@@ -162,22 +162,20 @@ export const banners = {
   id: 'death-dodger',
   name: 'Final Destination Banner',
   isPremium: true,
-  requiredTag: null,
+  requiredTag: 'death-dodger',
   className: [
     'relative overflow-hidden',
     'bg-[#060606]',
     'border-[2px] border-[#1f1f1f]',
     'shadow-[0_0_0_1px_#2a2a2a_inset,0_0_40px_rgba(0,0,0,0.9)]',
-    // grade cirúrgica cinza pulsando
     'before:absolute before:inset-0',
     'before:bg-[repeating-linear-gradient(0deg,transparent,transparent_17px,rgba(180,180,180,0.06)_17px,rgba(180,180,180,0.06)_18px),repeating-linear-gradient(90deg,transparent,transparent_17px,rgba(180,180,180,0.06)_17px,rgba(180,180,180,0.06)_18px)]',
-    'before:animate-fd-banner-grid',
+    'before:animate-death-dodger-banner-grid',
     'before:pointer-events-none',
-    // laser vermelho varrendo de cima para baixo
     'after:absolute after:left-0 after:right-0 after:h-[1px]',
     'after:bg-[linear-gradient(90deg,transparent_0%,rgba(239,68,68,0.15)_5%,rgba(239,68,68,0.9)_20%,rgba(255,80,80,1)_50%,rgba(239,68,68,0.9)_80%,rgba(239,68,68,0.15)_95%,transparent_100%)]',
     'after:shadow-[0_0_3px_#ef4444,0_0_8px_rgba(239,68,68,0.6)]',
-    'after:animate-fd-banner-laser',
+    'after:animate-death-dodger-banner-laser',
   ].join(' '),
 },
   'casual-drinker': {
