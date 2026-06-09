@@ -114,9 +114,9 @@ export default {
         // ── Death Dodger ────────────────────────────────────────────────────
         'deathdodger-banner-laser': 'deathdodger-banner-laser 6s linear infinite',
         // ── Casual Drinker ───────────────────────────────────────────────────
-        'beer-bubble':        'beer-bubble 2.5s ease-in-out infinite',
-        'beer-banner-glow':   'beer-banner-glow 3s ease-in-out infinite',
-        'beer-banner-foam':   'beer-banner-foam 3.5s ease-in-out infinite',
+        'casual-drinker-fill':  'casual-drinker-fill 2.5s ease-out forwards',
+        'casual-drinker-slosh': 'casual-drinker-slosh 3s ease-in-out infinite',
+        'casual-drinker-foam':  'casual-drinker-foam 2s ease-in-out infinite',
       },
     },
   },
