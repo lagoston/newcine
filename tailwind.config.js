@@ -113,10 +113,6 @@ export default {
         'tf-banner-scan':        'tf-banner-scan 3s linear infinite',
         // ── Death Dodger ────────────────────────────────────────────────────
         'deathdodger-banner-laser': 'deathdodger-banner-laser 6s linear infinite',
-        // ── Casual Drinker ───────────────────────────────────────────────────
-        'casual-drinker-fill':  'casual-drinker-fill 2.5s ease-out forwards',
-        'casual-drinker-slosh': 'casual-drinker-slosh 3s ease-in-out infinite',
-        'casual-drinker-foam':  'casual-drinker-foam 2s ease-in-out infinite',
       },
     },
   },
