@@ -71,21 +71,11 @@ export default {
   '95%':  { opacity: '1' },
   '100%': { top: '100%',  opacity: '0' },
 },
-// ── Casual Drinker ───────────────────────────────────────────────────
-'casual-drinker-fill':  {
-  '0%':   { height: '0%', opacity: '1' },
-  '100%': { height: '70%', opacity: '1' },
-},
-'casual-drinker-slosh': {
-  '0%,100%': { transform: 'translateX(0) skewX(0deg)' },
-  '25%':     { transform: 'translateX(-3%) skewX(-1.5deg)' },
-  '75%':     { transform: 'translateX(3%) skewX(1.5deg)' },
-},
-'casual-drinker-foam':  {
-  '0%,100%': { transform: 'scaleY(1) translateY(0)' },
-  '50%':     { transform: 'scaleY(1.15) translateY(-2px)' },
-},
-        
+        // ── Casual Drinker ───────────────────────────────────────────────────
+        'beer-bubble':        { '0%,100%': { opacity: '0.7', transform: 'translateY(0)' }, '50%': { opacity: '1', transform: 'translateY(-4%)' } },
+        'beer-banner-glow':   { '0%,100%': { opacity: '0.65', transform: 'scale(1)' }, '50%': { opacity: '1', transform: 'scale(1.06)' } },
+        'beer-banner-foam':   { '0%,100%': { transform: 'translateY(0)', opacity: '0.7' }, '50%': { transform: 'translateY(-10%)', opacity: '1' } },
+        },
       animation: {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
         'gold-ring-spin':   'gold-ring-spin 3s linear infinite',
@@ -115,9 +105,9 @@ export default {
         // ── Death Dodger ────────────────────────────────────────────────────
         'deathdodger-banner-laser': 'deathdodger-banner-laser 6s linear infinite',
         // ── Casual Drinker ───────────────────────────────────────────────────
-        'casual-drinker-fill':  'casual-drinker-fill 2.5s ease-out forwards',
-        'casual-drinker-slosh': 'casual-drinker-slosh 3s ease-in-out infinite',
-        'casual-drinker-foam':  'casual-drinker-foam 2s ease-in-out infinite',
+        'beer-bubble':        'beer-bubble 2.5s ease-in-out infinite',
+        'beer-banner-glow':   'beer-banner-glow 3s ease-in-out infinite',
+        'beer-banner-foam':   'beer-banner-foam 3.5s ease-in-out infinite',
       },
     },
   },
