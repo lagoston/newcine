@@ -177,28 +177,7 @@ deathdodger: {
     'after:animate-[deathdodger-banner-laser_6s_linear_infinite]',
   ].join(' '),
 },
-'casual-drinker': {
-  id: 'casual-drinker',
-  name: 'Casual Drinker Banner',
-  isPremium: true,
-  requiredTag: 'casual-drinker',
-  className: [
-    'relative overflow-hidden',
-    'bg-[linear-gradient(180deg,#0d0600_0%,#1a0d00_100%)]',
-    'border-[3px] border-amber-600',
-    'shadow-[0_0_40px_rgba(245,158,11,0.4)_inset,0_0_20px_rgba(251,191,36,0.4)]',
-    // cerveja enchendo de baixo — ocupa 70% da altura
-    'before:absolute before:bottom-0 before:left-0 before:right-0 before:h-[70%]',
-    'before:bg-[linear-gradient(180deg,rgba(251,191,36,0.95)_0%,rgba(245,158,11,0.98)_30%,rgba(180,100,0,0.95)_70%,rgba(120,60,0,0.9)_100%)]',
-    'before:animate-[casual-drinker-fill_2.5s_ease-out_forwards,casual-drinker-slosh_3s_ease-in-out_2.5s_infinite]',
-    'before:pointer-events-none',
-    // espuma em cima da cerveja
-    'after:absolute after:bottom-[70%] after:left-0 after:right-0 after:h-[22px]',
-    'after:bg-[radial-gradient(ellipse_at_50%_100%,rgba(255,255,255,0.97)_0%,rgba(255,248,220,0.92)_60%,transparent_100%)]',
-    'after:animate-[casual-drinker-foam_2s_ease-in-out_2.5s_infinite]',
-    'after:pointer-events-none',
-  ].join(' '),
-},
+
 } as const;
 
 export type BannerId = keyof typeof banners;
