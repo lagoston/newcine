@@ -177,28 +177,28 @@ deathdodger: {
     'after:animate-[deathdodger-banner-laser_6s_linear_infinite]',
   ].join(' '),
 },
-  'casual-drinker': {
-    id: 'casual-drinker',
-    name: 'Casual Drinker Banner',
-    isPremium: true,
-    requiredTag: 'casual-drinker',
-    className: [
-      'relative overflow-hidden',
-      'bg-[radial-gradient(ellipse_at_45%_55%,#1a0d00,#0d0600_55%,#050300_100%)]',
-      'border-[3px] border-amber-500',
-      'shadow-[0_0_40px_rgba(245,158,11,0.45)_inset,0_0_25px_rgba(251,191,36,0.5)]',
-      // warm dual-orb glow pulsing
-      'before:absolute before:inset-0',
-      'before:bg-[radial-gradient(circle_at_25%_50%,rgba(251,191,36,0.18),transparent_45%),radial-gradient(circle_at_75%_50%,rgba(252,211,77,0.13),transparent_45%)]',
-      'before:animate-beer-banner-glow',
-      'before:pointer-events-none',
-      // rising foam effect from bottom
-      'after:absolute after:inset-0',
-      'after:bg-[linear-gradient(180deg,transparent_50%,rgba(251,191,36,0.18)_75%,rgba(255,255,255,0.12)_100%)]',
-      'after:animate-beer-banner-foam',
-      'after:pointer-events-none',
-    ].join(' '),
-  },
+ 'casual-drinker': {
+   id: 'casual-drinker',
+   name: 'Casual Drinker Banner',
+   isPremium: true,
+   requiredTag: 'casual-drinker',
+   className: [
+     'relative overflow-hidden',
+     'bg-[linear-gradient(180deg,#0d0600_0%,#1a0d00_100%)]',
+     'border-[3px] border-amber-600',
+     'shadow-[0_0_40px_rgba(245,158,11,0.4)_inset,0_0_20px_rgba(251,191,36,0.4)]',
+     // cerveja enchendo de baixo — ocupa 70% da altura
+     'before:absolute before:bottom-0 before:left-0 before:right-0 before:h-[70%]',
+     'before:bg-[linear- gradient(180deg,rgba(251,191,36,0.95)_0%,rgba(245,158,11,0.98)_30%,rgba(180,100,0,0.95)_70%,rgba(120,60,0,0.9)_100%)]',
+     'before:animate-[casual-drinker-fill_2.5s_ease-out_forwards,casual-drinker-slosh_3s_ease-in-out_2.5s_infinite]',
+     'before:pointer-events-none',
+     // espuma em cima da cerveja
+     'after:absolute after:bottom-[70%] after:left-0 after:right-0 after:h-[22px]',
+     'after:bg-[radial-gradient(ellipse_at_50%_100%,rgba(255,255,255,0.97)_0%,rgba(255,248,220,0.92)_60%,transparent_100%)]',
+     'after:animate-[casual-drinker-foam_2s_ease-in-out_2.5s_infinite]',
+     'after:pointer-events-none',
+   ].join(' '),
+ },
 } as const;
 
 export type BannerId = keyof typeof banners;
