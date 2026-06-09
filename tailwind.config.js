@@ -72,10 +72,19 @@ export default {
   '100%': { top: '100%',  opacity: '0' },
 },
         // ── Casual Drinker ───────────────────────────────────────────────────
-        'beer-bubble':        { '0%,100%': { opacity: '0.7', transform: 'translateY(0)' }, '50%': { opacity: '1', transform: 'translateY(-4%)' } },
-        'beer-banner-glow':   { '0%,100%': { opacity: '0.65', transform: 'scale(1)' }, '50%': { opacity: '1', transform: 'scale(1.06)' } },
-        'beer-banner-foam':   { '0%,100%': { transform: 'translateY(0)', opacity: '0.7' }, '50%': { transform: 'translateY(-10%)', opacity: '1' } },
-        },
+'casual-drinker-fill':  {
+  '0%':   { height: '0%', opacity: '1' },
+  '100%': { height: '70%', opacity: '1' },
+},
+'casual-drinker-slosh': {
+  '0%,100%': { transform: 'translateX(0) skewX(0deg)' },
+  '25%':     { transform: 'translateX(-3%) skewX(-1.5deg)' },
+  '75%':     { transform: 'translateX(3%) skewX(1.5deg)' },
+},
+'casual-drinker-foam':  {
+  '0%,100%': { transform: 'scaleY(1) translateY(0)' },
+  '50%':     { transform: 'scaleY(1.15) translateY(-2px)' },
+},
       animation: {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
         'gold-ring-spin':   'gold-ring-spin 3s linear infinite',
