@@ -108,7 +108,7 @@ export default {
         // ── Casual Drinker ───────────────────────────────────────────────────
         'casual-drinker-fill':  'casual-drinker-fill 2.5s ease-out forwards',
         'casual-drinker-slosh': 'casual-drinker-slosh 3s ease-in-out infinite',
-        'casual-drinker-foam':  'casual-drinker-foam 2s ease-in-out infinite',
+        'casual-drinker-foam':  'casual-drinker-foam 5s ease-in-out infinite',
       },
     },
   },
