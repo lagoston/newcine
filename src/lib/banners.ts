@@ -184,19 +184,21 @@ deathdodger: {
     requiredTag: null,
     className: [
       'relative overflow-hidden',
-      'bg-[linear-gradient(180deg,rgba(251,191,36,1)_0%,rgba(245,158,11,1)_25%,rgba(217,119,6,1)_55%,rgba(180,83,9,1)_100%)]',
-      'border-[3px] border-amber-600',
-      'shadow-[0_0_40px_rgba(245,158,11,0.4)_inset,0_0_20px_rgba(251,191,36,0.4)]',
-      // cerveja enchendo de baixo — ocupa 70% da altura
-      'before:absolute before:bottom-0 before:left-0 before:right-0 before:h-[70%]',
-      'before:bg-[linear-      gradient(180deg,rgba(251,191,36,0.95)_0%,rgba(245,158,11,0.98)_30%,rgba(180,100,0,0.95)_70%,rgba(120,60,0,0.9)_100%)]',
-      'before:animate-[casual-drinker-fill_2.5s_ease-out_forwards,casual-drinker-slosh_3s_ease-in-out_2.5s_infinite]',
-      'before:pointer-events-none',
-      // espuma em cima da cerveja
-      'after:absolute after:bottom-[70%] after:left-0 after:right-0 after:h-[22px]',
-      'after:bg-[radial-gradient(ellipse_at_50%_100%,rgba(255,255,255,0.97)_0%,rgba(255,248,220,0.92)_60%,transparent_100%)]',
-      'after:animate-[casual-drinker-foam_2s_ease-in-out_2.5s_infinite]',
-      'after:pointer-events-none',
+    // fundo forçado preto via inset shadow — sobrescreve o backdrop do pai
+    'shadow-[inset_0_0_0_9999px_#060810,0_0_25px_rgba(251,191,36,0.5)]',
+    'border-[3px] border-amber-500',
+    // líquido âmbar opaco ocupando metade inferior
+    'before:absolute before:bottom-0 before:left-0 before:right-0 before:h-[55%]',
+    'before:bg-[linear-gradient(180deg,#fbbf24_0%,#f59e0b_30%,#d97706_65%,#92400e_100%)]',
+    'before:shadow-[0_-6px_24px_rgba(251,191,36,0.9)]',
+    'before:animate-[drinker-slosh_4s_ease-in-out_infinite]',
+    'before:pointer-events-none',
+    // espuma branca
+    'after:absolute after:bottom-[55%] after:left-0 after:right-0 after:h-[20px]',
+    'after:bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(255,255,255,1)_50%,rgba(255,248,200,0.9)_100%)]',
+    'after:shadow-[0_-4px_16px_rgba(255,255,255,0.7)]',
+    'after:animate-[drinker-foam_2.5s_ease-in-out_infinite]',
+    'after:pointer-events-none',
     ].join(' '),
   },
 } as const;
