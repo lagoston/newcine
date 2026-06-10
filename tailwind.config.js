@@ -73,18 +73,9 @@ export default {
 },
         // ── Casual Drinker ───────────────────────────────────────────────────
         'casual-drinker-fill':{ '0%':   { height: '0%', opacity: '1' }, '100%': { height: '70%', opacity: '1' } },
-        'drinker-slosh': {
-  '0%':   { transform: 'translateX(0) skewX(0deg)',    height: '55%' },
-  '20%':  { transform: 'translateX(-6%) skewX(-4deg)', height: '60%' },
-  '50%':  { transform: 'translateX(6%) skewX(4deg)',   height: '50%' },
-  '80%':  { transform: 'translateX(-4%) skewX(-3deg)', height: '58%' },
-  '100%': { transform: 'translateX(0) skewX(0deg)',    height: '55%' } },
-        'drinker-foam': {
-  '0%':   { transform: 'translateX(0) skewX(0deg) scaleY(1)',    bottom: '55%' },
-  '20%':  { transform: 'translateX(-6%) skewX(-4deg) scaleY(1.2)', bottom: '60%' },
-  '50%':  { transform: 'translateX(6%) skewX(4deg) scaleY(0.8)',  bottom: '50%' },
-  '80%':  { transform: 'translateX(-4%) skewX(-3deg) scaleY(1.1)', bottom: '58%' },
-  '100%': { transform: 'translateX(0) skewX(0deg) scaleY(1)',    bottom: '55%' } },
+        'casual-drinker-slosh':   { '0%,100%': { transform: 'translateX(0) skewX(0deg)' }, '25%':     { transform: 'translateX(-3%) skewX(-1.5deg)' }, '75%':     { transform: 'translateX(3%) skewX(1.5deg)' } },
+        'casual-drinker-foam':   { '0%,100%': { transform: 'scaleY(1) translateY(0)' },
+  '50%':     { transform: 'scaleY(1.15) translateY(-2px)' } },
         },
       animation: {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
@@ -116,8 +107,8 @@ export default {
         'deathdodger-banner-laser': 'deathdodger-banner-laser 6s linear infinite',
         // ── Casual Drinker ───────────────────────────────────────────────────
         'casual-drinker-fill':  'casual-drinker-fill 2.5s ease-out forwards',
-        'drinker-slosh': 'drinker-slosh 2s ease-in-out infinite',
-        'drinker-foam':  'drinker-foam 2s ease-in-out infinite',
+        'casual-drinker-slosh': 'casual-drinker-slosh 3s ease-in-out infinite',
+        'casual-drinker-foam':  'casual-drinker-foam 2s ease-in-out infinite',
       },
     },
   },
