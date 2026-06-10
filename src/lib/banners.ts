@@ -184,7 +184,7 @@ deathdodger: {
     requiredTag: null,
     className: [
       'relative overflow-hidden',
-      'bg-[linear-gradient(180deg,#0d0600_0%,#1a0d00_100%)]',
+      'bg-[linear-gradient(180deg,rgba(251,191,36,1)_0%,rgba(245,158,11,1)_25%,rgba(217,119,6,1)_55%,rgba(180,83,9,1)_100%)]',
       'border-[3px] border-amber-600',
       'shadow-[0_0_40px_rgba(245,158,11,0.4)_inset,0_0_20px_rgba(251,191,36,0.4)]',
       // cerveja enchendo de baixo — ocupa 70% da altura
