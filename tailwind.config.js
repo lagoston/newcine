@@ -73,7 +73,7 @@ export default {
 },
         // ── Casual Drinker ───────────────────────────────────────────────────
         'casual-drinker-fill':{ '0%':   { height: '0%', opacity: '1' }, '100%': { height: '70%', opacity: '1' } },
-        'casual-drinker-slosh':   { '0%,100%': { transform: 'translateX(0) skewX(0deg)' }, '25%':     { transform: 'translateX(-3%) skewX(-1.5deg)' }, '75%':     { transform: 'translateX(3%) skewX(1.5deg)' } },
+        'casual-drinker-slosh':   { '0%,100%': { transform: 'translateX(0) skewX(0deg)' }, '40%':     { transform: 'translateX(-3%) skewX(-1.5deg)' }, '75%':     { transform: 'translateX(3%) skewX(1.5deg)' } },
         'casual-drinker-foam':   { '0%,100%': { transform: 'scaleY(1) translateY(0)' },
   '50%':     { transform: 'scaleY(1.15) translateY(-2px)' } },
         },
@@ -108,7 +108,7 @@ export default {
         // ── Casual Drinker ───────────────────────────────────────────────────
         'casual-drinker-fill':  'casual-drinker-fill 2.5s ease-out forwards',
         'casual-drinker-slosh': 'casual-drinker-slosh 3s ease-in-out infinite',
-        'casual-drinker-foam':  'casual-drinker-foam 5s ease-in-out infinite',
+        'casual-drinker-foam':  'casual-drinker-foam 2s ease-in-out infinite',
       },
     },
   },
