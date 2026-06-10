@@ -181,7 +181,7 @@ deathdodger: {
     id: 'casual-drinker',
     name: 'Casual Drinker Banner',
     isPremium: true,
-    requiredTag: 'casual-drinker',
+    requiredTag: null,
     className: [
       'relative overflow-hidden',
       'bg-[linear-gradient(180deg,#0d0600_0%,#1a0d00_100%)]',
