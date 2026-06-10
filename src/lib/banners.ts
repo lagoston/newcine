@@ -181,7 +181,7 @@ deathdodger: {
     id: 'casual-drinker',
     name: 'Casual Drinker Banner',
     isPremium: true,
-    requiredTag: null,
+    requiredTag: 'casual-drinker',
     className: [
       'relative overflow-hidden',
     // fundo forçado preto via inset shadow — sobrescreve o backdrop do pai
