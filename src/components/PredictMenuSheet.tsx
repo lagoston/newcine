@@ -76,8 +76,9 @@ const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, movieId
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData?.session?.user?.id;
+      const accessToken = sessionData?.session?.access_token;
 
-      if (!userId) {
+      if (!userId || !accessToken) {
         setError(isPt ? 'Sessão inválida' : 'Invalid session');
         setLoading(false);
         return;
