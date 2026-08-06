@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { searchMovies } from '../lib/tmdb';
 import { useDebounce } from 'use-debounce';
-import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
+import { supabase, supabaseUrl } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
@@ -158,7 +158,7 @@ export default function OraclePrediction() {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Authorization': `Bearer ${session?.access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ userId: session.user.id, movieName, movieId, language: i18n.language })

@@ -3,7 +3,7 @@ import { Star, Ticket, Timer, X, Instagram, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
+import { supabase, supabaseUrl } from '../lib/supabase';
 
 interface PredictMenuSheetProps {
   movieTitle: string;
@@ -88,7 +88,7 @@ const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, movieId
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Authorization': `Bearer ${sessionData?.session?.access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
