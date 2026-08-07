@@ -84,6 +84,7 @@ export interface ProfileData {
 
   // Social
   followersCount: number;
+  countryCounts: Record<string, number>;
   followingCount: number;
 
   // Essência / personalidade
@@ -176,6 +177,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
   const [topDirectors, setTopDirectors] = useState<DirectorCount[]>([]);
   const [leastKnownGem, setLeastKnownGem] = useState<LeastKnownGem | null>(null);
   const [followersCount, setFollowersCount] = useState(0);
+  const [countryCounts, setCountryCounts] = useState<Record<string, number>>({});
   const [followingCount, setFollowingCount] = useState(0);
 
   const [essencePersonality, setEssencePersonality] = useState<EssencePersonality | null>(null);
@@ -208,6 +210,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
           setTopDirectors(cached.topDirectors);
           setLeastKnownGem(cached.leastKnownGem);
           setFollowersCount(cached.followersCount);
+          setCountryCounts(cached.countryCounts || {});
           setFollowingCount(cached.followingCount);
           setLoading(false);
           return;
@@ -441,7 +444,8 @@ export function useProfileData(userId: string | undefined, language: string): Pr
             topDirectors: Object.values(directorCounts).sort((a, b) => b.count - a.count).slice(0, 3),
             leastKnownGem: gem,
             followersCount: followers,
-            followingCount: following
+            followingCount: following,
+            countryCounts: countryTally
           },
           CACHE_TTL.USER_STATS
         );
@@ -513,6 +517,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
     topDirectors,
     leastKnownGem,
     followersCount,
+    countryCounts,
     followingCount,
     essencePersonality,
     essenceArchetype,
