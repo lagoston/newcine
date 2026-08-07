@@ -149,7 +149,8 @@ async function batchFetchFromCache(
         cast: row.cast_members || [],
         crew: row.director ? [{ id: 0, name: row.director, job: 'Director' }] : []
       },
-      seasons: row.seasons_data
+      seasons: row.seasons_data,
+      origin_country: row.origin_country || []
     } as Movie;
     map.set(`${row.tmdb_id}_${row.media_type}`, movie);
   }
