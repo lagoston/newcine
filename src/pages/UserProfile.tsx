@@ -922,7 +922,7 @@ export default function UserProfile() {
         onClose={() => setShowFollowModal(null)}
         userId={profile.id}
         type={showFollowModal}
-        onFollowChange={fetchProfileAndMovies}
+        onFollowChange={refetchProfileData}
       />
     )}
 
