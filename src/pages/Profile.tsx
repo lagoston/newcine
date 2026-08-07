@@ -19,7 +19,7 @@ import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
+import { cache } from '../lib/cache';
 import { useProfileData } from '../hooks/useProfileData';
 
 interface Profile {
