@@ -408,6 +408,13 @@ export function useProfileData(userId: string | undefined, language: string): Pr
             : null;
         setLeastKnownGem(gem);
 
+        const countryTally: Record<string, number> = {};
+        ratedMovies.forEach((movie: any) => {
+          const code = movie.origin_country?.[0];
+          if (code) countryTally[code] = (countryTally[code] || 0) + 1;
+        });
+        setCountryCounts(countryTally);
+
         setFollowersCount(followers);
         setFollowingCount(following);
 
