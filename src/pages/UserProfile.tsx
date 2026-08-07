@@ -212,7 +212,7 @@ export default function UserProfile() {
 
         if (error) throw error;
         setIsFollowing(false);
-        setFollowersCount(prev => prev - 1);
+        refetchProfileData();
         toast.success(`Unfollowed @${profile.username}`);
       } else {
         const { error } = await supabase
