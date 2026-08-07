@@ -224,7 +224,7 @@ export default function UserProfile() {
 
         if (error) throw error;
         setIsFollowing(true);
-        setFollowersCount(prev => prev + 1);
+        refetchProfileData();
         toast.success(`Following @${profile.username}`);
 
         const { data: canSend } = await supabase
