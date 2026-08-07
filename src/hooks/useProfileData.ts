@@ -121,7 +121,7 @@ async function batchFetchFromCache(
   const { data, error } = await supabase
     .from('movie_cache')
     .select(
-      'tmdb_id, media_type, title_en, title_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, genres_en, genres_pt, director, cast_members, seasons_data'
+      'tmdb_id, media_type, title_en, title_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, genres_en, genres_pt, director, cast_members, seasons_data, origin_country'
     )
     .in('tmdb_id', ids);
 
