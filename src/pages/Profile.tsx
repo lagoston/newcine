@@ -11,6 +11,7 @@ import { getMovieDetailsFromDB } from '../lib/tmdb';
 import FollowersModal from '../components/FollowersModal';
 import WhispersModal from '../components/WhispersModal';
 import CustomizeModal from '../components/CustomizeModal';
+import WorldMapCard from '../components/WorldMapCard';
 import SettingsModal from '../components/SettingsModal';
 import PersonasModal from '../components/PersonasModal';
 import PersonaShareModal from '../components/PersonaShareModal';
