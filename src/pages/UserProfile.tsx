@@ -18,6 +18,7 @@ import UserReviewsModal from '../components/UserReviewsModal';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useProfileData } from '../hooks/useProfileData';
 
 interface Profile {
   id: string;
@@ -96,30 +97,34 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [movies, setMovies] = useState<MovieWithRating[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isToggling, setIsToggling] = useState(false);
-  const [ratedMoviesCount, setRatedMoviesCount] = useState(0);
-  const [ratingDistribution, setRatingDistribution] = useState<RatingDistribution>({});
   const [showFollowModal, setShowFollowModal] = useState<'followers' | 'following' | null>(null);
   const [showUserListsModal, setShowUserListsModal] = useState(false);
   const [showUserReviewsModal, setShowUserReviewsModal] = useState(false);
-  const [totalWatchTime, setTotalWatchTime] = useState(0);
-  const [favoriteGenres, setFavoriteGenres] = useState<Genre[]>([]);
-  const [favoriteDecade, setFavoriteDecade] = useState<FavoriteDecade | null>(null);
-  const [topActors, setTopActors] = useState<ActorCount[]>([]);
-  const [topDirectors, setTopDirectors] = useState<DirectorCount[]>([]);
-  const [leastKnownGem, setLeastKnownGem] = useState<LeastKnownGem | null>(null);
-  const [followersCount, setFollowersCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
   const [showStats, setShowStats] = useState(false);
-  const [essencePersonality, setEssencePersonality] = useState<{ subcategoria_id: string | null; personalidade_completa: string | null; arquetipo_primario: string | null; arquetipo_secundario: string | null } | null>(null);
-  const [essenceArchetype, setEssenceArchetype] = useState<{ archetype_name: string; subcategory_name: string; description: string; archetype_description: string; subcategory_description: string } | null>(null);
-  const [essenceLoading, setEssenceLoading] = useState(true);
   const [showEssenceRevelation, setShowEssenceRevelation] = useState(false);
   const [showEssenceInfo, setShowEssenceInfo] = useState(false);
-  const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
+
+  const {
+    movies,
+    ratedMoviesCount,
+    ratingDistribution,
+    totalWatchTime,
+    favoriteGenres,
+    favoriteDecade,
+    topActors,
+    topDirectors,
+    leastKnownGem,
+    followersCount,
+    followingCount,
+    essencePersonality,
+    essenceArchetype,
+    spectrumPoints,
+    essenceLoading,
+    refetch: refetchProfileData,
+  } = useProfileData(profile?.id, i18n.language);
 
   useEffect(() => {
     if (username) {
@@ -165,23 +170,7 @@ export default function UserProfile() {
         return;
       }
 
-      const { count: followersCount, error: followersError } = await supabase
-        .from('follows')
-        .select('*', { count: 'exact', head: true })
-        .eq('following_id', profileData.id);
-
-      if (followersError) throw followersError;
-
-      const { count: followingCount, error: followingError } = await supabase
-        .from('follows')
-        .select('*', { count: 'exact', head: true })
-        .eq('follower_id', profileData.id);
-
-      if (followingError) throw followingError;
-
       setProfile(profileData);
-      setFollowersCount(followersCount || 0);
-      setFollowingCount(followingCount || 0);
 
       if (session?.user?.id) {
         const { data: followData } = await supabase
@@ -193,236 +182,6 @@ export default function UserProfile() {
 
         setIsFollowing(!!followData);
       }
-
-      const { data: userMovies, error: moviesError } = await supabase
-        .from('user_movies')
-        .select('*')
-        .eq('user_id', profileData.id)
-        .order('created_at', { ascending: false });
-
-      if (moviesError) throw moviesError;
-
-      const ratedMovies = (userMovies || []).filter(movie => movie.rating !== null);
-      setRatedMoviesCount(ratedMovies.length);
-
-      const distribution: RatingDistribution = {};
-      for (let i = 0; i <= 10; i++) {
-        distribution[i] = 0;
-      }
-
-      ratedMovies.forEach(movie => {
-        if (movie.rating !== null) {
-          distribution[movie.rating]++;
-        }
-      });
-      setRatingDistribution(distribution);
-
-      const INITIAL_BATCH = 20;
-      const initialBatch = userMovies.slice(0, INITIAL_BATCH);
-      const remainingMovies = userMovies.slice(INITIAL_BATCH);
-
-      const firstBatchDetails = await Promise.all(
-        initialBatch.map(async (userMovie) => {
-          try {
-            const details = await getMovieDetailsFromDB(userMovie.movie_id);
-            return {
-              ...details,
-              userRating: userMovie.rating
-            };
-          } catch (error) {
-            console.error(`Error fetching details for movie ${userMovie.movie_id}:`, error);
-            return null;
-          }
-        })
-      );
-
-      const firstBatchMovies = firstBatchDetails.filter(movie => movie !== null);
-      setMovies(firstBatchMovies);
-
-      if (remainingMovies.length > 0) {
-        const remainingDetails = await Promise.all(
-          remainingMovies.map(async (userMovie) => {
-            try {
-              const details = await getMovieDetailsFromDB(userMovie.movie_id);
-              return {
-                ...details,
-                userRating: userMovie.rating
-              };
-            } catch (error) {
-              console.error(`Error fetching details for movie ${userMovie.movie_id}:`, error);
-              return null;
-            }
-          })
-        );
-
-        const remainingBatchMovies = remainingDetails.filter(movie => movie !== null);
-        const allMovies = [...firstBatchMovies, ...remainingBatchMovies];
-        setMovies(allMovies);
-        var validMovies = allMovies;
-      } else {
-        var validMovies = firstBatchMovies;
-      }
-
-      const ratedValidMovies = validMovies.filter(movie => movie.userRating !== null);
-
-      let totalWatchTime = 0;
-
-      for (const movie of ratedValidMovies) {
-        if (movie.media_type === 'tv') {
-          const { data: watchedEps } = await supabase
-            .from('watched_episodes')
-            .select('season_number, episode_number')
-            .eq('user_id', profileData.id)
-            .eq('tmdb_id', movie.id);
-
-          if (watchedEps && watchedEps.length > 0 && movie.seasons) {
-            watchedEps.forEach(ep => {
-              const season = movie.seasons.find((s: any) => s.season_number === ep.season_number);
-              const episode = season?.episodes.find((e: any) => e.episode_number === ep.episode_number);
-              if (episode?.runtime) {
-                totalWatchTime += episode.runtime;
-              }
-            });
-          }
-        } else {
-          totalWatchTime += movie.runtime || 0;
-        }
-      }
-
-      setTotalWatchTime(totalWatchTime);
-
-      const genreCounts = {};
-      ratedValidMovies.forEach(movie => {
-        if (movie.genres && Array.isArray(movie.genres)) {
-          movie.genres.forEach(genre => {
-            if (typeof genre === 'object' && genre.id && genre.name) {
-              genreCounts[genre.id] = genreCounts[genre.id] || { id: genre.id, name: genre.name, count: 0 };
-              genreCounts[genre.id].count++;
-            } else if (typeof genre === 'string') {
-              const key = genre;
-              genreCounts[key] = genreCounts[key] || { id: key, name: genre, count: 0 };
-              genreCounts[key].count++;
-            }
-          });
-        }
-      });
-
-      const favoriteGenres = Object.values(genreCounts)
-        .sort((a: any, b: any) => b.count - a.count)
-        .slice(0, 3);
-
-      setFavoriteGenres(favoriteGenres);
-
-      const decadeCounts: DecadeCount = {};
-      let totalRatedMovies = 0;
-
-      ratedValidMovies.forEach(movie => {
-        if (movie.release_date) {
-          const year = new Date(movie.release_date).getFullYear();
-          const decade = Math.floor(year / 10) * 10;
-          const decadeStr = `${decade}s`;
-          decadeCounts[decadeStr] = (decadeCounts[decadeStr] || 0) + 1;
-          totalRatedMovies++;
-        }
-      });
-
-      if (totalRatedMovies > 0) {
-        let topDecade = '';
-        let topCount = 0;
-
-        for (const [decade, count] of Object.entries(decadeCounts)) {
-          if (count > topCount) {
-            topDecade = decade;
-            topCount = count;
-          }
-        }
-
-        const percentage = (topCount / totalRatedMovies) * 100;
-
-        let label = '';
-        const decadeNum = parseInt(topDecade);
-
-        if (decadeNum < 1980) {
-          label = 'Grandpa Cinema';
-        } else if (decadeNum < 2010) {
-          label = 'Nostalgic';
-        } else {
-          label = 'Modern Lover';
-        }
-
-        setFavoriteDecade({
-          decade: topDecade,
-          count: topCount,
-          label,
-          percentage: percentage,
-          allDecades: decadeCounts
-        });
-      }
-
-      const actorCounts = {};
-
-      ratedValidMovies.forEach((movie, idx) => {
-        if (movie.credits?.cast && Array.isArray(movie.credits.cast)) {
-          movie.credits.cast.slice(0, 5).forEach(actor => {
-            if (actor && actor.id && actor.name) {
-              actorCounts[actor.id] = actorCounts[actor.id] || {
-                id: actor.id,
-                name: actor.name,
-                character: actor.character,
-                count: 0
-              };
-              actorCounts[actor.id].count++;
-            }
-          });
-        }
-      });
-
-      const mostFrequentActors = Object.values(actorCounts)
-        .sort((a: any, b: any) => b.count - a.count)
-        .slice(0, 3);
-
-      setTopActors(mostFrequentActors);
-
-      const directorCounts = {};
-
-      ratedValidMovies.forEach((movie, idx) => {
-        if (movie.credits?.crew && Array.isArray(movie.credits.crew)) {
-          const director = movie.credits.crew.find(person =>
-            person.job === 'Director' || person.job === 'Creator' || person.job === 'Executive Producer'
-          );
-          if (director && director.name) {
-            directorCounts[director.name] = directorCounts[director.name] || {
-              id: director.id || 0,
-              name: director.name,
-              count: 0
-            };
-            directorCounts[director.name].count++;
-          }
-        }
-      });
-
-      const mostFrequentDirectors = Object.values(directorCounts)
-        .sort((a: any, b: any) => b.count - a.count)
-        .slice(0, 3);
-
-      setTopDirectors(mostFrequentDirectors);
-
-      const ratedMoviesWithVoteCounts = ratedValidMovies
-        .filter(movie => movie.userRating !== null && movie.vote_count !== undefined && movie.vote_count !== null)
-        .sort((a, b) => (a.vote_count || 0) - (b.vote_count || 0));
-
-      if (ratedMoviesWithVoteCounts.length > 0) {
-        const leastKnown = ratedMoviesWithVoteCounts[0];
-        setLeastKnownGem({
-          id: leastKnown.id,
-          title: leastKnown.title,
-          vote_count: leastKnown.vote_count || 0,
-          release_date: leastKnown.release_date,
-          vote_average: leastKnown.vote_average,
-          userRating: leastKnown.userRating
-        });
-      }
-
     } catch (error) {
       console.error('Error fetching profile and movies:', error);
       toast.error('Failed to load profile');
@@ -430,42 +189,6 @@ export default function UserProfile() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!profile?.id) return;
-    const fetchEssence = async () => {
-      try {
-        setEssenceLoading(true);
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario, pontos_e, pontos_i, pontos_c, pontos_s, pontos_r')
-          .eq('id', profile.id)
-          .maybeSingle();
-        if (!profileData?.personalidade_completa) {
-          setEssencePersonality(profileData ?? null);
-          return;
-        }
-        setEssencePersonality(profileData);
-        if (profileData) {
-          setSpectrumPoints({
-            e: Number(profileData.pontos_e) || 0,
-            i: Number(profileData.pontos_i) || 0,
-            c: Number(profileData.pontos_c) || 0,
-            s: Number(profileData.pontos_s) || 0,
-            r: Number(profileData.pontos_r) || 0,
-          });
-        }
-        const { data: archetypeData } = await supabase
-          .rpc('get_user_complete_personality', { p_user_id: profile.id, p_language: i18n.language.startsWith('pt') ? 'pt' : 'en' })
-          .maybeSingle();
-        setEssenceArchetype(archetypeData ?? null);
-      } catch {
-      } finally {
-        setEssenceLoading(false);
-      }
-    };
-    fetchEssence();
-  }, [profile?.id, i18n.language]);
 
   const handleFollowToggle = async () => {
     if (!session) {
