@@ -1,190 +1,222 @@
-import React, { useState, useMemo } from 'react';
-import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
-import { Globe2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
 
 interface WorldMapCardProps {
   countryCounts: Record<string, number>;
   language: string;
 }
 
-// Mapa TopoJSON de domínio público, já indexado por código ISO 3166-1 alpha-2
-// (o mesmo formato que o TMDB usa em origin_country) — sem conversão de código necessária.
-const GEO_URL = 'https://unpkg.com/@rembish/iso-topojson/iso-a2.json';
-
-// Mesmo utilitário de bandeira usado em MovieDetailsModal.tsx, para consistência visual.
-function getCountryFlag(countryCode: string): string {
-  if (!countryCode || countryCode.length !== 2) return '🌍';
-  const codePoints = countryCode
-    .toUpperCase()
-    .split('')
-    .map((char) => 127397 + char.charCodeAt(0));
-  return String.fromCodePoint(...codePoints);
-}
-
-// Tenta extrair o código alpha-2 do país de diferentes formatos possíveis de propriedade,
-// já que nem todo arquivo topojson usa a mesma convenção de nome de campo.
-function getCountryCode(geo: any): string | null {
-  const candidates = [
-    geo.id,
-    geo.properties?.iso_a2,
-    geo.properties?.ISO_A2,
-    geo.properties?.ISO2,
-    geo.properties?.iso2,
-    geo.properties?.code
-  ];
-  const found = candidates.find((c) => typeof c === 'string' && c.length === 2);
-  return found ? found.toUpperCase() : null;
-}
-
-function getCountryName(geo: any, code: string | null): string {
-  return geo.properties?.name || geo.properties?.NAME || code || '';
-}
-
-// Interpola entre um roxo claro (baixa intensidade) e um índigo profundo (alta intensidade),
-// consistente com a paleta que o site já usa nas features do Oráculo.
-function getFillColor(count: number, maxCount: number, isDark: boolean): string {
-  if (!count) return isDark ? 'rgba(75, 85, 99, 0.35)' : 'rgba(203, 213, 225, 0.6)';
-  const intensity = Math.sqrt(count / maxCount);
-  const start = [196, 181, 253]; // violet-300
-  const end = [79, 70, 229]; // indigo-600
-  const r = Math.round(start[0] + (end[0] - start[0]) * intensity);
-  const g = Math.round(start[1] + (end[1] - start[1]) * intensity);
-  const b = Math.round(start[2] + (end[2] - start[2]) * intensity);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-const WorldMapCard: React.FC<WorldMapCardProps> = ({ countryCounts, language }) => {
-  const isPt = language.startsWith('pt');
-  const [selected, setSelected] = useState<{ code: string; name: string; count: number } | null>(null);
-  const [isDark, setIsDark] = useState(
-    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
-  );
-
-  React.useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  const maxCount = useMemo(() => Math.max(...Object.values(countryCounts), 1), [countryCounts]);
-  const countriesVisited = Object.keys(countryCounts).length;
-  const hasData = countriesVisited > 0;
-
-  return (
-    <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {isPt ? 'Atlas Cinematográfico' : 'Cinematic Atlas'}
-          </h2>
-          <Globe2 className="w-5 h-5 text-violet-500" />
-        </div>
-        {hasData && (
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-violet-500/10 px-3 py-1 rounded-full">
-            {countriesVisited} {isPt ? (countriesVisited === 1 ? 'país' : 'países') : countriesVisited === 1 ? 'country' : 'countries'}
-          </span>
-        )}
-      </div>
-
-      {!hasData ? (
-        <div className="text-center text-gray-500 dark:text-gray-400 py-10 text-sm">
-          {isPt ? 'Avalie mais filmes para revelar seu mapa.' : 'Rate more movies to reveal your map.'}
-        </div>
-      ) : (
-        <>
-          <div className="w-full overflow-hidden rounded-xl bg-black/5 dark:bg-black/20">
-            <ComposableMap
-              projectionConfig={{ scale: 148 }}
-              width={800}
-              height={420}
-              style={{ width: '100%', height: 'auto' }}
-            >
-              <Geographies geography={GEO_URL}>
-                {({ geographies }) =>
-                  geographies.map((geo) => {
-                    const code = getCountryCode(geo);
-                    const count = code ? countryCounts[code] || 0 : 0;
-                    const name = getCountryName(geo, code);
-                    return (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        onClick={() => {
-                          if (code) setSelected({ code, name, count });
-                        }}
-                        style={{
-                          default: {
-                            fill: getFillColor(count, maxCount, isDark),
-                            stroke: isDark ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.6)',
-                            strokeWidth: 0.4,
-                            outline: 'none',
-                            cursor: count ? 'pointer' : 'default'
-                          },
-                          hover: {
-                            fill: count ? '#7c3aed' : getFillColor(0, maxCount, isDark),
-                            stroke: isDark ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.6)',
-                            strokeWidth: 0.4,
-                            outline: 'none',
-                            cursor: count ? 'pointer' : 'default'
-                          },
-                          pressed: {
-                            fill: '#6d28d9',
-                            outline: 'none'
-                          }
-                        }}
-                      >
-                        <title>{count > 0 ? `${name}: ${count}` : name}</title>
-                      </Geography>
-                    );
-                  })
-                }
-              </Geographies>
-            </ComposableMap>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
-            <div className="min-h-[28px] flex items-center gap-2">
-              {selected ? (
-                <>
-                  <span className="text-xl leading-none">{getCountryFlag(selected.code)}</span>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {selected.name}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {selected.count > 0
-                      ? `${selected.count} ${isPt ? (selected.count === 1 ? 'filme' : 'filmes') : selected.count === 1 ? 'movie' : 'movies'}`
-                      : isPt
-                      ? 'nenhum filme ainda'
-                      : 'no movies yet'}
-                  </span>
-                </>
-              ) : (
-                <span className="text-xs text-gray-400 dark:text-gray-500 italic">
-                  {isPt ? 'Toque em um país para ver detalhes' : 'Tap a country for details'}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-500">
-              <span>{isPt ? 'menos' : 'less'}</span>
-              <div className="flex">
-                {[0.15, 0.4, 0.65, 0.9].map((v) => (
-                  <div
-                    key={v}
-                    className="w-3 h-3"
-                    style={{ backgroundColor: getFillColor(v * maxCount, maxCount, isDark) }}
-                  />
-                ))}
-              </div>
-              <span>{isPt ? 'mais' : 'more'}</span>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
+const COUNTRY_NAMES_EN: Record<string, string> = {
+  US: 'United States', GB: 'United Kingdom', FR: 'France', DE: 'Germany',
+  IT: 'Italy', JP: 'Japan', KR: 'South Korea', CN: 'China', IN: 'India',
+  BR: 'Brazil', MX: 'Mexico', ES: 'Spain', PT: 'Portugal', AR: 'Argentina',
+  CA: 'Canada', AU: 'Australia', RU: 'Russia', SE: 'Sweden', NO: 'Norway',
+  DK: 'Denmark', FI: 'Finland', NL: 'Netherlands', BE: 'Belgium',
+  CH: 'Switzerland', AT: 'Austria', IE: 'Ireland', PL: 'Poland',
+  CZ: 'Czech Republic', GR: 'Greece', TR: 'Turkey', IL: 'Israel',
+  HK: 'Hong Kong', TW: 'Taiwan', TH: 'Thailand', IR: 'Iran',
+  NZ: 'New Zealand', ZA: 'South Africa', EG: 'Egypt', MA: 'Morocco',
+  CO: 'Colombia', CL: 'Chile', VE: 'Venezuela', PE: 'Peru',
+  HU: 'Hungary', RO: 'Romania', UA: 'Ukraine', RS: 'Serbia',
+  BG: 'Bulgaria', HR: 'Croatia', SK: 'Slovakia', SI: 'Slovenia',
+  LT: 'Lithuania', LV: 'Latvia', EE: 'Estonia', IS: 'Iceland',
+  LU: 'Luxembourg', MT: 'Malta', CY: 'Cyprus', AL: 'Albania',
+  BA: 'Bosnia', ME: 'Montenegro', MK: 'North Macedonia',
+  SG: 'Singapore', MY: 'Malaysia', ID: 'Indonesia', PH: 'Philippines',
+  VN: 'Vietnam', PK: 'Pakistan', BD: 'Bangladesh', LK: 'Sri Lanka',
+  NG: 'Nigeria', KE: 'Kenya', GH: 'Ghana', ET: 'Ethiopia',
+  TN: 'Tunisia', DZ: 'Algeria', LY: 'Libya', SA: 'Saudi Arabia',
+  AE: 'UAE', QB: 'Qatar', KW: 'Kuwait', JO: 'Jordan', LB: 'Lebanon',
+  IQ: 'Iraq', AF: 'Afghanistan', KZ: 'Kazakhstan', UZ: 'Uzbekistan',
 };
 
-export default WorldMapCard;
+const COUNTRY_NAMES_PT: Record<string, string> = {
+  US: 'Estados Unidos', GB: 'Reino Unido', FR: 'França', DE: 'Alemanha',
+  IT: 'Itália', JP: 'Japão', KR: 'Coreia do Sul', CN: 'China', IN: 'Índia',
+  BR: 'Brasil', MX: 'México', ES: 'Espanha', PT: 'Portugal', AR: 'Argentina',
+  CA: 'Canadá', AU: 'Austrália', RU: 'Rússia', SE: 'Suécia', NO: 'Noruega',
+  DK: 'Dinamarca', FI: 'Finlândia', NL: 'Países Baixos', BE: 'Bélgica',
+  CH: 'Suíça', AT: 'Áustria', IE: 'Irlanda', PL: 'Polônia',
+  CZ: 'República Tcheca', GR: 'Grécia', TR: 'Turquia', IL: 'Israel',
+  HK: 'Hong Kong', TW: 'Taiwan', TH: 'Tailândia', IR: 'Irã',
+  NZ: 'Nova Zelândia', ZA: 'África do Sul', EG: 'Egito', MA: 'Marrocos',
+  CO: 'Colômbia', CL: 'Chile', VE: 'Venezuela', PE: 'Peru',
+  HU: 'Hungria', RO: 'Romênia', UA: 'Ucrânia', RS: 'Sérvia',
+  BG: 'Bulgária', HR: 'Croácia', SK: 'Eslováquia', SI: 'Eslovênia',
+  LT: 'Lituânia', LV: 'Letônia', EE: 'Estônia', IS: 'Islândia',
+  LU: 'Luxemburgo', MT: 'Malta', CY: 'Chipre', AL: 'Albânia',
+  BA: 'Bósnia', ME: 'Montenegro', MK: 'Macedônia do Norte',
+  SG: 'Cingapura', MY: 'Malásia', ID: 'Indonésia', PH: 'Filipinas',
+  VN: 'Vietnã', PK: 'Paquistão', BD: 'Bangladesh', LK: 'Sri Lanka',
+  NG: 'Nigéria', KE: 'Quênia', GH: 'Gana', ET: 'Etiópia',
+  TN: 'Tunísia', DZ: 'Argélia', LY: 'Líbia', SA: 'Arábia Saudita',
+  AE: 'EAU', QB: 'Catar', KW: 'Kuwait', JO: 'Jordânia', LB: 'Líbano',
+  IQ: 'Iraque', AF: 'Afeganistão', KZ: 'Cazaquistão', UZ: 'Uzbequistão',
+};
+
+// [lon, lat] → converted to SVG x/y via equirectangular projection
+const COUNTRY_COORDS: Record<string, [number, number]> = {
+  US: [-100, 42], GB: [-2, 54], FR: [2, 47], DE: [10, 51],
+  IT: [12, 42], JP: [138, 36], KR: [128, 36], CN: [104, 35],
+  IN: [78, 22], BR: [-55, -10], MX: [-102, 23], ES: [-4, 40],
+  PT: [-8, 39], AR: [-64, -34], CA: [-106, 56], AU: [134, -25],
+  RU: [100, 60], SE: [18, 60], NO: [10, 62], DK: [10, 56],
+  FI: [26, 64], NL: [5, 52], BE: [4, 50], CH: [8, 47],
+  AT: [14, 47], IE: [-8, 53], PL: [19, 52], CZ: [15, 50],
+  GR: [22, 39], TR: [35, 39], IL: [35, 31], HK: [114, 22],
+  TW: [121, 24], TH: [101, 15], IR: [53, 32], NZ: [174, -41],
+  ZA: [25, -29], EG: [30, 27], MA: [-7, 32], CO: [-74, 4],
+  CL: [-71, -35], VE: [-66, 8], PE: [-75, -10], HU: [19, 47],
+  RO: [25, 46], UA: [32, 49], RS: [21, 44], BG: [25, 43],
+  HR: [15, 45], SK: [19, 49], SI: [14, 46], LT: [24, 55],
+  LV: [25, 57], EE: [26, 58], IS: [-19, 65], LU: [6, 50],
+  MT: [14, 36], CY: [33, 35], AL: [20, 41], BA: [18, 44],
+  ME: [19, 42], MK: [21, 42], SG: [104, 1], MY: [102, 3],
+  ID: [113, -2], PH: [122, 13], VN: [109, 16], PK: [69, 30],
+  BD: [90, 24], LK: [81, 7], NG: [8, 10], KE: [38, 0],
+  GH: [-1, 8], ET: [40, 9], TN: [9, 34], DZ: [3, 28],
+  LY: [17, 27], SA: [45, 24], AE: [54, 24], QB: [51, 25],
+  KW: [47, 29], JO: [36, 31], LB: [36, 34], IQ: [44, 33],
+  AF: [67, 33], KZ: [67, 48], UZ: [64, 41],
+};
+
+const MAP_WIDTH = 800;
+const MAP_HEIGHT = 400;
+
+function projectCoord(lon: number, lat: number): [number, number] {
+  const x = ((lon + 180) / 360) * MAP_WIDTH;
+  const y = ((90 - lat) / 180) * MAP_HEIGHT;
+  return [x, y];
+}
+
+export default function WorldMapCard({ countryCounts, language }: WorldMapCardProps) {
+  const { t } = useTranslation();
+  const [hovered, setHovered] = useState<string | null>(null);
+  const isPt = language.startsWith('pt');
+  const names = isPt ? COUNTRY_NAMES_PT : COUNTRY_NAMES_EN;
+
+  const sortedCountries = useMemo(() => {
+    return Object.entries(countryCounts)
+      .sort((a, b) => b[1] - a[1])
+      .filter(([code]) => COUNTRY_COORDS[code]);
+  }, [countryCounts]);
+
+  const totalCountries = sortedCountries.length;
+  const maxCount = Math.max(...sortedCountries.map(([, c]) => c), 1);
+
+  if (totalCountries === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+          {isPt ? 'Origem dos Filmes' : 'Film Origins'}
+        </h2>
+        <Globe className="w-5 h-5 text-cyan-500" />
+      </div>
+
+      <div className="relative w-full overflow-hidden rounded-xl bg-gradient-to-b from-cyan-50/30 to-blue-50/10 dark:from-gray-900/30 dark:to-gray-800/10">
+        <svg
+          viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+          className="w-full h-auto"
+          style={{ display: 'block' }}
+        >
+          {/* Simple continent silhouettes via dotted grid pattern */}
+          <defs>
+            <pattern id="dotGrid" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+              <circle cx="4" cy="4" r="1" fill="#94a3b8" fillOpacity={0.25} />
+            </pattern>
+          </defs>
+          <rect width={MAP_WIDTH} height={MAP_HEIGHT} fill="url(#dotGrid)" />
+
+          {/* Latitude lines */}
+          {[0.25, 0.5, 0.75].map((p) => (
+            <line
+              key={p}
+              x1={0}
+              y1={MAP_HEIGHT * p}
+              x2={MAP_WIDTH}
+              y2={MAP_HEIGHT * p}
+              stroke="#cbd5e1"
+              strokeOpacity={0.15}
+              strokeWidth={0.5}
+            />
+          ))}
+
+          {/* Country markers */}
+          {sortedCountries.map(([code, count]) => {
+            const coords = COUNTRY_COORDS[code];
+            if (!coords) return null;
+            const [x, y] = projectCoord(coords[0], coords[1]);
+            const radius = 3 + (count / maxCount) * 8;
+            const isHovered = hovered === code;
+            return (
+              <g key={code}>
+                {isHovered && (
+                  <circle cx={x} cy={y} r={radius + 6} fill="#06b6d4" fillOpacity={0.15} />
+                )}
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={radius}
+                  fill="#06b6d4"
+                  fillOpacity={0.75}
+                  stroke="#0891b2"
+                  strokeWidth={1}
+                  className="cursor-pointer transition-all"
+                  onMouseEnter={() => setHovered(code)}
+                  onMouseLeave={() => setHovered(null)}
+                />
+                {isHovered && (
+                  <text
+                    x={x}
+                    y={y - radius - 4}
+                    textAnchor="middle"
+                    fontSize={11}
+                    fill="#1e293b"
+                    style={{ fontWeight: 600, pointerEvents: 'none' }}
+                  >
+                    {names[code] || code} ({count})
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {sortedCountries.slice(0, 8).map(([code, count]) => (
+          <div
+            key={code}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-default ${
+              hovered === code
+                ? 'bg-cyan-500/20 dark:bg-cyan-500/25 text-cyan-700 dark:text-cyan-300 scale-105'
+                : 'bg-gray-100/60 dark:bg-gray-700/40 text-gray-600 dark:text-gray-400'
+            }`}
+            onMouseEnter={() => setHovered(code)}
+            onMouseLeave={() => setHovered(null)}
+          >
+            <span className="font-semibold">{names[code] || code}</span>
+            <span className="text-gray-400 dark:text-gray-500">{count}</span>
+          </div>
+        ))}
+        {sortedCountries.length > 8 && (
+          <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100/60 dark:bg-gray-700/40 text-gray-500 dark:text-gray-400">
+            +{sortedCountries.length - 8}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+
+export default WorldMapCard
