@@ -10,6 +10,7 @@ import { useAuth } from '../lib/auth';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import RatingBox from '../components/RatingBox';
 import FollowersModal from '../components/FollowersModal';
+import WorldMapCard from '../components/WorldMapCard';
 import { toast } from 'sonner';
 import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
