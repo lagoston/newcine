@@ -124,6 +124,7 @@ export default function UserProfile() {
     essenceArchetype,
     spectrumPoints,
     essenceLoading,
+    countryCounts,
     refetch: refetchProfileData,
   } = useProfileData(profile?.id, i18n.language);
 
