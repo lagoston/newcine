@@ -191,6 +191,7 @@ export default function Profile() {
     essenceArchetype,
     spectrumPoints,
     essenceLoading,
+    countryCounts,
     refetch: refetchProfileData,
   } = useProfileData(session?.user?.id, i18n.language);
 
