@@ -1280,34 +1280,9 @@ export default function Profile() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                      {t('profile.stats.favoriteActors')}
-                    </h2>
-                    <Award className="w-5 h-5 text-pink-500" />
-                  </div>
-                  {topActors.length > 0 ? (
-                    <div className="space-y-2">
-                      {topActors.map((actor, index) => (
-                        <div key={actor.id} className="flex items-center justify-between">
-                          <span className="font-medium text-gray-900 dark:text-white text-sm">
-                            {index + 1}. {actor.name}
-                          </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {actor.count} {actor.count === 1 ? t('community.film') : t('community.films')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-500 dark:text-gray-400 py-2 text-sm">
-                      {t('common.no_data')}
-                    </div>
-                  )}
-                </div>
+              <WorldMapCard countryCounts={countryCounts} language={i18n.language} />
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
