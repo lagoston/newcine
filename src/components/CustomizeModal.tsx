@@ -34,7 +34,7 @@ interface ProgressionTag {
   description: string;
   descriptionPt: string;
   condition?: {
-    type: 'rating' | 'genre' | 'director';
+    type: 'rating' | 'genre' | 'director' | 'countries' | 'continents';
     value?: number | number[] | string;
   };
 }
