@@ -174,6 +174,22 @@ const PROGRESSION_TAGS: ProgressionTag[] = [
     description: '10 movies from the same director',
     descriptionPt: '10 filmes do mesmo diretor',
     condition: { type: 'director' }
+  },
+  {
+    name: 'Nowhere',
+    emoji: '📍',
+    minMovies: 30,
+    description: '30 different countries',
+    descriptionPt: '30 países diferentes',
+    condition: { type: 'countries', value: 30 }
+  },
+  {
+    name: 'World Tour',
+    emoji: '🌎',
+    minMovies: 5,
+    description: 'Movies from all 5 continents',
+    descriptionPt: 'Filmes dos 5 continentes',
+    condition: { type: 'continents', value: 5 }
   }
 ];
 
