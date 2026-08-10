@@ -562,7 +562,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
       const { data: userMovies, error: userMoviesError } = await supabase
         .from('user_movies')
-        .select('movie_id, rating')
+        .select('movie_id, rating, movies!inner(media_type)')
         .eq('user_id', session.user.id)
         .not('rating', 'is', null);
 
@@ -580,20 +580,23 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         const movieIds = [...new Set(userMovies.map(m => m.movie_id))];
         const { data: cacheData } = await supabase
           .from('movie_cache')
-          .select('tmdb_id, genres_en, director')
+          .select('tmdb_id, media_type, genres_en, director, origin_country')
           .in('tmdb_id', movieIds);
 
         type CacheGenre = { id: number; name: string };
-        type CacheEntry = { tmdb_id: number; genres_en: CacheGenre[] | null; director: string | null };
-        const cacheMap = new Map<number, CacheEntry>(
-          ((cacheData as CacheEntry[]) || []).map(m => [m.tmdb_id, m])
+        type CacheEntry = { tmdb_id: number; media_type: string; genres_en: CacheGenre[] | null; director: string | null; origin_country: string[] | null };
+        const cacheMap = new Map<string, CacheEntry>(
+          ((cacheData as CacheEntry[]) || []).map(m => [`${m.tmdb_id}_${m.media_type}`, m])
         );
 
         const genreCounts: Record<string, number> = {};
         const directorCounts: Record<string, number> = {};
+        const countrySet = new Set<string>();
+        const continentSet = new Set<string>();
 
-        userMovies.forEach(({ movie_id }) => {
-          const cached = cacheMap.get(movie_id);
+        userMovies.forEach((entry: any) => {
+          const mediaType = entry.movies?.media_type || 'movie';
+          const cached = cacheMap.get(`${entry.movie_id}_${mediaType}`);
           if (cached?.genres_en) {
             cached.genres_en.forEach(genre => {
               genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1;
@@ -601,6 +604,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           }
           if (cached?.director) {
             directorCounts[cached.director] = (directorCounts[cached.director] || 0) + 1;
+          }
+          const countryCode = cached?.origin_country?.[0];
+          if (countryCode) {
+            countrySet.add(countryCode);
+            const continent = getContinent(countryCode);
+            if (continent) continentSet.add(continent);
           }
         });
 
@@ -614,6 +623,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         progress['Truth Digger'] = countGenres('Documentary', 'Documentário');
 
         progress["Director's Cut"] = Math.max(...Object.values(directorCounts), 0);
+        progress['Nowhere'] = countrySet.size;
+        progress['World Tour'] = continentSet.size;
       }
 
       setBasicTagProgress(progress);
