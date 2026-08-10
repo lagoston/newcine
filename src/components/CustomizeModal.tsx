@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { frames, FrameId } from '../lib/frames';
+import { getContinent } from '../lib/continents';
 import { banners, BannerId } from '../lib/banners';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
