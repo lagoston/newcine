@@ -502,7 +502,8 @@ export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number
     const { data, error } = await supabase
       .from('movie_cache')
       .select('*')
-      .in('tmdb_id', movieIds);
+      .in('tmdb_id', movieIds)
+      .limit(50000);
 
     if (error) throw error;
 
