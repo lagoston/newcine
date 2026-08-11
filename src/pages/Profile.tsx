@@ -204,7 +204,7 @@ export default function Profile() {
   });
 
   const handleViewCountryMovies = (countryCode: string, countryName: string) => {
-    const filtered = (movies || []).filter((m: any) => m.origin_country?.[0] === countryCode);
+    const filtered = (movies || []).filter((m: any) => m.origin_country?.[0] === countryCode && m.userRating !== null);
     setCountryMoviesModal({ isOpen: true, title: countryName, movies: filtered });
   };
 
