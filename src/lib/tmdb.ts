@@ -17,8 +17,8 @@ function getCurrentLanguage(): string {
 async function tmdbFetch(endpoint: string): Promise<any> {
   // Only add language if not already present in endpoint
   const hasLanguage = endpoint.includes('language=');
-
   let finalEndpoint = endpoint;
+
   if (!hasLanguage) {
     const language = getCurrentLanguage();
     const separator = endpoint.includes('?') ? '&' : '?';
@@ -132,7 +132,6 @@ export const getHiddenIndies = async (): Promise<Movie[]> => {
   return data.results;
 };
 
-
 export const searchMovies = async (query: string): Promise<Movie[]> => {
   if (!query.trim()) return [];
 
@@ -173,7 +172,6 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
   // Try to get from database cache first (if enabled)
   if (useCache) {
     const dbCached = await getCachedMovie(movieId, language, mediaType);
-
     if (dbCached) {
       cache.set(cacheKey, dbCached, CACHE_TTL.MOVIE_DETAILS);
       return dbCached;
@@ -181,7 +179,6 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
   }
 
   const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
-
   const [movieDetails, providersData] = await Promise.all([
     tmdbFetch(`/${endpoint}/${movieId}?append_to_response=credits`),
     tmdbFetch(`/${endpoint}/${movieId}/watch/providers`),
@@ -266,7 +263,8 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
         crew: data.director ? [{ id: 0, name: data.director, job: 'Director' }] : []
       },
       watchProviders: data.watch_providers,
-      seasons: data.seasons_data
+      seasons: data.seasons_data,
+      keywords: data.keywords || []
     };
   } catch (error) {
     console.error('Error fetching from cache:', error);
@@ -278,8 +276,9 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
 export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 'tv'): Promise<void> {
   try {
     const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
+
     const [enData, ptData] = await Promise.all([
-      tmdbFetch(`/${endpoint}/${movieId}?language=en-US&append_to_response=credits`),
+      tmdbFetch(`/${endpoint}/${movieId}?language=en-US&append_to_response=credits,keywords`),
       tmdbFetch(`/${endpoint}/${movieId}?language=pt-BR&append_to_response=credits`)
     ]);
 
@@ -315,6 +314,12 @@ export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 't
       seasonsData = await fetchTVSeasonsData(movieId, enData.number_of_seasons);
     }
 
+    // Extrai keywords/tags temáticas (ex: "time travel", "film noir") — formato do TMDB
+    // difere entre filme (keywords.keywords) e série (keywords.results).
+    // Reservado para uso futuro pelo Oráculo; não é lido por nenhuma feature ainda.
+    const keywordsRaw = mediaType === 'tv' ? enData.keywords?.results : enData.keywords?.keywords;
+    const keywords = (keywordsRaw || []).map((k: any) => ({ id: k.id, name: k.name }));
+
     const cacheData: Record<string, any> = {
       id: movieId,
       tmdb_id: movieId,
@@ -338,6 +343,7 @@ export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 't
       genres_pt: ptData.genres,
       director,
       cast_members: castMembers,
+      keywords,
       status: mediaType === 'tv' ? enData.status : null,
       in_production: mediaType === 'tv' ? (enData.in_production ?? false) : false,
       last_air_date: mediaType === 'tv' ? enData.last_air_date : null,
@@ -367,7 +373,9 @@ export async function fetchTVSeasonsData(showId: number, numberOfSeasons: number
   const seasonPromises = Array.from({ length: numberOfSeasons }, (_, i) =>
     tmdbFetch(`/tv/${showId}/season/${i + 1}?language=en-US`).catch(() => null)
   );
+
   const seasonResults = await Promise.all(seasonPromises);
+
   return seasonResults
     .filter(Boolean)
     .map((s: any) => ({
@@ -392,8 +400,9 @@ export async function fetchTVSeasonsData(showId: number, numberOfSeasons: number
 export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv'): Promise<void> {
   try {
     const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
+
     const [enData, ptData] = await Promise.all([
-      tmdbFetch(`/${endpoint}/${movieId}?language=en-US&append_to_response=credits`),
+      tmdbFetch(`/${endpoint}/${movieId}?language=en-US&append_to_response=credits,keywords`),
       tmdbFetch(`/${endpoint}/${movieId}?language=pt-BR&append_to_response=credits`)
     ]);
 
@@ -429,6 +438,9 @@ export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv
       seasonsData = await fetchTVSeasonsData(movieId, enData.number_of_seasons);
     }
 
+    const keywordsRaw = mediaType === 'tv' ? enData.keywords?.results : enData.keywords?.keywords;
+    const keywords = (keywordsRaw || []).map((k: any) => ({ id: k.id, name: k.name }));
+
     const updateData: Record<string, any> = {
       tmdb_id: movieId,
       media_type: mediaType,
@@ -451,6 +463,7 @@ export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv
       genres_pt: ptData.genres,
       director,
       cast_members: castMembers,
+      keywords,
       status: mediaType === 'tv' ? enData.status : null,
       in_production: mediaType === 'tv' ? (enData.in_production ?? false) : false,
       last_air_date: mediaType === 'tv' ? enData.last_air_date : null,
@@ -515,9 +528,9 @@ export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number
             crew: cached.director ? [{ id: 0, name: cached.director, job: 'Director' }] : []
           },
           watchProviders: cached.watch_providers,
-          content_ratings: cached.content_ratings
+          content_ratings: cached.content_ratings,
+          keywords: cached.keywords || []
         };
-
         movieMap.set(cached.tmdb_id, movie);
       });
     }
@@ -547,7 +560,6 @@ export const getMovieDetailsFromDB = async (movieId: number): Promise<Movie> => 
   }
 
   const dbCached = await getCachedMovie(movieId, language, mediaType);
-
   if (dbCached) {
     cache.set(cacheKey, dbCached, CACHE_TTL.MOVIE_DETAILS);
     return dbCached;
@@ -556,5 +568,3 @@ export const getMovieDetailsFromDB = async (movieId: number): Promise<Movie> => 
   // Fallback: fetch from API
   return getMovieDetails(movieId, mediaType);
 };
-
-
