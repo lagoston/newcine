@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
-import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, Award, TrendingDown, X, Loader2, Settings, ChevronDown, Scroll, Info, RefreshCw, LayoutGrid, Share2 } from 'lucide-react';
+import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, TrendingDown, X, Loader2, Settings, Scroll, Info, RefreshCw, LayoutGrid, Share2 } from 'lucide-react';
 import PentagonGraph from '../components/PentagonGraph';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import GlassLoader from '../components/GlassLoader';
@@ -12,6 +12,7 @@ import FollowersModal from '../components/FollowersModal';
 import WhispersModal from '../components/WhispersModal';
 import CustomizeModal from '../components/CustomizeModal';
 import WorldMapCard from '../components/WorldMapCard';
+import AllMoviesModal from '../components/AllMoviesModal';
 import SettingsModal from '../components/SettingsModal';
 import PersonasModal from '../components/PersonasModal';
 import PersonaShareModal from '../components/PersonaShareModal';
@@ -20,7 +21,7 @@ import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cache } from '../lib/cache';
+import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import { useProfileData } from '../hooks/useProfileData';
 
 interface Profile {
@@ -165,7 +166,6 @@ export default function Profile() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [unreadWhispers, setUnreadWhispers] = useState(0);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [showStats, setShowStats] = useState(false);
   const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
   const [carouselOffset, setCarouselOffset] = useState(0);
   const [carouselAutoPaused, setCarouselAutoPaused] = useState(false);
@@ -193,8 +193,20 @@ export default function Profile() {
     essenceLoading,
     countryCounts,
     countryAvgRatings,
+    movies,
     refetch: refetchProfileData,
   } = useProfileData(session?.user?.id, i18n.language);
+
+  const [countryMoviesModal, setCountryMoviesModal] = useState<{ isOpen: boolean; title: string; movies: any[] }>({
+    isOpen: false,
+    title: '',
+    movies: []
+  });
+
+  const handleViewCountryMovies = (countryCode: string, countryName: string) => {
+    const filtered = (movies || []).filter((m: any) => m.origin_country?.[0] === countryCode);
+    setCountryMoviesModal({ isOpen: true, title: countryName, movies: filtered });
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -1129,19 +1141,8 @@ export default function Profile() {
           </div>
         </div>
 
-        {ratedMoviesCount > 0 && (
-          <button
-            onClick={() => setShowStats(!showStats)}
-            className="w-full relative rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4 shadow-xl hover:shadow-2xl hover:shadow-blue-500/25 transition-all flex items-center justify-center gap-2 font-semibold"
-          >
-            <BarChart3 className="w-5 h-5" />
-            {showStats ? t('profile.hideStats') : t('profile.showStats')}
-            <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${showStats ? 'rotate-180' : ''}`} />
-          </button>
-        )}
-
         <AnimatePresence>
-          {showStats && ratedMoviesCount > 0 && (
+          {ratedMoviesCount > 0 && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -1281,7 +1282,12 @@ export default function Profile() {
                 </div>
               )}
 
-              <WorldMapCard countryCounts={countryCounts} countryAvgRatings={countryAvgRatings} language={i18n.language} />
+              <WorldMapCard
+                countryCounts={countryCounts}
+                countryAvgRatings={countryAvgRatings}
+                language={i18n.language}
+                onViewMovies={handleViewCountryMovies}
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
@@ -1662,6 +1668,14 @@ export default function Profile() {
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+      />
+
+      <AllMoviesModal
+        isOpen={countryMoviesModal.isOpen}
+        onClose={() => setCountryMoviesModal({ isOpen: false, title: '', movies: [] })}
+        title={countryMoviesModal.title}
+        movies={countryMoviesModal.movies}
+        rating={null}
       />
     </div>
   );
