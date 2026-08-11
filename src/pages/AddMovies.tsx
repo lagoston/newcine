@@ -170,6 +170,12 @@ export default function AddMovies() {
       const details = await getMovieDetails(movie.id, mediaType);
       setSelectedMovie(details);
       setShowMovieModal(true);
+
+      // Salva/atualiza o cache em segundo plano — só nesta área de busca/adição,
+      // nunca na Library (lá poderia sobrescrever dado bom com dado desatualizado à toa).
+      ensureMovieCached(movie.id, mediaType).catch((err) => {
+        console.error('Error caching movie on open:', err);
+      });
     } catch (error) {
       console.error('Error loading movie details:', error);
       toast.error(t('common.error'));
