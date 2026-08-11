@@ -729,7 +729,7 @@ export default function UserProfile() {
                 </div>
               )}
 
-              <WorldMapCard countryCounts={countryCounts} countryAvgRatings={countryAvgRatings} language={i18n.language} />
+              <WorldMapCard countryCounts={countryCounts} countryAvgRatings={countryAvgRatings} language={i18n.language} onViewMovies={handleViewCountryMovies} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
