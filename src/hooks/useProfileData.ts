@@ -85,6 +85,7 @@ export interface ProfileData {
   // Social
   followersCount: number;
   countryCounts: Record<string, number>;
+  countryAvgRatings: Record<string, number>;
   followingCount: number;
 
   // Essência / personalidade
@@ -178,6 +179,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
   const [leastKnownGem, setLeastKnownGem] = useState<LeastKnownGem | null>(null);
   const [followersCount, setFollowersCount] = useState(0);
   const [countryCounts, setCountryCounts] = useState<Record<string, number>>({});
+  const [countryAvgRatings, setCountryAvgRatings] = useState<Record<string, number>>({});
   const [followingCount, setFollowingCount] = useState(0);
 
   const [essencePersonality, setEssencePersonality] = useState<EssencePersonality | null>(null);
@@ -196,25 +198,12 @@ export function useProfileData(userId: string | undefined, language: string): Pr
         setError(null);
 
         const cacheKey = CACHE_KEYS.USER_STATS(userId);
-        const cached = cache.get<Omit<ProfileData, 'loading' | 'error' | 'essenceLoading' | 'refetch' | 'essencePersonality' | 'essenceArchetype' | 'spectrumPoints'>>(cacheKey);
-
-        if (cached && cached.ratedMoviesCount > 0) {
-          if (cancelled) return;
-          setMovies(cached.movies);
-          setRatedMoviesCount(cached.ratedMoviesCount);
-          setRatingDistribution(cached.ratingDistribution);
-          setTotalWatchTime(cached.totalWatchTime);
-          setFavoriteGenres(cached.favoriteGenres);
-          setFavoriteDecade(cached.favoriteDecade);
-          setTopActors(cached.topActors);
-          setTopDirectors(cached.topDirectors);
-          setLeastKnownGem(cached.leastKnownGem);
-          setFollowersCount(cached.followersCount);
-          setCountryCounts(cached.countryCounts || {});
-          setFollowingCount(cached.followingCount);
-          setLoading(false);
-          return;
-        }
+        // NOTA: removido o atalho de "retorna do cache local se existir". Antes disso,
+        // estatísticas (incluindo o mapa de países) podiam ficar desatualizadas se o
+        // usuário avaliasse um filme novo sem esperar o cache expirar. Como a busca em
+        // lote já é rápida, o ganho de performance do cache não compensava mais o risco
+        // de mostrar dado errado. O `cache.set` mais abaixo continua gravando (outros
+        // pontos do app podem ler esse valor), só não é mais lido como atalho aqui.
 
         // --- Contadores sociais (2 queries leves, em paralelo) ---
         const [followersRes, followingRes, userMoviesRes] = await Promise.all([
@@ -412,11 +401,21 @@ export function useProfileData(userId: string | undefined, language: string): Pr
         setLeastKnownGem(gem);
 
         const countryTally: Record<string, number> = {};
+        const countryRatingSum: Record<string, number> = {};
         ratedMovies.forEach((movie: any) => {
           const code = movie.origin_country?.[0];
-          if (code) countryTally[code] = (countryTally[code] || 0) + 1;
+          if (code && movie.userRating !== null) {
+            countryTally[code] = (countryTally[code] || 0) + 1;
+            countryRatingSum[code] = (countryRatingSum[code] || 0) + movie.userRating;
+          }
         });
         setCountryCounts(countryTally);
+
+        const countryAvg: Record<string, number> = {};
+        Object.keys(countryTally).forEach((code) => {
+          countryAvg[code] = countryRatingSum[code] / countryTally[code];
+        });
+        setCountryAvgRatings(countryAvg);
 
         setFollowersCount(followers);
         setFollowingCount(following);
@@ -445,7 +444,8 @@ export function useProfileData(userId: string | undefined, language: string): Pr
             leastKnownGem: gem,
             followersCount: followers,
             followingCount: following,
-            countryCounts: countryTally
+            countryCounts: countryTally,
+            countryAvgRatings: countryAvg
           },
           CACHE_TTL.USER_STATS
         );
@@ -518,6 +518,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
     leastKnownGem,
     followersCount,
     countryCounts,
+    countryAvgRatings,
     followingCount,
     essencePersonality,
     essenceArchetype,
