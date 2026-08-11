@@ -74,6 +74,10 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
       const details = pending ? await pending : await getMovieDetails(movie.id, mediaType);
       onMovieSelect(details);
       if (onClose) onClose();
+
+      ensureMovieCached(movie.id, mediaType).catch((err) => {
+        console.error('Error caching movie on open:', err);
+      });
     } catch {
       navigate(`/add-movies?search=${encodeURIComponent(query)}`);
     } finally {
