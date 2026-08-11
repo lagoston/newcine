@@ -4,7 +4,9 @@ import { COUNTRY_PATHS, WORLD_MAP_VIEWBOX } from '../data/worldMapPaths';
 
 interface WorldMapCardProps {
   countryCounts: Record<string, number>;
+  countryAvgRatings: Record<string, number>;
   language: string;
+  onViewMovies?: (countryCode: string, countryName: string) => void;
 }
 
 function getCountryFlag(countryCode: string): string {
@@ -27,7 +29,7 @@ function getFillColor(count: number, maxCount: number, isDark: boolean): string 
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-const WorldMapCard: React.FC<WorldMapCardProps> = ({ countryCounts, language }) => {
+const WorldMapCard: React.FC<WorldMapCardProps> = ({ countryCounts, countryAvgRatings, language, onViewMovies }) => {
   const isPt = language.startsWith('pt');
   const [selected, setSelected] = useState<{ code: string; name: string; count: number } | null>(null);
   const [isDark, setIsDark] = useState(
@@ -108,6 +110,19 @@ const WorldMapCard: React.FC<WorldMapCardProps> = ({ countryCounts, language }) 
                       ? 'nenhum filme ainda'
                       : 'no movies yet'}
                   </span>
+                  {selected.count > 0 && countryAvgRatings[selected.code] !== undefined && (
+                    <span className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                      ★ {countryAvgRatings[selected.code].toFixed(1)}
+                    </span>
+                  )}
+                  {selected.count > 0 && onViewMovies && (
+                    <button
+                      onClick={() => onViewMovies(selected.code, selected.name)}
+                      className="text-xs font-semibold text-violet-600 dark:text-violet-400 bg-violet-500/10 hover:bg-violet-500/20 px-3 py-1 rounded-full transition-colors"
+                    >
+                      {isPt ? 'Ver filmes' : 'View movies'}
+                    </button>
+                  )}
                 </>
               ) : (
                 <span className="text-xs text-gray-400 dark:text-gray-500 italic">
