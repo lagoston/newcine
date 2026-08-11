@@ -29,7 +29,7 @@ function getFillColor(count: number, maxCount: number, isDark: boolean): string 
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-const WorldMapCard: React.FC<WorldMapCardProps> = ({ countryCounts, countryAvgRatings, language, onViewMovies }) => {
+const WorldMapCard: React.FC<WorldMapCardProps> = ({ countryCounts, countryAvgRatings = {}, language, onViewMovies }) => {
   const isPt = language.startsWith('pt');
   const [selected, setSelected] = useState<{ code: string; name: string; count: number } | null>(null);
   const [isDark, setIsDark] = useState(
