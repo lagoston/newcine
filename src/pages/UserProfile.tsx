@@ -925,12 +925,21 @@ export default function UserProfile() {
     )}
 
     {showUserReviewsModal && profile.id && (
-      <UserReviewsModal
-        userId={profile.id}
-        username={profile.username}
-        onClose={() => setShowUserReviewsModal(false)}
+        <UserReviewsModal
+          userId={profile.id}
+          username={profile.username}
+          onClose={() => setShowUserReviewsModal(false)}
+        />
+      )}
+
+      <AllMoviesModal
+        isOpen={countryMoviesModal.isOpen}
+        onClose={() => setCountryMoviesModal({ isOpen: false, title: '', movies: [] })}
+        title={countryMoviesModal.title}
+        movies={countryMoviesModal.movies}
+        rating={null}
+        isOtherUserProfile={true}
       />
-    )}
 
     <AnimatePresence>
       {showEssenceRevelation && essenceArchetype && essencePersonality && (
