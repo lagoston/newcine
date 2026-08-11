@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
 import UserListsModal from '../components/UserListsModal';
+import AllMoviesModal from '../components/AllMoviesModal';
 import UserReviewsModal from '../components/UserReviewsModal';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
