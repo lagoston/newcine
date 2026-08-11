@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Search, Loader2, Star, Film, Tv, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { searchMovies, getMovieDetails, Movie } from '../lib/tmdb';
+import { searchMovies, getMovieDetails, ensureMovieCached, Movie } from '../lib/tmdb';
 
 interface NavbarSearchProps {
   onClose?: () => void;
