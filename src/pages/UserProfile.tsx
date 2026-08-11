@@ -130,6 +130,17 @@ export default function UserProfile() {
     refetch: refetchProfileData,
   } = useProfileData(profile?.id, i18n.language);
 
+  const [countryMoviesModal, setCountryMoviesModal] = useState<{ isOpen: boolean; title: string; movies: any[] }>({
+    isOpen: false,
+    title: '',
+    movies: []
+  });
+
+  const handleViewCountryMovies = (countryCode: string, countryName: string) => {
+    const filtered = (movies || []).filter((m: any) => m.origin_country?.[0] === countryCode);
+    setCountryMoviesModal({ isOpen: true, title: countryName, movies: filtered });
+  };
+
   useEffect(() => {
     if (username) {
       fetchProfileAndMovies();
