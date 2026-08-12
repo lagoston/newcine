@@ -488,13 +488,13 @@ export default function UserProfile() {
                       whileTap={{ scale: 0.98 }}
                     >
                       {isToggling ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : isFollowing ? (
-                  <>
-                    <UserCheck className="w-5 h-5" />
-                    <span className="hidden sm:inline">{t('profile.followingButton')}</span>
-                  </>
-                ) : (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : isFollowing ? (
+                        <>
+                          <UserCheck className="w-5 h-5" />
+                          <span className="hidden sm:inline">{t('profile.followingButton')}</span>
+                        </>
+                      ) : (
                         <>
                           <UserPlus className="w-5 h-5" />
                           <span className="hidden sm:inline">{t('profile.follow')}</span>
