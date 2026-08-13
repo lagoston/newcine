@@ -524,7 +524,7 @@ export default function OracleRecommend() {
                     className="rounded-2xl shadow-2xl w-48 h-auto border-2 border-pink-400/30 group-hover:border-pink-500/60 transition-all"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-end justify-center pb-4">
-                    <p className="text-white text-sm font-semibold">Click for details</p>
+                   <p className="text-white text-sm font-semibold">{t('oracle.clickForDetails')}</p>
                   </div>
                 </motion.div>
 
