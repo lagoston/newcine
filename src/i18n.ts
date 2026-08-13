@@ -19,7 +19,12 @@ i18n
     fallbackLng: 'en',
     supportedLngs: ['en', 'pt'],
     detection: {
-      order: ['navigator', 'localStorage'],
+      // ORDEM CORRIGIDA: localStorage primeiro. Antes era ['navigator', 'localStorage'],
+      // o que significava que a escolha manual do usuário era salva corretamente mas
+      // NUNCA consultada, porque o idioma do navegador/SO sempre "ganhava" primeiro.
+      // Agora: se o usuário já escolheu um idioma antes, isso prevalece. Só quem
+      // nunca escolheu (visitante novo) cai no idioma do navegador como antes.
+      order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
       lookupLocalStorage: 'i18nextLng',
       convertDetectedLanguage: (lng) => {
