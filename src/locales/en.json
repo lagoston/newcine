@@ -265,6 +265,8 @@
   "oracle": {
     "title": "THE ORACLE",
     "choosePath": "Choose your path...",
+    "selectMood": "Select Your Mood",
+    "clickForDetails": "Click for details",
     "prediction": {
       "title": "Prediction Chamber",
       "description": "Whisper the film's name – the Oracle will reveal how you might judge it.",
