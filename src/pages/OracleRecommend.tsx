@@ -358,9 +358,9 @@ export default function OracleRecommend() {
           transition={{ delay: 0.2 }}
         >
           <div className="flex items-center justify-center gap-2 mb-6">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-              {t('oracle.cards.title', { defaultValue: 'Choose Your Oracle' })}
-            </h2>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6 text-center">
+          {t('oracle.selectMood')}
+        </h2>
             <button onClick={() => setShowOracleInfoModal(true)} className="text-pink-500 hover:text-pink-400 transition-colors">
               <HelpCircle className="w-5 h-5" />
             </button>
