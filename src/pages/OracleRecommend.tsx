@@ -538,8 +538,8 @@ export default function OracleRecommend() {
                     </p>
                   )}
                   <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                    {recommendation.movieData.overview || 'No synopsis available.'}
-                  </p>
+                  {recommendation.movieData.overview || t('movies.noSynopsis')}
+                </p>
                 </div>
               </div>
             </div>
