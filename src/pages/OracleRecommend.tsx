@@ -478,7 +478,7 @@ export default function OracleRecommend() {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="flex flex-col items-center text-center gap-4">
-              <div className="text-5xl">Warning</div>
+              <div className="text-5xl">⚠️</div>
               <h2 className="text-2xl font-bold text-amber-600 dark:text-amber-400">{t('oracle.attention')}</h2>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg max-w-2xl">{infoMessage}</p>
               <button
