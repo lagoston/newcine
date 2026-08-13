@@ -220,11 +220,10 @@ export default function OracleRecommend() {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            userId: session.user.id,
             mood: selectedMood,
             cardType: selectedCard,
             moodKey,
