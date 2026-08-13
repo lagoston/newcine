@@ -265,6 +265,8 @@
   "oracle": {
     "title": "O ORÁCULO",
     "choosePath": "Escolha seu caminho...",
+    "selectMood": "Selecione seu Humor",
+    "clickForDetails": "Clique para ver detalhes",
     "prediction": {
       "title": "Câmara de Previsão",
       "description": "Sussurre o nome do filme – o Oráculo revelará como você poderá julgá-lo.",
