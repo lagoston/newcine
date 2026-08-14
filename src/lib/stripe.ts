@@ -1,27 +1,27 @@
-import { supabase, supabaseUrl, supabaseAnonKey } from './supabase';
+import { supabase, supabaseUrl } from './supabase';
 
 interface CheckoutOptions {
   priceId: string;
-  userId: string;
-  email: string;
 }
 
-export async function createCheckoutSession({ priceId, userId, email }: CheckoutOptions) {
+export async function createCheckoutSession({ priceId }: CheckoutOptions) {
   try {
-    // We'll let the edge function handle the customer creation/verification
-    // rather than checking for it here first to avoid race conditions
-    
-    console.log('Creating checkout session for:', { priceId, userId });
-    
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('Not authenticated');
+    }
+
+    console.log('Creating checkout session for price:', priceId);
+
     const response = await fetch(
       `${supabaseUrl}/functions/v1/stripe-checkout`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ priceId, userId, email }),
+        body: JSON.stringify({ priceId }),
       }
     );
 
@@ -31,13 +31,13 @@ export async function createCheckoutSession({ priceId, userId, email }: Checkout
     }
 
     const { url, customerId } = await response.json();
-    
+
     // Store the customerId in sessionStorage so it's available when we return from Stripe
     if (customerId) {
       console.log('Storing customer ID in session storage:', customerId);
       sessionStorage.setItem('stripe_customer_id', customerId);
     }
-    
+
     return url;
   } catch (error) {
     console.error('Error creating checkout session:', error);
@@ -45,53 +45,23 @@ export async function createCheckoutSession({ priceId, userId, email }: Checkout
   }
 }
 
-export async function createPortalSession(userId: string) {
+export async function createPortalSession() {
   try {
-    // Try to get customerId from session storage first
-    const storedCustomerId = sessionStorage.getItem('stripe_customer_id');
-    let customerId = null;
-    
-    if (storedCustomerId) {
-      console.log('Using stored customer ID:', storedCustomerId);
-      customerId = storedCustomerId;
-    } else {
-      // Fall back to DB query if not in session storage
-      try {
-        console.log('Fetching customer ID from database for user:', userId);
-        const { data, error } = await supabase
-          .from('stripe_customers')
-          .select('customer_id')
-          .eq('user_id', userId)
-          .maybeSingle();
-          
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-        
-        if (data?.customer_id) {
-          customerId = data.customer_id;
-          sessionStorage.setItem('stripe_customer_id', customerId);
-        }
-      } catch (dbError) {
-        console.error('Error fetching customer ID from database:', dbError);
-        // Continue without customerId - the edge function will handle this
-      }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('Not authenticated');
     }
-    
-    console.log(`Creating portal session for user: ${userId}, customer: ${customerId || 'unknown'}`);
-    
+
+    console.log('Creating portal session');
+
     const response = await fetch(
       `${supabaseUrl}/functions/v1/stripe-portal`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          userId,
-          customerId // Pass the customerId if we have it
-        }),
       }
     );
 
