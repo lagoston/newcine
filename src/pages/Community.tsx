@@ -145,12 +145,11 @@ export default function Community() {
 
       const offset = (currentPage - 1) * USERS_PER_PAGE;
 
-      const { count: totalCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      const { data: totalCount } = await supabase
+        .rpc('count_visible_profiles', { p_user_id: session.user.id });
 
       if (totalCount) {
-        setTotalPages(Math.ceil(totalCount / USERS_PER_PAGE));
+        setTotalPages(Math.ceil(Number(totalCount) / USERS_PER_PAGE));
       }
 
       const { data: visibleProfiles, error: profilesError } = await supabase
