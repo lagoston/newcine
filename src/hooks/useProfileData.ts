@@ -123,7 +123,7 @@ async function batchFetchFromCache(
   const { data, error } = await supabase
     .from('movie_cache')
     .select(
-      'tmdb_id, media_type, title_en, title_pt, overview_en, overview_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, genres_en, genres_pt, director, cast_members, seasons_data, origin_country'
+      'tmdb_id, media_type, title_en, title_pt, overview_en, overview_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, genres_en, genres_pt, director, cast_members, seasons_data, origin_country, watch_providers'
     )
     .in('tmdb_id', ids);
 
@@ -152,7 +152,8 @@ async function batchFetchFromCache(
         crew: row.director ? [{ id: 0, name: row.director, job: 'Director' }] : []
       },
       seasons: row.seasons_data,
-      origin_country: row.origin_country || []
+      origin_country: row.origin_country || [],
+      watchProviders: row.watch_providers
     } as Movie;
     map.set(`${row.tmdb_id}_${row.media_type}`, movie);
   }
