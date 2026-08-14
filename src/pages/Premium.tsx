@@ -82,7 +82,7 @@ export default function Premium() {
 
     try {
       setLoading(prev => ({ ...prev, portal: true }));
-      const portalUrl = await createPortalSession(session.user.id);
+      const portalUrl = await createPortalSession();
       if (portalUrl) {
         window.location.href = portalUrl;
       }
