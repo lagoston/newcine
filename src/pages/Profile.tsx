@@ -841,15 +841,15 @@ export default function Profile() {
                     </span>
                   </button>
                   <button
-                    onClick={() => setShowFollowModal('following')}
-                    className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
-                  >
-                    <Users className="w-5 h-5 mr-2" />
-                    <span>
-                      <strong className="text-gray-900 dark:text-white">{followingCount}</strong>{' '}
-                      {t('profile.following', { count: followingCount })}
-                    </span>
-                  </button>
+                  onClick={() => setShowFollowModal('following')}
+                  className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
+                >
+                  <Users className="w-5 h-5 mr-2" />
+                  <span>
+                    <strong className="text-gray-900 dark:text-white">{followingCount}</strong>{' '}
+                    {t('profile.followingButton')}
+                  </span>
+                </button>
                   <div className="flex items-center">
                     <Calendar className="w-5 h-5 mr-2" />
                     <span>{t('profile.joined', { date: createdAt ? formatDate(createdAt) : 'Unknown' })}</span>
