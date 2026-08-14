@@ -431,25 +431,25 @@ export default function UserProfile() {
 
                 <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm text-gray-600 dark:text-gray-400 mb-4">
                   <button
-                    onClick={() => setShowFollowModal('followers')}
-                    className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
-                  >
-                    <Users className="w-5 h-5 mr-2" />
-                    <span>
-                      <strong className="text-gray-900 dark:text-white">{followersCount}</strong>{' '}
-                      {followersCount === 1 ? 'follower' : 'followers'}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setShowFollowModal('following')}
-                    className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
-                  >
-                    <Users className="w-5 h-5 mr-2" />
-                    <span>
-                      <strong className="text-gray-900 dark:text-white">{followingCount}</strong>{' '}
-                      {t('profile.following', { count: followingCount })}
-                    </span>
-                  </button>
+                  onClick={() => setShowFollowModal('followers')}
+                  className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
+                >
+                  <Users className="w-5 h-5 mr-2" />
+                  <span>
+                    <strong className="text-gray-900 dark:text-white">{followersCount}</strong>{' '}
+                    {t('profile.followersLabel')}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setShowFollowModal('following')}
+                  className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
+                >
+                  <Users className="w-5 h-5 mr-2" />
+                  <span>
+                    <strong className="text-gray-900 dark:text-white">{followingCount}</strong>{' '}
+                    {t('profile.followingButton')}
+                  </span>
+                </button>
                   <div className="flex items-center">
                     <Calendar className="w-5 h-5 mr-2" />
                     <span>{t('profile.joined', { date: formatDate(profile.created_at) })}</span>
