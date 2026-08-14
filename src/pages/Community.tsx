@@ -512,19 +512,19 @@ export default function Community() {
 
                   <div className="flex items-center gap-6 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
                     <div className="flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm">
-                        <span className="font-bold text-gray-900 dark:text-white">{profile.followers_count}</span>
-                        <span className="text-gray-500 dark:text-gray-400 ml-1">{profile.followers_count === 1 ? 'follower' : 'followers'}</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm">
-                        <span className="font-bold text-gray-900 dark:text-white">{profile.following_count}</span>
-                        <span className="text-gray-500 dark:text-gray-400 ml-1">following</span>
-                      </span>
-                    </div>
+                  <Users className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm">
+                    <span className="font-bold text-gray-900 dark:text-white">{profile.followers_count}</span>
+                    <span className="text-gray-500 dark:text-gray-400 ml-1">{t('profile.followersLabel')}</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm">
+                    <span className="font-bold text-gray-900 dark:text-white">{profile.following_count}</span>
+                    <span className="text-gray-500 dark:text-gray-400 ml-1">{t('profile.followingButton')}</span>
+                  </span>
+                </div>
                   </div>
                 </div>
               </motion.div>
