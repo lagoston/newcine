@@ -59,9 +59,7 @@ export default function Premium() {
       setLoading(prev => ({ ...prev, monthly: true }));
 
       const checkoutUrl = await createCheckoutSession({
-        priceId: products.premium.priceId,
-        userId: session.user.id,
-        email: session.user.email || ''
+        priceId: products.premium.priceId
       });
 
       if (checkoutUrl) {
