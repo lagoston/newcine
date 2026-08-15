@@ -282,6 +282,24 @@
       "generating": "Gerando previsão...",
       "finalizing": "Finalizando análise..."
     },
+    "duel": {
+  "title": "Duelo de Filmes",
+  "description": "Escolha seus humores e oráculos — 8 filmes entram, só um vence sua noite.",
+  "chooseMoods": "Escolha seus humores",
+  "chooseOracles": "Escolha seus oráculos",
+  "selectAtLeastOne": "Selecione ao menos um humor e um oráculo.",
+  "startDuel": "Iniciar o Duelo",
+  "notEnoughTickets": "Você precisa de {{needed}} tickets para um duelo.",
+  "assembling": "Montando seu chaveamento...",
+  "roundOf": "Rodada de {{count}}",
+  "pairProgress": "Confronto {{current}} de {{total}}",
+  "watchTrailer": "Ver Trailer",
+  "choose": "Escolher Este",
+  "champion": "Seu Campeão",
+  "viewAndAdd": "Ver e Adicionar à Biblioteca",
+  "newDuel": "Novo Duelo",
+  "noTrailer": "Trailer não disponível para este título."
+},
     "recommend": {
       "title": "Câmara de Recomendação",
       "description": "Escolha seu humor, e deixe o Oráculo guiá-lo ao filme perfeito para hoje à noite.",
