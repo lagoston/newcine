@@ -492,6 +492,38 @@ export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv
 }
 
 // Helper to get multiple movies from cache efficiently
+export interface MovieTrailer {
+  key: string;
+  site: string;
+  name: string;
+}
+
+// Busca o trailer oficial de um filme (usado no duelo do Oráculo). Prioriza
+// trailer oficial do YouTube; se não achar nenhum, retorna null (o chamador
+// deve mostrar "trailer não disponível" — comum em filmes do oráculo Cypher,
+// que é propositalmente obscuro/underground).
+export const getMovieTrailer = async (movieId: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<MovieTrailer | null> => {
+  try {
+    const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
+    const data = await tmdbFetch(`/${endpoint}/${movieId}/videos?language=en-US`);
+    const videos = data.results || [];
+
+    const officialTrailer = videos.find(
+      (v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.official
+    );
+    const anyTrailer = videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer');
+    const anyVideo = videos.find((v: any) => v.site === 'YouTube');
+
+    const chosen = officialTrailer || anyTrailer || anyVideo;
+    if (!chosen) return null;
+
+    return { key: chosen.key, site: chosen.site, name: chosen.name };
+  } catch (error) {
+    console.error('Error fetching movie trailer:', error);
+    return null;
+  }
+};
+
 export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number, Movie>> => {
   const language = getCurrentLanguage();
   const movieMap = new Map<number, Movie>();
