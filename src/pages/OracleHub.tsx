@@ -439,33 +439,29 @@ export default function OracleHub() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <motion.div whileHover={{ scale: 1.03, y: -5 }} whileTap={{ scale: 0.98 }} className="h-full">
-            <Link
-              to="/oracle/recommend"
-              className="block h-full relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden p-6 group"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-rose-500/10 dark:from-pink-500/20 dark:to-rose-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl" />
-
-              <div className="relative z-10 h-full flex flex-col">
-                <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-pink-400/30 w-fit mb-4">
-                  <Wand2 className="w-8 h-8 text-pink-500 dark:text-pink-400" />
+         <motion.div whileHover={{ scale: 1.03, y: -5 }} whileTap={{ scale: 0.98 }} className="h-full">
+              <Link
+                to="/oracle/duel"
+                className="block h-full relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden p-6 group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-rose-500/10 dark:from-pink-500/20 dark:to-rose-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl" />
+                <div className="relative z-10 h-full flex flex-col">
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-pink-400/30 w-fit mb-4">
+                    <Wand2 className="w-8 h-8 text-pink-500 dark:text-pink-400" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                    {t('oracle.recommend.title')}
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 flex-1">
+                    {t('oracle.recommend.description')}
+                  </p>
+                  <div className="flex items-center gap-2 text-pink-500 dark:text-pink-400 text-sm font-semibold">
+                    <span>5 tickets</span>
+                  </div>
                 </div>
-
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
-                  {t('oracle.recommend.title')}
-                </h2>
-
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 flex-1">
-                  {t('oracle.recommend.description')}
-                </p>
-
-                <div className="flex items-center gap-2 text-pink-500 dark:text-pink-400 text-sm font-semibold">
-                  <span>1 ticket</span>
-                </div>
-              </div>
-            </Link>
-          </motion.div>
+              </Link>
+            </motion.div>
 
           <motion.div whileHover={{ scale: 1.03, y: -5 }} whileTap={{ scale: 0.98 }} className="h-full">
             <Link
