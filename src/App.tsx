@@ -22,6 +22,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const OracleHub = lazy(() => import('./pages/OracleHub'));
 const OraclePrediction = lazy(() => import('./pages/OraclePrediction'));
 const OracleRecommend = lazy(() => import('./pages/OracleRecommend'));
+const OracleDuel = lazy(() => import('./pages/OracleDuel'));
 const Premium = lazy(() => import('./pages/Premium'));
 const PremiumSuccess = lazy(() => import('./pages/PremiumSuccess'));
 const CategoryMovies = lazy(() => import('./pages/CategoryMovies'));
