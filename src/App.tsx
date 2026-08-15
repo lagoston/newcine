@@ -64,6 +64,7 @@ function App() {
                   <Route path="/oracle" element={<ProtectedRoute><OracleHub /></ProtectedRoute>} />
                   <Route path="/oracle/prediction" element={<ProtectedRoute><OraclePrediction /></ProtectedRoute>} />
                   <Route path="/oracle/recommend" element={<ProtectedRoute><OracleRecommend /></ProtectedRoute>} />
+                <Route path="/oracle/duel" element={<ProtectedRoute><OracleDuel /></ProtectedRoute>} />
                   <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
                   <Route path="/premium/success" element={<ProtectedRoute><PremiumSuccess /></ProtectedRoute>} />
                   <Route path="*" element={<Navigate to="/" replace />} />
