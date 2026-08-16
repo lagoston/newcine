@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link, useNavigate } from 'react-router-dom';
-import { Library as LibraryIcon, Lock, Star, Film, Clock, Sparkles, RefreshCw, X, HelpCircle, Info } from 'lucide-react';
+import { Library as LibraryIcon, Lock, Star, Film, Clock, Sparkles, RefreshCw, X, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
@@ -576,15 +576,27 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
             )}
 
             {dailyRecs.length > 1 && (
-              <div className="flex items-center justify-center gap-[3px] mb-1">
+              <div className="flex items-center justify-center mb-1" style={{ gap: '6px' }}>
                 {dailyRecs.map((rec, idx) => (
                   <button
                     key={rec.oracle}
                     onClick={() => setCarouselIndex(idx)}
                     aria-label={rec.oracle}
-                    className={`h-[3px] rounded-full transition-all ${
-                      idx === carouselIndex ? `${ORACLE_SEAL[rec.oracle].bg} w-2` : 'bg-gray-300 dark:bg-gray-600 w-[3px]'
+                    className={`rounded-full transition-all block appearance-none ${
+                      idx === carouselIndex ? ORACLE_SEAL[rec.oracle].bg : 'bg-gray-300 dark:bg-gray-600'
                     }`}
+                    style={{
+                      display: 'block',
+                      boxSizing: 'border-box',
+                      padding: 0,
+                      margin: 0,
+                      border: 'none',
+                      outline: 'none',
+                      minWidth: 0,
+                      minHeight: 0,
+                      height: '12px',
+                      width: idx === carouselIndex ? '22px' : '12px'
+                    }}
                   />
                 ))}
               </div>
@@ -730,15 +742,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               </h2>
 
               <div className="space-y-4">
-                <div className="rounded-xl p-4 border-2 border-pink-400/60 dark:border-pink-500/50 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/30 dark:to-rose-900/30 shadow-lg">
-                  <div className="flex items-center gap-3">
-                    <Info className="w-5 h-5 text-pink-500 flex-shrink-0" />
-                    <p className="text-pink-700 dark:text-pink-300 text-sm font-medium leading-relaxed">
-                      {t('oracle.cards.disclaimer')}
-                    </p>
-                  </div>
-                </div>
-
                 <div className="rounded-xl p-5 border border-emerald-300/50 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/10">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-full bg-emerald-500/20 dark:bg-emerald-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
