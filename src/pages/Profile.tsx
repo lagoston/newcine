@@ -1101,9 +1101,23 @@ export default function Profile() {
               )}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Follow users to see their activity here</p>
+            <div className="text-center py-10">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-violet-500/10 dark:bg-violet-500/15 flex items-center justify-center">
+                <Users className="w-8 h-8 text-violet-500" />
+              </div>
+              <h3 className="text-base font-bold text-gray-800 dark:text-white mb-1">
+                {t('profile.noFriendsActivityTitle')}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-sm mx-auto">
+                {t('profile.noFriendsActivityDescription')}
+              </p>
+              <button
+                onClick={() => navigate('/community')}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <Users className="w-4 h-4" />
+                {t('profile.accessCommunity')}
+              </button>
             </div>
           )}
         </div>
