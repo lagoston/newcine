@@ -1061,8 +1061,8 @@ export default function Profile() {
                   })}
                 </motion.div>
               </AnimatePresence>
-              {followedUsersCarousel.length > CAROUSEL_PAGE_SIZE && (
-                <div className="flex justify-center gap-0.5 mt-2 pb-1">
+             {followedUsersCarousel.length > CAROUSEL_PAGE_SIZE && (
+                <div className="flex justify-center items-center gap-1 mt-2 pb-1">
                   {Array.from({ length: Math.ceil(followedUsersCarousel.length / CAROUSEL_PAGE_SIZE) }).map((_, i) => (
                     <button
                       key={i}
@@ -1070,8 +1070,16 @@ export default function Profile() {
                         setCarouselAutoPaused(true);
                         setCarouselOffset(i * CAROUSEL_PAGE_SIZE);
                       }}
-                      className="rounded-full transition-all duration-300"
+                      className="rounded-full transition-all duration-300 block appearance-none"
                       style={{
+                        display: 'block',
+                        boxSizing: 'border-box',
+                        padding: 0,
+                        margin: 0,
+                        border: 'none',
+                        outline: 'none',
+                        minWidth: 0,
+                        minHeight: 0,
                         width: carouselOffset === i * CAROUSEL_PAGE_SIZE ? '6px' : '4px',
                         height: '4px',
                         backgroundColor: carouselOffset === i * CAROUSEL_PAGE_SIZE
