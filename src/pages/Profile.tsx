@@ -1080,7 +1080,7 @@ export default function Profile() {
                         outline: 'none',
                         minWidth: 0,
                         minHeight: 0,
-                        width: carouselOffset === i * CAROUSEL_PAGE_SIZE ? '18px' : '18px',
+                        width: carouselOffset === i * CAROUSEL_PAGE_SIZE ? '18px' : '9px',
                         height: '9px',
                         backgroundColor: carouselOffset === i * CAROUSEL_PAGE_SIZE
                           ? 'rgb(139 92 246 / 0.7)'
