@@ -16,7 +16,16 @@ interface DuelMovie {
   release_date: string | null;
   vote_average: number;
   overview: string;
+  source: string;
 }
+
+// Mesmas cores usadas no modal "Conheça os Oráculos" da Câmara de Recomendação —
+// mantém a identidade visual de cada oráculo consistente em todo o site.
+const ORACLE_SEAL: Record<string, { emoji: string; bg: string; ring: string }> = {
+  bogart: { emoji: '🐸', bg: 'bg-emerald-500', ring: 'ring-emerald-300' },
+  fincher: { emoji: '🦊', bg: 'bg-red-500', ring: 'ring-red-300' },
+  cypher: { emoji: '🐍', bg: 'bg-orange-500', ring: 'ring-orange-300' }
+};
 
 type CardType = 'bogart' | 'fincher' | 'cypher';
 
@@ -441,6 +450,9 @@ export default function OracleDuel() {
                     onClick={() => openDetails(movie)}
                   >
                     <img src={posterUrl(movie.poster_path)} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <div className={`absolute top-2 left-2 w-8 h-8 rounded-full ${ORACLE_SEAL[movie.source]?.bg || 'bg-gray-500'} ring-2 ${ORACLE_SEAL[movie.source]?.ring || 'ring-gray-300'} shadow-lg flex items-center justify-center text-base`}>
+                      {ORACLE_SEAL[movie.source]?.emoji || '🎬'}
+                    </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
                       {loadingDetailsFor === movie.id ? (
                         <Loader2 className="w-5 h-5 text-white animate-spin" />
@@ -501,6 +513,9 @@ export default function OracleDuel() {
                 onClick={() => openDetails(champion)}
               >
                 <img src={posterUrl(champion.poster_path)} alt={champion.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <div className={`absolute top-2 left-2 w-8 h-8 rounded-full ${ORACLE_SEAL[champion.source]?.bg || 'bg-gray-500'} ring-2 ${ORACLE_SEAL[champion.source]?.ring || 'ring-gray-300'} shadow-lg flex items-center justify-center text-base`}>
+                  {ORACLE_SEAL[champion.source]?.emoji || '🎬'}
+                </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
                   {loadingDetailsFor === champion.id ? (
                     <Loader2 className="w-5 h-5 text-white animate-spin" />
