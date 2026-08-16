@@ -408,6 +408,9 @@
   },
   "profile": {
     "followers": "{{count}} followers",
+    "friendsActivitySubtitle": "{{count}} friends you follow",
+    "noFriendsActivityTitle": "No activity yet",
+    "noFriendsActivityDescription": "Follow people in the community to see what they're watching and rating here.",
     "followersLabel": "Followers",
     "following": "{{count}} following",
     "followingButton": "Following",
