@@ -1028,42 +1028,44 @@ export default function Profile() {
                   {visibleCarouselUsers.map((user, index) => {
                     const bubbleStyle = getBubbleStyle(user.lastRating);
                     return (
-                      <div key={user.id} className="flex-shrink-0 flex flex-col items-center">
+                      <button
+                        key={user.id}
+                        onClick={() => navigate(`/profile/${user.username}`)}
+                        className="flex-shrink-0 flex flex-col items-center group"
+                      >
                         <div className="relative mb-2">
                           {user.lastRatedTitle && (
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 pointer-events-none">
-                              <div className={`relative border rounded-xl px-2.5 py-1.5 shadow-lg backdrop-blur-sm w-[90px] ${bubbleStyle.bubble}`}>
-                                <p className={`text-[9px] font-medium text-center leading-tight line-clamp-2 whitespace-normal ${bubbleStyle.titleText}`}>
+                              <div className={`relative border rounded-xl px-3 py-2 shadow-lg backdrop-blur-sm w-[104px] transition-transform duration-200 group-hover:scale-105 ${bubbleStyle.bubble}`}>
+                                <p className={`text-[10px] font-semibold text-center leading-tight line-clamp-2 whitespace-normal ${bubbleStyle.titleText}`}>
                                   {user.lastRatedTitle}
                                 </p>
                                 {user.lastRating !== null && (
-                                  <p className={`text-[10px] font-bold text-center mt-0.5 ${bubbleStyle.ratingText}`}>
-                                    {user.lastRating}
-                                  </p>
+                                  <div className="flex items-center justify-center gap-1 mt-1">
+                                    <Star className={`w-3 h-3 fill-current ${bubbleStyle.ratingText}`} />
+                                    <p className={`text-xs font-bold ${bubbleStyle.ratingText}`}>
+                                      {user.lastRating}
+                                    </p>
+                                  </div>
                                 )}
-                                <div className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent ${bubbleStyle.arrow}`} />
+                                <div className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[7px] border-l-transparent border-r-transparent ${bubbleStyle.arrow}`} />
                               </div>
                             </div>
                           )}
-                          <button
-                            onClick={() => navigate(`/profile/${user.username}`)}
-                            className="block"
-                          >
-                            <div className={`w-14 h-14 rounded-full overflow-hidden border-2 border-white/80 dark:border-gray-700/80 shadow-lg ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
-                              {user.avatar_url ? (
-                                <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center">
-                                  <User className="w-7 h-7 text-white" />
-                                </div>
-                              )}
-                            </div>
-                          </button>
+                          <div className={`w-16 h-16 rounded-full overflow-hidden border-2 border-white/80 dark:border-gray-700/80 shadow-lg transition-all duration-200 group-hover:border-violet-400 group-hover:shadow-violet-400/30 group-hover:scale-105 ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
+                            {user.avatar_url ? (
+                              <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center">
+                                <User className="w-8 h-8 text-white" />
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-[10px] text-gray-600 dark:text-gray-400 text-center max-w-[56px] truncate font-medium">
+                        <span className="text-xs text-gray-600 dark:text-gray-400 text-center max-w-[64px] truncate font-semibold group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
                           {user.username}
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
                 </motion.div>
