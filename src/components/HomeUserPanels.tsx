@@ -149,6 +149,21 @@ function getArchetypeColor(personalidade: string | null): string {
   return map[third] || '#3b82f6';
 }
 
+type OracleId = 'bogart' | 'fincher' | 'cypher';
+
+interface DailyRec {
+  oracle: OracleId;
+  movie: Movie;
+}
+
+// Mesmas cores usadas no modal "Conheça os Oráculos" (OracleRecommend.tsx) —
+// identidade visual consistente de cada oráculo em todo o site.
+const ORACLE_SEAL: Record<OracleId, { emoji: string; bg: string; ring: string }> = {
+  bogart: { emoji: '🐸', bg: 'bg-emerald-500', ring: 'ring-emerald-300' },
+  fincher: { emoji: '🦊', bg: 'bg-red-500', ring: 'ring-red-300' },
+  cypher: { emoji: '🐍', bg: 'bg-orange-500', ring: 'ring-orange-300' }
+};
+
 interface Props {
   userId: string;
   username: string;
@@ -163,7 +178,8 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [libraryCount, setLibraryCount] = useState<number>(0);
   const [nextTag, setNextTag] = useState<LockedTag | null>(null);
-  const [dailyMovie, setDailyMovie] = useState<Movie | null>(null);
+  const [dailyRecs, setDailyRecs] = useState<DailyRec[]>([]);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const [loadingMovie, setLoadingMovie] = useState(true);
   const [countdown, setCountdown] = useState(getMidnightCountdown());
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -191,6 +207,16 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
     }
     return () => { document.body.style.overflow = 'unset'; };
   }, [showRevelationModal, showInfoModal]);
+
+  // Avança o carrossel sozinho a cada 6s, entre os 3 oráculos.
+  useEffect(() => {
+    if (dailyRecs.length > 1) {
+      const interval = setInterval(() => {
+        setCarouselIndex((prev) => (prev + 1) % dailyRecs.length);
+      }, 6000);
+      return () => clearInterval(interval);
+    }
+  }, [dailyRecs.length]);
 
   const fetchUserStats = useCallback(async () => {
     try {
@@ -266,13 +292,28 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
     }
   }, [userId, i18n.language]);
 
+  // Busca as 3 recomendações do dia (uma por oráculo: Bogart, Fincher, Cypher),
+  // cacheadas globalmente por dia via get_or_create_daily_oracle_recommendations.
   const fetchDailyRecommendation = useCallback(async () => {
     try {
       setLoadingMovie(true);
-      const { data: movieId, error } = await supabase.rpc('get_or_create_daily_recommendation');
-      if (error || !movieId) return;
-      const details = await getMovieDetails(movieId);
-      setDailyMovie(details);
+      const { data, error } = await supabase.rpc('get_or_create_daily_oracle_recommendations');
+      if (error || !data || data.length === 0) return;
+
+      const results = await Promise.all(
+        data.map(async (row: any) => {
+          try {
+            const details = await getMovieDetails(row.out_movie_id, 'movie');
+            return { oracle: row.out_card_type as OracleId, movie: details };
+          } catch (err) {
+            console.warn('Failed to load daily rec movie', row.out_movie_id, err);
+            return null;
+          }
+        })
+      );
+
+      setDailyRecs(results.filter((r): r is DailyRec => r !== null));
+      setCarouselIndex(0);
     } catch (err) {
       console.error('HomeUserPanels: daily rec fetch error', err);
     } finally {
@@ -293,6 +334,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const subcategoryId = personality?.personalidade_completa?.slice(2, 3);
 
   const hasEssence = !personalityLoading && personality?.personalidade_completa && archetypeInfo;
+  const currentRec = dailyRecs[carouselIndex];
 
   return (
     <>
@@ -445,7 +487,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
           </div>
         </motion.div>
 
-        {/* Panel 2 — Daily Recommendation */}
+        {/* Panel 2 — Daily Recommendation (carrossel dos 3 oráculos) */}
         <motion.div
           className={`${panelBase} md:flex-1`}
           initial={{ opacity: 0, y: 20 }}
@@ -476,42 +518,52 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               <div className="flex items-center justify-center py-10">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-rose-500" />
               </div>
-            ) : dailyMovie ? (
-              <button
-                onClick={() => setSelectedMovie(dailyMovie)}
-                className="w-full text-left group mb-5"
-              >
-                <div className="flex gap-4 items-start">
-                  <div className="flex-shrink-0 w-[88px] h-[132px] rounded-2xl overflow-hidden shadow-xl border border-white/30 dark:border-gray-700/30 group-hover:shadow-2xl group-hover:scale-[1.03] transition-all duration-300">
-                    <OptimizedPoster
-                      src={`https://image.tmdb.org/t/p/w300${dailyMovie.poster_path}`}
-                      alt={dailyMovie.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0 pt-1">
-                    <h4 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors duration-200 leading-snug mb-1.5 line-clamp-2">
-                      {dailyMovie.title}
-                    </h4>
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full font-medium">
-                        {dailyMovie.release_date ? new Date(dailyMovie.release_date).getFullYear() : ''}
-                      </span>
-                      <div className="flex items-center gap-1 bg-amber-500/10 dark:bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-400/20">
-                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                          {dailyMovie.vote_average?.toFixed(1) ?? '—'}
-                        </span>
+            ) : currentRec ? (
+              <AnimatePresence mode="wait">
+                <motion.button
+                  key={currentRec.oracle}
+                  onClick={() => setSelectedMovie(currentRec.movie)}
+                  className="w-full text-left group mb-4"
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -12 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <div className="flex gap-4 items-start">
+                    <div className="flex-shrink-0 relative w-[88px] h-[132px] rounded-2xl overflow-hidden shadow-xl border border-white/30 dark:border-gray-700/30 group-hover:shadow-2xl group-hover:scale-[1.03] transition-all duration-300">
+                      <OptimizedPoster
+                        src={`https://image.tmdb.org/t/p/w300${currentRec.movie.poster_path}`}
+                        alt={currentRec.movie.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className={`absolute top-1.5 left-1.5 w-6 h-6 rounded-full ${ORACLE_SEAL[currentRec.oracle].bg} ring-2 ${ORACLE_SEAL[currentRec.oracle].ring} shadow-lg flex items-center justify-center text-xs`}>
+                        {ORACLE_SEAL[currentRec.oracle].emoji}
                       </div>
                     </div>
-                    {dailyMovie.overview && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed">
-                        {dailyMovie.overview}
-                      </p>
-                    )}
+                    <div className="flex-1 min-w-0 pt-1">
+                      <h4 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors duration-200 leading-snug mb-1.5 line-clamp-2">
+                        {currentRec.movie.title}
+                      </h4>
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full font-medium">
+                          {currentRec.movie.release_date ? new Date(currentRec.movie.release_date).getFullYear() : ''}
+                        </span>
+                        <div className="flex items-center gap-1 bg-amber-500/10 dark:bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-400/20">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                            {currentRec.movie.vote_average?.toFixed(1) ?? '—'}
+                          </span>
+                        </div>
+                      </div>
+                      {currentRec.movie.overview && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed">
+                          {currentRec.movie.overview}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </button>
+                </motion.button>
+              </AnimatePresence>
             ) : (
               <div className="text-center py-8 text-gray-400 dark:text-gray-500 mb-5">
                 <Film className="w-8 h-8 mx-auto mb-2 opacity-40" />
@@ -519,12 +571,26 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               </div>
             )}
 
+            {dailyRecs.length > 1 && (
+              <div className="flex items-center justify-center gap-2 mb-1">
+                {dailyRecs.map((rec, idx) => (
+                  <button
+                    key={rec.oracle}
+                    onClick={() => setCarouselIndex(idx)}
+                    aria-label={rec.oracle}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      idx === carouselIndex ? `${ORACLE_SEAL[rec.oracle].bg} w-5` : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
             </div>
 
             <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-4 mt-auto" />
 
             <Link
-              to="/oracle/recommend"
+              to="/oracle/duel"
               className="group flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-sm font-bold rounded-2xl shadow-lg shadow-rose-500/20 hover:shadow-rose-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
             >
               <span>{t('home.panels.anotherRecommendation')}</span>
