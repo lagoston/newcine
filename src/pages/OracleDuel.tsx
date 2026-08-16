@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Star, Play, X, Loader2, Ticket, Trophy, Plus } from 'lucide-react';
+import { ArrowLeft, Sparkles, Star, Play, X, Loader2, Ticket, Trophy, Plus, HelpCircle, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
@@ -91,6 +91,7 @@ export default function OracleDuel() {
 
   const [detailsMovie, setDetailsMovie] = useState<any | null>(null);
   const [loadingDetailsFor, setLoadingDetailsFor] = useState<number | null>(null);
+  const [showOracleInfoModal, setShowOracleInfoModal] = useState(false);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -319,9 +320,14 @@ export default function OracleDuel() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6 text-center">
-                {t('duel.chooseOracles')}
-              </h2>
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                  {t('duel.chooseOracles')}
+                </h2>
+                <button onClick={() => setShowOracleInfoModal(true)} className="text-pink-500 hover:text-pink-400 transition-colors">
+                  <HelpCircle className="w-5 h-5" />
+                </button>
+              </div>
               <div className="grid grid-cols-3 gap-3 sm:gap-4">
                 {ORACLE_IDS.map((oracleId) => {
                   const isSelected = selectedOracles.includes(oracleId);
@@ -601,6 +607,105 @@ export default function OracleDuel() {
           onClose={() => setDetailsMovie(null)}
         />
       )}
+
+      <AnimatePresence>
+        {showOracleInfoModal && (
+          <motion.div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowOracleInfoModal(false)}
+          >
+            <motion.div
+              className="relative max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8"
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowOracleInfoModal(false)}
+                className="absolute top-4 right-4 p-2.5 bg-gray-200/60 dark:bg-gray-700/60 hover:bg-gray-300/80 dark:hover:bg-gray-600/80 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              </button>
+
+              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500 mb-6 text-center pr-10">
+                {t('oracle.cards.infoTitle')}
+              </h2>
+
+              <div className="space-y-4">
+                <div className="rounded-xl p-4 border-2 border-pink-400/60 dark:border-pink-500/50 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/30 dark:to-rose-900/30 shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <Info className="w-5 h-5 text-pink-500 flex-shrink-0" />
+                    <p className="text-pink-700 dark:text-pink-300 text-sm font-medium leading-relaxed">
+                      {t('oracle.cards.disclaimer')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl p-5 border border-emerald-300/50 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/10">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 dark:bg-emerald-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
+                      🐸
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mb-2">
+                        {t('oracle.cards.bogart')} - {t('oracle.cards.bogartSubtitle')}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                        {t('oracle.cards.bogartDesc')}
+                      </p>
+                      <p className="text-emerald-600 dark:text-emerald-400 text-sm mt-2 font-medium">
+                        {t('oracle.cards.bogartRec')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl p-5 border border-red-300/50 dark:border-red-500/30 bg-red-50/50 dark:bg-red-500/10">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-red-500/20 dark:bg-red-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
+                      🦊
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">
+                        {t('oracle.cards.fincher')} - {t('oracle.cards.fincherSubtitle')}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                        {t('oracle.cards.fincherDesc')}
+                      </p>
+                      <p className="text-red-600 dark:text-red-400 text-sm mt-2 font-medium">
+                        {t('oracle.cards.fincherRec')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl p-5 border border-orange-300/50 dark:border-orange-500/30 bg-orange-50/50 dark:bg-orange-500/10">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-orange-500/20 dark:bg-orange-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
+                      🐍
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-orange-600 dark:text-orange-400 mb-2">
+                        {t('oracle.cards.cypher')} - {t('oracle.cards.cypherSubtitle')}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                        {t('oracle.cards.cypherDesc')}
+                      </p>
+                      <p className="text-orange-600 dark:text-orange-400 text-sm mt-2 font-medium">
+                        {t('oracle.cards.cypherRec')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
