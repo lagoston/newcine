@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link } from 'react-router-dom';
-import { Eye, Wand2, BrainCircuit, Loader2, Scroll, Info, X, RefreshCw, Sparkles, LayoutGrid, Share2 } from 'lucide-react';
+import { Eye, Wand2, Swords, BrainCircuit, Loader2, Scroll, Info, X, RefreshCw, Sparkles, LayoutGrid, Share2 } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import PentagonGraph from '../components/PentagonGraph';
 import { motion, AnimatePresence } from 'framer-motion';
