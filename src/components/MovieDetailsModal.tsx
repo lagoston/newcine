@@ -547,6 +547,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     toast.success('Imagem baixada! Compartilhe no Instagram Stories.');
   };
 
+  const handleOpenTrailer = async () => {
+    setShowTrailerModal(true);
+    setLoadingTrailer(true);
+    setTrailerKey(undefined);
+    try {
+      const trailer = await getMovieTrailer(movie.id, movie.media_type || 'movie');
+      setTrailerKey(trailer?.key || null);
+    } catch (error) {
+      console.error('Error fetching trailer:', error);
+      setTrailerKey(null);
+    } finally {
+      setLoadingTrailer(false);
+    }
+  };
+
   const handleAddToLibrary = async (rating?: number) => {
     if (!session?.user?.id) return;
 
