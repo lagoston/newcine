@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Star, Play, X, Loader2, Ticket, Trophy, Plus, HelpCircle, Info } from 'lucide-react';
+import { ArrowLeft, Sparkles, Star, Play, X, Loader2, Ticket, Trophy, Swords, Plus, HelpCircle, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
@@ -64,7 +64,7 @@ const MOOD_COLORS: Record<string, { bg: string; hover: string; text: string; bor
 const ORACLE_IDS: CardType[] = ['bogart', 'fincher', 'cypher'];
 const ORACLE_NAMES: Record<CardType, string> = { bogart: 'BOGART', fincher: 'FINCHER', cypher: 'CYPHER' };
 
-const DUEL_COST = 5;
+const DUEL_COST = 3;
 
 type Phase = 'setup' | 'loading' | 'bracket' | 'champion';
 
@@ -262,14 +262,29 @@ export default function OracleDuel() {
       </div>
 
       <div className="max-w-4xl mx-auto relative z-10">
-        <motion.button
-          onClick={() => navigate('/oracle')}
-          className="p-2.5 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl hover:bg-white/60 dark:hover:bg-gray-800/60 border border-white/60 dark:border-gray-700/60 rounded-full transition-colors mb-8"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-        </motion.button>
+        <div className="flex items-center justify-between mb-8">
+          <motion.button
+            onClick={() => navigate('/oracle')}
+            className="p-2.5 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl hover:bg-white/60 dark:hover:bg-gray-800/60 border border-white/60 dark:border-gray-700/60 rounded-full transition-colors"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </motion.button>
+
+          {/* Alternador entre Duelo (modo atual, padrão) e Recomendação Clássica */}
+          <div className="flex items-center bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 rounded-full p-1">
+            <div className="px-4 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold rounded-full shadow-sm">
+              {t('duel.modeToggleDuel')}
+            </div>
+            <button
+              onClick={() => navigate('/oracle/recommend')}
+              className="px-4 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-full transition-colors"
+            >
+              {t('duel.modeToggleClassic')}
+            </button>
+          </div>
+        </div>
 
         {/* SETUP */}
         {phase === 'setup' && (
@@ -281,7 +296,7 @@ export default function OracleDuel() {
                 transition={{ duration: 4, repeat: Infinity, repeatType: 'reverse' }}
               >
                 <div className="p-4 rounded-full bg-gradient-to-br from-pink-500/20 to-rose-500/20 dark:from-pink-500/30 dark:to-rose-500/30 border border-pink-400/30">
-                  <Trophy className="w-12 h-12 text-pink-500 dark:text-pink-400" style={{ filter: 'drop-shadow(0 0 15px rgba(236, 72, 153, 0.4))' }} />
+                  <Swords className="w-12 h-12 text-pink-500 dark:text-pink-400" style={{ filter: 'drop-shadow(0 0 15px rgba(236, 72, 153, 0.4))' }} />
                 </div>
               </motion.div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-rose-500 to-pink-500 tracking-wide mb-3">
@@ -421,7 +436,7 @@ export default function OracleDuel() {
             <div className="flex flex-col items-center gap-4">
               <div className="p-6 rounded-full bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-pink-400/30">
                 <motion.div animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }} transition={{ duration: 2, repeat: Infinity }}>
-                  <Trophy className="w-10 h-10 text-pink-500" />
+                  <Swords className="w-10 h-10 text-pink-500" />
                 </motion.div>
               </div>
               <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">
@@ -491,7 +506,7 @@ export default function OracleDuel() {
                       onClick={() => chooseWinner(movie)}
                       className="mt-auto flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:shadow-lg hover:shadow-pink-500/25 text-white font-bold rounded-xl shadow-md transition-all"
                     >
-                      <Trophy className="w-4 h-4" />
+                      <Swords className="w-4 h-4" />
                       {t('duel.choose')}
                     </button>
                   </div>
