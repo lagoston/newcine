@@ -594,6 +594,8 @@
   },
   "duel": {
     "title": "Duelo de Filmes",
+    "modeToggleDuel": "Duelo",
+    "modeToggleClassic": "Clássico",
     "description": "Escolha seus humores e oráculos — 8 filmes entram, só um vence sua noite.",
     "chooseMoods": "Escolha seus humores",
     "chooseOracles": "Escolha seus oráculos",
