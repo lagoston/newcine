@@ -457,7 +457,7 @@ export default function OracleHub() {
                     {t('oracle.recommend.description')}
                   </p>
                   <div className="flex items-center gap-2 text-pink-500 dark:text-pink-400 text-sm font-semibold">
-                    <span>5 tickets</span>
+                    <span>3 tickets</span>
                   </div>
                 </div>
               </Link>
