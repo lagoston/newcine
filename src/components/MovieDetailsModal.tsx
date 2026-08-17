@@ -49,6 +49,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [seasons, setSeasons] = useState<any[]>(movie.seasons || []);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showTrailerModal, setShowTrailerModal] = useState(false);
+  const [trailerKey, setTrailerKey] = useState<string | null | undefined>(undefined);
+  const [loadingTrailer, setLoadingTrailer] = useState(false);
 
   // Reset seasons when movie changes
   useEffect(() => {
