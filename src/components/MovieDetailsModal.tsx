@@ -1023,6 +1023,42 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         onAdd={handleAddToLibrary}
       />
 
+      {showTrailerModal && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
+          onClick={() => setShowTrailerModal(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl bg-gray-950 rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <h3 className="text-white font-semibold truncate pr-4">{movie.title}</h3>
+              <button onClick={() => setShowTrailerModal(false)} className="text-gray-400 hover:text-white flex-shrink-0">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="aspect-video bg-black flex items-center justify-center">
+              {loadingTrailer ? (
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
+              ) : trailerKey ? (
+                <iframe
+                  className="w-full h-full"
+                  src={`https://www.youtube.com/embed/${trailerKey}`}
+                  title="Trailer"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <p className="text-gray-400 text-center px-6">
+                  {t('duel.noTrailer')}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Seasons Modal */}
       {showSeasonsModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
