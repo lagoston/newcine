@@ -439,13 +439,9 @@ export default function OracleHub() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-         <motion.div whileHover={{ scale: 1.03, y: -5 }} whileTap={{ scale: 0.98 }} className="h-full">
-              <Link
-                to="/oracle/duel"
-                className="block h-full relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden p-6 group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-rose-500/10 dark:from-pink-500/20 dark:to-rose-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl" />
+                     <motion.div whileHover={{ scale: 1.02, y: -5 }} className="h-full">
+              <div className="block h-full relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden p-6">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl pointer-events-none" />
                 <div className="relative z-10 h-full flex flex-col">
                   <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-pink-400/30 w-fit mb-4">
                     <Wand2 className="w-8 h-8 text-pink-500 dark:text-pink-400" />
@@ -456,11 +452,26 @@ export default function OracleHub() {
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 flex-1">
                     {t('oracle.recommend.description')}
                   </p>
-                  <div className="flex items-center gap-2 text-pink-500 dark:text-pink-400 text-sm font-semibold">
-                    <span>3 tickets</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      to="/oracle/duel"
+                      className="flex flex-col items-center gap-1 px-3 py-3 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-400/30 rounded-xl transition-colors group/mode"
+                    >
+                      <Swords className="w-5 h-5 text-pink-500 dark:text-pink-400 group-hover/mode:scale-110 transition-transform" />
+                      <span className="text-xs font-bold text-gray-800 dark:text-white">{t('duel.modeToggleDuel')}</span>
+                      <span className="text-[11px] text-pink-500 dark:text-pink-400 font-semibold">3 tickets</span>
+                    </Link>
+                    <Link
+                      to="/oracle/recommend"
+                      className="flex flex-col items-center gap-1 px-3 py-3 bg-gray-500/10 hover:bg-gray-500/20 border border-gray-400/30 rounded-xl transition-colors group/mode"
+                    >
+                      <Wand2 className="w-5 h-5 text-gray-600 dark:text-gray-300 group-hover/mode:scale-110 transition-transform" />
+                      <span className="text-xs font-bold text-gray-800 dark:text-white">{t('duel.modeToggleClassic')}</span>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400 font-semibold">1 ticket</span>
+                    </Link>
                   </div>
                 </div>
-              </Link>
+              </div>
             </motion.div>
 
           <motion.div whileHover={{ scale: 1.03, y: -5 }} whileTap={{ scale: 0.98 }} className="h-full">
