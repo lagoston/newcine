@@ -594,6 +594,8 @@
   },
   "duel": {
     "title": "Movie Duel",
+    "modeToggleDuel": "Duel",
+    "modeToggleClassic": "Classic",
     "description": "Pick your moods and oracles — 8 movies enter, only one wins your night.",
     "chooseMoods": "Choose your moods",
     "chooseOracles": "Choose your oracles",
