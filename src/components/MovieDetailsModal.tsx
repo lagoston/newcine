@@ -695,15 +695,22 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <div className="relative bg-gray-800 rounded-lg overflow-hidden shadow-lg">
-                  <img
-                    src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                    alt={movie.title}
-                    className="w-full h-auto aspect-[2/3] object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://via.placeholder.com/500x750?text=No+Image';
-                    }}
-                  />
+                <div
+                className="relative bg-gray-800 rounded-lg overflow-hidden shadow-lg cursor-pointer group/poster"
+                onClick={handleOpenTrailer}
+              >
+                <img
+                  src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                  alt={movie.title}
+                  className="w-full h-auto aspect-[2/3] object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://via.placeholder.com/500x750?text=No+Image';
+                  }}
+                />
+                {/* Indicação sutil de trailer — só um ícone discreto no canto, sem texto */}
+                <div className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-60 group-hover/poster:opacity-100 group-hover/poster:bg-black/60 group-hover/poster:scale-110 transition-all duration-200 pointer-events-none">
+                  <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+                </div>
 
                   {/* Bolhas de amigos que avaliaram - limitadas ao poster */}
                   {!loadingFriends && friendRatings.length > 0 && (
