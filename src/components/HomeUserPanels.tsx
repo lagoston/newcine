@@ -180,6 +180,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const [nextTag, setNextTag] = useState<LockedTag | null>(null);
   const [dailyRecs, setDailyRecs] = useState<DailyRec[]>([]);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselAutoPaused, setCarouselAutoPaused] = useState(false);
   const [loadingMovie, setLoadingMovie] = useState(true);
   const [countdown, setCountdown] = useState(getMidnightCountdown());
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -211,13 +212,13 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
   // Avança o carrossel sozinho a cada 6s, entre os 3 oráculos.
   useEffect(() => {
-    if (dailyRecs.length > 1) {
+    if (dailyRecs.length > 1 && !carouselAutoPaused) {
       const interval = setInterval(() => {
         setCarouselIndex((prev) => (prev + 1) % dailyRecs.length);
       }, 6000);
       return () => clearInterval(interval);
     }
-  }, [dailyRecs.length]);
+  }, [dailyRecs.length, carouselAutoPaused]);
 
   const fetchUserStats = useCallback(async () => {
     try {
@@ -504,10 +505,12 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-1 bg-gradient-to-b from-rose-500 to-pink-500 rounded-full" />
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">{t('home.panels.dailyRecommendation')}</h3>
-                <button onClick={() => setShowOracleInfoModal(true)} className="text-pink-500 hover:text-pink-400 transition-colors">
-                  <HelpCircle className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">{t('home.panels.dailyRecommendation')}</h3>
+                  <button onClick={() => setShowOracleInfoModal(true)} className="text-pink-500 hover:text-pink-400 transition-colors">
+                    <HelpCircle className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 dark:bg-rose-500/15 rounded-xl border border-rose-400/20">
                 <Clock className="w-3 h-3 text-rose-500 dark:text-rose-400" />
@@ -580,7 +583,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 {dailyRecs.map((rec, idx) => (
                   <button
                     key={rec.oracle}
-                    onClick={() => setCarouselIndex(idx)}
+                    onClick={() => { setCarouselAutoPaused(true); setCarouselIndex(idx); }}
                     aria-label={rec.oracle}
                     className={`rounded-full transition-all block appearance-none ${
                       idx === carouselIndex ? ORACLE_SEAL[rec.oracle].bg : 'bg-gray-300 dark:bg-gray-600'
