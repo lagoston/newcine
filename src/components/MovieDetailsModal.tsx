@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Loader2, Calendar, Clock, User, Film, AlertCircle, Globe, Share2, Instagram, Tv, Users, MessageSquare } from 'lucide-react';
-import { Movie } from '../lib/tmdb';
+import { X, Star, Loader2, Calendar, Clock, User, Film, AlertCircle, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play } from 'lucide-react';
+import { Movie, getMovieTrailer } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
