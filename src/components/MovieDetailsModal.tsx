@@ -707,9 +707,15 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     e.currentTarget.src = 'https://via.placeholder.com/500x750?text=No+Image';
                   }}
                 />
-                {/* Indicação sutil de trailer — só um ícone discreto no canto, sem texto */}
-                <div className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-60 group-hover/poster:opacity-100 group-hover/poster:bg-black/60 group-hover/poster:scale-110 transition-all duration-200 pointer-events-none">
-                  <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+                {/* Indicação sutil de trailer — canto superior direito, com frase que
+                    aparece ao passar o mouse/tocar */}
+                <div className="absolute top-3 right-3 flex items-center gap-2 pointer-events-none">
+                  <span className="text-[10px] font-medium text-white bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full opacity-0 group-hover/poster:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                    {t('movies.clickForTrailer')}
+                  </span>
+                  <div className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-60 group-hover/poster:opacity-100 group-hover/poster:bg-black/60 group-hover/poster:scale-110 transition-all duration-200 flex-shrink-0">
+                    <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+                  </div>
                 </div>
 
                   {/* Bolhas de amigos que avaliaram - limitadas ao poster */}
