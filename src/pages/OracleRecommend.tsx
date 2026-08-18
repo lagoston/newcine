@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wand2, Loader2, Ticket, Plus, ArrowLeft, HelpCircle, X, Sparkles, Info } from 'lucide-react';
+import { Wand2, Loader2, Ticket, Plus, ArrowLeft, HelpCircle, X, Sparkles, Info, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
@@ -190,6 +190,7 @@ export default function OracleRecommend() {
 
   const handleGetRecommendation = async () => {
     if (!session?.user?.id || !selectedMood) return;
+
     if (ticketsRemaining !== null && ticketsRemaining < 1) {
       toast.error(t('oracle.prediction.notEnough', { time: formatTimeUntilReset() }));
       return;
@@ -220,7 +221,7 @@ export default function OracleRecommend() {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${session.access_token}`,
+            'Authorization': `Bearer ${session?.access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -242,6 +243,7 @@ export default function OracleRecommend() {
       }
 
       const data = await response.json();
+
       if (data.error) throw new Error(data.error);
 
       setTicketsRemaining(data.ticketsRemaining);
@@ -259,7 +261,6 @@ export default function OracleRecommend() {
         characterPhrase: data.characterPhrase,
         movieData: completeMovieData
       });
-
     } catch (error) {
       console.error('Error getting recommendation:', error);
       toast.error(error instanceof Error ? error.message : t('common.error'));
@@ -287,14 +288,29 @@ export default function OracleRecommend() {
       }} />
 
       <div className="max-w-4xl mx-auto relative z-10">
-        <motion.button
-          onClick={() => navigate(-1)}
-          className="p-2.5 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl hover:bg-white/60 dark:hover:bg-gray-800/60 border border-white/60 dark:border-gray-700/60 rounded-full transition-colors mb-8"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-        </motion.button>
+        <div className="flex items-center justify-between mb-8">
+          <motion.button
+            onClick={() => navigate(-1)}
+            className="p-2.5 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl hover:bg-white/60 dark:hover:bg-gray-800/60 border border-white/60 dark:border-gray-700/60 rounded-full transition-colors"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </motion.button>
+
+          {/* Alternador entre Recomendação Clássica (modo atual) e Duelo */}
+          <div className="flex items-center bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 rounded-full p-1">
+            <button
+              onClick={() => navigate('/oracle/duel')}
+              className="px-4 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-full transition-colors"
+            >
+              {t('duel.modeToggleDuel')}
+            </button>
+            <div className="px-4 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold rounded-full shadow-sm">
+              {t('duel.modeToggleClassic')}
+            </div>
+          </div>
+        </div>
 
         <motion.div
           className="text-center mb-10"
@@ -313,9 +329,8 @@ export default function OracleRecommend() {
           </motion.div>
 
           <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-rose-500 to-pink-500 tracking-wide mb-3">
-            {t('oracle.recommend.title')}
+            {t('oracle.recommend.pageTitle')}
           </h1>
-
           <p className="text-gray-600 dark:text-gray-300 text-lg mb-8">
             {t('oracle.recommend.description')}
           </p>
@@ -329,13 +344,13 @@ export default function OracleRecommend() {
             <div className="flex items-center gap-2">
               <Ticket className="w-5 h-5 text-amber-500" />
               <span className="font-semibold text-gray-700 dark:text-gray-200">{ticketsRemaining ?? '...'}</span>
-              <span className="text-gray-500 dark:text-gray-400">tickets</span>
+              <span className="text-gray-500 dark:text-gray-400">{t('oracle.ticketsLabel')}</span>
             </div>
             {nextReset && (
               <>
                 <div className="hidden sm:block w-px h-5 bg-gray-300 dark:bg-gray-600" />
                 <div className="text-gray-600 dark:text-gray-300 text-sm">
-                  <span className="font-semibold">Reset:</span> {formatTimeUntilReset()}
+                  <span className="font-semibold">{t('oracle.resetLabel')}:</span> {formatTimeUntilReset()}
                 </div>
               </>
             )}
@@ -357,15 +372,14 @@ export default function OracleRecommend() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6 text-center">
-          {t('oracle.selectMood')}
-        </h2>
+          <div className="flex items-center justify-center gap-1 mb-6">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+              {t('oracle.cards.title')}
+            </h2>
             <button onClick={() => setShowOracleInfoModal(true)} className="text-pink-500 hover:text-pink-400 transition-colors">
               <HelpCircle className="w-5 h-5" />
             </button>
           </div>
-
           <div className="grid grid-cols-3 gap-3 sm:gap-4">
             {cards.map((card) => (
               <motion.button
@@ -396,14 +410,12 @@ export default function OracleRecommend() {
           transition={{ delay: 0.3 }}
         >
           <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6 text-center">
-            {t('oracle.selectMood', { defaultValue: 'Select Your Mood' })}
+            {t('oracle.selectMood')}
           </h2>
-
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {moods.map((mood) => {
               const isSelected = selectedMood === mood;
               const moodStyle = moodColors[mood] || moodColors[t('oracle.moods.randomSurprise')];
-
               return (
                 <motion.button
                   key={mood}
@@ -478,7 +490,7 @@ export default function OracleRecommend() {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="flex flex-col items-center text-center gap-4">
-              <div className="text-5xl">⚠️</div>
+              <AlertTriangle className="w-12 h-12 text-amber-500" />
               <h2 className="text-2xl font-bold text-amber-600 dark:text-amber-400">{t('oracle.attention')}</h2>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg max-w-2xl">{infoMessage}</p>
               <button
@@ -524,7 +536,7 @@ export default function OracleRecommend() {
                     className="rounded-2xl shadow-2xl w-48 h-auto border-2 border-pink-400/30 group-hover:border-pink-500/60 transition-all"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-end justify-center pb-4">
-                   <p className="text-white text-sm font-semibold">{t('oracle.clickForDetails')}</p>
+                    <p className="text-white text-sm font-semibold">{t('duel.clickForDetails')}</p>
                   </div>
                 </motion.div>
 
@@ -538,8 +550,8 @@ export default function OracleRecommend() {
                     </p>
                   )}
                   <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                  {recommendation.movieData.overview || t('movies.noSynopsis')}
-                </p>
+                    {recommendation.movieData.overview || t('movies.noSynopsis')}
+                  </p>
                 </div>
               </div>
             </div>
@@ -623,7 +635,7 @@ export default function OracleRecommend() {
               </button>
 
               <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500 mb-6 text-center pr-10">
-                {t('oracle.cards.infoTitle', { defaultValue: 'Meet The Oracles' })}
+                {t('oracle.cards.infoTitle')}
               </h2>
 
               <div className="space-y-4">
@@ -631,7 +643,7 @@ export default function OracleRecommend() {
                   <div className="flex items-center gap-3">
                     <Info className="w-5 h-5 text-pink-500 flex-shrink-0" />
                     <p className="text-pink-700 dark:text-pink-300 text-sm font-medium leading-relaxed">
-                      {t('oracle.cards.disclaimer', { defaultValue: 'Nenhum oraculo recomenda filmes que estao adicionados em sua biblioteca.' })}
+                      {t('oracle.cards.disclaimer')}
                     </p>
                   </div>
                 </div>
@@ -643,13 +655,13 @@ export default function OracleRecommend() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mb-2">
-                        {t('oracle.cards.bogart')} - {t('oracle.cards.bogartSubtitle', { defaultValue: 'Popular and Modern' })}
+                        {t('oracle.cards.bogart')} - {t('oracle.cards.bogartSubtitle')}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                        {t('oracle.cards.bogartDesc', { defaultValue: 'They say the Frog was an old critic who, after watching so many films, sank into his own armchair and was reborn in the swamp waters.' })}
+                        {t('oracle.cards.bogartDesc')}
                       </p>
                       <p className="text-emerald-600 dark:text-emerald-400 text-sm mt-2 font-medium">
-                        {t('oracle.cards.bogartRec', { defaultValue: 'Recommends films after the 2000s, popular and well-rated' })}
+                        {t('oracle.cards.bogartRec')}
                       </p>
                     </div>
                   </div>
@@ -662,13 +674,13 @@ export default function OracleRecommend() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">
-                        {t('oracle.cards.fincher')} - {t('oracle.cards.fincherSubtitle', { defaultValue: 'Classic and Cult' })}
+                        {t('oracle.cards.fincher')} - {t('oracle.cards.fincherSubtitle')}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                        {t('oracle.cards.fincherDesc', { defaultValue: 'The Fox was born among film reels and cigar smoke. Some say he was an assistant to directors that time has erased.' })}
+                        {t('oracle.cards.fincherDesc')}
                       </p>
                       <p className="text-red-600 dark:text-red-400 text-sm mt-2 font-medium">
-                        {t('oracle.cards.fincherRec', { defaultValue: 'Recommends films before the 2000s, popular and cult gems.' })}
+                        {t('oracle.cards.fincherRec')}
                       </p>
                     </div>
                   </div>
@@ -681,13 +693,13 @@ export default function OracleRecommend() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-bold text-orange-600 dark:text-orange-400 mb-2">
-                        {t('oracle.cards.cypher')} - {t('oracle.cards.cypherSubtitle', { defaultValue: 'Underground and Bombs' })}
+                        {t('oracle.cards.cypher')} - {t('oracle.cards.cypherSubtitle')}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                        {t('oracle.cards.cypherDesc', { defaultValue: 'The Snake crawls through the damp corridors where films are banned, forgotten or booed. She worships error as art and chaos as style.' })}
+                        {t('oracle.cards.cypherDesc')}
                       </p>
                       <p className="text-orange-600 dark:text-orange-400 text-sm mt-2 font-medium">
-                        {t('oracle.cards.cypherRec', { defaultValue: 'Recommends unpopular films regardless of their rating.' })}
+                        {t('oracle.cards.cypherRec')}
                       </p>
                     </div>
                   </div>
