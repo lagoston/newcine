@@ -596,8 +596,10 @@
   "duel": {
     "title": "Movie Duel",
     "description": "Pick your moods and oracles — 8 movies enter, only one wins your night.",
-    "chooseMoods": "Choose your moods",
-    "chooseOracles": "Choose your oracles",
+    "chooseMoods": "Choose Your Moods",
+    "chooseOracles": "Choose Your Oracles",
+    "modeToggleDuel": "Duel",
+    "modeToggleClassic": "Classic",
     "selectAtLeastOne": "Select at least one mood and one oracle.",
     "startDuel": "Start the Duel",
     "notEnoughTickets": "You need {{needed}} tickets for a duel.",
