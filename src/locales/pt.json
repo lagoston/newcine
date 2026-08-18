@@ -142,7 +142,7 @@
       "openLibrary": "Abrir",
       "nextTag": "Próxima Tag",
       "allTagsUnlocked": "Todas as tags desbloqueadas!",
-      "dailyRecommendation": "Recomendações do Dia",
+      "dailyRecommendation": "Recomendação do Dia",
       "noRecommendationToday": "Nenhuma recomendação disponível hoje",
       "anotherRecommendation": "Outra Recomendação"
     }
@@ -238,7 +238,6 @@
   },
   "movies": {
     "director": "Diretor",
-    "clickForTrailer": "Clique para assistir o trailer",
     "cast": "Elenco",
     "synopsis": "Sinopse",
     "year": "Ano",
@@ -283,10 +282,14 @@
     },
     "recommend": {
       "title": "Câmara de Recomendação",
+      "pageTitle": "Recomendações Clássicas",
       "description": "Escolha seu humor, e deixe o Oráculo guiá-lo ao filme perfeito para hoje à noite.",
       "consulting": "Consultando o Oráculo...",
       "cost": "Consultar o Oráculo ({{cost}} tickets)"
     },
+    "selectMood": "Selecione seu Humor",
+    "ticketsLabel": "tickets",
+    "resetLabel": "Reset",
     "moods": {
       "adventures": "Aventuras",
       "catharsis": "Catarse",
@@ -409,9 +412,6 @@
   },
   "profile": {
     "followers": "{{count}} seguidores",
-    "friendsActivitySubtitle": "{{count}} amigos que você segue",
-    "noFriendsActivityTitle": "Nenhuma atividade ainda",
-    "noFriendsActivityDescription": "Siga pessoas na comunidade para ver aqui o que elas estão assistindo e avaliando.",
     "followersLabel": "Seguidores",
     "following": "{{count}} seguindo",
     "followingButton": "Seguindo",
@@ -595,8 +595,6 @@
   },
   "duel": {
     "title": "Duelo de Filmes",
-    "modeToggleDuel": "Duelo",
-    "modeToggleClassic": "Clássico",
     "description": "Escolha seus humores e oráculos — 8 filmes entram, só um vence sua noite.",
     "chooseMoods": "Escolha seus humores",
     "chooseOracles": "Escolha seus oráculos",
