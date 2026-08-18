@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import ArchetypeSymbol from './ArchetypeSymbol';
 
 interface PersonalityCompletionModalProps {
@@ -11,6 +12,11 @@ interface PersonalityCompletionModalProps {
   subcategoryName: string;
 }
 
+// Reduzido de 20 para 8 — 20 animações simultâneas em loop infinito, somadas a
+// múltiplas camadas de blur, era um dos principais motivos de travamento em
+// celulares mais simples enquanto esse modal ficava aberto.
+const PARTICLE_COUNT = 8;
+
 export default function PersonalityCompletionModal({
   isOpen,
   onClose,
@@ -18,6 +24,7 @@ export default function PersonalityCompletionModal({
   archetypeName,
   subcategoryName
 }: PersonalityCompletionModalProps) {
+  const { t } = useTranslation();
   const archetypeId = personalityId?.slice(0, 2);
   const subcategoryId = personalityId?.slice(2, 3);
 
@@ -43,8 +50,9 @@ export default function PersonalityCompletionModal({
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
               className="relative max-w-2xl w-full"
             >
-              {/* Glow effect */}
-              <div className="absolute -inset-4 bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-blue-600/30 rounded-3xl blur-2xl" />
+              {/* Glow effect — uma camada só (antes eram duas empilhadas: essa
+                  mais o brilho ao redor do símbolo logo abaixo) */}
+              <div className="absolute -inset-4 bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-blue-600/20 rounded-3xl blur-xl" />
 
               <div className="relative bg-gradient-to-b from-gray-900 via-purple-900/50 to-gray-900 rounded-2xl border-2 border-purple-500/30 shadow-2xl max-h-[90vh] overflow-y-auto">
                 {/* Close button */}
@@ -57,7 +65,8 @@ export default function PersonalityCompletionModal({
 
                 {/* Content */}
                 <div className="p-8 md:p-12 text-center">
-                  {/* Symbol */}
+                  {/* Symbol — sem a camada de blur animado ao redor (era a
+                      segunda camada de glow empilhada, redundante com a de cima) */}
                   <motion.div
                     className="flex justify-center mb-8"
                     initial={{ scale: 0, rotate: -180 }}
@@ -69,37 +78,12 @@ export default function PersonalityCompletionModal({
                       delay: 0.3
                     }}
                   >
-                    <div className="relative">
-                      <motion.div
-                        className="absolute inset-0 rounded-full blur-2xl"
-                        animate={{
-                          scale: [1, 1.2, 1],
-                          opacity: [0.5, 0.8, 0.5]
-                        }}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                          repeatType: "reverse"
-                        }}
-                        style={{
-                          background: `radial-gradient(circle, ${
-                            subcategoryId === 'A' ? '#F59E0B' :
-                            subcategoryId === 'B' ? '#8B5CF6' :
-                            subcategoryId === 'K' ? '#EF4444' :
-                            subcategoryId === 'X' ? '#3B82F6' :
-                            subcategoryId === 'D' ? '#1F2937' :
-                            subcategoryId === 'L' ? '#10B981' :
-                            '#9CA3AF'
-                          }40, transparent 70%)`
-                        }}
-                      />
-                      <ArchetypeSymbol
-                        archetypeId={archetypeId}
-                        subcategoryId={subcategoryId}
-                        size={120}
-                        animated={false}
-                      />
-                    </div>
+                    <ArchetypeSymbol
+                      archetypeId={archetypeId}
+                      subcategoryId={subcategoryId}
+                      size={120}
+                      animated={false}
+                    />
                   </motion.div>
 
                   {/* Text content */}
@@ -110,11 +94,10 @@ export default function PersonalityCompletionModal({
                     className="space-y-6 flex flex-col items-center"
                   >
                     <p className="text-gray-300 text-lg leading-relaxed italic">
-                      "O ritual está completo. A sintonia fina foi alcançada.
+                      {t('oracle.completion.line1')}
                     </p>
-
                     <p className="text-gray-300 text-lg leading-relaxed italic">
-                      A balança finalmente pendeu... e eu posso ver sua forma verdadeira.
+                      {t('oracle.completion.line2')}
                     </p>
 
                     <motion.div
@@ -124,7 +107,7 @@ export default function PersonalityCompletionModal({
                       className="py-8"
                     >
                       <p className="text-gray-400 text-sm mb-3">
-                        Neste momento, neste pulsar do tempo, sua alma cinematográfica reflete o arquétipo de...
+                        {t('oracle.completion.line3')}
                       </p>
 
                       <motion.div
@@ -152,12 +135,12 @@ export default function PersonalityCompletionModal({
                     </motion.div>
 
                     <p className="text-gray-300 text-lg leading-relaxed italic">
-                      Use este nome. Entenda-o. Ele é o seu padrão... agora.
+                      {t('oracle.completion.line4')}
                     </p>
 
                     <div className="pt-4 pb-2">
                       <p className="text-gray-400 text-base leading-relaxed">
-                        O Oráculo é dinâmico. Cada novo filme que você assistir, cada nota que você der... cada história que ousar tocar... irá lentamente modificar este perfil.
+                        {t('oracle.completion.dynamicNote')}
                       </p>
                     </div>
 
@@ -168,10 +151,10 @@ export default function PersonalityCompletionModal({
                       className="pt-6"
                     >
                       <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-2">
-                        O Santuário está desbloqueado. Entre.
+                        {t('oracle.completion.sanctuaryUnlocked')}
                       </p>
                       <p className="text-gray-400 text-sm italic">
-                        E volte sempre... para que eu possa lhe dizer quem você se tornou."
+                        {t('oracle.completion.returnAlways')}
                       </p>
                     </motion.div>
                   </motion.div>
@@ -187,14 +170,14 @@ export default function PersonalityCompletionModal({
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      Entrar no Santuário
+                      {t('oracle.completion.enterButton')}
                     </motion.button>
                   </div>
                 </div>
 
-                {/* Animated particles */}
+                {/* Animated particles — reduzidas de 20 pra 8 */}
                 <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                  {Array.from({ length: 20 }).map((_, i) => (
+                  {Array.from({ length: PARTICLE_COUNT }).map((_, i) => (
                     <motion.div
                       key={`modal-particle-${i}`}
                       className="absolute w-1 h-1 rounded-full bg-purple-400/30"
