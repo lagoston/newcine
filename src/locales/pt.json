@@ -398,6 +398,16 @@
     "noRecommendationsToday": "Nenhuma recomendação disponível hoje",
     "cinematicEssenceLabel": "Essência Cinematográfica",
     "discoverYourEssence": "Descubra sua Essência",
+    "completion": {
+      "line1": "O ritual está completo. A sintonia fina foi alcançada.",
+      "line2": "A balança finalmente pendeu... e eu posso ver sua forma verdadeira.",
+      "line3": "Neste momento, neste pulsar do tempo, sua alma cinematográfica reflete o arquétipo de...",
+      "line4": "Use este nome. Entenda-o. Ele é o seu padrão... agora.",
+      "dynamicNote": "O Oráculo é dinâmico. Cada novo filme que você assistir, cada nota que você der... cada história que ousar tocar... irá lentamente modificar este perfil.",
+      "sanctuaryUnlocked": "O Santuário está desbloqueado. Entre.",
+      "returnAlways": "E volte sempre... para que eu possa lhe dizer quem você se tornou.",
+      "enterButton": "Entrar no Santuário"
+    },
     "questionnaire": {
       "loadError": "Falha ao carregar questionário",
       "answerError": "Erro ao registrar resposta",
