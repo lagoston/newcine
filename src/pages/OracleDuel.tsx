@@ -78,6 +78,7 @@ export default function OracleDuel() {
   const [selectedOracles, setSelectedOracles] = useState<CardType[]>([]);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
+  const [nextReset, setNextReset] = useState<Date | null>(null);
   const [cardStyle, setCardStyle] = useState<'default' | 'yugioh'>('default');
 
   const [roundMovies, setRoundMovies] = useState<DuelMovie[]>([]);
@@ -114,10 +115,24 @@ export default function OracleDuel() {
     try {
       const { data, error } = await supabase.rpc('check_and_reset_tickets', { user_id_param: session?.user?.id });
       if (error) throw error;
-      if (data && data.length > 0) setTicketsRemaining(data[0].tickets_remaining);
+      if (data && data.length > 0) {
+        setTicketsRemaining(data[0].tickets_remaining);
+        setNextReset(new Date(data[0].next_reset));
+      }
     } catch (error) {
       console.error('Error fetching ticket info:', error);
     }
+  };
+
+  const formatTimeUntilReset = () => {
+    if (!nextReset) return '';
+    const now = new Date();
+    const diff = nextReset.getTime() - now.getTime();
+    if (diff <= 0) return t('common.now');
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}h`;
   };
 
   const getCardImage = (cardId: CardType) => {
@@ -314,8 +329,16 @@ export default function OracleDuel() {
                 <div className="flex items-center gap-2">
                   <Ticket className="w-5 h-5 text-amber-500" />
                   <span className="font-semibold text-gray-700 dark:text-gray-200">{ticketsRemaining ?? '...'}</span>
-                  <span className="text-gray-500 dark:text-gray-400">tickets</span>
+                  <span className="text-gray-500 dark:text-gray-400">{t('oracle.ticketsLabel')}</span>
                 </div>
+                {nextReset && (
+                  <>
+                    <div className="hidden sm:block w-px h-5 bg-gray-300 dark:bg-gray-600" />
+                    <div className="text-gray-600 dark:text-gray-300 text-sm">
+                      <span className="font-semibold">{t('oracle.resetLabel')}:</span> {formatTimeUntilReset()}
+                    </div>
+                  </>
+                )}
                 <motion.button
                   onClick={() => navigate('/premium')}
                   className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all text-sm flex items-center gap-2"
