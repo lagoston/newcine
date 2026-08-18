@@ -134,6 +134,13 @@ const PERSONAS: Record<string, Persona> = {
   SRL: { name: 'Jack Sparrow', imageQuery: 'pirates-caribbean-jack-sparrow-johnny-depp', imageUrl: 'https://static.wikia.nocookie.net/piratas-do-caribe/images/d/dc/Bluesteel_d0f846ee.jpeg/revision/latest?cb=20200320204117&path-prefix=pt-br', descriptionPt: 'Capitão Jack Sparrow é o protagonista da franquia Pirates of the Caribbean, interpretado por Johnny Depp. Um pirata carismático e imprevisível que tornou-se um ícone da cultura pop.', descriptionEn: 'Captain Jack Sparrow is the protagonist of the Pirates of the Caribbean franchise, played by Johnny Depp. A charismatic and unpredictable pirate who became a pop culture icon.' },
 };
 
+// Sobrescreve as URLs externas (hotlinked de sites variados, instáveis e lentas)
+// pelas versões locais em WebP, baixadas uma vez via scripts/download-personas.js.
+// Não precisa mexer em nenhuma das 120 entradas acima — isso aqui troca todas de uma vez.
+for (const code of Object.keys(PERSONAS)) {
+  PERSONAS[code].imageUrl = `/assets/personas/${code}.webp`;
+}
+
 export const PERSONAS_MAP: Record<string, { name: string; imageUrl?: string; descriptionPt: string; descriptionEn: string }> = PERSONAS;
 
 const PEXELS_IMAGES: Record<string, string> = {
