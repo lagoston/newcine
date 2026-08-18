@@ -142,7 +142,7 @@
       "openLibrary": "Open",
       "nextTag": "Next Tag",
       "allTagsUnlocked": "All tags unlocked!",
-      "dailyRecommendation": "Daily Recommendations",
+      "dailyRecommendation": "Daily Recommendation",
       "noRecommendationToday": "No recommendation available today",
       "anotherRecommendation": "Another Recommendation"
     }
@@ -238,7 +238,6 @@
   },
   "movies": {
     "director": "Director",
-    "clickForTrailer": "Click to watch trailer",
     "cast": "Cast",
     "synopsis": "Synopsis",
     "year": "Year",
@@ -283,10 +282,14 @@
     },
     "recommend": {
       "title": "Recommendation Chamber",
+      "pageTitle": "Classic Recommendations",
       "description": "Choose your mood, and let the Oracle guide you to the perfect film for tonight.",
       "consulting": "Consulting the Oracle...",
       "cost": "Consult the Oracle ({{cost}} tickets)"
     },
+    "selectMood": "Select Your Mood",
+    "ticketsLabel": "tickets",
+    "resetLabel": "Reset",
     "moods": {
       "adventures": "Adventures",
       "catharsis": "Catharsis",
@@ -409,9 +412,6 @@
   },
   "profile": {
     "followers": "{{count}} followers",
-    "friendsActivitySubtitle": "{{count}} friends you follow",
-    "noFriendsActivityTitle": "No activity yet",
-    "noFriendsActivityDescription": "Follow people in the community to see what they're watching and rating here.",
     "followersLabel": "Followers",
     "following": "{{count}} following",
     "followingButton": "Following",
@@ -595,8 +595,6 @@
   },
   "duel": {
     "title": "Movie Duel",
-    "modeToggleDuel": "Duel",
-    "modeToggleClassic": "Classic",
     "description": "Pick your moods and oracles — 8 movies enter, only one wins your night.",
     "chooseMoods": "Choose your moods",
     "chooseOracles": "Choose your oracles",
