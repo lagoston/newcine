@@ -398,6 +398,16 @@
     "noRecommendationsToday": "No recommendations available today",
     "cinematicEssenceLabel": "Cinematic Essence",
     "discoverYourEssence": "Discover your Essence",
+    "completion": {
+      "line1": "The ritual is complete. Fine attunement has been reached.",
+      "line2": "The scale has finally tipped... and I can see your true form.",
+      "line3": "In this moment, in this pulse of time, your cinematic soul reflects the archetype of...",
+      "line4": "Use this name. Understand it. It is your pattern... now.",
+      "dynamicNote": "The Oracle is dynamic. Every new film you watch, every rating you give... every story you dare touch... will slowly reshape this profile.",
+      "sanctuaryUnlocked": "The Sanctuary is unlocked. Enter.",
+      "returnAlways": "And return always... so I may tell you who you have become.",
+      "enterButton": "Enter the Sanctuary"
+    },
     "questionnaire": {
       "loadError": "Failed to load questionnaire",
       "answerError": "Error recording answer",
