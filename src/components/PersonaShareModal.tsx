@@ -46,15 +46,18 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, personaCode, arch
   const primaryName = isPt ? SPECTRUM_PT[primaryLetter] : SPECTRUM_EN[primaryLetter];
   const secondaryName = isPt ? SPECTRUM_PT[secondaryLetter] : SPECTRUM_EN[secondaryLetter];
 
-  const generateBlob = async (): Promise<Blob | null> => {
+    const generateBlob = async (): Promise<Blob | null> => {
     if (!cardRef.current) return null;
     const canvas = await html2canvas(cardRef.current, {
       backgroundColor: null,
-      scale: 1,
+      // Reduzido de 1 pra 0.66 — o card continua desenhado em 1080x1920
+      // internamente (o layout não muda em nada), só a imagem final sai
+      // menor (~713x1267px). Isso corta o trabalho de renderização e
+      // codificação do PNG em quase 60%, sem perda visível numa imagem
+      // feita pra ser vista em tela de celular (Stories, WhatsApp, etc).
+      scale: 0.66,
       useCORS: true,
       logging: false,
-      width: 1080,
-      height: 1920,
     });
     return await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
   };
