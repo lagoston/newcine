@@ -287,7 +287,7 @@
       "consulting": "Consultando o Oráculo...",
       "cost": "Consultar o Oráculo ({{cost}} tickets)"
     },
-    "selectMood": "Selecione seu Humor",
+    "selectMood": "Selecione Seu Humor",
     "ticketsLabel": "tickets",
     "resetLabel": "Reset",
     "moods": {
@@ -596,8 +596,10 @@
   "duel": {
     "title": "Duelo de Filmes",
     "description": "Escolha seus humores e oráculos — 8 filmes entram, só um vence sua noite.",
-    "chooseMoods": "Escolha seus humores",
-    "chooseOracles": "Escolha seus oráculos",
+    "chooseMoods": "Escolha Seus Humores",
+    "chooseOracles": "Escolha Seus Oráculos",
+    "modeToggleDuel": "Duelo",
+    "modeToggleClassic": "Clássico",
     "selectAtLeastOne": "Selecione ao menos um humor e um oráculo.",
     "startDuel": "Iniciar o Duelo",
     "notEnoughTickets": "Você precisa de {{needed}} tickets para um duelo.",
