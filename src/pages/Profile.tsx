@@ -1016,13 +1016,16 @@ export default function Profile() {
                 </span>
               )}
             </div>
-            <button
+                        <motion.button
               onClick={() => navigate('/community')}
-              className="self-start sm:self-auto flex items-center gap-1.5 text-xs font-semibold text-violet-600 dark:text-violet-400 bg-violet-500/10 hover:bg-violet-500/20 px-3 py-1.5 rounded-full transition-colors flex-shrink-0"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="self-start sm:self-auto group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-xs font-bold rounded-full transition-all duration-200 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 flex-shrink-0"
             >
               <Users className="w-3.5 h-3.5" />
               {t('profile.accessCommunity')}
-            </button>
+              <span className="group-hover:translate-x-0.5 transition-transform duration-200">→</span>
+            </motion.button>
           </div>
 
           {followedUsersCarousel.length > 0 ? (
