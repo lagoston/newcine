@@ -143,11 +143,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     }
   }, [session?.user?.id, isOpen]);
 
-  const fetchProfile = async () => {
+    const fetchProfile = async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('avatar_frame, banner, card_style')
+        .select('avatar_frame, banner, card_style, avatar_url')
         .eq('id', session?.user?.id)
         .single();
 
@@ -161,6 +161,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       if (data?.card_style) {
         setSelectedCard(data.card_style as CardStyle);
       }
+      setUserAvatarUrl(data?.avatar_url || null);
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
