@@ -337,6 +337,18 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
   const hasEssence = !personalityLoading && personality?.personalidade_completa && archetypeInfo;
   const currentRec = dailyRecs[carouselIndex];
+  const dragOccurred = React.useRef(false);
+
+  const handleCarouselDragEnd = (_e: any, info: { offset: { x: number } }) => {
+    const threshold = 50;
+    if (Math.abs(info.offset.x) > threshold && dailyRecs.length > 1) {
+      setCarouselAutoPaused(true);
+      setCarouselIndex((prev) =>
+        info.offset.x < 0 ? (prev + 1) % dailyRecs.length : (prev - 1 + dailyRecs.length) % dailyRecs.length
+      );
+    }
+    setTimeout(() => { dragOccurred.current = false; }, 50);
+  };
 
   return (
     <>
@@ -529,8 +541,13 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               <AnimatePresence mode="wait">
                 <motion.button
                   key={currentRec.oracle}
-                  onClick={() => setSelectedMovie(currentRec.movie)}
-                  className="w-full text-left group mb-4"
+                  onClick={() => { if (!dragOccurred.current) setSelectedMovie(currentRec.movie); }}
+                  className="w-full text-left group mb-4 cursor-grab active:cursor-grabbing"
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.2}
+                  onDrag={() => { dragOccurred.current = true; }}
+                  onDragEnd={handleCarouselDragEnd}
                   initial={{ opacity: 0, x: 12 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -12 }}
