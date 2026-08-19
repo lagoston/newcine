@@ -1050,7 +1050,7 @@ export default function Profile() {
                     return (
                       <button
                         key={user.id}
-                        onClick={() => navigate(`/profile/${user.username}`)}
+                        onClick={() => { if (!dragOccurred.current) navigate(`/profile/${user.username}`); }}
                         className="flex-shrink-0 flex flex-col items-center group"
                       >
                         <div className="relative mb-2">
