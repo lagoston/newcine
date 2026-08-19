@@ -176,6 +176,21 @@ export default function Profile() {
   const [showPersonaShare, setShowPersonaShare] = useState(false);
   const [showRetakeQuizModal, setShowRetakeQuizModal] = useState(false);
 
+    const dragOccurred = React.useRef(false);
+
+  const handleFriendsCarouselDragEnd = (_e: any, info: { offset: { x: number } }) => {
+    const threshold = 50;
+    if (Math.abs(info.offset.x) > threshold) {
+      setCarouselAutoPaused(true);
+      const maxOffset = Math.max(0, (Math.ceil(followedUsersCarousel.length / CAROUSEL_PAGE_SIZE) - 1) * CAROUSEL_PAGE_SIZE);
+      setCarouselOffset((prev) => {
+        const next = info.offset.x < 0 ? prev + CAROUSEL_PAGE_SIZE : prev - CAROUSEL_PAGE_SIZE;
+        return Math.max(0, Math.min(maxOffset, next));
+      });
+    }
+    setTimeout(() => { dragOccurred.current = false; }, 50);
+  };
+
   const {
     ratedMoviesCount,
     ratingDistribution,
