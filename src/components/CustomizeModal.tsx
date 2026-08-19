@@ -128,6 +128,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const [selectedFrame, setSelectedFrame] = useState<FrameId>('default');
   const [selectedBanner, setSelectedBanner] = useState<BannerId>('default');
   const [selectedCard, setSelectedCard] = useState<CardStyle>('default');
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (session?.user?.id && isOpen) {
