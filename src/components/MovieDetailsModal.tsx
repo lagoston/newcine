@@ -72,6 +72,22 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   }, [session?.user?.id, movie.id]);
 
+    useEffect(() => {
+    if (movie.media_type === 'tv') {
+      setOracleSources([]);
+      return;
+    }
+    supabase
+      .rpc('get_movie_oracle_sources', { movie_id_param: movie.id })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Error fetching oracle sources:', error);
+          return;
+        }
+        setOracleSources(data || []);
+      });
+  }, [movie.id, movie.media_type]);
+
   useEffect(() => {
     if (isOpen) {
       // Simples overflow hidden - sem position fixed que causa bugs visuais
