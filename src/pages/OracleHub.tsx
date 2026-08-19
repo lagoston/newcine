@@ -63,6 +63,7 @@ export default function OracleHub() {
   const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
   const [showPersonasModal, setShowPersonasModal] = useState(false);
   const [showPersonaShare, setShowPersonaShare] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
     if (showRevelationModal || showInfoModal) {
