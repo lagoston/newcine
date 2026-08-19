@@ -144,6 +144,41 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     }
   }, [session?.user?.id, isOpen]);
 
+    // Se o avatar do usuário for um GIF, congela o primeiro frame numa imagem
+  // estática uma única vez (via canvas) e reaproveita em todas as prévias de
+  // moldura — evita decodificar/animar o GIF 9 vezes ao mesmo tempo na tela.
+  useEffect(() => {
+    if (!userAvatarUrl) {
+      setFrozenAvatarUrl(null);
+      return;
+    }
+    if (!userAvatarUrl.toLowerCase().includes('.gif')) {
+      setFrozenAvatarUrl(userAvatarUrl);
+      return;
+    }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          setFrozenAvatarUrl(userAvatarUrl);
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        setFrozenAvatarUrl(canvas.toDataURL('image/png'));
+      } catch (err) {
+        console.error('Error freezing GIF frame:', err);
+        setFrozenAvatarUrl(userAvatarUrl);
+      }
+    };
+    img.onerror = () => setFrozenAvatarUrl(userAvatarUrl);
+    img.src = userAvatarUrl;
+  }, [userAvatarUrl]);
+
     const fetchProfile = async () => {
     try {
       const { data, error } = await supabase
