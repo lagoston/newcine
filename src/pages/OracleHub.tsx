@@ -819,7 +819,7 @@ export default function OracleHub() {
         personaCode={userPersonality.personalidade_completa}
         archetypeName={archetypeInfo.archetype_name}
         subcategoryName={archetypeInfo.subcategory_name}
-        username={session?.user?.email?.split('@')[0]}
+        username={username}
       />
     )}
     </>
