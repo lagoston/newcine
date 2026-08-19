@@ -151,7 +151,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         return;
       }
 
-      // Step 3: Get profiles for users who rated
+            // Step 3: Get profiles for users who rated
       const ratingUserIds = ratingsData.map(r => r.user_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -160,15 +160,25 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
       if (profilesError) throw profilesError;
 
-      // Step 4: Combine ratings with profiles
+      // Step 3b: Get review titles (quando o amigo escreveu uma) para esse mesmo filme
+      const { data: reviewsData } = await supabase
+        .from('reviews')
+        .select('user_id, title')
+        .eq('movie_id', movie.id)
+        .eq('media_type', movie.media_type || 'movie')
+        .in('user_id', ratingUserIds);
+
+      // Step 4: Combine ratings with profiles and review titles
       const formattedRatings: FriendRating[] = ratingsData
         .map((r: any) => {
           const profile = profilesData?.find(p => p.id === r.user_id);
+          const review = reviewsData?.find(rv => rv.user_id === r.user_id);
           return {
             user_id: r.user_id,
             username: profile?.username || 'Unknown',
             avatar_url: profile?.avatar_url || null,
-            rating: r.rating
+            rating: r.rating,
+            review_title: review?.title || null
           };
         })
         .filter(r => r.rating !== null)
