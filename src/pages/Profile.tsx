@@ -1032,13 +1032,18 @@ export default function Profile() {
           {followedUsersCarousel.length > 0 ? (
             <div className="relative pt-2">
               <AnimatePresence mode="wait">
-                <motion.div
+                                <motion.div
                   key={carouselOffset}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.35, ease: 'easeInOut' }}
-                  className="flex gap-5 justify-center items-end pt-20 pb-3"
+                  className="flex gap-5 justify-center items-end pt-20 pb-3 cursor-grab active:cursor-grabbing"
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.2}
+                  onDrag={() => { dragOccurred.current = true; }}
+                  onDragEnd={handleFriendsCarouselDragEnd}
                 >
                   {visibleCarouselUsers.map((user, index) => {
                     const bubbleStyle = getBubbleStyle(user.lastRating);
