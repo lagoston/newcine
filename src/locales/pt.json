@@ -238,6 +238,7 @@
   },
   "movies": {
     "director": "Diretor",
+    "clickForTrailer": "Clique para assistir o trailer",
     "cast": "Elenco",
     "synopsis": "Sinopse",
     "year": "Ano",
