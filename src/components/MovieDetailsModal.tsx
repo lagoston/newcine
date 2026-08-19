@@ -787,23 +787,36 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                 </div>
                               </div>
 
-                              {/* Tooltip no hover */}
-                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none shadow-2xl max-w-[180px]" style={{ zIndex: 50 }}>
-                                <div className="font-semibold">{friend.username}</div>
-                                <div className="text-yellow-400 flex items-center gap-1">
-                                  <span>★</span>
-                                  <span>{friend.rating}/10</span>
-                                </div>
-                                {friend.review_title && (
-                                  <div className="text-gray-300 text-[11px] italic mt-1 whitespace-normal line-clamp-2">
-                                    "{friend.review_title}"
+                                                            {friend.review_title ? (
+                                /* Tem review — balão sempre visível, igual ao Friends Activity, sem precisar de hover */
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none" style={{ zIndex: 50 }}>
+                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl w-[110px]">
+                                    <p className="text-white text-[9px] font-semibold text-center truncate">
+                                      {friend.username}
+                                    </p>
+                                    <p className="text-gray-300 text-[9px] italic text-center leading-tight line-clamp-2 whitespace-normal mt-0.5">
+                                      "{friend.review_title}"
+                                    </p>
+                                    <div className="flex items-center justify-center gap-1 mt-1">
+                                      <span className="text-yellow-400 text-[9px]">★</span>
+                                      <span className="text-yellow-400 text-[10px] font-bold">{friend.rating}</span>
+                                    </div>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900/95" />
                                   </div>
-                                )}
-                                {/* Seta do tooltip */}
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-                                  <div className="border-4 border-transparent border-t-gray-900/95"></div>
                                 </div>
-                              </div>
+                              ) : (
+                                /* Sem review — mantém o tooltip só no hover, como era antes */
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none shadow-2xl" style={{ zIndex: 50 }}>
+                                  <div className="font-semibold">{friend.username}</div>
+                                  <div className="text-yellow-400 flex items-center gap-1">
+                                    <span>★</span>
+                                    <span>{friend.rating}/10</span>
+                                  </div>
+                                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+                                    <div className="border-4 border-transparent border-t-gray-900/95"></div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
