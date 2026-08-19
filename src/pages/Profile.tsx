@@ -1127,13 +1127,16 @@ export default function Profile() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-sm mx-auto">
                 {t('profile.noFriendsActivityDescription')}
               </p>
-              <button
-                onClick={() => navigate('/community')}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
-              >
-                <Users className="w-4 h-4" />
-                {t('profile.accessCommunity')}
-              </button>
+                          <motion.button
+              onClick={() => navigate('/community')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="self-start sm:self-auto group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-xs font-bold rounded-full transition-all duration-200 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 flex-shrink-0"
+            >
+              <Users className="w-3.5 h-3.5" />
+              {t('profile.accessCommunity')}
+              <span className="group-hover:translate-x-0.5 transition-transform duration-200">→</span>
+            </motion.button>
             </div>
           )}
         </div>
