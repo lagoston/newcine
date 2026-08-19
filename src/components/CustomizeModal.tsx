@@ -554,12 +554,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     // só de abrir a aba é bastante trabalho pra GPU renderizar à toa.
     const hoverAnimClasses = '[animation-play-state:paused] before:![animation-play-state:paused] after:![animation-play-state:paused] group-hover:[animation-play-state:running] group-hover:before:![animation-play-state:running] group-hover:after:![animation-play-state:running]';
 
-    return (
+        return (
       <div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-1.5">
-          <ImageIcon className="w-3.5 h-3.5" />
-          {t('customize.frames.changePhotoHint')}
-        </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
           <motion.div
             key={defaultFrame.id}
