@@ -16,6 +16,7 @@ interface FriendRating {
   username: string;
   avatar_url: string | null;
   rating: number;
+  review_title?: string | null;
 }
 
 interface MovieDetailsModalProps {
