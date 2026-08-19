@@ -1116,27 +1116,24 @@ export default function Profile() {
                 </div>
               )}
             </div>
-          ) : (
-            <div className="text-center py-10">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-violet-500/10 dark:bg-violet-500/15 flex items-center justify-center">
-                <Users className="w-8 h-8 text-violet-500" />
+                    ) : (
+            <div className="flex flex-col sm:flex-row items-center gap-5 py-6 px-2">
+              <div className="relative flex-shrink-0">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/15 to-purple-500/15 dark:from-violet-500/20 dark:to-purple-500/20 flex items-center justify-center rotate-3">
+                  <Users className="w-9 h-9 text-violet-500" />
+                </div>
+                <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-white dark:bg-gray-800 border-2 border-violet-300/50 dark:border-violet-600/50 flex items-center justify-center shadow-sm">
+                  <span className="text-xs">👋</span>
+                </div>
               </div>
-              <h3 className="text-base font-bold text-gray-800 dark:text-white mb-1">
-                {t('profile.noFriendsActivityTitle')}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-sm mx-auto">
-                {t('profile.noFriendsActivityDescription')}
-              </p>
-                          <motion.button
-              onClick={() => navigate('/community')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="self-start sm:self-auto group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-xs font-bold rounded-full transition-all duration-200 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 flex-shrink-0"
-            >
-              <Users className="w-3.5 h-3.5" />
-              {t('profile.accessCommunity')}
-              <span className="group-hover:translate-x-0.5 transition-transform duration-200">→</span>
-            </motion.button>
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-base font-bold text-gray-800 dark:text-white mb-1">
+                  {t('profile.noFriendsActivityTitle')}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+                  {t('profile.noFriendsActivityDescription')}
+                </p>
+              </div>
             </div>
           )}
         </div>
