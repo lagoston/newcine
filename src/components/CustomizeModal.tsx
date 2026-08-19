@@ -569,14 +569,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     { id: 'special', label: t('customize.categories.special'), icon: Sparkles }
   ];
 
-    const renderFrameContent = () => {
-    const defaultFrame = frames.default;
-    const otherFrames = Object.values(frames).filter(frame => frame.id !== 'default');
-
-    const avatarPreview = (extraClassName: string) => (
+        const avatarPreview = (extraClassName: string) => (
       <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-xl flex-shrink-0 ${extraClassName}`}>
-        {userAvatarUrl ? (
-          <img src={userAvatarUrl} alt="" className="w-full h-full object-cover" />
+        {frozenAvatarUrl ? (
+          <img src={frozenAvatarUrl} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
             <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
