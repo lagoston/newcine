@@ -788,12 +788,17 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                               </div>
 
                               {/* Tooltip no hover */}
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none shadow-2xl" style={{ zIndex: 50 }}>
+                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none shadow-2xl max-w-[180px]" style={{ zIndex: 50 }}>
                                 <div className="font-semibold">{friend.username}</div>
                                 <div className="text-yellow-400 flex items-center gap-1">
                                   <span>★</span>
                                   <span>{friend.rating}/10</span>
                                 </div>
+                                {friend.review_title && (
+                                  <div className="text-gray-300 text-[11px] italic mt-1 whitespace-normal line-clamp-2">
+                                    "{friend.review_title}"
+                                  </div>
+                                )}
                                 {/* Seta do tooltip */}
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
                                   <div className="border-4 border-transparent border-t-gray-900/95"></div>
