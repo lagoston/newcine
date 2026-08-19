@@ -493,7 +493,12 @@ export default function OracleDuel() {
                     className="aspect-[2/3] w-full overflow-hidden cursor-pointer group relative"
                     onClick={() => openDetails(movie)}
                   >
-                    <img src={posterUrl(movie.poster_path)} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                        <img
+                      src={posterUrl(movie.poster_path)}
+                      alt={movie.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/500x750?text=No+Image'; }}
+                    />
                     <div className={`absolute top-2 left-2 w-8 h-8 rounded-full ${ORACLE_SEAL[movie.source]?.bg || 'bg-gray-500'} ring-2 ${ORACLE_SEAL[movie.source]?.ring || 'ring-gray-300'} shadow-lg flex items-center justify-center text-base`}>
                       {ORACLE_SEAL[movie.source]?.emoji || '🎬'}
                     </div>
