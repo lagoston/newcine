@@ -794,13 +794,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                     <p className="text-white text-[9px] font-semibold text-center truncate">
                                       {friend.username}
                                     </p>
-                                    <p className="text-gray-300 text-[9px] italic text-center leading-tight line-clamp-2 whitespace-normal mt-0.5">
+                                                                        <p className="text-gray-300 text-[9px] italic text-center leading-tight line-clamp-2 whitespace-normal mt-0.5">
                                       "{friend.review_title}"
                                     </p>
-                                    <div className="flex items-center justify-center gap-1 mt-1">
-                                      <span className="text-yellow-400 text-[9px]">★</span>
-                                      <span className="text-yellow-400 text-[10px] font-bold">{friend.rating}</span>
-                                    </div>
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900/95" />
                                   </div>
                                 </div>
