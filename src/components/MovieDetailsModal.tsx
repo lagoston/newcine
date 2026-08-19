@@ -696,8 +696,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     return 'from-red-400 to-rose-500'; // Vermelho
   };
 
-  // Função para verificar se a nota é 10
+    // Função para verificar se a nota é 10
   const isPerfectScore = (rating: number) => rating === 10;
+
+  // Mesmas cores usadas no Duelo e na Recomendação do Dia — identidade
+  // visual consistente de cada oráculo em todo o site.
+  const ORACLE_SEAL: Record<string, { emoji: string; bg: string }> = {
+    bogart: { emoji: '🐸', bg: 'bg-emerald-500' },
+    fincher: { emoji: '🦊', bg: 'bg-red-500' },
+    cypher: { emoji: '🐍', bg: 'bg-orange-500' }
+  };
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4">
