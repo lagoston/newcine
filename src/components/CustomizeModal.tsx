@@ -635,7 +635,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 </button>
               </motion.div>
             );
-                    })}
+          })}
         </div>
       </div>
     );
