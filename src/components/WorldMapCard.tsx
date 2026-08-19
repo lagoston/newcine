@@ -44,7 +44,16 @@ const WorldMapCard: React.FC<WorldMapCardProps> = ({ countryCounts, countryAvgRa
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  // guarda o gesto em andamento sem ainda decidir se é "clique" ou "arraste"
+  const gesture = useRef({ active: false, startX: 0, startY: 0, panX: 0, panY: 0, pointerId: 0 });
+
+  // Movimento mínimo (em pixels) pra um toque virar arraste de verdade —
+  // isso evita que um simples clique num país já mova o mapa (bug do
+  // desktop) e reduz a sensibilidade no mobile (bug de "pesado demais").
+  const DRAG_THRESHOLD = 8;
+  // Reduz a resposta do arraste em relação ao movimento real do dedo/mouse —
+  // 1:1 tende a parecer "nervoso" num mapa denso como a Europa.
+  const PAN_DAMPING = 0.8;
 
   const clampPan = useCallback((p: { x: number; y: number }, z: number) => {
     const maxOffset = (z - 1) * 150;
@@ -66,31 +75,51 @@ const WorldMapCard: React.FC<WorldMapCardProps> = ({ countryCounts, countryAvgRa
     setPan({ x: 0, y: 0 });
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -ZOOM_STEP / 2 : ZOOM_STEP / 2;
-    setZoom((z) => {
-      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z + delta));
-      if (newZoom === MIN_ZOOM) setPan({ x: 0, y: 0 });
-      return newZoom;
-    });
-  };
+  // A rodinha do mouse não deve mais dar zoom — só os botões +/-/reset.
+  // (função removida de propósito, sem handler de onWheel no container)
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (zoom <= MIN_ZOOM) return;
-    setIsPanning(true);
-    panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
-    e.currentTarget.setPointerCapture(e.pointerId);
+    gesture.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      panX: pan.x,
+      panY: pan.y,
+      pointerId: e.pointerId
+    };
+    // Pointer capture só é aplicado quando o arraste for confirmado (em
+    // handlePointerMove) — não aqui. Se fizermos isso cedo demais, o clique
+    // num país deixa de funcionar mesmo sem nenhum arraste real acontecer.
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isPanning) return;
-    const dx = e.clientX - panStart.current.x;
-    const dy = e.clientY - panStart.current.y;
-    setPan(clampPan({ x: panStart.current.panX + dx, y: panStart.current.panY + dy }, zoom));
+    if (!gesture.current.active) return;
+    const dx = e.clientX - gesture.current.startX;
+    const dy = e.clientY - gesture.current.startY;
+
+    if (!isPanning) {
+      const distance = Math.hypot(dx, dy);
+      if (distance < DRAG_THRESHOLD) return; // ainda pode ser só um toque/clique
+      setIsPanning(true);
+      e.currentTarget.setPointerCapture(gesture.current.pointerId);
+    }
+
+    setPan(
+      clampPan(
+        {
+          x: gesture.current.panX + dx * PAN_DAMPING,
+          y: gesture.current.panY + dy * PAN_DAMPING
+        },
+        zoom
+      )
+    );
   };
 
-  const handlePointerUp = () => setIsPanning(false);
+  const handlePointerUp = () => {
+    gesture.current.active = false;
+    setIsPanning(false);
+  };
 
   React.useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -193,7 +222,6 @@ const WorldMapCard: React.FC<WorldMapCardProps> = ({ countryCounts, countryAvgRa
         <>
           <div
             className="w-full aspect-[2/1] rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900/60 relative touch-none select-none"
-            onWheel={handleWheel}
           >
             <div
               onPointerDown={handlePointerDown}
