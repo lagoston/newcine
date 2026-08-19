@@ -743,6 +743,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     e.currentTarget.src = 'https://via.placeholder.com/500x750?text=No+Image';
                   }}
                 />
+                                {/* Selo(s) de oráculo — canto inferior esquerdo, pequeno, discreto */}
+                {oracleSources.length > 0 && (
+                  <div className="absolute bottom-2 left-2 flex items-center gap-1 z-10">
+                    {oracleSources.map((source) => (
+                      <div
+                        key={source}
+                        className={`w-6 h-6 rounded-full ${ORACLE_SEAL[source]?.bg || 'bg-gray-500'} ring-2 ring-white/70 dark:ring-gray-800/70 shadow-md flex items-center justify-center text-[11px]`}
+                        title={source}
+                      >
+                        {ORACLE_SEAL[source]?.emoji || '🎬'}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Indicação sutil de trailer — canto superior direito, com frase que
                     aparece ao passar o mouse/tocar */}
                 <div className="absolute top-3 right-3 flex items-center gap-2 pointer-events-none">
