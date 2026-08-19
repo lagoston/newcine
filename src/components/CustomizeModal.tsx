@@ -533,90 +533,114 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     { id: 'special', label: t('customize.categories.special'), icon: Sparkles }
   ];
 
-  const renderFrameContent = () => {
+    const renderFrameContent = () => {
     const defaultFrame = frames.default;
     const otherFrames = Object.values(frames).filter(frame => frame.id !== 'default');
 
+    const avatarPreview = (extraClassName: string) => (
+      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-xl flex-shrink-0 ${extraClassName}`}>
+        {userAvatarUrl ? (
+          <img src={userAvatarUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
+            <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+          </div>
+        )}
+      </div>
+    );
+
+    // Animações pausadas por padrão (só rodam ao passar o mouse/tocar) —
+    // com 8 molduras premium cheias de efeito, todas animando ao mesmo tempo
+    // só de abrir a aba é bastante trabalho pra GPU renderizar à toa.
+    const hoverAnimClasses = '[animation-play-state:paused] before:![animation-play-state:paused] after:![animation-play-state:paused] group-hover:[animation-play-state:running] group-hover:before:![animation-play-state:running] group-hover:after:![animation-play-state:running]';
+
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
-        <motion.div
-          key={defaultFrame.id}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.2 }}
-          className={`relative aspect-square rounded-2xl ${selectedFrame === defaultFrame.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
-        >
-          <button
-            onClick={() => handleFrameSelect(defaultFrame.id as FrameId)}
-            className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 flex flex-col items-center justify-center p-3 rounded-2xl overflow-hidden"
+      <div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-1.5">
+          <ImageIcon className="w-3.5 h-3.5" />
+          {t('customize.frames.changePhotoHint')}
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
+          <motion.div
+            key={defaultFrame.id}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className={`relative aspect-square rounded-2xl ${selectedFrame === defaultFrame.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
           >
-            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ${defaultFrame.className} shadow-xl flex-shrink-0`}>
-              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
-                <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-              </div>
-            </div>
-            <span className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
-              {defaultFrame.name}
-            </span>
-            {selectedFrame === defaultFrame.id && (
-              <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full">
-                <Check className="w-4 h-4" />
-              </div>
-            )}
-          </button>
-        </motion.div>
-
-        {otherFrames.map((frame, index) => {
-          const isPremiumLocked = frame.isPremium && !isPremium;
-          const requiredTagProgress = frame.requiredTag ? (themeTagProgress[frame.requiredTag] || 0) : 0;
-          const requiredTagMet = !frame.requiredTag || (requiredTagProgress >= (THEME_TAGS.find(t => t.id === frame.requiredTag)?.condition.count || 0));
-          const isLocked = isPremiumLocked || !requiredTagMet;
-
-          return (
-            <motion.div
-              key={frame.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2, delay: (index + 1) * 0.03 }}
-              className={`relative aspect-square rounded-2xl ${
-                isLocked ? 'opacity-60' : ''
-              } ${selectedFrame === frame.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
+            <button
+              onClick={() => handleFrameSelect(defaultFrame.id as FrameId)}
+              className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 flex flex-col items-center justify-center p-3 rounded-2xl overflow-hidden"
             >
-              <button
-                onClick={() => !isLocked && handleFrameSelect(frame.id as FrameId)}
-                disabled={isLocked}
-                className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 disabled:cursor-not-allowed disabled:hover:from-gray-100 disabled:hover:to-gray-200 dark:disabled:hover:from-gray-700 dark:disabled:hover:to-gray-800 flex flex-col items-center justify-center p-3 rounded-2xl overflow-hidden"
-              >
-                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ${frame.className} shadow-xl flex-shrink-0`}>
-                  <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
-                    <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                  </div>
+              {avatarPreview(defaultFrame.className)}
+              <span className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
+                {defaultFrame.name}
+              </span>
+              {selectedFrame === defaultFrame.id && (
+                <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full">
+                  <Check className="w-4 h-4" />
                 </div>
-                <span className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm text-center line-clamp-1">
-                  {frame.name}
-                </span>
-                {isLocked && (
-                  <div className="absolute top-2 right-2 z-10">
-                    {isPremiumLocked ? (
-                      <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                        <Crown className="w-3 h-3" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                        <Lock className="w-3 h-3" />
-                      </div>
-                    )}
-                  </div>
-                )}
-                {!isLocked && selectedFrame === frame.id && (
-                  <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full">
-                    <Check className="w-4 h-4" />
-                  </div>
-                )}
-              </button>
-            </motion.div>
-          );
-        })}
+              )}
+            </button>
+          </motion.div>
+
+          {otherFrames.map((frame, index) => {
+            const isPremiumLocked = frame.isPremium && !isPremium;
+            const requiredThemeTag = frame.requiredTag ? THEME_TAGS.find(t => t.id === frame.requiredTag) : null;
+            const requiredTagProgress = frame.requiredTag ? (themeTagProgress[frame.requiredTag] || 0) : 0;
+            const requiredTagCount = requiredThemeTag?.condition.count || 0;
+            const requiredTagMet = !frame.requiredTag || requiredTagProgress >= requiredTagCount;
+            const isLocked = isPremiumLocked || !requiredTagMet;
+
+            return (
+              <motion.div
+                key={frame.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2, delay: (index + 1) * 0.03 }}
+                className={`relative aspect-square rounded-2xl ${
+                  isLocked ? 'opacity-60' : ''
+                } ${selectedFrame === frame.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
+              >
+                <button
+                  onClick={() => !isLocked && handleFrameSelect(frame.id as FrameId)}
+                  disabled={isLocked}
+                  className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 disabled:cursor-not-allowed disabled:hover:from-gray-100 disabled:hover:to-gray-200 dark:disabled:hover:from-gray-700 dark:disabled:hover:to-gray-800 flex flex-col items-center justify-center p-3 rounded-2xl overflow-hidden"
+                >
+                  {avatarPreview(`${frame.className} ${hoverAnimClasses}`)}
+                  <span className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm text-center line-clamp-1">
+                    {frame.name}
+                  </span>
+                  {isLocked && (
+                    <div className="absolute top-2 right-2 z-10">
+                      {isPremiumLocked ? (
+                        <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                          <Crown className="w-3 h-3" />
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                          <Lock className="w-3 h-3" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!isLocked && selectedFrame === frame.id && (
+                    <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full">
+                      <Check className="w-4 h-4" />
+                    </div>
+                  )}
+                  {isLocked && !isPremiumLocked && requiredThemeTag && (
+                    <div className="absolute bottom-1 left-1 right-1 bg-black/60 backdrop-blur-sm rounded-lg px-1.5 py-1">
+                      <p className="text-[9px] text-white text-center font-medium truncate">
+                        {requiredThemeTag.emoji} {requiredThemeTag.name} · {requiredTagProgress}/{requiredTagCount}
+                      </p>
+                    </div>
+                  )}
+                </button>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     );
   };
