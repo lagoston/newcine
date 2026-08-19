@@ -549,10 +549,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       </div>
     );
 
-    // Animações pausadas por padrão (só rodam ao passar o mouse/tocar) —
-    // com 8 molduras premium cheias de efeito, todas animando ao mesmo tempo
-    // só de abrir a aba é bastante trabalho pra GPU renderizar à toa.
-    const hoverAnimClasses = '[animation-play-state:paused] before:![animation-play-state:paused] after:![animation-play-state:paused] group-hover:[animation-play-state:running] group-hover:before:![animation-play-state:running] group-hover:after:![animation-play-state:running]';
+        // Animações pausadas por padrão (só rodam ao passar o mouse/tocar) —
+    // via CSS de verdade (não classes Tailwind), porque antes/depois
+    // (pseudo-elementos ::before/::after) só respeitam regras CSS reais,
+    // não conseguem ser controlados por estilo inline.
+    const hoverAnimClasses = 'frame-preview-anim';
 
         return (
       <div>
