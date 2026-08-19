@@ -83,14 +83,16 @@ export default function OracleHub() {
   const loadUserData = async () => {
     try {
       setLoading(true);
-      const { data: profileData, error: profileError } = await supabase
+            const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario')
+        .select('username, subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario')
         .eq('id', session?.user?.id)
         .single();
 
       if (profileError) throw profileError;
+
       setUserPersonality(profileData);
+      setUsername(profileData.username);
 
       const { data: spectrumData, error: spectrumError } = await supabase
         .from('profiles')
