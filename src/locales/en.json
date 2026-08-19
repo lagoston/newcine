@@ -630,6 +630,9 @@
   },
   "customize": {
     "title": "Customize Profile",
+    "frames": {
+  "changePhotoHint": "Want to change your photo? You can do that from your Profile page."
+},
     "tabs": {
       "avatars": "Avatars",
       "banners": "Banners",
