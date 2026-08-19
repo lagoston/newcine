@@ -554,6 +554,19 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     // (pseudo-elementos ::before/::after) só respeitam regras CSS reais,
     // não conseguem ser controlados por estilo inline.
     const hoverAnimClasses = 'frame-preview-anim';
+      
+    const pauseAnimationCss = `
+      .frame-preview-anim,
+      .frame-preview-anim::before,
+      .frame-preview-anim::after {
+        animation-play-state: paused !important;
+      }
+      .frame-preview-anim:hover,
+      .frame-preview-anim:hover::before,
+      .frame-preview-anim:hover::after {
+        animation-play-state: running !important;
+      }
+    `;
 
         return (
       <div>
