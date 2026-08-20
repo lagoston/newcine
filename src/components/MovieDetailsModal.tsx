@@ -81,6 +81,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       setOracleFlavorPhrases({});
       return;
     }
+        setDismissedOracleBubbles(new Set());
     supabase
       .rpc('get_movie_oracle_sources', { movie_id_param: movie.id })
       .then(({ data, error }) => {
