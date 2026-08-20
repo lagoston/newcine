@@ -158,25 +158,28 @@ export const banners = {
       'after:pointer-events-none',
     ].join(' '),
   },
-deathdodger: {
-  id: 'deathdodger',
-  name: 'Final Destination Banner',
-  isPremium: true,
-  requiredTag: 'death-dodger',
-  className: [
-    'relative overflow-hidden',
-    // fundo forçado via shadow inset cobrindo tudo
-    'shadow-[inset_0_0_0_9999px_#0a0a0a,0_0_0_1px_#3f0000,0_0_35px_rgba(185,28,28,0.6),0_0_60px_rgba(100,0,0,0.4)]',
-    'border-[3px] border-red-900',
-    'before:absolute before:inset-0',
-    'before:bg-[repeating-linear-gradient(0deg,transparent,transparent_17px,rgba(180,180,180,0.08)_17px,rgba(180,180,180,0.08)_18px),repeating-linear-gradient(90deg,transparent,transparent_17px,rgba(180,180,180,0.08)_17px,rgba(180,180,180,0.08)_18px)]',
-    'before:pointer-events-none',
-    'after:absolute after:top-0 after:left-0 after:right-0 after:h-[2px]',
-    'after:bg-[linear-gradient(90deg,transparent_0%,rgba(239,68,68,0.4)_10%,rgba(255,50,50,1)_40%,rgba(255,80,80,1)_50%,rgba(255,50,50,1)_60%,rgba(239,68,68,0.4)_90%,transparent_100%)]',
-    'after:shadow-[0_0_6px_#ef4444,0_0_16px_rgba(239,68,68,0.9)]',
-    'after:animate-[deathdodger-banner-laser_6s_linear_infinite]',
-  ].join(' '),
-},
+  deathdodger: {
+    id: 'deathdodger',
+    name: 'Final Destination Banner',
+    isPremium: true,
+    requiredTag: 'death-dodger',
+    className: [
+      'relative overflow-hidden',
+      // Fundo agora via background-color normal — antes usava um hack de
+      // box-shadow inset gigante (9999px) só pra forçar cor de fundo, mais
+      // pesado pro navegador calcular e frágil em telas muito grandes.
+      'bg-[#0a0a0a]',
+      'border-[3px] border-red-900',
+      'shadow-[0_0_0_1px_#3f0000,0_0_35px_rgba(185,28,28,0.6),0_0_60px_rgba(100,0,0,0.4)]',
+      'before:absolute before:inset-0',
+      'before:bg-[repeating-linear-gradient(0deg,transparent,transparent_17px,rgba(180,180,180,0.08)_17px,rgba(180,180,180,0.08)_18px),repeating-linear-gradient(90deg,transparent,transparent_17px,rgba(180,180,180,0.08)_17px,rgba(180,180,180,0.08)_18px)]',
+      'before:pointer-events-none',
+      'after:absolute after:top-0 after:left-0 after:right-0 after:h-[2px]',
+      'after:bg-[linear-gradient(90deg,transparent_0%,rgba(239,68,68,0.4)_10%,rgba(255,50,50,1)_40%,rgba(255,80,80,1)_50%,rgba(255,50,50,1)_60%,rgba(239,68,68,0.4)_90%,transparent_100%)]',
+      'after:shadow-[0_0_6px_#ef4444,0_0_16px_rgba(239,68,68,0.9)]',
+      'after:animate-[deathdodger-banner-laser_6s_linear_infinite]',
+    ].join(' '),
+  },
   'casual-drinker': {
     id: 'casual-drinker',
     name: 'Casual Drinker Banner',
@@ -184,21 +187,23 @@ deathdodger: {
     requiredTag: 'casual-drinker',
     className: [
       'relative overflow-hidden',
-    // fundo forçado preto via inset shadow — sobrescreve o backdrop do pai
-    'shadow-[inset_0_0_0_9999px_#060810,0_0_25px_rgba(251,191,36,0.5)]',
-    'border-[3px] border-amber-500',
-    // líquido âmbar opaco ocupando metade inferior
-    'before:absolute before:bottom-0 before:left-0 before:right-0 before:h-[55%]',
-    'before:bg-[linear-gradient(180deg,#fbbf24_0%,#f59e0b_30%,#d97706_65%,#92400e_100%)]',
-    'before:shadow-[0_-6px_24px_rgba(251,191,36,0.9)]',
-    'before:animate-[drinker-slosh_4s_ease-in-out_infinite]',
-    'before:pointer-events-none',
-    // espuma branca
-    'after:absolute after:bottom-[55%] after:left-0 after:right-0 after:h-[20px]',
-    'after:bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(255,255,255,1)_50%,rgba(255,248,200,0.9)_100%)]',
-    'after:shadow-[0_-4px_16px_rgba(255,255,255,0.7)]',
-    'after:animate-[drinker-foam_2.5s_ease-in-out_infinite]',
-    'after:pointer-events-none',
+      // Fundo agora via background-color normal — mesmo motivo do banner
+      // acima, trocado o hack de box-shadow inset gigante.
+      'bg-[#060810]',
+      'border-[3px] border-amber-500',
+      'shadow-[0_0_25px_rgba(251,191,36,0.5)]',
+      // líquido âmbar opaco ocupando metade inferior
+      'before:absolute before:bottom-0 before:left-0 before:right-0 before:h-[55%]',
+      'before:bg-[linear-gradient(180deg,#fbbf24_0%,#f59e0b_30%,#d97706_65%,#92400e_100%)]',
+      'before:shadow-[0_-6px_24px_rgba(251,191,36,0.9)]',
+      'before:animate-[drinker-slosh_4s_ease-in-out_infinite]',
+      'before:pointer-events-none',
+      // espuma branca
+      'after:absolute after:bottom-[55%] after:left-0 after:right-0 after:h-[20px]',
+      'after:bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(255,255,255,1)_50%,rgba(255,248,200,0.9)_100%)]',
+      'after:shadow-[0_-4px_16px_rgba(255,255,255,0.7)]',
+      'after:animate-[drinker-foam_2.5s_ease-in-out_infinite]',
+      'after:pointer-events-none',
     ].join(' '),
   },
 } as const;
