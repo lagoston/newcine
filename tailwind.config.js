@@ -6,7 +6,7 @@ export default {
     extend: {
       screens: {
         'xs': '375px',
-        'sm': '640px',
+        'sm': '640px',  
         'md': '768px',
         'lg': '1024px',
         'xl': '1280px',
@@ -71,11 +71,23 @@ export default {
   '95%':  { opacity: '1' },
   '100%': { top: '100%',  opacity: '0' },
 },
-        // ── Casual Drinker ───────────────────────────────────────────────────
+                // ── Casual Drinker ───────────────────────────────────────────────────
         'casual-drinker-fill':{ '0%':   { height: '0%', opacity: '1' }, '100%': { height: '70%', opacity: '1' } },
         'casual-drinker-slosh':   { '0%,100%': { transform: 'translateX(0) skewX(0deg)' }, '25%':     { transform: 'translateX(-3%) skewX(-1.5deg)' }, '75%':     { transform: 'translateX(8%) skewX(1.5deg)' } },
         'casual-drinker-foam':   { '0%,100%': { transform: 'scaleY(1) translateY(0)' },
   '50%':     { transform: 'scaleY(1.15) translateY(-2px)' } },
+        // Nível do copo subindo e descendo em loop — a "casual-drinker-fill"
+        // original só enchia uma vez e parava (opacity/forwards), não repetia.
+        'casual-drinker-liquid-level': {
+          '0%, 100%': { height: '38%' },
+          '50%': { height: '68%' },
+        },
+        // Versão para a moldura circular: uma faixa fina na base do anel que
+        // sobe e desce, sem cobrir o rosto na foto do avatar.
+        'casual-drinker-frame-level': {
+          '0%, 100%': { clipPath: 'inset(88% 0 0 0)' },
+          '50%': { clipPath: 'inset(76% 0 0 0)' },
+        },
         },
       animation: {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
