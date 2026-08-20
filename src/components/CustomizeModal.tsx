@@ -127,6 +127,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const [selectedCard, setSelectedCard] = useState<CardStyle>('default');
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [frozenAvatarUrl, setFrozenAvatarUrl] = useState<string | null>(null);
+  const [username, setUsername] = useState<string>('');
 
   useEffect(() => {
     if (session?.user?.id && isOpen) {
@@ -180,7 +181,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('avatar_frame, banner, card_style, avatar_url')
+        .select('avatar_frame, banner, card_style, avatar_url, username')
         .eq('id', session?.user?.id)
         .single();
 
@@ -195,6 +196,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         setSelectedCard(data.card_style as CardStyle);
       }
       setUserAvatarUrl(data?.avatar_url || null);
+      setUsername(data?.username || '');
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
@@ -693,80 +695,129 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     const defaultBanner = banners.default;
     const otherBanners = Object.values(banners).filter(banner => banner.id !== 'default');
 
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1">
-        <motion.div
-          key={defaultBanner.id}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className={`relative rounded-2xl ${selectedBanner === defaultBanner.id ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
-        >
-          <button
-            onClick={() => handleBannerSelect(defaultBanner.id as BannerId)}
-            className="w-full relative group transition-all duration-300 hover:scale-[1.02] rounded-2xl overflow-hidden"
-          >
-            <div className="bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 rounded-2xl h-28 w-full flex items-center justify-center px-4">
-              <h3 className="text-sm font-bold text-gray-800 dark:text-white text-center">
-                {defaultBanner.name}
-              </h3>
+    // Mesma técnica de pausar animação via CSS de verdade que já usamos nas
+    // molduras — pseudo-elementos (::before/::after) não respeitam estilo inline.
+    const bannerAnimClass = 'banner-preview-anim';
+    const pauseAnimationCss = `
+      .banner-preview-anim,
+      .banner-preview-anim::before,
+      .banner-preview-anim::after {
+        animation-play-state: paused !important;
+      }
+      .banner-preview-anim:hover,
+      .banner-preview-anim:hover::before,
+      .banner-preview-anim:hover::after {
+        animation-play-state: running !important;
+      }
+    `;
+
+    // Mini simulação de como o cabeçalho do perfil fica em cima do banner —
+    // com o avatar e nome de usuário reais, não só o nome do banner escrito.
+    const profileMockup = (
+      <div className="relative z-10 flex items-center gap-2.5">
+        <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-white/70 shadow-lg flex-shrink-0">
+          {frozenAvatarUrl ? (
+            <img src={frozenAvatarUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
+              <User className="w-5 h-5 text-white" />
             </div>
-            {selectedBanner === defaultBanner.id && (
-              <div className="absolute top-2 right-2 bg-blue-500 text-white p-1 rounded-full z-10">
-                <Check className="w-3 h-3" />
-              </div>
-            )}
-          </button>
-        </motion.div>
+          )}
+        </div>
+        <span className="text-sm font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
+          @{username || 'you'}
+        </span>
+      </div>
+    );
 
-        {otherBanners.map((banner, index) => {
-          const isPremiumLocked = banner.isPremium && !isPremium;
-          const requiredTagProgress = banner.requiredTag ? (themeTagProgress[banner.requiredTag] || 0) : 0;
-          const requiredTagMet = !banner.requiredTag || (requiredTagProgress >= (THEME_TAGS.find(t => t.id === banner.requiredTag)?.condition.count || 0));
-          const isLocked = isPremiumLocked || !requiredTagMet;
-
-          return (
-            <motion.div
-              key={banner.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: (index + 1) * 0.05 }}
-              className={`relative rounded-2xl ${
-                isLocked ? 'opacity-60' : ''
-              } ${selectedBanner === banner.id ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
+    return (
+      <div>
+        <style>{pauseAnimationCss}</style>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1">
+          <motion.div
+            key={defaultBanner.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className={`relative rounded-2xl ${selectedBanner === defaultBanner.id ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
+          >
+            <button
+              onClick={() => handleBannerSelect(defaultBanner.id as BannerId)}
+              className="w-full relative group transition-all duration-300 hover:scale-[1.02] rounded-2xl overflow-hidden"
             >
-              <button
-                onClick={() => !isLocked && handleBannerSelect(banner.id as BannerId)}
-                disabled={isLocked}
-                className="block w-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100 rounded-2xl overflow-hidden"
-              >
-                <div className={`rounded-2xl h-28 w-full flex items-center justify-center px-4 ${banner.className}`}>
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white z-10 relative text-center line-clamp-2">
-                    {banner.name}
-                  </h3>
+              <div className="relative bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 rounded-2xl h-28 w-full flex items-center px-4">
+                {profileMockup}
+                <span className="absolute top-2 right-3 text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
+                  {defaultBanner.name}
+                </span>
+              </div>
+              {selectedBanner === defaultBanner.id && (
+                <div className="absolute top-2 left-2 bg-blue-500 text-white p-1 rounded-full z-10">
+                  <Check className="w-3 h-3" />
                 </div>
-                {isLocked && (
-                  <div className="absolute top-2 right-2 z-10">
-                    {isPremiumLocked ? (
-                      <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                        <Crown className="w-3 h-3" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                        <Lock className="w-3 h-3" />
-                      </div>
-                    )}
+              )}
+            </button>
+          </motion.div>
+
+          {otherBanners.map((banner, index) => {
+            const isPremiumLocked = banner.isPremium && !isPremium;
+            const requiredThemeTag = banner.requiredTag ? THEME_TAGS.find(t => t.id === banner.requiredTag) : null;
+            const requiredTagProgress = banner.requiredTag ? (themeTagProgress[banner.requiredTag] || 0) : 0;
+            const requiredTagCount = requiredThemeTag?.condition.count || 0;
+            const requiredTagMet = !banner.requiredTag || requiredTagProgress >= requiredTagCount;
+            const isLocked = isPremiumLocked || !requiredTagMet;
+
+            return (
+              <motion.div
+                key={banner.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: (index + 1) * 0.05 }}
+                className={`relative rounded-2xl ${
+                  isLocked ? 'opacity-60' : ''
+                } ${selectedBanner === banner.id ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
+              >
+                <button
+                  onClick={() => !isLocked && handleBannerSelect(banner.id as BannerId)}
+                  disabled={isLocked}
+                  className="block w-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100 rounded-2xl overflow-hidden"
+                >
+                  <div className={`rounded-2xl h-28 w-full flex items-center px-4 ${banner.className} ${bannerAnimClass}`}>
+                    {profileMockup}
+                    <span className="absolute top-2 right-3 text-[10px] font-bold text-white/70 uppercase tracking-wide drop-shadow z-10">
+                      {banner.name}
+                    </span>
                   </div>
-                )}
-                {!isLocked && selectedBanner === banner.id && (
-                  <div className="absolute top-2 right-2 bg-blue-500 text-white p-1 rounded-full z-10">
-                    <Check className="w-3 h-3" />
-                  </div>
-                )}
-              </button>
-            </motion.div>
-          );
-        })}
+                  {isLocked && (
+                    <div className="absolute top-2 left-2 z-10">
+                      {isPremiumLocked ? (
+                        <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                          <Crown className="w-3 h-3" />
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                          <Lock className="w-3 h-3" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!isLocked && selectedBanner === banner.id && (
+                    <div className="absolute top-2 left-2 bg-blue-500 text-white p-1 rounded-full z-10">
+                      <Check className="w-3 h-3" />
+                    </div>
+                  )}
+                  {isLocked && !isPremiumLocked && requiredThemeTag && (
+                    <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 z-10">
+                      <p className="text-[10px] text-white text-center font-medium truncate">
+                        {requiredThemeTag.emoji} {requiredThemeTag.name} · {requiredTagProgress}/{requiredTagCount}
+                      </p>
+                    </div>
+                  )}
+                </button>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     );
   };
