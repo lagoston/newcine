@@ -657,6 +657,8 @@
       "active": "Active",
       "limitedTime": "Limited-time and seasonal tags",
       "noSpecialTags": "No special tags available at the moment"
+      "currentlyActive": "Currently active",
+      "remove": "Remove"
     },
     "cards": {
       "oracleCards": "Oracle Recommendation Cards"
