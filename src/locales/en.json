@@ -633,6 +633,8 @@
     "frames": {
   "changePhotoHint": "Want to change your photo? You can do that from your Profile page."
 },
+    "currentlyActive": "Currently active",
+      "remove": "Remove"
     "tabs": {
       "avatars": "Avatars",
       "banners": "Banners",
@@ -657,8 +659,6 @@
       "active": "Active",
       "limitedTime": "Limited-time and seasonal tags",
       "noSpecialTags": "No special tags available at the moment"
-      "currentlyActive": "Currently active",
-      "remove": "Remove"
     },
     "cards": {
       "oracleCards": "Oracle Recommendation Cards"
