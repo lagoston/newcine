@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
-import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, TrendingDown, X, Loader2, Settings, Scroll, Info, RefreshCw, LayoutGrid, Share2 } from 'lucide-react';
+import { User, Star, BarChart3, Users, Calendar, Film, Clock, MessageCircle, Crown, Palette, Archive as ArchiveIcon, TrendingDown, X, Loader2, Settings, Scroll, Info, RefreshCw, LayoutGrid, Share2, Tag } from 'lucide-react';
 import PentagonGraph from '../components/PentagonGraph';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import GlassLoader from '../components/GlassLoader';
