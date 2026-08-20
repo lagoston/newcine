@@ -629,7 +629,9 @@
     "clickForDetails": "Clique para ver detalhes"
   },
   "customize": {
-    "title": "Personalizar Perfil"
+    "title": "Personalizar Perfil",
+    "frames": {
+  "changePhotoHint": "Quer trocar sua foto? Isso é feito direto na sua página de Perfil."
 },
     "tabs": {
       "avatars": "Avatares",
