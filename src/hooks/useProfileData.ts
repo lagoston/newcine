@@ -331,9 +331,20 @@ export function useProfileData(userId: string | undefined, language: string): Pr
         // Mesmo padrão de contagem dos gêneros acima, só que lendo de
         // movie_cache.keywords — populado desde a sessão de otimização de
         // cache, mas nunca consumido em lugar nenhum até agora.
+        //
+        // Algumas keywords do TMDB são metadado técnico de produção, não um
+        // tema de verdade — "duringcreditsstinger" (tem cena pós-créditos)
+        // não diz nada sobre o gosto do usuário, é só um flag de catálogo.
+        // Filtradas aqui na leitura, sem precisar mexer no dado já salvo.
+        const NOISY_KEYWORDS = new Set([
+          'based on novel or book',
+          'duringcreditsstinger',
+          'aftercreditsstinger'
+        ]);
         const keywordCounts: Record<string, Keyword> = {};
         ratedMovies.forEach((movie) => {
           (movie as any).keywords?.forEach((kw: any) => {
+            if (!kw?.name || NOISY_KEYWORDS.has(kw.name.toLowerCase())) return;
             const key = String(kw.id ?? kw.name);
             keywordCounts[key] = keywordCounts[key] || { id: kw.id ?? kw.name, name: kw.name, count: 0 };
             keywordCounts[key].count++;
