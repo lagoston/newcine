@@ -62,7 +62,10 @@ export const frames = {
     requiredTag: 'casual-drinker',
     // Nível de líquido subindo/descendo (before) + bolhas subindo dentro dele
     // (after) — mais vivo que o brilho estático de antes.
-    className: 'relative ring-4 ring-amber-400 dark:ring-amber-300 shadow-[0_0_22px_rgba(251,191,36,0.75),0_0_45px_rgba(245,158,11,0.35),inset_0_0_18px_rgba(251,191,36,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-t before:from-amber-600 before:via-amber-400 before:to-yellow-200 before:animate-[casual-drinker-frame-level_4s_ease-in-out_infinite] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.55)_0%,transparent_28%),radial-gradient(circle_at_70%_75%,rgba(255,255,255,0.3)_0%,transparent_22%)] after:animate-[casual-drinker-frame-bubbles_2.5s_ease-in-out_infinite] after:pointer-events-none'
+        // O efeito que precisa aparecer POR CIMA da foto vai no "after" (nasce
+    // depois da foto no empilhamento) — o "before" nasce atrás dela, por isso
+    // o nível de líquido nunca aparecia com foto de perfil.
+    className: 'relative ring-4 ring-amber-400 dark:ring-amber-300 shadow-[0_0_22px_rgba(251,191,36,0.75),0_0_45px_rgba(245,158,11,0.35),inset_0_0_18px_rgba(251,191,36,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.55)_0%,transparent_28%),radial-gradient(circle_at_70%_75%,rgba(255,255,255,0.3)_0%,transparent_22%)] before:animate-[casual-drinker-frame-bubbles_2.5s_ease-in-out_infinite] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-gradient-to-t after:from-amber-600/95 after:via-amber-400/85 after:to-transparent after:animate-[casual-drinker-frame-level_4s_ease-in-out_infinite] after:pointer-events-none'
   },
   default: {
     id: 'default',
