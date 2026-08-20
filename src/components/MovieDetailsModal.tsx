@@ -704,7 +704,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const ORACLE_SEAL: Record<string, { emoji: string; bg: string }> = {
     bogart: { emoji: '🐸', bg: 'bg-emerald-500' },
     fincher: { emoji: '🦊', bg: 'bg-red-500' },
-    cypher: { emoji: '🐍', bg: 'bg-orange-500' }
+    cypher: { emoji: '🐍', bg: 'bg-yellow-500' }
   };
 
   return (
