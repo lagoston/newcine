@@ -55,15 +55,14 @@ export const frames = {
   requiredTag: 'death-dodger',
   className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(185,28,28,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-[radial-gradient(circle_at_50%_50%,rgba(185,28,28,0.2),transparent_60%)] before:animate-doom-flicker before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-[conic-gradient(from_0deg,rgba(185,28,28,0.3),transparent_40%,rgba(100,0,0,0.15),transparent_70%)] after:animate-doom-spin after:pointer-events-none'
 },
-    'casual-drinker': {
+      'casual-drinker': {
     id: 'casual-drinker',
     name: 'Casual Drinker Frame',
     isPremium: true,
     requiredTag: 'casual-drinker',
-    // "beer-bubble" não existia em lugar nenhum do tailwind.config.js — trocado
-    // por uma faixa de líquido âmbar na base do anel que sobe e desce de
-    // verdade, sem cobrir o rosto na foto.
-    className: 'relative ring-4 ring-amber-400 dark:ring-amber-300 shadow-[0_0_22px_rgba(251,191,36,0.75),0_0_45px_rgba(245,158,11,0.35),inset_0_0_18px_rgba(251,191,36,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-t before:from-amber-500 before:via-yellow-400 before:to-amber-300/60 before:animate-[casual-drinker-frame-level_4s_ease-in-out_infinite] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.45)_0%,transparent_35%),radial-gradient(circle_at_65%_70%,rgba(251,191,36,0.3)_0%,transparent_35%)] after:pointer-events-none'
+    // Nível de líquido subindo/descendo (before) + bolhas subindo dentro dele
+    // (after) — mais vivo que o brilho estático de antes.
+    className: 'relative ring-4 ring-amber-400 dark:ring-amber-300 shadow-[0_0_22px_rgba(251,191,36,0.75),0_0_45px_rgba(245,158,11,0.35),inset_0_0_18px_rgba(251,191,36,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-t before:from-amber-600 before:via-amber-400 before:to-yellow-200 before:animate-[casual-drinker-frame-level_4s_ease-in-out_infinite] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.55)_0%,transparent_28%),radial-gradient(circle_at_70%_75%,rgba(255,255,255,0.3)_0%,transparent_22%)] after:animate-[casual-drinker-frame-bubbles_2.5s_ease-in-out_infinite] after:pointer-events-none'
   },
   default: {
     id: 'default',
