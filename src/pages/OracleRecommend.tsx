@@ -686,19 +686,19 @@ export default function OracleRecommend() {
                   </div>
                 </div>
 
-                <div className="rounded-xl p-5 border border-orange-300/50 dark:border-orange-500/30 bg-orange-50/50 dark:bg-orange-500/10">
+                <div className="rounded-xl p-5 border border-yellow-300/50 dark:border-yellow-500/30 bg-yellow-50/50 dark:bg-yellow-500/10">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-orange-500/20 dark:bg-orange-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
+                    <div className="w-12 h-12 rounded-full bg-yellow-500/20 dark:bg-yellow-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
                       🐍
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold text-orange-600 dark:text-orange-400 mb-2">
+                      <h3 className="text-lg font-bold text-yellow-600 dark:text-yellow-400 mb-2">
                         {t('oracle.cards.cypher')} - {t('oracle.cards.cypherSubtitle')}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
                         {t('oracle.cards.cypherDesc')}
                       </p>
-                      <p className="text-orange-600 dark:text-orange-400 text-sm mt-2 font-medium">
+                      <p className="text-yellow-600 dark:text-yellow-400 text-sm mt-2 font-medium">
                         {t('oracle.cards.cypherRec')}
                       </p>
                     </div>
