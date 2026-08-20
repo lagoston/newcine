@@ -773,27 +773,37 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     Cada selo tem sua própria frase característica, revelada num
                     balão ao passar o mouse/tocar (evita poluir o pôster, que já
                     tem bolhas de amigos e a indicação de trailer). */}
-                {oracleSources.length > 0 && (
-                  <div className="absolute bottom-2 left-2 flex items-center gap-1 z-10 pointer-events-auto">
-                    {oracleSources.map((source) => (
-                      <div key={source} className="relative group/seal">
-                        <div
-                          className={`w-6 h-6 rounded-full ${ORACLE_SEAL[source]?.bg || 'bg-gray-500'} ring-2 ring-white/70 dark:ring-gray-800/70 shadow-md flex items-center justify-center text-[11px] cursor-pointer transition-transform duration-200 group-hover/seal:scale-110`}
-                        >
-                          {ORACLE_SEAL[source]?.emoji || '🎬'}
-                        </div>
-                        {oracleFlavorPhrases[source] && (
-                          <div className="absolute bottom-full left-0 mb-2 w-48 opacity-0 group-hover/seal:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
-                            <div className="relative bg-gray-900/95 backdrop-blur-sm border border-white/10 rounded-xl px-3 py-2 shadow-2xl">
-                              <p className="text-white text-[10px] italic leading-snug">
-                                "{oracleFlavorPhrases[source]}"
-                              </p>
-                              <div className="absolute top-full left-3 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900/95" />
-                            </div>
+                                {oracleSources.length > 0 && (
+                  <div className="absolute bottom-2 left-2 flex items-end gap-1 z-10 pointer-events-auto">
+                    {oracleSources.map((source) => {
+                      const bubbleStyle = ORACLE_BUBBLE[source] || { bg: 'bg-gray-900/95', text: 'text-white', arrow: 'border-t-gray-900' };
+                      const showBubble = !!oracleFlavorPhrases[source] && !dismissedOracleBubbles.has(source);
+                      return (
+                        <div key={source} className="relative">
+                          <div
+                            className={`w-6 h-6 rounded-full ${ORACLE_SEAL[source]?.bg || 'bg-gray-500'} ring-2 ring-white/70 dark:ring-gray-800/70 shadow-md flex items-center justify-center text-[11px]`}
+                          >
+                            {ORACLE_SEAL[source]?.emoji || '🎬'}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {showBubble && (
+                            <div
+                              className="absolute bottom-full left-0 mb-2 w-48 z-20 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDismissedOracleBubbles((prev) => new Set(prev).add(source));
+                              }}
+                            >
+                              <div className={`relative ${bubbleStyle.bg} backdrop-blur-sm rounded-xl px-3 py-2 shadow-2xl`}>
+                                <p className={`${bubbleStyle.text} text-[10px] italic leading-snug`}>
+                                  "{oracleFlavorPhrases[source]}"
+                                </p>
+                                <div className={`absolute top-full left-3 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent ${bubbleStyle.arrow}`} />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
