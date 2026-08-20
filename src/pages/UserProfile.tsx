@@ -172,13 +172,20 @@ export default function UserProfile() {
     try {
       setLoading(true);
 
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('username', username)
-        .single();
+            // Antes buscava direto na tabela com select('*') — sem checagem de
+      // profile_visibility, expondo todas as colunas (incluindo os pontos
+      // brutos E/I/C/S/R) pra qualquer pessoa que soubesse o username, mesmo
+      // perfis marcados como "só seguidores". Agora passa pela mesma lógica
+      // de visibilidade já usada em get_visible_profiles.
+      const { data: profileRows, error: profileError } = await supabase
+        .rpc('get_profile_by_username', {
+          p_username: username,
+          p_viewer_id: session?.user?.id || null
+        });
 
       if (profileError) throw profileError;
+
+      const profileData = profileRows?.[0] || null;
 
       if (!profileData) {
         setProfile(null);
