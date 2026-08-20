@@ -452,6 +452,8 @@
     "stats": {
       "ratedMovies": "Filmes Avaliados",
       "favoriteGenres": "Gêneros Favoritos",
+      "favoriteKeywords": "Palavras-chave",
+      "noKeywordsYet": "Nenhuma palavra-chave ainda"
       "timeWatching": "Tempo Assistindo",
       "ratingDistribution": "Distribuição de Notas",
       "averageRating": "Média",
