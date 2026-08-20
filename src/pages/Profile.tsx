@@ -196,6 +196,7 @@ export default function Profile() {
     ratingDistribution,
     totalWatchTime,
     favoriteGenres,
+    favoriteKeywords,
     favoriteDecade,
     topActors,
     topDirectors,
