@@ -717,10 +717,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   // Mesmas cores usadas no Duelo e na Recomendação do Dia — identidade
   // visual consistente de cada oráculo em todo o site.
-  const ORACLE_SEAL: Record<string, { emoji: string; bg: string }> = {
+    const ORACLE_SEAL: Record<string, { emoji: string; bg: string }> = {
     bogart: { emoji: '🐸', bg: 'bg-emerald-500' },
     fincher: { emoji: '🦊', bg: 'bg-red-500' },
     cypher: { emoji: '🐍', bg: 'bg-yellow-500' }
+  };
+
+  // Cor do balão de fala combinando com o selo — amarelo puro fica ilegível
+  // com texto branco, por isso a Cobra usa texto escuro em vez de branco.
+  const ORACLE_BUBBLE: Record<string, { bg: string; text: string; arrow: string }> = {
+    bogart: { bg: 'bg-emerald-600/95', text: 'text-white', arrow: 'border-t-emerald-600' },
+    fincher: { bg: 'bg-red-600/95', text: 'text-white', arrow: 'border-t-red-600' },
+    cypher: { bg: 'bg-yellow-400/95', text: 'text-gray-900', arrow: 'border-t-yellow-400' }
   };
 
   return (
