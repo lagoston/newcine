@@ -1271,18 +1271,18 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
             </div>
 
             <div className="p-6">
-              <div className="flex space-x-2 border-b border-gray-200/50 dark:border-gray-700/50 mb-6 pb-2">
+                            <div className="flex gap-2 border-b border-gray-200/50 dark:border-gray-700/50 mb-6 pb-2 overflow-x-auto">
                 {tabs.map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
                     onClick={() => setActiveTab(id)}
-                    className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-xl transition-all ${
+                    className={`flex items-center flex-shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium rounded-xl transition-all ${
                       activeTab === id
                         ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
                     }`}
                   >
-                    <Icon className="w-4 h-4 mr-2" />
+                    <Icon className="w-4 h-4 mr-2 flex-shrink-0" />
                     {label}
                   </button>
                 ))}
