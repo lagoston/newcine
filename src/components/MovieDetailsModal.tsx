@@ -74,9 +74,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   }, [session?.user?.id, movie.id]);
 
-    useEffect(() => {
+      useEffect(() => {
     if (movie.media_type === 'tv') {
       setOracleSources([]);
+      setOracleFlavorPhrases({});
       return;
     }
     supabase
@@ -86,9 +87,22 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           console.error('Error fetching oracle sources:', error);
           return;
         }
-        setOracleSources(data || []);
+        const sources: string[] = data || [];
+        setOracleSources(sources);
+
+        // Sorteia uma frase característica por selo, uma vez só por filme —
+        // "Surpresa Aleatória" já é a união das outras 9 pools de humor de
+        // cada oráculo, então sortear de qualquer frase do oráculo cobre
+        // esse caso sem precisar saber qual humor "trouxe" o filme até aqui.
+        const isPt = i18n.language.startsWith('pt');
+        const phrases: Record<string, string> = {};
+        sources.forEach((source) => {
+          const phrase = getRandomFlavorPhrase(source);
+          if (phrase) phrases[source] = isPt ? phrase.pt : phrase.en;
+        });
+        setOracleFlavorPhrases(phrases);
       });
-  }, [movie.id, movie.media_type]);
+  }, [movie.id, movie.media_type, i18n.language]);
 
   useEffect(() => {
     if (isOpen) {
