@@ -198,11 +198,12 @@ export const banners = {
       'before:shadow-[0_-6px_24px_rgba(251,191,36,0.9)]',
       'before:animate-[casual-drinker-liquid-level_4s_ease-in-out_infinite]',
       'before:pointer-events-none',
-      // espuma branca — acompanha o nível do líquido via mesma âncora "bottom"
-      'after:absolute after:bottom-[38%] after:left-0 after:right-0 after:h-[20px]',
+            // espuma branca — agora usa a MESMA duração/curva (4s ease-in-out) do
+      // nível do líquido, então sobem e descem exatamente juntos.
+      'after:absolute after:left-0 after:right-0 after:h-[20px]',
       'after:bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(255,255,255,1)_50%,rgba(255,248,200,0.9)_100%)]',
       'after:shadow-[0_-4px_16px_rgba(255,255,255,0.7)]',
-      'after:animate-[casual-drinker-foam_2.5s_ease-in-out_infinite]',
+      'after:animate-[casual-drinker-foam-level_4s_ease-in-out_infinite]',
       'after:pointer-events-none',
     ].join(' '),
   },
