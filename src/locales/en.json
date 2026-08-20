@@ -452,6 +452,8 @@
     "stats": {
       "ratedMovies": "Rated Movies",
       "favoriteGenres": "Favorite Genres",
+      "favoriteKeywords": "Top Keywords",
+      "noKeywordsYet": "No keywords yet"
       "timeWatching": "Time Watching",
       "ratingDistribution": "Rating Distribution",
       "averageRating": "Average",
