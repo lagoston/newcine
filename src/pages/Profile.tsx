@@ -1142,52 +1142,84 @@ export default function Profile() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Filmes Avaliados + Tempo Assistido, lado a lado */}
           <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                {t('profile.stats.ratedMovies')}
-              </h2>
-              <Star className="w-5 h-5 text-yellow-500" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
-              {ratedMoviesCount}
+            <div className="grid grid-cols-2 divide-x divide-gray-200/60 dark:divide-gray-700/60">
+              <div className="pr-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Star className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                  <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 truncate">
+                    {t('profile.stats.ratedMovies')}
+                  </h2>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                  {ratedMoviesCount}
+                </div>
+              </div>
+              <div className="pl-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 truncate">
+                    {t('profile.stats.timeWatching')}
+                  </h2>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                  {formatWatchTime(totalWatchTime)}
+                </div>
+              </div>
             </div>
           </div>
 
+          {/* Gêneros Favoritos + Palavras-chave, lado a lado */}
           <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                {t('profile.stats.favoriteGenres')}
-              </h2>
-              <Film className="w-5 h-5 text-purple-500" />
-            </div>
-            <div className="space-y-1">
-              {favoriteGenres.map((genre, index) => (
-                <div
-                  key={genre.id}
-                  className={`text-${index === 0 ? 'lg' : 'sm'} ${index === 0 ? 'font-bold' : 'font-medium'} text-gray-900 dark:text-white`}
-                >
-                  {genre.name}
+            <div className="grid grid-cols-2 divide-x divide-gray-200/60 dark:divide-gray-700/60">
+              <div className="pr-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Film className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                  <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 truncate">
+                    {t('profile.stats.favoriteGenres')}
+                  </h2>
                 </div>
-              ))}
-              {favoriteGenres.length === 0 && (
-                <div className="text-gray-500 dark:text-gray-400 text-sm">
-                  {t('profile.stats.noGenresYet')}
+                <div className="space-y-0.5">
+                  {favoriteGenres.map((genre, index) => (
+                    <div
+                      key={genre.id}
+                      className={`${index === 0 ? 'text-sm font-bold' : 'text-xs font-medium'} text-gray-900 dark:text-white truncate`}
+                    >
+                      {genre.name}
+                    </div>
+                  ))}
+                  {favoriteGenres.length === 0 && (
+                    <div className="text-gray-500 dark:text-gray-400 text-xs">
+                      {t('profile.stats.noGenresYet')}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-
-          <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                {t('profile.stats.timeWatching')}
-              </h2>
-              <Clock className="w-5 h-5 text-green-500" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
-              {formatWatchTime(totalWatchTime)}
+              </div>
+              <div className="pl-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Tag className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                  <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 truncate">
+                    {t('profile.stats.favoriteKeywords')}
+                  </h2>
+                </div>
+                <div className="space-y-0.5">
+                  {favoriteKeywords.map((keyword, index) => (
+                    <div
+                      key={keyword.id}
+                      className={`${index === 0 ? 'text-sm font-bold' : 'text-xs font-medium'} text-gray-900 dark:text-white truncate capitalize`}
+                    >
+                      {keyword.name}
+                    </div>
+                  ))}
+                  {favoriteKeywords.length === 0 && (
+                    <div className="text-gray-500 dark:text-gray-400 text-xs">
+                      {t('profile.stats.noKeywordsYet')}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
