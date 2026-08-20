@@ -423,6 +423,8 @@
   },
   "profile": {
     "followers": "{{count}} seguidores",
+    "favoriteKeywords": "Palavras-chave",
+    "noKeywordsYet": "Nenhuma palavra-chave ainda"
     "friendsActivitySubtitle": "{{count}} amigos que você segue",
     "noFriendsActivityTitle": "Nenhuma atividade ainda",
     "noFriendsActivityDescription": "Siga pessoas na comunidade para ver aqui o que elas estão assistindo e avaliando.",
