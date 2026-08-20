@@ -129,7 +129,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const [selectedBanner, setSelectedBanner] = useState<BannerId>('default');
   const [selectedCard, setSelectedCard] = useState<CardStyle>('default');
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
-  const [frozenAvatarUrl, setFrozenAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (session?.user?.id && isOpen) {
@@ -143,41 +142,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       fetchFollowersCount();
     }
   }, [session?.user?.id, isOpen]);
-
-    // Se o avatar do usuário for um GIF, congela o primeiro frame numa imagem
-  // estática uma única vez (via canvas) e reaproveita em todas as prévias de
-  // moldura — evita decodificar/animar o GIF 9 vezes ao mesmo tempo na tela.
-  useEffect(() => {
-    if (!userAvatarUrl) {
-      setFrozenAvatarUrl(null);
-      return;
-    }
-    if (!userAvatarUrl.toLowerCase().includes('.gif')) {
-      setFrozenAvatarUrl(userAvatarUrl);
-      return;
-    }
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          setFrozenAvatarUrl(userAvatarUrl);
-          return;
-        }
-        ctx.drawImage(img, 0, 0);
-        setFrozenAvatarUrl(canvas.toDataURL('image/png'));
-      } catch (err) {
-        console.error('Error freezing GIF frame:', err);
-        setFrozenAvatarUrl(userAvatarUrl);
-      }
-    };
-    img.onerror = () => setFrozenAvatarUrl(userAvatarUrl);
-    img.src = userAvatarUrl;
-  }, [userAvatarUrl]);
 
     const fetchProfile = async () => {
     try {
@@ -569,10 +533,14 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     { id: 'special', label: t('customize.categories.special'), icon: Sparkles }
   ];
 
-        const avatarPreview = (extraClassName: string) => (
+    const renderFrameContent = () => {
+    const defaultFrame = frames.default;
+    const otherFrames = Object.values(frames).filter(frame => frame.id !== 'default');
+
+    const avatarPreview = (extraClassName: string) => (
       <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-xl flex-shrink-0 ${extraClassName}`}>
-        {frozenAvatarUrl ? (
-          <img src={frozenAvatarUrl} alt="" className="w-full h-full object-cover" />
+        {userAvatarUrl ? (
+          <img src={userAvatarUrl} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
             <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
@@ -581,28 +549,17 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       </div>
     );
 
-        // Animações pausadas por padrão (só rodam ao passar o mouse/tocar) —
-    // via CSS de verdade (não classes Tailwind), porque antes/depois
-    // (pseudo-elementos ::before/::after) só respeitam regras CSS reais,
-    // não conseguem ser controlados por estilo inline.
-    const hoverAnimClasses = 'frame-preview-anim';
-      
-    const pauseAnimationCss = `
-      .frame-preview-anim,
-      .frame-preview-anim::before,
-      .frame-preview-anim::after {
-        animation-play-state: paused !important;
-      }
-      .frame-preview-anim:hover,
-      .frame-preview-anim:hover::before,
-      .frame-preview-anim:hover::after {
-        animation-play-state: running !important;
-      }
-    `;
+    // Animações pausadas por padrão (só rodam ao passar o mouse/tocar) —
+    // com 8 molduras premium cheias de efeito, todas animando ao mesmo tempo
+    // só de abrir a aba é bastante trabalho pra GPU renderizar à toa.
+    const hoverAnimClasses = '[animation-play-state:paused] before:![animation-play-state:paused] after:![animation-play-state:paused] group-hover:[animation-play-state:running] group-hover:before:![animation-play-state:running] group-hover:after:![animation-play-state:running]';
 
-            return (
+    return (
       <div>
-        <style>{pauseAnimationCss}</style>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-1.5">
+          <ImageIcon className="w-3.5 h-3.5" />
+          {t('customize.frames.changePhotoHint')}
+        </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
           <motion.div
             key={defaultFrame.id}
