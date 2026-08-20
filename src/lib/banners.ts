@@ -192,17 +192,17 @@ export const banners = {
       'bg-[#060810]',
       'border-[3px] border-amber-500',
       'shadow-[0_0_25px_rgba(251,191,36,0.5)]',
-      // líquido âmbar opaco ocupando metade inferior
-      'before:absolute before:bottom-0 before:left-0 before:right-0 before:h-[55%]',
+            // líquido âmbar — sobe e desce de verdade agora, em loop
+      'before:absolute before:bottom-0 before:left-0 before:right-0',
       'before:bg-[linear-gradient(180deg,#fbbf24_0%,#f59e0b_30%,#d97706_65%,#92400e_100%)]',
       'before:shadow-[0_-6px_24px_rgba(251,191,36,0.9)]',
-      'before:animate-[drinker-slosh_4s_ease-in-out_infinite]',
+      'before:animate-[casual-drinker-liquid-level_4s_ease-in-out_infinite]',
       'before:pointer-events-none',
-      // espuma branca
-      'after:absolute after:bottom-[55%] after:left-0 after:right-0 after:h-[20px]',
+      // espuma branca — acompanha o nível do líquido via mesma âncora "bottom"
+      'after:absolute after:bottom-[38%] after:left-0 after:right-0 after:h-[20px]',
       'after:bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(255,255,255,1)_50%,rgba(255,248,200,0.9)_100%)]',
       'after:shadow-[0_-4px_16px_rgba(255,255,255,0.7)]',
-      'after:animate-[drinker-foam_2.5s_ease-in-out_infinite]',
+      'after:animate-[casual-drinker-foam_2.5s_ease-in-out_infinite]',
       'after:pointer-events-none',
     ].join(' '),
   },
