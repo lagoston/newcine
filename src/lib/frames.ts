@@ -57,7 +57,9 @@ export const frames = {
   // pulso de alerta que acende e apaga — evoca a tensão de "sentir a morte
   // se aproximando" sem nunca ver de onde. Antes usava animações que não
   // existiam (doom-flicker/doom-spin), então nunca se moveu.
-  className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(220,38,38,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-[conic-gradient(from_0deg,transparent_0deg,rgba(239,68,68,0.6)_12deg,rgba(239,68,68,0.15)_25deg,transparent_35deg,transparent_360deg)] before:animate-[deathdodger-frame-sweep_3s_linear_infinite] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:shadow-[inset_0_0_22px_rgba(220,38,38,0.7)] after:animate-[deathdodger-frame-pulse_1.8s_ease-in-out_infinite] after:pointer-events-none'
+    // Mesmo ajuste: o facho giratório (o efeito principal, que precisa se ver
+  // por cima da foto) vai pro "after"; o pulso de alerta fica no "before".
+  className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(220,38,38,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:shadow-[inset_0_0_22px_rgba(220,38,38,0.7)] before:animate-[deathdodger-frame-pulse_1.8s_ease-in-out_infinite] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-[conic-gradient(from_0deg,transparent_0deg,rgba(239,68,68,0.75)_12deg,rgba(239,68,68,0.2)_25deg,transparent_35deg,transparent_360deg)] after:animate-[deathdodger-frame-sweep_3s_linear_infinite] after:pointer-events-none'
 },
       'casual-drinker': {
     id: 'casual-drinker',
