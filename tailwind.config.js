@@ -76,11 +76,18 @@ export default {
         'casual-drinker-slosh':   { '0%,100%': { transform: 'translateX(0) skewX(0deg)' }, '25%':     { transform: 'translateX(-3%) skewX(-1.5deg)' }, '75%':     { transform: 'translateX(8%) skewX(1.5deg)' } },
         'casual-drinker-foam':   { '0%,100%': { transform: 'scaleY(1) translateY(0)' },
   '50%':     { transform: 'scaleY(1.15) translateY(-2px)' } },
-        // Nível do copo subindo e descendo em loop — a "casual-drinker-fill"
+                // Nível do copo subindo e descendo em loop — a "casual-drinker-fill"
         // original só enchia uma vez e parava (opacity/forwards), não repetia.
         'casual-drinker-liquid-level': {
           '0%, 100%': { height: '38%' },
           '50%': { height: '68%' },
+        },
+        // A espuma precisa se mover JUNTO com o nível do líquido (mesma
+        // duração/curva do "liquid-level" acima) — antes ela ficava parada
+        // numa altura fixa enquanto o líquido subia por trás dela.
+        'casual-drinker-foam-level': {
+          '0%, 100%': { bottom: '38%', transform: 'scaleY(1) translateY(0)' },
+          '50%': { bottom: '68%', transform: 'scaleY(1.15) translateY(-2px)' },
         },
         // Versão para a moldura circular: uma faixa fina na base do anel que
         // sobe e desce, sem cobrir o rosto na foto do avatar.
