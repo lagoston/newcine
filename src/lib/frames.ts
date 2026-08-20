@@ -53,7 +53,11 @@ export const frames = {
   name: 'Death Dodger Frame',
   isPremium: true,
   requiredTag: 'death-dodger',
-  className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(185,28,28,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-[radial-gradient(circle_at_50%_50%,rgba(185,28,28,0.2),transparent_60%)] before:animate-doom-flicker before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-[conic-gradient(from_0deg,rgba(185,28,28,0.3),transparent_40%,rgba(100,0,0,0.15),transparent_70%)] after:animate-doom-spin after:pointer-events-none'
+  // "Radar de perigo": um facho vermelho girando (como um sonar), sobre um
+  // pulso de alerta que acende e apaga — evoca a tensão de "sentir a morte
+  // se aproximando" sem nunca ver de onde. Antes usava animações que não
+  // existiam (doom-flicker/doom-spin), então nunca se moveu.
+  className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(220,38,38,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-[conic-gradient(from_0deg,transparent_0deg,rgba(239,68,68,0.6)_12deg,rgba(239,68,68,0.15)_25deg,transparent_35deg,transparent_360deg)] before:animate-[deathdodger-frame-sweep_3s_linear_infinite] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:shadow-[inset_0_0_22px_rgba(220,38,38,0.7)] after:animate-[deathdodger-frame-pulse_1.8s_ease-in-out_infinite] after:pointer-events-none'
 },
       'casual-drinker': {
     id: 'casual-drinker',
