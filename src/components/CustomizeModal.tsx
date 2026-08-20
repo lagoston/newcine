@@ -822,13 +822,19 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     );
   };
 
-  const renderCardContent = () => {
+    const renderCardContent = () => {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {Object.values(ORACLE_CARDS).map((card, index) => {
           const isPremiumLocked = card.isPremium && !isPremium;
-          const requiredTagProgress = card.requiredTag ? (themeTagProgress[card.requiredTag] || 0) : 0;
-          const isTagUnlocked = card.requiredTag ? requiredTagProgress >= 50 : true;
+          // "Bloody Mary" é uma tag Básica (baseada em gêneros assistidos), não
+          // uma tag Temática — antes isso buscava o progresso da fonte errada
+          // (themeTagProgress) e comparava com um "50" fixo sem relação com o
+          // requisito real da tag.
+          const requiredBasicTag = card.requiredTag ? PROGRESSION_TAGS.find(t => t.name === card.requiredTag) : null;
+          const requiredTagProgress = card.requiredTag ? (basicTagProgress[card.requiredTag] || 0) : 0;
+          const requiredTagCount = requiredBasicTag?.minMovies || 0;
+          const isTagUnlocked = !card.requiredTag || requiredTagProgress >= requiredTagCount;
           const isLocked = isPremiumLocked || !isTagUnlocked;
 
           return (
@@ -861,7 +867,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     ) : !isTagUnlocked ? (
                       <div className="flex items-center gap-1.5 bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full">
                         <Lock className="w-4 h-4" />
-                        <span>{card.requiredTag}</span>
+                        <span>{requiredBasicTag?.emoji} {card.requiredTag} · {requiredTagProgress}/{requiredTagCount}</span>
                       </div>
                     ) : selectedCard === card.id ? (
                       <div className="bg-blue-500 text-white p-1.5 rounded-full">
