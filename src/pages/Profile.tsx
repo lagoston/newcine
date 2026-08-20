@@ -1005,23 +1005,18 @@ export default function Profile() {
         </div>
 
                 <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-violet-500 flex-shrink-0" />
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {t('profile.friendsActivity')}
               </h2>
-              {followedUsersCarousel.length > 0 && (
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-violet-500/10 px-3 py-1 rounded-full">
-                  {t('profile.friendsActivitySubtitle', { count: followedUsersCarousel.length })}
-                </span>
-              )}
             </div>
-                                    <motion.button
+            <motion.button
               onClick={() => navigate('/community')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="self-center sm:self-auto group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-xs font-bold rounded-full transition-all duration-200 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 flex-shrink-0"
+              className="group flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-xs font-bold rounded-full transition-all duration-200 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 flex-shrink-0"
             >
               <Users className="w-3.5 h-3.5" />
               {t('profile.accessCommunity')}
