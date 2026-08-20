@@ -38,7 +38,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   onEpisodeToggle
 }) => {
   const { session } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isInLibrary, setIsInLibrary] = useState(false);
   const [friendRatings, setFriendRatings] = useState<FriendRating[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
