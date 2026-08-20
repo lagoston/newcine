@@ -55,7 +55,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [trailerKey, setTrailerKey] = useState<string | null | undefined>(undefined);
   const [loadingTrailer, setLoadingTrailer] = useState(false);
   const [oracleSources, setOracleSources] = useState<string[]>([]);
-  const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
+    const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
+  const [dismissedOracleBubbles, setDismissedOracleBubbles] = useState<Set<string>>(new Set());
 
   // Reset seasons when movie changes
   useEffect(() => {
