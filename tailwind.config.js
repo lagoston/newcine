@@ -85,9 +85,21 @@ export default {
         // A espuma precisa se mover JUNTO com o nível do líquido (mesma
         // duração/curva do "liquid-level" acima) — antes ela ficava parada
         // numa altura fixa enquanto o líquido subia por trás dela.
-        'casual-drinker-foam-level': {
+                'casual-drinker-foam-level': {
           '0%, 100%': { bottom: '38%', transform: 'scaleY(1) translateY(0)' },
           '50%': { bottom: '68%', transform: 'scaleY(1.15) translateY(-2px)' },
+        },
+        // Pequenas "bolhas" (dois brilhos radiais) subindo dentro do líquido.
+        'casual-drinker-frame-bubbles': {
+          '0%, 100%': { backgroundPosition: '30% 90%, 70% 85%', opacity: '0.6' },
+          '50%': { backgroundPosition: '32% 10%, 68% 15%', opacity: '1' },
+        },
+        // Death Dodger — substituindo "doom-flicker"/"doom-spin", que nunca
+        // existiram de verdade no config (mesmo bug do Casual Drinker de antes).
+        'deathdodger-frame-sweep': { to: { transform: 'rotate(360deg)' } },
+        'deathdodger-frame-pulse': {
+          '0%, 100%': { opacity: '0.5' },
+          '50%': { opacity: '1' },
         },
         // Versão para a moldura circular: uma faixa fina na base do anel que
         // sobe e desce, sem cobrir o rosto na foto do avatar.
