@@ -15,6 +15,12 @@ export interface Genre {
   count: number;
 }
 
+export interface Keyword {
+  id: number | string;
+  name: string;
+  count: number;
+}
+
 interface DecadeCount {
   [decade: string]: number;
 }
@@ -77,6 +83,7 @@ export interface ProfileData {
   ratingDistribution: Record<number, number>;
   totalWatchTime: number;
   favoriteGenres: Genre[];
+  favoriteKeywords: Keyword[];
   favoriteDecade: FavoriteDecade | null;
   topActors: ActorCount[];
   topDirectors: DirectorCount[];
@@ -123,7 +130,7 @@ async function batchFetchFromCache(
   const { data, error } = await supabase
     .from('movie_cache')
     .select(
-      'tmdb_id, media_type, title_en, title_pt, overview_en, overview_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, genres_en, genres_pt, director, cast_members, seasons_data, origin_country, watch_providers'
+      'tmdb_id, media_type, title_en, title_pt, overview_en, overview_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, genres_en, genres_pt, director, cast_members, seasons_data, origin_country, watch_providers, keywords'
     )
     .in('tmdb_id', ids);
 
@@ -153,7 +160,8 @@ async function batchFetchFromCache(
       },
       seasons: row.seasons_data,
       origin_country: row.origin_country || [],
-      watchProviders: row.watch_providers
+      watchProviders: row.watch_providers,
+      keywords: row.keywords || []
     } as Movie;
     map.set(`${row.tmdb_id}_${row.media_type}`, movie);
   }
@@ -174,6 +182,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
   const [ratingDistribution, setRatingDistribution] = useState<Record<number, number>>({});
   const [totalWatchTime, setTotalWatchTime] = useState(0);
   const [favoriteGenres, setFavoriteGenres] = useState<Genre[]>([]);
+  const [favoriteKeywords, setFavoriteKeywords] = useState<Keyword[]>([]);
   const [favoriteDecade, setFavoriteDecade] = useState<FavoriteDecade | null>(null);
   const [topActors, setTopActors] = useState<ActorCount[]>([]);
   const [topDirectors, setTopDirectors] = useState<DirectorCount[]>([]);
@@ -318,6 +327,21 @@ export function useProfileData(userId: string | undefined, language: string): Pr
         const topGenres = Object.values(genreCounts).sort((a, b) => b.count - a.count).slice(0, 3);
         setFavoriteGenres(topGenres);
 
+        // --- Palavras-chave favoritas (subgêneros/temas, via TMDB keywords) ---
+        // Mesmo padrão de contagem dos gêneros acima, só que lendo de
+        // movie_cache.keywords — populado desde a sessão de otimização de
+        // cache, mas nunca consumido em lugar nenhum até agora.
+        const keywordCounts: Record<string, Keyword> = {};
+        ratedMovies.forEach((movie) => {
+          (movie as any).keywords?.forEach((kw: any) => {
+            const key = String(kw.id ?? kw.name);
+            keywordCounts[key] = keywordCounts[key] || { id: kw.id ?? kw.name, name: kw.name, count: 0 };
+            keywordCounts[key].count++;
+          });
+        });
+        const topKeywords = Object.values(keywordCounts).sort((a, b) => b.count - a.count).slice(0, 3);
+        setFavoriteKeywords(topKeywords);
+
         // --- Década favorita ---
         const decadeCounts: DecadeCount = {};
         let totalWithDate = 0;
@@ -430,6 +454,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
             ratingDistribution: distribution,
             totalWatchTime: totalMinutes,
             favoriteGenres: topGenres,
+            favoriteKeywords: topKeywords,
             favoriteDecade:
               totalWithDate > 0
                 ? {
@@ -513,6 +538,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
     ratingDistribution,
     totalWatchTime,
     favoriteGenres,
+    favoriteKeywords,
     favoriteDecade,
     topActors,
     topDirectors,
