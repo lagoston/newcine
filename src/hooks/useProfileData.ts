@@ -338,6 +338,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
         // Filtradas aqui na leitura, sem precisar mexer no dado já salvo.
         const NOISY_KEYWORDS = new Set([
           'based on novel or book',
+          'based on comic',
           'duringcreditsstinger',
           'aftercreditsstinger'
         ]);
