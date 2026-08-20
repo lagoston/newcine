@@ -630,8 +630,6 @@
   },
   "customize": {
     "title": "Personalizar Perfil",
-    "frames": {
-  "changePhotoHint": "Quer trocar sua foto? Isso é feito direto na sua página de Perfil."
 },
     "tabs": {
       "avatars": "Avatares",
