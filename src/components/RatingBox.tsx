@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film } from 'lucide-react';
+import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Swords } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import ConfirmationModal from './ConfirmationModal';
 import MovieDetailsModal from './MovieDetailsModal';
@@ -29,6 +29,10 @@ interface RatingBoxProps {
   chromaBoxEnabled?: boolean;
   isOneGrid?: boolean;
   isOneGridTv?: boolean;
+  // Só usado na caixa da Watchlist (isNotRated=true) — mostra o botão de
+  // Duelo de Watchlist ao lado do "Ver Todos". Nas caixas de nota normal,
+  // essa prop simplesmente não é passada, e o botão não aparece.
+  onDuelClick?: () => void;
 }
 
 const RatingBox: React.FC<RatingBoxProps> = ({
@@ -47,6 +51,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   chromaBoxEnabled = false,
   isOneGrid = false,
   isOneGridTv = false,
+  onDuelClick,
 }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language === 'pt';
@@ -186,14 +191,26 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setShowAllMovies(true)}
-          className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-        >
-          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-          <span className="hidden sm:inline">{t('common.view_all')}</span>
-          <span className="sm:hidden">Ver</span>
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {isNotRated && onDuelClick && (
+            <button
+              onClick={onDuelClick}
+              className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 rounded-xl transition-all duration-300 whitespace-nowrap shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+            >
+              <Swords className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">{t('watchlistDuel.title')}</span>
+              <span className="sm:hidden">Duelo</span>
+            </button>
+          )}
+          <button
+            onClick={() => setShowAllMovies(true)}
+            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-300 whitespace-nowrap shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+          >
+            <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">{t('common.view_all')}</span>
+            <span className="sm:hidden">Ver</span>
+          </button>
+        </div>
       </div>
 
       {/* Carrossel unificado - scroll nativo suave em todos os dispositivos */}
