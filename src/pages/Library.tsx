@@ -33,6 +33,7 @@ export default function Library() {
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
+  const [showWatchlistDuel, setShowWatchlistDuel] = useState(false);
   const [username, setUsername] = useState<string>('');
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [alternateNames, setAlternateNames] = useState<Record<string, string>>(() => {
