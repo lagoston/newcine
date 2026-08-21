@@ -513,18 +513,7 @@ export default function Library() {
           initial="hidden"
           animate="visible"
         >
-                          <motion.div variants={itemVariants}>
-          {moviesByRating.unrated.length >= 4 && (
-            <div className="flex justify-end mb-2 px-1">
-              <button
-                onClick={() => setShowWatchlistDuel(true)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-              >
-                <Swords className="w-4 h-4" />
-                <span>{t('watchlistDuel.title')}</span>
-              </button>
-            </div>
-          )}
+                                  <motion.div variants={itemVariants}>
           <RatingBox
             title={alternateNames['unrated'] || t('library.watchList')}
             movies={moviesByRating.unrated}
@@ -534,6 +523,7 @@ export default function Library() {
             isNotRated
             className=""
             chromaBoxEnabled={chromaBoxEnabled}
+            onDuelClick={moviesByRating.unrated.length >= 4 ? () => setShowWatchlistDuel(true) : undefined}
           />
         </motion.div>
 
