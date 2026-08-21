@@ -630,6 +630,15 @@
     "noTrailer": "Trailer não disponível para este título.",
     "clickForDetails": "Clique para ver detalhes"
   },
+  "watchlistDuel": {
+  "title": "Duelo de Watchlist",
+  "description": "Escolha um amigo — 4 filmes da sua watchlist enfrentam 4 da dele. Sem gastar tickets.",
+  "noEligibleFriends": "Nenhum dos seus amigos tem pelo menos 4 filmes na watchlist ainda.",
+  "moviesInWatchlist": "{{count}} filmes na watchlist",
+  "startButton": "Iniciar o Duelo",
+  "assembling": "Reunindo as watchlists...",
+  "yourList": "Sua lista"
+},
   "customize": {
     "title": "Personalizar Perfil",
     "frames": {
