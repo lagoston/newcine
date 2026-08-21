@@ -55,8 +55,36 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [trailerKey, setTrailerKey] = useState<string | null | undefined>(undefined);
   const [loadingTrailer, setLoadingTrailer] = useState(false);
   const [oracleSources, setOracleSources] = useState<string[]>([]);
-    const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
-  const [dismissedOracleBubbles, setDismissedOracleBubbles] = useState<Set<string>>(new Set());
+  const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
+  // Controla quais balões estão visíveis agora (não "dispensados" — o padrão
+  // é começar ESCONDIDO e aparecer sozinho depois de um tempo, ver useEffect
+  // abaixo). Um toque no selo ou no balão alterna manualmente e cancela
+  // qualquer temporizador pendente daquele oráculo.
+  const [visibleOracleBubbles, setVisibleOracleBubbles] = useState<Set<string>>(new Set());
+  const bubbleTimersRef = React.useRef<Record<string, { showTimer?: ReturnType<typeof setTimeout>; hideTimer?: ReturnType<typeof setTimeout> }>>({});
+
+  const clearBubbleTimers = (source: string) => {
+    const timers = bubbleTimersRef.current[source];
+    if (timers?.showTimer) clearTimeout(timers.showTimer);
+    if (timers?.hideTimer) clearTimeout(timers.hideTimer);
+    bubbleTimersRef.current[source] = {};
+  };
+
+  const toggleOracleBubble = (source: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // O toque "quebra a cadeia" — cancela qualquer aparição/desaparição
+    // automática pendente pra esse oráculo, o resto vira controle manual.
+    clearBubbleTimers(source);
+    setVisibleOracleBubbles((prev) => {
+      const next = new Set(prev);
+      if (next.has(source)) {
+        next.delete(source);
+      } else {
+        next.add(source);
+      }
+      return next;
+    });
+  };
 
   // Reset seasons when movie changes
   useEffect(() => {
@@ -76,12 +104,17 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   }, [session?.user?.id, movie.id]);
 
       useEffect(() => {
+    // Limpa temporizadores do filme anterior antes de trocar — evita um
+    // balão do filme antigo aparecer sozinho depois que o usuário já
+    // navegou pra outro filme.
+    Object.keys(bubbleTimersRef.current).forEach(clearBubbleTimers);
+    setVisibleOracleBubbles(new Set());
+
     if (movie.media_type === 'tv') {
       setOracleSources([]);
       setOracleFlavorPhrases({});
       return;
     }
-            setDismissedOracleBubbles(new Set());
     supabase
       .rpc('get_movie_oracle_mood_sources', { movie_id_param: movie.id })
       .then(({ data, error }) => {
@@ -103,7 +136,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
         // Sorteia uma frase característica por selo, respeitando o(s) humor(es)
         // reais que o filme bateu — "Surpresa Aleatória" só entra em jogo se
-        // não houver nenhum humor específico (ver getRandomFlavorPhrase).
+        // não houver nenhum humor específico (ver getRandomFlavorPhrase). A
+        // frase é sorteada UMA VEZ aqui e guardada em estado — mesmo que o
+        // balão apareça/suma/seja alternado manualmente depois, a frase
+        // continua a mesma durante toda essa abertura do modal.
         const isPt = i18n.language.startsWith('pt');
         const phrases: Record<string, string> = {};
         sources.forEach((source) => {
@@ -111,7 +147,30 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           if (phrase) phrases[source] = isPt ? phrase.pt : phrase.en;
         });
         setOracleFlavorPhrases(phrases);
+
+        // Temporizador por selo: aparece sozinho 2s depois de abrir o modal,
+        // fica visível por 6s, depois retrai sozinho. Um toque a qualquer
+        // momento cancela esse ciclo (ver toggleOracleBubble).
+        sources.forEach((source) => {
+          if (!phrases[source]) return;
+          const showTimer = setTimeout(() => {
+            setVisibleOracleBubbles((prev) => new Set(prev).add(source));
+            const hideTimer = setTimeout(() => {
+              setVisibleOracleBubbles((prev) => {
+                const next = new Set(prev);
+                next.delete(source);
+                return next;
+              });
+            }, 6000);
+            bubbleTimersRef.current[source] = { ...bubbleTimersRef.current[source], hideTimer };
+          }, 2000);
+          bubbleTimersRef.current[source] = { showTimer };
+        });
       });
+
+    return () => {
+      Object.keys(bubbleTimersRef.current).forEach(clearBubbleTimers);
+    };
   }, [movie.id, movie.media_type, i18n.language]);
 
   useEffect(() => {
@@ -781,25 +840,23 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     Cada selo tem sua própria frase característica, revelada num
                     balão ao passar o mouse/tocar (evita poluir o pôster, que já
                     tem bolhas de amigos e a indicação de trailer). */}
-                                {oracleSources.length > 0 && (
+                {oracleSources.length > 0 && (
                   <div className="absolute bottom-2 left-2 flex items-end gap-1 z-10 pointer-events-auto">
                     {oracleSources.map((source) => {
                       const bubbleStyle = ORACLE_BUBBLE[source] || { bg: 'bg-gray-900/95', text: 'text-white', arrow: 'border-t-gray-900' };
-                      const showBubble = !!oracleFlavorPhrases[source] && !dismissedOracleBubbles.has(source);
+                      const showBubble = !!oracleFlavorPhrases[source] && visibleOracleBubbles.has(source);
                       return (
                         <div key={source} className="relative">
                           <div
-                            className={`w-6 h-6 rounded-full ${ORACLE_SEAL[source]?.bg || 'bg-gray-500'} ring-2 ring-white/70 dark:ring-gray-800/70 shadow-md flex items-center justify-center text-[11px]`}
+                            onClick={(e) => toggleOracleBubble(source, e)}
+                            className={`w-6 h-6 rounded-full ${ORACLE_SEAL[source]?.bg || 'bg-gray-500'} ring-2 ring-white/70 dark:ring-gray-800/70 shadow-md flex items-center justify-center text-[11px] cursor-pointer`}
                           >
                             {ORACLE_SEAL[source]?.emoji || '🎬'}
                           </div>
                           {showBubble && (
                             <div
                               className="absolute bottom-full left-0 mb-2 w-48 z-20 cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDismissedOracleBubbles((prev) => new Set(prev).add(source));
-                              }}
+                              onClick={(e) => toggleOracleBubble(source, e)}
                             >
                               <div className={`relative ${bubbleStyle.bg} backdrop-blur-sm rounded-xl px-3 py-2 shadow-2xl`}>
                                 <p className={`${bubbleStyle.text} text-[10px] italic leading-snug`}>
@@ -843,6 +900,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           <div
                             key={friend.user_id}
                             className="absolute animate-float-slow pointer-events-auto"
+                            onClick={(e) => e.stopPropagation()}
                             style={{
                               ...position,
                               animationDelay: `${index * 0.3}s`,
