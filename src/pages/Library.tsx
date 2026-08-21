@@ -613,7 +613,7 @@ export default function Library() {
           onRatedLayoutChange={handleRatedLayoutChange}
         />
 
-              {isReviewsModalOpen && session?.user?.id && (
+                    {isReviewsModalOpen && session?.user?.id && (
         <UserReviewsModal
           userId={session.user.id}
           username={username}
@@ -621,6 +621,10 @@ export default function Library() {
         />
       )}
 
+      <WatchlistDuelModal
+        isOpen={showWatchlistDuel}
+        onClose={() => setShowWatchlistDuel(false)}
+      />
     </motion.div>
     </div>
   );
