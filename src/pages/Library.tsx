@@ -12,8 +12,7 @@ import LinearProgressBar from '../components/LinearProgressBar';
 import { useAuth } from '../lib/auth';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
-import { Plus, ListPlus, Film, MessageSquare, FileEdit as Edit, Swords } from 'lucide-react';
-import WatchlistDuelModal from '../components/WatchlistDuelModal';
+
 
 interface UserMovie {
   id: string;
@@ -32,7 +31,6 @@ export default function Library() {
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
-  const [showWatchlistDuel, setShowWatchlistDuel] = useState(false);
   const [username, setUsername] = useState<string>('');
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [alternateNames, setAlternateNames] = useState<Record<string, string>>(() => {
@@ -514,17 +512,6 @@ export default function Library() {
           animate="visible"
         >
                   <motion.div variants={itemVariants}>
-          {moviesByRating.unrated.length >= 4 && (
-            <div className="flex justify-end mb-2 px-1">
-              <button
-                onClick={() => setShowWatchlistDuel(true)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-              >
-                <Swords className="w-4 h-4" />
-                <span>{t('watchlistDuel.title')}</span>
-              </button>
-            </div>
-          )}
           <RatingBox
             title={alternateNames['unrated'] || t('library.watchList')}
             movies={moviesByRating.unrated}
@@ -620,10 +607,6 @@ export default function Library() {
         />
       )}
 
-      <WatchlistDuelModal
-        isOpen={showWatchlistDuel}
-        onClose={() => setShowWatchlistDuel(false)}
-      />
     </motion.div>
     </div>
   );
