@@ -451,22 +451,14 @@ export default function OracleDuel() {
 
         {/* LOADING */}
         {phase === 'loading' && (
-          <motion.div
-            className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-8 text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="flex flex-col items-center gap-4">
-              <div className="p-6 rounded-full bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-pink-400/30">
-                <motion.div animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }} transition={{ duration: 2, repeat: Infinity }}>
-                  <Swords className="w-10 h-10 text-pink-500" />
-                </motion.div>
-              </div>
-              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">
-                {t('duel.assembling')}
-              </h2>
-            </div>
-          </motion.div>
+          <div className="flex flex-col items-center py-16 gap-4">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
+              <Swords className="w-10 h-10 text-pink-500" />
+            </motion.div>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              {t('duel.assembling')}
+            </p>
+          </div>
         )}
 
         {/* BRACKET */}
@@ -481,58 +473,42 @@ export default function OracleDuel() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-stretch">
+            <div className="grid grid-cols-2 gap-4">
               {[roundMovies[pairIndex * 2], roundMovies[pairIndex * 2 + 1]].map((movie, idx) => (
                 <motion.div
                   key={movie.id}
-                  className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden flex flex-col"
                   initial={{ opacity: 0, x: idx === 0 ? -20 : 20 }}
                   animate={{ opacity: 1, x: 0 }}
+                  className="flex flex-col"
                 >
                   <div
-                    className="aspect-[2/3] w-full overflow-hidden cursor-pointer group relative"
+                    className="aspect-[2/3] w-full overflow-hidden cursor-pointer group relative rounded-2xl shadow-xl"
                     onClick={() => openDetails(movie)}
                   >
                     <img src={posterUrl(movie.poster_path)} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                    <div className={`absolute top-2 left-2 w-8 h-8 rounded-full ${ORACLE_SEAL[movie.source]?.bg || 'bg-gray-500'} ring-2 ${ORACLE_SEAL[movie.source]?.ring || 'ring-gray-300'} shadow-lg flex items-center justify-center text-base`}>
+                    <div className={`absolute bottom-2 left-2 w-7 h-7 rounded-full ${ORACLE_SEAL[movie.source]?.bg || 'bg-gray-500'} ring-2 ${ORACLE_SEAL[movie.source]?.ring || 'ring-gray-300'} shadow-lg flex items-center justify-center text-sm`}>
                       {ORACLE_SEAL[movie.source]?.emoji || '🎬'}
                     </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
-                      {loadingDetailsFor === movie.id ? (
-                        <Loader2 className="w-5 h-5 text-white animate-spin" />
-                      ) : (
-                        <p className="text-white text-sm font-semibold">{t('duel.clickForDetails')}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="p-4 flex-1 flex flex-col gap-3">
-                    <div>
-                      <h3 className="font-bold text-gray-900 dark:text-white leading-snug line-clamp-2">{movie.title}</h3>
-                      <div className="flex items-center gap-2 mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        <span>{movie.release_date ? new Date(movie.release_date).getFullYear() : '—'}</span>
-                        <span className="flex items-center gap-1">
-                          <Star className="w-3.5 h-3.5 text-amber-500 fill-current" />
-                          {movie.vote_average.toFixed(1)}
-                        </span>
+                    {loadingDetailsFor === movie.id && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <Loader2 className="w-6 h-6 text-white animate-spin" />
                       </div>
-                    </div>
-
-                    <button
-                      onClick={(e) => openTrailer(e, movie)}
-                      className="flex items-center justify-center gap-2 py-2 text-sm font-semibold text-pink-600 dark:text-pink-300 bg-pink-500/10 hover:bg-pink-500/20 rounded-xl transition-colors"
-                    >
-                      <Play className="w-4 h-4" />
-                      {t('duel.watchTrailer')}
-                    </button>
-
-                    <button
-                      onClick={() => chooseWinner(movie)}
-                      className="mt-auto flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:shadow-lg hover:shadow-pink-500/25 text-white font-bold rounded-xl shadow-md transition-all"
-                    >
-                      <Swords className="w-4 h-4" />
-                      {t('duel.choose')}
-                    </button>
+                    )}
                   </div>
+                  <button
+                    onClick={(e) => openTrailer(e, movie)}
+                    className="flex items-center justify-center gap-1.5 mt-2 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-xl transition-colors"
+                  >
+                    <Play className="w-3 h-3" />
+                    {t('duel.watchTrailer')}
+                  </button>
+                  <button
+                    onClick={() => chooseWinner(movie)}
+                    className="flex items-center justify-center gap-1.5 mt-2 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-pink-500 to-rose-500 hover:shadow-lg hover:shadow-pink-500/30 rounded-xl transition-all"
+                  >
+                    <Swords className="w-4 h-4" />
+                    {t('duel.choose')}
+                  </button>
                 </motion.div>
               ))}
             </div>
@@ -542,51 +518,49 @@ export default function OracleDuel() {
         {/* CHAMPION */}
         {phase === 'champion' && champion && (
           <motion.div className="text-center" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-            <div className="flex justify-center mb-4">
-              <motion.div animate={{ rotate: [0, -8, 8, -8, 0] }} transition={{ duration: 1, delay: 0.3 }}>
-                <Trophy className="w-14 h-14 text-amber-400" />
-              </motion.div>
-            </div>
-            <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500 mb-6">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
+              className="inline-flex p-4 rounded-full bg-gradient-to-br from-amber-400/20 to-yellow-500/20 border border-amber-400/30 mb-4"
+            >
+              <Trophy className="w-10 h-10 text-amber-400" />
+            </motion.div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {t('duel.champion')}
             </h2>
 
-            <div className="max-w-xs mx-auto rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden mb-6">
-              <div
-                className="aspect-[2/3] w-full overflow-hidden cursor-pointer group relative"
-                onClick={() => openDetails(champion)}
-              >
-                <img src={posterUrl(champion.poster_path)} alt={champion.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                <div className={`absolute top-2 left-2 w-8 h-8 rounded-full ${ORACLE_SEAL[champion.source]?.bg || 'bg-gray-500'} ring-2 ${ORACLE_SEAL[champion.source]?.ring || 'ring-gray-300'} shadow-lg flex items-center justify-center text-base`}>
-                  {ORACLE_SEAL[champion.source]?.emoji || '🎬'}
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
-                  {loadingDetailsFor === champion.id ? (
-                    <Loader2 className="w-5 h-5 text-white animate-spin" />
-                  ) : (
-                    <p className="text-white text-sm font-semibold">{t('duel.clickForDetails')}</p>
-                  )}
-                </div>
+            <div
+              className="w-40 mx-auto aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl cursor-pointer group relative mb-4"
+              onClick={() => openDetails(champion)}
+            >
+              <img src={posterUrl(champion.poster_path)} alt={champion.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <div className={`absolute bottom-2 left-2 w-7 h-7 rounded-full ${ORACLE_SEAL[champion.source]?.bg || 'bg-gray-500'} ring-2 ${ORACLE_SEAL[champion.source]?.ring || 'ring-gray-300'} shadow-lg flex items-center justify-center text-sm`}>
+                {ORACLE_SEAL[champion.source]?.emoji || '🎬'}
               </div>
-              <div className="p-4">
-                <h3 className="font-bold text-gray-900 dark:text-white text-lg">{champion.title}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {champion.release_date ? new Date(champion.release_date).getFullYear() : '—'}
-                </p>
-              </div>
+              {loadingDetailsFor === champion.id && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                </div>
+              )}
+            </div>
+            <p className="font-bold text-lg text-gray-900 dark:text-white mb-1">{champion.title}</p>
+            <div className="flex items-center justify-center gap-1 text-amber-500 mb-6">
+              <Star className="w-4 h-4 fill-current" />
+              <span className="text-sm">{champion.vote_average?.toFixed(1)}</span>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+            <div className="flex gap-3 max-w-md mx-auto">
               <button
                 onClick={() => openDetails(champion)}
-                className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold rounded-xl shadow-md transition-all"
+                className="flex-1 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold rounded-2xl hover:shadow-lg hover:shadow-pink-500/30 transition-all flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 {t('duel.viewAndAdd')}
               </button>
               <button
                 onClick={restart}
-                className="flex items-center justify-center gap-2 px-5 py-3 bg-white/60 dark:bg-gray-700/60 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-700 dark:text-gray-200 font-semibold rounded-xl transition-all"
+                className="flex-1 py-3 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-700 dark:text-gray-200 font-bold rounded-2xl transition-colors flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
                 {t('duel.newDuel')}
