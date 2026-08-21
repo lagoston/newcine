@@ -81,25 +81,33 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       setOracleFlavorPhrases({});
       return;
     }
-        setDismissedOracleBubbles(new Set());
+            setDismissedOracleBubbles(new Set());
     supabase
-      .rpc('get_movie_oracle_sources', { movie_id_param: movie.id })
+      .rpc('get_movie_oracle_mood_sources', { movie_id_param: movie.id })
       .then(({ data, error }) => {
         if (error) {
-          console.error('Error fetching oracle sources:', error);
+          console.error('Error fetching oracle mood sources:', error);
           return;
         }
-        const sources: string[] = data || [];
+        // data vem como [{ card_type, mood_key }, ...] — agrupa por oráculo
+        // pra saber exatamente quais humores bateram pra cada um.
+        const rows: { card_type: string; mood_key: string }[] = data || [];
+        const moodsByOracle: Record<string, string[]> = {};
+        rows.forEach((row) => {
+          if (!moodsByOracle[row.card_type]) moodsByOracle[row.card_type] = [];
+          moodsByOracle[row.card_type].push(row.mood_key);
+        });
+
+        const sources = Object.keys(moodsByOracle);
         setOracleSources(sources);
 
-        // Sorteia uma frase característica por selo, uma vez só por filme —
-        // "Surpresa Aleatória" já é a união das outras 9 pools de humor de
-        // cada oráculo, então sortear de qualquer frase do oráculo cobre
-        // esse caso sem precisar saber qual humor "trouxe" o filme até aqui.
+        // Sorteia uma frase característica por selo, respeitando o(s) humor(es)
+        // reais que o filme bateu — "Surpresa Aleatória" só entra em jogo se
+        // não houver nenhum humor específico (ver getRandomFlavorPhrase).
         const isPt = i18n.language.startsWith('pt');
         const phrases: Record<string, string> = {};
         sources.forEach((source) => {
-          const phrase = getRandomFlavorPhrase(source);
+          const phrase = getRandomFlavorPhrase(source, moodsByOracle[source]);
           if (phrase) phrases[source] = isPt ? phrase.pt : phrase.en;
         });
         setOracleFlavorPhrases(phrases);
