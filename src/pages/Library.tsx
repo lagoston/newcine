@@ -12,6 +12,8 @@ import LinearProgressBar from '../components/LinearProgressBar';
 import { useAuth } from '../lib/auth';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
+import { Plus, ListPlus, Film, MessageSquare, FileEdit as Edit, Swords } from 'lucide-react';
+import WatchlistDuelModal from '../components/WatchlistDuelModal';
 
 interface UserMovie {
   id: string;
