@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, ListPlus, Film, MessageSquare, FileEdit as Edit } from 'lucide-react';
+import { Plus, ListPlus, Film, MessageSquare, FileEdit as Edit, Swords } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
@@ -12,8 +12,7 @@ import LinearProgressBar from '../components/LinearProgressBar';
 import { useAuth } from '../lib/auth';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
-import { Plus, ListPlus, Film, MessageSquare, FileEdit as Edit, Swords } from 'lucide-react';
-import WatchlistDuelModal from '../components/WatchlistDuelModal';
+import WatchListDuelModal from '../components/WatchListDuelModal';
 
 
 interface UserMovie {
@@ -621,7 +620,7 @@ export default function Library() {
         />
       )}
 
-      <WatchlistDuelModal
+      <WatchListDuelModal
         isOpen={showWatchlistDuel}
         onClose={() => setShowWatchlistDuel(false)}
       />
