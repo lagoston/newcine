@@ -630,15 +630,6 @@
     "noTrailer": "Trailer not available for this title.",
     "clickForDetails": "Click for details"
   },
-  "watchlistDuel": {
-  "title": "Watchlist Duel",
-  "description": "Pick a friend — 4 movies from your watchlist face 4 from theirs. No tickets required.",
-  "noEligibleFriends": "None of your friends have at least 4 movies in their watchlist yet.",
-  "moviesInWatchlist": "{{count}} movies in watchlist",
-  "startButton": "Start the Duel",
-  "assembling": "Assembling your watchlists...",
-  "yourList": "Your list"
-},
   "customize": {
     "title": "Customize Profile",
     "frames": {
