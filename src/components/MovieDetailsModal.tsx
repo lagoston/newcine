@@ -796,7 +796,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // "PG-13" aparecia igual do TMDB, mas um filme "18" não virava "PG-18"
   // nem nada parecido, porque são sistemas de países diferentes, não uma
   // mesma escala com números diferentes. Agora tudo sai no mesmo padrão,
-  // não importa de qual país o dado original veio.
+  // não importa de qual país o dado original veio. Não existe "+13" oficial
+  // no ClassInd brasileiro — "PG-13" arredonda pra +14, o balde real mais
+  // próximo, em vez de inventar uma faixa que não existe de verdade.
   const standardizeCertification = (raw: string): string | null => {
     const upper = raw.trim().toUpperCase();
 
@@ -808,7 +810,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     const usMap: Record<string, string> = {
       'G': 'L',
       'PG': '+10',
-      'PG-13': '+13',
+      'PG-13': '+14',
       'R': '+16',
       'NC-17': '+18',
     };
@@ -827,11 +829,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     return null;
   };
 
+  // Cores oficiais do selo ClassInd brasileiro: Livre=verde, 10=azul,
+  // 12=amarelo, 14=laranja, 16=vermelho, 18=preto.
   const getCertificationColor = (standardized: string): string => {
-    if (standardized === '+18') return 'bg-red-600 text-white';
-    if (standardized === '+16') return 'bg-orange-500 text-white';
-    if (standardized === '+14' || standardized === '+13') return 'bg-yellow-500 text-gray-900';
-    if (standardized === '+12' || standardized === '+10') return 'bg-blue-500 text-white';
+    if (standardized === '+18') return 'bg-black text-white';
+    if (standardized === '+16') return 'bg-red-600 text-white';
+    if (standardized === '+14') return 'bg-orange-500 text-white';
+    if (standardized === '+12') return 'bg-yellow-500 text-gray-900';
+    if (standardized === '+10') return 'bg-blue-500 text-white';
     return 'bg-green-600 text-white';
   };
 
@@ -1067,30 +1072,40 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                 </div>
 
                 {/* Assistir em - desktop only (mobile shows after cast) */}
-                {hasStreamingProviders && (
-                  <div className="hidden md:block bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                      {t('movies.watchOn')}
-                    </h3>
-                    <div className="flex flex-wrap gap-3">
-                      {movie.watchProviders.flatrate.map((provider) => (
-                        <div
-                          key={provider.provider_id}
-                          className="relative group"
-                        >
-                          <img
-                            src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
-                            alt={provider.provider_name}
-                            className="h-10 w-10 rounded-lg object-contain"
-                          />
-                          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                            {provider.provider_name}
+                <div className="hidden md:block bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    {t('movies.watchOn')}
+                  </h3>
+                  {/* Altura máxima + rolagem, mesmo tratamento da sinopse —
+                      antes o bloco crescia junto com a quantidade de
+                      serviços de streaming. E agora aparece sempre, com
+                      mensagem de "não disponível" em vez de sumir — sumir
+                      completamente fazia a tela parecer estruturada
+                      diferente de filme pra filme. */}
+                  <div className="max-h-20 overflow-y-auto">
+                    {hasStreamingProviders ? (
+                      <div className="flex flex-wrap gap-3">
+                        {movie.watchProviders.flatrate.map((provider) => (
+                          <div
+                            key={provider.provider_id}
+                            className="relative group"
+                          >
+                            <img
+                              src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
+                              alt={provider.provider_name}
+                              className="h-10 w-10 rounded-lg object-contain"
+                            />
+                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              {provider.provider_name}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('movies.noStreamingAvailable')}</p>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
               <div className="space-y-6">
@@ -1197,32 +1212,31 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       Ícone trocado de AlertCircle (parecia erro) pra Shield,
                       e rótulo encurtado — "Classificação Indicativa" estava
                       esticando o quadrado pro lado, puxando os vizinhos
-                      junto (linha inteira do grid cresce igual). */}
-                  {certification ? (
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                      <div className="flex items-center justify-center mb-2">
-                        <Shield className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.ageLabel')}</div>
-                        <div className="flex justify-center mt-0.5">
+                      junto (linha inteira do grid cresce igual).
+
+                      IMPORTANTE: esse quadrado agora SEMPRE mostra
+                      Classificação (com "—" se o filme não tiver esse dado)
+                      — antes, filmes sem classificação mostravam o Diretor
+                      aqui no lugar, fazendo a tela parecer "num modelo
+                      diferente" dependendo do filme. Agora a estrutura é
+                      idêntica pra qualquer filme. */}
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                    <div className="flex items-center justify-center mb-2">
+                      <Shield className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.ageLabel')}</div>
+                      <div className="flex justify-center mt-0.5">
+                        {certification ? (
                           <span className={`text-xs font-bold px-2 py-0.5 rounded ${getCertificationColor(certification)}`}>
                             {certification}
                           </span>
-                        </div>
+                        ) : (
+                          <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
+                        )}
                       </div>
                     </div>
-                  ) : (
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                      <div className="flex items-center justify-center mb-2">
-                        <User className="w-5 h-5 text-purple-500" />
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.director')}</div>
-                        <div className="font-medium text-gray-900 dark:text-white text-xs px-1 line-clamp-2 leading-tight" title={director}>{director}</div>
-                      </div>
-                    </div>
-                  )}
+                  </div>
 
                   {originCountry && (
                     <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
@@ -1239,60 +1253,68 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   )}
                 </div>
 
-                {/* Diretor — antes vivia espremido na grade acima; como a
-                    Classificação tomou esse lugar quando disponível, o
-                    Diretor virou linha própria, sempre visível. */}
-                {certification && (
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 flex items-center gap-3">
-                    <User className="w-5 h-5 text-purple-500 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">{t('movies.director')}:</span>
-                      <span className="font-medium text-gray-900 dark:text-white text-sm">{director}</span>
-                    </div>
+                {/* Diretor — sempre em linha própria agora, pra manter a
+                    mesma estrutura em qualquer filme (com ou sem
+                    classificação disponível). */}
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 flex items-center gap-3">
+                  <User className="w-5 h-5 text-purple-500 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">{t('movies.director')}:</span>
+                    <span className="font-medium text-gray-900 dark:text-white text-sm">{director}</span>
                   </div>
-                )}
+                </div>
 
-                {cast.length > 0 && (
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                      {t('movies.cast')}
-                    </h3>
-                    <div className="space-y-2">
-                      {cast.map((actor) => (
-                        <div key={actor.id} className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">{actor.character}</span>
-                          <span className="text-sm text-gray-900 dark:text-white">{actor.name}</span>
-                        </div>
-                      ))}
-                    </div>
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    {t('movies.cast')}
+                  </h3>
+                  {/* Altura máxima + rolagem — elenco grande não estica mais
+                      o card (nem os vizinhos), igual à sinopse. */}
+                  <div className="max-h-40 overflow-y-auto pr-1">
+                    {cast.length > 0 ? (
+                      <div className="space-y-2">
+                        {cast.map((actor) => (
+                          <div key={actor.id} className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">{actor.character}</span>
+                            <span className="text-sm text-gray-900 dark:text-white">{actor.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('movies.noCastAvailable')}</p>
+                    )}
                   </div>
-                )}
+                </div>
 
                 {/* Assistir em - mobile only (desktop shows in left column) */}
-                {hasStreamingProviders && (
-                  <div className="md:hidden bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                      {t('movies.watchOn')}
-                    </h3>
-                    <div className="flex flex-wrap gap-3">
-                      {movie.watchProviders.flatrate.map((provider) => (
-                        <div
-                          key={provider.provider_id}
-                          className="relative group"
-                        >
-                          <img
-                            src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
-                            alt={provider.provider_name}
-                            className="h-10 w-10 rounded-lg object-contain"
-                          />
-                          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                            {provider.provider_name}
+                <div className="md:hidden bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    {t('movies.watchOn')}
+                  </h3>
+                  <div className="max-h-20 overflow-y-auto">
+                    {hasStreamingProviders ? (
+                      <div className="flex flex-wrap gap-3">
+                        {movie.watchProviders.flatrate.map((provider) => (
+                          <div
+                            key={provider.provider_id}
+                            className="relative group"
+                          >
+                            <img
+                              src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
+                              alt={provider.provider_name}
+                              className="h-10 w-10 rounded-lg object-contain"
+                            />
+                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              {provider.provider_name}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('movies.noStreamingAvailable')}</p>
+                    )}
                   </div>
-                )}
+                </div>
 
               </div>
             </div>
