@@ -33,15 +33,37 @@ interface MatchedMovie {
 const posterUrl = (path: string | null) =>
   path ? `https://image.tmdb.org/t/p/w500${path}` : 'https://via.placeholder.com/500x750?text=No+Image';
 
+// Mesmos 9 humores usados no Duelo/Recomendação Clássica — o valor à direita
+// é o formato real salvo em recommendation_pools.mood_key (com hífen), a
+// chave à esquerda é a de tradução (oracle.moods.*, camelCase).
+const MOODS: { labelKey: string; value: string }[] = [
+  { labelKey: 'oracle.moods.adventures', value: 'adventures' },
+  { labelKey: 'oracle.moods.catharsis', value: 'catharsis' },
+  { labelKey: 'oracle.moods.adrenaline', value: 'adrenaline' },
+  { labelKey: 'oracle.moods.mindBlowing', value: 'mind-blowing' },
+  { labelKey: 'oracle.moods.laughOutLoud', value: 'laugh-out-loud' },
+  { labelKey: 'oracle.moods.drugTrip', value: 'drug-trip' },
+  { labelKey: 'oracle.moods.romantic', value: 'romantic' },
+  { labelKey: 'oracle.moods.darkScary', value: 'dark-and-scary' },
+  { labelKey: 'oracle.moods.familyTime', value: 'family-time' },
+];
+
 export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUsername }: MatchMovieModalProps) {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
 
   const [phase, setPhase] = useState<Phase>('setup');
   const [mode, setMode] = useState<Mode>('unseen');
+  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [matches, setMatches] = useState<MatchedMovie[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
+
+  const toggleMood = (value: string) => {
+    setSelectedMoods((prev) =>
+      prev.includes(value) ? prev.filter((m) => m !== value) : [...prev, value]
+    );
+  };
 
   const modes: { id: Mode; icon: React.ElementType; labelKey: string }[] = [
     { id: 'unseen', icon: EyeOff, labelKey: 'matchMovie.modeUnseen' },
@@ -58,7 +80,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ friendId: otherUserId, mode, language: i18n.language })
+        body: JSON.stringify({ friendId: otherUserId, mode, moods: selectedMoods, language: i18n.language })
       });
       const data = await response.json();
       if (!response.ok || data.error) {
@@ -141,6 +163,28 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
 
             {phase === 'setup' && (
               <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                  {t('matchMovie.chooseMoods')}
+                </p>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {MOODS.map(({ labelKey, value }) => (
+                    <button
+                      key={value}
+                      onClick={() => toggleMood(value)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                        selectedMoods.includes(value)
+                          ? 'border-pink-400 bg-pink-500/15 text-pink-600 dark:text-pink-400'
+                          : 'border-white/60 dark:border-gray-700/60 bg-white/40 dark:bg-gray-800/40 text-gray-600 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-gray-700/60'
+                      }`}
+                    >
+                      {t(labelKey)}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                  {t('matchMovie.chooseFilter')}
+                </p>
                 <div className="space-y-2 mb-6">
                   {modes.map(({ id, icon: Icon, labelKey }) => (
                     <button
@@ -167,7 +211,8 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
 
                 <button
                   onClick={handleFindMatch}
-                  className="w-full py-3.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold rounded-2xl hover:shadow-xl hover:shadow-pink-500/30 transition-all flex items-center justify-center gap-2"
+                  disabled={selectedMoods.length === 0}
+                  className="w-full py-3.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold rounded-2xl hover:shadow-xl hover:shadow-pink-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Wand2 className="w-5 h-5" />
                   {t('matchMovie.findButton')}
