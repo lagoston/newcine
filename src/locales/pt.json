@@ -238,6 +238,8 @@
   },
   "movies": {
     "director": "Diretor",
+    "noStreamingAvailable": "Não disponível para streaming",
+    "noCastAvailable": "Nenhuma informação de elenco disponível",
     "ageLabel": "Idade",
     "clickForTrailer": "Clique para assistir o trailer",
     "cast": "Elenco",
