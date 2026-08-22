@@ -55,6 +55,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [trailerKey, setTrailerKey] = useState<string | null | undefined>(undefined);
   const [loadingTrailer, setLoadingTrailer] = useState(false);
   const [oracleSources, setOracleSources] = useState<string[]>([]);
+  const [certification, setCertification] = useState<string | null>(null);
   const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
   // Controla quais balões estão visíveis agora (não "dispensados" — o padrão
   // é começar ESCONDIDO e aparecer sozinho depois de um tempo, ver useEffect
@@ -171,6 +172,37 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     return () => {
       Object.keys(bubbleTimersRef.current).forEach(clearBubbleTimers);
     };
+  }, [movie.id, movie.media_type, i18n.language]);
+
+  // Classificação indicativa — busca direto do movie_cache.content_ratings,
+  // que já vem como um array com uma entrada por país (ex: um item com
+  // iso_3166_1 "BR" e outro "US", cada um com sua própria "certification").
+  // A versão antiga dessa feature às vezes mostrava algo tipo "New York" em
+  // vez da nota — sinal claro de estar lendo o campo errado desse array
+  // (provavelmente pegando o índice [0] sem checar o país, ou lendo um outro
+  // campo qualquer). Aqui filtramos explicitamente pelo país certo e lemos
+  // SÓ o campo "certification", nunca outra coisa.
+  useEffect(() => {
+    const isPt = i18n.language.startsWith('pt');
+    supabase
+      .from('movie_cache')
+      .select('content_ratings')
+      .eq('tmdb_id', movie.id)
+      .eq('media_type', movie.media_type || 'movie')
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data?.content_ratings || !Array.isArray(data.content_ratings)) {
+          setCertification(null);
+          return;
+        }
+        const ratings: { iso_3166_1?: string; certification?: string }[] = data.content_ratings;
+        const preferredRegion = isPt ? 'BR' : 'US';
+        const match =
+          ratings.find((r) => r.iso_3166_1 === preferredRegion && r.certification) ||
+          ratings.find((r) => r.iso_3166_1 === 'US' && r.certification) ||
+          ratings.find((r) => r.certification);
+        setCertification(match?.certification || null);
+      });
   }, [movie.id, movie.media_type, i18n.language]);
 
   useEffect(() => {
@@ -745,6 +777,23 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     ? `${movie.number_of_seasons} ${movie.number_of_seasons === 1 ? 'Season' : 'Seasons'}`
     : t('movies.unknown');
 
+  // Cor do selo por faixa etária — heurística simples que cobre tanto o
+  // padrão brasileiro (L, 10, 12, 14, 16, 18) quanto o americano (G, PG,
+  // PG-13, R, NC-17), sem precisar de uma tabela gigante caso a caso.
+  const getCertificationColor = (cert: string): string => {
+    const upper = cert.toUpperCase();
+    if (upper.includes('18') || upper === 'R' || upper.includes('NC-17')) {
+      return 'bg-red-600 text-white';
+    }
+    if (upper.includes('16')) {
+      return 'bg-orange-500 text-white';
+    }
+    if (upper.includes('14') || upper === 'PG-13') {
+      return 'bg-yellow-500 text-gray-900';
+    }
+    return 'bg-green-600 text-white';
+  };
+
   // Get origin country - support both API format (production_countries) and cache format (origin_country)
   const getOriginCountry = () => {
     // Try cache format first (origin_country: ["US"])
@@ -815,11 +864,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
           <div className="px-6 pt-2 pb-6">
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-3 flex-wrap">
                 {movie.title}
                 <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
                   ({year})
                 </span>
+                {certification && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${getCertificationColor(certification)}`}>
+                    {certification}
+                  </span>
+                )}
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
