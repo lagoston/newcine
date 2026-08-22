@@ -3,7 +3,7 @@ import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, I
 import { Movie, getMovieTrailer, getMovieDetailsFromDB } from '../lib/tmdb';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
 import { useAuth } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseUrl } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS } from '../lib/cache';
@@ -776,12 +776,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   // For TV shows, look for Creator or Director; for movies, look for Director
   let director = t('movies.unknown');
+  let directorId: number | null = null;
   if (movie.credits?.crew) {
     const directorPerson = movie.credits.crew.find(person =>
       person.job === 'Director' || person.job === 'Creator' || person.job === 'Executive Producer'
     );
     if (directorPerson) {
       director = directorPerson.name;
+      directorId = (directorPerson as any).id ?? null;
     }
   }
 
@@ -789,24 +791,41 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const year = new Date(movie.release_date).getFullYear();
   const isTvShow = movie.media_type === 'tv';
 
-  // Top 10 do diretor — busca no movie_cache por nome exato (nomes de
-  // diretor não são traduzidos, então não precisa de campo pt/en separado).
-  // Ordena por nota média, com um mínimo de votos pra não deixar um filme
-  // obscuro com 2 votos de 10 dominar a lista à toa.
+  // Top 10 do diretor — busca direto no TMDB (via tmdb-proxy), não no
+  // movie_cache. O cache só tem os filmes que algum usuário já
+  // pesquisou/adicionou no site, então buscar lá dava listas vazias ou com
+  // 1 filme só (o próprio filme atual) pra quase todo diretor. O TMDB tem a
+  // filmografia completa da pessoa.
   const handleOpenDirectorMovies = async () => {
-    if (!director || director === t('movies.unknown')) return;
+    if (!directorId) return;
     setShowDirectorModal(true);
     setLoadingDirectorMovies(true);
     try {
-      const { data, error } = await supabase
-        .from('movie_cache')
-        .select('tmdb_id, media_type, title_en, title_pt, poster_path, poster_path_pt, vote_average, vote_count, release_date')
-        .ilike('director', director)
-        .gte('vote_count', 50)
-        .order('vote_average', { ascending: false })
-        .limit(10);
-      if (error) throw error;
-      setDirectorMovies(data || []);
+      const isPt = i18n.language.startsWith('pt');
+      const tmdbLang = isPt ? 'pt-BR' : 'en-US';
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=${encodeURIComponent(`/person/${directorId}/movie_credits?language=${tmdbLang}`)}`
+      );
+      if (!response.ok) throw new Error('TMDB fetch failed');
+      const data = await response.json();
+
+      const directedCredits = (data.crew || []).filter((c: any) => c.job === 'Director');
+
+      // Dedup por id — a pessoa pode aparecer 2x no mesmo filme (ex:
+      // diretor E roteirista), o que duplicaria o filme na lista.
+      const seen = new Set<number>();
+      const uniqueDirected = directedCredits.filter((c: any) => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+      });
+
+      const top10 = uniqueDirected
+        .filter((c: any) => (c.vote_count || 0) >= 50)
+        .sort((a: any, b: any) => (b.vote_average || 0) - (a.vote_average || 0))
+        .slice(0, 10);
+
+      setDirectorMovies(top10);
     } catch (error) {
       console.error('Error fetching director movies:', error);
       toast.error(t('common.error'));
@@ -815,9 +834,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   };
 
-  const handleOpenDirectorMovieDetails = async (tmdbId: number, mediaType: string) => {
+  const handleOpenDirectorMovieDetails = async (tmdbId: number) => {
     try {
-      const details = await getMovieDetailsFromDB(tmdbId, mediaType as 'movie' | 'tv');
+      const details = await getMovieDetailsFromDB(tmdbId, 'movie');
       setDirectorSelectedMovie(details);
     } catch (error) {
       console.error('Error loading director movie details:', error);
@@ -1315,24 +1334,24 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
                 {/* Diretor — sempre em linha própria agora, pra manter a
                     mesma estrutura em qualquer filme (com ou sem
-                    classificação disponível). Nome clicável abre o Top 10
-                    dele, quando reconhecido (diretor "Desconhecido" não é
-                    clicável). */}
+                    classificação disponível). Nome volta ao estilo normal
+                    (texto simples, sem virar link roxo em negrito, que
+                    desformatava a barra) — o acesso ao Top 10 agora é um
+                    botão discreto no final da mesma linha. */}
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 flex items-center gap-3">
                   <User className="w-5 h-5 text-purple-500 flex-shrink-0" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">{t('movies.director')}:</span>
-                    {director !== t('movies.unknown') ? (
-                      <button
-                        onClick={handleOpenDirectorMovies}
-                        className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline text-sm transition-colors"
-                      >
-                        {director}
-                      </button>
-                    ) : (
-                      <span className="font-medium text-gray-900 dark:text-white text-sm">{director}</span>
-                    )}
+                    <span className="font-medium text-gray-900 dark:text-white text-sm">{director}</span>
                   </div>
+                  {directorId && (
+                    <button
+                      onClick={handleOpenDirectorMovies}
+                      className="flex-shrink-0 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline whitespace-nowrap"
+                    >
+                      {t('movies.viewTopTen')}
+                    </button>
+                  )}
                 </div>
 
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
@@ -1500,35 +1519,30 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {directorMovies.map((m, index) => {
-                    const isPt = i18n.language.startsWith('pt');
-                    const title = (isPt && m.title_pt) ? m.title_pt : m.title_en;
-                    const poster = (isPt && m.poster_path_pt) ? m.poster_path_pt : m.poster_path;
-                    return (
-                      <button
-                        key={`${m.tmdb_id}_${m.media_type}`}
-                        onClick={() => handleOpenDirectorMovieDetails(m.tmdb_id, m.media_type)}
-                        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
-                      >
-                        <span className="text-sm font-bold text-gray-400 dark:text-gray-500 w-5 flex-shrink-0">{index + 1}</span>
-                        <img
-                          src={poster ? `https://image.tmdb.org/t/p/w200${poster}` : 'https://via.placeholder.com/80x120?text=No+Image'}
-                          alt={title}
-                          className="w-10 h-14 object-cover rounded-md flex-shrink-0"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{title}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {m.release_date ? new Date(m.release_date).getFullYear() : '—'}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 text-amber-500 flex-shrink-0">
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <span className="text-xs font-semibold">{m.vote_average?.toFixed(1)}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
+                  {directorMovies.map((m, index) => (
+                    <button
+                      key={m.id}
+                      onClick={() => handleOpenDirectorMovieDetails(m.id)}
+                      className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
+                    >
+                      <span className="text-sm font-bold text-gray-400 dark:text-gray-500 w-5 flex-shrink-0">{index + 1}</span>
+                      <img
+                        src={m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : 'https://via.placeholder.com/80x120?text=No+Image'}
+                        alt={m.title}
+                        className="w-10 h-14 object-cover rounded-md flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{m.title}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {m.release_date ? new Date(m.release_date).getFullYear() : '—'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 text-amber-500 flex-shrink-0">
+                        <Star className="w-3.5 h-3.5 fill-current" />
+                        <span className="text-xs font-semibold">{m.vote_average?.toFixed(1)}</span>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
