@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
-import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, Archive as ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus, ChevronDown, ArrowLeft, Scroll, Info, X, Tag, Sparkles } from 'lucide-react';
+import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, Archive as ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus, ChevronDown, ArrowLeft, Scroll, Info, X, Tag, Sparkles, Wand2 } from 'lucide-react';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import GlassLoader from '../components/GlassLoader';
 import PentagonGraph from '../components/PentagonGraph';
@@ -18,6 +18,7 @@ import UserListsModal from '../components/UserListsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import UserReviewsModal from '../components/UserReviewsModal';
 import CompatibilityModal from '../components/CompatibilityModal';
+import MatchMovieModal from '../components/MatchMovieModal';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -107,6 +108,7 @@ export default function UserProfile() {
   const [showUserListsModal, setShowUserListsModal] = useState(false);
   const [showUserReviewsModal, setShowUserReviewsModal] = useState(false);
   const [showCompatibilityModal, setShowCompatibilityModal] = useState(false);
+  const [showMatchMovieModal, setShowMatchMovieModal] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showEssenceRevelation, setShowEssenceRevelation] = useState(false);
   const [showEssenceInfo, setShowEssenceInfo] = useState(false);
@@ -494,6 +496,15 @@ export default function UserProfile() {
                     >
                       <Sparkles className="w-5 h-5" />
                       <span className="hidden sm:inline">{t('compatibility.buttonLabel')}</span>
+                    </motion.button>
+                    <motion.button
+                      onClick={() => setShowMatchMovieModal(true)}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium hover:shadow-lg hover:shadow-purple-500/25 transition-all flex items-center gap-2"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Wand2 className="w-5 h-5" />
+                      <span className="hidden sm:inline">{t('matchMovie.buttonLabel')}</span>
                     </motion.button>
                     <motion.button
                       onClick={handleFollowToggle}
@@ -986,6 +997,15 @@ export default function UserProfile() {
           isOpen={showCompatibilityModal}
           onClose={() => setShowCompatibilityModal(false)}
           myUserId={session.user.id}
+          otherUserId={profile.id}
+          otherUsername={profile.username}
+        />
+      )}
+
+      {showMatchMovieModal && profile.id && session?.user?.id && (
+        <MatchMovieModal
+          isOpen={showMatchMovieModal}
+          onClose={() => setShowMatchMovieModal(false)}
           otherUserId={profile.id}
           otherUsername={profile.username}
         />
