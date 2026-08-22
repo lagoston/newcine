@@ -147,6 +147,25 @@
       "anotherRecommendation": "Outra Recomendação"
     }
   },
+  "matchMovie": {
+  "buttonLabel": "Match Movie",
+  "title": "Match Movie",
+  "subtitle": "Encontre o filme perfeito pra você e @{{username}}",
+  "modeUnseen": "Nenhum viu",
+  "modeUnseenDesc": "Descubram algo totalmente novo juntos",
+  "modeOne": "Só um viu",
+  "modeOneDesc": "Usa a nota real de quem já assistiu",
+  "modeBoth": "Os dois viram",
+  "modeBothDesc": "Veja onde suas notas reais mais bateram",
+  "findButton": "Encontrar Nosso Match",
+  "searching": "Vasculhando as pools do Oráculo...",
+  "perfectMatch": "Match Perfeito",
+  "otherOptions": "Outras boas opções",
+  "you": "Você",
+  "predicted": "previsto",
+  "noMatchesFound": "Nenhum candidato encontrado nesse filtro ainda.",
+  "tryAgain": "Tenta outro filtro"
+},
   "library": {
     "title": "Minha Biblioteca",
     "addMovies": "Adicionar Filmes",
