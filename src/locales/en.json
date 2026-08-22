@@ -238,6 +238,7 @@
   },
   "movies": {
     "director": "Director",
+    "certification": "Content Rating",
     "clickForTrailer": "Click to watch trailer",
     "cast": "Cast",
     "synopsis": "Synopsis",
