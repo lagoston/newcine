@@ -238,9 +238,6 @@
   },
   "movies": {
     "director": "Director",
-    "viewTopTen": "View Top 10",
-    "directorTopTen": "{{director}}'s Top 10",
-    "noDirectorMoviesFound": "No other rated movies found for this director",
     "noStreamingAvailable": "Not available for streaming",
     "noCastAvailable": "No cast information available",
     "ageLabel": "Age",

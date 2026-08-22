@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play } from 'lucide-react';
-import { Movie, getMovieTrailer, getMovieDetailsFromDB } from '../lib/tmdb';
+import { Movie, getMovieTrailer } from '../lib/tmdb';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
 import { useAuth } from '../lib/auth';
-import { supabase, supabaseUrl } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS } from '../lib/cache';
@@ -56,10 +56,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [loadingTrailer, setLoadingTrailer] = useState(false);
   const [oracleSources, setOracleSources] = useState<string[]>([]);
   const [certification, setCertification] = useState<string | null>(null);
-  const [showDirectorModal, setShowDirectorModal] = useState(false);
-  const [directorMovies, setDirectorMovies] = useState<any[]>([]);
-  const [loadingDirectorMovies, setLoadingDirectorMovies] = useState(false);
-  const [directorSelectedMovie, setDirectorSelectedMovie] = useState<any | null>(null);
   const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
   // Controla quais balões estão visíveis agora (não "dispensados" — o padrão
   // é começar ESCONDIDO e aparecer sozinho depois de um tempo, ver useEffect
@@ -776,74 +772,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   // For TV shows, look for Creator or Director; for movies, look for Director
   let director = t('movies.unknown');
-  let directorId: number | null = null;
   if (movie.credits?.crew) {
     const directorPerson = movie.credits.crew.find(person =>
       person.job === 'Director' || person.job === 'Creator' || person.job === 'Executive Producer'
     );
     if (directorPerson) {
       director = directorPerson.name;
-      directorId = (directorPerson as any).id ?? null;
     }
   }
 
   const cast = movie.credits?.cast?.slice(0, 5) || [];
   const year = new Date(movie.release_date).getFullYear();
   const isTvShow = movie.media_type === 'tv';
-
-  // Top 10 do diretor — busca direto no TMDB (via tmdb-proxy), não no
-  // movie_cache. O cache só tem os filmes que algum usuário já
-  // pesquisou/adicionou no site, então buscar lá dava listas vazias ou com
-  // 1 filme só (o próprio filme atual) pra quase todo diretor. O TMDB tem a
-  // filmografia completa da pessoa.
-  const handleOpenDirectorMovies = async () => {
-    if (!directorId) return;
-    setShowDirectorModal(true);
-    setLoadingDirectorMovies(true);
-    try {
-      const isPt = i18n.language.startsWith('pt');
-      const tmdbLang = isPt ? 'pt-BR' : 'en-US';
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=${encodeURIComponent(`/person/${directorId}/movie_credits?language=${tmdbLang}`)}`
-      );
-      if (!response.ok) throw new Error('TMDB fetch failed');
-      const data = await response.json();
-
-      const directedCredits = (data.crew || []).filter((c: any) => c.job === 'Director');
-
-      // Dedup por id — a pessoa pode aparecer 2x no mesmo filme (ex:
-      // diretor E roteirista), o que duplicaria o filme na lista.
-      const seen = new Set<number>();
-      const uniqueDirected = directedCredits.filter((c: any) => {
-        if (seen.has(c.id)) return false;
-        seen.add(c.id);
-        return true;
-      });
-
-      const top10 = uniqueDirected
-        .filter((c: any) => (c.vote_count || 0) >= 50)
-        .sort((a: any, b: any) => (b.vote_average || 0) - (a.vote_average || 0))
-        .slice(0, 10);
-
-      setDirectorMovies(top10);
-    } catch (error) {
-      console.error('Error fetching director movies:', error);
-      toast.error(t('common.error'));
-    } finally {
-      setLoadingDirectorMovies(false);
-    }
-  };
-
-  const handleOpenDirectorMovieDetails = async (tmdbId: number) => {
-    try {
-      const details = await getMovieDetailsFromDB(tmdbId, 'movie');
-      setDirectorSelectedMovie(details);
-    } catch (error) {
-      console.error('Error loading director movie details:', error);
-      toast.error(t('common.error'));
-    }
-  };
-
   const runtime = movie.runtime
     ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m`
     : t('movies.unknown');
@@ -898,18 +838,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     if (standardized === '+12') return 'bg-yellow-500 text-gray-900';
     if (standardized === '+10') return 'bg-blue-500 text-white';
     return 'bg-green-600 text-white';
-  };
-
-  // Cor do ÍCONE do escudo, acompanhando a mesma faixa etária do selo — antes
-  // ficava cinza fixo, sem relação nenhuma com a classificação de verdade.
-  const getCertificationIconColor = (standardized: string | null): string => {
-    if (!standardized) return 'text-gray-400 dark:text-gray-500';
-    if (standardized === '+18') return 'text-gray-900 dark:text-white';
-    if (standardized === '+16') return 'text-red-600 dark:text-red-500';
-    if (standardized === '+14') return 'text-orange-500';
-    if (standardized === '+12') return 'text-yellow-500';
-    if (standardized === '+10') return 'text-blue-500';
-    return 'text-green-600 dark:text-green-500';
   };
 
   // Get origin country - support both API format (production_countries) and cache format (origin_country)
@@ -1198,22 +1126,15 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   )}
                 </div>
 
-                <div className="flex items-start justify-between gap-3">
-                  {/* Gêneros com altura máxima e rolagem própria — antes,
-                      filmes com muitos gêneros quebravam essa linha em 2-3
-                      renglões, empurrando tudo abaixo (Cast, Assistir Em)
-                      pra uma posição diferente dependendo do filme. Agora
-                      essa linha tem altura previsível sempre. */}
-                  <div className="flex flex-wrap gap-2 max-h-16 overflow-y-auto flex-1">
-                    {movie.genres?.map(genre => (
-                      <span key={genre.id} className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs text-gray-700 dark:text-gray-300 h-fit">
-                        {genre.name}
-                      </span>
-                    ))}
-                  </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  {movie.genres?.map(genre => (
+                    <span key={genre.id} className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs text-gray-700 dark:text-gray-300">
+                      {genre.name}
+                    </span>
+                  ))}
 
                   {session?.user && (
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="ml-auto flex items-center gap-2">
                       <button
                         onClick={() => setShowRecommendModal(true)}
                         className="p-1 text-orange-500 hover:text-orange-600 transition-colors"
@@ -1301,7 +1222,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       idêntica pra qualquer filme. */}
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
                     <div className="flex items-center justify-center mb-2">
-                      <Shield className={`w-5 h-5 ${getCertificationIconColor(certification)}`} />
+                      <Shield className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <div className="text-center">
                       <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.ageLabel')}</div>
@@ -1334,24 +1255,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
                 {/* Diretor — sempre em linha própria agora, pra manter a
                     mesma estrutura em qualquer filme (com ou sem
-                    classificação disponível). Nome volta ao estilo normal
-                    (texto simples, sem virar link roxo em negrito, que
-                    desformatava a barra) — o acesso ao Top 10 agora é um
-                    botão discreto no final da mesma linha. */}
+                    classificação disponível). */}
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 flex items-center gap-3">
                   <User className="w-5 h-5 text-purple-500 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0">
                     <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">{t('movies.director')}:</span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm">{director}</span>
                   </div>
-                  {directorId && (
-                    <button
-                      onClick={handleOpenDirectorMovies}
-                      className="flex-shrink-0 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline whitespace-nowrap"
-                    >
-                      {t('movies.viewTopTen')}
-                    </button>
-                  )}
                 </div>
 
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
@@ -1488,78 +1398,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
             </div>
           </div>
         </div>
-      )}
-
-      {/* Top 10 do Diretor */}
-      {showDirectorModal && (
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
-          onClick={() => setShowDirectorModal(false)}
-        >
-          <div
-            className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sticky top-0 bg-white dark:bg-gray-900 flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 z-10">
-              <h3 className="text-gray-900 dark:text-white font-semibold truncate pr-4">
-                {t('movies.directorTopTen', { director })}
-              </h3>
-              <button onClick={() => setShowDirectorModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white flex-shrink-0">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-4">
-              {loadingDirectorMovies ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
-                </div>
-              ) : directorMovies.length === 0 ? (
-                <p className="text-center text-gray-500 dark:text-gray-400 py-8 text-sm">
-                  {t('movies.noDirectorMoviesFound')}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {directorMovies.map((m, index) => (
-                    <button
-                      key={m.id}
-                      onClick={() => handleOpenDirectorMovieDetails(m.id)}
-                      className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
-                    >
-                      <span className="text-sm font-bold text-gray-400 dark:text-gray-500 w-5 flex-shrink-0">{index + 1}</span>
-                      <img
-                        src={m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : 'https://via.placeholder.com/80x120?text=No+Image'}
-                        alt={m.title}
-                        className="w-10 h-14 object-cover rounded-md flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{m.title}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {m.release_date ? new Date(m.release_date).getFullYear() : '—'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 text-amber-500 flex-shrink-0">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        <span className="text-xs font-semibold">{m.vote_average?.toFixed(1)}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Abre o MovieDetailsModal de um filme escolhido dentro do Top 10 do
-          Diretor — sim, é o mesmo componente se renderizando de novo pra
-          outro filme, o que é seguro em React (cada instância tem seu
-          próprio estado). */}
-      {directorSelectedMovie && (
-        <MovieDetailsModal
-          movie={directorSelectedMovie}
-          isOpen={true}
-          onClose={() => setDirectorSelectedMovie(null)}
-        />
       )}
 
       {/* Seasons Modal */}
