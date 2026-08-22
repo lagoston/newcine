@@ -238,6 +238,7 @@
   },
   "movies": {
     "director": "Diretor",
+    "certification": "Classificação Indicativa",
     "clickForTrailer": "Clique para assistir o trailer",
     "cast": "Elenco",
     "synopsis": "Sinopse",
