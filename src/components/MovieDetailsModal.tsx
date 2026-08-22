@@ -1146,15 +1146,37 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                    <div className="flex items-center justify-center mb-2">
-                      <User className="w-5 h-5 text-purple-500" />
+                  {/* Classificação — antes tentava mostrar o "motivo" (campo
+                      note/meaning do TMDB), mas esse campo é uma anotação
+                      livre por TIPO de lançamento (relançamento IMAX,
+                      première, digital, etc.), não uma justificativa de
+                      censura de verdade — por isso às vezes vinha coisa tipo
+                      "Hollywood, California" no lugar. Mostra só o selo. */}
+                  {certification ? (
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                      <div className="flex items-center justify-center mb-2">
+                        <AlertCircle className="w-5 h-5 text-red-500" />
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.certification')}</div>
+                        <div className="flex justify-center mt-0.5">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${getCertificationColor(certification.rating)}`}>
+                            {certification.rating}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.director')}</div>
-                      <div className="font-medium text-gray-900 dark:text-white text-xs px-1 line-clamp-2 leading-tight" title={director}>{director}</div>
+                  ) : (
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                      <div className="flex items-center justify-center mb-2">
+                        <User className="w-5 h-5 text-purple-500" />
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.director')}</div>
+                        <div className="font-medium text-gray-900 dark:text-white text-xs px-1 line-clamp-2 leading-tight" title={director}>{director}</div>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {originCountry && (
                     <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
@@ -1170,7 +1192,20 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     </div>
                   )}
                 </div>
-                
+
+                {/* Diretor — antes vivia espremido na grade acima; como a
+                    Classificação tomou esse lugar quando disponível, o
+                    Diretor virou linha própria, sempre visível. */}
+                {certification && (
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 flex items-center gap-3">
+                    <User className="w-5 h-5 text-purple-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">{t('movies.director')}:</span>
+                      <span className="font-medium text-gray-900 dark:text-white text-sm">{director}</span>
+                    </div>
+                  </div>
+                )}
+
                 {cast.length > 0 && (
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
@@ -1209,24 +1244,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           </div>
                         </div>
                       ))}
-                    </div>
-                  </div>
-                )}
-
-                {certification && (
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                      {t('movies.certification')}
-                    </h3>
-                    <div className="flex items-start gap-3">
-                      <span className={`flex-shrink-0 text-sm font-bold px-2.5 py-1 rounded ${getCertificationColor(certification.rating)}`}>
-                        {certification.rating}
-                      </span>
-                      {certification.meaning && (
-                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed pt-0.5">
-                          {certification.meaning}
-                        </p>
-                      )}
                     </div>
                   </div>
                 )}
