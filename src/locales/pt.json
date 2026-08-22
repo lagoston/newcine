@@ -238,7 +238,7 @@
   },
   "movies": {
     "director": "Diretor",
-    "certification": "Classificação Indicativa",
+    "ageLabel": "Idade",
     "clickForTrailer": "Clique para assistir o trailer",
     "cast": "Elenco",
     "synopsis": "Sinopse",
