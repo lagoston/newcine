@@ -1102,24 +1102,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   )}
                 </div>
 
-                {certification && (
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                      {t('movies.certification')}
-                    </h3>
-                    <div className="flex items-start gap-3">
-                      <span className={`flex-shrink-0 text-sm font-bold px-2.5 py-1 rounded ${getCertificationColor(certification.rating)}`}>
-                        {certification.rating}
-                      </span>
-                      {certification.meaning && (
-                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed pt-0.5">
-                          {certification.meaning}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                     {t('movies.synopsis')}
@@ -1227,6 +1209,24 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {certification && (
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                      {t('movies.certification')}
+                    </h3>
+                    <div className="flex items-start gap-3">
+                      <span className={`flex-shrink-0 text-sm font-bold px-2.5 py-1 rounded ${getCertificationColor(certification.rating)}`}>
+                        {certification.rating}
+                      </span>
+                      {certification.meaning && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed pt-0.5">
+                          {certification.meaning}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
