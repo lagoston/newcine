@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Loader2, Calendar, Clock, User, Film, AlertCircle, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play } from 'lucide-react';
+import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play } from 'lucide-react';
 import { Movie, getMovieTrailer } from '../lib/tmdb';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
 import { useAuth } from '../lib/auth';
@@ -55,7 +55,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [trailerKey, setTrailerKey] = useState<string | null | undefined>(undefined);
   const [loadingTrailer, setLoadingTrailer] = useState(false);
   const [oracleSources, setOracleSources] = useState<string[]>([]);
-  const [certification, setCertification] = useState<{ rating: string; meaning: string } | null>(null);
+  const [certification, setCertification] = useState<string | null>(null);
   const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
   // Controla quais balões estão visíveis agora (não "dispensados" — o padrão
   // é começar ESCONDIDO e aparecer sozinho depois de um tempo, ver useEffect
@@ -195,13 +195,27 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           setCertification(null);
           return;
         }
-        const ratings: { iso_3166_1?: string; certification?: string; meaning?: string }[] = data.content_ratings;
+        const ratings: { iso_3166_1?: string; certification?: string }[] = data.content_ratings;
         const preferredRegion = isPt ? 'BR' : 'US';
-        const match =
-          ratings.find((r) => r.iso_3166_1 === preferredRegion && r.certification) ||
-          ratings.find((r) => r.iso_3166_1 === 'US' && r.certification) ||
-          ratings.find((r) => r.certification);
-        setCertification(match?.certification ? { rating: match.certification, meaning: match.meaning || '' } : null);
+
+        // Tenta o país preferido primeiro, depois US, depois qualquer um —
+        // cada candidato passa pela padronização; só aceita o primeiro que
+        // a função realmente reconhece (evita mostrar sigla de país que
+        // ainda não mapeamos).
+        const candidates = [
+          ratings.find((r) => r.iso_3166_1 === preferredRegion && r.certification),
+          ratings.find((r) => r.iso_3166_1 === 'US' && r.certification),
+          ...ratings.filter((r) => r.certification)
+        ];
+
+        let standardized: string | null = null;
+        for (const candidate of candidates) {
+          if (candidate?.certification) {
+            standardized = standardizeCertification(candidate.certification);
+            if (standardized) break;
+          }
+        }
+        setCertification(standardized);
       });
   }, [movie.id, movie.media_type, i18n.language]);
 
@@ -777,20 +791,47 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     ? `${movie.number_of_seasons} ${movie.number_of_seasons === 1 ? 'Season' : 'Seasons'}`
     : t('movies.unknown');
 
-  // Cor do selo por faixa etária — heurística simples que cobre tanto o
-  // padrão brasileiro (L, 10, 12, 14, 16, 18) quanto o americano (G, PG,
-  // PG-13, R, NC-17), sem precisar de uma tabela gigante caso a caso.
-  const getCertificationColor = (cert: string): string => {
-    const upper = cert.toUpperCase();
-    if (upper.includes('18') || upper === 'R' || upper.includes('NC-17')) {
-      return 'bg-red-600 text-white';
-    }
-    if (upper.includes('16')) {
-      return 'bg-orange-500 text-white';
-    }
-    if (upper.includes('14') || upper === 'PG-13') {
-      return 'bg-yellow-500 text-gray-900';
-    }
+  // Padroniza QUALQUER classificação de origem (americana, britânica, etc.)
+  // pra escala brasileira única (L, +10, +12, +14, +16, +18) — antes,
+  // "PG-13" aparecia igual do TMDB, mas um filme "18" não virava "PG-18"
+  // nem nada parecido, porque são sistemas de países diferentes, não uma
+  // mesma escala com números diferentes. Agora tudo sai no mesmo padrão,
+  // não importa de qual país o dado original veio.
+  const standardizeCertification = (raw: string): string | null => {
+    const upper = raw.trim().toUpperCase();
+
+    // Já no padrão brasileiro
+    if (upper === 'L') return 'L';
+    if (['10', '12', '14', '16', '18'].includes(upper)) return `+${upper}`;
+
+    // Padrão americano (MPAA)
+    const usMap: Record<string, string> = {
+      'G': 'L',
+      'PG': '+10',
+      'PG-13': '+13',
+      'R': '+16',
+      'NC-17': '+18',
+    };
+    if (usMap[upper]) return usMap[upper];
+
+    // Padrão britânico (BBFC) — pode aparecer se nem BR nem US tiverem dado
+    const ukMap: Record<string, string> = {
+      'U': 'L',
+      '12A': '+12',
+      '15': '+16',
+    };
+    if (ukMap[upper]) return ukMap[upper];
+
+    // Qualquer coisa não reconhecida (incluindo "NR"/"Not Rated") — melhor
+    // não mostrar nada do que mostrar um símbolo enganoso.
+    return null;
+  };
+
+  const getCertificationColor = (standardized: string): string => {
+    if (standardized === '+18') return 'bg-red-600 text-white';
+    if (standardized === '+16') return 'bg-orange-500 text-white';
+    if (standardized === '+14' || standardized === '+13') return 'bg-yellow-500 text-gray-900';
+    if (standardized === '+12' || standardized === '+10') return 'bg-blue-500 text-white';
     return 'bg-green-600 text-white';
   };
 
@@ -1151,17 +1192,22 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       livre por TIPO de lançamento (relançamento IMAX,
                       première, digital, etc.), não uma justificativa de
                       censura de verdade — por isso às vezes vinha coisa tipo
-                      "Hollywood, California" no lugar. Mostra só o selo. */}
+                      "Hollywood, California" no lugar. Mostra só o selo,
+                      já padronizado (ver standardizeCertification acima).
+                      Ícone trocado de AlertCircle (parecia erro) pra Shield,
+                      e rótulo encurtado — "Classificação Indicativa" estava
+                      esticando o quadrado pro lado, puxando os vizinhos
+                      junto (linha inteira do grid cresce igual). */}
                   {certification ? (
                     <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
                       <div className="flex items-center justify-center mb-2">
-                        <AlertCircle className="w-5 h-5 text-red-500" />
+                        <Shield className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                       </div>
                       <div className="text-center">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.certification')}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.ageLabel')}</div>
                         <div className="flex justify-center mt-0.5">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${getCertificationColor(certification.rating)}`}>
-                            {certification.rating}
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${getCertificationColor(certification)}`}>
+                            {certification}
                           </span>
                         </div>
                       </div>
