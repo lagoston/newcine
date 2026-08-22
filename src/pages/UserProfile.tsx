@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
-import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, Archive as ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus, ChevronDown, ArrowLeft, Scroll, Info, X, Tag } from 'lucide-react';
+import { User, Film, Users, Calendar, Star, BarChart3, Loader2, Clock, Crown, Archive as ArchiveIcon, Award, TrendingDown, ListPlus, MessageSquare, UserCheck, UserPlus, ChevronDown, ArrowLeft, Scroll, Info, X, Tag, Sparkles } from 'lucide-react';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import GlassLoader from '../components/GlassLoader';
 import PentagonGraph from '../components/PentagonGraph';
@@ -17,6 +17,7 @@ import { getBannerClass } from '../lib/banners';
 import UserListsModal from '../components/UserListsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import UserReviewsModal from '../components/UserReviewsModal';
+import CompatibilityModal from '../components/CompatibilityModal';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -105,6 +106,7 @@ export default function UserProfile() {
   const [showFollowModal, setShowFollowModal] = useState<'followers' | 'following' | null>(null);
   const [showUserListsModal, setShowUserListsModal] = useState(false);
   const [showUserReviewsModal, setShowUserReviewsModal] = useState(false);
+  const [showCompatibilityModal, setShowCompatibilityModal] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showEssenceRevelation, setShowEssenceRevelation] = useState(false);
   const [showEssenceInfo, setShowEssenceInfo] = useState(false);
@@ -483,6 +485,15 @@ export default function UserProfile() {
                     >
                       <MessageSquare className="w-5 h-5" />
                       <span className="hidden sm:inline">Reviews</span>
+                    </motion.button>
+                    <motion.button
+                      onClick={() => setShowCompatibilityModal(true)}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 backdrop-blur-sm border border-pink-400/40 dark:border-pink-500/30 text-pink-600 dark:text-pink-400 font-medium hover:from-pink-500/20 hover:to-purple-500/20 transition-all flex items-center gap-2"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Sparkles className="w-5 h-5" />
+                      <span className="hidden sm:inline">{t('compatibility.buttonLabel')}</span>
                     </motion.button>
                     <motion.button
                       onClick={handleFollowToggle}
@@ -967,6 +978,16 @@ export default function UserProfile() {
           userId={profile.id}
           username={profile.username}
           onClose={() => setShowUserReviewsModal(false)}
+        />
+      )}
+
+      {showCompatibilityModal && profile.id && session?.user?.id && (
+        <CompatibilityModal
+          isOpen={showCompatibilityModal}
+          onClose={() => setShowCompatibilityModal(false)}
+          myUserId={session.user.id}
+          otherUserId={profile.id}
+          otherUsername={profile.username}
         />
       )}
 
