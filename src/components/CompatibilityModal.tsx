@@ -28,7 +28,10 @@ interface MovieComparison extends RawComparison {
   diff: number;
 }
 
-const MIN_MOVIES = 3;
+// Correlação de Pearson fica instável (pode bater exatamente 100% ou 0% "por
+// acaso") com poucos pontos — 5 filmes é um piso mais razoável pra confiar
+// no resultado do que os 3 que usávamos com a métrica antiga.
+const MIN_MOVIES = 5;
 
 function getTier(score: number) {
   if (score >= 90) return { key: 'soulmates', color: 'text-emerald-500', ring: 'ring-emerald-400/40', bg: 'from-emerald-500/20 to-teal-500/20', emoji: '💫' };
@@ -100,9 +103,35 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
 
   const stats = useMemo(() => {
     if (raw.length === 0) return null;
-    const avgDiff = raw.reduce((sum, r) => sum + Math.abs(r.rating_a - r.rating_b), 0) / raw.length;
-    const score = Math.max(0, Math.min(100, Math.round(100 - (avgDiff / 10) * 100)));
-    return { score, count: raw.length, avgDiff };
+
+    const n = raw.length;
+    const meanA = raw.reduce((sum, r) => sum + r.rating_a, 0) / n;
+    const meanB = raw.reduce((sum, r) => sum + r.rating_b, 0) / n;
+
+    const covariance = raw.reduce((sum, r) => sum + (r.rating_a - meanA) * (r.rating_b - meanB), 0);
+    const varA = raw.reduce((sum, r) => sum + (r.rating_a - meanA) ** 2, 0);
+    const varB = raw.reduce((sum, r) => sum + (r.rating_b - meanB) ** 2, 0);
+
+    let score: number;
+    let usedFallback = false;
+
+    if (varA === 0 || varB === 0) {
+      // Correlação de Pearson não é definida quando alguém deu a mesma nota
+      // pra tudo (variância zero, divisão por zero) — caso raro, mas real.
+      // Cai de volta pra diferença média absoluta só nesse cenário.
+      const avgDiff = raw.reduce((sum, r) => sum + Math.abs(r.rating_a - r.rating_b), 0) / n;
+      score = Math.max(0, Math.min(100, Math.round(100 - (avgDiff / 10) * 100)));
+      usedFallback = true;
+    } else {
+      // Correlação de Pearson — concordância em notas extremas (raras numa
+      // distribuição concentrada em 6-7) pesa naturalmente mais que
+      // concordância em notas comuns, porque o numerador é uma soma de
+      // produtos de desvios em relação à própria média de cada pessoa.
+      const r = covariance / Math.sqrt(varA * varB);
+      score = Math.max(0, Math.min(100, Math.round(((r + 1) / 2) * 100)));
+    }
+
+    return { score, count: n, usedFallback };
   }, [raw]);
 
   const topAgreements = useMemo(
