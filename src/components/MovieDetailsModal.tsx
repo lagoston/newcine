@@ -55,7 +55,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [trailerKey, setTrailerKey] = useState<string | null | undefined>(undefined);
   const [loadingTrailer, setLoadingTrailer] = useState(false);
   const [oracleSources, setOracleSources] = useState<string[]>([]);
-  const [certification, setCertification] = useState<string | null>(null);
+  const [certification, setCertification] = useState<{ rating: string; meaning: string } | null>(null);
   const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
   // Controla quais balões estão visíveis agora (não "dispensados" — o padrão
   // é começar ESCONDIDO e aparecer sozinho depois de um tempo, ver useEffect
@@ -195,13 +195,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           setCertification(null);
           return;
         }
-        const ratings: { iso_3166_1?: string; certification?: string }[] = data.content_ratings;
+        const ratings: { iso_3166_1?: string; certification?: string; meaning?: string }[] = data.content_ratings;
         const preferredRegion = isPt ? 'BR' : 'US';
         const match =
           ratings.find((r) => r.iso_3166_1 === preferredRegion && r.certification) ||
           ratings.find((r) => r.iso_3166_1 === 'US' && r.certification) ||
           ratings.find((r) => r.certification);
-        setCertification(match?.certification || null);
+        setCertification(match?.certification ? { rating: match.certification, meaning: match.meaning || '' } : null);
       });
   }, [movie.id, movie.media_type, i18n.language]);
 
@@ -864,16 +864,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
           <div className="px-6 pt-2 pb-6">
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-3 flex-wrap">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
                 {movie.title}
                 <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
                   ({year})
                 </span>
-                {certification && (
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${getCertificationColor(certification)}`}>
-                    {certification}
-                  </span>
-                )}
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1107,11 +1102,32 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   )}
                 </div>
 
+                {certification && (
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                      {t('movies.certification')}
+                    </h3>
+                    <div className="flex items-start gap-3">
+                      <span className={`flex-shrink-0 text-sm font-bold px-2.5 py-1 rounded ${getCertificationColor(certification.rating)}`}>
+                        {certification.rating}
+                      </span>
+                      {certification.meaning && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed pt-0.5">
+                          {certification.meaning}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                     {t('movies.synopsis')}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm">
+                  {/* Altura máxima + rolagem interna — antes, sinopses muito
+                      longas esticavam o card e desalinhavam o resto do
+                      layout com a coluna do pôster ao lado. */}
+                  <p className="text-gray-600 dark:text-gray-300 text-sm max-h-32 overflow-y-auto pr-1">
                     {movie.overview || t('movies.noSynopsis')}
                   </p>
                 </div>
