@@ -149,6 +149,8 @@
   },
   "matchMovie": {
   "buttonLabel": "Match Movie",
+  "chooseMoods": "Escolha os humores",
+  "chooseFilter": "Escolha o filtro",
   "title": "Match Movie",
   "subtitle": "Encontre o filme perfeito pra você e @{{username}}",
   "modeUnseen": "Nenhum viu",
