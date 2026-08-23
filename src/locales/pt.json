@@ -147,6 +147,23 @@
       "anotherRecommendation": "Outra Recomendação"
     }
   },
+  "compatibility": {
+  "buttonLabel": "Compatibilidade",
+  "title": "Compatibilidade Cinematográfica",
+  "subtitle": "Você e @{{username}}",
+  "notEnoughDataTitle": "Ainda não há dados suficientes",
+  "notEnoughDataDescription": "Vocês avaliaram {{count}} filme(s) em comum — precisa de pelo menos {{min}} para revelar uma compatibilidade.",
+  "moviesCompared": "{{count}} filmes comparados",
+  "mostAgree": "Onde vocês mais concordam",
+  "mostDisagree": "Onde vocês mais discordam",
+  "tier": {
+    "soulmates": "Almas Cinematográficas Gêmeas",
+    "great": "Sintonia Rara",
+    "good": "Bom Match de Gosto",
+    "different": "Gostos Diferentes, Mesma Paixão",
+    "opposite": "Polos Opostos"
+  }
+},
   "matchMovie": {
   "buttonLabel": "Match Movie",
   "chooseMoods": "Escolha os humores",
