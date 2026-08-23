@@ -56,6 +56,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
   const [mode, setMode] = useState<Mode>('unseen');
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [matches, setMatches] = useState<MatchedMovie[]>([]);
+  const [isUnderdog, setIsUnderdog] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
 
@@ -89,6 +90,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
         return;
       }
       setMatches(data.movies || []);
+      setIsUnderdog(!!data.isUnderdog);
       setPhase('results');
     } catch (error) {
       console.error('Error finding match:', error);
@@ -248,8 +250,9 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
                         animate={{ opacity: 1, scale: 1 }}
                         className="mb-6"
                       >
-                        <p className="text-xs font-bold uppercase tracking-wide text-pink-500 dark:text-pink-400 text-center mb-2">
-                          {t('matchMovie.perfectMatch')}
+                        <p className="text-xs font-bold uppercase tracking-wide text-pink-500 dark:text-pink-400 text-center mb-2 flex items-center justify-center gap-1.5">
+                          {isUnderdog && <span title={t('matchMovie.underdogHint')}>🃏</span>}
+                          {isUnderdog ? t('matchMovie.underdogMatch') : t('matchMovie.perfectMatch')}
                         </p>
                         <button
                           onClick={() => handleOpenMovie(topMatch.id)}
