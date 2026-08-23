@@ -147,6 +147,23 @@
       "anotherRecommendation": "Another Recommendation"
     }
   },
+  "compatibility": {
+  "buttonLabel": "Compatibility",
+  "title": "Cinematic Compatibility",
+  "subtitle": "You and @{{username}}",
+  "notEnoughDataTitle": "Not enough data yet",
+  "notEnoughDataDescription": "You've both rated {{count}} movie(s) in common — need at least {{min}} to reveal a compatibility score.",
+  "moviesCompared": "{{count}} movies compared",
+  "mostAgree": "Where you agree most",
+  "mostDisagree": "Where you disagree most",
+  "tier": {
+    "soulmates": "Cinematic Soulmates",
+    "great": "Great Taste Match",
+    "good": "Good Compatibility",
+    "different": "Different Tastes, Same Passion",
+    "opposite": "Opposite Ends of the Spectrum"
+  }
+},
   "matchMovie": {
   "buttonLabel": "Match Movie",
   "chooseMoods": "Choose the moods",
