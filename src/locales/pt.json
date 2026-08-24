@@ -309,6 +309,8 @@
     "choosePath": "Escolha seu caminho...",
     "prediction": {
       "title": "Câmara de Previsão",
+      "reliableRating": "Nota calculada matematicamente",
+      "styleBasedOn": "Estilo baseado em {{count}} das suas reviews",
       "description": "Sussurre o nome do filme – o Oráculo revelará como você poderá julgá-lo.",
       "tickets": "{{count}} tickets",
       "nextReset": "Próxima recarga: {{time}}",
