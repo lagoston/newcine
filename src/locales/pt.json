@@ -166,8 +166,6 @@
 },
   "matchMovie": {
   "buttonLabel": "Match Movie",
-  "underdogMatch": "Match Underdog",
-  "underdogHint": "Cavando um pouco mais fundo na pool dessa vez",
   "chooseMoods": "Escolha os humores",
   "chooseFilter": "Escolha o filtro",
   "title": "Match Movie",
