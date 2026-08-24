@@ -166,6 +166,9 @@
 },
   "matchMovie": {
   "buttonLabel": "Match Movie",
+  "addViewer": "Add viewer",
+  "searchViewer": "Search a friend...",
+  "noViewersFound": "No friends found to add."
   "chooseMoods": "Choose the moods",
   "chooseFilter": "Choose the filter",
   "title": "Match Movie",
