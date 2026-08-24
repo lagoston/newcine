@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, BrainCircuit, Loader2, Ticket, Plus, Instagram, ArrowLeft, Sparkles } from 'lucide-react';
+import { Search, Star, PenLine, Loader2, Ticket, Plus, Instagram, ArrowLeft, Sparkles, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { searchMovies } from '../lib/tmdb';
@@ -9,16 +9,29 @@ import { supabase, supabaseUrl } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
-interface Prediction {
-  prediction: string;
-  movie: string;
-  ticketsRemaining: number;
+interface HypotheticalReview {
+  review: string;
+  rating: number;
+  movieTitle: string;
+  basedOnReviewCount: number;
   id?: string;
 }
 
 interface TicketError {
   error: string;
   ticketsRemaining: number;
+}
+
+// Mesma escala de cor do ClassInd usada no resto do site (verde→preto
+// conforme a nota sobe) — aqui adaptada pra 0-10 direto, sem faixa etária,
+// só pra dar uma pista visual rápida da nota antes mesmo de ler o texto.
+function getRatingColor(rating: number): string {
+  if (rating >= 8.5) return 'text-emerald-500';
+  if (rating >= 7) return 'text-green-500';
+  if (rating >= 5.5) return 'text-blue-500';
+  if (rating >= 4) return 'text-amber-500';
+  if (rating >= 2.5) return 'text-orange-500';
+  return 'text-red-500';
 }
 
 export default function OraclePrediction() {
@@ -30,12 +43,11 @@ export default function OraclePrediction() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<string | null>(null);
   const [selectedMoviePoster, setSelectedMoviePoster] = useState<string | null>(null);
-  const [prediction, setPrediction] = useState<Prediction | null>(null);
-  const [loading, setLoading] = useState({ search: false, prediction: false, sharing: false });
-  const [predictionProgress, setPredictionProgress] = useState(0);
+  const [result, setResult] = useState<HypotheticalReview | null>(null);
+  const [loading, setLoading] = useState({ search: false, generating: false, sharing: false });
+  const [progress, setProgress] = useState(0);
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
   const [nextReset, setNextReset] = useState<Date | null>(null);
-  const shareCardRef = useRef<HTMLDivElement>(null);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
 
   const mysticalMessages = [
@@ -58,13 +70,13 @@ export default function OraclePrediction() {
   }, [session?.user?.id]);
 
   useEffect(() => {
-    if (!loading.prediction && !prediction) {
+    if (!loading.generating && !result) {
       const interval = setInterval(() => {
         setCurrentMessageIndex((prev) => (prev + 1) % mysticalMessages.length);
       }, 6000);
       return () => clearInterval(interval);
     }
-  }, [loading.prediction, prediction, mysticalMessages.length]);
+  }, [loading.generating, result, mysticalMessages.length]);
 
   const fetchTicketInfo = async () => {
     try {
@@ -76,14 +88,13 @@ export default function OraclePrediction() {
       }
     } catch (error) {
       console.error('Error fetching ticket info:', error);
-      toast.error(t('oracle.prediction.notEnough'));
       setTicketsRemaining(0);
       setNextReset(null);
     }
   };
 
   const handleSearch = async () => {
-    if (!debouncedQuery.trim() || loading.prediction) {
+    if (!debouncedQuery.trim() || loading.generating) {
       setSearchResults([]);
       return;
     }
@@ -114,7 +125,7 @@ export default function OraclePrediction() {
     return `${hours}h`;
   };
 
-  const getPrediction = async (movieName: string, movieId: number, posterPath?: string) => {
+  const generateReview = async (movieName: string, movieId: number, posterPath?: string) => {
     if (!session?.user?.id) return;
     if (ticketsRemaining !== null && ticketsRemaining < 1) {
       toast.error(t('oracle.prediction.notEnough', { time: formatTimeUntilReset() }));
@@ -134,44 +145,40 @@ export default function OraclePrediction() {
       if (ratingError) console.error('Error checking movie rating:', ratingError);
 
       if (existingRating && existingRating.rating !== null) {
-        const oracleMessage = t('oracle.prediction.alreadyRated');
-        setPrediction({ prediction: oracleMessage, movie: movieName, ticketsRemaining: ticketsRemaining || 0 });
-        setSelectedMovie(movieName);
-        setSearchQuery('');
-        setSearchResults([]);
+        toast.error(t('oracle.prediction.alreadyRated'));
         return;
       }
 
-      setLoading(prev => ({ ...prev, prediction: true }));
-      setPrediction(null);
+      setLoading(prev => ({ ...prev, generating: true }));
+      setResult(null);
       setSelectedMovie(movieName);
       setSearchQuery('');
       setSearchResults([]);
-      setPredictionProgress(0);
+      setProgress(0);
 
       const progressInterval = setInterval(() => {
-        setPredictionProgress(prev => (prev >= 90 ? prev : prev + Math.random() * 15));
+        setProgress(prev => (prev >= 90 ? prev : prev + Math.random() * 15));
       }, 400);
 
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/predict-rating`,
+        `${supabaseUrl}/functions/v1/generate-hypothetical-review`,
         {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session?.access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: session.user.id, movieName, movieId, language: i18n.language })
+          body: JSON.stringify({ movieId, mediaType: 'movie', language: i18n.language })
         }
       );
 
       clearInterval(progressInterval);
-      setPredictionProgress(100);
+      setProgress(100);
 
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 403) {
+        if (response.status === 403 && data.ticketsRemaining !== undefined) {
           const error = data as TicketError;
           setTicketsRemaining(error.ticketsRemaining);
           throw new Error(t('oracle.prediction.notEnough', { time: formatTimeUntilReset() }));
@@ -180,29 +187,23 @@ export default function OraclePrediction() {
       }
 
       if (data.error) throw new Error(data.error);
-      if (!data.prediction) throw new Error('No prediction received from Oracle');
+      if (!data.review) throw new Error('No review received from Oracle');
 
-      setPrediction(data);
+      setResult(data);
       setTicketsRemaining(data.ticketsRemaining);
     } catch (error) {
-      console.error('Error getting prediction:', error);
+      console.error('Error generating hypothetical review:', error);
       toast.error(error instanceof Error ? error.message : t('common.error'));
     } finally {
-      setLoading(prev => ({ ...prev, prediction: false }));
+      setLoading(prev => ({ ...prev, generating: false }));
     }
   };
 
   const handleShare = async () => {
-    if (!prediction?.prediction || !selectedMovie || loading.sharing) return;
+    if (!result || !selectedMovie || loading.sharing) return;
 
     try {
       setLoading(prev => ({ ...prev, sharing: true }));
-
-      const ratingMatch = prediction.prediction.match(/(?:Nota Prevista|Predicted Rating|Calificación Predicha)[:\s]*(\d+\.?\d*)\/10/i);
-      const verdictMatch = prediction.prediction.match(/🎬[^:]*:\s*(.+)/s);
-
-      const rating = ratingMatch ? parseFloat(ratingMatch[1]) : 0;
-      const summary = verdictMatch ? verdictMatch[1].trim() : '';
 
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -248,8 +249,8 @@ export default function OraclePrediction() {
       if (selectedMoviePoster) {
         try {
           const posterUrl = `https://image.tmdb.org/t/p/w300${selectedMoviePoster}`;
-          const response = await fetch(posterUrl, { cache: 'no-store' });
-          const blob = await response.blob();
+          const posterResponse = await fetch(posterUrl, { cache: 'no-store' });
+          const blob = await posterResponse.blob();
           const blobUrl = URL.createObjectURL(blob);
 
           const posterImg = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -295,13 +296,13 @@ export default function OraclePrediction() {
       ctx.fillStyle = '#CCCCCC';
       ctx.font = 'bold 36px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('NOTA PREVISTA:', noteX, noteLabelY);
+      ctx.fillText(i18n.language.startsWith('pt') ? 'NOTA PREVISTA:' : 'PREDICTED RATING:', noteX, noteLabelY);
 
       ctx.fillStyle = '#FFD700';
       ctx.font = 'bold 120px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(rating.toFixed(1), noteX, posterCenterY + 20);
+      ctx.fillText(result.rating.toFixed(1), noteX, posterCenterY + 20);
 
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '38px Arial';
@@ -318,7 +319,7 @@ export default function OraclePrediction() {
       const maxLines = 14;
       const bottomLimit = 1750;
 
-      const summaryWords = summary.split(' ');
+      const summaryWords = result.review.split(' ');
       let summaryLine = '';
       let summaryCurrentY = summaryY;
       let lineCount = 0;
@@ -359,11 +360,11 @@ export default function OraclePrediction() {
         canvas.toBlob((blob) => resolve(blob!), 'image/png', 1.0);
       });
 
-      if (navigator.share && navigator.canShare({ files: [new File([imageBlob], 'prediction.png', { type: 'image/png' })] })) {
+      if (navigator.share && navigator.canShare({ files: [new File([imageBlob], 'review.png', { type: 'image/png' })] })) {
         await navigator.share({
-          files: [new File([imageBlob], 'prediction.png', { type: 'image/png' })],
-          title: `CineOracle Prediction: ${selectedMovie}`,
-          text: `Check out this movie prediction from CineOracle!`
+          files: [new File([imageBlob], 'review.png', { type: 'image/png' })],
+          title: `CineOracle: ${selectedMovie}`,
+          text: `Check out my hypothetical review from CineOracle!`
         });
       } else {
         const url = URL.createObjectURL(imageBlob);
@@ -374,15 +375,11 @@ export default function OraclePrediction() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        toast.success('Image downloaded successfully!');
-      }
-
-      if (prediction.id) {
-        await supabase.from('saved_predictions').update({ is_public: true }).eq('id', prediction.id);
+        toast.success(t('common.imageDownloaded', 'Image downloaded successfully!'));
       }
     } catch (error) {
-      console.error('Error sharing prediction:', error);
-      toast.error('Failed to share prediction');
+      console.error('Error sharing:', error);
+      toast.error(t('common.error'));
     } finally {
       setLoading(prev => ({ ...prev, sharing: false }));
     }
@@ -400,7 +397,7 @@ export default function OraclePrediction() {
   );
 
   const renderCrystalBall = () => {
-    if (loading.prediction) {
+    if (loading.generating) {
       return (
         <motion.div
           className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-8 text-center"
@@ -413,7 +410,7 @@ export default function OraclePrediction() {
                 animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
-                <BrainCircuit className="w-10 h-10 text-violet-500" />
+                <PenLine className="w-10 h-10 text-violet-500" />
               </motion.div>
             </div>
             <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-purple-500">
@@ -426,14 +423,14 @@ export default function OraclePrediction() {
                 <motion.div
                   className="h-full bg-gradient-to-r from-violet-500 to-purple-500"
                   initial={{ width: '0%' }}
-                  animate={{ width: `${predictionProgress}%` }}
+                  animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.3 }}
                 />
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                {predictionProgress < 30 ? t('oracle.prediction.analyzing') :
-                 predictionProgress < 60 ? t('oracle.prediction.calculating') :
-                 predictionProgress < 90 ? t('oracle.prediction.generating') :
+                {progress < 30 ? t('oracle.prediction.analyzing') :
+                 progress < 60 ? t('oracle.prediction.calculating') :
+                 progress < 90 ? t('oracle.prediction.generating') :
                  t('oracle.prediction.finalizing')}
               </p>
             </div>
@@ -442,7 +439,7 @@ export default function OraclePrediction() {
       );
     }
 
-    if (prediction) {
+    if (result) {
       return (
         <motion.div
           className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8"
@@ -473,9 +470,25 @@ export default function OraclePrediction() {
                 </motion.div>
               </div>
 
-              <div className="prose prose-lg prose-gray dark:prose-invert mt-4">
+              {/* Nota — vem da matemática confiável, nunca da IA */}
+              <div className="flex items-center gap-3">
+                <div className={`text-5xl font-extrabold ${getRatingColor(result.rating)}`}>
+                  {result.rating.toFixed(1)}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <Shield className="w-3.5 h-3.5" />
+                    {t('oracle.prediction.reliableRating')}
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    {t('oracle.prediction.styleBasedOn', { count: result.basedOnReviewCount })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="prose prose-lg prose-gray dark:prose-invert">
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                  {prediction.prediction}
+                  {result.review}
                 </p>
               </div>
             </div>
@@ -577,7 +590,7 @@ export default function OraclePrediction() {
             transition={{ duration: 4, repeat: Infinity, repeatType: "reverse" }}
           >
             <div className="p-4 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 dark:from-violet-500/30 dark:to-purple-500/30 border border-violet-400/30">
-              <BrainCircuit className="w-12 h-12 text-violet-500 dark:text-violet-400" style={{ filter: 'drop-shadow(0 0 15px rgba(139, 92, 246, 0.4))' }} />
+              <PenLine className="w-12 h-12 text-violet-500 dark:text-violet-400" style={{ filter: 'drop-shadow(0 0 15px rgba(139, 92, 246, 0.4))' }} />
             </div>
           </motion.div>
 
@@ -631,10 +644,10 @@ export default function OraclePrediction() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={loading.prediction ? t('oracle.prediction.consulting') : t('oracle.prediction.cost', { cost: 1 })}
+                  placeholder={loading.generating ? t('oracle.prediction.consulting') : t('oracle.prediction.cost', { cost: 1 })}
                   className="w-full px-4 py-3 bg-transparent text-gray-800 dark:text-white placeholder-violet-400 dark:placeholder-violet-300 text-lg font-medium focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   autoComplete="off"
-                  disabled={loading.prediction}
+                  disabled={loading.generating}
                 />
                 {loading.search ? (
                   <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
@@ -645,7 +658,7 @@ export default function OraclePrediction() {
             </div>
 
             <AnimatePresence>
-              {searchResults.length > 0 && !loading.prediction && (
+              {searchResults.length > 0 && !loading.generating && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -657,7 +670,7 @@ export default function OraclePrediction() {
                     {searchResults.map((movie) => (
                       <motion.button
                         key={movie.id}
-                        onClick={() => getPrediction(movie.title, movie.id, movie.poster_path)}
+                        onClick={() => generateReview(movie.title, movie.id, movie.poster_path)}
                         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-violet-500/10 transition-colors text-left"
                         whileHover={{ x: 4 }}
                       >
