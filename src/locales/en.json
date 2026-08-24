@@ -309,6 +309,8 @@
     "choosePath": "Choose your path...",
     "prediction": {
       "title": "Prediction Chamber",
+      "reliableRating": "Mathematically calculated rating",
+      "styleBasedOn": "Style based on {{count}} of your reviews",
       "description": "Whisper the film's name – the Oracle will reveal how you might judge it.",
       "tickets": "{{count}} tickets",
       "nextReset": "Next reset: {{time}}",
