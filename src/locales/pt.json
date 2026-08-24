@@ -276,6 +276,8 @@
   },
   "movies": {
     "director": "Diretor",
+    "directorTopTen": "Top 10 de {{director}}",
+    "noDirectorMoviesFound": "Nenhum outro filme avaliado encontrado desse diretor",
     "noStreamingAvailable": "Não disponível para streaming",
     "noCastAvailable": "Nenhuma informação de elenco disponível",
     "ageLabel": "Idade",
