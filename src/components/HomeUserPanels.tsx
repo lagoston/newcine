@@ -208,11 +208,8 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const [followingCount, setFollowingCount] = useState<number>(0);
 
   const [librarySlideIndex, setLibrarySlideIndex] = useState(0);
-  const [librarySlideAutoPaused, setLibrarySlideAutoPaused] = useState(false);
   const [tagSlideIndex, setTagSlideIndex] = useState(0);
-  const [tagSlideAutoPaused, setTagSlideAutoPaused] = useState(false);
   const [essenceSlideIndex, setEssenceSlideIndex] = useState(0);
-  const [essenceSlideAutoPaused, setEssenceSlideAutoPaused] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setCountdown(getMidnightCountdown()), 1000);
@@ -248,32 +245,38 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const essenceHasData = !personalityLoading && !!personality?.personalidade_completa && !!archetypeInfo;
   const essenceSlideCount = essenceHasData ? 2 : 1;
 
-  useEffect(() => {
-    if (librarySlideCount > 1 && !librarySlideAutoPaused) {
-      const interval = setInterval(() => {
-        setLibrarySlideIndex((prev) => (prev + 1) % librarySlideCount);
-      }, 6000);
-      return () => clearInterval(interval);
-    }
-  }, [librarySlideCount, librarySlideAutoPaused]);
+  // Rotação 100% automática e irreversível, sem navegação manual — a
+  // duração de cada posição cresce (4s no 1º slide, 5s no 2º, 6s no 3º),
+  // não é um intervalo fixo repetido. setTimeout encadeado (não setInterval)
+  // porque a duração depende de QUAL posição está em exibição agora.
+  const SLIDE_DURATIONS = [4000, 5000, 6000];
 
   useEffect(() => {
-    if (tagSlideCount > 1 && !tagSlideAutoPaused) {
-      const interval = setInterval(() => {
-        setTagSlideIndex((prev) => (prev + 1) % tagSlideCount);
-      }, 6000);
-      return () => clearInterval(interval);
-    }
-  }, [tagSlideCount, tagSlideAutoPaused]);
+    if (librarySlideCount <= 1) return;
+    const duration = SLIDE_DURATIONS[librarySlideIndex % SLIDE_DURATIONS.length];
+    const timeout = setTimeout(() => {
+      setLibrarySlideIndex((prev) => (prev + 1) % librarySlideCount);
+    }, duration);
+    return () => clearTimeout(timeout);
+  }, [librarySlideIndex, librarySlideCount]);
 
   useEffect(() => {
-    if (essenceSlideCount > 1 && !essenceSlideAutoPaused) {
-      const interval = setInterval(() => {
-        setEssenceSlideIndex((prev) => (prev + 1) % essenceSlideCount);
-      }, 6000);
-      return () => clearInterval(interval);
-    }
-  }, [essenceSlideCount, essenceSlideAutoPaused]);
+    if (tagSlideCount <= 1) return;
+    const duration = SLIDE_DURATIONS[tagSlideIndex % SLIDE_DURATIONS.length];
+    const timeout = setTimeout(() => {
+      setTagSlideIndex((prev) => (prev + 1) % tagSlideCount);
+    }, duration);
+    return () => clearTimeout(timeout);
+  }, [tagSlideIndex, tagSlideCount]);
+
+  useEffect(() => {
+    if (essenceSlideCount <= 1) return;
+    const duration = SLIDE_DURATIONS[essenceSlideIndex % SLIDE_DURATIONS.length];
+    const timeout = setTimeout(() => {
+      setEssenceSlideIndex((prev) => (prev + 1) % essenceSlideCount);
+    }, duration);
+    return () => clearTimeout(timeout);
+  }, [essenceSlideIndex, essenceSlideCount]);
 
   const fetchUserStats = useCallback(async () => {
     try {
@@ -540,17 +543,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                       {librarySlides[activeIndex]}
                     </motion.div>
                   </AnimatePresence>
-                  {librarySlides.length > 1 && (
-                    <div className="flex justify-center gap-1.5 mt-2">
-                      {librarySlides.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => { setLibrarySlideIndex(idx); setLibrarySlideAutoPaused(true); }}
-                          className={`h-1.5 rounded-full transition-all ${idx === activeIndex ? 'w-4 bg-blue-500' : 'w-1.5 bg-gray-300 dark:bg-gray-600'}`}
-                        />
-                      ))}
-                    </div>
-                  )}
                 </div>
               );
             })()}
@@ -619,17 +611,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                       {tagSlides[activeIndex]}
                     </motion.div>
                   </AnimatePresence>
-                  {tagSlides.length > 1 && (
-                    <div className="flex justify-center gap-1.5 mt-2">
-                      {tagSlides.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => { setTagSlideIndex(idx); setTagSlideAutoPaused(true); }}
-                          className={`h-1.5 rounded-full transition-all ${idx === activeIndex ? 'w-4 bg-amber-500' : 'w-1.5 bg-gray-300 dark:bg-gray-600'}`}
-                        />
-                      ))}
-                    </div>
-                  )}
                 </div>
               );
             })()}
@@ -714,15 +695,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                         {essenceSlides[activeIndex]}
                       </motion.div>
                     </AnimatePresence>
-                    <div className="flex justify-center gap-1.5 mt-2">
-                      {essenceSlides.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => { setEssenceSlideIndex(idx); setEssenceSlideAutoPaused(true); }}
-                          className={`h-1.5 rounded-full transition-all ${idx === activeIndex ? 'w-4 bg-violet-500' : 'w-1.5 bg-gray-300 dark:bg-gray-600'}`}
-                        />
-                      ))}
-                    </div>
                   </div>
                 );
               })() : (
