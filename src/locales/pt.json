@@ -144,7 +144,16 @@
       "allTagsUnlocked": "Todas as tags desbloqueadas!",
       "dailyRecommendation": "Recomendação do Dia",
       "noRecommendationToday": "Nenhuma recomendação disponível hoje",
-      "anotherRecommendation": "Outra Recomendação"
+      "anotherRecommendation": "Outra Recomendação",
+      "yourLists": "Suas listas",
+      "openLists": "Abrir",
+      "watchlistDuel": "Duelo de Watchlist",
+      "watchlistDuelHint": "Não consegue decidir? Coloque dois filmes um contra o outro",
+      "matchWithFriends": "Match com amigos",
+      "matchWithFriendsHint": "Descubra o que vocês dois adorariam assistir",
+      "openCommunity": "Encontrar amigos",
+      "yourPersona": "Sua Persona",
+      "yourPersonaHint": "Veja seu espectro E/I/C/S/R completo"
     }
   },
   "compatibility": {
