@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS } from '../lib/cache';
+import { getFrameClass } from '../lib/frames';
 import RecommendModal from './RecommendModal';
 import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
@@ -16,6 +17,8 @@ interface FriendRating {
   user_id: string;
   username: string;
   avatar_url: string | null;
+  avatar_frame: string | null;
+  plan_type: string | null;
   rating: number;
   review_title?: string | null;
 }
@@ -303,7 +306,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       const ratingUserIds = ratingsData.map(r => r.user_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url')
+        .select('id, username, avatar_url, avatar_frame, plan_type')
         .in('id', ratingUserIds);
 
       if (profilesError) throw profilesError;
@@ -325,6 +328,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
             user_id: r.user_id,
             username: profile?.username || 'Unknown',
             avatar_url: profile?.avatar_url || null,
+            avatar_frame: profile?.avatar_frame || null,
+            plan_type: profile?.plan_type || null,
             rating: r.rating,
             review_title: review?.title || null
           };
@@ -1003,7 +1008,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                             }}
                           >
                             <div className="relative group">
-                              {/* Container principal da bolha */}
+                              {/* Container principal da bolha — envolvido por
+                                  uma camada extra que aplica a moldura
+                                  escolhida pelo usuário (getFrameClass),
+                                  separada da cor por nota que já existia
+                                  aqui dentro, pra não misturar os dois
+                                  sistemas de borda na mesma linha. */}
+                              <div className={`relative w-[72px] h-[72px] rounded-full flex items-center justify-center ${getFrameClass(friend.avatar_frame || undefined, friend.plan_type === 'premium')}`}>
                               <div className="relative w-16 h-16">
                                 {/* Avatar */}
                                 <div className={`absolute inset-0 rounded-full border-3 border-white dark:border-gray-700 shadow-2xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-0.5`}>
@@ -1035,6 +1046,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                     </span>
                                   </div>
                                 </div>
+                              </div>
                               </div>
 
                                                             {friend.review_title ? (
