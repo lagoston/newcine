@@ -199,6 +199,21 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const [showPremiumRequiredModal, setShowPremiumRequiredModal] = useState(false);
   const [showOracleInfoModal, setShowOracleInfoModal] = useState(false);
 
+  // Dados extra pras 3 novas rotações. Cada contagem decide se o slide
+  // correspondente entra no rodízio ou fica de fora (usuário sem critério
+  // pra preencher aquele slide não vê ele rotacionar).
+  const [listsPreview, setListsPreview] = useState<{ id: string; name: string }[]>([]);
+  const [listsCount, setListsCount] = useState<number>(0);
+  const [unratedCount, setUnratedCount] = useState<number>(0);
+  const [followingCount, setFollowingCount] = useState<number>(0);
+
+  const [librarySlideIndex, setLibrarySlideIndex] = useState(0);
+  const [librarySlideAutoPaused, setLibrarySlideAutoPaused] = useState(false);
+  const [tagSlideIndex, setTagSlideIndex] = useState(0);
+  const [tagSlideAutoPaused, setTagSlideAutoPaused] = useState(false);
+  const [essenceSlideIndex, setEssenceSlideIndex] = useState(0);
+  const [essenceSlideAutoPaused, setEssenceSlideAutoPaused] = useState(false);
+
   useEffect(() => {
     const interval = setInterval(() => setCountdown(getMidnightCountdown()), 1000);
     return () => clearInterval(interval);
@@ -223,18 +238,62 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
     }
   }, [dailyRecs.length, carouselAutoPaused]);
 
+  // Quantos slides cada prateleira realmente tem disponível — depende de o
+  // usuário preencher os critérios de cada slide extra (ter listas, ter
+  // filmes suficientes pro duelo, seguir alguém). Sem isso, cada prateleira
+  // teria sempre 2-3 slides "fixos" mesmo quando o extra não faz sentido
+  // pra aquele usuário específico.
+  const librarySlideCount = 1 + (listsCount > 0 ? 1 : 0) + (unratedCount >= 4 ? 1 : 0);
+  const tagSlideCount = 1 + (followingCount > 0 ? 1 : 0);
+  const essenceHasData = !personalityLoading && !!personality?.personalidade_completa && !!archetypeInfo;
+  const essenceSlideCount = essenceHasData ? 2 : 1;
+
+  useEffect(() => {
+    if (librarySlideCount > 1 && !librarySlideAutoPaused) {
+      const interval = setInterval(() => {
+        setLibrarySlideIndex((prev) => (prev + 1) % librarySlideCount);
+      }, 6000);
+      return () => clearInterval(interval);
+    }
+  }, [librarySlideCount, librarySlideAutoPaused]);
+
+  useEffect(() => {
+    if (tagSlideCount > 1 && !tagSlideAutoPaused) {
+      const interval = setInterval(() => {
+        setTagSlideIndex((prev) => (prev + 1) % tagSlideCount);
+      }, 6000);
+      return () => clearInterval(interval);
+    }
+  }, [tagSlideCount, tagSlideAutoPaused]);
+
+  useEffect(() => {
+    if (essenceSlideCount > 1 && !essenceSlideAutoPaused) {
+      const interval = setInterval(() => {
+        setEssenceSlideIndex((prev) => (prev + 1) % essenceSlideCount);
+      }, 6000);
+      return () => clearInterval(interval);
+    }
+  }, [essenceSlideCount, essenceSlideAutoPaused]);
+
   const fetchUserStats = useCallback(async () => {
     try {
-      const [profileRes, moviesRes, followsRes, profileFull] = await Promise.all([
+      const [profileRes, moviesRes, followsRes, profileFull, followingRes, listsRes, unratedRes] = await Promise.all([
         supabase.from('public_profiles').select('avatar_url, avatar_frame, plan_type').eq('id', userId).maybeSingle(),
         supabase.from('user_movies').select('movie_id').eq('user_id', userId),
         supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
         supabase.from('profiles').select('oracle_predictions_count, oracle_recommendations_count').eq('id', userId).maybeSingle(),
+        supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
+        supabase.from('lists').select('id, name').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3),
+        supabase.from('user_movies').select('movie_id', { count: 'exact', head: true }).eq('user_id', userId).is('rating', null),
       ]);
 
       setAvatarUrl(profileRes.data?.avatar_url ?? null);
       setAvatarFrame(profileRes.data?.avatar_frame ?? null);
       setAvatarPlanType(profileRes.data?.plan_type ?? null);
+      setFollowingCount(followingRes.count ?? 0);
+      setListsPreview((listsRes.data ?? []) as { id: string; name: string }[]);
+      setListsCount(listsRes.data?.length ?? 0);
+      setUnratedCount(unratedRes.count ?? 0);
 
       const movieIds: number[] = (moviesRes.data ?? []).map((m: { movie_id: number }) => m.movie_id);
       const movieCount = movieIds.length;
@@ -340,7 +399,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const archetypeId = personality?.personalidade_completa?.slice(0, 2);
   const subcategoryId = personality?.personalidade_completa?.slice(2, 3);
 
-  const hasEssence = !personalityLoading && personality?.personalidade_completa && archetypeInfo;
+  const hasEssence = essenceHasData;
   const currentRec = dailyRecs[carouselIndex];
   const dragOccurred = React.useRef(false);
 
@@ -397,92 +456,276 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
             <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
 
-            {/* Library count */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-blue-500/10 dark:bg-blue-500/15">
-                  <Film className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('home.panels.yourLibrary')}</p>
-                  <p className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
-                    {libraryCount} <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{libraryCount === 1 ? t('home.panels.film') : t('home.panels.films')}</span>
-                  </p>
-                </div>
-              </div>
-              <Link
-                to="/library"
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-blue-400/20"
-              >
-                <LibraryIcon className="w-3.5 h-3.5" />
-                {t('home.panels.openLibrary')}
-              </Link>
-            </div>
-
-            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
-
-            {/* Next Tag */}
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15">
-                <Lock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.nextTag')}</p>
-                {nextTag ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-base leading-none">{nextTag.emoji}</span>
-                    <span className="text-sm font-bold text-gray-900 dark:text-white truncate">{nextTag.name}</span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full shrink-0">
-                      {tagHint}
-                    </span>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400 dark:text-gray-500 italic">{t('home.panels.allTagsUnlocked')}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
-
-            {/* Cinematic Essence */}
-            {!personalityLoading && (
-              hasEssence ? (
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0">
-                    <ArchetypeSymbol
-                      archetypeId={archetypeId || ''}
-                      subcategoryId={subcategoryId || null}
-                      size={48}
-                      animated={false}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium mb-0.5" style={{ color: archetypeColor }}>
-                      {t('oracle.cinematicEssenceLabel')}
-                    </p>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-sm font-bold" style={{ color: archetypeColor }}>
-                        {personality!.personalidade_completa}
-                      </span>
-                      <span className="text-xs text-gray-700 dark:text-gray-300 font-semibold">
-                        {archetypeInfo!.archetype_name} {archetypeInfo!.subcategory_name}
-                      </span>
+            {/* Your Library — rotaciona entre: contagem da biblioteca,
+                suas listas (só se tiver alguma) e Duelo de Watchlist (só
+                com pelo menos 4 filmes não avaliados, mesmo critério usado
+                no botão real do duelo). */}
+            {(() => {
+              const librarySlides: React.ReactNode[] = [
+                <div key="lib-main" className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 dark:bg-blue-500/15">
+                      <Film className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mt-0.5 leading-relaxed">
-                      {archetypeInfo!.description}
-                    </p>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('home.panels.yourLibrary')}</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                        {libraryCount} <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{libraryCount === 1 ? t('home.panels.film') : t('home.panels.films')}</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex flex-row gap-2 flex-shrink-0">
+                  <Link
+                    to="/library"
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-blue-400/20"
+                  >
+                    <LibraryIcon className="w-3.5 h-3.5" />
+                    {t('home.panels.openLibrary')}
+                  </Link>
+                </div>
+              ];
+
+              if (listsCount > 0) {
+                librarySlides.push(
+                  <div key="lib-lists" className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2.5 rounded-xl bg-teal-500/10 dark:bg-teal-500/15 flex-shrink-0">
+                        <LibraryIcon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('home.panels.yourLists')}</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                          {listsPreview.map((l) => l.name).join(' • ')}
+                        </p>
+                      </div>
+                    </div>
                     <Link
-                      to="/oracle"
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
+                      to="/lists"
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 dark:bg-teal-500/15 dark:hover:bg-teal-500/25 text-teal-600 dark:text-teal-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-teal-400/20"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      {i18n.language.startsWith('pt') ? 'Abrir' : 'Open'}
+                      {t('home.panels.openLists')}
                     </Link>
                   </div>
+                );
+              }
+
+              if (unratedCount >= 4) {
+                librarySlides.push(
+                  <div key="lib-duel" className="flex items-center justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.watchlistDuel')}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.watchlistDuelHint')}</p>
+                    </div>
+                    <Link
+                      to="/library"
+                      className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
+                    >
+                      {t('home.panels.openLibrary')}
+                    </Link>
+                  </div>
+                );
+              }
+
+              const activeIndex = librarySlideIndex % librarySlides.length;
+
+              return (
+                <div className="mb-5">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeIndex}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      {librarySlides[activeIndex]}
+                    </motion.div>
+                  </AnimatePresence>
+                  {librarySlides.length > 1 && (
+                    <div className="flex justify-center gap-1.5 mt-2">
+                      {librarySlides.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => { setLibrarySlideIndex(idx); setLibrarySlideAutoPaused(true); }}
+                          className={`h-1.5 rounded-full transition-all ${idx === activeIndex ? 'w-4 bg-blue-500' : 'w-1.5 bg-gray-300 dark:bg-gray-600'}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ) : (
+              );
+            })()}
+
+            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
+
+            {/* Next Tag — rotaciona com Match com Amigos (só se o usuário
+                seguir pelo menos 1 pessoa). */}
+            {(() => {
+              const tagSlides: React.ReactNode[] = [
+                <div key="tag-main" className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15">
+                    <Lock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.nextTag')}</p>
+                    {nextTag ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-base leading-none">{nextTag.emoji}</span>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white truncate">{nextTag.name}</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full shrink-0">
+                          {tagHint}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 dark:text-gray-500 italic">{t('home.panels.allTagsUnlocked')}</p>
+                    )}
+                  </div>
+                </div>
+              ];
+
+              if (followingCount > 0) {
+                tagSlides.push(
+                  <div key="tag-match" className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
+                        <Sparkles className="w-4 h-4 text-pink-500 dark:text-pink-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.matchWithFriends')}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.matchWithFriendsHint')}</p>
+                      </div>
+                    </div>
+                    <Link
+                      to="/community"
+                      className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
+                    >
+                      {t('home.panels.openCommunity')}
+                    </Link>
+                  </div>
+                );
+              }
+
+              const activeIndex = tagSlideIndex % tagSlides.length;
+
+              return (
+                <div className="mb-5">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeIndex}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      {tagSlides[activeIndex]}
+                    </motion.div>
+                  </AnimatePresence>
+                  {tagSlides.length > 1 && (
+                    <div className="flex justify-center gap-1.5 mt-2">
+                      {tagSlides.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => { setTagSlideIndex(idx); setTagSlideAutoPaused(true); }}
+                          className={`h-1.5 rounded-full transition-all ${idx === activeIndex ? 'w-4 bg-amber-500' : 'w-1.5 bg-gray-300 dark:bg-gray-600'}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
+
+            {/* Cinematic Essence — rotaciona com "Sua Persona" (o gráfico
+                pentagonal E/I/C/S/R), só quando o usuário já tem essência
+                calculada. Sem essência, fica só no estado de convite pra
+                descobrir, sem rotação nenhuma. */}
+            {!personalityLoading && (
+              hasEssence ? (() => {
+                const essenceSlides: React.ReactNode[] = [
+                  <div key="ess-main" className="flex items-center gap-3">
+                    <div className="flex-shrink-0">
+                      <ArchetypeSymbol
+                        archetypeId={archetypeId || ''}
+                        subcategoryId={subcategoryId || null}
+                        size={48}
+                        animated={false}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium mb-0.5" style={{ color: archetypeColor }}>
+                        {t('oracle.cinematicEssenceLabel')}
+                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-bold" style={{ color: archetypeColor }}>
+                          {personality!.personalidade_completa}
+                        </span>
+                        <span className="text-xs text-gray-700 dark:text-gray-300 font-semibold">
+                          {archetypeInfo!.archetype_name} {archetypeInfo!.subcategory_name}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mt-0.5 leading-relaxed">
+                        {archetypeInfo!.description}
+                      </p>
+                    </div>
+                    <div className="flex flex-row gap-2 flex-shrink-0">
+                      <Link
+                        to="/oracle"
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {i18n.language.startsWith('pt') ? 'Abrir' : 'Open'}
+                      </Link>
+                    </div>
+                  </div>,
+                  <div key="ess-persona" className="flex items-center gap-3">
+                    <div className="flex-shrink-0 scale-[0.4] origin-left -my-16">
+                      <PentagonGraph points={spectrumPoints} subcategoryId={personality?.personalidade_completa?.slice(2, 3) || ''} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium mb-0.5" style={{ color: archetypeColor }}>
+                        {t('home.panels.yourPersona')}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                        {t('home.panels.yourPersonaHint')}
+                      </p>
+                    </div>
+                    <Link
+                      to="/oracle"
+                      className="flex-shrink-0 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
+                    >
+                      {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
+                    </Link>
+                  </div>
+                ];
+
+                const activeIndex = essenceSlideIndex % essenceSlides.length;
+
+                return (
+                  <div>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={activeIndex}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.25 }}
+                      >
+                        {essenceSlides[activeIndex]}
+                      </motion.div>
+                    </AnimatePresence>
+                    <div className="flex justify-center gap-1.5 mt-2">
+                      {essenceSlides.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => { setEssenceSlideIndex(idx); setEssenceSlideAutoPaused(true); }}
+                          className={`h-1.5 rounded-full transition-all ${idx === activeIndex ? 'w-4 bg-violet-500' : 'w-1.5 bg-gray-300 dark:bg-gray-600'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })() : (
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">
