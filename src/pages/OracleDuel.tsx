@@ -414,10 +414,8 @@ export default function OracleDuel() {
                     <motion.button
                       key={moodKey}
                       onClick={() => toggleMood(moodKey)}
-                      className={`px-3 py-3 rounded-xl transition-all text-center border backdrop-blur-sm ${
-                        isSelected
-                          ? `${moodStyle.bg} ${moodStyle.hover} ${moodStyle.text} ${moodStyle.border} ring-2 ring-offset-2 ring-offset-transparent shadow-lg`
-                          : 'bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700/60 text-gray-500 dark:text-gray-400 border-transparent'
+                      className={`px-3 py-3 rounded-xl transition-all text-center border backdrop-blur-sm ${moodStyle.bg} ${moodStyle.hover} ${moodStyle.text} ${
+                        isSelected ? `${moodStyle.border} ring-2 ring-offset-2 ring-offset-transparent shadow-lg` : 'border-transparent'
                       }`}
                       whileHover={{ scale: 1.03, y: -2 }}
                       whileTap={{ scale: 0.98 }}
