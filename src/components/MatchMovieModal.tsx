@@ -21,6 +21,7 @@ type Phase = 'setup' | 'loading' | 'results';
 interface Participant {
   id: string;
   username: string;
+  avatar_url?: string | null;
 }
 
 interface ScoreEntry {
@@ -83,8 +84,9 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
 
-  const [participants, setParticipants] = useState<Participant[]>([{ id: otherUserId, username: otherUsername }]);
+  const [participants, setParticipants] = useState<Participant[]>([{ id: otherUserId, username: otherUsername, avatar_url: null }]);
   const [myUsername, setMyUsername] = useState<string>('');
+  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
   const [showAddViewer, setShowAddViewer] = useState(false);
   const [followedUsers, setFollowedUsers] = useState<FollowedUser[]>([]);
   const [loadingFollowed, setLoadingFollowed] = useState(false);
@@ -97,19 +99,31 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
   const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
 
-  // Balão "Você" — antes a barra só mostrava os OUTROS participantes,
-  // nunca quem está de fato fazendo o match, o que deixava a barra visual
-  // desequilibrada (parecia que o balão do convidado era "maior" porque
-  // não tinha nada do seu lado pra comparar).
+  // Busca username + avatar do usuário atual, e o avatar do participante
+  // original (que chega só com username via prop, sem avatar).
   useEffect(() => {
     if (!session?.user?.id) return;
     supabase
       .from('profiles')
-      .select('username')
+      .select('username, avatar_url')
       .eq('id', session.user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (data?.username) setMyUsername(data.username);
+        if (data?.avatar_url) setMyAvatarUrl(data.avatar_url);
+      });
+
+    supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', otherUserId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.avatar_url) {
+          setParticipants((prev) =>
+            prev.map((p) => (p.id === otherUserId ? { ...p, avatar_url: data.avatar_url } : p))
+          );
+        }
       });
   }, [session?.user?.id]);
 
@@ -164,7 +178,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
 
   const handleAddParticipant = (user: FollowedUser) => {
     if (participants.length >= MAX_PARTICIPANTS - 1) return;
-    setParticipants((prev) => [...prev, { id: user.id, username: user.username }]);
+    setParticipants((prev) => [...prev, { id: user.id, username: user.username, avatar_url: user.avatar_url }]);
     setShowAddViewer(false);
     setViewerSearch('');
   };
@@ -234,6 +248,13 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
 
   if (!isOpen) return null;
 
+  // Você + os demais, numa lista só, pra distribuir as bolhas dos dois
+  // lados do título.
+  const bubbleParticipants: Participant[] = [
+    { id: session?.user?.id || 'me', username: myUsername || t('matchMovie.you'), avatar_url: myAvatarUrl },
+    ...participants,
+  ];
+
   const topMatch = matches[0];
   const restMatches = matches.slice(1);
 
@@ -274,56 +295,108 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
 
             {/* Barra de participantes — sempre visível no topo. "Você" vem
                 primeiro, sempre presente, com o mesmo estilo dos demais —
-                sem isso a barra ficava desequilibrada visualmente. */}
+                sem isso a barra ficava desequilibrada visualmente.
+                leading-none + type="button" explícito em toda parte —
+                defesa contra qualquer herança de estilo que pudesse fazer
+                blocos com <button> filho renderizar maiores que blocos só
+                de texto. */}
             <div className="flex items-center justify-center flex-wrap gap-2 mb-4">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pink-500/15 border border-pink-400/40 text-sm font-medium text-pink-700 dark:text-pink-300">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pink-500/15 border border-pink-400/40 text-sm leading-none font-medium text-pink-700 dark:text-pink-300">
                 {t('matchMovie.you')}
               </div>
               {participants.map((p) => (
                 <div
                   key={p.id}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 dark:bg-gray-800/60 border border-white/60 dark:border-gray-700/60 text-sm font-medium text-gray-700 dark:text-gray-200"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 dark:bg-gray-800/60 border border-white/60 dark:border-gray-700/60 text-sm leading-none font-medium text-gray-700 dark:text-gray-200"
                 >
-                  @{p.username}
+                  <span className="leading-none">@{p.username}</span>
                   {p.id !== otherUserId && phase === 'setup' && (
-                    <button onClick={() => handleRemoveParticipant(p.id)} className="text-gray-400 hover:text-red-500 transition-colors">
-                      <X className="w-3.5 h-3.5" />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveParticipant(p.id)}
+                      className="flex-shrink-0 leading-none text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5 flex-shrink-0" />
                     </button>
                   )}
                 </div>
               ))}
               {phase === 'setup' && participants.length < MAX_PARTICIPANTS - 1 && (
                 <button
+                  type="button"
                   onClick={handleOpenAddViewer}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-dashed border-pink-400/60 text-pink-600 dark:text-pink-400 text-sm font-medium hover:bg-pink-500/10 transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-dashed border-pink-400/60 text-pink-600 dark:text-pink-400 text-sm leading-none font-medium hover:bg-pink-500/10 transition-colors"
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  {t('matchMovie.addViewer')}
+                  <UserPlus className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="leading-none">{t('matchMovie.addViewer')}</span>
                 </button>
               )}
             </div>
 
-            <div className="text-center mb-6">
-              {phase === 'loading' ? (
-                <motion.div
-                  key="wand-spinning"
-                  className="inline-flex p-3 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-400/30 mb-3"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
-                >
-                  <Wand2 className="w-7 h-7 text-pink-500 dark:text-pink-400" />
-                </motion.div>
-              ) : (
-                <div
-                  key="wand-static"
-                  className="inline-flex p-3 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-400/30 mb-3"
-                >
-                  <Wand2 className="w-7 h-7 text-pink-500 dark:text-pink-400" />
-                </div>
-              )}
-              <h2 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500">
-                {t('matchMovie.title')}
-              </h2>
+            {/* Cabeçalho com bolhas de participante nas laterais — mesmo
+                estilo visual das bolhas de amigo que flutuam sobre pôsteres
+                (avatar circular, borda gradiente), só que estáticas aqui,
+                uma de cada lado do título, preenchendo o espaço que antes
+                ficava vazio. */}
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="flex -space-x-2 flex-shrink-0">
+                {bubbleParticipants.slice(0, Math.ceil(bubbleParticipants.length / 2)).map((p) => (
+                  <div
+                    key={p.id}
+                    title={p.username}
+                    className="w-9 h-9 rounded-full border-2 border-white dark:border-gray-800 shadow-lg overflow-hidden bg-gradient-to-br from-pink-400 to-purple-500 flex-shrink-0"
+                  >
+                    {p.avatar_url ? (
+                      <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold">
+                        {p.username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-center flex-shrink-0">
+                {phase === 'loading' ? (
+                  <motion.div
+                    key="wand-spinning"
+                    className="inline-flex p-3 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-400/30 mb-3"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <Wand2 className="w-7 h-7 text-pink-500 dark:text-pink-400" />
+                  </motion.div>
+                ) : (
+                  <div
+                    key="wand-static"
+                    className="inline-flex p-3 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-400/30 mb-3"
+                  >
+                    <Wand2 className="w-7 h-7 text-pink-500 dark:text-pink-400" />
+                  </div>
+                )}
+                <h2 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500">
+                  {t('matchMovie.title')}
+                </h2>
+              </div>
+
+              <div className="flex -space-x-2 flex-shrink-0">
+                {bubbleParticipants.slice(Math.ceil(bubbleParticipants.length / 2)).map((p) => (
+                  <div
+                    key={p.id}
+                    title={p.username}
+                    className="w-9 h-9 rounded-full border-2 border-white dark:border-gray-800 shadow-lg overflow-hidden bg-gradient-to-br from-pink-400 to-purple-500 flex-shrink-0"
+                  >
+                    {p.avatar_url ? (
+                      <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold">
+                        {p.username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Sub-tela de adicionar espectador */}
