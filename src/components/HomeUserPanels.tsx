@@ -536,7 +536,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               const activeIndex = librarySlideIndex % librarySlides.length;
 
               return (
-                <div className="mb-5">
+                <div className="mb-5 min-h-[52px]">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={activeIndex}
@@ -604,7 +604,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               const activeIndex = tagSlideIndex % tagSlides.length;
 
               return (
-                <div className="mb-5">
+                <div className="mb-5 min-h-[60px]">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={activeIndex}
@@ -715,7 +715,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 const activeIndex = essenceSlideIndex % essenceSlides.length;
 
                 return (
-                  <div>
+                  <div className="min-h-[64px]">
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={activeIndex}
