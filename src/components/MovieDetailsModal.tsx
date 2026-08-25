@@ -7,7 +7,6 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS } from '../lib/cache';
-import { getFrameClass } from '../lib/frames';
 import RecommendModal from './RecommendModal';
 import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
@@ -17,8 +16,6 @@ interface FriendRating {
   user_id: string;
   username: string;
   avatar_url: string | null;
-  avatar_frame: string | null;
-  plan_type: string | null;
   rating: number;
   review_title?: string | null;
 }
@@ -306,7 +303,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       const ratingUserIds = ratingsData.map(r => r.user_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url, avatar_frame, plan_type')
+        .select('id, username, avatar_url')
         .in('id', ratingUserIds);
 
       if (profilesError) throw profilesError;
@@ -328,8 +325,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
             user_id: r.user_id,
             username: profile?.username || 'Unknown',
             avatar_url: profile?.avatar_url || null,
-            avatar_frame: profile?.avatar_frame || null,
-            plan_type: profile?.plan_type || null,
             rating: r.rating,
             review_title: review?.title || null
           };
@@ -1008,15 +1003,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                             }}
                           >
                             <div className="relative group">
-                              {/* Moldura aplicada DIRETO no mesmo container
-                                  w-16 h-16 que já tem a borda colorida por
-                                  nota — ring/pseudo-elementos de moldura são
-                                  box-shadow e overlay, não ocupam espaço de
-                                  layout, então colam exatamente na borda
-                                  existente em vez de flutuar em volta dela
-                                  com vão (o efeito "Saturno" da tentativa
-                                  anterior, que usava um wrapper maior). */}
-                              <div className={`relative w-16 h-16 ${getFrameClass(friend.avatar_frame || undefined, friend.plan_type === 'premium')}`}>
+                              {/* Container principal da bolha */}
+                              <div className="relative w-16 h-16">
                                 {/* Avatar */}
                                 <div className={`absolute inset-0 rounded-full border-3 border-white dark:border-gray-700 shadow-2xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-0.5`}>
                                   <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
