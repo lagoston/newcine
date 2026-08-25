@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link, useNavigate } from 'react-router-dom';
-import { Library as LibraryIcon, Lock, Star, Film, Clock, Sparkles, RefreshCw, X, HelpCircle } from 'lucide-react';
+import { Library as LibraryIcon, Lock, Star, Film, Clock, Sparkles, RefreshCw, X, HelpCircle, Swords } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
@@ -11,7 +11,7 @@ import { getFrameClass } from '../lib/frames';
 import OptimizedPoster from './OptimizedPoster';
 import MovieDetailsModal from './MovieDetailsModal';
 import ArchetypeSymbol from './ArchetypeSymbol';
-import PentagonGraph from './PentagonGraph';
+import { PERSONAS_MAP } from './CinematicPersonaCard';
 
 interface LockedTag {
   name: string;
@@ -514,9 +514,14 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               if (unratedCount >= 4) {
                 librarySlides.push(
                   <div key="lib-duel" className="flex items-center justify-between">
-                    <div className="min-w-0">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.watchlistDuel')}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.watchlistDuelHint')}</p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
+                        <Swords className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.watchlistDuel')}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.watchlistDuelHint')}</p>
+                      </div>
                     </div>
                     <Link
                       to="/library"
@@ -623,6 +628,9 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 descobrir, sem rotação nenhuma. */}
             {!personalityLoading && (
               hasEssence ? (() => {
+                const personaCode = personality?.personalidade_completa || '';
+                const personaChar = PERSONAS_MAP[personaCode];
+
                 const essenceSlides: React.ReactNode[] = [
                   <div key="ess-main" className="flex items-center gap-3">
                     <div className="flex-shrink-0">
@@ -658,27 +666,51 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                         {i18n.language.startsWith('pt') ? 'Abrir' : 'Open'}
                       </Link>
                     </div>
-                  </div>,
-                  <div key="ess-persona" className="flex items-center gap-3">
-                    <div className="flex-shrink-0 scale-[0.4] origin-left -my-16">
-                      <PentagonGraph points={spectrumPoints} subcategoryId={personality?.personalidade_completa?.slice(2, 3) || ''} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium mb-0.5" style={{ color: archetypeColor }}>
-                        {t('home.panels.yourPersona')}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                        {t('home.panels.yourPersonaHint')}
-                      </p>
-                    </div>
-                    <Link
-                      to="/oracle"
-                      className="flex-shrink-0 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
-                    >
-                      {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
-                    </Link>
                   </div>
                 ];
+
+                // "Sua Persona" de verdade = o personagem fictício
+                // associado ao código de 3 letras (ex: Rust Cohle pra
+                // EID), mesmo dado usado no CinematicPersonaCard e no
+                // PersonasModal — não o gráfico pentagonal, que é uma
+                // visualização técnica diferente e não cabia direito no
+                // tamanho da prateleira. Só entra na rotação se existir um
+                // personagem mapeado pro código do usuário.
+                if (personaChar) {
+                  essenceSlides.push(
+                    <div key="ess-persona" className="flex items-center gap-3">
+                      <div
+                        className="flex-shrink-0 w-12 h-12 rounded-full overflow-hidden border-2 shadow-lg"
+                        style={{ borderColor: `${archetypeColor}80` }}
+                      >
+                        {personaChar.imageUrl ? (
+                          <img src={personaChar.imageUrl} alt={personaChar.name} className="w-full h-full object-cover object-top" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 text-sm font-bold">
+                            {personaChar.name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium mb-0.5" style={{ color: archetypeColor }}>
+                          {t('home.panels.yourPersona')}
+                        </p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                          {personaChar.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 leading-relaxed">
+                          {(i18n.language.startsWith('pt') ? personaChar.descriptionPt : personaChar.descriptionEn)}
+                        </p>
+                      </div>
+                      <Link
+                        to="/oracle"
+                        className="flex-shrink-0 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
+                      >
+                        {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
+                      </Link>
+                    </div>
+                  );
+                }
 
                 const activeIndex = essenceSlideIndex % essenceSlides.length;
 
