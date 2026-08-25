@@ -1067,7 +1067,7 @@ export default function Profile() {
                               </div>
                             </div>
                           )}
-                          <div className={`w-16 h-16 rounded-full overflow-hidden border-2 border-white/80 dark:border-gray-700/80 shadow-lg transition-all duration-200 group-hover:border-violet-400 group-hover:shadow-violet-400/30 group-hover:scale-105 ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
+                          <div className={`w-16 h-16 rounded-full overflow-hidden shadow-lg transition-all duration-200 group-hover:shadow-violet-400/30 group-hover:scale-105 ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
                             {user.avatar_url ? (
                               <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
                             ) : (
