@@ -1008,14 +1008,15 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                             }}
                           >
                             <div className="relative group">
-                              {/* Container principal da bolha — envolvido por
-                                  uma camada extra que aplica a moldura
-                                  escolhida pelo usuário (getFrameClass),
-                                  separada da cor por nota que já existia
-                                  aqui dentro, pra não misturar os dois
-                                  sistemas de borda na mesma linha. */}
-                              <div className={`relative w-[72px] h-[72px] rounded-full flex items-center justify-center ${getFrameClass(friend.avatar_frame || undefined, friend.plan_type === 'premium')}`}>
-                              <div className="relative w-16 h-16">
+                              {/* Moldura aplicada DIRETO no mesmo container
+                                  w-16 h-16 que já tem a borda colorida por
+                                  nota — ring/pseudo-elementos de moldura são
+                                  box-shadow e overlay, não ocupam espaço de
+                                  layout, então colam exatamente na borda
+                                  existente em vez de flutuar em volta dela
+                                  com vão (o efeito "Saturno" da tentativa
+                                  anterior, que usava um wrapper maior). */}
+                              <div className={`relative w-16 h-16 ${getFrameClass(friend.avatar_frame || undefined, friend.plan_type === 'premium')}`}>
                                 {/* Avatar */}
                                 <div className={`absolute inset-0 rounded-full border-3 border-white dark:border-gray-700 shadow-2xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-0.5`}>
                                   <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
@@ -1046,7 +1047,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                     </span>
                                   </div>
                                 </div>
-                              </div>
                               </div>
 
                                                             {friend.review_title ? (
