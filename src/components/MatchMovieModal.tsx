@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Wand2, Star, Eye, EyeOff, Users2, UserPlus, Search } from 'lucide-react';
 import { useAuth } from '../lib/auth';
@@ -77,13 +77,14 @@ const RANDOM_SURPRISE_MOOD = {
   border: 'border-violet-400/50 dark:border-violet-500/50',
 };
 
-const MAX_PARTICIPANTS = 3;
+const MAX_PARTICIPANTS = 4;
 
 export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUsername }: MatchMovieModalProps) {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
 
   const [participants, setParticipants] = useState<Participant[]>([{ id: otherUserId, username: otherUsername }]);
+  const [myUsername, setMyUsername] = useState<string>('');
   const [showAddViewer, setShowAddViewer] = useState(false);
   const [followedUsers, setFollowedUsers] = useState<FollowedUser[]>([]);
   const [loadingFollowed, setLoadingFollowed] = useState(false);
@@ -95,6 +96,22 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
   const [matches, setMatches] = useState<MatchedMovie[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
+
+  // Balão "Você" — antes a barra só mostrava os OUTROS participantes,
+  // nunca quem está de fato fazendo o match, o que deixava a barra visual
+  // desequilibrada (parecia que o balão do convidado era "maior" porque
+  // não tinha nada do seu lado pra comparar).
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', session.user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.username) setMyUsername(data.username);
+      });
+  }, [session?.user?.id]);
 
   const toggleMood = (value: string) => {
     if (value === 'random-surprise') {
@@ -255,8 +272,13 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
               <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             </button>
 
-            {/* Barra de participantes — sempre visível no topo */}
+            {/* Barra de participantes — sempre visível no topo. "Você" vem
+                primeiro, sempre presente, com o mesmo estilo dos demais —
+                sem isso a barra ficava desequilibrada visualmente. */}
             <div className="flex items-center justify-center flex-wrap gap-2 mb-4">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pink-500/15 border border-pink-400/40 text-sm font-medium text-pink-700 dark:text-pink-300">
+                {t('matchMovie.you')}
+              </div>
               {participants.map((p) => (
                 <div
                   key={p.id}
@@ -270,7 +292,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
                   )}
                 </div>
               ))}
-              {phase === 'setup' && participants.length < MAX_PARTICIPANTS && (
+              {phase === 'setup' && participants.length < MAX_PARTICIPANTS - 1 && (
                 <button
                   onClick={handleOpenAddViewer}
                   className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-dashed border-pink-400/60 text-pink-600 dark:text-pink-400 text-sm font-medium hover:bg-pink-500/10 transition-colors"
@@ -371,8 +393,10 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
                       <button
                         key={value}
                         onClick={() => toggleMood(value)}
-                        className={`px-1.5 py-2 rounded-xl text-[11px] font-semibold border backdrop-blur-sm transition-all text-center leading-tight ${bg} ${hover} ${text} ${
-                          isSelected ? `${border} ring-1 ring-offset-1 ring-offset-transparent` : 'border-transparent'
+                        className={`px-1.5 py-2 rounded-xl text-[11px] font-semibold border backdrop-blur-sm transition-all text-center leading-tight ${
+                          isSelected
+                            ? `${bg} ${hover} ${text} ${border} ring-1 ring-offset-1 ring-offset-transparent`
+                            : 'bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700/60 text-gray-500 dark:text-gray-400 border-transparent'
                         }`}
                       >
                         {t(labelKey)}
