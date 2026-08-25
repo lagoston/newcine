@@ -6,6 +6,7 @@ import { supabase, supabaseUrl } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { getMovieDetailsFromDB } from '../lib/tmdb';
+import { getFrameClass } from '../lib/frames';
 import MovieDetailsModal from './MovieDetailsModal';
 
 interface MatchMovieModalProps {
@@ -22,6 +23,8 @@ interface Participant {
   id: string;
   username: string;
   avatar_url?: string | null;
+  avatar_frame?: string | null;
+  plan_type?: string | null;
 }
 
 interface ScoreEntry {
@@ -44,6 +47,8 @@ interface FollowedUser {
   id: string;
   username: string;
   avatar_url: string | null;
+  avatar_frame: string | null;
+  plan_type: string | null;
 }
 
 const posterUrl = (path: string | null) =>
@@ -84,9 +89,11 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
 
-  const [participants, setParticipants] = useState<Participant[]>([{ id: otherUserId, username: otherUsername, avatar_url: null }]);
+  const [participants, setParticipants] = useState<Participant[]>([{ id: otherUserId, username: otherUsername, avatar_url: null, avatar_frame: null, plan_type: null }]);
   const [myUsername, setMyUsername] = useState<string>('');
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
+  const [myAvatarFrame, setMyAvatarFrame] = useState<string | null>(null);
+  const [myPlanType, setMyPlanType] = useState<string | null>(null);
   const [showAddViewer, setShowAddViewer] = useState(false);
   const [followedUsers, setFollowedUsers] = useState<FollowedUser[]>([]);
   const [loadingFollowed, setLoadingFollowed] = useState(false);
@@ -99,29 +106,33 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
   const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
 
-  // Busca username + avatar do usuário atual, e o avatar do participante
-  // original (que chega só com username via prop, sem avatar).
+  // Busca username + avatar + moldura do usuário atual, e o mesmo do
+  // participante original (que chega só com username via prop).
   useEffect(() => {
     if (!session?.user?.id) return;
     supabase
       .from('profiles')
-      .select('username, avatar_url')
+      .select('username, avatar_url, avatar_frame, plan_type')
       .eq('id', session.user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (data?.username) setMyUsername(data.username);
         if (data?.avatar_url) setMyAvatarUrl(data.avatar_url);
+        setMyAvatarFrame(data?.avatar_frame || null);
+        setMyPlanType(data?.plan_type || null);
       });
 
     supabase
       .from('profiles')
-      .select('avatar_url')
+      .select('avatar_url, avatar_frame, plan_type')
       .eq('id', otherUserId)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.avatar_url) {
+        if (data) {
           setParticipants((prev) =>
-            prev.map((p) => (p.id === otherUserId ? { ...p, avatar_url: data.avatar_url } : p))
+            prev.map((p) => (p.id === otherUserId
+              ? { ...p, avatar_url: data.avatar_url, avatar_frame: data.avatar_frame, plan_type: data.plan_type }
+              : p))
           );
         }
       });
@@ -163,7 +174,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
 
       const { data: profileRows, error: profileError } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url')
+        .select('id, username, avatar_url, avatar_frame, plan_type')
         .in('id', followingIds);
       if (profileError) throw profileError;
 
@@ -178,7 +189,10 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
 
   const handleAddParticipant = (user: FollowedUser) => {
     if (participants.length >= MAX_PARTICIPANTS - 1) return;
-    setParticipants((prev) => [...prev, { id: user.id, username: user.username, avatar_url: user.avatar_url }]);
+    setParticipants((prev) => [...prev, {
+      id: user.id, username: user.username, avatar_url: user.avatar_url,
+      avatar_frame: user.avatar_frame, plan_type: user.plan_type
+    }]);
     setShowAddViewer(false);
     setViewerSearch('');
   };
@@ -248,10 +262,9 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
 
   if (!isOpen) return null;
 
-  // Você + os demais, numa lista só, pra distribuir as bolhas dos dois
-  // lados do título.
+  // Você + os demais, numa lista só, pra formar os 4 slots.
   const bubbleParticipants: Participant[] = [
-    { id: session?.user?.id || 'me', username: myUsername || t('matchMovie.you'), avatar_url: myAvatarUrl },
+    { id: session?.user?.id || 'me', username: myUsername || t('matchMovie.you'), avatar_url: myAvatarUrl, avatar_frame: myAvatarFrame, plan_type: myPlanType },
     ...participants,
   ];
 
@@ -310,7 +323,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
                     <div key={p.id} className="relative flex-shrink-0">
                       <div
                         title={p.username}
-                        className="w-12 h-12 rounded-full border-2 border-white dark:border-gray-800 shadow-lg overflow-hidden bg-gradient-to-br from-pink-400 to-purple-500 flex-shrink-0"
+                        className={`w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-pink-400 to-purple-500 flex-shrink-0 ${getFrameClass(p.avatar_frame || undefined, p.plan_type === 'premium')}`}
                       >
                         {p.avatar_url ? (
                           <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" />
@@ -324,9 +337,9 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
                         <button
                           type="button"
                           onClick={() => handleRemoveParticipant(p.id)}
-                          className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 border-2 border-white dark:border-gray-900 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors"
+                          className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 border border-white dark:border-gray-900 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-10"
                         >
-                          <X className="w-3 h-3 text-white" />
+                          <X className="w-2.5 h-2.5 text-white" />
                         </button>
                       )}
                     </div>
