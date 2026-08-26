@@ -131,16 +131,40 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
   useEffect(() => {
     if (session?.user?.id && isOpen) {
-      fetchProfile();
-      fetchRatedMoviesCount();
-      fetchThemeTagProgress();
-      fetchBasicTagProgress();
-      fetchOracleTagProgress();
-      fetchSpecialTags();
-      fetchActiveTag();
-      fetchFollowersCount();
+      const t0 = performance.now();
+      console.log('[CustomizeModal] abrindo, iniciando carregamento…', { userId: session.user.id, timestamp: t0 });
+      setLoading(true);
+      Promise.all([
+        fetchProfile(),
+        fetchRatedMoviesCount(),
+        fetchThemeTagProgress(),
+        fetchBasicTagProgress(),
+        fetchOracleTagProgress(),
+        fetchSpecialTags(),
+        fetchActiveTag(),
+        fetchFollowersCount()
+      ])
+        .catch((err) => console.error('[CustomizeModal] erro ao carregar dados', err))
+        .finally(() => {
+          const t1 = performance.now();
+          console.log('[CustomizeModal] carregamento concluído, loading=false', { duracaoMs: Math.round(t1 - t0) });
+          setLoading(false);
+        });
     }
   }, [session?.user?.id, isOpen]);
+
+  // Log de diagnóstico — mostra toda vez que `loading` muda de valor. Se o
+  // flick persistir mesmo com o corpo inteiro protegido, esse log revela
+  // se `loading` está alternando MAIS de uma vez (true→false→true→false),
+  // o que apontaria pra causa diferente (efeito duplicado, StrictMode,
+  // remontagem do componente) em vez de só "dados chegando aos poucos".
+  useEffect(() => {
+    console.log('[CustomizeModal] loading mudou para:', loading, { timestamp: performance.now() });
+  }, [loading]);
+
+  useEffect(() => {
+    console.log('[CustomizeModal] isOpen mudou para:', isOpen);
+  }, [isOpen]);
 
   // Se o avatar do usuário for um GIF, congela o primeiro frame numa imagem
   // estática uma única vez (via canvas) e reaproveita em todas as prévias de
@@ -327,7 +351,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
   const fetchRatedMoviesCount = async () => {
     try {
-      setLoading(true);
       const { count, error } = await supabase
         .from('user_movies')
         .select('*', { count: 'exact', head: true })
@@ -338,8 +361,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       setRatedMoviesCount(count || 0);
     } catch (error) {
       console.error('Error fetching rated movies count:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -1385,33 +1406,39 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
             </div>
 
             <div className="p-6">
-              <div className="flex space-x-2 border-b border-gray-200/50 dark:border-gray-700/50 mb-6 pb-2">
-                {tabs.map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    onClick={() => setActiveTab(id)}
-                    className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-xl transition-all ${
-                      activeTab === id
-                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 mr-2" />
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {loading ? (
+                <div className="min-h-[400px] flex items-center justify-center">
+                  <GlassLoader size="lg" />
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-4 gap-1.5 sm:flex sm:gap-2 border-b border-gray-200/50 dark:border-gray-700/50 mb-6 pb-2">
+                    {tabs.map(({ id, label, icon: Icon }) => (
+                      <button
+                        key={id}
+                        onClick={() => setActiveTab(id)}
+                        className={`flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-0 sm:flex-shrink-0 sm:whitespace-nowrap px-1.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-sm font-medium rounded-xl transition-all ${
+                          activeTab === id
+                            ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 sm:mr-2 flex-shrink-0" />
+                        <span className="truncate max-w-full">{label}</span>
+                      </button>
+                    ))}
+                  </div>
 
-              <div className="min-h-[400px] max-h-[60vh] overflow-y-auto pr-2">
-                {activeTab === 'frames' && renderFrameContent()}
-                {activeTab === 'banners' && renderBannerContent()}
-                {activeTab === 'cards' && renderCardContent()}
-                {activeTab === 'tags' && (
-                  <div className="space-y-6">
-                    <div className="flex flex-wrap gap-2">
-                      {tagCategories.map(({ id, label, icon: Icon }) => (
-                        <button
-                          key={id}
+                  <div className="min-h-[400px] max-h-[60vh] overflow-y-auto pr-2">
+                    {activeTab === 'frames' && renderFrameContent()}
+                    {activeTab === 'banners' && renderBannerContent()}
+                    {activeTab === 'cards' && renderCardContent()}
+                    {activeTab === 'tags' && (
+                      <div className="space-y-6">
+                        <div className="flex flex-wrap gap-2">
+                          {tagCategories.map(({ id, label, icon: Icon }) => (
+                            <button
+                              key={id}
                           onClick={() => setActiveTagCategory(id)}
                           className={`flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                             activeTagCategory === id
@@ -1425,17 +1452,13 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       ))}
                     </div>
                     <div className="bg-gray-50/80 dark:bg-gray-700/30 rounded-2xl p-6 backdrop-blur-sm">
-                      {loading ? (
-                        <div className="flex items-center justify-center py-12">
-                          <GlassLoader size="md" />
-                        </div>
-                      ) : (
-                        renderTagContent(activeTagCategory)
-                      )}
+                      {renderTagContent(activeTagCategory)}
                     </div>
                   </div>
                 )}
-              </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex justify-end gap-4 p-6 border-t border-gray-200/50 dark:border-gray-700/50">
