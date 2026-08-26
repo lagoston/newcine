@@ -131,14 +131,26 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
   useEffect(() => {
     if (session?.user?.id && isOpen) {
-      fetchProfile();
-      fetchRatedMoviesCount();
-      fetchThemeTagProgress();
-      fetchBasicTagProgress();
-      fetchOracleTagProgress();
-      fetchSpecialTags();
-      fetchActiveTag();
-      fetchFollowersCount();
+      // Antes, essas 7 buscas disparavam soltas, cada uma terminando num
+      // momento diferente — o modal já mostrava o conteúdo completo desde
+      // o primeiro instante (com valores padrão: moldura 'default',
+      // progresso 0% etc.), e ia "piscando" pros valores reais conforme
+      // cada fetch chegava, um de cada vez. Com Promise.all, o loading só
+      // desliga quando TUDO já chegou de uma vez, e o conteúdo real
+      // aparece pronto, sem essa sequência de trocas visíveis.
+      setLoading(true);
+      Promise.all([
+        fetchProfile(),
+        fetchRatedMoviesCount(),
+        fetchThemeTagProgress(),
+        fetchBasicTagProgress(),
+        fetchOracleTagProgress(),
+        fetchSpecialTags(),
+        fetchActiveTag(),
+        fetchFollowersCount()
+      ])
+        .catch((err) => console.error('CustomizeModal: error loading data', err))
+        .finally(() => setLoading(false));
     }
   }, [session?.user?.id, isOpen]);
 
@@ -327,7 +339,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
   const fetchRatedMoviesCount = async () => {
     try {
-      setLoading(true);
       const { count, error } = await supabase
         .from('user_movies')
         .select('*', { count: 'exact', head: true })
@@ -338,8 +349,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       setRatedMoviesCount(count || 0);
     } catch (error) {
       console.error('Error fetching rated movies count:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -1250,7 +1259,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[100]"
           onClick={onClose}
         />
-        <div className="flex min-h-full items-center justify-center p-4 relative z-[101]">
+        <div className="flex min-h-full items-start justify-center p-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-8 relative z-[101]">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
