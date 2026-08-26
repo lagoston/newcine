@@ -256,11 +256,13 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const essenceHasData = !personalityLoading && !!personality?.personalidade_completa && !!archetypeInfo;
   const essenceSlideCount = essenceHasData ? (1 + (personaChar ? 1 : 0)) : 1;
 
-  // Rotação 100% automática e irreversível, sem navegação manual. Um único
-  // intervalo de 2 segundos dispara pras 3 prateleiras ao mesmo tempo, mas
-  // cada uma sorteia seu PRÓPRIO próximo slide de forma independente e
-  // aleatória (não sequencial) — evita repetir a tela que já está visível
-  // (senão pareceria "travado" mesmo trocando por baixo dos panos).
+  // Rotação 100% automática e irreversível, sem navegação manual. A cada 2
+  // segundos, sorteia UMA prateleira entre as elegíveis (que têm mais de 1
+  // slide disponível) e troca SÓ ela — as outras duas ficam paradas até
+  // serem sorteadas numa rodada futura. Antes, o mesmo intervalo mexia nas
+  // 3 ao mesmo tempo, cada uma escolhendo seu próprio slide aleatório, mas
+  // ainda TODAS trocando juntas a cada tick — o que continuava parecendo
+  // sincronizado, só que aleatório em vez de previsível.
   function pickRandomIndex(count: number, current: number): number {
     if (count <= 1) return 0;
     let next = Math.floor(Math.random() * count);
@@ -272,13 +274,18 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (librarySlideCount > 1) {
+      const eligibleShelves: Array<'library' | 'tags' | 'essence'> = [];
+      if (librarySlideCount > 1) eligibleShelves.push('library');
+      if (tagSlideCount > 1) eligibleShelves.push('tags');
+      if (essenceSlideCount > 1) eligibleShelves.push('essence');
+      if (eligibleShelves.length === 0) return;
+
+      const chosen = eligibleShelves[Math.floor(Math.random() * eligibleShelves.length)];
+      if (chosen === 'library') {
         setLibrarySlideIndex((prev) => pickRandomIndex(librarySlideCount, prev));
-      }
-      if (tagSlideCount > 1) {
+      } else if (chosen === 'tags') {
         setTagSlideIndex((prev) => pickRandomIndex(tagSlideCount, prev));
-      }
-      if (essenceSlideCount > 1) {
+      } else {
         setEssenceSlideIndex((prev) => pickRandomIndex(essenceSlideCount, prev));
       }
     }, 2000);
@@ -709,9 +716,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                         </p>
                         <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
                           {personaChar.name}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 leading-relaxed">
-                          {(i18n.language.startsWith('pt') ? personaChar.descriptionPt : personaChar.descriptionEn)}
                         </p>
                       </div>
                       <button
