@@ -1385,15 +1385,15 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[100]"
           onClick={onClose}
         />
-        <div className="flex min-h-full items-center justify-center p-4 relative z-[101]">
+        <div className="flex min-h-full items-start justify-center p-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-8 relative z-[101]">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="relative w-full max-w-4xl bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-2xl transform transition-all backdrop-blur-xl border border-white/20 dark:border-gray-700/50"
+            className="relative w-full max-w-4xl max-h-[calc(100dvh-env(safe-area-inset-top)-4rem)] flex flex-col bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-2xl transform transition-all backdrop-blur-xl border border-white/20 dark:border-gray-700/50 overflow-hidden"
           >
-            <div className="flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+            <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50">
               <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400">
                 {t('customize.title')}
               </h2>
@@ -1405,9 +1405,19 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
               </button>
             </div>
 
-            <div className="p-6">
+            {/* Corpo com scroll PRÓPRIO — antes, o motion.div inteiro (sem
+                nenhum limite de altura) crescia livremente pra caber TODO
+                o conteúdo (cabeçalho + abas + grade + rodapé de botões),
+                sem overflow interno, empurrando o modal inteiro pra além
+                da viewport — daí o tamanho "indecente" mesmo em telas
+                grandes, e o modal cobrindo/vazando por cima da navbar.
+                Agora o container principal tem um teto real de altura
+                (calc(100dvh - área segura - respiro)), cabeçalho e rodapé
+                nunca encolhem (flex-shrink-0), e só o MEIO rola quando o
+                conteúdo é maior que o espaço disponível. */}
+            <div className="flex-1 overflow-y-auto p-6">
               {loading ? (
-                <div className="h-[60vh] flex items-center justify-center">
+                <div className="h-full min-h-[400px] flex items-center justify-center">
                   <GlassLoader size="lg" />
                 </div>
               ) : (
@@ -1429,7 +1439,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     ))}
                   </div>
 
-                  <div className="min-h-[400px] max-h-[60vh] overflow-y-auto pr-2">
+                  <div className="min-h-[400px]">
                     {activeTab === 'frames' && renderFrameContent()}
                     {activeTab === 'banners' && renderBannerContent()}
                     {activeTab === 'cards' && renderCardContent()}
@@ -1461,7 +1471,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
               )}
             </div>
 
-            <div className="flex justify-end gap-4 p-6 border-t border-gray-200/50 dark:border-gray-700/50">
+            <div className="flex-shrink-0 flex justify-end gap-4 p-6 border-t border-gray-200/50 dark:border-gray-700/50">
               <button
                 onClick={() => {
                   if (onSave) onSave();
