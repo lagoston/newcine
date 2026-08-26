@@ -811,9 +811,20 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // cache), senão resolve por nome via /search/person, confiável
   // independente de como o filme chegou até aqui.
   const handleOpenDirectorTopTen = async () => {
+    // Retrátil: se já está aberto, o clique fecha, sem mexer nos dados já
+    // carregados (reabrir depois mostra a lista de novo sem nova busca).
+    if (showDirectorTopTen) {
+      setShowDirectorTopTen(false);
+      return;
+    }
+
     setShowDirectorTopTen(true);
+
+    // Já tem resultado de uma busca anterior nesse mesmo filme aberto —
+    // não busca de novo à toa.
+    if (directorTopTenMovies.length > 0 || directorTopTenError) return;
+
     setDirectorTopTenError(null);
-    setDirectorTopTenMovies([]);
 
     if (!director || director === t('movies.unknown')) {
       setDirectorTopTenError(t('movies.noDirectorMoviesFound'));
@@ -1407,17 +1418,24 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                             <button
                               key={m.id}
                               onClick={() => handleOpenDirectorMovie(m.id)}
-                              className="text-left group"
+                              className="w-full group"
                             >
-                              <div className="relative aspect-[2/3] rounded-md overflow-hidden bg-gray-200 dark:bg-gray-600">
+                              {/* Só o pôster, proporção 2:3 fixa — nenhum
+                                  texto embaixo. O título variando de 1 pra
+                                  2 linhas entre itens era o que fazia o
+                                  CSS Grid esticar cada célula da linha até
+                                  a altura da mais alta, dando a impressão
+                                  de pôsteres "transpassados" e de tamanhos
+                                  diferentes entre si. */}
+                              <div className="relative w-full aspect-[2/3] rounded-md overflow-hidden bg-gray-200 dark:bg-gray-600">
                                 {m.poster_path ? (
                                   <img
                                     src={`https://image.tmdb.org/t/p/w200${m.poster_path}`}
                                     alt={m.title}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform"
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
+                                  <div className="absolute inset-0 flex items-center justify-center">
                                     <Film className="w-5 h-5 text-gray-400" />
                                   </div>
                                 )}
@@ -1431,9 +1449,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                   <span className="text-[10px] text-white font-semibold">{m.vote_average?.toFixed(1)}</span>
                                 </div>
                               </div>
-                              <p className="text-[10px] text-gray-600 dark:text-gray-300 mt-1 line-clamp-2 leading-tight">
-                                {m.title}
-                              </p>
                             </button>
                           ))}
                         </div>
