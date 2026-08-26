@@ -247,20 +247,26 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const personaCode = personality?.personalidade_completa || '';
   const personaChar = PERSONAS_MAP[personaCode];
 
-  const librarySlideCount = 1 + (listsCount > 0 ? 1 : 0) + (personaChar ? 1 : 0);
-  const tagSlideCount = 1 + (followingCount > 0 ? 1 : 0);
+  const librarySlideCount = 1 + (listsCount > 0 ? 1 : 0) + (followingCount > 0 ? 1 : 0);
+  const tagSlideCount = 1 + (personaChar ? 1 : 0);
   const essenceHasData = !personalityLoading && !!personality?.personalidade_completa && !!archetypeInfo;
   const essenceSlideCount = essenceHasData ? (1 + (unratedCount >= 4 ? 1 : 0)) : 1;
 
-  // Rotação 100% automática e irreversível, sem navegação manual — a
-  // duração de cada posição cresce (4s no 1º slide, 5s no 2º, 6s no 3º),
-  // não é um intervalo fixo repetido. setTimeout encadeado (não setInterval)
-  // porque a duração depende de QUAL posição está em exibição agora.
-  const SLIDE_DURATIONS = [4000, 5000, 6000];
+  // Rotação 100% automática e irreversível, sem navegação manual. Cada
+  // prateleira tem sua PRÓPRIA sequência de durações (não a mesma pra
+  // todas) — antes, Tags e Essência usavam exatamente os mesmos números
+  // (4s/5s) e começavam a contar no mesmo instante (montagem do
+  // componente), então trocavam sempre juntas, parecendo sincronizado/
+  // mecânico. Números que não compartilham múltiplo comum pequeno entre
+  // si mantêm as 3 prateleiras fora de fase uma da outra o tempo todo,
+  // não só no começo.
+  const LIBRARY_DURATIONS = [4000, 5200, 6400];
+  const TAG_DURATIONS = [4700, 5900];
+  const ESSENCE_DURATIONS = [5500, 6700];
 
   useEffect(() => {
     if (librarySlideCount <= 1) return;
-    const duration = SLIDE_DURATIONS[librarySlideIndex % SLIDE_DURATIONS.length];
+    const duration = LIBRARY_DURATIONS[librarySlideIndex % LIBRARY_DURATIONS.length];
     const timeout = setTimeout(() => {
       setLibrarySlideIndex((prev) => (prev + 1) % librarySlideCount);
     }, duration);
@@ -269,7 +275,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
   useEffect(() => {
     if (tagSlideCount <= 1) return;
-    const duration = SLIDE_DURATIONS[tagSlideIndex % SLIDE_DURATIONS.length];
+    const duration = TAG_DURATIONS[tagSlideIndex % TAG_DURATIONS.length];
     const timeout = setTimeout(() => {
       setTagSlideIndex((prev) => (prev + 1) % tagSlideCount);
     }, duration);
@@ -278,7 +284,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
   useEffect(() => {
     if (essenceSlideCount <= 1) return;
-    const duration = SLIDE_DURATIONS[essenceSlideIndex % SLIDE_DURATIONS.length];
+    const duration = ESSENCE_DURATIONS[essenceSlideIndex % ESSENCE_DURATIONS.length];
     const timeout = setTimeout(() => {
       setEssenceSlideIndex((prev) => (prev + 1) % essenceSlideCount);
     }, duration);
@@ -518,32 +524,23 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 );
               }
 
-              if (personaChar) {
+              if (followingCount > 0) {
                 librarySlides.push(
-                  <div key="lib-persona" className="flex items-center justify-between">
+                  <div key="lib-match" className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className="w-9 h-9 rounded-full overflow-hidden border-2 flex-shrink-0"
-                        style={{ borderColor: `${archetypeColor}80` }}
-                      >
-                        {personaChar.imageUrl ? (
-                          <img src={personaChar.imageUrl} alt={personaChar.name} className="w-full h-full object-cover object-top" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 text-xs font-bold">
-                            {personaChar.name.charAt(0)}
-                          </div>
-                        )}
+                      <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
+                        <Sparkles className="w-4 h-4 text-pink-500 dark:text-pink-400" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.yourPersona')}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{personaChar.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.matchWithFriends')}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.matchWithFriendsHint')}</p>
                       </div>
                     </div>
                     <Link
-                      to="/oracle"
-                      className="flex-shrink-0 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
+                      to="/community"
+                      className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
                     >
-                      {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
+                      {t('home.panels.openCommunity')}
                     </Link>
                   </div>
                 );
@@ -595,23 +592,32 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 </div>
               ];
 
-              if (followingCount > 0) {
+              if (personaChar) {
                 tagSlides.push(
-                  <div key="tag-match" className="flex items-center justify-between gap-3">
+                  <div key="tag-persona" className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
-                        <Sparkles className="w-4 h-4 text-pink-500 dark:text-pink-400" />
+                      <div
+                        className="w-9 h-9 rounded-full overflow-hidden border-2 flex-shrink-0"
+                        style={{ borderColor: `${archetypeColor}80` }}
+                      >
+                        {personaChar.imageUrl ? (
+                          <img src={personaChar.imageUrl} alt={personaChar.name} className="w-full h-full object-cover object-top" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 text-xs font-bold">
+                            {personaChar.name.charAt(0)}
+                          </div>
+                        )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.matchWithFriends')}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.matchWithFriendsHint')}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.yourPersona')}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{personaChar.name}</p>
                       </div>
                     </div>
                     <Link
-                      to="/community"
-                      className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
+                      to="/oracle"
+                      className="flex-shrink-0 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
                     >
-                      {t('home.panels.openCommunity')}
+                      {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
                     </Link>
                   </div>
                 );
