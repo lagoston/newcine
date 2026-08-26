@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, ListPlus, Film, MessageSquare, FileEdit as Edit, Swords } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import { motion } from 'framer-motion';
@@ -29,6 +29,7 @@ interface LibraryMovie extends Movie {
 export default function Library() {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
+  const location = useLocation();
   const [userMovies, setUserMovies] = useState<LibraryMovie[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -348,6 +349,22 @@ export default function Library() {
     },
     { unrated: [], ...Array.from({ length: 11 }, () => []) }
   );
+
+  // Abre o Duelo de Watchlist automaticamente quando a Home manda o
+  // usuário pra cá com esse propósito específico (prateleira "Duelo de
+  // Watchlist" do modal "Bem-vindo de volta"). Só dispara uma vez, depois
+  // que os dados já carregaram (senão moviesByRating.unrated ainda estaria
+  // vazio) e só se realmente tiver os 4 filmes mínimos exigidos.
+  const autoOpenDuelRef = useRef(false);
+  useEffect(() => {
+    if (autoOpenDuelRef.current) return;
+    if (loading) return;
+    if (!(location.state as any)?.openWatchlistDuel) return;
+    autoOpenDuelRef.current = true;
+    if (moviesByRating.unrated.length >= 4) {
+      setShowWatchlistDuel(true);
+    }
+  }, [loading, location.state, moviesByRating.unrated.length]);
 
   // Apply TV order preference
   const sortMoviesByTvOrder = (movies: LibraryMovie[]) => {
