@@ -131,26 +131,14 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
   useEffect(() => {
     if (session?.user?.id && isOpen) {
-      // Antes, essas 7 buscas disparavam soltas, cada uma terminando num
-      // momento diferente — o modal já mostrava o conteúdo completo desde
-      // o primeiro instante (com valores padrão: moldura 'default',
-      // progresso 0% etc.), e ia "piscando" pros valores reais conforme
-      // cada fetch chegava, um de cada vez. Com Promise.all, o loading só
-      // desliga quando TUDO já chegou de uma vez, e o conteúdo real
-      // aparece pronto, sem essa sequência de trocas visíveis.
-      setLoading(true);
-      Promise.all([
-        fetchProfile(),
-        fetchRatedMoviesCount(),
-        fetchThemeTagProgress(),
-        fetchBasicTagProgress(),
-        fetchOracleTagProgress(),
-        fetchSpecialTags(),
-        fetchActiveTag(),
-        fetchFollowersCount()
-      ])
-        .catch((err) => console.error('CustomizeModal: error loading data', err))
-        .finally(() => setLoading(false));
+      fetchProfile();
+      fetchRatedMoviesCount();
+      fetchThemeTagProgress();
+      fetchBasicTagProgress();
+      fetchOracleTagProgress();
+      fetchSpecialTags();
+      fetchActiveTag();
+      fetchFollowersCount();
     }
   }, [session?.user?.id, isOpen]);
 
@@ -339,6 +327,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
   const fetchRatedMoviesCount = async () => {
     try {
+      setLoading(true);
       const { count, error } = await supabase
         .from('user_movies')
         .select('*', { count: 'exact', head: true })
@@ -349,6 +338,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       setRatedMoviesCount(count || 0);
     } catch (error) {
       console.error('Error fetching rated movies count:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -831,19 +822,13 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     );
   };
 
-    const renderCardContent = () => {
+  const renderCardContent = () => {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {Object.values(ORACLE_CARDS).map((card, index) => {
           const isPremiumLocked = card.isPremium && !isPremium;
-          // "Bloody Mary" é uma tag Básica (baseada em gêneros assistidos), não
-          // uma tag Temática — antes isso buscava o progresso da fonte errada
-          // (themeTagProgress) e comparava com um "50" fixo sem relação com o
-          // requisito real da tag.
-          const requiredBasicTag = card.requiredTag ? PROGRESSION_TAGS.find(t => t.name === card.requiredTag) : null;
-          const requiredTagProgress = card.requiredTag ? (basicTagProgress[card.requiredTag] || 0) : 0;
-          const requiredTagCount = requiredBasicTag?.minMovies || 0;
-          const isTagUnlocked = !card.requiredTag || requiredTagProgress >= requiredTagCount;
+          const requiredTagProgress = card.requiredTag ? (themeTagProgress[card.requiredTag] || 0) : 0;
+          const isTagUnlocked = card.requiredTag ? requiredTagProgress >= 50 : true;
           const isLocked = isPremiumLocked || !isTagUnlocked;
 
           return (
@@ -876,7 +861,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     ) : !isTagUnlocked ? (
                       <div className="flex items-center gap-1.5 bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full">
                         <Lock className="w-4 h-4" />
-                        <span>{requiredBasicTag?.emoji} {card.requiredTag} · {requiredTagProgress}/{requiredTagCount}</span>
+                        <span>{card.requiredTag}</span>
                       </div>
                     ) : selectedCard === card.id ? (
                       <div className="bg-blue-500 text-white p-1.5 rounded-full">
@@ -921,114 +906,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     );
   };
 
-  // Estilos por categoria — antes cada case do switch abaixo repetia essas
-  // classes na mão, 5 vezes quase idênticas. Centralizado aqui, uma mudança
-  // futura no visual do card só precisa ser feita num lugar só.
-  const TAG_CATEGORY_STYLES: Record<'basic' | 'theme' | 'community' | 'oracle', {
-    border: string; bg: string; hoverBorder: string; text: string; progressText: string; progressBar: string;
-  }> = {
-    basic: {
-      border: 'border-green-300/50 dark:border-green-700/50',
-      bg: 'bg-green-50/50 dark:bg-green-900/20',
-      hoverBorder: 'hover:border-green-400 dark:hover:border-green-600',
-      text: 'text-green-700 dark:text-green-400',
-      progressText: 'text-green-600 dark:text-green-400',
-      progressBar: 'bg-gradient-to-r from-green-400 to-emerald-500'
-    },
-    theme: {
-      border: 'border-yellow-300/50 dark:border-yellow-700/50',
-      bg: 'bg-yellow-50/50 dark:bg-yellow-900/20',
-      hoverBorder: 'hover:border-yellow-400 dark:hover:border-yellow-600',
-      text: 'text-yellow-700 dark:text-yellow-400',
-      progressText: 'text-yellow-600 dark:text-yellow-400',
-      progressBar: 'bg-gradient-to-r from-yellow-400 to-amber-500'
-    },
-    community: {
-      border: 'border-blue-300/50 dark:border-blue-700/50',
-      bg: 'bg-blue-50/50 dark:bg-blue-900/20',
-      hoverBorder: 'hover:border-blue-400 dark:hover:border-blue-600',
-      text: 'text-blue-700 dark:text-blue-400',
-      progressText: 'text-blue-600 dark:text-blue-400',
-      progressBar: 'bg-gradient-to-r from-blue-400 to-cyan-500'
-    },
-    oracle: {
-      border: 'border-pink-300/50 dark:border-pink-700/50',
-      bg: 'bg-pink-50/50 dark:bg-pink-900/20',
-      hoverBorder: 'hover:border-pink-400 dark:hover:border-pink-600',
-      text: 'text-pink-700 dark:text-pink-400',
-      progressText: 'text-pink-600 dark:text-pink-400',
-      progressBar: 'bg-gradient-to-r from-pink-400 to-rose-500'
-    }
-  };
-
-  const renderTagCard = (params: {
-    keyId: string;
-    emoji: string;
-    name: string;
-    description: string;
-    progress: number;
-    displayTarget: number | string;
-    progressPercentage: number;
-    isUnlocked: boolean;
-    isActive: boolean;
-    category: 'basic' | 'theme' | 'community' | 'oracle';
-    onUse: () => void;
-  }) => {
-    const { keyId, emoji, name, description, progress, displayTarget, progressPercentage, isUnlocked, isActive, category, onUse } = params;
-    const style = TAG_CATEGORY_STYLES[category];
-
-    return (
-      <div
-        key={keyId}
-        className={`relative group rounded-2xl border ${
-          isUnlocked ? `${style.border} ${style.bg}` : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
-        } p-4 transition-all duration-200 backdrop-blur-sm ${isUnlocked ? style.hoverBorder : ''}`}
-      >
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{emoji}</span>
-              <span className={`text-sm font-medium ${isUnlocked ? style.text : 'text-gray-400 dark:text-gray-500'}`}>
-                {name}
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{description}</p>
-            <div className="mt-2 text-sm">
-              <span className={isUnlocked ? style.progressText : 'text-gray-500 dark:text-gray-400'}>{progress}</span>
-              <span className="text-gray-400 dark:text-gray-500">/{displayTarget}</span>
-            </div>
-          </div>
-          {!isUnlocked ? (
-            <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-          ) : (
-            <button
-              onClick={onUse}
-              disabled={savingTag}
-              className={`px-3 py-1 text-sm rounded-lg transition-colors ${getCategoryButtonStyle(isActive, category)}`}
-            >
-              {isActive ? (
-                <span className="flex items-center">
-                  <Check className="w-4 h-4 mr-1" />
-                  {t('customize.tags.active')}
-                </span>
-              ) : savingTag ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                t('customize.tags.use')
-              )}
-            </button>
-          )}
-        </div>
-        <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${isUnlocked ? style.progressBar : 'bg-gray-300 dark:bg-gray-600'}`}
-            style={{ width: `${progressPercentage}%` }}
-          />
-        </div>
-      </div>
-    );
-  };
-
   const renderTagContent = (category: TagCategory) => {
     switch (category) {
       case 'basic':
@@ -1048,19 +925,76 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                   : progress >= tag.minMovies ? 100 : (progress / tag.minMovies) * 100;
                 const isActive = activeTag?.name === tag.name;
 
-                return renderTagCard({
-                  keyId: tag.name,
-                  emoji: tag.emoji,
-                  name: tag.name,
-                  description: isPt ? tag.descriptionPt : tag.description,
-                  progress,
-                  displayTarget: tag.minMovies,
-                  progressPercentage,
-                  isUnlocked,
-                  isActive,
-                  category: 'basic',
-                  onUse: () => handleUseTag(tag, 'basic')
-                });
+                return (
+                  <div
+                    key={tag.name}
+                    className={`relative group rounded-2xl border ${
+                      isUnlocked
+                        ? 'border-green-300/50 dark:border-green-700/50 bg-green-50/50 dark:bg-green-900/20'
+                        : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
+                    } p-4 transition-all duration-200 backdrop-blur-sm ${
+                      isUnlocked ? 'hover:border-green-400 dark:hover:border-green-600' : ''
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{tag.emoji}</span>
+                          <span className={`text-sm font-medium ${
+                            isUnlocked
+                              ? 'text-green-700 dark:text-green-400'
+                              : 'text-gray-400 dark:text-gray-500'
+                          }`}>
+                            {tag.name}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                          {isPt ? tag.descriptionPt : tag.description}
+                        </p>
+                        <div className="mt-2 text-sm">
+                          <span className={isUnlocked ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}>
+                            {progress}
+                          </span>
+                          <span className="text-gray-400 dark:text-gray-500">
+                            /{tag.minMovies}
+                          </span>
+                        </div>
+                      </div>
+                      {!isUnlocked ? (
+                        <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                      ) : (
+                        <button
+                          onClick={() => handleUseTag(tag, 'basic')}
+                          disabled={savingTag}
+                          className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                            getCategoryButtonStyle(isActive, 'basic')
+                          }`}
+                        >
+                          {isActive ? (
+                            <span className="flex items-center">
+                              <Check className="w-4 h-4 mr-1" />
+                              {t('customize.tags.active')}
+                            </span>
+                          ) : savingTag ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            t('customize.tags.use')
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isUnlocked
+                            ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                            : 'bg-gray-300 dark:bg-gray-600'
+                        }`}
+                        style={{ width: `${progressPercentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
               })}
             </div>
           </div>
@@ -1074,19 +1008,76 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
               const isUnlocked = progress >= tag.condition.count;
               const isActive = activeTag?.name === tag.name;
 
-              return renderTagCard({
-                keyId: tag.id,
-                emoji: tag.emoji,
-                name: tag.name,
-                description: isPt ? tag.requirementPt : tag.requirement,
-                progress,
-                displayTarget: tag.condition.count,
-                progressPercentage: Math.min(100, (progress / tag.condition.count) * 100),
-                isUnlocked,
-                isActive,
-                category: 'theme',
-                onUse: () => handleUseTag(tag, 'theme')
-              });
+              return (
+                <div
+                  key={tag.id}
+                  className={`relative group rounded-2xl border ${
+                    isUnlocked
+                      ? 'border-yellow-300/50 dark:border-yellow-700/50 bg-yellow-50/50 dark:bg-yellow-900/20'
+                      : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
+                  } p-4 transition-all duration-200 backdrop-blur-sm ${
+                    isUnlocked ? 'hover:border-yellow-400 dark:hover:border-yellow-600' : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{tag.emoji}</span>
+                        <span className={`text-sm font-medium ${
+                          isUnlocked
+                            ? 'text-yellow-700 dark:text-yellow-400'
+                            : 'text-gray-400 dark:text-gray-500'
+                        }`}>
+                          {tag.name}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                        {isPt ? tag.requirementPt : tag.requirement}
+                      </p>
+                      <div className="mt-2 text-sm">
+                        <span className={isUnlocked ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}>
+                          {progress}
+                        </span>
+                        <span className="text-gray-400 dark:text-gray-500">
+                          /{tag.condition.count}
+                        </span>
+                      </div>
+                    </div>
+                    {!isUnlocked ? (
+                      <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                    ) : (
+                      <button
+                        onClick={() => handleUseTag(tag, 'theme')}
+                        disabled={savingTag}
+                        className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                          getCategoryButtonStyle(isActive, 'theme')
+                        }`}
+                      >
+                        {isActive ? (
+                          <span className="flex items-center">
+                            <Check className="w-4 h-4 mr-1" />
+                            Active
+                          </span>
+                        ) : savingTag ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          'Use'
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        isUnlocked
+                          ? 'bg-gradient-to-r from-yellow-400 to-amber-500'
+                          : 'bg-gray-300 dark:bg-gray-600'
+                      }`}
+                      style={{ width: `${Math.min(100, (progress / tag.condition.count) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              );
             })}
           </div>
         );
@@ -1100,24 +1091,81 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {COMMUNITY_TAGS.map((tag) => {
                 const isUnlocked = followersCount >= tag.minFollowers;
-                const progressPercentage = tag.maxFollowers
+                const progress = tag.maxFollowers
                   ? Math.min(100, (followersCount - tag.minFollowers) / (tag.maxFollowers - tag.minFollowers) * 100)
                   : followersCount >= tag.minFollowers ? 100 : 0;
                 const isActive = activeTag?.name === tag.name;
 
-                return renderTagCard({
-                  keyId: tag.name,
-                  emoji: tag.emoji,
-                  name: tag.name,
-                  description: isPt ? tag.descriptionPt : tag.description,
-                  progress: followersCount,
-                  displayTarget: `${tag.maxFollowers || tag.minFollowers}+`,
-                  progressPercentage,
-                  isUnlocked,
-                  isActive,
-                  category: 'community',
-                  onUse: () => handleUseTag(tag, 'community')
-                });
+                return (
+                  <div
+                    key={tag.name}
+                    className={`relative group rounded-2xl border ${
+                      isUnlocked
+                        ? 'border-blue-300/50 dark:border-blue-700/50 bg-blue-50/50 dark:bg-blue-900/20'
+                        : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
+                    } p-4 transition-all duration-200 backdrop-blur-sm ${
+                      isUnlocked ? 'hover:border-blue-400 dark:hover:border-blue-600' : ''
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{tag.emoji}</span>
+                          <span className={`text-sm font-medium ${
+                            isUnlocked
+                              ? 'text-blue-700 dark:text-blue-400'
+                              : 'text-gray-400 dark:text-gray-500'
+                          }`}>
+                            {tag.name}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                          {isPt ? tag.descriptionPt : tag.description}
+                        </p>
+                        <div className="mt-2 text-sm">
+                          <span className={isUnlocked ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}>
+                            {followersCount}
+                          </span>
+                          <span className="text-gray-400 dark:text-gray-500">
+                            /{tag.maxFollowers || tag.minFollowers}+
+                          </span>
+                        </div>
+                      </div>
+                      {!isUnlocked ? (
+                        <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                      ) : (
+                        <button
+                          onClick={() => handleUseTag(tag, 'community')}
+                          disabled={savingTag}
+                          className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                            getCategoryButtonStyle(isActive, 'community')
+                          }`}
+                        >
+                          {isActive ? (
+                            <span className="flex items-center">
+                              <Check className="w-4 h-4 mr-1" />
+                              {t('customize.tags.active')}
+                            </span>
+                          ) : savingTag ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            t('customize.tags.use')
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isUnlocked
+                            ? 'bg-gradient-to-r from-blue-400 to-cyan-500'
+                            : 'bg-gray-300 dark:bg-gray-600'
+                        }`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                );
               })}
             </div>
           </div>
@@ -1139,19 +1187,76 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                   : progress >= tag.minCount ? 100 : (progress / tag.minCount) * 100;
                 const isActive = activeTag?.name === tag.name;
 
-                return renderTagCard({
-                  keyId: tag.name,
-                  emoji: tag.emoji,
-                  name: tag.name,
-                  description: isPt ? tag.descriptionPt : tag.description,
-                  progress,
-                  displayTarget: `${tag.maxCount || tag.minCount}+`,
-                  progressPercentage,
-                  isUnlocked,
-                  isActive,
-                  category: 'oracle',
-                  onUse: () => handleUseTag(tag, 'oracle')
-                });
+                return (
+                  <div
+                    key={tag.name}
+                    className={`relative group rounded-2xl border ${
+                      isUnlocked
+                        ? 'border-pink-300/50 dark:border-pink-700/50 bg-pink-50/50 dark:bg-pink-900/20'
+                        : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
+                    } p-4 transition-all duration-200 backdrop-blur-sm ${
+                      isUnlocked ? 'hover:border-pink-400 dark:hover:border-pink-600' : ''
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{tag.emoji}</span>
+                          <span className={`text-sm font-medium ${
+                            isUnlocked
+                              ? 'text-pink-700 dark:text-pink-400'
+                              : 'text-gray-400 dark:text-gray-500'
+                          }`}>
+                            {tag.name}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                          {isPt ? tag.descriptionPt : tag.description}
+                        </p>
+                        <div className="mt-2 text-sm">
+                          <span className={isUnlocked ? 'text-pink-600 dark:text-pink-400' : 'text-gray-500 dark:text-gray-400'}>
+                            {progress}
+                          </span>
+                          <span className="text-gray-400 dark:text-gray-500">
+                            /{tag.maxCount || tag.minCount}+
+                          </span>
+                        </div>
+                      </div>
+                      {!isUnlocked ? (
+                        <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                      ) : (
+                        <button
+                          onClick={() => handleUseTag(tag, 'oracle')}
+                          disabled={savingTag}
+                          className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                            getCategoryButtonStyle(isActive, 'oracle')
+                          }`}
+                        >
+                          {isActive ? (
+                            <span className="flex items-center">
+                              <Check className="w-4 h-4 mr-1" />
+                              {t('customize.tags.active')}
+                            </span>
+                          ) : savingTag ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            t('customize.tags.use')
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isUnlocked
+                            ? 'bg-gradient-to-r from-pink-400 to-rose-500'
+                            : 'bg-gray-300 dark:bg-gray-600'
+                        }`}
+                        style={{ width: `${progressPercentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
               })}
             </div>
           </div>
@@ -1259,7 +1364,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[100]"
           onClick={onClose}
         />
-        <div className="flex min-h-full items-start justify-center p-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-8 relative z-[101]">
+        <div className="flex min-h-full items-center justify-center p-4 relative z-[101]">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1280,18 +1385,18 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
             </div>
 
             <div className="p-6">
-                            <div className="flex gap-2 border-b border-gray-200/50 dark:border-gray-700/50 mb-6 pb-2 overflow-x-auto">
+              <div className="flex space-x-2 border-b border-gray-200/50 dark:border-gray-700/50 mb-6 pb-2">
                 {tabs.map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
                     onClick={() => setActiveTab(id)}
-                    className={`flex items-center flex-shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium rounded-xl transition-all ${
+                    className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-xl transition-all ${
                       activeTab === id
                         ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
                     }`}
                   >
-                    <Icon className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <Icon className="w-4 h-4 mr-2" />
                     {label}
                   </button>
                 ))}
@@ -1303,22 +1408,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 {activeTab === 'cards' && renderCardContent()}
                 {activeTab === 'tags' && (
                   <div className="space-y-6">
-                    {activeTag && (
-                      <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200/50 dark:border-indigo-700/30">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-gray-500 dark:text-gray-400">{t('customize.tags.currentlyActive')}:</span>
-                          <span className="text-lg leading-none">{activeTag.emoji}</span>
-                          <span className="font-semibold text-gray-800 dark:text-white">{activeTag.name}</span>
-                        </div>
-                        <button
-                          onClick={() => handleUseTag({ name: activeTag.name, emoji: activeTag.emoji }, activeTag.category)}
-                          disabled={savingTag}
-                          className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors underline decoration-dotted"
-                        >
-                          {t('customize.tags.remove')}
-                        </button>
-                      </div>
-                    )}
                     <div className="flex flex-wrap gap-2">
                       {tagCategories.map(({ id, label, icon: Icon }) => (
                         <button
