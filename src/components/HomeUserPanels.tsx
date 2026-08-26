@@ -237,13 +237,20 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
   // Quantos slides cada prateleira realmente tem disponível — depende de o
   // usuário preencher os critérios de cada slide extra (ter listas, ter
-  // filmes suficientes pro duelo, seguir alguém). Sem isso, cada prateleira
-  // teria sempre 2-3 slides "fixos" mesmo quando o extra não faz sentido
-  // pra aquele usuário específico.
-  const librarySlideCount = 1 + (listsCount > 0 ? 1 : 0) + (unratedCount >= 4 ? 1 : 0);
+  // personagem mapeado pro código de arquétipo, ter filmes suficientes
+  // pro duelo, seguir alguém). Sem isso, cada prateleira teria sempre 2-3
+  // slides "fixos" mesmo quando o extra não faz sentido pra esse usuário.
+  //
+  // "Sua Persona" mora na prateleira de cima (Library) agora; "Duelo de
+  // Watchlist" desceu pra prateleira de baixo (Essência) — troca pedida
+  // explicitamente, no lugar um do outro.
+  const personaCode = personality?.personalidade_completa || '';
+  const personaChar = PERSONAS_MAP[personaCode];
+
+  const librarySlideCount = 1 + (listsCount > 0 ? 1 : 0) + (personaChar ? 1 : 0);
   const tagSlideCount = 1 + (followingCount > 0 ? 1 : 0);
   const essenceHasData = !personalityLoading && !!personality?.personalidade_completa && !!archetypeInfo;
-  const essenceSlideCount = essenceHasData ? 2 : 1;
+  const essenceSlideCount = essenceHasData ? (1 + (unratedCount >= 4 ? 1 : 0)) : 1;
 
   // Rotação 100% automática e irreversível, sem navegação manual — a
   // duração de cada posição cresce (4s no 1º slide, 5s no 2º, 6s no 3º),
@@ -511,23 +518,32 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 );
               }
 
-              if (unratedCount >= 4) {
+              if (personaChar) {
                 librarySlides.push(
-                  <div key="lib-duel" className="flex items-center justify-between">
+                  <div key="lib-persona" className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
-                        <Swords className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                      <div
+                        className="w-9 h-9 rounded-full overflow-hidden border-2 flex-shrink-0"
+                        style={{ borderColor: `${archetypeColor}80` }}
+                      >
+                        {personaChar.imageUrl ? (
+                          <img src={personaChar.imageUrl} alt={personaChar.name} className="w-full h-full object-cover object-top" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 text-xs font-bold">
+                            {personaChar.name.charAt(0)}
+                          </div>
+                        )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.watchlistDuel')}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.watchlistDuelHint')}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.yourPersona')}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{personaChar.name}</p>
                       </div>
                     </div>
                     <Link
-                      to="/library"
-                      className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
+                      to="/oracle"
+                      className="flex-shrink-0 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
                     >
-                      {t('home.panels.openLibrary')}
+                      {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
                     </Link>
                   </div>
                 );
@@ -536,7 +552,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               const activeIndex = librarySlideIndex % librarySlides.length;
 
               return (
-                <div className="mb-5 min-h-[52px]">
+                <div className="mb-5 min-h-[54px]">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={activeIndex}
@@ -604,7 +620,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               const activeIndex = tagSlideIndex % tagSlides.length;
 
               return (
-                <div className="mb-5 min-h-[60px]">
+                <div className="mb-5 min-h-[54px]">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={activeIndex}
@@ -628,9 +644,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 descobrir, sem rotação nenhuma. */}
             {!personalityLoading && (
               hasEssence ? (() => {
-                const personaCode = personality?.personalidade_completa || '';
-                const personaChar = PERSONAS_MAP[personaCode];
-
                 const essenceSlides: React.ReactNode[] = [
                   <div key="ess-main" className="flex items-center gap-3">
                     <div className="flex-shrink-0">
@@ -669,44 +682,29 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                   </div>
                 ];
 
-                // "Sua Persona" de verdade = o personagem fictício
-                // associado ao código de 3 letras (ex: Rust Cohle pra
-                // EID), mesmo dado usado no CinematicPersonaCard e no
-                // PersonasModal — não o gráfico pentagonal, que é uma
-                // visualização técnica diferente e não cabia direito no
-                // tamanho da prateleira. Só entra na rotação se existir um
-                // personagem mapeado pro código do usuário.
-                if (personaChar) {
+                // Duelo de Watchlist desceu pra essa prateleira (trocou de
+                // lugar com "Sua Persona", que subiu pra Library). Mesma
+                // estrutura de 3 linhas de texto do slide principal, pra
+                // não variar a altura dentro da própria prateleira.
+                if (unratedCount >= 4) {
                   essenceSlides.push(
-                    <div key="ess-persona" className="flex items-center gap-3">
-                      <div
-                        className="flex-shrink-0 w-12 h-12 rounded-full overflow-hidden border-2 shadow-lg"
-                        style={{ borderColor: `${archetypeColor}80` }}
-                      >
-                        {personaChar.imageUrl ? (
-                          <img src={personaChar.imageUrl} alt={personaChar.name} className="w-full h-full object-cover object-top" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 text-sm font-bold">
-                            {personaChar.name.charAt(0)}
-                          </div>
-                        )}
+                    <div key="ess-duel" className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center bg-pink-500/10 dark:bg-pink-500/15">
+                        <Swords className="w-5 h-5 text-pink-600 dark:text-pink-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium mb-0.5" style={{ color: archetypeColor }}>
-                          {t('home.panels.yourPersona')}
-                        </p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                          {personaChar.name}
+                        <p className="text-xs font-medium mb-0.5 text-pink-600 dark:text-pink-400">
+                          {t('home.panels.watchlistDuel')}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 leading-relaxed">
-                          {(i18n.language.startsWith('pt') ? personaChar.descriptionPt : personaChar.descriptionEn)}
+                          {t('home.panels.watchlistDuelHint')}
                         </p>
                       </div>
                       <Link
-                        to="/oracle"
-                        className="flex-shrink-0 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
+                        to="/library"
+                        className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
                       >
-                        {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
+                        {t('home.panels.openLibrary')}
                       </Link>
                     </div>
                   );
@@ -715,7 +713,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 const activeIndex = essenceSlideIndex % essenceSlides.length;
 
                 return (
-                  <div className="min-h-[64px]">
+                  <div className="min-h-[54px]">
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={activeIndex}
