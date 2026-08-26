@@ -27,6 +27,14 @@ interface MovieDetailsModalProps {
   isOtherUserProfile?: boolean;
   onAddToLibrary?: () => void;
   onEpisodeToggle?: () => void;
+  // Regra geral contra empilhamento infinito: quando ESTA instância já é
+  // aninhada dentro de outra (aberta pelo Top 10 do diretor, por exemplo),
+  // ela não abre uma TERCEIRA camada por conta própria — em vez disso pede
+  // pra quem a abriu (o modal-pai) TROCAR o filme exibido no lugar dela.
+  // Resultado: o aninhamento nunca passa de 1 nível de profundidade, não
+  // importa quantos filmes o usuário abra clicando de Top 10 em Top 10.
+  isNested?: boolean;
+  onReplaceMovie?: (movie: Movie) => void;
 }
 
 const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
@@ -35,7 +43,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   onClose,
   isOtherUserProfile = false,
   onAddToLibrary,
-  onEpisodeToggle
+  onEpisodeToggle,
+  isNested = false,
+  onReplaceMovie
 }) => {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
@@ -99,6 +109,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   useEffect(() => {
     setSeasons(movie.seasons || []);
     setLoadingSeasons(false);
+  }, [movie.id]);
+
+  // Necessário desde que o aninhamento passou a REAPROVEITAR a mesma
+  // instância do modal (troca de filme via onReplaceMovie) em vez de criar
+  // uma instância nova do zero a cada clique — sem isso, o painel do Top
+  // 10 continuaria mostrando os filmes do diretor ANTERIOR depois de trocar
+  // de filme pela própria lista.
+  useEffect(() => {
+    setShowDirectorTopTen(false);
+    setDirectorTopTenLoading(false);
+    setDirectorTopTenError(null);
+    setDirectorTopTenMovies([]);
   }, [movie.id]);
 
   useEffect(() => {
@@ -891,7 +913,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     setLoadingNestedMovieId(movieId);
     try {
       const details = await getMovieDetailsFromDB(movieId);
-      setDirectorNestedMovie(details);
+      if (isNested && onReplaceMovie) {
+        // Já estamos numa camada aninhada — pede pro pai trocar o filme
+        // exibido aqui, em vez de abrir mais uma camada por baixo.
+        onReplaceMovie(details);
+      } else {
+        setDirectorNestedMovie(details);
+      }
     } catch (err) {
       console.error('Error loading director movie:', err);
       toast.error(t('common.error'));
@@ -1795,6 +1823,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           movie={directorNestedMovie}
           isOpen={true}
           onClose={() => setDirectorNestedMovie(null)}
+          isNested={true}
+          onReplaceMovie={setDirectorNestedMovie}
         />
       )}
     </div>
