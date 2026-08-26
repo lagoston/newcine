@@ -11,6 +11,7 @@ import { getFrameClass } from '../lib/frames';
 import OptimizedPoster from './OptimizedPoster';
 import MovieDetailsModal from './MovieDetailsModal';
 import ArchetypeSymbol from './ArchetypeSymbol';
+import PersonasModal from './PersonasModal';
 import { PERSONAS_MAP } from './CinematicPersonaCard';
 
 interface LockedTag {
@@ -194,6 +195,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const [personalityLoading, setPersonalityLoading] = useState(true);
   const [showRevelationModal, setShowRevelationModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showPersonasModal, setShowPersonasModal] = useState(false);
   const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
   const [showRetakeQuizModal, setShowRetakeQuizModal] = useState(false);
   const [showPremiumRequiredModal, setShowPremiumRequiredModal] = useState(false);
@@ -248,48 +250,40 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const personaChar = PERSONAS_MAP[personaCode];
 
   const librarySlideCount = 1 + (listsCount > 0 ? 1 : 0) + (followingCount > 0 ? 1 : 0);
-  const tagSlideCount = 1 + (personaChar ? 1 : 0);
+  // Duelo de Watchlist desceu pra prateleira 2 (Tags), Sua Persona subiu
+  // pra prateleira 3 (Essência) — troca pedida explicitamente.
+  const tagSlideCount = 1 + (unratedCount >= 4 ? 1 : 0);
   const essenceHasData = !personalityLoading && !!personality?.personalidade_completa && !!archetypeInfo;
-  const essenceSlideCount = essenceHasData ? (1 + (unratedCount >= 4 ? 1 : 0)) : 1;
+  const essenceSlideCount = essenceHasData ? (1 + (personaChar ? 1 : 0)) : 1;
 
-  // Rotação 100% automática e irreversível, sem navegação manual. Cada
-  // prateleira tem sua PRÓPRIA sequência de durações (não a mesma pra
-  // todas) — antes, Tags e Essência usavam exatamente os mesmos números
-  // (4s/5s) e começavam a contar no mesmo instante (montagem do
-  // componente), então trocavam sempre juntas, parecendo sincronizado/
-  // mecânico. Números que não compartilham múltiplo comum pequeno entre
-  // si mantêm as 3 prateleiras fora de fase uma da outra o tempo todo,
-  // não só no começo.
-  const LIBRARY_DURATIONS = [4000, 5200, 6400];
-  const TAG_DURATIONS = [4700, 5900];
-  const ESSENCE_DURATIONS = [5500, 6700];
-
-  useEffect(() => {
-    if (librarySlideCount <= 1) return;
-    const duration = LIBRARY_DURATIONS[librarySlideIndex % LIBRARY_DURATIONS.length];
-    const timeout = setTimeout(() => {
-      setLibrarySlideIndex((prev) => (prev + 1) % librarySlideCount);
-    }, duration);
-    return () => clearTimeout(timeout);
-  }, [librarySlideIndex, librarySlideCount]);
+  // Rotação 100% automática e irreversível, sem navegação manual. Um único
+  // intervalo de 2 segundos dispara pras 3 prateleiras ao mesmo tempo, mas
+  // cada uma sorteia seu PRÓPRIO próximo slide de forma independente e
+  // aleatória (não sequencial) — evita repetir a tela que já está visível
+  // (senão pareceria "travado" mesmo trocando por baixo dos panos).
+  function pickRandomIndex(count: number, current: number): number {
+    if (count <= 1) return 0;
+    let next = Math.floor(Math.random() * count);
+    while (next === current) {
+      next = Math.floor(Math.random() * count);
+    }
+    return next;
+  }
 
   useEffect(() => {
-    if (tagSlideCount <= 1) return;
-    const duration = TAG_DURATIONS[tagSlideIndex % TAG_DURATIONS.length];
-    const timeout = setTimeout(() => {
-      setTagSlideIndex((prev) => (prev + 1) % tagSlideCount);
-    }, duration);
-    return () => clearTimeout(timeout);
-  }, [tagSlideIndex, tagSlideCount]);
-
-  useEffect(() => {
-    if (essenceSlideCount <= 1) return;
-    const duration = ESSENCE_DURATIONS[essenceSlideIndex % ESSENCE_DURATIONS.length];
-    const timeout = setTimeout(() => {
-      setEssenceSlideIndex((prev) => (prev + 1) % essenceSlideCount);
-    }, duration);
-    return () => clearTimeout(timeout);
-  }, [essenceSlideIndex, essenceSlideCount]);
+    const interval = setInterval(() => {
+      if (librarySlideCount > 1) {
+        setLibrarySlideIndex((prev) => pickRandomIndex(librarySlideCount, prev));
+      }
+      if (tagSlideCount > 1) {
+        setTagSlideIndex((prev) => pickRandomIndex(tagSlideCount, prev));
+      }
+      if (essenceSlideCount > 1) {
+        setEssenceSlideIndex((prev) => pickRandomIndex(essenceSlideCount, prev));
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [librarySlideCount, tagSlideCount, essenceSlideCount]);
 
   const fetchUserStats = useCallback(async () => {
     try {
@@ -580,8 +574,8 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                     {nextTag ? (
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="text-base leading-none flex-shrink-0">{nextTag.emoji}</span>
-                        <span className="text-sm font-bold text-gray-900 dark:text-white truncate min-w-0">{nextTag.name}</span>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full flex-shrink-0">
+                        <span className="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">{nextTag.name}</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full truncate min-w-0">
                           {tagHint}
                         </span>
                       </div>
@@ -592,32 +586,31 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 </div>
               ];
 
-              if (personaChar) {
+              // Duelo de Watchlist — desceu pra cá vindo da prateleira 3,
+              // "nerfado" pro padrão visual da prateleira 2 (ícone
+              // quadrado pequeno, igual o "Lock" do slide principal, em
+              // vez do círculo grande que tinha na Essência). O botão abre
+              // o duelo de verdade agora — navega pra Biblioteca com um
+              // sinal que a faz abrir o modal do duelo sozinha, assim que
+              // os dados carregarem lá.
+              if (unratedCount >= 4) {
                 tagSlides.push(
-                  <div key="tag-persona" className="flex items-center justify-between">
+                  <div key="tag-duel" className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className="w-9 h-9 rounded-full overflow-hidden border-2 flex-shrink-0"
-                        style={{ borderColor: `${archetypeColor}80` }}
-                      >
-                        {personaChar.imageUrl ? (
-                          <img src={personaChar.imageUrl} alt={personaChar.name} className="w-full h-full object-cover object-top" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 text-xs font-bold">
-                            {personaChar.name.charAt(0)}
-                          </div>
-                        )}
+                      <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
+                        <Swords className="w-4 h-4 text-pink-600 dark:text-pink-400" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.yourPersona')}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{personaChar.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.watchlistDuel')}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.watchlistDuelHint')}</p>
                       </div>
                     </div>
                     <Link
-                      to="/oracle"
-                      className="flex-shrink-0 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
+                      to="/library"
+                      state={{ openWatchlistDuel: true }}
+                      className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
                     >
-                      {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
+                      {t('home.panels.openWatchlistDuel')}
                     </Link>
                   </div>
                 );
@@ -688,30 +681,45 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                   </div>
                 ];
 
-                // Duelo de Watchlist desceu pra essa prateleira (trocou de
-                // lugar com "Sua Persona", que subiu pra Library). Mesma
-                // estrutura de 3 linhas de texto do slide principal, pra
-                // não variar a altura dentro da própria prateleira.
-                if (unratedCount >= 4) {
+                // "Sua Persona" subiu pra essa prateleira (trocou de lugar
+                // com "Duelo de Watchlist", que desceu pra Tags) — ganha o
+                // padrão visual maior da Essência (avatar w-12 h-12
+                // redondo, igual o ArchetypeSymbol do slide principal, em
+                // vez do w-9 h-9 pequeno que tinha nas Tags). O botão abre
+                // o PersonasModal (mostra o personagem de verdade) em vez
+                // de só navegar pra página do Oráculo.
+                if (personaChar) {
                   essenceSlides.push(
-                    <div key="ess-duel" className="flex items-center gap-3">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center bg-pink-500/10 dark:bg-pink-500/15">
-                        <Swords className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+                    <div key="ess-persona" className="flex items-center gap-3">
+                      <div
+                        className="flex-shrink-0 w-12 h-12 rounded-full overflow-hidden border-2 shadow-lg"
+                        style={{ borderColor: `${archetypeColor}80` }}
+                      >
+                        {personaChar.imageUrl ? (
+                          <img src={personaChar.imageUrl} alt={personaChar.name} className="w-full h-full object-cover object-top" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 text-sm font-bold">
+                            {personaChar.name.charAt(0)}
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium mb-0.5 text-pink-600 dark:text-pink-400">
-                          {t('home.panels.watchlistDuel')}
+                        <p className="text-xs font-medium mb-0.5" style={{ color: archetypeColor }}>
+                          {t('home.panels.yourPersona')}
+                        </p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                          {personaChar.name}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 leading-relaxed">
-                          {t('home.panels.watchlistDuelHint')}
+                          {(i18n.language.startsWith('pt') ? personaChar.descriptionPt : personaChar.descriptionEn)}
                         </p>
                       </div>
-                      <Link
-                        to="/library"
-                        className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
+                      <button
+                        onClick={() => setShowPersonasModal(true)}
+                        className="flex-shrink-0 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
                       >
-                        {t('home.panels.openLibrary')}
-                      </Link>
+                        {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
+                      </button>
                     </div>
                   );
                 }
@@ -1079,6 +1087,13 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <PersonasModal
+        isOpen={showPersonasModal}
+        onClose={() => setShowPersonasModal(false)}
+        viewerId={userId}
+        viewerPersonaCode={personality?.personalidade_completa || null}
+      />
     </>
   );
 };
