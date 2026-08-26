@@ -138,7 +138,7 @@ const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPerso
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-start justify-center overflow-y-auto pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-4"
+        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-stretch justify-center"
         onClick={onClose}
       >
         <motion.div
@@ -148,7 +148,7 @@ const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPerso
           exit={{ y: 40, opacity: 0 }}
           transition={{ type: 'spring', damping: 28, stiffness: 280 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-6xl max-h-[calc(100dvh-env(safe-area-inset-top)-3rem)] my-1 sm:my-6 mx-1 sm:mx-4 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-950 to-black border border-white/10 shadow-2xl overflow-hidden flex flex-col"
+          className="relative w-full max-w-6xl my-1 sm:my-6 mx-1 sm:mx-4 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-950 to-black border border-white/10 shadow-2xl overflow-hidden flex flex-col pt-[env(safe-area-inset-top)]"
         >
           {/* Header */}
           <div className="flex items-center justify-between gap-2 px-3 sm:px-5 py-3 sm:py-4 border-b border-white/10 bg-gradient-to-r from-gray-900/90 to-gray-950/90 backdrop-blur-xl flex-shrink-0 min-w-0">

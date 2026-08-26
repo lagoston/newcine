@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link, useNavigate } from 'react-router-dom';
 import { Library as LibraryIcon, Lock, Star, Film, Clock, Sparkles, RefreshCw, X, HelpCircle, Swords } from 'lucide-react';
@@ -12,6 +11,7 @@ import { getFrameClass } from '../lib/frames';
 import OptimizedPoster from './OptimizedPoster';
 import MovieDetailsModal from './MovieDetailsModal';
 import ArchetypeSymbol from './ArchetypeSymbol';
+import PersonasModal from './PersonasModal';
 import { PERSONAS_MAP } from './CinematicPersonaCard';
 
 interface LockedTag {
@@ -195,7 +195,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const [personalityLoading, setPersonalityLoading] = useState(true);
   const [showRevelationModal, setShowRevelationModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [showYourPersonaModal, setShowYourPersonaModal] = useState(false);
+  const [showPersonasModal, setShowPersonasModal] = useState(false);
   const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
   const [showRetakeQuizModal, setShowRetakeQuizModal] = useState(false);
   const [showPremiumRequiredModal, setShowPremiumRequiredModal] = useState(false);
@@ -256,13 +256,11 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const essenceHasData = !personalityLoading && !!personality?.personalidade_completa && !!archetypeInfo;
   const essenceSlideCount = essenceHasData ? (1 + (personaChar ? 1 : 0)) : 1;
 
-  // Rotação 100% automática e irreversível, sem navegação manual. A cada 3
-  // segundos, sorteia UMA prateleira entre as elegíveis (que têm mais de 1
-  // slide disponível) e troca SÓ ela — as outras duas ficam paradas até
-  // serem sorteadas numa rodada futura. Um useRef guarda qual foi a última
-  // prateleira escolhida, e ela é excluída do sorteio seguinte — garante
-  // que nunca repete a mesma prateleira duas vezes seguidas (a menos que
-  // só exista 1 elegível no momento, caso em que não há escolha possível).
+  // Rotação 100% automática e irreversível, sem navegação manual. Um único
+  // intervalo de 2 segundos dispara pras 3 prateleiras ao mesmo tempo, mas
+  // cada uma sorteia seu PRÓPRIO próximo slide de forma independente e
+  // aleatória (não sequencial) — evita repetir a tela que já está visível
+  // (senão pareceria "travado" mesmo trocando por baixo dos panos).
   function pickRandomIndex(count: number, current: number): number {
     if (count <= 1) return 0;
     let next = Math.floor(Math.random() * count);
@@ -272,32 +270,18 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
     return next;
   }
 
-  const lastChosenShelfRef = useRef<'library' | 'tags' | 'essence' | null>(null);
-
   useEffect(() => {
     const interval = setInterval(() => {
-      let eligibleShelves: Array<'library' | 'tags' | 'essence'> = [];
-      if (librarySlideCount > 1) eligibleShelves.push('library');
-      if (tagSlideCount > 1) eligibleShelves.push('tags');
-      if (essenceSlideCount > 1) eligibleShelves.push('essence');
-      if (eligibleShelves.length === 0) return;
-
-      // Exclui a última escolhida, se ainda sobrar pelo menos 1 opção
-      // depois de excluir — evita repetir a mesma duas vezes seguidas.
-      const withoutLast = eligibleShelves.filter((s) => s !== lastChosenShelfRef.current);
-      const pool = withoutLast.length > 0 ? withoutLast : eligibleShelves;
-
-      const chosen = pool[Math.floor(Math.random() * pool.length)];
-      lastChosenShelfRef.current = chosen;
-
-      if (chosen === 'library') {
+      if (librarySlideCount > 1) {
         setLibrarySlideIndex((prev) => pickRandomIndex(librarySlideCount, prev));
-      } else if (chosen === 'tags') {
+      }
+      if (tagSlideCount > 1) {
         setTagSlideIndex((prev) => pickRandomIndex(tagSlideCount, prev));
-      } else {
+      }
+      if (essenceSlideCount > 1) {
         setEssenceSlideIndex((prev) => pickRandomIndex(essenceSlideCount, prev));
       }
-    }, 3000);
+    }, 2000);
     return () => clearInterval(interval);
   }, [librarySlideCount, tagSlideCount, essenceSlideCount]);
 
@@ -726,9 +710,12 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                         <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
                           {personaChar.name}
                         </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 leading-relaxed">
+                          {(i18n.language.startsWith('pt') ? personaChar.descriptionPt : personaChar.descriptionEn)}
+                        </p>
                       </div>
                       <button
-                        onClick={() => setShowYourPersonaModal(true)}
+                        onClick={() => setShowPersonasModal(true)}
                         className="flex-shrink-0 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
                       >
                         {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
@@ -1101,69 +1088,12 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
         )}
       </AnimatePresence>
 
-      {/* Modal "Sua Persona" — foco só no personagem DESSE usuário (nome +
-          descrição completa), diferente do modal "Os 120 Arquétipos"
-          (PersonasModal), que é uma galeria geral de navegação. Renderizado
-          via Portal direto no <body> (mesma lição aprendida com o
-          MovieDetailsModal — sem isso, se esse componente for usado dentro
-          de uma página com motion.div como wrapper raiz, o modal fica preso
-          no contexto de empilhamento isolado). Estrutura de altura já
-          corrigida desde o início (cabeçalho fixo + corpo com scroll
-          próprio + teto real de altura) — mesma lição aprendida com o bug
-          do CustomizeModal, que não tinha isso e enchia a tela toda. */}
-      {showYourPersonaModal && personaChar && createPortal(
-        <div className="fixed inset-0 z-[200] overflow-y-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowYourPersonaModal(false)}
-          />
-          <div className="flex min-h-full items-start justify-center p-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-8 relative z-[201]">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.3 }}
-              className="relative w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top)-4rem)] flex flex-col bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20 dark:border-gray-700/50 overflow-hidden"
-            >
-              <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200/50 dark:border-gray-700/50">
-                <h2 className="text-lg font-bold" style={{ color: archetypeColor }}>
-                  {t('home.panels.yourPersona')}
-                </h2>
-                <button
-                  onClick={() => setShowYourPersonaModal(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-5">
-                {personaChar.imageUrl && (
-                  <div
-                    className="w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 border-2"
-                    style={{ borderColor: `${archetypeColor}80` }}
-                  >
-                    <img src={personaChar.imageUrl} alt={personaChar.name} className="w-full h-full object-cover object-top" />
-                  </div>
-                )}
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: archetypeColor }}>
-                  {personality?.personalidade_completa} · {archetypeInfo?.archetype_name} {archetypeInfo?.subcategory_name}
-                </p>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                  {personaChar.name}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                  {i18n.language.startsWith('pt') ? personaChar.descriptionPt : personaChar.descriptionEn}
-                </p>
-              </div>
-            </motion.div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <PersonasModal
+        isOpen={showPersonasModal}
+        onClose={() => setShowPersonasModal(false)}
+        viewerId={userId}
+        viewerPersonaCode={personality?.personalidade_completa || null}
+      />
     </>
   );
 };
