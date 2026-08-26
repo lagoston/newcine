@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play, ChevronRight, AlertCircle } from 'lucide-react';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB } from '../lib/tmdb';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
@@ -1040,7 +1041,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     cypher: { bg: 'bg-yellow-400/95', text: 'text-gray-900', arrow: 'border-t-yellow-400' }
   };
 
-  return (
+  // Renderizado via Portal, direto no <body> — não como filho de onde o
+  // componente foi chamado. Sem isso, quando o modal é aberto de dentro de
+  // uma página cujo container raiz é um motion.div (Framer Motion aplica
+  // transform via style inline, mesmo em animações simples), o modal ficava
+  // PRESO no contexto de empilhamento isolado desse container — o z-index
+  // altíssimo (9999) só competia DENTRO dali, nunca contra elementos
+  // realmente globais como a navbar (z-40), que ficava por cima mesmo sendo
+  // "menor". É por isso que o bug só aparecia em certas páginas (as que
+  // usam motion.div como wrapper raiz) e não em outras.
+  return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={onClose} />
       <div className="relative w-full max-w-4xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-xl transform transition-all overflow-y-auto max-h-[calc(100vh-5rem)]" style={{ zIndex: 10 }}>
@@ -1827,7 +1837,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           onReplaceMovie={setDirectorNestedMovie}
         />
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
 
