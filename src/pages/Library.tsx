@@ -13,6 +13,7 @@ import { useAuth } from '../lib/auth';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import WatchListDuelModal from '../components/WatchListDuelModal';
+import GlassLoader from '../components/GlassLoader';
 
 
 interface UserMovie {
@@ -391,6 +392,14 @@ export default function Library() {
     }
   };
 
+  // Antes, essa checagem simplesmente não existia — a página não mostrava
+  // nenhum indicador durante o carregamento inicial, a lista aparecia do
+  // nada assim que os dados chegavam. Mesmo componente oficial usado nas
+  // outras páginas do site (GlassLoader), pra manter o visual consistente.
+  if (loading) {
+    return <GlassLoader fullPage size="lg" />;
+  }
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Background com gradientes animados */}
@@ -411,7 +420,7 @@ export default function Library() {
         {/* Loading Progress Bar - Fixed at top */}
         {loadingProgress > 0 && loadingProgress < 100 && (
           <motion.div
-            className="sticky top-0 z-40 mb-6"
+            className="sticky top-0 z-30 mb-6"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
