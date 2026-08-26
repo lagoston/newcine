@@ -1382,7 +1382,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[100]"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
           onClick={onClose}
         />
         <div className="flex min-h-full items-start justify-center p-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-8 relative z-[101]">
