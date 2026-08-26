@@ -1416,12 +1416,38 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 nunca encolhem (flex-shrink-0), e só o MEIO rola quando o
                 conteúdo é maior que o espaço disponível. */}
             <div className="flex-1 overflow-y-auto p-6">
-              {loading ? (
-                <div className="h-full min-h-[400px] flex items-center justify-center">
-                  <GlassLoader size="lg" />
-                </div>
-              ) : (
-                <>
+              {/* AnimatePresence com key própria pra essa troca específica
+                  — antes, a troca loading→carregado era um swap instantâneo
+                  de React (sem nenhuma animação explícita), e a suavização
+                  que aparecia no desktop vinha só do reflow natural do
+                  navegador (via transition-all da classe do modal). Esse
+                  reflow implícito se comporta de forma diferente em mobile
+                  — combinado com unidades dvh (que recalculam conforme a
+                  barra de endereço do navegador mobile aparece/some), o
+                  resultado ali era abrupto (sumiço + reaparecimento) em vez
+                  de suave. Com fade explícito e determinístico, o
+                  comportamento fica igual em qualquer aparelho, sem
+                  depender de como cada navegador decide suavizar sozinho. */}
+              <AnimatePresence mode="wait">
+                {loading ? (
+                  <motion.div
+                    key="loading-state"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="h-full min-h-[400px] flex items-center justify-center"
+                  >
+                    <GlassLoader size="lg" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="loaded-state"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
                   <div className="grid grid-cols-4 gap-1.5 sm:flex sm:gap-2 border-b border-gray-200/50 dark:border-gray-700/50 mb-6 pb-2">
                     {tabs.map(({ id, label, icon: Icon }) => (
                       <button
@@ -1467,8 +1493,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                   </div>
                 )}
                   </div>
-                </>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="flex-shrink-0 flex justify-end gap-4 p-6 border-t border-gray-200/50 dark:border-gray-700/50">
