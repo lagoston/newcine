@@ -1407,7 +1407,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
             <div className="p-6">
               {loading ? (
-                <div className="min-h-[400px] flex items-center justify-center">
+                <div className="h-[60vh] flex items-center justify-center">
                   <GlassLoader size="lg" />
                 </div>
               ) : (
