@@ -13,6 +13,7 @@ import OracleForYouBox from '../components/OracleForYouBox';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import GlassLoader from '../components/GlassLoader';
 
 const detailsCache = new Map<string, Promise<Movie>>();
 
@@ -97,7 +98,7 @@ const GuestMovieCarousel: React.FC<GuestMovieCarouselProps> = ({ title, movies, 
         transition={{ duration: 0.5, delay: 0.8 }}
       >
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <GlassLoader size="md" />
         </div>
       </motion.div>
     );
@@ -332,7 +333,7 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
     return (
       <div className="relative mb-10 p-6 sm:p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <GlassLoader size="md" />
         </div>
       </div>
     );
