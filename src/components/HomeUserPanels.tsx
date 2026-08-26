@@ -578,10 +578,10 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.nextTag')}</p>
                     {nextTag ? (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-base leading-none">{nextTag.emoji}</span>
-                        <span className="text-sm font-bold text-gray-900 dark:text-white truncate">{nextTag.name}</span>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full shrink-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-base leading-none flex-shrink-0">{nextTag.emoji}</span>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white truncate min-w-0">{nextTag.name}</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full flex-shrink-0">
                           {tagHint}
                         </span>
                       </div>
@@ -664,11 +664,11 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                       <p className="text-xs font-medium mb-0.5" style={{ color: archetypeColor }}>
                         {t('oracle.cinematicEssenceLabel')}
                       </p>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-bold" style={{ color: archetypeColor }}>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-sm font-bold flex-shrink-0" style={{ color: archetypeColor }}>
                           {personality!.personalidade_completa}
                         </span>
-                        <span className="text-xs text-gray-700 dark:text-gray-300 font-semibold">
+                        <span className="text-xs text-gray-700 dark:text-gray-300 font-semibold truncate min-w-0">
                           {archetypeInfo!.archetype_name} {archetypeInfo!.subcategory_name}
                         </span>
                       </div>
