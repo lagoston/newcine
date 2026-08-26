@@ -285,6 +285,7 @@
   },
   "movies": {
     "director": "Diretor",
+    "openWatchlistDuel": "Iniciar Duelo",
     "directorTopTen": "Melhores filmes de {{director}}",
     "noDirectorMoviesFound": "Nenhum outro filme encontrado para esse diretor.",
     "viewTopTen": "Ver Top 10",
