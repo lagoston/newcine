@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play } from 'lucide-react';
-import { Movie, getMovieTrailer } from '../lib/tmdb';
+import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play, ChevronRight, AlertCircle } from 'lucide-react';
+import { Movie, getMovieTrailer, getMovieDetailsFromDB } from '../lib/tmdb';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
 import { useAuth } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseUrl } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS } from '../lib/cache';
@@ -56,6 +56,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [loadingTrailer, setLoadingTrailer] = useState(false);
   const [oracleSources, setOracleSources] = useState<string[]>([]);
   const [certification, setCertification] = useState<string | null>(null);
+
+  // Top 10 do diretor — busca sob demanda, só quando o usuário clica.
+  const [showDirectorTopTen, setShowDirectorTopTen] = useState(false);
+  const [directorTopTenLoading, setDirectorTopTenLoading] = useState(false);
+  const [directorTopTenError, setDirectorTopTenError] = useState<string | null>(null);
+  const [directorTopTenMovies, setDirectorTopTenMovies] = useState<any[]>([]);
+  const [directorNestedMovie, setDirectorNestedMovie] = useState<Movie | null>(null);
+  const [loadingNestedMovieId, setLoadingNestedMovieId] = useState<number | null>(null);
   const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
   // Controla quais balões estão visíveis agora (não "dispensados" — o padrão
   // é começar ESCONDIDO e aparecer sozinho depois de um tempo, ver useEffect
@@ -783,6 +791,104 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   const cast = movie.credits?.cast?.slice(0, 5) || [];
   const year = new Date(movie.release_date).getFullYear();
+
+  // Top 10 do diretor — busca sob demanda, só quando o usuário clica.
+  //
+  // BUG ENCONTRADO na versão anterior: quando o filme vinha do cache do
+  // banco (getCachedMovie em lib/tmdb.ts), o crew do diretor era
+  // reconstruído com um ID FALSO fixo (id: 0), só pra preencher o formato
+  // esperado — nunca foi o ID real da pessoa no TMDB. A busca por
+  // "/person/0/movie_credits" retornava lixo ou vazio dependendo de qual
+  // filme aleatório tem ID 0 no TMDB, explicando todos os sintomas
+  // relatados: lista vazia mesmo pra diretores com filmes no banco,
+  // comportamento diferente dependendo de onde o filme foi aberto (cache
+  // do banco vs busca ao vivo do TMDB, que tem ID real), e a impressão de
+  // só "puxar o filme atual" quando a resposta vinha inesperada.
+  //
+  // Correção: NUNCA confiar em um director id vindo do objeto `movie` já
+  // carregado sem validar — só usa o id embutido se for maior que 0
+  // (sinal de que veio de busca ao vivo real, não do placeholder do
+  // cache), senão resolve por nome via /search/person, confiável
+  // independente de como o filme chegou até aqui.
+  const handleOpenDirectorTopTen = async () => {
+    setShowDirectorTopTen(true);
+    setDirectorTopTenError(null);
+    setDirectorTopTenMovies([]);
+
+    if (!director || director === t('movies.unknown')) {
+      setDirectorTopTenError(t('movies.noDirectorMoviesFound'));
+      return;
+    }
+
+    setDirectorTopTenLoading(true);
+    const tmdbLang = i18n.language.startsWith('pt') ? 'pt-BR' : 'en-US';
+    const authHeader = { Authorization: `Bearer ${session?.access_token || ''}` };
+
+    try {
+      const embeddedDirector = movie.credits?.crew?.find(
+        (person) => person.job === 'Director' && person.id > 0
+      );
+
+      let directorPersonId: number | null = embeddedDirector?.id ?? null;
+
+      if (!directorPersonId) {
+        const searchUrl = `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=${encodeURIComponent(`/search/person?query=${encodeURIComponent(director)}&language=${tmdbLang}`)}`;
+        const searchResponse = await fetch(searchUrl, { headers: authHeader });
+        if (!searchResponse.ok) throw new Error('search failed');
+        const searchJson = await searchResponse.json();
+        const bestMatch = searchJson.results?.[0];
+        if (!bestMatch?.id) {
+          setDirectorTopTenError(t('movies.noDirectorMoviesFound'));
+          setDirectorTopTenLoading(false);
+          return;
+        }
+        directorPersonId = bestMatch.id;
+      }
+
+      const creditsUrl = `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=${encodeURIComponent(`/person/${directorPersonId}/movie_credits?language=${tmdbLang}`)}`;
+      const creditsResponse = await fetch(creditsUrl, { headers: authHeader });
+      if (!creditsResponse.ok) throw new Error('credits fetch failed');
+      const creditsJson = await creditsResponse.json();
+
+      const directedCredits = (creditsJson.crew || []).filter((c: any) => c.job === 'Director');
+
+      const seen = new Set<number>();
+      const deduped = directedCredits.filter((m: any) => {
+        if (seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      });
+
+      const filtered = deduped
+        .filter((m: any) => (m.vote_count || 0) >= 50 && m.id !== movie.id)
+        .sort((a: any, b: any) => (b.vote_average || 0) - (a.vote_average || 0))
+        .slice(0, 10);
+
+      if (filtered.length === 0) {
+        setDirectorTopTenError(t('movies.noDirectorMoviesFound'));
+      }
+      setDirectorTopTenMovies(filtered);
+    } catch (err) {
+      console.error('Error fetching director top ten:', err);
+      setDirectorTopTenError(t('common.error'));
+    } finally {
+      setDirectorTopTenLoading(false);
+    }
+  };
+
+  const handleOpenDirectorMovie = async (movieId: number) => {
+    setLoadingNestedMovieId(movieId);
+    try {
+      const details = await getMovieDetailsFromDB(movieId);
+      setDirectorNestedMovie(details);
+    } catch (err) {
+      console.error('Error loading director movie:', err);
+      toast.error(t('common.error'));
+    } finally {
+      setLoadingNestedMovieId(null);
+    }
+  };
+
   const isTvShow = movie.media_type === 'tv';
   const runtime = movie.runtime
     ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m`
@@ -1256,12 +1362,84 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                 {/* Diretor — sempre em linha própria agora, pra manter a
                     mesma estrutura em qualquer filme (com ou sem
                     classificação disponível). */}
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 flex items-center gap-3">
-                  <User className="w-5 h-5 text-purple-500 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">{t('movies.director')}:</span>
-                    <span className="font-medium text-gray-900 dark:text-white text-sm">{director}</span>
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                  <div className="flex items-center gap-3 justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <User className="w-5 h-5 text-purple-500 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">{t('movies.director')}:</span>
+                        <span className="font-medium text-gray-900 dark:text-white text-sm">{director}</span>
+                      </div>
+                    </div>
+                    {director !== t('movies.unknown') && (
+                      <button
+                        onClick={handleOpenDirectorTopTen}
+                        className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 dark:bg-purple-500/15 dark:hover:bg-purple-500/25 text-purple-600 dark:text-purple-400 text-xs font-semibold rounded-lg transition-colors"
+                      >
+                        {t('movies.viewTopTen')}
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
+
+                  {showDirectorTopTen && (
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                        {t('movies.directorTopTen', { director })}
+                      </p>
+
+                      {directorTopTenLoading && (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="w-5 h-5 text-purple-500 animate-spin" />
+                        </div>
+                      )}
+
+                      {!directorTopTenLoading && directorTopTenError && (
+                        <div className="flex items-center gap-2 py-2 text-sm text-gray-500 dark:text-gray-400">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                          {directorTopTenError}
+                        </div>
+                      )}
+
+                      {!directorTopTenLoading && !directorTopTenError && directorTopTenMovies.length > 0 && (
+                        <div className="grid grid-cols-5 gap-2">
+                          {directorTopTenMovies.map((m: any) => (
+                            <button
+                              key={m.id}
+                              onClick={() => handleOpenDirectorMovie(m.id)}
+                              className="text-left group"
+                            >
+                              <div className="relative aspect-[2/3] rounded-md overflow-hidden bg-gray-200 dark:bg-gray-600">
+                                {m.poster_path ? (
+                                  <img
+                                    src={`https://image.tmdb.org/t/p/w200${m.poster_path}`}
+                                    alt={m.title}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Film className="w-5 h-5 text-gray-400" />
+                                  </div>
+                                )}
+                                {loadingNestedMovieId === m.id && (
+                                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                    <Loader2 className="w-4 h-4 text-white animate-spin" />
+                                  </div>
+                                )}
+                                <div className="absolute bottom-0.5 right-0.5 bg-black/70 rounded px-1 flex items-center gap-0.5">
+                                  <Star className="w-2.5 h-2.5 text-amber-400 fill-current" />
+                                  <span className="text-[10px] text-white font-semibold">{m.vote_average?.toFixed(1)}</span>
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-gray-600 dark:text-gray-300 mt-1 line-clamp-2 leading-tight">
+                                {m.title}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
@@ -1594,6 +1772,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           movie={movie}
           onClose={() => setShowReviewsModal(false)}
           userRating={userRating}
+        />
+      )}
+
+      {directorNestedMovie && (
+        <MovieDetailsModal
+          movie={directorNestedMovie}
+          isOpen={true}
+          onClose={() => setDirectorNestedMovie(null)}
         />
       )}
     </div>
