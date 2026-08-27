@@ -334,9 +334,9 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
                       <button
                         type="button"
                         onClick={() => handleRemoveParticipant(p.id)}
-                        className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 border border-white dark:border-gray-900 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-10"
+                        className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 border border-white dark:border-gray-900 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-10"
                       >
-                        <X className="w-2.5 h-2.5 text-white" />
+                        <X className="w-2 h-2 text-white" strokeWidth={3} />
                       </button>
                     )}
                   </div>
