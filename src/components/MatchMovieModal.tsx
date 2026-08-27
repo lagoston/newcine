@@ -306,84 +306,104 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
               <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             </button>
 
-            {/* 4 slots fixos de participante — substitui a barra de balões
-                de texto (que tinha problema de desproporção) inteiramente.
-                Slots 0 e 1 são Você + o participante original, sempre
-                preenchidos, não removíveis. Slots 2 e 3, quando vazios,
-                mostram um "+" levemente deslocado pra cima, clicável pra
-                adicionar; quando preenchidos, mostram a bolha do convidado
-                com um X pequeno pra remover. */}
-            <div className="flex items-end justify-center gap-3 mb-6">
-              {[0, 1, 2, 3].map((slotIndex) => {
-                const p = bubbleParticipants[slotIndex];
-                const isCoreSlot = slotIndex < 2;
-
-                if (p) {
-                  return (
-                    <div key={p.id} className="relative flex-shrink-0">
-                      <div
-                        title={p.username}
-                        className={`w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-pink-400 to-purple-500 flex-shrink-0 ${getFrameClass(p.avatar_frame || undefined, p.plan_type === 'premium')}`}
-                      >
-                        {p.avatar_url ? (
-                          <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold">
-                            {p.username.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      {!isCoreSlot && phase === 'setup' && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveParticipant(p.id)}
-                          className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 border border-white dark:border-gray-900 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-10"
-                        >
-                          <X className="w-2.5 h-2.5 text-white" />
-                        </button>
+            {/* Layout reorganizado: os 2 slots PRINCIPAIS (Você + o
+                participante original, sempre preenchidos automaticamente)
+                ficam lado a lado com a varinha/título, no mesmo nível
+                vertical — o "coração" do modal fica visualmente unificado.
+                Os 2 slots OPCIONAIS (adicionáveis) ficam mais pra fora,
+                levemente deslocados pra cima, criando uma composição mais
+                dinâmica em vez de uma fileira única e reta no topo. */}
+            {(() => {
+              const renderFilledSlot = (p: Participant, isCoreSlot: boolean, size: 'core' | 'optional') => {
+                const dimension = size === 'core' ? 'w-12 h-12' : 'w-11 h-11';
+                return (
+                  <div key={p.id} className="relative flex-shrink-0">
+                    <div
+                      title={p.username}
+                      className={`${dimension} rounded-full overflow-hidden bg-gradient-to-br from-pink-400 to-purple-500 flex-shrink-0 ${getFrameClass(p.avatar_frame || undefined, p.plan_type === 'premium')}`}
+                    >
+                      {p.avatar_url ? (
+                        <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold">
+                          {p.username.charAt(0).toUpperCase()}
+                        </div>
                       )}
                     </div>
-                  );
-                }
-
-                // Slot vazio — só existe pra slots 2 e 3, e só quando ainda
-                // dá pra adicionar mais gente.
-                return (
-                  <button
-                    key={`empty-${slotIndex}`}
-                    type="button"
-                    onClick={handleOpenAddViewer}
-                    disabled={phase !== 'setup'}
-                    className="w-11 h-11 -translate-y-2 rounded-full border-2 border-dashed border-pink-400/60 flex items-center justify-center text-pink-500 dark:text-pink-400 hover:bg-pink-500/10 transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Plus className="w-5 h-5" />
-                  </button>
+                    {!isCoreSlot && phase === 'setup' && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveParticipant(p.id)}
+                        className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 border border-white dark:border-gray-900 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-10"
+                      >
+                        <X className="w-2.5 h-2.5 text-white" />
+                      </button>
+                    )}
+                  </div>
                 );
-              })}
-            </div>
+              };
 
-            <div className="text-center mb-6">
-              {phase === 'loading' ? (
-                <motion.div
-                  key="wand-spinning"
-                  className="inline-flex p-3 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-400/30 mb-3"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
+              const renderEmptySlot = (slotIndex: number) => (
+                <button
+                  key={`empty-${slotIndex}`}
+                  type="button"
+                  onClick={handleOpenAddViewer}
+                  disabled={phase !== 'setup'}
+                  className="w-10 h-10 rounded-full border-2 border-dashed border-pink-400/60 flex items-center justify-center text-pink-500 dark:text-pink-400 hover:bg-pink-500/10 transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Wand2 className="w-7 h-7 text-pink-500 dark:text-pink-400" />
-                </motion.div>
-              ) : (
-                <div
-                  key="wand-static"
-                  className="inline-flex p-3 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-400/30 mb-3"
-                >
-                  <Wand2 className="w-7 h-7 text-pink-500 dark:text-pink-400" />
+                  <Plus className="w-4 h-4" />
+                </button>
+              );
+
+              const slot0 = bubbleParticipants[0]; // Você — principal
+              const slot1 = bubbleParticipants[1]; // Amigo original — principal
+              const slot2 = bubbleParticipants[2]; // Opcional
+              const slot3 = bubbleParticipants[3]; // Opcional
+
+              return (
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  {/* Grupo esquerdo: opcional (deslocado pra cima) + principal */}
+                  <div className="flex items-end gap-2">
+                    <div className="-translate-y-2">
+                      {slot2 ? renderFilledSlot(slot2, false, 'optional') : renderEmptySlot(2)}
+                    </div>
+                    {slot0 && renderFilledSlot(slot0, true, 'core')}
+                  </div>
+
+                  {/* Centro: varinha + título */}
+                  <div className="text-center px-2 flex-shrink-0">
+                    {phase === 'loading' ? (
+                      <motion.div
+                        key="wand-spinning"
+                        className="inline-flex p-3 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-400/30 mb-2"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
+                      >
+                        <Wand2 className="w-6 h-6 text-pink-500 dark:text-pink-400" />
+                      </motion.div>
+                    ) : (
+                      <div
+                        key="wand-static"
+                        className="inline-flex p-3 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-400/30 mb-2"
+                      >
+                        <Wand2 className="w-6 h-6 text-pink-500 dark:text-pink-400" />
+                      </div>
+                    )}
+                    <h2 className="text-base font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 whitespace-nowrap">
+                      {t('matchMovie.title')}
+                    </h2>
+                  </div>
+
+                  {/* Grupo direito: principal + opcional (deslocado pra cima) */}
+                  <div className="flex items-end gap-2">
+                    {slot1 && renderFilledSlot(slot1, true, 'core')}
+                    <div className="-translate-y-2">
+                      {slot3 ? renderFilledSlot(slot3, false, 'optional') : renderEmptySlot(3)}
+                    </div>
+                  </div>
                 </div>
-              )}
-              <h2 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500">
-                {t('matchMovie.title')}
-              </h2>
-            </div>
+              );
+            })()}
 
             {/* Sub-tela de adicionar espectador */}
             {showAddViewer && (
