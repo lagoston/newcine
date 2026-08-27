@@ -72,7 +72,7 @@ const getTagColorClasses = (category: string) => {
     case 'oracle':
       return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400';
     case 'special':
-      return 'bg-red-900 dark:bg-red-900/60 text-white dark:text-red-100';
+      return 'bg-gray-900 dark:bg-gray-800 text-white dark:text-gray-100';
     default:
       return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
   }
@@ -98,8 +98,8 @@ const getCategoryButtonStyle = (isActive: boolean, category: string) => {
         : 'bg-pink-600 text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600';
     case 'special':
       return isActive
-        ? 'bg-red-800 text-white dark:bg-red-900/70 dark:text-red-100'
-        : 'bg-red-900 text-white hover:bg-red-800 dark:bg-red-900 dark:hover:bg-red-800';
+        ? 'bg-gray-800 text-white dark:bg-gray-700 dark:text-gray-100'
+        : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700';
     default:
       return isActive
         ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
@@ -518,33 +518,51 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     if (!session?.user?.id) return;
 
     try {
+      // Antes, esse filtro (.or ends_at null OU no futuro) excluía tags
+      // JÁ EXPIRADAS da consulta inteira — mesmo pra quem já tinha
+      // conquistado. Isso fazia "Beta Tester" sumir do modal pra todo
+      // mundo assim que o prazo passou, mesmo pra quem já a tinha
+      // permanentemente gravada no perfil (is_permanent=true em
+      // user_special_tags). Agora busca TODAS as tags, e decide na hora
+      // de exibir: se o usuário já tem, mostra sempre; se não tem, só
+      // mostra enquanto ainda estiver dentro do prazo de conquista.
       const { data: allTags, error: tagsError } = await supabase
         .from('special_tags')
-        .select('*')
-        .or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`);
+        .select('*');
 
       if (tagsError) throw tagsError;
 
       const { data: userTags, error: userTagsError } = await supabase
         .from('user_special_tags')
-        .select('tag_id, unlocked_at')
+        .select('tag_id, unlocked_at, is_permanent')
         .eq('user_id', session.user.id);
 
       if (userTagsError) throw userTagsError;
 
-      const userTagsMap = new Map(userTags?.map(ut => [ut.tag_id, ut.unlocked_at]) || []);
+      const userTagsMap = new Map(userTags?.map(ut => [ut.tag_id, ut]) || []);
+      const now = new Date();
 
-      const tagsWithStatus: SpecialTag[] = (allTags || []).map(tag => ({
-        id: tag.id,
-        name: tag.name,
-        emoji: tag.emoji,
-        description: tag.description,
-        requirement_description: tag.requirement_description,
-        starts_at: tag.starts_at,
-        ends_at: tag.ends_at,
-        is_unlocked: userTagsMap.has(tag.id),
-        unlocked_at: userTagsMap.get(tag.id)
-      }));
+      const tagsWithStatus: SpecialTag[] = (allTags || [])
+        .map(tag => {
+          const userTag = userTagsMap.get(tag.id);
+          const isCurrentlyActive = !tag.ends_at || new Date(tag.ends_at) > now;
+          return {
+            id: tag.id,
+            name: tag.name,
+            emoji: tag.emoji,
+            description: tag.description,
+            requirement_description: tag.requirement_description,
+            starts_at: tag.starts_at,
+            ends_at: tag.ends_at,
+            is_unlocked: !!userTag,
+            unlocked_at: userTag?.unlocked_at,
+            is_currently_active: isCurrentlyActive
+          };
+        })
+        // Só entra na lista exibida se: já foi conquistada (sempre visível
+        // depois disso, prazo ou não) OU ainda está dentro do prazo pra
+        // quem ainda não tem.
+        .filter(tag => tag.is_unlocked || tag.is_currently_active);
 
       setSpecialTags(tagsWithStatus);
     } catch (error) {
@@ -1304,10 +1322,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       key={tag.id}
                       className={`relative group rounded-2xl border ${
                         tag.is_unlocked
-                          ? 'border-red-800/50 dark:border-red-700/40 bg-red-900/[0.06] dark:bg-red-900/20'
-                          : 'border-red-200/50 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20'
+                          ? 'border-gray-800/50 dark:border-gray-600/40 bg-gray-900/[0.06] dark:bg-gray-900/20'
+                          : 'border-gray-300/50 dark:border-gray-700/50 bg-gray-100/50 dark:bg-gray-800/20'
                       } p-4 transition-all duration-200 backdrop-blur-sm ${
-                        tag.is_unlocked ? 'hover:border-red-700/70 dark:hover:border-red-600/50' : ''
+                        tag.is_unlocked ? 'hover:border-gray-700/70 dark:hover:border-gray-500/50' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between">
@@ -1328,11 +1346,19 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                           <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
                             {tag.requirement_description}
                           </p>
-                          {tag.ends_at && (
+                          {tag.ends_at && tag.is_currently_active && (
                             <div className="mt-2 flex items-center gap-1.5 text-xs">
                               <Clock className="w-3.5 h-3.5 text-amber-500" />
                               <span className="text-amber-600 dark:text-amber-400 font-medium">
                                 {formatTimeRemaining(tag.ends_at)}
+                              </span>
+                            </div>
+                          )}
+                          {tag.ends_at && !tag.is_currently_active && tag.is_unlocked && (
+                            <div className="mt-2 flex items-center gap-1.5 text-xs">
+                              <Sparkles className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                              <span className="text-gray-500 dark:text-gray-400 font-medium">
+                                {t('customize.tags.permanentlyEarned')}
                               </span>
                             </div>
                           )}
@@ -1361,8 +1387,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         )}
                       </div>
                       {tag.is_unlocked && (
-                        <div className="mt-3 h-1.5 bg-red-200 dark:bg-red-900/40 rounded-full overflow-hidden">
-                          <div className="h-full w-full rounded-full bg-gradient-to-r from-red-700 to-red-950 dark:from-red-600 dark:to-red-400" />
+                        <div className="mt-3 h-1.5 bg-gray-200 dark:bg-gray-800/40 rounded-full overflow-hidden">
+                          <div className="h-full w-full rounded-full bg-gradient-to-r from-gray-800 to-black dark:from-gray-500 dark:to-gray-300" />
                         </div>
                       )}
                     </div>
