@@ -319,7 +319,7 @@ export default function UserProfile() {
       case 'oracle':
         return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400';
       case 'special':
-        return 'bg-red-900 dark:bg-red-900/60 text-white dark:text-red-100';
+        return 'bg-gray-900 dark:bg-gray-800 text-white dark:text-gray-100';
       default:
         return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
     }
