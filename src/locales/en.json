@@ -721,6 +721,7 @@
     },
     "tags": {
       "use": "Use",
+      "permanentlyEarned": "Permanently earned",
       "active": "Active",
       "limitedTime": "Limited-time and seasonal tags",
       "noSpecialTags": "No special tags available at the moment",
