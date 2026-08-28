@@ -197,6 +197,8 @@
   "library": {
     "title": "Minha Biblioteca",
     "addMovies": "Adicionar Filmes",
+    "movieRemoved": "Deseja realmente excluir esse filme da biblioteca?",
+    "movieRemovedSuccess": "Filme removido da biblioteca com sucesso",
     "createList": "Criar Lista",
     "watchList": "Watch List",
     "noMovies": "Nenhum filme ainda",
