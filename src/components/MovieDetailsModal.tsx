@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play, ChevronRight, AlertCircle } from 'lucide-react';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB } from '../lib/tmdb';
@@ -1053,17 +1052,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // usam motion.div como wrapper raiz) e não em outras.
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="relative w-full max-w-4xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-xl overflow-y-auto max-h-[calc(100vh-5rem)]" style={{ zIndex: 10 }}>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="relative w-full max-w-4xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-xl transform transition-all overflow-y-auto max-h-[calc(100vh-5rem)]" style={{ zIndex: 10 }}>
           <div className="sticky top-0 z-20 flex justify-end p-3">
             <button
               onClick={onClose}
@@ -1587,7 +1577,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               </div>
             )}
           </div>
-        </motion.div>
+        </div>
 
       <RecommendModal
         isOpen={showRecommendModal}
