@@ -39,7 +39,7 @@ const getGlowColor = (val: number) => {
   return 'rgba(255, 0, 127, 0.8)';
 };
 
-const RATING_LABELS: Record<number, { pt: string; en: string }> = {
+export const RATING_LABELS: Record<number, { pt: string; en: string }> = {
   10: { pt: 'Obra-Prima', en: 'Masterpiece' },
   9: { pt: 'Excepcional', en: 'Exceptional' },
   8: { pt: 'Ótimo', en: 'Great' },
