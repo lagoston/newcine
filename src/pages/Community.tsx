@@ -496,7 +496,7 @@ export default function Community() {
                             : profile.active_tag.category === 'oracle'
                             ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
                             : profile.active_tag.category === 'special'
-                            ? 'bg-red-900 dark:bg-red-900/60 text-white dark:text-red-100'
+                            ? 'bg-black dark:bg-black text-white dark:text-gray-100'
                             : 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400'
                         }`}>
                           <span>{profile.active_tag.emoji}</span>
