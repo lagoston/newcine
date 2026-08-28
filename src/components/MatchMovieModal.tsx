@@ -335,7 +335,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
                         type="button"
                         onClick={() => handleRemoveParticipant(p.id)}
                         style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px', padding: 0, boxSizing: 'border-box', flexShrink: 0 }}
-                        className="absolute -top-1 -right-1 rounded-full bg-red-500 border border-white dark:border-gray-900 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-10"
+                        className="absolute top-0 right-0 rounded-full bg-red-500 border border-white dark:border-gray-900 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-10"
                       >
                         <X style={{ width: '9px', height: '9px' }} className="text-white" strokeWidth={3} />
                       </button>
@@ -362,7 +362,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
               const slot3 = bubbleParticipants[3]; // Opcional
 
               return (
-                <div className="flex items-center justify-center gap-2 mb-6 pt-3">
+                <div className="flex items-center justify-center gap-2 mb-6 pt-6">
                   {/* Grupo esquerdo: opcional (deslocado pra cima) + principal */}
                   <div className="flex items-end gap-2">
                     <div className="-translate-y-2">
