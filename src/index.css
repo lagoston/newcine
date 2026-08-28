@@ -768,36 +768,84 @@ img[loading="lazy"] {
   animation: text-reveal 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Enhanced scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+/* Enhanced scrollbar — agora só desktop/tablet. No mobile, TODA barra de
+   rolagem fica escondida por padrão (página bruta, modais, qualquer
+   container com overflow) — inclusive em navegadores Android/webviews
+   baseados em Chromium, que às vezes mostram a barra nativa mesmo em
+   telas pequenas, diferente do padrão mais discreto do iOS Safari. */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(243, 244, 246, 0.5);
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background: rgba(31, 41, 55, 0.5);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 5px;
+    transition: background 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.7);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.7);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(243, 244, 246, 0.5);
+@media (max-width: 767px) {
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-.dark ::-webkit-scrollbar-track {
-  background: rgba(31, 41, 55, 0.5);
+/* Classe única pra reativar uma barra fina e discreta, consistente com o
+   design do site — pra usar em casos ESPECÍFICOS onde a indicação visual
+   de rolagem realmente ajuda (dropdowns longos, listas dentro de modais,
+   etc.), inclusive no mobile, mesmo com a regra acima escondendo tudo por
+   padrão. Tem especificidade maior que a regra de "esconder tudo" do
+   mobile, então sobrescreve corretamente quando aplicada. */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
-
-::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(156, 163, 175, 0.5);
-  border-radius: 5px;
-  transition: background 0.3s ease;
+  border-radius: 999px;
 }
-
-::-webkit-scrollbar-thumb:hover {
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(107, 114, 128, 0.7);
 }
-
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(75, 85, 99, 0.5);
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.6);
 }
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(107, 114, 128, 0.7);
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.8);
 }
 
 /* Friend rating bubbles animation */
@@ -1165,4 +1213,3 @@ img[loading="lazy"] {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(37, 99, 235, 0.05)) !important;
   border-color: rgba(59, 130, 246, 0.35) !important;
 }
-
