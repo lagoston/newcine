@@ -1587,7 +1587,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
 
       <RecommendModal
         isOpen={showRecommendModal}
@@ -1827,7 +1827,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               )}
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {showReviewsModal && (
