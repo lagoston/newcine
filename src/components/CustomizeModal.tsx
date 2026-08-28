@@ -72,7 +72,7 @@ const getTagColorClasses = (category: string) => {
     case 'oracle':
       return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400';
     case 'special':
-      return 'bg-gray-900 dark:bg-gray-800 text-white dark:text-gray-100';
+      return 'bg-black dark:bg-black text-white dark:text-gray-100';
     default:
       return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
   }
@@ -98,8 +98,8 @@ const getCategoryButtonStyle = (isActive: boolean, category: string) => {
         : 'bg-pink-600 text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600';
     case 'special':
       return isActive
-        ? 'bg-gray-800 text-white dark:bg-gray-700 dark:text-gray-100'
-        : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700';
+        ? 'bg-black text-white dark:bg-gray-800 dark:text-gray-100'
+        : 'bg-black text-white hover:bg-gray-900 dark:bg-black dark:hover:bg-gray-900';
     default:
       return isActive
         ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
@@ -1322,10 +1322,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       key={tag.id}
                       className={`relative group rounded-2xl border ${
                         tag.is_unlocked
-                          ? 'border-gray-800/50 dark:border-gray-600/40 bg-gray-900/[0.06] dark:bg-gray-900/20'
+                          ? 'border-black/50 dark:border-gray-500/40 bg-black/[0.06] dark:bg-black/20'
                           : 'border-gray-300/50 dark:border-gray-700/50 bg-gray-100/50 dark:bg-gray-800/20'
                       } p-4 transition-all duration-200 backdrop-blur-sm ${
-                        tag.is_unlocked ? 'hover:border-gray-700/70 dark:hover:border-gray-500/50' : ''
+                        tag.is_unlocked ? 'hover:border-black/70 dark:hover:border-gray-400/50' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between">
@@ -1388,7 +1388,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       </div>
                       {tag.is_unlocked && (
                         <div className="mt-3 h-1.5 bg-gray-200 dark:bg-gray-800/40 rounded-full overflow-hidden">
-                          <div className="h-full w-full rounded-full bg-gradient-to-r from-gray-800 to-black dark:from-gray-500 dark:to-gray-300" />
+                          <div className="h-full w-full rounded-full bg-black dark:bg-gray-300" />
                         </div>
                       )}
                     </div>
@@ -1408,7 +1408,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[100]"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
           onClick={onClose}
         />
         <div className="flex min-h-full items-start justify-center p-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-8 relative z-[101]">
@@ -1417,7 +1417,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="relative w-full max-w-4xl max-h-[calc(100dvh-env(safe-area-inset-top)-4rem)] flex flex-col bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-2xl transform transition-all backdrop-blur-xl border border-white/20 dark:border-gray-700/50 overflow-hidden"
+            className="relative w-full max-w-4xl max-h-[calc(100dvh-env(safe-area-inset-top)-4rem)] flex flex-col bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20 dark:border-gray-700/50 overflow-hidden"
           >
             <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50">
               <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400">
