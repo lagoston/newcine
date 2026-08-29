@@ -196,7 +196,7 @@
 },
   "library": {
     "title": "Minha Biblioteca",
-    "randomMovie": "Filme Aleatório"
+    "randomMovie": "Filme Aleatório",
     "movieRemoved": "Deseja realmente excluir esse filme da biblioteca?",
     "movieRemovedSuccess": "Filme removido da biblioteca com sucesso",
     "addMovies": "Adicionar Filmes",
