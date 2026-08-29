@@ -142,9 +142,9 @@
       "openLibrary": "Abrir",
       "nextTag": "Próxima Tag",
       "allTagsUnlocked": "Todas as tags desbloqueadas!",
-      "dailyRecommendation": "Recomendação do Dia",
+      "dailyRecommendation": "Recomendações do Dia",
       "noRecommendationToday": "Nenhuma recomendação disponível hoje",
-      "anotherRecommendation": "Outra Recomendação",
+      "anotherRecommendation": "Outras Recomendações...",
       "yourLists": "Suas listas",
       "openLists": "Abrir",
       "watchlistDuel": "Duelo de Watchlist",
@@ -196,6 +196,7 @@
 },
   "library": {
     "title": "Minha Biblioteca",
+    "randomMovie": "Filme Aleatório"
     "movieRemoved": "Deseja realmente excluir esse filme da biblioteca?",
     "movieRemovedSuccess": "Filme removido da biblioteca com sucesso",
     "addMovies": "Adicionar Filmes",
