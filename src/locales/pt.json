@@ -481,6 +481,8 @@
   },
   "profile": {
     "followers": "{{count}} seguidores",
+    "tagPins": "Pins de Tags",
+    "noTagPins": "Nenhum pin desbloqueado ainda.",
     "friendsActivitySubtitle": "{{count}} amigos que você segue",
     "noFriendsActivityTitle": "Nenhuma atividade ainda",
     "noFriendsActivityDescription": "Siga pessoas na comunidade para ver aqui o que elas estão assistindo e avaliando.",
