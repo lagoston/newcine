@@ -17,6 +17,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <title>CineOracle</title>
+    <style>
+      /* CSS crítico — define a cor de fundo ANTES de qualquer JavaScript
+         carregar. Sem isso, o <div id="root"> fica vazio até o React
+         montar, e o navegador mostra o branco padrão nesse meio-tempo —
+         é o "flash" na abertura do app, mais perceptível em modo escuro
+         (branco piscando antes do tema escuro real aparecer). */
+      html, body {
+        background-color: #ffffff;
+      }
+      @media (prefers-color-scheme: dark) {
+        html, body {
+          background-color: #111111;
+        }
+      }
+    </style>
     <!-- Ensure proper routing in production -->
     <script>
       // Single Page Apps for GitHub Pages/Netlify
