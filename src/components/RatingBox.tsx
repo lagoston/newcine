@@ -35,6 +35,16 @@ interface RatingBoxProps {
   onDuelClick?: () => void;
 }
 
+// Mesma faixa de cores do slider de avaliação (RatingSliderSheet) — pílula
+// do nome da nota no cabeçalho da caixa usa a identidade visual idêntica,
+// com destaque especial holográfico/rosa pra nota 10.
+const getRatingPillClasses = (rating: number): string => {
+  if (rating === 10) return 'text-pink-600 dark:text-pink-300 border-pink-400/50 dark:border-pink-500/40 bg-pink-500/10 dark:bg-pink-500/20';
+  if (rating >= 7) return 'text-green-700 dark:text-green-300 border-green-400/50 dark:border-green-500/40 bg-green-500/10 dark:bg-green-500/20';
+  if (rating >= 4) return 'text-amber-700 dark:text-amber-300 border-amber-400/50 dark:border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/20';
+  return 'text-red-700 dark:text-red-300 border-red-400/50 dark:border-red-500/40 bg-red-500/10 dark:bg-red-500/20';
+};
+
 const RatingBox: React.FC<RatingBoxProps> = ({
   title,
   movies,
@@ -132,49 +142,65 @@ const RatingBox: React.FC<RatingBoxProps> = ({
         backgroundSize: '24px 24px'
       }}></div>
 
-      {/* Header da seção */}
+      {/* Header da seção — tudo numa linha horizontal só, alinhado com a
+          barrinha colorida que marca o início do bloco: estrela+nota,
+          nome (com a mesma borda/estética de pílula do slider de
+          avaliação), contagem de filmes, e o botão "Ver" à direita. Antes,
+          a nota+estrela ficavam em uma linha, a contagem de filmes numa
+          linha própria embaixo, e o nome flutuava solto do outro lado —
+          três elementos relacionados desalinhados entre si. */}
       <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
-        <div className="flex items-center gap-3">
-          <div className={`h-12 w-1.5 rounded-full ${
+        <div className="flex items-center gap-3 flex-wrap min-w-0">
+          <div className={`self-stretch w-1.5 rounded-full flex-shrink-0 ${
             isOneGridTv
               ? 'bg-gradient-to-b from-blue-400 via-blue-500 to-blue-700'
               : hasTvSeries
               ? 'bg-gradient-to-b from-purple-500 via-purple-600 to-purple-700'
               : 'bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500'
           }`}></div>
-          <div>
-            <h3 className={`text-2xl sm:text-3xl font-bold text-transparent bg-clip-text pb-1 leading-relaxed flex items-center ${
+
+          {rating !== null && !isOneGrid && (
+            <span className={`flex items-center text-xl sm:text-2xl font-bold text-transparent bg-clip-text flex-shrink-0 ${
               isOneGridTv
                 ? 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 dark:from-blue-400 dark:via-blue-300 dark:to-blue-400'
                 : hasTvSeries
                 ? 'bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400'
                 : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400'
             }`}>
-              {rating !== null && !isOneGrid && (
-                <Star className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-500 fill-yellow-500 mr-2" />
-              )}
-              <span>
-                {isOneGrid ? title : (rating !== null ? rating : title)}
-              </span>
-            </h3>
-            <div className={`mt-1 inline-flex items-center text-xs font-semibold backdrop-blur-sm px-3 py-1 rounded-lg ${
+              <Star className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 fill-yellow-500 mr-1.5" />
+              {rating}
+            </span>
+          )}
+          {isOneGrid && (
+            <span className={`text-xl sm:text-2xl font-bold text-transparent bg-clip-text flex-shrink-0 ${
               isOneGridTv
-                ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 dark:from-blue-500/30 dark:to-blue-600/30 border border-blue-500/30 text-blue-700 dark:text-blue-300'
+                ? 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 dark:from-blue-400 dark:via-blue-300 dark:to-blue-400'
                 : hasTvSeries
-                ? 'bg-gradient-to-r from-purple-500/20 to-purple-600/20 dark:from-purple-500/30 dark:to-purple-600/30 border border-purple-500/30 text-purple-700 dark:text-purple-300'
-                : 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300'
+                ? 'bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400'
+                : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400'
             }`}>
-              <Film className="w-3 h-3 mr-1.5" />
-              {movies.length} {movies.length === 1 ? t('community.film') : t('community.films')}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+              {title}
+            </span>
+          )}
+
           {rating !== null && !isOneGrid && RATING_LABELS[rating] && (
-            <span className="hidden sm:inline text-sm font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
+            <span className={`text-xs sm:text-sm font-medium px-3 py-1 rounded-full border backdrop-blur-sm whitespace-nowrap ${getRatingPillClasses(rating)}`}>
               {isPt ? RATING_LABELS[rating].pt : RATING_LABELS[rating].en}
             </span>
           )}
+
+          <div className={`inline-flex items-center text-xs font-semibold backdrop-blur-sm px-3 py-1 rounded-lg whitespace-nowrap ${
+            isOneGridTv
+              ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 dark:from-blue-500/30 dark:to-blue-600/30 border border-blue-500/30 text-blue-700 dark:text-blue-300'
+              : hasTvSeries
+              ? 'bg-gradient-to-r from-purple-500/20 to-purple-600/20 dark:from-purple-500/30 dark:to-purple-600/30 border border-purple-500/30 text-purple-700 dark:text-purple-300'
+              : 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300'
+          }`}>
+            <Film className="w-3 h-3 mr-1.5" />
+            {movies.length} {movies.length === 1 ? t('community.film') : t('community.films')}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
           {isNotRated && onDuelClick && (
             <button
               onClick={onDuelClick}
