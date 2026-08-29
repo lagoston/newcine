@@ -301,7 +301,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
           >
             <button
               onClick={handleClose}
-              className="absolute top-4 right-4 p-2 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-full transition-colors z-10"
+              className="absolute top-3 right-3 p-2 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-full transition-colors z-20"
             >
               <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             </button>
@@ -334,9 +334,10 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
                       <button
                         type="button"
                         onClick={() => handleRemoveParticipant(p.id)}
-                        className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 border border-white dark:border-gray-900 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-10"
+                        style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px', padding: 0, boxSizing: 'border-box', flexShrink: 0 }}
+                        className="absolute top-0 right-0 rounded-full bg-red-500 border border-white dark:border-gray-900 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-10"
                       >
-                        <X className="w-2 h-2 text-white" strokeWidth={3} />
+                        <X style={{ width: '9px', height: '9px' }} className="text-white" strokeWidth={3} />
                       </button>
                     )}
                   </div>
@@ -361,7 +362,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
               const slot3 = bubbleParticipants[3]; // Opcional
 
               return (
-                <div className="flex items-center justify-center gap-2 mb-6">
+                <div className="flex items-center justify-center gap-2 mb-6 pt-6">
                   {/* Grupo esquerdo: opcional (deslocado pra cima) + principal */}
                   <div className="flex items-end gap-2">
                     <div className="-translate-y-2">
