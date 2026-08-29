@@ -170,6 +170,11 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {rating !== null && !isOneGrid && RATING_LABELS[rating] && (
+            <span className="hidden sm:inline text-sm font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
+              {isPt ? RATING_LABELS[rating].pt : RATING_LABELS[rating].en}
+            </span>
+          )}
           {isNotRated && onDuelClick && (
             <button
               onClick={onDuelClick}
@@ -182,7 +187,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           )}
           <button
             onClick={() => setShowAllMovies(true)}
-            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-300 whitespace-nowrap shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition-all duration-300 whitespace-nowrap shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
           >
             <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
             <span className="hidden sm:inline">{t('common.view_all')}</span>
@@ -254,19 +259,14 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 <h4 className="text-xs font-medium text-gray-900 dark:text-white line-clamp-1">
                   {movie.title}
                 </h4>
-                <div className="flex items-center justify-between mt-0.5 gap-1">
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate min-w-0">
+                <div className="flex items-center justify-between mt-0.5">
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400">
                     {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}
                   </p>
                   {!isNotRated && movie.userRating !== null && (
-                    <div className="bg-black/30 dark:bg-black/50 rounded px-1 py-0.5 flex items-center gap-0.5 flex-shrink-0 max-w-full">
-                      <Star className="w-3 h-3 text-yellow-400 fill-current flex-shrink-0" />
-                      <span className="text-white text-[10px] flex-shrink-0">{movie.userRating}</span>
-                      {RATING_LABELS[movie.userRating] && (
-                        <span className="text-white/80 text-[9px] truncate">
-                          {isPt ? RATING_LABELS[movie.userRating].pt : RATING_LABELS[movie.userRating].en}
-                        </span>
-                      )}
+                    <div className="bg-black/30 dark:bg-black/50 rounded px-1 py-0.5 flex items-center">
+                      <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                      <span className="text-white text-[10px] ml-0.5">{movie.userRating}</span>
                     </div>
                   )}
                 </div>
