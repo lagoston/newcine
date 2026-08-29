@@ -171,8 +171,17 @@ const RatingBox: React.FC<RatingBoxProps> = ({
               {rating}
             </span>
           )}
-          {isOneGrid && (
-            <span className={`text-xl sm:text-2xl font-bold text-transparent bg-clip-text flex-shrink-0 ${
+          {/* Título em texto — usado tanto pra isOneGrid (ex: "Séries
+              Assistidas") quanto pra caixas sem nota nenhuma como a
+              Watchlist (rating null, isOneGrid false). Antes, só existiam
+              casos pra "tem nota" ou "isOneGrid" — a Watchlist não batia
+              em nenhum dos dois, então o título simplesmente sumia. Fonte
+              um pouco menor que o número de nota (que é só 1-2
+              caracteres) porque um título por extenso ocupa bem mais
+              espaço horizontal — sem isso, o badge de contagem de filmes
+              ficava sem espaço na mesma linha e quebrava pra baixo. */}
+          {(isOneGrid || rating === null) && (
+            <span className={`text-lg sm:text-xl font-bold text-transparent bg-clip-text flex-shrink-0 ${
               isOneGridTv
                 ? 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 dark:from-blue-400 dark:via-blue-300 dark:to-blue-400'
                 : hasTvSeries
