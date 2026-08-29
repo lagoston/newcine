@@ -15,6 +15,7 @@ import WorldMapCard from '../components/WorldMapCard';
 import AllMoviesModal from '../components/AllMoviesModal';
 import SettingsModal from '../components/SettingsModal';
 import PersonasModal from '../components/PersonasModal';
+import TagPinsModal from '../components/TagPinsModal';
 import PersonaShareModal from '../components/PersonaShareModal';
 import { toast } from 'sonner';
 import { getFrameClass } from '../lib/frames';
@@ -173,6 +174,7 @@ export default function Profile() {
   const [showEssenceRevelation, setShowEssenceRevelation] = useState(false);
   const [showEssenceInfo, setShowEssenceInfo] = useState(false);
   const [showPersonasModal, setShowPersonasModal] = useState(false);
+  const [showTagPinsModal, setShowTagPinsModal] = useState(false);
   const [showPersonaShare, setShowPersonaShare] = useState(false);
   const [showRetakeQuizModal, setShowRetakeQuizModal] = useState(false);
 
@@ -897,6 +899,13 @@ export default function Profile() {
                         <Palette className="w-5 h-5 mr-2" />
                         {t('profile.customize')}
                       </button>
+                      <button
+                        onClick={() => setShowTagPinsModal(true)}
+                        className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-colors flex items-center shadow-lg"
+                      >
+                        <Tag className="w-5 h-5 mr-2" />
+                        {t('profile.tagPins', { defaultValue: 'Tag Pins' })}
+                      </button>
                       {!isPremium && (
                         <button
                           onClick={() => navigate('/premium')}
@@ -966,6 +975,12 @@ export default function Profile() {
                           className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-colors flex items-center justify-center shadow-lg"
                         >
                           <Palette className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => setShowTagPinsModal(true)}
+                          className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-colors flex items-center justify-center shadow-lg"
+                        >
+                          <Tag className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => setShowSettingsModal(true)}
@@ -1545,6 +1560,14 @@ export default function Profile() {
           viewerId={session.user.id}
           viewerPersonaCode={essencePersonality?.personalidade_completa ?? null}
           onUserClick={(uname) => navigate(`/profile/${uname}`)}
+        />
+      )}
+
+      {session?.user?.id && (
+        <TagPinsModal
+          isOpen={showTagPinsModal}
+          onClose={() => setShowTagPinsModal(false)}
+          userId={session.user.id}
         />
       )}
 
