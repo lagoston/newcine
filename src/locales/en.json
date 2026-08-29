@@ -198,8 +198,6 @@
   "library": {
     "title": "My Library",
     "addMovies": "Add Movies",
-    "movieRemoved": "Are you sure you want to delete this movie from your library?",
-    "movieRemovedSuccess": "Movie removed from library",
     "createList": "Create List",
     "watchList": "Watch List",
     "noMovies": "No movies yet",

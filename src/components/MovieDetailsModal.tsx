@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play, ChevronRight, AlertCircle } from 'lucide-react';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB } from '../lib/tmdb';
@@ -12,7 +11,6 @@ import { cache, CACHE_KEYS } from '../lib/cache';
 import RecommendModal from './RecommendModal';
 import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
-import ConfirmationModal from './ConfirmationModal';
 import html2canvas from 'html2canvas';
 
 interface FriendRating {
@@ -64,7 +62,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [seasons, setSeasons] = useState<any[]>(movie.seasons || []);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [trailerKey, setTrailerKey] = useState<string | null | undefined>(undefined);
   const [loadingTrailer, setLoadingTrailer] = useState(false);
@@ -800,33 +797,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   };
 
-  const handleRemoveFromLibrary = async () => {
-    if (!session?.user?.id) return;
-
-    const mediaType = movie.media_type || 'movie';
-
-    const { error } = await supabase
-      .from('user_movies')
-      .delete()
-      .eq('movie_id', movie.id)
-      .eq('media_type', mediaType)
-      .eq('user_id', session.user.id);
-
-    if (error) {
-      console.error('Error removing from library:', error);
-      toast.error(t('common.error'));
-      return;
-    }
-
-    setIsInLibrary(false);
-    cache.invalidate(CACHE_KEYS.USER_LIBRARY(session.user.id));
-    cache.invalidatePattern('stats:');
-    toast.success(t('library.movieRemovedSuccess'));
-    if (onAddToLibrary) {
-      onAddToLibrary();
-    }
-  };
-
   if (!isOpen) return null;
 
   const hasStreamingProviders = movie.watchProviders?.flatrate && movie.watchProviders.flatrate.length > 0;
@@ -1082,17 +1052,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // usam motion.div como wrapper raiz) e não em outras.
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="relative w-full max-w-4xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-xl overflow-y-auto max-h-[calc(100vh-5rem)]" style={{ zIndex: 10 }}>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="relative w-full max-w-4xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-xl transform transition-all overflow-y-auto max-h-[calc(100vh-5rem)]" style={{ zIndex: 10 }}>
           <div className="sticky top-0 z-20 flex justify-end p-3">
             <button
               onClick={onClose}
@@ -1601,12 +1562,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       {t('library.addToLibrary')}
                     </button>
                   ) : (
-                    <button
-                      onClick={() => setShowDeleteConfirmation(true)}
-                      className="px-4 py-3 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-center font-medium flex items-center justify-center text-sm shadow-md hover:bg-green-200 dark:hover:bg-green-900/40 transition-colors"
-                    >
+                    <div className="px-4 py-3 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-center font-medium flex items-center justify-center text-sm shadow-md">
                       <span>✓ {t('movies.inLibrary')}</span>
-                    </button>
+                    </div>
                   )}
                   <button
                     onClick={() => setShowReviewsModal(true)}
@@ -1619,7 +1577,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               </div>
             )}
           </div>
-        </motion.div>
+        </div>
 
       <RecommendModal
         isOpen={showRecommendModal}
@@ -1635,14 +1593,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         isOpen={showQuickAdd}
         onClose={() => setShowQuickAdd(false)}
         onAdd={handleAddToLibrary}
-      />
-
-      <ConfirmationModal
-        isOpen={showDeleteConfirmation}
-        onClose={() => setShowDeleteConfirmation(false)}
-        onConfirm={handleRemoveFromLibrary}
-        title={t('common.delete')}
-        message={t('library.movieRemoved')}
       />
 
       {showTrailerModal && (

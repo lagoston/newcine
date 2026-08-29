@@ -684,7 +684,7 @@ export default function Profile() {
       case 'oracle':
         return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400';
       case 'special':
-        return 'bg-black dark:bg-black text-white dark:text-gray-100';
+        return 'bg-red-900 dark:bg-red-900/60 text-white dark:text-red-100';
       default:
         return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
     }
