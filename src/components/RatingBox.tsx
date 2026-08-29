@@ -42,7 +42,13 @@ const getRatingPillClasses = (rating: number): string => {
   if (rating === 10) return 'text-pink-600 dark:text-pink-300 border-pink-400/50 dark:border-pink-500/40 bg-pink-500/10 dark:bg-pink-500/20';
   if (rating >= 7) return 'text-green-700 dark:text-green-300 border-green-400/50 dark:border-green-500/40 bg-green-500/10 dark:bg-green-500/20';
   if (rating >= 4) return 'text-amber-700 dark:text-amber-300 border-amber-400/50 dark:border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/20';
-  return 'text-red-700 dark:text-red-300 border-red-400/50 dark:border-red-500/40 bg-red-500/10 dark:bg-red-500/20';
+  if (rating >= 1) return 'text-red-700 dark:text-red-300 border-red-400/50 dark:border-red-500/40 bg-red-500/10 dark:bg-red-500/20';
+  // Nota 0 é um caso especial no card (chroma-box-glitch, cinza escuro/
+  // preto — não vermelho). A pílula do nome segue a MESMA cor real do
+  // card, não o contrário — antes eu tinha feito o card mudar pra
+  // vermelho só pra bater com a pílula, só que era a pílula que estava
+  // errada, não o card original.
+  return 'text-gray-700 dark:text-gray-300 border-gray-400/50 dark:border-gray-500/40 bg-gray-500/10 dark:bg-gray-500/20';
 };
 
 const RatingBox: React.FC<RatingBoxProps> = ({
@@ -117,8 +123,10 @@ const RatingBox: React.FC<RatingBoxProps> = ({
       return 'chroma-box-green';
     } else if (rating >= 4 && rating <= 6) {
       return 'chroma-box-yellow';
-    } else if (rating >= 0 && rating <= 3) {
+    } else if (rating >= 1 && rating <= 3) {
       return 'chroma-box-red';
+    } else if (rating === 0) {
+      return 'chroma-box-glitch';
     }
     return '';
   };
@@ -148,7 +156,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           linha própria embaixo, e o nome flutuava solto do outro lado —
           três elementos relacionados desalinhados entre si. */}
       <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
-        <div className="flex items-center gap-3 flex-nowrap min-w-0">
+        <div className={`flex items-center gap-3 min-w-0 ${isNotRated ? 'flex-wrap' : 'flex-nowrap'}`}>
           <div className={`self-stretch w-1.5 rounded-full flex-shrink-0 ${
             isOneGridTv
               ? 'bg-gradient-to-b from-blue-400 via-blue-500 to-blue-700'
@@ -204,7 +212,10 @@ const RatingBox: React.FC<RatingBoxProps> = ({
               : 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300'
           }`}>
             <Film className="w-3 h-3 mr-1.5" />
-            {movies.length} {movies.length === 1 ? t('community.film') : t('community.films')}
+            {movies.length}
+            <span className="hidden sm:inline ml-1">
+              {movies.length === 1 ? t('community.film') : t('community.films')}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
