@@ -117,10 +117,8 @@ const RatingBox: React.FC<RatingBoxProps> = ({
       return 'chroma-box-green';
     } else if (rating >= 4 && rating <= 6) {
       return 'chroma-box-yellow';
-    } else if (rating >= 1 && rating <= 3) {
+    } else if (rating >= 0 && rating <= 3) {
       return 'chroma-box-red';
-    } else if (rating === 0) {
-      return 'chroma-box-glitch';
     }
     return '';
   };
@@ -150,7 +148,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           linha própria embaixo, e o nome flutuava solto do outro lado —
           três elementos relacionados desalinhados entre si. */}
       <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
-        <div className="flex items-center gap-3 flex-wrap min-w-0">
+        <div className="flex items-center gap-3 flex-nowrap min-w-0">
           <div className={`self-stretch w-1.5 rounded-full flex-shrink-0 ${
             isOneGridTv
               ? 'bg-gradient-to-b from-blue-400 via-blue-500 to-blue-700'
@@ -181,7 +179,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
               espaço horizontal — sem isso, o badge de contagem de filmes
               ficava sem espaço na mesma linha e quebrava pra baixo. */}
           {(isOneGrid || rating === null) && (
-            <span className={`text-lg sm:text-xl font-bold text-transparent bg-clip-text flex-shrink-0 ${
+            <span className={`text-lg sm:text-xl font-bold text-transparent bg-clip-text truncate min-w-0 ${
               isOneGridTv
                 ? 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 dark:from-blue-400 dark:via-blue-300 dark:to-blue-400'
                 : hasTvSeries
@@ -198,7 +196,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             </span>
           )}
 
-          <div className={`inline-flex items-center text-xs font-semibold backdrop-blur-sm px-3 py-1 rounded-lg whitespace-nowrap ${
+          <div className={`inline-flex items-center text-xs font-semibold backdrop-blur-sm px-3 py-1 rounded-lg whitespace-nowrap flex-shrink-0 ${
             isOneGridTv
               ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 dark:from-blue-500/30 dark:to-blue-600/30 border border-blue-500/30 text-blue-700 dark:text-blue-300'
               : hasTvSeries
