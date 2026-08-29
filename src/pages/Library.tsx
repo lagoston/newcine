@@ -482,17 +482,18 @@ export default function Library() {
             }}></div>
 
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="h-16 w-1.5 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-full"></div>
-                <div>
-                  <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 pb-1 leading-relaxed">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="self-stretch w-1.5 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-full flex-shrink-0"></div>
+                <div className="flex items-center gap-3 flex-nowrap min-w-0">
+                  <h1 className="text-2xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 truncate min-w-0">
                     {t('library.title')}
                   </h1>
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="inline-flex items-center text-sm font-semibold bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 backdrop-blur-sm border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-xl shadow-lg">
-                      <Film className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <span>{userMovies.length} {t('community.films')}</span>
-                    </div>
+                  <div className="inline-flex items-center text-sm font-semibold bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 backdrop-blur-sm border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-xl shadow-lg whitespace-nowrap flex-shrink-0">
+                    <Film className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span>
+                      {userMovies.length}
+                      <span className="hidden sm:inline ml-1">{t('community.films')}</span>
+                    </span>
                   </div>
                 </div>
               </div>
