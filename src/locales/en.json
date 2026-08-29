@@ -197,6 +197,8 @@
 },
   "library": {
     "title": "My Library",
+    "movieRemoved": "Are you sure you want to delete this movie from your library?",
+    "movieRemovedSuccess": "Movie removed from library",
     "addMovies": "Add Movies",
     "createList": "Create List",
     "watchList": "Watch List",
