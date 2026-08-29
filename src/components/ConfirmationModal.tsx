@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 interface ConfirmationModalProps {
@@ -10,51 +10,62 @@ interface ConfirmationModalProps {
   message: string;
 }
 
+// A prop `title` continua existindo pra não quebrar quem já chama esse
+// componente (RatingBox.tsx, MovieDetailsModal.tsx), mas não é mais
+// renderizada — ela sempre chegava com o mesmo texto do botão de
+// confirmar (ex: "Excluir"), duplicando a mesma palavra duas vezes na
+// tela: uma vez como título do cabeçalho, outra no botão. Só a
+// pergunta/mensagem e os dois botões (Cancelar/Confirmar) ficam agora.
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  title,
   message,
 }) => {
   const { t } = useTranslation();
-  
-  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full"
           >
-            <X className="w-5 h-5" />
-          </button>
+            <div className="p-5 pt-6">
+              <p className="text-gray-700 dark:text-gray-200">{message}</p>
+            </div>
+            <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={() => {
+                  onConfirm();
+                  onClose();
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 rounded-md transition-colors"
+              >
+                {t('common.delete')}
+              </button>
+            </div>
+          </motion.div>
         </div>
-        <div className="p-4">
-          <p className="text-gray-600 dark:text-gray-300">{message}</p>
-        </div>
-        <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 rounded-md transition-colors"
-          >
-            {t('common.delete')}
-          </button>
-        </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };
 
