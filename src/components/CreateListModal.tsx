@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Search, Loader2, Star } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Search, Loader2, Star, Film } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -32,12 +33,10 @@ export default function CreateListModal({ isOpen, onClose, onSuccess }: CreateLi
   const fetchUserMovies = async () => {
     try {
       setLoading(true);
-      console.log('Fetching user movies for list creation');
-      
-      // First, get the user's movie IDs and ratings
+
       const { data: userMovies, error: userMoviesError } = await supabase
         .from('user_movies')
-        .select('movie_id, rating')
+        .select('movie_id, media_type, rating')
         .eq('user_id', session?.user?.id)
         .order('created_at', { ascending: false });
 
@@ -50,56 +49,44 @@ export default function CreateListModal({ isOpen, onClose, onSuccess }: CreateLi
         return;
       }
 
-      console.log(`Found ${userMovies.length} movies in user library`);
+      const movieIds = userMovies.map((um) => um.movie_id);
 
-      // Then get the movie details for each movie ID
-      const movieDetailsPromises = userMovies.map(async (um) => {
-        try {
-          // First try to get from the movies table
-          const { data: movieData, error: movieError } = await supabase
-            .from('movies')
-            .select('*')
-            .eq('id', um.movie_id)
-            .single();
+      // Antes, cada filme da biblioteca disparava sua PRÓPRIA consulta
+      // individual (N+1) — com 200 filmes na biblioteca, isso significava
+      // 200 requisições separadas ao banco só pra abrir esse modal. Agora
+      // são só 2 consultas no total (uma pros metadados, uma pros
+      // pôsteres), buscando todos os filmes de uma vez com `.in()`.
+      const [moviesRes, cacheRes] = await Promise.all([
+        supabase.from('movies').select('id, title, release_date, genres, media_type').in('id', movieIds),
+        supabase.from('movie_cache').select('tmdb_id, media_type, poster_path').in('tmdb_id', movieIds)
+      ]);
 
-          if (movieError) throw movieError;
+      if (moviesRes.error) throw moviesRes.error;
 
-          console.log(`Successfully retrieved movie ${movieData.id} from database`);
-          
-          // Return movie with relevant data
-          return {
-            id: movieData.id,
-            title: movieData.title,
-            release_date: movieData.release_date || '',
-            poster_path: null, // Will be loaded from TMDB directly in the image tag
-            vote_average: 0,
-            overview: '',
-            userRating: um.rating,
-            genres: movieData.genres || []
-          };
-        } catch (error) {
-          console.error(`Error fetching details for movie ${um.movie_id}:`, error);
-          
-          // If we can't get from the database, return basic info
-          return {
-            id: um.movie_id,
-            title: `Movie ${um.movie_id}`,
-            release_date: '',
-            poster_path: null,
-            vote_average: 0,
-            overview: '',
-            userRating: um.rating
-          };
-        }
+      const movieDataMap = new Map(
+        (moviesRes.data || []).map((m: any) => [`${m.id}_${m.media_type}`, m])
+      );
+      const posterMap = new Map(
+        (cacheRes.data || []).map((c: any) => [`${c.tmdb_id}_${c.media_type}`, c.poster_path])
+      );
+
+      const validMovies = userMovies.map((um) => {
+        const mediaType = um.media_type || 'movie';
+        const key = `${um.movie_id}_${mediaType}`;
+        const movieData = movieDataMap.get(key);
+
+        return {
+          id: um.movie_id,
+          title: movieData?.title || `Movie ${um.movie_id}`,
+          release_date: movieData?.release_date || '',
+          poster_path: posterMap.get(key) || null,
+          vote_average: 0,
+          overview: '',
+          userRating: um.rating,
+          genres: movieData?.genres || []
+        };
       });
 
-      const movieDetails = await Promise.all(movieDetailsPromises);
-      
-      // Filter out any null results
-      const validMovies = movieDetails.filter(movie => movie !== null);
-      
-      console.log(`Successfully processed ${validMovies.length} movies for list creation`);
-      
       setAllLibraryMovies(validMovies);
       setRecentMovies(validMovies.slice(0, 10)); // Get 10 most recent movies
     } catch (error) {
@@ -199,19 +186,31 @@ export default function CreateListModal({ isOpen, onClose, onSuccess }: CreateLi
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={handleClose} />
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-xl shadow-xl transform transition-all">
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              {t('lists.createNew')}
-            </h2>
-            <button
-              onClick={handleClose}
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50"
+            onClick={handleClose}
+          />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-xl shadow-xl"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {t('lists.createNew')}
+                </h2>
+                <button
+                  onClick={handleClose}
               className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
             >
               <X className="w-6 h-6" />
@@ -271,6 +270,19 @@ export default function CreateListModal({ isOpen, onClose, onSuccess }: CreateLi
                           }`}
                           onClick={() => handleToggleMovie(movie.id)}
                         >
+                          <div className="w-9 h-[54px] flex-shrink-0 rounded overflow-hidden bg-gray-200 dark:bg-gray-700 mr-3">
+                            {movie.poster_path ? (
+                              <img
+                                src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
+                                alt={movie.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
+                                <Film className="w-4 h-4" />
+                              </div>
+                            )}
+                          </div>
                           <div className="flex-1">
                             <h3 className="font-medium text-gray-900 dark:text-white">
                               {movie.title}
@@ -343,8 +355,10 @@ export default function CreateListModal({ isOpen, onClose, onSuccess }: CreateLi
               )}
             </button>
           </div>
+            </motion.div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 }
