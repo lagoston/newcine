@@ -112,12 +112,13 @@ export const banners = {
   requiredTag: 'flux-capacitor-fan',
   className: [
     'relative overflow-hidden',
-    // Cor nativa do Tailwind (substitui o #020617 que não compilou)
-    'bg-slate-950',
-    'border border-cyan-400/40',
-    'shadow-[0_0_20px_rgba(56,189,248,0.2),inset_0_0_30px_rgba(249,115,22,0.25)]',
-    // Nova classe-mestra que injeta as animações via CSS sem depender do JIT
-    'bttf-magic',
+    // Fundo premium de fogo: Laranja intenso no meio, mais escuro e quente nas pontas
+    'bg-gradient-to-r from-orange-950 via-orange-600 to-red-950',
+    'border border-orange-400/60',
+    // Glow forte de brasas no interior do banner
+    'shadow-[inset_0_0_40px_rgba(234,88,12,0.8),0_0_15px_rgba(249,115,22,0.5)]',
+    // Classe para a nova física de calor e pulso temporal
+    'bttf-fire-magic',
   ].join(' '),
 },
   potter: {
