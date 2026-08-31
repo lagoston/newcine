@@ -96,22 +96,12 @@
   animation: slideUpFull 0.3s ease-out;
 }
 
-/* Gold Banner — brilhos esporádicos, como facetas de ouro pegando luz.
-   Antes (sweep), a keyframe nem existia de verdade — depois virou uma
-   barra varrendo, que ficou estranha (principalmente no mobile). Agora
-   são vários pontos de brilho fixos (definidos em banners.ts) com a
-   opacidade piscando em padrão irregular — os picos e vales em momentos
-   diferentes do ciclo (não uma onda suave/previsível) dão a sensação de
-   "esporádico" mesmo sendo uma única animação. */
+/* Gold Banner — um único brilho pequeno no canto, pulsando devagar.
+   Bem mais simples que as versões anteriores (barra varrendo, depois
+   vários pontos de brilho espalhados) — só um "shine" discreto. */
 @keyframes gold-banner-sweep {
-  0%, 100% { opacity: 0.15; }
-  8% { opacity: 0.9; }
-  18% { opacity: 0.25; }
-  34% { opacity: 0.8; }
-  47% { opacity: 0.15; }
-  60% { opacity: 1; }
-  73% { opacity: 0.3; }
-  86% { opacity: 0.7; }
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50% { opacity: 0.9; transform: scale(1); }
 }
 
 @keyframes float {
