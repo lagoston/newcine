@@ -19,9 +19,15 @@ export const banners = {
       // de dourado, borda fina e translúcida (mesma linguagem visual das
       // bordas glassmorphism já usadas no resto do site, só que no tom do
       // tema), sem padrão de grade repetitivo.
+      'bg-gradient-to-br from-neutral-950 via-[#1c1608] to-neutral-950',
+      'border border-amber-400/25',
+      'shadow-[0_0_35px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(251,191,36,0.15)]',
       // Brilho de canto sutil e estático — dá profundidade e um ponto
       // focal de luz, sem o excesso "gamer" do padrão de grade repetitivo
       // do design anterior.
+      'before:absolute before:inset-0',
+      'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
+      'before:pointer-events-none',
       // Brilho que aparece, atravessa e desaparece de verdade — técnica
       // de referência trazida pelo usuário (efeito de hover holográfico),
       // adaptada pra disparar sozinha a cada 5 segundos.
