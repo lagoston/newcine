@@ -28,15 +28,12 @@ export const banners = {
       'before:absolute before:inset-0',
       'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
       'before:pointer-events-none',
-      // Brilhos esporádicos, como facetas de ouro pegando luz em pontos
-      // diferentes — em vez da barra única varrendo de um lado a outro
-      // (que ficava estranha, principalmente no mobile). Vários pontos de
-      // brilho pequenos e fixos, com a opacidade piscando de forma
-      // irregular — só anima opacity (bem mais leve pro navegador
-      // recalcular que mover a posição de um gradiente).
-      'after:absolute after:inset-0',
-      'after:bg-[radial-gradient(circle_at_18%_25%,rgba(253,230,138,0.9),transparent_3%),radial-gradient(circle_at_72%_60%,rgba(253,230,138,0.8),transparent_2.5%),radial-gradient(circle_at_45%_82%,rgba(253,230,138,0.85),transparent_2.5%),radial-gradient(circle_at_88%_20%,rgba(253,230,138,0.7),transparent_2%),radial-gradient(circle_at_10%_68%,rgba(253,230,138,0.6),transparent_2%),radial-gradient(circle_at_58%_35%,rgba(253,230,138,0.75),transparent_2%)]',
-      'after:animate-[gold-banner-sweep_4s_ease-in-out_infinite]',
+      // Um único brilho pequeno e discreto no canto — bem mais simples
+      // que os pontos de brilho espalhados de antes, que ficaram
+      // carregados demais. Só um "shine" sutil pulsando devagar.
+      'after:absolute after:top-3 after:right-4 after:w-16 after:h-16',
+      'after:bg-[radial-gradient(circle,rgba(253,230,138,0.9),transparent_70%)]',
+      'after:animate-[gold-banner-sweep_3s_ease-in-out_infinite]',
       'after:pointer-events-none',
     ].join(' '),
   },
