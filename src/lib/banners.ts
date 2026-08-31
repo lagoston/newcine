@@ -7,46 +7,33 @@ export const banners = {
     className: ''
   },
   gold: {
-    id: 'gold',
-    name: 'Gold Banner',
-    isPremium: true,
-    requiredTag: null,
-    className: [
-      'relative overflow-hidden',
-      // Antes: fundo marrom/preto "queimado", borda grossa sólida amarela,
-      // padrão de grade decorativa — visual datado, tipo interface de jogo
-      // antigo. Agora: gradiente escuro sofisticado com um toque quente
-      // de dourado, borda fina e translúcida (mesma linguagem visual das
-      // bordas glassmorphism já usadas no resto do site, só que no tom do
-      // tema), sem padrão de grade repetitivo.
-      'bg-gradient-to-br from-neutral-950 via-[#594f17] to-neutral-950',
-      'border border-amber-400/25',
-      'shadow-[0_0_35px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(251,191,36,0.15)]',
-      // Brilho de canto sutil e estático — dá profundidade e um ponto
-      // focal de luz, sem o excesso "gamer" do padrão de grade repetitivo
-      // do design anterior.
-      'before:absolute before:inset-0',
-      'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
-      'before:pointer-events-none',
-      // Brilho que aparece, atravessa e desaparece de verdade — técnica
-      // de referência trazida pelo usuário (efeito de hover holográfico),
-      // adaptada pra disparar sozinha a cada 5 segundos.
-      //
-      // As duas tentativas anteriores (deslocar um elemento do tamanho do
-      // banner de um lado a outro) tinham um problema de fundo: mesmo com
-      // a posição correta, o brilho ficava sempre 100% visível enquanto
-      // se movia — só "saía" da view por posição, nunca por opacidade.
-      // Isso fazia parecer que ele "pendula" dentro do banner em vez de
-      // sumir de verdade. Essa técnica nova resolve isso combinando DUAS
-      // coisas ao mesmo tempo: o elemento sempre começa e termina com
-      // opacity:0 (genuinamente invisível, não só fora de posição), E se
-      // desloca diagonalmente enquanto isso acontece — ele desvanece
-      // ANTES mesmo de terminar o movimento, garantindo que "sumir" seja
-      // sempre visível de verdade, não dependente só de geometria.
-      'after:absolute after:-top-1/2 after:-left-1/2 after:w-[400%] after:h-[200%]',
-      'after:bg-[linear-gradient(0deg,transparent,transparent_40%,rgba(255,255,255,0.35))]',
-      'after:animate-[gold-banner-sweep_5s_ease-in-out_infinite]',
-      'after:pointer-events-none',
+  id: 'gold',
+  name: 'Gold Banner',
+  isPremium: true,
+  requiredTag: null,
+  className: [
+    'relative overflow-hidden',
+    
+    // Fundo e bordas (mantidos)
+    'bg-gradient-to-br from-neutral-950 via-[#594f17] to-neutral-950',
+    'border border-amber-400/25',
+    'shadow-[0_0_35px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(251,191,36,0.15)]',
+    
+    // Brilho de canto sutil e estático (mantido)
+    'before:absolute before:inset-0',
+    'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
+    'before:pointer-events-none',
+    
+    // 🌟 NOVO: Brilho Reluzente (Reflexo em Ouro)
+    // Reduzimos a largura para um feixe realista e focamos no gradiente central.
+    // O eixo e a inclinação agora são controlados 100% pelo keyframe para evitar
+    // conflitos de renderização no Tailwind.
+    'after:absolute after:top-0 after:left-0 after:h-full after:w-1/2',
+    'after:bg-gradient-to-r after:from-transparent after:via-white/40 after:to-transparent',
+    'after:pointer-events-none',
+    
+    // Aumentei para 6 segundos para dar um intervalo mais luxuoso entre os brilhos
+    'after:animate-[gold-shine_6s_ease-in-out_infinite]',
     ].join(' '),
   },
   matrix: {
