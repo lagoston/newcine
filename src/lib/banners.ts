@@ -13,18 +13,30 @@ export const banners = {
     requiredTag: null,
     className: [
       'relative overflow-hidden',
-      // base: deep burnished gold darkness
-      'bg-[radial-gradient(ellipse_at_60%_40%,#2d1e00,#1a0e00_60%,#0d0700)]',
-      'border-[3px] border-yellow-500',
-      'shadow-[0_0_0_1px_#fbbf24_inset,0_0_40px_rgba(245,158,11,0.45)]',
-      // ornamental gold grid lines
+      // Antes: fundo marrom/preto "queimado", borda grossa sólida amarela,
+      // padrão de grade decorativa — visual datado, tipo interface de jogo
+      // antigo. Agora: gradiente escuro sofisticado com um toque quente
+      // de dourado, borda fina e translúcida (mesma linguagem visual das
+      // bordas glassmorphism já usadas no resto do site, só que no tom do
+      // tema), sem padrão de grade repetitivo.
+      'bg-gradient-to-br from-neutral-950 via-[#1c1608] to-neutral-950',
+      'border border-amber-400/25',
+      'shadow-[0_0_35px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(251,191,36,0.15)]',
+      // Brilho de canto sutil e estático — dá profundidade e um ponto
+      // focal de luz, sem o excesso "gamer" do padrão de grade repetitivo
+      // do design anterior.
       'before:absolute before:inset-0',
-      'before:bg-[repeating-linear-gradient(90deg,transparent,transparent_79px,rgba(253,230,138,0.08)_79px,rgba(253,230,138,0.08)_80px),repeating-linear-gradient(0deg,transparent,transparent_39px,rgba(253,230,138,0.05)_39px,rgba(253,230,138,0.05)_40px)]',
+      'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
       'before:pointer-events-none',
-      // sweeping shimmer beam across the full width
+      // Linha de luz fina e lenta varrendo diagonalmente — mesmo
+      // princípio do "shimmer" anterior, mas com a keyframe DE VERDADE
+      // definida dessa vez (a animação antiga referenciava uma keyframe
+      // que nunca existiu no CSS — nunca se moveu, ficava sempre estática
+      // mesmo com a classe de animação aplicada).
       'after:absolute after:inset-0',
-      'after:bg-[linear-gradient(105deg,transparent_30%,rgba(253,230,138,0.25)_50%,transparent_70%)]',
-      'after:animate-[gold-banner-sweep_4s_ease-in-out_infinite]',
+      'after:bg-[linear-gradient(115deg,transparent_35%,rgba(253,230,138,0.14)_50%,transparent_65%)]',
+      'after:bg-[length:250%_250%]',
+      'after:animate-[gold-banner-sweep_5s_ease-in-out_infinite]',
       'after:pointer-events-none',
     ].join(' '),
   },
