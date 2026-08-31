@@ -45,7 +45,6 @@ export const banners = {
       // sempre visível de verdade, não dependente só de geometria.
       'after:absolute after:-top-1/2 after:-left-1/2 after:w-[200%] after:h-[200%]',
       'after:bg-[linear-gradient(0deg,transparent,transparent_40%,rgba(255,255,255,0.35))]',
-      'after:opacity-0',
       'after:animate-[gold-banner-sweep_5s_ease-in-out_infinite]',
       'after:pointer-events-none',
     ].join(' '),
