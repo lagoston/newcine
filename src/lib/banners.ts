@@ -28,16 +28,26 @@ export const banners = {
       'before:absolute before:inset-0',
       'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
       'before:pointer-events-none',
-      // Brilho diagonal deslizando — técnica de referência trazida pelo
-      // usuário (originalmente um efeito de hover), adaptada pra disparar
-      // sozinha a cada 5 segundos. Elemento ESTREITO (não a largura toda
-      // do banner) que atravessa de um lado a outro — antes, o pseudo-
-      // elemento cobria 100% da largura com a faixa brilhante ocupando
-      // 40% disso, gigante demais pra parecer um "shine" de verdade.
-      'after:absolute after:inset-y-0 after:w-10',
-      'after:bg-gradient-to-r after:from-transparent after:via-white/60 after:to-transparent',
-      'after:skew-x-[-20deg]',
-      'after:animate-[gold-banner-sweep_5s_linear_infinite]',
+      // Brilho estreito atravessando o banner uma vez e sumindo.
+      //
+      // Duas tentativas anteriores tinham bugs técnicos reais (não só
+      // ajuste fino):
+      // 1) Animar `left` (propriedade de LAYOUT — força o navegador
+      //    recalcular posição a cada frame, trava principalmente no
+      //    mobile) em vez de `transform` (acelerado por GPU, composto
+      //    direto na placa de vídeo, sempre suave).
+      // 2) Um hack de "salto instantâneo" via `animation-timing-function:
+      //    steps()` dentro de keyframes — suporte inconsistente entre
+      //    navegadores (especialmente Safari mobile). A forma correta e
+      //    nativa: se o valor no ponto intermediário for IGUAL ao valor
+      //    no ponto final (100%), não há nada pra interpolar — o
+      //    elemento simplesmente fica parado, fora da tela, até o ciclo
+      //    acabar. E a volta de 100% pro 0% do próximo ciclo NUNCA é
+      //    interpolada pelo CSS — é sempre um corte instantâneo, de
+      //    graça, por definição da especificação.
+      'after:absolute after:inset-0',
+      'after:bg-[linear-gradient(100deg,transparent_44%,rgba(255,255,255,0.55)_50%,transparent_56%)]',
+      'after:animate-[gold-banner-sweep_5s_ease-in-out_infinite]',
       'after:pointer-events-none',
     ].join(' '),
   },
