@@ -129,60 +129,66 @@
     scroll-snap-align: start;
   }
   
-  .bttf-magic::before {
+  .bttf-fire-magic::before {
     content: '';
     position: absolute;
-    inset: 0;
+    /* Fazemos a camada maior que o banner para o efeito de rotação não mostrar bordas */
+    inset: -50%;
     pointer-events: none;
-    background:
-      /* Rastro inferior laranja/amarelo */
-      linear-gradient(90deg, transparent 0%, rgba(249, 115, 22, 0) 30%, rgba(249, 115, 22, 0.9) 50%, rgba(250, 204, 21, 1) 60%, transparent 100%),
-      /* Rastro superior laranja/amarelo */
-      linear-gradient(90deg, transparent 0%, rgba(249, 115, 22, 0) 30%, rgba(249, 115, 22, 0.9) 50%, rgba(250, 204, 21, 1) 60%, transparent 100%),
-      /* Malha de dobra espacial azul */
-      repeating-linear-gradient(90deg, transparent 0, transparent 40px, rgba(56, 189, 248, 0.15) 40px, rgba(56, 189, 248, 0.35) 50px);
-    background-size: 100% 3px, 100% 3px, 100% 100%;
-    background-position: 0 90%, 0 10%, 0 0;
-    background-repeat: no-repeat, no-repeat, repeat-x;
-    animation: bttf-88mph-drive 1.5s linear infinite;
+    /* Manchas orgânicas de calor e energia flux (Laranja brilhante e Amarelo ouro) */
+    background: 
+      radial-gradient(circle at 40% 60%, rgba(251, 146, 60, 0.5) 0%, transparent 40%),
+      radial-gradient(circle at 70% 30%, rgba(253, 224, 71, 0.4) 0%, transparent 45%);
+    mix-blend-mode: overlay;
+    /* Pulsa, cresce e gira muito suavemente simulando distorção de ar quente */
+    animation: bttf-heat-wave 10s ease-in-out infinite alternate;
   }
 
-  .bttf-magic::after {
+  .bttf-fire-magic::after {
     content: '';
     position: absolute;
     inset: 0;
     pointer-events: none;
-    /* Flash estroboscópico Ciano/Branco */
-    background: radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 1) 0%, rgba(134, 239, 253, 0.8) 15%, rgba(56, 189, 248, 0.4) 40%, rgba(249, 115, 22, 0.1) 65%, transparent 80%);
+    /* Flash condensado de energia no centro, que explode simulando a quebra do tempo */
+    background: radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.95) 0%, rgba(250, 204, 21, 0.7) 30%, transparent 70%);
     opacity: 0;
     mix-blend-mode: color-dodge;
-    animation: bttf-time-jump 6s ease-out infinite;
+    animation: bttf-time-burst 6s ease-out infinite;
+  }
 }
 
-/* Os mesmos keyframes robustos */
-@keyframes bttf-88mph-drive {
+/* 1. Ondulação do Calor (Sem movimento de esteira, apenas respiração) */
+@keyframes bttf-heat-wave {
   0% { 
-    background-position: -200% 90%, -200% 10%, 0 0; 
+    transform: scale(1) rotate(0deg); 
+    opacity: 0.4; 
   }
   100% { 
-    background-position: 200% 90%, 200% 10%, -50px 0; 
+    transform: scale(1.3) rotate(10deg); 
+    opacity: 1; 
   }
 }
 
-@keyframes bttf-time-jump {
-  0%, 75% { opacity: 0; transform: scale(0.9); filter: brightness(1); }
-  
-  76% { opacity: 0.5; transform: scale(1.1); filter: brightness(1.2); }
-  78% { opacity: 0.1; transform: scale(0.95); }
-  80% { opacity: 0.8; transform: scale(1.2); filter: brightness(1.5); }
-  82% { opacity: 0.2; transform: scale(0.98); }
-  
-  84% { opacity: 1; transform: scale(1.4); filter: brightness(2.5); }
-  88% { opacity: 0; transform: scale(1.6); }
-  
-  92% { opacity: 0.3; transform: scale(1.1); filter: brightness(1.2); }
-  100% { opacity: 0; transform: scale(1); filter: brightness(1); }
-}
+/* 2. O Salto no Tempo (Aparece subitamente e dissipa rapidamente) */
+@keyframes bttf-time-burst {
+  0%, 85% { 
+    opacity: 0; 
+    transform: scale(0.8); 
+  }
+  88% { 
+    /* O pico da explosão do capacitor */
+    opacity: 0.9; 
+    transform: scale(1.2); 
+    filter: brightness(1.5);
+  }
+  92% { 
+    /* A energia se expande e esvanece pelo banner */
+    opacity: 0; 
+    transform: scale(2.5); 
+  }
+  100% { 
+    opacity: 0; 
+  }
 
 /* Animations */
 @keyframes fadeIn {
