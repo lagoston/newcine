@@ -96,29 +96,30 @@
   animation: slideUpFull 0.3s ease-out;
 }
 
-/* Gold Banner — brilho estreito atravessando o banner uma vez e sumindo.
+/* Gold Banner — brilho holográfico que aparece, atravessa e desaparece,
+   técnica de referência trazida pelo usuário (efeito de :hover com
+   elemento super-dimensionado e rotacionado), adaptada pra disparar
+   sozinha a cada 5 segundos.
 
-   Duas versões anteriores tinham bugs técnicos reais, não só ajuste fino:
+   As duas tentativas anteriores (mover um elemento do tamanho do banner
+   inteiro de um lado a outro, seja via `left` ou via `transform`) tinham
+   um problema de fundo que passou despercebido: mesmo com a posição
+   tecnicamente correta, o elemento ficava sempre 100% opaco/visível
+   enquanto se movia — ele só saía da área visível por POSIÇÃO (geometria
+   de onde ele estava), nunca por OPACIDADE. Isso dava a impressão de um
+   brilho "pendulando" dentro do banner, nunca sumindo de verdade.
 
-   1) Animavam `left` (propriedade de LAYOUT — o navegador recalcula
-      posição a cada frame, trava principalmente no mobile) em vez de
-      `transform` (acelerado por GPU, sempre suave, é a forma correta de
-      animar posição). Corrigido: agora só `transform: translateX()`.
-
-   2) Usavam um hack de "salto instantâneo" via `animation-timing-function:
-      steps()` dentro de keyframes — suporte inconsistente entre
-      navegadores, especialmente Safari mobile. A forma correta e nativa:
-      o valor no ponto intermediário (15%, já fora da tela) é IDÊNTICO ao
-      valor no ponto final (100%) — não há nada pra interpolar entre eles,
-      o elemento fica parado fora da tela até o ciclo acabar sozinho. E a
-      volta de 100% pro 0% do PRÓXIMO ciclo nunca é interpolada pelo CSS
-      — é sempre um corte instantâneo, de graça, por definição da
-      especificação (animações infinitas nunca "voltam andando" pro
-      início, sempre saltam). Não precisa de nenhum hack pra isso. */
+   Essa técnica combina opacidade E posição ao mesmo tempo: o brilho
+   nasce com opacity:0 (genuinamente invisível, não só fora de posição),
+   ganha opacidade enquanto se desloca (pico no meio do trajeto), e volta
+   a opacity:0 ANTES mesmo de terminar de se mover — garantindo que
+   "sumir" seja sempre visível de verdade, não dependente só de onde o
+   elemento fisicamente está. Depois do fade-out (55%), fica parado e
+   invisível até completar os 5s e reiniciar. */
 @keyframes gold-banner-sweep {
-  0% { transform: translateX(-100%); }
-  15% { transform: translateX(100%); }
-  100% { transform: translateX(100%); }
+  0% { opacity: 0; transform: rotate(-30deg) translateY(-100%); }
+  35% { opacity: 0.9; transform: rotate(-30deg) translateY(0%); }
+  55%, 100% { opacity: 0; transform: rotate(-30deg) translateY(60%); }
 }
 
 @keyframes float {
