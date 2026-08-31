@@ -106,27 +106,30 @@ export const banners = {
     ].join(' '),
   },
   bttf: {
-    id: 'bttf',
-    name: 'Back to the Future Banner',
-    isPremium: true,
-    requiredTag: 'flux-capacitor-fan',
-    className: [
-      'relative overflow-hidden',
-      'bg-[radial-gradient(ellipse_at_50%_50%,#150d00,#0a0500_60%,#030200_100%)]',
-      'border-[3px] border-orange-500',
-      'shadow-[0_0_40px_rgba(251,146,60,0.5)_inset,0_0_25px_rgba(251,146,60,0.4)]',
-      // warp lines
-      'before:absolute before:inset-0',
-      'before:bg-[repeating-linear-gradient(90deg,transparent,transparent_19px,rgba(251,191,36,0.1)_19px,rgba(251,191,36,0.1)_20px)]',
-      'before:animate-[bttf-banner-warp_0.4s_linear_infinite]',
-      'before:pointer-events-none',
-      // teleport flash azul+laranja
-      'after:absolute after:inset-0',
-      'after:bg-[radial-gradient(ellipse_at_48%_50%,rgba(59,130,246,0.85)_0%,rgba(251,146,60,0.6)_35%,transparent_65%)]',
-      'after:animate-[bttf-banner-flash_3.5s_ease-in-out_infinite]',
-      'after:pointer-events-none',
-    ].join(' '),
-  },
+  id: 'bttf',
+  name: 'Back to the Future Banner',
+  isPremium: true,
+  requiredTag: 'flux-capacitor-fan',
+  className: [
+    'relative overflow-hidden',
+    // Fundo escuro azul-noturno profundo (Night Sky / Deep Space)
+    'bg-[#020617]',
+    // Borda fina azul-elétrico com estilo glassmorphism
+    'border border-cyan-400/40',
+    // Glow complexo: emana eletricidade azul por fora e fogo laranja por dentro
+    'shadow-[0_0_20px_rgba(56,189,248,0.2),inset_0_0_30px_rgba(249,115,22,0.25)]',
+    
+    // CAMADA 1: Rastros de Fogo (88 MPH) e Linhas de Dobra Espacial
+    'before:absolute before:inset-0',
+    'before:bttf-time-warp',
+    'before:pointer-events-none',
+    
+    // CAMADA 2: Curto-Circuito do Capacitor de Fluxo (1.21 Gigawatts)
+    'after:absolute after:inset-0',
+    'after:bttf-gigawatt-flash',
+    'after:pointer-events-none',
+  ].join(' '),
+},
   potter: {
     id: 'potter',
     name: 'Harry Potter Banner',
