@@ -186,6 +186,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
       setSelectedFrame(frameId);
       toast.success(t('customize.frameUpdated'));
+      // Propaga a mudança pro Profile IMEDIATAMENTE, sem depender do
+      // usuário clicar em "Salvar" — antes, se o modal fosse fechado de
+      // qualquer outra forma (X, clique fora, ESC), a mudança já estava
+      // salva no banco mas não aparecia na tela até sair e voltar pro
+      // perfil, o que parecia um bug de "não salvou" mesmo já tendo salvo.
+      onSave?.();
     } catch (error) {
       console.error('Error updating frame:', error);
       toast.error(t('customize.updateError'));
@@ -208,6 +214,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
       setSelectedBanner(bannerId);
       toast.success(t('customize.bannerUpdated'));
+      onSave?.();
     } catch (error) {
       console.error('Error updating banner:', error);
       toast.error(t('customize.updateError'));
@@ -230,6 +237,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
       setSelectedCard(cardStyle);
       toast.success(t('customize.cardUpdated'));
+      onSave?.();
     } catch (error) {
       console.error('Error updating card style:', error);
       toast.error(t('customize.updateError'));
@@ -725,14 +733,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
             <div className="flex-shrink-0 flex justify-end gap-4 p-6 border-t border-gray-200/50 dark:border-gray-700/50">
               <button
-                onClick={() => {
-                  if (onSave) onSave();
-                  onClose();
-                }}
+                onClick={onClose}
                 className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
               >
-                <Check className="w-4 h-4" />
-                {t('customize.save')}
+                <X className="w-4 h-4" />
+                {t('common.close')}
               </button>
             </div>
           </motion.div>
