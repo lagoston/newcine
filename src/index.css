@@ -96,37 +96,29 @@
   animation: slideUpFull 0.3s ease-out;
 }
 
-/* Gold Banner — brilho estreito atravessando o banner e sumindo, técnica
-   trazida pelo usuário (originalmente um efeito de :hover com skew).
+/* Gold Banner — brilho estreito atravessando o banner uma vez e sumindo.
 
-   Duas correções em cima da primeira versão:
-   1) O elemento agora é ESTREITO (definido em banners.ts, w-10) e se move
-      via `left` em porcentagem — relativo à largura REAL do banner, não
-      um elemento do tamanho do banner inteiro sendo deslocado (que
-      resultava num brilho gigante, praticamente do tamanho do banner).
-   2) O "salto" de volta pro início usava só a proximidade de duas
-      porcentagens (16% / 16.01%) pra simular um corte instantâneo — mas
-      a curva de suavização padrão (ease) aparentemente interpolava esse
-      intervalo como uma varredura de volta lenta, dando a impressão de
-      "vai e volta" sem nunca sumir de vez. Agora o corte é EXPLÍCITO via
-      `animation-timing-function: steps(1, end)` no keyframe de 15% —
-      isso instrui o navegador a não interpolar nada entre esse ponto e o
-      próximo, só trocar de valor de uma vez, sem meio-termo. */
+   Duas versões anteriores tinham bugs técnicos reais, não só ajuste fino:
+
+   1) Animavam `left` (propriedade de LAYOUT — o navegador recalcula
+      posição a cada frame, trava principalmente no mobile) em vez de
+      `transform` (acelerado por GPU, sempre suave, é a forma correta de
+      animar posição). Corrigido: agora só `transform: translateX()`.
+
+   2) Usavam um hack de "salto instantâneo" via `animation-timing-function:
+      steps()` dentro de keyframes — suporte inconsistente entre
+      navegadores, especialmente Safari mobile. A forma correta e nativa:
+      o valor no ponto intermediário (15%, já fora da tela) é IDÊNTICO ao
+      valor no ponto final (100%) — não há nada pra interpolar entre eles,
+      o elemento fica parado fora da tela até o ciclo acabar sozinho. E a
+      volta de 100% pro 0% do PRÓXIMO ciclo nunca é interpolada pelo CSS
+      — é sempre um corte instantâneo, de graça, por definição da
+      especificação (animações infinitas nunca "voltam andando" pro
+      início, sempre saltam). Não precisa de nenhum hack pra isso. */
 @keyframes gold-banner-sweep {
-  0% {
-    left: -10%;
-    animation-timing-function: ease-in-out;
-  }
-  15% {
-    left: 110%;
-    animation-timing-function: steps(1, end);
-  }
-  15.01% {
-    left: -10%;
-  }
-  100% {
-    left: -10%;
-  }
+  0% { transform: translateX(-100%); }
+  15% { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
 }
 
 @keyframes float {
