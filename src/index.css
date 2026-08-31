@@ -74,7 +74,7 @@
   .scroll-snap-align-start {
     scroll-snap-align: start;
   }
-@layer utilities {
+  
   .bttf-magic::before {
     content: '';
     position: absolute;
