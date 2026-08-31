@@ -96,6 +96,16 @@
   animation: slideUpFull 0.3s ease-out;
 }
 
+/* Gold Banner — varredura de luz diagonal. Antes, a classe de animação
+   já existia no banner (`animate-[gold-banner-sweep_...]`), mas essa
+   keyframe nunca foi definida em lugar nenhum do CSS — o efeito de brilho
+   passando pela superfície do banner simplesmente nunca se movia, ficava
+   sempre parado, mesmo com a animação "ligada" tecnicamente. */
+@keyframes gold-banner-sweep {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+}
+
 @keyframes float {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
