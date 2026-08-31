@@ -30,10 +30,14 @@ export const banners = {
       'before:pointer-events-none',
       // Brilho diagonal deslizando — técnica de referência trazida pelo
       // usuário (originalmente um efeito de hover), adaptada pra disparar
-      // sozinha a cada 5 segundos em vez de precisar do cursor por cima.
-      'after:absolute after:inset-0',
-      'after:bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.5)_50%,transparent_70%)]',
-      'after:animate-[gold-banner-sweep_5s_ease_infinite]',
+      // sozinha a cada 5 segundos. Elemento ESTREITO (não a largura toda
+      // do banner) que atravessa de um lado a outro — antes, o pseudo-
+      // elemento cobria 100% da largura com a faixa brilhante ocupando
+      // 40% disso, gigante demais pra parecer um "shine" de verdade.
+      'after:absolute after:inset-y-0 after:w-10',
+      'after:bg-gradient-to-r after:from-transparent after:via-white/60 after:to-transparent',
+      'after:skew-x-[-20deg]',
+      'after:animate-[gold-banner-sweep_5s_linear_infinite]',
       'after:pointer-events-none',
     ].join(' '),
   },
