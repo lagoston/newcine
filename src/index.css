@@ -96,30 +96,25 @@
   animation: slideUpFull 0.3s ease-out;
 }
 
-/* Gold Banner — brilho holográfico que aparece, atravessa e desaparece,
-   técnica de referência trazida pelo usuário (efeito de :hover com
-   elemento super-dimensionado e rotacionado), adaptada pra disparar
-   sozinha a cada 5 segundos.
-
-   As duas tentativas anteriores (mover um elemento do tamanho do banner
-   inteiro de um lado a outro, seja via `left` ou via `transform`) tinham
-   um problema de fundo que passou despercebido: mesmo com a posição
-   tecnicamente correta, o elemento ficava sempre 100% opaco/visível
-   enquanto se movia — ele só saía da área visível por POSIÇÃO (geometria
-   de onde ele estava), nunca por OPACIDADE. Isso dava a impressão de um
-   brilho "pendulando" dentro do banner, nunca sumindo de verdade.
-
-   Essa técnica combina opacidade E posição ao mesmo tempo: o brilho
-   nasce com opacity:0 (genuinamente invisível, não só fora de posição),
-   ganha opacidade enquanto se desloca (pico no meio do trajeto), e volta
-   a opacity:0 ANTES mesmo de terminar de se mover — garantindo que
-   "sumir" seja sempre visível de verdade, não dependente só de onde o
-   elemento fisicamente está. Depois do fade-out (55%), fica parado e
-   invisível até completar os 5s e reiniciar. */
-@keyframes gold-banner-sweep {
-  0% { opacity: 0; transform: rotate(-30deg) translateY(-100%); }
-  35% { opacity: 0.9; transform: rotate(-30deg) translateY(0%); }
-  55%, 100% { opacity: 0; transform: rotate(-30deg) translateY(60%); }
+/* Gold Banner — Feixe de luz reluzente (ouro puro) 
+   Cruza o banner nos primeiros 25% do tempo e aguarda invisível no restante,
+   evitando o efeito pêndulo. */
+@keyframes gold-shine {
+  0% {
+    transform: translateX(-150%) skewX(-15deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1; /* Pico de brilho no meio da tela */
+  }
+  25% {
+    transform: translateX(250%) skewX(-15deg);
+    opacity: 0; /* Desaparece exatamente ao cruzar o limite direito */
+  }
+  100% {
+    transform: translateX(250%) skewX(-15deg);
+    opacity: 0; /* Permanece invisível até o próximo ciclo */
+  }
 }
 
 @keyframes float {
