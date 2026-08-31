@@ -128,7 +128,6 @@
   0% { background-position: 0 -150%; }
   100% { background-position: 0 150%; }
 }
-}
 
 /* Animations */
 @keyframes fadeIn {
