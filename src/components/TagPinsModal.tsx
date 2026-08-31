@@ -19,6 +19,7 @@ type ViewMode = 'pins' | 'basic' | 'theme' | 'community' | 'oracle' | 'special';
 interface UnlockedPin {
   emoji: string;
   name: string;
+  category: 'basic' | 'theme' | 'community' | 'oracle' | 'special';
 }
 
 interface SpecialTag {
@@ -286,22 +287,22 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId }) 
 
       PROGRESSION_TAGS.forEach((tag) => {
         const progress = tag.condition ? (basicProgress[tag.name] || 0) : ratedCount;
-        if (progress >= tag.minMovies) unlockedPins.push({ emoji: tag.emoji, name: tag.name });
+        if (progress >= tag.minMovies) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'basic' });
       });
       THEME_TAGS.forEach((tag) => {
         if ((themeProgress[tag.id] || 0) >= tag.condition.count) {
-          unlockedPins.push({ emoji: tag.emoji, name: tag.name });
+          unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'theme' });
         }
       });
       COMMUNITY_TAGS.forEach((tag) => {
-        if ((followers || 0) >= tag.minFollowers) unlockedPins.push({ emoji: tag.emoji, name: tag.name });
+        if ((followers || 0) >= tag.minFollowers) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'community' });
       });
       ORACLE_TAGS.forEach((tag) => {
         const count = tag.type === 'prediction' ? predictionsCount : recommendationsCount;
-        if (count >= tag.minCount) unlockedPins.push({ emoji: tag.emoji, name: tag.name });
+        if (count >= tag.minCount) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'oracle' });
       });
       specialTagsWithStatus.forEach((tag) => {
-        if (tag.is_unlocked) unlockedPins.push({ emoji: tag.emoji, name: tag.name });
+        if (tag.is_unlocked) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'special' });
       });
 
       setPins(unlockedPins);
@@ -366,7 +367,7 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId }) 
             <div
               key={`${pin.name}-${idx}`}
               title={pin.name}
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-gray-50/80 dark:bg-gray-700/40 border border-gray-200/50 dark:border-gray-600/40 hover:border-blue-400/50 dark:hover:border-blue-500/50 transition-colors"
+              className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border border-transparent hover:border-blue-400/50 dark:hover:border-blue-500/50 transition-colors ${getTagColorClasses(pin.category)}`}
             >
               <span className="text-3xl leading-none">{pin.emoji}</span>
               <span className="text-[10px] text-center text-gray-600 dark:text-gray-300 line-clamp-2 leading-tight">
