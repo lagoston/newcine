@@ -28,12 +28,25 @@ export const banners = {
       'before:absolute before:inset-0',
       'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
       'before:pointer-events-none',
-      // Brilho diagonal deslizando — técnica de referência trazida pelo
-      // usuário (originalmente um efeito de hover), adaptada pra disparar
-      // sozinha a cada 5 segundos em vez de precisar do cursor por cima.
-      'after:absolute after:inset-0',
-      'after:bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.5)_50%,transparent_70%)]',
-      'after:animate-[gold-banner-sweep_5s_ease_infinite]',
+      // Brilho que aparece, atravessa e desaparece de verdade — técnica
+      // de referência trazida pelo usuário (efeito de hover holográfico),
+      // adaptada pra disparar sozinha a cada 5 segundos.
+      //
+      // As duas tentativas anteriores (deslocar um elemento do tamanho do
+      // banner de um lado a outro) tinham um problema de fundo: mesmo com
+      // a posição correta, o brilho ficava sempre 100% visível enquanto
+      // se movia — só "saía" da view por posição, nunca por opacidade.
+      // Isso fazia parecer que ele "pendula" dentro do banner em vez de
+      // sumir de verdade. Essa técnica nova resolve isso combinando DUAS
+      // coisas ao mesmo tempo: o elemento sempre começa e termina com
+      // opacity:0 (genuinamente invisível, não só fora de posição), E se
+      // desloca diagonalmente enquanto isso acontece — ele desvanece
+      // ANTES mesmo de terminar o movimento, garantindo que "sumir" seja
+      // sempre visível de verdade, não dependente só de geometria.
+      'after:absolute after:-top-1/2 after:-left-1/2 after:w-[200%] after:h-[200%]',
+      'after:bg-[linear-gradient(0deg,transparent,transparent_40%,rgba(255,255,255,0.35))]',
+      'after:opacity-0',
+      'after:animate-[gold-banner-sweep_5s_ease-in-out_infinite]',
       'after:pointer-events-none',
     ].join(' '),
   },
