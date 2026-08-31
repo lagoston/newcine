@@ -43,6 +43,9 @@ export const banners = {
       // desloca diagonalmente enquanto isso acontece — ele desvanece
       // ANTES mesmo de terminar o movimento, garantindo que "sumir" seja
       // sempre visível de verdade, não dependente só de geometria.
+      'after:bg-[linear-gradient(0deg,transparent,transparent_40%,rgba(255,255,255,0.35))]',
+      'after:animate-[gold-banner-sweep_5s_ease-in-out_infinite]',
+      'after:pointer-events-none',
     ].join(' '),
   },
   matrix: {
