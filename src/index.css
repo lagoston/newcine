@@ -158,7 +158,6 @@
     background-size: 100% 150%;
     animation: matrix-scanline-sweep 4s linear infinite;
   }
-}
 
 @keyframes matrix-falling-code {
   0% { 
