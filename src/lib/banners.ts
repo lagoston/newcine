@@ -28,12 +28,12 @@ export const banners = {
       'before:absolute before:inset-0',
       'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
       'before:pointer-events-none',
-      // Um único brilho pequeno e discreto no canto — bem mais simples
-      // que os pontos de brilho espalhados de antes, que ficaram
-      // carregados demais. Só um "shine" sutil pulsando devagar.
-      'after:absolute after:top-3 after:right-4 after:w-16 after:h-16',
-      'after:bg-[radial-gradient(circle,rgba(253,230,138,0.9),transparent_70%)]',
-      'after:animate-[gold-banner-sweep_3s_ease-in-out_infinite]',
+      // Brilho diagonal deslizando — técnica de referência trazida pelo
+      // usuário (originalmente um efeito de hover), adaptada pra disparar
+      // sozinha a cada 5 segundos em vez de precisar do cursor por cima.
+      'after:absolute after:inset-0',
+      'after:bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.5)_50%,transparent_70%)]',
+      'after:animate-[gold-banner-sweep_5s_ease_infinite]',
       'after:pointer-events-none',
     ].join(' '),
   },
