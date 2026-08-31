@@ -74,121 +74,86 @@
   .scroll-snap-align-start {
     scroll-snap-align: start;
   }
-  .matrix-digital-rain {
-    background-image: 
-      /* Gotas de código verticais com pontas brilhantes simulando diferentes profundidades */
-      linear-gradient(180deg, transparent 60%, rgba(134, 255, 160, 0.9) 95%, transparent 100%),
-      linear-gradient(180deg, transparent 40%, rgba(34, 197, 94, 0.7) 90%, transparent 100%),
-      linear-gradient(180deg, transparent 80%, rgba(20, 150, 60, 0.8) 98%, transparent 100%),
-      linear-gradient(180deg, transparent 30%, rgba(74, 222, 128, 0.6) 85%, transparent 100%),
-      /* A MÁGICA: Malha horizontal escura que "fatia" as gotas criando os caracteres */
-      repeating-linear-gradient(180deg, transparent 0, transparent 3px, #020b02 3px, #020b02 5px);
-    
-    background-size: 
-      12% 200%, 
-      18% 150%, 
-      25% 300%, 
-      15% 250%, 
-      100% 5px;
-      
-    background-repeat: repeat-y, repeat-y, repeat-y, repeat-y, repeat;
-    animation: matrix-falling-code 3.5s linear infinite;
-  }
-
-  .crt-scanline-effect {
-    background: 
-      /* Linha horizontal brilhante varrendo a tela de cima a baixo */
-      linear-gradient(180deg, transparent 0%, rgba(134, 255, 160, 0.1) 10%, rgba(34, 197, 94, 0.3) 50%, rgba(134, 255, 160, 0.1) 90%, transparent 100%);
-    background-size: 100% 150%;
-    animation: matrix-scanline-sweep 4s linear infinite;
-  }
-}
-
-@keyframes matrix-falling-code {
-  0% { 
-    /* Cada coluna de luz desce em sua própria trilha vertical (eixo X fixo, eixo Y desce) */
-    background-position: 
-      10% -200%, 
-      35% -150%, 
-      65% -300%, 
-      85% -250%, 
-      0 0; 
-  }
-  100% { 
-    background-position: 
-      10% 200%, 
-      35% 150%, 
-      65% 300%, 
-      85% 250%, 
-      0 0; 
-  }
-  .bttf-time-warp {
+@layer utilities {
+  .bttf-magic::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
     background:
-      /* Rastro de fogo de pneu INFERIOR */
+      /* Rastro inferior laranja/amarelo */
       linear-gradient(90deg, transparent 0%, rgba(249, 115, 22, 0) 30%, rgba(249, 115, 22, 0.9) 50%, rgba(250, 204, 21, 1) 60%, transparent 100%),
-      /* Rastro de fogo de pneu SUPERIOR */
+      /* Rastro superior laranja/amarelo */
       linear-gradient(90deg, transparent 0%, rgba(249, 115, 22, 0) 30%, rgba(249, 115, 22, 0.9) 50%, rgba(250, 204, 21, 1) 60%, transparent 100%),
-      /* Grade de velocidade warp (linhas horizontais de neon azul em loop) */
+      /* Malha de dobra espacial azul */
       repeating-linear-gradient(90deg, transparent 0, transparent 40px, rgba(56, 189, 248, 0.15) 40px, rgba(56, 189, 248, 0.35) 50px);
-    
-    /* Configura o fogo para ter apenas 3px de espessura e a grade para preencher tudo */
-    background-size: 
-      100% 3px,
-      100% 3px,
-      100% 100%;
-    
-    background-position:
-      0 90%, /* Fogo embaixo */
-      0 10%, /* Fogo em cima */
-      0 0;   /* Malha */
-      
+    background-size: 100% 3px, 100% 3px, 100% 100%;
+    background-position: 0 90%, 0 10%, 0 0;
     background-repeat: no-repeat, no-repeat, repeat-x;
     animation: bttf-88mph-drive 1.5s linear infinite;
   }
 
-  .bttf-gigawatt-flash {
-    /* Explosão de luz ciano/branca centralizada */
+  .bttf-magic::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    /* Flash estroboscópico Ciano/Branco */
     background: radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 1) 0%, rgba(134, 239, 253, 0.8) 15%, rgba(56, 189, 248, 0.4) 40%, rgba(249, 115, 22, 0.1) 65%, transparent 80%);
     opacity: 0;
-    mix-blend-mode: color-dodge; /* Intensifica a luz sobrepondo com as cores do fundo */
+    mix-blend-mode: color-dodge;
     animation: bttf-time-jump 6s ease-out infinite;
   }
 }
 
+/* Os mesmos keyframes robustos */
 @keyframes bttf-88mph-drive {
   0% { 
-    /* O fogo começa recuado, bem antes de entrar na tela */
     background-position: -200% 90%, -200% 10%, 0 0; 
   }
   100% { 
-    /* O fogo atravessa toda a tela simulando a passagem do DeLorean, 
-       enquanto a grade azul retrocede, criando sensação contínua de movimento rápido */
     background-position: 200% 90%, 200% 10%, -50px 0; 
   }
 }
 
 @keyframes bttf-time-jump {
-  /* Permanência invisível e carregando energia */
   0%, 75% { opacity: 0; transform: scale(0.9); filter: brightness(1); }
   
-  /* Picos erráticos simulando o Capacitor de Fluxo perdendo o controle */
   76% { opacity: 0.5; transform: scale(1.1); filter: brightness(1.2); }
   78% { opacity: 0.1; transform: scale(0.95); }
   80% { opacity: 0.8; transform: scale(1.2); filter: brightness(1.5); }
   82% { opacity: 0.2; transform: scale(0.98); }
   
-  /* BOOM! 88 MPH Alcançado (Ruptura no tempo) */
   84% { opacity: 1; transform: scale(1.4); filter: brightness(2.5); }
   88% { opacity: 0; transform: scale(1.6); }
   
-  /* Resíduo elétrico que sobra após o salto temporal */
   92% { opacity: 0.3; transform: scale(1.1); filter: brightness(1.2); }
   100% { opacity: 0; transform: scale(1); filter: brightness(1); }
 }
+  /* Chuva digital: a 1ª camada (traços) rola uma tile inteira (140px) para
+   loop perfeito; a 2ª camada (colunas) fica parada em "0 0". */
+@keyframes matrix-banner-rain {
+  0%   { background-position: 0 0,    0 0; }
+  100% { background-position: 0 140px, 0 0; }
+}
 
-@keyframes matrix-scanline-sweep {
-  0% { background-position: 0 -150%; }
-  100% { background-position: 0 150%; }
+/* Feixe CRT varrendo de cima para baixo (1ª camada) enquanto as
+   scanlines (2ª camada) permanecem estáticas em "0 0". */
+@keyframes matrix-banner-scan {
+  0%   { background-position: 0 -30%,  0 0; }
+  100% { background-position: 0 130%,  0 0; }
+}
+
+/* Flicker sutil de tela de tubo. */
+@keyframes matrix-banner-flicker {
+  0%, 100% { opacity: 1; }
+  8%       { opacity: 0.92; }
+  9%       { opacity: 0.74; }
+  10%      { opacity: 0.92; }
+  41%      { opacity: 0.85; }
+  42%      { opacity: 0.97; }
+  72%      { opacity: 0.86; }
+  73%      { opacity: 1; }
 }
 
 /* Animations */
@@ -211,25 +176,18 @@
   animation: slideUpFull 0.3s ease-out;
 }
 
-/* Gold Banner — Feixe de luz reluzente (ouro puro) 
-   Cruza o banner nos primeiros 25% do tempo e aguarda invisível no restante,
-   evitando o efeito pêndulo. */
-@keyframes gold-shine {
-  0% {
-    transform: translateX(-150%) skewX(-15deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1; /* Pico de brilho no meio da tela */
-  }
-  25% {
-    transform: translateX(250%) skewX(-15deg);
-    opacity: 0; /* Desaparece exatamente ao cruzar o limite direito */
-  }
-  100% {
-    transform: translateX(250%) skewX(-15deg);
-    opacity: 0; /* Permanece invisível até o próximo ciclo */
-  }
+/* Gold Banner — brilho diagonal deslizando, técnica trazida pelo usuário
+   (originalmente um efeito de :hover com skew), adaptada pra disparar
+   sozinha a cada 5 segundos. O "salto" instantâneo entre 16% e 16.01%
+   volta o brilho pro início ENQUANTO ele já está fora da área visível
+   (translateX(-120%)) — sem isso, a interpolação suave padrão do CSS
+   faria ele varrer de volta na direção contrária, um segundo brilho
+   indesejado. Resultado: um brilho rápido (~0.8s) seguido de uma pausa
+   de ~4.2s antes de repetir. */
+@keyframes gold-banner-sweep {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  16% { transform: translateX(220%) skewX(-20deg); }
+  16.01%, 100% { transform: translateX(-120%) skewX(-20deg); }
 }
 
 @keyframes float {
