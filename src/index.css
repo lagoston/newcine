@@ -157,7 +157,6 @@
     opacity: 0;
     mix-blend-mode: color-dodge;
     animation: bttf-time-jump 6s ease-out infinite;
-  }
 }
 
 /* Os mesmos keyframes robustos */
