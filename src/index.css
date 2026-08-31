@@ -96,14 +96,22 @@
   animation: slideUpFull 0.3s ease-out;
 }
 
-/* Gold Banner — varredura de luz diagonal. Antes, a classe de animação
-   já existia no banner (`animate-[gold-banner-sweep_...]`), mas essa
-   keyframe nunca foi definida em lugar nenhum do CSS — o efeito de brilho
-   passando pela superfície do banner simplesmente nunca se movia, ficava
-   sempre parado, mesmo com a animação "ligada" tecnicamente. */
+/* Gold Banner — brilhos esporádicos, como facetas de ouro pegando luz.
+   Antes (sweep), a keyframe nem existia de verdade — depois virou uma
+   barra varrendo, que ficou estranha (principalmente no mobile). Agora
+   são vários pontos de brilho fixos (definidos em banners.ts) com a
+   opacidade piscando em padrão irregular — os picos e vales em momentos
+   diferentes do ciclo (não uma onda suave/previsível) dão a sensação de
+   "esporádico" mesmo sendo uma única animação. */
 @keyframes gold-banner-sweep {
-  0%, 100% { background-position: 0% 0%; }
-  50% { background-position: 100% 100%; }
+  0%, 100% { opacity: 0.15; }
+  8% { opacity: 0.9; }
+  18% { opacity: 0.25; }
+  34% { opacity: 0.8; }
+  47% { opacity: 0.15; }
+  60% { opacity: 1; }
+  73% { opacity: 0.3; }
+  86% { opacity: 0.7; }
 }
 
 @keyframes float {
