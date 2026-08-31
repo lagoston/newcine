@@ -1568,6 +1568,9 @@ export default function Profile() {
           isOpen={showTagPinsModal}
           onClose={() => setShowTagPinsModal(false)}
           userId={session.user.id}
+          onSave={() => {
+            fetchProfile();
+          }}
         />
       )}
 
