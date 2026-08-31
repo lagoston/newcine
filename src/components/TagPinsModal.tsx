@@ -12,6 +12,7 @@ interface TagPinsModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
+  onSave?: () => void;
 }
 
 type ViewMode = 'pins' | 'basic' | 'theme' | 'community' | 'oracle' | 'special';
@@ -107,7 +108,7 @@ const formatTimeRemaining = (endsAt: string) => {
 // Todo o sistema de categorias, progresso e ativação de tags que antes
 // morava em CustomizeModal.tsx — movido pra cá pra não ficar redundante
 // entre os dois modais. O CustomizeModal manteve só avatar/banner/cards.
-const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId }) => {
+const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, onSave }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
   const [loading, setLoading] = useState(true);
@@ -329,6 +330,12 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId }) 
 
       setActiveTag(newTag);
       toast.success(isCurrentlyActive ? t('customize.tagRemoved') : t('customize.tagUpdated'));
+      // Mesma correção aplicada no CustomizeModal — propaga a mudança pro
+      // Profile assim que ela acontece de verdade, sem depender de um
+      // botão "salvar" que o usuário poderia nunca clicar (fechando o
+      // modal pelo X, por exemplo, deixando a tag ativa "invisível" até
+      // sair e voltar pro perfil).
+      onSave?.();
     } catch (error) {
       console.error('Error updating tag:', error);
       toast.error(t('customize.updateError'));
