@@ -43,7 +43,7 @@ export const banners = {
       // desloca diagonalmente enquanto isso acontece — ele desvanece
       // ANTES mesmo de terminar o movimento, garantindo que "sumir" seja
       // sempre visível de verdade, não dependente só de geometria.
-      'after:absolute after:-top-1/2 after:-left-1/2 after:w-[300%] after:h-[200%]',
+      'after:absolute after:-top-1/2 after:-left-1/2 after:w-[200%] after:h-[200%]',
       'after:bg-[linear-gradient(0deg,transparent,transparent_40%,rgba(255,255,255,0.35))]',
       'after:pointer-events-none',
     ].join(' '),
