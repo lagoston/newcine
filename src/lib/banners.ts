@@ -28,15 +28,15 @@ export const banners = {
       'before:absolute before:inset-0',
       'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
       'before:pointer-events-none',
-      // Linha de luz fina e lenta varrendo diagonalmente — mesmo
-      // princípio do "shimmer" anterior, mas com a keyframe DE VERDADE
-      // definida dessa vez (a animação antiga referenciava uma keyframe
-      // que nunca existiu no CSS — nunca se moveu, ficava sempre estática
-      // mesmo com a classe de animação aplicada).
+      // Brilhos esporádicos, como facetas de ouro pegando luz em pontos
+      // diferentes — em vez da barra única varrendo de um lado a outro
+      // (que ficava estranha, principalmente no mobile). Vários pontos de
+      // brilho pequenos e fixos, com a opacidade piscando de forma
+      // irregular — só anima opacity (bem mais leve pro navegador
+      // recalcular que mover a posição de um gradiente).
       'after:absolute after:inset-0',
-      'after:bg-[linear-gradient(115deg,transparent_35%,rgba(253,230,138,0.14)_50%,transparent_65%)]',
-      'after:bg-[length:250%_250%]',
-      'after:animate-[gold-banner-sweep_5s_ease-in-out_infinite]',
+      'after:bg-[radial-gradient(circle_at_18%_25%,rgba(253,230,138,0.9),transparent_3%),radial-gradient(circle_at_72%_60%,rgba(253,230,138,0.8),transparent_2.5%),radial-gradient(circle_at_45%_82%,rgba(253,230,138,0.85),transparent_2.5%),radial-gradient(circle_at_88%_20%,rgba(253,230,138,0.7),transparent_2%),radial-gradient(circle_at_10%_68%,rgba(253,230,138,0.6),transparent_2%),radial-gradient(circle_at_58%_35%,rgba(253,230,138,0.75),transparent_2%)]',
+      'after:animate-[gold-banner-sweep_4s_ease-in-out_infinite]',
       'after:pointer-events-none',
     ].join(' '),
   },
