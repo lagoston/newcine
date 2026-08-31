@@ -130,30 +130,59 @@
   92% { opacity: 0.3; transform: scale(1.1); filter: brightness(1.2); }
   100% { opacity: 0; transform: scale(1); filter: brightness(1); }
 }
-  /* Chuva digital: a 1ª camada (traços) rola uma tile inteira (140px) para
-   loop perfeito; a 2ª camada (colunas) fica parada em "0 0". */
-@keyframes matrix-banner-rain {
-  0%   { background-position: 0 0,    0 0; }
-  100% { background-position: 0 140px, 0 0; }
+  .matrix-digital-rain {
+    background-image: 
+      /* Gotas de código verticais com pontas brilhantes simulando diferentes profundidades */
+      linear-gradient(180deg, transparent 60%, rgba(134, 255, 160, 0.9) 95%, transparent 100%),
+      linear-gradient(180deg, transparent 40%, rgba(34, 197, 94, 0.7) 90%, transparent 100%),
+      linear-gradient(180deg, transparent 80%, rgba(20, 150, 60, 0.8) 98%, transparent 100%),
+      linear-gradient(180deg, transparent 30%, rgba(74, 222, 128, 0.6) 85%, transparent 100%),
+      /* A MÁGICA: Malha horizontal escura que "fatia" as gotas criando os caracteres */
+      repeating-linear-gradient(180deg, transparent 0, transparent 3px, #020b02 3px, #020b02 5px);
+    
+    background-size: 
+      12% 200%, 
+      18% 150%, 
+      25% 300%, 
+      15% 250%, 
+      100% 5px;
+      
+    background-repeat: repeat-y, repeat-y, repeat-y, repeat-y, repeat;
+    animation: matrix-falling-code 3.5s linear infinite;
+  }
+
+  .crt-scanline-effect {
+    background: 
+      /* Linha horizontal brilhante varrendo a tela de cima a baixo */
+      linear-gradient(180deg, transparent 0%, rgba(134, 255, 160, 0.1) 10%, rgba(34, 197, 94, 0.3) 50%, rgba(134, 255, 160, 0.1) 90%, transparent 100%);
+    background-size: 100% 150%;
+    animation: matrix-scanline-sweep 4s linear infinite;
+  }
 }
 
-/* Feixe CRT varrendo de cima para baixo (1ª camada) enquanto as
-   scanlines (2ª camada) permanecem estáticas em "0 0". */
-@keyframes matrix-banner-scan {
-  0%   { background-position: 0 -30%,  0 0; }
-  100% { background-position: 0 130%,  0 0; }
+@keyframes matrix-falling-code {
+  0% { 
+    /* Cada coluna de luz desce em sua própria trilha vertical (eixo X fixo, eixo Y desce) */
+    background-position: 
+      10% -200%, 
+      35% -150%, 
+      65% -300%, 
+      85% -250%, 
+      0 0; 
+  }
+  100% { 
+    background-position: 
+      10% 200%, 
+      35% 150%, 
+      65% 300%, 
+      85% 250%, 
+      0 0; 
+  }
 }
 
-/* Flicker sutil de tela de tubo. */
-@keyframes matrix-banner-flicker {
-  0%, 100% { opacity: 1; }
-  8%       { opacity: 0.92; }
-  9%       { opacity: 0.74; }
-  10%      { opacity: 0.92; }
-  41%      { opacity: 0.85; }
-  42%      { opacity: 0.97; }
-  72%      { opacity: 0.86; }
-  73%      { opacity: 1; }
+@keyframes matrix-scanline-sweep {
+  0% { background-position: 0 -150%; }
+  100% { background-position: 0 150%; }
 }
 
 /* Animations */
