@@ -11,6 +11,7 @@ import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import RatingBox from '../components/RatingBox';
 import FollowersModal from '../components/FollowersModal';
 import WorldMapCard from '../components/WorldMapCard';
+import UserPinsCard from '../components/UserPinsCard';
 import { toast } from 'sonner';
 import { getFrameClass } from '../lib/frames';
 import { getBannerClass } from '../lib/banners';
@@ -788,6 +789,8 @@ export default function UserProfile() {
                   </div>
                 </div>
               )}
+
+              {profile?.id && <UserPinsCard userId={profile.id} />}
 
               <WorldMapCard countryCounts={countryCounts} countryAvgRatings={countryAvgRatings} language={i18n.language} onViewMovies={handleViewCountryMovies} />
 
