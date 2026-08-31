@@ -25,9 +25,6 @@ export const banners = {
       // Brilho de canto sutil e estático — dá profundidade e um ponto
       // focal de luz, sem o excesso "gamer" do padrão de grade repetitivo
       // do design anterior.
-      'before:absolute before:inset-0',
-      'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
-      'before:pointer-events-none',
       // Brilho que aparece, atravessa e desaparece de verdade — técnica
       // de referência trazida pelo usuário (efeito de hover holográfico),
       // adaptada pra disparar sozinha a cada 5 segundos.
