@@ -155,7 +155,6 @@
     mix-blend-mode: color-dodge;
     animation: bttf-time-burst 6s ease-out infinite;
   }
-}
 
 /* 1. Ondulação do Calor (Sem movimento de esteira, apenas respiração) */
 @keyframes bttf-heat-wave {
