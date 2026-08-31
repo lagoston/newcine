@@ -154,6 +154,7 @@
     opacity: 0;
     mix-blend-mode: color-dodge;
     animation: bttf-time-burst 6s ease-out infinite;
+  }
 }
 
 /* 1. Ondulação do Calor (Sem movimento de esteira, apenas respiração) */
@@ -165,6 +166,7 @@
   100% { 
     transform: scale(1.3) rotate(10deg); 
     opacity: 1; 
+  }
 }
 
 /* 2. O Salto no Tempo (Aparece subitamente e dissipa rapidamente) */
@@ -187,6 +189,7 @@
   100% { 
     opacity: 0; 
   }
+}
 
 /* Animations */
 @keyframes fadeIn {
