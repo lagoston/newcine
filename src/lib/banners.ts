@@ -15,7 +15,7 @@ export const banners = {
     'relative overflow-hidden',
     
     // Fundo e bordas (mantidos)
-    'bg-gradient-to-br from-neutral-950 via-[#594f17] to-neutral-950',
+    'bg-gradient-to-br from-neutral-950 via-[#4a3f19] to-neutral-950',
     'border border-amber-400/25',
     'shadow-[0_0_35px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(251,191,36,0.15)]',
     
