@@ -52,6 +52,18 @@ export default {
         'ice-inner-spin':  { to: { transform: 'rotate(-360deg)' } },
         'bttf-outer-spin': { to: { transform: 'rotate(360deg)' } },
         'bttf-inner-spin': { to: { transform: 'rotate(360deg)' } },
+        // Flash de raio — clarão branco/dourado curto e intermitente,
+        // simulando o brilho do capacitor de fluxo disparando. Fica
+        // apagado na maior parte do tempo, com 2 flashes rápidos
+        // seguidos por ciclo (imitando um raio de verdade, que quase
+        // sempre "pisca duas vezes").
+        'bttf-frame-flash': {
+          '0%, 70%, 100%': { opacity: '0' },
+          '72%': { opacity: '0.95' },
+          '74%': { opacity: '0.2' },
+          '76%': { opacity: '0.85' },
+          '80%': { opacity: '0' },
+        },
         'potter-spin':     { to: { transform: 'rotate(360deg)' } },
         'potter-aura':     { '0%,100%': { opacity: '0.5', transform: 'scale(1)' }, '50%': { opacity: '1', transform: 'scale(1.08)' } },
         'tf-gear-outer':   { to: { transform: 'rotate(360deg)' } },
@@ -124,16 +136,17 @@ export default {
           '95%': { transform: 'scaleY(1)', opacity: '0.85' },
           '98%': { transform: 'scaleY(0.15)', opacity: '0.3' },
         },
-        // O "toque de gênio" — um brilho dourado/branco muito breve e
-        // discreto (menos de 1s de um ciclo de 60s), quase imperceptível
-        // até acontecer. Não é pra "incomodar", só aparecer, girar de
-        // leve, e sumir — um detalhe que ressignifica o quadro por um
-        // instante antes de voltar ao normal.
-        'deathdodger-genius-detail': {
-          '0%, 97%, 100%': { opacity: '0', transform: 'scale(0.85) rotate(0deg)' },
-          '97.5%': { opacity: '0.9', transform: 'scale(1.08) rotate(180deg)' },
-          '98.5%': { opacity: '0.4', transform: 'scale(1) rotate(270deg)' },
-          '99.3%': { opacity: '0', transform: 'scale(0.9) rotate(360deg)' },
+        // Efeito especial agressivo — a cada 30 segundos, o avatar é
+        // substituído por uma caveira num fundo vermelho ultra-luminoso.
+        // Aparece com um "pop" dramático (cresce além do tamanho normal
+        // antes de assentar), fica bem visível por mais de 2 segundos
+        // (não é sutil — é pra AGARRAR a atenção), e some rápido.
+        'deathdodger-skull-flash': {
+          '0%, 85%, 100%': { opacity: '0', transform: 'scale(0.5)' },
+          '86%': { opacity: '1', transform: 'scale(1.15)' },
+          '88%': { opacity: '1', transform: 'scale(1)' },
+          '93%': { opacity: '1', transform: 'scale(1.05)' },
+          '96%': { opacity: '0', transform: 'scale(0.7)' },
         },
         // Versão para a moldura circular: uma faixa fina na base do anel que
         // sobe e desce, sem cobrir o rosto na foto do avatar.
@@ -153,6 +166,7 @@ export default {
         'ice-inner-spin':   'ice-inner-spin 3s linear infinite',
         'bttf-outer-spin':  'bttf-outer-spin 0.7s linear infinite',
         'bttf-inner-spin':  'bttf-inner-spin 0.5s linear infinite reverse',
+        'bttf-frame-flash': 'bttf-frame-flash 4s ease-in-out infinite',
         'potter-spin':      'potter-spin 3s linear infinite',
         'potter-aura':      'potter-aura 2s ease-in-out infinite',
         'tf-gear-outer':    'tf-gear-outer 2s steps(8) infinite',
@@ -181,7 +195,7 @@ export default {
         'casual-drinker-frame-bubbles': 'casual-drinker-frame-bubbles 2.5s ease-in-out infinite',
         'deathdodger-frame-pulse': 'deathdodger-frame-pulse 1.8s ease-in-out infinite',
         'deathdodger-blood-flood': 'deathdodger-blood-flood 10s ease-in-out infinite',
-        'deathdodger-genius-detail': 'deathdodger-genius-detail 60s ease-in-out infinite',
+        'deathdodger-skull-flash': 'deathdodger-skull-flash 30s ease-in-out infinite',
       },
     },
   },
