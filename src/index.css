@@ -71,7 +71,6 @@
     /* Força o navegador a renderizar o corte com anti-aliasing de hardware */
     will-change: clip-path;
   }
-}
 
 @keyframes matrix-falling-code {
   0% { 
