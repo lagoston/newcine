@@ -11,15 +11,12 @@ export const frames = {
     name: 'Matrix Frame',
     isPremium: true,
     requiredTag: 'red-pill-adept',
-    // Rotação removida. O "glitch" agora é o próprio avatar desaparecendo
-    // — um overlay opaco (verde-escuro digital) cobre a foto por completo
-    // numa fração de segundo, a cada 5s, simulando falha de sinal. Como o
-    // ::before/::after do quadro não conseguem alterar a <img> do avatar
-    // diretamente (são caixas próprias, não "vazam" pra dentro de outros
-    // elementos), a forma de fazer o avatar "sumir" é cobri-lo por cima
-    // com uma camada opaca que pisca — visualmente idêntico a um
-    // desaparecimento, mesmo sem tocar na imagem em si.
-    className: 'relative ring-4 ring-green-400 dark:ring-green-500 shadow-[0_0_25px_rgba(34,197,94,0.8),0_0_50px_rgba(34,197,94,0.4)] dark:shadow-[0_0_30px_rgba(34,197,94,0.9),0_0_60px_rgba(34,197,94,0.5)] before:absolute before:inset-0 before:rounded-full before:border-2 before:border-green-400/50 after:absolute after:inset-0 after:rounded-full after:bg-[#020b02] after:animate-matrix-frame-glitch after:pointer-events-none'
+    // Rotação removida. O "glitch" é o avatar desaparecendo — mas agora,
+    // em vez de cobrir com um verde-escuro quase sólido, o overlay é um
+    // brilho radial verde saturado emanando do centro (mais forte no
+    // meio, decaindo pras bordas) — dá a sensação de o avatar sumindo
+    // dentro de uma explosão de energia verde, não só apagando pra preto.
+    className: 'relative ring-4 ring-green-400 dark:ring-green-500 shadow-[0_0_25px_rgba(34,197,94,0.8),0_0_50px_rgba(34,197,94,0.4)] dark:shadow-[0_0_30px_rgba(34,197,94,0.9),0_0_60px_rgba(34,197,94,0.5)] before:absolute before:inset-0 before:rounded-full before:border-2 before:border-green-400/50 after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle,rgba(74,222,128,0.95)_0%,rgba(21,128,61,0.9)_55%,rgba(2,11,2,0.85)_100%)] after:animate-matrix-frame-glitch after:pointer-events-none'
   },
   saw: {
     id: 'saw',
@@ -41,10 +38,11 @@ export const frames = {
     isPremium: true,
     requiredTag: 'flux-capacitor-fan',
     // As listras diagonais laranjas (o "after" antigo, um padrão xadrez
-    // repetido) saíram — sobrou só a borda, o brilho e a energia (before).
-    // Rotação removida — fica estático, só a borda e o gradiente de
-    // energia parados.
-    className: 'relative ring-4 ring-orange-400 dark:ring-orange-500 shadow-[0_0_25px_rgba(251,146,60,0.8),0_0_50px_rgba(251,146,60,0.4)] dark:shadow-[0_0_30px_rgba(251,146,60,0.9),0_0_60px_rgba(251,146,60,0.5)] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-tr before:from-orange-200/30 before:via-yellow-300/40 before:to-orange-400/30 before:pointer-events-none'
+    // repetido) saíram. Rotação removida, e o flash de raio voltou — o
+    // gradiente de energia agora pisca com um clarão branco/dourado
+    // intermitente (2 flashes rápidos por ciclo, como um raio de
+    // verdade), em vez de ficar parado ou girando.
+    className: 'relative ring-4 ring-orange-400 dark:ring-orange-500 shadow-[0_0_25px_rgba(251,146,60,0.8),0_0_50px_rgba(251,146,60,0.4)] dark:shadow-[0_0_30px_rgba(251,146,60,0.9),0_0_60px_rgba(251,146,60,0.5)] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-tr before:from-orange-100/70 before:via-yellow-200/80 before:to-orange-300/70 before:animate-bttf-frame-flash before:pointer-events-none'
   },
   potter: {
     id: 'potter',
@@ -70,7 +68,14 @@ export const frames = {
     // faixa BEM na borda/exterior fica visível — nada do padrão aparece
     // "por dentro" em direção ao centro/foto, só as pontas na beirada,
     // como dentes de engrenagem de verdade ao redor da roda.
-    className: 'relative ring-4 ring-gray-800 dark:ring-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3),inset_0_0_25px_rgba(59,130,246,0.15)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4),inset_0_0_30px_rgba(59,130,246,0.2)] before:absolute before:-inset-3 before:rounded-full before:bg-[repeating-conic-gradient(rgba(226,232,240,0.9)_0deg_10deg,transparent_10deg_30deg)] before:[mask-image:radial-gradient(circle,transparent_0%,transparent_78%,white_85%,white_100%)] before:animate-tf-gear-outer before:pointer-events-none after:absolute after:-inset-1 after:rounded-full after:bg-[repeating-conic-gradient(rgba(59,130,246,0.75)_0deg_15deg,transparent_15deg_45deg)] after:[mask-image:radial-gradient(circle,transparent_0%,transparent_82%,white_90%,white_100%)] after:animate-tf-gear-inner after:pointer-events-none'
+    //
+    // A técnica de máscara acima falhou por completo (só aparecia a
+    // borda preta, sem nenhum efeito) — trocada por uma técnica bem mais
+    // simples e robusta: anéis com borda TRACEJADA (border-dashed), sem
+    // gradientes nem máscaras. Os traços da borda já dão a impressão de
+    // dentes de engrenagem, e giram via as mesmas animações em "steps()"
+    // (movimento mecânico, em saltos).
+    className: 'relative ring-4 ring-gray-800 dark:ring-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3),inset_0_0_25px_rgba(59,130,246,0.15)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4),inset_0_0_30px_rgba(59,130,246,0.2)] before:absolute before:-inset-3 before:rounded-full before:border-[5px] before:border-dashed before:border-slate-300 before:animate-tf-gear-outer before:pointer-events-none after:absolute after:-inset-1 after:rounded-full after:border-4 after:border-dashed after:border-blue-400/80 after:animate-tf-gear-inner after:pointer-events-none'
   },
 'death-dodger': {
   id: 'death-dodger',
@@ -85,13 +90,12 @@ export const frames = {
   // rápido, fica cheio por um instante, drena de volta, na maior parte
   // do tempo fica invisível (scaleY(0)).
   //
-  // "before" — o "toque de gênio": um brilho dourado/branco muito breve
-  // (menos de 1s de um ciclo de 60s), quase imperceptível até acontecer.
-  // Não é pra chamar atenção o tempo todo — é pra SER RARO, um detalhe
-  // sutil e elegante contrastando com o tema sombrio do resto do quadro,
-  // que aparece, gira de leve, e some antes que dê tempo de "esperar" por
-  // ele — a perfeição sem incomodar.
-  className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(220,38,38,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-[radial-gradient(circle_at_50%_50%,rgba(254,240,180,0.9),rgba(251,191,36,0.4)_45%,transparent_70%)] before:animate-deathdodger-genius-detail before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:origin-bottom after:bg-gradient-to-t after:from-red-800 after:via-red-700/90 after:to-red-600/60 after:animate-deathdodger-blood-flood after:pointer-events-none'
+  // "before" — efeito especial AGRESSIVO a cada 30 segundos: o avatar é
+  // substituído por uma caveira 💀 num fundo vermelho ultra-luminoso,
+  // com um "pop" dramático de entrada, ficando visível por mais de 2
+  // segundos antes de sumir — pra chamar atenção de verdade, não pra
+  // passar despercebido.
+  className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(220,38,38,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:flex before:items-center before:justify-center before:text-4xl before:content-["💀"] before:bg-[radial-gradient(circle,rgba(248,113,113,1)_0%,rgba(220,38,38,1)_55%,rgba(127,29,29,1)_100%)] before:shadow-[0_0_35px_rgba(239,68,68,0.95)] before:animate-deathdodger-skull-flash before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:origin-bottom after:bg-gradient-to-t after:from-red-800 after:via-red-700/90 after:to-red-600/60 after:animate-deathdodger-blood-flood after:pointer-events-none'
 },
       'casual-drinker': {
     id: 'casual-drinker',
