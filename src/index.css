@@ -36,60 +36,6 @@
 
 /* Custom utilities */
 @layer utilities {
-  .matrix-digital-rain {
-    background-image: 
-      /* Gotas de código verticais com pontas brilhantes simulando diferentes profundidades */
-      linear-gradient(180deg, transparent 60%, rgba(134, 255, 160, 0.9) 95%, transparent 100%),
-      linear-gradient(180deg, transparent 40%, rgba(34, 197, 94, 0.7) 90%, transparent 100%),
-      linear-gradient(180deg, transparent 80%, rgba(20, 150, 60, 0.8) 98%, transparent 100%),
-      linear-gradient(180deg, transparent 30%, rgba(74, 222, 128, 0.6) 85%, transparent 100%),
-      /* A MÁGICA: Malha horizontal escura que "fatia" as gotas criando os caracteres */
-      repeating-linear-gradient(180deg, transparent 0, transparent 3px, #020b02 3px, #020b02 5px);
-    
-    background-size: 
-      12% 200%, 
-      18% 150%, 
-      25% 300%, 
-      15% 250%, 
-      100% 5px;
-      
-    background-repeat: repeat-y, repeat-y, repeat-y, repeat-y, repeat;
-    animation: matrix-falling-code 3.5s linear infinite;
-  }
-
-  .crt-scanline-effect {
-    background: 
-      /* Linha horizontal brilhante varrendo a tela de cima a baixo */
-      linear-gradient(180deg, transparent 0%, rgba(134, 255, 160, 0.1) 10%, rgba(34, 197, 94, 0.3) 50%, rgba(134, 255, 160, 0.1) 90%, transparent 100%);
-    background-size: 100% 150%;
-    animation: matrix-scanline-sweep 4s linear infinite;
-  }
-}
-
-@keyframes matrix-falling-code {
-  0% { 
-    /* Cada coluna de luz desce em sua própria trilha vertical (eixo X fixo, eixo Y desce) */
-    background-position: 
-      10% -200%, 
-      35% -150%, 
-      65% -300%, 
-      85% -250%, 
-      0 0; 
-  }
-  100% { 
-    background-position: 
-      10% 200%, 
-      35% 150%, 
-      65% 300%, 
-      85% 250%, 
-      0 0; 
-  }
-}
-
-@keyframes matrix-scanline-sweep {
-  0% { background-position: 0 -150%; }
-  100% { background-position: 0 150%; }
-}
   .safe-top {
     padding-top: env(safe-area-inset-top);
   }
@@ -128,66 +74,6 @@
   .scroll-snap-align-start {
     scroll-snap-align: start;
   }
-  
-  .bttf-fire-magic::before {
-    content: '';
-    position: absolute;
-    /* Fazemos a camada maior que o banner para o efeito de rotação não mostrar bordas */
-    inset: -50%;
-    pointer-events: none;
-    /* Manchas orgânicas de calor e energia flux (Laranja brilhante e Amarelo ouro) */
-    background: 
-      radial-gradient(circle at 40% 60%, rgba(251, 146, 60, 0.5) 0%, transparent 40%),
-      radial-gradient(circle at 70% 30%, rgba(253, 224, 71, 0.4) 0%, transparent 45%);
-    mix-blend-mode: overlay;
-    /* Pulsa, cresce e gira muito suavemente simulando distorção de ar quente */
-    animation: bttf-heat-wave 10s ease-in-out infinite alternate;
-  }
-
-  .bttf-fire-magic::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    /* Flash condensado de energia no centro, que explode simulando a quebra do tempo */
-    background: radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.95) 0%, rgba(250, 204, 21, 0.7) 30%, transparent 70%);
-    opacity: 0;
-    mix-blend-mode: color-dodge;
-    animation: bttf-time-burst 6s ease-out infinite;
-  }
-
-/* 1. Ondulação do Calor (Sem movimento de esteira, apenas respiração) */
-@keyframes bttf-heat-wave {
-  0% { 
-    transform: scale(1) rotate(0deg); 
-    opacity: 0.4; 
-  }
-  100% { 
-    transform: scale(1.3) rotate(10deg); 
-    opacity: 1; 
-  }
-}
-
-/* 2. O Salto no Tempo (Aparece subitamente e dissipa rapidamente) */
-@keyframes bttf-time-burst {
-  0%, 85% { 
-    opacity: 0; 
-    transform: scale(0.8); 
-  }
-  88% { 
-    /* O pico da explosão do capacitor */
-    opacity: 0.9; 
-    transform: scale(1.2); 
-    filter: brightness(1.5);
-  }
-  92% { 
-    /* A energia se expande e esvanece pelo banner */
-    opacity: 0; 
-    transform: scale(2.5); 
-  }
-  100% { 
-    opacity: 0; 
-  }
 }
 
 /* Animations */
@@ -210,25 +96,18 @@
   animation: slideUpFull 0.3s ease-out;
 }
 
-/* Gold Banner — Feixe de luz reluzente (ouro puro) 
-   Cruza o banner nos primeiros 25% do tempo e aguarda invisível no restante,
-   evitando o efeito pêndulo. */
-@keyframes gold-shine {
-  0% {
-    transform: translateX(-150%) skewX(-15deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1; /* Pico de brilho no meio da tela */
-  }
-  25% {
-    transform: translateX(250%) skewX(-15deg);
-    opacity: 0; /* Desaparece exatamente ao cruzar o limite direito */
-  }
-  100% {
-    transform: translateX(250%) skewX(-15deg);
-    opacity: 0; /* Permanece invisível até o próximo ciclo */
-  }
+/* Gold Banner — brilho diagonal deslizando, técnica trazida pelo usuário
+   (originalmente um efeito de :hover com skew), adaptada pra disparar
+   sozinha a cada 5 segundos. O "salto" instantâneo entre 16% e 16.01%
+   volta o brilho pro início ENQUANTO ele já está fora da área visível
+   (translateX(-120%)) — sem isso, a interpolação suave padrão do CSS
+   faria ele varrer de volta na direção contrária, um segundo brilho
+   indesejado. Resultado: um brilho rápido (~0.8s) seguido de uma pausa
+   de ~4.2s antes de repetir. */
+@keyframes gold-banner-sweep {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  16% { transform: translateX(220%) skewX(-20deg); }
+  16.01%, 100% { transform: translateX(-120%) skewX(-20deg); }
 }
 
 @keyframes float {
