@@ -68,13 +68,20 @@ export const frames = {
     // faixa BEM na borda/exterior fica visível — nada do padrão aparece
     // "por dentro" em direção ao centro/foto, só as pontas na beirada,
     // Ideia de engrenagem/dentes abandonada por completo — não funcionava
-    // bem visualmente. Nova abordagem, completamente diferente: o
-    // FORMATO REAL do avatar muda — círculo → pentágono → quadrado →
-    // triângulo → círculo, 2s em cada, via clip-path aplicado direto no
-    // elemento principal (corta tudo dentro, incluindo a foto de
-    // verdade, não só decoração por cima). Sem rounded-full fixo, já que
-    // o formato agora varia com o tempo.
-    className: 'relative ring-4 ring-gray-800 dark:ring-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph'
+    // bem visualmente. O formato REAL do avatar muda — círculo →
+    // pentágono → quadrado → triângulo → círculo, 2s em cada, via
+    // clip-path aplicado direto no elemento principal (corta tudo dentro,
+    // incluindo a foto de verdade, não só decoração por cima). Sem
+    // rounded-full fixo, já que o formato agora varia com o tempo.
+    //
+    // Trocado "ring-4" (que usa box-shadow por baixo dos panos) por
+    // "border-4" (borda de verdade) — box-shadow não acompanha o
+    // clip-path de forma confiável em todos os navegadores (a borda
+    // ficava sempre circular, presa no formato original, enquanto só o
+    // conteúdo interno mudava de forma) — border, sendo literalmente a
+    // borda geométrica da caixa, é cortado pelo clip-path com garantia,
+    // seguindo cada forma corretamente.
+    className: 'relative border-4 border-gray-800 dark:border-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph'
   },
 'death-dodger': {
   id: 'death-dodger',
