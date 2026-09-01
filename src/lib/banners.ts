@@ -16,7 +16,7 @@ export const banners = {
     
     // Fundo e bordas (mantidos)
     'bg-gradient-to-br from-neutral-950 via-[#594f17] to-neutral-950',
-    'border border-amber-400/25',
+    'border-[3px] border-amber-500',
     'shadow-[0_0_35px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(251,191,36,0.15)]',
     
     // Brilho de canto sutil e estático (mantido)
@@ -46,7 +46,7 @@ export const banners = {
     // Fundo do monitor desligado (preto com um levíssimo tom esverdeado)
     'bg-[#020b02]',
     // Borda fina e moderna (glassmorphism style) em vez da borda grossa antiga
-    'border border-green-500/40',
+    'border-[3px] border-green-500',
     // Vignette (bordas profundamente escurecidas simulando a tela CRT) + Brilho neon
     'shadow-[0_0_20px_rgba(34,197,94,0.15),inset_0_0_50px_rgba(0,0,0,0.95)]',
     
