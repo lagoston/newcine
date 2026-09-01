@@ -35,7 +35,6 @@
 }
 
 /* Custom utilities */
-@layer utilities {
   .matrix-digital-rain {
     background-image: 
       /* Gotas de código verticais com pontas brilhantes simulando diferentes profundidades */
