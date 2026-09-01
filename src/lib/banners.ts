@@ -16,7 +16,7 @@ export const banners = {
     
     // Fundo e bordas (mantidos)
     'bg-gradient-to-br from-neutral-950 via-[#594f17] to-neutral-950',
-    'border-[3px] border-amber-500',
+    '!border-[3px] !border-amber-500',
     'shadow-[0_0_35px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(251,191,36,0.15)]',
     
     // Brilho de canto sutil e estático (mantido)
@@ -46,7 +46,7 @@ export const banners = {
     // Fundo do monitor desligado (preto com um levíssimo tom esverdeado)
     'bg-[#020b02]',
     // Borda fina e moderna (glassmorphism style) em vez da borda grossa antiga
-    'border-[3px] border-green-500',
+    '!border-[3px] !border-green-500',
     // Vignette (bordas profundamente escurecidas simulando a tela CRT) + Brilho neon
     'shadow-[0_0_20px_rgba(34,197,94,0.15),inset_0_0_50px_rgba(0,0,0,0.95)]',
     
@@ -70,7 +70,7 @@ export const banners = {
     className: [
       'relative overflow-hidden',
       'bg-[radial-gradient(ellipse_at_50%_0%,#3b0000_0%,#1c0000_50%,#0d0000_100%)]',
-      'border-[3px] border-red-700',
+      '!border-[3px] !border-red-700',
       'shadow-[0_0_35px_rgba(185,28,28,0.6)_inset,0_0_20px_rgba(185,28,28,0.4)]',
       // pulsing core radial that breathes like a heartbeat
       'before:absolute before:inset-0',
@@ -92,7 +92,7 @@ export const banners = {
     className: [
       'relative overflow-hidden',
       'bg-[radial-gradient(ellipse_at_40%_60%,#00243f,#001a2e_55%,#000c18_100%)]',
-      'border-[3px] border-cyan-400',
+      '!border-[3px] !border-cyan-400',
       'shadow-[0_0_40px_rgba(103,232,249,0.4)_inset,0_0_25px_rgba(103,232,249,0.5)]',
       // frost facet pattern: diagonal crossing lines
       'before:absolute before:inset-0',
@@ -113,7 +113,7 @@ export const banners = {
     className: [
       'relative overflow-hidden',
       'bg-[radial-gradient(ellipse_at_50%_50%,#150d00,#0a0500_60%,#030200_100%)]',
-      'border-[3px] border-orange-500',
+      '!border-[3px] !border-orange-500',
       'shadow-[0_0_40px_rgba(251,146,60,0.5)_inset,0_0_25px_rgba(251,146,60,0.4)]',
       // warp lines
       'before:absolute before:inset-0',
@@ -135,7 +135,7 @@ export const banners = {
     className: [
       'relative overflow-hidden',
       'bg-[radial-gradient(ellipse_at_30%_50%,#1a0030,#0d0014_55%,#060008_100%)]',
-      'border-[3px] border-purple-600',
+      '!border-[3px] !border-purple-600',
       'shadow-[0_0_40px_rgba(168,85,247,0.45)_inset,0_0_30px_rgba(168,85,247,0.5)]',
       // dual orb nebula glows
       'before:absolute before:inset-0',
@@ -157,7 +157,7 @@ export const banners = {
     className: [
       'relative overflow-hidden',
       'bg-[#020202]',
-      'border-[3px] border-blue-900',
+      '!border-[3px] !border-blue-900',
       'shadow-[0_0_40px_rgba(59,130,246,0.25)_inset,0_0_30px_rgba(59,130,246,0.35),0_0_0_1px_rgba(59,130,246,0.15)_inset]',
       // circuit board grid
       'before:absolute before:inset-0',
@@ -181,7 +181,7 @@ export const banners = {
       // box-shadow inset gigante (9999px) só pra forçar cor de fundo, mais
       // pesado pro navegador calcular e frágil em telas muito grandes.
       'bg-[#0a0a0a]',
-      'border-[3px] border-red-900',
+      '!border-[3px] !border-red-900',
       'shadow-[0_0_0_1px_#3f0000,0_0_35px_rgba(185,28,28,0.6),0_0_60px_rgba(100,0,0,0.4)]',
       'before:absolute before:inset-0',
       'before:bg-[repeating-linear-gradient(0deg,transparent,transparent_17px,rgba(180,180,180,0.08)_17px,rgba(180,180,180,0.08)_18px),repeating-linear-gradient(90deg,transparent,transparent_17px,rgba(180,180,180,0.08)_17px,rgba(180,180,180,0.08)_18px)]',
@@ -202,7 +202,7 @@ export const banners = {
       // Fundo agora via background-color normal — mesmo motivo do banner
       // acima, trocado o hack de box-shadow inset gigante.
       'bg-[#060810]',
-      'border-[3px] border-amber-500',
+      '!border-[3px] !border-amber-500',
       'shadow-[0_0_25px_rgba(251,191,36,0.5)]',
             // líquido âmbar — sobe e desce de verdade agora, em loop
       'before:absolute before:bottom-0 before:left-0 before:right-0',
