@@ -96,18 +96,25 @@
   animation: slideUpFull 0.3s ease-out;
 }
 
-/* Gold Banner — brilho diagonal deslizando, técnica trazida pelo usuário
-   (originalmente um efeito de :hover com skew), adaptada pra disparar
-   sozinha a cada 5 segundos. O "salto" instantâneo entre 16% e 16.01%
-   volta o brilho pro início ENQUANTO ele já está fora da área visível
-   (translateX(-120%)) — sem isso, a interpolação suave padrão do CSS
-   faria ele varrer de volta na direção contrária, um segundo brilho
-   indesejado. Resultado: um brilho rápido (~0.8s) seguido de uma pausa
-   de ~4.2s antes de repetir. */
-@keyframes gold-banner-sweep {
-  0% { transform: translateX(-120%) skewX(-20deg); }
-  16% { transform: translateX(220%) skewX(-20deg); }
-  16.01%, 100% { transform: translateX(-120%) skewX(-20deg); }
+/* Gold Banner — Feixe de luz reluzente (ouro puro) 
+   Cruza o banner nos primeiros 25% do tempo e aguarda invisível no restante,
+   evitando o efeito pêndulo. */
+@keyframes gold-shine {
+  0% {
+    transform: translateX(-150%) skewX(-15deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1; /* Pico de brilho no meio da tela */
+  }
+  25% {
+    transform: translateX(250%) skewX(-15deg);
+    opacity: 0; /* Desaparece exatamente ao cruzar o limite direito */
+  }
+  100% {
+    transform: translateX(250%) skewX(-15deg);
+    opacity: 0; /* Permanece invisível até o próximo ciclo */
+  }
 }
 
 @keyframes float {
