@@ -69,33 +69,34 @@ export const frames = {
     // "por dentro" em direção ao centro/foto, só as pontas na beirada,
     // como dentes de engrenagem de verdade ao redor da roda.
     //
-    // A técnica de máscara acima falhou por completo (só aparecia a
-    // borda preta, sem nenhum efeito) — trocada por uma técnica bem mais
-    // simples e robusta: anéis com borda TRACEJADA (border-dashed), sem
-    // gradientes nem máscaras. Os traços da borda já dão a impressão de
-    // dentes de engrenagem, e giram via as mesmas animações em "steps()"
-    // (movimento mecânico, em saltos).
-    className: 'relative ring-4 ring-gray-800 dark:ring-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3),inset_0_0_25px_rgba(59,130,246,0.15)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4),inset_0_0_30px_rgba(59,130,246,0.2)] before:absolute before:-inset-3 before:rounded-full before:border-[5px] before:border-dashed before:border-slate-300 before:animate-tf-gear-outer before:pointer-events-none after:absolute after:-inset-1 after:rounded-full after:border-4 after:border-dashed after:border-blue-400/80 after:animate-tf-gear-inner after:pointer-events-none'
+    // A técnica de máscara falhou (só borda preta). Trocada por bordas
+    // tracejadas (border-dashed) girando — mas a primeira tentativa usava
+    // inset NEGATIVO (-inset-3/-inset-1, tentando estender pra fora do
+    // círculo), que ficava cortado pelo overflow-hidden do container do
+    // avatar — todos os OUTROS frames que funcionam usam inset-0 (dentro
+    // dos limites); só esse tentava vazar pra fora, e por isso nunca
+    // aparecia nada além da borda normal. Corrigido: agora tudo fica
+    // dentro de inset-0, os anéis tracejados sobrepõem levemente a borda
+    // existente em vez de tentar ultrapassá-la.
+    className: 'relative ring-4 ring-gray-800 dark:ring-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3),inset_0_0_25px_rgba(59,130,246,0.15)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4),inset_0_0_30px_rgba(59,130,246,0.2)] before:absolute before:inset-0 before:rounded-full before:border-[5px] before:border-dashed before:border-slate-300 before:animate-tf-gear-outer before:pointer-events-none after:absolute after:inset-1 after:rounded-full after:border-4 after:border-dashed after:border-blue-400/80 after:animate-tf-gear-inner after:pointer-events-none'
   },
 'death-dodger': {
   id: 'death-dodger',
   name: 'Death Dodger Frame',
   isPremium: true,
   requiredTag: 'death-dodger',
-  // O facho giratório (radar) saiu por completo — sem linhas brancas/
-  // vermelhas girando. Só sobram 2 pseudo-elementos disponíveis (before/
-  // after) pros 2 efeitos novos pedidos:
+  // O facho giratório (radar) saiu por completo. Sangue e caveira agora
+  // vivem NO MESMO pseudo-elemento ("after") — a versão anterior separava
+  // os dois (sangue no "after", caveira no "before"), mas "before" nasce
+  // ATRÁS da foto real do avatar no empilhamento visual (mesma lição já
+  // documentada no Casual Drinker, logo abaixo), então a caveira nunca
+  // aparecia de verdade, mesmo "rodando" tecnicamente — só o sangue, que
+  // por sorte já estava no slot certo ("after"), aparecia.
   //
-  // "after" — sangue inundando de baixo pra cima a cada 10 segundos: sobe
-  // rápido, fica cheio por um instante, drena de volta, na maior parte
-  // do tempo fica invisível (scaleY(0)).
-  //
-  // "before" — efeito especial AGRESSIVO a cada 30 segundos: o avatar é
-  // substituído por uma caveira 💀 num fundo vermelho ultra-luminoso,
-  // com um "pop" dramático de entrada, ficando visível por mais de 2
-  // segundos antes de sumir — pra chamar atenção de verdade, não pra
-  // passar despercebido.
-  className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(220,38,38,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:flex before:items-center before:justify-center before:text-4xl before:content-["💀"] before:bg-[radial-gradient(circle,rgba(248,113,113,1)_0%,rgba(220,38,38,1)_55%,rgba(127,29,29,1)_100%)] before:shadow-[0_0_35px_rgba(239,68,68,0.95)] before:animate-deathdodger-skull-flash before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:origin-bottom after:bg-gradient-to-t after:from-red-800 after:via-red-700/90 after:to-red-600/60 after:animate-deathdodger-blood-flood after:pointer-events-none'
+  // Ciclo único de 30s: sangue inundando duas vezes (~10s e ~20s), e a
+  // caveira 💀 tomando conta com um "pop" dramático no fim do ciclo
+  // (~30s) — tudo no mesmo elemento, garantido visível por cima da foto.
+  className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(220,38,38,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:shadow-[inset_0_0_20px_rgba(220,38,38,0.5)] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:flex after:items-center after:justify-center after:text-4xl after:content-["💀"] after:bg-[radial-gradient(circle,rgba(248,113,113,1)_0%,rgba(220,38,38,1)_55%,rgba(127,29,29,1)_100%)] after:shadow-[0_0_35px_rgba(239,68,68,0.95)] after:animate-deathdodger-blood-and-skull after:pointer-events-none'
 },
       'casual-drinker': {
     id: 'casual-drinker',
