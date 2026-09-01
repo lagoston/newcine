@@ -66,8 +66,24 @@ export default {
         },
         'potter-spin':     { to: { transform: 'rotate(360deg)' } },
         'potter-aura':     { '0%,100%': { opacity: '0.5', transform: 'scale(1)' }, '50%': { opacity: '1', transform: 'scale(1.08)' } },
-        'tf-gear-outer':   { to: { transform: 'rotate(360deg)' } },
-        'tf-gear-inner':   { to: { transform: 'rotate(360deg)' } },
+        // Abandonando a ideia de engrenagem/dentes por completo — em vez
+        // de decoração ao redor do avatar, o formato REAL dele muda de
+        // verdade: círculo → pentágono → quadrado → triângulo → círculo,
+        // 2 segundos em cada, via clip-path (que corta o elemento inteiro,
+        // incluindo a foto de dentro — diferente das técnicas anteriores,
+        // que só conseguiam sobrepor decoração sem afetar o formato real).
+        // Interpolação suave entre polígonos com números de pontos
+        // diferentes não é bem definida (o navegador não sabe "morfar"
+        // um triângulo em um quadrado de forma bonita), então cada forma
+        // fica parada por quase todo o seu bloco de 2s, com uma troca
+        // rápida/abrupta pra próxima — mais previsível visualmente.
+        'tf-shape-morph': {
+          '0%, 24%': { clipPath: 'circle(50% at 50% 50%)' },
+          '25%, 49%': { clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)' },
+          '50%, 74%': { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' },
+          '75%, 99%': { clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' },
+          '100%': { clipPath: 'circle(50% at 50% 50%)' },
+        },
         // ── BANNERS ──────────────────────────────────────────────────────────
         'gold-banner-sweep':     { '0%,100%': { transform: 'translateX(-40%)' }, '50%': { transform: 'translateX(40%)' } },
         'matrix-banner-rain':    { from: { backgroundPosition: '0 0' }, to: { backgroundPosition: '0 6px' } },
@@ -139,20 +155,19 @@ export default {
         // elemento (content não anima de forma confiável via keyframe),
         // mas reduzido a uma escala minúscula durante os momentos de
         // sangue — só cresce de verdade no final.
-        'deathdodger-blood-and-skull': {
-          '0%, 100%': { opacity: '0', transform: 'scale(0.15)' },
-          '28%': { opacity: '0', transform: 'scale(0.15)' },
-          '30%': { opacity: '0.85', transform: 'scale(0.15)' },
-          '33%': { opacity: '0.6', transform: 'scale(0.15)' },
-          '36%': { opacity: '0', transform: 'scale(0.15)' },
-          '61%': { opacity: '0', transform: 'scale(0.15)' },
-          '63%': { opacity: '0.85', transform: 'scale(0.15)' },
-          '66%': { opacity: '0.6', transform: 'scale(0.15)' },
-          '69%': { opacity: '0', transform: 'scale(0.15)' },
-          '95%': { opacity: '0', transform: 'scale(0.3)' },
-          '96%': { opacity: '1', transform: 'scale(1.15)' },
-          '98%': { opacity: '1', transform: 'scale(1)' },
-          '99.5%': { opacity: '0', transform: 'scale(0.4)' },
+        // Reprojetado — a versão anterior tentava esconder a caveira nos
+        // momentos de "sangue" só reduzindo a escala, mas o emoji
+        // continuava PERCEPTÍVEL mesmo pequeno (daí o bug relatado: uma
+        // "mini caveirinha" a cada 10s, em vez de sangue de verdade).
+        // Simplificado: só a entrada da caveira, sem tentar simular
+        // sangue no mesmo elemento. Toca UMA VEZ só (não em loop — ver a
+        // configuração de animação abaixo, com iteration-count:1 e
+        // fill-mode:both), permanecendo no estado final pra sempre depois
+        // de entrar aos 30s, em vez de sumir e recomeçar o ciclo.
+        'deathdodger-skull-reveal': {
+          '0%': { opacity: '0', transform: 'scale(0.3)' },
+          '60%': { opacity: '1', transform: 'scale(1.2)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         },
         // Versão para a moldura circular: uma faixa fina na base do anel que
         // sobe e desce, sem cobrir o rosto na foto do avatar.
@@ -175,8 +190,7 @@ export default {
         'bttf-frame-flash': 'bttf-frame-flash 4s ease-in-out infinite',
         'potter-spin':      'potter-spin 3s linear infinite',
         'potter-aura':      'potter-aura 2s ease-in-out infinite',
-        'tf-gear-outer':    'tf-gear-outer 2s steps(8) infinite',
-        'tf-gear-inner':    'tf-gear-inner 3s steps(6) infinite reverse',
+        'tf-shape-morph':   'tf-shape-morph 8s steps(1) infinite',
         // ── BANNERS ──────────────────────────────────────────────────────────
         'gold-banner-sweep':     'gold-banner-sweep 4s ease-in-out infinite',
         'matrix-banner-rain':    'matrix-banner-rain 0.7s linear infinite',
@@ -200,7 +214,7 @@ export default {
                 'casual-drinker-foam-level': 'casual-drinker-foam-level 4s ease-in-out infinite',
         'casual-drinker-frame-bubbles': 'casual-drinker-frame-bubbles 2.5s ease-in-out infinite',
         'deathdodger-frame-pulse': 'deathdodger-frame-pulse 1.8s ease-in-out infinite',
-        'deathdodger-blood-and-skull': 'deathdodger-blood-and-skull 30s ease-in-out infinite',
+        'deathdodger-skull-reveal': 'deathdodger-skull-reveal 0.8s ease-out 30s 1 both',
       },
     },
   },
