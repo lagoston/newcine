@@ -11,7 +11,11 @@ export const frames = {
     name: 'Matrix Frame',
     isPremium: true,
     requiredTag: 'red-pill-adept',
-    className: 'relative ring-4 ring-green-400 dark:ring-green-500 shadow-[0_0_25px_rgba(34,197,94,0.8),0_0_50px_rgba(34,197,94,0.4)] dark:shadow-[0_0_30px_rgba(34,197,94,0.9),0_0_60px_rgba(34,197,94,0.5)] animate-matrix-digital before:absolute before:inset-0 before:rounded-full before:border-2 before:border-green-400/50 before:animate-matrix-scan after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_50%_0%,rgba(34,197,94,0.3),transparent_50%)] after:animate-matrix-pulse after:pointer-events-none'
+    // Pulsação trocada por glitch de verdade (deslocamento + recorte em
+    // saltos irregulares, simulando falha de sinal digital). Também
+    // trocado "animate-matrix-digital" (nunca existiu no config) pela
+    // mesma "matrix-scan" já usada no anel — girando por igual.
+    className: 'relative ring-4 ring-green-400 dark:ring-green-500 shadow-[0_0_25px_rgba(34,197,94,0.8),0_0_50px_rgba(34,197,94,0.4)] dark:shadow-[0_0_30px_rgba(34,197,94,0.9),0_0_60px_rgba(34,197,94,0.5)] animate-matrix-scan before:absolute before:inset-0 before:rounded-full before:border-2 before:border-green-400/50 before:animate-matrix-scan after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_50%_0%,rgba(34,197,94,0.3),transparent_50%)] after:animate-matrix-frame-glitch after:pointer-events-none'
   },
   saw: {
     id: 'saw',
@@ -32,7 +36,13 @@ export const frames = {
     name: 'Back to the Future Frame',
     isPremium: true,
     requiredTag: 'flux-capacitor-fan',
-    className: 'relative ring-4 ring-orange-400 dark:ring-orange-500 shadow-[0_0_25px_rgba(251,146,60,0.8),0_0_50px_rgba(251,146,60,0.4)] dark:shadow-[0_0_30px_rgba(251,146,60,0.9),0_0_60px_rgba(251,146,60,0.5)] animate-bttf-lightning before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-tr before:from-orange-200/30 before:via-yellow-300/40 before:to-orange-400/30 before:animate-bttf-energy after:absolute after:inset-0 after:rounded-full after:bg-[linear-gradient(45deg,transparent_25%,rgba(251,146,60,0.3)_25%,rgba(251,146,60,0.3)_50%,transparent_50%,transparent_75%,rgba(251,146,60,0.3)_75%)] after:bg-[length:20px_20px] after:animate-bttf-flux after:pointer-events-none'
+    // As listras diagonais laranjas (o "after" antigo, um padrão xadrez
+    // repetido) saíram — sobrou só a borda, o brilho e a energia (before).
+    // Trocado também "bttf-lightning"/"bttf-energy", que nunca existiram
+    // de verdade no config, pelas animações reais já configuradas pra
+    // esse frame ("bttf-outer-spin"/"bttf-inner-spin" — giro rápido tipo
+    // vórtex temporal, que já existiam prontas mas nunca foram usadas).
+    className: 'relative ring-4 ring-orange-400 dark:ring-orange-500 shadow-[0_0_25px_rgba(251,146,60,0.8),0_0_50px_rgba(251,146,60,0.4)] dark:shadow-[0_0_30px_rgba(251,146,60,0.9),0_0_60px_rgba(251,146,60,0.5)] animate-bttf-outer-spin before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-tr before:from-orange-200/30 before:via-yellow-300/40 before:to-orange-400/30 before:animate-bttf-inner-spin before:pointer-events-none'
   },
   potter: {
     id: 'potter',
@@ -46,7 +56,14 @@ export const frames = {
     name: 'Transformers Frame',
     isPremium: true,
     requiredTag: 'cybertron-sentinel',
-    className: 'relative ring-4 ring-gray-800 dark:ring-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3),inset_0_0_25px_rgba(59,130,246,0.15)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4),inset_0_0_30px_rgba(59,130,246,0.2)] animate-tf-mechanical before:absolute before:inset-0 before:rounded-full before:bg-[conic-gradient(from_0deg,rgba(23,23,23,0.8),rgba(59,130,246,0.3),rgba(23,23,23,0.8))] before:animate-tf-gears after:absolute after:inset-0 after:rounded-full after:bg-[linear-gradient(45deg,transparent_30%,rgba(59,130,246,0.2)_50%,transparent_70%)] after:bg-[length:40px_40px] after:animate-tf-grid after:pointer-events-none'
+    // Não tinha nenhum efeito visível — "tf-mechanical"/"tf-gears"/
+    // "tf-grid" nunca existiram de verdade no config. Substituído por um
+    // efeito de engrenagem girando de verdade: dentes desenhados via
+    // repeating-conic-gradient (12 dentes na externa, 8 na interna),
+    // girando em "steps()" (movimento mecânico, em saltos — não suave
+    // como uma animação comum) usando "tf-gear-outer"/"tf-gear-inner",
+    // que já existiam prontas no config mas nunca chegaram a ser usadas.
+    className: 'relative ring-4 ring-gray-800 dark:ring-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3),inset_0_0_25px_rgba(59,130,246,0.15)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4),inset_0_0_30px_rgba(59,130,246,0.2)] before:absolute before:-inset-1 before:rounded-full before:bg-[repeating-conic-gradient(rgba(59,130,246,0.65)_0deg_15deg,transparent_15deg_30deg)] before:animate-tf-gear-outer before:pointer-events-none after:absolute after:inset-1 after:rounded-full after:bg-[repeating-conic-gradient(rgba(148,163,184,0.55)_0deg_22.5deg,transparent_22.5deg_45deg)] after:animate-tf-gear-inner after:pointer-events-none'
   },
 'death-dodger': {
   id: 'death-dodger',
@@ -57,9 +74,14 @@ export const frames = {
   // pulso de alerta que acende e apaga — evoca a tensão de "sentir a morte
   // se aproximando" sem nunca ver de onde. Antes usava animações que não
   // existiam (doom-flicker/doom-spin), então nunca se moveu.
-    // Mesmo ajuste: o facho giratório (o efeito principal, que precisa se ver
+  // Mesmo ajuste: o facho giratório (o efeito principal, que precisa se ver
   // por cima da foto) vai pro "after"; o pulso de alerta fica no "before".
-  className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(220,38,38,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:shadow-[inset_0_0_22px_rgba(220,38,38,0.7)] before:animate-[deathdodger-frame-pulse_1.8s_ease-in-out_infinite] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-[conic-gradient(from_0deg,transparent_0deg,rgba(239,68,68,0.75)_12deg,rgba(239,68,68,0.2)_25deg,transparent_35deg,transparent_360deg)] after:animate-[deathdodger-frame-sweep_3s_linear_infinite] after:pointer-events-none'
+  // Reforço no núcleo do facho — antes decaía numa faixa vermelha uniforme
+  // sem um ponto claro de origem; agora tem um núcleo bem brilhante/claro
+  // bem na ponta (0-4°), que decai rápido pra vermelho saturado e depois
+  // se dissipa — como a luz concentrada de um farol de sonar de verdade
+  // "liderando" o giro, não só uma faixa vermelha desbotando.
+  className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(220,38,38,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:shadow-[inset_0_0_22px_rgba(220,38,38,0.7)] before:animate-[deathdodger-frame-pulse_1.8s_ease-in-out_infinite] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-[conic-gradient(from_0deg,rgba(254,226,226,0.95)_0deg,rgba(239,68,68,0.85)_4deg,rgba(239,68,68,0.3)_14deg,transparent_28deg,transparent_360deg)] after:animate-[deathdodger-frame-sweep_3s_linear_infinite] after:pointer-events-none'
 },
       'casual-drinker': {
     id: 'casual-drinker',
