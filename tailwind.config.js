@@ -72,17 +72,28 @@ export default {
         // 2 segundos em cada, via clip-path (que corta o elemento inteiro,
         // incluindo a foto de dentro — diferente das técnicas anteriores,
         // que só conseguiam sobrepor decoração sem afetar o formato real).
-        // Interpolação suave entre polígonos com números de pontos
-        // diferentes não é bem definida (o navegador não sabe "morfar"
-        // um triângulo em um quadrado de forma bonita), então cada forma
-        // fica parada por quase todo o seu bloco de 2s, com uma troca
-        // rápida/abrupta pra próxima — mais previsível visualmente.
+        //
+        // O clip-path em si SEMPRE corta de forma abrupta entre polígonos
+        // com números de pontos diferentes (círculo → pentágono → quadrado
+        // → triângulo) — isso é uma limitação real do clip-path, não dá
+        // pra evitar com CSS puro. Mas dá pra DISFARÇAR a percepção do
+        // corte: um pulso de escala+opacidade (que SIM interpolam de
+        // forma suave) encolhe e desvanece o avatar bem no instante da
+        // troca, e volta a crescer/aparecer na forma nova — o corte em si
+        // continua instantâneo, mas acontece "escondido" dentro do pulso,
+        // lendo como uma transformação intencional, não um erro abrupto.
         'tf-shape-morph': {
-          '0%, 24%': { clipPath: 'circle(50% at 50% 50%)' },
-          '25%, 49%': { clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)' },
-          '50%, 74%': { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' },
-          '75%, 99%': { clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' },
-          '100%': { clipPath: 'circle(50% at 50% 50%)' },
+          '0%, 20%': { clipPath: 'circle(50% at 50% 50%)', transform: 'scale(1)', opacity: '1' },
+          '23%': { clipPath: 'circle(50% at 50% 50%)', transform: 'scale(0.8)', opacity: '0.35' },
+          '25%': { clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)', transform: 'scale(0.8)', opacity: '0.35' },
+          '28%, 45%': { clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)', transform: 'scale(1)', opacity: '1' },
+          '48%': { clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)', transform: 'scale(0.8)', opacity: '0.35' },
+          '50%': { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', transform: 'scale(0.8)', opacity: '0.35' },
+          '53%, 70%': { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', transform: 'scale(1)', opacity: '1' },
+          '73%': { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', transform: 'scale(0.8)', opacity: '0.35' },
+          '75%': { clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)', transform: 'scale(0.8)', opacity: '0.35' },
+          '78%, 95%': { clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)', transform: 'scale(1)', opacity: '1' },
+          '98%, 100%': { clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)', transform: 'scale(0.8)', opacity: '0.35' },
         },
         // ── BANNERS ──────────────────────────────────────────────────────────
         'gold-banner-sweep':     { '0%,100%': { transform: 'translateX(-40%)' }, '50%': { transform: 'translateX(40%)' } },
@@ -190,7 +201,7 @@ export default {
         'bttf-frame-flash': 'bttf-frame-flash 4s ease-in-out infinite',
         'potter-spin':      'potter-spin 3s linear infinite',
         'potter-aura':      'potter-aura 2s ease-in-out infinite',
-        'tf-shape-morph':   'tf-shape-morph 8s steps(1) infinite',
+        'tf-shape-morph':   'tf-shape-morph 8s ease-in-out infinite',
         // ── BANNERS ──────────────────────────────────────────────────────────
         'gold-banner-sweep':     'gold-banner-sweep 4s ease-in-out infinite',
         'matrix-banner-rain':    'matrix-banner-rain 0.7s linear infinite',
