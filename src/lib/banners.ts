@@ -34,8 +34,8 @@ export const banners = {
     
     // Aumentei para 6 segundos para dar um intervalo mais luxuoso entre os brilhos
     'after:animate-[gold-shine_6s_ease-in-out_infinite]',
-  ],
-}
+    ].join(' '),
+  },
   matrix: {
     id: 'matrix',
     name: 'Matrix Banner',
