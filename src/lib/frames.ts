@@ -52,37 +52,22 @@ export const frames = {
     className: 'relative ring-4 ring-purple-500 dark:ring-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.8),0_0_60px_rgba(168,85,247,0.4),inset_0_0_25px_rgba(168,85,247,0.3)] dark:shadow-[0_0_40px_rgba(168,85,247,0.9),0_0_70px_rgba(168,85,247,0.5),inset_0_0_30px_rgba(168,85,247,0.4)] animate-hp-magic before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-br before:from-purple-200/40 before:via-violet-300/30 before:to-purple-400/40 before:animate-hp-sparkle after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_30%_30%,rgba(168,85,247,0.4)_0%,transparent_40%),radial-gradient(circle_at_70%_70%,rgba(217,70,239,0.3)_0%,transparent_40%)] after:animate-hp-shimmer after:pointer-events-none'
   },
   transformers: {
-    id: 'transformers',
-    name: 'Transformers Frame',
-    isPremium: true,
-    requiredTag: 'cybertron-sentinel',
-    // Não tinha nenhum efeito visível — "tf-mechanical"/"tf-gears"/
-    // "tf-grid" nunca existiram de verdade no config. Efeito de
-    // engrenagem girando de verdade: dentes desenhados via
-    // repeating-conic-gradient, girando em "steps()" (movimento
-    // mecânico, em saltos — não suave) usando "tf-gear-outer"/
-    // "tf-gear-inner", que já existiam prontas mas nunca foram usadas.
-    //
-    // Os dentes transcendem a borda de verdade (inset bem negativo, pontas
-    // saindo pra fora do círculo) e uma máscara radial garante que só a
-    // faixa BEM na borda/exterior fica visível — nada do padrão aparece
-    // "por dentro" em direção ao centro/foto, só as pontas na beirada,
-    // Ideia de engrenagem/dentes abandonada por completo — não funcionava
-    // bem visualmente. O formato REAL do avatar muda — círculo →
-    // pentágono → quadrado → triângulo → círculo, 2s em cada, via
-    // clip-path aplicado direto no elemento principal (corta tudo dentro,
-    // incluindo a foto de verdade, não só decoração por cima). Sem
-    // rounded-full fixo, já que o formato agora varia com o tempo.
-    //
-    // Trocado "ring-4" (que usa box-shadow por baixo dos panos) por
-    // "border-4" (borda de verdade) — box-shadow não acompanha o
-    // clip-path de forma confiável em todos os navegadores (a borda
-    // ficava sempre circular, presa no formato original, enquanto só o
-    // conteúdo interno mudava de forma) — border, sendo literalmente a
-    // borda geométrica da caixa, é cortado pelo clip-path com garantia,
-    // seguindo cada forma corretamente.
-    className: 'relative border-4 border-gray-800 dark:border-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph'
-  },
+  id: 'transformers',
+  name: 'Transformers Frame',
+  isPremium: true,
+  requiredTag: 'cybertron-sentinel',
+  className: [
+    'relative w-full h-full',
+    'border-4 border-gray-800 dark:border-gray-700',
+    'shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)]',
+    'dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)]',
+    'animate-tf-shape-morph',
+    // O SEGREDO: Força a imagem interna e as divs de encapsulamento do avatar a 
+    // perderem o arredondamento padrão e preencherem 100% da área do frame.
+    // Assim, o avatar preenche até os cantos do quadrado/triângulo e o clip-path
+    // corta a borda e a imagem juntos como uma lâmina só.
+    '[&_img]:!rounded-none [&_div]:!rounded-none [&_img]:object-cover'
+    },
 'death-dodger': {
   id: 'death-dodger',
   name: 'Death Dodger Frame',
