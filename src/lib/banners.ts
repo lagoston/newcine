@@ -7,36 +7,35 @@ export const banners = {
     className: ''
   },
   gold: {
-    id: 'gold',
-    name: 'Gold Banner',
-    isPremium: true,
-    requiredTag: null,
-    className: [
-      'relative overflow-hidden',
-      // Antes: fundo marrom/preto "queimado", borda grossa sólida amarela,
-      // padrão de grade decorativa — visual datado, tipo interface de jogo
-      // antigo. Agora: gradiente escuro sofisticado com um toque quente
-      // de dourado, borda fina e translúcida (mesma linguagem visual das
-      // bordas glassmorphism já usadas no resto do site, só que no tom do
-      // tema), sem padrão de grade repetitivo.
-      'bg-gradient-to-br from-neutral-950 via-[#1c1608] to-neutral-950',
-      'border border-amber-400/25',
-      'shadow-[0_0_35px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(251,191,36,0.15)]',
-      // Brilho de canto sutil e estático — dá profundidade e um ponto
-      // focal de luz, sem o excesso "gamer" do padrão de grade repetitivo
-      // do design anterior.
-      'before:absolute before:inset-0',
-      'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
-      'before:pointer-events-none',
-      // Brilho diagonal deslizando — técnica de referência trazida pelo
-      // usuário (originalmente um efeito de hover), adaptada pra disparar
-      // sozinha a cada 5 segundos em vez de precisar do cursor por cima.
-      'after:absolute after:inset-0',
-      'after:bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.5)_50%,transparent_70%)]',
-      'after:animate-[gold-banner-sweep_5s_ease_infinite]',
-      'after:pointer-events-none',
-    ].join(' '),
-  },
+  id: 'gold',
+  name: 'Gold Banner',
+  isPremium: true,
+  requiredTag: null,
+  className: [
+    'relative overflow-hidden',
+    
+    // Fundo e bordas (mantidos)
+    'bg-gradient-to-br from-neutral-950 via-[#594f17] to-neutral-950',
+    'border border-amber-400/25',
+    'shadow-[0_0_35px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(251,191,36,0.15)]',
+    
+    // Brilho de canto sutil e estático (mantido)
+    'before:absolute before:inset-0',
+    'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
+    'before:pointer-events-none',
+    
+    // 🌟 NOVO: Brilho Reluzente (Reflexo em Ouro)
+    // Reduzimos a largura para um feixe realista e focamos no gradiente central.
+    // O eixo e a inclinação agora são controlados 100% pelo keyframe para evitar
+    // conflitos de renderização no Tailwind.
+    'after:absolute after:top-0 after:left-0 after:h-full after:w-1/2',
+    'after:bg-gradient-to-r after:from-transparent after:via-white/40 after:to-transparent',
+    'after:pointer-events-none',
+    
+    // Aumentei para 6 segundos para dar um intervalo mais luxuoso entre os brilhos
+    'after:animate-[gold-shine_6s_ease-in-out_infinite]',
+  ],
+}
   matrix: {
     id: 'matrix',
     name: 'Matrix Banner',
