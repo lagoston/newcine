@@ -32,23 +32,19 @@ export default {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
         'gold-ring-spin':  { to: { transform: 'rotate(360deg)' } },
         'matrix-scan':     { to: { transform: 'rotate(360deg)' } },
-        // Glitch digital — pequenos saltos de posição/recorte em momentos
-        // irregulares do ciclo (não uma onda suave), simulando falha de
-        // sinal. Substitui a pulsação simples de antes ("matrix-pulse",
-        // que nunca existiu de verdade no config).
+        // O avatar "desaparece" — na maior parte do ciclo de 5s, o
+        // overlay fica totalmente transparente (foto normal, visível).
+        // Perto do fim de cada ciclo, um flicker rápido e concentrado
+        // (~250ms) cobre e revela a foto várias vezes em sequência,
+        // simulando falha de sinal digital, antes de voltar ao normal.
         'matrix-frame-glitch': {
-          '0%, 100%': { transform: 'translate(0, 0)', clipPath: 'inset(0 0 0 0)', opacity: '0.5' },
-          '2%': { transform: 'translate(-2px, 1px)', clipPath: 'inset(20% 0 60% 0)', opacity: '0.9' },
-          '4%': { transform: 'translate(2px, -1px)', clipPath: 'inset(60% 0 10% 0)', opacity: '0.7' },
-          '6%': { transform: 'translate(0, 0)', clipPath: 'inset(0 0 0 0)', opacity: '0.4' },
-          '38%': { transform: 'translate(0, 0)', opacity: '0.4' },
-          '40%': { transform: 'translate(1px, -2px)', clipPath: 'inset(40% 0 30% 0)', opacity: '0.85' },
-          '42%': { transform: 'translate(-1px, 2px)', clipPath: 'inset(10% 0 75% 0)', opacity: '0.6' },
-          '44%': { transform: 'translate(0, 0)', clipPath: 'inset(0 0 0 0)', opacity: '0.4' },
-          '75%': { transform: 'translate(0, 0)', opacity: '0.4' },
-          '77%': { transform: 'translate(-2px, 0)', clipPath: 'inset(70% 0 5% 0)', opacity: '0.9' },
-          '79%': { transform: 'translate(2px, 0)', clipPath: 'inset(5% 0 65% 0)', opacity: '0.55' },
-          '81%': { transform: 'translate(0, 0)', clipPath: 'inset(0 0 0 0)', opacity: '0.4' },
+          '0%, 92%, 100%': { opacity: '0' },
+          '93%': { opacity: '0.95' },
+          '94%': { opacity: '0.1' },
+          '95%': { opacity: '0.9' },
+          '96%': { opacity: '0' },
+          '97%': { opacity: '0.85' },
+          '98%': { opacity: '0' },
         },
         'saw-spin':        { to: { transform: 'rotate(-360deg)' } },
         'saw-drip':        { '0%,100%': { opacity: '0.6' }, '50%': { opacity: '1' } },
@@ -114,10 +110,30 @@ export default {
         },
         // Death Dodger — substituindo "doom-flicker"/"doom-spin", que nunca
         // existiram de verdade no config (mesmo bug do Casual Drinker de antes).
-        'deathdodger-frame-sweep': { to: { transform: 'rotate(360deg)' } },
         'deathdodger-frame-pulse': {
           '0%, 100%': { opacity: '0.5' },
           '50%': { opacity: '1' },
+        },
+        // Sangue inundando de baixo pra cima — sobe rápido, fica cheio por
+        // um instante, drena de volta. Concentrado no fim de cada ciclo de
+        // 10s (o resto do tempo fica em scaleY(0), invisível).
+        'deathdodger-blood-flood': {
+          '0%, 82%, 100%': { transform: 'scaleY(0)', opacity: '0' },
+          '85%': { transform: 'scaleY(0.4)', opacity: '0.75' },
+          '90%': { transform: 'scaleY(1)', opacity: '0.95' },
+          '95%': { transform: 'scaleY(1)', opacity: '0.85' },
+          '98%': { transform: 'scaleY(0.15)', opacity: '0.3' },
+        },
+        // O "toque de gênio" — um brilho dourado/branco muito breve e
+        // discreto (menos de 1s de um ciclo de 60s), quase imperceptível
+        // até acontecer. Não é pra "incomodar", só aparecer, girar de
+        // leve, e sumir — um detalhe que ressignifica o quadro por um
+        // instante antes de voltar ao normal.
+        'deathdodger-genius-detail': {
+          '0%, 97%, 100%': { opacity: '0', transform: 'scale(0.85) rotate(0deg)' },
+          '97.5%': { opacity: '0.9', transform: 'scale(1.08) rotate(180deg)' },
+          '98.5%': { opacity: '0.4', transform: 'scale(1) rotate(270deg)' },
+          '99.3%': { opacity: '0', transform: 'scale(0.9) rotate(360deg)' },
         },
         // Versão para a moldura circular: uma faixa fina na base do anel que
         // sobe e desce, sem cobrir o rosto na foto do avatar.
@@ -130,7 +146,7 @@ export default {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
         'gold-ring-spin':   'gold-ring-spin 3s linear infinite',
         'matrix-scan':      'matrix-scan 1.4s linear infinite',
-        'matrix-frame-glitch': 'matrix-frame-glitch 3.5s steps(1) infinite',
+        'matrix-frame-glitch': 'matrix-frame-glitch 5s steps(1) infinite',
         'saw-spin':         'saw-spin 4s linear infinite',
         'saw-drip':         'saw-drip 2s ease-in-out infinite',
         'ice-outer-spin':   'ice-outer-spin 8s linear infinite',
@@ -163,8 +179,9 @@ export default {
         'casual-drinker-frame-level': 'casual-drinker-frame-level 4s ease-in-out infinite',
                 'casual-drinker-foam-level': 'casual-drinker-foam-level 4s ease-in-out infinite',
         'casual-drinker-frame-bubbles': 'casual-drinker-frame-bubbles 2.5s ease-in-out infinite',
-        'deathdodger-frame-sweep': 'deathdodger-frame-sweep 3s linear infinite',
         'deathdodger-frame-pulse': 'deathdodger-frame-pulse 1.8s ease-in-out infinite',
+        'deathdodger-blood-flood': 'deathdodger-blood-flood 10s ease-in-out infinite',
+        'deathdodger-genius-detail': 'deathdodger-genius-detail 60s ease-in-out infinite',
       },
     },
   },
