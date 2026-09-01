@@ -126,27 +126,33 @@ export default {
           '0%, 100%': { opacity: '0.5' },
           '50%': { opacity: '1' },
         },
-        // Sangue inundando de baixo pra cima — sobe rápido, fica cheio por
-        // um instante, drena de volta. Concentrado no fim de cada ciclo de
-        // 10s (o resto do tempo fica em scaleY(0), invisível).
-        'deathdodger-blood-flood': {
-          '0%, 82%, 100%': { transform: 'scaleY(0)', opacity: '0' },
-          '85%': { transform: 'scaleY(0.4)', opacity: '0.75' },
-          '90%': { transform: 'scaleY(1)', opacity: '0.95' },
-          '95%': { transform: 'scaleY(1)', opacity: '0.85' },
-          '98%': { transform: 'scaleY(0.15)', opacity: '0.3' },
-        },
-        // Efeito especial agressivo — a cada 30 segundos, o avatar é
-        // substituído por uma caveira num fundo vermelho ultra-luminoso.
-        // Aparece com um "pop" dramático (cresce além do tamanho normal
-        // antes de assentar), fica bem visível por mais de 2 segundos
-        // (não é sutil — é pra AGARRAR a atenção), e some rápido.
-        'deathdodger-skull-flash': {
-          '0%, 85%, 100%': { opacity: '0', transform: 'scale(0.5)' },
-          '86%': { opacity: '1', transform: 'scale(1.15)' },
-          '88%': { opacity: '1', transform: 'scale(1)' },
-          '93%': { opacity: '1', transform: 'scale(1.05)' },
-          '96%': { opacity: '0', transform: 'scale(0.7)' },
+        // Sangue + caveira consolidados numa ÚNICA animação/elemento — as
+        // duas keyframes separadas de antes (sangue no "after", caveira
+        // no "before") tinham um problema real: "before" nasce ATRÁS da
+        // foto real do avatar no empilhamento visual (mesma lição já
+        // documentada abaixo, no Casual Drinker), então a caveira nunca
+        // aparecia, mesmo "rodando" tecnicamente. Como só existe 1 slot
+        // que garante ficar por cima da foto ("after"), os dois efeitos
+        // agora vivem juntos num ciclo de 30s: sangue inundando duas
+        // vezes (marcando ~10s e ~20s), e a caveira dramática no fim do
+        // ciclo (~30s). O emoji da caveira fica sempre "presente" no
+        // elemento (content não anima de forma confiável via keyframe),
+        // mas reduzido a uma escala minúscula durante os momentos de
+        // sangue — só cresce de verdade no final.
+        'deathdodger-blood-and-skull': {
+          '0%, 100%': { opacity: '0', transform: 'scale(0.15)' },
+          '28%': { opacity: '0', transform: 'scale(0.15)' },
+          '30%': { opacity: '0.85', transform: 'scale(0.15)' },
+          '33%': { opacity: '0.6', transform: 'scale(0.15)' },
+          '36%': { opacity: '0', transform: 'scale(0.15)' },
+          '61%': { opacity: '0', transform: 'scale(0.15)' },
+          '63%': { opacity: '0.85', transform: 'scale(0.15)' },
+          '66%': { opacity: '0.6', transform: 'scale(0.15)' },
+          '69%': { opacity: '0', transform: 'scale(0.15)' },
+          '95%': { opacity: '0', transform: 'scale(0.3)' },
+          '96%': { opacity: '1', transform: 'scale(1.15)' },
+          '98%': { opacity: '1', transform: 'scale(1)' },
+          '99.5%': { opacity: '0', transform: 'scale(0.4)' },
         },
         // Versão para a moldura circular: uma faixa fina na base do anel que
         // sobe e desce, sem cobrir o rosto na foto do avatar.
@@ -194,8 +200,7 @@ export default {
                 'casual-drinker-foam-level': 'casual-drinker-foam-level 4s ease-in-out infinite',
         'casual-drinker-frame-bubbles': 'casual-drinker-frame-bubbles 2.5s ease-in-out infinite',
         'deathdodger-frame-pulse': 'deathdodger-frame-pulse 1.8s ease-in-out infinite',
-        'deathdodger-blood-flood': 'deathdodger-blood-flood 10s ease-in-out infinite',
-        'deathdodger-skull-flash': 'deathdodger-skull-flash 30s ease-in-out infinite',
+        'deathdodger-blood-and-skull': 'deathdodger-blood-and-skull 30s ease-in-out infinite',
       },
     },
   },
