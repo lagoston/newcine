@@ -32,6 +32,24 @@ export default {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
         'gold-ring-spin':  { to: { transform: 'rotate(360deg)' } },
         'matrix-scan':     { to: { transform: 'rotate(360deg)' } },
+        // Glitch digital — pequenos saltos de posição/recorte em momentos
+        // irregulares do ciclo (não uma onda suave), simulando falha de
+        // sinal. Substitui a pulsação simples de antes ("matrix-pulse",
+        // que nunca existiu de verdade no config).
+        'matrix-frame-glitch': {
+          '0%, 100%': { transform: 'translate(0, 0)', clipPath: 'inset(0 0 0 0)', opacity: '0.5' },
+          '2%': { transform: 'translate(-2px, 1px)', clipPath: 'inset(20% 0 60% 0)', opacity: '0.9' },
+          '4%': { transform: 'translate(2px, -1px)', clipPath: 'inset(60% 0 10% 0)', opacity: '0.7' },
+          '6%': { transform: 'translate(0, 0)', clipPath: 'inset(0 0 0 0)', opacity: '0.4' },
+          '38%': { transform: 'translate(0, 0)', opacity: '0.4' },
+          '40%': { transform: 'translate(1px, -2px)', clipPath: 'inset(40% 0 30% 0)', opacity: '0.85' },
+          '42%': { transform: 'translate(-1px, 2px)', clipPath: 'inset(10% 0 75% 0)', opacity: '0.6' },
+          '44%': { transform: 'translate(0, 0)', clipPath: 'inset(0 0 0 0)', opacity: '0.4' },
+          '75%': { transform: 'translate(0, 0)', opacity: '0.4' },
+          '77%': { transform: 'translate(-2px, 0)', clipPath: 'inset(70% 0 5% 0)', opacity: '0.9' },
+          '79%': { transform: 'translate(2px, 0)', clipPath: 'inset(5% 0 65% 0)', opacity: '0.55' },
+          '81%': { transform: 'translate(0, 0)', clipPath: 'inset(0 0 0 0)', opacity: '0.4' },
+        },
         'saw-spin':        { to: { transform: 'rotate(-360deg)' } },
         'saw-drip':        { '0%,100%': { opacity: '0.6' }, '50%': { opacity: '1' } },
         'ice-outer-spin':  { to: { transform: 'rotate(360deg)' } },
@@ -112,6 +130,7 @@ export default {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
         'gold-ring-spin':   'gold-ring-spin 3s linear infinite',
         'matrix-scan':      'matrix-scan 1.4s linear infinite',
+        'matrix-frame-glitch': 'matrix-frame-glitch 3.5s steps(1) infinite',
         'saw-spin':         'saw-spin 4s linear infinite',
         'saw-drip':         'saw-drip 2s ease-in-out infinite',
         'ice-outer-spin':   'ice-outer-spin 8s linear infinite',
