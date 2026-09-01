@@ -35,6 +35,7 @@
 }
 
 /* Custom utilities */
+@layer utilities {
   .matrix-digital-rain {
     background-image: 
       /* Gotas de código verticais com pontas brilhantes simulando diferentes profundidades */
@@ -63,13 +64,7 @@
     background-size: 100% 150%;
     animation: matrix-scanline-sweep 4s linear infinite;
   }
-  
-.animate-tf-shape-morph {
-    /* 8 segundos no total (2s em cada forma) */
-    animation: tf-shape-morph 8s infinite cubic-bezier(0.4, 0, 0.2, 1);
-    /* Força o navegador a renderizar o corte com anti-aliasing de hardware */
-    will-change: clip-path;
-  }
+}
 
 @keyframes matrix-falling-code {
   0% { 
@@ -203,36 +198,6 @@
   0% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
   50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.6); }
   100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
-}
-
-@keyframes tf-shape-morph {
-  /* 1. Círculo (Aproximado como um Octógono Suave) */
-  0%, 10% {
-    clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-  }
-  
-  /* 2. Pentágono */
-  25%, 35% {
-    /* O ponto superior dobra e as pontas laterais descem */
-    clip-path: polygon(50% 0%, 100% 38%, 100% 38%, 81% 100%, 19% 100%, 0% 38%, 0% 38%, 50% 0%);
-  }
-  
-  /* 3. Quadrado */
-  50%, 60% {
-    /* Os pontos se espalham perfeitamente para os 4 cantos */
-    clip-path: polygon(50% 0%, 100% 0%, 100% 50%, 100% 100%, 50% 100%, 0% 100%, 0% 50%, 0% 0%);
-  }
-  
-  /* 4. Triângulo */
-  75%, 85% {
-    /* Os pontos inferiores se mantêm, mas os superiores se fundem no centro topo */
-    clip-path: polygon(50% 0%, 75% 50%, 100% 100%, 75% 100%, 50% 100%, 25% 100%, 0% 100%, 25% 50%);
-  }
-  
-  /* Volta ao Círculo/Octógono para fechar o loop suavemente */
-  100% {
-    clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-  }
 }
 
 /* ============================================
