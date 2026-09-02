@@ -100,6 +100,7 @@
   },
   "home": {
     "welcome": "Bem-vindo de volta, {{username}}!",
+    "bestOfYear": "Melhores do Ano"
     "yourLibrary": "Sua Biblioteca",
     "viewManage": "Visualize e gerencie sua coleção de filmes e séries",
     "consultOracle": "Oráculo",
