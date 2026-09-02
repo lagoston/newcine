@@ -33,6 +33,7 @@ interface Profile {
   created_at: string;
   plan_type: string;
   is_premium?: boolean;
+  chroma_box_enabled?: boolean;
   avatar_frame: string;
   banner?: string;
   active_tag?: {
@@ -950,6 +951,7 @@ export default function UserProfile() {
                       movies={ratedMovies}
                       rating={rating}
                       isOtherUserProfile={true}
+                      chromaBoxEnabled={profile.chroma_box_enabled ?? true}
                     />
                   );
                 }
