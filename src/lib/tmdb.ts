@@ -73,6 +73,7 @@ export interface Movie {
   release_date: string;
   first_air_date?: string;
   vote_average: number;
+  vote_count?: number;
   runtime: number;
   number_of_seasons?: number;
   number_of_episodes?: number;
@@ -80,6 +81,7 @@ export interface Movie {
   genres: Genre[];
   userRating?: number | null;
   popularity?: number;
+  ratedByUsername?: string;
   media_type?: 'movie' | 'tv';
   credits?: {
     cast: Cast[];
@@ -125,6 +127,74 @@ export const getComingSoon = async (): Promise<Movie[]> => {
 export const getTopRatedGems = async (): Promise<Movie[]> => {
   const data = await tmdbFetch('/discover/movie?sort_by=vote_average.desc&vote_count.gte=5000&vote_average.gte=8');
   return data.results;
+};
+
+// "Melhores do Ano" — o TMDB não tem um endpoint dedicado pra isso
+// (/movie/top_rated não filtra por período, mistura clássicos de todos
+// os tempos). Em vez de usar o ano civil atual (que ficaria vazio todo
+// 1º de janeiro, até os primeiros lançamentos do ano acumularem votos),
+// usa uma janela móvel dos últimos 365 dias — sempre tem conteúdo, e
+// ainda captura bem a intenção de "os melhores lançamentos recentes".
+// vote_count.gte mais baixo que o de getTopRatedGems (150 em vez de
+// 5000) porque filmes recentes tiveram bem menos tempo pra acumular
+// votos que os "de todos os tempos".
+// "Melhores do Ano" — o TMDB não tem um endpoint dedicado pra isso
+// (/movie/top_rated não filtra por período, mistura clássicos de todos
+// os tempos). Em vez de usar o ano civil atual (que ficaria vazio todo
+// 1º de janeiro, até os primeiros lançamentos do ano acumularem votos),
+// usa uma janela móvel dos últimos 365 dias — sempre tem conteúdo, e
+// ainda captura bem a intenção de "os melhores lançamentos recentes".
+//
+// Um corte simples por "vote_count.gte=X" é tudo-ou-nada: um filme com
+// poucos votos mas MUITO entusiasmados (ex: 254 votos, nota 8.9 — um
+// grupo pequeno de fãs avaliando alto) passa direto com a nota bruta,
+// distorcendo o ranking. A correção correta é a MÉDIA BAYESIANA
+// PONDERADA — a mesma técnica que o próprio IMDb usa no ranking Top 250
+// deles — que "puxa" a nota de filmes com poucos votos na direção da
+// média geral do conjunto, proporcionalmente à quantidade de votos que
+// eles têm, em vez de simplesmente excluir ou aceitar a nota bruta.
+//
+// weighted = (v/(v+m)) * R + (m/(v+m)) * C
+//   v = votos do filme, R = nota do filme
+//   m = limiar de confiança (quantos votos até a nota "pesar" sozinha)
+//   C = média geral do conjunto de candidatos
+const BEST_OF_YEAR_CONFIDENCE_THRESHOLD = 300;
+
+export const getBestOfYear = async (): Promise<Movie[]> => {
+  const today = new Date();
+  const oneYearAgo = new Date();
+  oneYearAgo.setDate(today.getDate() - 365);
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  const dateParams = `primary_release_date.gte=${formatDate(oneYearAgo)}&primary_release_date.lte=${formatDate(today)}`;
+
+  // Corte rígido de 400 votos — o teste real mostrou que só a ponderação
+  // bayesiana não bastava: filmes com poucos votos continuavam
+  // aparecendo, só reordenados pra baixo, não removidos de fato. 400 é
+  // o piso mínimo pra sequer entrar no pool de candidatos; a ponderação
+  // abaixo continua refinando a ordem entre os que passam desse corte
+  // (um filme com 400 votos ainda pesa menos que um com 10 mil).
+  const pages = await Promise.all(
+    [1, 2, 3, 4, 5].map((page) =>
+      tmdbFetch(`/discover/movie?sort_by=vote_average.desc&vote_count.gte=400&${dateParams}&page=${page}`)
+    )
+  );
+  const candidates: Movie[] = pages.flatMap((p) => p.results || []);
+  if (candidates.length === 0) return [];
+
+  const meanRating =
+    candidates.reduce((sum, m) => sum + (m.vote_average || 0), 0) / candidates.length;
+  const m = BEST_OF_YEAR_CONFIDENCE_THRESHOLD;
+
+  const weighted = candidates
+    .map((movie) => {
+      const v = movie.vote_count || 0;
+      const r = movie.vote_average || 0;
+      const weightedRating = (v / (v + m)) * r + (m / (v + m)) * meanRating;
+      return { movie, weightedRating };
+    })
+    .sort((a, b) => b.weightedRating - a.weightedRating);
+
+  return weighted.slice(0, 20).map((w) => w.movie);
 };
 
 export const getHiddenIndies = async (): Promise<Movie[]> => {
@@ -572,6 +642,115 @@ export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number
   }
 
   return movieMap;
+};
+
+// Versão segura de getMoviesFromCache pra quando os resultados incluem
+// filmes E séries misturados. A versão antiga busca só por tmdb_id, sem
+// filtrar por media_type — como filmes e séries têm espaços de ID
+// INDEPENDENTES no TMDB, um filme e uma série completamente diferentes
+// podem ter o MESMO id numérico (ex: tmdb_id 105 é "De Volta para o
+// Futuro" como filme E "Sex and the City" como série). Buscar só por
+// tmdb_id retorna as DUAS linhas do cache, e como o Map da versão antiga
+// é indexado só pelo id (sem media_type), uma sobrescreve a outra
+// silenciosamente — o filme certo pode "virar" outro completamente
+// diferente na tela. Esse mesmo bug já tinha sido identificado e
+// corrigido antes em useProfileData.ts (função local batchFetchFromCache,
+// não exportada) — essa é a versão equivalente, reaproveitável em
+// qualquer lugar que precise buscar filmes por (id, media_type) sem
+// risco de colisão.
+const getMoviesFromCacheByType = async (
+  entries: { movie_id: number; media_type: string }[]
+): Promise<Map<string, Movie>> => {
+  const language = getCurrentLanguage();
+  const isPortuguese = language.startsWith('pt');
+  const map = new Map<string, Movie>();
+  if (entries.length === 0) return map;
+
+  const ids = [...new Set(entries.map((e) => e.movie_id))];
+
+  try {
+    const { data, error } = await supabase
+      .from('movie_cache')
+      .select('*')
+      .in('tmdb_id', ids)
+      .limit(50000);
+
+    if (error) throw error;
+
+    (data || []).forEach((cached: any) => {
+      const movie: Movie = {
+        id: cached.tmdb_id,
+        title: isPortuguese && cached.title_pt ? cached.title_pt : cached.title_en,
+        poster_path: isPortuguese && cached.poster_path_pt ? cached.poster_path_pt : cached.poster_path,
+        backdrop_path: cached.backdrop_path,
+        overview: isPortuguese && cached.overview_pt ? cached.overview_pt : cached.overview_en,
+        release_date: cached.release_date,
+        vote_average: cached.vote_average,
+        runtime: cached.runtime,
+        number_of_seasons: cached.number_of_seasons,
+        media_type: cached.media_type as 'movie' | 'tv',
+        genres: isPortuguese && cached.genres_pt ? cached.genres_pt : cached.genres_en,
+        popularity: cached.popularity,
+        credits: {
+          cast: cached.cast_members || [],
+          crew: cached.director ? [{ id: 0, name: cached.director, job: 'Director' }] : []
+        },
+        watchProviders: cached.watch_providers,
+        content_ratings: cached.content_ratings,
+        keywords: cached.keywords || []
+      };
+      // Chave composta (id + tipo) — a correção real. Duas linhas com o
+      // mesmo tmdb_id mas media_type diferente ocupam slots separados no
+      // Map, em vez de uma sobrescrever a outra.
+      map.set(`${cached.tmdb_id}_${cached.media_type}`, movie);
+    });
+  } catch (error) {
+    console.error('Error batch-fetching movies from cache by type:', error);
+  }
+
+  return map;
+};
+
+// "Melhores dos Amigos" — filmes com nota 7-10 avaliados mais
+// recentemente por usuários seguidos, em ordem de frescor (mais
+// recentes primeiro). A consulta pesada (JOIN entre follows e
+// user_movies, filtro de nota, ordenação, limite) roda inteira no banco
+// via RPC — o Postgres usa os índices certos pra fazer isso de forma
+// eficiente mesmo com muitos usuários seguidos, sem precisar buscar
+// "tudo" antes de aplicar o corte. Como a ordenação é sempre
+// determinística (mais recente primeiro, com LIMIT fixo), a lista fica
+// naturalmente estável entre atualizações de página — só muda quando
+// avaliações genuinamente novas entram (empurrando as mais antigas pra
+// fora do topo 20), sem depender de nenhuma amostragem aleatória.
+export const getFriendsBestMovies = async (userId: string): Promise<Movie[]> => {
+  const { data: ratings, error } = await supabase.rpc('get_friends_best_movies', {
+    p_user_id: userId,
+    p_limit: 20,
+  });
+
+  if (error) {
+    console.error('Error fetching friends best movies:', error);
+    return [];
+  }
+  if (!ratings || ratings.length === 0) return [];
+
+  // getMoviesFromCacheByType (não a versão antiga) — a RPC retorna
+  // filmes E séries misturados, e o bug do "De Volta para o Futuro"
+  // virando "Sex and the City" na tela (mesmo tmdb_id, media_type
+  // diferente) é exatamente o cenário que a versão antiga não cobria.
+  const movieMap = await getMoviesFromCacheByType(
+    ratings.map((r: any) => ({ movie_id: r.movie_id, media_type: r.media_type }))
+  );
+
+  // Reordena na MESMA ordem de frescor que já veio da RPC, e anexa quem
+  // avaliou, caso seja útil exibir isso no card futuramente.
+  return ratings
+    .map((r: any) => {
+      const movie = movieMap.get(`${r.movie_id}_${r.media_type}`);
+      if (!movie) return null;
+      return { ...movie, ratedByUsername: r.rated_by_username };
+    })
+    .filter((m: Movie | null): m is Movie => m !== null);
 };
 
 // Helper to get movie details with media_type from database
