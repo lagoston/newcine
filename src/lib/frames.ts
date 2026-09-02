@@ -94,7 +94,25 @@ export const frames = {
     // fixo só pra esse frame — sem ele, a foto retangular original volta
     // a preencher a caixa inteira, e o clip-path corta a FOTO de verdade
     // em cada forma, não um círculo já recortado por cima da foto.
-    className: 'relative !rounded-none border-4 border-gray-800 dark:border-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph'
+    //
+    // "border-4" também não funcionava direito: border desenha uma
+    // moldura RETANGULAR ao longo das bordas originais da caixa — quando
+    // o clip-path corta um círculo/triângulo por cima, só sobra o pedaço
+    // dessa moldura retangular que por acaso coincide com a nova forma
+    // (por isso só o quadrado, naturalmente retangular, ficava completo;
+    // as outras formas cortavam a borda junto, incompleta).
+    //
+    // Corrigido com uma técnica diferente: em vez de desenhar uma borda
+    // separada, uso a cor de "borda" como FUNDO do próprio container
+    // (que já teria seu fundo cinza de placeholder — sobrescrito aqui) e
+    // um padding pequeno, criando um "recuo" onde essa cor aparece como
+    // anel ao redor da foto. Como a foto (w-full h-full) se ajusta à
+    // área já reduzida pelo padding, e o clip-path corta TUDO junto
+    // (fundo + foto recuada) na mesma forma final numa única operação, a
+    // "borda" se adapta automaticamente a qualquer forma — não é uma
+    // peça separada sendo cortada por cima, é a mesma peça sendo
+    // cortada por inteiro.
+    className: 'relative !rounded-none !bg-gray-800 dark:!bg-gray-700 p-1 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph'
   },
 'death-dodger': {
   id: 'death-dodger',
