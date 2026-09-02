@@ -644,6 +644,73 @@ export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number
   return movieMap;
 };
 
+// Versão segura de getMoviesFromCache pra quando os resultados incluem
+// filmes E séries misturados. A versão antiga busca só por tmdb_id, sem
+// filtrar por media_type — como filmes e séries têm espaços de ID
+// INDEPENDENTES no TMDB, um filme e uma série completamente diferentes
+// podem ter o MESMO id numérico (ex: tmdb_id 105 é "De Volta para o
+// Futuro" como filme E "Sex and the City" como série). Buscar só por
+// tmdb_id retorna as DUAS linhas do cache, e como o Map da versão antiga
+// é indexado só pelo id (sem media_type), uma sobrescreve a outra
+// silenciosamente — o filme certo pode "virar" outro completamente
+// diferente na tela. Esse mesmo bug já tinha sido identificado e
+// corrigido antes em useProfileData.ts (função local batchFetchFromCache,
+// não exportada) — essa é a versão equivalente, reaproveitável em
+// qualquer lugar que precise buscar filmes por (id, media_type) sem
+// risco de colisão.
+const getMoviesFromCacheByType = async (
+  entries: { movie_id: number; media_type: string }[]
+): Promise<Map<string, Movie>> => {
+  const language = getCurrentLanguage();
+  const isPortuguese = language.startsWith('pt');
+  const map = new Map<string, Movie>();
+  if (entries.length === 0) return map;
+
+  const ids = [...new Set(entries.map((e) => e.movie_id))];
+
+  try {
+    const { data, error } = await supabase
+      .from('movie_cache')
+      .select('*')
+      .in('tmdb_id', ids)
+      .limit(50000);
+
+    if (error) throw error;
+
+    (data || []).forEach((cached: any) => {
+      const movie: Movie = {
+        id: cached.tmdb_id,
+        title: isPortuguese && cached.title_pt ? cached.title_pt : cached.title_en,
+        poster_path: isPortuguese && cached.poster_path_pt ? cached.poster_path_pt : cached.poster_path,
+        backdrop_path: cached.backdrop_path,
+        overview: isPortuguese && cached.overview_pt ? cached.overview_pt : cached.overview_en,
+        release_date: cached.release_date,
+        vote_average: cached.vote_average,
+        runtime: cached.runtime,
+        number_of_seasons: cached.number_of_seasons,
+        media_type: cached.media_type as 'movie' | 'tv',
+        genres: isPortuguese && cached.genres_pt ? cached.genres_pt : cached.genres_en,
+        popularity: cached.popularity,
+        credits: {
+          cast: cached.cast_members || [],
+          crew: cached.director ? [{ id: 0, name: cached.director, job: 'Director' }] : []
+        },
+        watchProviders: cached.watch_providers,
+        content_ratings: cached.content_ratings,
+        keywords: cached.keywords || []
+      };
+      // Chave composta (id + tipo) — a correção real. Duas linhas com o
+      // mesmo tmdb_id mas media_type diferente ocupam slots separados no
+      // Map, em vez de uma sobrescrever a outra.
+      map.set(`${cached.tmdb_id}_${cached.media_type}`, movie);
+    });
+  } catch (error) {
+    console.error('Error batch-fetching movies from cache by type:', error);
+  }
+
+  return map;
+};
+
 // "Melhores dos Amigos" — filmes com nota 7-10 avaliados mais
 // recentemente por usuários seguidos, em ordem de frescor (mais
 // recentes primeiro). A consulta pesada (JOIN entre follows e
@@ -667,15 +734,19 @@ export const getFriendsBestMovies = async (userId: string): Promise<Movie[]> => 
   }
   if (!ratings || ratings.length === 0) return [];
 
-  const movieIds = ratings.map((r: any) => r.movie_id);
-  const movieMap = await getMoviesFromCache(movieIds);
+  // getMoviesFromCacheByType (não a versão antiga) — a RPC retorna
+  // filmes E séries misturados, e o bug do "De Volta para o Futuro"
+  // virando "Sex and the City" na tela (mesmo tmdb_id, media_type
+  // diferente) é exatamente o cenário que a versão antiga não cobria.
+  const movieMap = await getMoviesFromCacheByType(
+    ratings.map((r: any) => ({ movie_id: r.movie_id, media_type: r.media_type }))
+  );
 
-  // getMoviesFromCache retorna um Map (sem ordem garantida) — reordena
-  // aqui na MESMA ordem de frescor que já veio da RPC, e anexa quem
+  // Reordena na MESMA ordem de frescor que já veio da RPC, e anexa quem
   // avaliou, caso seja útil exibir isso no card futuramente.
   return ratings
     .map((r: any) => {
-      const movie = movieMap.get(r.movie_id);
+      const movie = movieMap.get(`${r.movie_id}_${r.media_type}`);
       if (!movie) return null;
       return { ...movie, ratedByUsername: r.rated_by_username };
     })
