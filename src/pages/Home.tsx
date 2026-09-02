@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Star, Library as LibraryIcon, Eye, Users, ArrowRight, Sparkles, Lock, Clock } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { Movie, getTrending, getMovieDetails, getComingSoon, getTopRatedGems, getBestOfYear } from '../lib/tmdb';
+import { Movie, getTrending, getMovieDetails, getComingSoon, getBestOfYear, getFriendsBestMovies } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import Logo from '../components/Logo';
 import MovieDetailsModal from '../components/MovieDetailsModal';
@@ -433,14 +433,14 @@ const Home = () => {
   const [trendingMovies, setTrendingMovies] = React.useState<Movie[]>([]);
   const [comingSoonMovies, setComingSoonMovies] = React.useState<Movie[]>([]);
   const [bestOfYearMovies, setBestOfYearMovies] = React.useState<Movie[]>([]);
-  const [topRatedMovies, setTopRatedMovies] = React.useState<Movie[]>([]);
+  const [friendsBestMovies, setFriendsBestMovies] = React.useState<Movie[]>([]);
   const [guestTrendingMovies, setGuestTrendingMovies] = React.useState<Movie[]>([]);
   const [userPersonalidade, setUserPersonalidade] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState({ trending: false, comingSoon: false, bestOfYear: false, topRated: false });
+  const [loading, setLoading] = React.useState({ trending: false, comingSoon: false, bestOfYear: false, friendsBest: false });
   const [guestLoadingTrending, setGuestLoadingTrending] = React.useState(false);
   const [selectedMovie, setSelectedMovie] = React.useState<Movie | null>(null);
   const [username, setUsername] = React.useState('');
-  const [allMoviesModal, setAllMoviesModal] = React.useState<{ isOpen: boolean; title: string; movies: Movie[] }>({ isOpen: false, title: '', movies: [] });
+  const [allMoviesModal, setAllMoviesModal] = React.useState<{ isOpen: boolean; title: string; movies: Movie[]; theme?: 'gold' | 'purple' }>({ isOpen: false, title: '', movies: [] });
   const [countdown, setCountdown] = useState(getBrasiliaCountdown());
 
   useEffect(() => {
@@ -487,21 +487,21 @@ const Home = () => {
 
   const fetchAllMovies = async () => {
     try {
-      setLoading({ trending: true, comingSoon: true, bestOfYear: true, topRated: true });
-      const [trending, comingSoon, bestOfYear, topRated] = await Promise.all([
+      setLoading({ trending: true, comingSoon: true, bestOfYear: true, friendsBest: true });
+      const [trending, comingSoon, bestOfYear, friendsBest] = await Promise.all([
         getTrending(),
         getComingSoon(),
         getBestOfYear(),
-        getTopRatedGems(),
+        session?.user?.id ? getFriendsBestMovies(session.user.id) : Promise.resolve([]),
       ]);
       setTrendingMovies(trending);
       setComingSoonMovies(comingSoon);
       setBestOfYearMovies(bestOfYear);
-      setTopRatedMovies(topRated);
+      setFriendsBestMovies(friendsBest);
     } catch (error) {
       console.error('Error fetching movies:', error);
     } finally {
-      setLoading({ trending: false, comingSoon: false, bestOfYear: false, topRated: false });
+      setLoading({ trending: false, comingSoon: false, bestOfYear: false, friendsBest: false });
     }
   };
 
@@ -753,15 +753,15 @@ const Home = () => {
           title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🏆</span> {t('home.bestOfYear')}</span>}
           movies={bestOfYearMovies}
           loading={loading.bestOfYear}
-          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.bestOfYear'), movies: bestOfYearMovies })}
+          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.bestOfYear'), movies: bestOfYearMovies, theme: 'gold' })}
           onMovieClick={handleMovieClick}
           viewAllLabel={t('common.view_all')}
         />
         <MovieCarousel
-          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>⭐</span> {t('home.topRatedGems')}</span>}
-          movies={topRatedMovies}
-          loading={loading.topRated}
-          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.topRatedGems'), movies: topRatedMovies })}
+          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>👥</span> {t('home.friendsBest')}</span>}
+          movies={friendsBestMovies}
+          loading={loading.friendsBest}
+          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.friendsBest'), movies: friendsBestMovies, theme: 'purple' })}
           onMovieClick={handleMovieClick}
           viewAllLabel={t('common.view_all')}
         />
@@ -781,6 +781,7 @@ const Home = () => {
         onClose={() => setAllMoviesModal({ isOpen: false, title: '', movies: [] })}
         title={allMoviesModal.title}
         movies={allMoviesModal.movies}
+        theme={allMoviesModal.theme}
         rating={null}
         onAddToLibrary={handleAddToLibrary}
       />
