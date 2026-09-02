@@ -2,14 +2,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Star, Library as LibraryIcon, Eye, Users, ArrowRight, Sparkles, Lock, Clock } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { Movie, getTrending, getMovieDetails, getComingSoon, getTopRatedGems } from '../lib/tmdb';
+import { Movie, getTrending, getMovieDetails, getComingSoon, getTopRatedGems, getBestOfYear } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import Logo from '../components/Logo';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import OptimizedPoster from '../components/OptimizedPoster';
 import HomeUserPanels from '../components/HomeUserPanels';
-import OracleForYouBox from '../components/OracleForYouBox';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -433,10 +432,11 @@ const Home = () => {
   const navigate = useNavigate();
   const [trendingMovies, setTrendingMovies] = React.useState<Movie[]>([]);
   const [comingSoonMovies, setComingSoonMovies] = React.useState<Movie[]>([]);
+  const [bestOfYearMovies, setBestOfYearMovies] = React.useState<Movie[]>([]);
   const [topRatedMovies, setTopRatedMovies] = React.useState<Movie[]>([]);
   const [guestTrendingMovies, setGuestTrendingMovies] = React.useState<Movie[]>([]);
   const [userPersonalidade, setUserPersonalidade] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState({ trending: false, comingSoon: false, topRated: false });
+  const [loading, setLoading] = React.useState({ trending: false, comingSoon: false, bestOfYear: false, topRated: false });
   const [guestLoadingTrending, setGuestLoadingTrending] = React.useState(false);
   const [selectedMovie, setSelectedMovie] = React.useState<Movie | null>(null);
   const [username, setUsername] = React.useState('');
@@ -487,19 +487,21 @@ const Home = () => {
 
   const fetchAllMovies = async () => {
     try {
-      setLoading({ trending: true, comingSoon: true, topRated: true });
-      const [trending, comingSoon, topRated] = await Promise.all([
+      setLoading({ trending: true, comingSoon: true, bestOfYear: true, topRated: true });
+      const [trending, comingSoon, bestOfYear, topRated] = await Promise.all([
         getTrending(),
         getComingSoon(),
+        getBestOfYear(),
         getTopRatedGems(),
       ]);
       setTrendingMovies(trending);
       setComingSoonMovies(comingSoon);
+      setBestOfYearMovies(bestOfYear);
       setTopRatedMovies(topRated);
     } catch (error) {
       console.error('Error fetching movies:', error);
     } finally {
-      setLoading({ trending: false, comingSoon: false, topRated: false });
+      setLoading({ trending: false, comingSoon: false, bestOfYear: false, topRated: false });
     }
   };
 
@@ -748,6 +750,14 @@ const Home = () => {
           viewAllLabel={t('common.view_all')}
         />
         <MovieCarousel
+          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🏆</span> {t('home.bestOfYear')}</span>}
+          movies={bestOfYearMovies}
+          loading={loading.bestOfYear}
+          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.bestOfYear'), movies: bestOfYearMovies })}
+          onMovieClick={handleMovieClick}
+          viewAllLabel={t('common.view_all')}
+        />
+        <MovieCarousel
           title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>⭐</span> {t('home.topRatedGems')}</span>}
           movies={topRatedMovies}
           loading={loading.topRated}
@@ -755,12 +765,6 @@ const Home = () => {
           onMovieClick={handleMovieClick}
           viewAllLabel={t('common.view_all')}
         />
-        {session?.user && (
-          <OracleForYouBox
-            userId={session.user.id}
-            hasEssence={!!(userPersonalidade && userPersonalidade.length >= 3)}
-          />
-        )}
       </div>
 
       {selectedMovie && (
