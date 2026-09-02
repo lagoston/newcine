@@ -81,6 +81,7 @@ export interface Movie {
   genres: Genre[];
   userRating?: number | null;
   popularity?: number;
+  ratedByUsername?: string;
   media_type?: 'movie' | 'tv';
   credits?: {
     cast: Cast[];
@@ -641,6 +642,44 @@ export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number
   }
 
   return movieMap;
+};
+
+// "Melhores dos Amigos" — filmes com nota 7-10 avaliados mais
+// recentemente por usuários seguidos, em ordem de frescor (mais
+// recentes primeiro). A consulta pesada (JOIN entre follows e
+// user_movies, filtro de nota, ordenação, limite) roda inteira no banco
+// via RPC — o Postgres usa os índices certos pra fazer isso de forma
+// eficiente mesmo com muitos usuários seguidos, sem precisar buscar
+// "tudo" antes de aplicar o corte. Como a ordenação é sempre
+// determinística (mais recente primeiro, com LIMIT fixo), a lista fica
+// naturalmente estável entre atualizações de página — só muda quando
+// avaliações genuinamente novas entram (empurrando as mais antigas pra
+// fora do topo 20), sem depender de nenhuma amostragem aleatória.
+export const getFriendsBestMovies = async (userId: string): Promise<Movie[]> => {
+  const { data: ratings, error } = await supabase.rpc('get_friends_best_movies', {
+    p_user_id: userId,
+    p_limit: 20,
+  });
+
+  if (error) {
+    console.error('Error fetching friends best movies:', error);
+    return [];
+  }
+  if (!ratings || ratings.length === 0) return [];
+
+  const movieIds = ratings.map((r: any) => r.movie_id);
+  const movieMap = await getMoviesFromCache(movieIds);
+
+  // getMoviesFromCache retorna um Map (sem ordem garantida) — reordena
+  // aqui na MESMA ordem de frescor que já veio da RPC, e anexa quem
+  // avaliou, caso seja útil exibir isso no card futuramente.
+  return ratings
+    .map((r: any) => {
+      const movie = movieMap.get(r.movie_id);
+      if (!movie) return null;
+      return { ...movie, ratedByUsername: r.rated_by_username };
+    })
+    .filter((m: Movie | null): m is Movie => m !== null);
 };
 
 // Helper to get movie details with media_type from database
