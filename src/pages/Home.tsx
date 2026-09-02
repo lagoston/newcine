@@ -295,9 +295,45 @@ interface MovieCarouselProps {
   onViewAll: () => void;
   onMovieClick: (movie: Movie) => void;
   viewAllLabel: string;
+  // Tema opcional do "vidro" por trás do carrossel — extensão do Chroma
+  // Box (que já colore as rating boxes da Biblioteca) pras seções da
+  // Home. Sem tema, mantém o azul/ciano padrão de sempre.
+  theme?: 'gold' | 'purple';
 }
 
-const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, onViewAll, onMovieClick, viewAllLabel }) => {
+const getCarouselThemeClasses = (theme?: 'gold' | 'purple') => {
+  if (theme === 'gold') {
+    return {
+      panel: 'bg-amber-500/5 backdrop-blur-2xl border border-amber-400/20 shadow-2xl shadow-amber-900/10',
+      glowTopRight: 'bg-gradient-to-br from-amber-500/10 to-yellow-400/5',
+      glowBottomLeft: 'bg-gradient-to-tr from-yellow-500/8 to-amber-400/5',
+      bar: 'bg-gradient-to-b from-amber-400 via-yellow-400 to-amber-500',
+      titleText: 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400',
+      button: 'bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-600 hover:shadow-amber-500/25',
+    };
+  }
+  if (theme === 'purple') {
+    return {
+      panel: 'bg-purple-500/5 backdrop-blur-2xl border border-purple-400/20 shadow-2xl shadow-purple-900/10',
+      glowTopRight: 'bg-gradient-to-br from-purple-500/10 to-fuchsia-400/5',
+      glowBottomLeft: 'bg-gradient-to-tr from-fuchsia-500/8 to-purple-400/5',
+      bar: 'bg-gradient-to-b from-purple-400 via-fuchsia-400 to-purple-500',
+      titleText: 'bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-400',
+      button: 'bg-gradient-to-r from-purple-600 via-fuchsia-600 to-purple-600 hover:shadow-purple-500/25',
+    };
+  }
+  return {
+    panel: 'bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl',
+    glowTopRight: 'bg-gradient-to-br from-blue-500/10 to-cyan-400/5',
+    glowBottomLeft: 'bg-gradient-to-tr from-pink-500/8 to-blue-400/5',
+    bar: 'bg-gradient-to-b from-blue-400 via-cyan-400 to-blue-500',
+    titleText: 'bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400',
+    button: 'bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:shadow-blue-500/25',
+  };
+};
+
+const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, onViewAll, onMovieClick, viewAllLabel, theme }) => {
+  const themeClasses = getCarouselThemeClasses(theme);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -330,7 +366,7 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
 
   if (loading) {
     return (
-      <div className="relative mb-10 p-6 sm:p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
+      <div className={`relative mb-10 p-6 sm:p-8 rounded-3xl overflow-hidden ${themeClasses.panel}`}>
         <div className="flex justify-center py-8">
           <GlassLoader size="md" />
         </div>
@@ -340,14 +376,14 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
 
   return (
     <motion.div
-      className="relative mb-10 p-6 sm:p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden"
+      className={`relative mb-10 p-6 sm:p-8 rounded-3xl overflow-hidden ${themeClasses.panel}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-blue-500/10 to-cyan-400/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-pink-500/8 to-blue-400/5 rounded-full blur-3xl"></div>
+        <div className={`absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl ${themeClasses.glowTopRight}`}></div>
+        <div className={`absolute bottom-0 left-0 w-40 h-40 rounded-full blur-3xl ${themeClasses.glowBottomLeft}`}></div>
       </div>
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
         backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
@@ -355,14 +391,14 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
       }}></div>
       <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-1 bg-gradient-to-b from-blue-400 via-cyan-400 to-blue-500 rounded-full"></div>
-          <h2 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 leading-relaxed">
+          <div className={`h-10 w-1 rounded-full ${themeClasses.bar}`}></div>
+          <h2 className={`text-xl sm:text-2xl font-bold text-transparent bg-clip-text leading-relaxed ${themeClasses.titleText}`}>
             {title}
           </h2>
         </div>
         <button
           onClick={onViewAll}
-          className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/25 rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 overflow-hidden relative group"
+          className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-semibold text-white hover:shadow-lg rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 overflow-hidden relative group ${themeClasses.button}`}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
           <span className="relative z-10 hidden sm:inline">{viewAllLabel}</span>
@@ -756,6 +792,7 @@ const Home = () => {
           onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.bestOfYear'), movies: bestOfYearMovies, theme: 'gold' })}
           onMovieClick={handleMovieClick}
           viewAllLabel={t('common.view_all')}
+          theme="gold"
         />
         <MovieCarousel
           title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>👥</span> {t('home.friendsBest')}</span>}
@@ -764,6 +801,7 @@ const Home = () => {
           onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.friendsBest'), movies: friendsBestMovies, theme: 'purple' })}
           onMovieClick={handleMovieClick}
           viewAllLabel={t('common.view_all')}
+          theme="purple"
         />
       </div>
 
