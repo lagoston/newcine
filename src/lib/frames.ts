@@ -81,7 +81,20 @@ export const frames = {
     // conteúdo interno mudava de forma) — border, sendo literalmente a
     // borda geométrica da caixa, é cortado pelo clip-path com garantia,
     // seguindo cada forma corretamente.
-    className: 'relative border-4 border-gray-800 dark:border-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph'
+    //
+    // Achado o bug real do "quadrado preto com um círculo no meio": o
+    // container do avatar (em Profile.tsx e em qualquer outro lugar que
+    // use getFrameClass) já tem "rounded-full overflow-hidden" FIXO como
+    // classe base, ANTES de somar a classe do frame — ou seja, a foto já
+    // era recortada num círculo primeiro, e o clip-path do Transformers
+    // só cortava essa forma circular JÁ PRONTA numa forma maior,
+    // revelando os cantos vazios (fundo cinza do placeholder) ao redor
+    // do círculo original, em vez de revelar mais da própria foto.
+    // Corrigido forçando (!important) o cancelamento desse arredondamento
+    // fixo só pra esse frame — sem ele, a foto retangular original volta
+    // a preencher a caixa inteira, e o clip-path corta a FOTO de verdade
+    // em cada forma, não um círculo já recortado por cima da foto.
+    className: 'relative !rounded-none border-4 border-gray-800 dark:border-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph'
   },
 'death-dodger': {
   id: 'death-dodger',
