@@ -127,6 +127,26 @@ export const getTopRatedGems = async (): Promise<Movie[]> => {
   return data.results;
 };
 
+// "Melhores do Ano" — o TMDB não tem um endpoint dedicado pra isso
+// (/movie/top_rated não filtra por período, mistura clássicos de todos
+// os tempos). Em vez de usar o ano civil atual (que ficaria vazio todo
+// 1º de janeiro, até os primeiros lançamentos do ano acumularem votos),
+// usa uma janela móvel dos últimos 365 dias — sempre tem conteúdo, e
+// ainda captura bem a intenção de "os melhores lançamentos recentes".
+// vote_count.gte mais baixo que o de getTopRatedGems (150 em vez de
+// 5000) porque filmes recentes tiveram bem menos tempo pra acumular
+// votos que os "de todos os tempos".
+export const getBestOfYear = async (): Promise<Movie[]> => {
+  const today = new Date();
+  const oneYearAgo = new Date();
+  oneYearAgo.setDate(today.getDate() - 365);
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  const data = await tmdbFetch(
+    `/discover/movie?sort_by=vote_average.desc&vote_count.gte=150&primary_release_date.gte=${formatDate(oneYearAgo)}&primary_release_date.lte=${formatDate(today)}`
+  );
+  return data.results.slice(0, 20);
+};
+
 export const getHiddenIndies = async (): Promise<Movie[]> => {
   const data = await tmdbFetch('/discover/movie?sort_by=popularity.asc&popularity.lte=10&vote_count.gte=50&with_original_language=en');
   return data.results;
