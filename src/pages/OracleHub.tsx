@@ -333,57 +333,26 @@ export default function OracleHub() {
       }} />
 
       <div className="max-w-4xl mx-auto relative z-10">
-        {/* Cabeçalho reformulado — antes era só texto simples com um
-            ícone "flutuando" solto na página, destoando do resto do
-            site. Agora segue a mesma linguagem visual "vidro" que os
-            outros painéis desta mesma página já usam (fundo translúcido
-            com blur, borda, brilhos radiais decorativos nos cantos) —
-            e o ícone ganhou uma animação mais rica: pulso de brilho
-            contínuo combinado com um "piscar" ocasional, temático de um
-            olho místico observando, em vez de só subir e descer. */}
         <motion.div
-          className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden mb-8 p-8 sm:p-10 text-center"
+          className="text-center mb-8"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-br from-blue-400/15 to-cyan-500/15 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-cyan-400/10 to-blue-500/10 rounded-full blur-3xl" />
-          </div>
+          <motion.div
+            className="flex justify-center mb-4"
+            animate={{ y: [-5, 5, -5] }}
+            transition={{ duration: 4, repeat: Infinity, repeatType: "reverse" }}
+          >
+            <div className="p-4 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/30 dark:to-cyan-500/30 border border-blue-400/30">
+              <Eye className="w-12 h-12 text-blue-500 dark:text-blue-400" style={{ filter: 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.4))' }} />
+            </div>
+          </motion.div>
 
-          <div className="relative z-10 flex justify-center mb-5">
-            <motion.div
-              className="relative p-5 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/30 dark:to-cyan-500/30 border border-blue-400/30"
-              animate={{
-                boxShadow: [
-                  '0 0 20px rgba(59,130,246,0.25)',
-                  '0 0 40px rgba(59,130,246,0.5)',
-                  '0 0 20px rgba(59,130,246,0.25)',
-                ],
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <motion.div
-                animate={{ scaleY: [1, 1, 0.1, 1, 1] }}
-                transition={{ duration: 5, repeat: Infinity, times: [0, 0.9, 0.93, 0.96, 1], ease: 'easeInOut' }}
-              >
-                <Eye className="w-12 h-12 text-blue-500 dark:text-blue-400" style={{ filter: 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.4))' }} />
-              </motion.div>
-            </motion.div>
-          </div>
-
-          <h1 className="relative z-10 text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 tracking-wide">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 tracking-wide mb-2">
             {t('oracle.title')}
           </h1>
         </motion.div>
-
-        {session?.user && userPersonality?.personalidade_completa && userPersonality.personalidade_completa.length >= 3 && (
-          <OracleForYouBox
-            userId={session.user.id}
-            hasEssence={true}
-          />
-        )}
 
         {archetypeInfo && (
           <motion.div
@@ -541,6 +510,13 @@ export default function OracleHub() {
           <CinematicPersonaCard
             personalityId={userPersonality.personalidade_completa}
             language={i18n.language}
+          />
+        )}
+
+        {session?.user && userPersonality?.personalidade_completa && userPersonality.personalidade_completa.length >= 3 && (
+          <OracleForYouBox
+            userId={session.user.id}
+            hasEssence={true}
           />
         )}
       </div>

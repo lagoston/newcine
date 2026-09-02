@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Star, Library as LibraryIcon, Eye, Users, ArrowRight, Sparkles, Lock, Clock } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { Movie, getTrending, getMovieDetails, getComingSoon, getBestOfYear, getFriendsBestMovies } from '../lib/tmdb';
+import { Movie, getTrending, getMovieDetails, getComingSoon, getTopRatedGems } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import Logo from '../components/Logo';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import OptimizedPoster from '../components/OptimizedPoster';
 import HomeUserPanels from '../components/HomeUserPanels';
+import OracleForYouBox from '../components/OracleForYouBox';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -295,45 +296,9 @@ interface MovieCarouselProps {
   onViewAll: () => void;
   onMovieClick: (movie: Movie) => void;
   viewAllLabel: string;
-  // Tema opcional do "vidro" por trás do carrossel — extensão do Chroma
-  // Box (que já colore as rating boxes da Biblioteca) pras seções da
-  // Home. Sem tema, mantém o azul/ciano padrão de sempre.
-  theme?: 'gold' | 'purple';
 }
 
-const getCarouselThemeClasses = (theme?: 'gold' | 'purple') => {
-  if (theme === 'gold') {
-    return {
-      panel: 'bg-amber-500/5 backdrop-blur-2xl border border-amber-400/20 shadow-2xl shadow-amber-900/10',
-      glowTopRight: 'bg-gradient-to-br from-amber-500/10 to-yellow-400/5',
-      glowBottomLeft: 'bg-gradient-to-tr from-yellow-500/8 to-amber-400/5',
-      bar: 'bg-gradient-to-b from-amber-400 via-yellow-400 to-amber-500',
-      titleText: 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400',
-      button: 'bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-600 hover:shadow-amber-500/25',
-    };
-  }
-  if (theme === 'purple') {
-    return {
-      panel: 'bg-purple-500/5 backdrop-blur-2xl border border-purple-400/20 shadow-2xl shadow-purple-900/10',
-      glowTopRight: 'bg-gradient-to-br from-purple-500/10 to-fuchsia-400/5',
-      glowBottomLeft: 'bg-gradient-to-tr from-fuchsia-500/8 to-purple-400/5',
-      bar: 'bg-gradient-to-b from-purple-400 via-fuchsia-400 to-purple-500',
-      titleText: 'bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-400',
-      button: 'bg-gradient-to-r from-purple-600 via-fuchsia-600 to-purple-600 hover:shadow-purple-500/25',
-    };
-  }
-  return {
-    panel: 'bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl',
-    glowTopRight: 'bg-gradient-to-br from-blue-500/10 to-cyan-400/5',
-    glowBottomLeft: 'bg-gradient-to-tr from-pink-500/8 to-blue-400/5',
-    bar: 'bg-gradient-to-b from-blue-400 via-cyan-400 to-blue-500',
-    titleText: 'bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400',
-    button: 'bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:shadow-blue-500/25',
-  };
-};
-
-const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, onViewAll, onMovieClick, viewAllLabel, theme }) => {
-  const themeClasses = getCarouselThemeClasses(theme);
+const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, onViewAll, onMovieClick, viewAllLabel }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -366,7 +331,7 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
 
   if (loading) {
     return (
-      <div className={`relative mb-10 p-6 sm:p-8 rounded-3xl overflow-hidden ${themeClasses.panel}`}>
+      <div className="relative mb-10 p-6 sm:p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl">
         <div className="flex justify-center py-8">
           <GlassLoader size="md" />
         </div>
@@ -376,14 +341,14 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
 
   return (
     <motion.div
-      className={`relative mb-10 p-6 sm:p-8 rounded-3xl overflow-hidden ${themeClasses.panel}`}
+      className="relative mb-10 p-6 sm:p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl overflow-hidden"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       <div className="absolute inset-0 pointer-events-none">
-        <div className={`absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl ${themeClasses.glowTopRight}`}></div>
-        <div className={`absolute bottom-0 left-0 w-40 h-40 rounded-full blur-3xl ${themeClasses.glowBottomLeft}`}></div>
+        <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-blue-500/10 to-cyan-400/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-pink-500/8 to-blue-400/5 rounded-full blur-3xl"></div>
       </div>
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
         backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
@@ -391,14 +356,14 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
       }}></div>
       <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-3">
-          <div className={`h-10 w-1 rounded-full ${themeClasses.bar}`}></div>
-          <h2 className={`text-xl sm:text-2xl font-bold text-transparent bg-clip-text leading-relaxed ${themeClasses.titleText}`}>
+          <div className="h-10 w-1 bg-gradient-to-b from-blue-400 via-cyan-400 to-blue-500 rounded-full"></div>
+          <h2 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 leading-relaxed">
             {title}
           </h2>
         </div>
         <button
           onClick={onViewAll}
-          className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-semibold text-white hover:shadow-lg rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 overflow-hidden relative group ${themeClasses.button}`}
+          className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/25 rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 overflow-hidden relative group"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
           <span className="relative z-10 hidden sm:inline">{viewAllLabel}</span>
@@ -468,15 +433,14 @@ const Home = () => {
   const navigate = useNavigate();
   const [trendingMovies, setTrendingMovies] = React.useState<Movie[]>([]);
   const [comingSoonMovies, setComingSoonMovies] = React.useState<Movie[]>([]);
-  const [bestOfYearMovies, setBestOfYearMovies] = React.useState<Movie[]>([]);
-  const [friendsBestMovies, setFriendsBestMovies] = React.useState<Movie[]>([]);
+  const [topRatedMovies, setTopRatedMovies] = React.useState<Movie[]>([]);
   const [guestTrendingMovies, setGuestTrendingMovies] = React.useState<Movie[]>([]);
   const [userPersonalidade, setUserPersonalidade] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState({ trending: false, comingSoon: false, bestOfYear: false, friendsBest: false });
+  const [loading, setLoading] = React.useState({ trending: false, comingSoon: false, topRated: false });
   const [guestLoadingTrending, setGuestLoadingTrending] = React.useState(false);
   const [selectedMovie, setSelectedMovie] = React.useState<Movie | null>(null);
   const [username, setUsername] = React.useState('');
-  const [allMoviesModal, setAllMoviesModal] = React.useState<{ isOpen: boolean; title: string; movies: Movie[]; theme?: 'gold' | 'purple' }>({ isOpen: false, title: '', movies: [] });
+  const [allMoviesModal, setAllMoviesModal] = React.useState<{ isOpen: boolean; title: string; movies: Movie[] }>({ isOpen: false, title: '', movies: [] });
   const [countdown, setCountdown] = useState(getBrasiliaCountdown());
 
   useEffect(() => {
@@ -523,21 +487,19 @@ const Home = () => {
 
   const fetchAllMovies = async () => {
     try {
-      setLoading({ trending: true, comingSoon: true, bestOfYear: true, friendsBest: true });
-      const [trending, comingSoon, bestOfYear, friendsBest] = await Promise.all([
+      setLoading({ trending: true, comingSoon: true, topRated: true });
+      const [trending, comingSoon, topRated] = await Promise.all([
         getTrending(),
         getComingSoon(),
-        getBestOfYear(),
-        session?.user?.id ? getFriendsBestMovies(session.user.id) : Promise.resolve([]),
+        getTopRatedGems(),
       ]);
       setTrendingMovies(trending);
       setComingSoonMovies(comingSoon);
-      setBestOfYearMovies(bestOfYear);
-      setFriendsBestMovies(friendsBest);
+      setTopRatedMovies(topRated);
     } catch (error) {
       console.error('Error fetching movies:', error);
     } finally {
-      setLoading({ trending: false, comingSoon: false, bestOfYear: false, friendsBest: false });
+      setLoading({ trending: false, comingSoon: false, topRated: false });
     }
   };
 
@@ -786,23 +748,19 @@ const Home = () => {
           viewAllLabel={t('common.view_all')}
         />
         <MovieCarousel
-          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🏆</span> {t('home.bestOfYear')}</span>}
-          movies={bestOfYearMovies}
-          loading={loading.bestOfYear}
-          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.bestOfYear'), movies: bestOfYearMovies, theme: 'gold' })}
+          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>⭐</span> {t('home.topRatedGems')}</span>}
+          movies={topRatedMovies}
+          loading={loading.topRated}
+          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.topRatedGems'), movies: topRatedMovies })}
           onMovieClick={handleMovieClick}
           viewAllLabel={t('common.view_all')}
-          theme="gold"
         />
-        <MovieCarousel
-          title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>👥</span> {t('home.friendsBest')}</span>}
-          movies={friendsBestMovies}
-          loading={loading.friendsBest}
-          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.friendsBest'), movies: friendsBestMovies, theme: 'purple' })}
-          onMovieClick={handleMovieClick}
-          viewAllLabel={t('common.view_all')}
-          theme="purple"
-        />
+        {session?.user && (
+          <OracleForYouBox
+            userId={session.user.id}
+            hasEssence={!!(userPersonalidade && userPersonalidade.length >= 3)}
+          />
+        )}
       </div>
 
       {selectedMovie && (
@@ -819,7 +777,6 @@ const Home = () => {
         onClose={() => setAllMoviesModal({ isOpen: false, title: '', movies: [] })}
         title={allMoviesModal.title}
         movies={allMoviesModal.movies}
-        theme={allMoviesModal.theme}
         rating={null}
         onAddToLibrary={handleAddToLibrary}
       />

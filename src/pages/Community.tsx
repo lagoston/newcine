@@ -22,7 +22,6 @@ interface Profile {
   followers_count: number;
   following_count: number;
   plan_type: string;
-  is_premium?: boolean;
   avatar_frame: string;
   banner: string;
   active_tag?: {
@@ -441,7 +440,7 @@ export default function Community() {
             {filteredProfiles.map((profile) => (
               <motion.div
                 key={profile.id}
-                className={`relative rounded-2xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl overflow-hidden cursor-pointer group ${getBannerClass(profile.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}
+                className={`relative rounded-2xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl overflow-hidden cursor-pointer group ${getBannerClass(profile.banner, profile.plan_type === 'premium')}`}
                 onClick={() => navigateToProfile(profile.username)}
                 role="button"
                 tabIndex={0}
@@ -455,7 +454,7 @@ export default function Community() {
                 <div className="relative h-full flex flex-col p-6">
                   <div className="flex items-start gap-4 mb-4">
                     <div className="relative flex-shrink-0">
-                      <div className={`w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile.avatar_frame, profile.is_premium ?? profile.plan_type === 'premium')}`}>
+                      <div className={`w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile.avatar_frame, profile.plan_type === 'premium')}`}>
                         {profile.avatar_url ? (
                           <img
                             src={profile.avatar_url}
@@ -475,7 +474,7 @@ export default function Community() {
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate">
                           @{profile.username}
                         </h2>
-                        {(profile.is_premium ?? profile.plan_type === 'premium') && (
+                        {profile.plan_type === 'premium' && (
                           <motion.div
                             whileHover={{ rotate: 360 }}
                             transition={{ duration: 0.3, ease: "easeOut" }}

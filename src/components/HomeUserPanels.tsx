@@ -179,7 +179,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFrame, setAvatarFrame] = useState<string | null>(null);
-  const [avatarIsPremium, setAvatarIsPremium] = useState<boolean>(false);
+  const [avatarPlanType, setAvatarPlanType] = useState<string | null>(null);
   const [libraryCount, setLibraryCount] = useState<number>(0);
   const [nextTag, setNextTag] = useState<LockedTag | null>(null);
   const [dailyRecs, setDailyRecs] = useState<DailyRec[]>([]);
@@ -304,7 +304,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const fetchUserStats = useCallback(async () => {
     try {
       const [profileRes, moviesRes, followsRes, profileFull, followingRes, listsRes, unratedRes] = await Promise.all([
-        supabase.from('public_profiles').select('avatar_url, avatar_frame, plan_type, is_premium').eq('id', userId).maybeSingle(),
+        supabase.from('public_profiles').select('avatar_url, avatar_frame, plan_type').eq('id', userId).maybeSingle(),
         supabase.from('user_movies').select('movie_id').eq('user_id', userId),
         supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
         supabase.from('profiles').select('oracle_predictions_count, oracle_recommendations_count').eq('id', userId).maybeSingle(),
@@ -315,7 +315,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
       setAvatarUrl(profileRes.data?.avatar_url ?? null);
       setAvatarFrame(profileRes.data?.avatar_frame ?? null);
-      setAvatarIsPremium((profileRes.data as any)?.is_premium ?? profileRes.data?.plan_type === 'premium');
+      setAvatarPlanType(profileRes.data?.plan_type ?? null);
       setFollowingCount(followingRes.count ?? 0);
       setListsPreview((listsRes.data ?? []) as { id: string; name: string }[]);
       setListsCount(listsRes.data?.length ?? 0);
@@ -459,7 +459,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
             {/* Avatar + Welcome */}
             <Link to="/profile" className="flex items-center gap-4 group mb-5">
               <div className="relative flex-shrink-0">
-                <div className={`w-14 h-14 rounded-full overflow-hidden shadow-lg transition-all duration-300 group-hover:scale-105 ${getFrameClass(avatarFrame || undefined, avatarIsPremium)}`}>
+                <div className={`w-14 h-14 rounded-full overflow-hidden shadow-lg transition-all duration-300 group-hover:scale-105 ${getFrameClass(avatarFrame || undefined, avatarPlanType === 'premium')}`}>
                   {avatarUrl ? (
                     <img src={avatarUrl} alt={username} className="w-full h-full object-cover" />
                   ) : (

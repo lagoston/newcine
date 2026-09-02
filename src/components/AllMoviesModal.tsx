@@ -14,18 +14,7 @@ interface AllMoviesModalProps {
   rating: number | null;
   isOtherUserProfile?: boolean;
   onAddToLibrary?: () => void;
-  // Tema de cor opcional pro destaque do modal (botão "Filme Aleatório"),
-  // usado pra diferenciar visualmente carrosséis específicos da Home
-  // (dourado pro "Melhores do Ano", roxo pro "Melhores dos Amigos") do
-  // azul padrão usado nos demais.
-  theme?: 'gold' | 'purple';
 }
-
-const getThemeButtonClasses = (theme?: 'gold' | 'purple'): string => {
-  if (theme === 'gold') return 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600';
-  if (theme === 'purple') return 'bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700';
-  return 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700';
-};
 
 // Mesma faixa de cores usada no cabeçalho das rating boxes e no slider de
 // avaliação — antes, tanto o círculo do cabeçalho quanto a nota de cada
@@ -55,7 +44,6 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
   rating,
   isOtherUserProfile = false,
   onAddToLibrary,
-  theme,
 }) => {
   const { t } = useTranslation();
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -203,7 +191,7 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
                 <button
                   onClick={handleRandomMovie}
                   disabled={movies.length === 0 || loadingDetails}
-                  className={`flex items-center gap-2 px-6 py-3 ${getThemeButtonClasses(theme)} text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95`}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
                   title={t('library.randomMovie')}
                 >
                   {loadingDetails ? <Loader2 className="w-5 h-5 animate-spin" /> : <Dices className="w-5 h-5" />}

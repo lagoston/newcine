@@ -25,7 +25,6 @@ interface Participant {
   avatar_url?: string | null;
   avatar_frame?: string | null;
   plan_type?: string | null;
-  lifetime_premium?: boolean | null;
 }
 
 interface ScoreEntry {
@@ -50,14 +49,7 @@ interface FollowedUser {
   avatar_url: string | null;
   avatar_frame: string | null;
   plan_type: string | null;
-  lifetime_premium: boolean | null;
 }
-
-// plan_type sozinho não reflete premium vitalício concedido diretamente
-// na tabela (fora do fluxo normal do Stripe) — combina os dois campos,
-// mesma lógica de is_premium_active() no banco.
-const isUserPremium = (u: { plan_type?: string | null; lifetime_premium?: boolean | null }) =>
-  u.plan_type === 'premium' || !!u.lifetime_premium;
 
 const posterUrl = (path: string | null) =>
   path ? `https://image.tmdb.org/t/p/w500${path}` : 'https://via.placeholder.com/500x750?text=No+Image';
@@ -102,7 +94,6 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
   const [myAvatarFrame, setMyAvatarFrame] = useState<string | null>(null);
   const [myPlanType, setMyPlanType] = useState<string | null>(null);
-  const [myLifetimePremium, setMyLifetimePremium] = useState<boolean>(false);
   const [showAddViewer, setShowAddViewer] = useState(false);
   const [followedUsers, setFollowedUsers] = useState<FollowedUser[]>([]);
   const [loadingFollowed, setLoadingFollowed] = useState(false);
@@ -121,7 +112,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
     if (!session?.user?.id) return;
     supabase
       .from('profiles')
-      .select('username, avatar_url, avatar_frame, plan_type, lifetime_premium')
+      .select('username, avatar_url, avatar_frame, plan_type')
       .eq('id', session.user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -129,19 +120,18 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
         if (data?.avatar_url) setMyAvatarUrl(data.avatar_url);
         setMyAvatarFrame(data?.avatar_frame || null);
         setMyPlanType(data?.plan_type || null);
-        setMyLifetimePremium(data?.lifetime_premium || false);
       });
 
     supabase
       .from('profiles')
-      .select('avatar_url, avatar_frame, plan_type, lifetime_premium')
+      .select('avatar_url, avatar_frame, plan_type')
       .eq('id', otherUserId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
           setParticipants((prev) =>
             prev.map((p) => (p.id === otherUserId
-              ? { ...p, avatar_url: data.avatar_url, avatar_frame: data.avatar_frame, plan_type: data.plan_type, lifetime_premium: data.lifetime_premium }
+              ? { ...p, avatar_url: data.avatar_url, avatar_frame: data.avatar_frame, plan_type: data.plan_type }
               : p))
           );
         }
@@ -184,7 +174,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
 
       const { data: profileRows, error: profileError } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url, avatar_frame, plan_type, lifetime_premium')
+        .select('id, username, avatar_url, avatar_frame, plan_type')
         .in('id', followingIds);
       if (profileError) throw profileError;
 
@@ -201,7 +191,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
     if (participants.length >= MAX_PARTICIPANTS - 1) return;
     setParticipants((prev) => [...prev, {
       id: user.id, username: user.username, avatar_url: user.avatar_url,
-      avatar_frame: user.avatar_frame, plan_type: user.plan_type, lifetime_premium: user.lifetime_premium
+      avatar_frame: user.avatar_frame, plan_type: user.plan_type
     }]);
     setShowAddViewer(false);
     setViewerSearch('');
@@ -274,7 +264,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
 
   // Você + os demais, numa lista só, pra formar os 4 slots.
   const bubbleParticipants: Participant[] = [
-    { id: session?.user?.id || 'me', username: myUsername || t('matchMovie.you'), avatar_url: myAvatarUrl, avatar_frame: myAvatarFrame, plan_type: myPlanType, lifetime_premium: myLifetimePremium },
+    { id: session?.user?.id || 'me', username: myUsername || t('matchMovie.you'), avatar_url: myAvatarUrl, avatar_frame: myAvatarFrame, plan_type: myPlanType },
     ...participants,
   ];
 
@@ -330,7 +320,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
                   <div key={p.id} className="relative flex-shrink-0">
                     <div
                       title={p.username}
-                      className={`${dimension} rounded-full overflow-hidden bg-gradient-to-br from-pink-400 to-purple-500 flex-shrink-0 ${getFrameClass(p.avatar_frame || undefined, isUserPremium(p))}`}
+                      className={`${dimension} rounded-full overflow-hidden bg-gradient-to-br from-pink-400 to-purple-500 flex-shrink-0 ${getFrameClass(p.avatar_frame || undefined, p.plan_type === 'premium')}`}
                     >
                       {p.avatar_url ? (
                         <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" />
