@@ -100,6 +100,7 @@
   },
   "home": {
     "welcome": "Welcome back, {{username}}!",
+    "bestOfYear": "Best of the Year",
     "yourLibrary": "Your Library",
     "viewManage": "View and manage your movie and series collection",
     "consultOracle": "Oracle",
