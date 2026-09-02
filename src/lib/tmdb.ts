@@ -73,6 +73,7 @@ export interface Movie {
   release_date: string;
   first_air_date?: string;
   vote_average: number;
+  vote_count?: number;
   runtime: number;
   number_of_seasons?: number;
   number_of_episodes?: number;
@@ -136,15 +137,60 @@ export const getTopRatedGems = async (): Promise<Movie[]> => {
 // vote_count.gte mais baixo que o de getTopRatedGems (150 em vez de
 // 5000) porque filmes recentes tiveram bem menos tempo pra acumular
 // votos que os "de todos os tempos".
+// "Melhores do Ano" — o TMDB não tem um endpoint dedicado pra isso
+// (/movie/top_rated não filtra por período, mistura clássicos de todos
+// os tempos). Em vez de usar o ano civil atual (que ficaria vazio todo
+// 1º de janeiro, até os primeiros lançamentos do ano acumularem votos),
+// usa uma janela móvel dos últimos 365 dias — sempre tem conteúdo, e
+// ainda captura bem a intenção de "os melhores lançamentos recentes".
+//
+// Um corte simples por "vote_count.gte=X" é tudo-ou-nada: um filme com
+// poucos votos mas MUITO entusiasmados (ex: 254 votos, nota 8.9 — um
+// grupo pequeno de fãs avaliando alto) passa direto com a nota bruta,
+// distorcendo o ranking. A correção correta é a MÉDIA BAYESIANA
+// PONDERADA — a mesma técnica que o próprio IMDb usa no ranking Top 250
+// deles — que "puxa" a nota de filmes com poucos votos na direção da
+// média geral do conjunto, proporcionalmente à quantidade de votos que
+// eles têm, em vez de simplesmente excluir ou aceitar a nota bruta.
+//
+// weighted = (v/(v+m)) * R + (m/(v+m)) * C
+//   v = votos do filme, R = nota do filme
+//   m = limiar de confiança (quantos votos até a nota "pesar" sozinha)
+//   C = média geral do conjunto de candidatos
+const BEST_OF_YEAR_CONFIDENCE_THRESHOLD = 300;
+
 export const getBestOfYear = async (): Promise<Movie[]> => {
   const today = new Date();
   const oneYearAgo = new Date();
   oneYearAgo.setDate(today.getDate() - 365);
   const formatDate = (d: Date) => d.toISOString().split('T')[0];
-  const data = await tmdbFetch(
-    `/discover/movie?sort_by=vote_average.desc&vote_count.gte=150&primary_release_date.gte=${formatDate(oneYearAgo)}&primary_release_date.lte=${formatDate(today)}`
+  const dateParams = `primary_release_date.gte=${formatDate(oneYearAgo)}&primary_release_date.lte=${formatDate(today)}`;
+
+  // Pool de candidatos bem maior que o top 20 final (5 páginas = até 100
+  // filmes), com um corte baixo (20 votos) só pra descartar ruído
+  // extremo — o filtro de verdade é a ponderação abaixo, não esse corte.
+  const pages = await Promise.all(
+    [1, 2, 3, 4, 5].map((page) =>
+      tmdbFetch(`/discover/movie?sort_by=vote_average.desc&vote_count.gte=20&${dateParams}&page=${page}`)
+    )
   );
-  return data.results.slice(0, 20);
+  const candidates: Movie[] = pages.flatMap((p) => p.results || []);
+  if (candidates.length === 0) return [];
+
+  const meanRating =
+    candidates.reduce((sum, m) => sum + (m.vote_average || 0), 0) / candidates.length;
+  const m = BEST_OF_YEAR_CONFIDENCE_THRESHOLD;
+
+  const weighted = candidates
+    .map((movie) => {
+      const v = movie.vote_count || 0;
+      const r = movie.vote_average || 0;
+      const weightedRating = (v / (v + m)) * r + (m / (v + m)) * meanRating;
+      return { movie, weightedRating };
+    })
+    .sort((a, b) => b.weightedRating - a.weightedRating);
+
+  return weighted.slice(0, 20).map((w) => w.movie);
 };
 
 export const getHiddenIndies = async (): Promise<Movie[]> => {
