@@ -32,6 +32,8 @@ interface Profile {
   bio: string | null;
   created_at: string;
   plan_type: string;
+  is_premium?: boolean;
+  chroma_box_enabled?: boolean;
   avatar_frame: string;
   banner?: string;
   active_tag?: {
@@ -390,7 +392,7 @@ export default function UserProfile() {
         </motion.button>
 
         <motion.div
-          className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden ${getBannerClass(profile?.banner, profile.plan_type === 'premium')}`}
+          className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden ${getBannerClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -403,7 +405,7 @@ export default function UserProfile() {
           <div className="relative z-10 p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-start gap-6">
               <div className="relative mx-auto sm:mx-0 flex-shrink-0">
-                <div className={`w-28 h-28 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile?.avatar_frame, profile.plan_type === 'premium')}`}>
+                <div className={`w-28 h-28 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile?.avatar_frame, profile.is_premium ?? profile.plan_type === 'premium')}`}>
                   {profile?.avatar_url ? (
                     <img
                       src={profile.avatar_url}
@@ -422,7 +424,7 @@ export default function UserProfile() {
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                       @{profile.username}
                     </h1>
-                    {profile.plan_type === 'premium' && (
+                    {(profile.is_premium ?? profile.plan_type === 'premium') && (
                       <Crown className="w-6 h-6 text-yellow-400" title="Premium member" />
                     )}
                   </div>
@@ -949,6 +951,7 @@ export default function UserProfile() {
                       movies={ratedMovies}
                       rating={rating}
                       isOtherUserProfile={true}
+                      chromaBoxEnabled={profile.chroma_box_enabled ?? true}
                     />
                   );
                 }
