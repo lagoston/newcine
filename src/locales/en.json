@@ -101,6 +101,7 @@
   "home": {
     "welcome": "Welcome back, {{username}}!",
     "bestOfYear": "Best of the Year",
+    "friendsBest": "Friend's Best",
     "yourLibrary": "Your Library",
     "viewManage": "View and manage your movie and series collection",
     "consultOracle": "Oracle",
