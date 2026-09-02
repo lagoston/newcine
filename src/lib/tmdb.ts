@@ -166,12 +166,15 @@ export const getBestOfYear = async (): Promise<Movie[]> => {
   const formatDate = (d: Date) => d.toISOString().split('T')[0];
   const dateParams = `primary_release_date.gte=${formatDate(oneYearAgo)}&primary_release_date.lte=${formatDate(today)}`;
 
-  // Pool de candidatos bem maior que o top 20 final (5 páginas = até 100
-  // filmes), com um corte baixo (20 votos) só pra descartar ruído
-  // extremo — o filtro de verdade é a ponderação abaixo, não esse corte.
+  // Corte rígido de 400 votos — o teste real mostrou que só a ponderação
+  // bayesiana não bastava: filmes com poucos votos continuavam
+  // aparecendo, só reordenados pra baixo, não removidos de fato. 400 é
+  // o piso mínimo pra sequer entrar no pool de candidatos; a ponderação
+  // abaixo continua refinando a ordem entre os que passam desse corte
+  // (um filme com 400 votos ainda pesa menos que um com 10 mil).
   const pages = await Promise.all(
     [1, 2, 3, 4, 5].map((page) =>
-      tmdbFetch(`/discover/movie?sort_by=vote_average.desc&vote_count.gte=20&${dateParams}&page=${page}`)
+      tmdbFetch(`/discover/movie?sort_by=vote_average.desc&vote_count.gte=400&${dateParams}&page=${page}`)
     )
   );
   const candidates: Movie[] = pages.flatMap((p) => p.results || []);
