@@ -5,7 +5,7 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { frames, FrameId } from '../lib/frames';
-import { THEME_TAGS } from '../lib/tags';
+import { THEME_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 import { banners, BannerId } from '../lib/banners';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
