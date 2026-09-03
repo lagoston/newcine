@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link } from 'react-router-dom';
-import { Eye, Wand2, Swords, BrainCircuit, Loader2, Scroll, Info, X, RefreshCw, Sparkles, LayoutGrid, Share2 } from 'lucide-react';
+import { Eye, Swords, Loader2, Scroll, Info, X, RefreshCw, Sparkles, LayoutGrid, Share2, LibraryBig } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import PentagonGraph from '../components/PentagonGraph';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -333,16 +333,10 @@ export default function OracleHub() {
       }} />
 
       <div className="max-w-4xl mx-auto relative z-10">
-        {/* Cabeçalho reformulado — antes era só texto simples com um
-            ícone "flutuando" solto na página, destoando do resto do
-            site. Agora segue a mesma linguagem visual "vidro" que os
-            outros painéis desta mesma página já usam (fundo translúcido
-            com blur, borda, brilhos radiais decorativos nos cantos) —
-            e o ícone ganhou uma animação mais rica: pulso de brilho
-            contínuo combinado com um "piscar" ocasional, temático de um
-            olho místico observando, em vez de só subir e descer. */}
+        {/* Cabeçalho — ícone e título lado a lado (não mais empilhados
+            verticalmente), ocupando bem menos altura na tela. */}
         <motion.div
-          className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden mb-8 p-8 sm:p-10 text-center"
+          className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden mb-8 p-5 sm:p-6 flex items-center justify-center gap-4"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -352,28 +346,26 @@ export default function OracleHub() {
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-cyan-400/10 to-blue-500/10 rounded-full blur-3xl" />
           </div>
 
-          <div className="relative z-10 flex justify-center mb-5">
+          <motion.div
+            className="relative z-10 flex-shrink-0 p-3 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/30 dark:to-cyan-500/30 border border-blue-400/30"
+            animate={{
+              boxShadow: [
+                '0 0 20px rgba(59,130,246,0.25)',
+                '0 0 40px rgba(59,130,246,0.5)',
+                '0 0 20px rgba(59,130,246,0.25)',
+              ],
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
             <motion.div
-              className="relative p-5 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/30 dark:to-cyan-500/30 border border-blue-400/30"
-              animate={{
-                boxShadow: [
-                  '0 0 20px rgba(59,130,246,0.25)',
-                  '0 0 40px rgba(59,130,246,0.5)',
-                  '0 0 20px rgba(59,130,246,0.25)',
-                ],
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              animate={{ scaleY: [1, 1, 0.1, 1, 1] }}
+              transition={{ duration: 5, repeat: Infinity, times: [0, 0.9, 0.93, 0.96, 1], ease: 'easeInOut' }}
             >
-              <motion.div
-                animate={{ scaleY: [1, 1, 0.1, 1, 1] }}
-                transition={{ duration: 5, repeat: Infinity, times: [0, 0.9, 0.93, 0.96, 1], ease: 'easeInOut' }}
-              >
-                <Eye className="w-12 h-12 text-blue-500 dark:text-blue-400" style={{ filter: 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.4))' }} />
-              </motion.div>
+              <Eye className="w-8 h-8 sm:w-9 sm:h-9 text-blue-500 dark:text-blue-400" style={{ filter: 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.4))' }} />
             </motion.div>
-          </div>
+          </motion.div>
 
-          <h1 className="relative z-10 text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 tracking-wide">
+          <h1 className="relative z-10 text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 tracking-wide">
             {t('oracle.title')}
           </h1>
         </motion.div>
@@ -467,70 +459,102 @@ export default function OracleHub() {
           </motion.div>
         )}
 
+        {/* "Bibliotecas do Oráculo" — agora é uma feature real, navegando
+            pra /oracle/libraries. Mantém o design de destaque (primeiro,
+            largura total, gradiente âmbar/roxo) condizente com o papel
+            de carro-chefe do hub. */}
+        <motion.div
+          className="mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+        >
+          <Link to="/oracle/libraries" className="block">
+            <motion.div whileHover={{ scale: 1.01, y: -3 }} className="relative rounded-3xl bg-gradient-to-br from-amber-500/10 via-white/40 to-purple-500/10 dark:from-amber-500/15 dark:via-gray-800/40 dark:to-purple-500/15 backdrop-blur-xl border border-amber-300/40 dark:border-amber-500/30 shadow-2xl overflow-hidden p-6 sm:p-8">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-400/25 to-yellow-500/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-purple-400/20 to-violet-500/15 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                <div className="flex-shrink-0 p-4 rounded-2xl bg-gradient-to-br from-amber-500/25 to-yellow-500/25 border border-amber-400/40 shadow-lg">
+                  <LibraryBig className="w-10 h-10 text-amber-600 dark:text-amber-400" style={{ filter: 'drop-shadow(0 0 10px rgba(245,158,11,0.4))' }} />
+                </div>
+                <div className="flex-1 text-center sm:text-left">
+                  <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 mb-1.5">
+                    {t('oracle.libraries.title', { defaultValue: 'Bibliotecas do Oráculo' })}
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed max-w-xl">
+                    {t('oracle.libraries.description', { defaultValue: 'Coleções e trilhas curadas pelo Oráculo, construídas a partir de tudo que ele já aprendeu sobre o seu gosto cinematográfico.' })}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </Link>
+        </motion.div>
+
         <motion.div
           className="grid md:grid-cols-2 gap-6 mb-10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-                     <motion.div whileHover={{ scale: 1.02, y: -5 }} className="h-full">
-              <div className="block h-full relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden p-6">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl pointer-events-none" />
-                <div className="relative z-10 h-full flex flex-col">
-                  <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-pink-400/30 w-fit mb-4">
-                    <Wand2 className="w-8 h-8 text-pink-500 dark:text-pink-400" />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
-                    {t('oracle.recommend.title')}
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 flex-1">
-                    {t('oracle.recommend.description')}
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link
-                      to="/oracle/duel"
-                      className="flex flex-col items-center gap-1 px-3 py-3 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-400/30 rounded-xl transition-colors group/mode"
-                    >
-                      <Swords className="w-5 h-5 text-pink-500 dark:text-pink-400 group-hover/mode:scale-110 transition-transform" />
-                      <span className="text-xs font-bold text-gray-800 dark:text-white">{t('duel.modeToggleDuel')}</span>
-                      <span className="text-[11px] text-pink-500 dark:text-pink-400 font-semibold">3 tickets</span>
-                    </Link>
-                    <Link
-                      to="/oracle/recommend"
-                      className="flex flex-col items-center gap-1 px-3 py-3 bg-gray-500/10 hover:bg-gray-500/20 border border-gray-400/30 rounded-xl transition-colors group/mode"
-                    >
-                      <Wand2 className="w-5 h-5 text-gray-600 dark:text-gray-300 group-hover/mode:scale-110 transition-transform" />
-                      <span className="text-xs font-bold text-gray-800 dark:text-white">{t('duel.modeToggleClassic')}</span>
-                      <span className="text-[11px] text-gray-500 dark:text-gray-400 font-semibold">1 ticket</span>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
+          {/* Era o card "Recomendação" com 2 modos internos (Duelo/
+              Clássico) — a recomendação clássica foi aposentada, então
+              esse card virou só o acesso direto ao Duelo, com o símbolo
+              de espadas cruzadas como identidade central, não mais um
+              atalho secundário dentro de uma grade de opções. */}
           <motion.div whileHover={{ scale: 1.03, y: -5 }} whileTap={{ scale: 0.98 }} className="h-full">
             <Link
-              to="/oracle/prediction"
+              to="/oracle/duel"
               className="block h-full relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden p-6 group"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-purple-500/10 dark:from-violet-500/20 dark:to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-400/20 to-purple-500/20 rounded-full blur-2xl" />
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-rose-500/10 dark:from-pink-500/20 dark:to-rose-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl pointer-events-none" />
 
               <div className="relative z-10 h-full flex flex-col">
-                <div className="p-3 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-400/30 w-fit mb-4">
-                  <BrainCircuit className="w-8 h-8 text-violet-500 dark:text-violet-400" />
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-pink-400/30 w-fit mb-4">
+                  <Swords className="w-8 h-8 text-pink-500 dark:text-pink-400" />
                 </div>
-
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
-                  {t('oracle.prediction.title')}
+                  {t('duel.modeToggleDuel')}
                 </h2>
-
                 <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 flex-1">
-                  {t('oracle.prediction.description')}
+                  {t('oracle.recommend.description')}
                 </p>
+                <div className="flex items-center gap-2 text-pink-500 dark:text-pink-400 text-sm font-semibold">
+                  <span>3 tickets</span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
 
-                <div className="flex items-center gap-2 text-violet-500 dark:text-violet-400 text-sm font-semibold">
-                  <span>1 ticket</span>
+          {/* Duelo de Watchlist — a recomendação clássica saiu, e no lugar
+              dela ganhamos aqui um segundo acesso pra uma função que já
+              existe de verdade dentro da Biblioteca: mesmo modal, só que
+              acessível também a partir do hub. Reaproveita o mesmo padrão
+              de navegação com state que a Home já usa pra abrir o Duelo
+              de Watchlist direto na Biblioteca, sem duplicar nenhuma
+              lógica nova. */}
+          <motion.div whileHover={{ scale: 1.03, y: -5 }} whileTap={{ scale: 0.98 }} className="h-full">
+            <Link
+              to="/library"
+              state={{ openWatchlistDuel: true }}
+              className="block h-full relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden p-6 group"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 dark:from-blue-500/20 dark:to-cyan-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-cyan-500/20 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="relative z-10 h-full flex flex-col">
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/30 w-fit mb-4">
+                  <Swords className="w-8 h-8 text-blue-500 dark:text-blue-400" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                  {t('watchlistDuel.title')}
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 flex-1">
+                  {t('watchlistDuel.description', { defaultValue: 'Deixe seus próprios filmes da watchlist competirem entre si até sobrar só um vencedor.' })}
+                </p>
+                <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400 text-sm font-semibold">
+                  <span>{t('library.watchList')}</span>
                 </div>
               </div>
             </Link>
@@ -582,29 +606,38 @@ export default function OracleHub() {
                   <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                 </button>
 
-                <div className="flex items-center justify-center gap-3 mb-6">
-                  <Scroll className="w-8 h-8 text-pink-500" style={{ filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.5))' }} />
-                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('oracle.revelation')}</h2>
+                {/* Antes: o código da personalidade ("REI", por exemplo)
+                    ganhava um card próprio, destacado, em fonte enorme
+                    (text-3xl) — o maior elemento visual do modal inteiro,
+                    ofuscando o conteúdo de verdade (as duas seções
+                    abaixo, que são a parte realmente útil/funcional).
+                    Agora o código+nome viram uma linha de identificação
+                    compacta, integrada ao próprio cabeçalho — visível,
+                    mas sem competir pelo protagonismo do modal. */}
+                <div className="flex items-center gap-3 mb-2">
+                  <Scroll className="w-6 h-6 text-pink-500 flex-shrink-0" style={{ filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.5))' }} />
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t('oracle.revelation')}</h2>
                 </div>
-
-                <div className="text-center mb-6 rounded-xl p-5 border border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-700/50">
-                  <p className="text-3xl font-bold mb-1" style={{ color: getSubcategoryColor(userPersonality?.personalidade_completa) }}>
+                <div className="flex items-center gap-2 mb-6 pl-9 flex-wrap">
+                  <span className="text-lg font-bold" style={{ color: getSubcategoryColor(userPersonality?.personalidade_completa) }}>
                     {userPersonality?.personalidade_completa}
-                  </p>
-                  <p className="text-lg text-gray-700 dark:text-gray-200 font-semibold">
+                  </span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {archetypeInfo.archetype_name} {archetypeInfo.subcategory_name}
-                  </p>
+                  </span>
                 </div>
 
                 <div className="space-y-4">
                   <div className="rounded-xl p-5 border border-pink-300/50 dark:border-pink-500/30 bg-pink-50/50 dark:bg-pink-500/10">
-                    <h3 className="text-base font-bold text-pink-600 dark:text-pink-400 mb-2">
+                    <h3 className="text-base font-bold text-pink-600 dark:text-pink-400 mb-2 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 flex-shrink-0" />
                       {t('oracle.yourEssence')} ({getEssenceLabel(userPersonality?.arquetipo_primario, userPersonality?.arquetipo_secundario, i18n.language.startsWith('pt') ? 'pt' : 'en')})
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{archetypeInfo.archetype_description}</p>
                   </div>
                   <div className="rounded-xl p-5 border border-blue-300/50 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/10">
-                    <h3 className="text-base font-bold text-blue-600 dark:text-blue-400 mb-2">
+                    <h3 className="text-base font-bold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-2">
+                      <Eye className="w-4 h-4 flex-shrink-0" />
                       {t('oracle.yourAttunement')} ({getSubcategoryName(archetypeInfo.subcategory_name, i18n.language.startsWith('pt') ? 'pt' : 'en')})
                     </h3>
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{archetypeInfo.subcategory_description}</p>
