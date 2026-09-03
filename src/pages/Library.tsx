@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, ListPlus, Film, MessageSquare, FileEdit as Edit, Swords } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -6,6 +6,7 @@ import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import RatingBox from '../components/RatingBox';
+import StreamingFilterModal from '../components/StreamingFilterModal';
 import LibraryEditModal from '../components/LibraryEditModal';
 import UserReviewsModal from '../components/UserReviewsModal';
 import LinearProgressBar from '../components/LinearProgressBar';
@@ -350,6 +351,29 @@ export default function Library() {
     { unrated: [], ...Array.from({ length: 11 }, () => []) }
   );
 
+  // Filtro por streaming — só afeta a Watchlist. selectedStreamingProviders
+  // guarda os provider_ids escolhidos (seleção múltipla); um filme passa no
+  // filtro se estiver disponível em QUALQUER UM deles (não precisa estar em
+  // todos), já que a intenção é "o que posso assistir com o que já tenho
+  // assinado". Sem nenhum provedor selecionado, mostra a lista completa.
+  const [showStreamingFilter, setShowStreamingFilter] = useState(false);
+  const [selectedStreamingProviders, setSelectedStreamingProviders] = useState<number[]>([]);
+
+  const filteredWatchlistMovies = useMemo(() => {
+    if (selectedStreamingProviders.length === 0) return moviesByRating.unrated;
+    return moviesByRating.unrated.filter((movie) => {
+      const flatrate = movie.watchProviders?.flatrate;
+      if (!flatrate || flatrate.length === 0) return false;
+      return flatrate.some((p) => selectedStreamingProviders.includes(p.provider_id));
+    });
+  }, [moviesByRating.unrated, selectedStreamingProviders]);
+
+  const handleToggleStreamingProvider = (providerId: number) => {
+    setSelectedStreamingProviders((prev) =>
+      prev.includes(providerId) ? prev.filter((id) => id !== providerId) : [...prev, providerId]
+    );
+  };
+
   // Abre o Duelo de Watchlist automaticamente quando a Home manda o
   // usuário pra cá com esse propósito específico (prateleira "Duelo de
   // Watchlist" do modal "Bem-vindo de volta"). Só dispara uma vez, depois
@@ -543,7 +567,7 @@ export default function Library() {
                                   <motion.div variants={itemVariants}>
           <RatingBox
             title={alternateNames['unrated'] || t('library.watchList')}
-            movies={moviesByRating.unrated}
+            movies={filteredWatchlistMovies}
             rating={null}
             onRate={handleRate}
             onDelete={handleDelete}
@@ -551,8 +575,18 @@ export default function Library() {
             className=""
             chromaBoxEnabled={chromaBoxEnabled}
             onDuelClick={moviesByRating.unrated.length >= 4 ? () => setShowWatchlistDuel(true) : undefined}
+            onFilterClick={() => setShowStreamingFilter(true)}
+            activeFilterCount={selectedStreamingProviders.length}
           />
         </motion.div>
+
+        <StreamingFilterModal
+          isOpen={showStreamingFilter}
+          onClose={() => setShowStreamingFilter(false)}
+          selectedProviderIds={selectedStreamingProviders}
+          onToggleProvider={handleToggleStreamingProvider}
+          onClearFilter={() => setSelectedStreamingProviders([])}
+        />
 
           {ratedLayout === 'onegrid' ? (() => {
             const allRated: LibraryMovie[] = [...Array(11)].reduce((acc: LibraryMovie[], _, i) => {
