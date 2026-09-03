@@ -658,7 +658,7 @@ export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number
 // não exportada) — essa é a versão equivalente, reaproveitável em
 // qualquer lugar que precise buscar filmes por (id, media_type) sem
 // risco de colisão.
-const getMoviesFromCacheByType = async (
+export const getMoviesFromCacheByType = async (
   entries: { movie_id: number; media_type: string }[]
 ): Promise<Map<string, Movie>> => {
   const language = getCurrentLanguage();
@@ -779,4 +779,59 @@ export const getMovieDetailsFromDB = async (movieId: number): Promise<Movie> => 
 
   // Fallback: fetch from API
   return getMovieDetails(movieId, mediaType);
+};
+
+// Bibliotecas do Oráculo — navegação paginada por um pool específico
+// (oráculo + categoria). A RPC já retorna só a "fatia" pedida dos
+// movie_ids (não o array inteiro, que em alguns pools passa de 900
+// filmes) e o total real do pool, pra a interface saber quando parar de
+// oferecer "carregar mais".
+export interface OraclePoolPage {
+  movies: Movie[];
+  totalCount: number;
+}
+
+export const getOraclePoolMovies = async (
+  cardType: 'bogart' | 'fincher' | 'cypher',
+  moodKey: string,
+  limit: number = 24,
+  offset: number = 0
+): Promise<OraclePoolPage> => {
+  const { data, error } = await supabase.rpc('get_oracle_pool_movies', {
+    p_card_type: cardType,
+    p_mood_key: moodKey,
+    p_limit: limit,
+    p_offset: offset,
+  });
+
+  if (error || !data || data.length === 0) {
+    if (error) console.error('Error fetching oracle pool movies:', error);
+    return { movies: [], totalCount: 0 };
+  }
+
+  const totalCount = data[0].total_count;
+  const movieIds = data.map((r: any) => r.movie_id);
+
+  // Os pools guardam só o ID numérico, sem media_type — a maioria é
+  // filme, mas o cache pode ter tanto filme quanto série pro mesmo ID
+  // (mesmo risco de colisão já corrigido antes). Busca os dois tipos e
+  // prioriza o que realmente existir no cache pra cada ID.
+  const { data: cacheRows } = await supabase
+    .from('movie_cache')
+    .select('tmdb_id, media_type')
+    .in('tmdb_id', movieIds);
+
+  const entries = (cacheRows || []).map((row: any) => ({ movie_id: row.tmdb_id, media_type: row.media_type }));
+  const movieMap = await getMoviesFromCacheByType(entries);
+
+  // Reordena na mesma ordem em que veio da RPC (a ordem dos movie_ids no
+  // pool é intencional, não deveria ser embaralhada pela consulta ao cache).
+  const movies = movieIds
+    .map((id: number) => {
+      const movieKey = [...movieMap.keys()].find((key) => key.startsWith(`${id}_`));
+      return movieKey ? movieMap.get(movieKey) : undefined;
+    })
+    .filter((m: Movie | undefined): m is Movie => m !== undefined);
+
+  return { movies, totalCount };
 };
