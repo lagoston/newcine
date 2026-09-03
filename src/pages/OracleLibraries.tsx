@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Loader2, LibraryBig, Filter } from 'lucide-react';
+import { ArrowLeft, Loader2, LibraryBig, Filter, Ticket, PartyPopper } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getOraclePoolMovies, Movie, getMovieDetails } from '../lib/tmdb';
+import { toast } from 'sonner';
+import { useAuth } from '../lib/auth';
+import { supabase } from '../lib/supabase';
+import { getOraclePoolMovies, spendTickets, Movie, getMovieDetails } from '../lib/tmdb';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import StreamingFilterModal from '../components/StreamingFilterModal';
 
@@ -40,41 +43,46 @@ interface ShelfState {
   loadingMore: boolean;
 }
 
-// Uma prateleira horizontal — carrega 30 filmes (por maior nota), e
-// carrega mais 30 automaticamente quando o usuário rola até o fim dela
-// (sentinela com IntersectionObserver), sem botão "carregar mais".
+// Uma prateleira horizontal, com visual de "prateleira física" (tábua
+// sutil por baixo dos pôsteres, como uma locadora de verdade). O
+// primeiro lote de 30 é grátis; carregar mais custa 3 tickets por lote
+// de 30, e some quando não há mais nada além do que já foi carregado —
+// a mesma lógica de esgotado se aplica tanto pra prateleira já nascer
+// vazia (usuário já assistiu tudo daquela categoria) quanto pro botão
+// pago não aparecer quando não sobra mais nada pra carregar.
 const Shelf: React.FC<{
   cardType: CardType;
   mood: typeof MOOD_CATEGORIES[number];
+  userId: string;
   selectedProviderIds: number[];
+  ticketsRemaining: number | null;
+  onTicketsSpent: (remaining: number) => void;
   onMovieClick: (movie: Movie) => void;
-}> = ({ cardType, mood, selectedProviderIds, onMovieClick }) => {
+}> = ({ cardType, mood, userId, selectedProviderIds, ticketsRemaining, onTicketsSpent, onMovieClick }) => {
   const { t } = useTranslation();
   const [state, setState] = useState<ShelfState>({ movies: [], totalCount: 0, loading: true, loadingMore: false });
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
-  // Ref separada, desacoplada do "loading" visual — o estado inicial já
-  // nasce com loading:true (pra mostrar o esqueleto antes da primeira
-  // busca), mas isso criava um travamento real: loadMore() checava "se
-  // já está loading, não faz nada" ANTES de qualquer busca ter
-  // acontecido de verdade, já que o estado inicial em si já contava como
-  // "carregando". A prateleira nunca saía do esqueleto porque a própria
-  // função que deveria desligar o loading se recusava a rodar enquanto
-  // ele estivesse ligado. Essa ref rastreia só "tem uma busca de rede em
-  // andamento agora", começando sempre em false, sem relação nenhuma com
-  // o valor inicial do estado visual.
   const isFetchingRef = useRef(false);
 
-  const loadMore = useCallback(async () => {
+  const loadMore = useCallback(async (spendingTickets: boolean) => {
     if (isFetchingRef.current) return;
     const current = stateRef.current;
     if (current.movies.length > 0 && current.movies.length >= current.totalCount) return;
 
+    if (spendingTickets) {
+      const result = await spendTickets(userId, 3);
+      if (!result.success) {
+        toast.error(t('oracle.libraries.notEnoughTickets', { defaultValue: 'Você não tem tickets suficientes.' }));
+        return;
+      }
+      onTicketsSpent(result.ticketsRemaining);
+    }
+
     isFetchingRef.current = true;
     setState((s) => ({ ...s, loadingMore: current.movies.length > 0, loading: current.movies.length === 0 }));
     try {
-      const page = await getOraclePoolMovies(cardType, mood.key, SHELF_PAGE_SIZE, current.movies.length);
+      const page = await getOraclePoolMovies(cardType, mood.key, userId, SHELF_PAGE_SIZE, current.movies.length);
       setState((s) => ({
         movies: current.movies.length === 0 ? page.movies : [...s.movies, ...page.movies],
         totalCount: page.totalCount,
@@ -87,27 +95,14 @@ const Shelf: React.FC<{
     } finally {
       isFetchingRef.current = false;
     }
-  }, [cardType, mood.key]);
+  }, [cardType, mood.key, userId, onTicketsSpent, t]);
 
   useEffect(() => {
     isFetchingRef.current = false;
     setState({ movies: [], totalCount: 0, loading: true, loadingMore: false });
-    loadMore();
+    loadMore(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cardType, mood.key]);
-
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) loadMore();
-      },
-      { root: el.parentElement, rootMargin: '0px 200px 0px 0px', threshold: 0.1 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [loadMore]);
+  }, [cardType, mood.key, userId]);
 
   // Filtro de streaming — client-side, sobre os filmes já carregados
   // dessa prateleira. Mesma lógica já usada no filtro da Watchlist.
@@ -119,11 +114,12 @@ const Shelf: React.FC<{
         return flatrate.some((p) => selectedProviderIds.includes(p.provider_id));
       });
 
-  if (!state.loading && state.movies.length === 0) return null;
+  const hasMore = state.movies.length < state.totalCount;
+  const isFullyEmpty = !state.loading && state.totalCount === 0;
 
   return (
-    <div className="mb-8">
-      <div className="flex items-center gap-2.5 mb-3 px-1">
+    <div className="mb-10">
+      <div className="flex items-center gap-2.5 mb-2 px-1">
         <div className={`h-6 w-1 rounded-full bg-gradient-to-b ${mood.colors.bar}`} />
         <h3 className={`text-sm font-bold ${mood.colors.text}`}>{t(mood.labelKey)}</h3>
         {state.totalCount > 0 && (
@@ -131,44 +127,73 @@ const Shelf: React.FC<{
         )}
       </div>
 
-      {state.loading ? (
-        <div className="flex gap-3 overflow-hidden">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="w-[110px] sm:w-[130px] aspect-[2/3] rounded-xl bg-gray-200 dark:bg-gray-700 animate-pulse flex-shrink-0" />
-          ))}
-        </div>
-      ) : visibleMovies.length === 0 ? (
-        <p className="text-xs text-gray-400 dark:text-gray-500 px-1">
-          {t('library.noMoviesForFilter', { defaultValue: 'Nenhum filme disponível nos streamings selecionados.' })}
-        </p>
-      ) : (
-        <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {visibleMovies.map((movie) => (
-            <motion.button
-              key={`${movie.id}-${movie.media_type}`}
-              onClick={() => onMovieClick(movie)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              className="w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[2/3] shadow-lg"
-            >
-              <img
-                src={movie.poster_path ? `https://image.tmdb.org/t/p/w300${movie.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
-                alt={movie.title}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </motion.button>
-          ))}
-          {/* Sentinela invisível — quando ela entra na área visível do
-              scroll, dispara o carregamento dos próximos 30. */}
-          <div ref={sentinelRef} className="w-1 flex-shrink-0" />
-          {state.loadingMore && (
-            <div className="w-[110px] sm:w-[130px] flex-shrink-0 flex items-center justify-center">
-              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-            </div>
-          )}
-        </div>
-      )}
+      {/* "Prateleira física" — a fileira de pôsteres senta sobre uma
+          tábua sutil (gradiente amadeirado com uma sombra por cima),
+          evocando as prateleiras de uma locadora de filmes de verdade. */}
+      <div className="relative rounded-xl bg-gradient-to-b from-transparent to-amber-900/10 dark:to-amber-950/20 pb-3 pt-1 px-1">
+        {state.loading ? (
+          <div className="flex gap-3 overflow-hidden">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="w-[110px] sm:w-[130px] aspect-[2/3] rounded-xl bg-gray-200 dark:bg-gray-700 animate-pulse flex-shrink-0" />
+            ))}
+          </div>
+        ) : isFullyEmpty ? (
+          <div className="flex items-center gap-2 py-4 px-2 text-gray-500 dark:text-gray-400">
+            <PartyPopper className="w-5 h-5 flex-shrink-0 text-amber-500" />
+            <p className="text-sm">
+              {t('oracle.libraries.shelfFullyWatched', { defaultValue: 'Você já assistiu tudo dessa categoria — bom trabalho!' })}
+            </p>
+          </div>
+        ) : visibleMovies.length === 0 ? (
+          <p className="text-xs text-gray-400 dark:text-gray-500 px-1 py-4">
+            {t('library.noMoviesForFilter', { defaultValue: 'Nenhum filme disponível nos streamings selecionados.' })}
+          </p>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {visibleMovies.map((movie) => (
+              <motion.button
+                key={`${movie.id}-${movie.media_type}`}
+                onClick={() => onMovieClick(movie)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.97 }}
+                className="w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[2/3] shadow-lg"
+              >
+                <img
+                  src={movie.poster_path ? `https://image.tmdb.org/t/p/w300${movie.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
+                  alt={movie.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </motion.button>
+            ))}
+
+            {/* Fim da prateleira: se ainda sobra mais no pool, mostra o
+                botão pago; se não sobra mais nada, nem aparece — mesma
+                lógica de "esgotado" que já vale pra prateleira nascer
+                vazia. */}
+            {hasMore && (
+              <button
+                onClick={() => loadMore(true)}
+                disabled={state.loadingMore}
+                className="w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl border-2 border-dashed border-amber-400/50 dark:border-amber-500/40 flex flex-col items-center justify-center gap-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 transition-colors disabled:opacity-60"
+                style={{ aspectRatio: '2/3' }}
+              >
+                {state.loadingMore ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <Ticket className="w-5 h-5" />
+                    <span className="text-[11px] font-bold text-center leading-tight px-1">
+                      {t('oracle.libraries.loadMore30', { defaultValue: '+30 títulos' })}
+                    </span>
+                    <span className="text-[10px] opacity-80">3 tickets</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -176,11 +201,24 @@ const Shelf: React.FC<{
 export default function OracleLibraries() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { session } = useAuth();
 
   const [selectedOracle, setSelectedOracle] = useState<CardType | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [showStreamingFilter, setShowStreamingFilter] = useState(false);
   const [selectedProviderIds, setSelectedProviderIds] = useState<number[]>([]);
+  // Saldo de tickets compartilhado por TODAS as prateleiras — gastar num
+  // "carregar mais 30" precisa refletir imediatamente em qualquer outra
+  // prateleira que o usuário abra em seguida, não ficar isolado por
+  // prateleira.
+  const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    supabase.rpc('check_and_reset_tickets', { user_id_param: session.user.id }).then(({ data }) => {
+      if (data && data.length > 0) setTicketsRemaining(data[0].tickets_remaining);
+    });
+  }, [session?.user?.id]);
 
   const oracles: { id: CardType; image: string }[] = [
     { id: 'bogart', image: '/assets/BOGART.webp' },
@@ -240,21 +278,29 @@ export default function OracleLibraries() {
               padrão (era cinza antes), consistente com o mesmo filtro da
               Watchlist. */}
           {selectedOracle && (
-            <button
-              onClick={() => setShowStreamingFilter(true)}
-              className={`relative flex items-center justify-center p-2.5 sm:p-3 rounded-xl transition-all shadow-lg flex-shrink-0 ${
-                selectedProviderIds.length > 0
-                  ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-            >
-              <Filter className="w-4 h-4" />
-              {selectedProviderIds.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white text-purple-600 text-[10px] font-bold rounded-full flex items-center justify-center shadow-md">
-                  {selectedProviderIds.length}
-                </span>
+            <div className="flex items-center gap-2">
+              {ticketsRemaining !== null && (
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-lg text-sm font-semibold text-amber-600 dark:text-amber-400 flex-shrink-0">
+                  <Ticket className="w-4 h-4" />
+                  {ticketsRemaining}
+                </div>
               )}
-            </button>
+              <button
+                onClick={() => setShowStreamingFilter(true)}
+                className={`relative flex items-center justify-center p-2.5 sm:p-3 rounded-xl transition-all shadow-lg flex-shrink-0 ${
+                  selectedProviderIds.length > 0
+                    ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+                {selectedProviderIds.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white text-purple-600 text-[10px] font-bold rounded-full flex items-center justify-center shadow-md">
+                    {selectedProviderIds.length}
+                  </span>
+                )}
+              </button>
+            </div>
           )}
         </div>
 
@@ -328,12 +374,15 @@ export default function OracleLibraries() {
                 </div>
               </div>
 
-              {MOOD_CATEGORIES.map((mood) => (
+              {session?.user?.id && MOOD_CATEGORIES.map((mood) => (
                 <Shelf
                   key={mood.key}
                   cardType={selectedOracle}
                   mood={mood}
+                  userId={session.user.id}
                   selectedProviderIds={selectedProviderIds}
+                  ticketsRemaining={ticketsRemaining}
+                  onTicketsSpent={setTicketsRemaining}
                   onMovieClick={handleMovieClick}
                 />
               ))}
