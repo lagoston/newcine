@@ -112,7 +112,13 @@ const RatingBox: React.FC<RatingBoxProps> = ({
     if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
   };
 
-  if (movies.length === 0) return null;
+  // Caixas de nota normais somem quando vazias (não faz sentido mostrar
+  // "nenhum filme com nota 3"). A Watchlist é diferente — ela pode ficar
+  // vazia só porque um FILTRO de streaming não bateu com nada, não
+  // porque o usuário não tem nada lá. Se ela sumisse por completo nesse
+  // caso, o cabeçalho com o próprio botão de filtro desaparecia junto,
+  // deixando sem como desfazer o filtro de dentro da tela.
+  if (movies.length === 0 && !isNotRated) return null;
 
   // Check if box contains any TV series
   const hasTvSeries = movies.some(m => m.media_type === 'tv');
@@ -266,6 +272,14 @@ const RatingBox: React.FC<RatingBoxProps> = ({
       </div>
 
       {/* Carrossel unificado - scroll nativo suave em todos os dispositivos */}
+      {movies.length === 0 && isNotRated ? (
+        <div className="relative z-10 flex flex-col items-center justify-center py-10 px-4 text-center">
+          <Filter className="w-8 h-8 text-gray-400 dark:text-gray-500 mb-2" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {t('library.noMoviesForFilter', { defaultValue: 'Nenhum filme da sua watchlist está disponível nos streamings selecionados.' })}
+          </p>
+        </div>
+      ) : (
       <div
         ref={scrollRef}
         className="relative z-10 overflow-x-auto py-4 pb-2 cursor-grab select-none"
@@ -358,6 +372,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           ))}
         </div>
       </div>
+      )}
     </div>
 
     {/* Modals - rendered via portal to escape any parent stacking context */}
