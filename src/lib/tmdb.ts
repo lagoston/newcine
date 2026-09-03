@@ -794,12 +794,14 @@ export interface OraclePoolPage {
 export const getOraclePoolMovies = async (
   cardType: 'bogart' | 'fincher' | 'cypher',
   moodKey: string,
+  userId: string,
   limit: number = 24,
   offset: number = 0
 ): Promise<OraclePoolPage> => {
   const { data, error } = await supabase.rpc('get_oracle_pool_movies', {
     p_card_type: cardType,
     p_mood_key: moodKey,
+    p_user_id: userId,
     p_limit: limit,
     p_offset: offset,
   });
@@ -834,4 +836,22 @@ export const getOraclePoolMovies = async (
     .filter((m: Movie | undefined): m is Movie => m !== undefined);
 
   return { movies, totalCount };
+};
+
+// Gasta uma quantidade específica de tickets de uma vez, atomicamente —
+// usado pelo botão "carregar mais 30 títulos" das Bibliotecas do Oráculo
+// (3 tickets por lote extra, depois do primeiro lote gratuito de cada
+// prateleira).
+export const spendTickets = async (userId: string, amount: number): Promise<{ success: boolean; ticketsRemaining: number }> => {
+  const { data, error } = await supabase.rpc('decrement_user_tickets', {
+    user_id_param: userId,
+    amount,
+  });
+
+  if (error || !data || data.length === 0) {
+    console.error('Error spending tickets:', error);
+    return { success: false, ticketsRemaining: 0 };
+  }
+
+  return { success: data[0].success, ticketsRemaining: data[0].tickets_remaining };
 };
