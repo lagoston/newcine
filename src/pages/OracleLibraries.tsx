@@ -35,6 +35,16 @@ const ORACLE_THEME: Record<CardType, { glow: string; border: string; text: strin
   cypher: { glow: 'from-yellow-500/20 to-amber-500/10', border: 'border-yellow-400/40', text: 'text-yellow-600 dark:text-yellow-400' },
 };
 
+// Descrição funcional de cada oráculo — antes usava um texto narrativo
+// ("Dizem que o Sapo era..."), agora explica objetivamente o critério
+// de curadoria de cada um, colorida na mesma cor de identidade (verde
+// Sapo/Bogart, vermelho Raposa/Fincher, amarelo Cobra/Cypher).
+const LIBRARY_FUNCTION_DESC_KEY: Record<CardType, string> = {
+  bogart: 'oracle.libraries.bogartFunctionDesc',
+  fincher: 'oracle.libraries.fincherFunctionDesc',
+  cypher: 'oracle.libraries.cypherFunctionDesc',
+};
+
 const SHELF_PAGE_SIZE = 30;
 
 interface ShelfState {
@@ -467,8 +477,8 @@ export default function OracleLibraries() {
                         <p className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 mb-1 sm:mb-2 line-clamp-1 sm:line-clamp-none">
                           {t(`oracle.cards.${oracle.id}Subtitle`)}
                         </p>
-                        <p className="text-[10px] sm:text-sm text-gray-600 dark:text-gray-300 leading-snug sm:leading-relaxed line-clamp-2 sm:line-clamp-3">
-                          {t(`oracle.cards.${oracle.id}Desc`)}
+                        <p className={`text-[10px] sm:text-sm font-semibold leading-snug sm:leading-relaxed ${theme.text}`}>
+                          {t(LIBRARY_FUNCTION_DESC_KEY[oracle.id])}
                         </p>
                       </div>
                     </motion.button>
