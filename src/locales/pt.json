@@ -348,6 +348,11 @@
       "consulting": "Consultando o Oráculo...",
       "cost": "Consultar o Oráculo ({{cost}} tickets)"
     },
+    "libraries": {
+      "bogartFunctionDesc": "Filmes Pós-2000, populares e bem avaliados.",
+      "fincherFunctionDesc": "Filmes Pré-2000 populares e joias cult",
+      "cypherFunctionDesc": "Filmes pouco populares independente de avaliações"
+    },
     "selectMood": "Selecione Seu Humor",
     "ticketsLabel": "tickets",
     "resetLabel": "Reset",
