@@ -31,18 +31,37 @@ function formatCountdown(ms: number): string {
   return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
 }
 
-const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
-  const { t } = useTranslation();
-
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+// Isolado num componente próprio — antes o timer de 1s vivia no
+// OracleForYouBox inteiro, forçando TODO o componente (inclusive os
+// cards de filme animados abaixo) a re-renderizar a cada segundo. Como
+// as animações de entrada usam objetos initial/animate recriados a cada
+// render, esse re-render constante causava um "flicker" visível nos
+// pôsteres. Isolando o timer aqui, só esse badge pequeno re-renderiza a
+// cada segundo — o resto da árvore fica parado.
+const CountdownBadge: React.FC = () => {
   const [countdown, setCountdown] = useState(getBrasiliaCountdown());
 
   useEffect(() => {
     const interval = setInterval(() => setCountdown(getBrasiliaCountdown()), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  return (
+    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 dark:bg-amber-500/15 rounded-xl border border-amber-400/20 flex-shrink-0 ml-2">
+      <Clock className="w-3 h-3 text-amber-500 dark:text-amber-400" />
+      <span className="text-xs font-mono font-semibold text-amber-600 dark:text-amber-400 tabular-nums">
+        {formatCountdown(countdown)}
+      </span>
+    </div>
+  );
+};
+
+const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
+  const { t } = useTranslation();
+
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
   const fetchRecommendations = useCallback(async () => {
     try {
@@ -96,12 +115,7 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 dark:bg-amber-500/15 rounded-xl border border-amber-400/20 flex-shrink-0 ml-2">
-              <Clock className="w-3 h-3 text-amber-500 dark:text-amber-400" />
-              <span className="text-xs font-mono font-semibold text-amber-600 dark:text-amber-400 tabular-nums">
-                {formatCountdown(countdown)}
-              </span>
-            </div>
+            <CountdownBadge />
           </div>
 
           {!hasEssence ? (
