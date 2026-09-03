@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { getOraclePoolMovies, spendTickets, Movie, getMovieDetails } from '../lib/tmdb';
 import MovieDetailsModal from '../components/MovieDetailsModal';
+import OracleForYouBox from '../components/OracleForYouBox';
 import StreamingFilterModal from '../components/StreamingFilterModal';
 
 type CardType = 'bogart' | 'fincher' | 'cypher';
@@ -304,13 +305,18 @@ export default function OracleLibraries() {
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
   // Estilo de carta escolhido pelo usuário no Customize Profile — mesmo
   // padrão do OracleDuel: troca o sufixo do arquivo de imagem
-  // (BOGART.webp vira BOGART2.webp no estilo "yugioh").
-  const [cardStyle, setCardStyle] = useState<'default' | 'yugioh'>('default');
+  // (BOGART.webp vira BOGART2.webp no estilo "yugioh"). Começa null (não
+  // 'default') de propósito — se começasse já em 'default', a carta
+  // renderizava primeiro com a imagem padrão e só trocava pra "yugioh"
+  // quando a resposta do banco chegasse, causando um flash visível de
+  // troca de imagem. Esperando o valor real chegar antes de montar as
+  // cartas, a imagem certa já aparece de primeira, sem flick.
+  const [cardStyle, setCardStyle] = useState<'default' | 'yugioh' | null>(null);
 
   useEffect(() => {
     if (!session?.user?.id) return;
     supabase.from('profiles').select('card_style').eq('id', session.user.id).single().then(({ data }) => {
-      if (data?.card_style) setCardStyle(data.card_style as 'default' | 'yugioh');
+      setCardStyle((data?.card_style as 'default' | 'yugioh') || 'default');
     });
   }, [session?.user?.id]);
 
@@ -412,7 +418,15 @@ export default function OracleLibraries() {
 
         <AnimatePresence mode="wait">
           {/* NÍVEL 1 — escolher o oráculo */}
-          {!selectedOracle && (
+          {!selectedOracle && !cardStyle && (
+            <div className="grid grid-cols-3 gap-2 sm:gap-6">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="rounded-2xl sm:rounded-3xl bg-gray-200/50 dark:bg-gray-700/50 animate-pulse aspect-[3/4]" />
+              ))}
+            </div>
+          )}
+
+          {!selectedOracle && cardStyle && (
             <motion.div
               key="oracles"
               initial={{ opacity: 0, y: 20 }}
@@ -450,10 +464,10 @@ export default function OracleLibraries() {
                         <h2 className={`text-xs sm:text-lg font-bold mb-0.5 sm:mb-1 ${theme.text}`}>
                           {t(`oracle.cards.${oracle.id}`)}
                         </h2>
-                        <p className="hidden sm:block text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        <p className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 mb-1 sm:mb-2 line-clamp-1 sm:line-clamp-none">
                           {t(`oracle.cards.${oracle.id}Subtitle`)}
                         </p>
-                        <p className="hidden sm:block text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-3">
+                        <p className="text-[10px] sm:text-sm text-gray-600 dark:text-gray-300 leading-snug sm:leading-relaxed line-clamp-2 sm:line-clamp-3">
                           {t(`oracle.cards.${oracle.id}Desc`)}
                         </p>
                       </div>
@@ -461,6 +475,12 @@ export default function OracleLibraries() {
                   );
                 })}
               </div>
+
+              {session?.user?.id && (
+                <div className="mt-8">
+                  <OracleForYouBox userId={session.user.id} hasEssence={true} />
+                </div>
+              )}
             </motion.div>
           )}
 
