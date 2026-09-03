@@ -54,23 +54,43 @@ const Shelf: React.FC<{
   const sentinelRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
+  // Ref separada, desacoplada do "loading" visual — o estado inicial já
+  // nasce com loading:true (pra mostrar o esqueleto antes da primeira
+  // busca), mas isso criava um travamento real: loadMore() checava "se
+  // já está loading, não faz nada" ANTES de qualquer busca ter
+  // acontecido de verdade, já que o estado inicial em si já contava como
+  // "carregando". A prateleira nunca saía do esqueleto porque a própria
+  // função que deveria desligar o loading se recusava a rodar enquanto
+  // ele estivesse ligado. Essa ref rastreia só "tem uma busca de rede em
+  // andamento agora", começando sempre em false, sem relação nenhuma com
+  // o valor inicial do estado visual.
+  const isFetchingRef = useRef(false);
 
   const loadMore = useCallback(async () => {
+    if (isFetchingRef.current) return;
     const current = stateRef.current;
-    if (current.loadingMore || current.loading) return;
     if (current.movies.length > 0 && current.movies.length >= current.totalCount) return;
 
+    isFetchingRef.current = true;
     setState((s) => ({ ...s, loadingMore: current.movies.length > 0, loading: current.movies.length === 0 }));
-    const page = await getOraclePoolMovies(cardType, mood.key, SHELF_PAGE_SIZE, current.movies.length);
-    setState((s) => ({
-      movies: current.movies.length === 0 ? page.movies : [...s.movies, ...page.movies],
-      totalCount: page.totalCount,
-      loading: false,
-      loadingMore: false,
-    }));
+    try {
+      const page = await getOraclePoolMovies(cardType, mood.key, SHELF_PAGE_SIZE, current.movies.length);
+      setState((s) => ({
+        movies: current.movies.length === 0 ? page.movies : [...s.movies, ...page.movies],
+        totalCount: page.totalCount,
+        loading: false,
+        loadingMore: false,
+      }));
+    } catch (error) {
+      console.error(`Error loading shelf ${cardType}/${mood.key}:`, error);
+      setState((s) => ({ ...s, loading: false, loadingMore: false }));
+    } finally {
+      isFetchingRef.current = false;
+    }
   }, [cardType, mood.key]);
 
   useEffect(() => {
+    isFetchingRef.current = false;
     setState({ movies: [], totalCount: 0, loading: true, loadingMore: false });
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
