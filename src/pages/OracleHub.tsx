@@ -11,7 +11,6 @@ import { supabase } from '../lib/supabase';
 import SubcategoryQuestionnaire from '../components/SubcategoryQuestionnaire';
 import PersonalityCompletionModal from '../components/PersonalityCompletionModal';
 import ArchetypeSymbol from '../components/ArchetypeSymbol';
-import OracleForYouBox from '../components/OracleForYouBox';
 import CinematicPersonaCard from '../components/CinematicPersonaCard';
 import PersonasModal from '../components/PersonasModal';
 import PersonaShareModal from '../components/PersonaShareModal';
@@ -370,13 +369,6 @@ export default function OracleHub() {
           </h1>
         </motion.div>
 
-        {session?.user && userPersonality?.personalidade_completa && userPersonality.personalidade_completa.length >= 3 && (
-          <OracleForYouBox
-            userId={session.user.id}
-            hasEssence={true}
-          />
-        )}
-
         {archetypeInfo && (
           <motion.div
             className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden mb-8 p-6 sm:p-8"
@@ -470,9 +462,33 @@ export default function OracleHub() {
           transition={{ duration: 0.5, delay: 0.15 }}
         >
           <Link to="/oracle/libraries" className="block">
-            <motion.div whileHover={{ scale: 1.01, y: -3 }} className="relative rounded-3xl bg-gradient-to-br from-amber-500/10 via-white/40 to-purple-500/10 dark:from-amber-500/15 dark:via-gray-800/40 dark:to-purple-500/15 backdrop-blur-xl border border-amber-300/40 dark:border-amber-500/30 shadow-2xl overflow-hidden p-6 sm:p-8">
+            <motion.div
+              whileHover={{ scale: 1.01, y: -3 }}
+              animate={{
+                boxShadow: [
+                  '0 0 0px rgba(245,158,11,0)',
+                  '0 0 35px rgba(245,158,11,0.35)',
+                  '0 0 0px rgba(245,158,11,0)',
+                ],
+              }}
+              transition={{ boxShadow: { duration: 3, repeat: Infinity, ease: 'easeInOut' } }}
+              className="relative rounded-3xl bg-gradient-to-br from-amber-500/10 via-white/40 to-purple-500/10 dark:from-amber-500/15 dark:via-gray-800/40 dark:to-purple-500/15 backdrop-blur-xl border border-amber-300/50 dark:border-amber-500/40 shadow-2xl overflow-hidden p-6 sm:p-8"
+            >
               <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-400/25 to-yellow-500/15 rounded-full blur-3xl pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-purple-400/20 to-violet-500/15 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Reflexo de luz atravessando o card periodicamente — mesma
+                  técnica já usada nos banners dourados de perfil, dando
+                  um brilho vivo em vez de estático. */}
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%)',
+                }}
+                initial={{ x: '-100%' }}
+                animate={{ x: '100%' }}
+                transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
+              />
 
               <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-5">
                 <div className="flex-shrink-0 p-4 rounded-2xl bg-gradient-to-br from-amber-500/25 to-yellow-500/25 border border-amber-400/40 shadow-lg">
