@@ -17,16 +17,16 @@ type CardType = 'bogart' | 'fincher' | 'cypher';
 // como décimo mood_key no banco, mas é um modo coringa/fallback (quase
 // 1000 filmes, muito maior que as outras), não uma categoria curada de
 // verdade — por isso não vira uma prateleira própria aqui.
-const MOOD_CATEGORIES: { key: string; labelKey: string; tagKey: string; colors: { bar: string; text: string } }[] = [
-  { key: 'adventures', labelKey: 'oracle.moods.adventures', tagKey: 'oracle.moods.adventuresTag', colors: { bar: 'from-sky-400 to-sky-600', text: 'text-sky-600 dark:text-sky-400' } },
-  { key: 'catharsis', labelKey: 'oracle.moods.catharsis', tagKey: 'oracle.moods.catharsisTag', colors: { bar: 'from-blue-400 to-blue-600', text: 'text-blue-600 dark:text-blue-400' } },
-  { key: 'adrenaline', labelKey: 'oracle.moods.adrenaline', tagKey: 'oracle.moods.adrenalineTag', colors: { bar: 'from-red-400 to-red-600', text: 'text-red-600 dark:text-red-400' } },
-  { key: 'mind-blowing', labelKey: 'oracle.moods.mindBlowing', tagKey: 'oracle.moods.mindBlowingTag', colors: { bar: 'from-pink-400 to-pink-600', text: 'text-pink-600 dark:text-pink-400' } },
-  { key: 'laugh-out-loud', labelKey: 'oracle.moods.laughOutLoud', tagKey: 'oracle.moods.laughOutLoudTag', colors: { bar: 'from-green-400 to-green-600', text: 'text-green-600 dark:text-green-400' } },
-  { key: 'drug-trip', labelKey: 'oracle.moods.drugTrip', tagKey: 'oracle.moods.drugTripTag', colors: { bar: 'from-emerald-400 to-emerald-600', text: 'text-emerald-600 dark:text-emerald-400' } },
-  { key: 'romantic', labelKey: 'oracle.moods.romantic', tagKey: 'oracle.moods.romanticTag', colors: { bar: 'from-orange-400 to-orange-600', text: 'text-orange-600 dark:text-orange-400' } },
-  { key: 'dark-and-scary', labelKey: 'oracle.moods.darkScary', tagKey: 'oracle.moods.darkScaryTag', colors: { bar: 'from-gray-400 to-gray-600', text: 'text-gray-600 dark:text-gray-400' } },
-  { key: 'family-time', labelKey: 'oracle.moods.familyTime', tagKey: 'oracle.moods.familyTimeTag', colors: { bar: 'from-yellow-400 to-yellow-600', text: 'text-yellow-600 dark:text-yellow-400' } },
+const MOOD_CATEGORIES: { key: string; labelKey: string; tagKey: string; colors: { bar: string; text: string; shelfRgb: string } }[] = [
+  { key: 'adventures', labelKey: 'oracle.moods.adventures', tagKey: 'oracle.moods.adventuresTag', colors: { bar: 'from-sky-400 to-sky-600', text: 'text-sky-600 dark:text-sky-400', shelfRgb: '14,165,233' } },
+  { key: 'catharsis', labelKey: 'oracle.moods.catharsis', tagKey: 'oracle.moods.catharsisTag', colors: { bar: 'from-blue-400 to-blue-600', text: 'text-blue-600 dark:text-blue-400', shelfRgb: '59,130,246' } },
+  { key: 'adrenaline', labelKey: 'oracle.moods.adrenaline', tagKey: 'oracle.moods.adrenalineTag', colors: { bar: 'from-red-400 to-red-600', text: 'text-red-600 dark:text-red-400', shelfRgb: '239,68,68' } },
+  { key: 'mind-blowing', labelKey: 'oracle.moods.mindBlowing', tagKey: 'oracle.moods.mindBlowingTag', colors: { bar: 'from-pink-400 to-pink-600', text: 'text-pink-600 dark:text-pink-400', shelfRgb: '236,72,153' } },
+  { key: 'laugh-out-loud', labelKey: 'oracle.moods.laughOutLoud', tagKey: 'oracle.moods.laughOutLoudTag', colors: { bar: 'from-green-400 to-green-600', text: 'text-green-600 dark:text-green-400', shelfRgb: '34,197,94' } },
+  { key: 'drug-trip', labelKey: 'oracle.moods.drugTrip', tagKey: 'oracle.moods.drugTripTag', colors: { bar: 'from-emerald-400 to-emerald-600', text: 'text-emerald-600 dark:text-emerald-400', shelfRgb: '16,185,129' } },
+  { key: 'romantic', labelKey: 'oracle.moods.romantic', tagKey: 'oracle.moods.romanticTag', colors: { bar: 'from-orange-400 to-orange-600', text: 'text-orange-600 dark:text-orange-400', shelfRgb: '249,115,22' } },
+  { key: 'dark-and-scary', labelKey: 'oracle.moods.darkScary', tagKey: 'oracle.moods.darkScaryTag', colors: { bar: 'from-gray-400 to-gray-600', text: 'text-gray-600 dark:text-gray-400', shelfRgb: '107,114,128' } },
+  { key: 'family-time', labelKey: 'oracle.moods.familyTime', tagKey: 'oracle.moods.familyTimeTag', colors: { bar: 'from-yellow-400 to-yellow-600', text: 'text-yellow-600 dark:text-yellow-400', shelfRgb: '234,179,8' } },
 ];
 
 const ORACLE_THEME: Record<CardType, { glow: string; border: string; text: string }> = {
@@ -219,14 +219,14 @@ const Shelf: React.FC<{
                 <div
                   className="absolute left-0 right-0 bottom-3 h-[82px] sm:h-[97px] rounded-b-xl pointer-events-none"
                   style={{
-                    background: 'linear-gradient(180deg, rgba(180,120,60,0.35) 0%, rgba(120,74,28,0.55) 45%, rgba(80,48,16,0.7) 100%)',
+                    background: `linear-gradient(180deg, rgba(${mood.colors.shelfRgb},0.30) 0%, rgba(${mood.colors.shelfRgb},0.5) 45%, rgba(${mood.colors.shelfRgb},0.68) 100%)`,
                     backgroundImage:
-                      'repeating-linear-gradient(25deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 2px, transparent 2px, transparent 16px), ' +
-                      'repeating-linear-gradient(-15deg, rgba(255,255,255,0.06) 0px, rgba(255,255,255,0.06) 1px, transparent 1px, transparent 20px), ' +
-                      'linear-gradient(180deg, rgba(180,120,60,0.35) 0%, rgba(120,74,28,0.55) 45%, rgba(80,48,16,0.7) 100%)',
+                      'repeating-linear-gradient(25deg, rgba(0,0,0,0.14) 0px, rgba(0,0,0,0.14) 2px, transparent 2px, transparent 16px), ' +
+                      'repeating-linear-gradient(-15deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 1px, transparent 1px, transparent 20px), ' +
+                      `linear-gradient(180deg, rgba(${mood.colors.shelfRgb},0.30) 0%, rgba(${mood.colors.shelfRgb},0.5) 45%, rgba(${mood.colors.shelfRgb},0.68) 100%)`,
                     boxShadow:
                       'inset 0 6px 10px -4px rgba(0,0,0,0.35), ' +
-                      'inset 0 -2px 4px rgba(255,220,180,0.15), ' +
+                      'inset 0 -2px 4px rgba(255,255,255,0.15), ' +
                       '0 10px 18px -6px rgba(0,0,0,0.45)',
                   }}
                 />
