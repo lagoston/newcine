@@ -903,7 +903,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
             <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-4 mt-auto" />
 
             <Link
-              to="/oracle/duel"
+              to="/oracle/libraries"
               className="group flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-sm font-bold rounded-2xl shadow-lg shadow-rose-500/20 hover:shadow-rose-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
             >
               <span>{t('home.panels.anotherRecommendation')}</span>
