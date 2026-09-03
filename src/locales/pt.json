@@ -361,7 +361,16 @@
       "romantic": "Romântico",
       "darkScary": "Sombrio e Assustador",
       "familyTime": "Família",
-      "randomSurprise": "Surpresa Aleatória"
+      "randomSurprise": "Surpresa Aleatória",
+      "adventuresTag": "viagens, lugares exóticos, missões, faroestes, históricos",
+      "catharsisTag": "drama não romântico, redenção",
+      "adrenalineTag": "ação, esportes",
+      "mindBlowingTag": "suspenses, plot twists, tramas complexas",
+      "laughOutLoudTag": "comédias, sátiras",
+      "drugTripTag": "exóticos, experimentais",
+      "romanticTag": "romance",
+      "darkScaryTag": "terror, gore, obscuro",
+      "familyTimeTag": "infanto-juvenil"
     },
     "cards": {
       "title": "Escolha Seu Oráculo",
