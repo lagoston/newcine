@@ -27,9 +27,9 @@ const MOOD_CATEGORIES: { key: string; labelKey: string; colors: { bg: string; bo
 ];
 
 const ORACLE_THEME: Record<CardType, { glow: string; border: string; text: string; button: string }> = {
-  bogart: { glow: 'from-amber-500/20 to-orange-500/10', border: 'border-amber-400/40', text: 'text-amber-600 dark:text-amber-400', button: 'from-amber-600 to-orange-600' },
-  fincher: { glow: 'from-slate-500/20 to-gray-600/10', border: 'border-slate-400/40', text: 'text-slate-600 dark:text-slate-300', button: 'from-slate-600 to-gray-700' },
-  cypher: { glow: 'from-fuchsia-500/20 to-purple-600/10', border: 'border-fuchsia-400/40', text: 'text-fuchsia-600 dark:text-fuchsia-400', button: 'from-fuchsia-600 to-purple-600' },
+  bogart: { glow: 'from-green-500/20 to-emerald-500/10', border: 'border-green-400/40', text: 'text-green-600 dark:text-green-400', button: 'from-green-600 to-emerald-600' },
+  fincher: { glow: 'from-red-500/20 to-rose-600/10', border: 'border-red-400/40', text: 'text-red-600 dark:text-red-400', button: 'from-red-600 to-rose-700' },
+  cypher: { glow: 'from-yellow-500/20 to-amber-500/10', border: 'border-yellow-400/40', text: 'text-yellow-600 dark:text-yellow-400', button: 'from-yellow-500 to-amber-600' },
 };
 
 const PAGE_SIZE = 24;
