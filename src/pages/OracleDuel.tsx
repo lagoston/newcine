@@ -277,7 +277,7 @@ export default function OracleDuel() {
       </div>
 
       <div className="max-w-4xl mx-auto relative z-10">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center mb-8">
           <motion.button
             onClick={() => navigate('/oracle')}
             className="p-2.5 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl hover:bg-white/60 dark:hover:bg-gray-800/60 border border-white/60 dark:border-gray-700/60 rounded-full transition-colors"
@@ -286,19 +286,6 @@ export default function OracleDuel() {
           >
             <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </motion.button>
-
-          {/* Alternador entre Duelo (modo atual, padrão) e Recomendação Clássica */}
-          <div className="flex items-center bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 rounded-full p-1">
-            <div className="px-4 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold rounded-full shadow-sm">
-              {t('duel.modeToggleDuel')}
-            </div>
-            <button
-              onClick={() => navigate('/oracle/recommend')}
-              className="px-4 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-full transition-colors"
-            >
-              {t('duel.modeToggleClassic')}
-            </button>
-          </div>
         </div>
 
         {/* SETUP */}
