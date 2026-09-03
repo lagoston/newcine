@@ -347,6 +347,11 @@
       "consulting": "Consulting the Oracle...",
       "cost": "Consult the Oracle ({{cost}} tickets)"
     },
+    "libraries": {
+      "bogartFunctionDesc": "Popular and highly rated films released after 2000.",
+      "fincherFunctionDesc": "Popular pre-2000 movies and cult gems",
+      "cypherFunctionDesc": "Lesser-known films, regardless of ratings"
+    },
     "selectMood": "Select Your Mood",
     "ticketsLabel": "tickets",
     "resetLabel": "Reset",
