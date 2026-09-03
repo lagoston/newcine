@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Swords } from 'lucide-react';
+import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Swords, Filter } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import ConfirmationModal from './ConfirmationModal';
 import MovieDetailsModal from './MovieDetailsModal';
@@ -33,6 +33,11 @@ interface RatingBoxProps {
   // Duelo de Watchlist ao lado do "Ver Todos". Nas caixas de nota normal,
   // essa prop simplesmente não é passada, e o botão não aparece.
   onDuelClick?: () => void;
+  // Também só na Watchlist — abre o seletor de streamings pra filtrar a
+  // lista. activeFilterCount mostra um badge no botão quando há filtros
+  // aplicados, pra deixar claro que a lista está sendo filtrada.
+  onFilterClick?: () => void;
+  activeFilterCount?: number;
 }
 
 // Mesma faixa de cores do slider de avaliação (RatingSliderSheet) — pílula
@@ -68,6 +73,8 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   isOneGrid = false,
   isOneGridTv = false,
   onDuelClick,
+  onFilterClick,
+  activeFilterCount = 0,
 }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language === 'pt';
@@ -218,7 +225,25 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className={`flex items-center gap-2 flex-shrink-0 ${isNotRated ? 'flex-wrap justify-end' : ''}`}>
+          {isNotRated && onFilterClick && (
+            <button
+              onClick={onFilterClick}
+              title={t('library.filterByStreaming', { defaultValue: 'Filtrar por streaming' })}
+              className={`relative flex items-center justify-center p-2.5 sm:p-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 ${
+                activeFilterCount > 0
+                  ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white text-purple-600 text-[10px] font-bold rounded-full flex items-center justify-center shadow-md">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          )}
           {isNotRated && onDuelClick && (
             <button
               onClick={onDuelClick}
