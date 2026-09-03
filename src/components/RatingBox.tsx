@@ -239,7 +239,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
               className={`relative flex items-center justify-center p-2.5 sm:p-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 ${
                 activeFilterCount > 0
                   ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+                  : 'bg-blue-500 hover:bg-blue-600 text-white'
               }`}
             >
               <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
