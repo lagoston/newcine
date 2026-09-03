@@ -360,7 +360,16 @@
       "romantic": "Romantic",
       "darkScary": "Dark & Scary",
       "familyTime": "Family Time",
-      "randomSurprise": "Random Surprise"
+      "randomSurprise": "Random Surprise",
+      "adventuresTag": "travel, exotic places, quests, westerns, historical",
+      "catharsisTag": "non-romantic drama, redemption",
+      "adrenalineTag": "action, sports",
+      "mindBlowingTag": "thrillers, plot twists, complex plots",
+      "laughOutLoudTag": "comedies, satire",
+      "drugTripTag": "exotic, experimental",
+      "romanticTag": "romance",
+      "darkScaryTag": "horror, gore, dark",
+      "familyTimeTag": "kids & family"
     },
     "cards": {
       "title": "Choose Your Oracle",
