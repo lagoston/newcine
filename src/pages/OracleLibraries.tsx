@@ -16,16 +16,16 @@ type CardType = 'bogart' | 'fincher' | 'cypher';
 // como décimo mood_key no banco, mas é um modo coringa/fallback (quase
 // 1000 filmes, muito maior que as outras), não uma categoria curada de
 // verdade — por isso não vira uma prateleira própria aqui.
-const MOOD_CATEGORIES: { key: string; labelKey: string; colors: { bar: string; text: string } }[] = [
-  { key: 'adventures', labelKey: 'oracle.moods.adventures', colors: { bar: 'from-sky-400 to-sky-600', text: 'text-sky-600 dark:text-sky-400' } },
-  { key: 'catharsis', labelKey: 'oracle.moods.catharsis', colors: { bar: 'from-blue-400 to-blue-600', text: 'text-blue-600 dark:text-blue-400' } },
-  { key: 'adrenaline', labelKey: 'oracle.moods.adrenaline', colors: { bar: 'from-red-400 to-red-600', text: 'text-red-600 dark:text-red-400' } },
-  { key: 'mind-blowing', labelKey: 'oracle.moods.mindBlowing', colors: { bar: 'from-pink-400 to-pink-600', text: 'text-pink-600 dark:text-pink-400' } },
-  { key: 'laugh-out-loud', labelKey: 'oracle.moods.laughOutLoud', colors: { bar: 'from-green-400 to-green-600', text: 'text-green-600 dark:text-green-400' } },
-  { key: 'drug-trip', labelKey: 'oracle.moods.drugTrip', colors: { bar: 'from-emerald-400 to-emerald-600', text: 'text-emerald-600 dark:text-emerald-400' } },
-  { key: 'romantic', labelKey: 'oracle.moods.romantic', colors: { bar: 'from-orange-400 to-orange-600', text: 'text-orange-600 dark:text-orange-400' } },
-  { key: 'dark-and-scary', labelKey: 'oracle.moods.darkScary', colors: { bar: 'from-gray-400 to-gray-600', text: 'text-gray-600 dark:text-gray-400' } },
-  { key: 'family-time', labelKey: 'oracle.moods.familyTime', colors: { bar: 'from-yellow-400 to-yellow-600', text: 'text-yellow-600 dark:text-yellow-400' } },
+const MOOD_CATEGORIES: { key: string; labelKey: string; tagKey: string; colors: { bar: string; text: string } }[] = [
+  { key: 'adventures', labelKey: 'oracle.moods.adventures', tagKey: 'oracle.moods.adventuresTag', colors: { bar: 'from-sky-400 to-sky-600', text: 'text-sky-600 dark:text-sky-400' } },
+  { key: 'catharsis', labelKey: 'oracle.moods.catharsis', tagKey: 'oracle.moods.catharsisTag', colors: { bar: 'from-blue-400 to-blue-600', text: 'text-blue-600 dark:text-blue-400' } },
+  { key: 'adrenaline', labelKey: 'oracle.moods.adrenaline', tagKey: 'oracle.moods.adrenalineTag', colors: { bar: 'from-red-400 to-red-600', text: 'text-red-600 dark:text-red-400' } },
+  { key: 'mind-blowing', labelKey: 'oracle.moods.mindBlowing', tagKey: 'oracle.moods.mindBlowingTag', colors: { bar: 'from-pink-400 to-pink-600', text: 'text-pink-600 dark:text-pink-400' } },
+  { key: 'laugh-out-loud', labelKey: 'oracle.moods.laughOutLoud', tagKey: 'oracle.moods.laughOutLoudTag', colors: { bar: 'from-green-400 to-green-600', text: 'text-green-600 dark:text-green-400' } },
+  { key: 'drug-trip', labelKey: 'oracle.moods.drugTrip', tagKey: 'oracle.moods.drugTripTag', colors: { bar: 'from-emerald-400 to-emerald-600', text: 'text-emerald-600 dark:text-emerald-400' } },
+  { key: 'romantic', labelKey: 'oracle.moods.romantic', tagKey: 'oracle.moods.romanticTag', colors: { bar: 'from-orange-400 to-orange-600', text: 'text-orange-600 dark:text-orange-400' } },
+  { key: 'dark-and-scary', labelKey: 'oracle.moods.darkScary', tagKey: 'oracle.moods.darkScaryTag', colors: { bar: 'from-gray-400 to-gray-600', text: 'text-gray-600 dark:text-gray-400' } },
+  { key: 'family-time', labelKey: 'oracle.moods.familyTime', tagKey: 'oracle.moods.familyTimeTag', colors: { bar: 'from-yellow-400 to-yellow-600', text: 'text-yellow-600 dark:text-yellow-400' } },
 ];
 
 const ORACLE_THEME: Record<CardType, { glow: string; border: string; text: string }> = {
@@ -146,6 +146,12 @@ const Shelf: React.FC<{
       });
 
   const hasMore = state.movies.length < state.totalCount;
+  // O botão pago só aparece sem filtro de streaming ativo — gastar
+  // tickets pra carregar mais filmes "crus" do pool quando o filtro já
+  // está escondendo a maioria deles seria um mau negócio pro usuário
+  // (arriscar pagar por filmes que nem vão aparecer filtrados). Com o
+  // filtro ligado, a saída é desligá-lo primeiro.
+  const showLoadMoreButton = hasMore && selectedProviderIds.length === 0;
   const isFullyEmpty = !state.loading && state.totalCount === 0;
   // O bug do "+30 fica bugado com filtro ativo": antes, o botão de
   // carregar mais vivia DENTRO do mesmo bloco que só aparecia quando
@@ -161,34 +167,24 @@ const Shelf: React.FC<{
     <div className="mb-10">
       <div className="flex items-center gap-2.5 mb-2 px-1">
         <div className={`h-6 w-1.5 rounded-full bg-gradient-to-b ${mood.colors.bar} shadow-md`} />
-        <h3 className={`text-sm font-bold ${mood.colors.text}`}>{t(mood.labelKey)}</h3>
+        <h3 className={`text-sm font-bold ${mood.colors.text}`}>
+          {t(mood.labelKey)}
+          <span className="font-normal text-gray-400 dark:text-gray-500"> ({t(mood.tagKey)})</span>
+        </h3>
         {state.totalCount > 0 && (
           <span className="text-xs text-gray-400 dark:text-gray-500">({state.totalCount})</span>
         )}
       </div>
 
-      {/* "Prateleira física" — upgrade visual completo: fundo com
-          textura amadeirada em camadas (gradiente + veios sutis),
-          sombra interna simulando profundidade, e uma "tábua" na base
-          com brilho e sombra projetada por baixo de cada pôster, dando
-          a sensação de objetos físicos apoiados numa prateleira de
-          locadora de verdade, não só uma lista plana de imagens. */}
-      <div
-        className="relative rounded-2xl overflow-hidden px-3 pt-4 pb-5"
-        style={{
-          background: 'linear-gradient(180deg, rgba(120,80,40,0.06) 0%, rgba(120,80,40,0.03) 60%, rgba(90,58,26,0.18) 100%)',
-          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 -3px 6px rgba(90,58,26,0.15)',
-        }}
-      >
-        {/* Veios de madeira sutis — linhas horizontais quase invisíveis */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.04] dark:opacity-[0.08]"
-          style={{
-            backgroundImage: 'repeating-linear-gradient(180deg, currentColor 0px, transparent 1px, transparent 3px)',
-            color: '#78350f',
-          }}
-        />
-
+      {/* "Prateleira física" com efeito 3D — diferente da primeira
+          versão (que cobria a altura inteira da fileira com um fundo
+          uniforme), agora só a METADE INFERIOR dos pôsteres senta sobre
+          uma "tábua" de altura fixa, com linhas diagonais simulando o
+          ângulo de perspectiva de uma prateleira vista de frente/cima, e
+          camadas de sombra dando volume real — a parte de cima dos
+          pôsteres fica "no ar", só a base encosta na tábua, como numa
+          locadora física de verdade. */}
+      <div className="relative px-1">
         {state.loading ? (
           <div className="relative flex gap-3 overflow-hidden">
             {[...Array(6)].map((_, i) => (
@@ -210,45 +206,68 @@ const Shelf: React.FC<{
               </p>
             )}
 
-            {(visibleMovies.length > 0 || hasMore) && (
-              <div
-                ref={scrollRef}
-                className="flex gap-3.5 overflow-x-auto pb-2 cursor-grab select-none"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
-              >
-                {visibleMovies.map((movie) => (
-                  <button
-                    key={`${movie.id}-${movie.media_type}`}
-                    onClick={() => { if (dragDistanceRef.current > 5) return; onMovieClick(movie); }}
-                    className="relative w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[2/3] shadow-[0_8px_16px_-4px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_20px_-4px_rgba(0,0,0,0.45)] hover:-translate-y-1 transition-all duration-200"
-                  >
-                    <img
-                      src={movie.poster_path ? `https://image.tmdb.org/t/p/w300${movie.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
-                      alt={movie.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      draggable={false}
-                    />
-                    {/* Sombra sutil de contato na base do pôster, reforçando
-                        que ele está "apoiado" na prateleira. */}
-                    <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
-                  </button>
-                ))}
+            {(visibleMovies.length > 0 || showLoadMoreButton) && (
+              <div className="relative pb-3">
+                {/* A tábua 3D — posicionada por baixo da fileira,
+                    cobrindo só a metade inferior da altura dos pôsteres
+                    (82px mobile / 97px desktop, a metade aproximada de
+                    165px/195px). Linhas diagonais + gradiente escurecendo
+                    de cima pra baixo simulam a perspectiva e o volume de
+                    uma tábua física, com sombra própria projetada na
+                    página abaixo dela. */}
+                <div
+                  className="absolute left-0 right-0 bottom-3 h-[82px] sm:h-[97px] rounded-b-xl pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(180deg, rgba(180,120,60,0.35) 0%, rgba(120,74,28,0.55) 45%, rgba(80,48,16,0.7) 100%)',
+                    backgroundImage:
+                      'repeating-linear-gradient(25deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 2px, transparent 2px, transparent 16px), ' +
+                      'repeating-linear-gradient(-15deg, rgba(255,255,255,0.06) 0px, rgba(255,255,255,0.06) 1px, transparent 1px, transparent 20px), ' +
+                      'linear-gradient(180deg, rgba(180,120,60,0.35) 0%, rgba(120,74,28,0.55) 45%, rgba(80,48,16,0.7) 100%)',
+                    boxShadow:
+                      'inset 0 6px 10px -4px rgba(0,0,0,0.35), ' +
+                      'inset 0 -2px 4px rgba(255,220,180,0.15), ' +
+                      '0 10px 18px -6px rgba(0,0,0,0.45)',
+                  }}
+                />
 
-                {hasMore && (
-                  <button
-                    onClick={() => loadMore(true)}
-                    disabled={state.loadingMore}
-                    className="w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl border-2 border-dashed border-amber-400/60 dark:border-amber-500/50 flex flex-col items-center justify-center gap-1.5 text-amber-600 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-900/10 hover:bg-amber-50/60 dark:hover:bg-amber-900/25 transition-colors disabled:opacity-60 shadow-inner"
-                    style={{ aspectRatio: '2/3' }}
-                  >
-                    {state.loadingMore ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
+                <div
+                  ref={scrollRef}
+                  className="relative flex gap-3.5 overflow-x-auto pb-2 cursor-grab select-none"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+                >
+                  {visibleMovies.map((movie) => (
+                    <button
+                      key={`${movie.id}-${movie.media_type}`}
+                      onClick={() => { if (dragDistanceRef.current > 5) return; onMovieClick(movie); }}
+                      className="relative w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[2/3] shadow-[0_10px_18px_-4px_rgba(0,0,0,0.45)] hover:shadow-[0_14px_22px_-4px_rgba(0,0,0,0.55)] hover:-translate-y-1 transition-all duration-200"
+                    >
+                      <img
+                        src={movie.poster_path ? `https://image.tmdb.org/t/p/w300${movie.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
+                        alt={movie.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        draggable={false}
+                      />
+                      {/* Sombra de contato na base do pôster, reforçando
+                          que ele está "apoiado" na tábua. */}
+                      <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
+                    </button>
+                  ))}
+
+                  {showLoadMoreButton && (
+                    <button
+                      onClick={() => loadMore(true)}
+                      disabled={state.loadingMore}
+                      className="w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl border-2 border-dashed border-amber-400/60 dark:border-amber-500/50 flex flex-col items-center justify-center gap-1.5 text-amber-600 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-900/10 hover:bg-amber-50/60 dark:hover:bg-amber-900/25 transition-colors disabled:opacity-60 shadow-inner"
+                      style={{ aspectRatio: '2/3' }}
+                    >
+                      {state.loadingMore ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
                       <>
                         <Ticket className="w-5 h-5" />
                         <span className="text-[11px] font-bold text-center leading-tight px-1">
@@ -259,6 +278,7 @@ const Shelf: React.FC<{
                     )}
                   </button>
                 )}
+              </div>
               </div>
             )}
           </div>
