@@ -65,6 +65,37 @@ const Shelf: React.FC<{
   stateRef.current = state;
   const isFetchingRef = useRef(false);
 
+  // Drag-to-scroll com mouse — mesmo padrão já usado no carrossel da
+  // Watchlist. O scroll horizontal funcionava por toque no mobile, mas
+  // sem um jeito de arrastar com o mouse não tinha como rolar no
+  // desktop, já que a barra de rolagem nativa fica escondida
+  // (scrollbarWidth: 'none').
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollStartRef = useRef(0);
+  const dragDistanceRef = useRef(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    isDraggingRef.current = true;
+    startXRef.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollStartRef.current = scrollRef.current.scrollLeft;
+    dragDistanceRef.current = 0;
+    scrollRef.current.style.cursor = 'grabbing';
+  };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    dragDistanceRef.current = Math.abs(x - startXRef.current);
+    scrollRef.current.scrollLeft = scrollStartRef.current - (x - startXRef.current) * 2;
+  };
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+    if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
+  };
+
   const loadMore = useCallback(async (spendingTickets: boolean) => {
     if (isFetchingRef.current) return;
     const current = stateRef.current;
@@ -116,80 +147,119 @@ const Shelf: React.FC<{
 
   const hasMore = state.movies.length < state.totalCount;
   const isFullyEmpty = !state.loading && state.totalCount === 0;
+  // O bug do "+30 fica bugado com filtro ativo": antes, o botão de
+  // carregar mais vivia DENTRO do mesmo bloco que só aparecia quando
+  // havia filmes visíveis — se o filtro de streaming escondesse TODOS os
+  // filmes já carregados (visibleMovies.length === 0), o usuário caía
+  // direto na mensagem de "nenhum filme com esse filtro" e o botão de
+  // carregar mais simplesmente NUNCA aparecia, mesmo quando hasMore era
+  // verdadeiro e carregar mais poderia trazer filmes compatíveis com o
+  // filtro. Agora a mensagem de filtro vazio e o botão de carregar mais
+  // podem conviver na mesma tela — não são mais mutuamente exclusivos.
 
   return (
     <div className="mb-10">
       <div className="flex items-center gap-2.5 mb-2 px-1">
-        <div className={`h-6 w-1 rounded-full bg-gradient-to-b ${mood.colors.bar}`} />
+        <div className={`h-6 w-1.5 rounded-full bg-gradient-to-b ${mood.colors.bar} shadow-md`} />
         <h3 className={`text-sm font-bold ${mood.colors.text}`}>{t(mood.labelKey)}</h3>
         {state.totalCount > 0 && (
           <span className="text-xs text-gray-400 dark:text-gray-500">({state.totalCount})</span>
         )}
       </div>
 
-      {/* "Prateleira física" — a fileira de pôsteres senta sobre uma
-          tábua sutil (gradiente amadeirado com uma sombra por cima),
-          evocando as prateleiras de uma locadora de filmes de verdade. */}
-      <div className="relative rounded-xl bg-gradient-to-b from-transparent to-amber-900/10 dark:to-amber-950/20 pb-3 pt-1 px-1">
+      {/* "Prateleira física" — upgrade visual completo: fundo com
+          textura amadeirada em camadas (gradiente + veios sutis),
+          sombra interna simulando profundidade, e uma "tábua" na base
+          com brilho e sombra projetada por baixo de cada pôster, dando
+          a sensação de objetos físicos apoiados numa prateleira de
+          locadora de verdade, não só uma lista plana de imagens. */}
+      <div
+        className="relative rounded-2xl overflow-hidden px-3 pt-4 pb-5"
+        style={{
+          background: 'linear-gradient(180deg, rgba(120,80,40,0.06) 0%, rgba(120,80,40,0.03) 60%, rgba(90,58,26,0.18) 100%)',
+          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 -3px 6px rgba(90,58,26,0.15)',
+        }}
+      >
+        {/* Veios de madeira sutis — linhas horizontais quase invisíveis */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.04] dark:opacity-[0.08]"
+          style={{
+            backgroundImage: 'repeating-linear-gradient(180deg, currentColor 0px, transparent 1px, transparent 3px)',
+            color: '#78350f',
+          }}
+        />
+
         {state.loading ? (
-          <div className="flex gap-3 overflow-hidden">
+          <div className="relative flex gap-3 overflow-hidden">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="w-[110px] sm:w-[130px] aspect-[2/3] rounded-xl bg-gray-200 dark:bg-gray-700 animate-pulse flex-shrink-0" />
             ))}
           </div>
         ) : isFullyEmpty ? (
-          <div className="flex items-center gap-2 py-4 px-2 text-gray-500 dark:text-gray-400">
+          <div className="relative flex items-center gap-2 py-4 px-2 text-gray-500 dark:text-gray-400">
             <PartyPopper className="w-5 h-5 flex-shrink-0 text-amber-500" />
             <p className="text-sm">
               {t('oracle.libraries.shelfFullyWatched', { defaultValue: 'Você já assistiu tudo dessa categoria — bom trabalho!' })}
             </p>
           </div>
-        ) : visibleMovies.length === 0 ? (
-          <p className="text-xs text-gray-400 dark:text-gray-500 px-1 py-4">
-            {t('library.noMoviesForFilter', { defaultValue: 'Nenhum filme disponível nos streamings selecionados.' })}
-          </p>
         ) : (
-          <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {visibleMovies.map((movie) => (
-              <motion.button
-                key={`${movie.id}-${movie.media_type}`}
-                onClick={() => onMovieClick(movie)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.97 }}
-                className="w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[2/3] shadow-lg"
-              >
-                <img
-                  src={movie.poster_path ? `https://image.tmdb.org/t/p/w300${movie.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
-                  alt={movie.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </motion.button>
-            ))}
+          <div className="relative">
+            {visibleMovies.length === 0 && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 px-1 pb-3">
+                {t('library.noMoviesForFilter', { defaultValue: 'Nenhum filme disponível nos streamings selecionados — carregar mais pode trazer opções compatíveis.' })}
+              </p>
+            )}
 
-            {/* Fim da prateleira: se ainda sobra mais no pool, mostra o
-                botão pago; se não sobra mais nada, nem aparece — mesma
-                lógica de "esgotado" que já vale pra prateleira nascer
-                vazia. */}
-            {hasMore && (
-              <button
-                onClick={() => loadMore(true)}
-                disabled={state.loadingMore}
-                className="w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl border-2 border-dashed border-amber-400/50 dark:border-amber-500/40 flex flex-col items-center justify-center gap-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 transition-colors disabled:opacity-60"
-                style={{ aspectRatio: '2/3' }}
+            {(visibleMovies.length > 0 || hasMore) && (
+              <div
+                ref={scrollRef}
+                className="flex gap-3.5 overflow-x-auto pb-2 cursor-grab select-none"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               >
-                {state.loadingMore ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Ticket className="w-5 h-5" />
-                    <span className="text-[11px] font-bold text-center leading-tight px-1">
-                      {t('oracle.libraries.loadMore30', { defaultValue: '+30 títulos' })}
-                    </span>
-                    <span className="text-[10px] opacity-80">3 tickets</span>
-                  </>
+                {visibleMovies.map((movie) => (
+                  <button
+                    key={`${movie.id}-${movie.media_type}`}
+                    onClick={() => { if (dragDistanceRef.current > 5) return; onMovieClick(movie); }}
+                    className="relative w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[2/3] shadow-[0_8px_16px_-4px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_20px_-4px_rgba(0,0,0,0.45)] hover:-translate-y-1 transition-all duration-200"
+                  >
+                    <img
+                      src={movie.poster_path ? `https://image.tmdb.org/t/p/w300${movie.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
+                      alt={movie.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      draggable={false}
+                    />
+                    {/* Sombra sutil de contato na base do pôster, reforçando
+                        que ele está "apoiado" na prateleira. */}
+                    <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
+                  </button>
+                ))}
+
+                {hasMore && (
+                  <button
+                    onClick={() => loadMore(true)}
+                    disabled={state.loadingMore}
+                    className="w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl border-2 border-dashed border-amber-400/60 dark:border-amber-500/50 flex flex-col items-center justify-center gap-1.5 text-amber-600 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-900/10 hover:bg-amber-50/60 dark:hover:bg-amber-900/25 transition-colors disabled:opacity-60 shadow-inner"
+                    style={{ aspectRatio: '2/3' }}
+                  >
+                    {state.loadingMore ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <Ticket className="w-5 h-5" />
+                        <span className="text-[11px] font-bold text-center leading-tight px-1">
+                          {t('oracle.libraries.loadMore30', { defaultValue: '+30 títulos' })}
+                        </span>
+                        <span className="text-[10px] opacity-80">3 tickets</span>
+                      </>
+                    )}
+                  </button>
                 )}
-              </button>
+              </div>
             )}
           </div>
         )}
@@ -212,6 +282,17 @@ export default function OracleLibraries() {
   // prateleira que o usuário abra em seguida, não ficar isolado por
   // prateleira.
   const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
+  // Estilo de carta escolhido pelo usuário no Customize Profile — mesmo
+  // padrão do OracleDuel: troca o sufixo do arquivo de imagem
+  // (BOGART.webp vira BOGART2.webp no estilo "yugioh").
+  const [cardStyle, setCardStyle] = useState<'default' | 'yugioh'>('default');
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    supabase.from('profiles').select('card_style').eq('id', session.user.id).single().then(({ data }) => {
+      if (data?.card_style) setCardStyle(data.card_style as 'default' | 'yugioh');
+    });
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -220,10 +301,15 @@ export default function OracleLibraries() {
     });
   }, [session?.user?.id]);
 
-  const oracles: { id: CardType; image: string }[] = [
-    { id: 'bogart', image: '/assets/BOGART.webp' },
-    { id: 'fincher', image: '/assets/FINCHER.webp' },
-    { id: 'cypher', image: '/assets/CYPHER.webp' },
+  const ORACLE_NAMES: Record<CardType, string> = { bogart: 'BOGART', fincher: 'FINCHER', cypher: 'CYPHER' };
+  const getCardImage = (id: CardType) => {
+    const suffix = cardStyle === 'yugioh' ? '2' : '';
+    return `/assets/${ORACLE_NAMES[id]}${suffix}.webp`;
+  };
+  const oracles: { id: CardType }[] = [
+    { id: 'bogart' },
+    { id: 'fincher' },
+    { id: 'cypher' },
   ];
 
   const handleMovieClick = async (movie: Movie) => {
@@ -317,7 +403,7 @@ export default function OracleLibraries() {
               <p className="text-center text-gray-600 dark:text-gray-400 mb-8 max-w-xl mx-auto">
                 {t('oracle.libraries.chooseOracle', { defaultValue: 'Cada oráculo enxerga o cinema à sua própria maneira. Escolha um para explorar tudo que ele já separou pra você.' })}
               </p>
-              <div className="grid sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-3 gap-2 sm:gap-6">
                 {oracles.map((oracle) => {
                   const theme = ORACLE_THEME[oracle.id];
                   return (
@@ -326,24 +412,28 @@ export default function OracleLibraries() {
                       onClick={() => setSelectedOracle(oracle.id)}
                       whileHover={{ scale: 1.03, y: -6 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border ${theme.border} shadow-2xl overflow-hidden p-5 text-left group`}
+                      className={`relative rounded-2xl sm:rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border ${theme.border} shadow-2xl overflow-hidden p-1.5 sm:p-5 text-left group`}
                     >
                       <div className={`absolute top-0 right-0 w-40 h-40 bg-gradient-to-br ${theme.glow} rounded-full blur-3xl pointer-events-none`} />
                       <div className="relative z-10">
-                        <div className="rounded-2xl overflow-hidden mb-4 aspect-[3/4] bg-gray-200 dark:bg-gray-700">
+                        {/* Imagem sem aspect-ratio forçado nem object-cover
+                            — a carta mantém sua proporção real, sem
+                            cortar nenhuma parte dela (mesma técnica já
+                            usada no Duelo: w-full h-auto). */}
+                        <div className="rounded-xl sm:rounded-2xl overflow-hidden mb-2 sm:mb-4">
                           <img
-                            src={oracle.image}
+                            src={getCardImage(oracle.id)}
                             alt={t(`oracle.cards.${oracle.id}`)}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            className="w-full h-auto group-hover:scale-105 transition-transform duration-500"
                           />
                         </div>
-                        <h2 className={`text-lg font-bold mb-1 ${theme.text}`}>
+                        <h2 className={`text-xs sm:text-lg font-bold mb-0.5 sm:mb-1 ${theme.text}`}>
                           {t(`oracle.cards.${oracle.id}`)}
                         </h2>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        <p className="hidden sm:block text-xs text-gray-500 dark:text-gray-400 mb-2">
                           {t(`oracle.cards.${oracle.id}Subtitle`)}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-3">
+                        <p className="hidden sm:block text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-3">
                           {t(`oracle.cards.${oracle.id}Desc`)}
                         </p>
                       </div>
@@ -366,7 +456,7 @@ export default function OracleLibraries() {
             >
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
-                  <img src={oracles.find((o) => o.id === selectedOracle)!.image} alt="" className="w-full h-full object-cover" />
+                  <img src={getCardImage(selectedOracle)} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <p className={`text-sm font-bold ${ORACLE_THEME[selectedOracle].text}`}>{t(`oracle.cards.${selectedOracle}`)}</p>
