@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link, useNavigate } from 'react-router-dom';
-import { Library as LibraryIcon, Lock, Star, Film, Clock, Sparkles, RefreshCw, X, HelpCircle, Swords } from 'lucide-react';
+import { Library as LibraryIcon, Lock, Star, Film, Clock, Sparkles, RefreshCw, X, HelpCircle, Swords, Eye, Users, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
@@ -209,8 +209,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const [unratedCount, setUnratedCount] = useState<number>(0);
   const [followingCount, setFollowingCount] = useState<number>(0);
 
-  const [librarySlideIndex, setLibrarySlideIndex] = useState(0);
-  const [tagSlideIndex, setTagSlideIndex] = useState(0);
   const [essenceSlideIndex, setEssenceSlideIndex] = useState(0);
 
   useEffect(() => {
@@ -249,20 +247,25 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const personaCode = personality?.personalidade_completa || '';
   const personaChar = PERSONAS_MAP[personaCode];
 
-  const librarySlideCount = 1 + (listsCount > 0 ? 1 : 0) + (followingCount > 0 ? 1 : 0);
-  // Duelo de Watchlist desceu pra prateleira 2 (Tags), Sua Persona subiu
-  // pra prateleira 3 (Essência) — troca pedida explicitamente.
-  const tagSlideCount = 1 + (unratedCount >= 4 ? 1 : 0);
+  // Contagem de slides da única prateleira rotativa que resta — agora
+  // reúne o que antes se espalhava por 3 prateleiras (Essência + Persona
+  // + Listas + Match com Amigos + Next Tag + Duelo de Watchlist), cada
+  // termo condicional na mesma regra que já valia antes de cada slide
+  // individual entrar ou não na rotação.
   const essenceHasData = !personalityLoading && !!personality?.personalidade_completa && !!archetypeInfo;
-  const essenceSlideCount = essenceHasData ? (1 + (personaChar ? 1 : 0)) : 1;
+  const essenceSlideCount = essenceHasData
+    ? (1 // ess-main, sempre presente com essência
+      + (personaChar ? 1 : 0) // ess-persona
+      + (listsCount > 0 ? 1 : 0) // lib-lists
+      + (followingCount > 0 ? 1 : 0) // lib-match
+      + 1 // tag-main, sempre presente
+      + (unratedCount >= 4 ? 1 : 0)) // tag-duel
+    : 1;
 
-  // Rotação 100% automática e irreversível, sem navegação manual. A cada 3
-  // segundos, sorteia UMA prateleira entre as elegíveis (que têm mais de 1
-  // slide disponível) e troca SÓ ela — as outras duas ficam paradas até
-  // serem sorteadas numa rodada futura. Um useRef guarda qual foi a última
-  // prateleira escolhida, e ela é excluída do sorteio seguinte — garante
-  // que nunca repete a mesma prateleira duas vezes seguidas (a menos que
-  // só exista 1 elegível no momento, caso em que não há escolha possível).
+  // Rotação automática e irreversível, sem navegação manual — a cada 3
+  // segundos avança pro próximo slide da prateleira de Essência (a
+  // única que resta rotacionando; as outras duas viraram o menu de
+  // acesso fixo, que não precisa de nenhum timer).
   function pickRandomIndex(count: number, current: number): number {
     if (count <= 1) return 0;
     let next = Math.floor(Math.random() * count);
@@ -272,34 +275,13 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
     return next;
   }
 
-  const lastChosenShelfRef = useRef<'library' | 'tags' | 'essence' | null>(null);
-
   useEffect(() => {
     const interval = setInterval(() => {
-      let eligibleShelves: Array<'library' | 'tags' | 'essence'> = [];
-      if (librarySlideCount > 1) eligibleShelves.push('library');
-      if (tagSlideCount > 1) eligibleShelves.push('tags');
-      if (essenceSlideCount > 1) eligibleShelves.push('essence');
-      if (eligibleShelves.length === 0) return;
-
-      // Exclui a última escolhida, se ainda sobrar pelo menos 1 opção
-      // depois de excluir — evita repetir a mesma duas vezes seguidas.
-      const withoutLast = eligibleShelves.filter((s) => s !== lastChosenShelfRef.current);
-      const pool = withoutLast.length > 0 ? withoutLast : eligibleShelves;
-
-      const chosen = pool[Math.floor(Math.random() * pool.length)];
-      lastChosenShelfRef.current = chosen;
-
-      if (chosen === 'library') {
-        setLibrarySlideIndex((prev) => pickRandomIndex(librarySlideCount, prev));
-      } else if (chosen === 'tags') {
-        setTagSlideIndex((prev) => pickRandomIndex(tagSlideCount, prev));
-      } else {
-        setEssenceSlideIndex((prev) => pickRandomIndex(essenceSlideCount, prev));
-      }
+      if (essenceSlideCount <= 1) return;
+      setEssenceSlideIndex((prev) => pickRandomIndex(essenceSlideCount, prev));
     }, 3000);
     return () => clearInterval(interval);
-  }, [librarySlideCount, tagSlideCount, essenceSlideCount]);
+  }, [essenceSlideCount]);
 
   const fetchUserStats = useCallback(async () => {
     try {
@@ -482,181 +464,58 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
             <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
 
-            {/* Your Library — rotaciona entre: contagem da biblioteca,
-                suas listas (só se tiver alguma) e Duelo de Watchlist (só
-                com pelo menos 4 filmes não avaliados, mesmo critério usado
-                no botão real do duelo). */}
-            {(() => {
-              const librarySlides: React.ReactNode[] = [
-                <div key="lib-main" className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-blue-500/10 dark:bg-blue-500/15">
-                      <Film className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('home.panels.yourLibrary')}</p>
-                      <p className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
-                        {libraryCount} <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{libraryCount === 1 ? t('home.panels.film') : t('home.panels.films')}</span>
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    to="/library"
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-blue-400/20"
-                  >
-                    <LibraryIcon className="w-3.5 h-3.5" />
-                    {t('home.panels.openLibrary')}
-                  </Link>
+            {/* Menu de acesso rápido — substitui as duas primeiras
+                prateleiras (que eram "Your Library" e "Next Tag",
+                ambas rotativas). O modal deixa de ser só um painel de
+                vitrines giratórias e ganha um hub de navegação direto:
+                3 destinos principais do site, sempre visíveis, sem
+                esperar rotação nenhuma. O conteúdo de "Your Library"
+                (contagem + link) foi excluído — fica redundante com o
+                botão "Biblioteca" abaixo. Os outros slides que viviam
+                nessas duas prateleiras (Suas Listas, Match com Amigos,
+                Next Tag, Duelo de Watchlist) desceram pra dentro da
+                prateleira de Essência, a única prateleira rotativa que
+                sobra no modal. */}
+            <div className="space-y-2.5 mb-5">
+              <Link
+                to="/library"
+                className="flex items-center gap-3 p-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 border border-blue-400/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
+              >
+                <div className="p-2 rounded-lg bg-blue-500/15 dark:bg-blue-500/20 flex-shrink-0">
+                  <LibraryIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </div>
-              ];
-
-              if (listsCount > 0) {
-                librarySlides.push(
-                  <div key="lib-lists" className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2.5 rounded-xl bg-teal-500/10 dark:bg-teal-500/15 flex-shrink-0">
-                        <LibraryIcon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('home.panels.yourLists')}</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                          {listsPreview.map((l) => l.name).join(' • ')}
-                        </p>
-                      </div>
-                    </div>
-                    <Link
-                      to="/lists"
-                      className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 dark:bg-teal-500/15 dark:hover:bg-teal-500/25 text-teal-600 dark:text-teal-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-teal-400/20"
-                    >
-                      {t('home.panels.openLists')}
-                    </Link>
-                  </div>
-                );
-              }
-
-              if (followingCount > 0) {
-                librarySlides.push(
-                  <div key="lib-match" className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
-                        <Sparkles className="w-4 h-4 text-pink-500 dark:text-pink-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.matchWithFriends')}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.matchWithFriendsHint')}</p>
-                      </div>
-                    </div>
-                    <Link
-                      to="/community"
-                      className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
-                    >
-                      {t('home.panels.openCommunity')}
-                    </Link>
-                  </div>
-                );
-              }
-
-              const activeIndex = librarySlideIndex % librarySlides.length;
-
-              return (
-                <div className="mb-5 min-h-[54px]">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={activeIndex}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      {librarySlides[activeIndex]}
-                    </motion.div>
-                  </AnimatePresence>
+                <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{t('home.panels.openLibrary')}</span>
+                <ChevronRight className="w-4 h-4 text-blue-400 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <Link
+                to="/oracle"
+                className="flex items-center gap-3 p-3 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 border border-violet-400/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
+              >
+                <div className="p-2 rounded-lg bg-violet-500/15 dark:bg-violet-500/20 flex-shrink-0">
+                  <Eye className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                 </div>
-              );
-            })()}
+                <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{t('oracle.title')}</span>
+                <ChevronRight className="w-4 h-4 text-violet-400 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <Link
+                to="/community"
+                className="flex items-center gap-3 p-3 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 border border-pink-400/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
+              >
+                <div className="p-2 rounded-lg bg-pink-500/15 dark:bg-pink-500/20 flex-shrink-0">
+                  <Users className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                </div>
+                <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{t('home.panels.openCommunity')}</span>
+                <ChevronRight className="w-4 h-4 text-pink-400 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
 
             <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
 
-            {/* Next Tag — rotaciona com Match com Amigos (só se o usuário
-                seguir pelo menos 1 pessoa). */}
-            {(() => {
-              const tagSlides: React.ReactNode[] = [
-                <div key="tag-main" className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15">
-                    <Lock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.nextTag')}</p>
-                    {nextTag ? (
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-base leading-none flex-shrink-0">{nextTag.emoji}</span>
-                        <span className="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">{nextTag.name}</span>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full truncate min-w-0">
-                          {tagHint}
-                        </span>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-400 dark:text-gray-500 italic">{t('home.panels.allTagsUnlocked')}</p>
-                    )}
-                  </div>
-                </div>
-              ];
-
-              // Duelo de Watchlist — desceu pra cá vindo da prateleira 3,
-              // "nerfado" pro padrão visual da prateleira 2 (ícone
-              // quadrado pequeno, igual o "Lock" do slide principal, em
-              // vez do círculo grande que tinha na Essência). O botão abre
-              // o duelo de verdade agora — navega pra Biblioteca com um
-              // sinal que a faz abrir o modal do duelo sozinha, assim que
-              // os dados carregarem lá.
-              if (unratedCount >= 4) {
-                tagSlides.push(
-                  <div key="tag-duel" className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
-                        <Swords className="w-4 h-4 text-pink-600 dark:text-pink-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.watchlistDuel')}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.watchlistDuelHint')}</p>
-                      </div>
-                    </div>
-                    <Link
-                      to="/library"
-                      state={{ openWatchlistDuel: true }}
-                      className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
-                    >
-                      {t('home.panels.openWatchlistDuel')}
-                    </Link>
-                  </div>
-                );
-              }
-
-              const activeIndex = tagSlideIndex % tagSlides.length;
-
-              return (
-                <div className="mb-5 min-h-[54px]">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={activeIndex}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      {tagSlides[activeIndex]}
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              );
-            })()}
-
-            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
-
-            {/* Cinematic Essence — rotaciona com "Sua Persona" (o gráfico
-                pentagonal E/I/C/S/R), só quando o usuário já tem essência
-                calculada. Sem essência, fica só no estado de convite pra
-                descobrir, sem rotação nenhuma. */}
+            {/* Cinematic Essence — agora a única prateleira rotativa que
+                resta, reunindo tudo que antes se espalhava pelas duas
+                prateleiras removidas: Cinematic Essence, Sua Persona,
+                Suas Listas, Match com Amigos, Next Tag e Duelo de
+                Watchlist, todos revezando no mesmo espaço. */}
             {!personalityLoading && (
               hasEssence ? (() => {
                 const essenceSlides: React.ReactNode[] = [
@@ -697,13 +556,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                   </div>
                 ];
 
-                // "Sua Persona" subiu pra essa prateleira (trocou de lugar
-                // com "Duelo de Watchlist", que desceu pra Tags) — ganha o
-                // padrão visual maior da Essência (avatar w-12 h-12
-                // redondo, igual o ArchetypeSymbol do slide principal, em
-                // vez do w-9 h-9 pequeno que tinha nas Tags). O botão abre
-                // o PersonasModal (mostra o personagem de verdade) em vez
-                // de só navegar pra página do Oráculo.
                 if (personaChar) {
                   essenceSlides.push(
                     <div key="ess-persona" className="flex items-center gap-3">
@@ -733,6 +585,101 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                       >
                         {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
                       </button>
+                    </div>
+                  );
+                }
+
+                // Suas Listas — desceu da antiga prateleira 1.
+                if (listsCount > 0) {
+                  essenceSlides.push(
+                    <div key="lib-lists" className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="p-2.5 rounded-xl bg-teal-500/10 dark:bg-teal-500/15 flex-shrink-0">
+                          <LibraryIcon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('home.panels.yourLists')}</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                            {listsPreview.map((l) => l.name).join(' • ')}
+                          </p>
+                        </div>
+                      </div>
+                      <Link
+                        to="/lists"
+                        className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 dark:bg-teal-500/15 dark:hover:bg-teal-500/25 text-teal-600 dark:text-teal-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-teal-400/20"
+                      >
+                        {t('home.panels.openLists')}
+                      </Link>
+                    </div>
+                  );
+                }
+
+                // Match com Amigos — desceu da antiga prateleira 1.
+                if (followingCount > 0) {
+                  essenceSlides.push(
+                    <div key="lib-match" className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
+                          <Sparkles className="w-4 h-4 text-pink-500 dark:text-pink-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.matchWithFriends')}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.matchWithFriendsHint')}</p>
+                        </div>
+                      </div>
+                      <Link
+                        to="/community"
+                        className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
+                      >
+                        {t('home.panels.openCommunity')}
+                      </Link>
+                    </div>
+                  );
+                }
+
+                // Next Tag — desceu da antiga prateleira 2.
+                essenceSlides.push(
+                  <div key="tag-main" className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15">
+                      <Lock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.nextTag')}</p>
+                      {nextTag ? (
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-base leading-none flex-shrink-0">{nextTag.emoji}</span>
+                          <span className="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">{nextTag.name}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full truncate min-w-0">
+                            {tagHint}
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-400 dark:text-gray-500 italic">{t('home.panels.allTagsUnlocked')}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+
+                // Duelo de Watchlist — desceu da antiga prateleira 2.
+                if (unratedCount >= 4) {
+                  essenceSlides.push(
+                    <div key="tag-duel" className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
+                          <Swords className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.watchlistDuel')}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.watchlistDuelHint')}</p>
+                        </div>
+                      </div>
+                      <Link
+                        to="/library"
+                        state={{ openWatchlistDuel: true }}
+                        className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
+                      >
+                        {t('home.panels.openWatchlistDuel')}
+                      </Link>
                     </div>
                   );
                 }
