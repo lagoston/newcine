@@ -390,7 +390,7 @@ export default function OracleLibraries() {
             <div className="flex items-center gap-2.5">
               <LibraryBig className="w-6 h-6 text-amber-500" />
               <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500">
-                {t('oracle.libraries.title', { defaultValue: 'Bibliotecas do Oráculo' })}
+                {t('oracle.libraries.title', { defaultValue: 'Biblioteca dos Oráculos' })}
               </h1>
             </div>
           </div>
@@ -445,7 +445,7 @@ export default function OracleLibraries() {
               transition={{ duration: 0.3 }}
             >
               <p className="text-center text-gray-600 dark:text-gray-400 mb-8 max-w-xl mx-auto">
-                {t('oracle.libraries.chooseOracle', { defaultValue: 'Cada oráculo enxerga o cinema à sua própria maneira. Escolha um para explorar tudo que ele já separou pra você.' })}
+                {t('oracle.libraries.chooseOracle', { defaultValue: 'Cada oráculo enxerga o cinema à sua própria maneira. Escolha um dos três para explorar tudo que ele já separou pra você.' })}
               </p>
               <div className="grid grid-cols-3 gap-2 sm:gap-6">
                 {oracles.map((oracle) => {
