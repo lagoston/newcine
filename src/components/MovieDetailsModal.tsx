@@ -1336,13 +1336,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                 </div>
                               ) : friend.is_watchlist_only ? (
                                 /* Só watchlist, sem review — balão sempre visível também, com
-                                   o emoji de "de olho", igual em espírito ao balão de review. */
+                                   texto "Querendo Assistir...", igual em espírito ao balão de review — só o
+                                   badge no canto do avatar mantém o emoji 👀. */
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none" style={{ zIndex: 50 }}>
                                   <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl">
                                     <p className="text-white text-[9px] font-semibold text-center whitespace-nowrap">
                                       {friend.username}
                                     </p>
-                                    <p className="text-center text-sm leading-tight mt-0.5">👀</p>
+                                    <p className="text-sky-300 text-[9px] italic text-center leading-tight mt-0.5 whitespace-nowrap">
+                                      {t('movie.wantingToWatch', { defaultValue: 'Querendo Assistir...' })}
+                                    </p>
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900/95" />
                                   </div>
                                 </div>
