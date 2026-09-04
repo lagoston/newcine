@@ -496,10 +496,10 @@ export default function OracleHub() {
                 </div>
                 <div className="flex-1 text-center sm:text-left">
                   <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 mb-1.5">
-                    {t('oracle.libraries.title', { defaultValue: 'Bibliotecas do Oráculo' })}
+                    {t('oracle.libraries.title', { defaultValue: 'Biblioteca dos Oráculos' })}
                   </h2>
                   <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed max-w-xl">
-                    {t('oracle.libraries.description', { defaultValue: 'Coleções e trilhas curadas pelo Oráculo, construídas a partir de tudo que ele já aprendeu sobre o seu gosto cinematográfico.' })}
+                    {t('oracle.libraries.description', { defaultValue: 'Coleções e trilhas curadas pelos Oráculos, construídas a partir de tudo que eles já aprenderam sobre o seu gosto cinematográfico.' })}
                   </p>
                 </div>
               </div>
