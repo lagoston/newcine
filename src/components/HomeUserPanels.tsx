@@ -494,7 +494,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 <div className="p-2 rounded-lg bg-violet-500/15 dark:bg-violet-500/20 flex-shrink-0">
                   <Eye className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                 </div>
-                <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{t('oracle.title')}</span>
+                <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{t('home.panels.openOracleHub')}</span>
                 <ChevronRight className="w-4 h-4 text-violet-400 group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <Link
