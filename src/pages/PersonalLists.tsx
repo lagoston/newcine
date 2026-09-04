@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ListPlus, Loader2, Trash2, Film, ArrowLeft, FileEdit as Edit } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ListPlus, Trash2, Film, ArrowLeft, Pencil, ArrowUpDown, ListMusic } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
-import CreateListModal from '../components/CreateListModal';
 import ConfirmationModal from '../components/ConfirmationModal';
-import EditListModal from '../components/EditListModal';
-import RatingBox from '../components/RatingBox';
+import ListFormModal from '../components/ListFormModal';
 import ReorderListModal from '../components/ReorderListModal';
+import MovieDetailsModal from '../components/MovieDetailsModal';
 import { useTranslation } from 'react-i18next';
 
 interface List {
@@ -26,39 +26,33 @@ interface UserMovie {
   rating: number | null;
 }
 
+// Cada lista gira por uma dessas 6 identidades de cor (não depende de
+// configuração do usuário) — dá variedade visual entre as listas sem
+// exigir que a pessoa escolha nada, e resolve o problema de todas as
+// listas ficarem visualmente idênticas.
+const LIST_THEMES = [
+  { glow: 'from-blue-500/15 to-cyan-500/10', border: 'border-blue-300/40 dark:border-blue-500/30', bar: 'from-blue-400 to-cyan-500', text: 'text-blue-600 dark:text-blue-400', button: 'from-blue-600 to-cyan-600' },
+  { glow: 'from-purple-500/15 to-fuchsia-500/10', border: 'border-purple-300/40 dark:border-purple-500/30', bar: 'from-purple-400 to-fuchsia-500', text: 'text-purple-600 dark:text-purple-400', button: 'from-purple-600 to-fuchsia-600' },
+  { glow: 'from-pink-500/15 to-rose-500/10', border: 'border-pink-300/40 dark:border-pink-500/30', bar: 'from-pink-400 to-rose-500', text: 'text-pink-600 dark:text-pink-400', button: 'from-pink-600 to-rose-600' },
+  { glow: 'from-emerald-500/15 to-green-500/10', border: 'border-emerald-300/40 dark:border-emerald-500/30', bar: 'from-emerald-400 to-green-500', text: 'text-emerald-600 dark:text-emerald-400', button: 'from-emerald-600 to-green-600' },
+  { glow: 'from-amber-500/15 to-orange-500/10', border: 'border-amber-300/40 dark:border-amber-500/30', bar: 'from-amber-400 to-orange-500', text: 'text-amber-600 dark:text-amber-400', button: 'from-amber-600 to-orange-600' },
+  { glow: 'from-sky-500/15 to-indigo-500/10', border: 'border-sky-300/40 dark:border-sky-500/30', bar: 'from-sky-400 to-indigo-500', text: 'text-sky-600 dark:text-sky-400', button: 'from-sky-600 to-indigo-600' },
+];
+
 export default function PersonalLists() {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { t } = useTranslation();
   const [lists, setLists] = useState<List[]>([]);
-  const [libraryMovies, setLibraryMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [formModal, setFormModal] = useState<{ mode: 'create' | 'edit'; list?: List } | null>(null);
   const [deleteListId, setDeleteListId] = useState<string | null>(null);
-  const [editingList, setEditingList] = useState<{id: string, name: string} | null>(null);
-  const [newListName, setNewListName] = useState('');
-  const [editModalList, setEditModalList] = useState<List | null>(null);
   const [reorderListId, setReorderListId] = useState<string | null>(null);
-  const [reorderingList, setReorderingList] = useState<List | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
   useEffect(() => {
-    if (session?.user?.id) {
-      fetchLists();
-      fetchUserMovies();
-    }
+    if (session?.user?.id) fetchLists();
   }, [session?.user?.id]);
-
-  useEffect(() => {
-    if (reorderListId) {
-      const selectedList = lists.find(list => list.id === reorderListId);
-      if (selectedList) {
-        setReorderingList(selectedList);
-      }
-    } else {
-      setReorderingList(null);
-    }
-  }, [reorderListId, lists]);
 
   const fetchLists = async () => {
     try {
@@ -68,7 +62,6 @@ export default function PersonalLists() {
         return;
       }
 
-      // First, get all lists for the current user
       const { data: listsData, error: listsError } = await supabase
         .from('lists')
         .select('*')
@@ -76,16 +69,13 @@ export default function PersonalLists() {
         .order('created_at', { ascending: false });
 
       if (listsError) throw listsError;
-      
-      console.log('Lists fetched:', listsData?.length || 0);
-      
+
       if (!listsData || listsData.length === 0) {
         setLists([]);
         setLoading(false);
         return;
       }
 
-      // Get all user ratings
       const { data: userMovies, error: ratingsError } = await supabase
         .from('user_movies')
         .select('movie_id, rating')
@@ -93,12 +83,10 @@ export default function PersonalLists() {
 
       if (ratingsError) throw ratingsError;
 
-      // Create a map of movie IDs to ratings
       const ratingsMap = new Map(
-        userMovies.map((um: UserMovie) => [um.movie_id, um.rating])
+        (userMovies || []).map((um: UserMovie) => [um.movie_id, um.rating])
       );
 
-      // For each list, get its movies
       const listsWithMovies = await Promise.all(
         listsData.map(async (list) => {
           const { data: movieIds, error: moviesError } = await supabase
@@ -109,22 +97,15 @@ export default function PersonalLists() {
           if (moviesError) throw moviesError;
 
           if (!movieIds || movieIds.length === 0) {
-            return {
-              ...list,
-              movies: []
-            };
+            return { ...list, movies: [] };
           }
 
-          // Get movie details for each movie ID and include user ratings
           const movies = await Promise.all(
             movieIds.map(async ({ movie_id }) => {
               try {
                 const movieDetails = await getMovieDetailsFromDB(movie_id);
                 const rating = ratingsMap.get(movie_id);
-                return {
-                  ...movieDetails,
-                  userRating: rating !== undefined ? rating : null
-                };
+                return { ...movieDetails, userRating: rating !== undefined ? rating : null };
               } catch (error) {
                 console.error(`Failed to fetch details for movie ${movie_id}:`, error);
                 return null;
@@ -132,52 +113,13 @@ export default function PersonalLists() {
             })
           );
 
-          return {
-            ...list,
-            movies: movies.filter(Boolean) // Remove any null results from failed fetches
-          };
+          return { ...list, movies: movies.filter(Boolean) as Movie[] };
         })
       );
 
       setLists(listsWithMovies);
     } catch (error) {
       console.error('Error fetching lists:', error);
-      toast.error(t('common.error'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUserMovies = async () => {
-    try {
-      if (!session?.user?.id) return;
-
-      const { data: userMoviesData, error } = await supabase
-        .from('user_movies')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const moviesWithDetails = await Promise.all(
-        (userMoviesData || []).map(async (userMovie: UserMovie) => {
-          try {
-            const movieDetails = await getMovieDetailsFromDB(userMovie.movie_id);
-            return {
-              ...movieDetails,
-              userRating: userMovie.rating
-            };
-          } catch (error) {
-            console.error(`Error fetching details for movie ${userMovie.movie_id}:`, error);
-            return null;
-          }
-        })
-      );
-
-      setLibraryMovies(moviesWithDetails.filter(Boolean));
-    } catch (error) {
-      console.error('Error fetching user movies:', error);
       toast.error(t('common.error'));
     } finally {
       setLoading(false);
@@ -196,7 +138,7 @@ export default function PersonalLists() {
 
       if (error) throw error;
 
-      setLists(lists.filter(list => list.id !== deleteListId));
+      setLists(lists.filter((list) => list.id !== deleteListId));
       toast.success(t('lists.deleted'));
     } catch (error) {
       console.error('Error deleting list:', error);
@@ -206,287 +148,224 @@ export default function PersonalLists() {
     }
   };
 
-  const handleEditList = (list: {id: string, name: string}) => {
-    setEditingList(list);
-    setNewListName(list.name);
-  };
-
-  const handleSaveListName = async () => {
-    if (!editingList || !session?.user?.id || !newListName.trim()) return;
-
-    try {
-      const { error } = await supabase
-        .from('lists')
-        .update({ 
-          name: newListName.trim(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editingList.id)
-        .eq('user_id', session.user.id);
-
-      if (error) {
-        if (error.code === '23505') {
-          toast.error(t('lists.nameExists'));
-        } else {
-          throw error;
-        }
-        return;
-      }
-
-      setLists(lists.map(list => {
-        if (list.id === editingList.id) {
-          return { ...list, name: newListName.trim() };
-        }
-        return list;
-      }));
-      
-      toast.success('List name updated successfully');
-      setEditingList(null);
-    } catch (error) {
-      console.error('Error updating list name:', error);
-      toast.error(t('common.error'));
-    }
-  };
-
-  const handleRemoveMovie = async (listId: string, movieId: number) => {
-    try {
-      const { error } = await supabase
-        .from('list_movies')
-        .delete()
-        .eq('list_id', listId)
-        .eq('movie_id', movieId);
-
-      if (error) throw error;
-
-      setLists(lists.map(list => {
-        if (list.id === listId) {
-          return {
-            ...list,
-            movies: list.movies.filter(movie => movie.id !== movieId)
-          };
-        }
-        return list;
-      }));
-
-      toast.success(t('lists.movieRemoved'));
-    } catch (error) {
-      console.error('Error removing movie:', error);
-      toast.error(t('common.error'));
-    }
-  };
-
-  const handleEditFullList = (list: List) => {
-    setEditModalList(list);
-  };
-
   const handleReorderSave = async (updatedMovies: Movie[]) => {
-    if (!reorderListId || !reorderingList) return;
-    
+    if (!reorderListId) return;
+
     try {
-      setSaving(true);
-      
-      // Get original movie list for comparison
-      const originalList = lists.find(list => list.id === reorderListId);
-      if (!originalList) {
-        throw new Error('List not found');
-      }
-      
-      // First, update the state so the UI is immediately responsive
-      setLists(prev => 
-        prev.map(list => 
-          list.id === reorderListId 
-            ? { ...list, movies: updatedMovies }
-            : list
-        )
+      setLists((prev) =>
+        prev.map((list) => (list.id === reorderListId ? { ...list, movies: updatedMovies } : list))
       );
-      
-      // Now update the database
-      // We need to delete and re-insert all movies to preserve the order
+
       const { error: deleteError } = await supabase
         .from('list_movies')
         .delete()
         .eq('list_id', reorderListId);
-      
+
       if (deleteError) throw deleteError;
-      
-      // Then insert all movies in the new order
-      const insertData = updatedMovies.map((movie, index) => ({
+
+      const insertData = updatedMovies.map((movie) => ({
         list_id: reorderListId,
         movie_id: movie.id,
-        added_at: new Date().toISOString() // Use timestamp for ordering
       }));
-      
-      const { error: insertError } = await supabase
-        .from('list_movies')
-        .insert(insertData);
-      
+
+      const { error: insertError } = await supabase.from('list_movies').insert(insertData);
       if (insertError) throw insertError;
-      
-      // Close the reorder modal
+
       setReorderListId(null);
-      
-      // Show success message
-      toast.success('List order updated successfully');
-      
+      toast.success(t('lists.reordered', { defaultValue: 'Ordem atualizada' }));
     } catch (error) {
       console.error('Error saving reordered list:', error);
       toast.error(t('common.error'));
-      
-      // Revert to the original order in case of error
       fetchLists();
-    } finally {
-      setSaving(false);
     }
   };
+
+  const reorderingList = lists.find((l) => l.id === reorderListId);
 
   if (loading) {
     return <GlassLoader fullPage size="lg" />;
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-          </button>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 flex-1">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {t('lists.title')}
-            </h1>
+    <div className="min-h-screen pt-20 pb-24 px-4 relative overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 dark:from-blue-600/5 dark:to-purple-600/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-br from-pink-400/10 to-amber-400/10 dark:from-pink-600/5 dark:to-amber-600/5 rounded-full blur-3xl" />
+      </div>
+
+      <div className="max-w-5xl mx-auto relative z-10">
+        <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center justify-center w-10 sm:w-auto px-0 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors self-end sm:self-auto"
-              aria-label={t('lists.createNew')}
+              onClick={() => navigate(-1)}
+              className="p-2.5 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors shadow-lg"
             >
-              <ListPlus className="w-5 h-5 sm:mr-2" />
-              <span className="hidden sm:inline">{t('lists.createNew')}</span>
+              <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </button>
+            <div className="flex items-center gap-2.5">
+              <ListMusic className="w-6 h-6 text-blue-500" />
+              <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500">
+                {t('lists.title')}
+              </h1>
+            </div>
           </div>
+
+          <motion.button
+            onClick={() => setFormModal({ mode: 'create' })}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg transition-all"
+          >
+            <ListPlus className="w-4 h-4" />
+            {t('lists.createNew')}
+          </motion.button>
         </div>
 
         {lists.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-            <ListPlus className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              {t('lists.noListsYet')}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              {t('lists.createFirstMsg')}
-            </p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden text-center py-16 px-6"
+          >
+            <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-br from-blue-400/15 to-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/30 flex items-center justify-center rotate-3">
+                <ListPlus className="w-8 h-8 text-blue-500" />
+              </div>
+              <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-1.5">
+                {t('lists.noListsYet')}
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400 text-sm max-w-sm mx-auto">
+                {t('lists.createFirstMsg')}
+              </p>
+            </div>
+          </motion.div>
         ) : (
-          <div className="space-y-8">
-            {lists.map(list => (
-              <div key={list.id} className="space-y-4">
-                <div className="flex items-center justify-between">
-                  {editingList && editingList.id === list.id ? (
-                    <div className="flex items-center space-x-2 flex-1">
-                      <input 
-                        type="text" 
-                        value={newListName}
-                        onChange={(e) => setNewListName(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        autoFocus
-                      />
+          <div className="space-y-6">
+            {lists.map((list, listIndex) => {
+              const theme = LIST_THEMES[listIndex % LIST_THEMES.length];
+              return (
+                <motion.div
+                  key={list.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(listIndex * 0.05, 0.3) }}
+                  className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border ${theme.border} shadow-2xl overflow-hidden p-5 sm:p-6`}
+                >
+                  <div className={`absolute top-0 right-0 w-48 h-48 bg-gradient-to-br ${theme.glow} rounded-full blur-3xl pointer-events-none`} />
+
+                  <div className="relative z-10 flex items-center justify-between gap-3 mb-4 flex-wrap">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`h-8 w-1.5 rounded-full bg-gradient-to-b ${theme.bar} flex-shrink-0`} />
+                      <div className="min-w-0">
+                        <h2 className={`text-lg font-bold truncate ${theme.text}`}>{list.name}</h2>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                          {list.movies.length} {list.movies.length === 1 ? t('community.film') : t('community.films')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {list.movies.length > 1 && (
+                        <button
+                          onClick={() => setReorderListId(list.id)}
+                          title={t('lists.reorderTitle', { name: list.name })}
+                          className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          <ArrowUpDown className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
-                        onClick={handleSaveListName}
-                        disabled={!newListName.trim()}
-                        className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => setFormModal({ mode: 'edit', list })}
+                        title={t('common.edit')}
+                        className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       >
-                        {t('common.save')}
+                        <Pencil className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => setEditingList(null)}
-                        className="px-3 py-2 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        onClick={() => setDeleteListId(list.id)}
+                        title={t('common.delete')}
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       >
-                        {t('common.cancel')}
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
+                  </div>
+
+                  {list.movies.length === 0 ? (
+                    <div className="relative z-10 rounded-2xl bg-gray-50/60 dark:bg-gray-900/30 py-8 text-center">
+                      <Film className="w-7 h-7 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                      <p className="text-sm text-gray-400 dark:text-gray-500">{t('lists.noMoviesInList')}</p>
+                    </div>
                   ) : (
-                    <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                      {list.name}
-                    </h2>
+                    <div className="relative z-10 flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                      {list.movies.map((movie) => (
+                        <motion.button
+                          key={`${movie.id}-${movie.media_type}`}
+                          onClick={() => setSelectedMovie(movie)}
+                          whileHover={{ scale: 1.05, y: -4 }}
+                          whileTap={{ scale: 0.97 }}
+                          className="relative w-[100px] sm:w-[120px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[2/3] shadow-lg"
+                        >
+                          <img
+                            src={movie.poster_path ? `https://image.tmdb.org/t/p/w300${movie.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
+                            alt={movie.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          {movie.userRating !== null && movie.userRating !== undefined && (
+                            <div className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                              ★ {movie.userRating}
+                            </div>
+                          )}
+                        </motion.button>
+                      ))}
+                    </div>
                   )}
-                  <div className="flex items-center">
-                    <button
-                      onClick={() => handleEditFullList(list)}
-                      className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center mr-2"
-                    >
-                      <Edit className="w-4 h-4 mr-1" />
-                      <span>{t('common.edit')}</span>
-                    </button>
-                    <button
-                      onClick={() => setDeleteListId(list.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                      aria-label={t('common.delete')}
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-                {list.movies.length === 0 ? (
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6 text-center">
-                    <Film className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600 dark:text-gray-400">
-                      {t('lists.noMoviesInList')}
-                    </p>
-                  </div>
-                ) : (
-                  <RatingBox
-                    key={list.id}
-                    title={list.name}
-                    movies={list.movies}
-                    rating={null}
-                    onRemoveFromList={(movieId) => handleRemoveMovie(list.id, movieId)}
-                    className="border-2 border-gray-200 dark:border-gray-700"
-                    isPersonalList={true}
-                    enableDragDrop={() => setReorderListId(list.id)}
-                  />
-                )}
-              </div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         )}
-
-        <CreateListModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-          onSuccess={fetchLists}
-        />
-
-        <ConfirmationModal
-          isOpen={deleteListId !== null}
-          onClose={() => setDeleteListId(null)}
-          onConfirm={handleDeleteList}
-          title={t('common.delete')}
-          message={t('common.confirm')}
-        />
-
-        {editModalList && (
-          <EditListModal
-            isOpen={true}
-            onClose={() => setEditModalList(null)}
-            onSuccess={fetchLists}
-            listId={editModalList.id}
-            listName={editModalList.name}
-            currentMovies={editModalList.movies}
-          />
-        )}
-        
-        {reorderingList && (
-          <ReorderListModal
-            isOpen={reorderListId !== null}
-            onClose={() => setReorderListId(null)} 
-            onSave={handleReorderSave}
-            movies={reorderingList.movies}
-            listName={reorderingList.name}
-          />
-        )}
       </div>
+
+      {formModal && (
+        <ListFormModal
+          isOpen={true}
+          onClose={() => setFormModal(null)}
+          onSuccess={fetchLists}
+          mode={formModal.mode}
+          listId={formModal.list?.id}
+          initialName={formModal.list?.name || ''}
+          initialMovieIds={formModal.list?.movies.map((m) => m.id) || []}
+        />
+      )}
+
+      <ConfirmationModal
+        isOpen={deleteListId !== null}
+        onClose={() => setDeleteListId(null)}
+        onConfirm={handleDeleteList}
+        title={t('common.delete')}
+        message={t('common.confirm')}
+      />
+
+      {reorderingList && (
+        <ReorderListModal
+          isOpen={reorderListId !== null}
+          onClose={() => setReorderListId(null)}
+          onSave={handleReorderSave}
+          movies={reorderingList.movies}
+          listName={reorderingList.name}
+        />
+      )}
+
+      {selectedMovie && (
+        <MovieDetailsModal
+          movie={selectedMovie}
+          isOpen={true}
+          onClose={() => setSelectedMovie(null)}
+          isOtherUserProfile={false}
+        />
+      )}
     </div>
   );
 }
