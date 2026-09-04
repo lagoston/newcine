@@ -803,6 +803,7 @@ const Home = () => {
           onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.comingSoon'), movies: comingSoonMovies })}
           onMovieClick={handleMovieClick}
           viewAllLabel={t('common.view_all')}
+          showFriendBubbles
         />
         <MovieCarousel
           title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🏆</span> {t('home.bestOfYear')}</span>}
@@ -812,6 +813,7 @@ const Home = () => {
           onMovieClick={handleMovieClick}
           viewAllLabel={t('common.view_all')}
           theme="gold"
+          showFriendBubbles
         />
         <MovieCarousel
           title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>👥</span> {t('home.friendsBest')}</span>}
@@ -821,6 +823,7 @@ const Home = () => {
           onMovieClick={handleMovieClick}
           viewAllLabel={t('common.view_all')}
           theme="purple"
+          showFriendBubbles
           emptyState={
             <div className="flex flex-col sm:flex-row items-center gap-5 py-6 px-2">
               <div className="relative flex-shrink-0">
