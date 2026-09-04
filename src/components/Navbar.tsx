@@ -8,6 +8,7 @@ import Logo from './Logo';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import NavbarSearch from './NavbarSearch';
+import FloatingMobileSearch from './FloatingMobileSearch';
 import MovieDetailsModal from './MovieDetailsModal';
 import { Movie } from '../lib/tmdb';
 
@@ -156,9 +157,6 @@ function Navbar() {
       {isMenuOpen && (
         <div className="md:hidden border-t border-white/10 bg-slate-900/95 backdrop-blur-2xl">
           <div className="px-4 py-3 space-y-2">
-            <div className="mb-3">
-              <NavbarSearch fullWidth onClose={() => setIsMenuOpen(false)} onMovieSelect={handleMovieSelect} />
-            </div>
             {user ? (
               <>
                 <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
@@ -181,6 +179,8 @@ function Navbar() {
         </div>
       )}
     </nav>
+
+    {user && <FloatingMobileSearch onMovieSelect={handleMovieSelect} />}
 
     {selectedMovie && createPortal(
       <MovieDetailsModal
