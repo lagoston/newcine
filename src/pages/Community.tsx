@@ -10,6 +10,7 @@ import { getBannerClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import MovieDetailsModal from '../components/MovieDetailsModal';
+import FloatingFriendBubbles from '../components/FloatingFriendBubbles';
 import { useAuth } from '../lib/auth';
 import { getMovieDetails, getMovieDetailsFromDB, Movie, getTrending } from '../lib/tmdb';
 import { cache } from '../lib/cache';
@@ -34,6 +35,7 @@ interface Profile {
 
 interface FriendWatchlistMovie {
   movie_id: number;
+  media_type?: string;
   title: string;
   friend_username: string;
   friend_id: string;
@@ -383,6 +385,10 @@ export default function Community() {
                               ★ {movie.movieDetails.vote_average.toFixed(1)}
                             </div>
                           )}
+                          <FloatingFriendBubbles
+                            movieId={movie.movie_id}
+                            mediaType={(movie.media_type as 'movie' | 'tv') || movie.movieDetails?.media_type || 'movie'}
+                          />
                         </motion.div>
                       ))}
                     </div>
