@@ -1258,14 +1258,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           { top: '25%', right: '15%' },
                           { top: '50%', left: '8%' },
                           { top: '65%', right: '12%' },
-                          // Antes centralizada (left: 50%) — na mesma área
-                          // onde o balão de diálogo dos oráculos também
-                          // aparece, criando um conflito de layout que fazia
-                          // essa 5ª bolha "teleportar" pro lado nos primeiros
-                          // segundos assim que o balão do oráculo entrava em
-                          // cena. Já nasce deslocada pro lado agora, fora do
-                          // campo desse balão.
-                          { top: '80%', right: '8%' }
+                          // O balão de diálogo do oráculo (quando aberto) nasce do
+                          // selo no canto inferior esquerdo (bottom-2 left-2) e se
+                          // estende pra cima com w-48 (192px) de largura — ocupa
+                          // aproximadamente a metade esquerda do pôster, na faixa
+                          // mais baixa dele. Essa 5ª bolha fica logo à direita da
+                          // borda direita estimada do balão, na mesma altura,
+                          // "quase raspando" sem sobrepor.
+                          { bottom: '4%', left: '52%' }
                         ];
                         const position = positions[index] || positions[0];
 
