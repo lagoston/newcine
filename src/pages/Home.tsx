@@ -299,6 +299,10 @@ interface MovieCarouselProps {
   // Box (que já colore as rating boxes da Biblioteca) pras seções da
   // Home. Sem tema, mantém o azul/ciano padrão de sempre.
   theme?: 'gold' | 'purple';
+  // Conteúdo alternativo pra quando a lista vem vazia (não carregando) —
+  // ex: "Melhores dos Amigos" sem seguir ninguém ainda. Sem isso, o
+  // carrossel mostra a área vazia normalmente.
+  emptyState?: React.ReactNode;
 }
 
 const getCarouselThemeClasses = (theme?: 'gold' | 'purple') => {
@@ -332,7 +336,7 @@ const getCarouselThemeClasses = (theme?: 'gold' | 'purple') => {
   };
 };
 
-const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, onViewAll, onMovieClick, viewAllLabel, theme }) => {
+const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, onViewAll, onMovieClick, viewAllLabel, theme, emptyState }) => {
   const themeClasses = getCarouselThemeClasses(theme);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -396,16 +400,21 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
             {title}
           </h2>
         </div>
-        <button
-          onClick={onViewAll}
-          className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-semibold text-white hover:shadow-lg rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 overflow-hidden relative group ${themeClasses.button}`}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-          <span className="relative z-10 hidden sm:inline">{viewAllLabel}</span>
-          <span className="relative z-10 sm:hidden">Ver</span>
-          <ArrowRight className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        </button>
+        {!(emptyState && movies.length === 0) && (
+          <button
+            onClick={onViewAll}
+            className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-semibold text-white hover:shadow-lg rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 overflow-hidden relative group ${themeClasses.button}`}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+            <span className="relative z-10 hidden sm:inline">{viewAllLabel}</span>
+            <span className="relative z-10 sm:hidden">Ver</span>
+            <ArrowRight className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </button>
+        )}
       </div>
+      {emptyState && movies.length === 0 ? (
+        <div className="relative z-10">{emptyState}</div>
+      ) : (
       <div
         ref={scrollRef}
         className="relative z-10 overflow-x-auto py-4 pb-2 cursor-grab select-none"
@@ -458,6 +467,7 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
           ))}
         </div>
       </div>
+      )}
     </motion.div>
   );
 };
@@ -802,6 +812,26 @@ const Home = () => {
           onMovieClick={handleMovieClick}
           viewAllLabel={t('common.view_all')}
           theme="purple"
+          emptyState={
+            <div className="flex flex-col sm:flex-row items-center gap-5 py-6 px-2">
+              <div className="relative flex-shrink-0">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/15 to-purple-500/15 dark:from-violet-500/20 dark:to-purple-500/20 flex items-center justify-center rotate-3">
+                  <Users className="w-9 h-9 text-violet-500" />
+                </div>
+                <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-white dark:bg-gray-800 border-2 border-violet-300/50 dark:border-violet-600/50 flex items-center justify-center shadow-sm">
+                  <span className="text-xs">👋</span>
+                </div>
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-base font-bold text-gray-800 dark:text-white mb-1">
+                  {t('profile.noFriendsActivityTitle')}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+                  {t('profile.noFriendsActivityDescription')}
+                </p>
+              </div>
+            </div>
+          }
         />
       </div>
 
