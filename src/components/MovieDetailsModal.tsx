@@ -19,8 +19,9 @@ interface FriendRating {
   user_id: string;
   username: string;
   avatar_url: string | null;
-  rating: number;
+  rating: number | null;
   review_title?: string | null;
+  is_watchlist_only?: boolean;
 }
 
 interface MovieDetailsModalProps {
@@ -307,67 +308,127 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         .eq('follower_id', session.user.id);
 
       if (followingError) throw followingError;
-      if (!followingData || followingData.length === 0) {
-        setFriendRatings([]);
-        return;
+
+      const followingIds = (followingData || []).map(f => f.following_id);
+      let combined: FriendRating[] = [];
+
+      if (followingIds.length > 0) {
+        // Step 2: Get ratings from friends for this movie (with correct media_type)
+        const { data: allEntriesData, error: entriesError } = await supabase
+          .from('user_movies')
+          .select(`
+            user_id,
+            rating,
+            movies!inner(media_type)
+          `)
+          .eq('movie_id', movie.id)
+          .eq('movies.media_type', movie.media_type || 'movie')
+          .in('user_id', followingIds);
+
+        if (entriesError) throw entriesError;
+
+        if (allEntriesData && allEntriesData.length > 0) {
+          const ratedEntries = allEntriesData.filter((r: any) => r.rating !== null);
+          // Watchlist-only: mesmo filme presente em user_movies, mas sem
+          // nota — é exatamente como o resto do app já identifica "está
+          // na watchlist" (rating IS NULL).
+          const watchlistOnlyEntries = allEntriesData.filter((r: any) => r.rating === null);
+
+          const allUserIds = allEntriesData.map((r: any) => r.user_id);
+
+          // Step 3: Get profiles
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url')
+            .in('id', allUserIds);
+
+          if (profilesError) throw profilesError;
+
+          // Step 3b: Get review titles (quando o amigo escreveu uma) para esse mesmo filme
+          const ratedUserIds = ratedEntries.map((r: any) => r.user_id);
+          const { data: reviewsData } = ratedUserIds.length > 0
+            ? await supabase
+                .from('reviews')
+                .select('user_id, title')
+                .eq('movie_id', movie.id)
+                .eq('media_type', movie.media_type || 'movie')
+                .in('user_id', ratedUserIds)
+            : { data: [] as any[] };
+
+          const ratedFormatted: FriendRating[] = ratedEntries.map((r: any) => {
+            const profile = profilesData?.find(p => p.id === r.user_id);
+            const review = reviewsData?.find((rv: any) => rv.user_id === r.user_id);
+            return {
+              user_id: r.user_id,
+              username: profile?.username || 'Unknown',
+              avatar_url: profile?.avatar_url || null,
+              rating: r.rating,
+              review_title: review?.title || null,
+            };
+          });
+
+          const watchlistFormatted: FriendRating[] = watchlistOnlyEntries.map((r: any) => {
+            const profile = profilesData?.find(p => p.id === r.user_id);
+            return {
+              user_id: r.user_id,
+              username: profile?.username || 'Unknown',
+              avatar_url: profile?.avatar_url || null,
+              rating: null,
+              review_title: null,
+              is_watchlist_only: true,
+            };
+          });
+
+          const shuffledRated = ratedFormatted.sort(() => Math.random() - 0.5);
+          const shuffledWatchlist = watchlistFormatted.sort(() => Math.random() - 0.5);
+          // Prioriza quem avaliou (informação mais rica) e completa com
+          // quem só tem na watchlist até o teto de 5 bolhas.
+          combined = [...shuffledRated, ...shuffledWatchlist].slice(0, 5);
+        }
       }
 
-      const followingIds = followingData.map(f => f.following_id);
+      // Sem nada de amigos (ninguém seguido avaliou ou tem na watchlist)
+      // — busca até 3 reviews ESCRITAS por qualquer usuário sobre essa
+      // obra (não avaliação simples, tem que ter texto de review de
+      // verdade), como descoberta alternativa.
+      if (combined.length === 0) {
+        const { data: randomReviewsData } = await supabase
+          .from('reviews')
+          .select('user_id, title')
+          .eq('movie_id', movie.id)
+          .eq('media_type', movie.media_type || 'movie')
+          .not('title', 'is', null)
+          .limit(20);
 
-      // Step 2: Get ratings from friends for this movie (with correct media_type)
-      const { data: ratingsData, error: ratingsError } = await supabase
-        .from('user_movies')
-        .select(`
-          user_id,
-          rating,
-          movies!inner(media_type)
-        `)
-        .eq('movie_id', movie.id)
-        .eq('movies.media_type', movie.media_type || 'movie')
-        .in('user_id', followingIds)
-        .not('rating', 'is', null);
+        if (randomReviewsData && randomReviewsData.length > 0) {
+          const shuffledReviews = [...randomReviewsData].sort(() => Math.random() - 0.5).slice(0, 3);
+          const reviewUserIds = shuffledReviews.map((r: any) => r.user_id);
+          const { data: randomProfilesData } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url')
+            .in('id', reviewUserIds);
 
-      if (ratingsError) throw ratingsError;
-      if (!ratingsData || ratingsData.length === 0) {
-        setFriendRatings([]);
-        return;
+          const { data: randomRatingsData } = await supabase
+            .from('user_movies')
+            .select('user_id, rating')
+            .eq('movie_id', movie.id)
+            .in('user_id', reviewUserIds);
+
+          combined = shuffledReviews.map((r: any) => {
+            const profile = randomProfilesData?.find((p: any) => p.id === r.user_id);
+            const ratingEntry = randomRatingsData?.find((rt: any) => rt.user_id === r.user_id);
+            return {
+              user_id: r.user_id,
+              username: profile?.username || 'Unknown',
+              avatar_url: profile?.avatar_url || null,
+              rating: ratingEntry?.rating ?? null,
+              review_title: r.title,
+            };
+          });
+        }
       }
 
-            // Step 3: Get profiles for users who rated
-      const ratingUserIds = ratingsData.map(r => r.user_id);
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .in('id', ratingUserIds);
-
-      if (profilesError) throw profilesError;
-
-      // Step 3b: Get review titles (quando o amigo escreveu uma) para esse mesmo filme
-      const { data: reviewsData } = await supabase
-        .from('reviews')
-        .select('user_id, title')
-        .eq('movie_id', movie.id)
-        .eq('media_type', movie.media_type || 'movie')
-        .in('user_id', ratingUserIds);
-
-      // Step 4: Combine ratings with profiles and review titles
-      const formattedRatings: FriendRating[] = ratingsData
-        .map((r: any) => {
-          const profile = profilesData?.find(p => p.id === r.user_id);
-          const review = reviewsData?.find(rv => rv.user_id === r.user_id);
-          return {
-            user_id: r.user_id,
-            username: profile?.username || 'Unknown',
-            avatar_url: profile?.avatar_url || null,
-            rating: r.rating,
-            review_title: review?.title || null
-          };
-        })
-        .filter(r => r.rating !== null)
-        .slice(0, 5);
-
-      const shuffled = formattedRatings.sort(() => Math.random() - 0.5);
-      setFriendRatings(shuffled);
+      setFriendRatings(combined);
     } catch (error) {
       console.error('Error loading friend ratings:', error);
       setFriendRatings([]);
@@ -1016,6 +1077,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     return 'bg-green-600 text-white';
   };
 
+  // Cor específica pro ÍCONE do escudo — getCertificationColor mistura
+  // fundo+texto (formato certo pro badge de texto), mas não dá pra
+  // aplicar isso direto num ícone SVG. O escudo ficava sempre cinza
+  // porque nunca recebia nenhuma cor condicional, só o badge de texto ao
+  // lado dele mudava de cor.
+  const getCertificationIconColor = (standardized: string | null): string => {
+    if (!standardized) return 'text-gray-400 dark:text-gray-500';
+    if (standardized === '+18') return 'text-gray-900 dark:text-gray-100';
+    if (standardized === '+16') return 'text-red-600 dark:text-red-400';
+    if (standardized === '+14') return 'text-orange-500 dark:text-orange-400';
+    if (standardized === '+12') return 'text-yellow-500 dark:text-yellow-400';
+    if (standardized === '+10') return 'text-blue-500 dark:text-blue-400';
+    return 'text-green-600 dark:text-green-400';
+  };
+
   // Get origin country - support both API format (production_countries) and cache format (origin_country)
   const getOriginCountry = () => {
     // Try cache format first (origin_country: ["US"])
@@ -1045,7 +1121,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   };
 
   // Função para obter cor da bolha baseada na nota
-  const getBubbleColor = (rating: number) => {
+  const getBubbleColor = (rating: number | null) => {
+    if (rating === null) return 'from-sky-400 to-blue-500'; // Watchlist — neutro, não sugere "nota ruim"
     if (rating === 10) return 'from-purple-400 via-pink-400 to-blue-400'; // Holográfico
     if (rating >= 7) return 'from-green-400 to-emerald-500'; // Verde
     if (rating >= 4) return 'from-orange-400 to-amber-500'; // Laranja
@@ -1053,7 +1130,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   };
 
     // Função para verificar se a nota é 10
-  const isPerfectScore = (rating: number) => rating === 10;
+  const isPerfectScore = (rating: number | null) => rating === 10;
 
   // Mesmas cores usadas no Duelo e na Recomendação do Dia — identidade
   // visual consistente de cada oráculo em todo o site.
@@ -1181,7 +1258,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           { top: '25%', right: '15%' },
                           { top: '50%', left: '8%' },
                           { top: '65%', right: '12%' },
-                          { top: '80%', left: '50%', transform: 'translateX(-50%)' }
+                          // Antes centralizada (left: 50%) — na mesma área
+                          // onde o balão de diálogo dos oráculos também
+                          // aparece, criando um conflito de layout que fazia
+                          // essa 5ª bolha "teleportar" pro lado nos primeiros
+                          // segundos assim que o balão do oráculo entrava em
+                          // cena. Já nasce deslocada pro lado agora, fora do
+                          // campo desse balão.
+                          { top: '80%', right: '8%' }
                         ];
                         const position = positions[index] || positions[0];
 
@@ -1216,31 +1300,49 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                   </div>
                                 </div>
 
-                                {/* Badge de nota - Posicionado FORA do avatar */}
+                                {/* Badge - nota, ou emoji de olhos quando é
+                                    só watchlist (ainda não assistiu, não faz
+                                    sentido mostrar nota nenhuma) */}
                                 <div className="absolute -bottom-2 -right-2" style={{ zIndex: 20 }}>
-                                  {/* Efeito ping para nota 10 */}
                                   {isPerfectScore(friend.rating) && (
                                     <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 animate-ping opacity-75"></div>
                                   )}
-                                  {/* Badge */}
                                   <div className={`relative w-8 h-8 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-3 border-white dark:border-gray-800 shadow-2xl flex items-center justify-center ${isPerfectScore(friend.rating) ? 'shadow-[0_0_20px_rgba(168,85,247,0.8)] ring-2 ring-purple-400/50' : ''}`}>
                                     <span className="text-xs font-extrabold text-white drop-shadow-lg">
-                                      {friend.rating}
+                                      {friend.is_watchlist_only ? '👀' : friend.rating}
                                     </span>
                                   </div>
                                 </div>
                               </div>
 
-                                                            {friend.review_title ? (
-                                /* Tem review — balão sempre visível, igual ao Friends Activity, sem precisar de hover */
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none" style={{ zIndex: 50 }}>
-                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl w-[110px]">
+                              {friend.review_title ? (
+                                /* Tem review — balão sempre visível, igual ao Friends Activity,
+                                   e clicável: abre o modal de reviews desse filme (já mostra
+                                   todas, incluindo essa). */
+                                <div
+                                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-auto cursor-pointer"
+                                  style={{ zIndex: 50 }}
+                                  onClick={(e) => { e.stopPropagation(); setShowReviewsModal(true); }}
+                                >
+                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl w-[110px] hover:bg-gray-800/95 transition-colors">
                                     <p className="text-white text-[9px] font-semibold text-center truncate">
                                       {friend.username}
                                     </p>
-                                                                        <p className="text-gray-300 text-[9px] italic text-center leading-tight line-clamp-2 whitespace-normal mt-0.5">
+                                    <p className="text-gray-300 text-[9px] italic text-center leading-tight line-clamp-2 whitespace-normal mt-0.5">
                                       "{friend.review_title}"
                                     </p>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900/95" />
+                                  </div>
+                                </div>
+                              ) : friend.is_watchlist_only ? (
+                                /* Só watchlist, sem review — balão sempre visível também, com
+                                   o emoji de "de olho", igual em espírito ao balão de review. */
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none" style={{ zIndex: 50 }}>
+                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl">
+                                    <p className="text-white text-[9px] font-semibold text-center whitespace-nowrap">
+                                      {friend.username}
+                                    </p>
+                                    <p className="text-center text-sm leading-tight mt-0.5">👀</p>
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900/95" />
                                   </div>
                                 </div>
@@ -1416,7 +1518,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       idêntica pra qualquer filme. */}
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
                     <div className="flex items-center justify-center mb-2">
-                      <Shield className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                      <Shield className={`w-5 h-5 ${getCertificationIconColor(certification)}`} />
                     </div>
                     <div className="text-center">
                       <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.ageLabel')}</div>
