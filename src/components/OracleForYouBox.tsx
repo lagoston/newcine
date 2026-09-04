@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { getMovieDetails, Movie } from '../lib/tmdb';
 import MovieDetailsModal from './MovieDetailsModal';
 import OptimizedPoster from './OptimizedPoster';
+import FloatingFriendBubbles from './FloatingFriendBubbles';
 
 interface Props {
   userId: string;
@@ -164,6 +165,8 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
                     >
                       #{idx + 1}
                     </div>
+
+                    <FloatingFriendBubbles movieId={movie.id} mediaType={movie.media_type || 'movie'} />
 
                     <OptimizedPoster
                       src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
