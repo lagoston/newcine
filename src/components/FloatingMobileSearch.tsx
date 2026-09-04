@@ -160,8 +160,8 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
         <motion.button
           layoutId="floating-search-shell"
           onClick={() => setIsOpen(true)}
-          className="md:hidden fixed bottom-6 left-0 z-40 w-14 h-14 rounded-r-2xl bg-white/10 backdrop-blur-xl border border-white/20 border-l-0 shadow-2xl flex items-center justify-center"
-          style={{ paddingLeft: 'env(safe-area-inset-left)' }}
+          className="md:hidden fixed left-0 z-40 w-14 h-14 rounded-r-2xl bg-white/10 backdrop-blur-xl border border-white/20 border-l-0 shadow-2xl flex items-center justify-center"
+          style={{ paddingLeft: 'env(safe-area-inset-left)', bottom: '25vh' }}
           whileTap={{ scale: 0.92 }}
         >
           <motion.div layoutId="floating-search-icon">
@@ -194,9 +194,9 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                   <form onSubmit={handleSubmit} className="relative flex-shrink-0 p-4 pb-3">
                     <motion.div layoutId="floating-search-icon" className="absolute left-7 top-1/2 -translate-y-1/2 pointer-events-none">
                       {isUserSearch ? (
-                        <AtSign className="w-4 h-4 text-blue-300" />
+                        <AtSign className="w-5 h-5 text-blue-300" />
                       ) : (
-                        <Search className="w-4 h-4 text-white/70" />
+                        <Search className="w-5 h-5 text-white/70" />
                       )}
                     </motion.div>
                     <input
@@ -205,7 +205,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder={t('nav.searchMoviesOrUsers', { defaultValue: 'Buscar filmes ou @usuário...' })}
-                      className="w-full pl-11 pr-10 py-3 text-sm bg-white/10 border border-white/20 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-white/50 transition-all"
+                      className="w-full pl-12 pr-10 py-3 text-sm bg-white/10 border border-white/20 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-white/50 transition-all"
                       autoComplete="off"
                     />
                     {loading ? (
@@ -214,9 +214,9 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                       <button
                         type="button"
                         onClick={handleClose}
-                        className="absolute right-8 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                        className="absolute right-8 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
                       >
-                        <X className="w-3.5 h-3.5 text-white/80" />
+                        <X className="w-3 h-3 text-white/80" />
                       </button>
                     )}
                   </form>
