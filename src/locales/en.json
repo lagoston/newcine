@@ -353,7 +353,14 @@
     "libraries": {
       "bogartFunctionDesc": "Popular and highly rated films released after 2000.",
       "fincherFunctionDesc": "Popular pre-2000 movies and cult gems",
-      "cypherFunctionDesc": "Lesser-known films, regardless of ratings"
+      "cypherFunctionDesc": "Lesser-known films, regardless of ratings",
+      "title": "Oracles' Library",
+      "description": "Collections and trails curated by the Oracles, built from everything they've already learned about your cinematic taste.",
+      "chooseOracle": "Each oracle sees cinema its own way. Pick one of the three to explore everything it has already set aside for you.",
+      "chooseMood": "Choose a category to explore",
+      "notEnoughTickets": "You don't have enough tickets.",
+      "shelfFullyWatched": "You've already watched everything in this category — great job!",
+      "loadMore30": "+30 titles"
     },
     "selectMood": "Select Your Mood",
     "ticketsLabel": "tickets",
