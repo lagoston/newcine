@@ -117,7 +117,11 @@ const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, 
   ];
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-20">
+    // z-40 — nas listas da Home, o badge de posição ("#1", "#2"...) já
+    // usa zIndex:30 explícito; com z-20 as bolhas ficavam ESCONDIDAS
+    // atrás desse badge. Subindo pra 40, ficam garantidamente na frente
+    // em qualquer contexto onde forem usadas.
+    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 40 }}>
       {bubbles.map((friend, index) => {
         const position = positions[index] || positions[0];
         return (
@@ -127,7 +131,13 @@ const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, 
             style={{ ...position, animationDelay: `${index * 0.3}s` }}
           >
             <div className="relative w-9 h-9 sm:w-10 sm:h-10">
-              <div className={`absolute inset-0 rounded-full border-2 border-white dark:border-gray-700 shadow-xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-0.5`}>
+              {/* Um único anel colorido (sem borda branca separada por
+                  fora) — em tamanhos pequenos como esse, duas bordas
+                  empilhadas (branca + colorida) ficam proporcionalmente
+                  grossas demais e parecem dois círculos concêntricos
+                  distintos, em vez de uma única borda com tingimento
+                  sutil de cor como no modal grande. */}
+              <div className={`absolute inset-0 rounded-full shadow-xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-[1.5px]`}>
                 <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
                   {friend.avatar_url ? (
                     <img src={friend.avatar_url} alt={friend.username} className="w-full h-full object-cover" />
