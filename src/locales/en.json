@@ -138,6 +138,8 @@
     "guestDailySignUpBtn": "Create free account",
     "panels": {
       "welcomeBack": "Welcome back",
+      "openLibrary": "Open Library",
+      "openOracleHub": "Open Oracles Hub",
       "openWatchlistDuel": "Start Duel",
       "yourLibrary": "Your Library",
       "films": "films",
