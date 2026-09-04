@@ -8,6 +8,7 @@ import Logo from '../components/Logo';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import OptimizedPoster from '../components/OptimizedPoster';
+import FloatingFriendBubbles from '../components/FloatingFriendBubbles';
 import HomeUserPanels from '../components/HomeUserPanels';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -303,6 +304,10 @@ interface MovieCarouselProps {
   // ex: "Melhores dos Amigos" sem seguir ninguém ainda. Sem isso, o
   // carrossel mostra a área vazia normalmente.
   emptyState?: React.ReactNode;
+  // Mostra as bolhas flutuantes de amigos (versão fechada, sem balão de
+  // diálogo) em cada pôster — só usado no "Popular Agora", não nos
+  // outros carrosséis que reaproveitam esse mesmo componente genérico.
+  showFriendBubbles?: boolean;
 }
 
 const getCarouselThemeClasses = (theme?: 'gold' | 'purple') => {
@@ -336,7 +341,7 @@ const getCarouselThemeClasses = (theme?: 'gold' | 'purple') => {
   };
 };
 
-const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, onViewAll, onMovieClick, viewAllLabel, theme, emptyState }) => {
+const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, onViewAll, onMovieClick, viewAllLabel, theme, emptyState, showFriendBubbles }) => {
   const themeClasses = getCarouselThemeClasses(theme);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -444,6 +449,9 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, o
               >
                 #{index + 1}
               </div>
+              {showFriendBubbles && (
+                <FloatingFriendBubbles movieId={movie.id} mediaType={movie.media_type || 'movie'} />
+              )}
               <OptimizedPoster
                 src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
                 alt={movie.title}
@@ -786,6 +794,7 @@ const Home = () => {
           onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.popularNow'), movies: trendingMovies })}
           onMovieClick={handleMovieClick}
           viewAllLabel={t('common.view_all')}
+          showFriendBubbles
         />
         <MovieCarousel
           title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🎬</span> {t('home.comingSoon')}</span>}
