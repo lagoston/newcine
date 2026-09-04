@@ -325,7 +325,7 @@
     "seasonsAndEpisodes": "Temporadas e Episódios"
   },
   "oracle": {
-    "title": "O ORÁCULO",
+    "title": "Central dos Oráculos",
     "choosePath": "Escolha seu caminho...",
     "prediction": {
       "title": "Câmara de Previsão",
@@ -434,7 +434,7 @@
     "archetypeExplain": "Seu Arquétipo é formado pelas duas balanças com maior pontuação, as forças que hoje brilham mais forte em você.",
     "subcategoryExplain": "O Sub-arquétipo representa sua inclinação ou tom. Ela não é calculada pelos gêneros, mas pela Calibragem que você fez ao responder o questionário inicial.",
     "axesExplain": "Ao responder às balanças, você definiu sua tendência em três eixos opostos:",
-    "loadingOracle": "Carregando Oráculo...",
+    "loadingOracle": "Carregando Oráculos...",
     "spectrum": {
       "E": "Emocional",
       "I": "Intelectual",
