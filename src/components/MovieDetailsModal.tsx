@@ -1344,7 +1344,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                       {friend.username}
                                     </p>
                                     <p className="text-sky-300 text-[9px] italic text-center leading-tight mt-0.5 whitespace-nowrap">
-                                      {t('movie.wantingToWatch', { defaultValue: 'Querendo Assistir...' })}
+                                      {t('movies.wantingToWatch', { defaultValue: 'Querendo Assistir...' })}
                                     </p>
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900/95" />
                                   </div>
