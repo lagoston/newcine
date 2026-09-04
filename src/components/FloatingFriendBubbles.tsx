@@ -148,7 +148,7 @@ const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, 
                   )}
                 </div>
               </div>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center">
+              <div className={`absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center`}>
                 <span className="text-[8px] sm:text-[9px] font-extrabold text-white">
                   {friend.is_watchlist_only ? '👀' : friend.rating}
                 </span>
