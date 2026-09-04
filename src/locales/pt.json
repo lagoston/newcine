@@ -354,7 +354,14 @@
     "libraries": {
       "bogartFunctionDesc": "Filmes Pós-2000, populares e bem avaliados.",
       "fincherFunctionDesc": "Filmes Pré-2000 populares e joias cult",
-      "cypherFunctionDesc": "Filmes pouco populares independente de avaliações"
+      "cypherFunctionDesc": "Filmes pouco populares independente de avaliações",
+      "title": "Biblioteca dos Oráculos",
+      "description": "Coleções e trilhas curadas pelos Oráculos, construídas a partir de tudo que eles já aprenderam sobre o seu gosto cinematográfico.",
+      "chooseOracle": "Cada oráculo enxerga o cinema à sua própria maneira. Escolha um dos três para explorar tudo que ele já separou pra você.",
+      "chooseMood": "Escolha uma categoria pra explorar",
+      "notEnoughTickets": "Você não tem tickets suficientes.",
+      "shelfFullyWatched": "Você já assistiu tudo dessa categoria — bom trabalho!",
+      "loadMore30": "+30 títulos"
     },
     "selectMood": "Selecione Seu Humor",
     "ticketsLabel": "tickets",
