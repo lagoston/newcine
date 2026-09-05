@@ -45,7 +45,8 @@
     "import": "Import",
     "saving": "Saving...",
     "customName": "Custom Name",
-    "redirect": "Redirecting you to your profile..."
+    "redirect": "Redirecting you to your profile...",
+    "noResults": "No results found."
   },
   "auth": {
     "signIn": "Sign In",
@@ -96,7 +97,9 @@
     "profile": "Social",
     "oracle": "Oracle",
     "premium": "Premium",
-    "searchMovies": "Search movies..."
+    "searchMovies": "Search movies...",
+    "searchMoviesOrUsers": "Search movies or @username...",
+    "startTypingToSearch": "Type to search, or use @ to find people."
   },
   "home": {
     "welcome": "Welcome back, {{username}}!",

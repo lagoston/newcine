@@ -18,25 +18,13 @@ interface FloatingMobileSearchProps {
   onMovieSelect: (movie: Movie) => void;
 }
 
-// v3 — reconstrução completa da parte de layout/teclado. As duas
-// tentativas anteriores erravam na mesma direção: tentavam fazer o
-// painel "fugir" do teclado (encolhendo a altura, ou deslocando pra
-// cima com base em window.visualViewport). Isso criava exatamente o bug
-// relatado — ao mover/encolher o painel, aparecia uma faixa vazia
-// (cinza, cor do body por trás) entre a nova borda inferior do painel e
-// a base real da tela, onde o teclado ainda não tinha terminado de
-// entrar.
-//
-// A abordagem certa é a oposta: o painel de vidro NUNCA se move nem
-// encolhe. O fundo dele se estende bem além da base visível da tela
-// (várias dezenas de vh abaixo do que qualquer teclado jamais cobriria),
-// então não existe "borda final" visível pra revelar nada por trás. A
-// barra de busca fica numa camada PRÓPRIA, fixa na base real da tela
-// (bottom:0, respeitando a área segura) — esse é o padrão que apps como
-// mensageria usam pra caixas de texto na base: navegadores modernos
-// (Safari iOS recente, Chrome Android) já posicionam elementos
-// fixed+bottom:0 corretamente por cima do teclado nativo sem precisar
-// de nenhum cálculo manual de altura de viewport em JS.
+// O painel de vidro e a barra de busca são camadas INDEPENDENTES.
+// O painel usa vh (não dvh) para que seu topo permaneça fixo mesmo
+// quando o teclado mobile altera a altura dinâmica da viewport.
+// A barra de busca é posicionada via visualViewport API — subindo
+// exatamente o tamanho do teclado — ficando sempre visível acima dele.
+// O teclado cobre parte dos resultados por baixo, exatamente como uma
+// caixa de mensagem de chat se comporta.
 const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSelect }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -220,7 +208,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 layout="position"
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 className="md:hidden fixed left-0 right-0 z-[95] rounded-t-3xl bg-white/10 backdrop-blur-2xl border border-white/20 border-b-0 shadow-2xl overflow-hidden"
-                style={{ top: '22dvh', bottom: '-50vh' }}
+                style={{ top: '22vh', bottom: '-50vh' }}
               >
                 <div className="absolute inset-0 flex flex-col" style={{ paddingBottom: '92px' }}>
                   <div className="flex-shrink-0 flex items-center justify-end p-3">
@@ -267,7 +255,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                           </motion.div>
                         ) : query.trim().length > 1 && !loading ? (
                           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/50 text-sm py-8">
-                            {t('common.noResults', { defaultValue: 'Nenhum resultado encontrado.' })}
+                            {t('common.noResults')}
                           </motion.p>
                         ) : null
                       ) : movieResults.length > 0 ? (
@@ -330,11 +318,11 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                         </motion.div>
                       ) : query.trim().length > 1 && !loading ? (
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/50 text-sm py-8">
-                          {t('common.noResults', { defaultValue: 'Nenhum resultado encontrado.' })}
+                          {t('common.noResults')}
                         </motion.p>
                       ) : (
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/40 text-xs py-8">
-                          {t('nav.startTypingToSearch', { defaultValue: 'Digite pra buscar, ou @ pra encontrar pessoas.' })}
+                          {t('nav.startTypingToSearch')}
                         </motion.p>
                       )}
                     </AnimatePresence>
@@ -342,18 +330,9 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 </div>
               </motion.div>
 
-              {/* Barra de busca — camada TOTALMENTE independente do
-                  painel de vidro dos resultados (que fica sempre
-                  parado, sem nenhuma lógica de teclado). Só essa barra
-                  se move, acompanhando ativamente a altura do teclado
-                  via window.visualViewport (keyboardHeight) — a
-                  primeira tentativa confiava no navegador reposicionar
-                  sozinho um elemento fixed+bottom:0 por cima do
-                  teclado, mas isso se mostrou pouco confiável na
-                  prática, então agora o deslocamento é calculado
-                  explicitamente. O teclado cobre parte dos resultados
-                  por baixo até ser fechado — comportamento esperado,
-                  igual uma caixa de mensagem de chat. */}
+              {/* Barra de busca — camada totalmente independente do
+                  painel de vidro. Só ela reage ao teclado via
+                  visualViewport; o painel de resultados fica parado. */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -372,7 +351,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={t('nav.searchMoviesOrUsers', { defaultValue: 'Buscar filmes ou @usuário...' })}
+                    placeholder={t('nav.searchMoviesOrUsers')}
                     className="w-full pl-4 pr-10 py-3 text-sm bg-white/15 border border-white/25 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-white/50 backdrop-blur-2xl shadow-2xl transition-all"
                     autoComplete="off"
                   />
