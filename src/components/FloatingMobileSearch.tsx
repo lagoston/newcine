@@ -163,8 +163,20 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
     navigate(`/profile/${profile.username}`);
   };
 
+  // Antes navegava pra Add Movies ao pressionar Enter — isso fazia o
+  // teclado mobile mostrar uma barra extra por cima dele (com um botão
+  // de fechar/Done), um comportamento diferente do que aparece numa
+  // busca "simples" sem ação de navegação real associada à tecla de
+  // ação do teclado. Agora Enter só fecha o teclado, sem sair da tela.
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    inputRef.current?.blur();
+  };
+
+  // Clique explícito no botão "Buscar X →" dentro dos resultados — esse
+  // sim é uma ação intencional de navegação, diferente do Enter do
+  // teclado (que agora só fecha ele).
+  const handleGoToFullSearch = () => {
     if (!query.trim() || isUserSearch) return;
     navigate(`/add-movies?search=${encodeURIComponent(query.trim())}`);
     handleClose();
@@ -205,7 +217,6 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                   efeito de "gelatina" saindo do botão fechado. */}
               <motion.div
                 layoutId="floating-search-shell"
-                layout="position"
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 className="md:hidden fixed left-0 right-0 z-[95] rounded-t-3xl bg-white/10 backdrop-blur-2xl border border-white/20 border-b-0 shadow-2xl overflow-hidden"
                 style={{ top: '22vh', bottom: '-50vh' }}
@@ -310,7 +321,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                           })}
                           <button
                             type="button"
-                            onClick={handleSubmit as any}
+                            onClick={handleGoToFullSearch}
                             className="w-full py-3 text-xs text-blue-300 hover:text-blue-200 transition-colors text-center"
                           >
                             {t('nav.searchMovies')} &ldquo;{query}&rdquo; &rarr;
