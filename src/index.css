@@ -7,10 +7,16 @@
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
+    /* Desabilita o gesto nativo de "arrastar da borda esquerda/direita
+       pra voltar/avançar no histórico" — em Safari iOS 16+ e Chrome,
+       essa propriedade impede especificamente esse swipe horizontal,
+       sem afetar rolagem vertical normal da página. */
+    overscroll-behavior-x: none;
   }
 
   body {
     @apply antialiased text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900;
+    overscroll-behavior-x: none;
   }
 
   /* Improve touch targets */
