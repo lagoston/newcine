@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { X, Loader2, GripVertical, ArrowUpDown } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import { useTranslation } from 'react-i18next';
@@ -13,24 +13,61 @@ interface ReorderListModalProps {
   listName: string;
 }
 
-// Antes usava a API de drag-and-drop nativa do HTML5 (draggable,
-// onDragStart/onDragEnter) — funciona mal em touch/mobile e não tem
-// nenhuma animação suave durante o arraste, o item só "salta" pra nova
-// posição quando solta. Reorder do Framer Motion resolve os dois
-// problemas: gestos de toque funcionam nativamente, e a lista inteira
-// anima suavemente enquanto o item é arrastado por cima dela.
-const ReorderItem: React.FC<{ movie: Movie; index: number }> = ({ movie, index }) => {
-  const dragControls = useDragControls();
+// Reescrito do zero — a versão anterior usava Reorder.Group do Framer
+// Motion, um componente feito especificamente para LISTAS LINEARES (um
+// só eixo). Ele decide trocas de posição olhando só a coordenada Y de
+// cada item — mas aqui os itens vivem numa GRADE de várias colunas, onde
+// vários itens dividem a MESMA linha (mesma posição Y). Resultado: o
+// algoritmo só reagia a movimento vertical entre linhas, ignorando
+// completamente a coluna — exatamente o bug relatado ("só dá pra mexer
+// de cima pra baixo", ordem bagunçada.
+//
+// Esta versão detecta colisão em DUAS dimensões: durante o arraste,
+// mede o centro real do item arrastado (via getBoundingClientRect, que
+// já reflete a posição visual atualizada pelo drag) e compara contra o
+// centro de TODOS os outros itens, achando qual retângulo contém esse
+// ponto — dessa forma um movimento puramente horizontal (mesma linha,
+// coluna diferente) é detectado corretamente, assim como diagonal ou
+// vertical. Ao achar colisão com um item diferente, reordena o array;
+// o `layout` do Framer Motion anima todos os outros itens se
+// reacomodando sozinho.
+interface ReorderItemProps {
+  movie: Movie;
+  index: number;
+  registerRef: (id: number, el: HTMLDivElement | null) => void;
+  onDragPositionChange: (id: number, rect: DOMRect) => void;
+  onDragEnd: () => void;
+}
+
+const ReorderItem: React.FC<ReorderItemProps> = ({ movie, index, registerRef, onDragPositionChange, onDragEnd }) => {
+  const itemRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   return (
-    <Reorder.Item
-      value={movie}
-      dragListener={false}
-      dragControls={dragControls}
-      className="relative rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 shadow-md border-2 border-transparent"
-      whileDrag={{ scale: 1.05, boxShadow: '0 20px 30px -8px rgba(0,0,0,0.4)', zIndex: 50, borderColor: 'rgb(59 130 246)' }}
+    <motion.div
+      ref={(el) => { itemRef.current = el; registerRef(movie.id, el); }}
+      layout
+      drag
+      dragMomentum={false}
+      dragElastic={0}
+      onDragStart={() => setIsDragging(true)}
+      onDrag={() => {
+        if (itemRef.current) {
+          onDragPositionChange(movie.id, itemRef.current.getBoundingClientRect());
+        }
+      }}
+      onDragEnd={() => {
+        setIsDragging(false);
+        onDragEnd();
+      }}
+      whileDrag={{ scale: 1.08, boxShadow: '0 20px 30px -8px rgba(0,0,0,0.5)', zIndex: 50 }}
+      dragTransition={{ bounceStiffness: 500, bounceDamping: 40 }}
+      className={`relative rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 shadow-md border-2 touch-none ${
+        isDragging ? 'border-blue-500 cursor-grabbing' : 'border-transparent cursor-grab'
+      }`}
+      style={{ zIndex: isDragging ? 50 : 1 }}
     >
-      <div className="relative aspect-[2/3]">
+      <div className="relative aspect-[2/3] pointer-events-none">
         <img
           src={movie.poster_path ? `https://image.tmdb.org/t/p/w185${movie.poster_path}` : 'https://via.placeholder.com/185x278?text=No+Image'}
           alt={movie.title}
@@ -48,17 +85,11 @@ const ReorderItem: React.FC<{ movie: Movie; index: number }> = ({ movie, index }
           {index + 1}
         </div>
 
-        {/* Alça de arraste — só essa área dispara o gesto (dragListener
-            desligado no item inteiro), evitando conflito com o scroll
-            normal da página em touch. */}
-        <button
-          onPointerDown={(e) => dragControls.start(e)}
-          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
-        >
+        <div className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
           <GripVertical className="w-4 h-4 text-white" />
-        </button>
+        </div>
       </div>
-    </Reorder.Item>
+    </motion.div>
   );
 };
 
@@ -66,6 +97,13 @@ const ReorderListModal: React.FC<ReorderListModalProps> = ({ isOpen, onClose, on
   const { t } = useTranslation();
   const [reorderedMovies, setReorderedMovies] = useState<Movie[]>(movies);
   const [saving, setSaving] = useState(false);
+  const itemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  // Guarda a ordem "de referência" no momento em que o arraste começou —
+  // a comparação de colisão sempre usa as posições ORIGINAIS (antes do
+  // item começar a se mover), evitando que o cálculo fique perseguindo
+  // um alvo que também está se movendo por causa da própria reordenação.
+  const orderAtDragStartRef = useRef<Movie[]>([]);
+  const lastSwapTargetRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (isOpen) setReorderedMovies(movies);
@@ -79,6 +117,56 @@ const ReorderListModal: React.FC<ReorderListModalProps> = ({ isOpen, onClose, on
       return () => { document.body.style.overflow = originalOverflow; };
     }
   }, [isOpen]);
+
+  const registerRef = useCallback((id: number, el: HTMLDivElement | null) => {
+    if (el) itemRefs.current.set(id, el);
+    else itemRefs.current.delete(id);
+  }, []);
+
+  const handleDragPositionChange = useCallback((draggedId: number, draggedRect: DOMRect) => {
+    if (orderAtDragStartRef.current.length === 0) {
+      orderAtDragStartRef.current = reorderedMovies;
+    }
+
+    const draggedCenterX = draggedRect.left + draggedRect.width / 2;
+    const draggedCenterY = draggedRect.top + draggedRect.height / 2;
+
+    // Acha, entre TODOS os outros itens, qual retângulo contém o centro
+    // do item arrastado agora — funciona em qualquer direção (cima,
+    // baixo, esquerda, direita, diagonal), diferente da versão anterior
+    // que só enxergava cima/baixo.
+    let targetId: number | null = null;
+    itemRefs.current.forEach((el, id) => {
+      if (id === draggedId) return;
+      const rect = el.getBoundingClientRect();
+      if (
+        draggedCenterX >= rect.left &&
+        draggedCenterX <= rect.right &&
+        draggedCenterY >= rect.top &&
+        draggedCenterY <= rect.bottom
+      ) {
+        targetId = id;
+      }
+    });
+
+    if (targetId !== null && targetId !== lastSwapTargetRef.current) {
+      lastSwapTargetRef.current = targetId;
+      setReorderedMovies((current) => {
+        const fromIndex = current.findIndex((m) => m.id === draggedId);
+        const toIndex = current.findIndex((m) => m.id === targetId);
+        if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return current;
+        const updated = [...current];
+        const [moved] = updated.splice(fromIndex, 1);
+        updated.splice(toIndex, 0, moved);
+        return updated;
+      });
+    }
+  }, [reorderedMovies]);
+
+  const handleItemDragEnd = useCallback(() => {
+    orderAtDragStartRef.current = [];
+    lastSwapTargetRef.current = null;
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -131,16 +219,18 @@ const ReorderListModal: React.FC<ReorderListModalProps> = ({ isOpen, onClose, on
                 {t('lists.reorderInstructions')}
               </p>
 
-              <Reorder.Group
-                axis="y"
-                values={reorderedMovies}
-                onReorder={setReorderedMovies}
-                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4"
-              >
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                 {reorderedMovies.map((movie, index) => (
-                  <ReorderItem key={movie.id} movie={movie} index={index} />
+                  <ReorderItem
+                    key={movie.id}
+                    movie={movie}
+                    index={index}
+                    registerRef={registerRef}
+                    onDragPositionChange={handleDragPositionChange}
+                    onDragEnd={handleItemDragEnd}
+                  />
                 ))}
-              </Reorder.Group>
+              </div>
             </div>
 
             <div className="relative flex-shrink-0 flex justify-end gap-3 p-5 border-t border-gray-200/50 dark:border-gray-700/50">
