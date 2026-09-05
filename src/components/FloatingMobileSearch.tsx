@@ -33,6 +33,15 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
   const navigate = useNavigate();
   const { session } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  // O teclado virtual no mobile reduz a área VISÍVEL da tela sem mudar a
+  // altura da janela em si — CSS puro (vh/dvh) nem sempre acompanha isso
+  // de forma confiável, especialmente no Safari iOS, onde um elemento
+  // "fixed" pode ficar posicionado como se o teclado não existisse,
+  // ficando escondido atrás dele ou fazendo a página inteira "pular".
+  // window.visualViewport é a API feita exatamente pra esse problema:
+  // reporta a altura e o deslocamento REAIS da área visível, atualizando
+  // ao vivo quando o teclado abre/fecha.
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [query, setQuery] = useState('');
   const [movieResults, setMovieResults] = useState<Movie[]>([]);
   const [profileResults, setProfileResults] = useState<ProfileResult[]>([]);
@@ -103,11 +112,63 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
 
   useEffect(() => {
     if (isOpen) {
-      const originalOverflow = document.body.style.overflow;
+      // overflow:hidden sozinho às vezes não basta no iOS Safari — o
+      // navegador pode tentar rolar a página por trás pra "ajudar" a
+      // trazer o input focado pra vista, mesmo com o overflow do body
+      // travado, já que esse comportamento de auto-scroll não respeita
+      // sempre o overflow do elemento pai. Fixar a posição do body por
+      // completo durante a abertura é a forma mais robusta de evitar
+      // esse "pulo" da página.
+      const scrollY = window.scrollY;
+      const originalStyle = {
+        position: document.body.style.position,
+        top: document.body.style.top,
+        left: document.body.style.left,
+        right: document.body.style.right,
+        overflow: document.body.style.overflow,
+      };
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
       document.body.style.overflow = 'hidden';
+
       setTimeout(() => inputRef.current?.focus(), 350);
-      return () => { document.body.style.overflow = originalOverflow; };
+
+      return () => {
+        document.body.style.position = originalStyle.position;
+        document.body.style.top = originalStyle.top;
+        document.body.style.left = originalStyle.left;
+        document.body.style.right = originalStyle.right;
+        document.body.style.overflow = originalStyle.overflow;
+        window.scrollTo(0, scrollY);
+      };
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !window.visualViewport) return;
+
+    const vv = window.visualViewport;
+    const updateOffset = () => {
+      // window.innerHeight é a altura da JANELA (não muda com o
+      // teclado). vv.height é a altura VISÍVEL real (encolhe quando o
+      // teclado abre). A diferença entre as duas é exatamente o espaço
+      // que o teclado ocupa por baixo — é isso que o painel precisa
+      // subir pra continuar visível por cima dele, em vez de ficar
+      // escondido atrás ou fazer a tela inteira pular.
+      const offset = window.innerHeight - vv.height - vv.offsetTop;
+      setKeyboardOffset(Math.max(0, offset));
+    };
+
+    updateOffset();
+    vv.addEventListener('resize', updateOffset);
+    vv.addEventListener('scroll', updateOffset);
+    return () => {
+      vv.removeEventListener('resize', updateOffset);
+      vv.removeEventListener('scroll', updateOffset);
+      setKeyboardOffset(0);
+    };
   }, [isOpen]);
 
   const handleClose = () => {
@@ -159,12 +220,13 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
       {!isOpen && (
         <motion.button
           layoutId="floating-search-shell"
+          layout="position"
           onClick={() => setIsOpen(true)}
           className="md:hidden fixed left-0 z-40 w-14 h-14 rounded-r-2xl bg-white/10 backdrop-blur-xl border border-white/20 border-l-0 shadow-2xl flex items-center justify-center"
           style={{ paddingLeft: 'env(safe-area-inset-left)', bottom: '25vh' }}
           whileTap={{ scale: 0.92 }}
         >
-          <motion.div layoutId="floating-search-icon">
+          <motion.div layoutId="floating-search-icon" className="w-5 h-5 flex items-center justify-center">
             <Search className="w-5 h-5 text-white/90" />
           </motion.div>
         </motion.button>
@@ -186,13 +248,24 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                   os dois estados. */}
               <motion.div
                 layoutId="floating-search-shell"
+                layout="position"
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="md:hidden fixed left-0 right-0 bottom-0 z-[95] rounded-t-3xl bg-white/10 backdrop-blur-2xl border border-white/20 border-b-0 shadow-2xl overflow-hidden"
-                style={{ maxHeight: '75dvh', paddingBottom: 'env(safe-area-inset-bottom)' }}
+                className="md:hidden fixed left-0 right-0 z-[95] rounded-t-3xl bg-white/10 backdrop-blur-2xl border border-white/20 border-b-0 shadow-2xl overflow-hidden"
+                style={{
+                  bottom: keyboardOffset,
+                  maxHeight: '75dvh',
+                  paddingBottom: keyboardOffset > 0 ? 0 : 'env(safe-area-inset-bottom)',
+                }}
               >
                 <div className="flex flex-col" style={{ maxHeight: '75dvh' }}>
                   <form onSubmit={handleSubmit} className="relative flex-shrink-0 p-4 pb-3">
-                    <motion.div layoutId="floating-search-icon" className="absolute left-7 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <motion.div
+                      key={isUserSearch ? 'at' : 'search'}
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.15, duration: 0.2 }}
+                      className="absolute left-7 top-1/2 -translate-y-1/2 pointer-events-none"
+                    >
                       {isUserSearch ? (
                         <AtSign className="w-5 h-5 text-blue-300" />
                       ) : (
