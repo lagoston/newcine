@@ -40,12 +40,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full"
+            className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[calc(100dvh-4rem)] flex flex-col overflow-hidden"
           >
-            <div className="p-5 pt-6">
+            <div className="p-5 pt-6 overflow-y-auto">
               <p className="text-gray-700 dark:text-gray-200">{message}</p>
             </div>
-            <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex-shrink-0 flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
