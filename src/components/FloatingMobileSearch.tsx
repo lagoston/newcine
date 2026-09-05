@@ -41,6 +41,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
   const [profileResults, setProfileResults] = useState<ProfileResult[]>([]);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const resultsScrollRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefetchRef = useRef<Map<number, Promise<Movie>>>(new Map());
 
@@ -124,43 +125,33 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
 
   useEffect(() => {
     if (isOpen) {
-      // overflow:hidden sozinho não impede o comportamento nativo do
-      // iOS de rolar a página inteira ao focar um input dentro de um
-      // modal — é um comportamento documentado desde iOS 8/9, sem uma
-      // solução 100% garantida em apps web puros. A técnica mais citada
-      // pra reduzir isso é travar a posição do body por completo
-      // (position: fixed) enquanto o modal estiver aberto, tirando o
-      // documento de trás do jogo de vez, em vez de só travar o scroll.
-      const scrollY = window.scrollY;
-      const original = {
-        position: document.body.style.position,
-        top: document.body.style.top,
-        left: document.body.style.left,
-        right: document.body.style.right,
-        width: document.body.style.width,
-        overflow: document.body.style.overflow,
-      };
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.left = '0';
-      document.body.style.right = '0';
-      document.body.style.width = '100%';
+      // Tentei travar a posição do body inteiro (position: fixed) antes
+      // — é uma técnica comum pra esse problema, mas nesse caso ela
+      // introduziu uma barra cinza visível (provavelmente uma pequena
+      // incompatibilidade entre o novo "box" fixo do body e a barra de
+      // endereço do Safari recolhendo/expandindo). Removida.
+      //
+      // A causa real do "scroll de fundo continua ativo" confirmada
+      // pela sua pista: overflow:hidden sozinho NÃO impede o toque de
+      // rolar a página por trás no iOS — é preciso interceptar o gesto
+      // de toque diretamente. Esse listener bloqueia touchmove em
+      // qualquer lugar da tela EXCETO dentro da área de resultados (que
+      // precisa continuar rolável) — bloqueio cirúrgico, sem mexer no
+      // modelo de caixa do body.
       document.body.style.overflow = 'hidden';
 
-      // preventScroll: true é a API padrão pra evitar que o PRÓPRIO
-      // navegador tente rolar a página ao focar este campo
-      // programaticamente — reduz o "empurrão inicial" antes da lógica
-      // de keyboardHeight assumir o controle.
+      const preventBackgroundScroll = (e: TouchEvent) => {
+        const target = e.target as Node;
+        if (resultsScrollRef.current?.contains(target)) return;
+        e.preventDefault();
+      };
+      document.addEventListener('touchmove', preventBackgroundScroll, { passive: false });
+
       setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 350);
 
       return () => {
-        document.body.style.position = original.position;
-        document.body.style.top = original.top;
-        document.body.style.left = original.left;
-        document.body.style.right = original.right;
-        document.body.style.width = original.width;
-        document.body.style.overflow = original.overflow;
-        window.scrollTo(0, scrollY);
+        document.body.style.overflow = '';
+        document.removeEventListener('touchmove', preventBackgroundScroll);
       };
     }
   }, [isOpen]);
@@ -264,7 +255,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                     </button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  <div ref={resultsScrollRef} className="flex-1 overflow-y-auto px-4 pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <AnimatePresence mode="popLayout">
                       {isUserSearch ? (
                         profileResults.length > 0 ? (
