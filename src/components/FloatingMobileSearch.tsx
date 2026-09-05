@@ -125,20 +125,14 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
 
   useEffect(() => {
     if (isOpen) {
-      // Tentei travar a posição do body inteiro (position: fixed) antes
-      // — é uma técnica comum pra esse problema, mas nesse caso ela
-      // introduziu uma barra cinza visível (provavelmente uma pequena
-      // incompatibilidade entre o novo "box" fixo do body e a barra de
-      // endereço do Safari recolhendo/expandindo). Removida.
-      //
-      // A causa real do "scroll de fundo continua ativo" confirmada
-      // pela sua pista: overflow:hidden sozinho NÃO impede o toque de
-      // rolar a página por trás no iOS — é preciso interceptar o gesto
-      // de toque diretamente. Esse listener bloqueia touchmove em
-      // qualquer lugar da tela EXCETO dentro da área de resultados (que
-      // precisa continuar rolável) — bloqueio cirúrgico, sem mexer no
-      // modelo de caixa do body.
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
+      document.body.style.overscrollBehavior = 'none';
 
       const preventBackgroundScroll = (e: TouchEvent) => {
         const target = e.target as Node;
@@ -147,11 +141,22 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
       };
       document.addEventListener('touchmove', preventBackgroundScroll, { passive: false });
 
+      const preventWindowScroll = () => window.scrollTo(0, scrollY);
+      window.addEventListener('scroll', preventWindowScroll, { passive: true });
+
       setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 350);
 
       return () => {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
         document.body.style.overflow = '';
+        document.body.style.overscrollBehavior = '';
+        window.scrollTo(0, scrollY);
         document.removeEventListener('touchmove', preventBackgroundScroll);
+        window.removeEventListener('scroll', preventWindowScroll);
       };
     }
   }, [isOpen]);
@@ -226,6 +231,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[90]"
+                style={{ touchAction: 'none' }}
                 onClick={handleClose}
               />
 
