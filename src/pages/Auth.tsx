@@ -294,6 +294,7 @@ export default function Auth() {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-blue-950/90 to-slate-900 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="fixed inset-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10 -z-10"></div>
           <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-500/15 to-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute top-40 right-20 w-80 h-80 bg-gradient-to-br from-pink-500/12 to-rose-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
           <div className="absolute bottom-40 left-1/3 w-72 h-72 bg-gradient-to-br from-cyan-500/10 to-blue-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
@@ -417,6 +418,7 @@ export default function Auth() {
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-blue-950/90 to-slate-900 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="fixed inset-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10 -z-10"></div>
         <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-500/15 to-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute top-40 right-20 w-80 h-80 bg-gradient-to-br from-pink-500/12 to-rose-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         <div className="absolute bottom-40 left-1/3 w-72 h-72 bg-gradient-to-br from-cyan-500/10 to-blue-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
