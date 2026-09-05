@@ -163,15 +163,8 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
     navigate(`/profile/${profile.username}`);
   };
 
-  // Antes navegava pra Add Movies ao pressionar Enter — isso fazia o
-  // teclado mobile mostrar uma barra extra por cima dele (com um botão
-  // de fechar/Done), um comportamento diferente do que aparece numa
-  // busca "simples" sem ação de navegação real associada à tecla de
-  // ação do teclado. Agora Enter só fecha o teclado, sem sair da tela.
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    inputRef.current?.blur();
-  };
+  // Enter agora é tratado direto no onKeyDown do input (só fecha o
+  // teclado, sem navegar) — não precisa mais de handleSubmit/<form>.
 
   // Clique explícito no botão "Buscar X →" dentro dos resultados — esse
   // sim é uma ação intencional de navegação, diferente do Enter do
@@ -237,7 +230,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                     </button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto px-4 pb-4">
+                  <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <AnimatePresence mode="popLayout">
                       {isUserSearch ? (
                         profileResults.length > 0 ? (
@@ -356,20 +349,33 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                   transition: 'bottom 0.1s ease-out',
                 }}
               >
-                <form onSubmit={handleSubmit} className="relative">
+                {/* Sem <form> de propósito — um elemento <form> real com
+                    onSubmit faz o iOS Safari mostrar uma barra extra de
+                    acessórios acima do teclado (navegação entre campos +
+                    botão de confirmar), pensada pra formulários com
+                    vários campos, não pra uma busca simples de um campo
+                    só. Tratando Enter direto no onKeyDown do input, o
+                    teclado abre no modo "normal", sem essa barra. */}
+                <div className="relative">
                   <input
                     ref={inputRef}
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        inputRef.current?.blur();
+                      }
+                    }}
                     placeholder={t('nav.searchMoviesOrUsers')}
-                    className="w-full pl-4 pr-10 py-3 text-sm bg-white/15 border border-white/25 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-white/50 backdrop-blur-2xl shadow-2xl transition-all"
+                    className="w-full pl-4 pr-10 py-3 text-base bg-white/15 border border-white/25 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-white/50 backdrop-blur-2xl shadow-2xl transition-all"
                     autoComplete="off"
                   />
                   {loading && (
                     <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70 animate-spin" />
                   )}
-                </form>
+                </div>
               </motion.div>
             </>
           )}
