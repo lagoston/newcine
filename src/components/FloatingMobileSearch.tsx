@@ -124,10 +124,44 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
 
   useEffect(() => {
     if (isOpen) {
-      const originalOverflow = document.body.style.overflow;
+      // overflow:hidden sozinho não impede o comportamento nativo do
+      // iOS de rolar a página inteira ao focar um input dentro de um
+      // modal — é um comportamento documentado desde iOS 8/9, sem uma
+      // solução 100% garantida em apps web puros. A técnica mais citada
+      // pra reduzir isso é travar a posição do body por completo
+      // (position: fixed) enquanto o modal estiver aberto, tirando o
+      // documento de trás do jogo de vez, em vez de só travar o scroll.
+      const scrollY = window.scrollY;
+      const original = {
+        position: document.body.style.position,
+        top: document.body.style.top,
+        left: document.body.style.left,
+        right: document.body.style.right,
+        width: document.body.style.width,
+        overflow: document.body.style.overflow,
+      };
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
-      setTimeout(() => inputRef.current?.focus(), 350);
-      return () => { document.body.style.overflow = originalOverflow; };
+
+      // preventScroll: true é a API padrão pra evitar que o PRÓPRIO
+      // navegador tente rolar a página ao focar este campo
+      // programaticamente — reduz o "empurrão inicial" antes da lógica
+      // de keyboardHeight assumir o controle.
+      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 350);
+
+      return () => {
+        document.body.style.position = original.position;
+        document.body.style.top = original.top;
+        document.body.style.left = original.left;
+        document.body.style.right = original.right;
+        document.body.style.width = original.width;
+        document.body.style.overflow = original.overflow;
+        window.scrollTo(0, scrollY);
+      };
     }
   }, [isOpen]);
 
@@ -371,6 +405,8 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                     placeholder={t('nav.searchMoviesOrUsers')}
                     className="w-full pl-4 pr-10 py-3 text-base bg-white/15 border border-white/25 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-white/50 backdrop-blur-2xl shadow-2xl transition-all"
                     autoComplete="off"
+                    autoCorrect="off"
+                    inputMode="search"
                   />
                   {loading && (
                     <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70 animate-spin" />
