@@ -157,20 +157,11 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
       // voltar à posição correta. Eventos de scroll em si não são
       // canceláveis (preventDefault não funciona neles), então corrigir
       // rápido é a única alavanca real disponível aqui.
-      //
-      // Achei a causa real da correção ficar "lenta e travada": o
-      // index.css do projeto tem scroll-behavior: smooth GLOBAL (pra
-      // suavizar links âncora) — isso fazia CADA correção de scroll
-      // aqui também ser animada suavemente, entrando em conflito com o
-      // próprio scroll nativo tentando acontecer ao mesmo tempo, dando
-      // a sensação de "batalha" lenta entre as duas animações. Passar
-      // behavior: 'instant' explicitamente sobrescreve esse CSS global
-      // só pra essa chamada específica, tornando a correção imediata.
       let rafId: number | null = null;
       const preventWindowScroll = () => {
         if (rafId !== null) return;
         rafId = requestAnimationFrame(() => {
-          window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
+          window.scrollTo(0, scrollY);
           rafId = null;
         });
       };
@@ -188,7 +179,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
         document.body.style.overscrollBehavior = '';
         document.body.style.touchAction = '';
         html.style.overscrollBehavior = originalHtmlOverscroll;
-        window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
+        window.scrollTo(0, scrollY);
         document.removeEventListener('touchmove', preventBackgroundScroll);
         window.removeEventListener('scroll', preventWindowScroll);
         if (rafId !== null) cancelAnimationFrame(rafId);
@@ -296,20 +287,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                     </button>
                   </div>
 
-                  {/* touchAction: 'pan-y' é essencial aqui — o body
-                      inteiro tem touchAction:none enquanto o modal está
-                      aberto (pra bloquear o scroll de fundo), e isso é
-                      decidido pelo navegador no nível de reconhecimento
-                      de gestos, ANTES do meu listener de touchmove
-                      rodar. Mesmo esse listener "permitindo" o toque
-                      aqui dentro, o navegador já tinha descartado o
-                      gesto de rolagem por causa do touch-action herdado
-                      do body — só rolava com a rodinha do mouse porque
-                      isso não passa pelo mesmo sistema de gestos de
-                      toque. pan-y reabilita explicitamente o gesto de
-                      rolagem vertical só nessa área, sobrescrevendo a
-                      herança do body. */}
-                  <div ref={resultsScrollRef} className="flex-1 overflow-y-auto px-4 pb-4" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+                  <div ref={resultsScrollRef} className="flex-1 overflow-y-auto px-4 pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <AnimatePresence mode="popLayout">
                       {isUserSearch ? (
                         profileResults.length > 0 ? (
@@ -421,7 +399,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: 0.1, duration: 0.2 }}
-                className="md:hidden fixed left-0 right-0 z-[96] p-3 bg-white/10 backdrop-blur-2xl border-t border-white/20"
+                className="md:hidden fixed left-0 right-0 z-[96] p-3"
                 style={{
                   bottom: keyboardHeight,
                   paddingBottom: keyboardHeight > 0 ? '0.75rem' : 'calc(env(safe-area-inset-bottom) + 0.75rem)',
