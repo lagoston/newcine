@@ -272,6 +272,7 @@ export default function OracleDuel() {
       transition={{ duration: 0.5 }}
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="fixed inset-0 bg-gradient-to-br from-gray-50 via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-pink-900/10 dark:to-purple-900/10 -z-10"></div>
         <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-pink-400/20 to-rose-400/20 dark:from-pink-600/10 dark:to-rose-600/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-violet-400/20 dark:from-purple-600/10 dark:to-violet-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
