@@ -126,6 +126,8 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
   useEffect(() => {
     if (isOpen) {
       const scrollY = window.scrollY;
+      const html = document.documentElement;
+
       document.body.style.position = 'fixed';
       document.body.style.top = `-${scrollY}px`;
       document.body.style.left = '0';
@@ -133,6 +135,13 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
       document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
       document.body.style.overscrollBehavior = 'none';
+      // touchAction:none no body inteiro reforça o bloqueio em qualquer
+      // ponto da tela, não só no backdrop — o <html> também recebe
+      // overscrollBehavior, já que em alguns navegadores o "scroll
+      // elástico" de borda é tratado por ele, não pelo body.
+      document.body.style.touchAction = 'none';
+      const originalHtmlOverscroll = html.style.overscrollBehavior;
+      html.style.overscrollBehavior = 'none';
 
       const preventBackgroundScroll = (e: TouchEvent) => {
         const target = e.target as Node;
@@ -141,7 +150,21 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
       };
       document.addEventListener('touchmove', preventBackgroundScroll, { passive: false });
 
-      const preventWindowScroll = () => window.scrollTo(0, scrollY);
+      // requestAnimationFrame em vez de corrigir direto no handler —
+      // sincroniza a correção com o próximo quadro de repintura do
+      // navegador, o mais cedo possível depois do scroll indesejado ser
+      // percebido, reduzindo a distância visual do "pulo" antes dele
+      // voltar à posição correta. Eventos de scroll em si não são
+      // canceláveis (preventDefault não funciona neles), então corrigir
+      // rápido é a única alavanca real disponível aqui.
+      let rafId: number | null = null;
+      const preventWindowScroll = () => {
+        if (rafId !== null) return;
+        rafId = requestAnimationFrame(() => {
+          window.scrollTo(0, scrollY);
+          rafId = null;
+        });
+      };
       window.addEventListener('scroll', preventWindowScroll, { passive: true });
 
       setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 350);
@@ -154,9 +177,12 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
         document.body.style.width = '';
         document.body.style.overflow = '';
         document.body.style.overscrollBehavior = '';
+        document.body.style.touchAction = '';
+        html.style.overscrollBehavior = originalHtmlOverscroll;
         window.scrollTo(0, scrollY);
         document.removeEventListener('touchmove', preventBackgroundScroll);
         window.removeEventListener('scroll', preventWindowScroll);
+        if (rafId !== null) cancelAnimationFrame(rafId);
       };
     }
   }, [isOpen]);
