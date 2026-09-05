@@ -374,6 +374,7 @@ export default function OracleLibraries() {
   return (
     <div className="min-h-screen pt-20 pb-24 px-4 relative overflow-hidden">
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div className="fixed inset-0 bg-gradient-to-br from-gray-50 via-amber-50/30 to-purple-50/30 dark:from-gray-900 dark:via-amber-900/10 dark:to-purple-900/10 -z-10"></div>
         <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-amber-400/10 to-fuchsia-400/10 dark:from-amber-600/5 dark:to-fuchsia-600/5 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-br from-slate-400/10 to-purple-400/10 dark:from-slate-600/5 dark:to-purple-600/5 rounded-full blur-3xl" />
       </div>
