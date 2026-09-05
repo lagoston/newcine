@@ -18,21 +18,40 @@ interface FloatingMobileSearchProps {
   onMovieSelect: (movie: Movie) => void;
 }
 
-// O painel de vidro usa vh (não dvh) para que seu topo permaneça
-// fixo mesmo quando o teclado mobile altera a altura dinâmica da viewport.
-// A barra de busca é posicionada via visualViewport API — subindo
-// exatamente o tamanho do teclado — em vez de depender do
-// comportamento nativo de fixed+bottom:0, que varia entre navegadores.
+// v3 — reconstrução completa da parte de layout/teclado. As duas
+// tentativas anteriores erravam na mesma direção: tentavam fazer o
+// painel "fugir" do teclado (encolhendo a altura, ou deslocando pra
+// cima com base em window.visualViewport). Isso criava exatamente o bug
+// relatado — ao mover/encolher o painel, aparecia uma faixa vazia
+// (cinza, cor do body por trás) entre a nova borda inferior do painel e
+// a base real da tela, onde o teclado ainda não tinha terminado de
+// entrar.
+//
+// A abordagem certa é a oposta: o painel de vidro NUNCA se move nem
+// encolhe. O fundo dele se estende bem além da base visível da tela
+// (várias dezenas de vh abaixo do que qualquer teclado jamais cobriria),
+// então não existe "borda final" visível pra revelar nada por trás. A
+// barra de busca fica numa camada PRÓPRIA, fixa na base real da tela
+// (bottom:0, respeitando a área segura) — esse é o padrão que apps como
+// mensageria usam pra caixas de texto na base: navegadores modernos
+// (Safari iOS recente, Chrome Android) já posicionam elementos
+// fixed+bottom:0 corretamente por cima do teclado nativo sem precisar
+// de nenhum cálculo manual de altura de viewport em JS.
 const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSelect }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { session } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  // Rastreado só pra mover a BARRA DE BUSCA — o painel de vidro dos
+  // resultados fica sempre parado, sem nenhuma lógica de teclado
+  // aplicada a ele. Só a barra sobe junto com o teclado, deixando o
+  // teclado cobrir parte dos resultados por baixo até ser fechado —
+  // exatamente como uma caixa de mensagem de chat se comporta.
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [query, setQuery] = useState('');
   const [movieResults, setMovieResults] = useState<Movie[]>([]);
   const [profileResults, setProfileResults] = useState<ProfileResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [keyboardInset, setKeyboardInset] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefetchRef = useRef<Map<number, Promise<Movie>>>(new Map());
@@ -93,32 +112,35 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
   }, [query, search]);
 
   useEffect(() => {
+    if (!isOpen || !window.visualViewport) return;
+
+    const vv = window.visualViewport;
+    const updateKeyboardHeight = () => {
+      // Diferença entre a altura da JANELA (fixa) e a altura VISÍVEL
+      // real (encolhe com o teclado) = altura que o teclado ocupa.
+      // Só usada pra deslocar a barra de busca — nada mais na tela
+      // reage a essa mudança.
+      const occluded = window.innerHeight - vv.height - vv.offsetTop;
+      setKeyboardHeight(Math.max(0, occluded));
+    };
+
+    updateKeyboardHeight();
+    vv.addEventListener('resize', updateKeyboardHeight);
+    vv.addEventListener('scroll', updateKeyboardHeight);
+    return () => {
+      vv.removeEventListener('resize', updateKeyboardHeight);
+      vv.removeEventListener('scroll', updateKeyboardHeight);
+      setKeyboardHeight(0);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isOpen) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       setTimeout(() => inputRef.current?.focus(), 350);
       return () => { document.body.style.overflow = originalOverflow; };
     }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setKeyboardInset(0);
-      return;
-    }
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => {
-      const kb = window.innerHeight - vv.height - vv.offsetTop;
-      setKeyboardInset(kb > 0 ? kb : 0);
-    };
-    update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-    };
   }, [isOpen]);
 
   const handleClose = () => {
@@ -198,7 +220,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 layout="position"
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 className="md:hidden fixed left-0 right-0 z-[95] rounded-t-3xl bg-white/10 backdrop-blur-2xl border border-white/20 border-b-0 shadow-2xl overflow-hidden"
-                style={{ top: '22vh', bottom: '-50vh' }}
+                style={{ top: '22dvh', bottom: '-50vh' }}
               >
                 <div className="absolute inset-0 flex flex-col" style={{ paddingBottom: '92px' }}>
                   <div className="flex-shrink-0 flex items-center justify-end p-3">
@@ -320,20 +342,29 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 </div>
               </motion.div>
 
-              {/* Barra de busca — camada própria, fixa na base REAL da
-                  tela (bottom:0 + área segura), sem ícone de lupa/@
-                  dentro (removido). Fica sempre na mesma posição visual;
-                  quando o teclado nativo aparece, ele simplesmente sobe
-                  por baixo dela e para exatamente aqui, sem empurrar
-                  nem redimensionar nada — comportamento nativo de
-                  elementos fixed+bottom:0 nos navegadores mobile atuais. */}
+              {/* Barra de busca — camada TOTALMENTE independente do
+                  painel de vidro dos resultados (que fica sempre
+                  parado, sem nenhuma lógica de teclado). Só essa barra
+                  se move, acompanhando ativamente a altura do teclado
+                  via window.visualViewport (keyboardHeight) — a
+                  primeira tentativa confiava no navegador reposicionar
+                  sozinho um elemento fixed+bottom:0 por cima do
+                  teclado, mas isso se mostrou pouco confiável na
+                  prática, então agora o deslocamento é calculado
+                  explicitamente. O teclado cobre parte dos resultados
+                  por baixo até ser fechado — comportamento esperado,
+                  igual uma caixa de mensagem de chat. */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: 0.1, duration: 0.2 }}
                 className="md:hidden fixed left-0 right-0 z-[96] p-3"
-                style={{ bottom: keyboardInset, paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+                style={{
+                  bottom: keyboardHeight,
+                  paddingBottom: keyboardHeight > 0 ? '0.75rem' : 'calc(env(safe-area-inset-bottom) + 0.75rem)',
+                  transition: 'bottom 0.1s ease-out',
+                }}
               >
                 <form onSubmit={handleSubmit} className="relative">
                   <input
