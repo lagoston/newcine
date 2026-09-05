@@ -18,25 +18,11 @@ interface FloatingMobileSearchProps {
   onMovieSelect: (movie: Movie) => void;
 }
 
-// v3 — reconstrução completa da parte de layout/teclado. As duas
-// tentativas anteriores erravam na mesma direção: tentavam fazer o
-// painel "fugir" do teclado (encolhendo a altura, ou deslocando pra
-// cima com base em window.visualViewport). Isso criava exatamente o bug
-// relatado — ao mover/encolher o painel, aparecia uma faixa vazia
-// (cinza, cor do body por trás) entre a nova borda inferior do painel e
-// a base real da tela, onde o teclado ainda não tinha terminado de
-// entrar.
-//
-// A abordagem certa é a oposta: o painel de vidro NUNCA se move nem
-// encolhe. O fundo dele se estende bem além da base visível da tela
-// (várias dezenas de vh abaixo do que qualquer teclado jamais cobriria),
-// então não existe "borda final" visível pra revelar nada por trás. A
-// barra de busca fica numa camada PRÓPRIA, fixa na base real da tela
-// (bottom:0, respeitando a área segura) — esse é o padrão que apps como
-// mensageria usam pra caixas de texto na base: navegadores modernos
-// (Safari iOS recente, Chrome Android) já posicionam elementos
-// fixed+bottom:0 corretamente por cima do teclado nativo sem precisar
-// de nenhum cálculo manual de altura de viewport em JS.
+// O painel de vidro usa vh (não dvh) para que seu topo permaneça
+// fixo mesmo quando o teclado mobile altera a altura dinâmica da viewport.
+// A barra de busca é posicionada via visualViewport API — subindo
+// exatamente o tamanho do teclado — em vez de depender do
+// comportamento nativo de fixed+bottom:0, que varia entre navegadores.
 const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSelect }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -46,6 +32,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
   const [movieResults, setMovieResults] = useState<Movie[]>([]);
   const [profileResults, setProfileResults] = useState<ProfileResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefetchRef = useRef<Map<number, Promise<Movie>>>(new Map());
@@ -112,6 +99,26 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
       setTimeout(() => inputRef.current?.focus(), 350);
       return () => { document.body.style.overflow = originalOverflow; };
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setKeyboardInset(0);
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const kb = window.innerHeight - vv.height - vv.offsetTop;
+      setKeyboardInset(kb > 0 ? kb : 0);
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
   }, [isOpen]);
 
   const handleClose = () => {
@@ -191,7 +198,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 layout="position"
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 className="md:hidden fixed left-0 right-0 z-[95] rounded-t-3xl bg-white/10 backdrop-blur-2xl border border-white/20 border-b-0 shadow-2xl overflow-hidden"
-                style={{ top: '22dvh', bottom: '-50vh' }}
+                style={{ top: '22vh', bottom: '-50vh' }}
               >
                 <div className="absolute inset-0 flex flex-col" style={{ paddingBottom: '92px' }}>
                   <div className="flex-shrink-0 flex items-center justify-end p-3">
@@ -325,8 +332,8 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: 0.1, duration: 0.2 }}
-                className="md:hidden fixed left-0 right-0 bottom-0 z-[96] p-3"
-                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+                className="md:hidden fixed left-0 right-0 z-[96] p-3"
+                style={{ bottom: keyboardInset, paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
               >
                 <form onSubmit={handleSubmit} className="relative">
                   <input
