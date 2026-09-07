@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Star, Dices, Loader2 } from 'lucide-react';
-import { Movie, getMovieDetails } from '../lib/tmdb';
+import { Movie, getMovieDetails, getTvProgressBatch, TvProgress } from '../lib/tmdb';
+import { useAuth } from '../lib/auth';
 import { useTranslation } from 'react-i18next';
 import MovieDetailsModal from './MovieDetailsModal';
 
@@ -58,8 +59,51 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
   theme,
 }) => {
   const { t } = useTranslation();
+  const { session } = useAuth();
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  // Mesma lógica de progresso já usada no RatingBox — esse modal
+  // ("Ver Todos") tinha ficado com a versão antiga: roxo fixo só por
+  // media_type === 'tv', sem nenhuma relação com progresso real de
+  // episódios assistidos.
+  const [tvProgressData, setTvProgressData] = useState<Map<number, TvProgress>>(new Map());
+
+  const refetchTvProgress = useCallback(() => {
+    const tvIds = movies.filter((m) => m.media_type === 'tv').map((m) => m.id);
+    if (tvIds.length === 0 || !session?.user?.id) {
+      setTvProgressData(new Map());
+      return;
+    }
+    getTvProgressBatch(session.user.id, tvIds).then((data) => {
+      setTvProgressData(data);
+    });
+  }, [movies, session?.user?.id]);
+
+  useEffect(() => {
+    refetchTvProgress();
+  }, [refetchTvProgress]);
+
+  const getTvProgress = (movie: Movie) => {
+    const progress = tvProgressData.get(movie.id);
+    const aired = progress?.airedCount || 0;
+    const watched = progress?.watchedCount || 0;
+    const percent = aired > 0 ? Math.min(100, (watched / aired) * 100) : 0;
+    const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
+
+    let bgTint = 'bg-blue-50/70 dark:bg-blue-900/20';
+    let barColor = 'from-blue-400 to-blue-500';
+    if (percent >= 100) {
+      if (stillAiring) {
+        bgTint = 'bg-purple-50/70 dark:bg-purple-900/20';
+        barColor = 'from-purple-400 to-purple-500';
+      } else {
+        bgTint = 'bg-pink-50/70 dark:bg-pink-900/20';
+        barColor = 'from-pink-400 to-pink-500';
+      }
+    }
+
+    return { percent, bgTint, barColor };
+  };
 
   // Bloqueia a rolagem da página por trás enquanto o modal está aberto —
   // faltava completamente antes, então era possível rolar o fundo da
@@ -151,15 +195,25 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
                   {movies.map((movie) => (
                     <div
                       key={movie.id}
-                      className={`rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer ${
+                      className={`relative rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer ${
                         loadingDetails ? 'pointer-events-none opacity-70' : ''
                       } ${
                         movie.media_type === 'tv'
-                          ? 'bg-purple-50/70 dark:bg-purple-900/20'
+                          ? getTvProgress(movie).bgTint
                           : 'bg-gray-50 dark:bg-gray-700/50'
                       }`}
                       onClick={() => handleMovieClick(movie)}
                     >
+                      {movie.media_type === 'tv' && (
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-black/10 dark:bg-white/10 overflow-hidden z-10">
+                          <motion.div
+                            className={`h-full bg-gradient-to-r ${getTvProgress(movie).barColor}`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${getTvProgress(movie).percent}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                          />
+                        </div>
+                      )}
                       <div className="relative aspect-[2/3]">
                         <img
                           src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
@@ -222,6 +276,7 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
           onClose={handleCloseDetails}
           isOtherUserProfile={isOtherUserProfile}
           onAddToLibrary={onAddToLibrary}
+          onEpisodeToggle={refetchTvProgress}
         />
       )}
     </>,
