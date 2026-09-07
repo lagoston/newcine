@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Swords, Filter } from 'lucide-react';
-import { Movie, getTvWatchedCounts } from '../lib/tmdb';
+import { Movie, getTvProgressBatch, TvProgress } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import ConfirmationModal from './ConfirmationModal';
 import MovieDetailsModal from './MovieDetailsModal';
@@ -87,20 +87,22 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const [showAddToList, setShowAddToList] = useState<{movieId: number, title: string} | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [mobileMenuMovie, setMobileMenuMovie] = useState<Movie | null>(null);
-  // tmdb_id -> quantidade de episódios assistidos. Buscado em lote (uma
+  // tmdb_id -> { watchedCount, airedCount }. Buscado em lote (uma
   // consulta pra todas as séries visíveis nesse card, não uma por
-  // série) sempre que a lista de filmes mudar.
-  const [tvWatchedCounts, setTvWatchedCounts] = useState<Map<number, number>>(new Map());
+  // série) sempre que a lista de filmes mudar. airedCount (não o total
+  // de episódios da série) é o denominador certo do progresso — conta
+  // só o que já foi lançado, não episódios futuros ainda inéditos.
+  const [tvProgressData, setTvProgressData] = useState<Map<number, TvProgress>>(new Map());
 
   useEffect(() => {
     const tvIds = movies.filter((m) => m.media_type === 'tv').map((m) => m.id);
     if (tvIds.length === 0 || !session?.user?.id) {
-      setTvWatchedCounts(new Map());
+      setTvProgressData(new Map());
       return;
     }
     let cancelled = false;
-    getTvWatchedCounts(session.user.id, tvIds).then((counts) => {
-      if (!cancelled) setTvWatchedCounts(counts);
+    getTvProgressBatch(session.user.id, tvIds).then((data) => {
+      if (!cancelled) setTvProgressData(data);
     });
     return () => { cancelled = true; };
   }, [movies, session?.user?.id]);
@@ -148,9 +150,10 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   // terminou de vez (Ended/Canceled) — "completamente vista" de
   // verdade, sem mais nada vindo por aí.
   const getTvProgress = (movie: Movie) => {
-    const total = movie.number_of_episodes || 0;
-    const watched = tvWatchedCounts.get(movie.id) || 0;
-    const percent = total > 0 ? Math.min(100, (watched / total) * 100) : 0;
+    const progress = tvProgressData.get(movie.id);
+    const aired = progress?.airedCount || 0;
+    const watched = progress?.watchedCount || 0;
+    const percent = aired > 0 ? Math.min(100, (watched / aired) * 100) : 0;
     const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
 
     let barColor = 'from-blue-400 to-blue-500';
