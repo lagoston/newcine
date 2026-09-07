@@ -14,8 +14,17 @@
     overscroll-behavior-x: none;
   }
 
+  /* Sem bg-* aqui de propósito — o body tinha uma cor sólida
+     (bg-gray-50/bg-gray-900) que é tratada de forma especial pelo CSS:
+     quando o body define um background, ele é propagado pro "canvas"
+     inicial do documento, ficando literalmente na camada mais profunda
+     possível — atrás de QUALQUER elemento, mesmo um fixed com z-index
+     negativo. Era por isso que os gradientes de fundo de cada página
+     nunca apareciam: essa cor sólida sempre esteve na frente deles, não
+     atrás. Cada página agora é responsável pelo seu próprio fundo
+     completo (gradiente + decoração), então o body fica transparente. */
   body {
-    @apply antialiased text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900;
+    @apply antialiased text-gray-900 dark:text-white;
     overscroll-behavior-x: none;
   }
 
