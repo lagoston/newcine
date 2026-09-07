@@ -1480,26 +1480,59 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     </div>
                   </div>
 
-                  <div
-                    className={`bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 ${isTvShow ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-colors' : ''}`}
-                    onClick={() => isTvShow && handleOpenSeasons()}
-                  >
-                    <div className="flex items-center justify-center mb-2">
-                      {isTvShow ? (
-                        <Tv className="w-5 h-5 text-green-500" />
-                      ) : (
+                  {isTvShow ? (
+                    <motion.div
+                      className="relative rounded-lg p-3 cursor-pointer overflow-hidden bg-gradient-to-br from-violet-500/15 to-pink-500/15 dark:from-violet-500/20 dark:to-pink-500/20 border border-violet-400/30"
+                      onClick={() => handleOpenSeasons()}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.9 }}
+                      animate={{
+                        boxShadow: [
+                          '0 0 0px rgba(168, 85, 247, 0)',
+                          '0 0 14px rgba(168, 85, 247, 0.35)',
+                          '0 0 0px rgba(168, 85, 247, 0)',
+                        ],
+                      }}
+                      transition={{ boxShadow: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } }}
+                    >
+                      {/* Brilho diagonal que atravessa o card, chamando
+                          atenção pra essa ação sem depender só de cor —
+                          hoje o único sinal de "isso é clicável" era o
+                          cursor mudando, imperceptível até passar o mouse. */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        style={{ width: '50%' }}
+                        animate={{ x: ['-100%', '250%'] }}
+                        transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.5, ease: 'easeInOut' }}
+                      />
+                      <div className="relative flex items-center justify-center mb-2">
+                        <Tv className="w-5 h-5 text-violet-500 dark:text-violet-400" />
+                      </div>
+                      <div className="relative text-center">
+                        <div className="text-xs text-violet-600/80 dark:text-violet-300/80 flex items-center justify-center gap-0.5">
+                          {t('movies.seasons', { defaultValue: 'Seasons' })}
+                          <ChevronRight className="w-3 h-3" />
+                        </div>
+                        <div className="font-semibold text-violet-700 dark:text-violet-200 text-sm">
+                          {seasonsText}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                      <div className="flex items-center justify-center mb-2">
                         <Clock className="w-5 h-5 text-green-500" />
-                      )}
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {isTvShow ? 'Seasons' : t('movies.runtime')}
                       </div>
-                      <div className="font-medium text-gray-900 dark:text-white text-sm">
-                        {isTvShow ? seasonsText : runtime}
+                      <div className="text-center">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {t('movies.runtime')}
+                        </div>
+                        <div className="font-medium text-gray-900 dark:text-white text-sm">
+                          {runtime}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Classificação — antes tentava mostrar o "motivo" (campo
                       note/meaning do TMDB), mas esse campo é uma anotação
@@ -1813,11 +1846,24 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                 </div>
               ) : (
                 <>
-                  {/* Progress Bar */}
+                  {/* Progress Bar — mesma lógica de cor da Biblioteca:
+                      roxo quando 100% assistida mas a série ainda está
+                      no ar, rosa quando 100% assistida e já terminou de
+                      vez. Usa motion.div em vez de transition CSS pura
+                      pra um easing mais suave e controlado. */}
                   {userRating && (() => {
                     const totalEpisodes = seasons.reduce((sum, s) => sum + (s.episodes?.length || 0), 0);
                     const watchedCount = Array.from(watchedEpisodes).length;
                     const progress = totalEpisodes > 0 ? (watchedCount / totalEpisodes) * 100 : 0;
+                    const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
+                    const isComplete = progress >= 100;
+
+                    const barGradient = isComplete
+                      ? (stillAiring ? 'from-purple-500 to-purple-600' : 'from-pink-500 to-pink-600')
+                      : 'from-blue-500 to-cyan-500';
+                    const labelColor = isComplete
+                      ? (stillAiring ? 'text-purple-600 dark:text-purple-400' : 'text-pink-600 dark:text-pink-400')
+                      : 'text-gray-500 dark:text-gray-400';
 
                     return (
                       <div className="mb-6">
@@ -1830,13 +1876,19 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                          <div
-                            className="bg-gradient-to-r from-green-500 to-green-600 h-full rounded-full transition-all duration-500 ease-out"
-                            style={{ width: `${progress}%` }}
+                          <motion.div
+                            className={`bg-gradient-to-r ${barGradient} h-full rounded-full`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progress}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
                           />
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
-                          {progress.toFixed(1)}% {t('movies.complete')}
+                        <p className={`text-xs mt-1 text-center font-medium ${labelColor}`}>
+                          {progress.toFixed(1)}% {isComplete
+                            ? (stillAiring
+                              ? t('movies.upToDate', { defaultValue: 'em dia — aguardando novos episódios' })
+                              : t('movies.complete'))
+                            : t('movies.complete')}
                         </p>
                       </div>
                     );
