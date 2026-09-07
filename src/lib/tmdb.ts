@@ -912,3 +912,66 @@ export const getTvProgressBatch = async (
 
   return map;
 };
+
+// Variante de getTvProgressBatch pra visualizar o progresso do DONO de
+// um perfil da comunidade, não de quem está olhando — usada em
+// UserProfile.tsx. Respeita a mesma regra de visibilidade de perfil
+// usada no resto do app (público, próprio dono, ou seguidor de perfil
+// "só seguidores"); sem permissão, o backend retorna vazio.
+export const getTvProgressBatchForProfile = async (
+  viewerId: string,
+  profileUserId: string,
+  tmdbIds: number[]
+): Promise<Map<number, TvProgress>> => {
+  const map = new Map<number, TvProgress>();
+  if (tmdbIds.length === 0) return map;
+
+  try {
+    const { data, error } = await supabase.rpc('get_tv_progress_batch_for_profile', {
+      p_viewer_id: viewerId,
+      p_profile_user_id: profileUserId,
+      p_tmdb_ids: tmdbIds,
+    });
+
+    if (error) throw error;
+
+    (data || []).forEach((row: { tmdb_id: number; watched_count: number; aired_count: number }) => {
+      map.set(row.tmdb_id, { watchedCount: row.watched_count, airedCount: row.aired_count });
+    });
+  } catch (error) {
+    console.error('Error fetching TV progress batch for profile:', error);
+  }
+
+  return map;
+};
+
+// Lista (não só a contagem) de episódios assistidos pelo DONO de um
+// perfil — usada dentro do modal de temporadas quando um visitante está
+// vendo o perfil de outra pessoa, pra marcar visualmente quais
+// episódios têm check verde. Retorna chaves no mesmo formato
+// "season-episode" usado internamente pelo MovieDetailsModal.
+export const getWatchedEpisodesForProfile = async (
+  viewerId: string,
+  profileUserId: string,
+  tmdbId: number
+): Promise<Set<string>> => {
+  const set = new Set<string>();
+
+  try {
+    const { data, error } = await supabase.rpc('get_watched_episodes_for_profile', {
+      p_viewer_id: viewerId,
+      p_profile_user_id: profileUserId,
+      p_tmdb_id: tmdbId,
+    });
+
+    if (error) throw error;
+
+    (data || []).forEach((row: { season_number: number; episode_number: number }) => {
+      set.add(`${row.season_number}-${row.episode_number}`);
+    });
+  } catch (error) {
+    console.error('Error fetching watched episodes for profile:', error);
+  }
+
+  return set;
+};
