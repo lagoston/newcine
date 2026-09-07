@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play, ChevronRight, AlertCircle } from 'lucide-react';
-import { Movie, getMovieTrailer, getMovieDetailsFromDB } from '../lib/tmdb';
+import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile } from '../lib/tmdb';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
 import { useAuth } from '../lib/auth';
 import { supabase, supabaseUrl } from '../lib/supabase';
@@ -29,6 +29,11 @@ interface MovieDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   isOtherUserProfile?: boolean;
+  // ID do dono do perfil sendo visitado — quando presente junto com
+  // isOtherUserProfile, os episódios exibidos como assistidos são os
+  // DELE, não os de quem está olhando, e os botões de marcação somem
+  // por completo (não se marca episódio na conta de outra pessoa).
+  profileUserId?: string;
   onAddToLibrary?: () => void;
   onEpisodeToggle?: () => void;
   // Regra geral contra empilhamento infinito: quando ESTA instância já é
@@ -46,6 +51,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   isOpen,
   onClose,
   isOtherUserProfile = false,
+  profileUserId,
   onAddToLibrary,
   onEpisodeToggle,
   isNested = false,
@@ -463,6 +469,15 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     if (!session?.user?.id || movie.media_type !== 'tv') return;
 
     try {
+      // Em perfil de outra pessoa, os episódios marcados como assistidos
+      // são os DELA — usa a variante que respeita visibilidade de
+      // perfil e lê da conta do dono, não de quem está olhando.
+      if (isOtherUserProfile && profileUserId) {
+        const watched = await getWatchedEpisodesForProfile(session.user.id, profileUserId, movie.id);
+        setWatchedEpisodes(watched);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('watched_episodes')
         .select('season_number, episode_number')
@@ -537,7 +552,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   };
 
   const toggleEpisode = async (seasonNumber: number, episodeNumber: number) => {
-    if (!session?.user?.id || !userRating) return;
+    // isOtherUserProfile bloqueado aqui também, não só escondendo o
+    // botão — defesa em profundidade contra marcar episódio na conta de
+    // outra pessoa por qualquer caminho de código.
+    if (!session?.user?.id || !userRating || isOtherUserProfile) return;
 
     const key = `${seasonNumber}-${episodeNumber}`;
     const newWatched = new Set(watchedEpisodes);
@@ -586,7 +604,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   };
 
   const toggleSeason = async (season: any) => {
-    if (!session?.user?.id || !userRating) return;
+    if (!session?.user?.id || !userRating || isOtherUserProfile) return;
 
     const allWatched = season.episodes.every((ep: any) =>
       watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
@@ -1989,7 +2007,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                             </p>
                           )}
                         </div>
-                        {userRating && (
+                        {userRating && !isOtherUserProfile && (
                           <button
                             onClick={() => toggleSeason(season)}
                             className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
@@ -2057,7 +2075,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                         {episode.runtime}min
                                       </span>
                                     )}
-                                    {userRating && (
+                                    {userRating && !isOtherUserProfile && (
                                       <button
                                         onClick={() => toggleEpisode(season.season_number, episode.episode_number)}
                                         className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
