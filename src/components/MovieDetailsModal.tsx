@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play, ChevronRight, AlertCircle } from 'lucide-react';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB } from '../lib/tmdb';
@@ -59,6 +59,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [showRecommendModal, setShowRecommendModal] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [showSeasonsModal, setShowSeasonsModal] = useState(false);
+  // Vazio por padrão — todas as temporadas nascem recolhidas, mostrando
+  // só o cabeçalho (pôster, nome, contagem de episódios). Um clique na
+  // seta expande e revela a lista de episódios daquela temporada.
+  const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(new Set());
   const [watchedEpisodes, setWatchedEpisodes] = useState<Set<string>>(new Set());
   const [userRating, setUserRating] = useState<number | null>(null);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
@@ -1852,7 +1856,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       vez. Usa motion.div em vez de transition CSS pura
                       pra um easing mais suave e controlado. */}
                   {userRating && (() => {
-                    const totalEpisodes = seasons.reduce((sum, s) => sum + (s.episodes?.length || 0), 0);
+                    // Antes contava TODOS os episódios (s.episodes.length),
+                    // incluindo os que ainda vão ao ar — uma série em
+                    // andamento nunca alcançava 100% mesmo com o usuário
+                    // 100% em dia com tudo já lançado. Agora só conta
+                    // episódios com air_date já no passado (ou hoje).
+                    const today = new Date().toISOString().slice(0, 10);
+                    const totalEpisodes = seasons.reduce(
+                      (sum, s) => sum + (s.episodes?.filter((ep: any) => ep.air_date && ep.air_date <= today).length || 0),
+                      0
+                    );
                     const watchedCount = Array.from(watchedEpisodes).length;
                     const progress = totalEpisodes > 0 ? (watchedCount / totalEpisodes) * 100 : 0;
                     const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
@@ -1902,6 +1915,15 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   const allWatched = season.episodes.every((ep: any) =>
                     watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
                   );
+                  const isExpanded = expandedSeasons.has(season.season_number);
+                  const toggleExpanded = () => {
+                    setExpandedSeasons((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(season.season_number)) next.delete(season.season_number);
+                      else next.add(season.season_number);
+                      return next;
+                    });
+                  };
 
                   return (
                   <div key={season.season_number} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -1947,7 +1969,30 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           </button>
                         )}
                       </div>
+                      {/* Seta de expandir/recolher — centralizada abaixo do
+                          cabeçalho da temporada, como pedido. Gira 180°
+                          suavemente ao alternar, servindo de indicador
+                          visual do estado atual sem precisar de texto. */}
+                      <button
+                        onClick={toggleExpanded}
+                        className="w-full flex items-center justify-center mt-3 pt-2 border-t border-gray-200/70 dark:border-gray-600/50 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      >
+                        <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.25 }}>
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </motion.div>
+                      </button>
                     </div>
+                    <AnimatePresence initial={false}>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
                     <div className="divide-y divide-gray-200 dark:divide-gray-700">
                       {season.episodes.map((episode: any) => {
                         const isWatched = watchedEpisodes.has(`${season.season_number}-${episode.episode_number}`);
@@ -2017,6 +2062,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                         );
                       })}
                     </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                   );
                   })}
