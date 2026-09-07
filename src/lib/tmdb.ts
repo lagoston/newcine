@@ -869,30 +869,41 @@ export const spendTickets = async (userId: string, amount: number): Promise<{ su
   return { success: data[0].success, ticketsRemaining: data[0].tickets_remaining };
 };
 
-// Busca, em uma única consulta, quantos episódios o usuário já assistiu
-// de cada série de uma lista de tmdb_ids — usado pela Biblioteca pra
-// desenhar a barra de progresso de cada card sem uma consulta por
-// série. Retorna um Map<tmdb_id, watchedCount> pra lookup O(1).
-export const getTvWatchedCounts = async (
+// Busca, em uma única consulta, o progresso de cada série de uma lista
+// de tmdb_ids — usado pela Biblioteca pra desenhar a barra de progresso
+// de cada card sem uma consulta por série.
+//
+// Retorna watchedCount E airedCount (não o total de episódios da
+// série). O bug original usava number_of_episodes — o TOTAL da série,
+// incluindo episódios que ainda vão ao ar — como denominador, então uma
+// série em andamento nunca chegava a 100%, mesmo com o usuário 100% em
+// dia com tudo que já foi lançado. airedCount conta só o que já existe
+// pra assistir de verdade (air_date <= hoje).
+export interface TvProgress {
+  watchedCount: number;
+  airedCount: number;
+}
+
+export const getTvProgressBatch = async (
   userId: string,
   tmdbIds: number[]
-): Promise<Map<number, number>> => {
-  const map = new Map<number, number>();
+): Promise<Map<number, TvProgress>> => {
+  const map = new Map<number, TvProgress>();
   if (tmdbIds.length === 0) return map;
 
   try {
-    const { data, error } = await supabase.rpc('get_tv_watched_counts', {
+    const { data, error } = await supabase.rpc('get_tv_progress_batch', {
       p_user_id: userId,
       p_tmdb_ids: tmdbIds,
     });
 
     if (error) throw error;
 
-    (data || []).forEach((row: { tmdb_id: number; watched_count: number }) => {
-      map.set(row.tmdb_id, row.watched_count);
+    (data || []).forEach((row: { tmdb_id: number; watched_count: number; aired_count: number }) => {
+      map.set(row.tmdb_id, { watchedCount: row.watched_count, airedCount: row.aired_count });
     });
   } catch (error) {
-    console.error('Error fetching TV watched counts:', error);
+    console.error('Error fetching TV progress batch:', error);
   }
 
   return map;
