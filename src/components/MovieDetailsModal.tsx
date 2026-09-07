@@ -1925,6 +1925,29 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     });
                   };
 
+                  // Progresso ESPECÍFICO dessa temporada (não da série
+                  // inteira) — conta só episódios já lançados dentro
+                  // dela, e quantos desses o usuário já marcou. Mesma
+                  // paleta de cor da Biblioteca: azul incompleto, roxo
+                  // quando 100% em dia mas a série ainda está no ar
+                  // (então essa temporada específica pode não ser a
+                  // última palavra), rosa quando 100% e a série já
+                  // terminou de vez.
+                  const today = new Date().toISOString().slice(0, 10);
+                  const airedInSeason = season.episodes.filter((ep: any) => ep.air_date && ep.air_date <= today).length;
+                  const watchedInSeason = season.episodes.filter((ep: any) =>
+                    watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
+                  ).length;
+                  const seasonComplete = airedInSeason > 0 && watchedInSeason >= airedInSeason;
+                  const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
+
+                  let sealClasses = 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
+                  if (seasonComplete) {
+                    sealClasses = stillAiring
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                      : 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300';
+                  }
+
                   return (
                   <div key={season.season_number} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                     <div className={`p-4 transition-colors ${allWatched && userRating ? 'bg-green-50 dark:bg-green-900/20' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
@@ -1944,6 +1967,22 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                             {season.episode_count} {t('movies.episodes')}
                             {season.air_date && ` • ${new Date(season.air_date).getFullYear()}`}
                           </p>
+                          {/* Sinalização visível mesmo com a temporada
+                              recolhida — quantos episódios o usuário já
+                              marcou, sem precisar expandir pra ver a
+                              lista completa. */}
+                          {userRating && airedInSeason > 0 && (
+                            <span className={`inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${sealClasses}`}>
+                              {seasonComplete ? (
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              ) : (
+                                <Tv className="w-3 h-3" />
+                              )}
+                              {watchedInSeason}/{airedInSeason}
+                            </span>
+                          )}
                           {season.overview && (
                             <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">
                               {season.overview}
