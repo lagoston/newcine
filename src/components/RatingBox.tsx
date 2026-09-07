@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Swords, Filter } from 'lucide-react';
 import { Movie, getTvProgressBatch, TvProgress } from '../lib/tmdb';
@@ -94,18 +94,24 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   // só o que já foi lançado, não episódios futuros ainda inéditos.
   const [tvProgressData, setTvProgressData] = useState<Map<number, TvProgress>>(new Map());
 
-  useEffect(() => {
+  // Extraída do useEffect pra poder ser chamada manualmente também —
+  // usada pelo onEpisodeToggle abaixo, que dispara um refetch assim que
+  // o usuário marca/desmarca um episódio dentro do modal expandido,
+  // sem precisar sair e voltar à página pra ver a barra atualizar.
+  const refetchTvProgress = useCallback(() => {
     const tvIds = movies.filter((m) => m.media_type === 'tv').map((m) => m.id);
     if (tvIds.length === 0 || !session?.user?.id) {
       setTvProgressData(new Map());
       return;
     }
-    let cancelled = false;
     getTvProgressBatch(session.user.id, tvIds).then((data) => {
-      if (!cancelled) setTvProgressData(data);
+      setTvProgressData(data);
     });
-    return () => { cancelled = true; };
   }, [movies, session?.user?.id]);
+
+  useEffect(() => {
+    refetchTvProgress();
+  }, [refetchTvProgress]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -455,6 +461,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             onClose={() => setSelectedMovie(null)}
             isOtherUserProfile={isOtherUserProfile}
             onAddToLibrary={onAddToLibrary}
+            onEpisodeToggle={refetchTvProgress}
           />
         )}
 
