@@ -77,6 +77,13 @@ export interface Movie {
   runtime: number;
   number_of_seasons?: number;
   number_of_episodes?: number;
+  // status vem direto do TMDB ("Ended", "Canceled", "Returning Series",
+  // "In Production", "Planned"). in_production é o indicador mais
+  // direto de "ainda vai ter mais episódios" — usado pra decidir a cor
+  // da barra de progresso quando uma série está 100% assistida: roxo se
+  // ainda está no ar, rosa se já terminou por completo.
+  status?: string;
+  in_production?: boolean;
   episode_run_time?: number | number[];
   genres: Genre[];
   userRating?: number | null;
@@ -623,6 +630,9 @@ export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number
           vote_average: cached.vote_average,
           runtime: cached.runtime,
           number_of_seasons: cached.number_of_seasons,
+          number_of_episodes: cached.number_of_episodes,
+          status: cached.status,
+          in_production: cached.in_production,
           media_type: cached.media_type as 'movie' | 'tv',
           genres: isPortuguese && cached.genres_pt ? cached.genres_pt : cached.genres_en,
           popularity: cached.popularity,
@@ -688,6 +698,9 @@ export const getMoviesFromCacheByType = async (
         vote_average: cached.vote_average,
         runtime: cached.runtime,
         number_of_seasons: cached.number_of_seasons,
+        number_of_episodes: cached.number_of_episodes,
+        status: cached.status,
+        in_production: cached.in_production,
         media_type: cached.media_type as 'movie' | 'tv',
         genres: isPortuguese && cached.genres_pt ? cached.genres_pt : cached.genres_en,
         popularity: cached.popularity,
@@ -854,4 +867,33 @@ export const spendTickets = async (userId: string, amount: number): Promise<{ su
   }
 
   return { success: data[0].success, ticketsRemaining: data[0].tickets_remaining };
+};
+
+// Busca, em uma única consulta, quantos episódios o usuário já assistiu
+// de cada série de uma lista de tmdb_ids — usado pela Biblioteca pra
+// desenhar a barra de progresso de cada card sem uma consulta por
+// série. Retorna um Map<tmdb_id, watchedCount> pra lookup O(1).
+export const getTvWatchedCounts = async (
+  userId: string,
+  tmdbIds: number[]
+): Promise<Map<number, number>> => {
+  const map = new Map<number, number>();
+  if (tmdbIds.length === 0) return map;
+
+  try {
+    const { data, error } = await supabase.rpc('get_tv_watched_counts', {
+      p_user_id: userId,
+      p_tmdb_ids: tmdbIds,
+    });
+
+    if (error) throw error;
+
+    (data || []).forEach((row: { tmdb_id: number; watched_count: number }) => {
+      map.set(row.tmdb_id, row.watched_count);
+    });
+  } catch (error) {
+    console.error('Error fetching TV watched counts:', error);
+  }
+
+  return map;
 };
