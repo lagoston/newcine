@@ -939,6 +939,7 @@ export default function UserProfile() {
  movies={ratedMovies}
  rating={rating}
  isOtherUserProfile={true}
+ profileUserId={profile.id}
  />
  );
  }
@@ -951,6 +952,7 @@ export default function UserProfile() {
  movies={moviesByRating.unrated}
  rating={null}
  isOtherUserProfile={true}
+ profileUserId={profile.id}
  />
  )}
  </>
