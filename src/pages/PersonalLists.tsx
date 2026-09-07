@@ -188,12 +188,6 @@ export default function PersonalLists() {
 
   return (
     <div className="min-h-screen pt-20 pb-24 px-4 relative overflow-hidden">
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10"></div>
-        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 dark:from-blue-600/5 dark:to-purple-600/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-br from-pink-400/10 to-amber-400/10 dark:from-pink-600/5 dark:to-amber-600/5 rounded-full blur-3xl" />
-      </div>
-
       <div className="max-w-5xl mx-auto relative z-10">
         <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
           <div className="flex items-center gap-3">

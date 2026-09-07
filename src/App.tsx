@@ -7,6 +7,7 @@ import { AuthProvider } from './lib/auth';
 import { ThemeProvider } from './lib/theme';
 import InstallPrompt from './components/InstallPrompt';
 import GlassLoader from './components/GlassLoader';
+import PageBackground from './components/PageBackground';
 import { registerSW } from 'virtual:pwa-register';
 import './i18n';
 
@@ -48,6 +49,7 @@ function App() {
       <ThemeProvider>
         <BrowserRouter future={{ v7_relativeSplatPath: true }}>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pt-[calc(env(safe-area-inset-top)+3.5rem)]">
+            <PageBackground />
             <Navbar />
             <main>
               <Suspense fallback={<GlassLoader fullPage size="lg" />}>

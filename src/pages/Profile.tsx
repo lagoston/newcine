@@ -703,11 +703,6 @@ export default function Profile() {
  if (!profileExists) {
  return (
  <div className="container mx-auto px-4 py-8 min-h-[calc(100vh-4rem)] flex items-center justify-center relative overflow-hidden">
- <div className="fixed inset-0 pointer-events-none">
- <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10"></div>
- <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl" />
- <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl" />
- </div>
  <div className="max-w-2xl mx-auto bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl border border-white/60 dark:border-gray-700/60 relative z-10">
  <div className="p-8 text-center">
  <div className="mb-6">
@@ -735,18 +730,6 @@ export default function Profile() {
 
  return (
  <div className="min-h-[calc(100vh-4rem)] py-8 px-4 relative overflow-hidden">
- <div className="fixed inset-0 pointer-events-none">
- <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10"></div>
- <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl" />
- <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl" />
- <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-gradient-to-br from-pink-400/15 to-rose-400/15 dark:from-pink-600/8 dark:to-rose-600/8 rounded-full blur-3xl" />
- </div>
-
- <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" style={{
- backgroundImage: 'linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)',
- backgroundSize: '50px 50px'
- }} />
-
  <div className="container mx-auto max-w-5xl relative z-10 space-y-6">
  <div className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl ${getBannerClass(profile?.banner, isPremium)}`}>
  <div className="absolute inset-0 pointer-events-none">

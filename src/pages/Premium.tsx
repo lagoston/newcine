@@ -96,18 +96,6 @@ export default function Premium() {
 
  return (
  <div className="min-h-[calc(100vh-4rem)] py-8 px-4 relative overflow-hidden">
- <div className="fixed inset-0 pointer-events-none">
- <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-yellow-50/30 to-orange-50/30 dark:from-gray-900 dark:via-yellow-900/10 dark:to-orange-900/10"></div>
- <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-yellow-400/20 to-orange-400/20 dark:from-yellow-600/10 dark:to-orange-600/10 rounded-full blur-3xl" />
- <div className="absolute top-60 right-20 w-80 h-80 bg-gradient-to-br from-amber-400/20 to-yellow-400/20 dark:from-amber-600/10 dark:to-yellow-600/10 rounded-full blur-3xl" />
- <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-gradient-to-br from-orange-400/15 to-rose-400/15 dark:from-orange-600/8 dark:to-rose-600/8 rounded-full blur-3xl" />
- </div>
-
- <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" style={{
- backgroundImage: 'linear-gradient(rgba(234, 179, 8, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(234, 179, 8, 0.1) 1px, transparent 1px)',
- backgroundSize: '50px 50px'
- }} />
-
  <div className="max-w-5xl mx-auto relative z-10">
  <div className="flex items-center gap-4 mb-8">
  <button
