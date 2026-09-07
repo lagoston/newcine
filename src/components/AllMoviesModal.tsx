@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Star, Dices, Loader2 } from 'lucide-react';
-import { Movie, getMovieDetails, getTvProgressBatch, TvProgress } from '../lib/tmdb';
+import { Movie, getMovieDetails, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import { useTranslation } from 'react-i18next';
 import MovieDetailsModal from './MovieDetailsModal';
@@ -14,6 +14,7 @@ interface AllMoviesModalProps {
   movies: Movie[];
   rating: number | null;
   isOtherUserProfile?: boolean;
+  profileUserId?: string;
   onAddToLibrary?: () => void;
   // Tema de cor opcional pro destaque do modal (botão "Filme Aleatório"),
   // usado pra diferenciar visualmente carrosséis específicos da Home
@@ -55,6 +56,7 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
   movies,
   rating,
   isOtherUserProfile = false,
+  profileUserId,
   onAddToLibrary,
   theme,
 }) => {
@@ -74,10 +76,13 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
       setTvProgressData(new Map());
       return;
     }
-    getTvProgressBatch(session.user.id, tvIds).then((data) => {
+    const fetchFn = isOtherUserProfile && profileUserId
+      ? getTvProgressBatchForProfile(session.user.id, profileUserId, tvIds)
+      : getTvProgressBatch(session.user.id, tvIds);
+    fetchFn.then((data) => {
       setTvProgressData(data);
     });
-  }, [movies, session?.user?.id]);
+  }, [movies, session?.user?.id, isOtherUserProfile, profileUserId]);
 
   useEffect(() => {
     refetchTvProgress();
@@ -275,6 +280,7 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
           isOpen={true}
           onClose={handleCloseDetails}
           isOtherUserProfile={isOtherUserProfile}
+          profileUserId={profileUserId}
           onAddToLibrary={onAddToLibrary}
           onEpisodeToggle={refetchTvProgress}
         />
