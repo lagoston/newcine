@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Swords, Filter } from 'lucide-react';
-import { Movie, getTvProgressBatch, TvProgress } from '../lib/tmdb';
+import { Movie, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import ConfirmationModal from './ConfirmationModal';
 import MovieDetailsModal from './MovieDetailsModal';
@@ -24,6 +24,10 @@ interface RatingBoxProps {
   isNotRated?: boolean;
   className?: string;
   isOtherUserProfile?: boolean;
+  // ID do dono do perfil sendo visitado — quando presente, o progresso
+  // de séries exibido reflete o QUE O DONO já assistiu, não quem está
+  // olhando. Só relevante em perfis da comunidade (isOtherUserProfile).
+  profileUserId?: string;
   onAddToLibrary?: () => void;
   isPersonalList?: boolean;
   enableDragDrop?: () => void;
@@ -67,6 +71,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   isNotRated,
   className,
   isOtherUserProfile = false,
+  profileUserId,
   onAddToLibrary,
   isPersonalList = false,
   enableDragDrop,
@@ -104,10 +109,16 @@ const RatingBox: React.FC<RatingBoxProps> = ({
       setTvProgressData(new Map());
       return;
     }
-    getTvProgressBatch(session.user.id, tvIds).then((data) => {
+    // Em perfil de outra pessoa, o progresso mostrado é o DELA, não o de
+    // quem está olhando — usa a variante que respeita a visibilidade do
+    // perfil e lê os episódios assistidos do dono.
+    const fetchFn = isOtherUserProfile && profileUserId
+      ? getTvProgressBatchForProfile(session.user.id, profileUserId, tvIds)
+      : getTvProgressBatch(session.user.id, tvIds);
+    fetchFn.then((data) => {
       setTvProgressData(data);
     });
-  }, [movies, session?.user?.id]);
+  }, [movies, session?.user?.id, isOtherUserProfile, profileUserId]);
 
   useEffect(() => {
     refetchTvProgress();
@@ -460,6 +471,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             isOpen={true}
             onClose={() => setSelectedMovie(null)}
             isOtherUserProfile={isOtherUserProfile}
+            profileUserId={profileUserId}
             onAddToLibrary={onAddToLibrary}
             onEpisodeToggle={refetchTvProgress}
           />
@@ -472,6 +484,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           movies={movies}
           rating={rating}
           isOtherUserProfile={isOtherUserProfile}
+          profileUserId={profileUserId}
           onAddToLibrary={onAddToLibrary}
         />
 
