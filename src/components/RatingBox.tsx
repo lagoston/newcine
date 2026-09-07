@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Swords, Filter } from 'lucide-react';
-import { Movie } from '../lib/tmdb';
+import { Movie, getTvWatchedCounts } from '../lib/tmdb';
+import { useAuth } from '../lib/auth';
 import ConfirmationModal from './ConfirmationModal';
 import MovieDetailsModal from './MovieDetailsModal';
 import AllMoviesModal from './AllMoviesModal';
@@ -76,6 +77,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   onFilterClick,
   activeFilterCount = 0,
 }) => {
+  const { session } = useAuth();
   const { t, i18n } = useTranslation();
   const isPt = i18n.language === 'pt';
   const [deleteMovieId, setDeleteMovieId] = useState<number | null>(null);
@@ -85,6 +87,23 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const [showAddToList, setShowAddToList] = useState<{movieId: number, title: string} | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [mobileMenuMovie, setMobileMenuMovie] = useState<Movie | null>(null);
+  // tmdb_id -> quantidade de episódios assistidos. Buscado em lote (uma
+  // consulta pra todas as séries visíveis nesse card, não uma por
+  // série) sempre que a lista de filmes mudar.
+  const [tvWatchedCounts, setTvWatchedCounts] = useState<Map<number, number>>(new Map());
+
+  useEffect(() => {
+    const tvIds = movies.filter((m) => m.media_type === 'tv').map((m) => m.id);
+    if (tvIds.length === 0 || !session?.user?.id) {
+      setTvWatchedCounts(new Map());
+      return;
+    }
+    let cancelled = false;
+    getTvWatchedCounts(session.user.id, tvIds).then((counts) => {
+      if (!cancelled) setTvWatchedCounts(counts);
+    });
+    return () => { cancelled = true; };
+  }, [movies, session?.user?.id]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -122,6 +141,32 @@ const RatingBox: React.FC<RatingBoxProps> = ({
 
   // Check if box contains any TV series
   const hasTvSeries = movies.some(m => m.media_type === 'tv');
+
+  // Calcula o progresso de episódios assistidos de uma série, e decide
+  // a cor da barra: roxo quando 100% assistida mas a série ainda está
+  // no ar (vai ganhar mais episódios), rosa quando 100% assistida e já
+  // terminou de vez (Ended/Canceled) — "completamente vista" de
+  // verdade, sem mais nada vindo por aí.
+  const getTvProgress = (movie: Movie) => {
+    const total = movie.number_of_episodes || 0;
+    const watched = tvWatchedCounts.get(movie.id) || 0;
+    const percent = total > 0 ? Math.min(100, (watched / total) * 100) : 0;
+    const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
+
+    let barColor = 'from-blue-400 to-blue-500';
+    let bgTint = 'bg-blue-50 dark:bg-blue-950/40';
+    if (percent >= 100) {
+      if (stillAiring) {
+        barColor = 'from-purple-400 to-purple-500';
+        bgTint = 'bg-purple-50 dark:bg-purple-950/40';
+      } else {
+        barColor = 'from-pink-400 to-pink-500';
+        bgTint = 'bg-pink-50 dark:bg-pink-950/40';
+      }
+    }
+
+    return { percent, barColor, bgTint };
+  };
 
   // Chroma Box Effects
   const getChromaBoxClasses = () => {
@@ -334,11 +379,21 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                   </div>
                 </div>
               </motion.button>
-              <div className={`pt-1.5 px-1 pb-1.5 rounded-b-xl ${
+              <div className={`pt-1.5 px-1 pb-1.5 rounded-b-xl relative overflow-hidden ${
                 movie.media_type === 'tv'
-                  ? 'bg-blue-100 dark:bg-blue-900/80'
+                  ? getTvProgress(movie).bgTint
                   : 'bg-gray-100 dark:bg-gray-800/95'
               }`}>
+                {movie.media_type === 'tv' && (
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-black/10 dark:bg-white/10 overflow-hidden">
+                    <motion.div
+                      className={`h-full bg-gradient-to-r ${getTvProgress(movie).barColor}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${getTvProgress(movie).percent}%` }}
+                      transition={{ duration: 0.7, ease: 'easeOut' }}
+                    />
+                  </div>
+                )}
                 <h4 className="text-xs font-medium text-gray-900 dark:text-white line-clamp-1">
                   {movie.title}
                 </h4>
