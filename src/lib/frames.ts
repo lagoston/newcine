@@ -98,10 +98,40 @@ export const frames = {
     isPremium: false,
     requiredTag: null,
     className: 'ring-0'
+  },
+  // Ghost Rider Frame (Motoqueiro Fantasma) — diferente de todos os outros
+  // frames acima, que são só className (ring/shadow/::before/::after) numa
+  // <img> única. Este precisa de DUAS faces reais (frente = foto, verso =
+  // caveira flamejante) e estrutura 3D com giro — não cabe numa string de
+  // className. renderType:'component' é o marcador pro código que renderiza
+  // o avatar: quando encontrar isso, deve renderizar <GhostRiderFrame
+  // src={avatarUrl} /> no lugar do wrapper <div className={frame.className}>
+  // padrão, em vez de tentar aplicar className nele. className aqui fica só
+  // como fallback caso algum lugar do código ainda não tenha sido
+  // atualizado pra checar renderType (evita que o avatar fique sem
+  // nenhuma borda enquanto a integração não é feita em todos os lugares).
+  ghostRider: {
+    id: 'ghostRider',
+    name: 'Ghost Rider Frame',
+    isPremium: true,
+    requiredTag: 'hell-rider',
+    renderType: 'component',
+    component: 'GhostRiderFrame',
+    className: 'relative ring-4 ring-orange-500 dark:ring-orange-600 animate-ghost-rider-glow'
   }
 } as const;
 
 export type FrameId = keyof typeof frames;
+
+// Frames com renderType:'component' precisam de tratamento especial em
+// qualquer lugar que renderiza avatar+frame — checar isso ANTES de decidir
+// se aplica getFrameClass() num wrapper simples ou renderiza um componente
+// dedicado. Ver GhostRiderFrame.tsx e o exemplo de integração no Profile.
+export function frameUsesComponent(frameId: string = 'default', isPremium: boolean = false): string | null {
+  const frame = frames[frameId as FrameId];
+  if (!frame || (frame.isPremium && !isPremium)) return null;
+  return 'renderType' in frame && frame.renderType === 'component' ? frame.component : null;
+}
 
 export function getFrameClass(frameId: string = 'default', isPremium: boolean = false): string {
   if (!frameId) {
