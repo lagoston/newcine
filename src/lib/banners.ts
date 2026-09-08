@@ -170,6 +170,34 @@ export const banners = {
       'after:pointer-events-none',
     ].join(' '),
   },
+  hellrider: {
+    id: 'hellrider',
+    name: 'Spirit of Vengeance Banner',
+    isPremium: true,
+    requiredTag: 'hell-rider',
+    className: [
+      'relative overflow-hidden',
+      // Preto profundo, com um leve gradiente radial pra dar profundidade
+      // em vez de uma cor sólida completamente chapada.
+      'bg-[radial-gradient(ellipse_at_50%_50%,#0d0d0d_0%,#000000_70%)]',
+      // Borda dourada — mesma cor do ring do Ghost Rider Frame (#c5b358),
+      // consistência visual entre os dois itens do mesmo desbloqueio.
+      '!border-[3px] !border-[#c5b358]',
+      'shadow-[0_0_30px_rgba(197,179,88,0.25)_inset,0_0_25px_rgba(197,179,88,0.3)]',
+      // Padrão de correntes: duas faixas diagonais cruzadas (X), simulando
+      // elos metálicos entrelaçados. Balança devagar, como o peso de uma
+      // corrente pendurada.
+      'before:absolute before:inset-0',
+      'before:bg-[repeating-linear-gradient(45deg,transparent,transparent_9px,rgba(197,179,88,0.14)_9px,rgba(197,179,88,0.14)_13px,transparent_13px,transparent_22px),repeating-linear-gradient(-45deg,transparent,transparent_9px,rgba(140,126,58,0.12)_9px,rgba(140,126,58,0.12)_13px,transparent_13px,transparent_22px)]',
+      'before:animate-[hellrider-chain-sway_4s_ease-in-out_infinite]',
+      'before:pointer-events-none',
+      // Brilho metálico percorrendo os elos, da esquerda pra direita.
+      'after:absolute after:inset-0 after:w-1/2',
+      'after:bg-gradient-to-r after:from-transparent after:via-[#c5b358]/25 after:to-transparent',
+      'after:animate-[hellrider-chain-glint_3.5s_ease-in-out_infinite]',
+      'after:pointer-events-none',
+    ].join(' '),
+  },
   deathdodger: {
     id: 'deathdodger',
     name: 'Final Destination Banner',
