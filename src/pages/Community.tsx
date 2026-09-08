@@ -5,7 +5,8 @@ import GlassLoader from '../components/GlassLoader';
 import { supabase } from '../lib/supabase';
 import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
-import { getFrameClass } from '../lib/frames';
+import { getFrameClass, frameUsesComponent } from '../lib/frames';
+import { GhostRiderFrame } from '../components/GhostRiderFrame';
 import { getBannerClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -450,6 +451,9 @@ export default function Community() {
  <div className="relative h-full flex flex-col p-6">
  <div className="flex items-start gap-4 mb-4">
  <div className="relative flex-shrink-0">
+ {frameUsesComponent(profile.avatar_frame, profile.is_premium ?? profile.plan_type === 'premium') === 'GhostRiderFrame' && profile.avatar_url ? (
+ <GhostRiderFrame src={profile.avatar_url} alt={profile.username} size={64} />
+ ) : (
  <div className={`w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile.avatar_frame, profile.is_premium ?? profile.plan_type === 'premium')}`}>
  {profile.avatar_url ? (
  <img
@@ -463,6 +467,7 @@ export default function Community() {
  <User className="w-full h-full p-3 text-gray-400" />
  )}
  </div>
+ )}
  </div>
 
  <div className="flex-1 min-w-0">
