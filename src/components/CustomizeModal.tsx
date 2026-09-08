@@ -309,7 +309,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     // numa grade de preview, mas vale saber que existe.
     const avatarPreview = (frame: (typeof frames)[FrameId], extraClassName: string = '') => {
       if ('renderType' in frame && frame.renderType === 'component' && frame.component === 'GhostRiderFrame') {
-        return <GhostRiderFrame src={frozenAvatarUrl || ''} alt="" size={80} className="flex-shrink-0" />;
+        return <GhostRiderFrame src={frozenAvatarUrl || ''} alt="" size={72} className="flex-shrink-0" />;
       }
       return (
         <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-xl flex-shrink-0 ${frame.className} ${extraClassName}`}>
