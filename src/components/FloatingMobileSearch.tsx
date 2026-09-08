@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, Star, Film, Tv } from 'lucide-react';
+import { X, Loader2, Star, Film, Tv, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { searchMovies, getMovieDetails, ensureMovieCached, Movie } from '../lib/tmdb';
@@ -18,30 +18,43 @@ interface FloatingMobileSearchProps {
   onMovieSelect: (movie: Movie) => void;
 }
 
-// O painel de vidro e a barra de busca são camadas INDEPENDENTES.
-// O painel usa vh (não dvh) para que seu topo permaneça fixo mesmo
-// quando o teclado mobile altera a altura dinâmica da viewport.
-// A barra de busca é posicionada via visualViewport API — subindo
-// exatamente o tamanho do teclado — ficando sempre visível acima dele.
-// O teclado cobre parte dos resultados por baixo, exatamente como uma
-// caixa de mensagem de chat se comporta.
+// v4 — reconstrução focada em PESO/FLUIDEZ, não em funcionalidade nova.
+// Três mudanças de arquitetura, cada uma resolvendo um sintoma
+// relatado por uma causa técnica específica:
+//
+// 1. Removido o layoutId compartilhado entre botão fechado e painel
+//    aberto. Animar uma transformação FLIP entre um círculo de 56px e
+//    um painel que cobre quase a tela inteira, com backdrop-blur nos
+//    dois extremos (uma das operações mais caras que existem em CSS),
+//    é pesado o bastante pra gerar artefatos visuais em GPUs de
+//    celular — exatamente o "leve glitch" relatado. Trocado por
+//    fade+scale simples: muito mais barato, sem FLIP nenhum.
+//
+// 2. A barra de busca não depende mais de um padding estimado em
+//    pixels fixos (92px) pra não sobrepor os resultados — ela mesma
+//    tem fundo opaco o suficiente pra cobrir o que estiver embaixo,
+//    então não existe mais "vão" que possa revelar uma faixa cinza.
+//
+// 3. A posição da barra de busca em resposta ao teclado não passa mais
+//    por useState/re-render do React — é uma ref (translateY via
+//    style direto no DOM) atualizada a cada evento do visualViewport.
+//    Antes, cada pequeno ajuste do teclado (que dispara vários eventos
+//    de resize/scroll, não um só) forçava o React a reconciliar a
+//    árvore inteira, incluindo a lista de resultados animada — daí a
+//    sensação de "travado". Mutação direta do DOM ignora esse ciclo
+//    inteiro, ficando tão fluido quanto o próprio teclado nativo.
 const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSelect }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { session } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  // Rastreado só pra mover a BARRA DE BUSCA — o painel de vidro dos
-  // resultados fica sempre parado, sem nenhuma lógica de teclado
-  // aplicada a ele. Só a barra sobe junto com o teclado, deixando o
-  // teclado cobrir parte dos resultados por baixo até ser fechado —
-  // exatamente como uma caixa de mensagem de chat se comporta.
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [query, setQuery] = useState('');
   const [movieResults, setMovieResults] = useState<Movie[]>([]);
   const [profileResults, setProfileResults] = useState<ProfileResult[]>([]);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsScrollRef = useRef<HTMLDivElement>(null);
+  const searchBarRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefetchRef = useRef<Map<number, Promise<Movie>>>(new Map());
 
@@ -100,26 +113,29 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
     };
   }, [query, search]);
 
+  // Responde ao teclado via mutação direta do DOM — nenhum setState
+  // aqui. O React nunca fica sabendo que essa altura está mudando, e
+  // isso é intencional: essa posição precisa acompanhar o teclado em
+  // tempo real, quadro a quadro, e o ciclo de render do React (mesmo
+  // rápido) é overhead desnecessário pra algo que é puramente visual.
   useEffect(() => {
     if (!isOpen || !window.visualViewport) return;
 
     const vv = window.visualViewport;
-    const updateKeyboardHeight = () => {
-      // Diferença entre a altura da JANELA (fixa) e a altura VISÍVEL
-      // real (encolhe com o teclado) = altura que o teclado ocupa.
-      // Só usada pra deslocar a barra de busca — nada mais na tela
-      // reage a essa mudança.
-      const occluded = window.innerHeight - vv.height - vv.offsetTop;
-      setKeyboardHeight(Math.max(0, occluded));
+    const updateKeyboardOffset = () => {
+      const occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      if (searchBarRef.current) {
+        searchBarRef.current.style.transform = occluded > 0 ? `translateY(-${occluded}px)` : '';
+      }
     };
 
-    updateKeyboardHeight();
-    vv.addEventListener('resize', updateKeyboardHeight);
-    vv.addEventListener('scroll', updateKeyboardHeight);
+    updateKeyboardOffset();
+    vv.addEventListener('resize', updateKeyboardOffset);
+    vv.addEventListener('scroll', updateKeyboardOffset);
     return () => {
-      vv.removeEventListener('resize', updateKeyboardHeight);
-      vv.removeEventListener('scroll', updateKeyboardHeight);
-      setKeyboardHeight(0);
+      vv.removeEventListener('resize', updateKeyboardOffset);
+      vv.removeEventListener('scroll', updateKeyboardOffset);
+      if (searchBarRef.current) searchBarRef.current.style.transform = '';
     };
   }, [isOpen]);
 
@@ -135,10 +151,6 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
       document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
       document.body.style.overscrollBehavior = 'none';
-      // touchAction:none no body inteiro reforça o bloqueio em qualquer
-      // ponto da tela, não só no backdrop — o <html> também recebe
-      // overscrollBehavior, já que em alguns navegadores o "scroll
-      // elástico" de borda é tratado por ele, não pelo body.
       document.body.style.touchAction = 'none';
       const originalHtmlOverscroll = html.style.overscrollBehavior;
       html.style.overscrollBehavior = 'none';
@@ -150,18 +162,11 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
       };
       document.addEventListener('touchmove', preventBackgroundScroll, { passive: false });
 
-      // requestAnimationFrame em vez de corrigir direto no handler —
-      // sincroniza a correção com o próximo quadro de repintura do
-      // navegador, o mais cedo possível depois do scroll indesejado ser
-      // percebido, reduzindo a distância visual do "pulo" antes dele
-      // voltar à posição correta. Eventos de scroll em si não são
-      // canceláveis (preventDefault não funciona neles), então corrigir
-      // rápido é a única alavanca real disponível aqui.
       let rafId: number | null = null;
       const preventWindowScroll = () => {
         if (rafId !== null) return;
         rafId = requestAnimationFrame(() => {
-          window.scrollTo(0, scrollY);
+          window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
           rafId = null;
         });
       };
@@ -179,7 +184,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
         document.body.style.overscrollBehavior = '';
         document.body.style.touchAction = '';
         html.style.overscrollBehavior = originalHtmlOverscroll;
-        window.scrollTo(0, scrollY);
+        window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
         document.removeEventListener('touchmove', preventBackgroundScroll);
         window.removeEventListener('scroll', preventWindowScroll);
         if (rafId !== null) cancelAnimationFrame(rafId);
@@ -219,12 +224,6 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
     navigate(`/profile/${profile.username}`);
   };
 
-  // Enter agora é tratado direto no onKeyDown do input (só fecha o
-  // teclado, sem navegar) — não precisa mais de handleSubmit/<form>.
-
-  // Clique explícito no botão "Buscar X →" dentro dos resultados — esse
-  // sim é uma ação intencional de navegação, diferente do Enter do
-  // teclado (que agora só fecha ele).
   const handleGoToFullSearch = () => {
     if (!query.trim() || isUserSearch) return;
     navigate(`/add-movies?search=${encodeURIComponent(query.trim())}`);
@@ -235,16 +234,13 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
     <>
       {!isOpen && (
         <motion.button
-          layoutId="floating-search-shell"
           onClick={() => setIsOpen(true)}
+          initial={false}
           className="md:hidden fixed left-0 z-40 w-14 h-14 rounded-r-2xl bg-white/10 backdrop-blur-xl border border-white/20 border-l-0 shadow-2xl flex items-center justify-center"
           style={{ paddingLeft: 'env(safe-area-inset-left)', bottom: '25vh' }}
           whileTap={{ scale: 0.92 }}
         >
-          <svg viewBox="0 0 24 24" className="w-5 h-5 text-white/90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
+          <Search className="w-5 h-5 text-white/90" />
         </motion.button>
       )}
 
@@ -256,28 +252,26 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[90]"
                 style={{ touchAction: 'none' }}
                 onClick={handleClose}
               />
 
-              {/* Fundo de vidro — se estende bem além da base real da
-                  tela (bottom em valor negativo grande), então nunca
-                  existe uma "borda final" visível. O layoutId cuida do
-                  efeito de "gelatina" saindo do botão fechado. */}
+              {/* Fade + scale simples, sem layoutId — nenhum cálculo de
+                  FLIP entre formas/tamanhos radicalmente diferentes.
+                  Muito mais barato pra GPU renderizar, mesmo com o
+                  backdrop-blur do painel. */}
               <motion.div
-                layoutId="floating-search-shell"
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
                 className="md:hidden fixed left-0 right-0 z-[95] rounded-t-3xl bg-white/10 backdrop-blur-2xl border border-white/20 border-b-0 shadow-2xl overflow-hidden"
                 style={{ top: '22vh', bottom: '-50vh' }}
               >
-                <div className="absolute inset-0 flex flex-col" style={{ paddingBottom: '92px' }}>
+                <div className="absolute inset-0 flex flex-col">
                   <div className="flex-shrink-0 flex items-center justify-end p-3">
-                    {/* Botão X reconstruído do zero — círculo de 36px
-                        (w-9 h-9), ícone de 16px (w-4 h-4) centralizado.
-                        Proporção pensada pra esse tamanho de painel
-                        especificamente, sem depender de nenhum layoutId
-                        compartilhado que pudesse herdar escala. */}
                     <button
                       type="button"
                       onClick={handleClose}
@@ -287,7 +281,12 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                     </button>
                   </div>
 
-                  <div ref={resultsScrollRef} className="flex-1 overflow-y-auto px-4 pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  {/* pb-24 fixo — a barra de busca é uma camada por cima
+                      (não precisa mais casar pixel a pixel com um
+                      padding aqui, já que ela mesma tem fundo opaco).
+                      Só garante que os últimos resultados não fiquem
+                      colados debaixo dela. */}
+                  <div ref={resultsScrollRef} className="flex-1 overflow-y-auto px-4 pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <AnimatePresence mode="popLayout">
                       {isUserSearch ? (
                         profileResults.length > 0 ? (
@@ -391,28 +390,21 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 </div>
               </motion.div>
 
-              {/* Barra de busca — camada totalmente independente do
-                  painel de vidro. Só ela reage ao teclado via
-                  visualViewport; o painel de resultados fica parado. */}
+              {/* Barra de busca — ref pra manipulação direta do DOM em
+                  resposta ao teclado (ver useEffect acima). Fundo opaco
+                  o suficiente (bg-gray-900/95, não mais bg-white/15
+                  translúcido) pra cobrir com segurança qualquer coisa
+                  atrás dela, eliminando o risco de "vão" revelando uma
+                  faixa cinza entre ela e o painel de resultados. */}
               <motion.div
+                ref={searchBarRef}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                transition={{ delay: 0.1, duration: 0.2 }}
-                className="md:hidden fixed left-0 right-0 z-[96] p-3"
-                style={{
-                  bottom: keyboardHeight,
-                  paddingBottom: keyboardHeight > 0 ? '0.75rem' : 'calc(env(safe-area-inset-bottom) + 0.75rem)',
-                  transition: 'bottom 0.1s ease-out',
-                }}
+                transition={{ delay: 0.08, duration: 0.15 }}
+                className="md:hidden fixed left-0 right-0 z-[96] p-3 bg-gray-900/95 backdrop-blur-2xl border-t border-white/10"
+                style={{ bottom: 0, paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
               >
-                {/* Sem <form> de propósito — um elemento <form> real com
-                    onSubmit faz o iOS Safari mostrar uma barra extra de
-                    acessórios acima do teclado (navegação entre campos +
-                    botão de confirmar), pensada pra formulários com
-                    vários campos, não pra uma busca simples de um campo
-                    só. Tratando Enter direto no onKeyDown do input, o
-                    teclado abre no modo "normal", sem essa barra. */}
                 <div className="relative">
                   <input
                     ref={inputRef}
@@ -426,7 +418,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                       }
                     }}
                     placeholder={t('nav.searchMoviesOrUsers')}
-                    className="w-full pl-4 pr-10 py-3 text-base bg-white/15 border border-white/25 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-white/50 backdrop-blur-2xl shadow-2xl transition-all"
+                    className="w-full pl-4 pr-10 py-3 text-base bg-white/15 border border-white/25 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-white/50 transition-all"
                     autoComplete="off"
                     autoCorrect="off"
                     inputMode="search"
