@@ -51,6 +51,26 @@
 
 /* Custom utilities */
 @layer utilities {
+  /* Ghost Rider Frame — estrutura do cartão 3D de duas faces. A
+     animação de giro (ghost-rider-flip) e o resto das animações vivem
+     no tailwind.config.js como classes utility normais
+     (animate-ghost-rider-flip etc); aqui só o que não dá pra expressar
+     como utility class do Tailwind puro: perspective, preserve-3d e
+     backface-visibility, que definem a estrutura 3D em si. */
+  .ghost-rider-scene {
+    perspective: 900px;
+  }
+  .ghost-rider-card {
+    transform-style: preserve-3d;
+  }
+  .ghost-rider-face {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .ghost-rider-back {
+    transform: rotateY(180deg);
+  }
+
   .matrix-digital-rain {
     background-image: 
       /* Gotas de código verticais com pontas brilhantes simulando diferentes profundidades */
