@@ -6,7 +6,8 @@ import { supabase, supabaseUrl } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { getMovieDetailsFromDB } from '../lib/tmdb';
-import { getFrameClass } from '../lib/frames';
+import { getFrameClass, frameUsesComponent } from '../lib/frames';
+import { GhostRiderFrame } from './GhostRiderFrame';
 import MovieDetailsModal from './MovieDetailsModal';
 
 interface MatchMovieModalProps {
@@ -326,8 +327,12 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
             {(() => {
               const renderFilledSlot = (p: Participant, isCoreSlot: boolean, size: 'core' | 'optional') => {
                 const dimension = size === 'core' ? 'w-12 h-12' : 'w-11 h-11';
+                const dimensionPx = size === 'core' ? 48 : 44;
                 return (
                   <div key={p.id} className="relative flex-shrink-0">
+                    {frameUsesComponent(p.avatar_frame || undefined, isUserPremium(p)) === 'GhostRiderFrame' && p.avatar_url ? (
+                      <GhostRiderFrame src={p.avatar_url} alt={p.username} size={dimensionPx} />
+                    ) : (
                     <div
                       title={p.username}
                       className={`${dimension} rounded-full overflow-hidden bg-gradient-to-br from-pink-400 to-purple-500 flex-shrink-0 ${getFrameClass(p.avatar_frame || undefined, isUserPremium(p))}`}
@@ -340,6 +345,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
                         </div>
                       )}
                     </div>
+                    )}
                     {!isCoreSlot && phase === 'setup' && (
                       <button
                         type="button"
