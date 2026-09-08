@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, Star, Film, Tv, Search } from 'lucide-react';
+import { X, Loader2, Star, Film, Tv, Search, SlidersHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { searchMovies, getMovieDetails, ensureMovieCached, Movie } from '../lib/tmdb';
@@ -18,35 +18,6 @@ interface FloatingMobileSearchProps {
   onMovieSelect: (movie: Movie) => void;
 }
 
-// v4 — reconstrução focada em PESO/FLUIDEZ, não em funcionalidade nova.
-// Três mudanças de arquitetura, cada uma resolvendo um sintoma
-// relatado por uma causa técnica específica:
-//
-// 1. Removido o layoutId compartilhado entre botão fechado e painel
-//    aberto. Animar uma transformação FLIP entre um círculo de 56px e
-//    um painel que cobre quase a tela inteira, com backdrop-blur nos
-//    dois extremos (uma das operações mais caras que existem em CSS),
-//    é pesado o bastante pra gerar artefatos visuais em GPUs de
-//    celular — exatamente o "leve glitch" relatado. Trocado por
-//    fade+scale simples: muito mais barato, sem FLIP nenhum.
-//
-// 2. A barra de busca usa a MESMA textura de vidro do painel principal
-//    (bg-white/10 backdrop-blur-2xl) — antes usava um cinza opaco
-//    (bg-gray-900/95) que destoava visualmente do resto, parecendo um
-//    retângulo "errado" colado embaixo. O anel azul de foco do input
-//    (focus:ring-blue-400) também foi removido — como o campo é
-//    auto-focado ao abrir, esse anel ficava permanentemente visível,
-//    parecendo outro retângulo indesejado ao redor da barra.
-//
-// 3. A posição da barra de busca em resposta ao teclado não passa mais
-//    por useState/re-render do React — é uma ref (translateY via
-//    style direto no DOM) atualizada a cada evento do visualViewport.
-//    Essa ref agora vive num elemento PRÓPRIO, separado do motion.div
-//    que anima abrir/fechar — antes os dois disputavam a propriedade
-//    "transform" no MESMO elemento (Framer Motion via animate={{y}},
-//    e a mutação manual do teclado por cima), o que provavelmente
-//    causava o congelamento ao fechar/reabrir rapidamente: o estado
-//    interno do Framer Motion ficava dessincronizado do DOM real.
 const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSelect }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -58,7 +29,6 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsScrollRef = useRef<HTMLDivElement>(null);
-  const searchBarRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefetchRef = useRef<Map<number, Promise<Movie>>>(new Map());
 
@@ -117,83 +87,58 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
     };
   }, [query, search]);
 
-  // Responde ao teclado via mutação direta do DOM — nenhum setState
-  // aqui. O React nunca fica sabendo que essa altura está mudando, e
-  // isso é intencional: essa posição precisa acompanhar o teclado em
-  // tempo real, quadro a quadro, e o ciclo de render do React (mesmo
-  // rápido) é overhead desnecessário pra algo que é puramente visual.
   useEffect(() => {
-    if (!isOpen || !window.visualViewport) return;
+    if (!isOpen) return;
 
-    const vv = window.visualViewport;
-    const updateKeyboardOffset = () => {
-      const occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      if (searchBarRef.current) {
-        searchBarRef.current.style.transform = occluded > 0 ? `translateY(-${occluded}px)` : '';
-      }
+    const scrollY = window.scrollY;
+    const html = document.documentElement;
+
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+    document.body.style.touchAction = 'none';
+    const originalHtmlOverscroll = html.style.overscrollBehavior;
+    html.style.overscrollBehavior = 'none';
+
+    const preventBackgroundScroll = (e: TouchEvent) => {
+      const target = e.target as Node;
+      if (resultsScrollRef.current?.contains(target)) return;
+      e.preventDefault();
     };
+    document.addEventListener('touchmove', preventBackgroundScroll, { passive: false });
 
-    updateKeyboardOffset();
-    vv.addEventListener('resize', updateKeyboardOffset);
-    vv.addEventListener('scroll', updateKeyboardOffset);
-    return () => {
-      vv.removeEventListener('resize', updateKeyboardOffset);
-      vv.removeEventListener('scroll', updateKeyboardOffset);
-      if (searchBarRef.current) searchBarRef.current.style.transform = '';
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (isOpen) {
-      const scrollY = window.scrollY;
-      const html = document.documentElement;
-
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.left = '0';
-      document.body.style.right = '0';
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-      document.body.style.overscrollBehavior = 'none';
-      document.body.style.touchAction = 'none';
-      const originalHtmlOverscroll = html.style.overscrollBehavior;
-      html.style.overscrollBehavior = 'none';
-
-      const preventBackgroundScroll = (e: TouchEvent) => {
-        const target = e.target as Node;
-        if (resultsScrollRef.current?.contains(target)) return;
-        e.preventDefault();
-      };
-      document.addEventListener('touchmove', preventBackgroundScroll, { passive: false });
-
-      let rafId: number | null = null;
-      const preventWindowScroll = () => {
-        if (rafId !== null) return;
-        rafId = requestAnimationFrame(() => {
-          window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
-          rafId = null;
-        });
-      };
-      window.addEventListener('scroll', preventWindowScroll, { passive: true });
-
-      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 350);
-
-      return () => {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-        document.body.style.right = '';
-        document.body.style.width = '';
-        document.body.style.overflow = '';
-        document.body.style.overscrollBehavior = '';
-        document.body.style.touchAction = '';
-        html.style.overscrollBehavior = originalHtmlOverscroll;
+    let rafId: number | null = null;
+    const preventWindowScroll = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
         window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
-        document.removeEventListener('touchmove', preventBackgroundScroll);
-        window.removeEventListener('scroll', preventWindowScroll);
-        if (rafId !== null) cancelAnimationFrame(rafId);
-      };
-    }
+        rafId = null;
+      });
+    };
+    window.addEventListener('scroll', preventWindowScroll, { passive: true });
+
+    const focusTimer = setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 300);
+
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      document.body.style.overscrollBehavior = '';
+      document.body.style.touchAction = '';
+      html.style.overscrollBehavior = originalHtmlOverscroll;
+      window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' });
+      document.removeEventListener('touchmove', preventBackgroundScroll);
+      window.removeEventListener('scroll', preventWindowScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      clearTimeout(focusTimer);
+    };
   }, [isOpen]);
 
   const handleClose = () => {
@@ -262,192 +207,188 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 onClick={handleClose}
               />
 
-              {/* Fade + scale simples, sem layoutId — nenhum cálculo de
-                  FLIP entre formas/tamanhos radicalmente diferentes.
-                  Muito mais barato pra GPU renderizar, mesmo com o
-                  backdrop-blur do painel. */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="md:hidden fixed left-0 right-0 z-[95] rounded-t-3xl bg-white/10 backdrop-blur-2xl border border-white/20 border-b-0 shadow-2xl overflow-hidden"
-                style={{ top: '22vh', bottom: '-50vh' }}
+                initial={{ opacity: 0, y: '100%' }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: '100%' }}
+                transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+                className="md:hidden fixed inset-x-0 top-0 z-[95] flex flex-col"
+                style={{
+                  height: '100dvh',
+                  paddingTop: 'env(safe-area-inset-top)',
+                }}
               >
-                <div className="absolute inset-0 flex flex-col">
-                  <div className="flex-shrink-0 flex items-center justify-end p-3">
+                {/* Unified glass surface — search bar pinned at top,
+                    results scroll independently below. The bar is part
+                    of the same glass panel, not a separate floating
+                    layer, so there's no gray rectangle underneath. */}
+
+                {/* Search bar — always visible, pinned to the top of the panel.
+                    Because the panel starts at top:0 and uses 100dvh, the
+                    keyboard naturally pushes the viewport bottom up but
+                    the bar stays anchored at the top, fully visible. */}
+                <div className="flex-shrink-0 px-4 pt-4 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            inputRef.current?.blur();
+                          }
+                        }}
+                        placeholder={t('nav.searchMoviesOrUsers')}
+                        className="w-full pl-10 pr-10 py-3 text-[15px] bg-white/[0.08] border border-white/[0.12] rounded-2xl outline-none text-white placeholder-white/40 transition-colors focus:bg-white/[0.12] focus:border-white/20"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        inputMode="search"
+                      />
+                      {loading ? (
+                        <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 animate-spin" />
+                      ) : query ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuery('');
+                            setMovieResults([]);
+                            setProfileResults([]);
+                            inputRef.current?.focus();
+                          }}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      ) : null}
+                    </div>
                     <button
                       type="button"
                       onClick={handleClose}
-                      className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors flex-shrink-0"
+                      className="flex-shrink-0 text-sm font-medium text-white/60 hover:text-white transition-colors px-1"
                     >
-                      <X className="w-4 h-4 text-white/90" strokeWidth={2.5} />
+                      {t('common.cancel')}
                     </button>
                   </div>
+                </div>
 
-                  {/* pb-24 fixo — a barra de busca é uma camada por cima
-                      (não precisa mais casar pixel a pixel com um
-                      padding aqui, já que ela mesma tem fundo opaco).
-                      Só garante que os últimos resultados não fiquem
-                      colados debaixo dela. */}
-                  {/* touchAction: 'pan-y' é essencial aqui — o body
-                      inteiro tem touchAction:none enquanto o modal está
-                      aberto (bloqueando o scroll de fundo), e isso é
-                      decidido pelo navegador no nível de reconhecimento
-                      de gestos, antes até do listener de touchmove
-                      rodar. Precisa ser reabilitado explicitamente aqui,
-                      sobrescrevendo a herança do body — sem isso, o
-                      scroll por toque nessa lista simplesmente não
-                      funciona (só a rodinha do mouse no desktop). */}
-                  <div ref={resultsScrollRef} className="flex-1 overflow-y-auto px-4 pb-24" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-                    <AnimatePresence mode="popLayout">
-                      {isUserSearch ? (
-                        profileResults.length > 0 ? (
-                          <motion.div className="space-y-1.5">
-                            {profileResults.map((profile, i) => (
-                              <motion.button
-                                key={profile.id}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.03 }}
-                                onClick={() => handleProfileClick(profile)}
-                                className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors text-left"
-                              >
-                                <div className="w-9 h-9 rounded-full overflow-hidden bg-white/10 flex-shrink-0">
-                                  {profile.avatar_url ? (
-                                    <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-white/70 font-bold text-sm">
-                                      {profile.username.charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
-                                </div>
-                                <span className="text-sm font-medium text-white">@{profile.username}</span>
-                              </motion.button>
-                            ))}
-                          </motion.div>
-                        ) : query.trim().length > 1 && !loading ? (
-                          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/50 text-sm py-8">
-                            {t('common.noResults')}
-                          </motion.p>
-                        ) : null
-                      ) : movieResults.length > 0 ? (
-                        <motion.div className="space-y-1.5">
-                          {movieResults.map((movie, i) => {
-                            const year = (movie.release_date || movie.first_air_date || '').slice(0, 4);
-                            const isTV = movie.media_type === 'tv';
-                            return (
-                              <motion.button
-                                key={movie.id}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.03 }}
-                                onClick={() => handleMovieClick(movie)}
-                                className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors text-left"
-                              >
-                                <div className="w-9 h-[52px] flex-shrink-0 rounded-lg overflow-hidden bg-white/10">
-                                  {movie.poster_path ? (
-                                    <img
-                                      src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
-                                      alt={movie.title}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-white/40">
-                                      <Film className="w-4 h-4" />
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-white truncate">{movie.title || movie.name}</p>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    {year && <span className="text-xs text-white/50">{year}</span>}
-                                    {isTV ? (
-                                      <span className="flex items-center gap-0.5 text-xs text-cyan-300/80">
-                                        <Tv className="w-3 h-3" />
-                                        TV
-                                      </span>
-                                    ) : (
-                                      <Film className="w-3 h-3 text-white/40" />
-                                    )}
-                                    {movie.vote_average > 0 && (
-                                      <span className="flex items-center gap-0.5 text-xs text-yellow-300/80">
-                                        <Star className="w-3 h-3 fill-current" />
-                                        {movie.vote_average.toFixed(1)}
-                                      </span>
-                                    )}
+                {/* Results — independent scroll area below the search bar.
+                    touchAction: 'pan-y' re-enables touch scrolling that the
+                    body-level touchAction:none blocks. */}
+                <div
+                  ref={resultsScrollRef}
+                  className="flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+                  style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+                >
+                  <AnimatePresence mode="popLayout">
+                    {isUserSearch ? (
+                      profileResults.length > 0 ? (
+                        <motion.div className="space-y-1 pt-1">
+                          {profileResults.map((profile, i) => (
+                            <motion.button
+                              key={profile.id}
+                              initial={{ opacity: 0, y: 6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ delay: i * 0.03 }}
+                              onClick={() => handleProfileClick(profile)}
+                              className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.06] active:bg-white/[0.12] transition-colors text-left"
+                            >
+                              <div className="w-10 h-10 rounded-full overflow-hidden bg-white/10 flex-shrink-0">
+                                {profile.avatar_url ? (
+                                  <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-white/70 font-bold text-sm">
+                                    {profile.username.charAt(0).toUpperCase()}
                                   </div>
-                                </div>
-                              </motion.button>
-                            );
-                          })}
-                          <button
-                            type="button"
-                            onClick={handleGoToFullSearch}
-                            className="w-full py-3 text-xs text-blue-300 hover:text-blue-200 transition-colors text-center"
-                          >
-                            {t('nav.searchMovies')} &ldquo;{query}&rdquo; &rarr;
-                          </button>
+                                )}
+                              </div>
+                              <span className="text-sm font-medium text-white">@{profile.username}</span>
+                            </motion.button>
+                          ))}
                         </motion.div>
                       ) : query.trim().length > 1 && !loading ? (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/50 text-sm py-8">
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/50 text-sm py-10">
                           {t('common.noResults')}
                         </motion.p>
-                      ) : (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/40 text-xs py-8">
-                          {t('nav.startTypingToSearch')}
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                      ) : null
+                    ) : movieResults.length > 0 ? (
+                      <motion.div className="space-y-1 pt-1">
+                        {movieResults.map((movie, i) => {
+                          const year = (movie.release_date || movie.first_air_date || '').slice(0, 4);
+                          const isTV = movie.media_type === 'tv';
+                          return (
+                            <motion.button
+                              key={movie.id}
+                              initial={{ opacity: 0, y: 6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ delay: i * 0.03 }}
+                              onClick={() => handleMovieClick(movie)}
+                              className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.06] active:bg-white/[0.12] transition-colors text-left"
+                            >
+                              <div className="w-10 h-[56px] flex-shrink-0 rounded-lg overflow-hidden bg-white/10">
+                                {movie.poster_path ? (
+                                  <img
+                                    src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
+                                    alt={movie.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-white/40">
+                                    <Film className="w-4 h-4" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-white truncate">{movie.title || movie.name}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {year && <span className="text-xs text-white/45">{year}</span>}
+                                  {isTV ? (
+                                    <span className="flex items-center gap-0.5 text-xs text-cyan-300/80">
+                                      <Tv className="w-3 h-3" />
+                                      TV
+                                    </span>
+                                  ) : (
+                                    <Film className="w-3 h-3 text-white/30" />
+                                  )}
+                                  {movie.vote_average > 0 && (
+                                    <span className="flex items-center gap-0.5 text-xs text-yellow-300/70">
+                                      <Star className="w-3 h-3 fill-current" />
+                                      {movie.vote_average.toFixed(1)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </motion.button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          onClick={handleGoToFullSearch}
+                          className="w-full py-3 mt-1 text-xs text-blue-300/90 hover:text-blue-200 transition-colors text-center flex items-center justify-center gap-1.5"
+                        >
+                          <SlidersHorizontal className="w-3 h-3" />
+                          {t('nav.searchMovies')} &ldquo;{query}&rdquo;
+                        </button>
+                      </motion.div>
+                    ) : query.trim().length > 1 && !loading ? (
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/50 text-sm py-10">
+                        {t('common.noResults')}
+                      </motion.p>
+                    ) : !loading ? (
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/35 text-xs py-10">
+                        {t('nav.startTypingToSearch')}
+                      </motion.p>
+                    ) : null}
+                  </AnimatePresence>
                 </div>
               </motion.div>
-
-              {/* Dois elementos, não um: o externo (ref, sem framer-motion
-                  controlando ele) é mutado diretamente via DOM pro ajuste
-                  de teclado; o interno (motion.div) cuida só da animação
-                  de abrir/fechar. Antes os dois controlavam "transform"
-                  no MESMO elemento — o Framer Motion via animate={{y}},
-                  e eu via style.transform manual pro teclado — competindo
-                  pela mesma propriedade CSS. Isso deixava o estado
-                  interno do Framer Motion dessincronizado do DOM real,
-                  e provavelmente era a causa do congelamento ao
-                  fechar/reabrir rapidamente: o Framer tenta re-montar a
-                  animação de saída assumindo um estado que não batia
-                  mais com o que o DOM realmente tinha. */}
-              <div ref={searchBarRef} className="md:hidden fixed left-0 right-0 z-[96]" style={{ bottom: 0 }}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ delay: 0.08, duration: 0.15 }}
-                  className="p-3 bg-white/10 backdrop-blur-2xl"
-                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
-                >
-                  <div className="relative">
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          inputRef.current?.blur();
-                        }
-                      }}
-                      placeholder={t('nav.searchMoviesOrUsers')}
-                      className="w-full pl-4 pr-10 py-3 text-base bg-white/15 border border-white/25 rounded-2xl outline-none text-white placeholder-white/50 transition-all"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      inputMode="search"
-                    />
-                    {loading && (
-                      <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70 animate-spin" />
-                    )}
-                  </div>
-                </motion.div>
-              </div>
             </>
           )}
         </AnimatePresence>,
