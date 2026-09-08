@@ -77,11 +77,14 @@ export const frames = {
     // própria <img> agora tem seu clip-path idêntico e independente,
     // recortando-se corretamente por conta própria.
     //
-    // p-1 removido — fazia a foto parecer menor que a dos outros
-    // frames na grade de seleção do Customize Profile (empurrava a
-    // <img> 4px pra dentro de cada lado, sem função essencial pro
-    // efeito de morph em si).
-    className: 'relative !rounded-none !bg-gray-800 dark:!bg-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph [&>img]:!backface-visible [&>img]:rounded-none [&>img]:animate-tf-shape-morph'
+    // p-1 mantido — não era o padding que fazia o frame parecer menor
+    // (diagnóstico anterior errado). A causa real: todo frame tem uma
+    // borda ring-4 de tamanho padrão, que dá definição visual constante
+    // à borda — esta era cinza e se camuflava com fundos escuros/cinza
+    // comuns do site, dando a impressão de frame "menor"/menos definido
+    // que os outros. Trocada pra um azul marinho escuro, que se destaca
+    // bem mais nesses fundos.
+    className: 'relative !rounded-none ring-4 ring-[#011f4b] !bg-gray-800 dark:!bg-gray-700 p-1 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph [&>img]:!backface-visible [&>img]:rounded-none [&>img]:animate-tf-shape-morph'
   },
 'death-dodger': {
   id: 'death-dodger',
@@ -122,7 +125,7 @@ export const frames = {
     requiredTag: 'hell-rider',
     renderType: 'component',
     component: 'GhostRiderFrame',
-    className: 'relative ring-4 ring-orange-500 dark:ring-orange-600 animate-ghost-rider-glow'
+    className: 'relative ring-4 ring-[#c5b358] animate-ghost-rider-glow'
   }
 } as const;
 
