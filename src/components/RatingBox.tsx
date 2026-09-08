@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Swords, Filter } from 'lucide-react';
+import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Filter } from 'lucide-react';
 import { Movie, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import ConfirmationModal from './ConfirmationModal';
@@ -34,10 +34,6 @@ interface RatingBoxProps {
   chromaBoxEnabled?: boolean;
   isOneGrid?: boolean;
   isOneGridTv?: boolean;
-  // Só usado na caixa da Watchlist (isNotRated=true) — mostra o botão de
-  // Duelo de Watchlist ao lado do "Ver Todos". Nas caixas de nota normal,
-  // essa prop simplesmente não é passada, e o botão não aparece.
-  onDuelClick?: () => void;
   // Também só na Watchlist — abre o seletor de streamings pra filtrar a
   // lista. activeFilterCount mostra um badge no botão quando há filtros
   // aplicados, pra deixar claro que a lista está sendo filtrada.
@@ -78,7 +74,6 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   chromaBoxEnabled = false,
   isOneGrid = false,
   isOneGridTv = false,
-  onDuelClick,
   onFilterClick,
   activeFilterCount = 0,
 }) => {
@@ -301,28 +296,19 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             <button
               onClick={onFilterClick}
               title={t('library.filterByStreaming', { defaultValue: 'Filtrar por streaming' })}
-              className={`relative flex items-center justify-center p-2.5 sm:p-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 ${
+              className={`relative flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 text-xs sm:text-sm font-bold text-white ${
                 activeFilterCount > 0
-                  ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600 text-white'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600'
+                  : 'bg-blue-500 hover:bg-blue-600'
               }`}
             >
               <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              {t('library.filters', { defaultValue: 'Filtros' })}
               {activeFilterCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white text-purple-600 text-[10px] font-bold rounded-full flex items-center justify-center shadow-md">
                   {activeFilterCount}
                 </span>
               )}
-            </button>
-          )}
-          {isNotRated && onDuelClick && (
-            <button
-              onClick={onDuelClick}
-              className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 rounded-xl transition-all duration-300 whitespace-nowrap shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-            >
-              <Swords className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">{t('watchlistDuel.title')}</span>
-              <span className="sm:hidden">Duelo</span>
             </button>
           )}
           <button
