@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { frames, FrameId } from '../lib/frames';
+import { GhostRiderFrame } from './GhostRiderFrame';
 import { THEME_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 import { banners, BannerId } from '../lib/banners';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -297,17 +298,31 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     const defaultFrame = frames.default;
     const otherFrames = Object.values(frames).filter(frame => frame.id !== 'default');
 
-    const avatarPreview = (extraClassName: string) => (
-      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-xl flex-shrink-0 ${extraClassName}`}>
-        {frozenAvatarUrl ? (
-          <img src={frozenAvatarUrl} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
-            <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-          </div>
-        )}
-      </div>
-    );
+    // Recebe o frame inteiro (não só a className) pra poder decidir
+    // internamente entre o wrapper normal (className, todos os outros
+    // frames) ou o componente dedicado (só o Ghost Rider por enquanto).
+    // Nota: o preview aqui usa um tamanho fixo (72px) em vez do
+    // responsivo w-16/sm:w-20 dos outros frames — o GhostRiderFrame
+    // controla o tamanho via style (pixels), não via className
+    // responsiva do Tailwind, então não replica os dois breakpoints
+    // exatamente. Diferença pequena o suficiente pra não incomodar
+    // numa grade de preview, mas vale saber que existe.
+    const avatarPreview = (frame: (typeof frames)[FrameId], extraClassName: string = '') => {
+      if ('renderType' in frame && frame.renderType === 'component' && frame.component === 'GhostRiderFrame') {
+        return <GhostRiderFrame src={frozenAvatarUrl || ''} alt="" size={72} className="flex-shrink-0" />;
+      }
+      return (
+        <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-xl flex-shrink-0 ${frame.className} ${extraClassName}`}>
+          {frozenAvatarUrl ? (
+            <img src={frozenAvatarUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
+              <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            </div>
+          )}
+        </div>
+      );
+    };
 
     // Animações pausadas por padrão (só rodam ao passar o mouse/tocar) —
     // via CSS de verdade (não classes Tailwind), porque antes/depois
@@ -343,7 +358,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
               onClick={() => handleFrameSelect(defaultFrame.id as FrameId)}
               className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 flex flex-col items-center justify-center p-3 rounded-2xl overflow-hidden"
             >
-              {avatarPreview(defaultFrame.className)}
+              {avatarPreview(defaultFrame)}
               <span className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
                 {defaultFrame.name}
               </span>
@@ -378,7 +393,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                   disabled={isLocked}
                   className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 disabled:cursor-not-allowed disabled:hover:from-gray-100 disabled:hover:to-gray-200 dark:disabled:hover:from-gray-700 dark:disabled:hover:to-gray-800 flex flex-col items-center justify-center p-3 rounded-2xl overflow-hidden"
                 >
-                  {avatarPreview(`${frame.className} ${hoverAnimClasses}`)}
+                  {avatarPreview(frame, hoverAnimClasses)}
                   <span className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm text-center line-clamp-1">
                     {frame.name}
                   </span>
