@@ -104,11 +104,18 @@ export default {
           '98%, 100%': { transform: 'rotateY(360deg)' },
         },
         // Tremulação do fogo da caveira (labareda viva).
+        // A centralização (translate(-50%,-50%)) precisa estar DENTRO de
+        // cada etapa da keyframe — um valor de transform definido numa
+        // animação CSS substitui completamente o transform anterior, não
+        // combina com classes utility (-translate-x-1/2 etc). Sem isso
+        // aqui, a cada "tick" da animação a imagem perdia a centralização
+        // e passava a assentar pelo canto superior-esquerdo, deslocando
+        // visualmente pra baixo e pra direita — exatamente o bug relatado.
         'ghost-rider-fire': {
-          '0%, 100%': { transform: 'scale(1) translateY(0)', opacity: '0.95' },
-          '25%': { transform: 'scale(1.06) translateY(-2%)', opacity: '1' },
-          '50%': { transform: 'scale(0.97) translateY(1%)', opacity: '0.85' },
-          '75%': { transform: 'scale(1.04) translateY(-1%)', opacity: '1' },
+          '0%, 100%': { transform: 'translate(-50%, -50%) scale(1) translateY(0)', opacity: '0.95' },
+          '25%': { transform: 'translate(-50%, -50%) scale(1.06) translateY(-2%)', opacity: '1' },
+          '50%': { transform: 'translate(-50%, -50%) scale(0.97) translateY(1%)', opacity: '0.85' },
+          '75%': { transform: 'translate(-50%, -50%) scale(1.04) translateY(-1%)', opacity: '1' },
         },
         // Halo de brasas pulsando ao redor da borda (frente e verso).
         'ghost-rider-glow': {
