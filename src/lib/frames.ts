@@ -82,26 +82,9 @@ export const frames = {
     // borda ring-4 de tamanho padrão, que dá definição visual constante
     // à borda — esta era cinza e se camuflava com fundos escuros/cinza
     // comuns do site, dando a impressão de frame "menor"/menos definido
-    // que os outros.
-    //
-    // ring-4 nunca funcionou aqui — descoberto depois de investigar a
-    // fundo: clip-path (usado por animate-tf-shape-morph, no MESMO
-    // elemento) recorta TUDO da renderização daquele elemento, incluindo
-    // seu próprio box-shadow (é assim que ring é implementado). Diferente
-    // de overflow-hidden (que só corta CONTEÚDO/filhos transbordantes,
-    // nunca o box-shadow do próprio elemento), clip-path define a região
-    // de recorte pra TODA a pintura da caixa — mesmo na fase "círculo" do
-    // ciclo, clip-path:circle(50%) corta exatamente na borda, escondendo
-    // qualquer ring que se estenderia pra fora dela.
-    //
-    // filter:drop-shadow() resolve isso — diferente de box-shadow (parte
-    // da caixa original, recortada junto pelo clip-path), drop-shadow é
-    // um filtro aplicado DEPOIS do recorte, envolvendo a forma JÁ
-    // RECORTADA (seja ela círculo, pentágono, quadrado ou triângulo) em
-    // vez de ser cortado por ela. Múltiplas camadas empilhadas simulam a
-    // espessura de uma borda de verdade, acompanhando a forma mutante
-    // automaticamente, sem precisar de nenhuma estrutura HTML adicional.
-    className: 'relative !rounded-none !bg-gray-800 dark:!bg-gray-700 p-1 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] [filter:drop-shadow(0_0_0_#011f4b)_drop-shadow(0_0_2px_#011f4b)_drop-shadow(0_0_4px_#011f4b)] animate-tf-shape-morph [&>img]:!backface-visible [&>img]:rounded-none [&>img]:animate-tf-shape-morph'
+    // que os outros. Trocada pra um azul marinho escuro, que se destaca
+    // bem mais nesses fundos.
+    className: 'relative !rounded-none ring-4 ring-[#011f4b] !bg-gray-800 dark:!bg-gray-700 p-1 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph [&>img]:!backface-visible [&>img]:rounded-none [&>img]:animate-tf-shape-morph'
   },
 'death-dodger': {
   id: 'death-dodger',
