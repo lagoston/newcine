@@ -13,7 +13,8 @@ import FollowersModal from '../components/FollowersModal';
 import WorldMapCard from '../components/WorldMapCard';
 import UserPinsCard from '../components/UserPinsCard';
 import { toast } from 'sonner';
-import { getFrameClass } from '../lib/frames';
+import { getFrameClass, frameUsesComponent } from '../lib/frames';
+import { GhostRiderFrame } from '../components/GhostRiderFrame';
 import { getBannerClass } from '../lib/banners';
 import UserListsModal from '../components/UserListsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
@@ -394,6 +395,9 @@ export default function UserProfile() {
  <div className="relative z-10 p-6 sm:p-8">
  <div className="flex flex-col sm:flex-row sm:items-start gap-6">
  <div className="relative mx-auto sm:mx-0 flex-shrink-0">
+ {frameUsesComponent(profile?.avatar_frame, profile.is_premium ?? profile.plan_type === 'premium') === 'GhostRiderFrame' && profile?.avatar_url ? (
+ <GhostRiderFrame src={profile.avatar_url} alt={profile.username} size={112} />
+ ) : (
  <div className={`w-28 h-28 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile?.avatar_frame, profile.is_premium ?? profile.plan_type === 'premium')}`}>
  {profile?.avatar_url ? (
  <img
@@ -405,6 +409,7 @@ export default function UserProfile() {
  <User className="w-full h-full p-5 text-gray-400" />
  )}
  </div>
+ )}
  </div>
 
  <div className="flex-1 text-center sm:text-left">
