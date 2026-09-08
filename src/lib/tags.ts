@@ -155,6 +155,13 @@ export const THEME_TAGS: ThemeTag[] = [
   { id: 'sailor', name: 'Sailor', emoji: '🏴‍☠️', requirement: 'All 5 Pirates of the Caribbean movies', requirementPt: 'Todos os 5 filmes Piratas do Caribe', condition: { type: 'franchise', count: 5, value: 'Pirates' } },
   { id: 'senior-mechanic', name: 'Senior Mechanic', emoji: '🏎️', requirement: 'All 10 Fast & Furious main saga movies', requirementPt: 'Todos os 10 filmes principais de Velozes e Furiosos', condition: { type: 'franchise', count: 10, value: 'Fast Saga' } },
   { id: 'cybertron-sentinel', name: 'Cybertron Sentinel', emoji: '🤖', requirement: 'All 7 live-action Transformers movies', requirementPt: 'Todos os 7 filmes live-action Transformers', condition: { type: 'franchise', count: 7, value: 'Transformers' } },
+  // hell-rider — já referenciado como requiredTag no Ghost Rider Frame
+  // (src/lib/frames.ts) desde que o frame foi implantado; a tag em si
+  // nunca tinha sido criada, então o frame nunca poderia ser desbloqueado
+  // de verdade. Lista explícita de IDs (não nome de franquia genérico)
+  // — Ghost Rider (2007) e Ghost Rider: Spirit of Vengeance (2011),
+  // confirmados no cache do banco antes de adicionar aqui.
+  { id: 'hell-rider', name: 'Spirit of Vengeance', emoji: '🏍️', requirement: 'Both Ghost Rider movies', requirementPt: 'Os dois filmes do Motoqueiro Fantasma', condition: { type: 'franchise', count: 2, value: [1250, 71676] } },
   { id: 'swamp-royalty', name: 'Swamp Royalty', emoji: '👹', requirement: 'All 4 Shrek movies', requirementPt: 'Todos os 4 filmes Shrek', condition: { type: 'franchise', count: 4, value: 'Shrek' } },
   { id: 'dino-tamer', name: 'Dino Tamer', emoji: '🦖', requirement: 'All 6 Jurassic Park/World movies', requirementPt: 'Todos os 6 filmes Jurassic Park/World', condition: { type: 'franchise', count: 6, value: 'Jurassic' } },
   { id: 'banana-boss', name: 'Banana Boss', emoji: '🍌', requirement: 'All 5 Despicable Me/Minions movies', requirementPt: 'Todos os 5 filmes Meu Malvado Favorito/Minions', condition: { type: 'franchise', count: 5, value: 'Minions' } },
