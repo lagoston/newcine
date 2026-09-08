@@ -397,27 +397,27 @@ export default function WhispersModal({ isOpen, onClose, userId }: WhispersModal
               </motion.div>
             </div>
           )}
+
+          <ConfirmationModal
+            isOpen={deletingId !== null}
+            onClose={() => setDeletingId(null)}
+            onConfirm={handleDelete}
+            title={t('indications.deleteTitle', { defaultValue: 'Apagar Sussurro' })}
+            message={t('indications.deleteConfirm', { defaultValue: 'Tem certeza que deseja apagar este sussurro? Essa ação não pode ser desfeita.' })}
+          />
+
+          {selectedMovie && (
+            <MovieDetailsModal
+              movie={selectedMovie}
+              isOpen={showMovieModal}
+              onClose={() => {
+                setShowMovieModal(false);
+                setSelectedMovie(null);
+              }}
+            />
+          )}
         </AnimatePresence>,
         document.body
-      )}
-
-      <ConfirmationModal
-        isOpen={deletingId !== null}
-        onClose={() => setDeletingId(null)}
-        onConfirm={handleDelete}
-        title={t('indications.deleteTitle', { defaultValue: 'Apagar Sussurro' })}
-        message={t('indications.deleteConfirm', { defaultValue: 'Tem certeza que deseja apagar este sussurro? Essa ação não pode ser desfeita.' })}
-      />
-
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isOpen={showMovieModal}
-          onClose={() => {
-            setShowMovieModal(false);
-            setSelectedMovie(null);
-          }}
-        />
       )}
     </>
   );
