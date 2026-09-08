@@ -11,56 +11,21 @@ import NavbarSearch from './NavbarSearch';
 import FloatingMobileSearch from './FloatingMobileSearch';
 import MovieDetailsModal from './MovieDetailsModal';
 import { Movie } from '../lib/tmdb';
+import { useWhispers } from '../contexts/WhispersContext';
 
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, session } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [unreadWhispers, setUnreadWhispers] = useState(0);
+  // unreadWhispers vem do Context agora — antes esse componente tinha
+  // seu PRÓPRIO estado e subscription, uma cópia separada da que o
+  // Profile.tsx também mantinha por conta própria; as duas podiam
+  // dessincronizar (e a do Profile nem funcionava de verdade, já que
+  // escutava o nome de tabela errado). Uma fonte de verdade só agora.
+  const { unreadCount: unreadWhispers } = useWhispers();
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const { t } = useTranslation();
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchUnreadWhispers();
-
-      const channel = supabase
-        .channel('whispers-updates')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'friend_indications',
-            filter: `to_user_id=eq.${user.id}`
-          },
-          () => {
-            fetchUnreadWhispers();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user?.id]);
-
-  const fetchUnreadWhispers = async () => {
-    if (!user?.id) return;
-
-    try {
-      const { data, error } = await supabase.rpc('count_unread_indications', {
-        user_id_input: user.id
-      });
-
-      if (error) throw error;
-      setUnreadWhispers(data || 0);
-    } catch (error) {
-      console.error('Error fetching unread whispers:', error);
-    }
-  };
 
   const handleMovieSelect = (movie: Movie) => {
     setIsMenuOpen(false);
