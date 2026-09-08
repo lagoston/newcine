@@ -83,6 +83,11 @@ export default {
         // continua instantâneo, mas acontece "escondido" dentro do pulso,
         // lendo como uma transformação intencional, não um erro abrupto.
         'tf-shape-morph': {
+          // A última transição (triângulo → círculo, fechando o loop)
+          // pulava direto do triângulo encolhido pro círculo já expandido
+          // — faltava o mesmo passo intermediário que as OUTRAS
+          // transições têm (mudar de forma AINDA encolhido, só depois
+          // expandir). Adicionado 99%/99.9% pra igualar o padrão.
           '0%, 20%': { clipPath: 'circle(50% at 50% 50%)', transform: 'scale(1)', opacity: '1' },
           '23%': { clipPath: 'circle(50% at 50% 50%)', transform: 'scale(0.8)', opacity: '0.35' },
           '25%': { clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)', transform: 'scale(0.8)', opacity: '0.35' },
@@ -93,7 +98,9 @@ export default {
           '73%': { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', transform: 'scale(0.8)', opacity: '0.35' },
           '75%': { clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)', transform: 'scale(0.8)', opacity: '0.35' },
           '78%, 95%': { clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)', transform: 'scale(1)', opacity: '1' },
-          '98%, 100%': { clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)', transform: 'scale(0.8)', opacity: '0.35' },
+          '98%': { clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)', transform: 'scale(0.8)', opacity: '0.35' },
+          '99.9%': { clipPath: 'circle(50% at 50% 50%)', transform: 'scale(0.8)', opacity: '0.35' },
+          '100%': { clipPath: 'circle(50% at 50% 50%)', transform: 'scale(1)', opacity: '1' },
         },
         // Ghost Rider — giro do cartão 3D. Direção única = sempre "para
         // dentro" (nunca inverte o sentido do giro entre ciclos).
@@ -205,7 +212,7 @@ export default {
         // sangue no mesmo elemento. Toca UMA VEZ só (não em loop — ver a
         // configuração de animação abaixo, com iteration-count:1 e
         // fill-mode:both), permanecendo no estado final pra sempre depois
-        // de entrar aos 30s, em vez de sumir e recomeçar o ciclo.
+        // de entrar aos 3s, em vez de sumir e recomeçar o ciclo.
         'deathdodger-skull-reveal': {
           '0%': { opacity: '0', transform: 'scale(0.3)' },
           '60%': { opacity: '1', transform: 'scale(1.2)' },
@@ -259,7 +266,7 @@ export default {
                 'casual-drinker-foam-level': 'casual-drinker-foam-level 4s ease-in-out infinite',
         'casual-drinker-frame-bubbles': 'casual-drinker-frame-bubbles 2.5s ease-in-out infinite',
         'deathdodger-frame-pulse': 'deathdodger-frame-pulse 1.8s ease-in-out infinite',
-        'deathdodger-skull-reveal': 'deathdodger-skull-reveal 0.8s ease-out 30s 1 both',
+        'deathdodger-skull-reveal': 'deathdodger-skull-reveal 0.8s ease-out 3s 1 both',
       },
     },
   },
