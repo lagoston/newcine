@@ -1,6 +1,7 @@
 {
   "common": {
     "loading": "Carregando...",
+    "apply": "Aplicar",
     "error": "Ocorreu um erro",
     "save": "Salvar",
     "cancel": "Cancelar",
