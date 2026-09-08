@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { getMovieDetails, Movie } from '../lib/tmdb';
-import { getFrameClass } from '../lib/frames';
+import { getFrameClass, frameUsesComponent } from '../lib/frames';
+import { GhostRiderFrame } from './GhostRiderFrame';
 import OptimizedPoster from './OptimizedPoster';
 import MovieDetailsModal from './MovieDetailsModal';
 import ArchetypeSymbol from './ArchetypeSymbol';
@@ -441,6 +442,9 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
             {/* Avatar + Welcome */}
             <Link to="/profile" className="flex items-center gap-4 group mb-5">
               <div className="relative flex-shrink-0">
+                {frameUsesComponent(avatarFrame || undefined, avatarIsPremium) === 'GhostRiderFrame' && avatarUrl ? (
+                  <GhostRiderFrame src={avatarUrl} alt={username} size={56} />
+                ) : (
                 <div className={`w-14 h-14 rounded-full overflow-hidden shadow-lg transition-all duration-300 group-hover:scale-105 ${getFrameClass(avatarFrame || undefined, avatarIsPremium)}`}>
                   {avatarUrl ? (
                     <img src={avatarUrl} alt={username} className="w-full h-full object-cover" />
@@ -452,6 +456,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                     </div>
                   )}
                 </div>
+                )}
                 <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-800" />
               </div>
               <div>
