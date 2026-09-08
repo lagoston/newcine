@@ -175,16 +175,6 @@ export default function Profile() {
  // fonte de verdade só agora, compartilhada com o Navbar.
  const { unreadCount: unreadWhispers, refetchUnreadCount: fetchUnreadWhispers } = useWhispers();
  const [profile, setProfile] = useState<Profile | null>(null);
- // isPremium (do useAuth) sozinho pode ficar desatualizado em relação
- // ao plan_type real do perfil no banco — isso já era conhecido no
- // código (handleAvatarUpload calculava sua PRÓPRIA versão combinada,
- // isUserPremium, só que como variável LOCAL daquela função, não
- // disponível aqui na renderização). As chamadas de getFrameClass/
- // frameUsesComponent usavam isPremium sozinho — se ele estiver
- // desatualizado mesmo com profile.plan_type === 'premium' no banco,
- // o frame cai no fallback (sem nenhuma borda), dando a impressão de
- // "a borda não aparece" mesmo com tudo configurado certo.
- const isUserPremium = isPremium || profile?.plan_type === 'premium';
  const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
  const [carouselOffset, setCarouselOffset] = useState(0);
  const [carouselAutoPaused, setCarouselAutoPaused] = useState(false);
@@ -543,8 +533,7 @@ export default function Profile() {
  console.log('[Avatar Upload] File selected:', file.name, '| MIME:', file.type, '| Size:', (file.size / 1024).toFixed(1) + 'KB');
 
  const isGif = file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
- // isUserPremium agora vem do nível do componente (mesmo cálculo,
- // reutilizado aqui em vez de duplicado).
+ const isUserPremium = isPremium || profile?.plan_type === 'premium';
  const isPremiumGif = isGif && isUserPremium;
 
  console.log('[Avatar Upload] isPremium (auth):', isPremium, '| profile.plan_type:', profile?.plan_type, '| isUserPremium:', isUserPremium, '| isGif:', isGif, '| isPremiumGif:', isPremiumGif);
@@ -714,7 +703,7 @@ export default function Profile() {
  return (
  <div className="min-h-[calc(100vh-4rem)] py-8 px-4 relative overflow-hidden">
  <div className="container mx-auto max-w-5xl relative z-10 space-y-6">
- <div className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl ${getBannerClass(profile?.banner, isUserPremium)}`}>
+ <div className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl ${getBannerClass(profile?.banner, isPremium)}`}>
  <div className="absolute inset-0 pointer-events-none">
  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-cyan-500/10 rounded-full blur-3xl" />
  <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-400/10 to-pink-500/10 rounded-full blur-3xl" />
@@ -732,10 +721,10 @@ export default function Profile() {
  <div className="relative z-10 p-6 sm:p-8">
  <div className="flex flex-col sm:flex-row sm:items-start gap-6">
  <div className="relative mx-auto sm:mx-0 flex-shrink-0">
- {!isUploadingAvatar && avatarUrl && frameUsesComponent(profile?.avatar_frame, isUserPremium) === 'GhostRiderFrame' ? (
+ {!isUploadingAvatar && avatarUrl && frameUsesComponent(profile?.avatar_frame, isPremium) === 'GhostRiderFrame' ? (
  <GhostRiderFrame src={avatarUrl} alt={username} size={112} />
  ) : (
- <div className={`w-28 h-28 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile?.avatar_frame, isUserPremium)}`}>
+ <div className={`w-28 h-28 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile?.avatar_frame, isPremium)}`}>
  {isUploadingAvatar ? (
  <div className="w-full h-full flex items-center justify-center bg-black/40">
  <Loader2 className="w-8 h-8 text-white animate-spin" />
