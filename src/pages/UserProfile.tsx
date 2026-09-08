@@ -35,6 +35,7 @@ interface Profile {
  is_premium?: boolean;
  avatar_frame: string;
  banner?: string;
+ chroma_box_enabled?: boolean;
  active_tag?: {
  emoji: string;
  name: string;
@@ -940,6 +941,7 @@ export default function UserProfile() {
  rating={rating}
  isOtherUserProfile={true}
  profileUserId={profile.id}
+ chromaBoxEnabled={profile.chroma_box_enabled ?? true}
  />
  );
  }
@@ -953,6 +955,7 @@ export default function UserProfile() {
  rating={null}
  isOtherUserProfile={true}
  profileUserId={profile.id}
+ chromaBoxEnabled={profile.chroma_box_enabled ?? true}
  />
  )}
  </>
