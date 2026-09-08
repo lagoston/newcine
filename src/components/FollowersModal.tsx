@@ -5,7 +5,8 @@ import { supabase, getProfile } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getFrameClass } from '../lib/frames';
+import { getFrameClass, frameUsesComponent } from '../lib/frames';
+import { GhostRiderFrame } from './GhostRiderFrame';
 
 interface Profile {
   id: string;
@@ -209,6 +210,9 @@ export default function FollowersModal({
                       onClick={() => handleProfileClick(profile.username)}
                       className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
                     >
+                      {frameUsesComponent(profile.avatar_frame) === 'GhostRiderFrame' && profile.avatar_url ? (
+                        <GhostRiderFrame src={profile.avatar_url} alt={profile.username} size={40} />
+                      ) : (
                       <div className={`w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile.avatar_frame)}`}>
                         {profile.avatar_url ? (
                           <img
@@ -222,6 +226,7 @@ export default function FollowersModal({
                           <User className="w-full h-full p-2 text-gray-400" />
                         )}
                       </div>
+                      )}
                       <div className="text-left flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
                           @{profile.username}
