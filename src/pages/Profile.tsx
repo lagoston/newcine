@@ -7,6 +7,7 @@ import ArchetypeSymbol from '../components/ArchetypeSymbol';
 import GlassLoader from '../components/GlassLoader';
 import { supabase, getProfile } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { useWhispers } from '../contexts/WhispersContext';
 import { getMovieDetailsFromDB } from '../lib/tmdb';
 import FollowersModal from '../components/FollowersModal';
 import WhispersModal from '../components/WhispersModal';
@@ -165,7 +166,13 @@ export default function Profile() {
  const [showWhispersModal, setShowWhispersModal] = useState(false);
  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
  const [showSettingsModal, setShowSettingsModal] = useState(false);
- const [unreadWhispers, setUnreadWhispers] = useState(0);
+ // unreadWhispers vem do Context agora — a subscription antiga daqui
+ // escutava a tabela "recommendations" (nome desatualizado, renomeada
+ // pra "friend_indications" há tempos), então nunca disparava de
+ // verdade; a contagem só atualizava em reloads manuais ou quando o
+ // modal fechava e chamava fetchUnreadWhispers explicitamente. Uma
+ // fonte de verdade só agora, compartilhada com o Navbar.
+ const { unreadCount: unreadWhispers, refetchUnreadCount: fetchUnreadWhispers } = useWhispers();
  const [profile, setProfile] = useState<Profile | null>(null);
  const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
  const [carouselOffset, setCarouselOffset] = useState(0);
@@ -264,28 +271,7 @@ export default function Profile() {
  useEffect(() => {
  if (session?.user?.id) {
  fetchProfile();
- fetchUnreadWhispers();
  fetchFollowedUsersForCarousel();
-
- const channel = supabase
- .channel('profile-whispers-updates')
- .on(
- 'postgres_changes',
- {
- event: '*',
- schema: 'public',
- table: 'recommendations',
- filter: `to_user_id=eq.${session.user.id}`
- },
- () => {
- fetchUnreadWhispers();
- }
- )
- .subscribe();
-
- return () => {
- supabase.removeChannel(channel);
- };
  }
  }, [session?.user?.id]);
 
@@ -313,21 +299,6 @@ export default function Profile() {
  window.removeEventListener('episodeToggled', handleEpisodeToggled);
  };
  }, [i18n, session?.user?.id]);
-
- const fetchUnreadWhispers = async () => {
- if (!session?.user?.id) return;
-
- try {
- const { data, error } = await supabase.rpc('count_unread_indications', {
- user_id_input: session.user.id
- });
-
- if (error) throw error;
- setUnreadWhispers(data || 0);
- } catch (error) {
- console.error('Error fetching unread whispers:', error);
- }
- };
 
  const fetchFollowedUsersForCarousel = async () => {
  if (!session?.user?.id) return;
@@ -1516,7 +1487,6 @@ export default function Profile() {
  isOpen={showWhispersModal}
  onClose={() => setShowWhispersModal(false)}
  userId={session.user.id}
- onMarkAsRead={fetchUnreadWhispers}
  />
  )}
 
