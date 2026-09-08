@@ -30,19 +30,23 @@ interface FloatingMobileSearchProps {
 //    celular — exatamente o "leve glitch" relatado. Trocado por
 //    fade+scale simples: muito mais barato, sem FLIP nenhum.
 //
-// 2. A barra de busca não depende mais de um padding estimado em
-//    pixels fixos (92px) pra não sobrepor os resultados — ela mesma
-//    tem fundo opaco o suficiente pra cobrir o que estiver embaixo,
-//    então não existe mais "vão" que possa revelar uma faixa cinza.
+// 2. A barra de busca usa a MESMA textura de vidro do painel principal
+//    (bg-white/10 backdrop-blur-2xl) — antes usava um cinza opaco
+//    (bg-gray-900/95) que destoava visualmente do resto, parecendo um
+//    retângulo "errado" colado embaixo. O anel azul de foco do input
+//    (focus:ring-blue-400) também foi removido — como o campo é
+//    auto-focado ao abrir, esse anel ficava permanentemente visível,
+//    parecendo outro retângulo indesejado ao redor da barra.
 //
 // 3. A posição da barra de busca em resposta ao teclado não passa mais
 //    por useState/re-render do React — é uma ref (translateY via
 //    style direto no DOM) atualizada a cada evento do visualViewport.
-//    Antes, cada pequeno ajuste do teclado (que dispara vários eventos
-//    de resize/scroll, não um só) forçava o React a reconciliar a
-//    árvore inteira, incluindo a lista de resultados animada — daí a
-//    sensação de "travado". Mutação direta do DOM ignora esse ciclo
-//    inteiro, ficando tão fluido quanto o próprio teclado nativo.
+//    Essa ref agora vive num elemento PRÓPRIO, separado do motion.div
+//    que anima abrir/fechar — antes os dois disputavam a propriedade
+//    "transform" no MESMO elemento (Framer Motion via animate={{y}},
+//    e a mutação manual do teclado por cima), o que provavelmente
+//    causava o congelamento ao fechar/reabrir rapidamente: o estado
+//    interno do Framer Motion ficava dessincronizado do DOM real.
 const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSelect }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -286,7 +290,16 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                       padding aqui, já que ela mesma tem fundo opaco).
                       Só garante que os últimos resultados não fiquem
                       colados debaixo dela. */}
-                  <div ref={resultsScrollRef} className="flex-1 overflow-y-auto px-4 pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  {/* touchAction: 'pan-y' é essencial aqui — o body
+                      inteiro tem touchAction:none enquanto o modal está
+                      aberto (bloqueando o scroll de fundo), e isso é
+                      decidido pelo navegador no nível de reconhecimento
+                      de gestos, antes até do listener de touchmove
+                      rodar. Precisa ser reabilitado explicitamente aqui,
+                      sobrescrevendo a herança do body — sem isso, o
+                      scroll por toque nessa lista simplesmente não
+                      funciona (só a rodinha do mouse no desktop). */}
+                  <div ref={resultsScrollRef} className="flex-1 overflow-y-auto px-4 pb-24" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
                     <AnimatePresence mode="popLayout">
                       {isUserSearch ? (
                         profileResults.length > 0 ? (
@@ -390,44 +403,51 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 </div>
               </motion.div>
 
-              {/* Barra de busca — ref pra manipulação direta do DOM em
-                  resposta ao teclado (ver useEffect acima). Fundo opaco
-                  o suficiente (bg-gray-900/95, não mais bg-white/15
-                  translúcido) pra cobrir com segurança qualquer coisa
-                  atrás dela, eliminando o risco de "vão" revelando uma
-                  faixa cinza entre ela e o painel de resultados. */}
-              <motion.div
-                ref={searchBarRef}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ delay: 0.08, duration: 0.15 }}
-                className="md:hidden fixed left-0 right-0 z-[96] p-3 bg-gray-900/95 backdrop-blur-2xl border-t border-white/10"
-                style={{ bottom: 0, paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
-              >
-                <div className="relative">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        inputRef.current?.blur();
-                      }
-                    }}
-                    placeholder={t('nav.searchMoviesOrUsers')}
-                    className="w-full pl-4 pr-10 py-3 text-base bg-white/15 border border-white/25 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-white/50 transition-all"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    inputMode="search"
-                  />
-                  {loading && (
-                    <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70 animate-spin" />
-                  )}
-                </div>
-              </motion.div>
+              {/* Dois elementos, não um: o externo (ref, sem framer-motion
+                  controlando ele) é mutado diretamente via DOM pro ajuste
+                  de teclado; o interno (motion.div) cuida só da animação
+                  de abrir/fechar. Antes os dois controlavam "transform"
+                  no MESMO elemento — o Framer Motion via animate={{y}},
+                  e eu via style.transform manual pro teclado — competindo
+                  pela mesma propriedade CSS. Isso deixava o estado
+                  interno do Framer Motion dessincronizado do DOM real,
+                  e provavelmente era a causa do congelamento ao
+                  fechar/reabrir rapidamente: o Framer tenta re-montar a
+                  animação de saída assumindo um estado que não batia
+                  mais com o que o DOM realmente tinha. */}
+              <div ref={searchBarRef} className="md:hidden fixed left-0 right-0 z-[96]" style={{ bottom: 0 }}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ delay: 0.08, duration: 0.15 }}
+                  className="p-3 bg-white/10 backdrop-blur-2xl"
+                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+                >
+                  <div className="relative">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          inputRef.current?.blur();
+                        }
+                      }}
+                      placeholder={t('nav.searchMoviesOrUsers')}
+                      className="w-full pl-4 pr-10 py-3 text-base bg-white/15 border border-white/25 rounded-2xl outline-none text-white placeholder-white/50 transition-all"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      inputMode="search"
+                    />
+                    {loading && (
+                      <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70 animate-spin" />
+                    )}
+                  </div>
+                </motion.div>
+              </div>
             </>
           )}
         </AnimatePresence>,
