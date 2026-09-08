@@ -186,6 +186,29 @@ export default {
           '0%, 100%': { clipPath: 'inset(88% 0 0 0)' },
           '50%': { clipPath: 'inset(76% 0 0 0)' },
         },
+        // Giro do cartão 3D do Ghost Rider. Direção única = sempre "para
+        // dentro" (nunca inverte o sentido do giro entre ciclos).
+        'ghost-rider-flip': {
+          '0%, 70%': { transform: 'rotateY(0deg)' },
+          '78%': { transform: 'rotateY(180deg)' },
+          '90%': { transform: 'rotateY(180deg)' },
+          '98%, 100%': { transform: 'rotateY(360deg)' },
+        },
+        // Tremulação do fogo da caveira (labareda viva).
+        'ghost-rider-fire': {
+          '0%, 100%': { transform: 'scale(1) translateY(0)', opacity: '0.95' },
+          '25%': { transform: 'scale(1.06) translateY(-2%)', opacity: '1' },
+          '50%': { transform: 'scale(0.97) translateY(1%)', opacity: '0.85' },
+          '75%': { transform: 'scale(1.04) translateY(-1%)', opacity: '1' },
+        },
+        // Halo de brasas pulsando ao redor da borda (frente e verso).
+        'ghost-rider-glow': {
+          '0%, 100%': {
+            boxShadow: '0 0 22px rgba(249,115,22,0.75), 0 0 44px rgba(234,88,12,0.5), inset 0 0 18px rgba(120,20,0,0.6)',
+          },
+          '50%': {
+            boxShadow: '0 0 34px rgba(249,115,22,0.95), 0 0 70px rgba(234,88,12,0.7), inset 0 0 26px rgba(160,30,0,0.75)',
+          },
         },
       animation: {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
