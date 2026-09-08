@@ -152,6 +152,16 @@ export default {
         'potter-banner-orbs':    { '0%,100%': { transform: 'scale(1) rotate(-3deg)', opacity: '0.7' }, '50%': { transform: 'scale(1.05) rotate(3deg)', opacity: '1' } },
         'potter-banner-shimmer': { '0%,100%': { transform: 'translateX(-60%)' }, '50%': { transform: 'translateX(60%)' } },
         'tf-banner-scan':        { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(200%)' } },
+        // ── Spirit of Vengeance (Ghost Rider) ──────────────────────────────
+        // Brilho metálico percorrendo os elos da corrente, da esquerda pra
+        // direita, como um reflexo de luz deslizando sobre metal.
+        'hellrider-chain-glint': { '0%': { transform: 'translateX(-120%)' }, '100%': { transform: 'translateX(220%)' } },
+        // Leve balanço rotacional, simulando o peso da corrente balançando
+        // devagar — sutil o suficiente pra não distrair, só dar vida.
+        'hellrider-chain-sway': {
+          '0%, 100%': { transform: 'rotate(-1deg) translateY(0)' },
+          '50%': { transform: 'rotate(1deg) translateY(2px)' },
+        },
         // ── Death Dodger ────────────────────────────────────────────────────
 'deathdodger-banner-laser': {
   '0%':   { top: '0%',    opacity: '0' },
@@ -255,6 +265,8 @@ export default {
         'potter-banner-orbs':    'potter-banner-orbs 4s ease-in-out infinite',
         'potter-banner-shimmer': 'potter-banner-shimmer 6s ease-in-out infinite',
         'tf-banner-scan':        'tf-banner-scan 3s linear infinite',
+        'hellrider-chain-glint': 'hellrider-chain-glint 3.5s ease-in-out infinite',
+        'hellrider-chain-sway':  'hellrider-chain-sway 4s ease-in-out infinite',
         // ── Death Dodger ────────────────────────────────────────────────────
         'deathdodger-banner-laser': 'deathdodger-banner-laser 6s linear infinite',
                 // ── Casual Drinker ───────────────────────────────────────────────────
