@@ -212,7 +212,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: '100%' }}
                 transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-                className="md:hidden fixed inset-x-0 top-0 z-[95] flex flex-col"
+                className="md:hidden fixed inset-x-0 top-0 z-[95] flex flex-col bg-slate-950/95 backdrop-blur-2xl"
                 style={{
                   height: '100dvh',
                   paddingTop: 'env(safe-area-inset-top)',
