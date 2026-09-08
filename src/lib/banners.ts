@@ -11,28 +11,42 @@ export const banners = {
   name: 'Gold Banner',
   isPremium: true,
   requiredTag: null,
+  // Redesenhado como Gold Glass Frutiger Aero — a estética de vidro
+  // brilhante do Windows Vista/macOS Aqua de meados dos anos 2000: fundo
+  // vibrante simulando uma esfera de vidro iluminada (não mais um
+  // degradê escuro e chapado), o icônico reflexo convexo cobrindo a
+  // metade superior (a marca registrada visual do Aero/Aqua), bolhas
+  // translúcidas flutuantes, e bordas com luz/sombra internas simulando
+  // a superfície convexa de verdade.
   className: [
     'relative overflow-hidden',
-    
-    // Fundo e bordas (mantidos)
-    'bg-gradient-to-br from-neutral-950 via-[#594f17] to-neutral-950',
-    '!border-[3px] !border-amber-500',
-    'shadow-[0_0_35px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(251,191,36,0.15)]',
-    
-    // Brilho de canto sutil e estático (mantido)
-    'before:absolute before:inset-0',
-    'before:bg-[radial-gradient(circle_at_85%_15%,rgba(251,191,36,0.16),transparent_50%)]',
+
+    // Fundo — esfera de vidro dourada iluminada: ponto de luz creme
+    // brilhante no canto superior-esquerdo, desvanecendo por âmbar
+    // vibrante até um marrom profundo nas bordas. As primeiras três
+    // camadas são bolhas translúcidas (bokeh) espalhadas, empilhadas
+    // por cima do gradiente principal.
+    'bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.4)_0%,transparent_9%),radial-gradient(circle_at_70%_60%,rgba(255,250,205,0.22)_0%,transparent_7%),radial-gradient(circle_at_55%_88%,rgba(255,255,255,0.16)_0%,transparent_5%),radial-gradient(ellipse_at_35%_15%,#fef9c3_0%,#fbbf24_22%,#d97706_48%,#92400e_75%,#451a03_100%)]',
+
+    // Borda e sombra — luz clara no topo interno, sombra escura embaixo,
+    // simulando a convexidade real de uma superfície de vidro.
+    '!border-[3px] !border-amber-300/80',
+    'shadow-[0_0_40px_rgba(251,191,36,0.4),inset_0_2px_0_rgba(255,255,255,0.6),inset_0_-3px_6px_rgba(69,26,3,0.5)]',
+
+    // O reflexo convexo icônico do Aero/Aqua — faixa clara cobrindo a
+    // metade superior, com a borda inferior arredondada simulando o
+    // brilho de uma cúpula de vidro (o elemento mais reconhecível
+    // desse estilo visual).
+    'before:absolute before:inset-x-0 before:top-0 before:h-[52%]',
+    'before:bg-gradient-to-b before:from-white/50 before:via-white/15 before:to-transparent',
+    'before:rounded-b-[100%]',
     'before:pointer-events-none',
-    
-    // 🌟 NOVO: Brilho Reluzente (Reflexo em Ouro)
-    // Reduzimos a largura para um feixe realista e focamos no gradiente central.
-    // O eixo e a inclinação agora são controlados 100% pelo keyframe para evitar
-    // conflitos de renderização no Tailwind.
+
+    // Feixe de brilho reluzente (mantido) — cruza o banner periodicamente,
+    // como um reflexo de luz deslizando sobre a superfície de vidro.
     'after:absolute after:top-0 after:left-0 after:h-full after:w-1/2',
     'after:bg-gradient-to-r after:from-transparent after:via-white/40 after:to-transparent',
     'after:pointer-events-none',
-    
-    // Aumentei para 6 segundos para dar um intervalo mais luxuoso entre os brilhos
     'after:animate-[gold-shine_6s_ease-in-out_infinite]',
     ].join(' '),
   },
