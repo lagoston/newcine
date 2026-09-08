@@ -77,7 +77,7 @@ export function GhostRiderFrame({ src, alt = '', size = 160, className = '' }: G
           <img
             src="/ghost-rider-skull.webp"
             alt="Caveira do Motoqueiro Fantasma cuspindo fogo"
-            className="animate-ghost-rider-fire absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2"
+            className="animate-ghost-rider-fire absolute left-1/2 top-1/2 max-w-none"
             style={{
               width: size * 1.6,
               height: size * 1.6,
