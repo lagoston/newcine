@@ -309,12 +309,23 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     // numa grade de preview, mas vale saber que existe.
     const avatarPreview = (frame: (typeof frames)[FrameId], extraClassName: string = '') => {
       if ('renderType' in frame && frame.renderType === 'component' && frame.component === 'GhostRiderFrame') {
-        return <GhostRiderFrame src={frozenAvatarUrl || ''} alt="" size={72} className="flex-shrink-0" />;
+        return <GhostRiderFrame src={frozenAvatarUrl || ''} alt="" size={80} className="flex-shrink-0" />;
       }
       return (
         <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-xl flex-shrink-0 ${frame.className} ${extraClassName}`}>
           {frozenAvatarUrl ? (
-            <img src={frozenAvatarUrl} alt="" className="w-full h-full object-cover" />
+            // extraClassName (frame-preview-anim) precisa estar AQUI
+            // também, não só no elemento pai — a regra CSS que pausa a
+            // animação (.frame-preview-anim { animation-play-state:
+            // paused }) só afeta o elemento que TEM a classe
+            // diretamente nele, nunca filhos reais automaticamente
+            // (diferente de ::before/::after, que são do mesmo
+            // elemento). Sem isso aqui, a animação do PAI (borda)
+            // ficava pausada a maior parte do tempo, mas a da foto
+            // (aplicada via [&>img]:animate-tf-shape-morph no
+            // Transformers) continuava rodando sem parar — nunca
+            // sincronizadas, exceto brevemente durante o hover.
+            <img src={frozenAvatarUrl} alt="" className={`w-full h-full object-cover ${extraClassName}`} />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
               <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
