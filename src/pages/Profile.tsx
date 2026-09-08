@@ -19,7 +19,8 @@ import PersonasModal from '../components/PersonasModal';
 import TagPinsModal from '../components/TagPinsModal';
 import PersonaShareModal from '../components/PersonaShareModal';
 import { toast } from 'sonner';
-import { getFrameClass } from '../lib/frames';
+import { getFrameClass, frameUsesComponent } from '../lib/frames';
+import { GhostRiderFrame } from '../components/GhostRiderFrame';
 import { getBannerClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -720,6 +721,9 @@ export default function Profile() {
  <div className="relative z-10 p-6 sm:p-8">
  <div className="flex flex-col sm:flex-row sm:items-start gap-6">
  <div className="relative mx-auto sm:mx-0 flex-shrink-0">
+ {!isUploadingAvatar && avatarUrl && frameUsesComponent(profile?.avatar_frame, isPremium) === 'GhostRiderFrame' ? (
+ <GhostRiderFrame src={avatarUrl} alt={username} size={112} />
+ ) : (
  <div className={`w-28 h-28 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${getFrameClass(profile?.avatar_frame, isPremium)}`}>
  {isUploadingAvatar ? (
  <div className="w-full h-full flex items-center justify-center bg-black/40">
@@ -735,6 +739,7 @@ export default function Profile() {
  <User className="w-full h-full p-5 text-gray-400" />
  )}
  </div>
+ )}
  {isEditing && !isUploadingAvatar && (
  <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 hover:opacity-100 cursor-pointer rounded-full transition-opacity">
  <input
@@ -1038,6 +1043,9 @@ export default function Profile() {
  </div>
  </div>
  )}
+ {frameUsesComponent(user.avatar_frame, user.plan_type === 'premium') === 'GhostRiderFrame' && user.avatar_url ? (
+ <GhostRiderFrame src={user.avatar_url} alt={user.username} size={64} />
+ ) : (
  <div className={`w-16 h-16 rounded-full overflow-hidden shadow-lg transition-all duration-200 group-hover:shadow-violet-400/30 group-hover:scale-105 ${getFrameClass(user.avatar_frame, user.plan_type === 'premium')}`}>
  {user.avatar_url ? (
  <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
@@ -1047,6 +1055,7 @@ export default function Profile() {
  </div>
  )}
  </div>
+ )}
  </div>
  <span className="text-xs text-gray-600 dark:text-gray-400 text-center max-w-[64px] truncate font-semibold group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
  {user.username}
