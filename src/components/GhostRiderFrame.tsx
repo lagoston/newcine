@@ -44,12 +44,25 @@ interface GhostRiderFrameProps {
 export function GhostRiderFrame({ src, alt = '', size = 160, className = '' }: GhostRiderFrameProps) {
   return (
     <div
-      className={`ghost-rider-scene relative ${className}`}
+      // ring movido pra cá, no container mais externo — não participa
+      // do preserve-3d/rotateY nem tem backface-visibility:hidden
+      // (esses ficam só nas faces internas). Descoberto que era essa a
+      // causa real da borda não aparecer: box-shadow (como o Tailwind
+      // implementa ring) combinado com um elemento que TEM
+      // backface-visibility:hidden e PARTICIPA de um contexto 3D
+      // rotativo (mesmo estando "de frente", visível) tem seu
+      // box-shadow renderizado de forma inconsistente/suprimido em
+      // vários motores de navegador — um comportamento diferente do
+      // ring "normal" nos frames convencionais (2D, sem rotação, sem
+      // backface-visibility). Aqui, no container que só fica parado
+      // (é o "palco" onde a rotação acontece, não o que rotaciona), o
+      // ring sempre visível, sem depender de qual face está de frente.
+      className={`ghost-rider-scene relative rounded-full ring-4 ring-[#c5b358] animate-ghost-rider-glow ${className}`}
       style={{ width: size, height: size }}
     >
       <div className="ghost-rider-card animate-ghost-rider-flip relative h-full w-full rounded-full">
-        {/* FRENTE — foto do usuário com borda de brasas */}
-        <div className="ghost-rider-face absolute inset-0 overflow-hidden rounded-full ring-4 ring-[#c5b358] animate-ghost-rider-glow">
+        {/* FRENTE — foto do usuário */}
+        <div className="ghost-rider-face absolute inset-0 overflow-hidden rounded-full">
           <img
             src={src || '/placeholder.svg'}
             alt={alt}
@@ -62,7 +75,7 @@ export function GhostRiderFrame({ src, alt = '', size = 160, className = '' }: G
             passarem da borda circular. */}
         <div className="ghost-rider-face ghost-rider-back absolute inset-0 rounded-full">
           {/* base circular escura (o "disco" atrás da caveira) */}
-          <div className="absolute inset-0 rounded-full bg-[#0a0400] ring-4 ring-[#c5b358] animate-ghost-rider-glow" />
+          <div className="absolute inset-0 rounded-full bg-[#0a0400]" />
           {/* brilho de fogo interno */}
           <div
             className="absolute inset-0 rounded-full"
