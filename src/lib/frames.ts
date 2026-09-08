@@ -76,7 +76,12 @@ export const frames = {
     // suficiente sozinho por causa da composição em camada separada, a
     // própria <img> agora tem seu clip-path idêntico e independente,
     // recortando-se corretamente por conta própria.
-    className: 'relative !rounded-none !bg-gray-800 dark:!bg-gray-700 p-1 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph [&>img]:!backface-visible [&>img]:rounded-none [&>img]:animate-tf-shape-morph'
+    //
+    // p-1 removido — fazia a foto parecer menor que a dos outros
+    // frames na grade de seleção do Customize Profile (empurrava a
+    // <img> 4px pra dentro de cada lado, sem função essencial pro
+    // efeito de morph em si).
+    className: 'relative !rounded-none !bg-gray-800 dark:!bg-gray-700 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph [&>img]:!backface-visible [&>img]:rounded-none [&>img]:animate-tf-shape-morph'
   },
 'death-dodger': {
   id: 'death-dodger',
