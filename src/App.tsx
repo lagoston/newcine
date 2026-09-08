@@ -4,6 +4,8 @@ import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './lib/auth';
+import { WhispersProvider } from './contexts/WhispersContext';
+import WhispersNotificationPopup from './components/WhispersNotificationPopup';
 import { ThemeProvider } from './lib/theme';
 import InstallPrompt from './components/InstallPrompt';
 import GlassLoader from './components/GlassLoader';
@@ -46,11 +48,13 @@ function App() {
 
   return (
     <AuthProvider>
+      <WhispersProvider>
       <ThemeProvider>
         <BrowserRouter future={{ v7_relativeSplatPath: true }}>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pt-[calc(env(safe-area-inset-top)+3.5rem)]">
             <PageBackground />
             <Navbar />
+            <WhispersNotificationPopup />
             <main>
               <Suspense fallback={<GlassLoader fullPage size="lg" />}>
                 <Routes>
@@ -80,6 +84,7 @@ function App() {
         </BrowserRouter>
         <Toaster position="bottom-right" />
       </ThemeProvider>
+      </WhispersProvider>
     </AuthProvider>
   );
 }
