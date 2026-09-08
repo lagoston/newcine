@@ -49,7 +49,7 @@ export function GhostRiderFrame({ src, alt = '', size = 160, className = '' }: G
     >
       <div className="ghost-rider-card animate-ghost-rider-flip relative h-full w-full rounded-full">
         {/* FRENTE — foto do usuário com borda de brasas */}
-        <div className="ghost-rider-face absolute inset-0 overflow-hidden rounded-full ring-4 ring-orange-500 dark:ring-orange-600 animate-ghost-rider-glow">
+        <div className="ghost-rider-face absolute inset-0 overflow-hidden rounded-full ring-4 ring-[#c5b358] animate-ghost-rider-glow">
           <img
             src={src || '/placeholder.svg'}
             alt={alt}
@@ -62,7 +62,7 @@ export function GhostRiderFrame({ src, alt = '', size = 160, className = '' }: G
             passarem da borda circular. */}
         <div className="ghost-rider-face ghost-rider-back absolute inset-0 rounded-full">
           {/* base circular escura (o "disco" atrás da caveira) */}
-          <div className="absolute inset-0 rounded-full bg-[#0a0400] ring-4 ring-orange-500 dark:ring-orange-600 animate-ghost-rider-glow" />
+          <div className="absolute inset-0 rounded-full bg-[#0a0400] ring-4 ring-[#c5b358] animate-ghost-rider-glow" />
           {/* brilho de fogo interno */}
           <div
             className="absolute inset-0 rounded-full"
