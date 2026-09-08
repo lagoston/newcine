@@ -566,7 +566,6 @@ export default function Library() {
             isNotRated
             className=""
             chromaBoxEnabled={chromaBoxEnabled}
-            onDuelClick={moviesByRating.unrated.length >= 4 ? () => setShowWatchlistDuel(true) : undefined}
             onFilterClick={() => setShowStreamingFilter(true)}
             activeFilterCount={selectedStreamingProviders.length}
           />
