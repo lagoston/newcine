@@ -12,7 +12,7 @@ export interface ProgressionTag {
   description: string;
   descriptionPt: string;
   condition?: {
-    type: 'rating' | 'genre' | 'director' | 'countries' | 'continents';
+    type: 'rating' | 'genre' | 'director' | 'countries' | 'continents' | 'review_count' | 'completed_series';
     value?: number | number[] | string;
   };
 }
@@ -24,8 +24,10 @@ export interface ThemeTag {
   requirement: string;
   requirementPt: string;
   condition: {
-    type: 'rating' | 'genre' | 'director' | 'franchise';
+    type: 'rating' | 'genre' | 'director' | 'franchise' | 'curated_pool' | 'ai_review_count';
     count: number;
+    // Pra 'curated_pool', value é o card_type na tabela
+    // recommendation_pools: 'bogart' | 'fincher' | 'cypher'.
     value?: number | string | number[];
   };
 }
@@ -35,16 +37,6 @@ export interface CommunityTag {
   emoji: string;
   minFollowers: number;
   maxFollowers?: number;
-  description: string;
-  descriptionPt: string;
-}
-
-export interface OracleTag {
-  name: string;
-  emoji: string;
-  type: 'prediction' | 'recommendation';
-  minCount: number;
-  maxCount?: number;
   description: string;
   descriptionPt: string;
 }
@@ -136,6 +128,40 @@ export const PROGRESSION_TAGS: ProgressionTag[] = [
     description: 'Movies from all 5 continents',
     descriptionPt: 'Filmes dos 5 continentes',
     condition: { type: 'continents', value: 5 }
+  },
+  {
+    name: 'Scribbler',
+    emoji: '✏️',
+    minMovies: 1,
+    maxMovies: 9,
+    description: '1 review written',
+    descriptionPt: '1 resenha escrita',
+    condition: { type: 'review_count' }
+  },
+  {
+    name: 'Screenwriter',
+    emoji: '🖋️',
+    minMovies: 10,
+    maxMovies: 29,
+    description: '10 reviews written',
+    descriptionPt: '10 resenhas escritas',
+    condition: { type: 'review_count' }
+  },
+  {
+    name: 'Memoirist',
+    emoji: '📓',
+    minMovies: 30,
+    description: '30 reviews written',
+    descriptionPt: '30 resenhas escritas',
+    condition: { type: 'review_count' }
+  },
+  {
+    name: 'Sofa Sleeper',
+    emoji: '🛋️',
+    minMovies: 1,
+    description: 'Watched every episode of a finished TV show',
+    descriptionPt: 'Assistiu todos os episódios de uma série finalizada',
+    condition: { type: 'completed_series' }
   }
 ];
 
@@ -173,7 +199,32 @@ export const THEME_TAGS: ThemeTag[] = [
   { id: 'dark-spirit', name: 'Dark Spirit', emoji: '🦇', requirement: 'The Dark Knight Trilogy', requirementPt: 'Trilogia Batman: O Cavaleiro das Trevas', condition: { type: 'franchise', count: 3, value: 'Dark Knight' } },
   { id: 'infinity-gauntlet', name: 'Infinity Gauntlet', emoji: '🧤', requirement: 'All 4 Avengers movies (2012-2019)', requirementPt: 'Todos os 4 filmes Vingadores (2012-2019)', condition: { type: 'franchise', count: 4, value: [24428, 299536, 99861, 299534] } },
   { id: 'sharp-canine', name: 'Sharp Canine', emoji: '🧛', requirement: 'Twilight Saga', requirementPt: 'Saga Crepúsculo', condition: { type: 'franchise', count: 5, value: 'Twilight' } },
-  { id: 'primal-essence', name: 'Primal Essence', emoji: '🦍', requirement: 'Planet of the Apes (2011 reboot line)', requirementPt: 'Planeta dos Macacos (reboot de 2011)', condition: { type: 'franchise', count: 4, value: 'Apes Reboot' } }
+  { id: 'primal-essence', name: 'Primal Essence', emoji: '🦍', requirement: 'Planet of the Apes (2011 reboot line)', requirementPt: 'Planeta dos Macacos (reboot de 2011)', condition: { type: 'franchise', count: 4, value: 'Apes Reboot' } },
+
+  // Aposentamos previsões e recomendações do Oráculo (ORACLE_TAGS,
+  // removida) — no lugar, as 3 curadorias que já sustentam o site
+  // (Biblioteca dos Oráculos, Recomendações do Dia, selos nos menus de
+  // filme) ganham suas próprias tags. curated_pool soma os movie_ids de
+  // TODOS os moods de um card_type (recommendation_pools) e conta
+  // quantos desses o usuário já avaliou.
+  { id: 'lagooner', name: 'Lagooner', emoji: '🪷', requirement: '10 movies from Sapo Bogart\'s curation', requirementPt: '10 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 10, value: 'bogart' } },
+  { id: 'fly-eater', name: 'Fly-eater', emoji: '🪰', requirement: '50 movies from Sapo Bogart\'s curation', requirementPt: '50 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 50, value: 'bogart' } },
+  { id: 'quick-tongue', name: 'Quick Tongue', emoji: '🐸', requirement: '100 movies from Sapo Bogart\'s curation', requirementPt: '100 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 100, value: 'bogart' } },
+
+  { id: 'tape-colector', name: 'Tape Colector', emoji: '📼', requirement: '10 movies from Raposo Fincher\'s curation', requirementPt: '10 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 10, value: 'fincher' } },
+  { id: 'cine-smoker', name: 'Cine Smoker', emoji: '🚬', requirement: '50 movies from Raposo Fincher\'s curation', requirementPt: '50 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 50, value: 'fincher' } },
+  { id: 'keen-sense', name: 'Keen Sense', emoji: '🦊', requirement: '100 movies from Raposo Fincher\'s curation', requirementPt: '100 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 100, value: 'fincher' } },
+
+  { id: 'crawler', name: 'Crawler', emoji: '🚇', requirement: '10 movies from Cobra Cypher\'s curation', requirementPt: '10 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 10, value: 'cypher' } },
+  { id: 'poison-taster', name: 'Poison Taster', emoji: '🧪', requirement: '50 movies from Cobra Cypher\'s curation', requirementPt: '50 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 50, value: 'cypher' } },
+  { id: 'underworld-king', name: 'Underworld King', emoji: '🐍', requirement: '100 movies from Cobra Cypher\'s curation', requirementPt: '100 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 100, value: 'cypher' } },
+
+  // ai_review_count conta reviews com is_ai_generated = true — postar
+  // (não só gerar) é o que conta, já que só reviews publicadas existem
+  // na tabela reviews de fato.
+  { id: 'from-beyond', name: 'From Beyond', emoji: '✉️', requirement: 'Post 1 Oracle review', requirementPt: 'Poste 1 resenha do Oráculo', condition: { type: 'ai_review_count', count: 1 } },
+  { id: 'non-reflective', name: 'Non-reflective', emoji: '🪞', requirement: 'Post 10 Oracle reviews', requirementPt: 'Poste 10 resenhas do Oráculo', condition: { type: 'ai_review_count', count: 10 } },
+  { id: 'third-eye-open', name: 'Third Eye Open', emoji: '🧿', requirement: 'Post 50 Oracle reviews', requirementPt: 'Poste 50 resenhas do Oráculo', condition: { type: 'ai_review_count', count: 50 } },
 ];
 
 export const COMMUNITY_TAGS: CommunityTag[] = [
@@ -183,23 +234,6 @@ export const COMMUNITY_TAGS: CommunityTag[] = [
   { name: 'Festival Favorite', emoji: '🎪', minFollowers: 50, maxFollowers: 99, description: '50 - 99 followers', descriptionPt: '50 - 99 seguidores' },
   { name: 'Blockbuster', emoji: '💥', minFollowers: 100, maxFollowers: 199, description: '100 - 199 followers', descriptionPt: '100 - 199 seguidores' },
   { name: 'Cult Legend', emoji: '👑', minFollowers: 200, description: '200+ followers', descriptionPt: '200+ seguidores' }
-];
-
-export const ORACLE_TAGS: OracleTag[] = [
-  { name: 'Curious Seeker', emoji: '🔍', type: 'prediction', minCount: 10, maxCount: 24, description: '10 - 24 predictions', descriptionPt: '10 - 24 previsões' },
-  { name: 'Pattern Hunter', emoji: '🎯', type: 'prediction', minCount: 25, maxCount: 49, description: '25 - 49 predictions', descriptionPt: '25 - 49 previsões' },
-  { name: 'Mind Decoder', emoji: '🧠', type: 'prediction', minCount: 50, maxCount: 99, description: '50 - 99 predictions', descriptionPt: '50 - 99 previsões' },
-  { name: 'Future Whisperer', emoji: '🔮', type: 'prediction', minCount: 100, maxCount: 199, description: '100 - 199 predictions', descriptionPt: '100 - 199 previsões' },
-  { name: "Oracle's Chosen", emoji: '👁️', type: 'prediction', minCount: 200, maxCount: 499, description: '200 - 499 predictions', descriptionPt: '200 - 499 previsões' },
-  { name: 'Fate Architect', emoji: '⚡', type: 'prediction', minCount: 500, maxCount: 999, description: '500 - 999 predictions', descriptionPt: '500 - 999 previsões' },
-  { name: 'Timeline Overlord', emoji: '⏳', type: 'prediction', minCount: 1000, description: '1000+ predictions', descriptionPt: '1000+ previsões' },
-  { name: 'Popcorn Taster', emoji: '🍿', type: 'recommendation', minCount: 10, maxCount: 24, description: '10 - 24 recommendations', descriptionPt: '10 - 24 recomendações' },
-  { name: 'Hidden Gem Hunter', emoji: '💎', type: 'recommendation', minCount: 25, maxCount: 49, description: '25 - 49 recommendations', descriptionPt: '25 - 49 recomendações' },
-  { name: 'Genre Explorer', emoji: '🗺️', type: 'recommendation', minCount: 50, maxCount: 99, description: '50 - 99 recommendations', descriptionPt: '50 - 99 recomendações' },
-  { name: 'Taste Alchemist', emoji: '⚗️', type: 'recommendation', minCount: 100, maxCount: 199, description: '100 - 199 recommendations', descriptionPt: '100 - 199 recomendações' },
-  { name: 'Recommendation Lord', emoji: '🏰', type: 'recommendation', minCount: 200, maxCount: 499, description: '200 - 499 recommendations', descriptionPt: '200 - 499 recomendações' },
-  { name: 'Galaxy Curator', emoji: '🌌', type: 'recommendation', minCount: 500, maxCount: 999, description: '500 - 999 recommendations', descriptionPt: '500 - 999 recomendações' },
-  { name: 'Multiverse Sommelier', emoji: '🍷', type: 'recommendation', minCount: 1000, description: '1000+ recommendations', descriptionPt: '1000+ recomendações' }
 ];
 
 export const FRANCHISE_MOVIES = {
