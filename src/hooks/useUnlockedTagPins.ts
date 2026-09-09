@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { getContinent } from '../lib/continents';
-import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
+import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 
 export interface UnlockedPin {
   emoji: string;
   name: string;
-  category: 'basic' | 'theme' | 'community' | 'oracle' | 'special';
+  category: 'basic' | 'theme' | 'community' | 'special';
 }
 
 // Extraído do TagPinsModal.tsx pra ser reaproveitado em qualquer lugar que
@@ -105,14 +105,53 @@ export function useUnlockedTagPins(userId: string | undefined) {
           .select('*', { count: 'exact', head: true })
           .eq('following_id', userId);
 
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('oracle_predictions_count, oracle_recommendations_count')
-          .eq('id', userId)
-          .single();
+        // curated_pool — soma os movie_ids de TODOS os moods de cada
+        // card_type (recommendation_pools guarda um pool por mood, não
+        // um pool único por oráculo). Une os IDs num Set por card_type
+        // antes de contar, pra não contar o mesmo filme mais de uma vez
+        // caso ele apareça em vários moods do mesmo oráculo.
+        const { data: poolRows } = await supabase
+          .from('recommendation_pools')
+          .select('card_type, movie_ids');
 
-        const predictionsCount = profileData?.oracle_predictions_count || 0;
-        const recommendationsCount = profileData?.oracle_recommendations_count || 0;
+        const poolIdsByType: Record<string, Set<number>> = {};
+        (poolRows || []).forEach((row: any) => {
+          if (!poolIdsByType[row.card_type]) poolIdsByType[row.card_type] = new Set();
+          (row.movie_ids || []).forEach((id: number) => poolIdsByType[row.card_type].add(id));
+        });
+        const curatedProgress: Record<string, number> = {};
+        Object.keys(poolIdsByType).forEach((cardType) => {
+          curatedProgress[cardType] = [...poolIdsByType[cardType]].filter((id) => ratedMovieIds.has(id)).length;
+        });
+
+        // review_count / ai_review_count — reais vs. geradas pelo
+        // Oráculo, contadas separadamente.
+        const [{ count: realReviewCount }, { count: aiReviewCount }] = await Promise.all([
+          supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_ai_generated', false),
+          supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_ai_generated', true),
+        ]);
+
+        // completed_series — pelo menos uma série na biblioteca que já
+        // terminou (não está mais no ar) E tem 100% dos episódios já
+        // lançados assistidos. Reaproveita a mesma RPC que já calcula
+        // isso pra barra de progresso na Biblioteca.
+        const tvIds = (userMovies || [])
+          .filter((m: any) => m.movies?.media_type === 'tv')
+          .map((m: any) => m.movie_id);
+
+        let hasCompletedSeries = false;
+        if (tvIds.length > 0) {
+          const [{ data: progressRows }, { data: tvCacheRows }] = await Promise.all([
+            supabase.rpc('get_tv_progress_batch', { p_user_id: userId, p_tmdb_ids: tvIds }),
+            supabase.from('movie_cache').select('tmdb_id, status').eq('media_type', 'tv').in('tmdb_id', tvIds),
+          ]);
+          const statusMap = new Map((tvCacheRows || []).map((r: any) => [r.tmdb_id, r.status]));
+          hasCompletedSeries = (progressRows || []).some((p: any) => {
+            const status = statusMap.get(p.tmdb_id);
+            const isFinished = status === 'Ended' || status === 'Canceled';
+            return isFinished && p.aired_count > 0 && p.watched_count >= p.aired_count;
+          });
+        }
 
         const { data: allSpecialTags } = await supabase.from('special_tags').select('id, name, emoji');
         const { data: userSpecialTags } = await supabase
@@ -121,6 +160,26 @@ export function useUnlockedTagPins(userId: string | undefined) {
           .eq('user_id', userId);
 
         const unlockedSpecialIds = new Set((userSpecialTags || []).map((ut: any) => ut.tag_id));
+
+        // review_count e completed_series são condições da categoria
+        // básica (PROGRESSION_TAGS) — preenche basicProgress usando o
+        // nome de cada tag, mesmo padrão já usado pras outras condições
+        // básicas (Bloody Mary, Nowhere, etc).
+        basicProgress['Scribbler'] = realReviewCount || 0;
+        basicProgress['Screenwriter'] = realReviewCount || 0;
+        basicProgress['Memoirist'] = realReviewCount || 0;
+        basicProgress['Sofa Sleeper'] = hasCompletedSeries ? 1 : 0;
+
+        // curated_pool e ai_review_count são condições temáticas —
+        // preenche themeProgress por tag.id, mesmo padrão já usado pra
+        // franchise.
+        THEME_TAGS.forEach((tag) => {
+          if (tag.condition.type === 'curated_pool' && typeof tag.condition.value === 'string') {
+            themeProgress[tag.id] = curatedProgress[tag.condition.value] || 0;
+          } else if (tag.condition.type === 'ai_review_count') {
+            themeProgress[tag.id] = aiReviewCount || 0;
+          }
+        });
 
         const unlockedPins: UnlockedPin[] = [];
 
@@ -135,10 +194,6 @@ export function useUnlockedTagPins(userId: string | undefined) {
         });
         COMMUNITY_TAGS.forEach((tag) => {
           if ((followers || 0) >= tag.minFollowers) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'community' });
-        });
-        ORACLE_TAGS.forEach((tag) => {
-          const count = tag.type === 'prediction' ? predictionsCount : recommendationsCount;
-          if (count >= tag.minCount) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'oracle' });
         });
         (allSpecialTags || []).forEach((tag: any) => {
           if (unlockedSpecialIds.has(tag.id)) {
