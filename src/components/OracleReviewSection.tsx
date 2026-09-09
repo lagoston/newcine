@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Lock, Loader2, Star, BookOpen, Feather, RefreshCw, Send, Crown } from 'lucide-react';
+import { Sparkles, Lock, Loader2, Star, BookOpen, Feather, RefreshCw, Send, Crown, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useTranslation } from 'react-i18next';
@@ -36,10 +36,58 @@ type OracleStep =
   | 'checking'
   | 'locked_premium'
   | 'locked_reviews'
+  | 'locked_daily_limit'
   | 'idle'
   | 'generating'
   | 'generated'
   | 'posting';
+
+// Mesmo cálculo já usado em OracleForYouBox (Recomendações do Dia) —
+// reset à meia-noite de Brasília (03:00 UTC), consistente com o resto
+// do site em vez de inventar um relógio próprio.
+function getBrasiliaCountdown(): number {
+  const now = new Date();
+  const target = new Date(now);
+  target.setUTCHours(3, 0, 0, 0);
+  if (now >= target) {
+    target.setUTCDate(target.getUTCDate() + 1);
+  }
+  return Math.max(0, target.getTime() - now.getTime());
+}
+
+function formatCountdown(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return [h, m, s].map((v) => String(v).padStart(2, '0')).join(':');
+}
+
+// Isolado num componente próprio pela mesma razão documentada em
+// OracleForYouBox: um timer de 1s dentro do componente pai forçaria
+// TUDO (incluindo o passo a passo ilustrado abaixo) a re-renderizar a
+// cada segundo. Aqui só esse bloco pequeno pisca a cada tick.
+const OracleCountdown: React.FC = () => {
+  const { t } = useTranslation();
+  const [countdown, setCountdown] = useState(getBrasiliaCountdown());
+
+  useEffect(() => {
+    const interval = setInterval(() => setCountdown(getBrasiliaCountdown()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-pink-500/10 dark:bg-pink-500/15 rounded-xl border border-pink-400/25">
+      <Clock className="w-4 h-4 text-pink-500 dark:text-pink-400 flex-shrink-0" />
+      <span className="text-sm text-gray-600 dark:text-gray-300">
+        {t('reviews.oracle.nextGenerationIn')}
+      </span>
+      <span className="text-sm font-mono font-semibold text-pink-600 dark:text-pink-400 tabular-nums">
+        {formatCountdown(countdown)}
+      </span>
+    </div>
+  );
+};
 
 const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRating, onPosted }) => {
   const { session } = useAuth();
@@ -64,7 +112,11 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
       if (!session?.user?.id) return;
       try {
         const [{ data: profile }, { count }] = await Promise.all([
-          supabase.from('profiles').select('plan_type').eq('id', session.user.id).maybeSingle(),
+          supabase
+            .from('profiles')
+            .select('plan_type, last_ai_review_at, ai_review_daily_count')
+            .eq('id', session.user.id)
+            .maybeSingle(),
           supabase
             .from('reviews')
             .select('*', { count: 'exact', head: true })
@@ -76,10 +128,25 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
         const count10 = count || 0;
         setReviewCount(count10);
 
+        // Mesma lógica de data que a edge function usa — calculada aqui
+        // também, pra já avisar o usuário ANTES de ele clicar em
+        // "Gerar" que o limite do dia já foi usado (ex.: ele fechou o
+        // modal ontem depois de gerar e voltou hoje), em vez de só
+        // descobrir isso depois de uma chamada que falha.
+        const today = new Date().toISOString().slice(0, 10);
+        const lastGenDate = profile?.last_ai_review_at
+          ? new Date(profile.last_ai_review_at).toISOString().slice(0, 10)
+          : null;
+        const isNewDay = lastGenDate !== today;
+        const countToday = isNewDay ? 0 : (profile?.ai_review_daily_count || 0);
+        setGenerationsUsedToday(countToday);
+
         if (!isPremium) {
           setStep('locked_premium');
         } else if (count10 < 10) {
           setStep('locked_reviews');
+        } else if (countToday >= GENERATIONS_LIMIT) {
+          setStep('locked_daily_limit');
         } else {
           setStep('idle');
         }
@@ -124,9 +191,8 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
           setReviewCount(data.reviewCount || 0);
           setStep('locked_reviews');
         } else if (data.error === 'daily_limit_reached') {
-          toast.error(t('reviews.oracle.dailyLimitReached'));
           setGenerationsUsedToday(GENERATIONS_LIMIT);
-          setStep(generatedTitle ? 'generated' : 'idle');
+          setStep('locked_daily_limit');
         } else {
           throw new Error(data.error);
         }
@@ -226,6 +292,31 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
     );
   }
 
+  // Limite diário atingido — antes isso só aparecia como um toast de
+  // erro genérico ("O Oráculo não conseguiu gerar..."), que soa como
+  // falha técnica em vez de um limite esperado e normal. Agora é uma
+  // tela dedicada dentro do modal, com o mesmo modelo de timer já usado
+  // em Recomendações do Dia, deixando explícito QUANDO a próxima
+  // geração libera, não só QUE está bloqueada agora.
+  if (step === 'locked_daily_limit') {
+    return (
+      <div className="bg-pink-500/10 border border-pink-400/30 rounded-2xl p-5 text-center space-y-4">
+        <div className="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-br from-pink-500/20 to-fuchsia-500/20 border border-pink-400/30 flex items-center justify-center">
+          <Sparkles className="w-6 h-6 text-pink-500" />
+        </div>
+        <div>
+          <p className="font-medium text-gray-800 dark:text-gray-100">
+            {t('reviews.oracle.dailyLimitTitle')}
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {t('reviews.oracle.dailyLimitHint')}
+          </p>
+        </div>
+        <OracleCountdown />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {(step === 'idle' || step === 'generating') && (
@@ -298,9 +389,9 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
             )}
           </div>
           {generationsUsedToday >= GENERATIONS_LIMIT && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-              {t('reviews.oracle.limitReachedHint')}
-            </p>
+            <div className="pt-1">
+              <OracleCountdown />
+            </div>
           )}
         </div>
       )}
