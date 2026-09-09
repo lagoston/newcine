@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageCircle, Loader2, Calendar, Trash2, Film, User, Tv, Sparkles } from 'lucide-react';
+import { X, MessageCircle, Loader2, Calendar, Trash2, Film, User, Tv, Sparkles, Trophy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -25,7 +25,7 @@ interface WhispersModalProps {
 interface Whisper {
   id: string;
   from_user_id: string | null;
-  type: 'movie' | 'follower' | 'new_episode';
+  type: 'movie' | 'follower' | 'new_episode' | 'tag_unlocked';
   movie_id?: number;
   movie_title?: string;
   movie_poster?: string;
@@ -36,6 +36,9 @@ interface Whisper {
   season_number?: number;
   episode_number?: number;
   episode_name?: string;
+  tag_name?: string;
+  tag_emoji?: string;
+  tag_category?: string;
   from_user: {
     username: string;
     avatar_url: string | null;
@@ -261,8 +264,10 @@ export default function WhispersModal({ isOpen, onClose, userId }: WhispersModal
                                       </span>
                                     </>
                                   ) : (
-                                    <span className="font-semibold text-sm text-violet-600 dark:text-violet-400">
-                                      {t('indications.newEpisodeLabel', { defaultValue: 'Novo episódio disponível' })}
+                                    <span className={`font-semibold text-sm ${whisper.type === 'tag_unlocked' ? 'text-amber-600 dark:text-amber-400' : 'text-violet-600 dark:text-violet-400'}`}>
+                                      {whisper.type === 'tag_unlocked'
+                                        ? t('indications.tagUnlockedHeader', { defaultValue: 'Você desbloqueou uma tag!' })
+                                        : t('indications.newEpisodeLabel', { defaultValue: 'Novo episódio disponível' })}
                                     </span>
                                   )}
                                 </div>
@@ -377,6 +382,41 @@ export default function WhispersModal({ isOpen, onClose, userId }: WhispersModal
                                   >
                                     {loadingMovie ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Tv className="w-3.5 h-3.5" />}
                                     {t('indications.viewEpisode', { defaultValue: 'Ver Episódio' })}
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingId(whisper.id)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-red-500 bg-red-500/10 hover:bg-red-500/20 transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    {t('common.delete', { defaultValue: 'Apagar' })}
+                                  </button>
+                                </div>
+                              </>
+                            )}
+
+                            {whisper.type === 'tag_unlocked' && (
+                              <>
+                                <div className="flex items-center gap-3 mb-3 bg-white/80 dark:bg-gray-800/60 rounded-xl p-3">
+                                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400/20 to-yellow-500/20 border border-amber-400/30 flex items-center justify-center text-3xl flex-shrink-0">
+                                    {whisper.tag_emoji}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2">
+                                      {whisper.tag_name}
+                                    </h3>
+                                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                      <Trophy className="w-3.5 h-3.5" />
+                                      {t('indications.tagUnlockedLabel', { defaultValue: 'Nova conquista desbloqueada' })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex justify-end gap-1.5">
+                                  <button
+                                    onClick={() => { onClose(); navigate('/profile'); }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
+                                  >
+                                    <Trophy className="w-3.5 h-3.5" />
+                                    {t('indications.viewTags', { defaultValue: 'Ver Minhas Tags' })}
                                   </button>
                                   <button
                                     onClick={() => setDeletingId(whisper.id)}
