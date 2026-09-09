@@ -225,20 +225,20 @@ export const THEME_TAGS: ThemeTag[] = [
 // is_ai_generated = true — postar (não só gerar) é o que conta, já que
 // só reviews publicadas existem na tabela reviews de fato.
 export const ORACLE_TAGS: OracleTag[] = [
-  { id: 'lagooner', name: 'Lagooner', emoji: '🪷', requirement: '10 movies from Sapo Bogart\'s curation', requirementPt: '10 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 10, value: 'bogart' } },
-  { id: 'fly-eater', name: 'Fly-eater', emoji: '🪰', requirement: '50 movies from Sapo Bogart\'s curation', requirementPt: '50 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 50, value: 'bogart' } },
-  { id: 'quick-tongue', name: 'Quick Tongue', emoji: '🐸', requirement: '100 movies from Sapo Bogart\'s curation', requirementPt: '100 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 100, value: 'bogart' } },
+  { id: 'lagooner', name: 'Lagooner', emoji: '🚤', requirement: '50 movies from Sapo Bogart\'s curation', requirementPt: '50 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 50, value: 'bogart' } },
+  { id: 'fly-eater', name: 'Bug-eater', emoji: '🦟', requirement: '100 movies from Sapo Bogart\'s curation', requirementPt: '100 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 100, value: 'bogart' } },
+  { id: 'quick-tongue', name: 'Quick Tongue', emoji: '🐸', requirement: '200 movies from Sapo Bogart\'s curation', requirementPt: '200 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 200, value: 'bogart' } },
 
-  { id: 'tape-colector', name: 'Tape Colector', emoji: '📼', requirement: '10 movies from Raposo Fincher\'s curation', requirementPt: '10 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 10, value: 'fincher' } },
-  { id: 'cine-smoker', name: 'Cine Smoker', emoji: '🚬', requirement: '50 movies from Raposo Fincher\'s curation', requirementPt: '50 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 50, value: 'fincher' } },
-  { id: 'keen-sense', name: 'Keen Sense', emoji: '🦊', requirement: '100 movies from Raposo Fincher\'s curation', requirementPt: '100 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 100, value: 'fincher' } },
+  { id: 'tape-colector', name: 'Tape Colector', emoji: '📼', requirement: '50 movies from Raposo Fincher\'s curation', requirementPt: '50 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 50, value: 'fincher' } },
+  { id: 'cine-smoker', name: 'Cine Smoker', emoji: '🚬', requirement: '100 movies from Raposo Fincher\'s curation', requirementPt: '100 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 100, value: 'fincher' } },
+  { id: 'keen-sense', name: 'Keen Sense', emoji: '🦊', requirement: '200 movies from Raposo Fincher\'s curation', requirementPt: '200 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 200, value: 'fincher' } },
 
-  { id: 'crawler', name: 'Crawler', emoji: '🚇', requirement: '10 movies from Cobra Cypher\'s curation', requirementPt: '10 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 10, value: 'cypher' } },
-  { id: 'poison-taster', name: 'Poison Taster', emoji: '🧪', requirement: '50 movies from Cobra Cypher\'s curation', requirementPt: '50 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 50, value: 'cypher' } },
-  { id: 'underworld-king', name: 'Underworld King', emoji: '🐍', requirement: '100 movies from Cobra Cypher\'s curation', requirementPt: '100 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 100, value: 'cypher' } },
+  { id: 'crawler', name: 'Crawler', emoji: '🚇', requirement: '50 movies from Cobra Cypher\'s curation', requirementPt: '50 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 50, value: 'cypher' } },
+  { id: 'poison-taster', name: 'Poison Taster', emoji: '🧪', requirement: '100 movies from Cobra Cypher\'s curation', requirementPt: '100 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 100, value: 'cypher' } },
+  { id: 'underworld-king', name: 'Underworld King', emoji: '🐍', requirement: '200 movies from Cobra Cypher\'s curation', requirementPt: '200 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 200, value: 'cypher' } },
 
   { id: 'from-beyond', name: 'From Beyond', emoji: '✉️', requirement: 'Post 1 Oracle review', requirementPt: 'Poste 1 resenha do Oráculo', condition: { type: 'ai_review_count', count: 1 } },
-  { id: 'non-reflective', name: 'Non-reflective', emoji: '🪞', requirement: 'Post 10 Oracle reviews', requirementPt: 'Poste 10 resenhas do Oráculo', condition: { type: 'ai_review_count', count: 10 } },
+  { id: 'non-reflective', name: 'Ghost Writer', emoji: '👻', requirement: 'Post 10 Oracle reviews', requirementPt: 'Poste 10 resenhas do Oráculo', condition: { type: 'ai_review_count', count: 10 } },
   { id: 'third-eye-open', name: 'Third Eye Open', emoji: '🧿', requirement: 'Post 50 Oracle reviews', requirementPt: 'Poste 50 resenhas do Oráculo', condition: { type: 'ai_review_count', count: 50 } },
 ];
 
