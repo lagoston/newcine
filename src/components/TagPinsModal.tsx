@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Loader2, Tag, Palette, Users, Lock, Check, Clock } from 'lucide-react';
+import { X, Sparkles, Loader2, Tag, Palette, Users, BrainCircuit, Lock, Check, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { getContinent } from '../lib/continents';
-import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
+import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 
 interface TagPinsModalProps {
   isOpen: boolean;
@@ -15,12 +15,12 @@ interface TagPinsModalProps {
   onSave?: () => void;
 }
 
-type ViewMode = 'pins' | 'basic' | 'theme' | 'community' | 'special';
+type ViewMode = 'pins' | 'basic' | 'theme' | 'community' | 'oracle' | 'special';
 
 interface UnlockedPin {
   emoji: string;
   name: string;
-  category: 'basic' | 'theme' | 'community' | 'special';
+  category: 'basic' | 'theme' | 'community' | 'oracle' | 'special';
 }
 
 interface SpecialTag {
@@ -52,6 +52,8 @@ const getTagColorClasses = (category: string) => {
       return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
     case 'community':
       return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
+    case 'oracle':
+      return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400';
     case 'special':
       return 'bg-black dark:bg-black text-white dark:text-gray-100';
     default:
@@ -73,6 +75,10 @@ const getCategoryButtonStyle = (isActive: boolean, category: string) => {
       return isActive
         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
         : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600';
+    case 'oracle':
+      return isActive
+        ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'
+        : 'bg-pink-600 text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600';
     case 'special':
       return isActive
         ? 'bg-black text-white dark:bg-gray-800 dark:text-gray-100'
@@ -113,6 +119,7 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
   const [followersCount, setFollowersCount] = useState(0);
   const [basicTagProgress, setBasicTagProgress] = useState<Record<string, number>>({});
   const [themeTagProgress, setThemeTagProgress] = useState<Record<string, number>>({});
+  const [oracleTagProgress, setOracleTagProgress] = useState<Record<string, number>>({});
   const [specialTags, setSpecialTags] = useState<SpecialTag[]>([]);
   const [activeTag, setActiveTag] = useState<ActiveTag | null>(null);
   const [pins, setPins] = useState<UnlockedPin[]>([]);
@@ -290,13 +297,15 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       basicProgress['Sofa Sleeper'] = hasCompletedSeries ? 1 : 0;
       setBasicTagProgress(basicProgress);
 
-      THEME_TAGS.forEach((tag) => {
-        if (tag.condition.type === 'curated_pool' && typeof tag.condition.value === 'string') {
-          themeProgress[tag.id] = curatedProgress[tag.condition.value] || 0;
+      const oracleProgress: Record<string, number> = {};
+      ORACLE_TAGS.forEach((tag) => {
+        if (tag.condition.type === 'curated_pool' && tag.condition.value) {
+          oracleProgress[tag.id] = curatedProgress[tag.condition.value] || 0;
         } else if (tag.condition.type === 'ai_review_count') {
-          themeProgress[tag.id] = aiReviewCount || 0;
+          oracleProgress[tag.id] = aiReviewCount || 0;
         }
       });
+      setOracleTagProgress(oracleProgress);
       setThemeTagProgress(themeProgress);
 
       if (profileData?.active_tag) {
@@ -347,6 +356,11 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       COMMUNITY_TAGS.forEach((tag) => {
         if ((followers || 0) >= tag.minFollowers) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'community' });
       });
+      ORACLE_TAGS.forEach((tag) => {
+        if ((oracleProgress[tag.id] || 0) >= tag.condition.count) {
+          unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'oracle' });
+        }
+      });
       specialTagsWithStatus.forEach((tag) => {
         if (tag.is_unlocked) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'special' });
       });
@@ -394,6 +408,7 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
     { id: 'basic', label: t('customize.categories.basic'), icon: Tag },
     { id: 'theme', label: t('customize.categories.theme'), icon: Palette },
     { id: 'community', label: t('customize.categories.community'), icon: Users },
+    { id: 'oracle', label: t('customize.categories.oracle'), icon: BrainCircuit },
     { id: 'special', label: t('customize.categories.special'), icon: Sparkles }
   ];
 
@@ -632,6 +647,69 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
                 );
               })}
             </div>
+          </div>
+        );
+
+      case 'oracle':
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {ORACLE_TAGS.map((tag) => {
+              const progress = oracleTagProgress[tag.id] || 0;
+              const isUnlocked = progress >= tag.condition.count;
+              const isActive = activeTag?.name === tag.name;
+
+              return (
+                <div
+                  key={tag.id}
+                  className={`relative rounded-2xl border ${
+                    isUnlocked
+                      ? 'border-pink-300/50 dark:border-pink-700/50 bg-pink-50/50 dark:bg-pink-900/20'
+                      : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
+                  } p-4 transition-all duration-200`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{tag.emoji}</span>
+                        <span className={`text-sm font-medium ${isUnlocked ? 'text-pink-700 dark:text-pink-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                          {tag.name}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                        {isPt ? tag.requirementPt : tag.requirement}
+                      </p>
+                      <div className="mt-2 text-sm">
+                        <span className={isUnlocked ? 'text-pink-600 dark:text-pink-400' : 'text-gray-500 dark:text-gray-400'}>{progress}</span>
+                        <span className="text-gray-400 dark:text-gray-500">/{tag.condition.count}</span>
+                      </div>
+                    </div>
+                    {!isUnlocked ? (
+                      <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                    ) : (
+                      <button
+                        onClick={() => handleUseTag(tag, 'oracle')}
+                        disabled={savingTag}
+                        className={`px-3 py-1 text-sm rounded-lg transition-colors ${getCategoryButtonStyle(isActive, 'oracle')}`}
+                      >
+                        {isActive ? (
+                          <span className="flex items-center"><Check className="w-4 h-4 mr-1" />{t('customize.tags.active')}</span>
+                        ) : savingTag ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          t('customize.tags.use')
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${isUnlocked ? 'bg-gradient-to-r from-pink-400 to-rose-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                      style={{ width: `${Math.min(100, (progress / tag.condition.count) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         );
 
