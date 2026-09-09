@@ -21,7 +21,7 @@ import PersonaShareModal from '../components/PersonaShareModal';
 import { toast } from 'sonner';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from '../components/GhostRiderFrame';
-import { getBannerClass, getBannerTextClass, getBannerSecondaryTextClass } from '../lib/banners';
+import { getBannerClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
@@ -703,17 +703,8 @@ export default function Profile() {
  return (
  <div className="min-h-[calc(100vh-4rem)] py-8 px-4 relative overflow-hidden">
  <div className="container mx-auto max-w-5xl relative z-10 space-y-6">
- <div className="relative rounded-3xl border border-white/60 dark:border-gray-700/60 shadow-2xl">
- {/* Camada decorativa do banner, isolada numa div própria com
-     overflow-hidden — antes, esse overflow-hidden (parte da própria
-     definição de cada banner em lib/banners.ts) vivia no MESMO
-     elemento que continha o avatar, cortando qualquer efeito de frame
-     que se estendesse além do círculo (o fogo do Ghost Rider, por
-     exemplo). Faz sentido o padrão do banner ficar contido dentro do
-     retângulo arredondado — mas o avatar e seus efeitos não deveriam
-     estar sujeitos a essa mesma restrição. */}
- <div className={`absolute inset-0 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl ${getBannerClass(profile?.banner, isPremium)}`} />
- <div className="absolute inset-0 rounded-3xl pointer-events-none">
+ <div className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl ${getBannerClass(profile?.banner, isPremium)}`}>
+ <div className="absolute inset-0 pointer-events-none">
  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-cyan-500/10 rounded-full blur-3xl" />
  <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-400/10 to-pink-500/10 rounded-full blur-3xl" />
  </div>
@@ -784,7 +775,7 @@ export default function Profile() {
  placeholder="Username"
  />
  ) : (
- <h1 className={`text-2xl sm:text-3xl font-bold ${getBannerTextClass(profile?.banner, isPremium)}`}>
+ <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
  @{username}
  </h1>
  )}
@@ -812,29 +803,29 @@ export default function Profile() {
  placeholder="Write something about yourself..."
  />
  ) : bio ? (
- <p className={`mb-4 max-w-2xl ${getBannerSecondaryTextClass(profile?.banner, isPremium)}`}>
+ <p className="text-gray-600 dark:text-gray-300 mb-4 max-w-2xl">
  {bio}
  </p>
  ) : null}
 
- <div className={`flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm mb-4 ${getBannerSecondaryTextClass(profile?.banner, isPremium)}`}>
+ <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm text-gray-600 dark:text-gray-400 mb-4">
  <button
  onClick={() => setShowFollowModal('followers')}
- className="flex items-center hover:opacity-70 transition-opacity"
+ className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className={getBannerTextClass(profile?.banner, isPremium)}>{followersCount}</strong>{' '}
+ <strong className="text-gray-900 dark:text-white">{followersCount}</strong>{' '}
  {t('profile.followersLabel')}
  </span>
  </button>
  <button
  onClick={() => setShowFollowModal('following')}
- className="flex items-center hover:opacity-70 transition-opacity"
+ className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className={getBannerTextClass(profile?.banner, isPremium)}>{followingCount}</strong>{' '}
+ <strong className="text-gray-900 dark:text-white">{followingCount}</strong>{' '}
  {t('profile.followingButton')}
  </span>
  </button>
