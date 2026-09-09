@@ -24,10 +24,8 @@ export interface ThemeTag {
   requirement: string;
   requirementPt: string;
   condition: {
-    type: 'rating' | 'genre' | 'director' | 'franchise' | 'curated_pool' | 'ai_review_count';
+    type: 'rating' | 'genre' | 'director' | 'franchise';
     count: number;
-    // Pra 'curated_pool', value é o card_type na tabela
-    // recommendation_pools: 'bogart' | 'fincher' | 'cypher'.
     value?: number | string | number[];
   };
 }
@@ -39,6 +37,21 @@ export interface CommunityTag {
   maxFollowers?: number;
   description: string;
   descriptionPt: string;
+}
+
+export interface OracleTag {
+  id: string;
+  name: string;
+  emoji: string;
+  requirement: string;
+  requirementPt: string;
+  condition: {
+    type: 'curated_pool' | 'ai_review_count';
+    count: number;
+    // Pra 'curated_pool', value é o card_type na tabela
+    // recommendation_pools: 'bogart' | 'fincher' | 'cypher'.
+    value?: string;
+  };
 }
 
 export const PROGRESSION_TAGS: ProgressionTag[] = [
@@ -199,14 +212,19 @@ export const THEME_TAGS: ThemeTag[] = [
   { id: 'dark-spirit', name: 'Dark Spirit', emoji: '🦇', requirement: 'The Dark Knight Trilogy', requirementPt: 'Trilogia Batman: O Cavaleiro das Trevas', condition: { type: 'franchise', count: 3, value: 'Dark Knight' } },
   { id: 'infinity-gauntlet', name: 'Infinity Gauntlet', emoji: '🧤', requirement: 'All 4 Avengers movies (2012-2019)', requirementPt: 'Todos os 4 filmes Vingadores (2012-2019)', condition: { type: 'franchise', count: 4, value: [24428, 299536, 99861, 299534] } },
   { id: 'sharp-canine', name: 'Sharp Canine', emoji: '🧛', requirement: 'Twilight Saga', requirementPt: 'Saga Crepúsculo', condition: { type: 'franchise', count: 5, value: 'Twilight' } },
-  { id: 'primal-essence', name: 'Primal Essence', emoji: '🦍', requirement: 'Planet of the Apes (2011 reboot line)', requirementPt: 'Planeta dos Macacos (reboot de 2011)', condition: { type: 'franchise', count: 4, value: 'Apes Reboot' } },
+  { id: 'primal-essence', name: 'Primal Essence', emoji: '🦍', requirement: 'Planet of the Apes (2011 reboot line)', requirementPt: 'Planeta dos Macacos (reboot de 2011)', condition: { type: 'franchise', count: 4, value: 'Apes Reboot' } }
+];
 
-  // Aposentamos previsões e recomendações do Oráculo (ORACLE_TAGS,
-  // removida) — no lugar, as 3 curadorias que já sustentam o site
-  // (Biblioteca dos Oráculos, Recomendações do Dia, selos nos menus de
-  // filme) ganham suas próprias tags. curated_pool soma os movie_ids de
-  // TODOS os moods de um card_type (recommendation_pools) e conta
-  // quantos desses o usuário já avaliou.
+// Aposentamos previsões e recomendações do Oráculo — a categoria em si
+// continua existindo (aba própria, cor rosa, tudo como antes), só o
+// CONTEÚDO trocou: as 3 curadorias que já sustentam o site (Biblioteca
+// dos Oráculos, Recomendações do Dia, selos nos menus de filme) e as
+// resenhas geradas pelo Oráculo. curated_pool soma os movie_ids de
+// TODOS os moods de um card_type (recommendation_pools) e conta quantos
+// desses o usuário já avaliou. ai_review_count conta reviews com
+// is_ai_generated = true — postar (não só gerar) é o que conta, já que
+// só reviews publicadas existem na tabela reviews de fato.
+export const ORACLE_TAGS: OracleTag[] = [
   { id: 'lagooner', name: 'Lagooner', emoji: '🪷', requirement: '10 movies from Sapo Bogart\'s curation', requirementPt: '10 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 10, value: 'bogart' } },
   { id: 'fly-eater', name: 'Fly-eater', emoji: '🪰', requirement: '50 movies from Sapo Bogart\'s curation', requirementPt: '50 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 50, value: 'bogart' } },
   { id: 'quick-tongue', name: 'Quick Tongue', emoji: '🐸', requirement: '100 movies from Sapo Bogart\'s curation', requirementPt: '100 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 100, value: 'bogart' } },
@@ -219,9 +237,6 @@ export const THEME_TAGS: ThemeTag[] = [
   { id: 'poison-taster', name: 'Poison Taster', emoji: '🧪', requirement: '50 movies from Cobra Cypher\'s curation', requirementPt: '50 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 50, value: 'cypher' } },
   { id: 'underworld-king', name: 'Underworld King', emoji: '🐍', requirement: '100 movies from Cobra Cypher\'s curation', requirementPt: '100 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 100, value: 'cypher' } },
 
-  // ai_review_count conta reviews com is_ai_generated = true — postar
-  // (não só gerar) é o que conta, já que só reviews publicadas existem
-  // na tabela reviews de fato.
   { id: 'from-beyond', name: 'From Beyond', emoji: '✉️', requirement: 'Post 1 Oracle review', requirementPt: 'Poste 1 resenha do Oráculo', condition: { type: 'ai_review_count', count: 1 } },
   { id: 'non-reflective', name: 'Non-reflective', emoji: '🪞', requirement: 'Post 10 Oracle reviews', requirementPt: 'Poste 10 resenhas do Oráculo', condition: { type: 'ai_review_count', count: 10 } },
   { id: 'third-eye-open', name: 'Third Eye Open', emoji: '🧿', requirement: 'Post 50 Oracle reviews', requirementPt: 'Poste 50 resenhas do Oráculo', condition: { type: 'ai_review_count', count: 50 } },
