@@ -82,7 +82,17 @@ function App() {
             <InstallPrompt />
           </div>
         </BrowserRouter>
-        <Toaster position="bottom-right" />
+        <Toaster
+          position="bottom-right"
+          // z-index padrão da biblioteca é 9999 — menor que vários
+          // modais do site (os de review, por exemplo, usam z-[10000]
+          // e z-[10001]). Um toast escondido atrás de um modal aberto é
+          // pior que inútil, já que a mensagem simplesmente não pode
+          // ser lida. Notificação transitória deve sempre ficar por
+          // cima de qualquer coisa que esteja aberta na tela.
+          containerStyle={{ zIndex: 99999 }}
+          toastOptions={{ style: { zIndex: 99999 } }}
+        />
       </ThemeProvider>
       </WhispersProvider>
     </AuthProvider>
