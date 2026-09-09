@@ -824,6 +824,23 @@
     "reviewCount_one": "{{count}} resenha",
     "reviewCount_other": "{{count}} resenhas",
     "aiGenerated": "Gerado pelo Oráculo",
-    "you": "Você"
+    "you": "Você",
+    "oracle": {
+      "generateReviewButton": "Gerar Resenha",
+      "generateButton": "Gerar Resenha",
+      "generating": "Consultando o Oráculo...",
+      "regenerateButton": "Gerar Novamente",
+      "postButton": "Postar Resenha",
+      "readyTitle": "O Oráculo escreveu isso pra você",
+      "generateError": "O Oráculo não conseguiu gerar a resenha. Tente novamente.",
+      "lockedPremiumTitle": "Recurso exclusivo Premium",
+      "lockedPremiumHint": "Assine o Premium pra desbloquear as Reviews do Oráculo.",
+      "lockedReviewsTitle": "Ainda não é possível gerar",
+      "lockedReviewsHint": "Escreva pelo menos 10 resenhas suas para o Oráculo aprender seu estilo ({{count}}/10 até agora).",
+      "howItWorks": "Como o Oráculo funciona",
+      "step1": "Lê a nota que você deu a esta obra ({{rating}}/10)",
+      "step2": "Analisa 10 das suas resenhas reais, escolhidas ao acaso",
+      "step3": "Escreve uma resenha nova, no seu estilo e espírito cinematográfico"
+    }
   }
 }
