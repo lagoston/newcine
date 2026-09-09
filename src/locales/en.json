@@ -841,7 +841,10 @@
       "step2": "Analyzes 10 of your real reviews, picked at random",
       "step3": "Writes a new review, in your style and cinematic spirit",
       "dailyLimitReached": "You've already used today's generations.",
-      "limitReachedHint": "Come back tomorrow to generate a new Oracle review."
+      "limitReachedHint": "Come back tomorrow to generate a new Oracle review.",
+      "dailyLimitTitle": "You've already used today's review",
+      "dailyLimitHint": "The Oracle writes a new review (with one regeneration included) every 24 hours.",
+      "nextGenerationIn": "New generation in"
     }
   }
 }
