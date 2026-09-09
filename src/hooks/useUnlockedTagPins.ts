@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { getContinent } from '../lib/continents';
-import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
+import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 
 export interface UnlockedPin {
   emoji: string;
   name: string;
-  category: 'basic' | 'theme' | 'community' | 'special';
+  category: 'basic' | 'theme' | 'community' | 'oracle' | 'special';
 }
 
 // Extraído do TagPinsModal.tsx pra ser reaproveitado em qualquer lugar que
@@ -170,14 +170,15 @@ export function useUnlockedTagPins(userId: string | undefined) {
         basicProgress['Memoirist'] = realReviewCount || 0;
         basicProgress['Sofa Sleeper'] = hasCompletedSeries ? 1 : 0;
 
-        // curated_pool e ai_review_count são condições temáticas —
-        // preenche themeProgress por tag.id, mesmo padrão já usado pra
-        // franchise.
-        THEME_TAGS.forEach((tag) => {
-          if (tag.condition.type === 'curated_pool' && typeof tag.condition.value === 'string') {
-            themeProgress[tag.id] = curatedProgress[tag.condition.value] || 0;
+        // curated_pool e ai_review_count são as condições da categoria
+        // oráculo — preenche oracleProgress por tag.id, olhando pra
+        // ORACLE_TAGS (não THEME_TAGS, que é uma categoria diferente).
+        const oracleProgress: Record<string, number> = {};
+        ORACLE_TAGS.forEach((tag) => {
+          if (tag.condition.type === 'curated_pool' && tag.condition.value) {
+            oracleProgress[tag.id] = curatedProgress[tag.condition.value] || 0;
           } else if (tag.condition.type === 'ai_review_count') {
-            themeProgress[tag.id] = aiReviewCount || 0;
+            oracleProgress[tag.id] = aiReviewCount || 0;
           }
         });
 
@@ -194,6 +195,11 @@ export function useUnlockedTagPins(userId: string | undefined) {
         });
         COMMUNITY_TAGS.forEach((tag) => {
           if ((followers || 0) >= tag.minFollowers) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'community' });
+        });
+        ORACLE_TAGS.forEach((tag) => {
+          if ((oracleProgress[tag.id] || 0) >= tag.condition.count) {
+            unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'oracle' });
+          }
         });
         (allSpecialTags || []).forEach((tag: any) => {
           if (unlockedSpecialIds.has(tag.id)) {
