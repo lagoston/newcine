@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, MessageSquare, Clock, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
-import { getMoviesFromCache, getMovieDetails, Movie } from '../lib/tmdb';
+import { getMoviesFromCacheByType, getMovieDetails, Movie } from '../lib/tmdb';
 import ReviewCard, { Review, ReviewMovieInfo } from './ReviewCard';
 import MovieDetailsModal from './MovieDetailsModal';
 
@@ -53,15 +53,18 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
 
       // Antes buscava os dados de CADA filme numa consulta separada,
       // uma promise por review — com muitas reviews, disparava dezenas
-      // de requisições onde uma só bastaria. getMoviesFromCache já
-      // existe pronta pra isso: busca todos os IDs de uma vez, num
-      // único round-trip ao banco.
-      const movieIds = [...new Set(reviewsData.map((r) => r.movie_id))];
-      const moviesMap = movieIds.length > 0 ? await getMoviesFromCache(movieIds) : new Map();
+      // de requisições onde uma só bastaria. getMoviesFromCacheByType
+      // já existe pronta pra isso: busca todos de uma vez, e diferencia
+      // filme de série pela chave composta (id+tipo) — getMoviesFromCache
+      // (sem "ByType") chaveia só por id numérico, então um filme e uma
+      // série com o mesmo tmdb_id colidiam no mapa, fazendo o pôster
+      // (e o resto dos dados) vir errado ou vazio pra um dos dois.
+      const movieEntries = reviewsData.map((r) => ({ movie_id: r.movie_id, media_type: r.media_type || 'movie' }));
+      const moviesMap = movieEntries.length > 0 ? await getMoviesFromCacheByType(movieEntries) : new Map();
 
       const reviewsWithMovies: ReviewWithMovie[] = reviewsData.map((review) => ({
         ...review,
-        movieData: moviesMap.get(review.movie_id),
+        movieData: moviesMap.get(`${review.movie_id}_${review.media_type || 'movie'}`),
         profiles: { username, avatar_url: avatarUrl },
       }));
 
@@ -207,6 +210,7 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
           movie={selectedMovie}
           isOpen={true}
           onClose={() => setSelectedMovie(null)}
+          zIndexClass="z-[10001]"
         />
       )}
     </>
