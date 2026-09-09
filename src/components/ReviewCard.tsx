@@ -38,7 +38,22 @@ interface ReviewCardProps {
       ReviewsModal (reviews de UM filme só, já visível no contexto) essa
       prop fica de fora. */
   movieInfo?: ReviewMovieInfo;
+  /** Chamado ao clicar no pôster do filme — usado pra abrir o menu
+      expandido (MovieDetailsModal) daquele filme. Só faz sentido junto
+      com movieInfo. */
+  onMovieClick?: () => void;
 }
+
+// Mesmo mapeamento de nota pra cor usado na Biblioteca (chroma box) —
+// reaproveitado aqui pra dar a mesma identidade visual às reviews.
+const getChromaClass = (rating: number | null | undefined): string => {
+  if (rating === null || rating === undefined) return '';
+  if (rating === 10) return 'chroma-box-gold';
+  if (rating >= 7) return 'chroma-box-green';
+  if (rating >= 4) return 'chroma-box-yellow';
+  if (rating >= 1) return 'chroma-box-red';
+  return 'chroma-box-glitch';
+};
 
 /**
  * Card de review compartilhado entre ReviewsModal e UserReviewsModal —
@@ -47,10 +62,11 @@ interface ReviewCardProps {
  * divergindo só em detalhes pequenos. Consolidado aqui numa única fonte
  * de verdade.
  */
-const ReviewCard: React.FC<ReviewCardProps> = ({ review, isOwnReview = false, onEdit, onDelete, movieInfo }) => {
+const ReviewCard: React.FC<ReviewCardProps> = ({ review, isOwnReview = false, onEdit, onDelete, movieInfo, onMovieClick }) => {
   const { t } = useTranslation();
   const [isRevealed, setIsRevealed] = useState(false);
   const showSpoilerBlur = review.has_spoilers && !isRevealed;
+  const chromaClass = getChromaClass(review.rating);
 
   const movieTitle = movieInfo?.title || movieInfo?.name;
   const movieYear = movieInfo?.release_date || movieInfo?.first_air_date;
@@ -62,7 +78,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, isOwnReview = false, on
         isOwnReview
           ? 'bg-blue-500/10 border-blue-400/40'
           : 'bg-white/5 dark:bg-gray-900/30 border-white/10 dark:border-gray-700/40'
-      }`}
+      } ${chromaClass}`}
     >
       {movieInfo && (
         <div className="flex gap-3 mb-3 pb-3 border-b border-white/10 dark:border-gray-700/40">
@@ -70,15 +86,22 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, isOwnReview = false, on
             <img
               src={`https://image.tmdb.org/t/p/w92${movieInfo.poster_path}`}
               alt={movieTitle}
-              className="w-12 h-[72px] rounded-lg object-cover flex-shrink-0"
+              onClick={onMovieClick}
+              className={`w-12 h-[72px] rounded-lg object-cover flex-shrink-0 ${onMovieClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
             />
           ) : (
-            <div className="w-12 h-[72px] rounded-lg bg-gray-300/20 flex items-center justify-center flex-shrink-0">
+            <div
+              onClick={onMovieClick}
+              className={`w-12 h-[72px] rounded-lg bg-gray-300/20 flex items-center justify-center flex-shrink-0 ${onMovieClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+            >
               <Film className="w-5 h-5 text-gray-400" />
             </div>
           )}
           <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <h4 className="font-semibold text-gray-900 dark:text-white truncate">
+            <h4
+              onClick={onMovieClick}
+              className={`font-semibold text-gray-900 dark:text-white truncate ${onMovieClick ? 'cursor-pointer hover:text-blue-500 transition-colors' : ''}`}
+            >
               {movieTitle} {movieYearDisplay && `(${movieYearDisplay})`}
             </h4>
           </div>
