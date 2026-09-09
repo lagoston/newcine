@@ -437,7 +437,7 @@ export default function Community() {
  {filteredProfiles.map((profile) => (
  <motion.div
  key={profile.id}
- className={`relative rounded-2xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-xl overflow-hidden cursor-pointer group ${getBannerClass(profile.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}
+ className="relative rounded-2xl border border-white/60 dark:border-gray-700/60 shadow-xl cursor-pointer group"
  onClick={() => navigateToProfile(profile.username)}
  role="button"
  tabIndex={0}
@@ -446,7 +446,12 @@ export default function Community() {
  whileHover={{ scale: 1.02, y: -4 }}
  whileTap={{ scale: 0.98 }}
  >
- <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+ {/* Camada decorativa do banner, isolada com seu próprio
+     overflow-hidden — antes vivia no mesmo elemento que continha o
+     avatar, cortando efeitos de frame que se estendessem além do
+     círculo (o fogo do Ghost Rider, por exemplo). */}
+ <div className={`absolute inset-0 rounded-2xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl ${getBannerClass(profile.banner, profile.is_premium ?? profile.plan_type === 'premium')}`} />
+ <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
  <div className="relative h-full flex flex-col p-6">
  <div className="flex items-start gap-4 mb-4">
