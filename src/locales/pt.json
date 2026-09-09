@@ -164,43 +164,43 @@
     }
   },
   "compatibility": {
-  "buttonLabel": "Compatibilidade",
-  "title": "Compatibilidade Cinematográfica",
-  "subtitle": "Você e @{{username}}",
-  "notEnoughDataTitle": "Ainda não há dados suficientes",
-  "notEnoughDataDescription": "Vocês avaliaram {{count}} filme(s) em comum — precisa de pelo menos {{min}} para revelar uma compatibilidade.",
-  "moviesCompared": "{{count}} filmes comparados",
-  "mostAgree": "Onde vocês mais concordam",
-  "mostDisagree": "Onde vocês mais discordam",
-  "tier": {
-    "soulmates": "Almas Cinematográficas Gêmeas",
-    "great": "Sintonia Rara",
-    "good": "Bom Match de Gosto",
-    "different": "Gostos Diferentes, Mesma Paixão",
-    "opposite": "Polos Opostos"
-  }
-},
+    "buttonLabel": "Compatibilidade",
+    "title": "Compatibilidade Cinematográfica",
+    "subtitle": "Você e @{{username}}",
+    "notEnoughDataTitle": "Ainda não há dados suficientes",
+    "notEnoughDataDescription": "Vocês avaliaram {{count}} filme(s) em comum — precisa de pelo menos {{min}} para revelar uma compatibilidade.",
+    "moviesCompared": "{{count}} filmes comparados",
+    "mostAgree": "Onde vocês mais concordam",
+    "mostDisagree": "Onde vocês mais discordam",
+    "tier": {
+      "soulmates": "Almas Cinematográficas Gêmeas",
+      "great": "Sintonia Rara",
+      "good": "Bom Match de Gosto",
+      "different": "Gostos Diferentes, Mesma Paixão",
+      "opposite": "Polos Opostos"
+    }
+  },
   "matchMovie": {
-  "buttonLabel": "Match Movie",
-  "chooseMoods": "Escolha os humores",
-  "chooseFilter": "Escolha o filtro",
-  "title": "Match Movie",
-  "subtitle": "Encontre o filme perfeito pra você e @{{username}}",
-  "modeUnseen": "Nenhum viu",
-  "modeUnseenDesc": "Descubram algo totalmente novo juntos",
-  "modeOne": "Só um viu",
-  "modeOneDesc": "Usa a nota real de quem já assistiu",
-  "modeBoth": "Todos viram",
-  "modeBothDesc": "Veja onde suas notas reais mais bateram",
-  "findButton": "Encontrar Nosso Match",
-  "searching": "Vasculhando as pools do Oráculo...",
-  "perfectMatch": "Match Perfeito",
-  "otherOptions": "Outras boas opções",
-  "you": "Você",
-  "predicted": "previsto",
-  "noMatchesFound": "Nenhum candidato encontrado nesse filtro ainda.",
-  "tryAgain": "Tenta outro filtro"
-},
+    "buttonLabel": "Match Movie",
+    "chooseMoods": "Escolha os humores",
+    "chooseFilter": "Escolha o filtro",
+    "title": "Match Movie",
+    "subtitle": "Encontre o filme perfeito pra você e @{{username}}",
+    "modeUnseen": "Nenhum viu",
+    "modeUnseenDesc": "Descubram algo totalmente novo juntos",
+    "modeOne": "Só um viu",
+    "modeOneDesc": "Usa a nota real de quem já assistiu",
+    "modeBoth": "Todos viram",
+    "modeBothDesc": "Veja onde suas notas reais mais bateram",
+    "findButton": "Encontrar Nosso Match",
+    "searching": "Vasculhando as pools do Oráculo...",
+    "perfectMatch": "Match Perfeito",
+    "otherOptions": "Outras boas opções",
+    "you": "Você",
+    "predicted": "previsto",
+    "noMatchesFound": "Nenhum candidato encontrado nesse filtro ainda.",
+    "tryAgain": "Tenta outro filtro"
+  },
   "library": {
     "title": "Minha Biblioteca",
     "filterByStreaming": "Filtrar por streaming",
@@ -268,9 +268,9 @@
   },
   "indications": {
     "indicate": "Indicar",
-    "loadError": "Erro ao carregar sussurros.",
-    "deleted": "Sussurro apagado.",
-    "deleteError": "Erro ao apagar sussurro.",
+    "loadError": "Erro ao carregar indicações",
+    "deleted": "Indicação deletada com sucesso",
+    "deleteError": "Erro ao deletar indicação",
     "empty": "Nenhum sussurro ainda",
     "emptyHint": "Recomendações, novos seguidores e episódios novos de séries que você acompanha vão aparecer aqui.",
     "startedFollowing": "começou a te seguir",
@@ -293,10 +293,7 @@
     "noFollowers": "Você não tem seguidores ainda",
     "dailyLimit": "Você atingiu o limite diário de {{limit}} indicações. Tente novamente amanhã!",
     "premiumDailyLimit": "Você atingiu o limite diário de {{limit}} indicações para usuários Premium. Tente novamente amanhã!",
-    "upgradeToPremium": "Faça upgrade para Premium e envie até 20 indicações por dia!",
-    "deleted": "Indicação deletada com sucesso",
-    "deleteError": "Erro ao deletar indicação",
-    "loadError": "Erro ao carregar indicações"
+    "upgradeToPremium": "Faça upgrade para Premium e envie até 20 indicações por dia!"
   },
   "whispers": {
     "title": "Sussurros",
@@ -739,19 +736,19 @@
     "clickForDetails": "Clique para ver detalhes"
   },
   "watchlistDuel": {
-  "title": "Duelo de Watchlist",
-  "description": "Escolha um amigo — 4 filmes da sua watchlist enfrentam 4 da dele. Sem gastar tickets.",
-  "noEligibleFriends": "Nenhum dos seus amigos tem pelo menos 4 filmes na watchlist ainda.",
-  "moviesInWatchlist": "{{count}} filmes na watchlist",
-  "startButton": "Iniciar o Duelo",
-  "assembling": "Reunindo as watchlists...",
-  "yourList": "Sua lista"
-},
+    "title": "Duelo de Watchlist",
+    "description": "Escolha um amigo — 4 filmes da sua watchlist enfrentam 4 da dele. Sem gastar tickets.",
+    "noEligibleFriends": "Nenhum dos seus amigos tem pelo menos 4 filmes na watchlist ainda.",
+    "moviesInWatchlist": "{{count}} filmes na watchlist",
+    "startButton": "Iniciar o Duelo",
+    "assembling": "Reunindo as watchlists...",
+    "yourList": "Sua lista"
+  },
   "customize": {
     "title": "Personalizar Perfil",
     "frames": {
-  "changePhotoHint": "Quer trocar sua foto? Isso é feito direto na sua página de Perfil."
-},
+      "changePhotoHint": "Quer trocar sua foto? Isso é feito direto na sua página de Perfil."
+    },
     "tabs": {
       "avatars": "Avatares",
       "banners": "Banners",
@@ -790,5 +787,43 @@
     "bannerUpdated": "Banner atualizado com sucesso",
     "cardUpdated": "Estilo de card atualizado com sucesso",
     "updateError": "Falha ao atualizar"
+  },
+  "reviews": {
+    "title": "Resenhas",
+    "writeReview": "Escrever Resenha",
+    "editReview": "Editar Resenha",
+    "yourReview": "Sua Resenha",
+    "titlePlaceholder": "Dê um título para sua resenha",
+    "contentPlaceholder": "Compartilhe o que você achou...",
+    "charactersCount": "{{count}}/1500 caracteres",
+    "containsSpoilersCheckbox": "Esta resenha contém spoilers",
+    "hasSpoilers": "Contém Spoilers",
+    "clickToReveal": "Toque para Revelar Spoilers",
+    "hideSpoilers": "Ocultar Spoilers",
+    "save": "Publicar Resenha",
+    "saving": "Salvando...",
+    "rateToReview": "Avalie para escrever uma resenha",
+    "rateToReviewHint": "Você precisa avaliar antes de poder escrever uma resenha.",
+    "communityReviews": "Resenhas da Comunidade",
+    "sortBy": "Ordenar por",
+    "mostRecent": "Mais Recentes",
+    "highestRating": "Maior Nota",
+    "lowestRating": "Menor Nota",
+    "noReviews": "Nenhuma resenha ainda. Seja o primeiro a escrever!",
+    "deleteConfirmTitle": "Apagar Resenha",
+    "deleteConfirmMessage": "Tem certeza que deseja apagar sua resenha? Essa ação não pode ser desfeita.",
+    "deleted": "Resenha apagada.",
+    "deleteError": "Erro ao apagar resenha.",
+    "published": "Resenha publicada com sucesso.",
+    "updated": "Resenha atualizada com sucesso.",
+    "loadError": "Erro ao carregar resenhas.",
+    "saveError": "Erro ao salvar resenha.",
+    "titleAndContentRequired": "Título e conteúdo são obrigatórios.",
+    "allReviews": "Todas as Resenhas",
+    "userHasNoReviews": "{{username}} ainda não escreveu nenhuma resenha.",
+    "reviewCount_one": "{{count}} resenha",
+    "reviewCount_other": "{{count}} resenhas",
+    "aiGenerated": "Gerado pelo Oráculo",
+    "you": "Você"
   }
 }
