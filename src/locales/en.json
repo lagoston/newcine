@@ -839,7 +839,9 @@
       "howItWorks": "How the Oracle works",
       "step1": "Reads the rating you gave this title ({{rating}}/10)",
       "step2": "Analyzes 10 of your real reviews, picked at random",
-      "step3": "Writes a new review, in your style and cinematic spirit"
+      "step3": "Writes a new review, in your style and cinematic spirit",
+      "dailyLimitReached": "You've already used today's generations.",
+      "limitReachedHint": "Come back tomorrow to generate a new Oracle review."
     }
   }
 }
