@@ -382,12 +382,17 @@ export default function UserProfile() {
  </motion.button>
 
  <motion.div
- className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden ${getBannerClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}
+ className="relative rounded-3xl border border-white/60 dark:border-gray-700/60 shadow-2xl"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: 0.1 }}
  >
- <div className="absolute inset-0 pointer-events-none">
+ {/* Camada decorativa do banner, isolada com seu próprio
+     overflow-hidden — antes vivia no mesmo elemento que continha o
+     avatar, cortando efeitos de frame que se estendessem além do
+     círculo. */}
+ <div className={`absolute inset-0 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl ${getBannerClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`} />
+ <div className="absolute inset-0 rounded-3xl pointer-events-none">
  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-cyan-500/10 rounded-full blur-3xl" />
  <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-400/10 to-pink-500/10 rounded-full blur-3xl" />
  </div>
