@@ -19,26 +19,27 @@ export const banners = {
   // translúcidas flutuantes, e bordas com luz/sombra internas simulando
   // a superfície convexa de verdade.
   className: [
-    'relative overflow-hidden',
+    'relative overflow-hidden backdrop-blur-xl',
 
-    // Fundo — esfera de vidro dourada iluminada: ponto de luz creme
-    // brilhante no canto superior-esquerdo, desvanecendo por âmbar
-    // vibrante até um marrom profundo nas bordas. As primeiras três
-    // camadas são bolhas translúcidas (bokeh) espalhadas, empilhadas
-    // por cima do gradiente principal.
-    'bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.4)_0%,transparent_9%),radial-gradient(circle_at_70%_60%,rgba(255,250,205,0.22)_0%,transparent_7%),radial-gradient(circle_at_55%_88%,rgba(255,255,255,0.16)_0%,transparent_5%),radial-gradient(ellipse_at_35%_15%,#fef9c3_0%,#fbbf24_22%,#d97706_48%,#92400e_75%,#451a03_100%)]',
+    // Fundo — esfera de vidro DOURADO-AMARELADO iluminada (paleta
+    // deslocada de âmbar/laranja pra amarelo puro), e os stops do
+    // gradiente principal agora usam rgba com transparência real (em
+    // vez de hex sólido) — deixa o que está atrás se misturar, seguindo
+    // o mesmo conceito de vidro translúcido usado no resto do site, em
+    // vez de uma superfície opaca.
+    'bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.4)_0%,transparent_9%),radial-gradient(circle_at_70%_60%,rgba(255,250,205,0.2)_0%,transparent_7%),radial-gradient(circle_at_55%_88%,rgba(255,255,255,0.14)_0%,transparent_5%),radial-gradient(ellipse_at_35%_15%,rgba(254,249,195,0.9)_0%,rgba(250,204,21,0.8)_22%,rgba(202,138,4,0.72)_48%,rgba(133,77,14,0.65)_75%,rgba(66,32,6,0.55)_100%)]',
 
-    // Borda e sombra — luz clara no topo interno, sombra escura embaixo,
-    // simulando a convexidade real de uma superfície de vidro.
-    '!border-[3px] !border-amber-300/80',
-    'shadow-[0_0_40px_rgba(251,191,36,0.4),inset_0_2px_0_rgba(255,255,255,0.6),inset_0_-3px_6px_rgba(69,26,3,0.5)]',
+    // Borda e sombra — mais clara e translúcida (yellow em vez de
+    // amber), luz no topo interno, sombra suave embaixo.
+    '!border-[3px] !border-yellow-200/60',
+    'shadow-[0_0_35px_rgba(250,204,21,0.3),inset_0_2px_0_rgba(255,255,255,0.55),inset_0_-3px_6px_rgba(66,32,6,0.35)]',
 
     // O reflexo convexo icônico do Aero/Aqua — faixa clara cobrindo a
     // metade superior, com a borda inferior arredondada simulando o
     // brilho de uma cúpula de vidro (o elemento mais reconhecível
     // desse estilo visual).
     'before:absolute before:inset-x-0 before:top-0 before:h-[52%]',
-    'before:bg-gradient-to-b before:from-white/50 before:via-white/15 before:to-transparent',
+    'before:bg-gradient-to-b before:from-white/45 before:via-white/12 before:to-transparent',
     'before:rounded-b-[100%]',
     'before:pointer-events-none',
 
