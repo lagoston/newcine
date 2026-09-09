@@ -842,7 +842,10 @@
       "step2": "Analisa 10 das suas resenhas reais, escolhidas ao acaso",
       "step3": "Escreve uma resenha nova, no seu estilo e espírito cinematográfico",
       "dailyLimitReached": "Você já usou suas gerações de hoje.",
-      "limitReachedHint": "Volte amanhã para gerar uma nova resenha do Oráculo."
+      "limitReachedHint": "Volte amanhã para gerar uma nova resenha do Oráculo.",
+      "dailyLimitTitle": "Você já usou sua resenha do dia",
+      "dailyLimitHint": "O Oráculo escreve uma nova resenha (com direito a uma regeneração) a cada 24 horas.",
+      "nextGenerationIn": "Nova geração em"
     }
   }
 }
