@@ -29,6 +29,13 @@ interface MovieDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   isOtherUserProfile?: boolean;
+  // Sobrescreve o z-index padrão (z-[9999]) — necessário quando esse
+  // modal é aberto DE DENTRO de outro modal que já tem um z-index alto
+  // (como os modais de review, em z-[10000]), garantindo que este fique
+  // por cima do modal que o abriu, não escondido atrás dele. Nos
+  // chamadores que não passam essa prop, o comportamento é idêntico a
+  // antes.
+  zIndexClass?: string;
   // ID do dono do perfil sendo visitado — quando presente junto com
   // isOtherUserProfile, os episódios exibidos como assistidos são os
   // DELE, não os de quem está olhando, e os botões de marcação somem
@@ -51,6 +58,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   isOpen,
   onClose,
   isOtherUserProfile = false,
+  zIndexClass = 'z-[9999]',
   profileUserId,
   onAddToLibrary,
   onEpisodeToggle,
@@ -1180,7 +1188,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // "menor". É por isso que o bug só aparecia em certas páginas (as que
   // usam motion.div como wrapper raiz) e não em outras.
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4">
+    <div className={`fixed inset-0 ${zIndexClass} flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4`}>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
