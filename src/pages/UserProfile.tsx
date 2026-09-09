@@ -15,7 +15,7 @@ import UserPinsCard from '../components/UserPinsCard';
 import { toast } from 'sonner';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from '../components/GhostRiderFrame';
-import { getBannerClass } from '../lib/banners';
+import { getBannerClass, getBannerTextClass, getBannerSecondaryTextClass } from '../lib/banners';
 import UserListsModal from '../components/UserListsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import UserReviewsModal from '../components/UserReviewsModal';
@@ -415,7 +415,7 @@ export default function UserProfile() {
  <div className="flex-1 text-center sm:text-left">
  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
  <div className="flex items-center justify-center sm:justify-start gap-2">
- <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+ <h1 className={`text-2xl sm:text-3xl font-bold ${getBannerTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>
  @{profile.username}
  </h1>
  {(profile.is_premium ?? profile.plan_type === 'premium') && (
@@ -433,29 +433,29 @@ export default function UserProfile() {
  </div>
 
  {profile.bio && (
- <p className="text-gray-600 dark:text-gray-300 mb-4 max-w-2xl">
+ <p className={`mb-4 max-w-2xl ${getBannerSecondaryTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>
  {profile.bio}
  </p>
  )}
 
- <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm text-gray-600 dark:text-gray-400 mb-4">
+ <div className={`flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm mb-4 ${getBannerSecondaryTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>
  <button
  onClick={() => setShowFollowModal('followers')}
- className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
+ className="flex items-center hover:opacity-70 transition-opacity"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className="text-gray-900 dark:text-white">{followersCount}</strong>{' '}
+ <strong className={getBannerTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}>{followersCount}</strong>{' '}
  {t('profile.followersLabel')}
  </span>
  </button>
  <button
  onClick={() => setShowFollowModal('following')}
- className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
+ className="flex items-center hover:opacity-70 transition-opacity"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className="text-gray-900 dark:text-white">{followingCount}</strong>{' '}
+ <strong className={getBannerTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}>{followingCount}</strong>{' '}
  {t('profile.followingButton')}
  </span>
  </button>
