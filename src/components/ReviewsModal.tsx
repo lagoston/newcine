@@ -1,34 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Star, AlertTriangle, Eye, EyeOff, Loader2, Pencil, Trash2, ArrowUpDown } from 'lucide-react';
-import GlassLoader from './GlassLoader';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, AlertTriangle, Loader2, MessageSquare, Clock, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Movie } from '../lib/tmdb';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-
-interface Review {
-  id: string;
-  user_id: string;
-  movie_id: number;
-  media_type: string;
-  title: string;
-  content: string;
-  has_spoilers: boolean;
-  rating: number;
-  created_at: string;
-  updated_at: string;
-  profiles?: {
-    username: string;
-    avatar_url: string | null;
-  };
-}
+import ConfirmationModal from './ConfirmationModal';
+import ReviewCard, { Review } from './ReviewCard';
 
 interface ReviewsModalProps {
   movie: Movie;
   onClose: () => void;
   userRating: number | null;
 }
+
+type SortOrder = 'recent' | 'highest' | 'lowest';
 
 const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating }) => {
   const { session } = useAuth();
@@ -37,10 +25,9 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
   const [userReview, setUserReview] = useState<Review | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWriteForm, setShowWriteForm] = useState(false);
-  const [revealedSpoilers, setRevealedSpoilers] = useState<Set<string>>(new Set());
-  const [sortOrder, setSortOrder] = useState<'highest' | 'lowest' | 'recent'>('recent');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('recent');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Form state
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [hasSpoilers, setHasSpoilers] = useState(false);
@@ -49,23 +36,13 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
   const mediaType = movie.media_type || 'movie';
   const hasRating = userRating !== null;
 
-  useEffect(() => {
-    fetchReviews();
-  }, [movie.id]);
-
   const fetchReviews = async () => {
     try {
       setLoading(true);
 
       const { data, error } = await supabase
         .from('reviews')
-        .select(`
-          *,
-          profiles:user_id (
-            username,
-            avatar_url
-          )
-        `)
+        .select(`*, profiles:user_id ( username, avatar_url )`)
         .eq('movie_id', movie.id)
         .eq('media_type', mediaType)
         .order('created_at', { ascending: false });
@@ -73,8 +50,8 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
       if (error) throw error;
 
       const allReviews = data || [];
-      const currentUserReview = allReviews.find(r => r.user_id === session?.user?.id);
-      const otherReviews = allReviews.filter(r => r.user_id !== session?.user?.id);
+      const currentUserReview = allReviews.find((r) => r.user_id === session?.user?.id);
+      const otherReviews = allReviews.filter((r) => r.user_id !== session?.user?.id);
 
       setUserReview(currentUserReview || null);
       setReviews(otherReviews);
@@ -86,20 +63,30 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);
-      toast.error('Failed to load reviews');
+      toast.error(t('reviews.loadError'));
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchReviews();
+  }, [movie.id]);
+
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = originalOverflow; };
+  }, []);
+
   const handleSaveReview = async () => {
     if (!session?.user?.id) return;
     if (!title.trim() || !content.trim()) {
-      toast.error('Title and content are required');
+      toast.error(t('reviews.titleAndContentRequired'));
       return;
     }
     if (content.length > 1500) {
-      toast.error('Review content must be 1500 characters or less');
+      toast.error(t('reviews.charactersCount', { count: 1500 }));
       return;
     }
 
@@ -113,31 +100,24 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
         title: title.trim(),
         content: content.trim(),
         has_spoilers: hasSpoilers,
-        rating: userRating
+        rating: userRating,
       };
 
       if (userReview) {
-        const { error } = await supabase
-          .from('reviews')
-          .update(reviewData)
-          .eq('id', userReview.id);
-
+        const { error } = await supabase.from('reviews').update(reviewData).eq('id', userReview.id);
         if (error) throw error;
-        toast.success('Review updated successfully');
+        toast.success(t('reviews.updated'));
       } else {
-        const { error } = await supabase
-          .from('reviews')
-          .insert([reviewData]);
-
+        const { error } = await supabase.from('reviews').insert([reviewData]);
         if (error) throw error;
-        toast.success('Review published successfully');
+        toast.success(t('reviews.published'));
       }
 
       setShowWriteForm(false);
       await fetchReviews();
     } catch (error: any) {
       console.error('Error saving review:', error);
-      toast.error(error.message || 'Failed to save review');
+      toast.error(error.message || t('reviews.saveError'));
     } finally {
       setSaving(false);
     }
@@ -145,17 +125,12 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
 
   const handleDeleteReview = async () => {
     if (!userReview) return;
-    if (!confirm('Are you sure you want to delete your review?')) return;
 
     try {
-      const { error } = await supabase
-        .from('reviews')
-        .delete()
-        .eq('id', userReview.id);
-
+      const { error } = await supabase.from('reviews').delete().eq('id', userReview.id);
       if (error) throw error;
 
-      toast.success('Review deleted successfully');
+      toast.success(t('reviews.deleted'));
       setUserReview(null);
       setTitle('');
       setContent('');
@@ -163,321 +138,236 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
       await fetchReviews();
     } catch (error) {
       console.error('Error deleting review:', error);
-      toast.error('Failed to delete review');
+      toast.error(t('reviews.deleteError'));
+    } finally {
+      setShowDeleteConfirm(false);
     }
-  };
-
-  const toggleSpoiler = (reviewId: string) => {
-    setRevealedSpoilers(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(reviewId)) {
-        newSet.delete(reviewId);
-      } else {
-        newSet.add(reviewId);
-      }
-      return newSet;
-    });
   };
 
   const sortedReviews = useMemo(() => {
     const reviewsCopy = [...reviews];
-    if (sortOrder === 'highest') {
-      return reviewsCopy.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    } else if (sortOrder === 'lowest') {
-      return reviewsCopy.sort((a, b) => (a.rating || 0) - (b.rating || 0));
-    }
-    return reviewsCopy; // recent (already sorted by created_at desc)
+    if (sortOrder === 'highest') return reviewsCopy.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    if (sortOrder === 'lowest') return reviewsCopy.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+    return reviewsCopy;
   }, [reviews, sortOrder]);
 
-  const renderReview = (review: Review, isUserReview: boolean = false) => {
-    const isRevealed = revealedSpoilers.has(review.id);
-    const showSpoilerBlur = review.has_spoilers && !isRevealed;
-
-    return (
-      <div
-        key={review.id}
-        className={`bg-gray-50 dark:bg-gray-800 rounded-lg p-4 ${
-          isUserReview ? 'border-2 border-blue-500' : ''
-        }`}
-      >
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex items-center gap-2">
-            {review.profiles?.avatar_url ? (
-              <img
-                src={review.profiles.avatar_url}
-                alt={review.profiles.username}
-                className="w-8 h-8 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-                <span className="text-sm font-medium">
-                  {review.profiles?.username?.[0]?.toUpperCase()}
-                </span>
-              </div>
-            )}
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-medium text-gray-900 dark:text-white">
-                  {review.profiles?.username}
-                </p>
-                {isUserReview && (
-                  <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded">
-                    You
-                  </span>
-                )}
-                <div className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-0.5 rounded">
-                  <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                  <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-400">
-                    {review.rating}
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {new Date(review.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-          {isUserReview && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setShowWriteForm(true);
-                }}
-                className="p-1 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleDeleteReview}
-                className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
-
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-          {review.title}
-        </h3>
-
-        {review.has_spoilers && (
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-yellow-500" />
-            <span className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
-              Contains Spoilers
-            </span>
-          </div>
-        )}
-
-        <div className="relative">
-          <p
-            className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap ${
-              showSpoilerBlur ? 'blur-sm select-none' : ''
-            }`}
-          >
-            {review.content}
-          </p>
-          {showSpoilerBlur && (
-            <button
-              onClick={() => toggleSpoiler(review.id)}
-              className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors rounded"
-            >
-              <div className="flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-lg font-medium">
-                <Eye className="w-5 h-5" />
-                Click to Reveal Spoilers
-              </div>
-            </button>
-          )}
-          {!showSpoilerBlur && review.has_spoilers && (
-            <button
-              onClick={() => toggleSpoiler(review.id)}
-              className="mt-2 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <EyeOff className="w-4 h-4" />
-              Hide Spoilers
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
+  const sortOptions: { id: SortOrder; label: string; icon: React.ReactNode }[] = [
+    { id: 'recent', label: t('reviews.mostRecent'), icon: <Clock className="w-3.5 h-3.5" /> },
+    { id: 'highest', label: t('reviews.highestRating'), icon: <ArrowUp className="w-3.5 h-3.5" /> },
+    { id: 'lowest', label: t('reviews.lowestRating'), icon: <ArrowDown className="w-3.5 h-3.5" /> },
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Reviews
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {movie.title || movie.name}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {!hasRating && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-yellow-900 dark:text-yellow-200">
-                  Rate this {mediaType} to write a review
-                </p>
-                <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                  You need to rate this {mediaType} before you can write a review.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {hasRating && !showWriteForm && !userReview && (
-            <button
-              onClick={() => setShowWriteForm(true)}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 rounded-lg transition-colors"
+    <>
+      {createPortal(
+        <AnimatePresence>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={onClose}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-2xl max-h-[calc(100dvh-4rem)] flex flex-col rounded-3xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-2xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden"
             >
-              Write a Review
-            </button>
-          )}
+              <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-br from-blue-400/15 to-purple-500/15 rounded-full blur-3xl pointer-events-none" />
 
-          {hasRating && showWriteForm && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-4">
-              <h3 className="font-semibold text-gray-900 dark:text-white">
-                {userReview ? 'Edit Your Review' : 'Write Your Review'}
-              </h3>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Give your review a title"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  maxLength={100}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Your Review
-                </label>
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Share your thoughts..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
-                  rows={8}
-                  maxLength={1500}
-                />
-                <div className="flex justify-between items-center mt-1">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {content.length}/1500 characters
-                  </span>
+              <div className="relative flex-shrink-0 flex items-center justify-between p-5 sm:p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30">
+                      <MessageSquare className="w-5 h-5 text-blue-500" />
+                    </div>
+                    {t('reviews.title')}
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
+                    {movie.title || movie.name}
+                  </p>
                 </div>
-              </div>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={hasSpoilers}
-                  onChange={(e) => setHasSpoilers(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
-                  This review contains spoilers
-                </span>
-              </label>
-
-              <div className="flex gap-2">
                 <button
-                  onClick={handleSaveReview}
-                  disabled={saving || !title.trim() || !content.trim()}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  onClick={onClose}
+                  className="flex-shrink-0 p-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
-                  {saving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Review'
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowWriteForm(false);
-                    if (userReview) {
-                      setTitle(userReview.title);
-                      setContent(userReview.content);
-                      setHasSpoilers(userReview.has_spoilers);
-                    }
-                  }}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                  Cancel
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </div>
-          )}
 
-          {userReview && !showWriteForm && (
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
-                Your Review
-              </h3>
-              {renderReview(userReview, true)}
-            </div>
-          )}
+              <div className="relative flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+                {!hasRating && (
+                  <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-2xl p-4 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-yellow-700 dark:text-yellow-300">
+                        {t('reviews.rateToReview')}
+                      </p>
+                      <p className="text-sm text-yellow-600/80 dark:text-yellow-400/80 mt-1">
+                        {t('reviews.rateToReviewHint')}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <GlassLoader size="md" />
-            </div>
-          ) : reviews.length > 0 ? (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900 dark:text-white">
-                  Community Reviews ({reviews.length})
-                </h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Sort by:</span>
-                  <select
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as 'highest' | 'lowest' | 'recent')}
-                    className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {hasRating && !showWriteForm && !userReview && (
+                  <button
+                    onClick={() => setShowWriteForm(true)}
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 rounded-2xl transition-colors shadow-lg hover:shadow-xl"
                   >
-                    <option value="recent">Most Recent</option>
-                    <option value="highest">Highest Rating</option>
-                    <option value="lowest">Lowest Rating</option>
-                  </select>
-                </div>
+                    {t('reviews.writeReview')}
+                  </button>
+                )}
+
+                {hasRating && showWriteForm && (
+                  <div className="bg-gray-50/70 dark:bg-gray-900/40 rounded-2xl p-4 space-y-4 border border-gray-200/50 dark:border-gray-700/50">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                      {userReview ? t('reviews.editReview') : t('reviews.writeReview')}
+                    </h3>
+
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder={t('reviews.titlePlaceholder')}
+                      className="w-full px-3.5 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/60 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/50 backdrop-blur-sm"
+                      maxLength={100}
+                    />
+
+                    <div>
+                      <textarea
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        placeholder={t('reviews.contentPlaceholder')}
+                        className="w-full px-3.5 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/60 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/50 backdrop-blur-sm resize-none"
+                        rows={7}
+                        maxLength={1500}
+                      />
+                      <div className="flex justify-end mt-1">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          {t('reviews.charactersCount', { count: content.length })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={hasSpoilers}
+                        onChange={(e) => setHasSpoilers(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-400"
+                      />
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        {t('reviews.containsSpoilersCheckbox')}
+                      </span>
+                    </label>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveReview}
+                        disabled={saving || !title.trim() || !content.trim()}
+                        className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:opacity-60 text-white font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            {t('reviews.saving')}
+                          </>
+                        ) : (
+                          t('reviews.save')
+                        )}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowWriteForm(false);
+                          if (userReview) {
+                            setTitle(userReview.title);
+                            setContent(userReview.content);
+                            setHasSpoilers(userReview.has_spoilers);
+                          }
+                        }}
+                        className="px-4 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        {t('common.cancel')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {userReview && !showWriteForm && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+                      {t('reviews.yourReview')}
+                    </h3>
+                    <ReviewCard
+                      review={userReview}
+                      isOwnReview
+                      onEdit={() => setShowWriteForm(true)}
+                      onDelete={() => setShowDeleteConfirm(true)}
+                    />
+                  </div>
+                )}
+
+                {loading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
+                  </div>
+                ) : reviews.length > 0 ? (
+                  <div>
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                        {t('reviews.communityReviews')} ({reviews.length})
+                      </h3>
+                      <div className="flex gap-1.5">
+                        {sortOptions.map((opt) => (
+                          <button
+                            key={opt.id}
+                            onClick={() => setSortOrder(opt.id)}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                              sortOrder === opt.id
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600/60'
+                            }`}
+                          >
+                            {opt.icon}
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {sortedReviews.map((review) => (
+                        <ReviewCard key={review.id} review={review} />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  !userReview && (
+                    <div className="text-center py-12">
+                      <p className="text-gray-400 dark:text-gray-500">
+                        {t('reviews.noReviews')}
+                      </p>
+                    </div>
+                  )
+                )}
               </div>
-              <div className="space-y-4">
-                {sortedReviews.map(review => renderReview(review))}
-              </div>
-            </div>
-          ) : (
-            !userReview && (
-              <div className="text-center py-12">
-                <p className="text-gray-500 dark:text-gray-400">
-                  No reviews yet. Be the first to write one!
-                </p>
-              </div>
-            )
-          )}
-        </div>
-      </div>
-    </div>
+            </motion.div>
+          </div>
+        </AnimatePresence>,
+        document.body
+      )}
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteReview}
+        title={t('reviews.deleteConfirmTitle')}
+        message={t('reviews.deleteConfirmMessage')}
+      />
+    </>
   );
 };
 
