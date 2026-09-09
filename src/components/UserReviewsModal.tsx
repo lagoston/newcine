@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, MessageSquare, Clock, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
-import { getMoviesFromCache } from '../lib/tmdb';
+import { getMoviesFromCache, getMovieDetails, Movie } from '../lib/tmdb';
 import ReviewCard, { Review, ReviewMovieInfo } from './ReviewCard';
+import MovieDetailsModal from './MovieDetailsModal';
 
 interface ReviewWithMovie extends Review {
   movieData?: ReviewMovieInfo;
@@ -24,20 +25,31 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
   const [reviews, setReviews] = useState<ReviewWithMovie[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState<SortOrder>('recent');
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [loadingMovie, setLoadingMovie] = useState(false);
 
   const fetchUserReviews = async () => {
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      const [reviewsResult, profileResult] = await Promise.all([
+        supabase
+          .from('reviews')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false }),
+        // O avatar não vinha em lugar nenhum antes — cada review criada
+        // aqui nunca recebia review.profiles, que é o que o ReviewCard
+        // usa pra desenhar o avatar. Como é sempre o MESMO usuário pra
+        // todas as reviews desse modal, uma única busca resolve pra
+        // todas de uma vez.
+        supabase.from('profiles').select('avatar_url').eq('id', userId).maybeSingle(),
+      ]);
 
-      if (error) throw error;
+      if (reviewsResult.error) throw reviewsResult.error;
 
-      const reviewsData = data || [];
+      const reviewsData = reviewsResult.data || [];
+      const avatarUrl = profileResult.data?.avatar_url ?? null;
 
       // Antes buscava os dados de CADA filme numa consulta separada,
       // uma promise por review — com muitas reviews, disparava dezenas
@@ -50,6 +62,7 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
       const reviewsWithMovies: ReviewWithMovie[] = reviewsData.map((review) => ({
         ...review,
         movieData: moviesMap.get(review.movie_id),
+        profiles: { username, avatar_url: avatarUrl },
       }));
 
       setReviews(reviewsWithMovies);
@@ -57,6 +70,18 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
       console.error('Error fetching user reviews:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMovieClick = async (review: ReviewWithMovie) => {
+    try {
+      setLoadingMovie(true);
+      const details = await getMovieDetails(review.movie_id, (review.media_type as 'movie' | 'tv') || 'movie');
+      setSelectedMovie(details);
+    } catch (error) {
+      console.error('Error loading movie:', error);
+    } finally {
+      setLoadingMovie(false);
     }
   };
 
@@ -83,9 +108,11 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
     { id: 'lowest', label: t('reviews.lowestRating'), icon: <ArrowDown className="w-3.5 h-3.5" /> },
   ];
 
-  return createPortal(
-    <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+4rem)]">
+  return (
+    <>
+      {createPortal(
+        <AnimatePresence>
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+4rem)]">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -152,7 +179,12 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
                 </div>
                 <div className="space-y-3">
                   {sortedReviews.map((review) => (
-                    <ReviewCard key={review.id} review={review} movieInfo={review.movieData} />
+                    <ReviewCard
+                      key={review.id}
+                      review={review}
+                      movieInfo={review.movieData}
+                      onMovieClick={() => handleMovieClick(review)}
+                    />
                   ))}
                 </div>
               </div>
@@ -166,8 +198,18 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>,
-    document.body
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {selectedMovie && (
+        <MovieDetailsModal
+          movie={selectedMovie}
+          isOpen={true}
+          onClose={() => setSelectedMovie(null)}
+        />
+      )}
+    </>
   );
 };
 
