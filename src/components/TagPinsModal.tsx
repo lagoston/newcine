@@ -5,7 +5,9 @@ import { X, Sparkles, Loader2, Tag, Palette, Users, BrainCircuit, Lock, Check, C
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 import { getContinent } from '../lib/continents';
+import { syncUnlockedTagsAndNotify } from '../lib/tagNotifications';
 import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 
 interface TagPinsModalProps {
@@ -109,6 +111,7 @@ const formatTimeRemaining = (endsAt: string) => {
 // morava em CustomizeModal.tsx — movido pra cá pra não ficar redundante
 // entre os dois modais. O CustomizeModal manteve só avatar/banner/cards.
 const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, onSave }) => {
+  const { session } = useAuth();
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
   const [loading, setLoading] = useState(true);
@@ -366,6 +369,14 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       });
 
       setPins(unlockedPins);
+
+      // Só sincroniza/notifica quando é o PRÓPRIO usuário logado — por
+      // precaução, mesmo esse modal parecendo ser usado só assim hoje
+      // (não importa useAuth nem distingue "usuário logado" de
+      // "usuário sendo visto" em nenhum outro lugar do componente).
+      if (userId === session?.user?.id) {
+        syncUnlockedTagsAndNotify(userId, unlockedPins);
+      }
     } catch (error) {
       console.error('Error fetching tag pins data:', error);
     } finally {
