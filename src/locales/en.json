@@ -165,43 +165,43 @@
     }
   },
   "compatibility": {
-  "buttonLabel": "Compatibility",
-  "title": "Cinematic Compatibility",
-  "subtitle": "You and @{{username}}",
-  "notEnoughDataTitle": "Not enough data yet",
-  "notEnoughDataDescription": "You've both rated {{count}} movie(s) in common — need at least {{min}} to reveal a compatibility score.",
-  "moviesCompared": "{{count}} movies compared",
-  "mostAgree": "Where you agree most",
-  "mostDisagree": "Where you disagree most",
-  "tier": {
-    "soulmates": "Cinematic Soulmates",
-    "great": "Great Taste Match",
-    "good": "Good Compatibility",
-    "different": "Different Tastes, Same Passion",
-    "opposite": "Opposite Ends of the Spectrum"
-  }
-},
+    "buttonLabel": "Compatibility",
+    "title": "Cinematic Compatibility",
+    "subtitle": "You and @{{username}}",
+    "notEnoughDataTitle": "Not enough data yet",
+    "notEnoughDataDescription": "You've both rated {{count}} movie(s) in common — need at least {{min}} to reveal a compatibility score.",
+    "moviesCompared": "{{count}} movies compared",
+    "mostAgree": "Where you agree most",
+    "mostDisagree": "Where you disagree most",
+    "tier": {
+      "soulmates": "Cinematic Soulmates",
+      "great": "Great Taste Match",
+      "good": "Good Compatibility",
+      "different": "Different Tastes, Same Passion",
+      "opposite": "Opposite Ends of the Spectrum"
+    }
+  },
   "matchMovie": {
-  "buttonLabel": "Match Movie",
-  "chooseMoods": "Choose the moods",
-  "chooseFilter": "Choose the filter",
-  "title": "Match Movie",
-  "subtitle": "Find the perfect film for you and @{{username}}",
-  "modeUnseen": "Neither has seen",
-  "modeUnseenDesc": "Discover something brand new for both of you",
-  "modeOne": "Only one has seen",
-  "modeOneDesc": "Uses the real rating from whoever watched it",
-  "modeBoth": "All have seen",
-  "modeBothDesc": "See where your real ratings aligned most",
-  "findButton": "Find Our Match",
-  "searching": "Scanning the Oracle's pools...",
-  "perfectMatch": "Perfect Match",
-  "otherOptions": "Other good options",
-  "you": "You",
-  "predicted": "predicted",
-  "noMatchesFound": "No candidates found for this filter yet.",
-  "tryAgain": "Try a different filter"
-},
+    "buttonLabel": "Match Movie",
+    "chooseMoods": "Choose the moods",
+    "chooseFilter": "Choose the filter",
+    "title": "Match Movie",
+    "subtitle": "Find the perfect film for you and @{{username}}",
+    "modeUnseen": "Neither has seen",
+    "modeUnseenDesc": "Discover something brand new for both of you",
+    "modeOne": "Only one has seen",
+    "modeOneDesc": "Uses the real rating from whoever watched it",
+    "modeBoth": "All have seen",
+    "modeBothDesc": "See where your real ratings aligned most",
+    "findButton": "Find Our Match",
+    "searching": "Scanning the Oracle's pools...",
+    "perfectMatch": "Perfect Match",
+    "otherOptions": "Other good options",
+    "you": "You",
+    "predicted": "predicted",
+    "noMatchesFound": "No candidates found for this filter yet.",
+    "tryAgain": "Try a different filter"
+  },
   "library": {
     "title": "My Library",
     "filterByStreaming": "Filter by streaming",
@@ -268,9 +268,9 @@
   },
   "indications": {
     "indicate": "Indicate",
-    "loadError": "Error loading whispers.",
-    "deleted": "Whisper deleted.",
-    "deleteError": "Error deleting whisper.",
+    "loadError": "Error loading indications",
+    "deleted": "Indication deleted successfully",
+    "deleteError": "Error deleting indication",
     "empty": "No whispers yet",
     "emptyHint": "Recommendations, new followers, and new episodes of shows you follow will appear here.",
     "startedFollowing": "started following you",
@@ -293,10 +293,7 @@
     "noFollowers": "You don't have any followers yet",
     "dailyLimit": "You've reached your daily limit of {{limit}} indications. Try again tomorrow!",
     "premiumDailyLimit": "You've reached the daily limit of {{limit}} indications for Premium users. Try again tomorrow!",
-    "upgradeToPremium": "Upgrade to Premium and send up to 20 indications per day!",
-    "deleted": "Indication deleted successfully",
-    "deleteError": "Error deleting indication",
-    "loadError": "Error loading indications"
+    "upgradeToPremium": "Upgrade to Premium and send up to 20 indications per day!"
   },
   "whispers": {
     "title": "Whispers",
@@ -738,19 +735,19 @@
     "clickForDetails": "Click for details"
   },
   "watchlistDuel": {
-  "title": "Watchlist Duel",
-  "description": "Pick a friend — 4 movies from your watchlist face 4 from theirs. No tickets required.",
-  "noEligibleFriends": "None of your friends have at least 4 movies in their watchlist yet.",
-  "moviesInWatchlist": "{{count}} movies in watchlist",
-  "startButton": "Start the Duel",
-  "assembling": "Assembling your watchlists...",
-  "yourList": "Your list"
-},
+    "title": "Watchlist Duel",
+    "description": "Pick a friend — 4 movies from your watchlist face 4 from theirs. No tickets required.",
+    "noEligibleFriends": "None of your friends have at least 4 movies in their watchlist yet.",
+    "moviesInWatchlist": "{{count}} movies in watchlist",
+    "startButton": "Start the Duel",
+    "assembling": "Assembling your watchlists...",
+    "yourList": "Your list"
+  },
   "customize": {
     "title": "Customize Profile",
     "frames": {
-  "changePhotoHint": "Want to change your photo? You can do that from your Profile page."
-},
+      "changePhotoHint": "Want to change your photo? You can do that from your Profile page."
+    },
     "tabs": {
       "avatars": "Avatars",
       "banners": "Banners",
@@ -789,5 +786,43 @@
     "bannerUpdated": "Banner updated successfully",
     "cardUpdated": "Card style updated successfully",
     "updateError": "Failed to update"
+  },
+  "reviews": {
+    "title": "Reviews",
+    "writeReview": "Write a Review",
+    "editReview": "Edit Your Review",
+    "yourReview": "Your Review",
+    "titlePlaceholder": "Give your review a title",
+    "contentPlaceholder": "Share your thoughts...",
+    "charactersCount": "{{count}}/1500 characters",
+    "containsSpoilersCheckbox": "This review contains spoilers",
+    "hasSpoilers": "Contains Spoilers",
+    "clickToReveal": "Tap to Reveal Spoilers",
+    "hideSpoilers": "Hide Spoilers",
+    "save": "Publish Review",
+    "saving": "Saving...",
+    "rateToReview": "Rate it to write a review",
+    "rateToReviewHint": "You need to rate this before you can write a review.",
+    "communityReviews": "Community Reviews",
+    "sortBy": "Sort by",
+    "mostRecent": "Most Recent",
+    "highestRating": "Highest Rating",
+    "lowestRating": "Lowest Rating",
+    "noReviews": "No reviews yet. Be the first to write one!",
+    "deleteConfirmTitle": "Delete Review",
+    "deleteConfirmMessage": "Are you sure you want to delete your review? This action cannot be undone.",
+    "deleted": "Review deleted.",
+    "deleteError": "Error deleting review.",
+    "published": "Review published successfully.",
+    "updated": "Review updated successfully.",
+    "loadError": "Error loading reviews.",
+    "saveError": "Error saving review.",
+    "titleAndContentRequired": "Title and content are required.",
+    "allReviews": "All Reviews",
+    "userHasNoReviews": "{{username}} hasn't written any reviews yet.",
+    "reviewCount_one": "{{count}} review",
+    "reviewCount_other": "{{count}} reviews",
+    "aiGenerated": "Generated by the Oracle",
+    "you": "You"
   }
 }
