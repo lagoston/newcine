@@ -239,7 +239,7 @@ export const ORACLE_TAGS: OracleTag[] = [
 
   { id: 'from-beyond', name: 'From Beyond', emoji: '✉️', requirement: 'Post 1 Oracle review', requirementPt: 'Poste 1 resenha do Oráculo', condition: { type: 'ai_review_count', count: 1 } },
   { id: 'non-reflective', name: 'Ghost Writer', emoji: '👻', requirement: 'Post 10 Oracle reviews', requirementPt: 'Poste 10 resenhas do Oráculo', condition: { type: 'ai_review_count', count: 10 } },
-  { id: 'third-eye-open', name: 'Third Eye Open', emoji: '🧿', requirement: 'Post 50 Oracle reviews', requirementPt: 'Poste 50 resenhas do Oráculo', condition: { type: 'ai_review_count', count: 50 } },
+  { id: 'third-eye-open', name: 'Third Eye Open', emoji: '👁️', requirement: 'Post 50 Oracle reviews', requirementPt: 'Poste 50 resenhas do Oráculo', condition: { type: 'ai_review_count', count: 50 } },
 ];
 
 export const COMMUNITY_TAGS: CommunityTag[] = [
