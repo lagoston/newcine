@@ -21,7 +21,7 @@ import PersonaShareModal from '../components/PersonaShareModal';
 import { toast } from 'sonner';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from '../components/GhostRiderFrame';
-import { getBannerClass } from '../lib/banners';
+import { getBannerClass, getBannerTextClass, getBannerSecondaryTextClass } from '../lib/banners';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
@@ -775,7 +775,7 @@ export default function Profile() {
  placeholder="Username"
  />
  ) : (
- <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+ <h1 className={`text-2xl sm:text-3xl font-bold ${getBannerTextClass(profile?.banner, isPremium)}`}>
  @{username}
  </h1>
  )}
@@ -803,29 +803,29 @@ export default function Profile() {
  placeholder="Write something about yourself..."
  />
  ) : bio ? (
- <p className="text-gray-600 dark:text-gray-300 mb-4 max-w-2xl">
+ <p className={`mb-4 max-w-2xl ${getBannerSecondaryTextClass(profile?.banner, isPremium)}`}>
  {bio}
  </p>
  ) : null}
 
- <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm text-gray-600 dark:text-gray-400 mb-4">
+ <div className={`flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm mb-4 ${getBannerSecondaryTextClass(profile?.banner, isPremium)}`}>
  <button
  onClick={() => setShowFollowModal('followers')}
- className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
+ className="flex items-center hover:opacity-70 transition-opacity"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className="text-gray-900 dark:text-white">{followersCount}</strong>{' '}
+ <strong className={getBannerTextClass(profile?.banner, isPremium)}>{followersCount}</strong>{' '}
  {t('profile.followersLabel')}
  </span>
  </button>
  <button
  onClick={() => setShowFollowModal('following')}
- className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
+ className="flex items-center hover:opacity-70 transition-opacity"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className="text-gray-900 dark:text-white">{followingCount}</strong>{' '}
+ <strong className={getBannerTextClass(profile?.banner, isPremium)}>{followingCount}</strong>{' '}
  {t('profile.followingButton')}
  </span>
  </button>
