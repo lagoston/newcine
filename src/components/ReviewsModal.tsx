@@ -103,6 +103,14 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
         content: content.trim(),
         has_spoilers: hasSpoilers,
         rating: userRating,
+        // Qualquer edição manual — mesmo que a review tenha nascido do
+        // Oráculo — deixa de ser puramente gerada pela IA, já que o
+        // usuário agora participou do texto. O selo "Gerado pelo
+        // Oráculo" só faz sentido pro texto exato que saiu da geração;
+        // uma vez editado, vira uma review normal do usuário. Pra
+        // reviews que já eram normais (is_ai_generated já false), isso
+        // não muda nada.
+        is_ai_generated: false,
       };
 
       if (userReview) {
