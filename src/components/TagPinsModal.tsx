@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Loader2, Tag, Palette, Users, BrainCircuit, Lock, Check, Clock } from 'lucide-react';
+import { X, Sparkles, Loader2, Tag, Palette, Users, Lock, Check, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { getContinent } from '../lib/continents';
-import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
+import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 
 interface TagPinsModalProps {
   isOpen: boolean;
@@ -15,12 +15,12 @@ interface TagPinsModalProps {
   onSave?: () => void;
 }
 
-type ViewMode = 'pins' | 'basic' | 'theme' | 'community' | 'oracle' | 'special';
+type ViewMode = 'pins' | 'basic' | 'theme' | 'community' | 'special';
 
 interface UnlockedPin {
   emoji: string;
   name: string;
-  category: 'basic' | 'theme' | 'community' | 'oracle' | 'special';
+  category: 'basic' | 'theme' | 'community' | 'special';
 }
 
 interface SpecialTag {
@@ -52,8 +52,6 @@ const getTagColorClasses = (category: string) => {
       return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
     case 'community':
       return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-    case 'oracle':
-      return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400';
     case 'special':
       return 'bg-black dark:bg-black text-white dark:text-gray-100';
     default:
@@ -75,10 +73,6 @@ const getCategoryButtonStyle = (isActive: boolean, category: string) => {
       return isActive
         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
         : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600';
-    case 'oracle':
-      return isActive
-        ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'
-        : 'bg-pink-600 text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600';
     case 'special':
       return isActive
         ? 'bg-black text-white dark:bg-gray-800 dark:text-gray-100'
@@ -119,7 +113,6 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
   const [followersCount, setFollowersCount] = useState(0);
   const [basicTagProgress, setBasicTagProgress] = useState<Record<string, number>>({});
   const [themeTagProgress, setThemeTagProgress] = useState<Record<string, number>>({});
-  const [oracleTagProgress, setOracleTagProgress] = useState<Record<string, number>>({});
   const [specialTags, setSpecialTags] = useState<SpecialTag[]>([]);
   const [activeTag, setActiveTag] = useState<ActiveTag | null>(null);
   const [pins, setPins] = useState<UnlockedPin[]>([]);
@@ -228,7 +221,6 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
           themeProgress[tag.id] = watchedCount;
         }
       });
-      setThemeTagProgress(themeProgress);
 
       const { count: followers } = await supabase
         .from('follows')
@@ -238,17 +230,74 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
 
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('oracle_predictions_count, oracle_recommendations_count, active_tag')
+        .select('active_tag')
         .eq('id', userId)
         .single();
 
-      const oracleProgress: Record<string, number> = {};
-      const predictionsCount = profileData?.oracle_predictions_count || 0;
-      const recommendationsCount = profileData?.oracle_recommendations_count || 0;
-      ORACLE_TAGS.forEach((tag) => {
-        oracleProgress[tag.name] = tag.type === 'prediction' ? predictionsCount : recommendationsCount;
+      // curated_pool — soma os movie_ids de TODOS os moods de cada
+      // card_type (recommendation_pools guarda um pool por mood, não um
+      // pool único por oráculo). Une os IDs num Set por card_type antes
+      // de contar, pra não contar o mesmo filme mais de uma vez caso
+      // apareça em vários moods do mesmo oráculo.
+      const { data: poolRows } = await supabase
+        .from('recommendation_pools')
+        .select('card_type, movie_ids');
+
+      const poolIdsByType: Record<string, Set<number>> = {};
+      (poolRows || []).forEach((row: any) => {
+        if (!poolIdsByType[row.card_type]) poolIdsByType[row.card_type] = new Set();
+        (row.movie_ids || []).forEach((id: number) => poolIdsByType[row.card_type].add(id));
       });
-      setOracleTagProgress(oracleProgress);
+      const curatedProgress: Record<string, number> = {};
+      Object.keys(poolIdsByType).forEach((cardType) => {
+        curatedProgress[cardType] = [...poolIdsByType[cardType]].filter((id) => ratedMovieIds.has(id)).length;
+      });
+
+      // review_count / ai_review_count — reais vs. geradas pelo
+      // Oráculo, contadas separadamente.
+      const [{ count: realReviewCount }, { count: aiReviewCount }] = await Promise.all([
+        supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_ai_generated', false),
+        supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_ai_generated', true),
+      ]);
+      basicProgress['Scribbler'] = realReviewCount || 0;
+      basicProgress['Screenwriter'] = realReviewCount || 0;
+      basicProgress['Memoirist'] = realReviewCount || 0;
+
+      // completed_series — pelo menos uma série na biblioteca que já
+      // terminou (não está mais no ar) E tem 100% dos episódios já
+      // lançados assistidos. Reaproveita a mesma RPC que já calcula
+      // isso pra barra de progresso na Biblioteca.
+      const { data: userMoviesForTv } = await supabase
+        .from('user_movies')
+        .select('movie_id, media_type')
+        .eq('user_id', userId)
+        .not('rating', 'is', null);
+      const tvIds = (userMoviesForTv || []).filter((m: any) => m.media_type === 'tv').map((m: any) => m.movie_id);
+
+      let hasCompletedSeries = false;
+      if (tvIds.length > 0) {
+        const [{ data: progressRows }, { data: tvCacheRows }] = await Promise.all([
+          supabase.rpc('get_tv_progress_batch', { p_user_id: userId, p_tmdb_ids: tvIds }),
+          supabase.from('movie_cache').select('tmdb_id, status').eq('media_type', 'tv').in('tmdb_id', tvIds),
+        ]);
+        const statusMap = new Map((tvCacheRows || []).map((r: any) => [r.tmdb_id, r.status]));
+        hasCompletedSeries = (progressRows || []).some((p: any) => {
+          const status = statusMap.get(p.tmdb_id);
+          const isFinished = status === 'Ended' || status === 'Canceled';
+          return isFinished && p.aired_count > 0 && p.watched_count >= p.aired_count;
+        });
+      }
+      basicProgress['Sofa Sleeper'] = hasCompletedSeries ? 1 : 0;
+      setBasicTagProgress(basicProgress);
+
+      THEME_TAGS.forEach((tag) => {
+        if (tag.condition.type === 'curated_pool' && typeof tag.condition.value === 'string') {
+          themeProgress[tag.id] = curatedProgress[tag.condition.value] || 0;
+        } else if (tag.condition.type === 'ai_review_count') {
+          themeProgress[tag.id] = aiReviewCount || 0;
+        }
+      });
+      setThemeTagProgress(themeProgress);
 
       if (profileData?.active_tag) {
         setActiveTag(profileData.active_tag as ActiveTag);
@@ -298,10 +347,6 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       COMMUNITY_TAGS.forEach((tag) => {
         if ((followers || 0) >= tag.minFollowers) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'community' });
       });
-      ORACLE_TAGS.forEach((tag) => {
-        const count = tag.type === 'prediction' ? predictionsCount : recommendationsCount;
-        if (count >= tag.minCount) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'oracle' });
-      });
       specialTagsWithStatus.forEach((tag) => {
         if (tag.is_unlocked) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'special' });
       });
@@ -349,7 +394,6 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
     { id: 'basic', label: t('customize.categories.basic'), icon: Tag },
     { id: 'theme', label: t('customize.categories.theme'), icon: Palette },
     { id: 'community', label: t('customize.categories.community'), icon: Users },
-    { id: 'oracle', label: t('customize.categories.oracle'), icon: BrainCircuit },
     { id: 'special', label: t('customize.categories.special'), icon: Sparkles }
   ];
 
@@ -582,78 +626,6 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${isUnlocked ? 'bg-gradient-to-r from-blue-400 to-cyan-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                         style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-
-      case 'oracle':
-        return (
-          <div className="space-y-6">
-            <div className="text-sm text-gray-500 dark:text-gray-400 mb-4 space-y-1">
-              <div>{t('customize.progress.predictions')}: {oracleTagProgress['Curious Seeker'] || 0}</div>
-              <div>{t('customize.progress.recommendations')}: {oracleTagProgress['Popcorn Taster'] || 0}</div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {ORACLE_TAGS.map((tag) => {
-                const progress = oracleTagProgress[tag.name] || 0;
-                const isUnlocked = progress >= tag.minCount;
-                const progressPercentage = tag.maxCount
-                  ? Math.min(100, (progress - tag.minCount) / (tag.maxCount - tag.minCount) * 100)
-                  : progress >= tag.minCount ? 100 : (progress / tag.minCount) * 100;
-                const isActive = activeTag?.name === tag.name;
-
-                return (
-                  <div
-                    key={tag.name}
-                    className={`relative rounded-2xl border ${
-                      isUnlocked
-                        ? 'border-pink-300/50 dark:border-pink-700/50 bg-pink-50/50 dark:bg-pink-900/20'
-                        : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
-                    } p-4 transition-all duration-200`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{tag.emoji}</span>
-                          <span className={`text-sm font-medium ${isUnlocked ? 'text-pink-700 dark:text-pink-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                            {tag.name}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                          {isPt ? tag.descriptionPt : tag.description}
-                        </p>
-                        <div className="mt-2 text-sm">
-                          <span className={isUnlocked ? 'text-pink-600 dark:text-pink-400' : 'text-gray-500 dark:text-gray-400'}>{progress}</span>
-                          <span className="text-gray-400 dark:text-gray-500">/{tag.maxCount || tag.minCount}+</span>
-                        </div>
-                      </div>
-                      {!isUnlocked ? (
-                        <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                      ) : (
-                        <button
-                          onClick={() => handleUseTag(tag, 'oracle')}
-                          disabled={savingTag}
-                          className={`px-3 py-1 text-sm rounded-lg transition-colors ${getCategoryButtonStyle(isActive, 'oracle')}`}
-                        >
-                          {isActive ? (
-                            <span className="flex items-center"><Check className="w-4 h-4 mr-1" />{t('customize.tags.active')}</span>
-                          ) : savingTag ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            t('customize.tags.use')
-                          )}
-                        </button>
-                      )}
-                    </div>
-                    <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${isUnlocked ? 'bg-gradient-to-r from-pink-400 to-rose-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-                        style={{ width: `${progressPercentage}%` }}
                       />
                     </div>
                   </div>
