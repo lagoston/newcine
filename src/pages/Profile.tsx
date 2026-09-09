@@ -703,8 +703,17 @@ export default function Profile() {
  return (
  <div className="min-h-[calc(100vh-4rem)] py-8 px-4 relative overflow-hidden">
  <div className="container mx-auto max-w-5xl relative z-10 space-y-6">
- <div className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl ${getBannerClass(profile?.banner, isPremium)}`}>
- <div className="absolute inset-0 pointer-events-none">
+ <div className="relative rounded-3xl border border-white/60 dark:border-gray-700/60 shadow-2xl">
+ {/* Camada decorativa do banner, isolada numa div própria com
+     overflow-hidden — antes, esse overflow-hidden (parte da própria
+     definição de cada banner em lib/banners.ts) vivia no MESMO
+     elemento que continha o avatar, cortando qualquer efeito de frame
+     que se estendesse além do círculo (o fogo do Ghost Rider, por
+     exemplo). Faz sentido o padrão do banner ficar contido dentro do
+     retângulo arredondado — mas o avatar e seus efeitos não deveriam
+     estar sujeitos a essa mesma restrição. */}
+ <div className={`absolute inset-0 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl ${getBannerClass(profile?.banner, isPremium)}`} />
+ <div className="absolute inset-0 rounded-3xl pointer-events-none">
  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-cyan-500/10 rounded-full blur-3xl" />
  <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-400/10 to-pink-500/10 rounded-full blur-3xl" />
  </div>
