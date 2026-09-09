@@ -1,33 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Star, AlertTriangle, Eye, EyeOff, Loader2, Film } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Loader2, MessageSquare, Clock, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
-import { getMovieDetailsFromDB } from '../lib/tmdb';
-
-interface Review {
-  id: string;
-  user_id: string;
-  movie_id: number;
-  media_type: string;
-  title: string;
-  content: string;
-  has_spoilers: boolean;
-  rating: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface MovieData {
-  id: number;
-  title?: string;
-  name?: string;
-  poster_path: string | null;
-  release_date?: string;
-  first_air_date?: string;
-}
+import { getMoviesFromCache } from '../lib/tmdb';
+import ReviewCard, { Review, ReviewMovieInfo } from './ReviewCard';
 
 interface ReviewWithMovie extends Review {
-  movieData?: MovieData;
+  movieData?: ReviewMovieInfo;
 }
 
 interface UserReviewsModalProps {
@@ -36,16 +17,13 @@ interface UserReviewsModalProps {
   onClose: () => void;
 }
 
+type SortOrder = 'recent' | 'highest' | 'lowest';
+
 const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, onClose }) => {
   const { t } = useTranslation();
   const [reviews, setReviews] = useState<ReviewWithMovie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [revealedSpoilers, setRevealedSpoilers] = useState<Set<string>>(new Set());
-  const [sortOrder, setSortOrder] = useState<'highest' | 'lowest' | 'recent'>('recent');
-
-  useEffect(() => {
-    fetchUserReviews();
-  }, [userId]);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('recent');
 
   const fetchUserReviews = async () => {
     try {
@@ -59,17 +37,20 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
 
       if (error) throw error;
 
-      const reviewsWithMovies = await Promise.all(
-        (data || []).map(async (review) => {
-          try {
-            const movieData = await getMovieDetailsFromDB(review.movie_id);
-            return { ...review, movieData };
-          } catch (err) {
-            console.error(`Failed to fetch movie ${review.movie_id}:`, err);
-            return { ...review, movieData: undefined };
-          }
-        })
-      );
+      const reviewsData = data || [];
+
+      // Antes buscava os dados de CADA filme numa consulta separada,
+      // uma promise por review — com muitas reviews, disparava dezenas
+      // de requisições onde uma só bastaria. getMoviesFromCache já
+      // existe pronta pra isso: busca todos os IDs de uma vez, num
+      // único round-trip ao banco.
+      const movieIds = [...new Set(reviewsData.map((r) => r.movie_id))];
+      const moviesMap = movieIds.length > 0 ? await getMoviesFromCache(movieIds) : new Map();
+
+      const reviewsWithMovies: ReviewWithMovie[] = reviewsData.map((review) => ({
+        ...review,
+        movieData: moviesMap.get(review.movie_id),
+      }));
 
       setReviews(reviewsWithMovies);
     } catch (error) {
@@ -79,178 +60,114 @@ const UserReviewsModal: React.FC<UserReviewsModalProps> = ({ userId, username, o
     }
   };
 
-  const toggleSpoiler = (reviewId: string) => {
-    setRevealedSpoilers(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(reviewId)) {
-        newSet.delete(reviewId);
-      } else {
-        newSet.add(reviewId);
-      }
-      return newSet;
-    });
-  };
+  useEffect(() => {
+    fetchUserReviews();
+  }, [userId]);
+
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = originalOverflow; };
+  }, []);
 
   const sortedReviews = useMemo(() => {
     const reviewsCopy = [...reviews];
-    if (sortOrder === 'highest') {
-      return reviewsCopy.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    } else if (sortOrder === 'lowest') {
-      return reviewsCopy.sort((a, b) => (a.rating || 0) - (b.rating || 0));
-    }
+    if (sortOrder === 'highest') return reviewsCopy.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    if (sortOrder === 'lowest') return reviewsCopy.sort((a, b) => (a.rating || 0) - (b.rating || 0));
     return reviewsCopy;
   }, [reviews, sortOrder]);
 
-  const renderReview = (review: ReviewWithMovie) => {
-    const isRevealed = revealedSpoilers.has(review.id);
-    const showSpoilerBlur = review.has_spoilers && !isRevealed;
-    const movieTitle = review.movieData?.title || review.movieData?.name || 'Unknown';
-    const year = review.movieData?.release_date || review.movieData?.first_air_date;
-    const yearDisplay = year ? new Date(year).getFullYear() : '';
+  const sortOptions: { id: SortOrder; label: string; icon: React.ReactNode }[] = [
+    { id: 'recent', label: t('reviews.mostRecent'), icon: <Clock className="w-3.5 h-3.5" /> },
+    { id: 'highest', label: t('reviews.highestRating'), icon: <ArrowUp className="w-3.5 h-3.5" /> },
+    { id: 'lowest', label: t('reviews.lowestRating'), icon: <ArrowDown className="w-3.5 h-3.5" /> },
+  ];
 
-    return (
-      <div
-        key={review.id}
-        className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4"
-      >
-        <div className="flex gap-4 mb-3">
-          {review.movieData?.poster_path ? (
-            <img
-              src={`https://image.tmdb.org/t/p/w92${review.movieData.poster_path}`}
-              alt={movieTitle}
-              className="w-16 h-24 rounded object-cover flex-shrink-0"
-            />
-          ) : (
-            <div className="w-16 h-24 rounded bg-gray-300 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-              <Film className="w-8 h-8 text-gray-500" />
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-gray-900 dark:text-white truncate">
-                  {movieTitle} {yearDisplay && `(${yearDisplay})`}
-                </h4>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-0.5 rounded">
-                    <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                    <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-400">
-                      {review.rating}
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(review.created_at).toLocaleDateString()}
-                  </span>
+  return createPortal(
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+4rem)]">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.2 }}
+          className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-3xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-2xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-br from-blue-400/15 to-purple-500/15 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative flex-shrink-0 flex items-center justify-between p-5 sm:p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30">
+                  <MessageSquare className="w-5 h-5 text-blue-500" />
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-          {review.title}
-        </h3>
-
-        {review.has_spoilers && (
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-yellow-500" />
-            <span className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
-              Contains Spoilers
-            </span>
-          </div>
-        )}
-
-        <div className="relative">
-          <p
-            className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap ${
-              showSpoilerBlur ? 'blur-sm select-none' : ''
-            }`}
-          >
-            {review.content}
-          </p>
-          {showSpoilerBlur && (
-            <button
-              onClick={() => toggleSpoiler(review.id)}
-              className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors rounded"
-            >
-              <div className="flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-lg font-medium">
-                <Eye className="w-5 h-5" />
-                Click to Reveal Spoilers
-              </div>
-            </button>
-          )}
-          {!showSpoilerBlur && review.has_spoilers && (
-            <button
-              onClick={() => toggleSpoiler(review.id)}
-              className="mt-2 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <EyeOff className="w-4 h-4" />
-              Hide Spoilers
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 pt-[calc(env(safe-area-inset-top)+4rem)]">
-      <div className="bg-white dark:bg-gray-900 rounded-xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {username}'s Reviews
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-            </div>
-          ) : reviews.length > 0 ? (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white">
-                  All Reviews
-                </h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Sort by:</span>
-                  <select
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as 'highest' | 'lowest' | 'recent')}
-                    className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="recent">Most Recent</option>
-                    <option value="highest">Highest Rating</option>
-                    <option value="lowest">Lowest Rating</option>
-                  </select>
-                </div>
-              </div>
-              <div className="space-y-4">
-                {sortedReviews.map(review => renderReview(review))}
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400">
-                {username} hasn't written any reviews yet.
+                <span className="truncate">{username}</span>
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {t('reviews.reviewCount', { count: reviews.length })}
               </p>
             </div>
-          )}
-        </div>
+            <button
+              onClick={onClose}
+              className="flex-shrink-0 p-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="relative flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
+              </div>
+            ) : reviews.length > 0 ? (
+              <div>
+                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                    {t('reviews.allReviews')}
+                  </h3>
+                  <div className="flex gap-1.5">
+                    {sortOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setSortOrder(opt.id)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          sortOrder === opt.id
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600/60'
+                        }`}
+                      >
+                        {opt.icon}
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {sortedReviews.map((review) => (
+                    <ReviewCard key={review.id} review={review} movieInfo={review.movieData} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-400 dark:text-gray-500">
+                  {t('reviews.userHasNoReviews', { username })}
+                </p>
+              </div>
+            )}
+          </div>
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>,
+    document.body
   );
 };
 
