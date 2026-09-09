@@ -49,6 +49,8 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
   const [exampleIndex, setExampleIndex] = useState(0);
   const [generatedTitle, setGeneratedTitle] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
+  const [generationsUsedToday, setGenerationsUsedToday] = useState(0);
+  const GENERATIONS_LIMIT = 2;
 
   const mediaType = movie.media_type || 'movie';
   const movieTitle = movie.title || movie.name || '';
@@ -121,6 +123,10 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
         else if (data.error === 'not_enough_reviews') {
           setReviewCount(data.reviewCount || 0);
           setStep('locked_reviews');
+        } else if (data.error === 'daily_limit_reached') {
+          toast.error(t('reviews.oracle.dailyLimitReached'));
+          setGenerationsUsedToday(GENERATIONS_LIMIT);
+          setStep(generatedTitle ? 'generated' : 'idle');
         } else {
           throw new Error(data.error);
         }
@@ -129,6 +135,7 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
 
       setGeneratedTitle(data.title);
       setGeneratedContent(data.content);
+      setGenerationsUsedToday(data.generationsUsedToday || 0);
       setStep('generated');
     } catch (error) {
       console.error('Error generating oracle review:', error);
@@ -279,15 +286,22 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
               {step === 'posting' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               {t('reviews.oracle.postButton')}
             </button>
-            <button
-              onClick={handleGenerate}
-              disabled={step === 'posting'}
-              className="px-4 py-2.5 border border-pink-300 dark:border-pink-500/40 text-pink-600 dark:text-pink-400 rounded-xl hover:bg-pink-500/10 transition-colors flex items-center gap-2 disabled:opacity-60"
-            >
-              <RefreshCw className="w-4 h-4" />
-              {t('reviews.oracle.regenerateButton')}
-            </button>
+            {generationsUsedToday < GENERATIONS_LIMIT && (
+              <button
+                onClick={handleGenerate}
+                disabled={step === 'posting'}
+                className="px-4 py-2.5 border border-pink-300 dark:border-pink-500/40 text-pink-600 dark:text-pink-400 rounded-xl hover:bg-pink-500/10 transition-colors flex items-center gap-2 disabled:opacity-60"
+              >
+                <RefreshCw className="w-4 h-4" />
+                {t('reviews.oracle.regenerateButton')}
+              </button>
+            )}
           </div>
+          {generationsUsedToday >= GENERATIONS_LIMIT && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              {t('reviews.oracle.limitReachedHint')}
+            </p>
+          )}
         </div>
       )}
 
