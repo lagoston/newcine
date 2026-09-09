@@ -15,7 +15,7 @@ import UserPinsCard from '../components/UserPinsCard';
 import { toast } from 'sonner';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from '../components/GhostRiderFrame';
-import { getBannerClass, getBannerTextClass, getBannerSecondaryTextClass } from '../lib/banners';
+import { getBannerClass } from '../lib/banners';
 import UserListsModal from '../components/UserListsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import UserReviewsModal from '../components/UserReviewsModal';
@@ -382,17 +382,12 @@ export default function UserProfile() {
  </motion.button>
 
  <motion.div
- className="relative rounded-3xl border border-white/60 dark:border-gray-700/60 shadow-2xl"
+ className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden ${getBannerClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: 0.1 }}
  >
- {/* Camada decorativa do banner, isolada com seu próprio
-     overflow-hidden — antes vivia no mesmo elemento que continha o
-     avatar, cortando efeitos de frame que se estendessem além do
-     círculo. */}
- <div className={`absolute inset-0 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl ${getBannerClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`} />
- <div className="absolute inset-0 rounded-3xl pointer-events-none">
+ <div className="absolute inset-0 pointer-events-none">
  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-cyan-500/10 rounded-full blur-3xl" />
  <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-400/10 to-pink-500/10 rounded-full blur-3xl" />
  </div>
@@ -420,7 +415,7 @@ export default function UserProfile() {
  <div className="flex-1 text-center sm:text-left">
  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
  <div className="flex items-center justify-center sm:justify-start gap-2">
- <h1 className={`text-2xl sm:text-3xl font-bold ${getBannerTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>
+ <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
  @{profile.username}
  </h1>
  {(profile.is_premium ?? profile.plan_type === 'premium') && (
@@ -438,29 +433,29 @@ export default function UserProfile() {
  </div>
 
  {profile.bio && (
- <p className={`mb-4 max-w-2xl ${getBannerSecondaryTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>
+ <p className="text-gray-600 dark:text-gray-300 mb-4 max-w-2xl">
  {profile.bio}
  </p>
  )}
 
- <div className={`flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm mb-4 ${getBannerSecondaryTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>
+ <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm text-gray-600 dark:text-gray-400 mb-4">
  <button
  onClick={() => setShowFollowModal('followers')}
- className="flex items-center hover:opacity-70 transition-opacity"
+ className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className={getBannerTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}>{followersCount}</strong>{' '}
+ <strong className="text-gray-900 dark:text-white">{followersCount}</strong>{' '}
  {t('profile.followersLabel')}
  </span>
  </button>
  <button
  onClick={() => setShowFollowModal('following')}
- className="flex items-center hover:opacity-70 transition-opacity"
+ className="flex items-center hover:text-gray-900 dark:hover:text-white transition-colors"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className={getBannerTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}>{followingCount}</strong>{' '}
+ <strong className="text-gray-900 dark:text-white">{followingCount}</strong>{' '}
  {t('profile.followingButton')}
  </span>
  </button>
