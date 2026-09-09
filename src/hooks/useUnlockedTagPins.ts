@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { getContinent } from '../lib/continents';
+import { useAuth } from '../lib/auth';
+import { syncUnlockedTagsAndNotify } from '../lib/tagNotifications';
 import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 
 export interface UnlockedPin {
@@ -15,6 +17,7 @@ export interface UnlockedPin {
 // completo) — usado tanto lá quanto no card de pins do perfil de outros
 // usuários, evitando duplicar essa lógica de cálculo duas vezes.
 export function useUnlockedTagPins(userId: string | undefined) {
+  const { session } = useAuth();
   const [pins, setPins] = useState<UnlockedPin[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -208,6 +211,16 @@ export function useUnlockedTagPins(userId: string | undefined) {
         });
 
         if (!cancelled) setPins(unlockedPins);
+
+        // Só sincroniza/notifica quando é o PRÓPRIO usuário logado
+        // vendo o cálculo das próprias tags — esse hook também é usado
+        // pra ver os pins de outras pessoas (ex.: card de pins no
+        // perfil de um amigo), e nesse caso não faz sentido nenhum
+        // (e seria incorreto) disparar notificação pra quem está
+        // sendo visitado.
+        if (!cancelled && userId === session?.user?.id) {
+          syncUnlockedTagsAndNotify(userId, unlockedPins);
+        }
       } catch (error) {
         console.error('Error fetching unlocked tag pins:', error);
       } finally {
