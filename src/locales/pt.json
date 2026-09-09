@@ -840,7 +840,9 @@
       "howItWorks": "Como o Oráculo funciona",
       "step1": "Lê a nota que você deu a esta obra ({{rating}}/10)",
       "step2": "Analisa 10 das suas resenhas reais, escolhidas ao acaso",
-      "step3": "Escreve uma resenha nova, no seu estilo e espírito cinematográfico"
+      "step3": "Escreve uma resenha nova, no seu estilo e espírito cinematográfico",
+      "dailyLimitReached": "Você já usou suas gerações de hoje.",
+      "limitReachedHint": "Volte amanhã para gerar uma nova resenha do Oráculo."
     }
   }
 }
