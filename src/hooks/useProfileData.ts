@@ -90,10 +90,9 @@ export interface ProfileData {
   leastKnownGem: LeastKnownGem | null;
 
   // Social
-  followersCount: number;
+  friendsCount: number;
   countryCounts: Record<string, number>;
   countryAvgRatings: Record<string, number>;
-  followingCount: number;
 
   // Essência / personalidade
   essencePersonality: EssencePersonality | null;
@@ -190,10 +189,9 @@ export function useProfileData(userId: string | undefined, language: string): Pr
   const [topActors, setTopActors] = useState<ActorCount[]>([]);
   const [topDirectors, setTopDirectors] = useState<DirectorCount[]>([]);
   const [leastKnownGem, setLeastKnownGem] = useState<LeastKnownGem | null>(null);
-  const [followersCount, setFollowersCount] = useState(0);
+  const [friendsCount, setFriendsCount] = useState(0);
   const [countryCounts, setCountryCounts] = useState<Record<string, number>>({});
   const [countryAvgRatings, setCountryAvgRatings] = useState<Record<string, number>>({});
-  const [followingCount, setFollowingCount] = useState(0);
 
   const [essencePersonality, setEssencePersonality] = useState<EssencePersonality | null>(null);
   const [essenceArchetype, setEssenceArchetype] = useState<EssenceArchetype | null>(null);
@@ -218,10 +216,15 @@ export function useProfileData(userId: string | undefined, language: string): Pr
         // de mostrar dado errado. O `cache.set` mais abaixo continua gravando (outros
         // pontos do app podem ler esse valor), só não é mais lido como atalho aqui.
 
-        // --- Contadores sociais (2 queries leves, em paralelo) ---
-        const [followersRes, followingRes, userMoviesRes] = await Promise.all([
-          supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
-          supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
+        // --- Contador social (1 query, já que amizade é simétrica —
+        // antes eram 2 queries separadas em follows, uma pra seguidores
+        // e outra pra seguindo) ---
+        const [friendshipsRes, userMoviesRes] = await Promise.all([
+          supabase
+            .from('friendships')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'accepted')
+            .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
           supabase
             .from('user_movies')
             .select('movie_id, rating, movies!inner(media_type)')
@@ -231,8 +234,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
 
         if (userMoviesRes.error) throw userMoviesRes.error;
 
-        const followers = followersRes.count || 0;
-        const following = followingRes.count || 0;
+        const friends = friendshipsRes.count || 0;
 
         const rawUserMovies = (userMoviesRes.data || []).map((m: any) => ({
           movie_id: m.movie_id,
@@ -457,8 +459,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
         });
         setCountryAvgRatings(countryAvg);
 
-        setFollowersCount(followers);
-        setFollowingCount(following);
+        setFriendsCount(friends);
 
         // --- Salva no cache local ---
         cache.set(
@@ -483,8 +484,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
             topActors: Object.values(actorCounts).sort((a, b) => b.count - a.count).slice(0, 3),
             topDirectors: Object.values(directorCounts).sort((a, b) => b.count - a.count).slice(0, 3),
             leastKnownGem: gem,
-            followersCount: followers,
-            followingCount: following,
+            friendsCount: friends,
             countryCounts: countryTally,
             countryAvgRatings: countryAvg
           },
@@ -558,10 +558,9 @@ export function useProfileData(userId: string | undefined, language: string): Pr
     topActors,
     topDirectors,
     leastKnownGem,
-    followersCount,
+    friendsCount,
     countryCounts,
     countryAvgRatings,
-    followingCount,
     essencePersonality,
     essenceArchetype,
     spectrumPoints,
