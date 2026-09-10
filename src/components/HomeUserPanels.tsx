@@ -793,7 +793,12 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                       </div>
                     </div>
                     <div className="flex-1 min-w-0 pt-1">
-                      <h4 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors duration-200 leading-snug mb-1.5 line-clamp-2">
+                      {/* min-h reserva o espaço de 2 linhas sempre — sem isso, um
+                          título curto (1 linha) e um longo (2 linhas) fazem o card
+                          mudar de altura a cada troca do carrossel, causando um
+                          "glitch" visível no painel inteiro. line-clamp-2 já garante
+                          o máximo, min-h garante o mínimo. */}
+                      <h4 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors duration-200 leading-snug mb-1.5 line-clamp-2 min-h-[2.75rem]">
                         {currentRec.movie.title}
                       </h4>
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -807,11 +812,16 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                           </span>
                         </div>
                       </div>
-                      {currentRec.movie.overview && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed">
-                          {currentRec.movie.overview}
-                        </p>
-                      )}
+                      {/* Sempre renderizado (não mais condicional a
+                          overview existir) e com min-h fixo pras mesmas 3
+                          linhas reservadas — antes, um filme sem overview
+                          fazia o bloco inteiro sumir, e um com overview
+                          curto ocupava menos linhas que um longo, ambos
+                          casos mudando a altura do card entre trocas do
+                          carrossel. */}
+                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed min-h-[3.75rem]">
+                        {currentRec.movie.overview || ''}
+                      </p>
                     </div>
                   </div>
                 </motion.button>
