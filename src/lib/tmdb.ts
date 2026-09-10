@@ -808,6 +808,70 @@ export interface OraclePoolPage {
   totalCount: number;
 }
 
+interface PredictedShelfMovie {
+  movie_id: number;
+  predicted_rating: number;
+  is_true_ten: boolean;
+}
+
+// Chama a Edge Function que calcula a nota PREVISTA pra esse usuário
+// específico, pra cada filme do pool de uma prateleira — mesmo modelo
+// bayesiano do Match Movie Modal, mais o "Filtro do 10" (bônus por
+// diretor/país/mood/keyword em comum com os filmes que o usuário deu
+// nota 10). Retorna a lista JÁ ordenada por essa nota, sem paginação —
+// o cálculo é feito uma vez só; quem chama guarda o resultado e pagina
+// localmente sobre ele (evita recalcular tudo de novo a cada "carregar
+// mais 30").
+export const getOraclePoolPredictions = async (
+  cardType: 'bogart' | 'fincher' | 'cypher',
+  moodKey: string,
+  accessToken: string
+): Promise<PredictedShelfMovie[]> => {
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/predict-oracle-shelf`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ cardType, moodKey }),
+    });
+    const data = await response.json();
+    if (!response.ok || data.error) {
+      console.error('Error fetching oracle pool predictions:', data.error);
+      return [];
+    }
+    return data.movies || [];
+  } catch (error) {
+    console.error('Error fetching oracle pool predictions:', error);
+    return [];
+  }
+};
+
+// Busca os detalhes completos (poster, título, etc.) só pra uma FATIA
+// de IDs já escolhida — usada junto com getOraclePoolPredictions pra
+// não buscar detalhes de filmes que ainda não vão ser exibidos.
+export const getMoviesForPredictedSlice = async (
+  movieIds: number[]
+): Promise<Movie[]> => {
+  if (movieIds.length === 0) return [];
+
+  const { data: cacheRows } = await supabase
+    .from('movie_cache')
+    .select('tmdb_id, media_type')
+    .in('tmdb_id', movieIds);
+
+  const entries = (cacheRows || []).map((row: any) => ({ movie_id: row.tmdb_id, media_type: row.media_type }));
+  const movieMap = await getMoviesFromCacheByType(entries);
+
+  return movieIds
+    .map((id: number) => {
+      const movieKey = [...movieMap.keys()].find((key) => key.startsWith(`${id}_`));
+      return movieKey ? movieMap.get(movieKey) : undefined;
+    })
+    .filter((m: Movie | undefined): m is Movie => m !== undefined);
+};
+
 export const getOraclePoolMovies = async (
   cardType: 'bogart' | 'fincher' | 'cypher',
   moodKey: string,
