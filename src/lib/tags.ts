@@ -243,12 +243,12 @@ export const ORACLE_TAGS: OracleTag[] = [
 ];
 
 export const COMMUNITY_TAGS: CommunityTag[] = [
-  { name: 'Spotlight Spark', emoji: '✨', minFollowers: 1, maxFollowers: 9, description: '1 - 9 followers', descriptionPt: '1 - 9 seguidores' },
-  { name: 'Rising Star', emoji: '⭐', minFollowers: 10, maxFollowers: 24, description: '10 - 24 followers', descriptionPt: '10 - 24 seguidores' },
-  { name: 'Red-Carpet Regular', emoji: '🎭', minFollowers: 25, maxFollowers: 49, description: '25 - 49 followers', descriptionPt: '25 - 49 seguidores' },
-  { name: 'Festival Favorite', emoji: '🎪', minFollowers: 50, maxFollowers: 99, description: '50 - 99 followers', descriptionPt: '50 - 99 seguidores' },
-  { name: 'Blockbuster', emoji: '💥', minFollowers: 100, maxFollowers: 199, description: '100 - 199 followers', descriptionPt: '100 - 199 seguidores' },
-  { name: 'Cult Legend', emoji: '👑', minFollowers: 200, description: '200+ followers', descriptionPt: '200+ seguidores' }
+  { name: 'Spotlight Spark', emoji: '✨', minFollowers: 1, maxFollowers: 9, description: '1 - 9 friends', descriptionPt: '1 - 9 amigos' },
+  { name: 'Rising Star', emoji: '⭐', minFollowers: 10, maxFollowers: 24, description: '10 - 24 friends', descriptionPt: '10 - 24 amigos' },
+  { name: 'Red-Carpet Regular', emoji: '🎭', minFollowers: 25, maxFollowers: 49, description: '25 - 49 friends', descriptionPt: '25 - 49 amigos' },
+  { name: 'Festival Favorite', emoji: '🎪', minFollowers: 50, maxFollowers: 99, description: '50 - 99 friends', descriptionPt: '50 - 99 amigos' },
+  { name: 'Blockbuster', emoji: '💥', minFollowers: 100, maxFollowers: 199, description: '100 - 199 friends', descriptionPt: '100 - 199 amigos' },
+  { name: 'Cult Legend', emoji: '👑', minFollowers: 200, description: '200+ friends', descriptionPt: '200+ amigos' }
 ];
 
 export const FRANCHISE_MOVIES = {
