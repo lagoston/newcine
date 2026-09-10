@@ -48,9 +48,13 @@ function App() {
 
   return (
     <AuthProvider>
-      <WhispersProvider>
       <ThemeProvider>
         <BrowserRouter future={{ v7_relativeSplatPath: true }}>
+          {/* WhispersProvider precisa estar DENTRO do BrowserRouter agora —
+              usa useLocation() pra decidir onde abrir o modal de sussurros
+              quando uma notificação é clicada (Home vs. qualquer outra
+              página), e useLocation só funciona dentro de um Router. */}
+          <WhispersProvider>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pt-[calc(env(safe-area-inset-top)+3.5rem)]">
             <PageBackground />
             <Navbar />
@@ -81,6 +85,7 @@ function App() {
             </main>
             <InstallPrompt />
           </div>
+          </WhispersProvider>
         </BrowserRouter>
         <Toaster
           position="bottom-right"
@@ -94,7 +99,7 @@ function App() {
           toastOptions={{ style: { zIndex: 99999 } }}
         />
       </ThemeProvider>
-      </WhispersProvider>
+    </AuthProvider>
     </AuthProvider>
   );
 }
