@@ -319,15 +319,19 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     try {
       setLoadingFriends(true);
 
-      // Step 1: Get following users
-      const { data: followingData, error: followingError } = await supabase
-        .from('follows')
-        .select('following_id')
-        .eq('follower_id', session.user.id);
+      // Step 1: Get friends (amizade é simétrica — pega o outro lado
+      // da relação, seja qual for quem enviou o pedido originalmente)
+      const { data: friendshipData, error: friendshipError } = await supabase
+        .from('friendships')
+        .select('requester_id, addressee_id')
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${session.user.id},addressee_id.eq.${session.user.id}`);
 
-      if (followingError) throw followingError;
+      if (friendshipError) throw friendshipError;
 
-      const followingIds = (followingData || []).map(f => f.following_id);
+      const followingIds = (friendshipData || []).map(f =>
+        f.requester_id === session.user.id ? f.addressee_id : f.requester_id
+      );
       let combined: FriendRating[] = [];
 
       if (followingIds.length > 0) {
