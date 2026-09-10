@@ -8,6 +8,11 @@ interface ConfirmationModalProps {
   onConfirm: () => void;
   title: string;
   message: string;
+  // Opcional — sem isso o botão continua dizendo "Excluir" (o padrão
+  // original, correto pros usos de exclusão de verdade em
+  // RatingBox.tsx/MovieDetailsModal.tsx). Passe um texto diferente pra
+  // ações de confirmação que não são exclusão, como desfazer amizade.
+  confirmLabel?: string;
 }
 
 // A prop `title` continua existindo pra não quebrar quem já chama esse
@@ -21,6 +26,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onClose,
   onConfirm,
   message,
+  confirmLabel,
 }) => {
   const { t } = useTranslation();
 
@@ -59,7 +65,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 }}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 rounded-md transition-colors"
               >
-                {t('common.delete')}
+                {confirmLabel ?? t('common.delete')}
               </button>
             </div>
           </motion.div>
