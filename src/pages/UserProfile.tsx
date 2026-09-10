@@ -1018,6 +1018,7 @@ export default function UserProfile() {
  onConfirm={performFriendAction}
  title={t('profile.unfriendConfirmTitle', { defaultValue: 'Desfazer amizade' })}
  message={t('profile.unfriendConfirmMessage', { defaultValue: `Tem certeza que deseja desfazer a amizade com @${profile.username}?` })}
+ confirmLabel={t('profile.unfriendConfirmButton', { defaultValue: 'Desfazer' })}
  />
 
  {showUserListsModal && profile.id && (
