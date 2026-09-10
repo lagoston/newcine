@@ -171,13 +171,16 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
     if (followedUsers.length > 0 || loadingFollowed) return;
     setLoadingFollowed(true);
     try {
-      const { data: followRows, error: followError } = await supabase
-        .from('follows')
-        .select('following_id')
-        .eq('follower_id', session?.user?.id);
+      const { data: friendRows, error: followError } = await supabase
+        .from('friendships')
+        .select('requester_id, addressee_id')
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${session?.user?.id},addressee_id.eq.${session?.user?.id}`);
       if (followError) throw followError;
 
-      const followingIds = (followRows || []).map((r: any) => r.following_id).filter((id: string) => id !== otherUserId);
+      const followingIds = (friendRows || [])
+        .map((r: any) => (r.requester_id === session?.user?.id ? r.addressee_id : r.requester_id))
+        .filter((id: string) => id !== otherUserId);
       if (followingIds.length === 0) {
         setFollowedUsers([]);
         return;
