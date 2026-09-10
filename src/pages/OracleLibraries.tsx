@@ -322,6 +322,28 @@ export default function OracleLibraries() {
   // troca de imagem. Esperando o valor real chegar antes de montar as
   // cartas, a imagem certa já aparece de primeira, sem flick.
   const [cardStyle, setCardStyle] = useState<'default' | 'yugioh' | null>(null);
+ // Prateleiras reordenadas pelos moods favoritos do usuário — soma da
+ // nota dada a cada filme avaliado que pertence àquele mood (não só
+ // contagem), calculada uma vez no servidor. Começa com a ordem padrão
+ // original como fallback, até a ordem personalizada chegar — evita a
+ // lista pular de posição visivelmente depois que a página já carregou.
+ const [orderedMoods, setOrderedMoods] = useState(MOOD_CATEGORIES);
+
+ useEffect(() => {
+ if (!session?.user?.id) return;
+ supabase
+ .rpc('get_user_favorite_moods_order', { p_user_id: session.user.id })
+ .then(({ data, error }) => {
+ if (error || !data) return;
+ const orderMap = new Map(data.map((row: { mood_key: string; score: number }, idx: number) => [row.mood_key, idx]));
+ const sorted = [...MOOD_CATEGORIES].sort((a, b) => {
+ const rankA = orderMap.get(a.key) ?? MOOD_CATEGORIES.length;
+ const rankB = orderMap.get(b.key) ?? MOOD_CATEGORIES.length;
+ return rankA - rankB;
+ });
+ setOrderedMoods(sorted);
+ });
+ }, [session?.user?.id]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -509,7 +531,7 @@ export default function OracleLibraries() {
                 </div>
               </div>
 
-              {session?.user?.id && MOOD_CATEGORIES.map((mood) => (
+              {session?.user?.id && orderedMoods.map((mood) => (
                 <Shelf
                   key={mood.key}
                   cardType={selectedOracle}
