@@ -15,7 +15,7 @@ import { useWhispers } from '../contexts/WhispersContext';
 const SESSION_KEY = 'whispers-popup-shown';
 
 const WhispersNotificationPopup: React.FC = () => {
-  const { unreadCount } = useWhispers();
+  const { unreadCount, requestOpenWhispers } = useWhispers();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
@@ -41,7 +41,15 @@ const WhispersNotificationPopup: React.FC = () => {
 
   const handleClick = () => {
     setVisible(false);
-    navigate('/profile');
+    // Antes só navegava pra /profile sem nunca abrir o modal — o
+    // usuário precisava clicar de novo no ícone lá dentro pra ver os
+    // sussurros de verdade. requestOpenWhispers decide "o mais perto":
+    // se está na Home, abre o mini-whisper de lá; em qualquer outro
+    // lugar, abre direto em Profile (navegando primeiro se necessário).
+    if (location.pathname !== '/profile') {
+      navigate('/profile');
+    }
+    requestOpenWhispers();
   };
 
   return (
