@@ -380,7 +380,8 @@
       "chooseMood": "Escolha uma categoria pra explorar",
       "notEnoughTickets": "Você não tem tickets suficientes.",
       "shelfFullyWatched": "Você já assistiu tudo dessa categoria — bom trabalho!",
-      "loadMore30": "+30 títulos"
+      "loadMore30": "+30 títulos",
+      "predictedRatingLegend": "Mostrando a nota prevista para você — não é a nota pública do filme"
     },
     "selectMood": "Selecione Seu Humor",
     "ticketsLabel": "tickets",
