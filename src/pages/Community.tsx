@@ -21,8 +21,7 @@ interface Profile {
  username: string;
  avatar_url: string | null;
  bio: string | null;
- followers_count: number;
- following_count: number;
+ friends_count: number;
  plan_type: string;
  is_premium?: boolean;
  avatar_frame: string;
@@ -515,15 +514,8 @@ export default function Community() {
  <div className="flex items-center gap-1.5">
  <Users className="w-4 h-4 text-gray-400" />
  <span className="text-sm">
- <span className={`font-bold ${getBannerTextClass(profile.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>{profile.followers_count}</span>
- <span className={`ml-1 ${getBannerSecondaryTextClass(profile.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>{t('profile.followersLabel')}</span>
- </span>
- </div>
- <div className="flex items-center gap-1.5">
- <User className="w-4 h-4 text-gray-400" />
- <span className="text-sm">
- <span className={`font-bold ${getBannerTextClass(profile.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>{profile.following_count}</span>
- <span className={`ml-1 ${getBannerSecondaryTextClass(profile.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>{t('profile.followingButton')}</span>
+ <span className={`font-bold ${getBannerTextClass(profile.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>{profile.friends_count}</span>
+ <span className={`ml-1 ${getBannerSecondaryTextClass(profile.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>{t('profile.friendsLabel', { defaultValue: 'Amigos' })}</span>
  </span>
  </div>
  </div>
