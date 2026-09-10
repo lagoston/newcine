@@ -45,7 +45,12 @@ const LIBRARY_FUNCTION_DESC_KEY: Record<CardType, string> = {
   cypher: 'oracle.libraries.cypherFunctionDesc',
 };
 
-const SHELF_PAGE_SIZE = 30;
+// Carga inicial (grátis) é menor que o incremento pago — antes os dois
+// usavam o mesmo número (30), fazendo a primeira carga de cada
+// prateleira já vir mais pesada que o necessário pra uma primeira
+// visualização.
+const INITIAL_PAGE_SIZE = 20;
+const LOAD_MORE_INCREMENT = 30;
 
 interface ShelfState {
   movies: Movie[];
@@ -139,7 +144,8 @@ const Shelf: React.FC<{
       }
 
       const allPredicted = predictedIdsRef.current;
-      const nextSlice = allPredicted.slice(current.movies.length, current.movies.length + SHELF_PAGE_SIZE);
+      const pageSize = current.movies.length === 0 ? INITIAL_PAGE_SIZE : LOAD_MORE_INCREMENT;
+      const nextSlice = allPredicted.slice(current.movies.length, current.movies.length + pageSize);
       const sliceMovies = await getMoviesForPredictedSlice(nextSlice.map((p) => p.movie_id));
 
       // Anexa a nota prevista (e se é um "10 verdadeiro" do Filtro do 10)
