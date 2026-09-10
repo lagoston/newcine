@@ -104,9 +104,10 @@ export function useUnlockedTagPins(userId: string | undefined) {
         });
 
         const { count: followers } = await supabase
-          .from('follows')
+          .from('friendships')
           .select('*', { count: 'exact', head: true })
-          .eq('following_id', userId);
+          .eq('status', 'accepted')
+          .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
 
         // curated_pool — soma os movie_ids de TODOS os moods de cada
         // card_type (recommendation_pools guarda um pool por mood, não
