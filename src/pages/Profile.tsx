@@ -173,7 +173,18 @@ export default function Profile() {
  // verdade; a contagem só atualizava em reloads manuais ou quando o
  // modal fechava e chamava fetchUnreadWhispers explicitamente. Uma
  // fonte de verdade só agora, compartilhada com o Navbar.
- const { unreadCount: unreadWhispers, refetchUnreadCount: fetchUnreadWhispers } = useWhispers();
+ const { unreadCount: unreadWhispers, refetchUnreadCount: fetchUnreadWhispers, openWhispersTarget, clearOpenWhispersTarget } = useWhispers();
+
+ // Antes uma notificação clicada em qualquer outra página só navegava
+ // pra cá sem nunca abrir o modal de verdade — o usuário precisava
+ // clicar de novo no ícone de sussurros. Agora, chegando aqui com um
+ // pedido pendente (target === 'profile'), o modal já abre sozinho.
+ useEffect(() => {
+ if (openWhispersTarget === 'profile') {
+ setShowWhispersModal(true);
+ clearOpenWhispersTarget();
+ }
+ }, [openWhispersTarget, clearOpenWhispersTarget]);
  const [profile, setProfile] = useState<Profile | null>(null);
  const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
  const [carouselOffset, setCarouselOffset] = useState(0);
