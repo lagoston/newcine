@@ -16,7 +16,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { session, isPremium, isLifetimePremium } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [profileVisibility, setProfileVisibility] = useState<'public' | 'followers_only'>('public');
+  const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends_only'>('public');
   const [feedback, setFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -112,7 +112,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleVisibilityChange = async (visibility: 'public' | 'followers_only') => {
+  const handleVisibilityChange = async (visibility: 'public' | 'friends_only') => {
     if (!session?.user?.id) return;
 
     try {
@@ -275,21 +275,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       {t('settings.public')}
                     </button>
                     <button
-                      onClick={() => handleVisibilityChange('followers_only')}
+                      onClick={() => handleVisibilityChange('friends_only')}
                       className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
-                        profileVisibility === 'followers_only'
+                        profileVisibility === 'friends_only'
                           ? 'bg-blue-600 text-white shadow-md'
                           : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
                       }`}
                     >
-                      {t('settings.followersOnly')}
+                      {t('settings.friendsOnly')}
                     </button>
                   </div>
                 )}
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   {profileVisibility === 'public'
                     ? t('settings.publicDescription')
-                    : t('settings.followersOnlyDescription')}
+                    : t('settings.friendsOnlyDescription')}
                 </p>
               </div>
             </div>
