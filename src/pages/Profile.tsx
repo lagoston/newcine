@@ -149,6 +149,26 @@ const extractAvatarStoragePath = (url: string): string | null => {
  return url.slice(idx + STORAGE_AVATARS_PATH_MARKER.length).split('?')[0];
 };
 
+// Lê só as dimensões do arquivo, sem precisar decodificar frame a
+// frame — o "canvas" de um GIF/WebP animado (a área de desenho onde
+// todos os frames são compostos) tem tamanho fixo, igual pra qualquer
+// frame, então carregar a imagem num <img> já basta pra saber a
+// largura/altura reais, sem tocar na animação em si.
+const getImageDimensions = (file: File): Promise<{ width: number; height: number }> =>
+ new Promise((resolve, reject) => {
+ const img = new Image();
+ const objectUrl = URL.createObjectURL(file);
+ img.onload = () => {
+ URL.revokeObjectURL(objectUrl);
+ resolve({ width: img.naturalWidth, height: img.naturalHeight });
+ };
+ img.onerror = () => {
+ URL.revokeObjectURL(objectUrl);
+ reject(new Error('Failed to read image dimensions'));
+ };
+ img.src = objectUrl;
+ });
+
 export default function Profile() {
  const navigate = useNavigate();
  const { session, isPremium, checkPremiumStatus } = useAuth();
@@ -565,6 +585,30 @@ export default function Profile() {
  const ANIMATED_MAX_BYTES = 2 * 1024 * 1024;
  if (file.size > ANIMATED_MAX_BYTES) {
  toast.error('Erro: Sua imagem animada tem mais de 2MB. Por favor, comprima a imagem para utilizar o avatar animado.');
+ e.target.value = '';
+ return;
+ }
+
+ // Peso em bytes e dimensão em pixels são coisas independentes — um
+ // GIF com poucos frames/cores pode pesar pouco e ainda assim ter,
+ // por exemplo, 1920x1080 de tamanho. Sem essa checagem, esse
+ // arquivo passava batido no limite de bytes acima e era servido
+ // cru pra qualquer visitante do site, decodificando uma imagem
+ // enorme só pra caber num círculo de 40-112px. Usa o mesmo limite
+ // já aplicado ao caminho estático (AVATAR_MAX_DIMENSION), pra
+ // manter o padrão consistente entre os dois casos — como não dá
+ // pra redimensionar um arquivo animado sem ferramentas mais pesadas
+ // (fora do escopo aqui), a validação barra o upload em vez de
+ // tentar corrigir sozinha.
+ try {
+ const { width, height } = await getImageDimensions(file);
+ if (width > AVATAR_MAX_DIMENSION || height > AVATAR_MAX_DIMENSION) {
+ toast.error(`Erro: Sua imagem animada tem ${width}x${height}px — o máximo permitido é ${AVATAR_MAX_DIMENSION}x${AVATAR_MAX_DIMENSION}px. Redimensione antes de enviar.`);
+ e.target.value = '';
+ return;
+ }
+ } catch {
+ toast.error('Erro ao ler as dimensões da imagem. Tente outro arquivo.');
  e.target.value = '';
  return;
  }
