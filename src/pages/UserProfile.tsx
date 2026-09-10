@@ -105,10 +105,13 @@ export default function UserProfile() {
  const navigate = useNavigate();
  const { t, i18n } = useTranslation();
  const [profile, setProfile] = useState<Profile | null>(null);
- const [isFollowing, setIsFollowing] = useState(false);
+ // Amizade é mútua — não existe mais "eu sigo mas ele não me segue".
+ // 4 estados possíveis: sem relação, pedido enviado por mim, pedido
+ // recebido dele (posso aceitar direto aqui), ou já somos amigos.
+ const [friendshipStatus, setFriendshipStatus] = useState<'none' | 'pending_sent' | 'pending_received' | 'friends'>('none');
  const [loading, setLoading] = useState(true);
  const [isToggling, setIsToggling] = useState(false);
- const [showFollowModal, setShowFollowModal] = useState<'followers' | 'following' | null>(null);
+ const [showFriendsModal, setShowFriendsModal] = useState(false);
  const [showUserListsModal, setShowUserListsModal] = useState(false);
  const [showUserReviewsModal, setShowUserReviewsModal] = useState(false);
  const [showCompatibilityModal, setShowCompatibilityModal] = useState(false);
@@ -128,8 +131,7 @@ export default function UserProfile() {
  topActors,
  topDirectors,
  leastKnownGem,
- followersCount,
- followingCount,
+ friendsCount,
  essencePersonality,
  essenceArchetype,
  spectrumPoints,
@@ -204,14 +206,21 @@ export default function UserProfile() {
  setProfile(profileData);
 
  if (session?.user?.id) {
- const { data: followData } = await supabase
- .from('follows')
- .select('*')
- .eq('follower_id', session.user.id)
- .eq('following_id', profileData.id)
+ const { data: friendshipData } = await supabase
+ .from('friendships')
+ .select('status, requester_id')
+ .or(`and(requester_id.eq.${session.user.id},addressee_id.eq.${profileData.id}),and(requester_id.eq.${profileData.id},addressee_id.eq.${session.user.id})`)
  .maybeSingle();
 
- setIsFollowing(!!followData);
+ if (!friendshipData) {
+ setFriendshipStatus('none');
+ } else if (friendshipData.status === 'accepted') {
+ setFriendshipStatus('friends');
+ } else if (friendshipData.requester_id === session.user.id) {
+ setFriendshipStatus('pending_sent');
+ } else {
+ setFriendshipStatus('pending_received');
+ }
  }
  } catch (error) {
  console.error('Error fetching profile and movies:', error);
@@ -221,9 +230,9 @@ export default function UserProfile() {
  }
  };
 
- const handleFollowToggle = async () => {
+ const handleFriendAction = async () => {
  if (!session) {
- toast.error('Please sign in to follow users');
+ toast.error('Please sign in to add friends');
  return;
  }
 
@@ -234,57 +243,66 @@ export default function UserProfile() {
  try {
  setIsToggling(true);
 
- if (isFollowing) {
- const { error } = await supabase
- .from('follows')
- .delete()
- .eq('follower_id', session.user.id)
- .eq('following_id', profile.id);
-
- if (error) throw error;
- setIsFollowing(false);
- refetchProfileData();
- toast.success(`Unfollowed @${profile.username}`);
- } else {
- const { error } = await supabase
- .from('follows')
- .insert({
- follower_id: session.user.id,
- following_id: profile.id
+ if (friendshipStatus === 'none') {
+ const { data, error } = await supabase.rpc('send_friend_request', {
+ p_requester_id: session.user.id,
+ p_addressee_id: profile.id
  });
 
  if (error) throw error;
- setIsFollowing(true);
- refetchProfileData();
- toast.success(`Following @${profile.username}`);
+ if (!data?.success) throw new Error(data?.error || 'request_failed');
 
- const { data: canSend } = await supabase
- .rpc('can_send_follower_notification', {
- p_from_user_id: session.user.id,
- p_to_user_id: profile.id
- });
+ setFriendshipStatus('pending_sent');
+ toast.success(t('profile.friendRequestSent', { defaultValue: `Pedido de amizade enviado para @${profile.username}` }));
 
- if (canSend) {
+ // Substitui a antiga notificação informativa de "novo seguidor" —
+ // agora é um pedido de verdade, que aparece no Whispers com
+ // opção de Aceitar/Recusar, não só um aviso passivo.
  await supabase
  .from('friend_indications')
  .insert({
  from_user_id: session.user.id,
  to_user_id: profile.id,
- type: 'follower',
+ type: 'friend_request',
  read: false
  });
-
- await supabase
- .from('follower_notifications_log')
- .insert({
- from_user_id: session.user.id,
- to_user_id: profile.id
+ } else if (friendshipStatus === 'pending_sent') {
+ const { error } = await supabase.rpc('remove_friendship', {
+ p_user_id: session.user.id,
+ p_other_user_id: profile.id
  });
- }
+
+ if (error) throw error;
+ setFriendshipStatus('none');
+ refetchProfileData();
+ toast.success(t('profile.friendRequestCancelled', { defaultValue: 'Pedido de amizade cancelado' }));
+ } else if (friendshipStatus === 'pending_received') {
+ const { data, error } = await supabase.rpc('respond_to_friend_request', {
+ p_addressee_id: session.user.id,
+ p_requester_id: profile.id,
+ p_accept: true
+ });
+
+ if (error) throw error;
+ if (!data?.success) throw new Error(data?.error || 'accept_failed');
+
+ setFriendshipStatus('friends');
+ refetchProfileData();
+ toast.success(t('profile.friendRequestAccepted', { defaultValue: `Agora você e @${profile.username} são amigos!` }));
+ } else {
+ const { error } = await supabase.rpc('remove_friendship', {
+ p_user_id: session.user.id,
+ p_other_user_id: profile.id
+ });
+
+ if (error) throw error;
+ setFriendshipStatus('none');
+ refetchProfileData();
+ toast.success(t('profile.friendRemoved', { defaultValue: `Você e @${profile.username} não são mais amigos` }));
  }
  } catch (error) {
- console.error('Error toggling follow:', error);
- toast.error('Failed to update follow status');
+ console.error('Error handling friend action:', error);
+ toast.error('Failed to update friendship status');
  } finally {
  setIsToggling(false);
  }
@@ -440,23 +458,13 @@ export default function UserProfile() {
 
  <div className={`flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm mb-4 ${getBannerSecondaryTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>
  <button
- onClick={() => setShowFollowModal('followers')}
+ onClick={() => setShowFriendsModal(true)}
  className="flex items-center hover:opacity-70 transition-opacity"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className={getBannerTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}>{followersCount}</strong>{' '}
- {t('profile.followersLabel')}
- </span>
- </button>
- <button
- onClick={() => setShowFollowModal('following')}
- className="flex items-center hover:opacity-70 transition-opacity"
- >
- <Users className="w-5 h-5 mr-2" />
- <span>
- <strong className={getBannerTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}>{followingCount}</strong>{' '}
- {t('profile.followingButton')}
+ <strong className={getBannerTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}>{friendsCount}</strong>{' '}
+ {t('profile.friendsLabel', { defaultValue: 'Amigos' })}
  </span>
  </button>
  <div className="flex items-center">
@@ -504,27 +512,39 @@ export default function UserProfile() {
  <span className="hidden sm:inline">{t('matchMovie.buttonLabel')}</span>
  </motion.button>
  <motion.button
- onClick={handleFollowToggle}
+ onClick={handleFriendAction}
  disabled={isToggling}
  className={`px-5 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2 ${
- isFollowing
- ? 'bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-600/70'
- : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:shadow-lg hover:shadow-blue-500/25'
+ friendshipStatus === 'none'
+ ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:shadow-lg hover:shadow-blue-500/25'
+ : friendshipStatus === 'pending_received'
+ ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:shadow-lg hover:shadow-green-500/25'
+ : 'bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-600/70'
  }`}
  whileHover={{ scale: 1.02 }}
  whileTap={{ scale: 0.98 }}
  >
  {isToggling ? (
  <Loader2 className="w-5 h-5 animate-spin" />
- ) : isFollowing ? (
+ ) : friendshipStatus === 'friends' ? (
  <>
  <UserCheck className="w-5 h-5" />
- <span className="hidden sm:inline">{t('profile.followingButton')}</span>
+ <span className="hidden sm:inline">{t('profile.friendsButton', { defaultValue: 'Amigos' })}</span>
+ </>
+ ) : friendshipStatus === 'pending_sent' ? (
+ <>
+ <Clock className="w-5 h-5" />
+ <span className="hidden sm:inline">{t('profile.requestSentButton', { defaultValue: 'Pedido Enviado' })}</span>
+ </>
+ ) : friendshipStatus === 'pending_received' ? (
+ <>
+ <UserCheck className="w-5 h-5" />
+ <span className="hidden sm:inline">{t('profile.acceptRequestButton', { defaultValue: 'Aceitar Pedido' })}</span>
  </>
  ) : (
  <>
  <UserPlus className="w-5 h-5" />
- <span className="hidden sm:inline">{t('profile.follow')}</span>
+ <span className="hidden sm:inline">{t('profile.addFriendButton', { defaultValue: 'Adicionar Amigo' })}</span>
  </>
  )}
  </motion.button>
@@ -969,12 +989,11 @@ export default function UserProfile() {
  </div>
  </motion.div>
 
- {showFollowModal && profile.id && (
+ {showFriendsModal && profile.id && (
  <FollowersModal
  isOpen={true}
- onClose={() => setShowFollowModal(null)}
+ onClose={() => setShowFriendsModal(false)}
  userId={profile.id}
- type={showFollowModal}
  onFollowChange={refetchProfileData}
  />
  )}
