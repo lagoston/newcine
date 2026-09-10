@@ -100,7 +100,6 @@ function App() {
         />
       </ThemeProvider>
     </AuthProvider>
-    </AuthProvider>
   );
 }
 
