@@ -379,7 +379,8 @@
       "chooseMood": "Choose a category to explore",
       "notEnoughTickets": "You don't have enough tickets.",
       "shelfFullyWatched": "You've already watched everything in this category — great job!",
-      "loadMore30": "+30 titles"
+      "loadMore30": "+30 titles",
+      "predictedRatingLegend": "Showing the rating predicted for you — not the movie's public rating"
     },
     "selectMood": "Select Your Mood",
     "ticketsLabel": "tickets",
