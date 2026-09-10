@@ -56,20 +56,23 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
     try {
       setLoading(true);
 
-      const { data: followersData, error: followersError } = await supabase
-        .from('follows')
-        .select('follower_id')
-        .eq('following_id', session.user.id);
+      const { data: friendshipData, error: followersError } = await supabase
+        .from('friendships')
+        .select('requester_id, addressee_id')
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${session.user.id},addressee_id.eq.${session.user.id}`);
 
       if (followersError) throw followersError;
 
-      if (!followersData || followersData.length === 0) {
+      if (!friendshipData || friendshipData.length === 0) {
         setFollowers([]);
         setFilteredFollowers([]);
         return;
       }
 
-      const followerIds = followersData.map(f => f.follower_id);
+      const followerIds = friendshipData.map(f =>
+        f.requester_id === session.user.id ? f.addressee_id : f.requester_id
+      );
 
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -225,7 +228,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
                       <Search className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-gray-500 dark:text-gray-400 font-medium">
-                      {followers.length === 0 ? t('indications.noFollowers') : 'Nenhum seguidor encontrado'}
+                      {followers.length === 0 ? t('indications.noFollowers') : 'Nenhum amigo encontrado'}
                     </p>
                     {followers.length === 0 && (
                       <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
