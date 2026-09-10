@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link, useNavigate } from 'react-router-dom';
-import { Library as LibraryIcon, Lock, Star, Film, Clock, Sparkles, RefreshCw, X, HelpCircle, Swords, Eye, Users, ChevronRight } from 'lucide-react';
+import { Library as LibraryIcon, Lock, Star, Film, Clock, Sparkles, RefreshCw, X, HelpCircle, Swords, Eye, Users, ChevronRight, MessageCircle, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { useWhispers } from '../contexts/WhispersContext';
 import { getMovieDetails, Movie } from '../lib/tmdb';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from './GhostRiderFrame';
@@ -14,6 +15,8 @@ import OptimizedPoster from './OptimizedPoster';
 import MovieDetailsModal from './MovieDetailsModal';
 import ArchetypeSymbol from './ArchetypeSymbol';
 import { PERSONAS_MAP } from './CinematicPersonaCard';
+import WhispersModal from './WhispersModal';
+import MonthlyInsightsModal from './MonthlyInsightsModal';
 
 interface LockedTag {
   name: string;
@@ -177,6 +180,60 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const navigate = useNavigate();
   const isPt = i18n.language.startsWith('pt');
   const { session, isPremium } = useAuth();
+ const { unreadCount: unreadWhispersHome, openWhispersTarget, clearOpenWhispersTarget } = useWhispers();
+
+ const [showHomeWhispersModal, setShowHomeWhispersModal] = useState(false);
+ const [showInsightsModal, setShowInsightsModal] = useState(false);
+ const [insightsIsNew, setInsightsIsNew] = useState(false);
+
+ // "Mais perto de onde o usuário está": chegando na Home com um pedido
+ // de abertura pendente (clicou numa notificação em qualquer lugar que
+ // não seja Profile), abre o mini-whisper daqui em vez de navegar.
+ useEffect(() => {
+ if (openWhispersTarget === 'home') {
+ setShowHomeWhispersModal(true);
+ clearOpenWhispersTarget();
+ }
+ }, [openWhispersTarget, clearOpenWhispersTarget]);
+
+ // O relatório de Insights do "mês passado" sempre existe a partir do
+ // momento em que viramos um mês novo — o que muda é só se o usuário já
+ // abriu ESSE relatório específico alguma vez (indicador "novo" no
+ // botão), rastreado em user_monthly_insights_seen.
+ useEffect(() => {
+ if (!session?.user?.id) return;
+ const now = new Date();
+ const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+ const year = lastMonthDate.getFullYear();
+ const month = lastMonthDate.getMonth() + 1;
+
+ supabase
+ .from('user_monthly_insights_seen')
+ .select('id')
+ .eq('user_id', session.user.id)
+ .eq('year', year)
+ .eq('month', month)
+ .maybeSingle()
+ .then(({ data }) => setInsightsIsNew(!data));
+ }, [session?.user?.id]);
+
+ // Marca o mês como visto assim que o modal abre — o indicador
+ // "novo" some na hora, não só na próxima vez que a página carregar.
+ const handleOpenInsights = () => {
+ setShowInsightsModal(true);
+ if (insightsIsNew && session?.user?.id) {
+ const now = new Date();
+ const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+ supabase
+ .from('user_monthly_insights_seen')
+ .insert({
+ user_id: session.user.id,
+ year: lastMonthDate.getFullYear(),
+ month: lastMonthDate.getMonth() + 1,
+ })
+ .then(() => setInsightsIsNew(false));
+ }
+ };
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFrame, setAvatarFrame] = useState<string | null>(null);
@@ -438,33 +495,66 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
           </div>
 
           <div className="relative z-10 p-6">
-            {/* Avatar + Welcome */}
-            <Link to="/profile" className="flex items-center gap-4 group mb-5">
-              <div className="relative flex-shrink-0">
-                {frameUsesComponent(avatarFrame || undefined, avatarIsPremium) === 'GhostRiderFrame' && avatarUrl ? (
-                  <GhostRiderFrame src={avatarUrl} alt={username} size={56} />
-                ) : (
-                <div className={`w-14 h-14 rounded-full overflow-hidden shadow-lg transition-all duration-300 group-hover:scale-105 ${getFrameClass(avatarFrame || undefined, avatarIsPremium)}`}>
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt={username} className="w-full h-full object-cover" />
+            {/* Avatar + Welcome — antes ocupava a linha inteira sozinho;
+                agora divide o espaço com os dois botões novos (Insights
+                e Mini Whisper), o que naturalmente "empurra" o bloco pra
+                esquerda em vez de ficar centralizado na largura toda. */}
+            <div className="flex items-center justify-between gap-2 mb-5">
+              <Link to="/profile" className="flex items-center gap-4 group min-w-0">
+                <div className="relative flex-shrink-0">
+                  {frameUsesComponent(avatarFrame || undefined, avatarIsPremium) === 'GhostRiderFrame' && avatarUrl ? (
+                    <GhostRiderFrame src={avatarUrl} alt={username} size={56} />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                      <span className="text-white font-bold text-xl select-none">
-                        {username.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
+                  <div className={`w-14 h-14 rounded-full overflow-hidden shadow-lg transition-all duration-300 group-hover:scale-105 ${getFrameClass(avatarFrame || undefined, avatarIsPremium)}`}>
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt={username} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                        <span className="text-white font-bold text-xl select-none">
+                          {username.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                   )}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-800" />
                 </div>
-                )}
-                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-800" />
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium tracking-wide uppercase">{t('home.panels.welcomeBack')}</p>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200 leading-tight truncate">
+                    {username}
+                  </h2>
+                </div>
+              </Link>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={handleOpenInsights}
+                  className="relative p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+                  title={t('home.panels.monthlyInsights', { defaultValue: 'Insights Mensais' })}
+                >
+                  <BarChart3 className="w-5 h-5" />
+                  {insightsIsNew && (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse" />
+                  )}
+                </button>
+                <button
+                  onClick={() => setShowHomeWhispersModal(true)}
+                  className={`relative p-2.5 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95 ${
+                    unreadWhispersHome > 0 ? 'animate-pulse shadow-orange-500/50' : ''
+                  }`}
+                  title={t('profile.whispers', { defaultValue: 'Sussurros' })}
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  {unreadWhispersHome > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-white text-orange-600 text-[10px] font-bold rounded-full border-2 border-orange-500">
+                      {unreadWhispersHome}
+                    </span>
+                  )}
+                </button>
               </div>
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium tracking-wide uppercase">{t('home.panels.welcomeBack')}</p>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200 leading-tight">
-                  {username}
-                </h2>
-              </div>
-            </Link>
+            </div>
+
 
             <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
 
@@ -726,9 +816,44 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 </div>
               )
             )}
+
+            {/* Extensão exclusiva de desktop — só em telas md+. Reaproveita
+                as mesmas duas ações (Insights e Mini Whisper, já nos ícones
+                do topo em qualquer tamanho de tela) num bloco maior, sem
+                título de seção aparente, só pra ocupar a altura extra que
+                esse painel precisa pra bater com "Recomendações do Dia" ao
+                lado — sem isso, o painel menor ficava esticado
+                artificialmente pelo md:items-stretch do container pai. */}
+            <div className="hidden md:grid grid-cols-2 gap-3 mt-5">
+              <button
+                onClick={handleOpenInsights}
+                className="relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <BarChart3 className="w-4 h-4" />
+                {t('home.panels.monthlyInsights', { defaultValue: 'Insights Mensais' })}
+                {insightsIsNew && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse" />
+                )}
+              </button>
+              <button
+                onClick={() => setShowHomeWhispersModal(true)}
+                className={`relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                  unreadWhispersHome > 0 ? 'animate-pulse shadow-orange-500/50' : ''
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+                {t('profile.whispers', { defaultValue: 'Sussurros' })}
+                {unreadWhispersHome > 0 && (
+                  <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-white text-orange-600 text-[10px] font-bold rounded-full">
+                    {unreadWhispersHome}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </motion.div>
 
+        {/* Panel 2 — Daily Recommendation (carrossel dos 3 oráculos) */}
         {/* Panel 2 — Daily Recommendation (carrossel dos 3 oráculos) */}
         <motion.div
           className={`${panelBase} md:flex-1`}
@@ -879,6 +1004,22 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
           movie={selectedMovie}
           isOpen={true}
           onClose={() => setSelectedMovie(null)}
+        />
+      )}
+
+      {showHomeWhispersModal && session?.user?.id && (
+        <WhispersModal
+          isOpen={true}
+          onClose={() => setShowHomeWhispersModal(false)}
+          userId={session.user.id}
+        />
+      )}
+
+      {showInsightsModal && session?.user?.id && (
+        <MonthlyInsightsModal
+          isOpen={true}
+          onClose={() => setShowInsightsModal(false)}
+          userId={session.user.id}
         />
       )}
 
