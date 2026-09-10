@@ -504,7 +504,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 sozinho, com só 1 filho visível, não centraliza nada. */}
             <div className="flex items-center justify-between md:justify-center gap-2 mb-5">
               <Link to="/profile" className="flex items-center gap-4 group min-w-0">
-              <Link to="/profile" className="flex items-center gap-4 group min-w-0">
                 <div className="relative flex-shrink-0">
                   {frameUsesComponent(avatarFrame || undefined, avatarIsPremium) === 'GhostRiderFrame' && avatarUrl ? (
                     <GhostRiderFrame src={avatarUrl} alt={username} size={56} />
