@@ -163,7 +163,7 @@ export default function Profile() {
  const [originalBio, setOriginalBio] = useState('');
  const [profileExists, setProfileExists] = useState(true);
  const [createdAt, setCreatedAt] = useState<string | null>(null);
- const [showFollowModal, setShowFollowModal] = useState<'followers' | 'following' | null>(null);
+ const [showFriendsModal, setShowFriendsModal] = useState(false);
  const [showWhispersModal, setShowWhispersModal] = useState(false);
  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
  const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -211,8 +211,7 @@ export default function Profile() {
  topActors,
  topDirectors,
  leastKnownGem,
- followersCount,
- followingCount,
+ friendsCount,
  essencePersonality,
  essenceArchetype,
  spectrumPoints,
@@ -304,18 +303,21 @@ export default function Profile() {
  const fetchFollowedUsersForCarousel = async () => {
  if (!session?.user?.id) return;
  try {
- const { data: follows, error: followsError } = await supabase
- .from('follows')
- .select('following_id')
- .eq('follower_id', session.user.id);
+ const { data: friendships, error: followsError } = await supabase
+ .from('friendships')
+ .select('requester_id, addressee_id')
+ .eq('status', 'accepted')
+ .or(`requester_id.eq.${session.user.id},addressee_id.eq.${session.user.id}`);
 
  if (followsError) throw followsError;
- if (!follows || follows.length === 0) {
+ if (!friendships || friendships.length === 0) {
  setFollowedUsersCarousel([]);
  return;
  }
 
- const followingIds = follows.map((f: any) => f.following_id);
+ const followingIds = friendships.map((f: any) =>
+ f.requester_id === session.user.id ? f.addressee_id : f.requester_id
+ );
 
  const { data: profiles, error: profilesError } = await supabase
  .from('profiles')
@@ -810,23 +812,13 @@ export default function Profile() {
 
  <div className={`flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm mb-4 ${getBannerSecondaryTextClass(profile?.banner, isPremium)}`}>
  <button
- onClick={() => setShowFollowModal('followers')}
+ onClick={() => setShowFriendsModal(true)}
  className="flex items-center hover:opacity-70 transition-opacity"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className={getBannerTextClass(profile?.banner, isPremium)}>{followersCount}</strong>{' '}
- {t('profile.followersLabel')}
- </span>
- </button>
- <button
- onClick={() => setShowFollowModal('following')}
- className="flex items-center hover:opacity-70 transition-opacity"
- >
- <Users className="w-5 h-5 mr-2" />
- <span>
- <strong className={getBannerTextClass(profile?.banner, isPremium)}>{followingCount}</strong>{' '}
- {t('profile.followingButton')}
+ <strong className={getBannerTextClass(profile?.banner, isPremium)}>{friendsCount}</strong>{' '}
+ {t('profile.friendsLabel', { defaultValue: 'Amigos' })}
  </span>
  </button>
  <div className="flex items-center">
@@ -1499,12 +1491,11 @@ export default function Profile() {
  />
  )}
 
- {showFollowModal && session?.user?.id && (
+ {showFriendsModal && session?.user?.id && (
  <FollowersModal
  isOpen={true}
- onClose={() => setShowFollowModal(null)}
+ onClose={() => setShowFriendsModal(false)}
  userId={session.user.id}
- type={showFollowModal}
  onFollowChange={refetchProfileData}
  />
  )}
