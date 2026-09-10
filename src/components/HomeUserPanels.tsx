@@ -495,11 +495,15 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
           </div>
 
           <div className="relative z-10 p-6">
-            {/* Avatar + Welcome — antes ocupava a linha inteira sozinho;
-                agora divide o espaço com os dois botões novos (Insights
-                e Mini Whisper), o que naturalmente "empurra" o bloco pra
-                esquerda em vez de ficar centralizado na largura toda. */}
-            <div className="flex items-center justify-between gap-2 mb-5">
+            {/* Avatar + Welcome — no mobile, divide o espaço com os dois
+                botões (Insights e Mini Whisper), que só existem nessa
+                posição em telas pequenas. No desktop, esses botões ficam
+                escondidos aqui (vivem na extensão separada, perto de
+                "Recomendações do Dia") — md:justify-center recentraliza
+                o bloco na posição original, já que justify-between
+                sozinho, com só 1 filho visível, não centraliza nada. */}
+            <div className="flex items-center justify-between md:justify-center gap-2 mb-5">
+              <Link to="/profile" className="flex items-center gap-4 group min-w-0">
               <Link to="/profile" className="flex items-center gap-4 group min-w-0">
                 <div className="relative flex-shrink-0">
                   {frameUsesComponent(avatarFrame || undefined, avatarIsPremium) === 'GhostRiderFrame' && avatarUrl ? (
@@ -831,33 +835,42 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
         <div className="flex flex-col gap-5 md:flex-1">
           {/* Extensão exclusiva de desktop — só em telas md+. Mesmas
               duas ações dos botões do topo (que agora só aparecem no
-              mobile), sem título de seção aparente. */}
-          <div className="hidden md:grid grid-cols-2 gap-3">
-            <button
-              onClick={handleOpenInsights}
-              className="relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <BarChart3 className="w-4 h-4" />
-              {t('home.panels.monthlyInsights', { defaultValue: 'Insights Mensais' })}
-              {insightsIsNew && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse" />
-              )}
-            </button>
-            <button
-              onClick={() => setShowHomeWhispersModal(true)}
-              className={`relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] ${
-                unreadWhispersHome > 0 ? 'animate-pulse shadow-orange-500/50' : ''
-              }`}
-            >
-              <MessageCircle className="w-4 h-4" />
-              {t('profile.whispers', { defaultValue: 'Sussurros' })}
-              {unreadWhispersHome > 0 && (
-                <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-white text-orange-600 text-[10px] font-bold rounded-full">
-                  {unreadWhispersHome}
-                </span>
-              )}
-            </button>
+              mobile), sem título de seção aparente. Envolvida no mesmo
+              tratamento "glass" (panelBase) de todo o resto da Home —
+              antes os botões ficavam soltos direto no fundo da página,
+              sem nenhuma caixa ao redor, destoando visualmente de tudo
+              mais. Essa caixa extra também consome o espaço que ainda
+              sobrava entre as alturas dos dois painéis, terminando de
+              alinhar com "Recomendações do Dia" ao lado. */}
+          <div className={`hidden md:block ${panelBase}`}>
+            <div className="relative z-10 p-4 grid grid-cols-2 gap-3">
+              <button
+                onClick={handleOpenInsights}
+                className="relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <BarChart3 className="w-4 h-4" />
+                {t('home.panels.monthlyInsights', { defaultValue: 'Insights Mensais' })}
+                {insightsIsNew && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse" />
+                )}
+              </button>
+              <button
+                onClick={() => setShowHomeWhispersModal(true)}
+                className={`relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                  unreadWhispersHome > 0 ? 'animate-pulse shadow-orange-500/50' : ''
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+                {t('profile.whispers', { defaultValue: 'Sussurros' })}
+                {unreadWhispersHome > 0 && (
+                  <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-white text-orange-600 text-[10px] font-bold rounded-full">
+                    {unreadWhispersHome}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
+
 
           {/* Panel 2 — Daily Recommendation (carrossel dos 3 oráculos) */}
           <motion.div
