@@ -26,7 +26,7 @@ interface MatchingUser {
   avatar_url: string | null;
   avatar_frame: string | null;
   plan_type: string | null;
-  is_followed: boolean;
+  is_friend: boolean;
 }
 
 interface Props {
@@ -500,7 +500,7 @@ const PersonaDetail: React.FC<{
                     )}
                   </div>
                   <div className="text-[10px] text-gray-500">
-                    {u.is_followed ? (isPt ? 'Seguindo' : 'Following') : (isPt ? 'Público' : 'Public')}
+                    {u.is_friend ? (isPt ? 'Amigo' : 'Friend') : (isPt ? 'Público' : 'Public')}
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-gray-300 transition flex-shrink-0" />
