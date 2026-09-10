@@ -1488,6 +1488,10 @@ export default function Profile() {
  isOpen={showWhispersModal}
  onClose={() => setShowWhispersModal(false)}
  userId={session.user.id}
+ onFriendAccepted={() => {
+ refetchProfileData();
+ fetchFollowedUsersForCarousel();
+ }}
  />
  )}
 
