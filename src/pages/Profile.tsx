@@ -546,15 +546,25 @@ export default function Profile() {
  console.log('[Avatar Upload] File selected:', file.name, '| MIME:', file.type, '| Size:', (file.size / 1024).toFixed(1) + 'KB');
 
  const isGif = file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
+ // WebP também pode ser animado (comum em exportações de editores de
+ // imagem) — antes só .gif escapava do canvas, então um avatar em WebP
+ // animado caía direto na conversão via canvas.toBlob, que só consegue
+ // capturar o frame atual de uma imagem animada e gera um arquivo
+ // estático, congelando a animação pra sempre — mesmo cumprindo
+ // qualquer limite de tamanho, já que o problema não era o tamanho do
+ // arquivo, e sim ele nunca ter sido reconhecido como "pode ser
+ // animado" antes de passar pelo canvas.
+ const isWebp = file.type === 'image/webp' || file.name.toLowerCase().endsWith('.webp');
+ const isAnimatable = isGif || isWebp;
  const isUserPremium = isPremium || profile?.plan_type === 'premium';
- const isPremiumGif = isGif && isUserPremium;
+ const isPremiumAnimated = isAnimatable && isUserPremium;
 
- console.log('[Avatar Upload] isPremium (auth):', isPremium, '| profile.plan_type:', profile?.plan_type, '| isUserPremium:', isUserPremium, '| isGif:', isGif, '| isPremiumGif:', isPremiumGif);
+ console.log('[Avatar Upload] isPremium (auth):', isPremium, '| profile.plan_type:', profile?.plan_type, '| isUserPremium:', isUserPremium, '| isAnimatable:', isAnimatable, '| isPremiumAnimated:', isPremiumAnimated);
 
- if (isPremiumGif) {
- const GIF_MAX_BYTES = 2 * 1024 * 1024;
- if (file.size > GIF_MAX_BYTES) {
- toast.error('Erro: Seu GIF tem mais de 2MB. Por favor, comprima a imagem para utilizar o avatar animado.');
+ if (isPremiumAnimated) {
+ const ANIMATED_MAX_BYTES = 2 * 1024 * 1024;
+ if (file.size > ANIMATED_MAX_BYTES) {
+ toast.error('Erro: Sua imagem animada tem mais de 2MB. Por favor, comprima a imagem para utilizar o avatar animado.');
  e.target.value = '';
  return;
  }
@@ -564,8 +574,8 @@ export default function Profile() {
  return;
  }
 
- if (isGif && !isUserPremium) {
- toast.info('Seu GIF foi adicionado como uma imagem estática. Assine o plano Premium para habilitar avatares animados no seu perfil!');
+ if (isAnimatable && !isUserPremium) {
+ toast.info('Sua imagem animada foi adicionada como uma imagem estática. Assine o plano Premium para habilitar avatares animados no seu perfil!');
  }
 
  setIsUploadingAvatar(true);
@@ -574,13 +584,16 @@ export default function Profile() {
  let ext: string;
  let contentType: string;
 
- if (isPremiumGif) {
- console.log('[Avatar Upload] Path: GIF bypass (Premium) — uploading raw GIF');
+ if (isPremiumAnimated) {
+ console.log('[Avatar Upload] Path: animated bypass (Premium) — uploading raw file, preserving original format');
  uploadBlob = file;
- ext = 'gif';
- contentType = 'image/gif';
+ // Mantém o formato real do arquivo original — antes isso estava
+ // fixo em 'gif'/'image/gif' mesmo quando o arquivo já podia ser
+ // outro formato animável, corrompendo o upload nesse caso.
+ ext = isGif ? 'gif' : 'webp';
+ contentType = isGif ? 'image/gif' : 'image/webp';
  } else {
- console.log('[Avatar Upload] Path: Canvas → WebP conversion (free user or non-GIF)');
+ console.log('[Avatar Upload] Path: Canvas → WebP conversion (free user or non-animatable format)');
  uploadBlob = await convertImageToWebP(file);
  ext = 'webp';
  contentType = 'image/webp';
@@ -607,7 +620,7 @@ export default function Profile() {
  .from('avatars')
  .getPublicUrl(filePath);
 
- const displayUrl = isPremiumGif ? `${publicUrl}?t=${Date.now()}` : publicUrl;
+ const displayUrl = isPremiumAnimated ? `${publicUrl}?t=${Date.now()}` : publicUrl;
 
  console.log('[Avatar Upload] publicUrl:', publicUrl, '| displayUrl:', displayUrl);
 
