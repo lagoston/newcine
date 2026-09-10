@@ -25,7 +25,7 @@ interface WhispersModalProps {
 interface Whisper {
   id: string;
   from_user_id: string | null;
-  type: 'movie' | 'follower' | 'new_episode' | 'tag_unlocked';
+  type: 'movie' | 'friend_request' | 'new_episode' | 'tag_unlocked';
   movie_id?: number;
   movie_title?: string;
   movie_poster?: string;
@@ -140,6 +140,43 @@ export default function WhispersModal({ isOpen, onClose, userId }: WhispersModal
       toast.error(t('indications.deleteError', { defaultValue: 'Erro ao apagar sussurro.' }));
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // Aceita ou recusa um pedido de amizade direto do Whisper — a peça
+  // central da mudança de "seguir" pra amizade mútua estilo Facebook.
+  // Recusar não deixa rastro (respond_to_friend_request já apaga a
+  // linha de friendships), e aqui também remove o próprio whisper,
+  // já que o pedido foi resolvido.
+  const handleRespondToFriendRequest = async (whisper: Whisper, accept: boolean) => {
+    if (!session?.user?.id || !whisper.from_user_id) return;
+
+    try {
+      const { data, error } = await supabase.rpc('respond_to_friend_request', {
+        p_addressee_id: session.user.id,
+        p_requester_id: whisper.from_user_id,
+        p_accept: accept
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'respond_failed');
+
+      await supabase
+        .from('friend_indications')
+        .delete()
+        .match({ id: whisper.id, to_user_id: session.user.id });
+
+      setWhispers((prev) => prev.filter((w) => w.id !== whisper.id));
+      refetchUnreadCount();
+
+      toast.success(
+        accept
+          ? t('indications.friendRequestAccepted', { defaultValue: `Você e @${whisper.from_user?.username} agora são amigos!` })
+          : t('indications.friendRequestDeclined', { defaultValue: 'Pedido de amizade recusado.' })
+      );
+    } catch (error) {
+      console.error('Error responding to friend request:', error);
+      toast.error(t('indications.respondError', { defaultValue: 'Erro ao responder o pedido.' }));
     }
   };
 
@@ -258,8 +295,8 @@ export default function WhispersModal({ isOpen, onClose, userId }: WhispersModal
                                         {whisper.from_user.username}
                                       </span>
                                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                                        {whisper.type === 'follower'
-                                          ? t('indications.startedFollowing', { defaultValue: 'começou a te seguir' })
+                                        {whisper.type === 'friend_request'
+                                          ? t('indications.sentFriendRequest', { defaultValue: 'quer ser seu amigo' })
                                           : t('indications.recommended', { defaultValue: 'recomendou' })}
                                       </span>
                                     </>
@@ -322,29 +359,36 @@ export default function WhispersModal({ isOpen, onClose, userId }: WhispersModal
                               </>
                             )}
 
-                            {whisper.type === 'follower' && (
+                            {whisper.type === 'friend_request' && (
                               <>
                                 <div className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-xl p-3 mb-3 text-center">
                                   <p className="text-sm text-gray-700 dark:text-gray-300">
                                     <User className="w-4 h-4 inline-block mr-1.5 text-orange-500 align-text-bottom" />
                                     <span className="font-semibold">@{whisper.from_user?.username}</span>{' '}
-                                    {t('indications.nowFollowingYou', { defaultValue: 'agora está te seguindo!' })} 🎉
+                                    {t('indications.wantsToBeFriends', { defaultValue: 'quer ser seu amigo!' })} 🤝
                                   </p>
                                 </div>
-                                <div className="flex justify-end gap-1.5">
+                                <div className="flex justify-end gap-1.5 flex-wrap">
                                   <button
                                     onClick={() => { onClose(); navigate(`/profile/${whisper.from_user?.username}`); }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-orange-600 dark:text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-gray-600 dark:text-gray-300 bg-gray-500/10 hover:bg-gray-500/20 transition-colors"
                                   >
                                     <User className="w-3.5 h-3.5" />
                                     {t('indications.viewProfile', { defaultValue: 'Ver Perfil' })}
                                   </button>
                                   <button
-                                    onClick={() => setDeletingId(whisper.id)}
+                                    onClick={() => handleRespondToFriendRequest(whisper, false)}
                                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-red-500 bg-red-500/10 hover:bg-red-500/20 transition-colors"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
-                                    {t('common.delete', { defaultValue: 'Apagar' })}
+                                    {t('indications.declineRequest', { defaultValue: 'Recusar' })}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRespondToFriendRequest(whisper, true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:shadow-md transition-all"
+                                  >
+                                    <User className="w-3.5 h-3.5" />
+                                    {t('indications.acceptRequest', { defaultValue: 'Aceitar' })}
                                   </button>
                                 </div>
                               </>
