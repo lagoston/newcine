@@ -133,9 +133,16 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
         // "Gerar" que o limite do dia já foi usado (ex.: ele fechou o
         // modal ontem depois de gerar e voltou hoje), em vez de só
         // descobrir isso depois de uma chamada que falha.
-        const today = new Date().toISOString().slice(0, 10);
+        //
+        // toBrasiliaDateKey subtrai 3h antes de extrair a data, pra usar
+        // a mesma fronteira de dia que o timer visual (OracleCountdown)
+        // promete — meia-noite de Brasília (03:00 UTC), não o
+        // calendário UTC puro (que viraria 3h antes, criando uma janela
+        // onde o app achava erroneamente que já era um novo dia).
+        const toBrasiliaDateKey = (d: Date) => new Date(d.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const today = toBrasiliaDateKey(new Date());
         const lastGenDate = profile?.last_ai_review_at
-          ? new Date(profile.last_ai_review_at).toISOString().slice(0, 10)
+          ? toBrasiliaDateKey(new Date(profile.last_ai_review_at))
           : null;
         const isNewDay = lastGenDate !== today;
         const countToday = isNewDay ? 0 : (profile?.ai_review_daily_count || 0);
