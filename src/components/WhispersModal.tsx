@@ -16,6 +16,12 @@ interface WhispersModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
+  // Chamado quando um pedido de amizade é aceito daqui — permite que a
+  // página que abriu o modal (hoje só Profile.tsx) recarregue seus
+  // próprios dados (contagem de amigos, carrossel de atividade), mesmo
+  // implementação usada pelo CustomizeModal quando um item cosmético é
+  // aplicado (onSave), sem precisar de reload da página inteira.
+  onFriendAccepted?: () => void;
 }
 
 // Estrutura genérica de tipos — cada notificação nova que formos
@@ -45,7 +51,7 @@ interface Whisper {
   } | null;
 }
 
-export default function WhispersModal({ isOpen, onClose, userId }: WhispersModalProps) {
+export default function WhispersModal({ isOpen, onClose, userId, onFriendAccepted }: WhispersModalProps) {
   const { session } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -168,6 +174,13 @@ export default function WhispersModal({ isOpen, onClose, userId }: WhispersModal
 
       setWhispers((prev) => prev.filter((w) => w.id !== whisper.id));
       refetchUnreadCount();
+
+      // Mesmo padrão do CustomizeModal ao aplicar um item cosmético
+      // (onSave) — avisa a página que abriu o modal pra recarregar seus
+      // próprios dados, sem precisar de reload da página inteira.
+      if (accept) {
+        onFriendAccepted?.();
+      }
 
       toast.success(
         accept
