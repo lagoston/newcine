@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Loader2, LibraryBig, Filter, Ticket, PartyPopper } from 'lucide-react';
+import { ArrowLeft, Loader2, LibraryBig, Filter, Ticket, PartyPopper, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { getOraclePoolMovies, spendTickets, Movie, getMovieDetails } from '../lib/tmdb';
+import { getOraclePoolPredictions, getMoviesForPredictedSlice, spendTickets, Movie, getMovieDetails } from '../lib/tmdb';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import OracleForYouBox from '../components/OracleForYouBox';
 import StreamingFilterModal from '../components/StreamingFilterModal';
@@ -65,16 +65,22 @@ const Shelf: React.FC<{
   cardType: CardType;
   mood: typeof MOOD_CATEGORIES[number];
   userId: string;
+  accessToken: string;
   selectedProviderIds: number[];
   ticketsRemaining: number | null;
   onTicketsSpent: (remaining: number) => void;
   onMovieClick: (movie: Movie) => void;
-}> = ({ cardType, mood, userId, selectedProviderIds, ticketsRemaining, onTicketsSpent, onMovieClick }) => {
+}> = ({ cardType, mood, userId, accessToken, selectedProviderIds, ticketsRemaining, onTicketsSpent, onMovieClick }) => {
   const { t } = useTranslation();
   const [state, setState] = useState<ShelfState>({ movies: [], totalCount: 0, loading: true, loadingMore: false });
   const stateRef = useRef(state);
   stateRef.current = state;
   const isFetchingRef = useRef(false);
+  // Cache da lista completa de IDs já ordenados pela nota PREVISTA
+  // pessoal (calculada uma vez pela Edge Function) — "carregar mais" só
+  // fatia essa lista e busca detalhes da fatia nova, sem recalcular as
+  // previsões de novo a cada clique.
+  const predictedIdsRef = useRef<{ movie_id: number; predicted_rating: number; is_true_ten: boolean }[]>([]);
 
   // Drag-to-scroll com mouse — mesmo padrão já usado no carrossel da
   // Watchlist. O scroll horizontal funcionava por toque no mobile, mas
@@ -124,10 +130,30 @@ const Shelf: React.FC<{
     isFetchingRef.current = true;
     setState((s) => ({ ...s, loadingMore: current.movies.length > 0, loading: current.movies.length === 0 }));
     try {
-      const page = await getOraclePoolMovies(cardType, mood.key, userId, SHELF_PAGE_SIZE, current.movies.length);
+      // Primeira carga da prateleira: calcula as previsões pra TODO o
+      // pool (uma única chamada à Edge Function) e guarda em cache.
+      // Cargas seguintes ("carregar mais") só fatiam esse cache já
+      // pronto — nenhuma nova previsão é recalculada.
+      if (current.movies.length === 0) {
+        predictedIdsRef.current = await getOraclePoolPredictions(cardType, mood.key, accessToken);
+      }
+
+      const allPredicted = predictedIdsRef.current;
+      const nextSlice = allPredicted.slice(current.movies.length, current.movies.length + SHELF_PAGE_SIZE);
+      const sliceMovies = await getMoviesForPredictedSlice(nextSlice.map((p) => p.movie_id));
+
+      // Anexa a nota prevista (e se é um "10 verdadeiro" do Filtro do 10)
+      // a cada filme, na mesma ordem em que a previsão já veio ordenada.
+      const ratingByMovieId = new Map(nextSlice.map((p) => [p.movie_id, p]));
+      const enrichedMovies = sliceMovies.map((movie) => ({
+        ...movie,
+        predictedRating: ratingByMovieId.get(movie.id)?.predicted_rating,
+        isTrueTen: ratingByMovieId.get(movie.id)?.is_true_ten,
+      }));
+
       setState((s) => ({
-        movies: current.movies.length === 0 ? page.movies : [...s.movies, ...page.movies],
-        totalCount: page.totalCount,
+        movies: current.movies.length === 0 ? enrichedMovies : [...s.movies, ...enrichedMovies],
+        totalCount: allPredicted.length,
         loading: false,
         loadingMore: false,
       }));
@@ -137,10 +163,11 @@ const Shelf: React.FC<{
     } finally {
       isFetchingRef.current = false;
     }
-  }, [cardType, mood.key, userId, onTicketsSpent, t]);
+  }, [cardType, mood.key, userId, accessToken, onTicketsSpent, t]);
 
   useEffect(() => {
     isFetchingRef.current = false;
+    predictedIdsRef.current = [];
     setState({ movies: [], totalCount: 0, loading: true, loadingMore: false });
     loadMore(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -263,6 +290,16 @@ const Shelf: React.FC<{
                         loading="lazy"
                         draggable={false}
                       />
+                      {/* Selo do Filtro do 10 — só aparece nos poucos
+                          filmes cuja nota prevista + bônus (diretor,
+                          país, mood, keyword em comum com a caixa de
+                          nota 10 do usuário) ultrapassou 10.0. */}
+                      {(movie as Movie & { isTrueTen?: boolean }).isTrueTen && (
+                        <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 shadow-lg shadow-amber-500/40">
+                          <Star className="w-3 h-3 fill-white text-white" />
+                          <span className="text-[10px] font-black text-white leading-none">10</span>
+                        </div>
+                      )}
                       {/* Sombra de contato na base do pôster, reforçando
                           que ele está "apoiado" na tábua. */}
                       <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
@@ -537,6 +574,7 @@ export default function OracleLibraries() {
                   cardType={selectedOracle}
                   mood={mood}
                   userId={session.user.id}
+                  accessToken={session.access_token}
                   selectedProviderIds={selectedProviderIds}
                   ticketsRemaining={ticketsRemaining}
                   onTicketsSpent={setTicketsRemaining}
