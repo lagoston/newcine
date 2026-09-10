@@ -68,12 +68,12 @@ const ORACLE_REC_TIERS = [
 ];
 
 const COMMUNITY_TIERS = [
-  { name: 'Spotlight Spark', emoji: '✨', min: 1, hint: '1 follower', hintPt: '1 seguidor' },
-  { name: 'Rising Star', emoji: '🌠', min: 10, hint: '10 followers', hintPt: '10 seguidores' },
-  { name: 'Red-Carpet Regular', emoji: '👠', min: 25, hint: '25 followers', hintPt: '25 seguidores' },
-  { name: 'Festival Favorite', emoji: '🏵️', min: 50, hint: '50 followers', hintPt: '50 seguidores' },
-  { name: 'Blockbuster', emoji: '💥', min: 100, hint: '100 followers', hintPt: '100 seguidores' },
-  { name: 'Cult Legend', emoji: '🌟', min: 200, hint: '200 followers', hintPt: '200 seguidores' },
+  { name: 'Spotlight Spark', emoji: '✨', min: 1, hint: '1 friend', hintPt: '1 amigo' },
+  { name: 'Rising Star', emoji: '🌠', min: 10, hint: '10 friends', hintPt: '10 amigos' },
+  { name: 'Red-Carpet Regular', emoji: '👠', min: 25, hint: '25 friends', hintPt: '25 amigos' },
+  { name: 'Festival Favorite', emoji: '🏵️', min: 50, hint: '50 friends', hintPt: '50 amigos' },
+  { name: 'Blockbuster', emoji: '💥', min: 100, hint: '100 friends', hintPt: '100 amigos' },
+  { name: 'Cult Legend', emoji: '🌟', min: 200, hint: '200 friends', hintPt: '200 amigos' },
 ];
 
 const THEME_TAGS = [
@@ -208,7 +208,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
   const [listsPreview, setListsPreview] = useState<{ id: string; name: string }[]>([]);
   const [listsCount, setListsCount] = useState<number>(0);
   const [unratedCount, setUnratedCount] = useState<number>(0);
-  const [followingCount, setFollowingCount] = useState<number>(0);
+  const [friendsCount, setFriendsCount] = useState<number>(0);
 
   const [essenceSlideIndex, setEssenceSlideIndex] = useState(0);
 
@@ -258,7 +258,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
     ? (1 // ess-main, sempre presente com essência
       + (personaChar ? 1 : 0) // ess-persona
       + (listsCount > 0 ? 1 : 0) // lib-lists
-      + (followingCount > 0 ? 1 : 0) // lib-match
+      + (friendsCount > 0 ? 1 : 0) // lib-match
       + 1 // tag-main, sempre presente
       + (unratedCount >= 4 ? 1 : 0)) // tag-duel
     : 1;
@@ -286,12 +286,11 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
 
   const fetchUserStats = useCallback(async () => {
     try {
-      const [profileRes, moviesRes, followsRes, profileFull, followingRes, listsRes, unratedRes] = await Promise.all([
+      const [profileRes, moviesRes, friendshipsRes, profileFull, listsRes, unratedRes] = await Promise.all([
         supabase.from('public_profiles').select('avatar_url, avatar_frame, plan_type, is_premium').eq('id', userId).maybeSingle(),
         supabase.from('user_movies').select('movie_id').eq('user_id', userId),
-        supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
+        supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
         supabase.from('profiles').select('oracle_predictions_count, oracle_recommendations_count').eq('id', userId).maybeSingle(),
-        supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
         supabase.from('lists').select('id, name').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3),
         supabase.from('user_movies').select('movie_id', { count: 'exact', head: true }).eq('user_id', userId).is('rating', null),
       ]);
@@ -299,7 +298,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
       setAvatarUrl(profileRes.data?.avatar_url ?? null);
       setAvatarFrame(profileRes.data?.avatar_frame ?? null);
       setAvatarIsPremium((profileRes.data as any)?.is_premium ?? profileRes.data?.plan_type === 'premium');
-      setFollowingCount(followingRes.count ?? 0);
+      setFriendsCount(friendshipsRes.count ?? 0);
       setListsPreview((listsRes.data ?? []) as { id: string; name: string }[]);
       setListsCount(listsRes.data?.length ?? 0);
       setUnratedCount(unratedRes.count ?? 0);
@@ -311,7 +310,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
       if (!tagPickedRef.current) {
         const predCount = profileFull.data?.oracle_predictions_count ?? 0;
         const recCount = profileFull.data?.oracle_recommendations_count ?? 0;
-        const follCount = followsRes.count ?? 0;
+        const follCount = friendshipsRes.count ?? 0;
         const userMovieSet = new Set(movieIds);
 
         const candidates: LockedTag[] = [
@@ -620,7 +619,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 }
 
                 // Match com Amigos — desceu da antiga prateleira 1.
-                if (followingCount > 0) {
+                if (friendsCount > 0) {
                   essenceSlides.push(
                     <div key="lib-match" className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
