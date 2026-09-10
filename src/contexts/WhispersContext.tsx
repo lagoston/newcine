@@ -1,15 +1,31 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
 interface WhispersContextValue {
   unreadCount: number;
   refetchUnreadCount: () => void;
+  // Pra onde o modal de sussurros deve abrir agora — null quando
+  // nenhum pedido está pendente. Quem consome (Profile.tsx,
+  // HomeUserPanels.tsx) observa o valor que lhe interessa e chama
+  // clearOpenWhispersTarget() depois de abrir seu próprio modal.
+  openWhispersTarget: 'profile' | 'home' | null;
+  // Chamado por qualquer notificação/preview de sussurro clicável em
+  // qualquer lugar do app (ex.: WhispersNotificationPopup). Decide "o
+  // mais perto" pra abrir: se já está na Home, abre o mini-whisper de
+  // lá; em qualquer outro lugar (incluindo já estando em Profile),
+  // abre — ou navega e abre — direto no Profile.
+  requestOpenWhispers: () => void;
+  clearOpenWhispersTarget: () => void;
 }
 
 const WhispersContext = createContext<WhispersContextValue>({
   unreadCount: 0,
   refetchUnreadCount: () => {},
+  openWhispersTarget: null,
+  requestOpenWhispers: () => {},
+  clearOpenWhispersTarget: () => {},
 });
 
 export const useWhispers = () => useContext(WhispersContext);
@@ -30,7 +46,20 @@ export const useWhispers = () => useContext(WhispersContext);
 // mesma lógica com o risco de divergir de novo no futuro.
 export const WhispersProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { session } = useAuth();
+  const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [openWhispersTarget, setOpenWhispersTarget] = useState<'profile' | 'home' | null>(null);
+
+  const requestOpenWhispers = useCallback(() => {
+    // "Mais perto de onde o usuário está": só a Home tem sua própria
+    // versão mini do inbox — qualquer outra página (incluindo Profile)
+    // usa o modal completo, que vive em Profile.
+    setOpenWhispersTarget(location.pathname === '/' ? 'home' : 'profile');
+  }, [location.pathname]);
+
+  const clearOpenWhispersTarget = useCallback(() => {
+    setOpenWhispersTarget(null);
+  }, []);
 
   const refetchUnreadCount = useCallback(async () => {
     if (!session?.user?.id) {
@@ -81,7 +110,7 @@ export const WhispersProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [session?.user?.id, refetchUnreadCount]);
 
   return (
-    <WhispersContext.Provider value={{ unreadCount, refetchUnreadCount }}>
+    <WhispersContext.Provider value={{ unreadCount, refetchUnreadCount, openWhispersTarget, requestOpenWhispers, clearOpenWhispersTarget }}>
       {children}
     </WhispersContext.Provider>
   );
