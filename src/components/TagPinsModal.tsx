@@ -233,9 +233,10 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       });
 
       const { count: followers } = await supabase
-        .from('follows')
+        .from('friendships')
         .select('*', { count: 'exact', head: true })
-        .eq('following_id', userId);
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
       setFollowersCount(followers || 0);
 
       const { data: profileData } = await supabase
