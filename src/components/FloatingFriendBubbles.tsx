@@ -43,12 +43,15 @@ const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, 
       }
 
       try {
-        const { data: followingData } = await supabase
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', session.user.id);
+        const { data: friendshipData } = await supabase
+          .from('friendships')
+          .select('requester_id, addressee_id')
+          .eq('status', 'accepted')
+          .or(`requester_id.eq.${session.user.id},addressee_id.eq.${session.user.id}`);
 
-        const followingIds = (followingData || []).map((f: any) => f.following_id);
+        const followingIds = (friendshipData || []).map((f: any) =>
+          f.requester_id === session.user.id ? f.addressee_id : f.requester_id
+        );
         if (followingIds.length === 0) {
           if (!cancelled) { setBubbles([]); setLoading(false); }
           return;
