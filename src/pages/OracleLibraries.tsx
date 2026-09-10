@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Loader2, LibraryBig, Filter, Ticket, PartyPopper, Star } from 'lucide-react';
+import { ArrowLeft, Loader2, LibraryBig, Filter, Ticket, PartyPopper, Star, Wand2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useAuth } from '../lib/auth';
@@ -296,6 +296,17 @@ const Shelf: React.FC<{
                         loading="lazy"
                         draggable={false}
                       />
+                      {/* Nota PREVISTA pra esse usuário — mesmo ícone e
+                          cor da legenda no topo da seção, deixando
+                          claro que não é a nota pública do filme. */}
+                      {typeof (movie as Movie & { predictedRating?: number }).predictedRating === 'number' && (
+                        <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-violet-600/90 backdrop-blur-sm shadow-lg">
+                          <Wand2 className="w-3 h-3 text-white" />
+                          <span className="text-[10px] font-black text-white leading-none">
+                            {(movie as Movie & { predictedRating?: number }).predictedRating}
+                          </span>
+                        </div>
+                      )}
                       {/* Selo do Filtro do 10 — só aparece nos poucos
                           filmes cuja nota prevista + bônus (diretor,
                           país, mood, keyword em comum com a caixa de
@@ -564,7 +575,7 @@ export default function OracleLibraries() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
                   <img src={getCardImage(selectedOracle)} alt="" className="w-full h-full object-cover" />
                 </div>
@@ -572,6 +583,19 @@ export default function OracleLibraries() {
                   <p className={`text-sm font-bold ${ORACLE_THEME[selectedOracle].text}`}>{t(`oracle.cards.${selectedOracle}`)}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{t(`oracle.cards.${selectedOracle}Subtitle`)}</p>
                 </div>
+              </div>
+
+              {/* Legenda explicando a nota exibida em cada pôster —
+                  mesmo ícone e cor usados no selo de cada capa, pra
+                  deixar visualmente óbvio que os dois se referem à
+                  mesma coisa: não é a nota pública do site, é a nota
+                  que o sistema de previsões calculou especificamente
+                  pra esse usuário. */}
+              <div className="flex items-center gap-2 mb-6 px-3.5 py-2 rounded-xl bg-violet-500/10 border border-violet-400/25 w-fit">
+                <Wand2 className="w-4 h-4 text-violet-600 dark:text-violet-400 flex-shrink-0" />
+                <p className="text-xs font-medium text-violet-700 dark:text-violet-300">
+                  {t('oracle.libraries.predictedRatingLegend', { defaultValue: 'Mostrando a nota prevista para você — não é a nota pública do filme' })}
+                </p>
               </div>
 
               {session?.user?.id && orderedMoods.map((mood) => (
