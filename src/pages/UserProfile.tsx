@@ -10,6 +10,7 @@ import { useAuth } from '../lib/auth';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import RatingBox from '../components/RatingBox';
 import FollowersModal from '../components/FollowersModal';
+import ConfirmationModal from '../components/ConfirmationModal';
 import WorldMapCard from '../components/WorldMapCard';
 import UserPinsCard from '../components/UserPinsCard';
 import { toast } from 'sonner';
@@ -112,6 +113,7 @@ export default function UserProfile() {
  const [loading, setLoading] = useState(true);
  const [isToggling, setIsToggling] = useState(false);
  const [showFriendsModal, setShowFriendsModal] = useState(false);
+ const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
  const [showUserListsModal, setShowUserListsModal] = useState(false);
  const [showUserReviewsModal, setShowUserReviewsModal] = useState(false);
  const [showCompatibilityModal, setShowCompatibilityModal] = useState(false);
@@ -230,7 +232,18 @@ export default function UserProfile() {
  }
  };
 
- const handleFriendAction = async () => {
+ // Só "desfazer amizade" precisa de confirmação — é a única ação
+ // destrutiva das quatro (enviar pedido, cancelar pedido enviado, e
+ // aceitar pedido recebido não desfazem nada que já existia).
+ const handleFriendAction = () => {
+ if (friendshipStatus === 'friends') {
+ setShowUnfriendConfirm(true);
+ return;
+ }
+ performFriendAction();
+ };
+
+ const performFriendAction = async () => {
  if (!session) {
  toast.error('Please sign in to add friends');
  return;
@@ -305,6 +318,7 @@ export default function UserProfile() {
  toast.error('Failed to update friendship status');
  } finally {
  setIsToggling(false);
+ setShowUnfriendConfirm(false);
  }
  };
 
@@ -997,6 +1011,14 @@ export default function UserProfile() {
  onFollowChange={refetchProfileData}
  />
  )}
+
+ <ConfirmationModal
+ isOpen={showUnfriendConfirm}
+ onClose={() => setShowUnfriendConfirm(false)}
+ onConfirm={performFriendAction}
+ title={t('profile.unfriendConfirmTitle', { defaultValue: 'Desfazer amizade' })}
+ message={t('profile.unfriendConfirmMessage', { defaultValue: `Tem certeza que deseja desfazer a amizade com @${profile.username}?` })}
+ />
 
  {showUserListsModal && profile.id && (
  <UserListsModal
