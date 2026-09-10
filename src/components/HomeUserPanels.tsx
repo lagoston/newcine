@@ -527,7 +527,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 </div>
               </Link>
 
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0 md:hidden">
                 <button
                   onClick={handleOpenInsights}
                   className="relative p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
@@ -816,51 +816,56 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                 </div>
               )
             )}
-
-            {/* Extensão exclusiva de desktop — só em telas md+. Reaproveita
-                as mesmas duas ações (Insights e Mini Whisper, já nos ícones
-                do topo em qualquer tamanho de tela) num bloco maior, sem
-                título de seção aparente, só pra ocupar a altura extra que
-                esse painel precisa pra bater com "Recomendações do Dia" ao
-                lado — sem isso, o painel menor ficava esticado
-                artificialmente pelo md:items-stretch do container pai. */}
-            <div className="hidden md:grid grid-cols-2 gap-3 mt-5">
-              <button
-                onClick={handleOpenInsights}
-                className="relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <BarChart3 className="w-4 h-4" />
-                {t('home.panels.monthlyInsights', { defaultValue: 'Insights Mensais' })}
-                {insightsIsNew && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse" />
-                )}
-              </button>
-              <button
-                onClick={() => setShowHomeWhispersModal(true)}
-                className={`relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] ${
-                  unreadWhispersHome > 0 ? 'animate-pulse shadow-orange-500/50' : ''
-                }`}
-              >
-                <MessageCircle className="w-4 h-4" />
-                {t('profile.whispers', { defaultValue: 'Sussurros' })}
-                {unreadWhispersHome > 0 && (
-                  <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-white text-orange-600 text-[10px] font-bold rounded-full">
-                    {unreadWhispersHome}
-                  </span>
-                )}
-              </button>
-            </div>
           </div>
         </motion.div>
 
-        {/* Panel 2 — Daily Recommendation (carrossel dos 3 oráculos) */}
-        {/* Panel 2 — Daily Recommendation (carrossel dos 3 oráculos) */}
-        <motion.div
-          className={`${panelBase} md:flex-1`}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.12 }}
-        >
+        {/* Coluna que junta a extensão exclusiva de desktop (acima) com
+            o painel de Recomendações do Dia (abaixo) — as duas juntas
+            ocupam md:flex-1. Isso faz a altura NATURAL dessa coluna
+            crescer de verdade (a extensão é conteúdo real, não
+            decoração), reduzindo a diferença de altura com o painel de
+            boas-vindas ao lado — em vez de "esticar" visualmente via
+            md:items-stretch sem nada preenchendo o espaço extra. Corrige
+            o problema anterior, onde a extensão vivia DENTRO do painel
+            de boas-vindas e só aumentava ainda mais a diferença. */}
+        <div className="flex flex-col gap-5 md:flex-1">
+          {/* Extensão exclusiva de desktop — só em telas md+. Mesmas
+              duas ações dos botões do topo (que agora só aparecem no
+              mobile), sem título de seção aparente. */}
+          <div className="hidden md:grid grid-cols-2 gap-3">
+            <button
+              onClick={handleOpenInsights}
+              className="relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <BarChart3 className="w-4 h-4" />
+              {t('home.panels.monthlyInsights', { defaultValue: 'Insights Mensais' })}
+              {insightsIsNew && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse" />
+              )}
+            </button>
+            <button
+              onClick={() => setShowHomeWhispersModal(true)}
+              className={`relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                unreadWhispersHome > 0 ? 'animate-pulse shadow-orange-500/50' : ''
+              }`}
+            >
+              <MessageCircle className="w-4 h-4" />
+              {t('profile.whispers', { defaultValue: 'Sussurros' })}
+              {unreadWhispersHome > 0 && (
+                <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-white text-orange-600 text-[10px] font-bold rounded-full">
+                  {unreadWhispersHome}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Panel 2 — Daily Recommendation (carrossel dos 3 oráculos) */}
+          <motion.div
+            className={panelBase}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.12 }}
+          >
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-0 left-0 w-52 h-52 bg-gradient-to-br from-rose-500/10 to-pink-400/10 rounded-full blur-3xl" />
             <div className="absolute bottom-0 right-0 w-40 h-40 bg-gradient-to-tl from-orange-400/10 to-rose-500/10 rounded-full blur-3xl" />
@@ -997,6 +1002,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
             </Link>
           </div>
         </motion.div>
+        </div>
       </div>
 
       {selectedMovie && (
