@@ -70,7 +70,7 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
     try {
       setLoadingFriends(true);
       const { data, error } = await supabase
-        .rpc('get_followed_users_with_watchlist', { p_user_id: session?.user?.id, p_min_count: 4 });
+        .rpc('get_friends_with_watchlist', { p_user_id: session?.user?.id, p_min_count: 4 });
       if (error) throw error;
       setFriends(data || []);
     } catch (error) {
