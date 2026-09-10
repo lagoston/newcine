@@ -289,8 +289,8 @@
     "sendIndication": "Enviar Indicação",
     "indicationSent": "Indicação enviada para {{username}}!",
     "writeMessage": "Escreva uma mensagem",
-    "selectFollower": "Selecione um seguidor",
-    "noFollowers": "Você não tem seguidores ainda",
+    "selectFollower": "Selecione um amigo",
+    "noFollowers": "Você não tem amigos ainda",
     "dailyLimit": "Você atingiu o limite diário de {{limit}} indicações. Tente novamente amanhã!",
     "premiumDailyLimit": "Você atingiu o limite diário de {{limit}} indicações para usuários Premium. Tente novamente amanhã!",
     "upgradeToPremium": "Faça upgrade para Premium e envie até 20 indicações por dia!"
@@ -574,7 +574,8 @@
       "modern": "Conhecedor do cinema moderno, acompanhando as tendências.",
       "onlyVotes": "Apenas {{count}}",
       "otherDecades": "Outras Décadas"
-    }
+    },
+    "friendsLabel": "Amigos"
   },
   "premium": {
     "title": "Upgrade para Premium",
@@ -706,7 +707,9 @@
     "typeDelete": "Digite EXCLUIR",
     "accountDeleted": "Conta excluída com sucesso",
     "deleteAccountError": "Erro ao excluir conta",
-    "confirmationRequired": "Por favor, digite EXCLUIR para confirmar"
+    "confirmationRequired": "Por favor, digite EXCLUIR para confirmar",
+    "friendsOnly": "Apenas Amigos",
+    "friendsOnlyDescription": "Seu perfil é visível apenas para seus amigos"
   },
   "footer": {
     "madeWith": "Feito com ❤️ pela equipe CineOracle",
@@ -764,7 +767,7 @@
     },
     "progress": {
       "moviesRated": "Progresso: {{count}} filmes avaliados",
-      "followers": "Progresso: {{count}} seguidores",
+      "followers": "Progresso: {{count}} amigos",
       "predictions": "Previsões",
       "recommendations": "Recomendações"
     },
