@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Star, Play, X, Loader2, Ticket, Trophy, Swords, Plus, HelpCircle, Info } from 'lucide-react';
+import { ArrowLeft, Sparkles, Star, Play, X, Loader2, Trophy, Swords, Plus, HelpCircle, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
@@ -64,8 +64,6 @@ const MOOD_COLORS: Record<string, { bg: string; hover: string; text: string; bor
 const ORACLE_IDS: CardType[] = ['bogart', 'fincher', 'cypher'];
 const ORACLE_NAMES: Record<CardType, string> = { bogart: 'BOGART', fincher: 'FINCHER', cypher: 'CYPHER' };
 
-const DUEL_COST = 3;
-
 type Phase = 'setup' | 'loading' | 'bracket' | 'champion';
 
 export default function OracleDuel() {
@@ -77,8 +75,11 @@ export default function OracleDuel() {
  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
  const [selectedOracles, setSelectedOracles] = useState<CardType[]>([]);
  const [setupError, setSetupError] = useState<string | null>(null);
- const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
- const [nextReset, setNextReset] = useState<Date | null>(null);
+ // Tickets aposentados — Duelo virou um recurso inteiramente premium,
+ // sem limite de uso. checkingPremium existe só pra não mostrar
+ // nenhuma tela (nem setup, nem trava) antes de saber o status real.
+ const [isPremium, setIsPremium] = useState(false);
+ const [checkingPremium, setCheckingPremium] = useState(true);
  const [cardStyle, setCardStyle] = useState<'default' | 'yugioh'>('default');
 
  const [roundMovies, setRoundMovies] = useState<DuelMovie[]>([]);
@@ -96,7 +97,7 @@ export default function OracleDuel() {
 
  useEffect(() => {
  if (session?.user?.id) {
- fetchTicketInfo();
+ fetchPremiumStatus();
  fetchCardStyle();
  }
  }, [session?.user?.id]);
@@ -111,28 +112,16 @@ export default function OracleDuel() {
  }
  };
 
- const fetchTicketInfo = async () => {
+ const fetchPremiumStatus = async () => {
  try {
- const { data, error } = await supabase.rpc('check_and_reset_tickets', { user_id_param: session?.user?.id });
+ const { data, error } = await supabase.rpc('get_user_premium_status', { user_id_input: session?.user?.id });
  if (error) throw error;
- if (data && data.length > 0) {
- setTicketsRemaining(data[0].tickets_remaining);
- setNextReset(new Date(data[0].next_reset));
- }
+ setIsPremium(data || false);
  } catch (error) {
- console.error('Error fetching ticket info:', error);
+ console.error('Error fetching premium status:', error);
+ } finally {
+ setCheckingPremium(false);
  }
- };
-
- const formatTimeUntilReset = () => {
- if (!nextReset) return '';
- const now = new Date();
- const diff = nextReset.getTime() - now.getTime();
- if (diff <= 0) return t('common.now');
- const days = Math.floor(diff / (1000 * 60 * 60 * 24));
- const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
- if (days > 0) return `${days}d ${hours}h`;
- return `${hours}h`;
  };
 
  const getCardImage = (cardId: CardType) => {
@@ -173,8 +162,7 @@ export default function OracleDuel() {
  const data = await response.json();
 
  if (!response.ok) {
- setTicketsRemaining(data.ticketsRemaining ?? null);
- toast.error(data.error === 'Insufficient tickets' ? t('duel.notEnoughTickets', { needed: data.ticketsNeeded }) : data.error);
+ toast.error(data.error === 'Premium required' ? t('duel.premiumRequired', { defaultValue: 'É preciso ser Premium pra jogar o Duelo.' }) : data.error);
  setPhase('setup');
  return;
  }
@@ -186,7 +174,6 @@ export default function OracleDuel() {
  }
 
  setRoundMovies(data.movies);
- setTicketsRemaining(data.ticketsRemaining);
  setWinners([]);
  setPairIndex(0);
  setChampion(null);
@@ -283,6 +270,37 @@ export default function OracleDuel() {
  </motion.button>
  </div>
 
+ {checkingPremium ? (
+ <div className="flex justify-center py-20">
+ <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+ </div>
+ ) : !isPremium ? (
+ // Duelo virou um recurso inteiramente premium — a tela de
+ // configuração (moods, oráculos, etc.) nem chega a ser montada
+ // pra quem não é premium, só esse aviso com CTA.
+ <motion.div
+ className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-amber-300/50 dark:border-amber-500/30 shadow-2xl p-8 sm:p-12 text-center"
+ initial={{ opacity: 0, y: 20 }}
+ animate={{ opacity: 1, y: 0 }}
+ >
+ <div className="inline-flex p-4 rounded-full bg-gradient-to-br from-amber-400/20 to-orange-500/20 border border-amber-400/30 mb-5">
+ <Swords className="w-10 h-10 text-amber-500" />
+ </div>
+ <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+ {t('duel.premiumFeatureTitle', { defaultValue: 'Duelo é exclusivo Premium' })}
+ </h2>
+ <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
+ {t('duel.premiumFeatureDescription', { defaultValue: 'Assine o Premium pra fazer quantos duelos quiser, sem limite.' })}
+ </p>
+ <button
+ onClick={() => navigate('/premium')}
+ className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl hover:shadow-xl hover:shadow-amber-500/30 transition-all"
+ >
+ {t('oracle.viewPremium', { defaultValue: 'Ver Premium' })}
+ </button>
+ </motion.div>
+ ) : (
+ <>
  {/* SETUP */}
  {phase === 'setup' && (
  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -300,37 +318,6 @@ export default function OracleDuel() {
  {t('duel.title')}
  </h1>
  <p className="text-gray-600 dark:text-gray-300 text-lg mb-8">{t('duel.description')}</p>
-
- {/* Contador de tickets, mesmo estilo da Câmara de Recomendação */}
- <motion.div
- className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 p-4 mb-8 inline-flex flex-col sm:flex-row items-center gap-4 sm:gap-8"
- initial={{ opacity: 0, scale: 0.95 }}
- animate={{ opacity: 1, scale: 1 }}
- transition={{ delay: 0.2 }}
- >
- <div className="flex items-center gap-2">
- <Ticket className="w-5 h-5 text-amber-500" />
- <span className="font-semibold text-gray-700 dark:text-gray-200">{ticketsRemaining ?? '...'}</span>
- <span className="text-gray-500 dark:text-gray-400">{t('oracle.ticketsLabel')}</span>
- </div>
- {nextReset && (
- <>
- <div className="hidden sm:block w-px h-5 bg-gray-300 dark:bg-gray-600" />
- <div className="text-gray-600 dark:text-gray-300 text-sm">
- <span className="font-semibold">{t('oracle.resetLabel')}:</span> {formatTimeUntilReset()}
- </div>
- </>
- )}
- <motion.button
- onClick={() => navigate('/premium')}
- className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all text-sm flex items-center gap-2"
- whileHover={{ scale: 1.03 }}
- whileTap={{ scale: 0.97 }}
- >
- <Plus className="w-4 h-4" />
- {t('oracle.prediction.addMore')}
- </motion.button>
- </motion.div>
  </div>
 
  {/* Cards de oráculo — múltipla escolha */}
@@ -422,10 +409,6 @@ export default function OracleDuel() {
  >
  <Sparkles className="w-5 h-5" />
  {t('duel.startDuel')}
- <span className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-full text-sm">
- <Ticket className="w-4 h-4" />
- {DUEL_COST}
- </span>
  </motion.button>
  </motion.div>
  </motion.div>
@@ -549,6 +532,8 @@ export default function OracleDuel() {
  </button>
  </div>
  </motion.div>
+ )}
+ </>
  )}
  </div>
 
