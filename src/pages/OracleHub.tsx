@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
 import { Link } from 'react-router-dom';
-import { Eye, Swords, Loader2, Scroll, Info, X, RefreshCw, Sparkles, LayoutGrid, Share2, LibraryBig } from 'lucide-react';
+import { Eye, Swords, Loader2, Scroll, Info, X, RefreshCw, Sparkles, LayoutGrid, Share2, LibraryBig, Crown } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import PentagonGraph from '../components/PentagonGraph';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -519,7 +519,8 @@ export default function OracleHub() {
  {t('oracle.recommend.description')}
  </p>
  <div className="flex items-center gap-2 text-pink-500 dark:text-pink-400 text-sm font-semibold">
- <span>3 tickets</span>
+ <Crown className="w-4 h-4" />
+ <span>{t('oracle.premiumLabel', { defaultValue: 'Exclusivo Premium' })}</span>
  </div>
  </div>
  </Link>
@@ -552,7 +553,8 @@ export default function OracleHub() {
  {t('watchlistDuel.description', { defaultValue: 'Deixe seus próprios filmes da watchlist competirem entre si até sobrar só um vencedor.' })}
  </p>
  <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400 text-sm font-semibold">
- <span>{t('library.watchList')}</span>
+ <Crown className="w-4 h-4" />
+ <span>{t('oracle.premiumLabel', { defaultValue: 'Exclusivo Premium' })}</span>
  </div>
  </div>
  </Link>
