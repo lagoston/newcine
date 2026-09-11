@@ -341,6 +341,63 @@ export default function OracleHub() {
  </h1>
  </motion.div>
 
+
+ {/* "Bibliotecas do Oráculo" — agora é uma feature real, navegando
+ pra /oracle/libraries. Mantém o design de destaque (primeiro,
+ largura total, gradiente âmbar/roxo) condizente com o papel
+ de carro-chefe do hub. */}
+ <motion.div
+ className="mb-6"
+ initial={{ opacity: 0, y: 20 }}
+ animate={{ opacity: 1, y: 0 }}
+ transition={{ duration: 0.5, delay: 0.15 }}
+ >
+ <Link to="/oracle/libraries" className="block">
+ <motion.div
+ whileHover={{ scale: 1.01, y: -3 }}
+ animate={{
+ boxShadow: [
+ '0 0 0px rgba(245,158,11,0)',
+ '0 0 35px rgba(245,158,11,0.35)',
+ '0 0 0px rgba(245,158,11,0)',
+ ],
+ }}
+ transition={{ boxShadow: { duration: 3, repeat: Infinity, ease: 'easeInOut' } }}
+ className="relative rounded-3xl bg-gradient-to-br from-amber-500/10 via-white/40 to-purple-500/10 dark:from-amber-500/15 dark:via-gray-800/40 dark:to-purple-500/15 backdrop-blur-xl border border-amber-300/50 dark:border-amber-500/40 shadow-2xl overflow-hidden p-6 sm:p-8"
+ >
+ <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-400/25 to-yellow-500/15 rounded-full blur-3xl pointer-events-none" />
+ <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-purple-400/20 to-violet-500/15 rounded-full blur-3xl pointer-events-none" />
+
+ {/* Reflexo de luz atravessando o card periodicamente — mesma
+ técnica já usada nos banners dourados de perfil, dando
+ um brilho vivo em vez de estático. */}
+ <motion.div
+ className="absolute inset-0 pointer-events-none"
+ style={{
+ background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%)',
+ }}
+ initial={{ x: '-100%' }}
+ animate={{ x: '100%' }}
+ transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
+ />
+
+ <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-5">
+ <div className="flex-shrink-0 p-4 rounded-2xl bg-gradient-to-br from-amber-500/25 to-yellow-500/25 border border-amber-400/40 shadow-lg">
+ <LibraryBig className="w-10 h-10 text-amber-600 dark:text-amber-400" style={{ filter: 'drop-shadow(0 0 10px rgba(245,158,11,0.4))' }} />
+ </div>
+ <div className="flex-1 text-center sm:text-left">
+ <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 mb-1.5">
+ {t('oracle.libraries.title', { defaultValue: 'Biblioteca dos Oráculos' })}
+ </h2>
+ <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed max-w-xl">
+ {t('oracle.libraries.description', { defaultValue: 'Coleções e trilhas curadas pelos Oráculos, construídas a partir de tudo que eles já aprenderam sobre o seu gosto cinematográfico.' })}
+ </p>
+ </div>
+ </div>
+ </motion.div>
+ </Link>
+ </motion.div>
+
  {archetypeInfo && (
  <motion.div
  className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden mb-8 p-6 sm:p-8"
@@ -420,64 +477,18 @@ export default function OracleHub() {
  </motion.button>
  </div>
  </div>
- </motion.div>
- )}
-
- {/* "Bibliotecas do Oráculo" — agora é uma feature real, navegando
- pra /oracle/libraries. Mantém o design de destaque (primeiro,
- largura total, gradiente âmbar/roxo) condizente com o papel
- de carro-chefe do hub. */}
- <motion.div
- className="mb-6"
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.5, delay: 0.15 }}
- >
- <Link to="/oracle/libraries" className="block">
- <motion.div
- whileHover={{ scale: 1.01, y: -3 }}
- animate={{
- boxShadow: [
- '0 0 0px rgba(245,158,11,0)',
- '0 0 35px rgba(245,158,11,0.35)',
- '0 0 0px rgba(245,158,11,0)',
- ],
- }}
- transition={{ boxShadow: { duration: 3, repeat: Infinity, ease: 'easeInOut' } }}
- className="relative rounded-3xl bg-gradient-to-br from-amber-500/10 via-white/40 to-purple-500/10 dark:from-amber-500/15 dark:via-gray-800/40 dark:to-purple-500/15 backdrop-blur-xl border border-amber-300/50 dark:border-amber-500/40 shadow-2xl overflow-hidden p-6 sm:p-8"
- >
- <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-400/25 to-yellow-500/15 rounded-full blur-3xl pointer-events-none" />
- <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-purple-400/20 to-violet-500/15 rounded-full blur-3xl pointer-events-none" />
-
- {/* Reflexo de luz atravessando o card periodicamente — mesma
- técnica já usada nos banners dourados de perfil, dando
- um brilho vivo em vez de estático. */}
- <motion.div
- className="absolute inset-0 pointer-events-none"
- style={{
- background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%)',
- }}
- initial={{ x: '-100%' }}
- animate={{ x: '100%' }}
- transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
- />
-
- <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-5">
- <div className="flex-shrink-0 p-4 rounded-2xl bg-gradient-to-br from-amber-500/25 to-yellow-500/25 border border-amber-400/40 shadow-lg">
- <LibraryBig className="w-10 h-10 text-amber-600 dark:text-amber-400" style={{ filter: 'drop-shadow(0 0 10px rgba(245,158,11,0.4))' }} />
  </div>
- <div className="flex-1 text-center sm:text-left">
- <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 mb-1.5">
- {t('oracle.libraries.title', { defaultValue: 'Biblioteca dos Oráculos' })}
- </h2>
- <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed max-w-xl">
- {t('oracle.libraries.description', { defaultValue: 'Coleções e trilhas curadas pelos Oráculos, construídas a partir de tudo que eles já aprenderam sobre o seu gosto cinematográfico.' })}
- </p>
- </div>
- </div>
+                <div className="h-px bg-gray-200/70 dark:bg-gray-700/70 my-6" />
+
+                {userPersonality?.personalidade_completa && userPersonality.personalidade_completa.length >= 3 && (
+                  <CinematicPersonaCard
+                    personalityId={userPersonality.personalidade_completa}
+                    language={i18n.language}
+                    embedded
+                  />
+                )}
  </motion.div>
- </Link>
- </motion.div>
+)}
 
  <motion.div
  className="grid md:grid-cols-2 gap-6 mb-10"
@@ -548,14 +559,6 @@ export default function OracleHub() {
  </Link>
  </motion.div>
  </motion.div>
-
- {userPersonality?.personalidade_completa && userPersonality.personalidade_completa.length >= 3 && (
- <CinematicPersonaCard
- personalityId={userPersonality.personalidade_completa}
- language={i18n.language}
- />
- )}
- </div>
 
  <AnimatePresence>
  {showCompletionModal && questionnaireResult && archetypeInfo && (
