@@ -85,7 +85,7 @@ const Shelf: React.FC<{
   // pessoal (calculada uma vez pela Edge Function) — "carregar mais" só
   // fatia essa lista e busca detalhes da fatia nova, sem recalcular as
   // previsões de novo a cada clique.
-  const predictedIdsRef = useRef<{ movie_id: number; predicted_rating: number; is_true_ten: boolean }[]>([]);
+  const predictedIdsRef = useRef<{ movie_id: number; predicted_rating: number; is_true_ten: boolean; is_true_nine: boolean }[]>([]);
 
   // Drag-to-scroll com mouse — mesmo padrão já usado no carrossel da
   // Watchlist. O scroll horizontal funcionava por toque no mobile, mas
@@ -155,6 +155,7 @@ const Shelf: React.FC<{
         ...movie,
         predictedRating: ratingByMovieId.get(movie.id)?.predicted_rating,
         isTrueTen: ratingByMovieId.get(movie.id)?.is_true_ten,
+        isTrueNine: ratingByMovieId.get(movie.id)?.is_true_nine,
       }));
 
       setState((s) => ({
@@ -315,6 +316,17 @@ const Shelf: React.FC<{
                         <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 shadow-lg shadow-amber-500/40">
                           <Star className="w-3 h-3 fill-white text-white" />
                           <span className="text-[10px] font-black text-white leading-none">10</span>
+                        </div>
+                      )}
+                      {/* Mesmo Filtro do 10, segundo patamar — nota
+                          basal + bônus entre 9 e 10. Prata em vez de
+                          dourado, pra ficar claro que é um degrau
+                          abaixo do "10 verdadeiro", sem se confundir
+                          com ele. */}
+                      {(movie as Movie & { isTrueNine?: boolean }).isTrueNine && (
+                        <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-slate-300 to-slate-400 shadow-lg shadow-slate-400/40">
+                          <Star className="w-3 h-3 fill-white text-white" />
+                          <span className="text-[10px] font-black text-white leading-none">9</span>
                         </div>
                       )}
                       {/* Sombra de contato na base do pôster, reforçando
