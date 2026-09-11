@@ -812,6 +812,7 @@ interface PredictedShelfMovie {
   movie_id: number;
   predicted_rating: number;
   is_true_ten: boolean;
+  is_true_nine: boolean;
 }
 
 // Chama a Edge Function que calcula a nota PREVISTA pra esse usuário
