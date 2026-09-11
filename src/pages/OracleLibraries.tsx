@@ -308,27 +308,6 @@ const Shelf: React.FC<{
                           </span>
                         </div>
                       )}
-                      {/* Selo do Filtro do 10 — só aparece nos poucos
-                          filmes cuja nota prevista + bônus (diretor,
-                          país, mood, keyword em comum com a caixa de
-                          nota 10 do usuário) ultrapassou 10.0. */}
-                      {(movie as Movie & { isTrueTen?: boolean }).isTrueTen && (
-                        <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 shadow-lg shadow-amber-500/40">
-                          <Star className="w-3 h-3 fill-white text-white" />
-                          <span className="text-[10px] font-black text-white leading-none">10</span>
-                        </div>
-                      )}
-                      {/* Mesmo Filtro do 10, segundo patamar — nota
-                          basal + bônus entre 9 e 10. Prata em vez de
-                          dourado, pra ficar claro que é um degrau
-                          abaixo do "10 verdadeiro", sem se confundir
-                          com ele. */}
-                      {(movie as Movie & { isTrueNine?: boolean }).isTrueNine && (
-                        <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-slate-300 to-slate-400 shadow-lg shadow-slate-400/40">
-                          <Star className="w-3 h-3 fill-white text-white" />
-                          <span className="text-[10px] font-black text-white leading-none">9</span>
-                        </div>
-                      )}
                       {/* Sombra de contato na base do pôster, reforçando
                           que ele está "apoiado" na tábua. */}
                       <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
@@ -539,10 +518,20 @@ export default function OracleLibraries() {
                       onClick={() => setSelectedOracle(oracle.id)}
                       whileHover={{ scale: 1.03, y: -6 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`relative rounded-2xl sm:rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border ${theme.border} shadow-2xl overflow-hidden p-1.5 sm:p-5 text-left group`}
+                      className={`relative h-full flex flex-col rounded-2xl sm:rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border ${theme.border} shadow-2xl overflow-hidden p-1.5 sm:p-5 text-left group`}
                     >
                       <div className={`absolute top-0 right-0 w-40 h-40 bg-gradient-to-br ${theme.glow} rounded-full blur-3xl pointer-events-none`} />
-                      <div className="relative z-10">
+                      {/* flex-1 + flex-col aqui é o que faltava: sem
+                          isso, o grid esticava cada botão pra altura do
+                          card mais alto (comportamento padrão do CSS
+                          Grid), mas o conteúdo interno ficava com sua
+                          altura natural "grudado no topo" — cada
+                          oráculo tem tamanhos de texto diferentes, então
+                          isso desalinhava o título/imagem entre os 3
+                          cards. Título e descrição agora têm line-clamp
+                          fixo, pra nenhum texto crescer mais que o
+                          esperado e desequilibrar o conjunto de novo. */}
+                      <div className="relative z-10 flex-1 flex flex-col">
                         {/* Imagem sem aspect-ratio forçado nem object-cover
                             — a carta mantém sua proporção real, sem
                             cortar nenhuma parte dela (mesma técnica já
@@ -554,13 +543,13 @@ export default function OracleLibraries() {
                             className="w-full h-auto group-hover:scale-105 transition-transform duration-500"
                           />
                         </div>
-                        <h2 className={`text-xs sm:text-lg font-bold mb-0.5 sm:mb-1 ${theme.text}`}>
+                        <h2 className={`text-xs sm:text-lg font-bold mb-0.5 sm:mb-1 line-clamp-1 ${theme.text}`}>
                           {t(`oracle.cards.${oracle.id}`)}
                         </h2>
-                        <p className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 mb-1 sm:mb-2 line-clamp-1 sm:line-clamp-none">
+                        <p className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 mb-1 sm:mb-2 line-clamp-1">
                           {t(`oracle.cards.${oracle.id}Subtitle`)}
                         </p>
-                        <p className={`text-[10px] sm:text-sm font-semibold leading-snug sm:leading-relaxed ${theme.text}`}>
+                        <p className={`text-[10px] sm:text-sm font-semibold leading-snug sm:leading-relaxed line-clamp-3 ${theme.text}`}>
                           {t(LIBRARY_FUNCTION_DESC_KEY[oracle.id])}
                         </p>
                       </div>
@@ -587,28 +576,32 @@ export default function OracleLibraries() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
-                  <img src={getCardImage(selectedOracle)} alt="" className="w-full h-full object-cover" />
+              {/* Imagem sem w/h fixos nem object-cover — mantém a
+                  proporção original da carta, sem cortar nenhuma parte
+                  dela (mesma técnica já usada na tela de seleção de
+                  oráculo, w-full h-auto). Legenda da nota prevista
+                  agora fica ao lado, não embaixo. */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-16 sm:w-20 flex-shrink-0 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700">
+                  <img src={getCardImage(selectedOracle)} alt="" className="w-full h-auto" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0 pt-0.5">
                   <p className={`text-sm font-bold ${ORACLE_THEME[selectedOracle].text}`}>{t(`oracle.cards.${selectedOracle}`)}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t(`oracle.cards.${selectedOracle}Subtitle`)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{t(`oracle.cards.${selectedOracle}Subtitle`)}</p>
+                  {/* Mesmo ícone e cor usados no selo roxo de cada capa,
+                      pra deixar visualmente óbvio que os dois se
+                      referem à mesma coisa: não é a nota pública do
+                      site, é a nota que o sistema de previsões
+                      calculou especificamente pra esse usuário. */}
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-400/25 w-fit">
+                    <Wand2 className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400 flex-shrink-0" />
+                    <p className="text-xs font-medium text-violet-700 dark:text-violet-300">
+                      {t('oracle.libraries.predictedRatingLegend', { defaultValue: 'Mostrando a nota prevista para você — não é a nota pública do filme' })}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Legenda explicando a nota exibida em cada pôster —
-                  mesmo ícone e cor usados no selo de cada capa, pra
-                  deixar visualmente óbvio que os dois se referem à
-                  mesma coisa: não é a nota pública do site, é a nota
-                  que o sistema de previsões calculou especificamente
-                  pra esse usuário. */}
-              <div className="flex items-center gap-2 mb-6 px-3.5 py-2 rounded-xl bg-violet-500/10 border border-violet-400/25 w-fit">
-                <Wand2 className="w-4 h-4 text-violet-600 dark:text-violet-400 flex-shrink-0" />
-                <p className="text-xs font-medium text-violet-700 dark:text-violet-300">
-                  {t('oracle.libraries.predictedRatingLegend', { defaultValue: 'Mostrando a nota prevista para você — não é a nota pública do filme' })}
-                </p>
-              </div>
 
               {session?.user?.id && orderedMoods.map((mood) => (
                 <Shelf
