@@ -150,15 +150,9 @@ const PEXELS_IMAGES: Record<string, string> = {
 interface Props {
   personalityId: string;
   language: string;
-  // Quando true, remove o wrapper próprio (fundo, borda, sombra,
-  // margem) — usado quando esse card é fundido dentro de outro
-  // container visual (ex.: junto do bloco "Sua Essência Cinematográfica"
-  // no Oracle Hub), pra virar visualmente "um item só" com ele, em vez
-  // de dois cards separados empilhados na página.
-  embedded?: boolean;
 }
 
-export default function CinematicPersonaCard({ personalityId, language, embedded = false }: Props) {
+export default function CinematicPersonaCard({ personalityId, language }: Props) {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [showEnglish, setShowEnglish] = useState(false);
@@ -182,14 +176,11 @@ export default function CinematicPersonaCard({ personalityId, language, embedded
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.25 }}
-        className={embedded ? '' : 'mb-8'}
+        className="mb-8"
       >
         <button
           onClick={() => setShowModal(true)}
-          className={embedded
-            ? 'w-full text-left group relative overflow-hidden'
-            : 'w-full text-left group relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden p-6 hover:shadow-xl transition-all duration-300'
-          }
+          className="w-full text-left group relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden p-6 hover:shadow-xl transition-all duration-300"
         >
           {/* Background glow */}
           <div
