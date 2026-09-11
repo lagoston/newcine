@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Loader2, LibraryBig, Filter, Ticket, PartyPopper, Star, Wand2 } from 'lucide-react';
+import { ArrowLeft, Loader2, LibraryBig, Filter, PartyPopper, Star, Wand2, Crown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { getOraclePoolPredictions, getMoviesForPredictedSlice, spendTickets, Movie, getMovieDetails } from '../lib/tmdb';
+import { getOraclePoolPredictions, getMoviesForPredictedSlice, Movie, getMovieDetails } from '../lib/tmdb';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import OracleForYouBox from '../components/OracleForYouBox';
 import StreamingFilterModal from '../components/StreamingFilterModal';
@@ -61,9 +60,10 @@ interface ShelfState {
 
 // Uma prateleira horizontal, com visual de "prateleira física" (tábua
 // sutil por baixo dos pôsteres, como uma locadora de verdade). O
-// primeiro lote de 30 é grátis; carregar mais custa 3 tickets por lote
-// de 30, e some quando não há mais nada além do que já foi carregado —
-// a mesma lógica de esgotado se aplica tanto pra prateleira já nascer
+// primeiro lote de 20 é grátis; carregar mais de 30 em 30 é uma trava
+// premium (sem custo por uso, só exige assinatura), e some quando não
+// há mais nada além do que já foi carregado — a mesma lógica de
+// esgotado se aplica tanto pra prateleira já nascer
 // vazia (usuário já assistiu tudo daquela categoria) quanto pro botão
 // pago não aparecer quando não sobra mais nada pra carregar.
 const Shelf: React.FC<{
@@ -72,11 +72,11 @@ const Shelf: React.FC<{
   userId: string;
   accessToken: string;
   selectedProviderIds: number[];
-  ticketsRemaining: number | null;
-  onTicketsSpent: (remaining: number) => void;
+  isPremium: boolean;
   onMovieClick: (movie: Movie) => void;
-}> = ({ cardType, mood, userId, accessToken, selectedProviderIds, ticketsRemaining, onTicketsSpent, onMovieClick }) => {
+}> = ({ cardType, mood, userId, accessToken, selectedProviderIds, isPremium, onMovieClick }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [state, setState] = useState<ShelfState>({ movies: [], totalCount: 0, loading: true, loadingMore: false });
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -118,19 +118,10 @@ const Shelf: React.FC<{
     if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
   };
 
-  const loadMore = useCallback(async (spendingTickets: boolean) => {
+  const loadMore = useCallback(async () => {
     if (isFetchingRef.current) return;
     const current = stateRef.current;
     if (current.movies.length > 0 && current.movies.length >= current.totalCount) return;
-
-    if (spendingTickets) {
-      const result = await spendTickets(userId, 3);
-      if (!result.success) {
-        toast.error(t('oracle.libraries.notEnoughTickets', { defaultValue: 'Você não tem tickets suficientes.' }));
-        return;
-      }
-      onTicketsSpent(result.ticketsRemaining);
-    }
 
     isFetchingRef.current = true;
     setState((s) => ({ ...s, loadingMore: current.movies.length > 0, loading: current.movies.length === 0 }));
@@ -170,13 +161,13 @@ const Shelf: React.FC<{
     } finally {
       isFetchingRef.current = false;
     }
-  }, [cardType, mood.key, userId, accessToken, onTicketsSpent, t]);
+  }, [cardType, mood.key, userId, accessToken]);
 
   useEffect(() => {
     isFetchingRef.current = false;
     predictedIdsRef.current = [];
     setState({ movies: [], totalCount: 0, loading: true, loadingMore: false });
-    loadMore(false);
+    loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardType, mood.key, userId]);
 
@@ -191,10 +182,11 @@ const Shelf: React.FC<{
       });
 
   const hasMore = state.movies.length < state.totalCount;
-  // O botão pago só aparece sem filtro de streaming ativo — gastar
-  // tickets pra carregar mais filmes "crus" do pool quando o filtro já
-  // está escondendo a maioria deles seria um mau negócio pro usuário
-  // (arriscar pagar por filmes que nem vão aparecer filtrados). Com o
+  // O botão de carregar mais só aparece sem filtro de streaming ativo —
+  // desperdiçar a trava premium carregando mais filmes "crus" do pool
+  // quando o filtro já está escondendo a maioria deles seria um mau
+  // negócio pro usuário (arriscar carregar filmes que nem vão aparecer
+  // filtrados). Com o
   // filtro ligado, a saída é desligá-lo primeiro.
   const showLoadMoreButton = hasMore && selectedProviderIds.length === 0;
   const isFullyEmpty = !state.loading && state.totalCount === 0;
@@ -316,7 +308,7 @@ const Shelf: React.FC<{
 
                   {showLoadMoreButton && (
                     <button
-                      onClick={() => loadMore(true)}
+                      onClick={() => isPremium ? loadMore() : navigate('/premium')}
                       disabled={state.loadingMore}
                       className="w-[110px] sm:w-[130px] flex-shrink-0 rounded-xl border-2 border-dashed border-amber-400/60 dark:border-amber-500/50 flex flex-col items-center justify-center gap-1.5 text-amber-600 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-900/10 hover:bg-amber-50/60 dark:hover:bg-amber-900/25 transition-colors disabled:opacity-60 shadow-inner"
                       style={{ aspectRatio: '2/3' }}
@@ -325,11 +317,23 @@ const Shelf: React.FC<{
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
                       <>
-                        <Ticket className="w-5 h-5" />
+                        {/* Tickets aposentados — agora é uma trava premium
+                            simples, sem custo por uso. Não-premium vê o
+                            aviso e é levado pra /premium ao clicar;
+                            premium carrega na hora. */}
+                        {isPremium ? (
+                          <Wand2 className="w-5 h-5" />
+                        ) : (
+                          <Crown className="w-5 h-5" />
+                        )}
                         <span className="text-[11px] font-bold text-center leading-tight px-1">
                           {t('oracle.libraries.loadMore30', { defaultValue: '+30 títulos' })}
                         </span>
-                        <span className="text-[10px] opacity-80">3 tickets</span>
+                        <span className="text-[10px] opacity-80">
+                          {isPremium
+                            ? t('oracle.libraries.tapToLoad', { defaultValue: 'Toque para carregar' })
+                            : t('oracle.libraries.premiumRequired', { defaultValue: 'Exclusivo Premium' })}
+                        </span>
                       </>
                     )}
                   </button>
@@ -353,11 +357,10 @@ export default function OracleLibraries() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [showStreamingFilter, setShowStreamingFilter] = useState(false);
   const [selectedProviderIds, setSelectedProviderIds] = useState<number[]>([]);
-  // Saldo de tickets compartilhado por TODAS as prateleiras — gastar num
-  // "carregar mais 30" precisa refletir imediatamente em qualquer outra
-  // prateleira que o usuário abra em seguida, não ficar isolado por
-  // prateleira.
-  const [ticketsRemaining, setTicketsRemaining] = useState<number | null>(null);
+  // Status premium compartilhado por TODAS as prateleiras — tickets
+  // foram aposentados; carregar mais de 20 títulos agora é uma trava
+  // premium simples, sem custo por uso.
+  const [isPremium, setIsPremium] = useState(false);
   // Estilo de carta escolhido pelo usuário no Customize Profile — mesmo
   // padrão do OracleDuel: troca o sufixo do arquivo de imagem
   // (BOGART.webp vira BOGART2.webp no estilo "yugioh"). Começa null (não
@@ -399,8 +402,8 @@ export default function OracleLibraries() {
 
   useEffect(() => {
     if (!session?.user?.id) return;
-    supabase.rpc('check_and_reset_tickets', { user_id_param: session.user.id }).then(({ data }) => {
-      if (data && data.length > 0) setTicketsRemaining(data[0].tickets_remaining);
+    supabase.rpc('get_user_premium_status', { user_id_input: session.user.id }).then(({ data }) => {
+      setIsPremium(data || false);
     });
   }, [session?.user?.id]);
 
@@ -463,12 +466,6 @@ export default function OracleLibraries() {
               Watchlist. */}
           {selectedOracle && (
             <div className="flex items-center gap-2">
-              {ticketsRemaining !== null && (
-                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-lg text-sm font-semibold text-amber-600 dark:text-amber-400 flex-shrink-0">
-                  <Ticket className="w-4 h-4" />
-                  {ticketsRemaining}
-                </div>
-              )}
               <button
                 onClick={() => setShowStreamingFilter(true)}
                 className={`relative flex items-center justify-center p-2.5 sm:p-3 rounded-xl transition-all shadow-lg flex-shrink-0 ${
@@ -611,8 +608,7 @@ export default function OracleLibraries() {
                   userId={session.user.id}
                   accessToken={session.access_token}
                   selectedProviderIds={selectedProviderIds}
-                  ticketsRemaining={ticketsRemaining}
-                  onTicketsSpent={setTicketsRemaining}
+                  isPremium={isPremium}
                   onMovieClick={handleMovieClick}
                 />
               ))}
