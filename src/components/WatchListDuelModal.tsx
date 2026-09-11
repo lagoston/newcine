@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Swords, Loader2, Play, User, Star, ArrowLeft, Trophy } from 'lucide-react';
 import { useAuth } from '../lib/auth';
@@ -39,12 +40,17 @@ const posterUrl = (path: string | null) =>
 export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelModalProps) {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   const [phase, setPhase] = useState<Phase>('setup');
   const [loadingFriends, setLoadingFriends] = useState(true);
   const [friends, setFriends] = useState<FriendCandidate[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<FriendCandidate | null>(null);
   const [starting, setStarting] = useState(false);
+  // Tickets nunca existiram aqui, mas o Duelo de Watchlist também vira
+  // um recurso inteiramente premium agora, junto com o Duelo padrão.
+  const [isPremium, setIsPremium] = useState(false);
+  const [checkingPremium, setCheckingPremium] = useState(true);
 
   const [roundMovies, setRoundMovies] = useState<DuelMovie[]>([]);
   const [pairIndex, setPairIndex] = useState(0);
@@ -63,8 +69,25 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
     setSelectedFriend(null);
     setChampion(null);
     setPairIndex(0);
-    fetchFriends();
+    fetchPremiumStatus();
   }, [isOpen, session?.user?.id]);
+
+  const fetchPremiumStatus = async () => {
+    try {
+      setCheckingPremium(true);
+      const { data, error } = await supabase.rpc('get_user_premium_status', { user_id_input: session?.user?.id });
+      if (error) throw error;
+      const premium = data || false;
+      setIsPremium(premium);
+      // Não faz sentido buscar amigos e montar a tela de setup pra
+      // quem nem vai conseguir usar o duelo.
+      if (premium) fetchFriends();
+    } catch (error) {
+      console.error('Error fetching premium status:', error);
+    } finally {
+      setCheckingPremium(false);
+    }
+  };
 
   const fetchFriends = async () => {
     try {
@@ -203,6 +226,34 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
               <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             </button>
 
+            {checkingPremium ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+              </div>
+            ) : !isPremium ? (
+              // Duelo de Watchlist virou um recurso inteiramente premium,
+              // junto com o Duelo padrão — a tela de setup (escolher
+              // amigo, etc.) nem chega a ser montada pra quem não é
+              // premium, só esse aviso com CTA.
+              <div className="text-center py-6">
+                <div className="inline-flex p-4 rounded-full bg-gradient-to-br from-amber-400/20 to-orange-500/20 border border-amber-400/30 mb-5">
+                  <Swords className="w-10 h-10 text-amber-500" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                  {t('watchlistDuel.premiumFeatureTitle', { defaultValue: 'Duelo de Watchlist é exclusivo Premium' })}
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-7 max-w-sm mx-auto text-sm">
+                  {t('watchlistDuel.premiumFeatureDescription', { defaultValue: 'Assine o Premium pra fazer quantos duelos de watchlist quiser, sem limite.' })}
+                </p>
+                <button
+                  onClick={() => { onClose(); navigate('/premium'); }}
+                  className="px-7 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl hover:shadow-xl hover:shadow-amber-500/30 transition-all"
+                >
+                  {t('oracle.viewPremium', { defaultValue: 'Ver Premium' })}
+                </button>
+              </div>
+            ) : (
+              <>
             {/* SETUP — escolher o amigo */}
             {phase === 'setup' && (
               <div>
@@ -403,6 +454,8 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
                   </button>
                 </div>
               </div>
+            )}
+              </>
             )}
           </motion.div>
         </motion.div>
