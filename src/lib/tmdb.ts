@@ -865,11 +865,16 @@ export const getMoviesForPredictedSlice = async (
   const entries = (cacheRows || []).map((row: any) => ({ movie_id: row.tmdb_id, media_type: row.media_type }));
   const movieMap = await getMoviesFromCacheByType(entries);
 
+  // Chave EXATA `${id}_movie` — nunca aceita `${id}_tv` como substituto
+  // aqui. Prateleiras de Oráculo são exclusivamente de filmes (a própria
+  // predict-oracle-shelf já filtra media_type='movie' pro score); usar
+  // `.find(key => key.startsWith(...))` pegava qualquer entrada com esse
+  // prefixo, sem prioridade — quando um tmdb_id existe cacheado tanto
+  // como filme quanto como série (coincidência de numeração entre os
+  // dois namespaces do TMDB), isso podia silenciosamente exibir a série
+  // errada no lugar do filme certo.
   return movieIds
-    .map((id: number) => {
-      const movieKey = [...movieMap.keys()].find((key) => key.startsWith(`${id}_`));
-      return movieKey ? movieMap.get(movieKey) : undefined;
-    })
+    .map((id: number) => movieMap.get(`${id}_movie`))
     .filter((m: Movie | undefined): m is Movie => m !== undefined);
 };
 
@@ -896,10 +901,6 @@ export const getOraclePoolMovies = async (
   const totalCount = data[0].total_count;
   const movieIds = data.map((r: any) => r.movie_id);
 
-  // Os pools guardam só o ID numérico, sem media_type — a maioria é
-  // filme, mas o cache pode ter tanto filme quanto série pro mesmo ID
-  // (mesmo risco de colisão já corrigido antes). Busca os dois tipos e
-  // prioriza o que realmente existir no cache pra cada ID.
   const { data: cacheRows } = await supabase
     .from('movie_cache')
     .select('tmdb_id, media_type')
@@ -908,13 +909,12 @@ export const getOraclePoolMovies = async (
   const entries = (cacheRows || []).map((row: any) => ({ movie_id: row.tmdb_id, media_type: row.media_type }));
   const movieMap = await getMoviesFromCacheByType(entries);
 
-  // Reordena na mesma ordem em que veio da RPC (a ordem dos movie_ids no
-  // pool é intencional, não deveria ser embaralhada pela consulta ao cache).
+  // Chave EXATA `${id}_movie` — mesma correção de getMoviesForPredictedSlice
+  // acima: nunca aceita `${id}_tv` como substituto quando o pool é de
+  // filmes, mesmo que o cache também tenha uma série cacheada sob o
+  // mesmo tmdb_id por coincidência de numeração entre os dois namespaces.
   const movies = movieIds
-    .map((id: number) => {
-      const movieKey = [...movieMap.keys()].find((key) => key.startsWith(`${id}_`));
-      return movieKey ? movieMap.get(movieKey) : undefined;
-    })
+    .map((id: number) => movieMap.get(`${id}_movie`))
     .filter((m: Movie | undefined): m is Movie => m !== undefined);
 
   return { movies, totalCount };
