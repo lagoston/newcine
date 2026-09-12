@@ -21,7 +21,8 @@ import PersonaShareModal from '../components/PersonaShareModal';
 import { toast } from 'sonner';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from '../components/GhostRiderFrame';
-import { getBannerClass, getBannerTextClass, getBannerSecondaryTextClass } from '../lib/banners';
+import { getBannerClass } from '../lib/banners';
+import { getTextEffectNameClass, getTextEffectSecondaryClass } from '../lib/textEffects';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
@@ -39,6 +40,7 @@ interface Profile {
  };
  avatar_frame?: string;
  banner?: string;
+ text_effect?: string;
  plan_type?: string;
  oracle_predictions_count?: number;
  oracle_recommendations_count?: number;
@@ -206,6 +208,10 @@ export default function Profile() {
  }
  }, [openWhispersTarget, clearOpenWhispersTarget]);
  const [profile, setProfile] = useState<Profile | null>(null);
+ // Contagem de resenhas REAIS (não geradas pelo Oráculo) — usada só
+ // pra decidir se os Text Effects (Customize Profile) estão
+ // desbloqueados. Mesma fonte de verdade do TagPinsModal/CustomizeModal.
+ const [realReviewCount, setRealReviewCount] = useState(0);
  const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
  const [carouselOffset, setCarouselOffset] = useState(0);
  const [carouselAutoPaused, setCarouselAutoPaused] = useState(false);
@@ -409,6 +415,13 @@ export default function Profile() {
  setBio(profileData.bio || '');
  setAvatarUrl(profileData.avatar_url || '');
  setProfileExists(true);
+
+ supabase
+ .from('reviews')
+ .select('*', { count: 'exact', head: true })
+ .eq('user_id', session.user.id)
+ .eq('is_ai_generated', false)
+ .then(({ count }) => setRealReviewCount(count || 0));
 
  if (session.user.created_at) {
  setCreatedAt(session.user.created_at);
@@ -845,7 +858,7 @@ export default function Profile() {
  placeholder="Username"
  />
  ) : (
- <h1 className={`text-2xl sm:text-3xl font-bold ${getBannerTextClass(profile?.banner, isPremium)}`}>
+ <h1 className={`text-2xl sm:text-3xl font-bold ${getTextEffectNameClass(profile?.text_effect, isPremium, realReviewCount)}`}>
  @{username}
  </h1>
  )}
@@ -873,19 +886,19 @@ export default function Profile() {
  placeholder="Write something about yourself..."
  />
  ) : bio ? (
- <p className={`mb-4 max-w-2xl ${getBannerSecondaryTextClass(profile?.banner, isPremium)}`}>
+ <p className={`mb-4 max-w-2xl ${getTextEffectSecondaryClass(profile?.text_effect, isPremium, realReviewCount)}`}>
  {bio}
  </p>
  ) : null}
 
- <div className={`flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm mb-4 ${getBannerSecondaryTextClass(profile?.banner, isPremium)}`}>
+ <div className={`flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm mb-4 ${getTextEffectSecondaryClass(profile?.text_effect, isPremium, realReviewCount)}`}>
  <button
  onClick={() => setShowFriendsModal(true)}
  className="flex items-center hover:opacity-70 transition-opacity"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className={getBannerTextClass(profile?.banner, isPremium)}>{friendsCount}</strong>{' '}
+ <strong className={getTextEffectNameClass(profile?.text_effect, isPremium, realReviewCount)}>{friendsCount}</strong>{' '}
  {t('profile.friendsLabel', { defaultValue: 'Amigos' })}
  </span>
  </button>
