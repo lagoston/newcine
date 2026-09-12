@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from '../components/GhostRiderFrame';
 import { getBannerClass } from '../lib/banners';
+import { getTextEffectNameClass, getTextEffectSecondaryClass } from '../lib/textEffects';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import MovieDetailsModal from '../components/MovieDetailsModal';
@@ -26,6 +27,8 @@ interface Profile {
  is_premium?: boolean;
  avatar_frame: string;
  banner: string;
+ text_effect?: string;
+ real_review_count?: number;
  active_tag?: {
  emoji: string;
  name: string;
@@ -471,7 +474,7 @@ export default function Community() {
 
  <div className="flex-1 min-w-0">
  <div className="flex items-center gap-2 mb-2">
- <h2 className={`text-lg font-bold truncate text-gray-900 dark:text-white`}>
+ <h2 className={`text-lg font-bold truncate ${getTextEffectNameClass(profile.text_effect, profile.is_premium ?? profile.plan_type === 'premium', profile.real_review_count || 0)}`}>
  @{profile.username}
  </h2>
  {(profile.is_premium ?? profile.plan_type === 'premium') && (
@@ -506,7 +509,7 @@ export default function Community() {
  </div>
  </div>
 
- <p className={`text-sm line-clamp-2 mb-4 flex-1 text-gray-600 dark:text-gray-300`}>
+ <p className={`text-sm line-clamp-2 mb-4 flex-1 ${getTextEffectSecondaryClass(profile.text_effect, profile.is_premium ?? profile.plan_type === 'premium', profile.real_review_count || 0)}`}>
  {profile.bio || t('profile.bio')}
  </p>
 
@@ -514,8 +517,8 @@ export default function Community() {
  <div className="flex items-center gap-1.5">
  <Users className="w-4 h-4 text-gray-400" />
  <span className="text-sm">
- <span className={`font-bold text-gray-900 dark:text-white`}>{profile.friends_count}</span>
- <span className={`ml-1 text-gray-600 dark:text-gray-300`}>{t('profile.friendsLabel', { defaultValue: 'Amigos' })}</span>
+ <span className={`font-bold ${getTextEffectNameClass(profile.text_effect, profile.is_premium ?? profile.plan_type === 'premium', profile.real_review_count || 0)}`}>{profile.friends_count}</span>
+ <span className={`ml-1 ${getTextEffectSecondaryClass(profile.text_effect, profile.is_premium ?? profile.plan_type === 'premium', profile.real_review_count || 0)}`}>{t('profile.friendsLabel', { defaultValue: 'Amigos' })}</span>
  </span>
  </div>
  </div>
