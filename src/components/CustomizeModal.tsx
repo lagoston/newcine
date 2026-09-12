@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Image as ImageIcon, Layout, Crown, Lock, Check, User, Film } from 'lucide-react';
+import { X, Image as ImageIcon, Layout, Crown, Lock, Check, User, Film, Type } from 'lucide-react';
 import GlassLoader from './GlassLoader';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -8,6 +8,7 @@ import { frames, FrameId } from '../lib/frames';
 import { GhostRiderFrame } from './GhostRiderFrame';
 import { THEME_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 import { banners, BannerId } from '../lib/banners';
+import { textEffects, TextEffectId, TEXT_EFFECT_REQUIRED_TAGS, TEXT_EFFECT_REQUIRED_REVIEW_COUNT, meetsTextEffectRequirement } from '../lib/textEffects';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
@@ -24,7 +25,7 @@ interface Frame {
   className: string;
 }
 
-type TabType = 'frames' | 'banners' | 'cards';
+type TabType = 'frames' | 'banners' | 'cards' | 'textEffects';
 
 const ORACLE_CARDS: Record<CardStyle, OracleCard> = {
   default: {
@@ -76,6 +77,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const [selectedFrame, setSelectedFrame] = useState<FrameId>('default');
   const [selectedBanner, setSelectedBanner] = useState<BannerId>('default');
   const [selectedCard, setSelectedCard] = useState<CardStyle>('default');
+  const [selectedTextEffect, setSelectedTextEffect] = useState<TextEffectId>('default');
+  const [realReviewCount, setRealReviewCount] = useState(0);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [frozenAvatarUrl, setFrozenAvatarUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>('');
@@ -87,7 +90,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       setLoading(true);
       Promise.all([
         fetchProfile(),
-        fetchThemeTagProgress()
+        fetchThemeTagProgress(),
+        fetchRealReviewCount()
       ])
         .catch((err) => console.error('[CustomizeModal] erro ao carregar dados', err))
         .finally(() => {
@@ -150,7 +154,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('avatar_frame, banner, card_style, avatar_url, username')
+        .select('avatar_frame, banner, card_style, text_effect, avatar_url, username')
         .eq('id', session?.user?.id)
         .single();
 
@@ -164,10 +168,31 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       if (data?.card_style) {
         setSelectedCard(data.card_style as CardStyle);
       }
+      if (data?.text_effect) {
+        setSelectedTextEffect(data.text_effect as TextEffectId);
+      }
       setUserAvatarUrl(data?.avatar_url || null);
       setUsername(data?.username || '');
     } catch (error) {
       console.error('Error fetching profile:', error);
+    }
+  };
+
+  // Contagem de resenhas REAIS (não geradas pelo Oráculo) — mesma
+  // fonte de verdade usada pelo TagPinsModal pra decidir se Scribbler
+  // /Screenwriter/Memoirist estão desbloqueadas. Como os 3 limiares são
+  // cumulativos (1/10/30), checar >= 30 aqui já cobre as 3 tags de uma vez.
+  const fetchRealReviewCount = async () => {
+    if (!session?.user?.id) return;
+    try {
+      const { count } = await supabase
+        .from('reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .eq('is_ai_generated', false);
+      setRealReviewCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching real review count:', error);
     }
   };
 
@@ -245,6 +270,29 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     }
   };
 
+  const handleTextEffectSelect = async (effectId: TextEffectId) => {
+    if (!session?.user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          text_effect: effectId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', session.user.id);
+
+      if (error) throw error;
+
+      setSelectedTextEffect(effectId);
+      toast.success(t('customize.textEffectUpdated', { defaultValue: 'Efeito de texto atualizado!' }));
+      onSave?.();
+    } catch (error) {
+      console.error('Error updating text effect:', error);
+      toast.error(t('customize.updateError'));
+    }
+  };
+
   const fetchThemeTagProgress = async () => {
     if (!session?.user?.id) return;
 
@@ -291,7 +339,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const tabs = [
     { id: 'frames', label: t('customize.tabs.avatars'), icon: ImageIcon },
     { id: 'banners', label: t('customize.tabs.banners'), icon: Layout },
-    { id: 'cards', label: t('customize.tabs.cards'), icon: Film }
+    { id: 'cards', label: t('customize.tabs.cards'), icon: Film },
+    { id: 'textEffects', label: t('customize.tabs.textEffects', { defaultValue: 'Text FX' }), icon: Type }
   ];
 
   const renderFrameContent = () => {
@@ -657,6 +706,119 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     );
   };
 
+  // Text Effects — diferente de frames/banners/cards (Premium + no
+  // máximo 1 tag temática), aqui o desbloqueio exige Premium E as 3
+  // tags de resenha (Scribbler/Screenwriter/Memoirist) — resumido a
+  // "realReviewCount >= 30" porque os limiares das 3 são cumulativos.
+  const renderTextEffectsContent = () => {
+    const defaultEffect = textEffects.default;
+    const otherEffects = Object.values(textEffects).filter(effect => effect.id !== 'default');
+    const previewName = username ? `@${username}` : '@seu_usuario';
+    const reviewProgress = Math.min(realReviewCount, TEXT_EFFECT_REQUIRED_REVIEW_COUNT);
+
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-lg mx-auto">
+          {t('customize.textEffects.description', {
+            defaultValue: 'Estilos especiais pro seu nome e bio no perfil. Exige Premium + as tags Scribbler, Screenwriter e Memoirist desbloqueadas.'
+          })}
+        </p>
+
+        {/* Opção padrão — sem nenhum efeito, sempre disponível */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`rounded-2xl overflow-hidden border-2 ${
+            selectedTextEffect === 'default'
+              ? 'border-blue-500 shadow-xl shadow-blue-500/30'
+              : 'border-white/20 dark:border-gray-700/60'
+          } bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl`}
+        >
+          <button
+            onClick={() => handleTextEffectSelect('default')}
+            className="w-full p-5 hover:bg-white/30 dark:hover:bg-gray-700/30 transition-all flex items-center justify-between gap-4"
+          >
+            <div className="text-left">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('customize.textEffects.none', { defaultValue: 'Nenhum' })}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{previewName}</p>
+            </div>
+            {selectedTextEffect === 'default' && (
+              <div className="bg-blue-500 text-white p-1.5 rounded-full flex-shrink-0">
+                <Check className="w-4 h-4" />
+              </div>
+            )}
+          </button>
+        </motion.div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {otherEffects.map((effect, index) => {
+            const unlocked = meetsTextEffectRequirement(isPremium, realReviewCount);
+            const isLocked = !unlocked;
+
+            return (
+              <motion.div
+                key={effect.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                className={`relative rounded-2xl overflow-hidden border-2 ${
+                  selectedTextEffect === effect.id
+                    ? 'border-blue-500 shadow-xl shadow-blue-500/30'
+                    : 'border-white/20 dark:border-gray-700/60'
+                } ${isLocked ? 'opacity-75' : ''} bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl`}
+              >
+                <button
+                  onClick={() => !isLocked && handleTextEffectSelect(effect.id as TextEffectId)}
+                  disabled={isLocked}
+                  className="w-full p-5 hover:bg-white/30 dark:hover:bg-gray-700/30 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                >
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                        {effect.name}
+                      </h3>
+                      {selectedTextEffect === effect.id && !isLocked && (
+                        <div className="bg-blue-500 text-white p-1.5 rounded-full flex-shrink-0">
+                          <Check className="w-4 h-4" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Preview real — o próprio nome de usuário com a
+                        classe do efeito aplicada, não um texto genérico,
+                        pra mostrar exatamente como vai ficar. */}
+                    <div className="rounded-xl bg-gray-900/90 py-4 px-3 flex items-center justify-center min-h-[64px]">
+                      <span className={`text-lg font-bold ${effect.nameClassName}`}>
+                        {previewName}
+                      </span>
+                    </div>
+
+                    {!isPremium ? (
+                      <div className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-3 py-1.5 rounded-full">
+                        <Crown className="w-4 h-4" />
+                        <span>Premium</span>
+                      </div>
+                    ) : isLocked ? (
+                      <div className="flex flex-col items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full">
+                          <Lock className="w-4 h-4" />
+                          <span>{reviewProgress}/{TEXT_EFFECT_REQUIRED_REVIEW_COUNT} {t('customize.textEffects.reviews', { defaultValue: 'resenhas' })}</span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 text-center">
+                          {TEXT_EFFECT_REQUIRED_TAGS.join(' · ')}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                </button>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] overflow-y-auto">
@@ -751,6 +913,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     {activeTab === 'frames' && renderFrameContent()}
                     {activeTab === 'banners' && renderBannerContent()}
                     {activeTab === 'cards' && renderCardContent()}
+                    {activeTab === 'textEffects' && renderTextEffectsContent()}
                   </div>
                   </motion.div>
                 )}
