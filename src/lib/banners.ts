@@ -1,7 +1,6 @@
 export const banners = {
   default: {
     id: 'default',
-    textTheme: 'auto',
     name: 'Default',
     isPremium: false,
     requiredTag: null,
@@ -9,7 +8,6 @@ export const banners = {
   },
   gold: {
   id: 'gold',
-    textTheme: 'dark',
   name: 'Gold Banner',
   isPremium: true,
   requiredTag: null,
@@ -55,7 +53,6 @@ export const banners = {
   },
   matrix: {
   id: 'matrix',
-    textTheme: 'light',
   name: 'Matrix Banner',
   isPremium: true,
   requiredTag: 'red-pill-adept',
@@ -82,7 +79,6 @@ export const banners = {
 },
   saw: {
     id: 'saw',
-    textTheme: 'light',
     name: 'Saw Banner',
     isPremium: true,
     requiredTag: 'visceral-gamer',
@@ -105,7 +101,6 @@ export const banners = {
   },
   ice: {
     id: 'ice',
-    textTheme: 'light',
     name: 'Ice Age Banner',
     isPremium: true,
     requiredTag: 'nuts',
@@ -127,7 +122,6 @@ export const banners = {
   },
   bttf: {
     id: 'bttf',
-    textTheme: 'light',
     name: 'Back to the Future Banner',
     isPremium: true,
     requiredTag: 'flux-capacitor-fan',
@@ -150,7 +144,6 @@ export const banners = {
   },
   potter: {
     id: 'potter',
-    textTheme: 'light',
     name: 'Harry Potter Banner',
     isPremium: true,
     requiredTag: 'hogwarts-graduate',
@@ -173,7 +166,6 @@ export const banners = {
   },
   transformers: {
     id: 'transformers',
-    textTheme: 'light',
     name: 'Transformers Banner',
     isPremium: true,
     requiredTag: 'cybertron-sentinel',
@@ -195,7 +187,6 @@ export const banners = {
   },
   hellrider: {
     id: 'hellrider',
-    textTheme: 'light',
     name: 'Spirit of Vengeance Banner',
     isPremium: true,
     requiredTag: 'hell-rider',
@@ -224,7 +215,6 @@ export const banners = {
   },
   deathdodger: {
     id: 'deathdodger',
-    textTheme: 'light',
     name: 'Final Destination Banner',
     isPremium: true,
     requiredTag: 'death-dodger',
@@ -247,7 +237,6 @@ export const banners = {
   },
   'casual-drinker': {
     id: 'casual-drinker',
-    textTheme: 'light',
     name: 'Casual Drinker Banner',
     isPremium: true,
     requiredTag: 'casual-drinker',
@@ -289,37 +278,4 @@ export function getBannerClass(bannerId: string = 'default', isPremium: boolean 
   }
 
   return banner.className;
-}
-
-// Cor de texto pra conteúdo renderizado POR CIMA do banner (username,
-// bio, stats) — problema real descoberto com o Gold Banner: texto
-// usava classes fixas (dark:text-white) relativas ao TEMA do site, não
-// à cor real do banner por trás. Um banner CLARO como o Gold, com o
-// site em modo escuro, deixava o texto branco quase invisível sobre um
-// fundo amarelo claro. Cada banner agora declara seu próprio
-// textTheme, e essa função devolve a classe certa — escala pra
-// qualquer banner futuro sem precisar detectar contraste em tempo de
-// execução: 'light' (banners escuros, a maioria) sempre usa texto
-// branco; 'dark' (banners claros, como o Gold) sempre usa texto escuro;
-// 'auto' (default, sem banner equipado) mantém o comportamento padrão
-// de seguir o tema claro/escuro do site.
-export function getBannerTextClass(bannerId: string = 'default', isPremium: boolean = false): string {
-  const banner = banners[bannerId as BannerId];
-  const theme = (!banner || (banner.isPremium && !isPremium)) ? 'auto' : banner.textTheme;
-
-  if (theme === 'dark') return 'text-gray-900';
-  if (theme === 'light') return 'text-white';
-  return 'text-gray-900 dark:text-white';
-}
-
-// Variante pra textos secundários (bio, labels de stats) — um pouco
-// mais suave que o texto principal, mas ainda com contraste seguro
-// contra o banner por trás.
-export function getBannerSecondaryTextClass(bannerId: string = 'default', isPremium: boolean = false): string {
-  const banner = banners[bannerId as BannerId];
-  const theme = (!banner || (banner.isPremium && !isPremium)) ? 'auto' : banner.textTheme;
-
-  if (theme === 'dark') return 'text-gray-700';
-  if (theme === 'light') return 'text-gray-200';
-  return 'text-gray-600 dark:text-gray-300';
 }
