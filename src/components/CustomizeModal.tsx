@@ -8,7 +8,7 @@ import { frames, FrameId } from '../lib/frames';
 import { GhostRiderFrame } from './GhostRiderFrame';
 import { THEME_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 import { banners, BannerId } from '../lib/banners';
-import { textEffects, TextEffectId, TEXT_EFFECT_REQUIRED_TAGS, TEXT_EFFECT_REQUIRED_REVIEW_COUNT, meetsTextEffectRequirement } from '../lib/textEffects';
+import { textEffects, TextEffectId, meetsTextEffectRequirement } from '../lib/textEffects';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
@@ -711,19 +711,11 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   // tags de resenha (Scribbler/Screenwriter/Memoirist) — resumido a
   // "realReviewCount >= 30" porque os limiares das 3 são cumulativos.
   const renderTextEffectsContent = () => {
-    const defaultEffect = textEffects.default;
     const otherEffects = Object.values(textEffects).filter(effect => effect.id !== 'default');
     const previewName = username ? `@${username}` : '@seu_usuario';
-    const reviewProgress = Math.min(realReviewCount, TEXT_EFFECT_REQUIRED_REVIEW_COUNT);
 
     return (
       <div className="space-y-4">
-        <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-lg mx-auto">
-          {t('customize.textEffects.description', {
-            defaultValue: 'Estilos especiais pro seu nome e bio no perfil. Exige Premium + as tags Scribbler, Screenwriter e Memoirist desbloqueadas.'
-          })}
-        </p>
-
         {/* Opção padrão — sem nenhum efeito, sempre disponível */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -752,8 +744,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {otherEffects.map((effect, index) => {
-            const unlocked = meetsTextEffectRequirement(isPremium, realReviewCount);
+            // Cada efeito desbloqueia sozinho, pela sua própria tag —
+            // Typewriter/Scribbler, Technicolor/Screenwriter,
+            // Marquee Lights/Memoirist — nunca as 3 juntas.
+            const unlocked = meetsTextEffectRequirement(effect.id, isPremium, realReviewCount);
             const isLocked = !unlocked;
+            const reviewProgress = Math.min(realReviewCount, effect.requiredReviewCount);
 
             return (
               <motion.div
@@ -802,10 +798,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       <div className="flex flex-col items-center gap-1.5">
                         <div className="flex items-center gap-1.5 bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full">
                           <Lock className="w-4 h-4" />
-                          <span>{reviewProgress}/{TEXT_EFFECT_REQUIRED_REVIEW_COUNT} {t('customize.textEffects.reviews', { defaultValue: 'resenhas' })}</span>
+                          <span>{reviewProgress}/{effect.requiredReviewCount} {t('customize.textEffects.reviews', { defaultValue: 'resenhas' })}</span>
                         </div>
                         <p className="text-[11px] text-gray-500 dark:text-gray-400 text-center">
-                          {TEXT_EFFECT_REQUIRED_TAGS.join(' · ')}
+                          {effect.requiredTag}
                         </p>
                       </div>
                     ) : null}
@@ -892,19 +888,19 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                  <div className="grid grid-cols-3 gap-1.5 sm:flex sm:gap-2 border-b border-gray-200/50 dark:border-gray-700/50 mb-6 pb-2">
+                  <div className="grid grid-cols-4 gap-1 sm:flex sm:gap-2 border-b border-gray-200/50 dark:border-gray-700/50 mb-6 pb-2">
                     {tabs.map(({ id, label, icon: Icon }) => (
                       <button
                         key={id}
                         onClick={() => setActiveTab(id)}
-                        className={`flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-0 sm:flex-shrink-0 sm:whitespace-nowrap px-1.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-sm font-medium rounded-xl transition-all ${
+                        className={`flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-0.5 sm:gap-0 sm:flex-shrink-0 sm:whitespace-nowrap px-0.5 sm:px-4 py-1.5 sm:py-2.5 text-[9px] sm:text-sm font-medium rounded-xl transition-all ${
                           activeTab === id
                             ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
                         }`}
                       >
-                        <Icon className="w-4 h-4 sm:mr-2 flex-shrink-0" />
-                        <span className="truncate max-w-full">{label}</span>
+                        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2 flex-shrink-0" />
+                        <span className="truncate max-w-full leading-tight">{label}</span>
                       </button>
                     ))}
                   </div>
