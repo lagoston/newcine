@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -236,79 +237,82 @@ export default function CinematicPersonaCard({ personalityId, language, embedded
         </button>
       </motion.div>
 
-      <AnimatePresence>
-        {showModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
-            onClick={() => setShowModal(false)}
-          >
+      {createPortal(
+        <AnimatePresence>
+          {showModal && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              onClick={e => e.stopPropagation()}
-              className="relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl"
-              style={{ background: 'rgba(10,10,20,0.92)', border: `1px solid ${accentColor}40` }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+              onClick={() => setShowModal(false)}
             >
-              {/* Top color band */}
-              <div className="absolute top-0 inset-x-0 h-1" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }} />
-
-              {/* Background glow */}
-              <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-10 pointer-events-none"
-                style={{ background: accentColor }} />
-
-              {/* Close button */}
-              <button
-                onClick={() => setShowModal(false)}
-                className="absolute top-4 right-4 z-50 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                onClick={e => e.stopPropagation()}
+                className="relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl"
+                style={{ background: 'rgba(10,10,20,0.92)', border: `1px solid ${accentColor}40` }}
               >
-                <X className="w-5 h-5 text-white" />
-              </button>
+                {/* Top color band */}
+                <div className="absolute top-0 inset-x-0 h-1" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }} />
 
-              <div className="relative z-10 p-7">
-                {/* Avatar */}
-                <div className="flex justify-center mb-5">
-                  <div
-                    className="w-28 h-28 rounded-2xl flex items-center justify-center border-2 shadow-xl overflow-hidden"
-                    style={{ borderColor: `${accentColor}80`, background: `${accentColor}25` }}
-                  >
-                    {persona.imageUrl ? (
-                      <img src={persona.imageUrl} alt={persona.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-14 h-14" style={{ color: accentColor }} />
-                    )}
+                {/* Background glow */}
+                <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-10 pointer-events-none"
+                  style={{ background: accentColor }} />
+
+                {/* Close button */}
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="absolute top-4 right-4 z-50 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+
+                <div className="relative z-10 p-7">
+                  {/* Avatar */}
+                  <div className="flex justify-center mb-5">
+                    <div
+                      className="w-28 h-28 rounded-2xl flex items-center justify-center border-2 shadow-xl overflow-hidden"
+                      style={{ borderColor: `${accentColor}80`, background: `${accentColor}25` }}
+                    >
+                      {persona.imageUrl ? (
+                        <img src={persona.imageUrl} alt={persona.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-14 h-14" style={{ color: accentColor }} />
+                      )}
+                    </div>
                   </div>
+
+                {/* Essence badge */}
+                  <div className="flex justify-center mb-2">
+                    <span
+                      className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
+                      style={{ background: `${accentColor}25`, color: accentColor, border: `1px solid ${accentColor}50` }}
+                    >
+                      {personalityId}
+                    </span>
+                  </div>
+
+                  {/* Name */}
+                  <h2 className="text-2xl font-extrabold text-white text-center mb-4">
+                    {persona.name}
+                  </h2>
+
+                  {/* Description */}
+                  <p className="text-gray-300 text-sm leading-relaxed text-center mb-6">
+                    {description}
+                  </p>
+
                 </div>
-
-              {/* Essence badge */}
-                <div className="flex justify-center mb-2">
-                  <span
-                    className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
-                    style={{ background: `${accentColor}25`, color: accentColor, border: `1px solid ${accentColor}50` }}
-                  >
-                    {personalityId}
-                  </span>
-                </div>
-
-                {/* Name */}
-                <h2 className="text-2xl font-extrabold text-white text-center mb-4">
-                  {persona.name}
-                </h2>
-
-                {/* Description */}
-                <p className="text-gray-300 text-sm leading-relaxed text-center mb-6">
-                  {description}
-                </p>
-
-              </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }
