@@ -208,9 +208,6 @@ const Shelf: React.FC<{
           {t(mood.labelKey)}
           <span className="font-normal text-gray-400 dark:text-gray-500"> ({t(mood.tagKey)})</span>
         </h3>
-        {state.totalCount > 0 && (
-          <span className="text-xs text-gray-400 dark:text-gray-500">({state.totalCount})</span>
-        )}
       </div>
 
       {/* "Prateleira física" com efeito 3D — diferente da primeira
