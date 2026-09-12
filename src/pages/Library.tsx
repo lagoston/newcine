@@ -377,18 +377,26 @@ export default function Library() {
   // Abre o Duelo de Watchlist automaticamente quando a Home manda o
   // usuário pra cá com esse propósito específico (prateleira "Duelo de
   // Watchlist" do modal "Bem-vindo de volta"). Só dispara uma vez, depois
-  // que os dados já carregaram (senão moviesByRating.unrated ainda estaria
-  // vazio) e só se realmente tiver os 4 filmes mínimos exigidos.
+  // que os dados já carregaram de verdade (senão moviesByRating.unrated
+  // ainda estaria vazio) e só se realmente tiver os 4 filmes mínimos
+  // exigidos. Usa initialLoadComplete, não loading — loading já vira
+  // false logo após buscar só os IDs básicos (user_movies), bem antes do
+  // processamento que busca os detalhes de cada filme e popula
+  // moviesByRating de verdade; guardar pelo loading fazia o efeito
+  // disparar cedo demais na primeira visita (sem cache), marcar o ref
+  // como "já tentei" pra sempre, e nunca mais reavaliar quando os dados
+  // reais finalmente chegavam — só funcionava quando a biblioteca já
+  // tinha sido carregada antes nessa sessão (cache já vinha completo).
   const autoOpenDuelRef = useRef(false);
   useEffect(() => {
     if (autoOpenDuelRef.current) return;
-    if (loading) return;
+    if (!initialLoadComplete) return;
     if (!(location.state as any)?.openWatchlistDuel) return;
     autoOpenDuelRef.current = true;
     if (moviesByRating.unrated.length >= 4) {
       setShowWatchlistDuel(true);
     }
-  }, [loading, location.state, moviesByRating.unrated.length]);
+  }, [initialLoadComplete, location.state, moviesByRating.unrated.length]);
 
   // Apply TV order preference
   const sortMoviesByTvOrder = (movies: LibraryMovie[]) => {
