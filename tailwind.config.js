@@ -234,6 +234,28 @@ export default {
           '0%, 100%': { clipPath: 'inset(88% 0 0 0)' },
           '50%': { clipPath: 'inset(76% 0 0 0)' },
         },
+        // ── TEXT EFFECTS (Customize Profile) ────────────────────────────────
+        // Typewriter — cursor de máquina de escrever piscando no final do nome.
+        'typewriter-cursor-blink': {
+          '0%, 49%': { opacity: '1' },
+          '50%, 100%': { opacity: '0' },
+        },
+        // Technicolor — o gradiente de 5 cores desliza continuamente pelo
+        // texto (background-position em movimento), nunca uma cor parada.
+        'technicolor-shift': {
+          '0%': { backgroundPosition: '0% 50%' },
+          '100%': { backgroundPosition: '300% 50%' },
+        },
+        // Marquee Lights — brilho neon pulsante, como lâmpadas de marquise
+        // de cinema clássica acendendo e apagando.
+        'marquee-glow': {
+          '0%, 100%': {
+            textShadow: '0 0 4px rgba(251,191,36,0.6), 0 0 10px rgba(251,191,36,0.4), 0 0 18px rgba(239,68,68,0.25)',
+          },
+          '50%': {
+            textShadow: '0 0 9px rgba(251,191,36,0.95), 0 0 22px rgba(251,191,36,0.75), 0 0 36px rgba(239,68,68,0.55)',
+          },
+        },
         },
       animation: {
         // ── FRAMES (avatar) ──────────────────────────────────────────────────
@@ -279,6 +301,10 @@ export default {
         'casual-drinker-frame-bubbles': 'casual-drinker-frame-bubbles 2.5s ease-in-out infinite',
         'deathdodger-frame-pulse': 'deathdodger-frame-pulse 1.8s ease-in-out infinite',
         'deathdodger-skull-reveal': 'deathdodger-skull-reveal 0.8s ease-out 3s 1 both',
+        // ── TEXT EFFECTS (Customize Profile) ────────────────────────────────
+        'typewriter-cursor-blink': 'typewriter-cursor-blink 1s step-end infinite',
+        'technicolor-shift':       'technicolor-shift 6s linear infinite',
+        'marquee-glow':            'marquee-glow 1.8s ease-in-out infinite',
       },
     },
   },
