@@ -16,7 +16,8 @@ import UserPinsCard from '../components/UserPinsCard';
 import { toast } from 'sonner';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from '../components/GhostRiderFrame';
-import { getBannerClass, getBannerTextClass, getBannerSecondaryTextClass } from '../lib/banners';
+import { getBannerClass } from '../lib/banners';
+import { getTextEffectNameClass, getTextEffectSecondaryClass } from '../lib/textEffects';
 import UserListsModal from '../components/UserListsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import UserReviewsModal from '../components/UserReviewsModal';
@@ -37,6 +38,7 @@ interface Profile {
  is_premium?: boolean;
  avatar_frame: string;
  banner?: string;
+ text_effect?: string;
  chroma_box_enabled?: boolean;
  active_tag?: {
  emoji: string;
@@ -106,6 +108,10 @@ export default function UserProfile() {
  const navigate = useNavigate();
  const { t, i18n } = useTranslation();
  const [profile, setProfile] = useState<Profile | null>(null);
+ // Contagem de resenhas REAIS do dono deste perfil (não do viewer) —
+ // usada só pra decidir se os Text Effects dele estão desbloqueados,
+ // mesma lógica de Profile.tsx (o próprio perfil).
+ const [realReviewCount, setRealReviewCount] = useState(0);
  // Amizade é mútua — não existe mais "eu sigo mas ele não me segue".
  // 4 estados possíveis: sem relação, pedido enviado por mim, pedido
  // recebido dele (posso aceitar direto aqui), ou já somos amigos.
@@ -206,6 +212,13 @@ export default function UserProfile() {
  }
 
  setProfile(profileData);
+
+ supabase
+ .from('reviews')
+ .select('*', { count: 'exact', head: true })
+ .eq('user_id', profileData.id)
+ .eq('is_ai_generated', false)
+ .then(({ count }) => setRealReviewCount(count || 0));
 
  if (session?.user?.id) {
  const { data: friendshipData } = await supabase
@@ -447,7 +460,7 @@ export default function UserProfile() {
  <div className="flex-1 text-center sm:text-left">
  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
  <div className="flex items-center justify-center sm:justify-start gap-2">
- <h1 className={`text-2xl sm:text-3xl font-bold ${getBannerTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>
+ <h1 className={`text-2xl sm:text-3xl font-bold ${getTextEffectNameClass(profile?.text_effect, profile.is_premium ?? profile.plan_type === 'premium', realReviewCount)}`}>
  @{profile.username}
  </h1>
  {(profile.is_premium ?? profile.plan_type === 'premium') && (
@@ -465,19 +478,19 @@ export default function UserProfile() {
  </div>
 
  {profile.bio && (
- <p className={`mb-4 max-w-2xl ${getBannerSecondaryTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>
+ <p className={`mb-4 max-w-2xl ${getTextEffectSecondaryClass(profile?.text_effect, profile.is_premium ?? profile.plan_type === 'premium', realReviewCount)}`}>
  {profile.bio}
  </p>
  )}
 
- <div className={`flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm mb-4 ${getBannerSecondaryTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}`}>
+ <div className={`flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-sm mb-4 ${getTextEffectSecondaryClass(profile?.text_effect, profile.is_premium ?? profile.plan_type === 'premium', realReviewCount)}`}>
  <button
  onClick={() => setShowFriendsModal(true)}
  className="flex items-center hover:opacity-70 transition-opacity"
  >
  <Users className="w-5 h-5 mr-2" />
  <span>
- <strong className={getBannerTextClass(profile?.banner, profile.is_premium ?? profile.plan_type === 'premium')}>{friendsCount}</strong>{' '}
+ <strong className={getTextEffectNameClass(profile?.text_effect, profile.is_premium ?? profile.plan_type === 'premium', realReviewCount)}>{friendsCount}</strong>{' '}
  {t('profile.friendsLabel', { defaultValue: 'Amigos' })}
  </span>
  </button>
