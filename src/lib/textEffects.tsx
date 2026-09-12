@@ -1,15 +1,13 @@
 // Text Effects — nova categoria de customizáveis, aplicada ao texto do
 // "cidadão" no banner do perfil: nome de usuário e bio. Diferente de
 // frames/banners (que só exigem Premium + às vezes 1 tag temática),
-// Text Effects exige Premium E as 3 tags de resenha desbloqueadas
-// (Scribbler, Screenwriter, Memoirist) — na prática, como os limiares
-// dessas 3 tags são cumulativos (1 / 10 / 30 resenhas reais), ter as 3
-// desbloqueadas equivale exatamente a ter >= 30 resenhas reais escritas
-// (o requisito da Memoirist, a mais alta). requiredReviewCount abaixo
-// documenta isso — não é um número escolhido à parte, é o próprio
-// limiar da Memoirist em lib/tags.ts.
-export const TEXT_EFFECT_REQUIRED_TAGS = ['Scribbler', 'Screenwriter', 'Memoirist'] as const;
-export const TEXT_EFFECT_REQUIRED_REVIEW_COUNT = 30;
+// cada Text Effect aqui é desbloqueado individualmente por Premium + UMA
+// tag de resenha específica — não as 3 juntas:
+//   Typewriter     ↔ Scribbler     (>= 1 resenha real)
+//   Technicolor    ↔ Screenwriter  (>= 10 resenhas reais)
+//   Marquee Lights ↔ Memoirist     (>= 30 resenhas reais)
+// Os números vêm direto de lib/tags.ts (minMovies de cada tag) — não são
+// escolhidos à parte.
 
 export const textEffects = {
   // Sem nenhum efeito: mantém o mesmo texto neutro que o site sempre
@@ -19,6 +17,8 @@ export const textEffects = {
     id: 'default',
     name: 'Default',
     isPremium: false,
+    requiredTag: null as string | null,
+    requiredReviewCount: 0,
     nameClassName: 'text-gray-900 dark:text-white',
     secondaryClassName: 'text-gray-600 dark:text-gray-300',
   },
@@ -32,6 +32,8 @@ export const textEffects = {
     id: 'typewriter',
     name: 'Typewriter',
     isPremium: true,
+    requiredTag: 'Scribbler',
+    requiredReviewCount: 1,
     nameClassName: "font-['Courier_Prime',monospace] tracking-tight pr-[3px] border-r-2 border-current animate-typewriter-cursor-blink",
     secondaryClassName: "font-['Courier_Prime',monospace] tracking-tight",
   },
@@ -43,6 +45,8 @@ export const textEffects = {
     id: 'technicolor',
     name: 'Technicolor',
     isPremium: true,
+    requiredTag: 'Screenwriter',
+    requiredReviewCount: 10,
     nameClassName: "bg-[length:300%_auto] bg-[linear-gradient(90deg,#ef4444,#facc15,#22c55e,#3b82f6,#a855f7,#ef4444)] bg-clip-text text-transparent animate-technicolor-shift",
     secondaryClassName: "bg-[length:300%_auto] bg-[linear-gradient(90deg,#ef4444,#facc15,#22c55e,#3b82f6,#a855f7,#ef4444)] bg-clip-text text-transparent animate-technicolor-shift opacity-80",
   },
@@ -53,6 +57,8 @@ export const textEffects = {
     id: 'marqueeLights',
     name: 'Marquee Lights',
     isPremium: true,
+    requiredTag: 'Memoirist',
+    requiredReviewCount: 30,
     nameClassName: 'text-amber-300 animate-marquee-glow',
     secondaryClassName: 'text-amber-100/90 animate-marquee-glow',
   },
@@ -60,17 +66,21 @@ export const textEffects = {
 
 export type TextEffectId = keyof typeof textEffects;
 
-// Verifica se o usuário atende ao requisito de tags — reaproveitado tal
-// qual em CustomizeModal (pra decidir cadeado) e Profile (pra decidir
-// se aplica o efeito salvo ou cai no texto padrão, caso o usuário tenha
-// perdido acesso por algum motivo, ex.: downgrade de plano).
-export function meetsTextEffectRequirement(isPremium: boolean, realReviewCount: number): boolean {
-  return isPremium && realReviewCount >= TEXT_EFFECT_REQUIRED_REVIEW_COUNT;
+// Verifica se o usuário atende ao requisito DESSE efeito específico —
+// reaproveitado tal qual em CustomizeModal (pra decidir cadeado de cada
+// card individualmente) e Profile (pra decidir se aplica o efeito salvo
+// ou cai no texto padrão, caso o usuário tenha perdido acesso por algum
+// motivo, ex.: downgrade de plano).
+export function meetsTextEffectRequirement(effectId: string, isPremium: boolean, realReviewCount: number): boolean {
+  const effect = textEffects[effectId as TextEffectId];
+  if (!effect) return false;
+  if (!effect.isPremium) return true;
+  return isPremium && realReviewCount >= effect.requiredReviewCount;
 }
 
 export function getTextEffectNameClass(effectId: string = 'default', isPremium: boolean = false, realReviewCount: number = 0): string {
   const effect = textEffects[effectId as TextEffectId];
-  if (!effectId || !effect || (effect.isPremium && !meetsTextEffectRequirement(isPremium, realReviewCount))) {
+  if (!effectId || !effect || !meetsTextEffectRequirement(effectId, isPremium, realReviewCount)) {
     return textEffects.default.nameClassName;
   }
   return effect.nameClassName;
@@ -78,7 +88,7 @@ export function getTextEffectNameClass(effectId: string = 'default', isPremium: 
 
 export function getTextEffectSecondaryClass(effectId: string = 'default', isPremium: boolean = false, realReviewCount: number = 0): string {
   const effect = textEffects[effectId as TextEffectId];
-  if (!effectId || !effect || (effect.isPremium && !meetsTextEffectRequirement(isPremium, realReviewCount))) {
+  if (!effectId || !effect || !meetsTextEffectRequirement(effectId, isPremium, realReviewCount)) {
     return textEffects.default.secondaryClassName;
   }
   return effect.secondaryClassName;
