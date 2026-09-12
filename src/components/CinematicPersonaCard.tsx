@@ -187,7 +187,7 @@ export default function CinematicPersonaCard({ personalityId, language, embedded
         <button
           onClick={() => setShowModal(true)}
           className={embedded
-            ? 'w-full text-left group relative rounded-3xl overflow-hidden'
+            ? 'w-full text-left group relative rounded-3xl overflow-hidden p-4 sm:p-5 hover:bg-white/40 dark:hover:bg-gray-700/30 transition-colors duration-300'
             : 'w-full text-left group relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden p-6 hover:shadow-xl transition-all duration-300'
           }
         >
