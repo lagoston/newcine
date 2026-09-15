@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { frames, FrameId } from '../lib/frames';
 import { GhostRiderFrame } from './GhostRiderFrame';
-import { THEME_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
+import { THEME_TAGS, PROGRESSION_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 import { banners, BannerId } from '../lib/banners';
 import { textEffects, TextEffectId, meetsTextEffectRequirement } from '../lib/textEffects';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -301,7 +301,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
       const { data: userMovies, error: userMoviesError } = await supabase
         .from('user_movies')
-        .select('movie_id')
+        .select('movie_id, movies!inner(media_type)')
         .eq('user_id', session.user.id)
         .not('rating', 'is', null);
 
@@ -326,12 +326,66 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
             progress[tag.id] = watchedCount;
           }
         });
+
+        // Progresso real das PROGRESSION_TAGS de gênero (ex.: Bloody
+        // Mary/Horror, usada como requiredTag no card "Horror") — antes
+        // dessa correção, esse progresso nunca era calculado aqui (só
+        // franquias eram), então esse card ficava bloqueado pra sempre,
+        // independente de quantos filmes do gênero o usuário avaliasse.
+        // Mesma lógica de contagem já usada em TagPinsModal.tsx.
+        const genreTags = PROGRESSION_TAGS.filter(tag => tag.condition?.type === 'genre');
+        if (genreTags.length > 0) {
+          const movieIds = [...new Set(userMovies.map((m: any) => m.movie_id))];
+          const { data: cacheData } = await supabase
+            .from('movie_cache')
+            .select('tmdb_id, media_type, genres_en')
+            .in('tmdb_id', movieIds);
+
+          const cacheMap = new Map((cacheData || []).map((m: any) => [`${m.tmdb_id}_${m.media_type}`, m]));
+          const genreCounts: Record<string, number> = {};
+
+          userMovies.forEach((entry: any) => {
+            const mediaType = entry.movies?.media_type || 'movie';
+            const cached: any = cacheMap.get(`${entry.movie_id}_${mediaType}`);
+            cached?.genres_en?.forEach((g: any) => {
+              genreCounts[g.name] = (genreCounts[g.name] || 0) + 1;
+            });
+          });
+
+          genreTags.forEach(tag => {
+            progress[tag.name] = genreCounts[tag.condition?.value as string] || 0;
+          });
+        }
       }
 
       setThemeTagProgress(progress);
     } catch (error) {
       console.error('Error fetching theme tag progress:', error);
     }
+  };
+
+  // Busca info de desbloqueio de uma tag de forma unificada — frames e
+  // banners referenciam THEME_TAGS pelo id, cards referenciam
+  // PROGRESSION_TAGS pelo próprio nome (ex.: 'Bloody Mary'); essa função
+  // resolve os dois casos numa única chamada, pra todas as 4 categorias
+  // mostrarem exatamente o mesmo formato (emoji + nome + progresso).
+  interface UnlockTagInfo {
+    emoji: string;
+    name: string;
+    requiredCount: number;
+  }
+
+  const getUnlockTagInfo = (requiredTagName: string | null | undefined): UnlockTagInfo | null => {
+    if (!requiredTagName) return null;
+    const themeTag = THEME_TAGS.find(t => t.id === requiredTagName || t.name === requiredTagName);
+    if (themeTag) {
+      return { emoji: themeTag.emoji, name: themeTag.name, requiredCount: themeTag.condition.count };
+    }
+    const progressionTag = PROGRESSION_TAGS.find(t => t.name === requiredTagName);
+    if (progressionTag) {
+      return { emoji: progressionTag.emoji, name: progressionTag.name, requiredCount: progressionTag.minMovies };
+    }
+    return null;
   };
 
   if (!isOpen) return null;
@@ -432,9 +486,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
           {otherFrames.map((frame, index) => {
             const isPremiumLocked = frame.isPremium && !isPremium;
-            const requiredThemeTag = frame.requiredTag ? THEME_TAGS.find(t => t.id === frame.requiredTag) : null;
+            const unlockInfo = getUnlockTagInfo(frame.requiredTag);
             const requiredTagProgress = frame.requiredTag ? (themeTagProgress[frame.requiredTag] || 0) : 0;
-            const requiredTagCount = requiredThemeTag?.condition.count || 0;
+            const requiredTagCount = unlockInfo?.requiredCount || 0;
             const requiredTagMet = !frame.requiredTag || requiredTagProgress >= requiredTagCount;
             const isLocked = isPremiumLocked || !requiredTagMet;
 
@@ -462,6 +516,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       {isPremiumLocked ? (
                         <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
                           <Crown className="w-3 h-3" />
+                          <span>Premium</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
@@ -475,10 +530,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       <Check className="w-4 h-4" />
                     </div>
                   )}
-                  {isLocked && !isPremiumLocked && requiredThemeTag && (
+                  {isLocked && !isPremiumLocked && unlockInfo && (
                     <div className="absolute bottom-1 left-1 right-1 bg-black/60 backdrop-blur-sm rounded-lg px-1.5 py-1">
                       <p className="text-[9px] text-white text-center font-medium truncate">
-                        {requiredThemeTag.emoji} {requiredThemeTag.name} · {requiredTagProgress}/{requiredTagCount}
+                        {unlockInfo.emoji} {unlockInfo.name} · {requiredTagProgress}/{requiredTagCount}
                       </p>
                     </div>
                   )}
@@ -561,9 +616,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
           {otherBanners.map((banner, index) => {
             const isPremiumLocked = banner.isPremium && !isPremium;
-            const requiredThemeTag = banner.requiredTag ? THEME_TAGS.find(t => t.id === banner.requiredTag) : null;
+            const unlockInfo = getUnlockTagInfo(banner.requiredTag);
             const requiredTagProgress = banner.requiredTag ? (themeTagProgress[banner.requiredTag] || 0) : 0;
-            const requiredTagCount = requiredThemeTag?.condition.count || 0;
+            const requiredTagCount = unlockInfo?.requiredCount || 0;
             const requiredTagMet = !banner.requiredTag || requiredTagProgress >= requiredTagCount;
             const isLocked = isPremiumLocked || !requiredTagMet;
 
@@ -593,6 +648,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       {isPremiumLocked ? (
                         <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
                           <Crown className="w-3 h-3" />
+                          <span>Premium</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
@@ -606,10 +662,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       <Check className="w-3 h-3" />
                     </div>
                   )}
-                  {isLocked && !isPremiumLocked && requiredThemeTag && (
+                  {isLocked && !isPremiumLocked && unlockInfo && (
                     <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 z-10">
                       <p className="text-[10px] text-white text-center font-medium truncate">
-                        {requiredThemeTag.emoji} {requiredThemeTag.name} · {requiredTagProgress}/{requiredTagCount}
+                        {unlockInfo.emoji} {unlockInfo.name} · {requiredTagProgress}/{requiredTagCount}
                       </p>
                     </div>
                   )}
@@ -627,8 +683,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {Object.values(ORACLE_CARDS).map((card, index) => {
           const isPremiumLocked = card.isPremium && !isPremium;
+          const unlockInfo = getUnlockTagInfo(card.requiredTag);
           const requiredTagProgress = card.requiredTag ? (themeTagProgress[card.requiredTag] || 0) : 0;
-          const isTagUnlocked = card.requiredTag ? requiredTagProgress >= 50 : true;
+          const requiredTagCount = unlockInfo?.requiredCount || 0;
+          const isTagUnlocked = !card.requiredTag || requiredTagProgress >= requiredTagCount;
           const isLocked = isPremiumLocked || !isTagUnlocked;
 
           return (
@@ -658,10 +716,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         <Crown className="w-4 h-4" />
                         <span>Premium</span>
                       </div>
-                    ) : !isTagUnlocked ? (
+                    ) : !isTagUnlocked && unlockInfo ? (
                       <div className="flex items-center gap-1.5 bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full">
                         <Lock className="w-4 h-4" />
-                        <span>{card.requiredTag}</span>
+                        <span>{unlockInfo.emoji} {unlockInfo.name} · {requiredTagProgress}/{requiredTagCount}</span>
                       </div>
                     ) : selectedCard === card.id ? (
                       <div className="bg-blue-500 text-white p-1.5 rounded-full">
@@ -749,6 +807,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
             // Marquee Lights/Memoirist — nunca as 3 juntas.
             const unlocked = meetsTextEffectRequirement(effect.id, isPremium, realReviewCount);
             const isLocked = !unlocked;
+            const unlockInfo = getUnlockTagInfo(effect.requiredTag);
             const reviewProgress = Math.min(realReviewCount, effect.requiredReviewCount);
 
             return (
@@ -794,15 +853,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         <Crown className="w-4 h-4" />
                         <span>Premium</span>
                       </div>
-                    ) : isLocked ? (
-                      <div className="flex flex-col items-center gap-1.5">
-                        <div className="flex items-center gap-1.5 bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full">
-                          <Lock className="w-4 h-4" />
-                          <span>{reviewProgress}/{effect.requiredReviewCount} {t('customize.textEffects.reviews', { defaultValue: 'resenhas' })}</span>
-                        </div>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 text-center">
-                          {effect.requiredTag}
-                        </p>
+                    ) : isLocked && unlockInfo ? (
+                      <div className="flex items-center justify-center gap-1.5 bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full">
+                        <Lock className="w-4 h-4" />
+                        <span>{unlockInfo.emoji} {unlockInfo.name} · {reviewProgress}/{effect.requiredReviewCount}</span>
                       </div>
                     ) : null}
                   </div>
