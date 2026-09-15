@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Image as ImageIcon, Layout, Crown, Lock, Check, User, Film, Type } from 'lucide-react';
+import { X, Image as ImageIcon, Layout, Crown, Lock, Unlock, Check, User, Film, Type } from 'lucide-react';
 import GlassLoader from './GlassLoader';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -200,15 +200,19 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     if (!session?.user?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          avatar_frame: frameId,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', session.user.id);
+      // Antes fazia um UPDATE direto em profiles, sem nenhuma validação no
+      // servidor — o botão desabilitado no frontend era a única barreira,
+      // contornável via console. set_user_cosmetic valida no servidor se o
+      // usuário realmente desbloqueou esse item antes de escrever.
+      const { data, error } = await supabase
+        .rpc('set_user_cosmetic', { p_user_id: session.user.id, p_category: 'frame', p_cosmetic_id: frameId })
+        .single();
 
       if (error) throw error;
+      if (!data.success) {
+        toast.error(t('customize.updateError'));
+        return;
+      }
 
       setSelectedFrame(frameId);
       toast.success(t('customize.frameUpdated'));
@@ -228,15 +232,15 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     if (!session?.user?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          banner: bannerId,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', session.user.id);
+      const { data, error } = await supabase
+        .rpc('set_user_cosmetic', { p_user_id: session.user.id, p_category: 'banner', p_cosmetic_id: bannerId })
+        .single();
 
       if (error) throw error;
+      if (!data.success) {
+        toast.error(t('customize.updateError'));
+        return;
+      }
 
       setSelectedBanner(bannerId);
       toast.success(t('customize.bannerUpdated'));
@@ -251,15 +255,15 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     if (!session?.user?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          card_style: cardStyle,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', session.user.id);
+      const { data, error } = await supabase
+        .rpc('set_user_cosmetic', { p_user_id: session.user.id, p_category: 'card', p_cosmetic_id: cardStyle })
+        .single();
 
       if (error) throw error;
+      if (!data.success) {
+        toast.error(t('customize.updateError'));
+        return;
+      }
 
       setSelectedCard(cardStyle);
       toast.success(t('customize.cardUpdated'));
@@ -274,15 +278,15 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     if (!session?.user?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          text_effect: effectId,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', session.user.id);
+      const { data, error } = await supabase
+        .rpc('set_user_cosmetic', { p_user_id: session.user.id, p_category: 'text_effect', p_cosmetic_id: effectId })
+        .single();
 
       if (error) throw error;
+      if (!data.success) {
+        toast.error(t('customize.updateError'));
+        return;
+      }
 
       setSelectedTextEffect(effectId);
       toast.success(t('customize.textEffectUpdated', { defaultValue: 'Efeito de texto atualizado!' }));
@@ -530,8 +534,13 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       <Check className="w-4 h-4" />
                     </div>
                   )}
-                  {isLocked && !isPremiumLocked && unlockInfo && (
-                    <div className="absolute bottom-1 left-1 right-1 bg-black/60 backdrop-blur-sm rounded-lg px-1.5 py-1">
+                  {!isPremiumLocked && unlockInfo && (
+                    <div className="absolute bottom-1 left-1 right-1 bg-black/60 backdrop-blur-sm rounded-lg px-1.5 py-1 flex items-center justify-center gap-1">
+                      {requiredTagMet ? (
+                        <Unlock className="w-2.5 h-2.5 text-emerald-400 flex-shrink-0" />
+                      ) : (
+                        <Lock className="w-2.5 h-2.5 text-gray-300 flex-shrink-0" />
+                      )}
                       <p className="text-[9px] text-white text-center font-medium truncate">
                         {unlockInfo.emoji} {unlockInfo.name} · {requiredTagProgress}/{requiredTagCount}
                       </p>
@@ -662,8 +671,13 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                       <Check className="w-3 h-3" />
                     </div>
                   )}
-                  {isLocked && !isPremiumLocked && unlockInfo && (
-                    <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 z-10">
+                  {!isPremiumLocked && unlockInfo && (
+                    <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 z-10 flex items-center justify-center gap-1.5">
+                      {requiredTagMet ? (
+                        <Unlock className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                      ) : (
+                        <Lock className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                      )}
                       <p className="text-[10px] text-white text-center font-medium truncate">
                         {unlockInfo.emoji} {unlockInfo.name} · {requiredTagProgress}/{requiredTagCount}
                       </p>
@@ -707,8 +721,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 className="w-full p-5 hover:bg-white/30 dark:hover:bg-gray-700/30 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="flex-1 min-w-0 truncate text-lg font-bold text-gray-900 dark:text-white">
                       {card.name}
                     </h3>
                     {isPremiumLocked ? (
@@ -716,40 +730,49 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                         <Crown className="w-4 h-4" />
                         <span>Premium</span>
                       </div>
-                    ) : !isTagUnlocked && unlockInfo ? (
-                      <div className="flex items-center gap-1.5 bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full">
-                        <Lock className="w-4 h-4" />
-                        <span>{unlockInfo.emoji} {unlockInfo.name} · {requiredTagProgress}/{requiredTagCount}</span>
-                      </div>
-                    ) : selectedCard === card.id ? (
+                    ) : selectedCard === card.id && !isLocked ? (
                       <div className="bg-blue-500 text-white p-1.5 rounded-full">
                         <Check className="w-4 h-4" />
                       </div>
                     ) : null}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
-                      <img
-                        src={card.images.bogart}
-                        alt="Bogart"
-                        className="w-full h-full object-cover"
-                      />
+                  <div className="relative">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
+                        <img
+                          src={card.images.bogart}
+                          alt="Bogart"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
+                        <img
+                          src={card.images.fincher}
+                          alt="Fincher"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
+                        <img
+                          src={card.images.cypher}
+                          alt="Cypher"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     </div>
-                    <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
-                      <img
-                        src={card.images.fincher}
-                        alt="Fincher"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
-                      <img
-                        src={card.images.cypher}
-                        alt="Cypher"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                    {!isPremiumLocked && unlockInfo && (
+                      <div className="absolute bottom-1.5 left-1.5 right-1.5 bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 flex items-center justify-center gap-1.5">
+                        {isTagUnlocked ? (
+                          <Unlock className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                        ) : (
+                          <Lock className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                        )}
+                        <p className="text-[10px] text-white text-center font-medium truncate">
+                          {unlockInfo.emoji} {unlockInfo.name} · {requiredTagProgress}/{requiredTagCount}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
@@ -788,9 +811,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
             onClick={() => handleTextEffectSelect('default')}
             className="w-full p-5 hover:bg-white/30 dark:hover:bg-gray-700/30 transition-all flex items-center justify-between gap-4"
           >
-            <div className="text-left">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('customize.textEffects.none', { defaultValue: 'Nenhum' })}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{previewName}</p>
+            <div className="text-left flex-1 min-w-0">
+              <h3 className="truncate text-lg font-bold text-gray-900 dark:text-white">{t('customize.textEffects.none', { defaultValue: 'Nenhum' })}</h3>
+              <p className="truncate text-sm text-gray-500 dark:text-gray-400">{previewName}</p>
             </div>
             {selectedTextEffect === 'default' && (
               <div className="bg-blue-500 text-white p-1.5 rounded-full flex-shrink-0">
@@ -828,8 +851,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                   className="w-full p-5 hover:bg-white/30 dark:hover:bg-gray-700/30 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 >
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="flex-1 min-w-0 truncate text-base font-bold text-gray-900 dark:text-white text-left">
                         {effect.name}
                       </h3>
                       {selectedTextEffect === effect.id && !isLocked && (
@@ -842,23 +865,30 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     {/* Preview real — o próprio nome de usuário com a
                         classe do efeito aplicada, não um texto genérico,
                         pra mostrar exatamente como vai ficar. */}
-                    <div className="rounded-xl bg-gray-900/90 py-4 px-3 flex items-center justify-center min-h-[64px]">
+                    <div className="relative rounded-xl bg-gray-900/90 py-4 px-3 flex items-center justify-center min-h-[64px]">
                       <span className={`text-lg font-bold ${effect.nameClassName}`}>
                         {previewName}
                       </span>
+                      {unlockInfo && (
+                        <div className="absolute bottom-1.5 left-1.5 right-1.5 bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 flex items-center justify-center gap-1.5">
+                          {!isLocked ? (
+                            <Unlock className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                          ) : (
+                            <Lock className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                          )}
+                          <p className="text-[10px] text-white text-center font-medium truncate">
+                            {unlockInfo.emoji} {unlockInfo.name} · {reviewProgress}/{effect.requiredReviewCount}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
-                    {!isPremium ? (
+                    {!isPremium && (
                       <div className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-3 py-1.5 rounded-full">
                         <Crown className="w-4 h-4" />
                         <span>Premium</span>
                       </div>
-                    ) : isLocked && unlockInfo ? (
-                      <div className="flex items-center justify-center gap-1.5 bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full">
-                        <Lock className="w-4 h-4" />
-                        <span>{unlockInfo.emoji} {unlockInfo.name} · {reviewProgress}/{effect.requiredReviewCount}</span>
-                      </div>
-                    ) : null}
+                    )}
                   </div>
                 </button>
               </motion.div>
