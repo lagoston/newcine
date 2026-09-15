@@ -865,23 +865,31 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     {/* Preview real — o próprio nome de usuário com a
                         classe do efeito aplicada, não um texto genérico,
                         pra mostrar exatamente como vai ficar. */}
-                    <div className="relative rounded-xl bg-gray-900/90 py-4 px-3 flex items-center justify-center min-h-[64px]">
+                    <div className="rounded-xl bg-gray-900/90 py-4 px-3 flex items-center justify-center min-h-[64px]">
                       <span className={`text-lg font-bold ${effect.nameClassName}`}>
                         {previewName}
                       </span>
-                      {unlockInfo && (
-                        <div className="absolute bottom-1.5 left-1.5 right-1.5 bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 flex items-center justify-center gap-1.5">
-                          {!isLocked ? (
-                            <Unlock className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                          ) : (
-                            <Lock className="w-3 h-3 text-gray-300 flex-shrink-0" />
-                          )}
-                          <p className="text-[10px] text-white text-center font-medium truncate">
-                            {unlockInfo.emoji} {unlockInfo.name} · {reviewProgress}/{effect.requiredReviewCount}
-                          </p>
-                        </div>
-                      )}
                     </div>
+
+                    {/* Faixa de desbloqueio — bloco próprio abaixo do
+                        preview, não sobreposta a ele. O preview de texto
+                        é pequeno demais (min-h-64px) pra caber o próprio
+                        exemplo E uma faixa por cima sem espremer/cortar
+                        um dos dois — diferente de frames/banners/cards,
+                        que sobrepõem a faixa numa imagem grande o
+                        suficiente pra sobrar espaço. */}
+                    {unlockInfo && (
+                      <div className="flex items-center justify-center gap-1.5 bg-black/10 dark:bg-white/10 rounded-lg px-2 py-1.5">
+                        {!isLocked ? (
+                          <Unlock className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                        ) : (
+                          <Lock className="w-3.5 h-3.5 text-gray-500 dark:text-gray-300 flex-shrink-0" />
+                        )}
+                        <p className="text-[11px] text-gray-700 dark:text-white text-center font-medium">
+                          {unlockInfo.emoji} {unlockInfo.name} · {reviewProgress}/{effect.requiredReviewCount}
+                        </p>
+                      </div>
+                    )}
 
                     {!isPremium && (
                       <div className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-3 py-1.5 rounded-full">
