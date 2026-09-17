@@ -48,9 +48,9 @@ const CountdownBadge: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 dark:bg-amber-500/15 rounded-xl border border-amber-400/20 flex-shrink-0 ml-2">
-      <Clock className="w-3 h-3 text-amber-500 dark:text-amber-400" />
-      <span className="text-xs font-mono font-semibold text-amber-600 dark:text-amber-400 tabular-nums">
+    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 dark:bg-rose-500/15 rounded-xl border border-rose-400/20 flex-shrink-0 ml-2">
+      <Clock className="w-3 h-3 text-rose-500 dark:text-rose-400" />
+      <span className="text-xs font-mono font-semibold text-rose-600 dark:text-rose-400 tabular-nums">
         {formatCountdown(countdown)}
       </span>
     </div>
@@ -99,14 +99,14 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
         className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden mb-10"
       >
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-400/10 to-orange-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-yellow-400/10 to-amber-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-rose-400/10 to-pink-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-400/10 to-rose-500/10 rounded-full blur-3xl" />
         </div>
 
         <div className="relative z-10 p-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-1 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full" />
+              <div className="h-8 w-1 bg-gradient-to-b from-rose-400 to-pink-500 rounded-full" />
               <div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white">
                   {t('home.oracleForYou')}
@@ -121,22 +121,22 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
 
           {!hasEssence ? (
             <div className="flex flex-col items-center justify-center py-8 gap-4">
-              <div className="p-4 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-400/20">
-                <Sparkles className="w-8 h-8 text-amber-500 dark:text-amber-400" />
+              <div className="p-4 rounded-2xl bg-rose-500/10 dark:bg-rose-500/15 border border-rose-400/20">
+                <Sparkles className="w-8 h-8 text-rose-500 dark:text-rose-400" />
               </div>
               <p className="text-sm text-center text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
                 {t('home.oracleForYouNoEssence')}
               </p>
               <Link
                 to="/oracle"
-                className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-rose-500/20 hover:shadow-rose-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               >
                 {t('oracle.discoverEssence')}
               </Link>
             </div>
           ) : loading ? (
             <div className="flex items-center justify-center py-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-500" />
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-rose-500" />
             </div>
           ) : movies.length === 0 ? (
             <div className="flex items-center justify-center py-10">
@@ -160,7 +160,7 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
                     whileTap={{ scale: 0.98 }}
                   >
                     <div
-                      className="absolute top-2 left-2 bg-gradient-to-br from-amber-500 to-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg"
+                      className="absolute top-2 left-2 bg-gradient-to-br from-rose-500 to-pink-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg"
                       style={{ zIndex: 30, transform: 'translateZ(0)' }}
                     >
                       #{idx + 1}
