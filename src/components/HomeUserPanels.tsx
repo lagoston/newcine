@@ -586,23 +586,23 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
               </Link>
               <Link
                 to="/oracle"
-                className="flex items-center gap-3 p-3 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 border border-violet-400/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
-              >
-                <div className="p-2 rounded-lg bg-violet-500/15 dark:bg-violet-500/20 flex-shrink-0">
-                  <Eye className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-                </div>
-                <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{t('home.panels.openOracleHub')}</span>
-                <ChevronRight className="w-4 h-4 text-violet-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-              <Link
-                to="/community"
                 className="flex items-center gap-3 p-3 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 border border-pink-400/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
               >
                 <div className="p-2 rounded-lg bg-pink-500/15 dark:bg-pink-500/20 flex-shrink-0">
-                  <Users className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                  <Eye className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                </div>
+                <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{t('home.panels.openOracleHub')}</span>
+                <ChevronRight className="w-4 h-4 text-pink-400 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <Link
+                to="/community"
+                className="flex items-center gap-3 p-3 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 border border-violet-400/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
+              >
+                <div className="p-2 rounded-lg bg-violet-500/15 dark:bg-violet-500/20 flex-shrink-0">
+                  <Users className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                 </div>
                 <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{t('home.panels.openCommunity')}</span>
-                <ChevronRight className="w-4 h-4 text-pink-400 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight className="w-4 h-4 text-violet-400 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
 
@@ -644,7 +644,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                     <div className="flex flex-row gap-2 flex-shrink-0">
                       <Link
                         to="/oracle"
-                        className="flex items-center gap-1.5 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         {i18n.language.startsWith('pt') ? 'Abrir' : 'Open'}
@@ -678,7 +678,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
                       </div>
                       <button
                         onClick={() => setShowYourPersonaModal(true)}
-                        className="flex-shrink-0 px-3.5 py-2 bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-violet-400/20"
+                        className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
                       >
                         {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
                       </button>
