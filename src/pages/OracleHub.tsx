@@ -177,7 +177,7 @@ export default function OracleHub() {
  transition={{ duration: 0.5, delay: 0.2 }}
  >
  <div className="absolute inset-0 pointer-events-none">
- <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-cyan-500/10 rounded-full blur-3xl" />
+ <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-rose-400/10 to-pink-500/10 rounded-full blur-3xl" />
  <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-400/10 to-pink-500/10 rounded-full blur-3xl" />
  </div>
 
@@ -191,9 +191,9 @@ export default function OracleHub() {
  <motion.div
  animate={{ y: [-8, 8, -8] }}
  transition={{ duration: 6, repeat: Infinity, repeatType: "reverse" }}
- className="p-6 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/30 dark:to-cyan-500/30 border border-blue-400/30"
+ className="p-6 rounded-full bg-gradient-to-br from-rose-500/20 to-pink-500/20 dark:from-rose-500/30 dark:to-pink-500/30 border border-rose-400/30"
  >
- <Eye className="w-16 h-16 text-blue-500 dark:text-blue-400" style={{ filter: 'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))' }} />
+ <Eye className="w-16 h-16 text-rose-500 dark:text-rose-400" style={{ filter: 'drop-shadow(0 0 20px rgba(244, 63, 94, 0.5))' }} />
  </motion.div>
  </motion.div>
 
@@ -231,7 +231,7 @@ export default function OracleHub() {
  </motion.p>
 
  <motion.p
- className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 text-2xl font-bold"
+ className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 text-2xl font-bold"
  initial={{ opacity: 0, scale: 0.8 }}
  animate={{ opacity: 1, scale: 1 }}
  transition={{ duration: 0.6, delay: 2 }}
@@ -258,7 +258,7 @@ export default function OracleHub() {
  {canStart ? (
  <motion.button
  onClick={() => setShowQuestionnaire(true)}
- className="px-10 py-4 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 text-white text-lg font-bold rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-blue-500/30 transition-all duration-300 border border-blue-400/30 relative overflow-hidden group"
+ className="px-10 py-4 bg-gradient-to-r from-rose-600 via-pink-600 to-rose-600 text-white text-lg font-bold rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-rose-500/30 transition-all duration-300 border border-rose-400/30 relative overflow-hidden group"
  whileHover={{ scale: 1.05 }}
  whileTap={{ scale: 0.95 }}
  >
@@ -279,7 +279,7 @@ export default function OracleHub() {
  <p className="text-gray-500 dark:text-gray-400 text-sm text-center">
  {t('oracle.intro.ratingRequired')}
  <br />
- <span className="text-blue-500 dark:text-blue-400 font-semibold">
+ <span className="text-rose-500 dark:text-rose-400 font-semibold">
  {t('oracle.intro.ratedCount', { count: ratedMoviesCount })}
  </span>
  </p>
@@ -313,17 +313,17 @@ export default function OracleHub() {
  transition={{ duration: 0.5 }}
  >
  <div className="absolute inset-0 pointer-events-none">
- <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-br from-blue-400/15 to-cyan-500/15 rounded-full blur-3xl" />
- <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-cyan-400/10 to-blue-500/10 rounded-full blur-3xl" />
+ <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-br from-rose-400/15 to-pink-500/15 rounded-full blur-3xl" />
+ <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-400/10 to-rose-500/10 rounded-full blur-3xl" />
  </div>
 
  <motion.div
- className="relative z-10 flex-shrink-0 p-3 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/30 dark:to-cyan-500/30 border border-blue-400/30"
+ className="relative z-10 flex-shrink-0 p-3 rounded-full bg-gradient-to-br from-rose-500/20 to-pink-500/20 dark:from-rose-500/30 dark:to-pink-500/30 border border-rose-400/30"
  animate={{
  boxShadow: [
- '0 0 20px rgba(59,130,246,0.25)',
- '0 0 40px rgba(59,130,246,0.5)',
- '0 0 20px rgba(59,130,246,0.25)',
+ '0 0 20px rgba(244,63,94,0.25)',
+ '0 0 40px rgba(244,63,94,0.5)',
+ '0 0 20px rgba(244,63,94,0.25)',
  ],
  }}
  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -332,11 +332,11 @@ export default function OracleHub() {
  animate={{ scaleY: [1, 1, 0.1, 1, 1] }}
  transition={{ duration: 5, repeat: Infinity, times: [0, 0.9, 0.93, 0.96, 1], ease: 'easeInOut' }}
  >
- <Eye className="w-8 h-8 sm:w-9 sm:h-9 text-blue-500 dark:text-blue-400" style={{ filter: 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.4))' }} />
+ <Eye className="w-8 h-8 sm:w-9 sm:h-9 text-rose-500 dark:text-rose-400" style={{ filter: 'drop-shadow(0 0 15px rgba(244, 63, 94, 0.4))' }} />
  </motion.div>
  </motion.div>
 
- <h1 className="relative z-10 text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 tracking-wide">
+ <h1 className="relative z-10 text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 tracking-wide">
  {t('oracle.title')}
  </h1>
  </motion.div>
