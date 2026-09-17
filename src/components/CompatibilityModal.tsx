@@ -20,12 +20,20 @@ interface RawComparison {
   media_type: string;
   rating_a: number;
   rating_b: number;
+  vote_average: number;
 }
 
 interface MovieComparison extends RawComparison {
   title: string;
   poster_path: string | null;
   diff: number;
+  // Produto dos desvios de cada nota em relação à nota pública do filme
+  // — positivo quando os dois se desviam na MESMA direção (concordância
+  // real, mais forte quanto maior o desvio de ambos), negativo quando se
+  // desviam em direções OPOSTAS (divergência real). Perto de zero quando
+  // pelo menos um dos dois deu uma nota perto da pública — não carrega
+  // sinal de gosto pessoal, concordante ou discordante.
+  signal: number;
 }
 
 // Correlação de Pearson foi trocada por Diferença Absoluta Média (MAE).
@@ -99,7 +107,8 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
           ...r,
           title: cached ? ((isPt && cached.title_pt) ? cached.title_pt : cached.title_en) : `#${r.movie_id}`,
           poster_path: cached ? ((isPt && cached.poster_path_pt) ? cached.poster_path_pt : cached.poster_path) : null,
-          diff: Math.abs(r.rating_a - r.rating_b)
+          diff: Math.abs(r.rating_a - r.rating_b),
+          signal: (r.rating_a - r.vote_average) * (r.rating_b - r.vote_average)
         };
       });
       setComparisons(enriched);
@@ -115,12 +124,61 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
     if (raw.length === 0) return null;
 
     const n = raw.length;
-    // Diferença Absoluta Média (MAE) — mede diretamente quão parecidas
-    // são as notas em valor absoluto, o que "compatibilidade" deveria
-    // significar. Escala 0-10 (diferença máxima possível entre notas de
-    // 0 a 10): diff médio de 0 = 100% compatível, diff médio de 10 = 0%.
-    const avgAbsDiff = raw.reduce((sum, r) => sum + Math.abs(r.rating_a - r.rating_b), 0) / n;
-    const score = Math.max(0, Math.min(100, Math.round(100 - (avgAbsDiff / 10) * 100)));
+
+    // Similaridade de cosseno ajustada (Sarwar et al., 2001) — centrada na
+    // nota PÚBLICA de cada filme, não na própria média de cada pessoa (era
+    // esse o problema real da correlação de Pearson que usávamos antes:
+    // com poucos filmes e notas pouco variadas, um único desvio da PRÓPRIA
+    // média dominava o resultado inteiro de forma instável).
+    //
+    // A lógica: como a maioria das notas tende a ficar perto da nota
+    // pública (regressão à média), concordar EXATAMENTE nela (ex.: 7 e 7
+    // quando a pública é 7) não prova gosto compartilhado — é o resultado
+    // mais provável por pura sorte estatística. Concordar longe da pública
+    // (ex.: 2 e 2 quando a pública é 7) é muito mais raro e informativo, e
+    // por isso deve pesar mais. Da mesma forma, uma divergência de 10 e 3
+    // (pública 7) é um sinal mais forte que 7 e 0 — no primeiro caso os
+    // DOIS se desviaram da opinião pública (um pra cima, um pra baixo); no
+    // segundo, só uma pessoa realmente opinou de forma distinta — a nota 7
+    // não diz nada sobre o gosto de quem a deu, já que é exatamente o que
+    // se esperaria de qualquer um.
+    const deviationsA = raw.map((r) => r.rating_a - r.vote_average);
+    const deviationsB = raw.map((r) => r.rating_b - r.vote_average);
+
+    const sumProduct = deviationsA.reduce((sum, devA, i) => sum + devA * deviationsB[i], 0);
+    const normA = Math.sqrt(deviationsA.reduce((sum, d) => sum + d * d, 0));
+    const normB = Math.sqrt(deviationsB.reduce((sum, d) => sum + d * d, 0));
+
+    if (normA === 0 || normB === 0) {
+      // Só acontece se TODAS as notas de alguém baterem exatamente na
+      // pública em TODOS os filmes comparados — extremamente raro (notas
+      // são inteiras, a nota pública quase nunca é), mas se acontecer não
+      // há nenhum desvio de opinião pra comparar; não é 50% nem qualquer
+      // outro número — é ausência de dado, tratado como amostra insuficiente.
+      return null;
+    }
+
+    const cosineSimilarity = sumProduct / (normA * normB);
+
+    // Similaridade de cosseno sozinha é invariante à escala — dois pares
+    // de amigos com o MESMO padrão relativo de desvios dão o mesmo
+    // resultado, seja o desvio de 0.2 ponto (quase ruído, ninguém opinou
+    // de forma distinta) ou de 3 pontos (opinião claramente forte).
+    // Isso contradiz o princípio de que concordância/divergência só vale
+    // alguma coisa quando reflete opinião real, e não a mera proximidade
+    // esperada da nota pública. CONFIDENCE_SCALE (2.5) é o desvio médio a
+    // partir do qual já tratamos o sinal como plenamente confiável — abaixo
+    // disso, o score é puxado proporcionalmente em direção a 50% (neutro),
+    // nunca alcançando os extremos por pura direção sem intensidade.
+    const CONFIDENCE_SCALE = 2.5;
+    const avgMagnitude = (
+      deviationsA.reduce((sum, d) => sum + Math.abs(d), 0) +
+      deviationsB.reduce((sum, d) => sum + Math.abs(d), 0)
+    ) / (2 * n);
+    const confidence = Math.min(1, avgMagnitude / CONFIDENCE_SCALE);
+
+    const weightedSimilarity = cosineSimilarity * confidence;
+    const score = Math.max(0, Math.min(100, Math.round(((weightedSimilarity + 1) / 2) * 100)));
 
     return { score, count: n };
   }, [raw]);
@@ -135,16 +193,25 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
   // topDisagreements só escolhe entre os filmes que sobraram depois de
   // reservar os de topAgreements, garantindo exclusão mútua por
   // construção, não por sorte de quantos filmes existem.
-  const sortedByDiffAsc = useMemo(
-    () => [...comparisons].sort((a, b) => a.diff - b.diff || b.rating_a - a.rating_a),
+  //
+  // Ordenação trocada de "diff bruto" pra "signal" (o mesmo produto de
+  // desvios da nota pública usado no score) — um empate de nota (diff=0)
+  // bem perto da nota pública não é mais tratado como concordância forte;
+  // o que sobe pro topo agora é onde os dois realmente se afastaram da
+  // opinião pública NA MESMA direção.
+  const sortedBySignalDesc = useMemo(
+    () => [...comparisons].sort((a, b) => b.signal - a.signal),
     [comparisons]
   );
-  const topAgreements = useMemo(() => sortedByDiffAsc.slice(0, 3), [sortedByDiffAsc]);
+  const topAgreements = useMemo(
+    () => sortedBySignalDesc.filter((m) => m.signal > 0).slice(0, 3),
+    [sortedBySignalDesc]
+  );
   const topDisagreements = useMemo(() => {
     const agreedIds = new Set(topAgreements.map((m) => `${m.movie_id}_${m.media_type}`));
     return [...comparisons]
-      .filter((m) => !agreedIds.has(`${m.movie_id}_${m.media_type}`))
-      .sort((a, b) => b.diff - a.diff)
+      .filter((m) => !agreedIds.has(`${m.movie_id}_${m.media_type}`) && m.signal < 0)
+      .sort((a, b) => a.signal - b.signal)
       .slice(0, 3);
   }, [comparisons, topAgreements]);
 
@@ -265,13 +332,13 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
                 )}
 
                 {/* Onde mais discordam */}
-                {topDisagreements.length > 0 && topDisagreements[0].diff > 0 && (
+                {topDisagreements.length > 0 && (
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
                       {t('compatibility.mostDisagree')}
                     </h4>
                     <div className="space-y-1.5">
-                      {topDisagreements.filter((m) => m.diff > 0).map((m) => (
+                      {topDisagreements.map((m) => (
                         <button
                           key={`${m.movie_id}_${m.media_type}`}
                           onClick={() => handleOpenMovie(m.movie_id, m.media_type)}
