@@ -28,9 +28,19 @@ interface MovieComparison extends RawComparison {
   diff: number;
 }
 
-// Correlação de Pearson fica instável (pode bater exatamente 100% ou 0% "por
-// acaso") com poucos pontos — 5 filmes é um piso mais razoável pra confiar
-// no resultado do que os 3 que usávamos com a métrica antiga.
+// Correlação de Pearson foi trocada por Diferença Absoluta Média (MAE).
+// Pearson mede tendência RELATIVA à própria média de cada pessoa — "quando
+// A sobe acima da própria média, B também sobe acima da dele?" — não
+// "as notas são parecidas". Com poucos filmes (5-10) e pessoas que avaliam
+// a maioria dos filmes numa faixa estreita (variância baixa, o caso mais
+// comum), um único filme com desvio um pouco maior domina o cálculo
+// inteiro e pode inverter o sinal — dando compatibilidade baixa mesmo
+// quando as notas absolutas são quase idênticas (caso real detectado:
+// diffs de 1,1,2,1,0 pontos, correlação ainda assim negativa, virando 31%).
+// MAE não sofre desse problema: cada filme contribui proporcionalmente à
+// diferença real entre as notas, sem depender de desvio em relação à
+// própria média — e coincide com o que qualquer pessoa entende
+// intuitivamente por "compatibilidade de notas".
 const MIN_MOVIES = 5;
 
 function getTier(score: number) {
@@ -105,43 +115,38 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
     if (raw.length === 0) return null;
 
     const n = raw.length;
-    const meanA = raw.reduce((sum, r) => sum + r.rating_a, 0) / n;
-    const meanB = raw.reduce((sum, r) => sum + r.rating_b, 0) / n;
+    // Diferença Absoluta Média (MAE) — mede diretamente quão parecidas
+    // são as notas em valor absoluto, o que "compatibilidade" deveria
+    // significar. Escala 0-10 (diferença máxima possível entre notas de
+    // 0 a 10): diff médio de 0 = 100% compatível, diff médio de 10 = 0%.
+    const avgAbsDiff = raw.reduce((sum, r) => sum + Math.abs(r.rating_a - r.rating_b), 0) / n;
+    const score = Math.max(0, Math.min(100, Math.round(100 - (avgAbsDiff / 10) * 100)));
 
-    const covariance = raw.reduce((sum, r) => sum + (r.rating_a - meanA) * (r.rating_b - meanB), 0);
-    const varA = raw.reduce((sum, r) => sum + (r.rating_a - meanA) ** 2, 0);
-    const varB = raw.reduce((sum, r) => sum + (r.rating_b - meanB) ** 2, 0);
-
-    let score: number;
-    let usedFallback = false;
-
-    if (varA === 0 || varB === 0) {
-      // Correlação de Pearson não é definida quando alguém deu a mesma nota
-      // pra tudo (variância zero, divisão por zero) — caso raro, mas real.
-      // Cai de volta pra diferença média absoluta só nesse cenário.
-      const avgDiff = raw.reduce((sum, r) => sum + Math.abs(r.rating_a - r.rating_b), 0) / n;
-      score = Math.max(0, Math.min(100, Math.round(100 - (avgDiff / 10) * 100)));
-      usedFallback = true;
-    } else {
-      // Correlação de Pearson — concordância em notas extremas (raras numa
-      // distribuição concentrada em 6-7) pesa naturalmente mais que
-      // concordância em notas comuns, porque o numerador é uma soma de
-      // produtos de desvios em relação à própria média de cada pessoa.
-      const r = covariance / Math.sqrt(varA * varB);
-      score = Math.max(0, Math.min(100, Math.round(((r + 1) / 2) * 100)));
-    }
-
-    return { score, count: n, usedFallback };
+    return { score, count: n };
   }, [raw]);
 
-  const topAgreements = useMemo(
-    () => [...comparisons].sort((a, b) => a.diff - b.diff || b.rating_a - a.rating_a).slice(0, 3),
+  // BUG corrigido: antes, topAgreements (3 menores diffs) e
+  // topDisagreements (3 maiores diffs) eram calculados de forma
+  // totalmente independente, sem nenhuma exclusão mútua. Com poucos
+  // filmes comparados (o mínimo é 5), pegar top-3 de cada lado sem
+  // exclusão é matematicamente garantido de se sobrepor sempre que
+  // houver menos de 6 filmes (3+3=6 > 5) — o mesmo filme podia aparecer
+  // ao mesmo tempo em "mais concordam" e "mais discordam". Agora
+  // topDisagreements só escolhe entre os filmes que sobraram depois de
+  // reservar os de topAgreements, garantindo exclusão mútua por
+  // construção, não por sorte de quantos filmes existem.
+  const sortedByDiffAsc = useMemo(
+    () => [...comparisons].sort((a, b) => a.diff - b.diff || b.rating_a - a.rating_a),
     [comparisons]
   );
-  const topDisagreements = useMemo(
-    () => [...comparisons].sort((a, b) => b.diff - a.diff).slice(0, 3),
-    [comparisons]
-  );
+  const topAgreements = useMemo(() => sortedByDiffAsc.slice(0, 3), [sortedByDiffAsc]);
+  const topDisagreements = useMemo(() => {
+    const agreedIds = new Set(topAgreements.map((m) => `${m.movie_id}_${m.media_type}`));
+    return [...comparisons]
+      .filter((m) => !agreedIds.has(`${m.movie_id}_${m.media_type}`))
+      .sort((a, b) => b.diff - a.diff)
+      .slice(0, 3);
+  }, [comparisons, topAgreements]);
 
   const handleOpenMovie = async (movieId: number, mediaType: string) => {
     setLoadingMovieId(movieId);
