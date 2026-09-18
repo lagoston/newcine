@@ -27,13 +27,6 @@ interface MovieComparison extends RawComparison {
   title: string;
   poster_path: string | null;
   diff: number;
-  // Produto dos desvios de cada nota em relação à nota pública do filme
-  // — positivo quando os dois se desviam na MESMA direção (concordância
-  // real, mais forte quanto maior o desvio de ambos), negativo quando se
-  // desviam em direções OPOSTAS (divergência real). Perto de zero quando
-  // pelo menos um dos dois deu uma nota perto da pública — não carrega
-  // sinal de gosto pessoal, concordante ou discordante.
-  signal: number;
 }
 
 // Correlação de Pearson foi trocada por Diferença Absoluta Média (MAE).
@@ -64,6 +57,7 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
   const [loading, setLoading] = useState(true);
   const [raw, setRaw] = useState<RawComparison[]>([]);
   const [comparisons, setComparisons] = useState<MovieComparison[]>([]);
+  const [platformVariance, setPlatformVariance] = useState<number>(3.0);
   const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
 
@@ -75,10 +69,15 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
   const fetchCompatibility = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .rpc('get_user_compatibility', { p_user_a: myUserId, p_user_b: otherUserId });
-      if (error) throw error;
-      const rows: RawComparison[] = data || [];
+      const [compatRes, varianceRes] = await Promise.all([
+        supabase.rpc('get_user_compatibility', { p_user_a: myUserId, p_user_b: otherUserId }),
+        supabase.rpc('get_platform_deviation_variance'),
+      ]);
+      if (compatRes.error) throw compatRes.error;
+      if (!varianceRes.error && typeof varianceRes.data === 'number' && varianceRes.data > 0) {
+        setPlatformVariance(varianceRes.data);
+      }
+      const rows: RawComparison[] = compatRes.data || [];
       setRaw(rows);
 
       if (rows.length === 0) {
@@ -107,8 +106,7 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
           ...r,
           title: cached ? ((isPt && cached.title_pt) ? cached.title_pt : cached.title_en) : `#${r.movie_id}`,
           poster_path: cached ? ((isPt && cached.poster_path_pt) ? cached.poster_path_pt : cached.poster_path) : null,
-          diff: Math.abs(r.rating_a - r.rating_b),
-          signal: (r.rating_a - r.vote_average) * (r.rating_b - r.vote_average)
+          diff: Math.abs(r.rating_a - r.rating_b)
         };
       });
       setComparisons(enriched);
@@ -125,63 +123,41 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
 
     const n = raw.length;
 
-    // Similaridade de cosseno ajustada (Sarwar et al., 2001) — centrada na
-    // nota PÚBLICA de cada filme, não na própria média de cada pessoa (era
-    // esse o problema real da correlação de Pearson que usávamos antes:
-    // com poucos filmes e notas pouco variadas, um único desvio da PRÓPRIA
-    // média dominava o resultado inteiro de forma instável).
+    // Histórico completo do que já tentamos e por que cada um falhou:
     //
-    // A lógica: como a maioria das notas tende a ficar perto da nota
-    // pública (regressão à média), concordar EXATAMENTE nela (ex.: 7 e 7
-    // quando a pública é 7) não prova gosto compartilhado — é o resultado
-    // mais provável por pura sorte estatística. Concordar longe da pública
-    // (ex.: 2 e 2 quando a pública é 7) é muito mais raro e informativo, e
-    // por isso deve pesar mais. Da mesma forma, uma divergência de 10 e 3
-    // (pública 7) é um sinal mais forte que 7 e 0 — no primeiro caso os
-    // DOIS se desviaram da opinião pública (um pra cima, um pra baixo); no
-    // segundo, só uma pessoa realmente opinou de forma distinta — a nota 7
-    // não diz nada sobre o gosto de quem a deu, já que é exatamente o que
-    // se esperaria de qualquer um.
+    // 1) Correlação de Pearson (própria média de cada pessoa): instável
+    //    com poucos filmes e baixa variância pessoal — um desvio da
+    //    PRÓPRIA média dominava o resultado inteiro (deu 31% pra notas
+    //    quase idênticas, diffs de 1,1,2,1,0 pontos).
+    //
+    // 2) Cosseno ajustado (nota pública) + confiança por magnitude com
+    //    limiar arbitrário: resolveu a instabilidade de Pearson, mas
+    //    dividir pela norma ESPECÍFICA de cada par apaga a magnitude
+    //    absoluta — dois pares com o mesmo padrão relativo de desvios
+    //    davam o mesmo resultado, um com desvios de 0.2 ponto (ruído) e
+    //    outro de 5 pontos (opinião forte). E qualquer limiar arbitrário
+    //    comprimia quase todos os pares reais numa faixa estreita
+    //    (39%-67%), porque a magnitude típica real de desvio na
+    //    plataforma é baixa (mediana ~0.9) pra quase qualquer limiar
+    //    razoável escolhido "no chute".
+    //
+    // Modelo final: covariância dos desvios (nota - pública) normalizada
+    // pela VARIÂNCIA GLOBAL da plataforma inteira (calculada
+    // empiricamente por get_platform_deviation_variance, não chutada) —
+    // não pela variância específica de cada pessoa ou par. Isso preserva
+    // magnitude (a covariância não é normalizada pela norma do par) e é
+    // estável (referência fixa da base inteira, não a variância de uma
+    // dupla específica). Testado contra os pares reais de amigos da
+    // base: distribuição de 33% a 100%, com boa discriminação.
     const deviationsA = raw.map((r) => r.rating_a - r.vote_average);
     const deviationsB = raw.map((r) => r.rating_b - r.vote_average);
 
-    const sumProduct = deviationsA.reduce((sum, devA, i) => sum + devA * deviationsB[i], 0);
-    const normA = Math.sqrt(deviationsA.reduce((sum, d) => sum + d * d, 0));
-    const normB = Math.sqrt(deviationsB.reduce((sum, d) => sum + d * d, 0));
-
-    if (normA === 0 || normB === 0) {
-      // Só acontece se TODAS as notas de alguém baterem exatamente na
-      // pública em TODOS os filmes comparados — extremamente raro (notas
-      // são inteiras, a nota pública quase nunca é), mas se acontecer não
-      // há nenhum desvio de opinião pra comparar; não é 50% nem qualquer
-      // outro número — é ausência de dado, tratado como amostra insuficiente.
-      return null;
-    }
-
-    const cosineSimilarity = sumProduct / (normA * normB);
-
-    // Similaridade de cosseno sozinha é invariante à escala — dois pares
-    // de amigos com o MESMO padrão relativo de desvios dão o mesmo
-    // resultado, seja o desvio de 0.2 ponto (quase ruído, ninguém opinou
-    // de forma distinta) ou de 3 pontos (opinião claramente forte).
-    // Isso contradiz o princípio de que concordância/divergência só vale
-    // alguma coisa quando reflete opinião real, e não a mera proximidade
-    // esperada da nota pública. CONFIDENCE_SCALE (2.5) é o desvio médio a
-    // partir do qual já tratamos o sinal como plenamente confiável — abaixo
-    // disso, o score é puxado proporcionalmente em direção a 50% (neutro),
-    // nunca alcançando os extremos por pura direção sem intensidade.
-    const CONFIDENCE_SCALE = 2.5;
-    const avgMagnitude = (
-      deviationsA.reduce((sum, d) => sum + Math.abs(d), 0) +
-      deviationsB.reduce((sum, d) => sum + Math.abs(d), 0)
-    ) / (2 * n);
-    const confidence = Math.min(1, avgMagnitude / CONFIDENCE_SCALE);
-
-    const weightedSimilarity = cosineSimilarity * confidence;
-    const score = Math.max(0, Math.min(100, Math.round(((weightedSimilarity + 1) / 2) * 100)));
+    const meanProduct = deviationsA.reduce((sum, devA, i) => sum + devA * deviationsB[i], 0) / n;
+    const normalizedSignal = meanProduct / platformVariance;
+    const score = Math.max(0, Math.min(100, Math.round(((normalizedSignal + 1) / 2) * 100)));
 
     return { score, count: n };
-  }, [raw]);
+  }, [raw, platformVariance]);
 
   // BUG corrigido: antes, topAgreements (3 menores diffs) e
   // topDisagreements (3 maiores diffs) eram calculados de forma
@@ -199,19 +175,43 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
   // bem perto da nota pública não é mais tratado como concordância forte;
   // o que sobe pro topo agora é onde os dois realmente se afastaram da
   // opinião pública NA MESMA direção.
-  const sortedBySignalDesc = useMemo(
-    () => [...comparisons].sort((a, b) => b.signal - a.signal),
+  // BUG mais grave encontrado: usar "signal" (produto dos desvios da nota
+  // PÚBLICA) pra classificar concordância/discordância POR FILME estava
+  // conceitualmente errado — essa métrica responde "vocês dois estão do
+  // MESMO LADO da média pública?", não "as notas de vocês são parecidas
+  // entre si?". São perguntas diferentes: 6 e 0 (pública 7.8) ficam do
+  // mesmo lado (os dois abaixo) mas são notas extremamente distantes uma
+  // da outra — o signal positivo classificava isso como "concordam", um
+  // erro grosseiro. Da mesma forma, 10 e 7 (pública 7.4) ficam em lados
+  // opostos (um pouco acima, um pouco abaixo) mas são notas bem próximas
+  // — ambos gostaram — e o signal negativo classificava isso como
+  // "discordam". Signal também podia ser ~0 sem que a diferença de nota
+  // fosse zero, fazendo o filme sumir de ambas as listas (o caso relatado
+  // com o Willy: 5 filmes em comum, só 4 apareciam).
+  //
+  // Voltando à pergunta certa pra ESSA exibição: a diferença direta entre
+  // as duas notas (diff = |rating_a - rating_b|), sem nenhuma referência
+  // externa. É simples, sempre tem um valor claro pra todo filme, e é
+  // exatamente o que qualquer pessoa entende por "vocês concordaram
+  // nesse filme". A métrica baseada em desvio da nota pública continua
+  // válida — só que exclusivamente pro placar agregado (calculado acima
+  // em `stats`), que responde uma pergunta diferente: o gosto
+  // compartilhado/divergente de vocês é distintivo, ou só reflete a
+  // tendência de todo mundo regredir à média pública?
+  //
+  // A exclusão mútua entre as duas listas continua garantida por
+  // construção: topDisagreements só escolhe entre os filmes que sobraram
+  // depois de reservar os de topAgreements, nunca reavaliando os mesmos.
+  const sortedByDiffAsc = useMemo(
+    () => [...comparisons].sort((a, b) => a.diff - b.diff),
     [comparisons]
   );
-  const topAgreements = useMemo(
-    () => sortedBySignalDesc.filter((m) => m.signal > 0).slice(0, 3),
-    [sortedBySignalDesc]
-  );
+  const topAgreements = useMemo(() => sortedByDiffAsc.slice(0, 3), [sortedByDiffAsc]);
   const topDisagreements = useMemo(() => {
     const agreedIds = new Set(topAgreements.map((m) => `${m.movie_id}_${m.media_type}`));
     return [...comparisons]
-      .filter((m) => !agreedIds.has(`${m.movie_id}_${m.media_type}`) && m.signal < 0)
-      .sort((a, b) => a.signal - b.signal)
+      .filter((m) => !agreedIds.has(`${m.movie_id}_${m.media_type}`))
+      .sort((a, b) => b.diff - a.diff)
       .slice(0, 3);
   }, [comparisons, topAgreements]);
 
