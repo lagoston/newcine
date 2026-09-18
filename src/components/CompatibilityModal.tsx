@@ -141,20 +141,47 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
     //    plataforma é baixa (mediana ~0.9) pra quase qualquer limiar
     //    razoável escolhido "no chute".
     //
-    // Modelo final: covariância dos desvios (nota - pública) normalizada
-    // pela VARIÂNCIA GLOBAL da plataforma inteira (calculada
-    // empiricamente por get_platform_deviation_variance, não chutada) —
-    // não pela variância específica de cada pessoa ou par. Isso preserva
-    // magnitude (a covariância não é normalizada pela norma do par) e é
-    // estável (referência fixa da base inteira, não a variância de uma
-    // dupla específica). Testado contra os pares reais de amigos da
-    // base: distribuição de 33% a 100%, com boa discriminação.
-    const deviationsA = raw.map((r) => r.rating_a - r.vote_average);
-    const deviationsB = raw.map((r) => r.rating_b - r.vote_average);
+    // 3) Covariância dos desvios / variância global: resolveu a
+    //    instabilidade e a compressão, mas ainda usava o PRODUTO dos
+    //    desvios (devA * devB) como a própria medida de concordância —
+    //    e produto positivo só significa "os dois ficaram do MESMO LADO
+    //    da nota pública", não "as notas são parecidas entre si". Caso
+    //    real descoberto: 6 e 0 (pública 7) ficam os dois abaixo da
+    //    pública — produto positivo, tratado como concordância — mesmo
+    //    sendo uma discordância enorme (diff de 6 pontos). Isso inflava
+    //    o placar de pares com discordâncias genuínas grandes (tipo dar
+    //    8 pra um filme que o amigo deu 0) sempre que essas notas
+    //    calhavam de cair do mesmo lado da pública.
+    //
+    // Modelo final: separa as duas perguntas que o produto de desvios
+    // confundia. PESO (|devA * devB|) decide QUANTO ESSE FILME CONTA
+    // como evidência — só é alto quando os DOIS realmente se desviaram
+    // da opinião pública (nota "morna", perto da pública, sempre pesa
+    // perto de zero, não informativa). PENALIDADE ((rating_a -
+    // rating_b)²) decide SE É concordância ou discordância — a
+    // diferença real entre as notas em si, nunca a direção em relação a
+    // um terceiro ponto. A média ponderada dessas penalidades pelos
+    // pesos, normalizada pela variância global da plataforma, vira o
+    // placar final.
+    const weightedSquaredDiffs = raw.map((r) => {
+      const devA = r.rating_a - r.vote_average;
+      const devB = r.rating_b - r.vote_average;
+      const weight = Math.abs(devA * devB);
+      const penalty = (r.rating_a - r.rating_b) ** 2;
+      return { weight, penalty };
+    });
 
-    const meanProduct = deviationsA.reduce((sum, devA, i) => sum + devA * deviationsB[i], 0) / n;
-    const normalizedSignal = meanProduct / platformVariance;
-    const score = Math.max(0, Math.min(100, Math.round(((normalizedSignal + 1) / 2) * 100)));
+    const totalWeight = weightedSquaredDiffs.reduce((sum, w) => sum + w.weight, 0);
+
+    if (totalWeight === 0) {
+      // Nenhum filme teve os DOIS se desviando da nota pública ao mesmo
+      // tempo — não há evidência de opinião pessoal pra avaliar
+      // concordância nem discordância. Ausência de dado, não 50%.
+      return null;
+    }
+
+    const weightedError = weightedSquaredDiffs.reduce((sum, w) => sum + w.weight * w.penalty, 0) / totalWeight;
+    const score = Math.max(0, Math.min(100, Math.round(100 - (weightedError / (2 * platformVariance)) * 100)));
 
     return { score, count: n };
   }, [raw, platformVariance]);
