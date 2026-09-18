@@ -333,6 +333,31 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
         </motion.div>
       </motion.div>
 
+      {/* Cópia real usada pelo html2canvas — fora da tela, em tamanho
+          natural (1080x1920), SEM nenhum transform:scale em qualquer
+          ancestral. html2canvas mede/posiciona elementos position:absolute
+          de forma incorreta quando o alvo da captura vive dentro de um
+          ancestral com scale() ativo — mesmo a tela mostrando tudo no
+          lugar certo (o scale só afeta a RENDERIZAÇÃO visual, não os
+          cálculos internos de layout que o html2canvas replica pra gerar
+          o canvas), a imagem final sai com os elementos absolutos
+          colapsados/sobrepostos. Por isso o preview abaixo (com scale)
+          nunca é o alvo real de cardRef — só decoração visual. */}
+      {showShareCard && monthlyData && profileInfo && (
+        <div style={{ position: 'fixed', top: 0, left: -99999, pointerEvents: 'none' }}>
+          <InsightsShareCard
+            refEl={cardRef}
+            monthlyData={monthlyData}
+            profileInfo={profileInfo}
+            archetypeId={archetypeId}
+            subcategoryId={subcategoryId}
+            personaCode={essencePersonality?.personalidade_completa}
+            monthName={monthName}
+            isPt={isPt}
+          />
+        </div>
+      )}
+
       {/* Modal de compartilhamento — mesmo padrão já usado em
           PersonaShareModal: preview em escala reduzida do card real
           (1080x1920), com Baixar/Compartilhar. */}
@@ -365,7 +390,7 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
                 <div style={{ width: 270, height: 480, transform: 'scale(0.25)', transformOrigin: 'top left' }}>
                   <div style={{ width: 1080, height: 1920 }}>
                     <InsightsShareCard
-                      refEl={cardRef}
+                      refEl={{ current: null }}
                       monthlyData={monthlyData}
                       profileInfo={profileInfo}
                       archetypeId={archetypeId}
