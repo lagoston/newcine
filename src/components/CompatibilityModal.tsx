@@ -20,28 +20,54 @@ interface RawComparison {
   media_type: string;
   rating_a: number;
   rating_b: number;
-  vote_average: number;
 }
+
+// Modelo reconstruído do zero — categórico, não baseado em nota pública
+// nem em qualquer medida de magnitude/desvio. Três grupos de nota:
+//   A = 10, 9, 8, 7   B = 6, 5, 4   C = 3, 2, 1, 0
+// A e B são grupos conectados (vizinhos); B e C também são conectados;
+// A e C NÃO são conectados entre si (só se chega de um ao outro
+// atravessando B). Cada filme comparado cai em exatamente uma categoria:
+//   - notas EXATAMENTE iguais (qualquer nota)      -> grande concordância
+//   - notas diferentes, mesmo grupo                -> concordância leve
+//   - notas em grupos conectados diferentes (A-B ou B-C) -> discordância leve
+//   - notas em grupos desconectados (só A-C)        -> grande discordância
+type RatingGroup = 'A' | 'B' | 'C';
+type AgreementCategory = 'strong_agree' | 'light_agree' | 'light_disagree' | 'strong_disagree';
+
+function getRatingGroup(rating: number): RatingGroup {
+  if (rating >= 7) return 'A';
+  if (rating >= 4) return 'B';
+  return 'C';
+}
+
+function classifyComparison(ratingA: number, ratingB: number): AgreementCategory {
+  if (ratingA === ratingB) return 'strong_agree';
+  const groupA = getRatingGroup(ratingA);
+  const groupB = getRatingGroup(ratingB);
+  if (groupA === groupB) return 'light_agree';
+  const disconnected = (groupA === 'A' && groupB === 'C') || (groupA === 'C' && groupB === 'A');
+  return disconnected ? 'strong_disagree' : 'light_disagree';
+}
+
+// Delta simétrico por categoria — a escala em si (2/1/-1/-2) é arbitrária
+// no valor absoluto, mas a simetria não é: grande concordância e grande
+// discordância têm o mesmo peso em módulo, e concordância/discordância
+// leves também, garantindo que 50% (delta médio 0) seja o verdadeiro
+// ponto de neutralidade, não um valor que só aparece por acaso.
+const CATEGORY_DELTA: Record<AgreementCategory, number> = {
+  strong_agree: 2,
+  light_agree: 1,
+  light_disagree: -1,
+  strong_disagree: -2,
+};
 
 interface MovieComparison extends RawComparison {
   title: string;
   poster_path: string | null;
-  diff: number;
+  category: AgreementCategory;
 }
 
-// Correlação de Pearson foi trocada por Diferença Absoluta Média (MAE).
-// Pearson mede tendência RELATIVA à própria média de cada pessoa — "quando
-// A sobe acima da própria média, B também sobe acima da dele?" — não
-// "as notas são parecidas". Com poucos filmes (5-10) e pessoas que avaliam
-// a maioria dos filmes numa faixa estreita (variância baixa, o caso mais
-// comum), um único filme com desvio um pouco maior domina o cálculo
-// inteiro e pode inverter o sinal — dando compatibilidade baixa mesmo
-// quando as notas absolutas são quase idênticas (caso real detectado:
-// diffs de 1,1,2,1,0 pontos, correlação ainda assim negativa, virando 31%).
-// MAE não sofre desse problema: cada filme contribui proporcionalmente à
-// diferença real entre as notas, sem depender de desvio em relação à
-// própria média — e coincide com o que qualquer pessoa entende
-// intuitivamente por "compatibilidade de notas".
 const MIN_MOVIES = 5;
 
 function getTier(score: number) {
@@ -55,9 +81,7 @@ function getTier(score: number) {
 export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUserId, otherUsername }: CompatibilityModalProps) {
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
-  const [raw, setRaw] = useState<RawComparison[]>([]);
   const [comparisons, setComparisons] = useState<MovieComparison[]>([]);
-  const [platformVariance, setPlatformVariance] = useState<number>(3.0);
   const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
 
@@ -69,26 +93,16 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
   const fetchCompatibility = async () => {
     try {
       setLoading(true);
-      const [compatRes, varianceRes] = await Promise.all([
-        supabase.rpc('get_user_compatibility', { p_user_a: myUserId, p_user_b: otherUserId }),
-        supabase.rpc('get_platform_deviation_variance'),
-      ]);
-      if (compatRes.error) throw compatRes.error;
-      if (!varianceRes.error && typeof varianceRes.data === 'number' && varianceRes.data > 0) {
-        setPlatformVariance(varianceRes.data);
-      }
-      const rows: RawComparison[] = compatRes.data || [];
-      setRaw(rows);
+      const { data, error } = await supabase
+        .rpc('get_user_compatibility', { p_user_a: myUserId, p_user_b: otherUserId });
+      if (error) throw error;
+      const rows: RawComparison[] = data || [];
 
       if (rows.length === 0) {
         setComparisons([]);
         return;
       }
 
-      // Busca título/pôster em lote pros filmes em comum, só o necessário
-      // pra exibir a lista de maior concordância/discordância (não precisa
-      // buscar todos se a lista de comuns for grande — só os que vamos
-      // realmente mostrar, calculado depois de ordenar).
       const isPt = i18n.language.startsWith('pt');
       const ids = rows.map((r) => r.movie_id);
       const { data: cacheRows } = await supabase
@@ -106,7 +120,7 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
           ...r,
           title: cached ? ((isPt && cached.title_pt) ? cached.title_pt : cached.title_en) : `#${r.movie_id}`,
           poster_path: cached ? ((isPt && cached.poster_path_pt) ? cached.poster_path_pt : cached.poster_path) : null,
-          diff: Math.abs(r.rating_a - r.rating_b)
+          category: classifyComparison(r.rating_a, r.rating_b),
         };
       });
       setComparisons(enriched);
@@ -119,126 +133,54 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
   };
 
   const stats = useMemo(() => {
-    if (raw.length === 0) return null;
+    if (comparisons.length === 0) return null;
 
-    const n = raw.length;
+    const n = comparisons.length;
+    // Média simples dos deltas por categoria — nunca soma bruta. Isso é
+    // o que garante a proporcionalidade pedida: 5 concordâncias fortes +
+    // 3 discordâncias fortes dá a MESMA média (e o mesmo placar) que 50
+    // concordâncias fortes + 30 discordâncias fortes, na mesma proporção
+    // — o volume de dados nunca empurra o sinal sozinho, só a PROPORÇÃO
+    // entre as categorias importa.
+    const avgDelta = comparisons.reduce((sum, m) => sum + CATEGORY_DELTA[m.category], 0) / n;
 
-    // Histórico completo do que já tentamos e por que cada um falhou:
-    //
-    // 1) Correlação de Pearson (própria média de cada pessoa): instável
-    //    com poucos filmes e baixa variância pessoal — um desvio da
-    //    PRÓPRIA média dominava o resultado inteiro (deu 31% pra notas
-    //    quase idênticas, diffs de 1,1,2,1,0 pontos).
-    //
-    // 2) Cosseno ajustado (nota pública) + confiança por magnitude com
-    //    limiar arbitrário: resolveu a instabilidade de Pearson, mas
-    //    dividir pela norma ESPECÍFICA de cada par apaga a magnitude
-    //    absoluta — dois pares com o mesmo padrão relativo de desvios
-    //    davam o mesmo resultado, um com desvios de 0.2 ponto (ruído) e
-    //    outro de 5 pontos (opinião forte). E qualquer limiar arbitrário
-    //    comprimia quase todos os pares reais numa faixa estreita
-    //    (39%-67%), porque a magnitude típica real de desvio na
-    //    plataforma é baixa (mediana ~0.9) pra quase qualquer limiar
-    //    razoável escolhido "no chute".
-    //
-    // 3) Covariância dos desvios / variância global: resolveu a
-    //    instabilidade e a compressão, mas ainda usava o PRODUTO dos
-    //    desvios (devA * devB) como a própria medida de concordância —
-    //    e produto positivo só significa "os dois ficaram do MESMO LADO
-    //    da nota pública", não "as notas são parecidas entre si". Caso
-    //    real descoberto: 6 e 0 (pública 7) ficam os dois abaixo da
-    //    pública — produto positivo, tratado como concordância — mesmo
-    //    sendo uma discordância enorme (diff de 6 pontos). Isso inflava
-    //    o placar de pares com discordâncias genuínas grandes (tipo dar
-    //    8 pra um filme que o amigo deu 0) sempre que essas notas
-    //    calhavam de cair do mesmo lado da pública.
-    //
-    // Modelo final: separa as duas perguntas que o produto de desvios
-    // confundia. PESO (|devA * devB|) decide QUANTO ESSE FILME CONTA
-    // como evidência — só é alto quando os DOIS realmente se desviaram
-    // da opinião pública (nota "morna", perto da pública, sempre pesa
-    // perto de zero, não informativa). PENALIDADE ((rating_a -
-    // rating_b)²) decide SE É concordância ou discordância — a
-    // diferença real entre as notas em si, nunca a direção em relação a
-    // um terceiro ponto. A média ponderada dessas penalidades pelos
-    // pesos, normalizada pela variância global da plataforma, vira o
-    // placar final.
-    const weightedSquaredDiffs = raw.map((r) => {
-      const devA = r.rating_a - r.vote_average;
-      const devB = r.rating_b - r.vote_average;
-      const weight = Math.abs(devA * devB);
-      const penalty = (r.rating_a - r.rating_b) ** 2;
-      return { weight, penalty };
-    });
-
-    const totalWeight = weightedSquaredDiffs.reduce((sum, w) => sum + w.weight, 0);
-
-    if (totalWeight === 0) {
-      // Nenhum filme teve os DOIS se desviando da nota pública ao mesmo
-      // tempo — não há evidência de opinião pessoal pra avaliar
-      // concordância nem discordância. Ausência de dado, não 50%.
-      return null;
-    }
-
-    const weightedError = weightedSquaredDiffs.reduce((sum, w) => sum + w.weight * w.penalty, 0) / totalWeight;
-    const score = Math.max(0, Math.min(100, Math.round(100 - (weightedError / (2 * platformVariance)) * 100)));
+    // 50% é o ponto de partida da neutralidade, não um valor que emerge
+    // por acaso de alguma fórmula — delta médio 0 (concordâncias e
+    // discordâncias se cancelando, ou nenhum dos dois) mapeia
+    // exatamente pra 50%. Delta médio no extremo positivo (+2, só
+    // grandes concordâncias) mapeia pra 100%; no extremo negativo (-2,
+    // só grandes discordâncias) mapeia pra 0%.
+    const score = Math.max(0, Math.min(100, Math.round(50 + (avgDelta / 2) * 50)));
 
     return { score, count: n };
-  }, [raw, platformVariance]);
+  }, [comparisons]);
 
-  // BUG corrigido: antes, topAgreements (3 menores diffs) e
-  // topDisagreements (3 maiores diffs) eram calculados de forma
-  // totalmente independente, sem nenhuma exclusão mútua. Com poucos
-  // filmes comparados (o mínimo é 5), pegar top-3 de cada lado sem
-  // exclusão é matematicamente garantido de se sobrepor sempre que
-  // houver menos de 6 filmes (3+3=6 > 5) — o mesmo filme podia aparecer
-  // ao mesmo tempo em "mais concordam" e "mais discordam". Agora
-  // topDisagreements só escolhe entre os filmes que sobraram depois de
-  // reservar os de topAgreements, garantindo exclusão mútua por
-  // construção, não por sorte de quantos filmes existem.
-  //
-  // Ordenação trocada de "diff bruto" pra "signal" (o mesmo produto de
-  // desvios da nota pública usado no score) — um empate de nota (diff=0)
-  // bem perto da nota pública não é mais tratado como concordância forte;
-  // o que sobe pro topo agora é onde os dois realmente se afastaram da
-  // opinião pública NA MESMA direção.
-  // BUG mais grave encontrado: usar "signal" (produto dos desvios da nota
-  // PÚBLICA) pra classificar concordância/discordância POR FILME estava
-  // conceitualmente errado — essa métrica responde "vocês dois estão do
-  // MESMO LADO da média pública?", não "as notas de vocês são parecidas
-  // entre si?". São perguntas diferentes: 6 e 0 (pública 7.8) ficam do
-  // mesmo lado (os dois abaixo) mas são notas extremamente distantes uma
-  // da outra — o signal positivo classificava isso como "concordam", um
-  // erro grosseiro. Da mesma forma, 10 e 7 (pública 7.4) ficam em lados
-  // opostos (um pouco acima, um pouco abaixo) mas são notas bem próximas
-  // — ambos gostaram — e o signal negativo classificava isso como
-  // "discordam". Signal também podia ser ~0 sem que a diferença de nota
-  // fosse zero, fazendo o filme sumir de ambas as listas (o caso relatado
-  // com o Willy: 5 filmes em comum, só 4 apareciam).
-  //
-  // Voltando à pergunta certa pra ESSA exibição: a diferença direta entre
-  // as duas notas (diff = |rating_a - rating_b|), sem nenhuma referência
-  // externa. É simples, sempre tem um valor claro pra todo filme, e é
-  // exatamente o que qualquer pessoa entende por "vocês concordaram
-  // nesse filme". A métrica baseada em desvio da nota pública continua
-  // válida — só que exclusivamente pro placar agregado (calculado acima
-  // em `stats`), que responde uma pergunta diferente: o gosto
-  // compartilhado/divergente de vocês é distintivo, ou só reflete a
-  // tendência de todo mundo regredir à média pública?
-  //
-  // A exclusão mútua entre as duas listas continua garantida por
-  // construção: topDisagreements só escolhe entre os filmes que sobraram
-  // depois de reservar os de topAgreements, nunca reavaliando os mesmos.
-  const sortedByDiffAsc = useMemo(
-    () => [...comparisons].sort((a, b) => a.diff - b.diff),
-    [comparisons]
-  );
-  const topAgreements = useMemo(() => sortedByDiffAsc.slice(0, 3), [sortedByDiffAsc]);
+  // "Mais concordam" prioriza grande concordância (mesma nota exata)
+  // sobre concordância leve (mesmo grupo, notas diferentes); "mais
+  // discordam" prioriza grande discordância (grupos desconectados A-C)
+  // sobre discordância leve (grupos vizinhos). A exclusão mútua entre as
+  // duas listas é garantida por construção: discordâncias só escolhem
+  // entre os filmes que sobraram depois de reservar as concordâncias,
+  // nunca reavaliando os mesmos filmes duas vezes.
+  const CATEGORY_PRIORITY: Record<AgreementCategory, number> = {
+    strong_agree: 0,
+    light_agree: 1,
+    light_disagree: 1,
+    strong_disagree: 0,
+  };
+
+  const topAgreements = useMemo(() => {
+    return [...comparisons]
+      .filter((m) => m.category === 'strong_agree' || m.category === 'light_agree')
+      .sort((a, b) => CATEGORY_PRIORITY[a.category] - CATEGORY_PRIORITY[b.category])
+      .slice(0, 3);
+  }, [comparisons]);
+
   const topDisagreements = useMemo(() => {
     const agreedIds = new Set(topAgreements.map((m) => `${m.movie_id}_${m.media_type}`));
     return [...comparisons]
-      .filter((m) => !agreedIds.has(`${m.movie_id}_${m.media_type}`))
-      .sort((a, b) => b.diff - a.diff)
+      .filter((m) => !agreedIds.has(`${m.movie_id}_${m.media_type}`) && (m.category === 'strong_disagree' || m.category === 'light_disagree'))
+      .sort((a, b) => CATEGORY_PRIORITY[a.category] - CATEGORY_PRIORITY[b.category])
       .slice(0, 3);
   }, [comparisons, topAgreements]);
 
@@ -313,7 +255,6 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
               </div>
             ) : (
               <div>
-                {/* Placar principal */}
                 <div className="flex flex-col items-center mb-6">
                   <div className={`relative w-32 h-32 rounded-full bg-gradient-to-br ${tier!.bg} ring-4 ${tier!.ring} flex items-center justify-center mb-3`}>
                     <div className="text-center">
@@ -329,7 +270,6 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
                   </p>
                 </div>
 
-                {/* Onde mais concordam */}
                 {topAgreements.length > 0 && (
                   <div className="mb-5">
                     <h4 className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
@@ -358,7 +298,6 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
                   </div>
                 )}
 
-                {/* Onde mais discordam */}
                 {topDisagreements.length > 0 && (
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
