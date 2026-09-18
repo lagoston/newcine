@@ -398,6 +398,7 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
                       personaCode={essencePersonality?.personalidade_completa}
                       monthName={monthName}
                       isPt={isPt}
+                      forCapture={false}
                     />
                   </div>
                 </div>
@@ -433,6 +434,14 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
 // avatar, nome e essência cinematográfica, exatamente como pedido:
 // essas informações são exclusivas da imagem de compartilhamento, não
 // do modal em tela.
+//
+// forCapture: crossOrigin="anonymous" nas <img> só é necessário na
+// instância oculta que o html2canvas realmente captura (useCORS:true
+// exige isso pra rasterizar imagens de outro domínio sem "contaminar"
+// o canvas). Na instância de PREVIEW visível — que nunca é capturada,
+// só olhada — esse atributo é desnecessário e, em alguns navegadores
+// mobile, pode causar falha real de carregamento do pôster (modo CORS
+// mais restrito que o carregamento normal sem crossOrigin).
 const InsightsShareCard: React.FC<{
   refEl: React.RefObject<HTMLDivElement>;
   monthlyData: MonthlyData;
@@ -442,7 +451,8 @@ const InsightsShareCard: React.FC<{
   personaCode?: string | null;
   monthName: string;
   isPt: boolean;
-}> = ({ refEl, monthlyData, profileInfo, archetypeId, subcategoryId, personaCode, monthName, isPt }) => {
+  forCapture?: boolean;
+}> = ({ refEl, monthlyData, profileInfo, archetypeId, subcategoryId, personaCode, monthName, isPt, forCapture = true }) => {
   const color = '#a855f7'; // violeta — identidade visual já estabelecida do recurso Insights
   const topMovies = monthlyData.top_movies.slice(0, 3);
 
@@ -491,16 +501,16 @@ const InsightsShareCard: React.FC<{
           }}
         >
           {profileInfo.avatar_url ? (
-            <img src={profileInfo.avatar_url} alt={profileInfo.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin="anonymous" />
+            <img src={profileInfo.avatar_url} alt={profileInfo.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin={forCapture ? 'anonymous' : undefined} />
           ) : (
-            <span style={{ fontSize: 64, fontWeight: 800, color: '#fff' }}>{profileInfo.username.charAt(0).toUpperCase()}</span>
+            <span style={{ fontSize: 64, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{profileInfo.username.charAt(0).toUpperCase()}</span>
           )}
         </div>
         <div style={{ fontSize: 40, fontWeight: 800, color: '#fff' }}>@{profileInfo.username}</div>
         {archetypeId && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px', borderRadius: 999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)' }}>
             <ArchetypeSymbol archetypeId={archetypeId} subcategoryId={subcategoryId || null} size={36} animated={false} />
-            <span style={{ fontSize: 30, fontWeight: 700, color, letterSpacing: 2 }}>{personaCode}</span>
+            <span style={{ fontSize: 30, fontWeight: 700, color, letterSpacing: 2, lineHeight: 1 }}>{personaCode}</span>
           </div>
         )}
       </div>
@@ -526,7 +536,7 @@ const InsightsShareCard: React.FC<{
             <div style={{ fontSize: 88, fontWeight: 900, color: i === 1 ? '#f0abfc' : color, lineHeight: 1, textShadow: `0 0 40px ${color}50` }}>
               {stat.value}
             </div>
-            <div style={{ fontSize: 24, fontWeight: 600, color: '#d1d5db', textAlign: 'center', whiteSpace: 'pre-line', marginTop: 12, lineHeight: 1.3 }}>
+            <div style={{ fontSize: 24, fontWeight: 600, color: '#d1d5db', textAlign: 'center', whiteSpace: 'pre-line', marginTop: 12, lineHeight: 1.15 }}>
               {stat.label}
             </div>
           </div>
@@ -546,13 +556,13 @@ const InsightsShareCard: React.FC<{
                   <img
                     src={`https://image.tmdb.org/t/p/w500${m.poster_path}`}
                     alt={m.title}
-                    crossOrigin="anonymous"
+                    crossOrigin={forCapture ? 'anonymous' : undefined}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14, padding: '6px 18px', borderRadius: 999, background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)' }}>
                   <Star style={{ width: 22, height: 22, color: '#fbbf24', fill: '#fbbf24' }} />
-                  <span style={{ fontSize: 26, fontWeight: 800, color: '#fbbf24' }}>{m.rating}</span>
+                  <span style={{ fontSize: 26, fontWeight: 800, color: '#fbbf24', lineHeight: 1 }}>{m.rating}</span>
                 </div>
               </div>
             ))}
@@ -568,7 +578,7 @@ const InsightsShareCard: React.FC<{
               key={g.name}
               style={{
                 padding: '16px 36px', borderRadius: 999, background: 'rgba(255,255,255,0.07)',
-                border: `1px solid ${color}50`, fontSize: 30, fontWeight: 700, color: '#e5e7eb',
+                border: `1px solid ${color}50`, fontSize: 30, fontWeight: 700, color: '#e5e7eb', lineHeight: 1,
               }}
             >
               {g.name}
@@ -579,8 +589,8 @@ const InsightsShareCard: React.FC<{
 
       {/* Rodapé — favicon do site + domínio */}
       <div style={{ position: 'absolute', bottom: 90, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <img src={SITE_ICON_URL} alt="" crossOrigin="anonymous" style={{ width: 48, height: 48, borderRadius: 12 }} />
-        <span style={{ fontSize: 32, fontWeight: 700, letterSpacing: 3, color }}>cineoracle.com</span>
+        <img src={SITE_ICON_URL} alt="" crossOrigin={forCapture ? 'anonymous' : undefined} style={{ width: 48, height: 48, borderRadius: 12 }} />
+        <span style={{ fontSize: 32, fontWeight: 700, letterSpacing: 3, color, lineHeight: 1 }}>cineoracle.com</span>
       </div>
 
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 8, background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
