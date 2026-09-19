@@ -2,15 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Loader2, Star, Film, Download, Share2, Check, Instagram } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-// html2canvas oficial tem um bug conhecido e não corrigido (issue #2937
-// do próprio repositório) de alinhamento vertical de texto — fica
-// notável exatamente em texto dentro/ao lado de elementos com background
-// color, que é o padrão usado em quase todos os badges deste card
-// (código da persona, nota das estrelas, pills de gênero, rodapé). Uma
-// tentativa de correção (PR #2938) nunca foi mesclada na lib oficial,
-// mas foi incorporada neste fork mantido pela comunidade, que segue a
-// mesma API (drop-in replacement).
-import html2canvas from '@cantoo/html2canvas';
+import html2canvas from 'html2canvas';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useProfileData } from '../hooks/useProfileData';
