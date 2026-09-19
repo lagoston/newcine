@@ -2,7 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Loader2, Star, Film, Download, Share2, Check, Instagram } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import html2canvas from 'html2canvas';
+// html2canvas oficial tem um bug conhecido e não corrigido (issue #2937
+// do próprio repositório) de alinhamento vertical de texto — fica
+// notável exatamente em texto dentro/ao lado de elementos com background
+// color, que é o padrão usado em quase todos os badges deste card
+// (código da persona, nota das estrelas, pills de gênero, rodapé). Uma
+// tentativa de correção (PR #2938) nunca foi mesclada na lib oficial,
+// mas foi incorporada neste fork mantido pela comunidade, que segue a
+// mesma API (drop-in replacement).
+import html2canvas from '@cantoo/html2canvas';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useProfileData } from '../hooks/useProfileData';
@@ -344,7 +352,13 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
           colapsados/sobrepostos. Por isso o preview abaixo (com scale)
           nunca é o alvo real de cardRef — só decoração visual. */}
       {showShareCard && monthlyData && profileInfo && (
-        <div style={{ position: 'fixed', top: 0, left: -99999, pointerEvents: 'none' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, opacity: 0.01, pointerEvents: 'none', zIndex: -9999 }}>
+          {/* Dentro dos limites do viewport (não em left:-99999) — alguns
+              navegadores mobile otimizam/pulam a pintura completa de
+              conteúdo posicionado muito longe da tela, especialmente
+              imagens, o que pode causar áreas em branco/pretas na
+              captura. opacity quase-zero + z-index negativo mantêm isso
+              efetivamente invisível ao usuário sem sair do viewport. */}
           <InsightsShareCard
             refEl={cardRef}
             monthlyData={monthlyData}
@@ -398,7 +412,6 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
                       personaCode={essencePersonality?.personalidade_completa}
                       monthName={monthName}
                       isPt={isPt}
-                      forCapture={false}
                     />
                   </div>
                 </div>
@@ -434,14 +447,6 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
 // avatar, nome e essência cinematográfica, exatamente como pedido:
 // essas informações são exclusivas da imagem de compartilhamento, não
 // do modal em tela.
-//
-// forCapture: crossOrigin="anonymous" nas <img> só é necessário na
-// instância oculta que o html2canvas realmente captura (useCORS:true
-// exige isso pra rasterizar imagens de outro domínio sem "contaminar"
-// o canvas). Na instância de PREVIEW visível — que nunca é capturada,
-// só olhada — esse atributo é desnecessário e, em alguns navegadores
-// mobile, pode causar falha real de carregamento do pôster (modo CORS
-// mais restrito que o carregamento normal sem crossOrigin).
 const InsightsShareCard: React.FC<{
   refEl: React.RefObject<HTMLDivElement>;
   monthlyData: MonthlyData;
@@ -451,8 +456,7 @@ const InsightsShareCard: React.FC<{
   personaCode?: string | null;
   monthName: string;
   isPt: boolean;
-  forCapture?: boolean;
-}> = ({ refEl, monthlyData, profileInfo, archetypeId, subcategoryId, personaCode, monthName, isPt, forCapture = true }) => {
+}> = ({ refEl, monthlyData, profileInfo, archetypeId, subcategoryId, personaCode, monthName, isPt }) => {
   const color = '#a855f7'; // violeta — identidade visual já estabelecida do recurso Insights
   const topMovies = monthlyData.top_movies.slice(0, 3);
 
@@ -501,7 +505,7 @@ const InsightsShareCard: React.FC<{
           }}
         >
           {profileInfo.avatar_url ? (
-            <img src={profileInfo.avatar_url} alt={profileInfo.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin={forCapture ? 'anonymous' : undefined} />
+            <img src={profileInfo.avatar_url} alt={profileInfo.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin="anonymous" />
           ) : (
             <span style={{ fontSize: 64, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{profileInfo.username.charAt(0).toUpperCase()}</span>
           )}
@@ -556,7 +560,7 @@ const InsightsShareCard: React.FC<{
                   <img
                     src={`https://image.tmdb.org/t/p/w500${m.poster_path}`}
                     alt={m.title}
-                    crossOrigin={forCapture ? 'anonymous' : undefined}
+                    crossOrigin="anonymous"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 </div>
@@ -589,7 +593,7 @@ const InsightsShareCard: React.FC<{
 
       {/* Rodapé — favicon do site + domínio */}
       <div style={{ position: 'absolute', bottom: 90, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <img src={SITE_ICON_URL} alt="" crossOrigin={forCapture ? 'anonymous' : undefined} style={{ width: 48, height: 48, borderRadius: 12 }} />
+        <img src={SITE_ICON_URL} alt="" crossOrigin="anonymous" style={{ width: 48, height: 48, borderRadius: 12 }} />
         <span style={{ fontSize: 32, fontWeight: 700, letterSpacing: 3, color, lineHeight: 1 }}>cineoracle.com</span>
       </div>
 
