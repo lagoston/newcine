@@ -505,8 +505,8 @@ const InsightsShareCard: React.FC<{
         <div style={{ fontSize: 40, fontWeight: 800, color: '#fff' }}>@{profileInfo.username}</div>
         {archetypeId && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px', borderRadius: 999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)' }}>
-            <ArchetypeSymbol archetypeId={archetypeId} subcategoryId={subcategoryId || null} size={36} animated={false} />
-            <span style={{ fontSize: 30, fontWeight: 700, color, letterSpacing: 2, lineHeight: 1 }}>{personaCode}</span>
+            <ArchetypeSymbol archetypeId={archetypeId} subcategoryId={subcategoryId || null} size={36} animated={false} className="align-middle" />
+            <span style={{ fontSize: 30, fontWeight: 700, color, letterSpacing: 2, lineHeight: 1, display: 'inline-block', verticalAlign: 'middle' }}>{personaCode}</span>
           </div>
         )}
       </div>
@@ -557,8 +557,8 @@ const InsightsShareCard: React.FC<{
                   />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14, padding: '6px 18px', borderRadius: 999, background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)' }}>
-                  <Star style={{ width: 22, height: 22, color: '#fbbf24', fill: '#fbbf24' }} />
-                  <span style={{ fontSize: 26, fontWeight: 800, color: '#fbbf24', lineHeight: 1 }}>{m.rating}</span>
+                  <Star style={{ width: 22, height: 22, color: '#fbbf24', fill: '#fbbf24', verticalAlign: 'middle' }} />
+                  <span style={{ fontSize: 26, fontWeight: 800, color: '#fbbf24', lineHeight: 1, display: 'inline-block', verticalAlign: 'middle' }}>{m.rating}</span>
                 </div>
               </div>
             ))}
@@ -575,6 +575,7 @@ const InsightsShareCard: React.FC<{
               style={{
                 padding: '16px 36px', borderRadius: 999, background: 'rgba(255,255,255,0.07)',
                 border: `1px solid ${color}50`, fontSize: 30, fontWeight: 700, color: '#e5e7eb', lineHeight: 1,
+                display: 'inline-block', verticalAlign: 'middle',
               }}
             >
               {g.name}
@@ -585,8 +586,8 @@ const InsightsShareCard: React.FC<{
 
       {/* Rodapé — favicon do site + domínio */}
       <div style={{ position: 'absolute', bottom: 90, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <img src={SITE_ICON_URL} alt="" crossOrigin="anonymous" style={{ width: 48, height: 48, borderRadius: 12 }} />
-        <span style={{ fontSize: 32, fontWeight: 700, letterSpacing: 3, color, lineHeight: 1 }}>cineoracle.com</span>
+        <img src={SITE_ICON_URL} alt="" crossOrigin="anonymous" style={{ width: 48, height: 48, borderRadius: 12, verticalAlign: 'middle' }} />
+        <span style={{ fontSize: 32, fontWeight: 700, letterSpacing: 3, color, lineHeight: 1, display: 'inline-block', verticalAlign: 'middle' }}>cineoracle.com</span>
       </div>
 
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 8, background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
