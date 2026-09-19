@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Loader2, Star, Film, Download, Share2, Check, Instagram } from 'lucide-react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import {
+  X, Loader2, Star, Film, Download, Share2, Check, Instagram,
+  Heart, Flame, Eye, Sparkles, BrainCircuit, Shield, Lightbulb, Compass,
+  Target, Crown, Zap, Infinity as InfinityIcon, Hexagon, CircleDashed,
+  Triangle, Gem, Aperture, Orbit, Dna, Fingerprint,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import html2canvas from 'html2canvas';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useProfileData } from '../hooks/useProfileData';
-import ArchetypeSymbol from './ArchetypeSymbol';
 import OptimizedPoster from './OptimizedPoster';
 
 interface Props {
@@ -49,42 +53,332 @@ interface ProfileInfo {
 
 const SITE_ICON_URL = '/assets/Symbal512.webp';
 
-// Espera todo <img> dentro do container terminar de carregar antes de
-// deixar o html2canvas rodar. Diferente do PersonaShareModal (que não
-// tinha nenhuma imagem externa, só SVG/CSS), esse card carrega avatar
-// e pôsteres reais do TMDB — sem esperar o carregamento, html2canvas
-// captura essas áreas em branco, já que roda de forma síncrona sobre o
-// estado atual do DOM.
-const waitForImages = (container: HTMLElement): Promise<void> => {
-  const imgs = Array.from(container.querySelectorAll('img'));
-  return Promise.all(
-    imgs.map((img) => {
-      if (img.complete) return Promise.resolve();
-      return new Promise<void>((resolve) => {
-        img.addEventListener('load', () => resolve(), { once: true });
-        img.addEventListener('error', () => resolve(), { once: true });
-      });
-    })
-  ).then(() => undefined);
+// ============================================================
+// GERAÇÃO DA IMAGEM DE COMPARTILHAMENTO — reescrita do zero.
+//
+// A versão anterior usava html2canvas pra "fotografar" um card HTML/CSS
+// escondido no DOM. Depois de várias tentativas de correção (lineHeight,
+// vertical-align, troca de biblioteca), o problema de fundo continuava:
+// html2canvas precisa REIMPLEMENTAR em JavaScript como o navegador
+// calcularia o layout de qualquer HTML/CSS arbitrário — e essa
+// reimplementação tem bugs conhecidos e nunca corrigidos oficialmente,
+// exatamente com texto ao lado de ícones e dentro de elementos com
+// fundo colorido (issue #2937 do próprio repositório da lib).
+//
+// A abordagem nova elimina essa camada de tradução por completo: a
+// imagem é desenhada diretamente como SVG, onde a posição de cada
+// texto é um número explícito (x, y) que o navegador não precisa
+// "adivinhar" a partir de CSS — e SVG é convertido pra <canvas> usando
+// a própria engine nativa de renderização do navegador (o mesmo
+// caminho que desenha qualquer <img> na tela), não uma reimplementação
+// em JS. Isso resolve o alinhamento pela raiz, não por tentativa e erro
+// de CSS.
+//
+// Também elimina o outro bug (pôsteres pretos): toda imagem externa
+// (avatar, pôsteres, favicon) é baixada e convertida em base64 ANTES de
+// entrar no SVG — a imagem final não faz nenhuma requisição de rede no
+// momento da conversão pra canvas, então não há CORS, não há cache
+// misto, não há "canvas contaminado".
+//
+// E, importante: a MESMA imagem gerada aqui é usada tanto na prévia
+// quanto no download/compartilhamento — não existem mais duas
+// renderizações separadas que podem divergir uma da outra.
+// ============================================================
+
+const ARCHETYPE_ICON_MAP: Record<string, React.ComponentType<any>> = {
+  EI: Heart, EC: Flame, ES: Eye, ER: Sparkles,
+  IE: BrainCircuit, IC: Shield, IS: Lightbulb, IR: Hexagon,
+  CE: Orbit, CI: Crown, CS: Gem, CR: Compass,
+  SE: Aperture, SI: Fingerprint, SC: CircleDashed, SR: Triangle,
+  RE: Target, RI: Zap, RC: InfinityIcon, RS: Dna,
 };
 
-// Versão funcional — o modal em si mostra só as estatísticas mensais
-// (sem avatar/nome/essência, que agora vivem exclusivamente na imagem
-// gerada pra compartilhar). Reaproveita useProfileData (mesmo hook de
-// Profile.tsx) pros dados TOTAIS/personalidade, usados só no card de
-// compartilhamento — e get_monthly_insights pros números do mês.
+const SUBCATEGORY_COLORS: Record<string, string> = {
+  A: '#F59E0B', B: '#8B5CF6', K: '#EF4444', X: '#3B82F6', D: '#FFFFFF', L: '#10B981',
+};
+
+function getArchetypeColor(subcategoryId?: string | null): string {
+  return (subcategoryId && SUBCATEGORY_COLORS[subcategoryId]) || '#9CA3AF';
+}
+
+// Renderiza o ícone lucide correspondente pra uma string SVG estática —
+// mesmo mapeamento de ArchetypeSymbol.tsx, mas sem o wrapper de animação
+// (framer-motion não serializa, e aqui a imagem é estática de qualquer
+// forma).
+function getArchetypeIconMarkup(archetypeId: string | undefined, subcategoryId: string | undefined, size: number): string {
+  const IconComponent = (archetypeId && ARCHETYPE_ICON_MAP[archetypeId]) || CircleDashed;
+  const color = getArchetypeColor(subcategoryId);
+  return renderToStaticMarkup(<IconComponent size={size} color={color} strokeWidth={1.5} />);
+}
+
+// Baixa uma imagem e converte pra data URL — depois disso ela não
+// depende mais de nenhuma requisição de rede, então nunca mais pode
+// "contaminar" o canvas por CORS. Falha de rede em UMA imagem não
+// derruba a geração inteira: retorna null e o SVG simplesmente omite
+// aquele <image>.
+async function loadImageAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+function escapeXml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Corta um título longo pra caber na largura de um pôster (110px) sem
+// medir texto de verdade (SVG não tem "text-overflow: ellipsis" nativo
+// confiável entre navegadores) — uma aproximação por contagem de
+// caracteres é suficiente pra um título de filme numa fonte de ~13px.
+function truncateForPoster(text: string, maxChars = 16): string {
+  if (text.length <= maxChars) return text;
+  return text.slice(0, maxChars - 1).trimEnd() + '…';
+}
+
+interface GenerateImageParams {
+  monthlyData: MonthlyData;
+  profileInfo: ProfileInfo;
+  archetypeId?: string;
+  subcategoryId?: string;
+  personaCode?: string | null;
+  monthName: string;
+  isPt: boolean;
+}
+
+async function generateShareImage(params: GenerateImageParams): Promise<{ dataUrl: string; blob: Blob }> {
+  const { monthlyData, profileInfo, archetypeId, subcategoryId, personaCode, monthName, isPt } = params;
+  const color = '#a855f7';
+  const topMovies = monthlyData.top_movies.slice(0, 3);
+
+  const [avatarDataUrl, faviconDataUrl, ...posterDataUrls] = await Promise.all([
+    profileInfo.avatar_url ? loadImageAsDataUrl(profileInfo.avatar_url) : Promise.resolve(null),
+    loadImageAsDataUrl(SITE_ICON_URL),
+    ...topMovies.map((m) => loadImageAsDataUrl(`https://image.tmdb.org/t/p/w500${m.poster_path}`)),
+  ]);
+
+  const archetypeIconMarkup = archetypeId ? getArchetypeIconMarkup(archetypeId, subcategoryId, 40) : '';
+
+  const W = 1080;
+  const H = 1920;
+
+  const posterW = 300;
+  const posterH = 450;
+  const posterGap = 40;
+  const postersStartX = (W - (posterW * 3 + posterGap * 2)) / 2;
+  const postersY = 1050;
+
+  const genreLabels = monthlyData.top_genres.slice(0, 4).map((g) => g.name);
+  let genreX = 90;
+  const genreY = 1670;
+  const genrePillsMarkup = genreLabels
+    .map((name) => {
+      const textWidth = name.length * 17 + 72;
+      const pill = `
+        <rect x="${genreX}" y="${genreY}" width="${textWidth}" height="72" rx="36" fill="rgba(255,255,255,0.07)" stroke="${color}50" stroke-width="1.5" />
+        <text x="${genreX + textWidth / 2}" y="${genreY + 36}" font-size="30" font-weight="700" fill="#e5e7eb" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${escapeXml(name)}</text>
+      `;
+      genreX += textWidth + 20;
+      return pill;
+    })
+    .join('');
+
+  const postersMarkup = topMovies
+    .map((m, i) => {
+      const x = postersStartX + i * (posterW + posterGap);
+      const dataUrl = posterDataUrls[i];
+      const clipId = `posterClip${i}`;
+      const imageOrPlaceholder = dataUrl
+        ? `<image href="${dataUrl}" x="${x}" y="${postersY}" width="${posterW}" height="${posterH}" clip-path="url(#${clipId})" preserveAspectRatio="xMidYMid slice" />`
+        : `<rect x="${x}" y="${postersY}" width="${posterW}" height="${posterH}" rx="20" fill="#1f2937" />`;
+      return `
+        <clipPath id="${clipId}"><rect x="${x}" y="${postersY}" width="${posterW}" height="${posterH}" rx="20" /></clipPath>
+        ${imageOrPlaceholder}
+        <rect x="${x}" y="${postersY}" width="${posterW}" height="${posterH}" rx="20" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2" />
+        <circle cx="${x + 44}" cy="${postersY + 44}" r="30" fill="url(#numberBadgeGradient)" />
+        <text x="${x + 44}" y="${postersY + 44}" font-size="30" font-weight="800" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${i + 1}</text>
+        <text x="${x + posterW / 2}" y="${postersY + posterH + 40}" font-size="24" font-weight="600" fill="#e5e7eb" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${escapeXml(truncateForPoster(m.title))}</text>
+        <path d="M ${x + posterW / 2 - 65} ${postersY + posterH + 78} l 5 -10 l 5 10 l 11 1.5 l -8 8 l 2 11 l -10 -5.5 l -10 5.5 l 2 -11 l -8 -8 z" fill="#fbbf24" transform="translate(-2, 0)" />
+        <text x="${x + posterW / 2 + 5}" y="${postersY + posterH + 80}" font-size="26" font-weight="800" fill="#fbbf24" text-anchor="start" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${m.rating}</text>
+      `;
+    })
+    .join('');
+
+  const hasArchetypeBadge = !!(archetypeId && personaCode);
+  const statLabels = [
+    { value: monthlyData.movies_rated_count, label: isPt ? 'Filmes\navaliados' : 'Movies\nrated' },
+    { value: monthlyData.episodes_watched_count, label: isPt ? 'Episódios\nassistidos' : 'Episodes\nwatched' },
+    { value: `${monthlyData.total_hours_watched}h`, label: isPt ? 'Horas\nassistidas' : 'Hours\nwatched' },
+  ];
+  // Sobe pra preencher o espaço do badge quando ele não existe (usuário
+  // ainda sem essência cinematográfica definida) — sem isso, sobra um
+  // vão vazio desproporcional entre "Insights de [mês]" e os números.
+  const statsY = hasArchetypeBadge ? 760 : 660;
+  const statColW = W / 3;
+  const statsMarkup = statLabels
+    .map((s, i) => {
+      const cx = statColW * i + statColW / 2;
+      const labelLines = s.label.split('\n');
+      const labelTspans = labelLines
+        .map((line, li) => `<tspan x="${cx}" dy="${li === 0 ? 0 : 34}">${escapeXml(line)}</tspan>`)
+        .join('');
+      return `
+        <text x="${cx}" y="${statsY}" font-size="88" font-weight="900" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${s.value}</text>
+        <text x="${cx}" y="${statsY + 76}" font-size="24" font-weight="600" fill="#d1d5db" text-anchor="middle" dominant-baseline="hanging" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${labelTspans}</text>
+      `;
+    })
+    .join('');
+
+  const avatarSize = 200;
+  const avatarCx = W / 2;
+  const avatarCy = 300;
+  const avatarMarkup = avatarDataUrl
+    ? `<clipPath id="avatarClip"><circle cx="${avatarCx}" cy="${avatarCy}" r="${avatarSize / 2}" /></clipPath>
+       <image href="${avatarDataUrl}" x="${avatarCx - avatarSize / 2}" y="${avatarCy - avatarSize / 2}" width="${avatarSize}" height="${avatarSize}" clip-path="url(#avatarClip)" preserveAspectRatio="xMidYMid slice" />`
+    : `<circle cx="${avatarCx}" cy="${avatarCy}" r="${avatarSize / 2}" fill="url(#avatarFallbackGradient)" />
+       <text x="${avatarCx}" y="${avatarCy}" font-size="64" font-weight="800" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${escapeXml(profileInfo.username.charAt(0).toUpperCase())}</text>`;
+  const avatarRing = `<circle cx="${avatarCx}" cy="${avatarCy}" r="${avatarSize / 2 + 6}" fill="none" stroke="${color}" stroke-width="4" opacity="0.6" />`;
+
+  const archetypeBadgeY = 560;
+  let archetypeBadgeMarkup = '';
+  if (hasArchetypeBadge) {
+    const badgeW = 320;
+    const badgeH = 90;
+    const badgeX = W / 2 - badgeW / 2;
+    archetypeBadgeMarkup = `
+      <rect x="${badgeX}" y="${archetypeBadgeY}" width="${badgeW}" height="${badgeH}" rx="45" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" stroke-width="1.5" />
+      <g transform="translate(${badgeX + 50}, ${archetypeBadgeY + badgeH / 2 - 20})">${archetypeIconMarkup}</g>
+      <text x="${badgeX + 120}" y="${archetypeBadgeY + badgeH / 2}" font-size="30" font-weight="700" fill="${color}" letter-spacing="2" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${escapeXml(personaCode)}</text>
+    `;
+  }
+
+  const footerY = H - 90;
+  const faviconSize = 48;
+  const footerText = 'cineoracle.com';
+  const footerTextWidth = footerText.length * 19;
+  const footerTotalWidth = faviconSize + 16 + footerTextWidth;
+  const footerStartX = W / 2 - footerTotalWidth / 2;
+  const footerMarkup = `
+    ${faviconDataUrl ? `<image href="${faviconDataUrl}" x="${footerStartX}" y="${footerY - faviconSize / 2}" width="${faviconSize}" height="${faviconSize}" rx="12" />` : ''}
+    <text x="${footerStartX + faviconSize + 16}" y="${footerY}" font-size="32" font-weight="700" letter-spacing="3" fill="${color}" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${escapeXml(footerText)}</text>
+  `;
+
+  const svg = `
+<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgTopGlow" cx="50%" cy="20%" r="55%">
+      <stop offset="0%" stop-color="${color}" stop-opacity="0.27" />
+      <stop offset="100%" stop-color="${color}" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bgBase" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a0f" />
+      <stop offset="100%" stop-color="#000000" />
+    </linearGradient>
+    <radialGradient id="cornerGlow1" cx="100%" cy="0%" r="40%">
+      <stop offset="0%" stop-color="${color}" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="${color}" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="cornerGlow2" cx="0%" cy="100%" r="35%">
+      <stop offset="0%" stop-color="#f0abfc" stop-opacity="0.13" />
+      <stop offset="100%" stop-color="#f0abfc" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="numberBadgeGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f43f5e" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+    <linearGradient id="avatarFallbackGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${color}" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+  </defs>
+
+  <rect width="${W}" height="${H}" fill="url(#bgBase)" />
+  <rect width="${W}" height="${H}" fill="url(#bgTopGlow)" />
+  <rect width="${W}" height="${H}" fill="url(#cornerGlow1)" />
+  <rect width="${W}" height="${H}" fill="url(#cornerGlow2)" />
+
+  <text x="${W / 2}" y="90" font-size="26" font-weight="600" letter-spacing="7" fill="#9ca3af" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">CINE ORACLE</text>
+
+  ${avatarRing}
+  ${avatarMarkup}
+
+  <text x="${W / 2}" y="440" font-size="40" font-weight="800" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">@${escapeXml(profileInfo.username)}</text>
+
+  <text x="${W / 2}" y="500" font-size="26" font-weight="600" letter-spacing="4" fill="#9ca3af" text-anchor="middle" dominant-baseline="central" text-transform="uppercase" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${isPt ? `INSIGHTS DE ${monthName.toUpperCase()}` : `${monthName.toUpperCase()} INSIGHTS`}</text>
+
+  ${archetypeBadgeMarkup}
+
+  ${statsMarkup}
+
+  <text x="${W / 2}" y="970" font-size="28" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${isPt ? 'MELHORES DO MÊS' : 'TOP OF THE MONTH'}</text>
+
+  ${postersMarkup}
+
+  ${genrePillsMarkup}
+
+  ${footerMarkup}
+</svg>
+  `.trim();
+
+  const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+  const svgUrl = URL.createObjectURL(svgBlob);
+
+  try {
+    const img = new Image();
+    img.width = W;
+    img.height = H;
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('Failed to load generated SVG'));
+      img.src = svgUrl;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas context unavailable');
+    ctx.drawImage(img, 0, 0, W, H);
+
+    const dataUrl = canvas.toDataURL('image/png');
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
+    if (!blob) throw new Error('Failed to export canvas to PNG');
+
+    return { dataUrl, blob };
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
+}
+
+// ============================================================
+// Componente principal — a UI normal do modal (estatísticas, pôsteres,
+// gêneros) permanece exatamente como já funcionava; só a geração e
+// exibição da imagem de compartilhamento foram reescritas.
+// ============================================================
+
 const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
-  const { ratedMoviesCount, essencePersonality, loading: profileLoading } = useProfileData(userId, i18n.language);
+  const { essencePersonality, loading: profileLoading } = useProfileData(userId, i18n.language);
 
   const [profileInfo, setProfileInfo] = useState<ProfileInfo | null>(null);
   const [monthlyData, setMonthlyData] = useState<MonthlyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showShareCard, setShowShareCard] = useState(false);
+  const [generatingPreview, setGeneratingPreview] = useState(false);
+  const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
+  const [shareImageBlob, setShareImageBlob] = useState<Blob | null>(null);
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
 
   const now = new Date();
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -120,7 +414,11 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
     if (!isOpen) {
       setShowShareCard(false);
       setDone(false);
+      if (shareImageUrl) URL.revokeObjectURL(shareImageUrl);
+      setShareImageUrl(null);
+      setShareImageBlob(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -129,38 +427,43 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
   const subcategoryId = essencePersonality?.personalidade_completa?.slice(2, 3);
   const isLoading = loading || profileLoading;
 
-  const generateBlob = async (): Promise<Blob | null> => {
-    if (!cardRef.current) return null;
-    await waitForImages(cardRef.current);
-    const canvas = await html2canvas(cardRef.current, {
-      backgroundColor: null,
-      scale: 0.66,
-      useCORS: true,
-      logging: false,
-    });
-    return await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
-  };
-
   const fileName = `cineoracle-insights-${year}-${String(month).padStart(2, '0')}.png`;
 
+  const handleOpenShare = async () => {
+    if (!monthlyData || !profileInfo) return;
+    setShowShareCard(true);
+    setGeneratingPreview(true);
+    try {
+      const { dataUrl, blob } = await generateShareImage({
+        monthlyData, profileInfo, archetypeId, subcategoryId,
+        personaCode: essencePersonality?.personalidade_completa, monthName, isPt,
+      });
+      setShareImageUrl(dataUrl);
+      setShareImageBlob(blob);
+    } catch (err) {
+      console.error('Error generating share image:', err);
+      toast.error(isPt ? 'Não foi possível gerar a imagem.' : 'Could not generate image.');
+      setShowShareCard(false);
+    } finally {
+      setGeneratingPreview(false);
+    }
+  };
+
   const handleShare = async () => {
+    if (!shareImageBlob) return;
     setGenerating(true);
     try {
-      const blob = await generateBlob();
-      if (!blob) throw new Error('Falha ao gerar imagem');
-      const file = new File([blob], fileName, { type: 'image/png' });
+      const file = new File([shareImageBlob], fileName, { type: 'image/png' });
 
       if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
           title: t('home.panels.monthlyInsights', { defaultValue: 'Insights Mensais' }),
-          text: isPt
-            ? `Meus Insights de ${monthName} no CineOracle!`
-            : `My ${monthName} Insights on CineOracle!`,
+          text: isPt ? `Meus Insights de ${monthName} no CineOracle!` : `My ${monthName} Insights on CineOracle!`,
         });
         setDone(true);
       } else {
-        const url = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(shareImageBlob);
         const a = document.createElement('a');
         a.href = url;
         a.download = fileName;
@@ -173,19 +476,17 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
       }
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
-        toast.error(isPt ? 'Não foi possível gerar a imagem.' : 'Could not generate image.');
+        toast.error(isPt ? 'Não foi possível compartilhar a imagem.' : 'Could not share image.');
       }
     } finally {
       setGenerating(false);
     }
   };
 
-  const handleDownload = async () => {
-    setGenerating(true);
+  const handleDownload = () => {
+    if (!shareImageBlob) return;
     try {
-      const blob = await generateBlob();
-      if (!blob) throw new Error();
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(shareImageBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = fileName;
@@ -197,8 +498,6 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
       toast.success(isPt ? 'Imagem baixada!' : 'Image downloaded!');
     } catch {
       toast.error(isPt ? 'Falha ao baixar.' : 'Download failed.');
-    } finally {
-      setGenerating(false);
     }
   };
 
@@ -235,9 +534,6 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
               </div>
             ) : (
               <>
-                {/* Só as estatísticas mensais aqui dentro — avatar, nome
-                    e essência cinematográfica agora só aparecem na
-                    imagem gerada pra compartilhar, mais abaixo. */}
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="p-3 rounded-2xl bg-violet-500/10">
                     <p className="text-2xl font-bold text-violet-600 dark:text-violet-400">{monthlyData?.movies_rated_count ?? 0}</p>
@@ -294,8 +590,6 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
                   </div>
                 )}
 
-                {/* Também avaliou — agora com estrela + nota junto de
-                    cada título, não só o nome solto. */}
                 {monthlyData && monthlyData.other_movies.length > 0 && (
                   <div>
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1.5">
@@ -321,7 +615,7 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
                 )}
 
                 <button
-                  onClick={() => setShowShareCard(true)}
+                  onClick={handleOpenShare}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white text-sm font-bold shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Instagram className="w-4 h-4" />
@@ -333,41 +627,12 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
         </motion.div>
       </motion.div>
 
-      {/* Cópia real usada pelo html2canvas — fora da tela, em tamanho
-          natural (1080x1920), SEM nenhum transform:scale em qualquer
-          ancestral. html2canvas mede/posiciona elementos position:absolute
-          de forma incorreta quando o alvo da captura vive dentro de um
-          ancestral com scale() ativo — mesmo a tela mostrando tudo no
-          lugar certo (o scale só afeta a RENDERIZAÇÃO visual, não os
-          cálculos internos de layout que o html2canvas replica pra gerar
-          o canvas), a imagem final sai com os elementos absolutos
-          colapsados/sobrepostos. Por isso o preview abaixo (com scale)
-          nunca é o alvo real de cardRef — só decoração visual. */}
-      {showShareCard && monthlyData && profileInfo && (
-        <div style={{ position: 'fixed', top: 0, left: 0, opacity: 0.01, pointerEvents: 'none', zIndex: -9999 }}>
-          {/* Dentro dos limites do viewport (não em left:-99999) — alguns
-              navegadores mobile otimizam/pulam a pintura completa de
-              conteúdo posicionado muito longe da tela, especialmente
-              imagens, o que pode causar áreas em branco/pretas na
-              captura. opacity quase-zero + z-index negativo mantêm isso
-              efetivamente invisível ao usuário sem sair do viewport. */}
-          <InsightsShareCard
-            refEl={cardRef}
-            monthlyData={monthlyData}
-            profileInfo={profileInfo}
-            archetypeId={archetypeId}
-            subcategoryId={subcategoryId}
-            personaCode={essencePersonality?.personalidade_completa}
-            monthName={monthName}
-            isPt={isPt}
-          />
-        </div>
-      )}
-
-      {/* Modal de compartilhamento — mesmo padrão já usado em
-          PersonaShareModal: preview em escala reduzida do card real
-          (1080x1920), com Baixar/Compartilhar. */}
-      {showShareCard && monthlyData && profileInfo && (
+      {/* Popup de compartilhamento — a prévia mostrada aqui é literalmente
+          a mesma imagem PNG que será baixada/compartilhada (mesmo
+          dataUrl), não uma renderização HTML separada tentando imitar
+          o resultado final. Não existe mais como prévia e resultado
+          divergirem. */}
+      {showShareCard && (
         <motion.div
           key="share-overlay"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -391,29 +656,26 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
               </button>
             </div>
 
-            <div className="px-4 py-5 bg-gradient-to-b from-gray-950 to-black flex items-center justify-center">
-              <div className="rounded-2xl overflow-hidden shadow-2xl" style={{ width: 270, height: 480, transform: 'translateZ(0)' }}>
-                <div style={{ width: 270, height: 480, transform: 'scale(0.25)', transformOrigin: 'top left' }}>
-                  <div style={{ width: 1080, height: 1920 }}>
-                    <InsightsShareCard
-                      refEl={{ current: null }}
-                      monthlyData={monthlyData}
-                      profileInfo={profileInfo}
-                      archetypeId={archetypeId}
-                      subcategoryId={subcategoryId}
-                      personaCode={essencePersonality?.personalidade_completa}
-                      monthName={monthName}
-                      isPt={isPt}
-                    />
-                  </div>
+            <div className="px-4 py-5 bg-gradient-to-b from-gray-950 to-black flex items-center justify-center min-h-[300px]">
+              {generatingPreview ? (
+                <div className="flex flex-col items-center gap-3 text-gray-400">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <p className="text-sm">{isPt ? 'Gerando imagem...' : 'Generating image...'}</p>
                 </div>
-              </div>
+              ) : shareImageUrl ? (
+                <img
+                  src={shareImageUrl}
+                  alt="Insights preview"
+                  style={{ width: 270, height: 480, objectFit: 'contain', borderRadius: 16 }}
+                  className="shadow-2xl"
+                />
+              ) : null}
             </div>
 
             <div className="px-5 pb-5 pt-2 flex gap-2 border-t border-white/10 bg-gray-950/40">
               <button
                 onClick={handleDownload}
-                disabled={generating}
+                disabled={generating || generatingPreview || !shareImageBlob}
                 className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm flex items-center justify-center gap-2 transition disabled:opacity-50"
               >
                 {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : done ? <Check className="w-4 h-4" /> : <Download className="w-4 h-4" />}
@@ -421,7 +683,7 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
               </button>
               <button
                 onClick={handleShare}
-                disabled={generating}
+                disabled={generating || generatingPreview || !shareImageBlob}
                 className="flex-1 py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-lg bg-gradient-to-r from-violet-500 to-fuchsia-500"
               >
                 {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
@@ -432,166 +694,6 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
         </motion.div>
       )}
     </AnimatePresence>
-  );
-};
-
-// O card real (1080x1920) usado pelo html2canvas — só aqui aparecem
-// avatar, nome e essência cinematográfica, exatamente como pedido:
-// essas informações são exclusivas da imagem de compartilhamento, não
-// do modal em tela.
-const InsightsShareCard: React.FC<{
-  refEl: React.RefObject<HTMLDivElement>;
-  monthlyData: MonthlyData;
-  profileInfo: ProfileInfo;
-  archetypeId?: string;
-  subcategoryId?: string;
-  personaCode?: string | null;
-  monthName: string;
-  isPt: boolean;
-}> = ({ refEl, monthlyData, profileInfo, archetypeId, subcategoryId, personaCode, monthName, isPt }) => {
-  const color = '#a855f7'; // violeta — identidade visual já estabelecida do recurso Insights
-  const topMovies = monthlyData.top_movies.slice(0, 3);
-
-  return (
-    <div
-      ref={refEl}
-      style={{
-        width: 1080,
-        height: 1920,
-        position: 'relative',
-        background: `radial-gradient(circle at 50% 20%, ${color}44 0%, transparent 55%), linear-gradient(180deg, #0a0a0f 0%, #000000 100%)`,
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        color: '#fff',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Grid decorativo, mesmo recurso visual do PersonaShareModal */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `linear-gradient(${color}10 1px, transparent 1px), linear-gradient(90deg, ${color}10 1px, transparent 1px)`,
-          backgroundSize: '120px 120px',
-          opacity: 0.4,
-        }}
-      />
-
-      {/* Brilhos decorativos nos cantos, ecoando o painel de Insights na Home */}
-      <div style={{ position: 'absolute', top: -100, right: -100, width: 500, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${color}33 0%, transparent 70%)` }} />
-      <div style={{ position: 'absolute', bottom: 100, left: -150, width: 450, height: 450, borderRadius: '50%', background: 'radial-gradient(circle, #f0abfc22 0%, transparent 70%)' }} />
-
-      {/* Marca no topo */}
-      <div style={{ position: 'absolute', top: 64, left: 0, right: 0, textAlign: 'center', fontSize: 26, fontWeight: 600, letterSpacing: 7, color: '#9ca3af', textTransform: 'uppercase' }}>
-        Cine Oracle
-      </div>
-
-      {/* Cabeçalho do usuário — avatar + nome + essência, EXCLUSIVO
-          dessa imagem, nunca exibido no modal em tela. */}
-      <div style={{ position: 'absolute', top: 140, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
-        <div
-          style={{
-            width: 168, height: 168, borderRadius: '50%', overflow: 'hidden',
-            border: `4px solid ${color}`, boxShadow: `0 0 50px ${color}70`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: `linear-gradient(135deg, ${color}, #ec4899)`,
-          }}
-        >
-          {profileInfo.avatar_url ? (
-            <img src={profileInfo.avatar_url} alt={profileInfo.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin="anonymous" />
-          ) : (
-            <span style={{ fontSize: 64, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{profileInfo.username.charAt(0).toUpperCase()}</span>
-          )}
-        </div>
-        <div style={{ fontSize: 40, fontWeight: 800, color: '#fff' }}>@{profileInfo.username}</div>
-        {archetypeId && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px', borderRadius: 999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)' }}>
-            <ArchetypeSymbol archetypeId={archetypeId} subcategoryId={subcategoryId || null} size={36} animated={false} className="align-middle" />
-            <span style={{ fontSize: 30, fontWeight: 700, color, letterSpacing: 2, lineHeight: 1, display: 'inline-block', verticalAlign: 'middle' }}>{personaCode}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Título do relatório do mês */}
-      <div style={{ position: 'absolute', top: 500, left: 60, right: 60, textAlign: 'center' }}>
-        <div style={{ fontSize: 26, fontWeight: 600, color: '#9ca3af', letterSpacing: 4, textTransform: 'uppercase', marginBottom: 8 }}>
-          {isPt ? 'Insights de' : 'Insights for'}
-        </div>
-        <div style={{ fontSize: 68, fontWeight: 900, color: '#fff', textTransform: 'capitalize', lineHeight: 1.05 }}>
-          {monthName}
-        </div>
-      </div>
-
-      {/* Números grandes — estilo "Wrapped" */}
-      <div style={{ position: 'absolute', top: 660, left: 60, right: 60, display: 'flex', justifyContent: 'space-between' }}>
-        {[
-          { value: monthlyData.movies_rated_count, label: isPt ? 'filmes\navaliados' : 'movies\nrated' },
-          { value: monthlyData.episodes_watched_count, label: isPt ? 'episódios\nassistidos' : 'episodes\nwatched' },
-          { value: `${monthlyData.total_hours_watched}h`, label: isPt ? 'horas\nassistidas' : 'hours\nwatched' },
-        ].map((stat, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-            <div style={{ fontSize: 88, fontWeight: 900, color: i === 1 ? '#f0abfc' : color, lineHeight: 1, textShadow: `0 0 40px ${color}50` }}>
-              {stat.value}
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 600, color: '#d1d5db', textAlign: 'center', whiteSpace: 'pre-line', marginTop: 12, lineHeight: 1.15 }}>
-              {stat.label}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Top 3 filmes do mês, com poster + nota */}
-      {topMovies.length > 0 && (
-        <div style={{ position: 'absolute', top: 960, left: 60, right: 60 }}>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', marginBottom: 24, textAlign: 'center' }}>
-            {isPt ? 'Melhores do mês' : 'Best of the month'}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 24 }}>
-            {topMovies.map((m) => (
-              <div key={m.movie_id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 280 }}>
-                <div style={{ width: 280, height: 420, borderRadius: 20, overflow: 'hidden', boxShadow: '0 12px 40px rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.15)' }}>
-                  <img
-                    src={`https://image.tmdb.org/t/p/w500${m.poster_path}`}
-                    alt={m.title}
-                    crossOrigin="anonymous"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14, padding: '6px 18px', borderRadius: 999, background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)' }}>
-                  <Star style={{ width: 22, height: 22, color: '#fbbf24', fill: '#fbbf24', verticalAlign: 'middle' }} />
-                  <span style={{ fontSize: 26, fontWeight: 800, color: '#fbbf24', lineHeight: 1, display: 'inline-block', verticalAlign: 'middle' }}>{m.rating}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Gêneros do mês */}
-      {monthlyData.top_genres.length > 0 && (
-        <div style={{ position: 'absolute', top: 1530, left: 60, right: 60, display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
-          {monthlyData.top_genres.map((g) => (
-            <div
-              key={g.name}
-              style={{
-                padding: '16px 36px', borderRadius: 999, background: 'rgba(255,255,255,0.07)',
-                border: `1px solid ${color}50`, fontSize: 30, fontWeight: 700, color: '#e5e7eb', lineHeight: 1,
-                display: 'inline-block', verticalAlign: 'middle',
-              }}
-            >
-              {g.name}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Rodapé — favicon do site + domínio */}
-      <div style={{ position: 'absolute', bottom: 90, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <img src={SITE_ICON_URL} alt="" crossOrigin="anonymous" style={{ width: 48, height: 48, borderRadius: 12, verticalAlign: 'middle' }} />
-        <span style={{ fontSize: 32, fontWeight: 700, letterSpacing: 3, color, lineHeight: 1, display: 'inline-block', verticalAlign: 'middle' }}>cineoracle.com</span>
-      </div>
-
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 8, background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
-    </div>
   );
 };
 
