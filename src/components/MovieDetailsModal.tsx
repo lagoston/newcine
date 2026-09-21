@@ -79,6 +79,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(new Set());
   const [watchedEpisodes, setWatchedEpisodes] = useState<Set<string>>(new Set());
   const [userRating, setUserRating] = useState<number | null>(null);
+  const [predictedRating, setPredictedRating] = useState<number | null>(null);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
   const [seasons, setSeasons] = useState<any[]>(movie.seasons || []);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
@@ -151,6 +152,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       checkIfInLibrary();
       loadFriendRatings();
       loadUserRating();
+      loadPredictedRating();
       if (movie.media_type === 'tv') {
         loadWatchedEpisodes();
       }
@@ -474,6 +476,30 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       setUserRating(data?.rating !== undefined ? data.rating : null);
     } catch (error) {
       console.error('Error loading user rating:', error);
+    }
+  };
+
+  // Nota Prevista para Você — mesmo modelo bayesiano usado nas
+  // prateleiras da Biblioteca dos Oráculos e no Match Movie. Fica vazia
+  // (sem badge nenhum) quando o filme não está em nenhuma pool de
+  // recomendação ou quando o usuário ainda não completou o
+  // questionário de personalidade — nesses casos o modelo simplesmente
+  // não tem como calcular nada, então não faz sentido mostrar um
+  // espaço reservado ou um erro, só omitir o bloco inteiro.
+  const loadPredictedRating = async () => {
+    if (!session?.user?.id) return;
+    setPredictedRating(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('predict-single-movie', {
+        body: { movieId: movie.id, mediaType: movie.media_type },
+      });
+
+      if (error) throw error;
+      setPredictedRating(data?.inPool && data?.predictedRating !== null ? data.predictedRating : null);
+    } catch (error) {
+      console.error('Error loading predicted rating:', error);
+      setPredictedRating(null);
     }
   };
 
@@ -1450,10 +1476,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     </span>
                   </div>
                   
-                  {movie.userRating !== undefined && (
-                    <div className="flex items-center px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 rounded-md">
-                      <span className="font-medium text-yellow-700 dark:text-yellow-400">
-                        {isOtherUserProfile ? t('movies.friendRating') : t('movies.yourRating')} {movie.userRating}/10
+                  {predictedRating !== null && (
+                    <div className="flex items-center px-2 py-1 bg-violet-100 dark:bg-violet-900/30 rounded-md">
+                      <span className="font-medium text-violet-700 dark:text-violet-400">
+                        {t('movies.predictedRatingForYou', { defaultValue: 'Nota Prevista para Você' })}: {predictedRating}
                       </span>
                     </div>
                   )}
