@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
-import {
-  X, Loader2, Star, Film, Download, Share2, Check, Instagram,
-  Heart, Flame, Eye, Sparkles, BrainCircuit, Shield, Lightbulb, Compass,
-  Target, Crown, Zap, Infinity as InfinityIcon, Hexagon, CircleDashed,
-  Triangle, Gem, Aperture, Orbit, Dna, Fingerprint,
-} from 'lucide-react';
+import { X, Loader2, Star, Film, Download, Share2, Check, Instagram } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
@@ -73,22 +67,6 @@ const SITE_ICON_URL = '/assets/Symbal512.webp';
 // vez por imagem, que já é usado com sucesso em produção.
 // ============================================================
 
-const ARCHETYPE_ICON_MAP: Record<string, React.ComponentType<any>> = {
-  EI: Heart, EC: Flame, ES: Eye, ER: Sparkles,
-  IE: BrainCircuit, IC: Shield, IS: Lightbulb, IR: Hexagon,
-  CE: Orbit, CI: Crown, CS: Gem, CR: Compass,
-  SE: Aperture, SI: Fingerprint, SC: CircleDashed, SR: Triangle,
-  RE: Target, RI: Zap, RC: InfinityIcon, RS: Dna,
-};
-
-const SUBCATEGORY_COLORS: Record<string, string> = {
-  A: '#F59E0B', B: '#8B5CF6', K: '#EF4444', X: '#3B82F6', D: '#FFFFFF', L: '#10B981',
-};
-
-function getArchetypeColor(subcategoryId?: string | null): string {
-  return (subcategoryId && SUBCATEGORY_COLORS[subcategoryId]) || '#9CA3AF';
-}
-
 interface ImageLoadResult {
   img: HTMLImageElement | null;
   // Diagnóstico temporário: depois de duas tentativas anteriores que
@@ -139,26 +117,6 @@ async function loadImageFromUrl(url: string): Promise<ImageLoadResult> {
   }
 }
 
-// O ícone do arquétipo (lucide-react) vira um SVG estático, depois uma
-// imagem carregável — o mesmo mecanismo de carregamento de imagem usado
-// pra pôsteres e avatar, só que a "foto" aqui é um ícone vetorial
-// pequeno em vez de uma capa de filme. Isso é diferente de tentar
-// converter um card HTML inteiro: carregar um <img> a partir de uma
-// data URL de SVG e desenhá-lo com drawImage é um recurso nativo e bem
-// suportado do navegador, não uma reimplementação de layout.
-function loadArchetypeIconImage(archetypeId: string | undefined, subcategoryId: string | undefined, size: number): Promise<HTMLImageElement> {
-  const IconComponent = (archetypeId && ARCHETYPE_ICON_MAP[archetypeId]) || CircleDashed;
-  const color = getArchetypeColor(subcategoryId);
-  const svgMarkup = renderToStaticMarkup(<IconComponent size={size} color={color} strokeWidth={1.5} />);
-  const dataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgMarkup)))}`;
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = dataUrl;
-  });
-}
-
 // ctx.roundRect() só chegou em navegadores mais recentes (Safari
 // incluiu tarde) — um path manual via arcTo funciona em qualquer
 // versão, sem depender de feature detection silenciosa.
@@ -181,21 +139,95 @@ function truncateForPoster(ctx: CanvasRenderingContext2D, text: string, maxWidth
   return truncated.trimEnd() + '…';
 }
 
+const ALSO_RATED_FONT = '500 22px Arial, sans-serif';
+const ALSO_RATED_RATING_FONT = 'bold 22px Arial, sans-serif';
+
+// Desenha "Título ★ Nota" em fluxo (como texto corrido, quebrando linha
+// pela largura disponível) dentro de uma área de altura FIXA — a
+// quantidade de filmes em "também avaliou" varia muito de usuário pra
+// usuário (de 0 a dezenas), e sem um limite rígido de altura a imagem
+// cresceria sem controle ou os itens se sobreporiam a tudo que vem
+// depois (rodapé). Assim que o espaço disponível se esgota, para de
+// desenhar e mostra "+N filmes" com quantos ficaram de fora, em vez de
+// arriscar quebrar o layout.
+function drawAlsoRatedFlow(
+  ctx: CanvasRenderingContext2D,
+  movies: OtherMovie[],
+  areaX: number,
+  areaY: number,
+  areaWidth: number,
+  areaHeight: number,
+  lineHeight: number,
+  isPt: boolean
+) {
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  const itemGap = 26;
+  const starGap = 6;
+  const maxY = areaY + areaHeight;
+
+  let x = areaX;
+  let y = areaY + lineHeight / 2;
+  let drawnCount = 0;
+
+  for (let i = 0; i < movies.length; i++) {
+    const m = movies[i];
+    ctx.font = ALSO_RATED_FONT;
+    const titleWidth = ctx.measureText(m.title).width;
+    const starWidth = ctx.measureText('★').width;
+    ctx.font = ALSO_RATED_RATING_FONT;
+    const ratingWidth = ctx.measureText(String(m.rating)).width;
+    const itemWidth = titleWidth + starGap + starWidth + starGap + ratingWidth;
+
+    if (x !== areaX && x + itemWidth > areaX + areaWidth) {
+      x = areaX;
+      y += lineHeight;
+    }
+
+    if (y + lineHeight / 2 > maxY) {
+      const remaining = movies.length - drawnCount;
+      if (remaining > 0) {
+        ctx.font = '600 22px Arial, sans-serif';
+        ctx.fillStyle = '#9ca3af';
+        ctx.fillText(isPt ? `+${remaining} filme${remaining > 1 ? 's' : ''}` : `+${remaining} more`, areaX, y);
+      }
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      return;
+    }
+
+    ctx.font = ALSO_RATED_FONT;
+    ctx.fillStyle = '#d1d5db';
+    ctx.fillText(m.title, x, y);
+    x += titleWidth + starGap;
+
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillText('★', x, y);
+    x += starWidth + starGap;
+
+    ctx.font = ALSO_RATED_RATING_FONT;
+    ctx.fillStyle = '#e5e7eb';
+    ctx.fillText(String(m.rating), x, y);
+    x += ratingWidth + itemGap;
+
+    drawnCount++;
+  }
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+}
+
 interface GenerateImageParams {
   monthlyData: MonthlyData;
   profileInfo: ProfileInfo;
-  archetypeId?: string;
-  subcategoryId?: string;
-  personaCode?: string | null;
   monthName: string;
   isPt: boolean;
 }
 
 async function generateShareImage(params: GenerateImageParams): Promise<{ dataUrl: string; blob: Blob }> {
-  const { monthlyData, profileInfo, archetypeId, subcategoryId, personaCode, monthName, isPt } = params;
+  const { monthlyData, profileInfo, monthName, isPt } = params;
   const color = '#a855f7';
   const topMovies = monthlyData.top_movies.slice(0, 3);
-  const hasArchetypeBadge = !!(archetypeId && personaCode);
 
   const W = 1080;
   const H = 1920;
@@ -207,11 +239,12 @@ async function generateShareImage(params: GenerateImageParams): Promise<{ dataUr
 
   // Carrega tudo que precisa de rede em paralelo antes de desenhar
   // qualquer coisa — cada uma pode falhar independentemente sem travar
-  // as outras.
-  const [avatarResult, faviconResult, archetypeIconImg, ...posterResults] = await Promise.all([
+  // as outras. O badge de essência cinematográfica (ícone + 3 letras)
+  // foi removido — não tinha função nenhuma nesta imagem, só ocupava
+  // espaço, então o ícone do arquétipo não precisa mais ser carregado.
+  const [avatarResult, faviconResult, ...posterResults] = await Promise.all([
     profileInfo.avatar_url ? loadImageFromUrl(profileInfo.avatar_url) : Promise.resolve<ImageLoadResult>({ img: null }),
     loadImageFromUrl(SITE_ICON_URL),
-    hasArchetypeBadge ? loadArchetypeIconImage(archetypeId, subcategoryId, 40) : Promise.resolve(null),
     ...topMovies.map((m) => loadImageFromUrl(`https://image.tmdb.org/t/p/w500${m.poster_path}`)),
   ]);
   const avatarImg = avatarResult.img;
@@ -252,13 +285,13 @@ async function generateShareImage(params: GenerateImageParams): Promise<{ dataUr
 
   // "CINE ORACLE"
   ctx.fillStyle = '#9ca3af';
-  ctx.font = '600 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
-  ctx.fillText('C I N E   O R A C L E', W / 2, 90);
+  ctx.font = '600 26px Arial, sans-serif';
+  ctx.fillText('C I N E   O R A C L E', W / 2, 80);
 
   // Avatar circular
   const avatarCx = W / 2;
-  const avatarCy = 300;
-  const avatarR = 100;
+  const avatarCy = 250;
+  const avatarR = 90;
 
   ctx.save();
   ctx.beginPath();
@@ -278,7 +311,7 @@ async function generateShareImage(params: GenerateImageParams): Promise<{ dataUr
     ctx.fillStyle = avatarGrad;
     ctx.fillRect(avatarCx - avatarR, avatarCy - avatarR, avatarR * 2, avatarR * 2);
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 64px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.font = 'bold 58px Arial, sans-serif';
     ctx.fillText(profileInfo.username.charAt(0).toUpperCase(), avatarCx, avatarCy);
   }
   ctx.restore();
@@ -293,39 +326,41 @@ async function generateShareImage(params: GenerateImageParams): Promise<{ dataUr
 
   // @username
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 40px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
-  ctx.fillText(`@${profileInfo.username}`, W / 2, 440);
+  ctx.font = 'bold 36px Arial, sans-serif';
+  ctx.fillText(`@${profileInfo.username}`, W / 2, 385);
 
-  // "INSIGHTS DE [MÊS]"
-  ctx.fillStyle = '#9ca3af';
-  ctx.font = '600 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
-  const insightsLabel = isPt ? `INSIGHTS DE ${monthName.toUpperCase()}` : `${monthName.toUpperCase()} INSIGHTS`;
-  ctx.fillText(insightsLabel, W / 2, 500);
-
-  // Badge do arquétipo (ícone + código da persona)
-  if (hasArchetypeBadge) {
-    const badgeW = 320;
-    const badgeH = 90;
-    const badgeY = 560;
-    const badgeX = W / 2 - badgeW / 2;
-
-    roundRectPath(ctx, badgeX, badgeY, badgeW, badgeH, 45);
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    if (archetypeIconImg) {
-      ctx.drawImage(archetypeIconImg, badgeX + 50, badgeY + badgeH / 2 - 20, 40, 40);
-    }
-
-    ctx.textAlign = 'left';
-    ctx.fillStyle = color;
-    ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
-    ctx.fillText(personaCode!, badgeX + 120, badgeY + badgeH / 2);
-    ctx.textAlign = 'center';
+  // "INSIGHTS DE [MÊS]" — é a frase que dá sentido a toda a imagem,
+  // então precisa ser o elemento mais chamativo da parte de cima:
+  // fonte grande, gradiente roxo-rosa (a mesma identidade visual do
+  // recurso), leve brilho e uma linha decorativa reforçando embaixo —
+  // bem diferente do texto cinza pequeno de antes.
+  const insightsLabel = isPt ? `Insights de ${monthName}` : `${monthName} Insights`;
+  let insightsFontSize = 56;
+  ctx.font = `800 ${insightsFontSize}px Arial, sans-serif`;
+  const maxInsightsWidth = W - 120;
+  while (ctx.measureText(insightsLabel).width > maxInsightsWidth && insightsFontSize > 34) {
+    insightsFontSize -= 2;
+    ctx.font = `800 ${insightsFontSize}px Arial, sans-serif`;
   }
+  const insightsY = 460;
+  const insightsGrad = ctx.createLinearGradient(W / 2 - 260, insightsY, W / 2 + 260, insightsY);
+  insightsGrad.addColorStop(0, '#c084fc');
+  insightsGrad.addColorStop(0.5, '#e879f9');
+  insightsGrad.addColorStop(1, '#f472b6');
+  ctx.save();
+  ctx.shadowColor = 'rgba(232,121,249,0.5)';
+  ctx.shadowBlur = 30;
+  ctx.fillStyle = insightsGrad;
+  ctx.fillText(insightsLabel, W / 2, insightsY);
+  ctx.restore();
+
+  // linha decorativa reforçando o título
+  const underlineGrad = ctx.createLinearGradient(W / 2 - 90, 0, W / 2 + 90, 0);
+  underlineGrad.addColorStop(0, 'rgba(192,132,252,0)');
+  underlineGrad.addColorStop(0.5, 'rgba(232,121,249,0.9)');
+  underlineGrad.addColorStop(1, 'rgba(244,114,182,0)');
+  ctx.fillStyle = underlineGrad;
+  ctx.fillRect(W / 2 - 90, insightsY + 40, 180, 4);
 
   // Estatísticas
   const statLabels = [
@@ -333,31 +368,32 @@ async function generateShareImage(params: GenerateImageParams): Promise<{ dataUr
     { value: String(monthlyData.episodes_watched_count), label: isPt ? ['Episódios', 'assistidos'] : ['Episodes', 'watched'] },
     { value: `${monthlyData.total_hours_watched}h`, label: isPt ? ['Horas', 'assistidas'] : ['Hours', 'watched'] },
   ];
-  const statsY = hasArchetypeBadge ? 760 : 660;
+  const statsY = 610;
   const statColW = W / 3;
   statLabels.forEach((s, i) => {
     const cx = statColW * i + statColW / 2;
     ctx.fillStyle = '#fff';
-    ctx.font = '900 88px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.font = '900 82px Arial, sans-serif';
     ctx.fillText(s.value, cx, statsY);
     ctx.fillStyle = '#d1d5db';
-    ctx.font = '600 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.font = '600 23px Arial, sans-serif';
     s.label.forEach((line, li) => {
-      ctx.fillText(line, cx, statsY + 76 + li * 34);
+      ctx.fillText(line, cx, statsY + 72 + li * 32);
     });
   });
 
   // "MELHORES DO MÊS"
+  const topOfMonthY = 790;
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
-  ctx.fillText(isPt ? 'MELHORES DO MÊS' : 'TOP OF THE MONTH', W / 2, 970);
+  ctx.font = 'bold 28px Arial, sans-serif';
+  ctx.fillText(isPt ? 'MELHORES DO MÊS' : 'TOP OF THE MONTH', W / 2, topOfMonthY);
 
   // Pôsteres
-  const posterW = 300;
-  const posterH = 450;
-  const posterGap = 40;
+  const posterW = 290;
+  const posterH = 420;
+  const posterGap = 35;
   const postersStartX = (W - (posterW * 3 + posterGap * 2)) / 2;
-  const postersY = 1050;
+  const postersY = 850;
 
   topMovies.forEach((m, i) => {
     const x = postersStartX + i * (posterW + posterGap);
@@ -376,19 +412,8 @@ async function generateShareImage(params: GenerateImageParams): Promise<{ dataUr
       ctx.drawImage(posterImg, drawX, drawY, drawW, drawH);
       ctx.restore();
     } else {
-      // Diagnóstico temporário: mostra o motivo exato da falha em vez
-      // de um retângulo cinza genérico, pra saber com certeza a causa
-      // real no ambiente de produção em vez de continuar supondo.
       ctx.fillStyle = '#1f2937';
       ctx.fill();
-      ctx.save();
-      ctx.fillStyle = '#f87171';
-      ctx.font = '600 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
-      const errorLines = (posterResult?.error || 'erro desconhecido').match(/.{1,22}/g) || [];
-      errorLines.slice(0, 6).forEach((line, li) => {
-        ctx.fillText(line, x + posterW / 2, postersY + posterH / 2 - (errorLines.length * 12) + li * 26);
-      });
-      ctx.restore();
     }
 
     roundRectPath(ctx, x, postersY, posterW, posterH, 20);
@@ -398,65 +423,108 @@ async function generateShareImage(params: GenerateImageParams): Promise<{ dataUr
 
     // Selo numerado
     ctx.beginPath();
-    ctx.arc(x + 44, postersY + 44, 30, 0, Math.PI * 2);
-    const numberGrad = ctx.createLinearGradient(x + 14, postersY + 14, x + 74, postersY + 74);
+    ctx.arc(x + 42, postersY + 42, 28, 0, Math.PI * 2);
+    const numberGrad = ctx.createLinearGradient(x + 14, postersY + 14, x + 70, postersY + 70);
     numberGrad.addColorStop(0, '#f43f5e');
     numberGrad.addColorStop(1, '#ec4899');
     ctx.fillStyle = numberGrad;
     ctx.fill();
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
-    ctx.fillText(String(i + 1), x + 44, postersY + 44);
+    ctx.font = 'bold 28px Arial, sans-serif';
+    ctx.fillText(String(i + 1), x + 42, postersY + 42);
 
     // Título (truncado se necessário) + estrela e nota
     ctx.fillStyle = '#e5e7eb';
-    ctx.font = '600 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.font = '600 23px Arial, sans-serif';
     const displayTitle = truncateForPoster(ctx, m.title, posterW - 10);
-    ctx.fillText(displayTitle, x + posterW / 2, postersY + posterH + 40);
+    ctx.fillText(displayTitle, x + posterW / 2, postersY + posterH + 38);
 
     ctx.textAlign = 'right';
     ctx.fillStyle = '#fbbf24';
-    ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
-    ctx.fillText('★', x + posterW / 2 - 5, postersY + posterH + 80);
+    ctx.font = 'bold 25px Arial, sans-serif';
+    ctx.fillText('★', x + posterW / 2 - 5, postersY + posterH + 76);
     ctx.textAlign = 'left';
-    ctx.fillText(String(m.rating), x + posterW / 2 + 5, postersY + posterH + 80);
+    ctx.fillText(String(m.rating), x + posterW / 2 + 5, postersY + posterH + 76);
     ctx.textAlign = 'center';
   });
 
-  // Pills de gênero
-  let genreX = 90;
-  const genreY = 1670;
-  ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
-  monthlyData.top_genres.slice(0, 4).forEach((g) => {
-    const textWidth = ctx.measureText(g.name).width;
-    const pillWidth = textWidth + 72;
-    roundRectPath(ctx, genreX, genreY, pillWidth, 72, 36);
+  // "GÊNEROS DO MÊS" — título próprio, deixando claro que esses gêneros
+  // resumem o mês inteiro e não têm relação direta com os 3 pôsteres
+  // logo acima (antes, sem nenhum título, dava a entender que cada
+  // gênero correspondia a um dos 3 filmes).
+  const genreTitleY = postersY + posterH + 130;
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 26px Arial, sans-serif';
+  ctx.fillText(isPt ? 'GÊNEROS DO MÊS' : 'GENRES OF THE MONTH', W / 2, genreTitleY);
+
+  // Pills de gênero — centralizadas como bloco (soma as larguras antes
+  // de desenhar, em vez de começar sempre numa margem esquerda fixa),
+  // pra ficarem visualmente equilibradas independente de quantos
+  // gêneros e de que tamanho os nomes forem.
+  const genreY = genreTitleY + 45;
+  const genrePillHeight = 62;
+  ctx.font = 'bold 27px Arial, sans-serif';
+  const genresToShow = monthlyData.top_genres.slice(0, 4);
+  const genrePillWidths = genresToShow.map((g) => ctx.measureText(g.name).width + 64);
+  const genreGap = 18;
+  const totalGenreWidth = genrePillWidths.reduce((a, b) => a + b, 0) + genreGap * (genresToShow.length - 1);
+  let genreX = (W - totalGenreWidth) / 2;
+  genresToShow.forEach((g, i) => {
+    const pillWidth = genrePillWidths[i];
+    roundRectPath(ctx, genreX, genreY, pillWidth, genrePillHeight, genrePillHeight / 2);
     ctx.fillStyle = 'rgba(255,255,255,0.07)';
     ctx.fill();
     ctx.strokeStyle = `${color}50`;
     ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.fillStyle = '#e5e7eb';
-    ctx.fillText(g.name, genreX + pillWidth / 2, genreY + 36);
-    genreX += pillWidth + 20;
+    ctx.fillText(g.name, genreX + pillWidth / 2, genreY + genrePillHeight / 2);
+    genreX += pillWidth + genreGap;
   });
 
+  // "TAMBÉM AVALIOU" — lista os demais filmes do mês num fluxo de texto
+  // (título ★ nota, quebrando linha conforme a largura), respeitando um
+  // limite rígido de altura disponível: a quantidade de itens pode
+  // variar muito (de 0 a dezenas), então em vez de deixar a imagem
+  // crescer ou os itens se sobrepuserem, o desenho para assim que o
+  // espaço reservado se esgota e mostra "+N filmes" com o restante.
+  const alsoRatedTitleY = genreY + genrePillHeight + 65;
+  const footerY = H - 70;
+  const alsoRatedAreaBottom = footerY - 70;
+
+  if (monthlyData.other_movies.length > 0 && alsoRatedTitleY < alsoRatedAreaBottom - 40) {
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 26px Arial, sans-serif';
+    ctx.fillText(isPt ? 'TAMBÉM AVALIOU' : 'ALSO RATED', W / 2, alsoRatedTitleY);
+
+    drawAlsoRatedFlow(
+      ctx,
+      monthlyData.other_movies,
+      90,
+      alsoRatedTitleY + 50,
+      W - 180,
+      alsoRatedAreaBottom - (alsoRatedTitleY + 50),
+      42,
+      isPt
+    );
+  }
+
   // Rodapé
-  const footerY = H - 90;
-  const faviconSize = 48;
+  const faviconSize = 44;
   const footerText = 'cineoracle.com';
-  ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 30px Arial, sans-serif';
   const footerTextWidth = ctx.measureText(footerText).width;
-  const footerTotalWidth = (faviconImg ? faviconSize + 16 : 0) + footerTextWidth;
+  const footerTotalWidth = (faviconImg ? faviconSize + 14 : 0) + footerTextWidth;
   let footerX = W / 2 - footerTotalWidth / 2;
 
   if (faviconImg) {
-    roundRectPath(ctx, footerX, footerY - faviconSize / 2, faviconSize, faviconSize, 12);
+    roundRectPath(ctx, footerX, footerY - faviconSize / 2, faviconSize, faviconSize, 11);
     ctx.save();
     ctx.clip();
     ctx.drawImage(faviconImg, footerX, footerY - faviconSize / 2, faviconSize, faviconSize);
     ctx.restore();
-    footerX += faviconSize + 16;
+    footerX += faviconSize + 14;
   }
 
   ctx.textAlign = 'left';
@@ -531,8 +599,6 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
 
   if (!isOpen) return null;
 
-  const archetypeId = essencePersonality?.personalidade_completa?.slice(0, 2);
-  const subcategoryId = essencePersonality?.personalidade_completa?.slice(2, 3);
   const isLoading = loading || profileLoading;
 
   const fileName = `cineoracle-insights-${year}-${String(month).padStart(2, '0')}.png`;
@@ -543,8 +609,7 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
     setGeneratingPreview(true);
     try {
       const { dataUrl, blob } = await generateShareImage({
-        monthlyData, profileInfo, archetypeId, subcategoryId,
-        personaCode: essencePersonality?.personalidade_completa, monthName, isPt,
+        monthlyData, profileInfo, monthName, isPt,
       });
       setShareImageUrl(dataUrl);
       setShareImageBlob(blob);
