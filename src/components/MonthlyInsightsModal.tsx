@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
   X, Loader2, Star, Film, Download, Share2, Check, Instagram,
@@ -54,35 +54,23 @@ interface ProfileInfo {
 const SITE_ICON_URL = '/assets/Symbal512.webp';
 
 // ============================================================
-// GERAÇÃO DA IMAGEM DE COMPARTILHAMENTO — reescrita do zero.
+// GERAÇÃO DA IMAGEM DE COMPARTILHAMENTO — segunda reescrita.
 //
-// A versão anterior usava html2canvas pra "fotografar" um card HTML/CSS
-// escondido no DOM. Depois de várias tentativas de correção (lineHeight,
-// vertical-align, troca de biblioteca), o problema de fundo continuava:
-// html2canvas precisa REIMPLEMENTAR em JavaScript como o navegador
-// calcularia o layout de qualquer HTML/CSS arbitrário — e essa
-// reimplementação tem bugs conhecidos e nunca corrigidos oficialmente,
-// exatamente com texto ao lado de ícones e dentro de elementos com
-// fundo colorido (issue #2937 do próprio repositório da lib).
+// A primeira tentativa (html2canvas) tinha um bug documentado e nunca
+// corrigido de alinhamento vertical de texto. A segunda tentativa
+// (montar tudo como um SVG único e converter pra canvas via um só
+// Image.src) resolveu o alinhamento mas os pôsteres continuaram sem
+// aparecer em produção.
 //
-// A abordagem nova elimina essa camada de tradução por completo: a
-// imagem é desenhada diretamente como SVG, onde a posição de cada
-// texto é um número explícito (x, y) que o navegador não precisa
-// "adivinhar" a partir de CSS — e SVG é convertido pra <canvas> usando
-// a própria engine nativa de renderização do navegador (o mesmo
-// caminho que desenha qualquer <img> na tela), não uma reimplementação
-// em JS. Isso resolve o alinhamento pela raiz, não por tentativa e erro
-// de CSS.
-//
-// Também elimina o outro bug (pôsteres pretos): toda imagem externa
-// (avatar, pôsteres, favicon) é baixada e convertida em base64 ANTES de
-// entrar no SVG — a imagem final não faz nenhuma requisição de rede no
-// momento da conversão pra canvas, então não há CORS, não há cache
-// misto, não há "canvas contaminado".
-//
-// E, importante: a MESMA imagem gerada aqui é usada tanto na prévia
-// quanto no download/compartilhamento — não existem mais duas
-// renderizações separadas que podem divergir uma da outra.
+// Esta versão segue exatamente o padrão que já funciona comprovadamente
+// no próprio site (o botão de compartilhar no Instagram dentro dos
+// detalhes de um filme, em MovieDetailsModal.tsx): desenhar TUDO
+// direto num <canvas> nativo com a Canvas API (ctx.fillText,
+// ctx.drawImage, ctx.arc...), sem nenhuma camada intermediária de
+// HTML, CSS ou SVG tentando ser "fotografada" ou "convertida". Cada
+// pôster é baixado (fetch → blob → blob URL → Image) e desenhado
+// individualmente com ctx.drawImage — o mesmo mecanismo, chamado uma
+// vez por imagem, que já é usado com sucesso em produção.
 // ============================================================
 
 const ARCHETYPE_ICON_MAP: Record<string, React.ComponentType<any>> = {
@@ -101,48 +89,96 @@ function getArchetypeColor(subcategoryId?: string | null): string {
   return (subcategoryId && SUBCATEGORY_COLORS[subcategoryId]) || '#9CA3AF';
 }
 
-// Renderiza o ícone lucide correspondente pra uma string SVG estática —
-// mesmo mapeamento de ArchetypeSymbol.tsx, mas sem o wrapper de animação
-// (framer-motion não serializa, e aqui a imagem é estática de qualquer
-// forma).
-function getArchetypeIconMarkup(archetypeId: string | undefined, subcategoryId: string | undefined, size: number): string {
-  const IconComponent = (archetypeId && ARCHETYPE_ICON_MAP[archetypeId]) || CircleDashed;
-  const color = getArchetypeColor(subcategoryId);
-  return renderToStaticMarkup(<IconComponent size={size} color={color} strokeWidth={1.5} />);
+interface ImageLoadResult {
+  img: HTMLImageElement | null;
+  // Diagnóstico temporário: depois de duas tentativas anteriores que
+  // falhavam silenciosamente (retornando só null), preciso saber o
+  // motivo EXATO da falha real no ambiente do usuário, não continuar
+  // supondo. Isso é desenhado diretamente no lugar do pôster na imagem
+  // gerada, pra dar um dado concreto de diagnóstico sem depender de
+  // acesso ao console do navegador.
+  error?: string;
 }
 
-// Baixa uma imagem e converte pra data URL — depois disso ela não
-// depende mais de nenhuma requisição de rede, então nunca mais pode
-// "contaminar" o canvas por CORS. Falha de rede em UMA imagem não
-// derruba a geração inteira: retorna null e o SVG simplesmente omite
-// aquele <image>.
-async function loadImageAsDataUrl(url: string): Promise<string | null> {
+// Carrega uma imagem de uma URL remota — mesmo padrão exato já usado
+// com sucesso em MovieDetailsModal.tsx: fetch → blob → blob URL local
+// → Image(). Uma vez que a imagem virou um blob local, desenhar ela no
+// canvas com drawImage nunca esbarra em CORS (blob: é sempre
+// same-origin pro navegador). Falha em UMA imagem não derruba a
+// geração inteira — o layout simplesmente pula aquele desenho
+// específico e mostra o motivo da falha em texto, no lugar da imagem.
+async function loadImageFromUrl(url: string): Promise<ImageLoadResult> {
   try {
-    const res = await fetch(url, { mode: 'cors' });
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) {
+      return { img: null, error: `HTTP ${response.status}` };
+    }
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      return { img: null, error: 'blob vazio' };
+    }
+    const blobUrl = URL.createObjectURL(blob);
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('Image decode failed'));
+        image.src = blobUrl;
+      });
+      return { img };
+    } catch (decodeErr: any) {
+      return { img: null, error: `decode: ${decodeErr?.message || 'falha'}` };
+    } finally {
+      URL.revokeObjectURL(blobUrl);
+    }
+  } catch (fetchErr: any) {
+    // Aqui é onde apareceria um bloqueio de CSP/connect-src, uma falha
+    // de rede real, ou qualquer outra causa — o nome e a mensagem do
+    // erro do próprio navegador dizem exatamente qual é.
+    return { img: null, error: `${fetchErr?.name || 'Error'}: ${fetchErr?.message || 'falha desconhecida'}` };
   }
 }
 
-function escapeXml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// O ícone do arquétipo (lucide-react) vira um SVG estático, depois uma
+// imagem carregável — o mesmo mecanismo de carregamento de imagem usado
+// pra pôsteres e avatar, só que a "foto" aqui é um ícone vetorial
+// pequeno em vez de uma capa de filme. Isso é diferente de tentar
+// converter um card HTML inteiro: carregar um <img> a partir de uma
+// data URL de SVG e desenhá-lo com drawImage é um recurso nativo e bem
+// suportado do navegador, não uma reimplementação de layout.
+function loadArchetypeIconImage(archetypeId: string | undefined, subcategoryId: string | undefined, size: number): Promise<HTMLImageElement> {
+  const IconComponent = (archetypeId && ARCHETYPE_ICON_MAP[archetypeId]) || CircleDashed;
+  const color = getArchetypeColor(subcategoryId);
+  const svgMarkup = renderToStaticMarkup(<IconComponent size={size} color={color} strokeWidth={1.5} />);
+  const dataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgMarkup)))}`;
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
 }
 
-// Corta um título longo pra caber na largura de um pôster (110px) sem
-// medir texto de verdade (SVG não tem "text-overflow: ellipsis" nativo
-// confiável entre navegadores) — uma aproximação por contagem de
-// caracteres é suficiente pra um título de filme numa fonte de ~13px.
-function truncateForPoster(text: string, maxChars = 16): string {
-  if (text.length <= maxChars) return text;
-  return text.slice(0, maxChars - 1).trimEnd() + '…';
+// ctx.roundRect() só chegou em navegadores mais recentes (Safari
+// incluiu tarde) — um path manual via arcTo funciona em qualquer
+// versão, sem depender de feature detection silenciosa.
+function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function truncateForPoster(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let truncated = text;
+  while (truncated.length > 1 && ctx.measureText(truncated + '…').width > maxWidth) {
+    truncated = truncated.slice(0, -1);
+  }
+  return truncated.trimEnd() + '…';
 }
 
 interface GenerateImageParams {
@@ -159,210 +195,284 @@ async function generateShareImage(params: GenerateImageParams): Promise<{ dataUr
   const { monthlyData, profileInfo, archetypeId, subcategoryId, personaCode, monthName, isPt } = params;
   const color = '#a855f7';
   const topMovies = monthlyData.top_movies.slice(0, 3);
-
-  const [avatarDataUrl, faviconDataUrl, ...posterDataUrls] = await Promise.all([
-    profileInfo.avatar_url ? loadImageAsDataUrl(profileInfo.avatar_url) : Promise.resolve(null),
-    loadImageAsDataUrl(SITE_ICON_URL),
-    ...topMovies.map((m) => loadImageAsDataUrl(`https://image.tmdb.org/t/p/w500${m.poster_path}`)),
-  ]);
-
-  const archetypeIconMarkup = archetypeId ? getArchetypeIconMarkup(archetypeId, subcategoryId, 40) : '';
+  const hasArchetypeBadge = !!(archetypeId && personaCode);
 
   const W = 1080;
   const H = 1920;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas context unavailable');
 
+  // Carrega tudo que precisa de rede em paralelo antes de desenhar
+  // qualquer coisa — cada uma pode falhar independentemente sem travar
+  // as outras.
+  const [avatarResult, faviconResult, archetypeIconImg, ...posterResults] = await Promise.all([
+    profileInfo.avatar_url ? loadImageFromUrl(profileInfo.avatar_url) : Promise.resolve<ImageLoadResult>({ img: null }),
+    loadImageFromUrl(SITE_ICON_URL),
+    hasArchetypeBadge ? loadArchetypeIconImage(archetypeId, subcategoryId, 40) : Promise.resolve(null),
+    ...topMovies.map((m) => loadImageFromUrl(`https://image.tmdb.org/t/p/w500${m.poster_path}`)),
+  ]);
+  const avatarImg = avatarResult.img;
+  const faviconImg = faviconResult.img;
+  if (avatarResult.error) console.error('[Insights] avatar não carregou:', avatarResult.error);
+  if (faviconResult.error) console.error('[Insights] favicon não carregou:', faviconResult.error);
+  posterResults.forEach((r, i) => {
+    if (r.error) console.error(`[Insights] pôster ${i + 1} (${topMovies[i]?.title}) não carregou:`, r.error);
+  });
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Fundo
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#0a0a0f');
+  bgGrad.addColorStop(1, '#000000');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  const topGlow = ctx.createRadialGradient(W / 2, H * 0.2, 0, W / 2, H * 0.2, W * 0.55);
+  topGlow.addColorStop(0, 'rgba(168,85,247,0.27)');
+  topGlow.addColorStop(1, 'rgba(168,85,247,0)');
+  ctx.fillStyle = topGlow;
+  ctx.fillRect(0, 0, W, H);
+
+  const cornerGlow1 = ctx.createRadialGradient(W, 0, 0, W, 0, W * 0.4);
+  cornerGlow1.addColorStop(0, 'rgba(168,85,247,0.15)');
+  cornerGlow1.addColorStop(1, 'rgba(168,85,247,0)');
+  ctx.fillStyle = cornerGlow1;
+  ctx.fillRect(0, 0, W, H);
+
+  const cornerGlow2 = ctx.createRadialGradient(0, H, 0, 0, H, W * 0.35);
+  cornerGlow2.addColorStop(0, 'rgba(240,171,252,0.13)');
+  cornerGlow2.addColorStop(1, 'rgba(240,171,252,0)');
+  ctx.fillStyle = cornerGlow2;
+  ctx.fillRect(0, 0, W, H);
+
+  // "CINE ORACLE"
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '600 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+  ctx.fillText('C I N E   O R A C L E', W / 2, 90);
+
+  // Avatar circular
+  const avatarCx = W / 2;
+  const avatarCy = 300;
+  const avatarR = 100;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(avatarCx, avatarCy, avatarR, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  if (avatarImg) {
+    // cover: escala a imagem pra preencher o círculo sem distorcer
+    const scale = Math.max((avatarR * 2) / avatarImg.width, (avatarR * 2) / avatarImg.height);
+    const drawW = avatarImg.width * scale;
+    const drawH = avatarImg.height * scale;
+    ctx.drawImage(avatarImg, avatarCx - drawW / 2, avatarCy - drawH / 2, drawW, drawH);
+  } else {
+    const avatarGrad = ctx.createLinearGradient(avatarCx - avatarR, avatarCy - avatarR, avatarCx + avatarR, avatarCy + avatarR);
+    avatarGrad.addColorStop(0, color);
+    avatarGrad.addColorStop(1, '#ec4899');
+    ctx.fillStyle = avatarGrad;
+    ctx.fillRect(avatarCx - avatarR, avatarCy - avatarR, avatarR * 2, avatarR * 2);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 64px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.fillText(profileInfo.username.charAt(0).toUpperCase(), avatarCx, avatarCy);
+  }
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.arc(avatarCx, avatarCy, avatarR + 6, 0, Math.PI * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.globalAlpha = 0.6;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // @username
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 40px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+  ctx.fillText(`@${profileInfo.username}`, W / 2, 440);
+
+  // "INSIGHTS DE [MÊS]"
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '600 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+  const insightsLabel = isPt ? `INSIGHTS DE ${monthName.toUpperCase()}` : `${monthName.toUpperCase()} INSIGHTS`;
+  ctx.fillText(insightsLabel, W / 2, 500);
+
+  // Badge do arquétipo (ícone + código da persona)
+  if (hasArchetypeBadge) {
+    const badgeW = 320;
+    const badgeH = 90;
+    const badgeY = 560;
+    const badgeX = W / 2 - badgeW / 2;
+
+    roundRectPath(ctx, badgeX, badgeY, badgeW, badgeH, 45);
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    if (archetypeIconImg) {
+      ctx.drawImage(archetypeIconImg, badgeX + 50, badgeY + badgeH / 2 - 20, 40, 40);
+    }
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = color;
+    ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.fillText(personaCode!, badgeX + 120, badgeY + badgeH / 2);
+    ctx.textAlign = 'center';
+  }
+
+  // Estatísticas
+  const statLabels = [
+    { value: String(monthlyData.movies_rated_count), label: isPt ? ['Filmes', 'avaliados'] : ['Movies', 'rated'] },
+    { value: String(monthlyData.episodes_watched_count), label: isPt ? ['Episódios', 'assistidos'] : ['Episodes', 'watched'] },
+    { value: `${monthlyData.total_hours_watched}h`, label: isPt ? ['Horas', 'assistidas'] : ['Hours', 'watched'] },
+  ];
+  const statsY = hasArchetypeBadge ? 760 : 660;
+  const statColW = W / 3;
+  statLabels.forEach((s, i) => {
+    const cx = statColW * i + statColW / 2;
+    ctx.fillStyle = '#fff';
+    ctx.font = '900 88px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.fillText(s.value, cx, statsY);
+    ctx.fillStyle = '#d1d5db';
+    ctx.font = '600 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+    s.label.forEach((line, li) => {
+      ctx.fillText(line, cx, statsY + 76 + li * 34);
+    });
+  });
+
+  // "MELHORES DO MÊS"
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+  ctx.fillText(isPt ? 'MELHORES DO MÊS' : 'TOP OF THE MONTH', W / 2, 970);
+
+  // Pôsteres
   const posterW = 300;
   const posterH = 450;
   const posterGap = 40;
   const postersStartX = (W - (posterW * 3 + posterGap * 2)) / 2;
   const postersY = 1050;
 
-  const genreLabels = monthlyData.top_genres.slice(0, 4).map((g) => g.name);
+  topMovies.forEach((m, i) => {
+    const x = postersStartX + i * (posterW + posterGap);
+    const posterResult = posterResults[i];
+    const posterImg = posterResult?.img;
+
+    roundRectPath(ctx, x, postersY, posterW, posterH, 20);
+    if (posterImg) {
+      ctx.save();
+      ctx.clip();
+      const scale = Math.max(posterW / posterImg.width, posterH / posterImg.height);
+      const drawW = posterImg.width * scale;
+      const drawH = posterImg.height * scale;
+      const drawX = x + (posterW - drawW) / 2;
+      const drawY = postersY + (posterH - drawH) / 2;
+      ctx.drawImage(posterImg, drawX, drawY, drawW, drawH);
+      ctx.restore();
+    } else {
+      // Diagnóstico temporário: mostra o motivo exato da falha em vez
+      // de um retângulo cinza genérico, pra saber com certeza a causa
+      // real no ambiente de produção em vez de continuar supondo.
+      ctx.fillStyle = '#1f2937';
+      ctx.fill();
+      ctx.save();
+      ctx.fillStyle = '#f87171';
+      ctx.font = '600 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+      const errorLines = (posterResult?.error || 'erro desconhecido').match(/.{1,22}/g) || [];
+      errorLines.slice(0, 6).forEach((line, li) => {
+        ctx.fillText(line, x + posterW / 2, postersY + posterH / 2 - (errorLines.length * 12) + li * 26);
+      });
+      ctx.restore();
+    }
+
+    roundRectPath(ctx, x, postersY, posterW, posterH, 20);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Selo numerado
+    ctx.beginPath();
+    ctx.arc(x + 44, postersY + 44, 30, 0, Math.PI * 2);
+    const numberGrad = ctx.createLinearGradient(x + 14, postersY + 14, x + 74, postersY + 74);
+    numberGrad.addColorStop(0, '#f43f5e');
+    numberGrad.addColorStop(1, '#ec4899');
+    ctx.fillStyle = numberGrad;
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.fillText(String(i + 1), x + 44, postersY + 44);
+
+    // Título (truncado se necessário) + estrela e nota
+    ctx.fillStyle = '#e5e7eb';
+    ctx.font = '600 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+    const displayTitle = truncateForPoster(ctx, m.title, posterW - 10);
+    ctx.fillText(displayTitle, x + posterW / 2, postersY + posterH + 40);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.fillText('★', x + posterW / 2 - 5, postersY + posterH + 80);
+    ctx.textAlign = 'left';
+    ctx.fillText(String(m.rating), x + posterW / 2 + 5, postersY + posterH + 80);
+    ctx.textAlign = 'center';
+  });
+
+  // Pills de gênero
   let genreX = 90;
   const genreY = 1670;
-  const genrePillsMarkup = genreLabels
-    .map((name) => {
-      const textWidth = name.length * 17 + 72;
-      const pill = `
-        <rect x="${genreX}" y="${genreY}" width="${textWidth}" height="72" rx="36" fill="rgba(255,255,255,0.07)" stroke="${color}50" stroke-width="1.5" />
-        <text x="${genreX + textWidth / 2}" y="${genreY + 36}" font-size="30" font-weight="700" fill="#e5e7eb" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${escapeXml(name)}</text>
-      `;
-      genreX += textWidth + 20;
-      return pill;
-    })
-    .join('');
+  ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+  monthlyData.top_genres.slice(0, 4).forEach((g) => {
+    const textWidth = ctx.measureText(g.name).width;
+    const pillWidth = textWidth + 72;
+    roundRectPath(ctx, genreX, genreY, pillWidth, 72, 36);
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.fill();
+    ctx.strokeStyle = `${color}50`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = '#e5e7eb';
+    ctx.fillText(g.name, genreX + pillWidth / 2, genreY + 36);
+    genreX += pillWidth + 20;
+  });
 
-  const postersMarkup = topMovies
-    .map((m, i) => {
-      const x = postersStartX + i * (posterW + posterGap);
-      const dataUrl = posterDataUrls[i];
-      const clipId = `posterClip${i}`;
-      const imageOrPlaceholder = dataUrl
-        ? `<image href="${dataUrl}" x="${x}" y="${postersY}" width="${posterW}" height="${posterH}" clip-path="url(#${clipId})" preserveAspectRatio="xMidYMid slice" />`
-        : `<rect x="${x}" y="${postersY}" width="${posterW}" height="${posterH}" rx="20" fill="#1f2937" />`;
-      return `
-        <clipPath id="${clipId}"><rect x="${x}" y="${postersY}" width="${posterW}" height="${posterH}" rx="20" /></clipPath>
-        ${imageOrPlaceholder}
-        <rect x="${x}" y="${postersY}" width="${posterW}" height="${posterH}" rx="20" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2" />
-        <circle cx="${x + 44}" cy="${postersY + 44}" r="30" fill="url(#numberBadgeGradient)" />
-        <text x="${x + 44}" y="${postersY + 44}" font-size="30" font-weight="800" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${i + 1}</text>
-        <text x="${x + posterW / 2}" y="${postersY + posterH + 40}" font-size="24" font-weight="600" fill="#e5e7eb" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${escapeXml(truncateForPoster(m.title))}</text>
-        <path d="M ${x + posterW / 2 - 65} ${postersY + posterH + 78} l 5 -10 l 5 10 l 11 1.5 l -8 8 l 2 11 l -10 -5.5 l -10 5.5 l 2 -11 l -8 -8 z" fill="#fbbf24" transform="translate(-2, 0)" />
-        <text x="${x + posterW / 2 + 5}" y="${postersY + posterH + 80}" font-size="26" font-weight="800" fill="#fbbf24" text-anchor="start" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${m.rating}</text>
-      `;
-    })
-    .join('');
-
-  const hasArchetypeBadge = !!(archetypeId && personaCode);
-  const statLabels = [
-    { value: monthlyData.movies_rated_count, label: isPt ? 'Filmes\navaliados' : 'Movies\nrated' },
-    { value: monthlyData.episodes_watched_count, label: isPt ? 'Episódios\nassistidos' : 'Episodes\nwatched' },
-    { value: `${monthlyData.total_hours_watched}h`, label: isPt ? 'Horas\nassistidas' : 'Hours\nwatched' },
-  ];
-  // Sobe pra preencher o espaço do badge quando ele não existe (usuário
-  // ainda sem essência cinematográfica definida) — sem isso, sobra um
-  // vão vazio desproporcional entre "Insights de [mês]" e os números.
-  const statsY = hasArchetypeBadge ? 760 : 660;
-  const statColW = W / 3;
-  const statsMarkup = statLabels
-    .map((s, i) => {
-      const cx = statColW * i + statColW / 2;
-      const labelLines = s.label.split('\n');
-      const labelTspans = labelLines
-        .map((line, li) => `<tspan x="${cx}" dy="${li === 0 ? 0 : 34}">${escapeXml(line)}</tspan>`)
-        .join('');
-      return `
-        <text x="${cx}" y="${statsY}" font-size="88" font-weight="900" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${s.value}</text>
-        <text x="${cx}" y="${statsY + 76}" font-size="24" font-weight="600" fill="#d1d5db" text-anchor="middle" dominant-baseline="hanging" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${labelTspans}</text>
-      `;
-    })
-    .join('');
-
-  const avatarSize = 200;
-  const avatarCx = W / 2;
-  const avatarCy = 300;
-  const avatarMarkup = avatarDataUrl
-    ? `<clipPath id="avatarClip"><circle cx="${avatarCx}" cy="${avatarCy}" r="${avatarSize / 2}" /></clipPath>
-       <image href="${avatarDataUrl}" x="${avatarCx - avatarSize / 2}" y="${avatarCy - avatarSize / 2}" width="${avatarSize}" height="${avatarSize}" clip-path="url(#avatarClip)" preserveAspectRatio="xMidYMid slice" />`
-    : `<circle cx="${avatarCx}" cy="${avatarCy}" r="${avatarSize / 2}" fill="url(#avatarFallbackGradient)" />
-       <text x="${avatarCx}" y="${avatarCy}" font-size="64" font-weight="800" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${escapeXml(profileInfo.username.charAt(0).toUpperCase())}</text>`;
-  const avatarRing = `<circle cx="${avatarCx}" cy="${avatarCy}" r="${avatarSize / 2 + 6}" fill="none" stroke="${color}" stroke-width="4" opacity="0.6" />`;
-
-  const archetypeBadgeY = 560;
-  let archetypeBadgeMarkup = '';
-  if (hasArchetypeBadge) {
-    const badgeW = 320;
-    const badgeH = 90;
-    const badgeX = W / 2 - badgeW / 2;
-    archetypeBadgeMarkup = `
-      <rect x="${badgeX}" y="${archetypeBadgeY}" width="${badgeW}" height="${badgeH}" rx="45" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" stroke-width="1.5" />
-      <g transform="translate(${badgeX + 50}, ${archetypeBadgeY + badgeH / 2 - 20})">${archetypeIconMarkup}</g>
-      <text x="${badgeX + 120}" y="${archetypeBadgeY + badgeH / 2}" font-size="30" font-weight="700" fill="${color}" letter-spacing="2" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${escapeXml(personaCode)}</text>
-    `;
-  }
-
+  // Rodapé
   const footerY = H - 90;
   const faviconSize = 48;
   const footerText = 'cineoracle.com';
-  const footerTextWidth = footerText.length * 19;
-  const footerTotalWidth = faviconSize + 16 + footerTextWidth;
-  const footerStartX = W / 2 - footerTotalWidth / 2;
-  const footerMarkup = `
-    ${faviconDataUrl ? `<image href="${faviconDataUrl}" x="${footerStartX}" y="${footerY - faviconSize / 2}" width="${faviconSize}" height="${faviconSize}" rx="12" />` : ''}
-    <text x="${footerStartX + faviconSize + 16}" y="${footerY}" font-size="32" font-weight="700" letter-spacing="3" fill="${color}" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${escapeXml(footerText)}</text>
-  `;
+  ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+  const footerTextWidth = ctx.measureText(footerText).width;
+  const footerTotalWidth = (faviconImg ? faviconSize + 16 : 0) + footerTextWidth;
+  let footerX = W / 2 - footerTotalWidth / 2;
 
-  const svg = `
-<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <radialGradient id="bgTopGlow" cx="50%" cy="20%" r="55%">
-      <stop offset="0%" stop-color="${color}" stop-opacity="0.27" />
-      <stop offset="100%" stop-color="${color}" stop-opacity="0" />
-    </radialGradient>
-    <linearGradient id="bgBase" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0a0a0f" />
-      <stop offset="100%" stop-color="#000000" />
-    </linearGradient>
-    <radialGradient id="cornerGlow1" cx="100%" cy="0%" r="40%">
-      <stop offset="0%" stop-color="${color}" stop-opacity="0.15" />
-      <stop offset="100%" stop-color="${color}" stop-opacity="0" />
-    </radialGradient>
-    <radialGradient id="cornerGlow2" cx="0%" cy="100%" r="35%">
-      <stop offset="0%" stop-color="#f0abfc" stop-opacity="0.13" />
-      <stop offset="100%" stop-color="#f0abfc" stop-opacity="0" />
-    </radialGradient>
-    <linearGradient id="numberBadgeGradient" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#f43f5e" />
-      <stop offset="100%" stop-color="#ec4899" />
-    </linearGradient>
-    <linearGradient id="avatarFallbackGradient" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${color}" />
-      <stop offset="100%" stop-color="#ec4899" />
-    </linearGradient>
-  </defs>
-
-  <rect width="${W}" height="${H}" fill="url(#bgBase)" />
-  <rect width="${W}" height="${H}" fill="url(#bgTopGlow)" />
-  <rect width="${W}" height="${H}" fill="url(#cornerGlow1)" />
-  <rect width="${W}" height="${H}" fill="url(#cornerGlow2)" />
-
-  <text x="${W / 2}" y="90" font-size="26" font-weight="600" letter-spacing="7" fill="#9ca3af" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">CINE ORACLE</text>
-
-  ${avatarRing}
-  ${avatarMarkup}
-
-  <text x="${W / 2}" y="440" font-size="40" font-weight="800" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">@${escapeXml(profileInfo.username)}</text>
-
-  <text x="${W / 2}" y="500" font-size="26" font-weight="600" letter-spacing="4" fill="#9ca3af" text-anchor="middle" dominant-baseline="central" text-transform="uppercase" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${isPt ? `INSIGHTS DE ${monthName.toUpperCase()}` : `${monthName.toUpperCase()} INSIGHTS`}</text>
-
-  ${archetypeBadgeMarkup}
-
-  ${statsMarkup}
-
-  <text x="${W / 2}" y="970" font-size="28" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif">${isPt ? 'MELHORES DO MÊS' : 'TOP OF THE MONTH'}</text>
-
-  ${postersMarkup}
-
-  ${genrePillsMarkup}
-
-  ${footerMarkup}
-</svg>
-  `.trim();
-
-  const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-  const svgUrl = URL.createObjectURL(svgBlob);
-
-  try {
-    const img = new Image();
-    img.width = W;
-    img.height = H;
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error('Failed to load generated SVG'));
-      img.src = svgUrl;
-    });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas context unavailable');
-    ctx.drawImage(img, 0, 0, W, H);
-
-    const dataUrl = canvas.toDataURL('image/png');
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
-    if (!blob) throw new Error('Failed to export canvas to PNG');
-
-    return { dataUrl, blob };
-  } finally {
-    URL.revokeObjectURL(svgUrl);
+  if (faviconImg) {
+    roundRectPath(ctx, footerX, footerY - faviconSize / 2, faviconSize, faviconSize, 12);
+    ctx.save();
+    ctx.clip();
+    ctx.drawImage(faviconImg, footerX, footerY - faviconSize / 2, faviconSize, faviconSize);
+    ctx.restore();
+    footerX += faviconSize + 16;
   }
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = color;
+  ctx.fillText(footerText, footerX, footerY);
+
+  const dataUrl = canvas.toDataURL('image/png');
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
+  if (!blob) throw new Error('Failed to export canvas to PNG');
+
+  return { dataUrl, blob };
 }
 
 // ============================================================
-// Componente principal — a UI normal do modal (estatísticas, pôsteres,
-// gêneros) permanece exatamente como já funcionava; só a geração e
-// exibição da imagem de compartilhamento foram reescritas.
+// Componente principal — a UI normal do modal permanece igual; só a
+// geração e exibição da imagem de compartilhamento mudou.
 // ============================================================
 
 const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
@@ -414,11 +524,9 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
     if (!isOpen) {
       setShowShareCard(false);
       setDone(false);
-      if (shareImageUrl) URL.revokeObjectURL(shareImageUrl);
       setShareImageUrl(null);
       setShareImageBlob(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -627,11 +735,6 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
         </motion.div>
       </motion.div>
 
-      {/* Popup de compartilhamento — a prévia mostrada aqui é literalmente
-          a mesma imagem PNG que será baixada/compartilhada (mesmo
-          dataUrl), não uma renderização HTML separada tentando imitar
-          o resultado final. Não existe mais como prévia e resultado
-          divergirem. */}
       {showShareCard && (
         <motion.div
           key="share-overlay"
