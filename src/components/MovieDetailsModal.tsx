@@ -1476,7 +1476,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     </span>
                   </div>
                   
-                  {predictedRating !== null && (
+                  {predictedRating !== null && !userRating && (
                     <div className="flex items-center px-2 py-1 bg-violet-100 dark:bg-violet-900/30 rounded-md">
                       <span className="font-medium text-violet-700 dark:text-violet-400">
                         {t('movies.predictedRatingForYou', { defaultValue: 'Nota Prevista para Você' })}: {predictedRating}
