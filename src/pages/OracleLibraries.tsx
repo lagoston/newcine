@@ -85,7 +85,7 @@ const Shelf: React.FC<{
   // pessoal (calculada uma vez pela Edge Function) — "carregar mais" só
   // fatia essa lista e busca detalhes da fatia nova, sem recalcular as
   // previsões de novo a cada clique.
-  const predictedIdsRef = useRef<{ movie_id: number; predicted_rating: number; is_true_ten: boolean; is_true_nine: boolean }[]>([]);
+  const predictedIdsRef = useRef<{ movie_id: number; predicted_rating: number }[]>([]);
 
   // Drag-to-scroll com mouse — mesmo padrão já usado no carrossel da
   // Watchlist. O scroll horizontal funcionava por toque no mobile, mas
@@ -139,14 +139,12 @@ const Shelf: React.FC<{
       const nextSlice = allPredicted.slice(current.movies.length, current.movies.length + pageSize);
       const sliceMovies = await getMoviesForPredictedSlice(nextSlice.map((p) => p.movie_id));
 
-      // Anexa a nota prevista (e se é um "10 verdadeiro" do Filtro do 10)
-      // a cada filme, na mesma ordem em que a previsão já veio ordenada.
+      // Anexa a nota prevista a cada filme, na mesma ordem em que a
+      // previsão já veio ordenada.
       const ratingByMovieId = new Map(nextSlice.map((p) => [p.movie_id, p]));
       const enrichedMovies = sliceMovies.map((movie) => ({
         ...movie,
         predictedRating: ratingByMovieId.get(movie.id)?.predicted_rating,
-        isTrueTen: ratingByMovieId.get(movie.id)?.is_true_ten,
-        isTrueNine: ratingByMovieId.get(movie.id)?.is_true_nine,
       }));
 
       setState((s) => ({
