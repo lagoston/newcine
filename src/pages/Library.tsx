@@ -25,6 +25,7 @@ interface UserMovie {
 
 interface LibraryMovie extends Movie {
   userRating?: number | null;
+  predictedRating?: number;
 }
 
 export default function Library() {
@@ -359,14 +360,59 @@ export default function Library() {
   const [showStreamingFilter, setShowStreamingFilter] = useState(false);
   const [selectedStreamingProviders, setSelectedStreamingProviders] = useState<number[]>([]);
 
+  // Oracle Filter — categoria separada dentro do mesmo modal: ordena a
+  // Watchlist pela Nota Prevista (maior primeiro), em vez de filtrar por
+  // disponibilidade. movie_id -> nota prevista, buscado em lote uma vez
+  // quando ativado (só filmes; séries não entram em pool nenhuma, então
+  // nunca têm previsão). Filmes ausentes do mapa (fora de qualquer pool,
+  // ou o próprio filtro desligado) ficam sempre por último.
+  const [oracleFilterActive, setOracleFilterActive] = useState(false);
+  const [predictedRatings, setPredictedRatings] = useState<Record<number, number>>({});
+
+  useEffect(() => {
+    if (!oracleFilterActive || !session?.user?.id) return;
+    const movieIds = moviesByRating.unrated
+      .filter((m) => m.media_type !== 'tv')
+      .map((m) => m.id);
+    if (movieIds.length === 0) return;
+
+    supabase.functions.invoke('predict-watchlist-ratings', { body: { movieIds } })
+      .then(({ data, error }) => {
+        if (error) throw error;
+        setPredictedRatings(data?.ratings || {});
+      })
+      .catch((error) => {
+        console.error('Error loading watchlist predictions:', error);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oracleFilterActive, session?.user?.id, moviesByRating.unrated.length]);
+
   const filteredWatchlistMovies = useMemo(() => {
-    if (selectedStreamingProviders.length === 0) return moviesByRating.unrated;
-    return moviesByRating.unrated.filter((movie) => {
-      const flatrate = movie.watchProviders?.flatrate;
-      if (!flatrate || flatrate.length === 0) return false;
-      return flatrate.some((p) => selectedStreamingProviders.includes(p.provider_id));
-    });
-  }, [moviesByRating.unrated, selectedStreamingProviders]);
+    let list = moviesByRating.unrated;
+
+    if (selectedStreamingProviders.length > 0) {
+      list = list.filter((movie) => {
+        const flatrate = movie.watchProviders?.flatrate;
+        if (!flatrate || flatrate.length === 0) return false;
+        return flatrate.some((p) => selectedStreamingProviders.includes(p.provider_id));
+      });
+    }
+
+    if (oracleFilterActive) {
+      list = list
+        .map((movie) => ({ ...movie, predictedRating: predictedRatings[movie.id] }))
+        .sort((a, b) => {
+          const aHas = typeof a.predictedRating === 'number';
+          const bHas = typeof b.predictedRating === 'number';
+          if (aHas && !bHas) return -1;
+          if (!aHas && bHas) return 1;
+          if (!aHas && !bHas) return 0;
+          return (b.predictedRating as number) - (a.predictedRating as number);
+        });
+    }
+
+    return list;
+  }, [moviesByRating.unrated, selectedStreamingProviders, oracleFilterActive, predictedRatings]);
 
   const handleToggleStreamingProvider = (providerId: number) => {
     setSelectedStreamingProviders((prev) =>
@@ -575,7 +621,8 @@ export default function Library() {
             className=""
             chromaBoxEnabled={chromaBoxEnabled}
             onFilterClick={() => setShowStreamingFilter(true)}
-            activeFilterCount={selectedStreamingProviders.length}
+            activeFilterCount={selectedStreamingProviders.length + (oracleFilterActive ? 1 : 0)}
+            showPredictedRating={oracleFilterActive}
           />
         </motion.div>
 
@@ -585,6 +632,8 @@ export default function Library() {
           selectedProviderIds={selectedStreamingProviders}
           onToggleProvider={handleToggleStreamingProvider}
           onClearFilter={() => setSelectedStreamingProviders([])}
+          oracleFilterActive={oracleFilterActive}
+          onToggleOracleFilter={() => setOracleFilterActive((prev) => !prev)}
         />
 
           {ratedLayout === 'onegrid' ? (() => {
