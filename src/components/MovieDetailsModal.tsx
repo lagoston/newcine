@@ -15,6 +15,24 @@ import QuickAddMenu from './QuickAddMenu';
 import ConfirmationModal from './ConfirmationModal';
 import html2canvas from 'html2canvas';
 
+// As mesmas 9 categorias/cores usadas pra organizar as prateleiras na
+// Biblioteca dos Oráculos (ver OracleLibraries.tsx) — "random-surprise"
+// não entra aqui por ser uma pool coringa, não uma categoria de verdade.
+// Estilo de pill no mesmo padrão já usado nos badges de nota (ver
+// getRatingPillClasses em RatingBox.tsx): texto/borda/fundo na mesma
+// família de cor, tingido mais forte no modo escuro.
+const MOOD_TAG_CONFIG: Record<string, { labelKey: string; pillClasses: string }> = {
+  'adventures': { labelKey: 'oracle.moods.adventures', pillClasses: 'text-sky-700 dark:text-sky-300 border-sky-400/50 dark:border-sky-500/40 bg-sky-500/10 dark:bg-sky-500/20' },
+  'catharsis': { labelKey: 'oracle.moods.catharsis', pillClasses: 'text-blue-700 dark:text-blue-300 border-blue-400/50 dark:border-blue-500/40 bg-blue-500/10 dark:bg-blue-500/20' },
+  'adrenaline': { labelKey: 'oracle.moods.adrenaline', pillClasses: 'text-red-700 dark:text-red-300 border-red-400/50 dark:border-red-500/40 bg-red-500/10 dark:bg-red-500/20' },
+  'mind-blowing': { labelKey: 'oracle.moods.mindBlowing', pillClasses: 'text-pink-700 dark:text-pink-300 border-pink-400/50 dark:border-pink-500/40 bg-pink-500/10 dark:bg-pink-500/20' },
+  'laugh-out-loud': { labelKey: 'oracle.moods.laughOutLoud', pillClasses: 'text-green-700 dark:text-green-300 border-green-400/50 dark:border-green-500/40 bg-green-500/10 dark:bg-green-500/20' },
+  'drug-trip': { labelKey: 'oracle.moods.drugTrip', pillClasses: 'text-emerald-700 dark:text-emerald-300 border-emerald-400/50 dark:border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-500/20' },
+  'romantic': { labelKey: 'oracle.moods.romantic', pillClasses: 'text-orange-700 dark:text-orange-300 border-orange-400/50 dark:border-orange-500/40 bg-orange-500/10 dark:bg-orange-500/20' },
+  'dark-and-scary': { labelKey: 'oracle.moods.darkScary', pillClasses: 'text-gray-700 dark:text-gray-300 border-gray-400/50 dark:border-gray-500/40 bg-gray-500/10 dark:bg-gray-500/20' },
+  'family-time': { labelKey: 'oracle.moods.familyTime', pillClasses: 'text-yellow-700 dark:text-yellow-300 border-yellow-400/50 dark:border-yellow-500/40 bg-yellow-500/10 dark:bg-yellow-500/20' },
+};
+
 interface FriendRating {
   user_id: string;
   username: string;
@@ -82,6 +100,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [userRating, setUserRating] = useState<number | null>(null);
   const [predictedRating, setPredictedRating] = useState<number | null>(null);
   const [predictionLoading, setPredictionLoading] = useState(true);
+  const [movieMoodKey, setMovieMoodKey] = useState<string | null>(null);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
   const [seasons, setSeasons] = useState<any[]>(movie.seasons || []);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
@@ -155,6 +174,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       loadFriendRatings();
       loadUserRating();
       loadPredictedRating();
+      loadMovieMood();
       if (movie.media_type === 'tv') {
         loadWatchedEpisodes();
       }
@@ -506,6 +526,29 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       setPredictedRating(null);
     } finally {
       setPredictionLoading(false);
+    }
+  };
+
+  // Mood da pool a que o filme pertence — mostrado como mais um
+  // "gênero" ao lado dos reais. Independente de previsão: um filme já
+  // avaliado, ou de um usuário sem questionário completo, ainda pode
+  // (e deve) mostrar essa tag, já que é informação sobre o filme em
+  // si, não sobre a previsão pessoal de ninguém. Só filmes entram em
+  // pool — séries nunca têm mood.
+  const loadMovieMood = async () => {
+    if (movie.media_type !== 'movie') return;
+
+    try {
+      const { data, error } = await supabase
+        .rpc('get_pools_containing_movie', { p_movie_id: movie.id });
+
+      if (error) throw error;
+
+      const realMood = (data || []).find((p: { mood_key: string }) => p.mood_key !== 'random-surprise');
+      setMovieMoodKey(realMood?.mood_key || null);
+    } catch (error) {
+      console.error('Error loading movie mood:', error);
+      setMovieMoodKey(null);
     }
   };
 
@@ -1547,6 +1590,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       {genre.name}
                     </span>
                   ))}
+
+                  {movieMoodKey && MOOD_TAG_CONFIG[movieMoodKey] && (
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${MOOD_TAG_CONFIG[movieMoodKey].pillClasses}`}>
+                      {t(MOOD_TAG_CONFIG[movieMoodKey].labelKey)}
+                    </span>
+                  )}
 
                   {session?.user && (
                     <div className="ml-auto flex items-center gap-2">
