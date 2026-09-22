@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Filter } from 'lucide-react';
+import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Filter, Wand2 } from 'lucide-react';
 import { Movie, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import ConfirmationModal from './ConfirmationModal';
@@ -39,6 +39,9 @@ interface RatingBoxProps {
   // aplicados, pra deixar claro que a lista está sendo filtrada.
   onFilterClick?: () => void;
   activeFilterCount?: number;
+  // Oracle Filter ativo — mostra a Nota Prevista em cada capa, mesmo
+  // badge visual usado nas prateleiras da Biblioteca dos Oráculos.
+  showPredictedRating?: boolean;
 }
 
 // Mesma faixa de cores do slider de avaliação (RatingSliderSheet) — pílula
@@ -76,6 +79,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   isOneGridTv = false,
   onFilterClick,
   activeFilterCount = 0,
+  showPredictedRating = false,
 }) => {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
@@ -358,10 +362,22 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                   <MoreVertical className="w-4 h-4" />
                 </button>
               )}
-              <div className="absolute top-1 left-1 z-10 bg-black/40 rounded-md px-1.5 py-0.5 flex items-center">
-                <Star className="w-3 h-3 text-blue-400 fill-current" />
-                <span className="text-white text-[10px] ml-1">{movie.vote_average.toFixed(1)}</span>
-              </div>
+              {showPredictedRating && typeof (movie as Movie & { predictedRating?: number }).predictedRating === 'number' ? (
+                // Nota PREVISTA pra esse usuário — mesmo ícone, cor e
+                // posição do badge usado nas prateleiras da Biblioteca
+                // dos Oráculos, deixando claro que não é a nota pública.
+                <div className="absolute top-1 left-1 z-10 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-violet-600/90 backdrop-blur-sm shadow-lg">
+                  <Wand2 className="w-3 h-3 text-white" />
+                  <span className="text-[10px] font-black text-white leading-none">
+                    {(movie as Movie & { predictedRating?: number }).predictedRating}
+                  </span>
+                </div>
+              ) : (
+                <div className="absolute top-1 left-1 z-10 bg-black/40 rounded-md px-1.5 py-0.5 flex items-center">
+                  <Star className="w-3 h-3 text-blue-400 fill-current" />
+                  <span className="text-white text-[10px] ml-1">{movie.vote_average.toFixed(1)}</span>
+                </div>
+              )}
               <motion.button
                 onClick={() => { if (dragDistanceRef.current > 5) return; setSelectedMovie(movie); }}
                 className="relative w-full aspect-[2/3] block rounded-t-xl overflow-hidden shadow-lg"
