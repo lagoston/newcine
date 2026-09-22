@@ -80,6 +80,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [watchedEpisodes, setWatchedEpisodes] = useState<Set<string>>(new Set());
   const [userRating, setUserRating] = useState<number | null>(null);
   const [predictedRating, setPredictedRating] = useState<number | null>(null);
+  const [predictionLoading, setPredictionLoading] = useState(true);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
   const [seasons, setSeasons] = useState<any[]>(movie.seasons || []);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
@@ -479,15 +480,17 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   };
 
-  // Nota Prevista para Você — mesmo modelo bayesiano usado nas
-  // prateleiras da Biblioteca dos Oráculos e no Match Movie. Fica vazia
-  // (sem badge nenhum) quando o filme não está em nenhuma pool de
-  // recomendação ou quando o usuário ainda não completou o
-  // questionário de personalidade — nesses casos o modelo simplesmente
-  // não tem como calcular nada, então não faz sentido mostrar um
-  // espaço reservado ou um erro, só omitir o bloco inteiro.
+  // Nota Prevista para Você — mesmo modelo usado nas prateleiras da
+  // Biblioteca dos Oráculos e no Match Movie. Fica vazia (sem badge
+  // nenhum) quando o filme não está em nenhuma pool de recomendação
+  // ou quando o usuário ainda não completou o questionário de
+  // personalidade. Enquanto a previsão carrega, um skeleton do mesmo
+  // tamanho do badge final fica no lugar — sem isso, o badge só surge
+  // quando a resposta chega, empurrando repentinamente tudo que vem
+  // depois dele.
   const loadPredictedRating = async () => {
     if (!session?.user?.id) return;
+    setPredictionLoading(true);
     setPredictedRating(null);
 
     try {
@@ -500,6 +503,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     } catch (error) {
       console.error('Error loading predicted rating:', error);
       setPredictedRating(null);
+    } finally {
+      setPredictionLoading(false);
     }
   };
 
@@ -1476,12 +1481,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     </span>
                   </div>
                   
-                  {predictedRating !== null && !userRating && (
-                    <div className="flex items-center px-2 py-1 bg-violet-100 dark:bg-violet-900/30 rounded-md">
-                      <span className="font-medium text-violet-700 dark:text-violet-400">
-                        {t('movies.predictedRatingForYou', { defaultValue: 'Nota Prevista para Você' })}: {predictedRating}
-                      </span>
-                    </div>
+                  {predictionLoading ? (
+                    <div className="h-[26px] w-48 max-w-[60vw] bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse" />
+                  ) : (
+                    predictedRating !== null && !userRating && (
+                      <div className="flex items-center px-2 py-1 bg-violet-100 dark:bg-violet-900/30 rounded-md">
+                        <span className="font-medium text-violet-700 dark:text-violet-400">
+                          {t('movies.predictedRatingForYou', { defaultValue: 'Nota Prevista para Você' })}: {predictedRating}
+                        </span>
+                      </div>
+                    )
                   )}
                 </div>
 
