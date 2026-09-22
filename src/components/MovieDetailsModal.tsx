@@ -78,6 +78,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // seta expande e revela a lista de episódios daquela temporada.
   const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(new Set());
   const [watchedEpisodes, setWatchedEpisodes] = useState<Set<string>>(new Set());
+  const [pendingEpisodes, setPendingEpisodes] = useState<Set<string>>(new Set());
   const [userRating, setUserRating] = useState<number | null>(null);
   const [predictedRating, setPredictedRating] = useState<number | null>(null);
   const [predictionLoading, setPredictionLoading] = useState(true);
@@ -601,10 +602,22 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     if (!session?.user?.id || !userRating || isOtherUserProfile) return;
 
     const key = `${seasonNumber}-${episodeNumber}`;
-    const newWatched = new Set(watchedEpisodes);
+
+    // Trava contra cliques concorrentes no MESMO episódio — clicar de
+    // novo antes da chamada anterior terminar fazia duas chamadas
+    // decidirem "marcar" (ou "desmarcar") a partir do mesmo estado
+    // desatualizado, e a segunda podia falhar por violar a chave única
+    // da tabela, ou inverter o que a primeira acabara de fazer.
+    if (pendingEpisodes.has(key)) return;
+    setPendingEpisodes((prev) => new Set(prev).add(key));
+
+    // A decisão de marcar/desmarcar também precisa vir do estado mais
+    // recente no momento em que a chamada REALMENTE começa — não do
+    // valor capturado quando o componente renderizou.
+    const wasWatched = watchedEpisodes.has(key);
 
     try {
-      if (watchedEpisodes.has(key)) {
+      if (wasWatched) {
         // Unmark episode
         const { error } = await supabase
           .from('watched_episodes')
@@ -615,7 +628,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           .eq('episode_number', episodeNumber);
 
         if (error) throw error;
-        newWatched.delete(key);
       } else {
         // Mark episode
         const { error } = await supabase
@@ -628,10 +640,23 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           });
 
         if (error) throw error;
-        newWatched.add(key);
       }
 
-      setWatchedEpisodes(newWatched);
+      // Forma funcional — sempre parte do estado mais recente, mesmo
+      // que outras chamadas pra episódios diferentes tenham terminado
+      // e atualizado o estado enquanto esta ainda estava em rede. Sem
+      // isso, marcar vários episódios rapidamente fazia cada resposta
+      // sobrescrever o Set inteiro a partir de uma foto antiga,
+      // perdendo as marcações que já tinham "chegado" antes dela.
+      setWatchedEpisodes((prev) => {
+        const next = new Set(prev);
+        if (wasWatched) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
+        return next;
+      });
 
       // Trigger parent component refresh
       if (onEpisodeToggle) {
@@ -643,11 +668,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     } catch (error) {
       console.error('Error toggling episode:', error);
       toast.error('Failed to update episode status');
+    } finally {
+      setPendingEpisodes((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
     }
   };
 
   const toggleSeason = async (season: any) => {
     if (!session?.user?.id || !userRating || isOtherUserProfile) return;
+
+    const seasonKey = `season-${season.season_number}-all`;
+    if (pendingEpisodes.has(seasonKey)) return;
+    setPendingEpisodes((prev) => new Set(prev).add(seasonKey));
 
     const allWatched = season.episodes.every((ep: any) =>
       watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
@@ -665,11 +700,15 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
         if (error) throw error;
 
-        const newWatched = new Set(watchedEpisodes);
-        season.episodes.forEach((ep: any) => {
-          newWatched.delete(`${season.season_number}-${ep.episode_number}`);
+        // Forma funcional — parte sempre do estado mais recente, não
+        // de uma foto capturada antes da chamada de rede terminar.
+        setWatchedEpisodes((prev) => {
+          const next = new Set(prev);
+          season.episodes.forEach((ep: any) => {
+            next.delete(`${season.season_number}-${ep.episode_number}`);
+          });
+          return next;
         });
-        setWatchedEpisodes(newWatched);
       } else {
         // Mark all episodes in season
         const episodesToInsert = season.episodes.map((ep: any) => ({
@@ -687,11 +726,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
         if (error) throw error;
 
-        const newWatched = new Set(watchedEpisodes);
-        season.episodes.forEach((ep: any) => {
-          newWatched.add(`${season.season_number}-${ep.episode_number}`);
+        setWatchedEpisodes((prev) => {
+          const next = new Set(prev);
+          season.episodes.forEach((ep: any) => {
+            next.add(`${season.season_number}-${ep.episode_number}`);
+          });
+          return next;
         });
-        setWatchedEpisodes(newWatched);
       }
 
       // Trigger parent component refresh
@@ -704,6 +745,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     } catch (error) {
       console.error('Error toggling season:', error);
       toast.error('Failed to update season status');
+    } finally {
+      setPendingEpisodes((prev) => {
+        const next = new Set(prev);
+        next.delete(seasonKey);
+        return next;
+      });
     }
   };
 
@@ -1980,6 +2027,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   const allWatched = season.episodes.every((ep: any) =>
                     watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
                   );
+                  const isSeasonPending = pendingEpisodes.has(`season-${season.season_number}-all`);
                   const isExpanded = expandedSeasons.has(season.season_number);
                   const toggleExpanded = () => {
                     setExpandedSeasons((prev) => {
@@ -2057,13 +2105,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                         {userRating && !isOtherUserProfile && (
                           <button
                             onClick={() => toggleSeason(season)}
+                            disabled={isSeasonPending}
                             className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                              allWatched
+                              isSeasonPending
+                                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                                : allWatched
                                 ? 'bg-green-500 hover:bg-green-600'
                                 : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
                             }`}
                           >
-                            {allWatched ? (
+                            {isSeasonPending ? (
+                              <Loader2 className="w-4 h-4 text-white animate-spin" />
+                            ) : allWatched ? (
                               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
@@ -2099,7 +2152,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                         >
                     <div className="divide-y divide-gray-200 dark:divide-gray-700">
                       {season.episodes.map((episode: any) => {
-                        const isWatched = watchedEpisodes.has(`${season.season_number}-${episode.episode_number}`);
+                        const episodeKey = `${season.season_number}-${episode.episode_number}`;
+                        const isWatched = watchedEpisodes.has(episodeKey);
+                        const isPending = pendingEpisodes.has(episodeKey);
 
                         return (
                           <div
@@ -2125,13 +2180,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                     {userRating && !isOtherUserProfile && (
                                       <button
                                         onClick={() => toggleEpisode(season.season_number, episode.episode_number)}
+                                        disabled={isPending}
                                         className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                                          isWatched
+                                          isPending
+                                            ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                                            : isWatched
                                             ? 'bg-green-500 hover:bg-green-600'
                                             : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
                                         }`}
                                       >
-                                        {isWatched ? (
+                                        {isPending ? (
+                                          <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                                        ) : isWatched ? (
                                           <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                           </svg>
