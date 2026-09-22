@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Tv, Check } from 'lucide-react';
+import { X, Tv, Check, Wand2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { POPULAR_STREAMING_PROVIDERS } from '../lib/providers';
 
@@ -11,6 +11,11 @@ interface StreamingFilterModalProps {
   selectedProviderIds: number[];
   onToggleProvider: (providerId: number) => void;
   onClearFilter: () => void;
+  // Oracle Filter — categoria separada dentro do mesmo modal, não um
+  // provedor de streaming: liga/desliga a ordenação da Watchlist pela
+  // Nota Prevista, em vez de selecionar múltiplos serviços.
+  oracleFilterActive: boolean;
+  onToggleOracleFilter: () => void;
 }
 
 // Seleção MÚLTIPLA (não única) — faz mais sentido pra streaming, já que a
@@ -22,6 +27,8 @@ const StreamingFilterModal: React.FC<StreamingFilterModalProps> = ({
   selectedProviderIds,
   onToggleProvider,
   onClearFilter,
+  oracleFilterActive,
+  onToggleOracleFilter,
 }) => {
   const { t } = useTranslation();
 
@@ -59,7 +66,7 @@ const StreamingFilterModal: React.FC<StreamingFilterModalProps> = ({
             <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <Tv className="w-5 h-5 text-blue-500" />
-                {t('library.filterByStreaming', { defaultValue: 'Filtrar por streaming' })}
+                {t('library.filters', { defaultValue: 'Filtros' })}
               </h2>
               <button
                 onClick={onClose}
@@ -70,6 +77,42 @@ const StreamingFilterModal: React.FC<StreamingFilterModalProps> = ({
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
+              {/* Oracle Filter — categoria própria, separada dos
+                  provedores de streaming abaixo: liga/desliga a
+                  ordenação da lista pela Nota Prevista, não soma
+                  serviços a um filtro. */}
+              <button
+                onClick={onToggleOracleFilter}
+                className={`w-full flex items-center gap-3 p-3 mb-5 rounded-xl border-2 transition-all ${
+                  oracleFilterActive
+                    ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 shadow-md'
+                    : 'border-transparent bg-gray-50 dark:bg-gray-700/40 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  oracleFilterActive ? 'bg-violet-600' : 'bg-gray-300 dark:bg-gray-600'
+                }`}>
+                  <Wand2 className="w-4.5 h-4.5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {t('library.oracleFilter', { defaultValue: 'Oracle Filter' })}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('library.oracleFilterDescription', { defaultValue: 'Ordena pela Nota Prevista para você' })}
+                  </p>
+                </div>
+                {oracleFilterActive && (
+                  <div className="w-5 h-5 bg-violet-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </button>
+
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                {t('library.filterByStreaming', { defaultValue: 'Filtrar por streaming' })}
+              </p>
+
               <div className="grid grid-cols-4 gap-3">
                 {POPULAR_STREAMING_PROVIDERS.map((provider) => {
                   const isSelected = selectedProviderIds.includes(provider.provider_id);
