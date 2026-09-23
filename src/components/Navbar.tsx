@@ -32,78 +32,86 @@ function Navbar() {
     setSelectedMovie(movie);
   };
 
+  // Item de navegação — compacto o bastante pra 5 links + busca + idioma
+  // + sair caberem numa navbar de largura real sem espremer nada, mas
+  // sem abrir mão do ícone (clareza) nem do texto (acessibilidade).
   const NavLink = ({ to, icon: Icon, children, showBadge = false }: {
     to: string;
     icon: React.ElementType;
     children: React.ReactNode;
     showBadge?: boolean;
-  }) => (
-    <Link
-      to={to}
-      onClick={() => setIsMenuOpen(false)}
-      className={`flex items-center px-4 py-2 rounded-xl font-medium transition-all duration-300 relative ${
-        location.pathname === to
-          ? 'text-blue-400 bg-blue-500/15 border border-blue-400/20'
-          : 'text-gray-300 hover:text-white hover:bg-white/10 border border-transparent'
-      }`}
-    >
-      <div className="relative">
-        <Icon className="h-5 w-5 mr-2" />
-        {showBadge && unreadWhispers > 0 && (
-          <span className="absolute -top-0.5 right-0.5 w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-        )}
-      </div>
-      <span>{children}</span>
-    </Link>
-  );
+  }) => {
+    const isActive = location.pathname === to;
+    return (
+      <Link
+        to={to}
+        onClick={() => setIsMenuOpen(false)}
+        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300 relative whitespace-nowrap ${
+          isActive
+            ? 'text-white bg-gradient-to-r from-violet-500/25 to-fuchsia-500/25 border border-violet-400/40'
+            : 'text-gray-300 hover:text-white hover:bg-white/10 border border-transparent'
+        }`}
+      >
+        <div className="relative flex-shrink-0">
+          <Icon className="h-4.5 w-4.5" strokeWidth={isActive ? 2.25 : 2} />
+          {showBadge && unreadWhispers > 0 && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full ring-2 ring-slate-900 animate-pulse" />
+          )}
+        </div>
+        <span>{children}</span>
+      </Link>
+    );
+  };
 
   return (
     <>
-    <nav className="fixed top-0 left-0 right-0 z-40 bg-slate-900/70 backdrop-blur-2xl border-b border-white/10 shadow-lg transition-all duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between" style={{
+    <nav className="fixed top-0 left-0 right-0 z-40 bg-slate-950/75 backdrop-blur-2xl border-b border-white/10 shadow-lg shadow-black/20 transition-all duration-300">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 xl:px-8">
+        <div className="flex items-center justify-between gap-3" style={{
           paddingTop: 'calc(env(safe-area-inset-top) + 1rem)',
           paddingBottom: '1rem',
           minHeight: 'calc(env(safe-area-inset-top) + 3.5rem)'
         }}>
-          <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center text-white group">
-              <div className="transform transition-transform duration-300 group-hover:scale-110">
-                <Logo className="mr-2" />
-              </div>
-              <span className="text-xl font-bold hidden xs:block bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">CineOracle</span>
-            </Link>
-            {!user && (
-              <div className="hidden md:block">
-                <NavbarSearch onMovieSelect={handleMovieSelect} />
-              </div>
-            )}
-          </div>
+          {/* Zona esquerda — identidade, tamanho fixo */}
+          <Link to="/" className="flex items-center text-white group flex-shrink-0">
+            <div className="transform transition-transform duration-300 group-hover:scale-110">
+              <Logo className="mr-2" />
+            </div>
+            <span className="text-xl font-bold hidden xs:block bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-clip-text text-transparent">CineOracle</span>
+          </Link>
 
-          <div className="hidden md:flex items-center space-x-3">
-            {user && <NavbarSearch onMovieSelect={handleMovieSelect} />}
+          {/* Zona central — navegação, cresce e centraliza no espaço
+              que sobra entre logo e ações, em vez de disputar espaço
+              dentro de um único bloco à direita. */}
+          {user && (
+            <div className="hidden xl:flex flex-1 items-center justify-center gap-1 min-w-0">
+              <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
+              <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
+              <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
+              <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
+              <NavLink to="/profile" icon={User} showBadge={true}>{t('nav.profile')}</NavLink>
+            </div>
+          )}
+
+          {/* Zona direita — busca + idioma + sessão, tamanho fixo */}
+          <div className="hidden xl:flex items-center gap-2 flex-shrink-0">
+            <NavbarSearch onMovieSelect={handleMovieSelect} />
+            <LanguageSwitcher />
             {user ? (
-              <>
-                <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
-                <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
-                <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
-                <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
-                <NavLink to="/profile" icon={User} showBadge={true}>{t('nav.profile')}</NavLink>
-                <SignOutButton onSignOut={() => navigate('/auth')} t={t} />
-              </>
+              <SignOutButton onSignOut={() => navigate('/auth')} t={t} />
             ) : (
               <Link
                 to="/auth"
-                className="flex items-center px-5 py-2 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
+                className="flex items-center px-5 py-2 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-fuchsia-500/30 transition-all duration-300"
               >
                 <LogIn className="h-4 w-4 mr-2" />
                 {t('auth.signIn')}
               </Link>
             )}
-            <LanguageSwitcher />
           </div>
 
-          <div className="flex items-center md:hidden">
+          {/* Mobile — idioma sempre visível + hambúrguer */}
+          <div className="flex items-center xl:hidden gap-1 flex-shrink-0">
             <LanguageSwitcher />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -121,8 +129,8 @@ function Navbar() {
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden border-t border-white/10 bg-slate-900/95 backdrop-blur-2xl">
-          <div className="px-4 py-3 space-y-2">
+        <div className="xl:hidden border-t border-white/10 bg-slate-950/95 backdrop-blur-2xl">
+          <div className="px-4 py-3 space-y-1.5">
             {user ? (
               <>
                 <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
@@ -130,13 +138,14 @@ function Navbar() {
                 <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
                 <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
                 <NavLink to="/profile" icon={User} showBadge={true}>{t('nav.profile')}</NavLink>
+                <div className="my-2 border-t border-white/10" />
                 <SignOutButton onSignOut={() => { setIsMenuOpen(false); navigate('/auth'); }} t={t} />
               </>
             ) : (
               <Link
                 to="/auth"
                 onClick={() => setIsMenuOpen(false)}
-                className="flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all"
+                className="flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all"
               >
                 <LogIn className="h-4 w-4 mr-2" />
                 {t('auth.signIn')}
@@ -177,9 +186,9 @@ function SignOutButton({ onSignOut, t }: { onSignOut: () => void; t: (key: strin
   return (
     <button
       onClick={handleClick}
-      className="flex items-center px-4 py-2 text-gray-300 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-red-500/20"
+      className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-red-500/20 whitespace-nowrap"
     >
-      <LogOut className="h-5 w-5 mr-2" />
+      <LogOut className="h-4.5 w-4.5" />
       <span>{t('auth.signOut')}</span>
     </button>
   );
