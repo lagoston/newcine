@@ -315,6 +315,7 @@
     "noDirectorMoviesFound": "No other films found for this director.",
     "viewTopTen": "View Top 10",
     "noStreamingAvailable": "Not available for streaming",
+    "upcomingRelease": "Releases on {{date}}",
     "noCastAvailable": "No cast information available",
     "ageLabel": "Age",
     "clickForTrailer": "Click to watch trailer",
