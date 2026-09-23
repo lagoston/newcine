@@ -128,7 +128,23 @@ export const getTrending = async (): Promise<Movie[]> => {
 
 export const getComingSoon = async (): Promise<Movie[]> => {
   const data = await tmdbFetch('/movie/upcoming?region=US');
-  return data.results;
+  // O endpoint /movie/upcoming do TMDB às vezes inclui filmes antigos
+  // que tiveram um relançamento nos cinemas (restauração 4K, reprise
+  // comemorativa etc.) — o endpoint reage a essa nova exibição, mas o
+  // campo release_date de cada resultado continua sendo a data de
+  // lançamento ORIGINAL do filme (ex.: "Os Demônios", de 1971, voltou
+  // aos cinemas em 2026 numa versão restaurada e apareceu aqui com
+  // release_date="1971-07-16"). Filtrando por essa mesma data, exclui
+  // esses casos sem depender de nenhuma lista/exceção manual. Margem de
+  // 1 dia pra trás cobre lançamentos de "hoje" que já passaram algumas
+  // horas dependendo do fuso horário de quem está usando o app.
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 1);
+  return (data.results as Movie[]).filter((movie) => {
+    if (!movie.release_date) return false;
+    const releaseDate = new Date(movie.release_date);
+    return !isNaN(releaseDate.getTime()) && releaseDate >= cutoff;
+  });
 };
 
 export const getTopRatedGems = async (): Promise<Movie[]> => {
