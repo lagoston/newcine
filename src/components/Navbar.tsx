@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Library as LibraryIcon, LogIn, LogOut, User, Menu, X, Eye, Home } from 'lucide-react';
+import { Library as LibraryIcon, LogIn, LogOut, User, Menu, X, Eye, Home, Users } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import Logo from './Logo';
@@ -87,6 +87,7 @@ function Navbar() {
                 <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
                 <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
                 <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
+                <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
                 <NavLink to="/profile" icon={User} showBadge={true}>{t('nav.profile')}</NavLink>
                 <SignOutButton onSignOut={() => navigate('/auth')} t={t} />
               </>
@@ -127,6 +128,7 @@ function Navbar() {
                 <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
                 <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
                 <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
+                <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
                 <NavLink to="/profile" icon={User} showBadge={true}>{t('nav.profile')}</NavLink>
                 <SignOutButton onSignOut={() => { setIsMenuOpen(false); navigate('/auth'); }} t={t} />
               </>
