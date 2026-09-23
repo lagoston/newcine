@@ -223,7 +223,7 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
                   </div>
                 )}
 
-                {hasRating && !showWriteForm && !userReview && !showOraclePanel && (
+                {!loading && hasRating && !showWriteForm && !userReview && !showOraclePanel && (
                   <div className="space-y-2">
                     <button
                       onClick={() => setShowWriteForm(true)}
