@@ -58,7 +58,7 @@ function Navbar() {
             <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full ring-2 ring-slate-900 animate-pulse" />
           )}
         </div>
-        <span>{children}</span>
+        <span className="hidden xl:inline">{children}</span>
       </Link>
     );
   };
@@ -66,7 +66,7 @@ function Navbar() {
   return (
     <>
     <nav className="fixed top-0 left-0 right-0 z-40 bg-slate-950/75 backdrop-blur-2xl border-b border-white/10 shadow-lg shadow-black/20 transition-all duration-300">
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 xl:px-8">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-3" style={{
           paddingTop: 'calc(env(safe-area-inset-top) + 1rem)',
           paddingBottom: '1rem',
@@ -84,7 +84,7 @@ function Navbar() {
               que sobra entre logo e ações, em vez de disputar espaço
               dentro de um único bloco à direita. */}
           {user && (
-            <div className="hidden xl:flex flex-1 items-center justify-center gap-1 min-w-0">
+            <div className="hidden lg:flex flex-1 items-center justify-center gap-1 min-w-0">
               <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
               <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
               <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
@@ -94,11 +94,11 @@ function Navbar() {
           )}
 
           {/* Zona direita — busca + idioma + sessão, tamanho fixo */}
-          <div className="hidden xl:flex items-center gap-2 flex-shrink-0">
+          <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
             <NavbarSearch onMovieSelect={handleMovieSelect} />
             <LanguageSwitcher />
             {user ? (
-              <SignOutButton onSignOut={() => navigate('/auth')} t={t} />
+              <SignOutButton onSignOut={() => navigate('/auth')} t={t} labelClassName="hidden xl:inline" />
             ) : (
               <Link
                 to="/auth"
@@ -111,7 +111,7 @@ function Navbar() {
           </div>
 
           {/* Mobile — idioma sempre visível + hambúrguer */}
-          <div className="flex items-center xl:hidden gap-1 flex-shrink-0">
+          <div className="flex items-center lg:hidden gap-1 flex-shrink-0">
             <LanguageSwitcher />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -129,7 +129,7 @@ function Navbar() {
       </div>
 
       {isMenuOpen && (
-        <div className="xl:hidden border-t border-white/10 bg-slate-950/95 backdrop-blur-2xl">
+        <div className="lg:hidden border-t border-white/10 bg-slate-950/95 backdrop-blur-2xl">
           <div className="px-4 py-3 space-y-1.5">
             {user ? (
               <>
@@ -173,7 +173,7 @@ function Navbar() {
   );
 }
 
-function SignOutButton({ onSignOut, t }: { onSignOut: () => void; t: (key: string) => string }) {
+function SignOutButton({ onSignOut, t, labelClassName = '' }: { onSignOut: () => void; t: (key: string) => string; labelClassName?: string }) {
   const { signOut } = useAuth();
   const handleClick = async () => {
     try {
@@ -189,7 +189,7 @@ function SignOutButton({ onSignOut, t }: { onSignOut: () => void; t: (key: strin
       className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-300 font-medium border border-transparent hover:border-red-500/20 whitespace-nowrap"
     >
       <LogOut className="h-4.5 w-4.5" />
-      <span>{t('auth.signOut')}</span>
+      <span className={labelClassName}>{t('auth.signOut')}</span>
     </button>
   );
 }
