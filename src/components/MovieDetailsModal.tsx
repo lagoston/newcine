@@ -1061,6 +1061,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const cast = movie.credits?.cast?.slice(0, 5) || [];
   const year = new Date(movie.release_date).getFullYear();
 
+  // Obra ainda não lançada, com data de estreia conhecida — usada pra
+  // preencher a seção "Assistir em" com a data em vez da mensagem
+  // genérica de "não disponível", já que nesse caso a ausência de
+  // streaming não é falta de informação, é só que ainda não chegou lá.
+  const releaseDateObj = movie.release_date ? new Date(movie.release_date) : null;
+  const isUpcomingRelease = !!releaseDateObj && !isNaN(releaseDateObj.getTime()) && releaseDateObj.getTime() > Date.now();
+  const formattedReleaseDate = releaseDateObj?.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' });
+
   // Top 10 do diretor — busca sob demanda, só quando o usuário clica.
   //
   // BUG ENCONTRADO na versão anterior: quando o filme vinha do cache do
@@ -1555,6 +1563,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           </div>
                         ))}
                       </div>
+                    ) : isUpcomingRelease ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {t('movies.upcomingRelease', { date: formattedReleaseDate, defaultValue: `Estreia em ${formattedReleaseDate}` })}
+                      </p>
                     ) : (
                       <p className="text-sm text-gray-500 dark:text-gray-400">{t('movies.noStreamingAvailable')}</p>
                     )}
@@ -1883,6 +1895,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           </div>
                         ))}
                       </div>
+                    ) : isUpcomingRelease ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {t('movies.upcomingRelease', { date: formattedReleaseDate, defaultValue: `Estreia em ${formattedReleaseDate}` })}
+                      </p>
                     ) : (
                       <p className="text-sm text-gray-500 dark:text-gray-400">{t('movies.noStreamingAvailable')}</p>
                     )}
