@@ -13,9 +13,13 @@ interface StreamingFilterModalProps {
   onClearFilter: () => void;
   // Oracle Filter — categoria separada dentro do mesmo modal, não um
   // provedor de streaming: liga/desliga a ordenação da Watchlist pela
-  // Nota Prevista, em vez de selecionar múltiplos serviços.
-  oracleFilterActive: boolean;
-  onToggleOracleFilter: () => void;
+  // Nota Prevista, em vez de selecionar múltiplos serviços. Opcional
+  // porque esse mesmo modal também é usado na Biblioteca dos Oráculos,
+  // onde as prateleiras já usam a previsão automaticamente pra ordenar
+  // — não faz sentido ter esse toggle lá. Passar as duas props omite a
+  // seção inteira; passá-las mostra e liga o toggle normalmente.
+  oracleFilterActive?: boolean;
+  onToggleOracleFilter?: () => void;
 }
 
 // Seleção MÚLTIPLA (não única) — faz mais sentido pra streaming, já que a
@@ -80,34 +84,40 @@ const StreamingFilterModal: React.FC<StreamingFilterModalProps> = ({
               {/* Oracle Filter — categoria própria, separada dos
                   provedores de streaming abaixo: liga/desliga a
                   ordenação da lista pela Nota Prevista, não soma
-                  serviços a um filtro. */}
-              <button
-                onClick={onToggleOracleFilter}
-                className={`w-full flex items-center gap-3 p-3 mb-5 rounded-xl border-2 transition-all ${
-                  oracleFilterActive
-                    ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 shadow-md'
-                    : 'border-transparent bg-gray-50 dark:bg-gray-700/40 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-              >
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  oracleFilterActive ? 'bg-violet-600' : 'bg-gray-300 dark:bg-gray-600'
-                }`}>
-                  <Wand2 className="w-4.5 h-4.5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {t('library.oracleFilter', { defaultValue: 'Oracle Filter' })}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {t('library.oracleFilterDescription', { defaultValue: 'Ordena pela Nota Prevista para você' })}
-                  </p>
-                </div>
-                {oracleFilterActive && (
-                  <div className="w-5 h-5 bg-violet-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Check className="w-3 h-3 text-white" />
+                  serviços a um filtro. Só existe onde onToggleOracleFilter
+                  é passado (a Watchlist) — na Biblioteca dos Oráculos,
+                  que reaproveita este mesmo modal, essa prop nunca é
+                  passada, então a seção inteira não aparece, já que as
+                  prateleiras de lá já ordenam pela previsão sozinhas. */}
+              {onToggleOracleFilter && (
+                <button
+                  onClick={onToggleOracleFilter}
+                  className={`w-full flex items-center gap-3 p-3 mb-5 rounded-xl border-2 transition-all ${
+                    oracleFilterActive
+                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 shadow-md'
+                      : 'border-transparent bg-gray-50 dark:bg-gray-700/40 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    oracleFilterActive ? 'bg-violet-600' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}>
+                    <Wand2 className="w-4.5 h-4.5 text-white" />
                   </div>
-                )}
-              </button>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {t('library.oracleFilter', { defaultValue: 'Oracle Filter' })}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t('library.oracleFilterDescription', { defaultValue: 'Ordena pela Nota Prevista para você' })}
+                    </p>
+                  </div>
+                  {oracleFilterActive && (
+                    <div className="w-5 h-5 bg-violet-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Check className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                </button>
+              )}
 
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
                 {t('library.filterByStreaming', { defaultValue: 'Filtrar por streaming' })}
