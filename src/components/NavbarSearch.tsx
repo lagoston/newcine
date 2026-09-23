@@ -102,7 +102,7 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
   };
 
   return (
-    <div ref={containerRef} className={`relative ${fullWidth ? 'w-full' : 'w-48 lg:w-64'}`}>
+    <div ref={containerRef} className={`relative ${fullWidth ? 'w-full' : 'w-52 2xl:w-64'}`}>
       <form onSubmit={handleSubmit} className="relative">
         <input
           ref={inputRef}
