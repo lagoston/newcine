@@ -1,5 +1,6 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -33,6 +34,8 @@ const CategoryMovies = lazy(() => import('./pages/CategoryMovies'));
 
 
 function App() {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (import.meta.env.PROD && 'serviceWorker' in navigator) {
       const updateSW = registerSW({
@@ -60,7 +63,7 @@ function App() {
             <Navbar />
             <WhispersNotificationPopup />
             <main>
-              <Suspense fallback={<GlassLoader fullPage size="lg" />}>
+              <Suspense fallback={<GlassLoader fullPage size="lg" label={t('common.loading')} />}>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
