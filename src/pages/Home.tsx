@@ -585,6 +585,10 @@ const Home = () => {
 
  const handleAddToLibrary = () => {};
 
+ if (session?.user && loading.trending) {
+ return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
+ }
+
  if (!session) {
  return (
  <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/90 to-slate-900">
