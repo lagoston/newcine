@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Loader2, Lock } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import { supabase } from '../lib/supabase';
@@ -9,6 +10,7 @@ import Logo from '../components/Logo';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { updatePassword } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -119,7 +121,7 @@ export default function ResetPassword() {
   };
 
   if (loading) {
-    return <GlassLoader fullPage size="lg" label="Validating your reset link..." />;
+    return <GlassLoader fullPage size="lg" label={t('auth.validatingResetLink', { defaultValue: 'Validating your reset link...' })} />;
   }
 
   return (
