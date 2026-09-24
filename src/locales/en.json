@@ -89,7 +89,8 @@
     "resendCooldown": "Wait {{seconds}}s to resend",
     "resendEmail": "Didn't receive the email? Click to resend",
     "waitingConfirmation": "Waiting for confirmation...",
-    "alreadyConfirmed": "Already confirmed? Sign in"
+    "alreadyConfirmed": "Already confirmed? Sign in",
+    "validatingResetLink": "Validating your reset link..."
   },
   "nav": {
     "home": "Home",
