@@ -375,7 +375,7 @@ export default function UserProfile() {
  }, []);
 
  if (loading) {
- return <GlassLoader fullPage size="lg" />;
+ return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
  }
 
  if (!profile) {
