@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play, ChevronRight, AlertCircle } from 'lucide-react';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile } from '../lib/tmdb';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
@@ -86,7 +87,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
   const [isInLibrary, setIsInLibrary] = useState(false);
+  const navigate = useNavigate();
   const [friendRatings, setFriendRatings] = useState<FriendRating[]>([]);
+  // Qual bolha de amigo tem o balãozinho com o nome ativo no momento —
+  // primeiro clique numa bolha mostra o balão; um segundo clique NA
+  // MESMA bolha (ela já ativa) navega pro perfil desse usuário.
+  const [activeFriendBubble, setActiveFriendBubble] = useState<string | null>(null);
   const [loadingFriends, setLoadingFriends] = useState(true);
   const [showRecommendModal, setShowRecommendModal] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -471,6 +477,87 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               review_title: r.title,
             };
           });
+        }
+      }
+
+      // Ainda nada (nem amigos, nem reviews aleatórias de terceiros) —
+      // último nível: amigos de amigos (2º grau), excluindo quem já é
+      // amigo direto e o próprio usuário. Mesma priorização de amigos
+      // diretos: quem avaliou primeiro, completa com quem só tem na
+      // watchlist, até o teto de 5.
+      if (combined.length === 0) {
+        const { data: fofData, error: fofError } = await supabase
+          .rpc('get_friends_of_friends', { p_user_id: session.user.id });
+
+        if (fofError) throw fofError;
+
+        const fofIds = (fofData || []).map((r: any) => r.user_id);
+
+        if (fofIds.length > 0) {
+          const { data: fofEntriesData, error: fofEntriesError } = await supabase
+            .from('user_movies')
+            .select(`
+              user_id,
+              rating,
+              movies!inner(media_type)
+            `)
+            .eq('movie_id', movie.id)
+            .eq('movies.media_type', movie.media_type || 'movie')
+            .in('user_id', fofIds);
+
+          if (fofEntriesError) throw fofEntriesError;
+
+          if (fofEntriesData && fofEntriesData.length > 0) {
+            const fofRatedEntries = fofEntriesData.filter((r: any) => r.rating !== null);
+            const fofWatchlistOnlyEntries = fofEntriesData.filter((r: any) => r.rating === null);
+
+            const fofAllUserIds = fofEntriesData.map((r: any) => r.user_id);
+
+            const { data: fofProfilesData, error: fofProfilesError } = await supabase
+              .from('profiles')
+              .select('id, username, avatar_url')
+              .in('id', fofAllUserIds);
+
+            if (fofProfilesError) throw fofProfilesError;
+
+            const fofRatedUserIds = fofRatedEntries.map((r: any) => r.user_id);
+            const { data: fofReviewsData } = fofRatedUserIds.length > 0
+              ? await supabase
+                  .from('reviews')
+                  .select('user_id, title')
+                  .eq('movie_id', movie.id)
+                  .eq('media_type', movie.media_type || 'movie')
+                  .in('user_id', fofRatedUserIds)
+              : { data: [] as any[] };
+
+            const fofRatedFormatted: FriendRating[] = fofRatedEntries.map((r: any) => {
+              const profile = fofProfilesData?.find(p => p.id === r.user_id);
+              const review = fofReviewsData?.find((rv: any) => rv.user_id === r.user_id);
+              return {
+                user_id: r.user_id,
+                username: profile?.username || 'Unknown',
+                avatar_url: profile?.avatar_url || null,
+                rating: r.rating,
+                review_title: review?.title || null,
+              };
+            });
+
+            const fofWatchlistFormatted: FriendRating[] = fofWatchlistOnlyEntries.map((r: any) => {
+              const profile = fofProfilesData?.find(p => p.id === r.user_id);
+              return {
+                user_id: r.user_id,
+                username: profile?.username || 'Unknown',
+                avatar_url: profile?.avatar_url || null,
+                rating: null,
+                review_title: null,
+                is_watchlist_only: true,
+              };
+            });
+
+            const fofShuffledRated = fofRatedFormatted.sort(() => Math.random() - 0.5);
+            const fofShuffledWatchlist = fofWatchlistFormatted.sort(() => Math.random() - 0.5);
+            combined = [...fofShuffledRated, ...fofShuffledWatchlist].slice(0, 5);
+          }
         }
       }
 
@@ -1500,9 +1587,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                               ) : friend.is_watchlist_only ? (
                                 /* Só watchlist, sem review — balão sempre visível também, com
                                    texto "Querendo Assistir...", igual em espírito ao balão de review — só o
-                                   badge no canto do avatar mantém o emoji 👀. */
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none" style={{ zIndex: 50 }}>
-                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl">
+                                   badge no canto do avatar mantém o emoji 👀. Clicável: já está sempre
+                                   visível, então qualquer clique já leva direto pro perfil. */
+                                <div
+                                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-auto cursor-pointer"
+                                  style={{ zIndex: 50 }}
+                                  onClick={(e) => { e.stopPropagation(); navigate(`/profile/${friend.username}`); }}
+                                >
+                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl hover:bg-gray-800/95 transition-colors">
                                     <p className="text-white text-[9px] font-semibold text-center whitespace-nowrap">
                                       {friend.username}
                                     </p>
@@ -1513,15 +1605,34 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                   </div>
                                 </div>
                               ) : (
-                                /* Sem review — mantém o tooltip só no hover, como era antes */
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none shadow-2xl" style={{ zIndex: 50 }}>
-                                  <div className="font-semibold">{friend.username}</div>
-                                  <div className="text-yellow-400 flex items-center gap-1">
-                                    <span>★</span>
-                                    <span>{friend.rating}/10</span>
-                                  </div>
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-                                    <div className="border-4 border-transparent border-t-gray-900/95"></div>
+                                /* Sem review — primeiro clique mostra o balão com nome e nota;
+                                   um segundo clique na MESMA bolha (já ativa) navega pro perfil
+                                   do usuário, em vez de não fazer nada como antes. */
+                                <div
+                                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 pointer-events-auto cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (activeFriendBubble === friend.user_id) {
+                                      navigate(`/profile/${friend.username}`);
+                                    } else {
+                                      setActiveFriendBubble(friend.user_id);
+                                    }
+                                  }}
+                                >
+                                  <div
+                                    className={`px-3 py-2 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg transition-all duration-200 whitespace-nowrap shadow-2xl ${
+                                      activeFriendBubble === friend.user_id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                    }`}
+                                    style={{ zIndex: 50 }}
+                                  >
+                                    <div className="font-semibold">{friend.username}</div>
+                                    <div className="text-yellow-400 flex items-center gap-1">
+                                      <span>★</span>
+                                      <span>{friend.rating}/10</span>
+                                    </div>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+                                      <div className="border-4 border-transparent border-t-gray-900/95"></div>
+                                    </div>
                                   </div>
                                 </div>
                               )}
