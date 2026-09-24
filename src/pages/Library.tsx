@@ -492,7 +492,7 @@ export default function Library() {
   // nada assim que os dados chegavam. Mesmo componente oficial usado nas
   // outras páginas do site (GlassLoader), pra manter o visual consistente.
   if (loading) {
-    return <GlassLoader fullPage size="lg" />;
+    return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
   }
 
   return (
