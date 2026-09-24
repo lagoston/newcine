@@ -183,7 +183,7 @@ export default function PersonalLists() {
   const reorderingList = lists.find((l) => l.id === reorderListId);
 
   if (loading) {
-    return <GlassLoader fullPage size="lg" />;
+    return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
   }
 
   return (
