@@ -348,9 +348,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
     try {
       setLoadingFriends(true);
+      const MAX_BUBBLES = 5;
+      let combined: FriendRating[] = [];
+      // Rastreia quem já está em `combined` pra nenhum nível seguinte
+      // repetir a mesma pessoa (ex.: um amigo de amigo que também
+      // aparece nas reviews aleatórias de terceiros).
+      const usedUserIds = new Set<string>();
 
-      // Step 1: Get friends (amizade é simétrica — pega o outro lado
-      // da relação, seja qual for quem enviou o pedido originalmente)
+      // Nível 1: amigos diretos (amizade é simétrica — pega o outro
+      // lado da relação, seja qual for quem enviou o pedido
+      // originalmente).
       const { data: friendshipData, error: friendshipError } = await supabase
         .from('friendships')
         .select('requester_id, addressee_id')
@@ -362,10 +369,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       const followingIds = (friendshipData || []).map(f =>
         f.requester_id === session.user.id ? f.addressee_id : f.requester_id
       );
-      let combined: FriendRating[] = [];
 
       if (followingIds.length > 0) {
-        // Step 2: Get ratings from friends for this movie (with correct media_type)
         const { data: allEntriesData, error: entriesError } = await supabase
           .from('user_movies')
           .select(`
@@ -388,7 +393,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
           const allUserIds = allEntriesData.map((r: any) => r.user_id);
 
-          // Step 3: Get profiles
           const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
             .select('id, username, avatar_url')
@@ -396,7 +400,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
           if (profilesError) throw profilesError;
 
-          // Step 3b: Get review titles (quando o amigo escreveu uma) para esse mesmo filme
           const ratedUserIds = ratedEntries.map((r: any) => r.user_id);
           const { data: reviewsData } = ratedUserIds.length > 0
             ? await supabase
@@ -435,15 +438,17 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           const shuffledWatchlist = watchlistFormatted.sort(() => Math.random() - 0.5);
           // Prioriza quem avaliou (informação mais rica) e completa com
           // quem só tem na watchlist até o teto de 5 bolhas.
-          combined = [...shuffledRated, ...shuffledWatchlist].slice(0, 5);
+          combined = [...shuffledRated, ...shuffledWatchlist].slice(0, MAX_BUBBLES);
+          combined.forEach((f) => usedUserIds.add(f.user_id));
         }
       }
 
-      // Sem nada de amigos (ninguém seguido avaliou ou tem na watchlist)
-      // — busca até 3 reviews ESCRITAS por qualquer usuário sobre essa
-      // obra (não avaliação simples, tem que ter texto de review de
-      // verdade), como descoberta alternativa.
-      if (combined.length === 0) {
+      // Nível 2: se ainda sobram vagas (não só quando combined está
+      // totalmente vazio) — completa com reviews ESCRITAS por qualquer
+      // outro usuário sobre essa obra (não avaliação simples, tem que
+      // ter texto de review de verdade), excluindo quem já apareceu.
+      if (combined.length < MAX_BUBBLES) {
+        const remaining = MAX_BUBBLES - combined.length;
         const { data: randomReviewsData } = await supabase
           .from('reviews')
           .select('user_id, title')
@@ -452,8 +457,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           .not('title', 'is', null)
           .limit(20);
 
-        if (randomReviewsData && randomReviewsData.length > 0) {
-          const shuffledReviews = [...randomReviewsData].sort(() => Math.random() - 0.5).slice(0, 3);
+        const freshReviews = (randomReviewsData || []).filter((r: any) => !usedUserIds.has(r.user_id));
+
+        if (freshReviews.length > 0) {
+          const shuffledReviews = [...freshReviews].sort(() => Math.random() - 0.5).slice(0, remaining);
           const reviewUserIds = shuffledReviews.map((r: any) => r.user_id);
           const { data: randomProfilesData } = await supabase
             .from('profiles')
@@ -466,7 +473,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
             .eq('movie_id', movie.id)
             .in('user_id', reviewUserIds);
 
-          combined = shuffledReviews.map((r: any) => {
+          const tier2Formatted: FriendRating[] = shuffledReviews.map((r: any) => {
             const profile = randomProfilesData?.find((p: any) => p.id === r.user_id);
             const ratingEntry = randomRatingsData?.find((rt: any) => rt.user_id === r.user_id);
             return {
@@ -477,21 +484,27 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               review_title: r.title,
             };
           });
+
+          combined = [...combined, ...tier2Formatted];
+          tier2Formatted.forEach((f) => usedUserIds.add(f.user_id));
         }
       }
 
-      // Ainda nada (nem amigos, nem reviews aleatórias de terceiros) —
-      // último nível: amigos de amigos (2º grau), excluindo quem já é
-      // amigo direto e o próprio usuário. Mesma priorização de amigos
-      // diretos: quem avaliou primeiro, completa com quem só tem na
-      // watchlist, até o teto de 5.
-      if (combined.length === 0) {
+      // Nível 3: ainda sobram vagas — completa com amigos de amigos (2º
+      // grau), excluindo quem já é amigo direto, o próprio usuário, e
+      // qualquer um já mostrado nos níveis anteriores. Mesma
+      // priorização: quem avaliou primeiro, completa com quem só tem
+      // na watchlist.
+      if (combined.length < MAX_BUBBLES) {
+        const remaining = MAX_BUBBLES - combined.length;
         const { data: fofData, error: fofError } = await supabase
           .rpc('get_friends_of_friends', { p_user_id: session.user.id });
 
         if (fofError) throw fofError;
 
-        const fofIds = (fofData || []).map((r: any) => r.user_id);
+        const fofIds = (fofData || [])
+          .map((r: any) => r.user_id)
+          .filter((id: string) => !usedUserIds.has(id));
 
         if (fofIds.length > 0) {
           const { data: fofEntriesData, error: fofEntriesError } = await supabase
@@ -556,7 +569,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
             const fofShuffledRated = fofRatedFormatted.sort(() => Math.random() - 0.5);
             const fofShuffledWatchlist = fofWatchlistFormatted.sort(() => Math.random() - 0.5);
-            combined = [...fofShuffledRated, ...fofShuffledWatchlist].slice(0, 5);
+            const tier3Formatted = [...fofShuffledRated, ...fofShuffledWatchlist].slice(0, remaining);
+            combined = [...combined, ...tier3Formatted];
           }
         }
       }
