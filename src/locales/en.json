@@ -640,6 +640,8 @@
   },
   "community": {
     "title": "Community",
+    "mutualFriends": "{{count}} mutual friend",
+    "mutualFriends_other": "{{count}} mutual friends",
     "searchMembers": "Search community members...",
     "noMembers": "No members found",
     "noMembersMatch": "No community members match your search",
