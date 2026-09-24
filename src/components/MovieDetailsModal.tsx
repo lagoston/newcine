@@ -1530,7 +1530,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                               zIndex: 10
                             }}
                           >
-                            <div className="relative group">
+                            <div
+                              className="relative group cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (friend.review_title) {
+                                  setShowReviewsModal(true);
+                                } else if (friend.is_watchlist_only) {
+                                  navigate(`/profile/${friend.username}`);
+                                } else if (activeFriendBubble === friend.user_id) {
+                                  navigate(`/profile/${friend.username}`);
+                                } else {
+                                  setActiveFriendBubble(friend.user_id);
+                                }
+                              }}
+                            >
                               {/* Container principal da bolha */}
                               <div className="relative w-16 h-16">
                                 {/* Avatar */}
@@ -1566,15 +1580,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                               </div>
 
                               {friend.review_title ? (
-                                /* Tem review — balão sempre visível, igual ao Friends Activity,
-                                   e clicável: abre o modal de reviews desse filme (já mostra
-                                   todas, incluindo essa). */
-                                <div
-                                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-auto cursor-pointer"
-                                  style={{ zIndex: 50 }}
-                                  onClick={(e) => { e.stopPropagation(); setShowReviewsModal(true); }}
-                                >
-                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl w-[110px] hover:bg-gray-800/95 transition-colors">
+                                /* Tem review — balão sempre visível, igual ao Friends Activity.
+                                   Puramente visual agora: o clique real é tratado pelo container
+                                   "group" pai, que envolve o avatar visível (abre o modal de
+                                   reviews desse filme, já mostra todas, incluindo essa). */
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2" style={{ zIndex: 50 }}>
+                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl w-[110px] group-hover:bg-gray-800/95 transition-colors">
                                     <p className="text-white text-[9px] font-semibold text-center truncate">
                                       {friend.username}
                                     </p>
@@ -1586,15 +1597,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                 </div>
                               ) : friend.is_watchlist_only ? (
                                 /* Só watchlist, sem review — balão sempre visível também, com
-                                   texto "Querendo Assistir...", igual em espírito ao balão de review — só o
-                                   badge no canto do avatar mantém o emoji 👀. Clicável: já está sempre
-                                   visível, então qualquer clique já leva direto pro perfil. */
-                                <div
-                                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-auto cursor-pointer"
-                                  style={{ zIndex: 50 }}
-                                  onClick={(e) => { e.stopPropagation(); navigate(`/profile/${friend.username}`); }}
-                                >
-                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl hover:bg-gray-800/95 transition-colors">
+                                   texto "Querendo Assistir...", igual em espírito ao balão de review.
+                                   Puramente visual: o clique real (que leva direto pro perfil) é
+                                   tratado pelo container "group" pai. */
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2" style={{ zIndex: 50 }}>
+                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl group-hover:bg-gray-800/95 transition-colors">
                                     <p className="text-white text-[9px] font-semibold text-center whitespace-nowrap">
                                       {friend.username}
                                     </p>
@@ -1605,25 +1612,17 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                   </div>
                                 </div>
                               ) : (
-                                /* Sem review — primeiro clique mostra o balão com nome e nota;
-                                   um segundo clique na MESMA bolha (já ativa) navega pro perfil
-                                   do usuário, em vez de não fazer nada como antes. */
-                                <div
-                                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 pointer-events-auto cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (activeFriendBubble === friend.user_id) {
-                                      navigate(`/profile/${friend.username}`);
-                                    } else {
-                                      setActiveFriendBubble(friend.user_id);
-                                    }
-                                  }}
-                                >
+                                /* Sem review — primeiro clique (no avatar, via container "group"
+                                   pai) mostra o balão com nome e nota; um segundo clique na MESMA
+                                   bolha (já ativa) navega pro perfil, em vez de não fazer nada como
+                                   antes. Puramente visual aqui: opacity controlada pelo state
+                                   activeFriendBubble (clique) ou por hover (desktop, sem tocar em
+                                   mobile). */
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3" style={{ zIndex: 50 }}>
                                   <div
                                     className={`px-3 py-2 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg transition-all duration-200 whitespace-nowrap shadow-2xl ${
                                       activeFriendBubble === friend.user_id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                                     }`}
-                                    style={{ zIndex: 50 }}
                                   >
                                     <div className="font-semibold">{friend.username}</div>
                                     <div className="text-yellow-400 flex items-center gap-1">
