@@ -35,11 +35,12 @@ function Navbar() {
   // Item de navegação — compacto o bastante pra 5 links + busca + idioma
   // + sair caberem numa navbar de largura real sem espremer nada, mas
   // sem abrir mão do ícone (clareza) nem do texto (acessibilidade).
-  const NavLink = ({ to, icon: Icon, children, showBadge = false }: {
+  const NavLink = ({ to, icon: Icon, children, showBadge = false, labelClassName = 'hidden xl:inline' }: {
     to: string;
     icon: React.ElementType;
     children: React.ReactNode;
     showBadge?: boolean;
+    labelClassName?: string;
   }) => {
     const isActive = location.pathname === to;
     return (
@@ -58,7 +59,7 @@ function Navbar() {
             <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full ring-2 ring-slate-900 animate-pulse" />
           )}
         </div>
-        <span className="hidden xl:inline">{children}</span>
+        <span className={labelClassName}>{children}</span>
       </Link>
     );
   };
@@ -133,11 +134,11 @@ function Navbar() {
           <div className="px-4 py-3 space-y-1.5">
             {user ? (
               <>
-                <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
-                <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
-                <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
-                <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
-                <NavLink to="/profile" icon={User} showBadge={true}>{t('nav.profile')}</NavLink>
+                <NavLink to="/" icon={Home} labelClassName="">{t('nav.home')}</NavLink>
+                <NavLink to="/library" icon={LibraryIcon} labelClassName="">{t('nav.library')}</NavLink>
+                <NavLink to="/oracle" icon={Eye} labelClassName="">{t('nav.oracle')}</NavLink>
+                <NavLink to="/community" icon={Users} labelClassName="">{t('nav.community')}</NavLink>
+                <NavLink to="/profile" icon={User} showBadge={true} labelClassName="">{t('nav.profile')}</NavLink>
                 <div className="my-2 border-t border-white/10" />
                 <SignOutButton onSignOut={() => { setIsMenuOpen(false); navigate('/auth'); }} t={t} />
               </>
