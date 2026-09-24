@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, User, Users, Loader2, Crown, ArrowRight, Sparkles, Film } from 'lucide-react';
+import { Search, User, Users, Loader2, Crown, ArrowRight, Sparkles, Film, UserPlus, UserCheck, Clock } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import { supabase } from '../lib/supabase';
 import { useDebounce } from 'use-debounce';
@@ -23,6 +23,7 @@ interface Profile {
  avatar_url: string | null;
  bio: string | null;
  friends_count: number;
+ mutual_friends_count?: number;
  plan_type: string;
  is_premium?: boolean;
  avatar_frame: string;
@@ -60,6 +61,8 @@ export default function Community() {
  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
  const [currentPage, setCurrentPage] = useState(1);
  const [totalPages, setTotalPages] = useState(1);
+ const [friendshipStatuses, setFriendshipStatuses] = useState<Record<string, 'none' | 'pending_sent' | 'pending_received' | 'friends'>>({});
+ const [togglingFriendId, setTogglingFriendId] = useState<string | null>(null);
  const USERS_PER_PAGE = 12;
 
  const watchlistScrollRef = useRef<HTMLDivElement>(null);
@@ -140,6 +143,12 @@ export default function Community() {
  }
  }, [debouncedQuery, profiles]);
 
+ useEffect(() => {
+ if (filteredProfiles.length > 0) {
+ fetchFriendshipStatuses(filteredProfiles.map((p) => p.id));
+ }
+ }, [filteredProfiles]);
+
  const fetchProfiles = async () => {
  try {
  setLoading(true);
@@ -174,6 +183,103 @@ export default function Community() {
  toast.error(t('common.error'));
  } finally {
  setLoading(false);
+ }
+ };
+
+ // Busca o status de amizade com TODOS os perfis visíveis de uma vez —
+ // uma query só, em vez de uma por card — pra alimentar o botão de
+ // adicionar amigo em cada mini banner.
+ const fetchFriendshipStatuses = async (profileIds: string[]) => {
+ if (!session?.user?.id) return;
+
+ const otherIds = profileIds.filter((id) => id !== session.user!.id);
+ if (otherIds.length === 0) return;
+
+ const { data, error } = await supabase
+ .from('friendships')
+ .select('requester_id, addressee_id, status')
+ .or(`and(requester_id.eq.${session.user.id},addressee_id.in.(${otherIds.join(',')})),and(addressee_id.eq.${session.user.id},requester_id.in.(${otherIds.join(',')}))`);
+
+ if (error) {
+ console.error('Error fetching friendship statuses:', error);
+ return;
+ }
+
+ const statusMap: Record<string, 'none' | 'pending_sent' | 'pending_received' | 'friends'> = {};
+ otherIds.forEach((id) => { statusMap[id] = 'none'; });
+
+ (data || []).forEach((f: any) => {
+ const otherId = f.requester_id === session.user!.id ? f.addressee_id : f.requester_id;
+ if (f.status === 'accepted') {
+ statusMap[otherId] = 'friends';
+ } else if (f.requester_id === session.user!.id) {
+ statusMap[otherId] = 'pending_sent';
+ } else {
+ statusMap[otherId] = 'pending_received';
+ }
+ });
+
+ setFriendshipStatuses((prev) => ({ ...prev, ...statusMap }));
+ };
+
+ // Mesma lógica de UserProfile.tsx (enviar pedido / cancelar pedido
+ // enviado / aceitar pedido recebido), adaptada pra atualizar o status
+ // de UM perfil específico dentro do map, não um state único.
+ // "Amigos" fica só como indicador aqui — desfazer amizade continua
+ // exclusivo do perfil individual, que já tem a confirmação pra essa
+ // ação destrutiva.
+ const handleFriendAction = async (e: React.MouseEvent, profileId: string, username: string) => {
+ e.stopPropagation();
+ if (!session?.user?.id || togglingFriendId) return;
+
+ const currentStatus = friendshipStatuses[profileId] || 'none';
+ if (currentStatus === 'friends') return;
+
+ try {
+ setTogglingFriendId(profileId);
+
+ if (currentStatus === 'none') {
+ const { data, error } = await supabase.rpc('send_friend_request', {
+ p_requester_id: session.user.id,
+ p_addressee_id: profileId
+ });
+ if (error) throw error;
+ if (!data?.success) throw new Error(data?.error || 'request_failed');
+
+ setFriendshipStatuses((prev) => ({ ...prev, [profileId]: 'pending_sent' }));
+ toast.success(t('profile.friendRequestSent', { defaultValue: `Pedido de amizade enviado para @${username}` }));
+
+ await supabase.from('friend_indications').insert({
+ from_user_id: session.user.id,
+ to_user_id: profileId,
+ type: 'friend_request',
+ read: false
+ });
+ } else if (currentStatus === 'pending_sent') {
+ const { error } = await supabase.rpc('remove_friendship', {
+ p_user_id: session.user.id,
+ p_other_user_id: profileId
+ });
+ if (error) throw error;
+ setFriendshipStatuses((prev) => ({ ...prev, [profileId]: 'none' }));
+ toast.success(t('profile.friendRequestCancelled', { defaultValue: 'Pedido de amizade cancelado' }));
+ } else if (currentStatus === 'pending_received') {
+ const { data, error } = await supabase.rpc('respond_to_friend_request', {
+ p_addressee_id: session.user.id,
+ p_requester_id: profileId,
+ p_accept: true
+ });
+ if (error) throw error;
+ if (!data?.success) throw new Error(data?.error || 'accept_failed');
+
+ setFriendshipStatuses((prev) => ({ ...prev, [profileId]: 'friends' }));
+ toast.success(t('profile.friendRequestAccepted', { defaultValue: `Agora você e @${username} são amigos!` }));
+ }
+ } catch (error) {
+ console.error('Error handling friend action:', error);
+ toast.error(t('common.error'));
+ } finally {
+ setTogglingFriendId(null);
  }
  };
 
@@ -513,14 +619,59 @@ export default function Community() {
  {profile.bio || t('profile.bio')}
  </p>
 
- <div className="flex items-center gap-6 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
- <div className="flex items-center gap-1.5">
- <Users className="w-4 h-4 text-gray-400" />
+ <div className="flex items-center gap-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
+ <div className="flex items-center gap-1.5 flex-wrap">
+ <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
  <span className="text-sm">
  <span className={`font-bold ${getTextEffectNameClass(profile.text_effect, profile.is_premium ?? profile.plan_type === 'premium', profile.real_review_count || 0)}`}>{profile.friends_count}</span>
  <span className={`ml-1 ${getTextEffectSecondaryClass(profile.text_effect, profile.is_premium ?? profile.plan_type === 'premium', profile.real_review_count || 0)}`}>{t('profile.friendsLabel', { defaultValue: 'Amigos' })}</span>
  </span>
+ {!!profile.mutual_friends_count && profile.mutual_friends_count > 0 && (
+ <span className="text-xs text-gray-500 dark:text-gray-400">
+ · {t('community.mutualFriends', { count: profile.mutual_friends_count, defaultValue: '{{count}} amigos em comum' })}
+ </span>
+ )}
  </div>
+
+ {profile.id !== session?.user?.id && (
+ <button
+ onClick={(e) => handleFriendAction(e, profile.id, profile.username)}
+ disabled={togglingFriendId === profile.id || friendshipStatuses[profile.id] === 'friends'}
+ className={`ml-auto flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+ friendshipStatuses[profile.id] === 'friends'
+ ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 cursor-default'
+ : friendshipStatuses[profile.id] === 'pending_received'
+ ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:shadow-md'
+ : friendshipStatuses[profile.id] === 'pending_sent'
+ ? 'bg-white/60 dark:bg-gray-700/60 border border-white/60 dark:border-gray-600/60 text-gray-600 dark:text-gray-300'
+ : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:shadow-md'
+ }`}
+ >
+ {togglingFriendId === profile.id ? (
+ <Loader2 className="w-3.5 h-3.5 animate-spin" />
+ ) : friendshipStatuses[profile.id] === 'friends' ? (
+ <>
+ <UserCheck className="w-3.5 h-3.5" />
+ {t('profile.friendsButton', { defaultValue: 'Amigos' })}
+ </>
+ ) : friendshipStatuses[profile.id] === 'pending_sent' ? (
+ <>
+ <Clock className="w-3.5 h-3.5" />
+ {t('profile.requestSentButton', { defaultValue: 'Pedido Enviado' })}
+ </>
+ ) : friendshipStatuses[profile.id] === 'pending_received' ? (
+ <>
+ <UserCheck className="w-3.5 h-3.5" />
+ {t('profile.acceptRequestButton', { defaultValue: 'Aceitar Pedido' })}
+ </>
+ ) : (
+ <>
+ <UserPlus className="w-3.5 h-3.5" />
+ {t('profile.addFriendButton', { defaultValue: 'Adicionar Amigo' })}
+ </>
+ )}
+ </button>
+ )}
  </div>
  </div>
  </motion.div>
