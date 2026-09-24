@@ -89,7 +89,8 @@
     "resendCooldown": "Aguarde {{seconds}}s para reenviar",
     "resendEmail": "Não recebeu o e-mail? Clique para reenviar",
     "waitingConfirmation": "Aguardando confirmação...",
-    "alreadyConfirmed": "Já confirmou? Entre"
+    "alreadyConfirmed": "Já confirmou? Entre",
+    "validatingResetLink": "Validando seu link de redefinição..."
   },
   "nav": {
     "home": "Início",
