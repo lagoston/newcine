@@ -641,6 +641,8 @@
   },
   "community": {
     "title": "Comunidade",
+    "mutualFriends": "{{count}} amigo em comum",
+    "mutualFriends_other": "{{count}} amigos em comum",
     "searchMembers": "Buscar membros da comunidade...",
     "noMembers": "Nenhum membro encontrado",
     "noMembersMatch": "Nenhum membro da comunidade corresponde à sua busca",
