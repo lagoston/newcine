@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircle, Crown, Calendar, CreditCard, Gift, ArrowRight, Sparkles, Zap, Shield, PartyPopper } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { CheckCircle, Crown, Calendar, CreditCard, Gift, ArrowRight, Sparkles, Shield, PartyPopper, Swords } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { products } from '../stripe-config';
@@ -15,6 +16,7 @@ interface SubscriptionDetails {
 }
 
 export default function PremiumSuccess() {
+  const { t } = useTranslation();
  const navigate = useNavigate();
  const location = useLocation();
  const { refreshSession, checkPremiumStatus } = useAuth();
@@ -176,19 +178,19 @@ export default function PremiumSuccess() {
  <>
  <div className="grid grid-cols-3 gap-3 mb-6">
  <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60">
- <Zap className="w-7 h-7 text-yellow-500 mx-auto mb-2" />
- <p className="text-xl font-bold text-gray-900 dark:text-white">20</p>
- <p className="text-xs text-gray-600 dark:text-gray-400">Tickets/Day</p>
+ <Swords className="w-7 h-7 text-yellow-500 mx-auto mb-2" />
+ <p className="text-xl font-bold text-gray-900 dark:text-white">∞</p>
+ <p className="text-xs text-gray-600 dark:text-gray-400">{t('premium.unlimitedDuelsShort')}</p>
  </div>
  <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60">
  <Shield className="w-7 h-7 text-blue-500 mx-auto mb-2" />
  <p className="text-xl font-bold text-gray-900 dark:text-white">Pro</p>
- <p className="text-xs text-gray-600 dark:text-gray-400">Features</p>
+ <p className="text-xs text-gray-600 dark:text-gray-400">{t('premium.featuresShort')}</p>
  </div>
  <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60">
  <PartyPopper className="w-7 h-7 text-green-500 mx-auto mb-2" />
  <p className="text-xl font-bold text-gray-900 dark:text-white">VIP</p>
- <p className="text-xs text-gray-600 dark:text-gray-400">Support</p>
+ <p className="text-xs text-gray-600 dark:text-gray-400">{t('premium.supportShort')}</p>
  </div>
  </div>
 
@@ -244,15 +246,15 @@ export default function PremiumSuccess() {
  <div className="rounded-2xl bg-gradient-to-br from-yellow-100/50 to-orange-100/50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200/50 dark:border-yellow-800/30 p-5 mb-6">
  <h3 className="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center">
  <Sparkles className="w-5 h-5 text-yellow-500 mr-2" />
- Your Premium Benefits
+ {t('premium.benefits')}
  </h3>
  <ul className="space-y-2">
  {[
- '20 Oracle tickets every day',
- 'Enhanced predictions with Oracle 2.0',
- 'Complete prediction & recommendation history',
- 'Exclusive profile frames and banners',
- 'Priority customer support'
+ t('premium.unlimitedDuels'),
+ t('premium.fullShelves'),
+ t('premium.aiReviews'),
+ t('premium.exclusiveCustomization'),
+ t('premium.prioritySupport')
  ].map((benefit, index) => (
  <li
  key={index}
