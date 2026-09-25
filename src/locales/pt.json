@@ -637,7 +637,16 @@
     "moreFeatures": "Mais Recursos",
     "moreFeaturesDesc": "Acesso a recursos exclusivos e atualizações conforme se tornam disponíveis",
     "securePayment": "Pagamento seguro fornecido pelo Stripe",
-    "autoRenew": "Sua assinatura será renovada automaticamente. Cancele a qualquer momento nas configurações."
+    "autoRenew": "Sua assinatura será renovada automaticamente. Cancele a qualquer momento nas configurações.",
+    "unlimitedDuels": "Duelos Ilimitados",
+    "unlimitedDuelsDesc": "Duelo do Oráculo e Duelo de Watchlist sem nenhum limite de uso",
+    "unlimitedDuelsShort": "Duelos",
+    "fullShelves": "Prateleiras Completas",
+    "fullShelvesDesc": "Explore todos os títulos da Biblioteca dos Oráculos, não só os 20 primeiros de cada prateleira",
+    "aiReviews": "Resenhas por IA",
+    "aiReviewsDesc": "O Oráculo aprende com as suas resenhas e escreve novas no seu próprio estilo",
+    "featuresShort": "Recursos",
+    "supportShort": "Suporte"
   },
   "community": {
     "title": "Comunidade",
