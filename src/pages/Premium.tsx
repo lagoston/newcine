@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Crown, Star, Palette, Check, Settings, Loader2, Zap, Shield, Sparkles, Infinity } from 'lucide-react';
+import { ArrowLeft, Crown, Star, Palette, Check, Settings, Loader2, Shield, Sparkles, Infinity, Swords, LibraryBig, PenLine } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { createCheckoutSession, createPortalSession } from '../lib/stripe';
 import { toast } from 'sonner';
@@ -144,9 +144,9 @@ export default function Premium() {
 
  <div className="grid sm:grid-cols-3 gap-4 mb-8">
  <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 p-5 text-center">
- <Zap className="w-8 h-8 text-yellow-500 mx-auto mb-3" />
- <p className="text-2xl font-bold text-gray-900 dark:text-white">20</p>
- <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.ticketsDay')}</p>
+ <Swords className="w-8 h-8 text-yellow-500 mx-auto mb-3" />
+ <p className="text-2xl font-bold text-gray-900 dark:text-white">∞</p>
+ <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.unlimitedDuelsShort')}</p>
  </div>
  <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 p-5 text-center">
  <Palette className="w-8 h-8 text-blue-500 mx-auto mb-3" />
@@ -255,7 +255,9 @@ export default function Premium() {
 
  <ul className="space-y-3 mb-8">
  {[
- t('premium.20DailyTickets'),
+ t('premium.unlimitedDuels'),
+ t('premium.fullShelves'),
+ t('premium.aiReviews'),
  t('premium.exclusiveCustomization'),
  t('premium.prioritySupport'),
  t('premium.cancelAnytime'),
@@ -300,9 +302,19 @@ export default function Premium() {
  </h2>
  <div className="grid sm:grid-cols-2 gap-4">
  <Feature
- icon={Zap}
- title={t('premium.20DailyTickets')}
- description={t('premium.20DailyTicketsDesc')}
+ icon={Swords}
+ title={t('premium.unlimitedDuels')}
+ description={t('premium.unlimitedDuelsDesc')}
+ />
+ <Feature
+ icon={LibraryBig}
+ title={t('premium.fullShelves')}
+ description={t('premium.fullShelvesDesc')}
+ />
+ <Feature
+ icon={PenLine}
+ title={t('premium.aiReviews')}
+ description={t('premium.aiReviewsDesc')}
  />
  <Feature
  icon={Palette}
