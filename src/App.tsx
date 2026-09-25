@@ -2,6 +2,7 @@ import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Toaster } from 'react-hot-toast';
+import { Toaster as SonnerToaster } from 'sonner';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './lib/auth';
@@ -99,6 +100,17 @@ function App() {
           // ser lida. Notificação transitória deve sempre ficar por
           // cima de qualquer coisa que esteja aberta na tela.
           containerStyle={{ zIndex: 99999 }}
+          toastOptions={{ style: { zIndex: 99999 } }}
+        />
+        {/* O site usa DUAS bibliotecas de notificação: react-hot-toast e
+            sonner (20 arquivos, ~107 chamadas — erros de checkout, do
+            Duelo, validação de username, "adicionado à biblioteca"...).
+            Só o Toaster do react-hot-toast estava montado, então TODAS as
+            notificações do sonner eram disparadas e nunca apareciam. Mesma
+            posição e sempre acima de qualquer modal aberto. */}
+        <SonnerToaster
+          position="bottom-right"
+          style={{ zIndex: 99999 }}
           toastOptions={{ style: { zIndex: 99999 } }}
         />
       </ThemeProvider>

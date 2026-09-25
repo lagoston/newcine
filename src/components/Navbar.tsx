@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Library as LibraryIcon, LogIn, LogOut, User, Menu, X, Eye, Home, Users } from 'lucide-react';
@@ -9,7 +9,11 @@ import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import NavbarSearch from './NavbarSearch';
 import FloatingMobileSearch from './FloatingMobileSearch';
-import MovieDetailsModal from './MovieDetailsModal';
+// Carregado sob demanda: a Navbar aparece em TODAS as páginas, então um
+// import direto aqui colocava o modal inteiro (~100 KB com as frases do
+// Oráculo e os submodais de review/recomendação) no pacote inicial de
+// qualquer visita — mesmo que o usuário nunca abrisse um filme pela busca.
+const MovieDetailsModal = lazy(() => import('./MovieDetailsModal'));
 import { Movie } from '../lib/tmdb';
 import { useWhispers } from '../contexts/WhispersContext';
 
@@ -160,6 +164,7 @@ function Navbar() {
     {user && <FloatingMobileSearch onMovieSelect={handleMovieSelect} />}
 
     {selectedMovie && createPortal(
+      <Suspense fallback={null}>
       <MovieDetailsModal
         movie={selectedMovie}
         isOpen={true}
@@ -167,7 +172,8 @@ function Navbar() {
         onAddToLibrary={() => {
           if (!session) navigate('/auth');
         }}
-      />,
+      />
+      </Suspense>,
       document.body
     )}
     </>

@@ -46,8 +46,26 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,webp,woff2}'],
+        // Imagens .webp (cartas dos oráculos, molduras, banners — 148 arquivos,
+        // ~4 MB) saíram do pré-cache: antes eram TODAS baixadas no primeiro
+        // acesso, mesmo as que o usuário nunca veria. Agora entram no cache
+        // só quando aparecem na tela (regra "app-images" abaixo). O chunk
+        // do xlsx (~320 KB, usado só na importação do IMDb) também fica de
+        // fora e é baixado apenas se a importação for aberta.
+        globPatterns: ['**/*.{js,css,html,ico,png,woff2}'],
+        globIgnores: ['**/xlsx-*.js'],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.origin === self.location.origin && url.pathname.endsWith('.webp'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'app-images',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
+              }
+            }
+          },
           {
             urlPattern: /^https:\/\/image\.tmdb\.org\/.*/i,
             handler: 'CacheFirst',
