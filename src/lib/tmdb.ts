@@ -934,24 +934,6 @@ export const getOraclePoolMovies = async (
   return { movies, totalCount };
 };
 
-// Gasta uma quantidade específica de tickets de uma vez, atomicamente —
-// usado pelo botão "carregar mais 30 títulos" das Bibliotecas do Oráculo
-// (3 tickets por lote extra, depois do primeiro lote gratuito de cada
-// prateleira).
-export const spendTickets = async (userId: string, amount: number): Promise<{ success: boolean; ticketsRemaining: number }> => {
-  const { data, error } = await supabase.rpc('decrement_user_tickets', {
-    user_id_param: userId,
-    amount,
-  });
-
-  if (error || !data || data.length === 0) {
-    console.error('Error spending tickets:', error);
-    return { success: false, ticketsRemaining: 0 };
-  }
-
-  return { success: data[0].success, ticketsRemaining: data[0].tickets_remaining };
-};
-
 // Busca, em uma única consulta, o progresso de cada série de uma lista
 // de tmdb_ids — usado pela Biblioteca pra desenhar a barra de progresso
 // de cada card sem uma consulta por série.
