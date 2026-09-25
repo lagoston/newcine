@@ -636,7 +636,16 @@
     "moreFeatures": "More Features",
     "moreFeaturesDesc": "Access to exclusive features and updates as they become available",
     "securePayment": "Secure payment powered by Stripe",
-    "autoRenew": "Your subscription will automatically renew. Cancel anytime from your settings."
+    "autoRenew": "Your subscription will automatically renew. Cancel anytime from your settings.",
+    "unlimitedDuels": "Unlimited Duels",
+    "unlimitedDuelsDesc": "Oracle Duel and Watchlist Duel with no usage limit",
+    "unlimitedDuelsShort": "Duels",
+    "fullShelves": "Full Shelves",
+    "fullShelvesDesc": "Explore every title in the Oracle Library, not just the first 20 on each shelf",
+    "aiReviews": "AI Reviews",
+    "aiReviewsDesc": "The Oracle learns from your reviews and writes new ones in your own style",
+    "featuresShort": "Features",
+    "supportShort": "Support"
   },
   "community": {
     "title": "Community",
