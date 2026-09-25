@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
     <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="description" content="CineOracle - Your personal movie companion. Discover, rate, and build your ultimate movie collection." />
+    <meta name="description" content="Avalie os filmes que você já viu e deixe três oráculos preverem o quanto você vai gostar do próximo. Grátis." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="apple-touch-icon" href="/assets/Symbal512.webp" />
@@ -15,7 +15,10 @@
     <link rel="preconnect" href="https://image.tmdb.org" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Pixelify Sans: títulos da home de visitante — ecoa o letreiro em pixel
+         das cartas dos oráculos. (Substitui a Cinzel, que era carregada em
+         toda visita mas não era usada em nenhum lugar do código.) -->
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
     <!-- Text Effect "Typewriter" (Customize Profile) — fonte real de roteiro de cinema -->
     <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
     <title>CineOracle</title>
@@ -53,9 +56,19 @@
         }
       }(window.location))
     </script>
-    <meta property="og:image" content="https://bolt.new/static/og_default.png">
+    <!-- Cartão de compartilhamento (WhatsApp, X, Discord...). Antes apontava
+         pra imagem padrão do Bolt. TROQUE o caminho relativo abaixo pela URL
+         absoluta do site (ex.: https://seudominio.com/assets/og-cineoracle.jpg)
+         — várias plataformas só leem og:image com URL completa. -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="CineOracle">
+    <meta property="og:title" content="CineOracle — tire uma carta, descubra seu próximo filme">
+    <meta property="og:description" content="Três oráculos preveem o quanto você vai gostar de cada filme. Grátis.">
+    <meta property="og:image" content="/assets/og-cineoracle.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
+    <meta name="twitter:image" content="/assets/og-cineoracle.jpg">
 </head>
   <body>
     <div id="root"></div>
