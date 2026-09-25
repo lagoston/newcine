@@ -26,8 +26,6 @@ const Auth = lazy(() => import('./pages/Auth'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const OracleHub = lazy(() => import('./pages/OracleHub'));
 const OracleLibraries = lazy(() => import('./pages/OracleLibraries'));
-const OraclePrediction = lazy(() => import('./pages/OraclePrediction'));
-const OracleRecommend = lazy(() => import('./pages/OracleRecommend'));
 const OracleDuel = lazy(() => import('./pages/OracleDuel'));
 const Premium = lazy(() => import('./pages/Premium'));
 const PremiumSuccess = lazy(() => import('./pages/PremiumSuccess'));
@@ -78,8 +76,6 @@ function App() {
                   <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
                   <Route path="/oracle" element={<ProtectedRoute><OracleHub /></ProtectedRoute>} />
                   <Route path="/oracle/libraries" element={<ProtectedRoute><OracleLibraries /></ProtectedRoute>} />
-                  <Route path="/oracle/prediction" element={<ProtectedRoute><OraclePrediction /></ProtectedRoute>} />
-                  <Route path="/oracle/recommend" element={<ProtectedRoute><OracleRecommend /></ProtectedRoute>} />
                 <Route path="/oracle/duel" element={<ProtectedRoute><OracleDuel /></ProtectedRoute>} />
                   <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
                   <Route path="/premium/success" element={<ProtectedRoute><PremiumSuccess /></ProtectedRoute>} />
