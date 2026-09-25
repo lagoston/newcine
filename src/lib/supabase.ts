@@ -22,24 +22,6 @@ export async function getProfile(userId: string) {
   }
 }
 
-// Helper function to safely create user tickets
-async function createUserTickets(userId: string) {
-  try {
-    // Use the RPC function directly without checking first, as the function itself
-    // has proper conflict handling with ON CONFLICT DO NOTHING
-    const { error: ticketsError } = await supabase
-      .rpc('create_user_tickets_safely', { user_id_input: userId });
-    
-    if (ticketsError) {
-      console.error('Error creating user tickets:', ticketsError);
-      // Non-fatal error, we'll let the database handle conflicts
-    }
-  } catch (error) {
-    console.error('Error in createUserTickets:', error);
-    // This is a helper function, so we'll just log the error and continue
-  }
-}
-
 // Standardized function to create a new user profile
 export async function createProfile(userId: string, email: string) {
   const maxRetries = 3;
@@ -125,11 +107,6 @@ export async function createProfile(userId: string, email: string) {
           
           throw error;
         }
-        
-        // Profile created successfully, now safely create the user tickets
-        // This call to createUserTickets is now safer since we use the RPC function that
-        // has proper conflict handling
-        await createUserTickets(userId);
         
         return { data, error: null };
       } catch (insertError) {
