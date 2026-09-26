@@ -238,7 +238,10 @@
       "tagProgress": "{{current}} of {{target}}",
       "findFriendsHint": "Add friends to see their ratings on posters and match on films.",
       "shortcutsLabel": "Shortcuts",
-      "allTagsHint": "You already have every available tag."
+      "allTagsHint": "You already have every available tag.",
+      "navLibraryHint": "Ratings, lists and watchlist",
+      "navOracleHint": "Predictions and your essence",
+      "navProfileHint": "Tags, friends and stats"
     }
   },
   "compatibility": {
