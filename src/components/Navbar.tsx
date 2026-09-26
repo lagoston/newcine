@@ -1,9 +1,8 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Library as LibraryIcon, LogIn, LogOut, User, Menu, X, Eye, Home, Users } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { supabase } from '../lib/supabase';
 import Logo from './Logo';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -72,9 +71,12 @@ function Navbar() {
     <>
     <nav className="fixed top-0 left-0 right-0 z-40 bg-slate-950/75 backdrop-blur-2xl border-b border-white/10 shadow-lg shadow-black/20 transition-all duration-300">
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Altura total = 3.5rem (+ área segura), a mesma que o App reserva
+            no topo de todas as páginas. Com 1rem de respiro + os 44px mínimos
+            dos botões, a barra chegava a 76px e cobria 20px de cada página. */}
         <div className="flex items-center justify-between gap-3" style={{
-          paddingTop: 'calc(env(safe-area-inset-top) + 1rem)',
-          paddingBottom: '1rem',
+          paddingTop: 'calc(env(safe-area-inset-top) + 0.375rem)',
+          paddingBottom: '0.375rem',
           minHeight: 'calc(env(safe-area-inset-top) + 3.5rem)'
         }}>
           {/* Zona esquerda — identidade, tamanho fixo */}
