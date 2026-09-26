@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { BarChart3, MessageCircle, HelpCircle, Wand2, Star, Swords, ListVideo, Users, ArrowRight, Film } from 'lucide-react';
+import { BarChart3, MessageCircle, HelpCircle, Wand2, Star, ArrowRight, Film, Library as LibraryIcon, Eye, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useWhispers } from '../contexts/WhispersContext';
 import { getMovieDetails, Movie } from '../lib/tmdb';
@@ -17,128 +17,13 @@ import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, ORACLES, ORACLE_BY_ID, OracleId
 // Topo da home de quem está logado — "a mesa do oráculo".
 //   1. Cabeçalho: saudação, números da conta e os atalhos pessoais
 //      (Insights do mês e Sussurros).
-//   2. Atalhos rotativos: próxima tag (com progresso), duelo da watchlist,
-//      listas e amigos revezando num único espaço.
+//   2. Três botões de acesso: Biblioteca, Oráculo e Perfil.
 //   3. Recomendações do Dia: as três cartas do dia, uma por oráculo, com a
 //      nota prevista (ou a sua nota, se já avaliou). É o único momento
 //      animado da página: as cartas são "distribuídas" na mesa ao abrir.
 //
 // O painel "Sua essência" (arquétipo + cinco balanças + persona) saiu da
 // home e está guardado para a repaginação do Hub dos Oráculos.
-
-// ---------------------------------------------------------------------------
-// Tags — mesmas regras de antes; agora cada candidata carrega o progresso.
-// ---------------------------------------------------------------------------
-
-type Tier = { name: string; emoji: string; min: number; hint: string; hintPt: string };
-
-const PROGRESSION_TIERS: Tier[] = [
-  { name: 'Balcony Regular', emoji: '🎫', min: 1, hint: '1 movie in library', hintPt: '1 filme na biblioteca' },
-  { name: 'Seat Warmer', emoji: '💺', min: 20, hint: '20 movies in library', hintPt: '20 filmes na biblioteca' },
-  { name: 'Popcorn Pro', emoji: '🍿', min: 50, hint: '50 movies in library', hintPt: '50 filmes na biblioteca' },
-  { name: 'Reel Addict', emoji: '📽', min: 100, hint: '100 movies in library', hintPt: '100 filmes na biblioteca' },
-  { name: 'Cine Elite', emoji: '🎞', min: 200, hint: '200 movies in library', hintPt: '200 filmes na biblioteca' },
-  { name: 'Projectionist Supreme', emoji: '🎬', min: 500, hint: '500 movies in library', hintPt: '500 filmes na biblioteca' },
-  { name: 'Cinematic Guru', emoji: '🎭', min: 1000, hint: '1000 movies in library', hintPt: '1000 filmes na biblioteca' },
-];
-
-const ORACLE_PRED_TIERS: Tier[] = [
-  { name: 'Curious Seeker', emoji: '🔍', min: 10, hint: '10 Oracle predictions', hintPt: '10 previsões no Oráculo' },
-  { name: 'Pattern Hunter', emoji: '🧩', min: 25, hint: '25 Oracle predictions', hintPt: '25 previsões no Oráculo' },
-  { name: 'Mind Decoder', emoji: '🧠', min: 50, hint: '50 Oracle predictions', hintPt: '50 previsões no Oráculo' },
-  { name: 'Future Whisperer', emoji: '🌘', min: 100, hint: '100 Oracle predictions', hintPt: '100 previsões no Oráculo' },
-  { name: "Oracle's Chosen", emoji: '🌑', min: 200, hint: '200 Oracle predictions', hintPt: '200 previsões no Oráculo' },
-  { name: 'Fate Architect', emoji: '🜂', min: 500, hint: '500 Oracle predictions', hintPt: '500 previsões no Oráculo' },
-  { name: 'Timeline Overlord', emoji: '⛓️', min: 1000, hint: '1000 Oracle predictions', hintPt: '1000 previsões no Oráculo' },
-];
-
-const ORACLE_REC_TIERS: Tier[] = [
-  { name: 'Popcorn Taster', emoji: '🌽', min: 10, hint: '10 Oracle recommendations', hintPt: '10 recomendações do Oráculo' },
-  { name: 'Hidden Gem Hunter', emoji: '🔶', min: 25, hint: '25 Oracle recommendations', hintPt: '25 recomendações do Oráculo' },
-  { name: 'Genre Explorer', emoji: '🗺️', min: 50, hint: '50 Oracle recommendations', hintPt: '50 recomendações do Oráculo' },
-  { name: 'Taste Alchemist', emoji: '🧪', min: 100, hint: '100 Oracle recommendations', hintPt: '100 recomendações do Oráculo' },
-  { name: 'Recommendation Lord', emoji: '⚜️', min: 200, hint: '200 Oracle recommendations', hintPt: '200 recomendações do Oráculo' },
-  { name: 'Galaxy Curator', emoji: '🧮', min: 500, hint: '500 Oracle recommendations', hintPt: '500 recomendações do Oráculo' },
-  { name: 'Multiverse Sommelier', emoji: '🎎', min: 1000, hint: '1000 Oracle recommendations', hintPt: '1000 recomendações do Oráculo' },
-];
-
-const COMMUNITY_TIERS: Tier[] = [
-  { name: 'Spotlight Spark', emoji: '✨', min: 1, hint: '1 friend', hintPt: '1 amigo' },
-  { name: 'Rising Star', emoji: '🌠', min: 10, hint: '10 friends', hintPt: '10 amigos' },
-  { name: 'Red-Carpet Regular', emoji: '👠', min: 25, hint: '25 friends', hintPt: '25 amigos' },
-  { name: 'Festival Favorite', emoji: '🏵️', min: 50, hint: '50 friends', hintPt: '50 amigos' },
-  { name: 'Blockbuster', emoji: '💥', min: 100, hint: '100 friends', hintPt: '100 amigos' },
-  { name: 'Cult Legend', emoji: '🌟', min: 200, hint: '200 friends', hintPt: '200 amigos' },
-];
-
-const THEME_TAGS = [
-  { name: 'Mockingjay Victor', emoji: '🏹', hint: 'All 5 Hunger Games films', hintPt: 'Todos os 5 Hunger Games', ids: [70160, 101299, 131631, 131634, 695721] },
-  { name: 'Lucky Player', emoji: '🎲', hint: 'Jumanji (1995) & Zathura (2005)', hintPt: 'Jumanji (1995) e Zathura (2005)', ids: [8844, 6795] },
-  { name: 'Death Dodger', emoji: '☠️', hint: 'All 5 Final Destination films', hintPt: 'Todos os 5 Premonição', ids: [9532, 9358, 9286, 19912, 55779] },
-  { name: 'Hogwarts Graduate', emoji: '🧙', hint: 'All 8 Harry Potter films', hintPt: 'Todos os 8 Harry Potter', ids: [671, 672, 673, 674, 675, 767, 12444, 12445] },
-  { name: 'Force Founder', emoji: '🌌', hint: 'Star Wars Original Trilogy (IV-V-VI)', hintPt: 'Trilogia Original Star Wars (IV-V-VI)', ids: [11, 1891, 1892] },
-  { name: 'Don of Cinema', emoji: '🍷', hint: 'The Godfather Trilogy', hintPt: 'Trilogia O Poderoso Chefão', ids: [238, 240, 242] },
-  { name: 'Trap Builder', emoji: '🪤', hint: 'Home Alone 1 & 2', hintPt: 'Esqueceram de Mim 1 & 2', ids: [771, 772] },
-  { name: 'Red-Pill Adept', emoji: '💊', hint: 'The Matrix Trilogy', hintPt: 'Trilogia Matrix', ids: [603, 604, 605] },
-  { name: 'Flux-Capacitor Fan', emoji: '⚡', hint: 'Back to the Future Trilogy', hintPt: 'Trilogia De Volta Para o Futuro', ids: [105, 165, 196] },
-  { name: 'Ring Expert', emoji: '💍', hint: 'The Lord of the Rings Trilogy', hintPt: 'Trilogia O Senhor dos Anéis', ids: [120, 121, 122] },
-  { name: 'Toy Collector', emoji: '🦖', hint: 'All 4 Toy Story films', hintPt: 'Todos os 4 Toy Story', ids: [862, 863, 10193, 301528] },
-  { name: 'Whip-Crack Scholar', emoji: '🥾', hint: 'Indiana Jones Quadrilogy', hintPt: 'Quadrilogia Indiana Jones', ids: [85, 89, 90, 91] },
-  { name: 'Sailor', emoji: '🏴‍☠️', hint: 'All 5 Pirates of the Caribbean films', hintPt: 'Todos os 5 Piratas do Caribe', ids: [22, 58, 285, 1865, 166426] },
-  { name: 'Senior Mechanic', emoji: '🔧', hint: 'All 10 main Fast & Furious films', hintPt: 'Todos os 10 principais Velozes e Furiosos', ids: [9799, 584, 9615, 13804, 51497, 82992, 168259, 337339, 385128, 385687] },
-  { name: 'Cybertron Sentinel', emoji: '🤖', hint: 'All 7 live-action Transformers', hintPt: 'Todos os 7 Transformers live-action', ids: [424783, 1858, 91314, 667538, 335988, 8373, 38356] },
-  { name: 'Swamp Royalty', emoji: '🧅', hint: 'All 4 Shrek films', hintPt: 'Todos os 4 Shrek', ids: [808, 809, 810, 10192] },
-  { name: 'Dino Tamer', emoji: '🦴', hint: 'All 6 Jurassic Park/World films', hintPt: 'Todos os 6 Jurassic Park/World', ids: [329, 330, 331, 135397, 351286, 507086] },
-  { name: 'Banana Boss', emoji: '🍌', hint: 'All 5 Despicable Me/Minions films', hintPt: 'Todos os 5 Meu Malvado Favorito/Minions', ids: [39538, 93456, 324852, 211672, 438148] },
-  { name: 'Baba Yaga', emoji: '🃏', hint: 'John Wick Saga (4 films)', hintPt: 'Saga John Wick (4 filmes)', ids: [245891, 324552, 458156, 603692] },
-  { name: 'Casual Drinker', emoji: '🥃', hint: 'The Hangover Trilogy', hintPt: 'Trilogia Se Beber Não Case!', ids: [18785, 45243, 109439] },
-  { name: 'Sweetie Pie', emoji: '🥧', hint: 'American Pie (original four)', hintPt: 'American Pie (quatro originais)', ids: [2105, 2770, 8273, 71552] },
-  { name: 'Visceral Gamer', emoji: '♟️', hint: 'Saw Franchise (10 films)', hintPt: 'Franquia Jogos Mortais (10 filmes)', ids: [176, 215, 214, 663, 11917, 22804, 41439, 298250, 602734, 951491] },
-  { name: 'Nuts', emoji: '🌰', hint: 'Ice Age Saga (6 films)', hintPt: 'Saga A Era do Gelo (6 filmes)', ids: [425, 950, 8355, 57800, 278154, 774825] },
-  { name: 'Dark Spirit', emoji: '🦇', hint: 'The Dark Knight Trilogy', hintPt: 'Trilogia Batman — O Cavaleiro das Trevas', ids: [272, 155, 49026] },
-  { name: 'Infinity Gauntlet', emoji: '♾️', hint: 'All 4 Avengers films (2012-2019)', hintPt: 'Todos os 4 Vingadores (2012-2019)', ids: [24428, 299536, 99861, 299534] },
-  { name: 'Sharp Canine', emoji: '🦷', hint: 'Twilight Saga (5 films)', hintPt: 'Saga Crepúsculo (5 filmes)', ids: [122, 121, 240, 50619, 50620] },
-  { name: 'Primal Essence', emoji: '🦍', hint: 'Planet of the Apes reboot (4 films)', hintPt: 'Planeta dos Macacos reboot (4 filmes)', ids: [61791, 119450, 281338, 653346] },
-];
-
-interface NextTag {
-  name: string;
-  emoji: string;
-  hint: string;
-  hintPt: string;
-  current: number;
-  target: number;
-}
-
-function tierCandidate(count: number, tiers: Tier[]): NextTag | null {
-  const next = tiers.find((tier) => count < tier.min);
-  if (!next) return null;
-  return { name: next.name, emoji: next.emoji, hint: next.hint, hintPt: next.hintPt, current: count, target: next.min };
-}
-
-function themeCandidates(libraryIds: Set<number>): NextTag[] {
-  return THEME_TAGS
-    .filter((tag) => !tag.ids.every((id) => libraryIds.has(id)))
-    .map((tag) => ({
-      name: tag.name,
-      emoji: tag.emoji,
-      hint: tag.hint,
-      hintPt: tag.hintPt,
-      current: tag.ids.filter((id) => libraryIds.has(id)).length,
-      target: tag.ids.length,
-    }));
-}
-
-// "Próxima tag" = a que está mais perto de ser desbloqueada (maior fração
-// concluída; no empate, a que falta menos).
-function pickClosestTag(candidates: NextTag[]): NextTag | null {
-  if (candidates.length === 0) return null;
-  return [...candidates].sort((a, b) => {
-    const ratio = b.current / b.target - a.current / a.target;
-    if (Math.abs(ratio) > 1e-9) return ratio;
-    return (a.target - a.current) - (b.target - b.current);
-  })[0];
-}
 
 // ---------------------------------------------------------------------------
 // Relógio da troca das cartas (meia-noite de Brasília = 03:00 UTC). Isolado
@@ -186,8 +71,6 @@ interface AccountStats {
   rated: number;
   watchlist: number;
   friends: number;
-  lists: { id: string; name: string }[];
-  nextTag: NextTag | null;
   // nota do usuário por id de filme (null = está na watchlist sem nota)
   movieRatings: Map<number, number | null>;
 }
@@ -196,20 +79,6 @@ interface DailyPick {
   oracle: OracleId;
   movie: Movie;
 }
-
-interface Shortcut {
-  key: string;
-  icon: React.ReactNode;
-  eyebrow?: string;
-  title: string;
-  hint: string;
-  to?: string;
-  state?: Record<string, unknown>;
-  cta?: string;
-  progress?: { current: number; target: number };
-}
-
-const SHORTCUT_INTERVAL_MS = 4500;
 
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300';
 
@@ -229,7 +98,6 @@ interface Props {
 
 const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onReady, onMovieClick }) => {
   const { t, i18n } = useTranslation();
-  const isPt = i18n.language.startsWith('pt');
   const reduceMotion = useReducedMotion();
   const { unreadCount: unreadWhispers, openWhispersTarget, clearOpenWhispersTarget } = useWhispers();
 
@@ -242,9 +110,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
   const [showWhispers, setShowWhispers] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
   const [showOracleInfo, setShowOracleInfo] = useState(false);
-
-  const [shortcutIndex, setShortcutIndex] = useState(0);
-  const [shortcutsPaused, setShortcutsPaused] = useState(false);
 
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
@@ -287,12 +152,10 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
   };
 
   const fetchStats = useCallback(async () => {
-    const [profileRes, moviesRes, friendsRes, countersRes, listsRes] = await Promise.all([
+    const [profileRes, moviesRes, friendsRes] = await Promise.all([
       supabase.from('public_profiles').select('username, avatar_url, avatar_frame, plan_type, is_premium').eq('id', userId).maybeSingle(),
       supabase.from('user_movies').select('movie_id, media_type, rating').eq('user_id', userId),
       supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
-      supabase.from('profiles').select('oracle_predictions_count, oracle_recommendations_count').eq('id', userId).maybeSingle(),
-      supabase.from('lists').select('id, name').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3),
     ]);
 
     const rows = (moviesRes.data ?? []) as { movie_id: number; media_type: string | null; rating: number | null }[];
@@ -300,17 +163,8 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     rows.forEach((row) => {
       if ((row.media_type ?? 'movie') === 'movie') movieRatings.set(row.movie_id, row.rating);
     });
-    const libraryIds = new Set(rows.map((row) => row.movie_id));
     const friends = friendsRes.count ?? 0;
     const profile = profileRes.data as { username?: string; avatar_url?: string | null; avatar_frame?: string | null; plan_type?: string; is_premium?: boolean } | null;
-
-    const nextTag = pickClosestTag([
-      tierCandidate(rows.length, PROGRESSION_TIERS),
-      tierCandidate(friends, COMMUNITY_TIERS),
-      tierCandidate(countersRes.data?.oracle_predictions_count ?? 0, ORACLE_PRED_TIERS),
-      tierCandidate(countersRes.data?.oracle_recommendations_count ?? 0, ORACLE_REC_TIERS),
-      ...themeCandidates(libraryIds),
-    ].filter((tag): tag is NextTag => tag !== null));
 
     setStats({
       username: profile?.username ?? '',
@@ -320,8 +174,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
       rated: rows.filter((row) => row.rating !== null).length,
       watchlist: rows.filter((row) => row.rating === null).length,
       friends,
-      lists: (listsRes.data ?? []) as { id: string; name: string }[],
-      nextTag,
       movieRatings,
     });
   }, [userId]);
@@ -372,68 +224,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
   }, [fetchStats, fetchDailyPicks]);
 
   // ---------------------------------------------------------------------
-  // Atalhos rotativos
-  // ---------------------------------------------------------------------
-
-  const shortcuts = useMemo<Shortcut[]>(() => {
-    if (!stats) return [];
-    const list: Shortcut[] = [];
-    const tag = stats.nextTag;
-    list.push(tag
-      ? {
-          key: 'tag',
-          icon: <span className="text-xl leading-none">{tag.emoji}</span>,
-          eyebrow: t('home.panels.nextTag'),
-          title: tag.name,
-          hint: isPt ? tag.hintPt : tag.hint,
-          progress: { current: tag.current, target: tag.target },
-        }
-      : {
-          key: 'tag',
-          icon: <span className="text-xl leading-none">🏆</span>,
-          eyebrow: t('home.panels.nextTag'),
-          title: t('home.panels.allTagsUnlocked'),
-          hint: t('home.desk.allTagsHint'),
-        });
-    if (stats.watchlist >= 4) {
-      list.push({
-        key: 'duel',
-        icon: <Swords className="w-5 h-5" aria-hidden />,
-        title: t('home.panels.watchlistDuel'),
-        hint: t('home.panels.watchlistDuelHint'),
-        to: '/library',
-        state: { openWatchlistDuel: true },
-        cta: t('home.panels.openWatchlistDuel'),
-      });
-    }
-    if (stats.lists.length > 0) {
-      list.push({
-        key: 'lists',
-        icon: <ListVideo className="w-5 h-5" aria-hidden />,
-        title: t('home.panels.yourLists'),
-        hint: stats.lists.map((l) => l.name).join(' · '),
-        to: '/lists',
-        cta: t('home.panels.openLists'),
-      });
-    }
-    list.push({
-      key: 'friends',
-      icon: <Users className="w-5 h-5" aria-hidden />,
-      title: stats.friends > 0 ? t('home.panels.matchWithFriends') : t('home.panels.openCommunity'),
-      hint: stats.friends > 0 ? t('home.panels.matchWithFriendsHint') : t('home.desk.findFriendsHint'),
-      to: '/community',
-      cta: t('home.panels.openCommunity'),
-    });
-    return list;
-  }, [stats, isPt, t]);
-
-  useEffect(() => {
-    if (shortcuts.length <= 1 || shortcutsPaused || !visible) return;
-    const id = setInterval(() => setShortcutIndex((i) => (i + 1) % shortcuts.length), SHORTCUT_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [shortcuts.length, shortcutsPaused, visible]);
-
-  // ---------------------------------------------------------------------
   // Derivados
   // ---------------------------------------------------------------------
 
@@ -474,6 +264,12 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
       <span className="group-hover:underline underline-offset-4" style={{ color: MIST }}>{t(labelKey, { count })}</span>
     </Link>
   );
+
+  const quickLinks = [
+    { to: '/library', icon: LibraryIcon, label: t('nav.library'), hint: t('home.desk.navLibraryHint') },
+    { to: '/oracle', icon: Eye, label: t('nav.oracle'), hint: t('home.desk.navOracleHint') },
+    { to: '/profile', icon: User, label: t('nav.profile'), hint: t('home.desk.navProfileHint') },
+  ];
 
   const dealList = {
     hidden: {},
@@ -516,41 +312,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     }
     return null;
   };
-
-  const activeShortcut = shortcuts[shortcutIndex % Math.max(1, shortcuts.length)];
-
-  const shortcutContent = (s: Shortcut) => (
-    <span className="flex items-center gap-4 w-full">
-      <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center ring-1 ring-white/10 text-violet-200" style={{ background: NIGHT }} aria-hidden>
-        {s.icon}
-      </span>
-      <span className="min-w-0 flex-1">
-        {s.eyebrow && <span className="block text-xs" style={{ color: MIST }}>{s.eyebrow}</span>}
-        <span className="block font-semibold truncate" style={{ color: PAPER }}>{s.title}</span>
-        <span className="block text-sm truncate" style={{ color: MIST }}>{s.hint}</span>
-        {s.progress && (
-          <span className="mt-2 flex items-center gap-2.5 max-w-sm">
-            <span className="flex-1 h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
-              <span
-                className="block h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
-                style={{ width: `${Math.min(100, (s.progress.current / s.progress.target) * 100)}%` }}
-              />
-            </span>
-            <span className="text-xs tabular-nums" style={{ color: MIST }}>
-              {t('home.desk.tagProgress', { current: s.progress.current, target: s.progress.target })}
-            </span>
-          </span>
-        )}
-      </span>
-      {s.cta && (
-        <span className="hidden sm:inline-flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-white/15 group-hover:border-white/35 group-hover:bg-white/5 transition" style={{ color: PAPER }}>
-          {s.cta}
-          <ArrowRight className="w-4 h-4" aria-hidden />
-        </span>
-      )}
-      {s.to && <ArrowRight className="sm:hidden w-4 h-4 shrink-0" style={{ color: MIST }} aria-hidden />}
-    </span>
-  );
 
   return (
     <>
@@ -610,74 +371,29 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
         )}
       </section>
 
-      {/* ---------- Atalhos rotativos ---------- */}
-      {activeShortcut && (
-        <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-7">
-          <div
-            className="relative rounded-2xl ring-1 ring-white/10"
-            style={{ background: VELVET }}
-            onMouseEnter={() => setShortcutsPaused(true)}
-            onMouseLeave={() => setShortcutsPaused(false)}
-            onFocusCapture={() => setShortcutsPaused(true)}
-            onBlurCapture={() => setShortcutsPaused(false)}
-            aria-roledescription="carousel"
-            aria-label={t('home.desk.shortcutsLabel')}
-          >
-            {/* Altura fixa = a do atalho mais alto (a tag, com barra de
-                progresso): a troca de atalho nunca empurra a página. */}
-            <div className="h-[116px] flex items-center">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={activeShortcut.key}
-                  className="w-full"
-                  initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-                  transition={{ duration: 0.22 }}
-                >
-                  {activeShortcut.to ? (
-                    <Link
-                      to={activeShortcut.to}
-                      state={activeShortcut.state}
-                      className={`group w-full h-[116px] flex justify-start items-center px-4 sm:px-5 rounded-2xl hover:bg-white/[0.03] transition ${focusRing}`}
-                    >
-                      {shortcutContent(activeShortcut)}
-                    </Link>
-                  ) : (
-                    <div className="h-[116px] flex items-center px-4 sm:px-5">{shortcutContent(activeShortcut)}</div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {shortcuts.length > 1 && (
-            <div className="mt-2.5 flex items-center gap-1.5" role="tablist" aria-label={t('home.desk.shortcutsLabel')}>
-              {shortcuts.map((s, i) => {
-                const active = i === shortcutIndex % shortcuts.length;
-                return (
-                  <button
-                    key={s.key}
-                    role="tab"
-                    aria-selected={active}
-                    aria-label={s.title}
-                    onClick={() => setShortcutIndex(i)}
-                    className="rounded-full transition-all"
-                    style={{
-                      minWidth: 0,
-                      minHeight: 0,
-                      padding: 0,
-                      height: 6,
-                      width: active ? 20 : 6,
-                      background: active ? '#C4B5FD' : 'rgba(189,180,214,0.3)',
-                    }}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </section>
-      )}
+      {/* ---------- Acesso rápido ---------- */}
+      <nav aria-label={t('home.desk.shortcutsLabel')} className="mx-auto max-w-6xl px-5 sm:px-8 pt-7">
+        <ul className="grid grid-cols-3 gap-3 sm:gap-4">
+          {quickLinks.map(({ to, icon: Icon, label, hint }) => (
+            <li key={to}>
+              <Link
+                to={to}
+                className={`group h-full flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2.5 sm:gap-4 p-3.5 sm:px-5 sm:py-4 rounded-2xl ring-1 ring-white/10 hover:ring-white/25 hover:bg-white/[0.03] text-center sm:text-left transition ${focusRing}`}
+                style={{ background: VELVET }}
+              >
+                <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center ring-1 ring-white/10 text-violet-200" style={{ background: NIGHT }} aria-hidden>
+                  <Icon className="w-5 h-5" />
+                </span>
+                <span className="min-w-0 sm:flex-1">
+                  <span className="block text-sm sm:text-base font-semibold" style={{ color: PAPER }}>{label}</span>
+                  <span className="hidden sm:block mt-0.5 text-sm truncate" style={{ color: MIST }}>{hint}</span>
+                </span>
+                <ArrowRight className="hidden lg:block w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: MIST }} aria-hidden />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
       {/* ---------- Recomendações do Dia ---------- */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-10 sm:pt-12 pb-14 sm:pb-16">
