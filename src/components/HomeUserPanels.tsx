@@ -1,31 +1,30 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { BarChart3, MessageCircle, HelpCircle, Wand2, Star, X, Swords, ListVideo, Users, ArrowRight, Film } from 'lucide-react';
+import { BarChart3, MessageCircle, HelpCircle, Wand2, Star, Swords, ListVideo, Users, ArrowRight, Film } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useWhispers } from '../contexts/WhispersContext';
 import { getMovieDetails, Movie } from '../lib/tmdb';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from './GhostRiderFrame';
 import OptimizedPoster from './OptimizedPoster';
-import ArchetypeSymbol from './ArchetypeSymbol';
-import { PERSONAS_MAP } from './CinematicPersonaCard';
+import OracleSheet from './OracleSheet';
 import WhispersModal from './WhispersModal';
 import MonthlyInsightsModal from './MonthlyInsightsModal';
 import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, ORACLES, ORACLE_BY_ID, OracleId } from '../lib/oracleTheme';
 
 // Topo da home de quem está logado — "a mesa do oráculo".
-// Três blocos, sem rotação automática escondendo informação:
-//   1. Cabeçalho: saudação, números da conta e os dois atalhos pessoais
+//   1. Cabeçalho: saudação, números da conta e os atalhos pessoais
 //      (Insights do mês e Sussurros).
-//   2. "Na mesa hoje": as três cartas do dia, uma por oráculo, lado a lado,
-//      com a nota prevista (ou a sua nota, se já avaliou). É o único momento
+//   2. Atalhos rotativos: próxima tag (com progresso), duelo da watchlist,
+//      listas e amigos revezando num único espaço.
+//   3. Recomendações do Dia: as três cartas do dia, uma por oráculo, com a
+//      nota prevista (ou a sua nota, se já avaliou). É o único momento
 //      animado da página: as cartas são "distribuídas" na mesa ao abrir.
-//   3. "Sua essência": arquétipo, as cinco balanças da Arquitetura da Alma
-//      e a persona. Abaixo, os próximos passos (próxima tag com progresso,
-//      duelo da watchlist, listas, amigos).
+//
+// O painel "Sua essência" (arquétipo + cinco balanças + persona) saiu da
+// home e está guardado para a repaginação do Hub dos Oráculos.
 
 // ---------------------------------------------------------------------------
 // Tags — mesmas regras de antes; agora cada candidata carrega o progresso.
@@ -176,59 +175,6 @@ const ResetCountdown: React.FC = () => {
 };
 
 // ---------------------------------------------------------------------------
-// Modal base (portal no <body>, Esc fecha, trava o scroll do fundo)
-// ---------------------------------------------------------------------------
-
-const Sheet: React.FC<{ title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }> = ({ title, onClose, children, wide }) => {
-  const { t } = useTranslation();
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [onClose]);
-
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title}>
-      <motion.div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        onClick={onClose}
-      />
-      <div className="relative flex min-h-full items-start sm:items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-8">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-          className={`relative w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded-2xl ring-1 ring-white/10 shadow-2xl overflow-hidden`}
-          style={{ background: NIGHT }}
-        >
-          <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-4 border-b border-white/[0.07]">
-            <h2 style={{ ...PIXEL, color: PAPER }} className="text-2xl leading-tight">{title}</h2>
-            <button
-              onClick={onClose}
-              aria-label={t('common.close')}
-              className="shrink-0 rounded-full hover:bg-white/10 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-fuchsia-300"
-              style={{ color: MIST }}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="px-6 py-6 max-h-[calc(100dvh-10rem)] overflow-y-auto">{children}</div>
-        </motion.div>
-      </div>
-    </div>,
-    document.body
-  );
-};
-
-// ---------------------------------------------------------------------------
 // Tipos de dados
 // ---------------------------------------------------------------------------
 
@@ -246,26 +192,24 @@ interface AccountStats {
   movieRatings: Map<number, number | null>;
 }
 
-interface Personality {
-  personalidade_completa: string | null;
-  arquetipo_primario: string | null;
-  arquetipo_secundario: string | null;
-  points: Record<'E' | 'I' | 'C' | 'S' | 'R', number>;
-}
-
-interface EssenceInfo {
-  archetype_name: string;
-  archetype_description: string;
-  subcategory_name: string;
-  personality_description: string | null;
-}
-
 interface DailyPick {
   oracle: OracleId;
   movie: Movie;
 }
 
-const SPECTRA = ['E', 'I', 'C', 'S', 'R'] as const;
+interface Shortcut {
+  key: string;
+  icon: React.ReactNode;
+  eyebrow?: string;
+  title: string;
+  hint: string;
+  to?: string;
+  state?: Record<string, unknown>;
+  cta?: string;
+  progress?: { current: number; target: number };
+}
+
+const SHORTCUT_INTERVAL_MS = 4500;
 
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300';
 
@@ -285,14 +229,11 @@ interface Props {
 
 const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onReady, onMovieClick }) => {
   const { t, i18n } = useTranslation();
-  const lang = i18n.language.startsWith('pt') ? 'pt' : 'en';
-  const isPt = lang === 'pt';
+  const isPt = i18n.language.startsWith('pt');
   const reduceMotion = useReducedMotion();
   const { unreadCount: unreadWhispers, openWhispersTarget, clearOpenWhispersTarget } = useWhispers();
 
   const [stats, setStats] = useState<AccountStats | null>(null);
-  const [personality, setPersonality] = useState<Personality | null>(null);
-  const [essence, setEssence] = useState<EssenceInfo | null>(null);
   const [picks, setPicks] = useState<DailyPick[]>([]);
   const [picksLoading, setPicksLoading] = useState(true);
   const [predictions, setPredictions] = useState<Record<number, number>>({});
@@ -301,7 +242,9 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
   const [showWhispers, setShowWhispers] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
   const [showOracleInfo, setShowOracleInfo] = useState(false);
-  const [showPersona, setShowPersona] = useState(false);
+
+  const [shortcutIndex, setShortcutIndex] = useState(0);
+  const [shortcutsPaused, setShortcutsPaused] = useState(false);
 
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
@@ -383,36 +326,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     });
   }, [userId]);
 
-  const fetchPersonality = useCallback(async () => {
-    const { data: row } = await supabase
-      .from('profiles')
-      .select('personalidade_completa, arquetipo_primario, arquetipo_secundario, pontos_e, pontos_i, pontos_c, pontos_s, pontos_r')
-      .eq('id', userId)
-      .maybeSingle();
-
-    setPersonality({
-      personalidade_completa: row?.personalidade_completa ?? null,
-      arquetipo_primario: row?.arquetipo_primario ?? null,
-      arquetipo_secundario: row?.arquetipo_secundario ?? null,
-      points: {
-        E: Number(row?.pontos_e) || 0,
-        I: Number(row?.pontos_i) || 0,
-        C: Number(row?.pontos_c) || 0,
-        S: Number(row?.pontos_s) || 0,
-        R: Number(row?.pontos_r) || 0,
-      },
-    });
-
-    if (!row?.personalidade_completa) {
-      setEssence(null);
-      return;
-    }
-    const { data: info } = await supabase
-      .rpc('get_user_complete_personality', { p_user_id: userId, p_language: lang })
-      .maybeSingle();
-    setEssence((info as EssenceInfo | null) ?? null);
-  }, [userId, lang]);
-
   const fetchDailyPicks = useCallback(async () => {
     setPicksLoading(true);
     try {
@@ -452,23 +365,79 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
 
   useEffect(() => {
     let cancelled = false;
-    Promise.allSettled([fetchStats(), fetchPersonality(), fetchDailyPicks()]).then(() => {
+    Promise.allSettled([fetchStats(), fetchDailyPicks()]).then(() => {
       if (!cancelled) onReadyRef.current?.();
     });
     return () => { cancelled = true; };
-  }, [fetchStats, fetchPersonality, fetchDailyPicks]);
+  }, [fetchStats, fetchDailyPicks]);
+
+  // ---------------------------------------------------------------------
+  // Atalhos rotativos
+  // ---------------------------------------------------------------------
+
+  const shortcuts = useMemo<Shortcut[]>(() => {
+    if (!stats) return [];
+    const list: Shortcut[] = [];
+    const tag = stats.nextTag;
+    list.push(tag
+      ? {
+          key: 'tag',
+          icon: <span className="text-xl leading-none">{tag.emoji}</span>,
+          eyebrow: t('home.panels.nextTag'),
+          title: tag.name,
+          hint: isPt ? tag.hintPt : tag.hint,
+          progress: { current: tag.current, target: tag.target },
+        }
+      : {
+          key: 'tag',
+          icon: <span className="text-xl leading-none">🏆</span>,
+          eyebrow: t('home.panels.nextTag'),
+          title: t('home.panels.allTagsUnlocked'),
+          hint: t('home.desk.allTagsHint'),
+        });
+    if (stats.watchlist >= 4) {
+      list.push({
+        key: 'duel',
+        icon: <Swords className="w-5 h-5" aria-hidden />,
+        title: t('home.panels.watchlistDuel'),
+        hint: t('home.panels.watchlistDuelHint'),
+        to: '/library',
+        state: { openWatchlistDuel: true },
+        cta: t('home.panels.openWatchlistDuel'),
+      });
+    }
+    if (stats.lists.length > 0) {
+      list.push({
+        key: 'lists',
+        icon: <ListVideo className="w-5 h-5" aria-hidden />,
+        title: t('home.panels.yourLists'),
+        hint: stats.lists.map((l) => l.name).join(' · '),
+        to: '/lists',
+        cta: t('home.panels.openLists'),
+      });
+    }
+    list.push({
+      key: 'friends',
+      icon: <Users className="w-5 h-5" aria-hidden />,
+      title: stats.friends > 0 ? t('home.panels.matchWithFriends') : t('home.panels.openCommunity'),
+      hint: stats.friends > 0 ? t('home.panels.matchWithFriendsHint') : t('home.desk.findFriendsHint'),
+      to: '/community',
+      cta: t('home.panels.openCommunity'),
+    });
+    return list;
+  }, [stats, isPt, t]);
+
+  useEffect(() => {
+    if (shortcuts.length <= 1 || shortcutsPaused || !visible) return;
+    const id = setInterval(() => setShortcutIndex((i) => (i + 1) % shortcuts.length), SHORTCUT_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [shortcuts.length, shortcutsPaused, visible]);
 
   // ---------------------------------------------------------------------
   // Derivados
   // ---------------------------------------------------------------------
 
   const displayName = username || stats?.username || '';
-  const code = personality?.personalidade_completa ?? '';
-  const hasEssence = code.length >= 3 && !!essence;
-  const persona = hasEssence ? PERSONAS_MAP[code] : undefined;
-  const topSpectra = new Set([personality?.arquetipo_primario, personality?.arquetipo_secundario].filter(Boolean) as string[]);
-  const maxPoints = personality ? Math.max(1, ...SPECTRA.map((k) => personality.points[k])) : 1;
-
   const hour = new Date().getHours();
   const greeting = hour >= 5 && hour < 12
     ? t('home.desk.greetingMorning')
@@ -480,10 +449,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     typeof value === 'number' && value > 0
       ? value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
       : null;
-
-  // ---------------------------------------------------------------------
-  // Blocos
-  // ---------------------------------------------------------------------
 
   const avatar = (() => {
     const frameComponent = frameUsesComponent(stats?.avatarFrame || undefined, stats?.avatarIsPremium ?? false);
@@ -503,8 +468,8 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     );
   })();
 
-  const statLink = (to: string, count: number, labelKey: string, state?: Record<string, unknown>) => (
-    <Link to={to} state={state} className={`group inline-flex items-baseline gap-1.5 rounded ${focusRing}`}>
+  const statLink = (to: string, count: number, labelKey: string) => (
+    <Link to={to} className={`group inline-flex items-baseline gap-1.5 rounded ${focusRing}`}>
       <span className="font-semibold tabular-nums" style={{ color: PAPER }}>{count}</span>
       <span className="group-hover:underline underline-offset-4" style={{ color: MIST }}>{t(labelKey, { count })}</span>
     </Link>
@@ -515,10 +480,10 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     shown: { transition: { staggerChildren: 0.09, delayChildren: 0.08 } },
   };
   const dealCard = {
-    hidden: (i: number) => (reduceMotion ? { opacity: 1 } : { opacity: 0, y: 28, rotate: (i - 1) * 7 }),
+    hidden: (i: number) => (reduceMotion ? { opacity: 1 } : { opacity: 0, y: 18, rotate: (i - 1) * 3 }),
     shown: reduceMotion
       ? { opacity: 1 }
-      : { opacity: 1, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 210, damping: 22 } },
+      : { opacity: 1, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 220, damping: 22 } },
   };
 
   const pickBadge = (movieId: number) => {
@@ -526,11 +491,11 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     if (typeof own === 'number') {
       return (
         <span
-          className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-full text-sm font-semibold shadow-lg"
+          className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 pl-1 pr-1.5 py-0.5 rounded-full text-xs font-semibold shadow-lg"
           style={{ background: PAPER, color: INK }}
           title={t('home.desk.yourRating')}
         >
-          <Star className="w-3.5 h-3.5 fill-current" aria-hidden />
+          <Star className="w-3 h-3 fill-current" aria-hidden />
           <span className="sr-only">{t('home.desk.yourRating')}:</span>
           {own}
         </span>
@@ -540,17 +505,52 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     if (typeof predicted === 'number') {
       return (
         <span
-          className="absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full bg-violet-600/95 text-white shadow-lg ring-1 ring-white/20"
+          className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full bg-violet-600/95 text-white shadow-lg ring-1 ring-white/20"
           title={t('home.desk.predictedForYou')}
         >
-          <Wand2 className="w-3.5 h-3.5" aria-hidden />
+          <Wand2 className="w-3 h-3" aria-hidden />
           <span className="sr-only">{t('home.desk.predictedForYou')}:</span>
-          <span style={PIXEL} className="text-lg leading-none">{predicted}</span>
+          <span style={PIXEL} className="text-sm leading-none">{predicted}</span>
         </span>
       );
     }
     return null;
   };
+
+  const activeShortcut = shortcuts[shortcutIndex % Math.max(1, shortcuts.length)];
+
+  const shortcutContent = (s: Shortcut) => (
+    <span className="flex items-center gap-4 w-full">
+      <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center ring-1 ring-white/10 text-violet-200" style={{ background: NIGHT }} aria-hidden>
+        {s.icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        {s.eyebrow && <span className="block text-xs" style={{ color: MIST }}>{s.eyebrow}</span>}
+        <span className="block font-semibold truncate" style={{ color: PAPER }}>{s.title}</span>
+        <span className="block text-sm truncate" style={{ color: MIST }}>{s.hint}</span>
+        {s.progress && (
+          <span className="mt-2 flex items-center gap-2.5 max-w-sm">
+            <span className="flex-1 h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
+              <span
+                className="block h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                style={{ width: `${Math.min(100, (s.progress.current / s.progress.target) * 100)}%` }}
+              />
+            </span>
+            <span className="text-xs tabular-nums" style={{ color: MIST }}>
+              {t('home.desk.tagProgress', { current: s.progress.current, target: s.progress.target })}
+            </span>
+          </span>
+        )}
+      </span>
+      {s.cta && (
+        <span className="hidden sm:inline-flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-white/15 group-hover:border-white/35 group-hover:bg-white/5 transition" style={{ color: PAPER }}>
+          {s.cta}
+          <ArrowRight className="w-4 h-4" aria-hidden />
+        </span>
+      )}
+      {s.to && <ArrowRight className="sm:hidden w-4 h-4 shrink-0" style={{ color: MIST }} aria-hidden />}
+    </span>
+  );
 
   return (
     <>
@@ -610,94 +610,166 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
         )}
       </section>
 
-      {/* ---------- Na mesa hoje + Sua essência ---------- */}
-      <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-10 sm:pt-12 pb-14 sm:pb-16 grid lg:grid-cols-12 gap-12 lg:gap-10">
-        <div className="lg:col-span-8 min-w-0">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 style={{ ...PIXEL, color: PAPER }} className="text-3xl sm:text-4xl leading-tight">
-                {t('home.desk.todayTitle')}
-              </h2>
-              <p className="mt-2 text-sm sm:text-base" style={{ color: MIST }}>
-                {t('home.desk.todaySubtitle')} {t('home.desk.todayRenews')} <ResetCountdown />
-              </p>
+      {/* ---------- Atalhos rotativos ---------- */}
+      {activeShortcut && (
+        <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-7">
+          <div
+            className="relative rounded-2xl ring-1 ring-white/10"
+            style={{ background: VELVET }}
+            onMouseEnter={() => setShortcutsPaused(true)}
+            onMouseLeave={() => setShortcutsPaused(false)}
+            onFocusCapture={() => setShortcutsPaused(true)}
+            onBlurCapture={() => setShortcutsPaused(false)}
+            aria-roledescription="carousel"
+            aria-label={t('home.desk.shortcutsLabel')}
+          >
+            {/* Altura fixa = a do atalho mais alto (a tag, com barra de
+                progresso): a troca de atalho nunca empurra a página. */}
+            <div className="h-[116px] flex items-center">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={activeShortcut.key}
+                  className="w-full"
+                  initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                  transition={{ duration: 0.22 }}
+                >
+                  {activeShortcut.to ? (
+                    <Link
+                      to={activeShortcut.to}
+                      state={activeShortcut.state}
+                      className={`group w-full h-[116px] flex justify-start items-center px-4 sm:px-5 rounded-2xl hover:bg-white/[0.03] transition ${focusRing}`}
+                    >
+                      {shortcutContent(activeShortcut)}
+                    </Link>
+                  ) : (
+                    <div className="h-[116px] flex items-center px-4 sm:px-5">{shortcutContent(activeShortcut)}</div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
             </div>
-            <button
-              onClick={() => setShowOracleInfo(true)}
-              aria-label={t('home.desk.todayHelp')}
-              title={t('home.desk.todayHelp')}
-              className={`shrink-0 rounded-full hover:bg-white/5 transition ${focusRing}`}
-              style={{ color: MIST }}
-            >
-              <HelpCircle className="w-5 h-5" />
-            </button>
           </div>
 
-          {picksLoading ? (
-            <div className="mt-7 flex sm:grid sm:grid-cols-3 gap-4 sm:gap-5 overflow-hidden" aria-hidden>
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="shrink-0 w-[62%] sm:w-auto">
-                  <div className="aspect-[2/3] rounded-xl animate-pulse" style={{ background: VELVET }} />
-                  <div className="mt-3 h-4 w-24 rounded animate-pulse" style={{ background: VELVET }} />
-                  <div className="mt-2 h-4 w-40 rounded animate-pulse" style={{ background: VELVET }} />
-                </div>
-              ))}
-            </div>
-          ) : picks.length > 0 ? (
-            <motion.ol
-              className="mt-7 -mx-5 px-5 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-3 gap-4 sm:gap-5 overflow-x-auto sm:overflow-visible snap-x snap-mandatory scroll-px-5 pb-2 sm:pb-0"
-              style={{ scrollbarWidth: 'none' }}
-              variants={dealList}
-              initial="hidden"
-              animate={visible ? 'shown' : 'hidden'}
-            >
-              {picks.map((pick, i) => {
-                const oracle = ORACLE_BY_ID[pick.oracle];
-                const year = pick.movie.release_date?.slice(0, 4);
-                const score = formatScore(pick.movie.vote_average);
-                const inWatchlist = stats?.movieRatings.get(pick.movie.id) === null;
+          {shortcuts.length > 1 && (
+            <div className="mt-2.5 flex items-center gap-1.5" role="tablist" aria-label={t('home.desk.shortcutsLabel')}>
+              {shortcuts.map((s, i) => {
+                const active = i === shortcutIndex % shortcuts.length;
                 return (
-                  <motion.li key={pick.oracle} custom={i} variants={dealCard} className="snap-start shrink-0 w-[62%] sm:w-auto">
-                    <button
-                      onClick={() => onMovieClick(pick.movie)}
-                      className={`group block w-full text-left rounded-xl ${focusRing}`}
+                  <button
+                    key={s.key}
+                    role="tab"
+                    aria-selected={active}
+                    aria-label={s.title}
+                    onClick={() => setShortcutIndex(i)}
+                    className="rounded-full transition-all"
+                    style={{
+                      minWidth: 0,
+                      minHeight: 0,
+                      padding: 0,
+                      height: 6,
+                      width: active ? 20 : 6,
+                      background: active ? '#C4B5FD' : 'rgba(189,180,214,0.3)',
+                    }}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ---------- Recomendações do Dia ---------- */}
+      <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-10 sm:pt-12 pb-14 sm:pb-16">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 style={{ ...PIXEL, color: PAPER }} className="text-3xl sm:text-4xl leading-tight">
+              {t('home.panels.dailyRecommendation')}
+            </h2>
+            <p className="mt-2 text-sm sm:text-base" style={{ color: MIST }}>
+              {t('home.desk.todaySubtitle')} {t('home.desk.todayRenews')} <ResetCountdown />
+            </p>
+          </div>
+          <button
+            onClick={() => setShowOracleInfo(true)}
+            aria-label={t('home.desk.todayHelp')}
+            title={t('home.desk.todayHelp')}
+            className={`shrink-0 rounded-full hover:bg-white/5 transition ${focusRing}`}
+            style={{ color: MIST }}
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
+        </div>
+
+        {picksLoading ? (
+          <div className="mt-6 grid gap-3 sm:gap-4 md:grid-cols-3" aria-hidden>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex gap-4 p-3 rounded-xl ring-1 ring-white/10" style={{ background: VELVET }}>
+                <div className="w-[84px] sm:w-[92px] aspect-[2/3] rounded-lg bg-white/10 animate-pulse" />
+                <div className="flex-1 space-y-2.5 pt-1">
+                  <div className="h-4 w-20 rounded bg-white/10 animate-pulse" />
+                  <div className="h-4 w-32 rounded bg-white/10 animate-pulse" />
+                  <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : picks.length > 0 ? (
+          <motion.ol
+            className="mt-6 grid gap-3 sm:gap-4 md:grid-cols-3"
+            variants={dealList}
+            initial="hidden"
+            animate={visible ? 'shown' : 'hidden'}
+          >
+            {picks.map((pick, i) => {
+              const oracle = ORACLE_BY_ID[pick.oracle];
+              const year = pick.movie.release_date?.slice(0, 4);
+              const score = formatScore(pick.movie.vote_average);
+              const inWatchlist = stats?.movieRatings.get(pick.movie.id) === null;
+              return (
+                <motion.li key={pick.oracle} custom={i} variants={dealCard}>
+                  <button
+                    onClick={() => onMovieClick(pick.movie)}
+                    className={`group w-full h-full flex justify-start items-stretch gap-4 p-3 text-left rounded-xl ring-1 ring-white/10 hover:ring-white/25 transition ${focusRing}`}
+                    style={{ background: VELVET }}
+                  >
+                    <span
+                      className="relative shrink-0 w-[84px] sm:w-[92px] aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/10"
+                      style={{ background: NIGHT, boxShadow: `0 14px 28px -16px ${oracle.color}` }}
                     >
-                      <div
-                        className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 transition-transform duration-200 group-hover:-translate-y-1"
-                        style={{ background: VELVET, boxShadow: `0 26px 50px -26px ${oracle.color}99` }}
-                      >
-                        {pick.movie.poster_path ? (
-                          <OptimizedPoster
-                            src={`https://image.tmdb.org/t/p/w500${pick.movie.poster_path}`}
-                            alt={pick.movie.title}
-                            className="absolute inset-0 w-full h-full object-cover"
-                            priority
-                          />
-                        ) : (
-                          <div className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
-                            <Film className="w-10 h-10" aria-hidden />
-                          </div>
-                        )}
-                        {pickBadge(pick.movie.id)}
-                        <span aria-hidden className="absolute inset-x-0 bottom-0 h-1" style={{ background: oracle.color }} />
-                      </div>
-                      <div className="mt-3.5 flex items-center gap-2">
+                      {pick.movie.poster_path ? (
+                        <OptimizedPoster
+                          src={`https://image.tmdb.org/t/p/w185${pick.movie.poster_path}`}
+                          alt={pick.movie.title}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          priority
+                        />
+                      ) : (
+                        <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
+                          <Film className="w-7 h-7" aria-hidden />
+                        </span>
+                      )}
+                      {pickBadge(pick.movie.id)}
+                      <span aria-hidden className="absolute inset-x-0 bottom-0 h-1" style={{ background: oracle.color }} />
+                    </span>
+                    <span className="min-w-0 flex-1 flex flex-col py-0.5">
+                      <span className="flex items-center gap-2">
                         <img
                           src={oracle.avatar}
                           alt=""
-                          width={28}
-                          height={28}
+                          width={22}
+                          height={22}
                           loading="lazy"
                           decoding="async"
-                          className="w-7 h-7 rounded-full object-cover"
+                          className="w-[22px] h-[22px] rounded-full object-cover"
                           style={{ boxShadow: `0 0 0 2px ${oracle.color}` }}
                         />
-                        <span style={{ ...PIXEL, color: oracle.color }} className="text-lg leading-none">{oracle.name}</span>
-                      </div>
-                      <p className="mt-2 font-semibold leading-snug line-clamp-2 group-hover:underline underline-offset-4" style={{ color: PAPER }}>
+                        <span style={{ ...PIXEL, color: oracle.color }} className="text-base leading-none">{oracle.name}</span>
+                      </span>
+                      <span className="mt-2 font-semibold leading-snug line-clamp-2 group-hover:underline underline-offset-4" style={{ color: PAPER }}>
                         {pick.movie.title}
-                      </p>
-                      <p className="mt-1 text-sm flex flex-wrap items-center gap-x-2" style={{ color: MIST }}>
+                      </span>
+                      <span className="mt-1 text-sm flex flex-wrap items-center gap-x-2" style={{ color: MIST }}>
                         {year && <span>{year}</span>}
                         {score && (
                           <span className="inline-flex items-center gap-1">
@@ -705,279 +777,61 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
                             {t('home.desk.publicScore', { score })}
                           </span>
                         )}
-                        {inWatchlist && <span>{t('home.desk.inWatchlist')}</span>}
-                      </p>
-                    </button>
-                  </motion.li>
-                );
-              })}
-            </motion.ol>
-          ) : (
-            <p className="mt-7 text-sm" style={{ color: MIST }}>{t('home.panels.noRecommendationToday')}</p>
-          )}
-
-          <Link
-            to="/oracle/libraries"
-            className={`mt-7 inline-flex items-center gap-2 text-sm font-semibold text-violet-200 hover:text-white transition rounded ${focusRing}`}
-          >
-            {t('home.desk.moreRecs')}
-            <ArrowRight className="w-4 h-4" aria-hidden />
-          </Link>
-        </div>
-
-        {/* Sua essência */}
-        <aside className={`lg:col-span-4 ${personality && !hasEssence ? 'lg:self-start' : ''}`}>
-          <div className="h-full rounded-2xl ring-1 ring-white/10 p-6 sm:p-7 flex flex-col" style={{ background: VELVET }}>
-            {personality === null ? (
-              <div className="space-y-3" aria-hidden>
-                <div className="h-4 w-24 rounded bg-white/10 animate-pulse" />
-                <div className="h-14 w-48 rounded bg-white/10 animate-pulse" />
-                <div className="h-24 rounded bg-white/10 animate-pulse" />
-              </div>
-            ) : hasEssence ? (
-              <>
-                <p className="text-sm" style={{ color: MIST }}>{t('home.desk.essenceLabel')}</p>
-                <div className="mt-3 flex items-center gap-4">
-                  <ArchetypeSymbol archetypeId={code.slice(0, 2)} subcategoryId={code.slice(2, 3)} size={56} animated={false} />
-                  <div className="min-w-0">
-                    <p style={{ ...PIXEL, color: PAPER }} className="text-3xl leading-none">{code}</p>
-                    <p className="mt-1.5 font-semibold leading-snug" style={{ color: PAPER }}>
-                      {essence!.personality_description || `${essence!.archetype_name} ${essence!.subcategory_name}`}
-                    </p>
-                  </div>
-                </div>
-                {essence!.archetype_description && (
-                  <p className="mt-4 text-sm leading-relaxed line-clamp-4" style={{ color: MIST }}>
-                    {essence!.archetype_description}
-                  </p>
-                )}
-
-                <h3 className="mt-6 text-sm font-semibold" style={{ color: PAPER }}>{t('oracle.architectureTitle')}</h3>
-                <ul className="mt-3 space-y-2.5">
-                  {SPECTRA.map((key) => {
-                    const value = personality.points[key];
-                    const isTop = topSpectra.has(key);
-                    const width = `${Math.max(0, value) / maxPoints * 100}%`;
-                    return (
-                      <li key={key} className="grid grid-cols-[6.25rem_1fr] items-center gap-3">
-                        <span className={`text-sm ${isTop ? 'font-semibold' : ''}`} style={{ color: isTop ? PAPER : MIST }}>
-                          {t(`oracle.spectrum.${key}`)}
-                        </span>
-                        <span className="h-2 rounded-full bg-white/[0.08] overflow-hidden" role="presentation">
-                          <span
-                            className="block h-full rounded-full"
-                            style={{
-                              width,
-                              background: isTop ? 'linear-gradient(90deg, #7c3aed, #c026d3)' : 'rgba(189,180,214,0.4)',
-                            }}
-                          />
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="mt-3 text-xs leading-relaxed" style={{ color: MIST }}>{t('home.desk.balancesHint')}</p>
-
-                {persona && (
-                  <button
-                    onClick={() => setShowPersona(true)}
-                    className={`mt-5 -mx-3 w-[calc(100%+1.5rem)] flex justify-start items-center gap-3 p-3 rounded-xl hover:bg-white/[0.05] text-left transition ${focusRing}`}
-                  >
-                    {persona.imageUrl ? (
-                      <img src={persona.imageUrl} alt="" loading="lazy" className="w-11 h-11 rounded-full object-cover object-top ring-1 ring-white/15" />
-                    ) : (
-                      <span className="w-11 h-11 rounded-full grid place-items-center ring-1 ring-white/15" style={{ ...PIXEL, color: PAPER }}>
-                        {persona.name.charAt(0)}
                       </span>
-                    )}
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-xs" style={{ color: MIST }}>{t('home.panels.yourPersona')}</span>
-                      <span className="block font-semibold truncate" style={{ color: PAPER }}>{persona.name}</span>
+                      {inWatchlist ? (
+                        <span className="mt-auto pt-2 text-xs" style={{ color: MIST }}>{t('home.desk.inWatchlist')}</span>
+                      ) : pick.movie.overview ? (
+                        <span className="mt-2 text-sm leading-snug line-clamp-2" style={{ color: MIST }}>{pick.movie.overview}</span>
+                      ) : null}
                     </span>
-                    <ArrowRight className="w-4 h-4 shrink-0" style={{ color: MIST }} aria-hidden />
                   </button>
-                )}
+                </motion.li>
+              );
+            })}
+          </motion.ol>
+        ) : (
+          <p className="mt-6 text-sm" style={{ color: MIST }}>{t('home.panels.noRecommendationToday')}</p>
+        )}
 
-                <Link
-                  to="/oracle"
-                  className={`mt-auto pt-6 block ${focusRing} rounded-xl`}
-                >
-                  <span className="flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition">
-                    {t('home.desk.openOracle')}
-                    <ArrowRight className="w-4 h-4" aria-hidden />
-                  </span>
-                </Link>
-              </>
-            ) : (
-              <>
-                {/* As três cartas na mesa, viradas pra cima, esperando o ritual */}
-                <div className="flex justify-center pt-2 pb-1" aria-hidden>
-                  {ORACLES.map((oracle, i) => (
-                    <img
-                      key={oracle.id}
-                      src={oracle.img}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="w-[27%] max-w-[92px] rounded-[4px] ring-1 ring-white/10 -mx-1.5"
-                      style={{
-                        transform: `rotate(${(i - 1) * 9}deg) translateY(${i === 1 ? '-6px' : '4px'})`,
-                        boxShadow: `0 16px 30px -14px ${oracle.color}aa`,
-                      }}
-                    />
-                  ))}
-                </div>
-                <h3 style={{ ...PIXEL, color: PAPER }} className="mt-7 text-2xl leading-tight">{t('home.desk.essenceEmptyTitle')}</h3>
-                <p className="mt-3 text-sm leading-relaxed" style={{ color: MIST }}>{t('home.desk.essenceEmptyDesc')}</p>
-                <Link to="/oracle" className={`mt-auto pt-6 block rounded-xl ${focusRing}`}>
-                  <span className="flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition">
-                    {t('oracle.discoverYourEssence')}
-                    <ArrowRight className="w-4 h-4" aria-hidden />
-                  </span>
-                </Link>
-              </>
-            )}
-          </div>
-        </aside>
+        <Link
+          to="/oracle/libraries"
+          className={`mt-6 inline-flex items-center gap-2 text-sm font-semibold text-violet-200 hover:text-white transition rounded ${focusRing}`}
+        >
+          {t('home.desk.moreRecs')}
+          <ArrowRight className="w-4 h-4" aria-hidden />
+        </Link>
       </section>
 
-      {/* ---------- Próximos passos ---------- */}
-      {stats && (
-        <section className="border-t border-white/[0.07]">
-          <ul className="mx-auto max-w-6xl px-5 sm:px-8 py-10 grid gap-x-8 gap-y-7 sm:grid-cols-2 xl:grid-cols-4">
-            <li>
-              <div className="flex gap-4">
-                <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center text-xl ring-1 ring-white/10" style={{ background: VELVET }} aria-hidden>
-                  {stats.nextTag?.emoji ?? '🏆'}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs" style={{ color: MIST }}>{t('home.panels.nextTag')}</p>
-                  {stats.nextTag ? (
-                    <>
-                      <p className="font-semibold truncate" style={{ color: PAPER }}>{stats.nextTag.name}</p>
-                      <p className="mt-0.5 text-sm" style={{ color: MIST }}>{isPt ? stats.nextTag.hintPt : stats.nextTag.hint}</p>
-                      <div className="mt-2.5 flex items-center gap-2.5">
-                        <span className="flex-1 h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
-                          <span
-                            className="block h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
-                            style={{ width: `${Math.min(100, (stats.nextTag.current / stats.nextTag.target) * 100)}%` }}
-                          />
-                        </span>
-                        <span className="text-xs tabular-nums" style={{ color: MIST }}>
-                          {t('home.desk.tagProgress', { current: stats.nextTag.current, target: stats.nextTag.target })}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="font-semibold" style={{ color: PAPER }}>{t('home.panels.allTagsUnlocked')}</p>
-                  )}
-                </div>
+      {/* ---------- Modais ---------- */}
+      <WhispersModal isOpen={showWhispers} onClose={() => setShowWhispers(false)} userId={userId} />
+      <MonthlyInsightsModal isOpen={showInsights} onClose={() => setShowInsights(false)} userId={userId} />
+
+      <OracleSheet open={showOracleInfo} onClose={() => setShowOracleInfo(false)} title={t('oracle.cards.infoTitle')} size="lg">
+        <ul className="space-y-7">
+          {ORACLES.map((oracle) => (
+            <li key={oracle.id} className="flex gap-5">
+              <img
+                src={oracle.img}
+                alt=""
+                loading="lazy"
+                className="w-20 sm:w-24 shrink-0 self-start rounded-[4px] ring-1 ring-white/10"
+                style={{ boxShadow: `0 16px 32px -16px ${oracle.color}99` }}
+              />
+              <div className="min-w-0">
+                <p style={{ ...PIXEL, color: oracle.color }} className="text-2xl leading-none">{oracle.name}</p>
+                <p className="mt-2 font-semibold" style={{ color: PAPER }}>
+                  {t(`oracle.cards.${oracle.id}`)} · {t(`oracle.cards.${oracle.id}Subtitle`)}
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed" style={{ color: MIST }}>{t(`oracle.cards.${oracle.id}Desc`)}</p>
+                <p className="mt-2 text-sm leading-relaxed" style={{ color: PAPER }}>{t(`oracle.cards.${oracle.id}Rec`)}</p>
               </div>
             </li>
-
-            {stats.watchlist >= 4 && (
-              <li>
-                <Link to="/library" state={{ openWatchlistDuel: true }} className={`group flex justify-start items-start gap-4 rounded-xl text-left ${focusRing}`}>
-                  <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center ring-1 ring-white/10 text-violet-200" style={{ background: VELVET }} aria-hidden>
-                    <Swords className="w-5 h-5" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block font-semibold group-hover:underline underline-offset-4" style={{ color: PAPER }}>{t('home.panels.watchlistDuel')}</span>
-                    <span className="block mt-0.5 text-sm leading-relaxed" style={{ color: MIST }}>{t('home.panels.watchlistDuelHint')}</span>
-                  </span>
-                </Link>
-              </li>
-            )}
-
-            {stats.lists.length > 0 && (
-              <li>
-                <Link to="/lists" className={`group flex justify-start items-start gap-4 rounded-xl text-left ${focusRing}`}>
-                  <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center ring-1 ring-white/10 text-violet-200" style={{ background: VELVET }} aria-hidden>
-                    <ListVideo className="w-5 h-5" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block font-semibold group-hover:underline underline-offset-4" style={{ color: PAPER }}>{t('home.panels.yourLists')}</span>
-                    <span className="block mt-0.5 text-sm leading-relaxed line-clamp-2" style={{ color: MIST }}>
-                      {stats.lists.map((list) => list.name).join(' · ')}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            )}
-
-            <li>
-              <Link to="/community" className={`group flex justify-start items-start gap-4 rounded-xl text-left ${focusRing}`}>
-                <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center ring-1 ring-white/10 text-violet-200" style={{ background: VELVET }} aria-hidden>
-                  <Users className="w-5 h-5" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block font-semibold group-hover:underline underline-offset-4" style={{ color: PAPER }}>
-                    {stats.friends > 0 ? t('home.panels.matchWithFriends') : t('home.panels.openCommunity')}
-                  </span>
-                  <span className="block mt-0.5 text-sm leading-relaxed" style={{ color: MIST }}>
-                    {stats.friends > 0 ? t('home.panels.matchWithFriendsHint') : t('home.desk.findFriendsHint')}
-                  </span>
-                </span>
-              </Link>
-            </li>
-          </ul>
-        </section>
-      )}
-
-      {/* ---------- Modais ---------- */}
-      {showWhispers && (
-        <WhispersModal isOpen onClose={() => setShowWhispers(false)} userId={userId} />
-      )}
-
-      {showInsights && (
-        <MonthlyInsightsModal isOpen onClose={() => setShowInsights(false)} userId={userId} />
-      )}
-
-      {showOracleInfo && (
-        <Sheet title={t('oracle.cards.infoTitle')} onClose={() => setShowOracleInfo(false)} wide>
-          <ul className="space-y-7">
-            {ORACLES.map((oracle) => (
-              <li key={oracle.id} className="flex gap-5">
-                <img
-                  src={oracle.img}
-                  alt=""
-                  loading="lazy"
-                  className="w-20 sm:w-24 shrink-0 self-start rounded-[4px] ring-1 ring-white/10"
-                  style={{ boxShadow: `0 16px 32px -16px ${oracle.color}99` }}
-                />
-                <div className="min-w-0">
-                  <p style={{ ...PIXEL, color: oracle.color }} className="text-2xl leading-none">{oracle.name}</p>
-                  <p className="mt-2 font-semibold" style={{ color: PAPER }}>
-                    {t(`oracle.cards.${oracle.id}`)} · {t(`oracle.cards.${oracle.id}Subtitle`)}
-                  </p>
-                  <p className="mt-1.5 text-sm leading-relaxed" style={{ color: MIST }}>{t(`oracle.cards.${oracle.id}Desc`)}</p>
-                  <p className="mt-2 text-sm leading-relaxed" style={{ color: PAPER }}>{t(`oracle.cards.${oracle.id}Rec`)}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-7 pt-5 border-t border-white/[0.07] text-sm leading-relaxed" style={{ color: MIST }}>
-            {t('home.desk.todayExplain')}
-          </p>
-        </Sheet>
-      )}
-
-      {showPersona && persona && (
-        <Sheet title={t('home.panels.yourPersona')} onClose={() => setShowPersona(false)}>
-          {persona.imageUrl && (
-            <div className="w-full aspect-[4/3] rounded-xl overflow-hidden ring-1 ring-white/10 mb-5">
-              <img src={persona.imageUrl} alt={persona.name} className="w-full h-full object-cover object-top" />
-            </div>
-          )}
-          <p className="text-sm" style={{ color: MIST }}>
-            {code} · {essence?.personality_description || `${essence?.archetype_name ?? ''} ${essence?.subcategory_name ?? ''}`}
-          </p>
-          <h3 style={{ ...PIXEL, color: PAPER }} className="mt-1 text-3xl leading-tight">{persona.name}</h3>
-          <p className="mt-3 text-sm leading-relaxed" style={{ color: MIST }}>
-            {isPt ? persona.descriptionPt : persona.descriptionEn}
-          </p>
-        </Sheet>
-      )}
+          ))}
+        </ul>
+        <p className="mt-7 pt-5 border-t border-white/[0.07] text-sm leading-relaxed" style={{ color: MIST }}>
+          {t('home.desk.todayExplain')}
+        </p>
+      </OracleSheet>
     </>
   );
 };
