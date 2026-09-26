@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
-import Logo from '../components/Logo';
+import { AuthShell, AuthHeading, AuthField, AuthError, AuthSubmit } from '../components/AuthUI';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -67,11 +67,25 @@ export default function ResetPassword() {
           console.log('Recovery session established successfully');
           setSessionEstablished(true);
         } else {
-          throw new Error('No recovery tokens found in URL');
+          // BUG corrigido: o cliente do Supabase é criado com o padrão
+          // detectSessionInUrl: true — ao iniciar, ele mesmo lê os tokens do
+          // #hash, cria a sessão de recuperação e LIMPA a URL. Como esta
+          // página é carregada sob demanda (lazy), ela quase sempre monta
+          // depois disso e não encontrava mais token nenhum: o usuário via
+          // "link inválido", ia pro /auth e, já logado pela sessão de
+          // recuperação, era jogado na home sem nunca trocar a senha.
+          // Agora, sem tokens na URL, conferimos se a sessão já existe.
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log('Recovery session already established by the Supabase client');
+            setSessionEstablished(true);
+          } else {
+            throw new Error('No recovery tokens found in URL');
+          }
         }
       } catch (error: any) {
         console.error('Error processing recovery tokens:', error);
-        toast.error(error.message || 'Invalid or expired recovery link');
+        toast.error(t('auth.toastRecoveryInvalid'));
         // Redirect to forgot password page
         navigate('/auth', { state: { recoveryFailed: true } });
       } finally {
@@ -90,12 +104,12 @@ export default function ResetPassword() {
     
     // Validate password
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError(t('auth.errPasswordLength'));
       return;
     }
     
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.errPasswordsMismatch'));
       return;
     }
     
@@ -103,16 +117,16 @@ export default function ResetPassword() {
     
     try {
       await updatePassword(password);
-      toast.success('Password updated successfully');
-      // Redirect to login page
+      // Sem toast aqui: o /auth já mostra "Senha atualizada" ao receber
+      // resetSuccess — antes apareciam dois avisos iguais em sequência.
       navigate('/auth', { state: { resetSuccess: true } });
     } catch (error: any) {
       console.error('Error updating password:', error);
-      setError(error.message || 'Failed to update password');
+      setError(error.message?.toLowerCase().includes('should be different') ? t('auth.errSamePassword') : t('auth.errGeneric'));
       
       // If session error, redirect to forgot password
       if (error.message?.includes('Auth session missing')) {
-        toast.error('Your recovery session has expired. Please request a new recovery link.');
+        toast.error(t('auth.toastRecoveryExpired'));
         navigate('/auth', { state: { recoveryFailed: true } });
       }
     } finally {
@@ -125,95 +139,51 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg">
-        <div className="flex flex-col items-center">
-          <Logo size="large" className="mb-4" />
-          <h2 className="text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Reset Your Password
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Please enter your new password below
-          </p>
-        </div>
+    <AuthShell>
+      <AuthHeading title={t('auth.newPasswordHeading')} subtitle={t('auth.newPasswordSub')} />
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                New Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Enter new password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isSubmitting || !sessionEstablished}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Confirm New Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Confirm new password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isSubmitting || !sessionEstablished}
-                />
-              </div>
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md px-4 py-3">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            </div>
-          )}
-
-          {sessionEstablished ? (
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? (
-                <div className="flex items-center">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Updating password...
-                </div>
-              ) : (
-                'Update Password'
-              )}
-            </button>
-          ) : (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md px-4 py-3">
-              <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                Recovery session could not be established. Please request a new password reset link.
-              </p>
-            </div>
-          )}
+      {sessionEstablished ? (
+        <form className="mt-7 space-y-5" onSubmit={handleSubmit} noValidate>
+          <AuthField
+            id="password"
+            type="password"
+            label={t('auth.newPassword')}
+            icon={Lock}
+            value={password}
+            onChange={setPassword}
+            placeholder={t('auth.newPasswordPlaceholder')}
+            autoComplete="new-password"
+            helper={t('auth.passwordHelp')}
+            minLength={6}
+            disabled={isSubmitting}
+          />
+          <AuthField
+            id="confirmPassword"
+            type="password"
+            label={t('auth.confirmNewPassword')}
+            icon={Lock}
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            placeholder={t('auth.confirmNewPasswordPlaceholder')}
+            autoComplete="new-password"
+            minLength={6}
+            disabled={isSubmitting}
+          />
+          {error && <AuthError message={error} />}
+          <AuthSubmit label={t('auth.savePassword')} loadingLabel={t('auth.savingPassword')} loading={isSubmitting} />
         </form>
-      </div>
-    </div>
+      ) : (
+        <div className="mt-7 space-y-5">
+          <AuthError message={t('auth.recoveryFailed')} />
+          <button
+            type="button"
+            onClick={() => navigate('/auth', { state: { recoveryFailed: true } })}
+            className="w-full h-12 rounded-xl text-base font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
+          >
+            {t('auth.requestNewLink')}
+          </button>
+        </div>
+      )}
+    </AuthShell>
   );
 }
