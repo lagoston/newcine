@@ -7,7 +7,7 @@ import { Movie } from '../lib/tmdb';
 import OptimizedPoster from './OptimizedPoster';
 import GlassLoader from './GlassLoader';
 import OracleCardFan from './OracleCardFan';
-import { NIGHT_BACKGROUND, VELVET, PAPER, INK, MIST, PIXEL, ORACLES } from '../lib/oracleTheme';
+import { VELVET, PAPER, INK, MIST, PIXEL, ORACLES } from '../lib/oracleTheme';
 
 // Home de quem ainda não tem conta — o "cartão de visitas" do CineOracle.
 // Toda a identidade sai das cartas dos oráculos (arte própria do app, em
@@ -193,10 +193,7 @@ const GuestLanding: React.FC<GuestLandingProps> = ({ movies, loading, onMovieCli
   ];
 
   return (
-    <div
-      className="relative min-h-screen overflow-x-hidden"
-      style={{ background: NIGHT_BACKGROUND }}
-    >
+    <div className="relative min-h-screen overflow-x-hidden">
       {/* ---------- Herói ---------- */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10 lg:pt-14 pb-16 sm:pb-20 lg:pb-24 grid lg:grid-cols-12 items-center gap-8 lg:gap-6">
         <div className="order-2 lg:order-1 lg:col-span-6">
