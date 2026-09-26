@@ -55,7 +55,7 @@ const SITE_ICON_URL = '/assets/Symbal512.webp';
 // brilho violeta, títulos em Pixelify Sans, texto em papel/névoa.
 // ============================================================
 
-const PIXEL_FONT = '"Pixelify Sans", ui-monospace, monospace';
+const PIXEL_FONT = '"CineOracle Five", "Pixelify Sans", ui-monospace, monospace';
 const SANS_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
 const C_PAPER = '#F3EAD3';
 const C_MIST = '#BDB4D6';
@@ -194,10 +194,11 @@ async function generateShareImage(data: MonthlyData, profile: ProfileInfo, copy:
   if (!ctx) throw new Error('Canvas context unavailable');
 
   // A Pixelify já está carregada na página; isto garante que o canvas a use.
+  // O texto de exemplo inclui o "5" pra baixar também a fonte do 5 redesenhado.
   try {
     await Promise.all([
-      document.fonts.load(`400 40px ${PIXEL_FONT}`),
-      document.fonts.load(`600 80px ${PIXEL_FONT}`),
+      document.fonts.load(`400 40px ${PIXEL_FONT}`, 'Aa5'),
+      document.fonts.load(`600 80px ${PIXEL_FONT}`, 'Aa5'),
     ]);
   } catch {
     // sem a fonte, cai no monoespaçado — a imagem continua legível
