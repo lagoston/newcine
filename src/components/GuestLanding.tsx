@@ -1,11 +1,13 @@
 import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Star, Users, Wand2, Clapperboard } from 'lucide-react';
 import { Movie } from '../lib/tmdb';
 import OptimizedPoster from './OptimizedPoster';
 import GlassLoader from './GlassLoader';
+import OracleCardFan from './OracleCardFan';
+import { NIGHT_BACKGROUND, VELVET, PAPER, INK, MIST, PIXEL, ORACLES } from '../lib/oracleTheme';
 
 // Home de quem ainda não tem conta — o "cartão de visitas" do CineOracle.
 // Toda a identidade sai das cartas dos oráculos (arte própria do app, em
@@ -13,86 +15,6 @@ import GlassLoader from './GlassLoader';
 // uma fonte pixelada que ecoa o letreiro das cartas, e cada oráculo tem
 // a sua cor (sapo, raposa, cobra) usada como informação, não enfeite.
 // Um único momento animado: as cartas se abrem em leque ao carregar.
-
-const NIGHT = '#120D22';
-const VELVET = '#1C1433';
-const PAPER = '#F3EAD3';
-const INK = '#221B36';
-const MIST = '#BDB4D6';
-
-// Pixelify Sans é carregada no index.html; o fallback monoespaçado mantém
-// o ar "blocado" enquanto a fonte não chega. Ligaduras desligadas: a
-// ligadura "fi" dessa fonte faz "filme" ser lido como "Alme".
-const PIXEL: React.CSSProperties = {
-  fontFamily: '"Pixelify Sans", ui-monospace, "SF Mono", Menlo, monospace',
-  fontVariantLigatures: 'none',
-  fontFeatureSettings: '"liga" 0, "clig" 0',
-};
-
-interface OracleCard {
-  id: 'bogart' | 'fincher' | 'cypher';
-  name: string;
-  img: string;
-  altImg: string;
-  color: string;
-}
-
-const ORACLES: OracleCard[] = [
-  { id: 'bogart', name: 'Bogart', img: '/assets/BOGART.webp', altImg: '/assets/BOGART2.webp', color: '#7BC25A' },
-  { id: 'fincher', name: 'Fincher', img: '/assets/FINCHER.webp', altImg: '/assets/FINCHER2.webp', color: '#EE7A3E' },
-  { id: 'cypher', name: 'Cypher', img: '/assets/CYPHER.webp', altImg: '/assets/CYPHER2.webp', color: '#E2C84A' },
-];
-
-// Posição final de cada carta no leque (esquerda, centro, direita).
-// x/y em % da largura/altura da própria carta, então o leque escala junto
-// com o tamanho da tela sem precisar de breakpoints.
-const FAN = [
-  { rotate: -13, x: '-58%', y: '5%' },
-  { rotate: 0, x: '0%', y: '0%' },
-  { rotate: 13, x: '58%', y: '5%' },
-];
-
-const CardFan: React.FC = () => {
-  const { t } = useTranslation();
-  const reduceMotion = useReducedMotion();
-
-  return (
-    <div
-      className="relative mx-auto w-full max-w-[540px] lg:max-w-none aspect-[4/3]"
-      role="img"
-      aria-label={t('guestHome.cardsAlt')}
-    >
-      {/* Luz da lua — o arco-íris do topo das cartas, como um halo atrás da mão */}
-      <div
-        aria-hidden
-        className="absolute left-1/2 top-[2%] -translate-x-1/2 w-[78%] aspect-square rounded-full blur-3xl opacity-70 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(67,211,195,0.30) 0%, rgba(139,92,246,0.28) 42%, transparent 70%)' }}
-      />
-      {ORACLES.map((oracle, i) => (
-        <motion.img
-          key={oracle.id}
-          src={oracle.img}
-          alt=""
-          width={1696}
-          height={2528}
-          draggable={false}
-          decoding="async"
-          className="absolute bottom-[4%] left-1/2 w-[35%] -ml-[17.5%] lg:w-[39%] lg:-ml-[19.5%] rounded-[6px] select-none cursor-pointer"
-          style={{
-            transformOrigin: '50% 100%',
-            zIndex: i === 1 ? 3 : i === 2 ? 2 : 1,
-            boxShadow: '0 28px 60px -18px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.06)',
-          }}
-          initial={reduceMotion ? false : { x: '0%', y: '14%', rotate: 0, opacity: 0 }}
-          animate={{ x: FAN[i].x, y: FAN[i].y, rotate: FAN[i].rotate, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 110, damping: 15, delay: reduceMotion ? 0 : 0.2 + i * 0.12 }}
-          whileHover={{ y: '-7%', rotate: FAN[i].rotate * 0.4, zIndex: 5 }}
-          whileTap={{ y: '-7%', rotate: FAN[i].rotate * 0.4, zIndex: 5 }}
-        />
-      ))}
-    </div>
-  );
-};
 
 interface GuestLandingProps {
   movies: Movie[];
@@ -273,7 +195,7 @@ const GuestLanding: React.FC<GuestLandingProps> = ({ movies, loading, onMovieCli
   return (
     <div
       className="relative min-h-screen overflow-x-hidden"
-      style={{ background: `radial-gradient(ellipse 80% 50% at 75% 0%, rgba(139,92,246,0.16), transparent 60%), ${NIGHT}` }}
+      style={{ background: NIGHT_BACKGROUND }}
     >
       {/* ---------- Herói ---------- */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10 lg:pt-14 pb-16 sm:pb-20 lg:pb-24 grid lg:grid-cols-12 items-center gap-8 lg:gap-6">
@@ -300,7 +222,7 @@ const GuestLanding: React.FC<GuestLandingProps> = ({ movies, loading, onMovieCli
           <p className="mt-4 text-sm" style={{ color: MIST }}>{t('guestHome.ctaNote')}</p>
         </div>
         <div className="order-1 lg:order-2 lg:col-span-6">
-          <CardFan />
+          <OracleCardFan />
         </div>
       </section>
 
