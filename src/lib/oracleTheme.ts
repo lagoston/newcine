@@ -33,11 +33,18 @@ export interface OracleCard {
   name: string;
   img: string;     // carta pixel art (creme)
   altImg: string;  // carta estilo Yu-Gi-Oh
+  avatar: string;  // retrato redondo do bicho (sapo, raposa, cobra)
   color: string;   // cor do bicho, usada como informação (nome, brilho)
 }
 
 export const ORACLES: OracleCard[] = [
-  { id: 'bogart', name: 'Bogart', img: '/assets/BOGART.webp', altImg: '/assets/BOGART2.webp', color: '#7BC25A' },
-  { id: 'fincher', name: 'Fincher', img: '/assets/FINCHER.webp', altImg: '/assets/FINCHER2.webp', color: '#EE7A3E' },
-  { id: 'cypher', name: 'Cypher', img: '/assets/CYPHER.webp', altImg: '/assets/CYPHER2.webp', color: '#E2C84A' },
+  { id: 'bogart', name: 'Bogart', img: '/assets/BOGART.webp', altImg: '/assets/BOGART2.webp', avatar: '/avatar-sapo.webp', color: '#7BC25A' },
+  { id: 'fincher', name: 'Fincher', img: '/assets/FINCHER.webp', altImg: '/assets/FINCHER2.webp', avatar: '/avatar-raposa.webp', color: '#EE7A3E' },
+  { id: 'cypher', name: 'Cypher', img: '/assets/CYPHER.webp', altImg: '/assets/CYPHER2.webp', avatar: '/avatar-cobra.webp', color: '#E2C84A' },
 ];
+
+export const ORACLE_BY_ID: Record<OracleId, OracleCard> = {
+  bogart: ORACLES[0],
+  fincher: ORACLES[1],
+  cypher: ORACLES[2],
+};
