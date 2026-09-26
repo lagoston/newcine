@@ -2,6 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/* "5" redesenhado da Pixelify Sans.
+   Na Pixelify o 5 é desenhado igual à letra S (topo arredondado + espinha
+   diagonal) e, em tamanho pequeno, parece um 8. Estas quatro fontes mínimas
+   (uma por peso, ~700 bytes cada) contêm SÓ o glifo 5, redesenhado no mesmo
+   grid de pixels e nas mesmas espessuras da Pixelify, com o canto superior
+   esquerdo vivo. O unicode-range faz o navegador usar esta fonte apenas para o
+   caractere "5"; todo o resto continua vindo da Pixelify Sans. A família vem
+   antes da Pixelify no PIXEL (src/lib/oracleTheme.ts).
+   Derivado da Pixelify Sans (Copyright 2021 The Pixelify Sans Project Authors),
+   licença SIL Open Font License 1.1 — https://scripts.sil.org/OFL */
+@layer base {
+  @font-face {
+    font-family: 'CineOracle Five';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url(data:font/woff2;base64,d09GMgABAAAAAAJwAA8AAAAABZQAAAIaAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGyAcKgZgP1NUQVQuADQRCApsbAE2AiQDCAsGAAQgBYRgByAMBxuIBBFVlLEQPw9sG212S8l80VL+13Iptx8Pz6+D79w38wk1MFKMYAeUhaZdhwLP4bZeUrmIWfpPnswyMsPGBAuAJGNDnroJ+G8vMHZKia99HniASyDRB8yzwKZIZgWEAVN2uSYJ7zhvzELZpgJl1ddQDBw8cpTScigKQKCsllpLFLuKi6avWqI2cR3kqUUcU4L0MB3AIdcmPuvqb6BQ8Z3jm3qqhx7Z8f9/lZ2MJgiI5+khGsuEUFqgukB9ae3ceasCkgwpIo6RHoKEDNVlAtXlGiOXC/QoCv3o4kWAEEWhEkggR4b6aALIQRJ5Xn10qQolZ1QoUX5iBeWjrHIqRLkoG+WjQpSfeaT9b+2PajejnX7ZwoslJ86ePXFC3QmTnk4aX/lCs98CgaDluc9MrdT/t9JZ9it810h2hp8/b9usf7E8jU9nUFICwbqK9IgADZgKKKUknpWG698k1Yt7sFTWFpnIy+CmkIaGbtKkonc0M8k3mmsZ/WkJdWMGLal5bCIV9YzzjqB8fIrj2L9acODdLBmhGqIgCuFDETzYhGqGZ3inrYKH5CXKNex6TblUYFCtO7XxfcI07TMv542PGEZ68psC99nNA2vRXaZ5jeDMBvRCpK9TSffkDbtJEGwbXjDMUAFY8ub6Y0ZJoYH8Q1LN8RZCLzCjx+te33Uql6zTylOs9rgk/v18+aMnrddwK26J2nej2H01PwwA) format('woff2');
+    unicode-range: U+0035;
+  }
+  @font-face {
+    font-family: 'CineOracle Five';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url(data:font/woff2;base64,d09GMgABAAAAAAKcAA8AAAAABbAAAAJEAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGyAcKgZgP1NUQVQqADQRCApobAE2AiQDCAsGAAQgBYUEByAMBxuoBCAeBW5sDfVLWMvoMq/Y+uLh+XX/v/aZee+LSWIl2YQQxfyd2MQu3PufG2IJKvHeGnjmkUlqafLlNr9/QyK5kQmFCsXw7huQTQhq8hbQHpvAfuWJb33PeeAB9gMnOMA8C6zzQDIrIAyY0rmNQiKc4biCGIqnCpRWQy0xYNB8X2jIoVAABEprpIlE8WsumMpxoU08BnlqHl8VkW6nfTgQ+sQL7fwGEiq+c3zDwkdHHd+x/5/JTkRdBMS9dBt1ZEIoKVBVoIa0erbmIiQBkeIrSMhQVSZQVa4OcrlAxyvYRxceCRCiUFABJJAjQw3UBeQgiTyvOrJernhauaKyo8spHaWVUS7KROkoG+Wi7PRDrXd0OLKGW7qvPvl73KLserHG3r7jT80Tc7MfEAgG/feXya0e3xpZ9hne1KYxfHyxZWNhekvTtHQOxRIIRlWkOwSs54oihClJZ8wQ0yapurkHe2UdkYm8FC6z5KGWyzwp7zHPTPDnuUb14EWqNY0Xa9AGXl6nzi0rHssqKRvPyyDgbZWk/ur+EqkXghSNgXbaaKetOkbQBDAEehJCSHoBw9liBhiCJHyCi4G+ckxLEAM0MQdjKWOitdZmQ0zLOYamS0RGZkKSwJ5GRdHg2Tv6QzFhhdhcIQEMgu6ELUHJhWxEt/qGBzpqo43uFkp4kIQED5iFJKLrj2klhQL6KAIxW4kYaKuVNm50e93ju2Y5F0EpZgwth0JDixFlZLCZuQXBg3KRE/G8dRlMhSvaaV+vsPN8fhAAAAA=) format('woff2');
+    unicode-range: U+0035;
+  }
+  @font-face {
+    font-family: 'CineOracle Five';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url(data:font/woff2;base64,d09GMgABAAAAAAKAAA8AAAAABbQAAAIpAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGyAcKgZgP1NUQVQqADQRCApobAE2AiQDCAsGAAQgBYUIByAMBxusBBFVlLUQPw/sho8vjFA0ygHqpEXQ0rzOff/x8P/749vnvvfJIeM4/d8GihASxMSkNsmNq0NM04T+l8NtvDXnQJnIMShWRLrwkFL6eFsATN4C3GwCz6828b73PPAA+4ETHGCeBdZ5IJkVEAZM2eWaJLzjvDELZacKlGqrvRg4eOQoxXL4DxAo1V1PieJWuWj60iVaEo9BnnqncQpIl9Ju7HVd4oU+fgGFiu8c39A1/fXPjvz7LDsWnRAQN9IldJQJoVigXqCttGLuvKUBSUBkaRxIyFAvE6iX64hcLtD/P/3o/9cDhPhPFUggR4a26ATIQRJ5Xj+6qKpwRkVB+dgKpVGqTEWURWmUR0WUz9zXu7D3Add6UGtNv2bt/vL168aP6TlmwoMJn7Jds9c9AwLB0NMHs6lVTV+Ls+wzvOlQL/j4YuM6zf9LC9IpFEogWFWRbhKg5hUBYUriWWm05iapL+7BXrlDmchLcEFIQ3sXaFLpLs1M8prmukcTLdA6ZtBCXWMtrTQgji+rjyU1quOhEZTHxzqy1F8t2lH51yikhdFgNISXZHDDH8uQ/+EZFAZumhIWWdg4K0kbaEhrS7Pq9wVa6cJeRHmfIWf2128Kus/e3GHBrjqIMgZH9OzBhMsCTffkDXdng8E6pxg5shi4pvz6Y0ZJoYH8YdpsUQHD3sCMHq97fdeZSGNpTc9g1iMt+tfj6cly3FIWf9kT13XYXDRqP2w7kw8AAA==) format('woff2');
+    unicode-range: U+0035;
+  }
+  @font-face {
+    font-family: 'CineOracle Five';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url(data:font/woff2;base64,d09GMgABAAAAAAKgAA8AAAAABYgAAAJIAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGyAcKgZgP1NUQVQqADQRCApobAE2AiQDCAsGAAQgBYRaByAMBxt+BEA+DHCHseJeEMU0iSYDW5LH3NPq/lgxOkyl+61HqOQE1X6fPfv2EBShJnSkzkEAWcWHberKxxMZAaSIhIn+V2tDLJFJzEbEPJnllzNsX7Q1SqAlUqQBHiKqpN8iL2HsbsskcIwg07Tvf7nawn0AY5XFKSdBYqnkLaIfSO5PGqzwqZvnP+0FvjGVEl/7PPAuoCWQ6AN1eUKTUiogDJjSWz0U35VkcK4irE0FqnVICy4ur6xJyFACEKg2JCPEEEue2HvhlBRvHnKaSq+U4Vu9jpsmEp+N+gMLJZvj231MaK67/yk20isgIN519AgLoVKgVRAdQpcPH7kQkPgg70NCgVZhgVYRPQKyLDAx5KPnChCihCCBjAIdAnoFQAZJ5Ny6TkP5vrqy2s11qqNajbqoieqojbqo3X+L43c0GYNX/0dzrYfX/7qrruy7NhAIVvf94vx/hot/8F0pwJ9bDKfQ+XRPKJdAcKk8fcpTw6kgFFKOH+h2wzppre3BWrWrwiJX4RGRHLp85aTSW7mww0/OhjIpl2nLDrncQC5J9SazYQtq43WUu/7VC5DGZxAYzgJqKmqqwBlHgD3BQzwJlA+cSN5MYM+A7giFBUzZLBwymEAGZ7FoTD1lZYxg4WyyEgV6KSMEirB4yjNJ8amz5oQ3YscgUTwRYEVwEDPoSeW5+oaL2ioq+l6QSqAEQgUoA3q9e8wOCfTXXxEGcwm9gaqSitHbdd/tOpPCIGgsphKT8FSCDEzZzsraDfnLKgxOpRvVfJbSDm4BAAAA) format('woff2');
+    unicode-range: U+0035;
+  }
+}
+
 /* Base styles */
 @layer base {
   html {
