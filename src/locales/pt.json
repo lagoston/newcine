@@ -240,7 +240,10 @@
       "tagProgress": "{{current}} de {{target}}",
       "findFriendsHint": "Adicione amigos para ver as notas deles nos pôsteres e fazer match de filmes.",
       "shortcutsLabel": "Atalhos",
-      "allTagsHint": "Você já tem todas as tags disponíveis."
+      "allTagsHint": "Você já tem todas as tags disponíveis.",
+      "navLibraryHint": "Avaliações, listas e watchlist",
+      "navOracleHint": "Previsões e sua essência",
+      "navProfileHint": "Tags, amigos e estatísticas"
     }
   },
   "compatibility": {
