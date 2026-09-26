@@ -1,46 +1,39 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
-import { Link, useNavigate } from 'react-router-dom';
-import { Library as LibraryIcon, Lock, Star, Film, Clock, Sparkles, RefreshCw, X, HelpCircle, Swords, Eye, Users, ChevronRight, MessageCircle, BarChart3 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { BarChart3, MessageCircle, HelpCircle, Wand2, Star, X, Swords, ListVideo, Users, ArrowRight, Film } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../lib/auth';
 import { useWhispers } from '../contexts/WhispersContext';
 import { getMovieDetails, Movie } from '../lib/tmdb';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from './GhostRiderFrame';
 import OptimizedPoster from './OptimizedPoster';
-import MovieDetailsModal from './MovieDetailsModal';
 import ArchetypeSymbol from './ArchetypeSymbol';
 import { PERSONAS_MAP } from './CinematicPersonaCard';
 import WhispersModal from './WhispersModal';
 import MonthlyInsightsModal from './MonthlyInsightsModal';
+import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, ORACLES, ORACLE_BY_ID, OracleId } from '../lib/oracleTheme';
 
-interface LockedTag {
-  name: string;
-  emoji: string;
-  hint: string;
-  hintPt: string;
-}
+// Topo da home de quem está logado — "a mesa do oráculo".
+// Três blocos, sem rotação automática escondendo informação:
+//   1. Cabeçalho: saudação, números da conta e os dois atalhos pessoais
+//      (Insights do mês e Sussurros).
+//   2. "Na mesa hoje": as três cartas do dia, uma por oráculo, lado a lado,
+//      com a nota prevista (ou a sua nota, se já avaliou). É o único momento
+//      animado da página: as cartas são "distribuídas" na mesa ao abrir.
+//   3. "Sua essência": arquétipo, as cinco balanças da Arquitetura da Alma
+//      e a persona. Abaixo, os próximos passos (próxima tag com progresso,
+//      duelo da watchlist, listas, amigos).
 
-interface UserPersonality {
-  subcategoria_id: string | null;
-  personalidade_completa: string | null;
-  arquetipo_primario: string | null;
-  arquetipo_secundario: string | null;
-}
+// ---------------------------------------------------------------------------
+// Tags — mesmas regras de antes; agora cada candidata carrega o progresso.
+// ---------------------------------------------------------------------------
 
-interface ArchetypeInfo {
-  archetype_name: string;
-  subcategory_name: string;
-  description: string;
-  archetype_description: string;
-  subcategory_description: string;
-}
+type Tier = { name: string; emoji: string; min: number; hint: string; hintPt: string };
 
-const PROGRESSION_TIERS = [
+const PROGRESSION_TIERS: Tier[] = [
   { name: 'Balcony Regular', emoji: '🎫', min: 1, hint: '1 movie in library', hintPt: '1 filme na biblioteca' },
   { name: 'Seat Warmer', emoji: '💺', min: 20, hint: '20 movies in library', hintPt: '20 filmes na biblioteca' },
   { name: 'Popcorn Pro', emoji: '🍿', min: 50, hint: '50 movies in library', hintPt: '50 filmes na biblioteca' },
@@ -50,7 +43,7 @@ const PROGRESSION_TIERS = [
   { name: 'Cinematic Guru', emoji: '🎭', min: 1000, hint: '1000 movies in library', hintPt: '1000 filmes na biblioteca' },
 ];
 
-const ORACLE_PRED_TIERS = [
+const ORACLE_PRED_TIERS: Tier[] = [
   { name: 'Curious Seeker', emoji: '🔍', min: 10, hint: '10 Oracle predictions', hintPt: '10 previsões no Oráculo' },
   { name: 'Pattern Hunter', emoji: '🧩', min: 25, hint: '25 Oracle predictions', hintPt: '25 previsões no Oráculo' },
   { name: 'Mind Decoder', emoji: '🧠', min: 50, hint: '50 Oracle predictions', hintPt: '50 previsões no Oráculo' },
@@ -60,7 +53,7 @@ const ORACLE_PRED_TIERS = [
   { name: 'Timeline Overlord', emoji: '⛓️', min: 1000, hint: '1000 Oracle predictions', hintPt: '1000 previsões no Oráculo' },
 ];
 
-const ORACLE_REC_TIERS = [
+const ORACLE_REC_TIERS: Tier[] = [
   { name: 'Popcorn Taster', emoji: '🌽', min: 10, hint: '10 Oracle recommendations', hintPt: '10 recomendações do Oráculo' },
   { name: 'Hidden Gem Hunter', emoji: '🔶', min: 25, hint: '25 Oracle recommendations', hintPt: '25 recomendações do Oráculo' },
   { name: 'Genre Explorer', emoji: '🗺️', min: 50, hint: '50 Oracle recommendations', hintPt: '50 recomendações do Oráculo' },
@@ -70,7 +63,7 @@ const ORACLE_REC_TIERS = [
   { name: 'Multiverse Sommelier', emoji: '🎎', min: 1000, hint: '1000 Oracle recommendations', hintPt: '1000 recomendações do Oráculo' },
 ];
 
-const COMMUNITY_TIERS = [
+const COMMUNITY_TIERS: Tier[] = [
   { name: 'Spotlight Spark', emoji: '✨', min: 1, hint: '1 friend', hintPt: '1 amigo' },
   { name: 'Rising Star', emoji: '🌠', min: 10, hint: '10 friends', hintPt: '10 amigos' },
   { name: 'Red-Carpet Regular', emoji: '👠', min: 25, hint: '25 friends', hintPt: '25 amigos' },
@@ -109,27 +102,55 @@ const THEME_TAGS = [
   { name: 'Primal Essence', emoji: '🦍', hint: 'Planet of the Apes reboot (4 films)', hintPt: 'Planeta dos Macacos reboot (4 filmes)', ids: [61791, 119450, 281338, 653346] },
 ];
 
-type Tier = { name: string; emoji: string; min: number; hint: string; hintPt: string };
+interface NextTag {
+  name: string;
+  emoji: string;
+  hint: string;
+  hintPt: string;
+  current: number;
+  target: number;
+}
 
-function getNextTierTag(count: number, tiers: Tier[], isPt: boolean): LockedTag | null {
-  const next = tiers.find(t => count < t.min);
+function tierCandidate(count: number, tiers: Tier[]): NextTag | null {
+  const next = tiers.find((tier) => count < tier.min);
   if (!next) return null;
-  return { name: next.name, emoji: next.emoji, hint: next.hint, hintPt: next.hintPt };
+  return { name: next.name, emoji: next.emoji, hint: next.hint, hintPt: next.hintPt, current: count, target: next.min };
 }
 
-function getLockedThemeTags(userMovieIds: Set<number>): LockedTag[] {
+function themeCandidates(libraryIds: Set<number>): NextTag[] {
   return THEME_TAGS
-    .filter(tag => !tag.ids.every(id => userMovieIds.has(id)))
-    .map(tag => ({ name: tag.name, emoji: tag.emoji, hint: tag.hint, hintPt: tag.hintPt }));
+    .filter((tag) => !tag.ids.every((id) => libraryIds.has(id)))
+    .map((tag) => ({
+      name: tag.name,
+      emoji: tag.emoji,
+      hint: tag.hint,
+      hintPt: tag.hintPt,
+      current: tag.ids.filter((id) => libraryIds.has(id)).length,
+      target: tag.ids.length,
+    }));
 }
 
-function getMidnightCountdown(): number {
+// "Próxima tag" = a que está mais perto de ser desbloqueada (maior fração
+// concluída; no empate, a que falta menos).
+function pickClosestTag(candidates: NextTag[]): NextTag | null {
+  if (candidates.length === 0) return null;
+  return [...candidates].sort((a, b) => {
+    const ratio = b.current / b.target - a.current / a.target;
+    if (Math.abs(ratio) > 1e-9) return ratio;
+    return (a.target - a.current) - (b.target - b.current);
+  })[0];
+}
+
+// ---------------------------------------------------------------------------
+// Relógio da troca das cartas (meia-noite de Brasília = 03:00 UTC). Isolado
+// num componente próprio: só ele re-renderiza a cada segundo.
+// ---------------------------------------------------------------------------
+
+function msUntilReset(): number {
   const now = new Date();
   const target = new Date(now);
   target.setUTCHours(3, 0, 0, 0);
-  if (now >= target) {
-    target.setUTCDate(target.getUTCDate() + 1);
-  }
+  if (now >= target) target.setUTCDate(target.getUTCDate() + 1);
   return Math.max(0, target.getTime() - now.getTime());
 }
 
@@ -138,1151 +159,824 @@ function formatCountdown(ms: number): string {
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
-  return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+  return [h, m, s].map((v) => String(v).padStart(2, '0')).join(':');
 }
 
-function getArchetypeColor(personalidade: string | null): string {
-  if (!personalidade) return '#3b82f6';
-  const third = personalidade.charAt(2);
-  const map: Record<string, string> = {
-    'A': '#fbbf24',
-    'B': '#64748b',
-    'K': '#ef4444',
-    'X': '#3b82f6',
-    'D': '#6b7280',
-    'L': '#10b981',
-  };
-  return map[third] || '#3b82f6';
+const ResetCountdown: React.FC = () => {
+  const [ms, setMs] = useState(msUntilReset);
+  useEffect(() => {
+    const id = setInterval(() => setMs(msUntilReset()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <time className="font-mono tabular-nums" style={{ color: PAPER }}>
+      {formatCountdown(ms)}
+    </time>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Modal base (portal no <body>, Esc fecha, trava o scroll do fundo)
+// ---------------------------------------------------------------------------
+
+const Sheet: React.FC<{ title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }> = ({ title, onClose, children, wide }) => {
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title}>
+      <motion.div
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        onClick={onClose}
+      />
+      <div className="relative flex min-h-full items-start sm:items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className={`relative w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded-2xl ring-1 ring-white/10 shadow-2xl overflow-hidden`}
+          style={{ background: NIGHT }}
+        >
+          <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-4 border-b border-white/[0.07]">
+            <h2 style={{ ...PIXEL, color: PAPER }} className="text-2xl leading-tight">{title}</h2>
+            <button
+              onClick={onClose}
+              aria-label={t('common.close')}
+              className="shrink-0 rounded-full hover:bg-white/10 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-fuchsia-300"
+              style={{ color: MIST }}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="px-6 py-6 max-h-[calc(100dvh-10rem)] overflow-y-auto">{children}</div>
+        </motion.div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Tipos de dados
+// ---------------------------------------------------------------------------
+
+interface AccountStats {
+  username: string;
+  avatarUrl: string | null;
+  avatarFrame: string | null;
+  avatarIsPremium: boolean;
+  rated: number;
+  watchlist: number;
+  friends: number;
+  lists: { id: string; name: string }[];
+  nextTag: NextTag | null;
+  // nota do usuário por id de filme (null = está na watchlist sem nota)
+  movieRatings: Map<number, number | null>;
 }
 
-type OracleId = 'bogart' | 'fincher' | 'cypher';
+interface Personality {
+  personalidade_completa: string | null;
+  arquetipo_primario: string | null;
+  arquetipo_secundario: string | null;
+  points: Record<'E' | 'I' | 'C' | 'S' | 'R', number>;
+}
 
-interface DailyRec {
+interface EssenceInfo {
+  archetype_name: string;
+  archetype_description: string;
+  subcategory_name: string;
+  personality_description: string | null;
+}
+
+interface DailyPick {
   oracle: OracleId;
   movie: Movie;
 }
 
-// Mesmas cores usadas no modal "Conheça os Oráculos" (OracleRecommend.tsx) —
-// identidade visual consistente de cada oráculo em todo o site.
-const ORACLE_SEAL: Record<OracleId, { emoji: string; bg: string; ring: string }> = {
-  bogart: { emoji: '🐸', bg: 'bg-emerald-500', ring: 'ring-emerald-300' },
-  fincher: { emoji: '🦊', bg: 'bg-red-500', ring: 'ring-red-300' },
-  cypher: { emoji: '🐍', bg: 'bg-yellow-500', ring: 'ring-yellow-300' }
-};
+const SPECTRA = ['E', 'I', 'C', 'S', 'R'] as const;
+
+const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300';
+
+// ---------------------------------------------------------------------------
+// Componente
+// ---------------------------------------------------------------------------
 
 interface Props {
   userId: string;
   username: string;
+  // A página só "acende" quando o topo está pronto — assim a home abre
+  // inteira de uma vez, sem blocos pulando.
+  visible?: boolean;
+  onReady?: () => void;
+  onMovieClick: (movie: Movie) => void;
 }
 
-const HomeUserPanels: React.FC<Props> = ({ userId, username }) => {
+const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onReady, onMovieClick }) => {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
-  const isPt = i18n.language.startsWith('pt');
-  const { session, isPremium } = useAuth();
- const { unreadCount: unreadWhispersHome, openWhispersTarget, clearOpenWhispersTarget } = useWhispers();
+  const lang = i18n.language.startsWith('pt') ? 'pt' : 'en';
+  const isPt = lang === 'pt';
+  const reduceMotion = useReducedMotion();
+  const { unreadCount: unreadWhispers, openWhispersTarget, clearOpenWhispersTarget } = useWhispers();
 
- const [showHomeWhispersModal, setShowHomeWhispersModal] = useState(false);
- const [showInsightsModal, setShowInsightsModal] = useState(false);
- const [insightsIsNew, setInsightsIsNew] = useState(false);
+  const [stats, setStats] = useState<AccountStats | null>(null);
+  const [personality, setPersonality] = useState<Personality | null>(null);
+  const [essence, setEssence] = useState<EssenceInfo | null>(null);
+  const [picks, setPicks] = useState<DailyPick[]>([]);
+  const [picksLoading, setPicksLoading] = useState(true);
+  const [predictions, setPredictions] = useState<Record<number, number>>({});
 
- // "Mais perto de onde o usuário está": chegando na Home com um pedido
- // de abertura pendente (clicou numa notificação em qualquer lugar que
- // não seja Profile), abre o mini-whisper daqui em vez de navegar.
- useEffect(() => {
- if (openWhispersTarget === 'home') {
- setShowHomeWhispersModal(true);
- clearOpenWhispersTarget();
- }
- }, [openWhispersTarget, clearOpenWhispersTarget]);
+  const [insightsIsNew, setInsightsIsNew] = useState(false);
+  const [showWhispers, setShowWhispers] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
+  const [showOracleInfo, setShowOracleInfo] = useState(false);
+  const [showPersona, setShowPersona] = useState(false);
 
- // O relatório de Insights do "mês passado" sempre existe a partir do
- // momento em que viramos um mês novo — o que muda é só se o usuário já
- // abriu ESSE relatório específico alguma vez (indicador "novo" no
- // botão), rastreado em user_monthly_insights_seen.
- useEffect(() => {
- if (!session?.user?.id) return;
- const now = new Date();
- const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
- const year = lastMonthDate.getFullYear();
- const month = lastMonthDate.getMonth() + 1;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
 
- supabase
- .from('user_monthly_insights_seen')
- .select('id')
- .eq('user_id', session.user.id)
- .eq('year', year)
- .eq('month', month)
- .maybeSingle()
- .then(({ data }) => setInsightsIsNew(!data));
- }, [session?.user?.id]);
-
- // Marca o mês como visto assim que o modal abre — o indicador
- // "novo" some na hora, não só na próxima vez que a página carregar.
- const handleOpenInsights = () => {
- setShowInsightsModal(true);
- if (insightsIsNew && session?.user?.id) {
- const now = new Date();
- const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
- supabase
- .from('user_monthly_insights_seen')
- .insert({
- user_id: session.user.id,
- year: lastMonthDate.getFullYear(),
- month: lastMonthDate.getMonth() + 1,
- })
- .then(() => setInsightsIsNew(false));
- }
- };
-
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarFrame, setAvatarFrame] = useState<string | null>(null);
-  const [avatarIsPremium, setAvatarIsPremium] = useState<boolean>(false);
-  const [libraryCount, setLibraryCount] = useState<number>(0);
-  const [nextTag, setNextTag] = useState<LockedTag | null>(null);
-  const [dailyRecs, setDailyRecs] = useState<DailyRec[]>([]);
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  const [carouselAutoPaused, setCarouselAutoPaused] = useState(false);
-  const [loadingMovie, setLoadingMovie] = useState(true);
-  const [countdown, setCountdown] = useState(getMidnightCountdown());
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-  const tagPickedRef = useRef(false);
-
-  const [personality, setPersonality] = useState<UserPersonality | null>(null);
-  const [archetypeInfo, setArchetypeInfo] = useState<ArchetypeInfo | null>(null);
-  const [personalityLoading, setPersonalityLoading] = useState(true);
-  const [showRevelationModal, setShowRevelationModal] = useState(false);
-  const [showInfoModal, setShowInfoModal] = useState(false);
-  const [showYourPersonaModal, setShowYourPersonaModal] = useState(false);
-  const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
-  const [showRetakeQuizModal, setShowRetakeQuizModal] = useState(false);
-  const [showPremiumRequiredModal, setShowPremiumRequiredModal] = useState(false);
-  const [showOracleInfoModal, setShowOracleInfoModal] = useState(false);
-
-  // Dados extra pras 3 novas rotações. Cada contagem decide se o slide
-  // correspondente entra no rodízio ou fica de fora (usuário sem critério
-  // pra preencher aquele slide não vê ele rotacionar).
-  const [listsPreview, setListsPreview] = useState<{ id: string; name: string }[]>([]);
-  const [listsCount, setListsCount] = useState<number>(0);
-  const [unratedCount, setUnratedCount] = useState<number>(0);
-  const [friendsCount, setFriendsCount] = useState<number>(0);
-
-  const [essenceSlideIndex, setEssenceSlideIndex] = useState(0);
-
+  // Pedido de abertura dos Sussurros vindo de uma notificação em outra tela.
   useEffect(() => {
-    const interval = setInterval(() => setCountdown(getMidnightCountdown()), 1000);
-    return () => clearInterval(interval);
+    if (openWhispersTarget === 'home') {
+      setShowWhispers(true);
+      clearOpenWhispersTarget();
+    }
+  }, [openWhispersTarget, clearOpenWhispersTarget]);
+
+  // O relatório do mês passado sempre existe a partir do dia 1º; o ponto
+  // "novo" some depois que o usuário abre esse relatório específico.
+  const lastMonth = useMemo(() => {
+    const now = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
   }, []);
 
   useEffect(() => {
-    if (showRevelationModal || showInfoModal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+    supabase
+      .from('user_monthly_insights_seen')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('year', lastMonth.year)
+      .eq('month', lastMonth.month)
+      .maybeSingle()
+      .then(({ data }) => setInsightsIsNew(!data));
+  }, [userId, lastMonth]);
+
+  const openInsights = () => {
+    setShowInsights(true);
+    if (insightsIsNew) {
+      supabase
+        .from('user_monthly_insights_seen')
+        .insert({ user_id: userId, year: lastMonth.year, month: lastMonth.month })
+        .then(() => setInsightsIsNew(false));
     }
-    return () => { document.body.style.overflow = 'unset'; };
-  }, [showRevelationModal, showInfoModal]);
+  };
 
-  // Avança o carrossel sozinho a cada 6s, entre os 3 oráculos.
-  useEffect(() => {
-    if (dailyRecs.length > 1 && !carouselAutoPaused) {
-      const interval = setInterval(() => {
-        setCarouselIndex((prev) => (prev + 1) % dailyRecs.length);
-      }, 6000);
-      return () => clearInterval(interval);
-    }
-  }, [dailyRecs.length, carouselAutoPaused]);
+  const fetchStats = useCallback(async () => {
+    const [profileRes, moviesRes, friendsRes, countersRes, listsRes] = await Promise.all([
+      supabase.from('public_profiles').select('username, avatar_url, avatar_frame, plan_type, is_premium').eq('id', userId).maybeSingle(),
+      supabase.from('user_movies').select('movie_id, media_type, rating').eq('user_id', userId),
+      supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
+      supabase.from('profiles').select('oracle_predictions_count, oracle_recommendations_count').eq('id', userId).maybeSingle(),
+      supabase.from('lists').select('id, name').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3),
+    ]);
 
-  // Quantos slides cada prateleira realmente tem disponível — depende de o
-  // usuário preencher os critérios de cada slide extra (ter listas, ter
-  // personagem mapeado pro código de arquétipo, ter filmes suficientes
-  // pro duelo, seguir alguém). Sem isso, cada prateleira teria sempre 2-3
-  // slides "fixos" mesmo quando o extra não faz sentido pra esse usuário.
-  //
-  // "Sua Persona" mora na prateleira de cima (Library) agora; "Duelo de
-  // Watchlist" desceu pra prateleira de baixo (Essência) — troca pedida
-  // explicitamente, no lugar um do outro.
-  const personaCode = personality?.personalidade_completa || '';
-  const personaChar = PERSONAS_MAP[personaCode];
+    const rows = (moviesRes.data ?? []) as { movie_id: number; media_type: string | null; rating: number | null }[];
+    const movieRatings = new Map<number, number | null>();
+    rows.forEach((row) => {
+      if ((row.media_type ?? 'movie') === 'movie') movieRatings.set(row.movie_id, row.rating);
+    });
+    const libraryIds = new Set(rows.map((row) => row.movie_id));
+    const friends = friendsRes.count ?? 0;
+    const profile = profileRes.data as { username?: string; avatar_url?: string | null; avatar_frame?: string | null; plan_type?: string; is_premium?: boolean } | null;
 
-  // Contagem de slides da única prateleira rotativa que resta — agora
-  // reúne o que antes se espalhava por 3 prateleiras (Essência + Persona
-  // + Listas + Match com Amigos + Next Tag + Duelo de Watchlist), cada
-  // termo condicional na mesma regra que já valia antes de cada slide
-  // individual entrar ou não na rotação.
-  const essenceHasData = !personalityLoading && !!personality?.personalidade_completa && !!archetypeInfo;
-  const essenceSlideCount = essenceHasData
-    ? (1 // ess-main, sempre presente com essência
-      + (personaChar ? 1 : 0) // ess-persona
-      + (listsCount > 0 ? 1 : 0) // lib-lists
-      + (friendsCount > 0 ? 1 : 0) // lib-match
-      + 1 // tag-main, sempre presente
-      + (unratedCount >= 4 ? 1 : 0)) // tag-duel
-    : 1;
+    const nextTag = pickClosestTag([
+      tierCandidate(rows.length, PROGRESSION_TIERS),
+      tierCandidate(friends, COMMUNITY_TIERS),
+      tierCandidate(countersRes.data?.oracle_predictions_count ?? 0, ORACLE_PRED_TIERS),
+      tierCandidate(countersRes.data?.oracle_recommendations_count ?? 0, ORACLE_REC_TIERS),
+      ...themeCandidates(libraryIds),
+    ].filter((tag): tag is NextTag => tag !== null));
 
-  // Rotação automática e irreversível, sem navegação manual — a cada 3
-  // segundos avança pro próximo slide da prateleira de Essência (a
-  // única que resta rotacionando; as outras duas viraram o menu de
-  // acesso fixo, que não precisa de nenhum timer).
-  function pickRandomIndex(count: number, current: number): number {
-    if (count <= 1) return 0;
-    let next = Math.floor(Math.random() * count);
-    while (next === current) {
-      next = Math.floor(Math.random() * count);
-    }
-    return next;
-  }
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (essenceSlideCount <= 1) return;
-      setEssenceSlideIndex((prev) => pickRandomIndex(essenceSlideCount, prev));
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [essenceSlideCount]);
-
-  const fetchUserStats = useCallback(async () => {
-    try {
-      const [profileRes, moviesRes, friendshipsRes, profileFull, listsRes, unratedRes] = await Promise.all([
-        supabase.from('public_profiles').select('avatar_url, avatar_frame, plan_type, is_premium').eq('id', userId).maybeSingle(),
-        supabase.from('user_movies').select('movie_id').eq('user_id', userId),
-        supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
-        supabase.from('profiles').select('oracle_predictions_count, oracle_recommendations_count').eq('id', userId).maybeSingle(),
-        supabase.from('lists').select('id, name').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3),
-        supabase.from('user_movies').select('movie_id', { count: 'exact', head: true }).eq('user_id', userId).is('rating', null),
-      ]);
-
-      setAvatarUrl(profileRes.data?.avatar_url ?? null);
-      setAvatarFrame(profileRes.data?.avatar_frame ?? null);
-      setAvatarIsPremium((profileRes.data as any)?.is_premium ?? profileRes.data?.plan_type === 'premium');
-      setFriendsCount(friendshipsRes.count ?? 0);
-      setListsPreview((listsRes.data ?? []) as { id: string; name: string }[]);
-      setListsCount(listsRes.data?.length ?? 0);
-      setUnratedCount(unratedRes.count ?? 0);
-
-      const movieIds: number[] = (moviesRes.data ?? []).map((m: { movie_id: number }) => m.movie_id);
-      const movieCount = movieIds.length;
-      setLibraryCount(movieCount);
-
-      if (!tagPickedRef.current) {
-        const predCount = profileFull.data?.oracle_predictions_count ?? 0;
-        const recCount = profileFull.data?.oracle_recommendations_count ?? 0;
-        const follCount = friendshipsRes.count ?? 0;
-        const userMovieSet = new Set(movieIds);
-
-        const candidates: LockedTag[] = [
-          getNextTierTag(movieCount, PROGRESSION_TIERS, isPt),
-          getNextTierTag(follCount, COMMUNITY_TIERS, isPt),
-          getNextTierTag(predCount, ORACLE_PRED_TIERS, isPt),
-          getNextTierTag(recCount, ORACLE_REC_TIERS, isPt),
-          ...getLockedThemeTags(userMovieSet),
-        ].filter((tag): tag is LockedTag => tag !== null);
-
-        if (candidates.length > 0) {
-          setNextTag(candidates[Math.floor(Math.random() * candidates.length)]);
-          tagPickedRef.current = true;
-        }
-      }
-    } catch (err) {
-      console.error('HomeUserPanels: stats fetch error', err);
-    }
-  }, [userId, isPt]);
+    setStats({
+      username: profile?.username ?? '',
+      avatarUrl: profile?.avatar_url ?? null,
+      avatarFrame: profile?.avatar_frame ?? null,
+      avatarIsPremium: profile?.is_premium ?? profile?.plan_type === 'premium',
+      rated: rows.filter((row) => row.rating !== null).length,
+      watchlist: rows.filter((row) => row.rating === null).length,
+      friends,
+      lists: (listsRes.data ?? []) as { id: string; name: string }[],
+      nextTag,
+      movieRatings,
+    });
+  }, [userId]);
 
   const fetchPersonality = useCallback(async () => {
-    try {
-      setPersonalityLoading(true);
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario, pontos_e, pontos_i, pontos_c, pontos_s, pontos_r')
-        .eq('id', userId)
-        .maybeSingle();
+    const { data: row } = await supabase
+      .from('profiles')
+      .select('personalidade_completa, arquetipo_primario, arquetipo_secundario, pontos_e, pontos_i, pontos_c, pontos_s, pontos_r')
+      .eq('id', userId)
+      .maybeSingle();
 
-      if (!profileData?.personalidade_completa) {
-        setPersonality(profileData ?? { subcategoria_id: null, personalidade_completa: null, arquetipo_primario: null, arquetipo_secundario: null });
+    setPersonality({
+      personalidade_completa: row?.personalidade_completa ?? null,
+      arquetipo_primario: row?.arquetipo_primario ?? null,
+      arquetipo_secundario: row?.arquetipo_secundario ?? null,
+      points: {
+        E: Number(row?.pontos_e) || 0,
+        I: Number(row?.pontos_i) || 0,
+        C: Number(row?.pontos_c) || 0,
+        S: Number(row?.pontos_s) || 0,
+        R: Number(row?.pontos_r) || 0,
+      },
+    });
+
+    if (!row?.personalidade_completa) {
+      setEssence(null);
+      return;
+    }
+    const { data: info } = await supabase
+      .rpc('get_user_complete_personality', { p_user_id: userId, p_language: lang })
+      .maybeSingle();
+    setEssence((info as EssenceInfo | null) ?? null);
+  }, [userId, lang]);
+
+  const fetchDailyPicks = useCallback(async () => {
+    setPicksLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_or_create_daily_oracle_recommendations');
+      if (error || !data || data.length === 0) {
+        setPicks([]);
         return;
       }
-      setPersonality(profileData);
-      if (profileData) {
-        setSpectrumPoints({
-          e: Number(profileData.pontos_e) || 0,
-          i: Number(profileData.pontos_i) || 0,
-          c: Number(profileData.pontos_c) || 0,
-          s: Number(profileData.pontos_s) || 0,
-          r: Number(profileData.pontos_r) || 0,
-        });
-      }
-
-      const { data: archetypeData } = await supabase
-        .rpc('get_user_complete_personality', { p_user_id: userId, p_language: i18n.language.startsWith('pt') ? 'pt' : 'en' })
-        .maybeSingle();
-      setArchetypeInfo(archetypeData ?? null);
-    } catch (err) {
-      console.error('HomeUserPanels: personality fetch error', err);
-    } finally {
-      setPersonalityLoading(false);
-    }
-  }, [userId, i18n.language]);
-
-  // Busca as 3 recomendações do dia (uma por oráculo: Bogart, Fincher, Cypher),
-  // cacheadas globalmente por dia via get_or_create_daily_oracle_recommendations.
-  const fetchDailyRecommendation = useCallback(async () => {
-    try {
-      setLoadingMovie(true);
-      const { data, error } = await supabase.rpc('get_or_create_daily_oracle_recommendations');
-      if (error || !data || data.length === 0) return;
-
-      const results = await Promise.all(
-        data.map(async (row: any) => {
+      const order: OracleId[] = ['bogart', 'fincher', 'cypher'];
+      const loaded = await Promise.all(
+        (data as { out_card_type: string; out_movie_id: number }[]).map(async (row) => {
           try {
-            const details = await getMovieDetails(row.out_movie_id, 'movie');
-            return { oracle: row.out_card_type as OracleId, movie: details };
-          } catch (err) {
-            console.warn('Failed to load daily rec movie', row.out_movie_id, err);
+            const movie = await getMovieDetails(row.out_movie_id, 'movie');
+            return { oracle: row.out_card_type as OracleId, movie };
+          } catch {
             return null;
           }
         })
       );
+      const valid = loaded
+        .filter((pick): pick is DailyPick => pick !== null && pick.oracle in ORACLE_BY_ID)
+        .sort((a, b) => order.indexOf(a.oracle) - order.indexOf(b.oracle));
+      setPicks(valid);
 
-      setDailyRecs(results.filter((r): r is DailyRec => r !== null));
-      setCarouselIndex(0);
-    } catch (err) {
-      console.error('HomeUserPanels: daily rec fetch error', err);
+      // Nota prevista das cartas do dia (mesmo modelo do Oracle Filter).
+      // Não segura a abertura da página: o selo aparece quando chegar.
+      if (valid.length > 0) {
+        supabase.functions
+          .invoke('predict-watchlist-ratings', { body: { movieIds: valid.map((pick) => pick.movie.id) } })
+          .then(({ data: result }) => setPredictions((result?.ratings as Record<number, number>) ?? {}))
+          .catch(() => {});
+      }
     } finally {
-      setLoadingMovie(false);
+      setPicksLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchUserStats();
-    fetchPersonality();
-    fetchDailyRecommendation();
-  }, [fetchUserStats, fetchPersonality, fetchDailyRecommendation]);
+    let cancelled = false;
+    Promise.allSettled([fetchStats(), fetchPersonality(), fetchDailyPicks()]).then(() => {
+      if (!cancelled) onReadyRef.current?.();
+    });
+    return () => { cancelled = true; };
+  }, [fetchStats, fetchPersonality, fetchDailyPicks]);
 
-  const panelBase = 'relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden';
-  const tagHint = nextTag ? (isPt ? nextTag.hintPt : nextTag.hint) : '';
-  const archetypeColor = getArchetypeColor(personality?.personalidade_completa ?? null);
-  const archetypeId = personality?.personalidade_completa?.slice(0, 2);
-  const subcategoryId = personality?.personalidade_completa?.slice(2, 3);
+  // ---------------------------------------------------------------------
+  // Derivados
+  // ---------------------------------------------------------------------
 
-  const hasEssence = essenceHasData;
-  const currentRec = dailyRecs[carouselIndex];
-  const dragOccurred = React.useRef(false);
+  const displayName = username || stats?.username || '';
+  const code = personality?.personalidade_completa ?? '';
+  const hasEssence = code.length >= 3 && !!essence;
+  const persona = hasEssence ? PERSONAS_MAP[code] : undefined;
+  const topSpectra = new Set([personality?.arquetipo_primario, personality?.arquetipo_secundario].filter(Boolean) as string[]);
+  const maxPoints = personality ? Math.max(1, ...SPECTRA.map((k) => personality.points[k])) : 1;
 
-  const handleCarouselDragEnd = (_e: any, info: { offset: { x: number } }) => {
-    const threshold = 50;
-    if (Math.abs(info.offset.x) > threshold && dailyRecs.length > 1) {
-      setCarouselAutoPaused(true);
-      setCarouselIndex((prev) =>
-        info.offset.x < 0 ? (prev + 1) % dailyRecs.length : (prev - 1 + dailyRecs.length) % dailyRecs.length
+  const hour = new Date().getHours();
+  const greeting = hour >= 5 && hour < 12
+    ? t('home.desk.greetingMorning')
+    : hour >= 12 && hour < 18
+      ? t('home.desk.greetingAfternoon')
+      : t('home.desk.greetingEvening');
+
+  const formatScore = (value?: number) =>
+    typeof value === 'number' && value > 0
+      ? value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      : null;
+
+  // ---------------------------------------------------------------------
+  // Blocos
+  // ---------------------------------------------------------------------
+
+  const avatar = (() => {
+    const frameComponent = frameUsesComponent(stats?.avatarFrame || undefined, stats?.avatarIsPremium ?? false);
+    if (frameComponent === 'GhostRiderFrame' && stats?.avatarUrl) {
+      return <GhostRiderFrame src={stats.avatarUrl} alt={displayName} size={64} />;
+    }
+    return (
+      <div className={`w-16 h-16 rounded-full overflow-hidden ${getFrameClass(stats?.avatarFrame || undefined, stats?.avatarIsPremium ?? false)}`}>
+        {stats?.avatarUrl ? (
+          <img src={stats.avatarUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full grid place-items-center text-2xl" style={{ ...PIXEL, background: VELVET, color: PAPER }}>
+            {displayName.charAt(0).toUpperCase()}
+          </div>
+        )}
+      </div>
+    );
+  })();
+
+  const statLink = (to: string, count: number, labelKey: string, state?: Record<string, unknown>) => (
+    <Link to={to} state={state} className={`group inline-flex items-baseline gap-1.5 rounded ${focusRing}`}>
+      <span className="font-semibold tabular-nums" style={{ color: PAPER }}>{count}</span>
+      <span className="group-hover:underline underline-offset-4" style={{ color: MIST }}>{t(labelKey, { count })}</span>
+    </Link>
+  );
+
+  const dealList = {
+    hidden: {},
+    shown: { transition: { staggerChildren: 0.09, delayChildren: 0.08 } },
+  };
+  const dealCard = {
+    hidden: (i: number) => (reduceMotion ? { opacity: 1 } : { opacity: 0, y: 28, rotate: (i - 1) * 7 }),
+    shown: reduceMotion
+      ? { opacity: 1 }
+      : { opacity: 1, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 210, damping: 22 } },
+  };
+
+  const pickBadge = (movieId: number) => {
+    const own = stats?.movieRatings.get(movieId);
+    if (typeof own === 'number') {
+      return (
+        <span
+          className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-full text-sm font-semibold shadow-lg"
+          style={{ background: PAPER, color: INK }}
+          title={t('home.desk.yourRating')}
+        >
+          <Star className="w-3.5 h-3.5 fill-current" aria-hidden />
+          <span className="sr-only">{t('home.desk.yourRating')}:</span>
+          {own}
+        </span>
       );
     }
-    setTimeout(() => { dragOccurred.current = false; }, 50);
+    const predicted = predictions[movieId];
+    if (typeof predicted === 'number') {
+      return (
+        <span
+          className="absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full bg-violet-600/95 text-white shadow-lg ring-1 ring-white/20"
+          title={t('home.desk.predictedForYou')}
+        >
+          <Wand2 className="w-3.5 h-3.5" aria-hidden />
+          <span className="sr-only">{t('home.desk.predictedForYou')}:</span>
+          <span style={PIXEL} className="text-lg leading-none">{predicted}</span>
+        </span>
+      );
+    }
+    return null;
   };
 
   return (
     <>
-      <div className="flex flex-col md:flex-row gap-5 mb-10 max-w-5xl mx-auto w-full md:items-stretch">
-        {/* Panel 1 — Welcome + Stats + Essence */}
-        <motion.div
-          className={`${panelBase} md:flex-1`}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-blue-500/15 to-cyan-400/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-pink-500/10 to-blue-400/10 rounded-full blur-3xl" />
+      {/* ---------- Cabeçalho ---------- */}
+      <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <Link to="/profile" aria-label={t('nav.profile')} className={`shrink-0 rounded-full ${focusRing}`}>
+              {avatar}
+            </Link>
+            <div className="min-w-0">
+              <p className="text-sm sm:text-base" style={{ color: MIST }}>{greeting}</p>
+              <h1 style={{ ...PIXEL, color: PAPER }} className="mt-1 text-[2rem] sm:text-5xl leading-none truncate">
+                {displayName}
+              </h1>
+            </div>
           </div>
 
-          <div className="relative z-10 p-6">
-            {/* Avatar + Welcome — no mobile, divide o espaço com os dois
-                botões (Insights e Mini Whisper), que só existem nessa
-                posição em telas pequenas. No desktop, esses botões ficam
-                escondidos aqui (vivem na extensão separada, perto de
-                "Recomendações do Dia") — md:justify-center recentraliza
-                o bloco na posição original, já que justify-between
-                sozinho, com só 1 filho visível, não centraliza nada. */}
-            <div className="flex items-center justify-between md:justify-center gap-2 mb-5">
-              <Link to="/profile" className="flex items-center gap-4 group min-w-0">
-                <div className="relative flex-shrink-0">
-                  {frameUsesComponent(avatarFrame || undefined, avatarIsPremium) === 'GhostRiderFrame' && avatarUrl ? (
-                    <GhostRiderFrame src={avatarUrl} alt={username} size={56} />
-                  ) : (
-                  <div className={`w-14 h-14 rounded-full overflow-hidden shadow-lg transition-all duration-300 group-hover:scale-105 ${getFrameClass(avatarFrame || undefined, avatarIsPremium)}`}>
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt={username} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                        <span className="text-white font-bold text-xl select-none">
-                          {username.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  )}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-800" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium tracking-wide uppercase">{t('home.panels.welcomeBack')}</p>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200 leading-tight truncate">
-                    {username}
-                  </h2>
-                </div>
-              </Link>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <button
+              onClick={openInsights}
+              aria-label={t('home.desk.insights')}
+              className={`relative inline-flex items-center gap-2 h-11 px-3 sm:px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${focusRing}`}
+              style={{ color: PAPER }}
+            >
+              <BarChart3 className="w-[18px] h-[18px] text-violet-300" aria-hidden />
+              <span className="hidden sm:inline">{t('home.desk.insights')}</span>
+              {insightsIsNew && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-fuchsia-500 ring-2" style={{ '--tw-ring-color': NIGHT } as React.CSSProperties}>
+                  <span className="sr-only">{t('home.desk.newBadge')}</span>
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setShowWhispers(true)}
+              aria-label={t('profile.whispers')}
+              className={`relative inline-flex items-center gap-2 h-11 px-3 sm:px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${focusRing}`}
+              style={{ color: PAPER }}
+            >
+              <MessageCircle className="w-[18px] h-[18px] text-violet-300" aria-hidden />
+              <span className="hidden sm:inline">{t('profile.whispers')}</span>
+              {unreadWhispers > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 grid place-items-center rounded-full bg-fuchsia-500 text-white text-[11px] font-bold ring-2" style={{ '--tw-ring-color': NIGHT } as React.CSSProperties}>
+                  {unreadWhispers}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
 
-              <div className="flex items-center gap-2 flex-shrink-0 md:hidden">
-                <button
-                  onClick={handleOpenInsights}
-                  className="relative p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
-                  title={t('home.panels.monthlyInsights', { defaultValue: 'Insights Mensais' })}
-                >
-                  <BarChart3 className="w-5 h-5" />
-                  {insightsIsNew && (
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse" />
-                  )}
-                </button>
-                <button
-                  onClick={() => setShowHomeWhispersModal(true)}
-                  className={`relative p-2.5 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95 ${
-                    unreadWhispersHome > 0 ? 'animate-pulse shadow-orange-500/50' : ''
-                  }`}
-                  title={t('profile.whispers', { defaultValue: 'Sussurros' })}
-                >
-                  <MessageCircle className="w-5 h-5" />
-                  {unreadWhispersHome > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-white text-orange-600 text-[10px] font-bold rounded-full border-2 border-orange-500">
-                      {unreadWhispersHome}
-                    </span>
-                  )}
-                </button>
-              </div>
+        {stats && (
+          <p className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm sm:text-[15px]">
+            {statLink('/library', stats.rated, 'home.desk.statRated')}
+            {statLink('/library', stats.watchlist, 'home.desk.statWatchlist')}
+            {statLink('/community', stats.friends, 'home.desk.statFriends')}
+          </p>
+        )}
+      </section>
+
+      {/* ---------- Na mesa hoje + Sua essência ---------- */}
+      <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-10 sm:pt-12 pb-14 sm:pb-16 grid lg:grid-cols-12 gap-12 lg:gap-10">
+        <div className="lg:col-span-8 min-w-0">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 style={{ ...PIXEL, color: PAPER }} className="text-3xl sm:text-4xl leading-tight">
+                {t('home.desk.todayTitle')}
+              </h2>
+              <p className="mt-2 text-sm sm:text-base" style={{ color: MIST }}>
+                {t('home.desk.todaySubtitle')} {t('home.desk.todayRenews')} <ResetCountdown />
+              </p>
             </div>
+            <button
+              onClick={() => setShowOracleInfo(true)}
+              aria-label={t('home.desk.todayHelp')}
+              title={t('home.desk.todayHelp')}
+              className={`shrink-0 rounded-full hover:bg-white/5 transition ${focusRing}`}
+              style={{ color: MIST }}
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+          </div>
 
-
-            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
-
-            {/* Menu de acesso rápido — substitui as duas primeiras
-                prateleiras (que eram "Your Library" e "Next Tag",
-                ambas rotativas). O modal deixa de ser só um painel de
-                vitrines giratórias e ganha um hub de navegação direto:
-                3 destinos principais do site, sempre visíveis, sem
-                esperar rotação nenhuma. O conteúdo de "Your Library"
-                (contagem + link) foi excluído — fica redundante com o
-                botão "Biblioteca" abaixo. Os outros slides que viviam
-                nessas duas prateleiras (Suas Listas, Match com Amigos,
-                Next Tag, Duelo de Watchlist) desceram pra dentro da
-                prateleira de Essência, a única prateleira rotativa que
-                sobra no modal. */}
-            <div className="space-y-2.5 mb-5">
-              <Link
-                to="/library"
-                className="flex items-center gap-3 p-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 border border-blue-400/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
-              >
-                <div className="p-2 rounded-lg bg-blue-500/15 dark:bg-blue-500/20 flex-shrink-0">
-                  <LibraryIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          {picksLoading ? (
+            <div className="mt-7 flex sm:grid sm:grid-cols-3 gap-4 sm:gap-5 overflow-hidden" aria-hidden>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="shrink-0 w-[62%] sm:w-auto">
+                  <div className="aspect-[2/3] rounded-xl animate-pulse" style={{ background: VELVET }} />
+                  <div className="mt-3 h-4 w-24 rounded animate-pulse" style={{ background: VELVET }} />
+                  <div className="mt-2 h-4 w-40 rounded animate-pulse" style={{ background: VELVET }} />
                 </div>
-                <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{t('home.panels.openLibrary')}</span>
-                <ChevronRight className="w-4 h-4 text-blue-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-              <Link
-                to="/oracle"
-                className="flex items-center gap-3 p-3 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 border border-pink-400/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
-              >
-                <div className="p-2 rounded-lg bg-pink-500/15 dark:bg-pink-500/20 flex-shrink-0">
-                  <Eye className="w-4 h-4 text-pink-600 dark:text-pink-400" />
-                </div>
-                <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{t('home.panels.openOracleHub')}</span>
-                <ChevronRight className="w-4 h-4 text-pink-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-              <Link
-                to="/community"
-                className="flex items-center gap-3 p-3 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 border border-violet-400/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
-              >
-                <div className="p-2 rounded-lg bg-violet-500/15 dark:bg-violet-500/20 flex-shrink-0">
-                  <Users className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-                </div>
-                <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{t('home.panels.openCommunity')}</span>
-                <ChevronRight className="w-4 h-4 text-violet-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+              ))}
             </div>
-
-            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-5" />
-
-            {/* Cinematic Essence — agora a única prateleira rotativa que
-                resta, reunindo tudo que antes se espalhava pelas duas
-                prateleiras removidas: Cinematic Essence, Sua Persona,
-                Suas Listas, Match com Amigos, Next Tag e Duelo de
-                Watchlist, todos revezando no mesmo espaço. */}
-            {!personalityLoading && (
-              hasEssence ? (() => {
-                const essenceSlides: React.ReactNode[] = [
-                  <div key="ess-main" className="flex items-center gap-3">
-                    <div className="flex-shrink-0">
-                      <ArchetypeSymbol
-                        archetypeId={archetypeId || ''}
-                        subcategoryId={subcategoryId || null}
-                        size={48}
-                        animated={false}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium mb-0.5" style={{ color: archetypeColor }}>
-                        {t('oracle.cinematicEssenceLabel')}
-                      </p>
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-sm font-bold flex-shrink-0" style={{ color: archetypeColor }}>
-                          {personality!.personalidade_completa}
-                        </span>
-                        <span className="text-xs text-gray-700 dark:text-gray-300 font-semibold truncate min-w-0">
-                          {archetypeInfo!.archetype_name} {archetypeInfo!.subcategory_name}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mt-0.5 leading-relaxed">
-                        {archetypeInfo!.description}
-                      </p>
-                    </div>
-                    <div className="flex flex-row gap-2 flex-shrink-0">
-                      <Link
-                        to="/oracle"
-                        className="flex items-center gap-1.5 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        {i18n.language.startsWith('pt') ? 'Abrir' : 'Open'}
-                      </Link>
-                    </div>
-                  </div>
-                ];
-
-                if (personaChar) {
-                  essenceSlides.push(
-                    <div key="ess-persona" className="flex items-center gap-3">
+          ) : picks.length > 0 ? (
+            <motion.ol
+              className="mt-7 -mx-5 px-5 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-3 gap-4 sm:gap-5 overflow-x-auto sm:overflow-visible snap-x snap-mandatory scroll-px-5 pb-2 sm:pb-0"
+              style={{ scrollbarWidth: 'none' }}
+              variants={dealList}
+              initial="hidden"
+              animate={visible ? 'shown' : 'hidden'}
+            >
+              {picks.map((pick, i) => {
+                const oracle = ORACLE_BY_ID[pick.oracle];
+                const year = pick.movie.release_date?.slice(0, 4);
+                const score = formatScore(pick.movie.vote_average);
+                const inWatchlist = stats?.movieRatings.get(pick.movie.id) === null;
+                return (
+                  <motion.li key={pick.oracle} custom={i} variants={dealCard} className="snap-start shrink-0 w-[62%] sm:w-auto">
+                    <button
+                      onClick={() => onMovieClick(pick.movie)}
+                      className={`group block w-full text-left rounded-xl ${focusRing}`}
+                    >
                       <div
-                        className="flex-shrink-0 w-12 h-12 rounded-full overflow-hidden border-2 shadow-lg"
-                        style={{ borderColor: `${archetypeColor}80` }}
+                        className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 transition-transform duration-200 group-hover:-translate-y-1"
+                        style={{ background: VELVET, boxShadow: `0 26px 50px -26px ${oracle.color}99` }}
                       >
-                        {personaChar.imageUrl ? (
-                          <img src={personaChar.imageUrl} alt={personaChar.name} className="w-full h-full object-cover object-top" />
+                        {pick.movie.poster_path ? (
+                          <OptimizedPoster
+                            src={`https://image.tmdb.org/t/p/w500${pick.movie.poster_path}`}
+                            alt={pick.movie.title}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            priority
+                          />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 text-sm font-bold">
-                            {personaChar.name.charAt(0)}
+                          <div className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
+                            <Film className="w-10 h-10" aria-hidden />
                           </div>
                         )}
+                        {pickBadge(pick.movie.id)}
+                        <span aria-hidden className="absolute inset-x-0 bottom-0 h-1" style={{ background: oracle.color }} />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium mb-0.5" style={{ color: archetypeColor }}>
-                          {t('home.panels.yourPersona')}
-                        </p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                          {personaChar.name}
-                        </p>
+                      <div className="mt-3.5 flex items-center gap-2">
+                        <img
+                          src={oracle.avatar}
+                          alt=""
+                          width={28}
+                          height={28}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-7 h-7 rounded-full object-cover"
+                          style={{ boxShadow: `0 0 0 2px ${oracle.color}` }}
+                        />
+                        <span style={{ ...PIXEL, color: oracle.color }} className="text-lg leading-none">{oracle.name}</span>
                       </div>
-                      <button
-                        onClick={() => setShowYourPersonaModal(true)}
-                        className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
-                      >
-                        {i18n.language.startsWith('pt') ? 'Ver' : 'View'}
-                      </button>
-                    </div>
-                  );
-                }
-
-                // Suas Listas — desceu da antiga prateleira 1.
-                if (listsCount > 0) {
-                  essenceSlides.push(
-                    <div key="lib-lists" className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2.5 rounded-xl bg-teal-500/10 dark:bg-teal-500/15 flex-shrink-0">
-                          <LibraryIcon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('home.panels.yourLists')}</p>
-                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                            {listsPreview.map((l) => l.name).join(' • ')}
-                          </p>
-                        </div>
-                      </div>
-                      <Link
-                        to="/lists"
-                        className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 dark:bg-teal-500/15 dark:hover:bg-teal-500/25 text-teal-600 dark:text-teal-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-teal-400/20"
-                      >
-                        {t('home.panels.openLists')}
-                      </Link>
-                    </div>
-                  );
-                }
-
-                // Match com Amigos — desceu da antiga prateleira 1.
-                if (friendsCount > 0) {
-                  essenceSlides.push(
-                    <div key="lib-match" className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
-                          <Sparkles className="w-4 h-4 text-pink-500 dark:text-pink-400" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.matchWithFriends')}</p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.matchWithFriendsHint')}</p>
-                        </div>
-                      </div>
-                      <Link
-                        to="/community"
-                        className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
-                      >
-                        {t('home.panels.openCommunity')}
-                      </Link>
-                    </div>
-                  );
-                }
-
-                // Next Tag — desceu da antiga prateleira 2.
-                essenceSlides.push(
-                  <div key="tag-main" className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15">
-                      <Lock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.nextTag')}</p>
-                      {nextTag ? (
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="text-base leading-none flex-shrink-0">{nextTag.emoji}</span>
-                          <span className="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">{nextTag.name}</span>
-                          <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full truncate min-w-0">
-                            {tagHint}
-                          </span>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-400 dark:text-gray-500 italic">{t('home.panels.allTagsUnlocked')}</p>
-                      )}
-                    </div>
-                  </div>
-                );
-
-                // Duelo de Watchlist — desceu da antiga prateleira 2.
-                if (unratedCount >= 4) {
-                  essenceSlides.push(
-                    <div key="tag-duel" className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2.5 rounded-xl bg-pink-500/10 dark:bg-pink-500/15 flex-shrink-0">
-                          <Swords className="w-4 h-4 text-pink-600 dark:text-pink-400" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5">{t('home.panels.watchlistDuel')}</p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">{t('home.panels.watchlistDuelHint')}</p>
-                        </div>
-                      </div>
-                      <Link
-                        to="/library"
-                        state={{ openWatchlistDuel: true }}
-                        className="flex-shrink-0 px-3.5 py-2 bg-pink-500/10 hover:bg-pink-500/20 dark:bg-pink-500/15 dark:hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 text-xs font-semibold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 border border-pink-400/20"
-                      >
-                        {t('home.panels.openWatchlistDuel')}
-                      </Link>
-                    </div>
-                  );
-                }
-
-                const activeIndex = essenceSlideIndex % essenceSlides.length;
-
-                return (
-                  <div className="min-h-[54px]">
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={activeIndex}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.25 }}
-                      >
-                        {essenceSlides[activeIndex]}
-                      </motion.div>
-                    </AnimatePresence>
-                  </div>
-                );
-              })() : (
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">
-                      {t('oracle.cinematicEssenceLabel')}
-                    </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2 leading-relaxed">
-                      {t('oracle.subcategoryExplain')}
-                    </p>
-                  </div>
-                  <motion.button
-                    onClick={() => navigate('/oracle')}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="flex-shrink-0 px-3.5 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold rounded-xl transition-all duration-200 shadow-md shadow-violet-500/20 hover:shadow-violet-500/40 whitespace-nowrap border border-violet-500/30"
-                  >
-                    {t('oracle.discoverYourEssence')}
-                  </motion.button>
-                </div>
-              )
-            )}
-          </div>
-        </motion.div>
-
-        {/* Coluna que junta a extensão exclusiva de desktop (acima) com
-            o painel de Recomendações do Dia (abaixo) — as duas juntas
-            ocupam md:flex-1. Isso faz a altura NATURAL dessa coluna
-            crescer de verdade (a extensão é conteúdo real, não
-            decoração), reduzindo a diferença de altura com o painel de
-            boas-vindas ao lado — em vez de "esticar" visualmente via
-            md:items-stretch sem nada preenchendo o espaço extra. Corrige
-            o problema anterior, onde a extensão vivia DENTRO do painel
-            de boas-vindas e só aumentava ainda mais a diferença. */}
-        <div className="flex flex-col gap-5 md:flex-1">
-          {/* Extensão exclusiva de desktop — só em telas md+. Mesmas
-              duas ações dos botões do topo (que agora só aparecem no
-              mobile), sem título de seção aparente. Envolvida no mesmo
-              tratamento "glass" (panelBase) de todo o resto da Home —
-              antes os botões ficavam soltos direto no fundo da página,
-              sem nenhuma caixa ao redor, destoando visualmente de tudo
-              mais. Essa caixa extra também consome o espaço que ainda
-              sobrava entre as alturas dos dois painéis, terminando de
-              alinhar com "Recomendações do Dia" ao lado. */}
-          <div className={`hidden md:block ${panelBase}`}>
-            <div className="relative z-10 p-4 grid grid-cols-2 gap-3">
-              <button
-                onClick={handleOpenInsights}
-                className="relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <BarChart3 className="w-4 h-4" />
-                {t('home.panels.monthlyInsights', { defaultValue: 'Insights Mensais' })}
-                {insightsIsNew && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse" />
-                )}
-              </button>
-              <button
-                onClick={() => setShowHomeWhispersModal(true)}
-                className={`relative flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] ${
-                  unreadWhispersHome > 0 ? 'animate-pulse shadow-orange-500/50' : ''
-                }`}
-              >
-                <MessageCircle className="w-4 h-4" />
-                {t('profile.whispers', { defaultValue: 'Sussurros' })}
-                {unreadWhispersHome > 0 && (
-                  <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-white text-orange-600 text-[10px] font-bold rounded-full">
-                    {unreadWhispersHome}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-
-
-          {/* Panel 2 — Daily Recommendation (carrossel dos 3 oráculos) */}
-          <motion.div
-            className={panelBase}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.12 }}
-          >
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 left-0 w-52 h-52 bg-gradient-to-br from-rose-500/10 to-pink-400/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-0 w-40 h-40 bg-gradient-to-tl from-orange-400/10 to-rose-500/10 rounded-full blur-3xl" />
-          </div>
-
-          <div className="relative z-10 p-6 flex flex-col h-full">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-1 bg-gradient-to-b from-rose-500 to-pink-500 rounded-full" />
-                <div className="flex items-center gap-1">
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white">{t('home.panels.dailyRecommendation')}</h3>
-                  <button onClick={() => setShowOracleInfoModal(true)} className="text-pink-500 hover:text-pink-400 transition-colors">
-                    <HelpCircle className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 dark:bg-rose-500/15 rounded-xl border border-rose-400/20">
-                <Clock className="w-3 h-3 text-rose-500 dark:text-rose-400" />
-                <span className="text-xs font-mono font-semibold text-rose-600 dark:text-rose-400 tabular-nums">
-                  {formatCountdown(countdown)}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex-1">
-            {loadingMovie ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-rose-500" />
-              </div>
-            ) : currentRec ? (
-              <AnimatePresence mode="wait">
-                <motion.button
-                  key={currentRec.oracle}
-                  onClick={() => { if (!dragOccurred.current) setSelectedMovie(currentRec.movie); }}
-                  className="w-full text-left group mb-4 cursor-grab active:cursor-grabbing"
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.2}
-                  onDrag={() => { dragOccurred.current = true; }}
-                  onDragEnd={handleCarouselDragEnd}
-                  initial={{ opacity: 0, x: 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -12 }}
-                  transition={{ duration: 0.35 }}
-                >
-                  <div className="flex gap-4 items-start">
-                    <div className="flex-shrink-0 relative w-[88px] h-[132px] rounded-2xl overflow-hidden shadow-xl border border-white/30 dark:border-gray-700/30 group-hover:shadow-2xl group-hover:scale-[1.03] transition-all duration-300">
-                      <OptimizedPoster
-                        src={`https://image.tmdb.org/t/p/w300${currentRec.movie.poster_path}`}
-                        alt={currentRec.movie.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className={`absolute top-1.5 left-1.5 w-6 h-6 rounded-full ${ORACLE_SEAL[currentRec.oracle].bg} ring-2 ${ORACLE_SEAL[currentRec.oracle].ring} shadow-lg flex items-center justify-center text-xs`}>
-                        {ORACLE_SEAL[currentRec.oracle].emoji}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0 pt-1">
-                      {/* min-h reserva o espaço de 2 linhas sempre — sem isso, um
-                          título curto (1 linha) e um longo (2 linhas) fazem o card
-                          mudar de altura a cada troca do carrossel, causando um
-                          "glitch" visível no painel inteiro. line-clamp-2 já garante
-                          o máximo, min-h garante o mínimo. */}
-                      <h4 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors duration-200 leading-snug mb-1.5 line-clamp-2 min-h-[2.75rem]">
-                        {currentRec.movie.title}
-                      </h4>
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100/60 dark:bg-gray-700/60 px-2 py-0.5 rounded-full font-medium">
-                          {currentRec.movie.release_date ? new Date(currentRec.movie.release_date).getFullYear() : ''}
-                        </span>
-                        <div className="flex items-center gap-1 bg-amber-500/10 dark:bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-400/20">
-                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                            {currentRec.movie.vote_average?.toFixed(1) ?? '—'}
-                          </span>
-                        </div>
-                      </div>
-                      {/* Sempre renderizado (não mais condicional a
-                          overview existir) e com min-h fixo pras mesmas 3
-                          linhas reservadas — antes, um filme sem overview
-                          fazia o bloco inteiro sumir, e um com overview
-                          curto ocupava menos linhas que um longo, ambos
-                          casos mudando a altura do card entre trocas do
-                          carrossel. */}
-                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed min-h-[3.75rem]">
-                        {currentRec.movie.overview || ''}
+                      <p className="mt-2 font-semibold leading-snug line-clamp-2 group-hover:underline underline-offset-4" style={{ color: PAPER }}>
+                        {pick.movie.title}
                       </p>
-                    </div>
-                  </div>
-                </motion.button>
-              </AnimatePresence>
-            ) : (
-              <div className="text-center py-8 text-gray-400 dark:text-gray-500 mb-5">
-                <Film className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">{t('home.panels.noRecommendationToday')}</p>
-              </div>
-            )}
+                      <p className="mt-1 text-sm flex flex-wrap items-center gap-x-2" style={{ color: MIST }}>
+                        {year && <span>{year}</span>}
+                        {score && (
+                          <span className="inline-flex items-center gap-1">
+                            <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" aria-hidden />
+                            {t('home.desk.publicScore', { score })}
+                          </span>
+                        )}
+                        {inWatchlist && <span>{t('home.desk.inWatchlist')}</span>}
+                      </p>
+                    </button>
+                  </motion.li>
+                );
+              })}
+            </motion.ol>
+          ) : (
+            <p className="mt-7 text-sm" style={{ color: MIST }}>{t('home.panels.noRecommendationToday')}</p>
+          )}
 
-            {dailyRecs.length > 1 && (
-              <div className="flex items-center justify-center mb-1" style={{ gap: '6px' }}>
-                {dailyRecs.map((rec, idx) => (
-                  <button
-                    key={rec.oracle}
-                    onClick={() => { setCarouselAutoPaused(true); setCarouselIndex(idx); }}
-                    aria-label={rec.oracle}
-                    className={`rounded-full transition-all block appearance-none ${
-                      idx === carouselIndex ? ORACLE_SEAL[rec.oracle].bg : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
-                    style={{
-                      display: 'block',
-                      boxSizing: 'border-box',
-                      padding: 0,
-                      margin: 0,
-                      border: 'none',
-                      outline: 'none',
-                      minWidth: 0,
-                      minHeight: 0,
-                      height: '12px',
-                      width: idx === carouselIndex ? '22px' : '12px'
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-            </div>
-
-            <div className="h-px bg-gradient-to-r from-transparent via-gray-200/60 dark:via-gray-600/60 to-transparent mb-4 mt-auto" />
-
-            <Link
-              to="/oracle/libraries"
-              className="group flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-sm font-bold rounded-2xl shadow-lg shadow-rose-500/20 hover:shadow-rose-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <span>{t('home.panels.anotherRecommendation')}</span>
-              <span className="group-hover:translate-x-0.5 transition-transform duration-200">→</span>
-            </Link>
-          </div>
-        </motion.div>
+          <Link
+            to="/oracle/libraries"
+            className={`mt-7 inline-flex items-center gap-2 text-sm font-semibold text-violet-200 hover:text-white transition rounded ${focusRing}`}
+          >
+            {t('home.desk.moreRecs')}
+            <ArrowRight className="w-4 h-4" aria-hidden />
+          </Link>
         </div>
-      </div>
 
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isOpen={true}
-          onClose={() => setSelectedMovie(null)}
-        />
-      )}
-
-      {showHomeWhispersModal && session?.user?.id && (
-        <WhispersModal
-          isOpen={true}
-          onClose={() => setShowHomeWhispersModal(false)}
-          userId={session.user.id}
-        />
-      )}
-
-      {showInsightsModal && session?.user?.id && (
-        <MonthlyInsightsModal
-          isOpen={true}
-          onClose={() => setShowInsightsModal(false)}
-          userId={session.user.id}
-        />
-      )}
-
-      <AnimatePresence>
-        {showRetakeQuizModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
-            onClick={() => setShowRetakeQuizModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative max-w-md w-full rounded-2xl bg-gray-900/95 backdrop-blur-xl shadow-2xl border border-gray-700/60 p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-2xl font-bold text-white mb-4 text-center">
-                {t('oracle.retakeQuizTitle')}
-              </h3>
-              <p className="text-gray-300 text-center mb-6">
-                {t('oracle.retakeQuizConfirm')}
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowRetakeQuizModal(false)}
-                  className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-all font-medium"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={async () => {
-                    setShowRetakeQuizModal(false);
-                    setShowInfoModal(false);
-                    await supabase
-                      .from('profiles')
-                      .update({ subcategoria_id: null })
-                      .eq('id', session?.user?.id);
-                    await fetchPersonality();
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all font-medium"
-                >
-                  {t('common.confirm')}
-                </button>
+        {/* Sua essência */}
+        <aside className={`lg:col-span-4 ${personality && !hasEssence ? 'lg:self-start' : ''}`}>
+          <div className="h-full rounded-2xl ring-1 ring-white/10 p-6 sm:p-7 flex flex-col" style={{ background: VELVET }}>
+            {personality === null ? (
+              <div className="space-y-3" aria-hidden>
+                <div className="h-4 w-24 rounded bg-white/10 animate-pulse" />
+                <div className="h-14 w-48 rounded bg-white/10 animate-pulse" />
+                <div className="h-24 rounded bg-white/10 animate-pulse" />
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showPremiumRequiredModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
-            onClick={() => setShowPremiumRequiredModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative max-w-md w-full rounded-2xl bg-gray-900/95 backdrop-blur-xl shadow-2xl border border-gray-700/60 p-6 text-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="text-4xl mb-3">🔒</div>
-              <h3 className="text-xl font-bold text-white mb-2">
-                {t('oracle.premiumFeatureTitle')}
-              </h3>
-              <p className="text-gray-300 text-sm mb-6">
-                {t('oracle.premiumFeatureRetake')}
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowPremiumRequiredModal(false)}
-                  className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-all font-medium"
-                >
-                  {t('common.close')}
-                </button>
-                <button
-                  onClick={() => { setShowPremiumRequiredModal(false); navigate('/premium'); }}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl transition-all font-medium"
-                >
-                  {t('oracle.viewPremium')}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {showOracleInfoModal && (
-          <motion.div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowOracleInfoModal(false)}
-          >
-            <motion.div
-              className="relative max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8"
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => setShowOracleInfoModal(false)}
-                className="absolute top-4 right-4 p-2.5 bg-gray-200/60 dark:bg-gray-700/60 hover:bg-gray-300/80 dark:hover:bg-gray-600/80 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              </button>
-
-              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500 mb-6 text-center pr-10">
-                {t('oracle.cards.infoTitle')}
-              </h2>
-
-              <div className="space-y-4">
-                <div className="rounded-xl p-5 border border-emerald-300/50 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/10">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 dark:bg-emerald-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
-                      🐸
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mb-2">
-                        {t('oracle.cards.bogart')} - {t('oracle.cards.bogartSubtitle')}
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                        {t('oracle.cards.bogartDesc')}
-                      </p>
-                      <p className="text-emerald-600 dark:text-emerald-400 text-sm mt-2 font-medium">
-                        {t('oracle.cards.bogartRec')}
-                      </p>
-                    </div>
+            ) : hasEssence ? (
+              <>
+                <p className="text-sm" style={{ color: MIST }}>{t('home.desk.essenceLabel')}</p>
+                <div className="mt-3 flex items-center gap-4">
+                  <ArchetypeSymbol archetypeId={code.slice(0, 2)} subcategoryId={code.slice(2, 3)} size={56} animated={false} />
+                  <div className="min-w-0">
+                    <p style={{ ...PIXEL, color: PAPER }} className="text-3xl leading-none">{code}</p>
+                    <p className="mt-1.5 font-semibold leading-snug" style={{ color: PAPER }}>
+                      {essence!.personality_description || `${essence!.archetype_name} ${essence!.subcategory_name}`}
+                    </p>
                   </div>
                 </div>
-
-                <div className="rounded-xl p-5 border border-red-300/50 dark:border-red-500/30 bg-red-50/50 dark:bg-red-500/10">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-red-500/20 dark:bg-red-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
-                      🦊
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">
-                        {t('oracle.cards.fincher')} - {t('oracle.cards.fincherSubtitle')}
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                        {t('oracle.cards.fincherDesc')}
-                      </p>
-                      <p className="text-red-600 dark:text-red-400 text-sm mt-2 font-medium">
-                        {t('oracle.cards.fincherRec')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-xl p-5 border border-yellow-300/50 dark:border-yellow-500/30 bg-yellow-50/50 dark:bg-yellow-500/10">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-yellow-500/20 dark:bg-yellow-500/30 flex items-center justify-center flex-shrink-0 text-2xl">
-                      🐍
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold text-yellow-600 dark:text-yellow-400 mb-2">
-                        {t('oracle.cards.cypher')} - {t('oracle.cards.cypherSubtitle')}
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                        {t('oracle.cards.cypherDesc')}
-                      </p>
-                      <p className="text-yellow-600 dark:text-yellow-400 text-sm mt-2 font-medium">
-                        {t('oracle.cards.cypherRec')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Modal "Sua Persona" — foco só no personagem DESSE usuário (nome +
-          descrição completa), diferente do modal "Os 120 Arquétipos"
-          (PersonasModal), que é uma galeria geral de navegação. Renderizado
-          via Portal direto no <body> (mesma lição aprendida com o
-          MovieDetailsModal — sem isso, se esse componente for usado dentro
-          de uma página com motion.div como wrapper raiz, o modal fica preso
-          no contexto de empilhamento isolado). Estrutura de altura já
-          corrigida desde o início (cabeçalho fixo + corpo com scroll
-          próprio + teto real de altura) — mesma lição aprendida com o bug
-          do CustomizeModal, que não tinha isso e enchia a tela toda. */}
-      {showYourPersonaModal && personaChar && createPortal(
-        <div className="fixed inset-0 z-[200] overflow-y-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowYourPersonaModal(false)}
-          />
-          <div className="flex min-h-full items-start justify-center p-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-8 relative z-[201]">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.3 }}
-              className="relative w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top)-4rem)] flex flex-col bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20 dark:border-gray-700/50 overflow-hidden"
-            >
-              <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-200/50 dark:border-gray-700/50">
-                <h2 className="text-lg font-bold" style={{ color: archetypeColor }}>
-                  {t('home.panels.yourPersona')}
-                </h2>
-                <button
-                  onClick={() => setShowYourPersonaModal(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-5">
-                {personaChar.imageUrl && (
-                  <div
-                    className="w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 border-2"
-                    style={{ borderColor: `${archetypeColor}80` }}
-                  >
-                    <img src={personaChar.imageUrl} alt={personaChar.name} className="w-full h-full object-cover object-top" />
-                  </div>
+                {essence!.archetype_description && (
+                  <p className="mt-4 text-sm leading-relaxed line-clamp-4" style={{ color: MIST }}>
+                    {essence!.archetype_description}
+                  </p>
                 )}
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: archetypeColor }}>
-                  {personality?.personalidade_completa} · {archetypeInfo?.archetype_name} {archetypeInfo?.subcategory_name}
-                </p>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                  {personaChar.name}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                  {i18n.language.startsWith('pt') ? personaChar.descriptionPt : personaChar.descriptionEn}
-                </p>
-              </div>
-            </motion.div>
+
+                <h3 className="mt-6 text-sm font-semibold" style={{ color: PAPER }}>{t('oracle.architectureTitle')}</h3>
+                <ul className="mt-3 space-y-2.5">
+                  {SPECTRA.map((key) => {
+                    const value = personality.points[key];
+                    const isTop = topSpectra.has(key);
+                    const width = `${Math.max(0, value) / maxPoints * 100}%`;
+                    return (
+                      <li key={key} className="grid grid-cols-[6.25rem_1fr] items-center gap-3">
+                        <span className={`text-sm ${isTop ? 'font-semibold' : ''}`} style={{ color: isTop ? PAPER : MIST }}>
+                          {t(`oracle.spectrum.${key}`)}
+                        </span>
+                        <span className="h-2 rounded-full bg-white/[0.08] overflow-hidden" role="presentation">
+                          <span
+                            className="block h-full rounded-full"
+                            style={{
+                              width,
+                              background: isTop ? 'linear-gradient(90deg, #7c3aed, #c026d3)' : 'rgba(189,180,214,0.4)',
+                            }}
+                          />
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-3 text-xs leading-relaxed" style={{ color: MIST }}>{t('home.desk.balancesHint')}</p>
+
+                {persona && (
+                  <button
+                    onClick={() => setShowPersona(true)}
+                    className={`mt-5 -mx-3 w-[calc(100%+1.5rem)] flex justify-start items-center gap-3 p-3 rounded-xl hover:bg-white/[0.05] text-left transition ${focusRing}`}
+                  >
+                    {persona.imageUrl ? (
+                      <img src={persona.imageUrl} alt="" loading="lazy" className="w-11 h-11 rounded-full object-cover object-top ring-1 ring-white/15" />
+                    ) : (
+                      <span className="w-11 h-11 rounded-full grid place-items-center ring-1 ring-white/15" style={{ ...PIXEL, color: PAPER }}>
+                        {persona.name.charAt(0)}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs" style={{ color: MIST }}>{t('home.panels.yourPersona')}</span>
+                      <span className="block font-semibold truncate" style={{ color: PAPER }}>{persona.name}</span>
+                    </span>
+                    <ArrowRight className="w-4 h-4 shrink-0" style={{ color: MIST }} aria-hidden />
+                  </button>
+                )}
+
+                <Link
+                  to="/oracle"
+                  className={`mt-auto pt-6 block ${focusRing} rounded-xl`}
+                >
+                  <span className="flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition">
+                    {t('home.desk.openOracle')}
+                    <ArrowRight className="w-4 h-4" aria-hidden />
+                  </span>
+                </Link>
+              </>
+            ) : (
+              <>
+                {/* As três cartas na mesa, viradas pra cima, esperando o ritual */}
+                <div className="flex justify-center pt-2 pb-1" aria-hidden>
+                  {ORACLES.map((oracle, i) => (
+                    <img
+                      key={oracle.id}
+                      src={oracle.img}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="w-[27%] max-w-[92px] rounded-[4px] ring-1 ring-white/10 -mx-1.5"
+                      style={{
+                        transform: `rotate(${(i - 1) * 9}deg) translateY(${i === 1 ? '-6px' : '4px'})`,
+                        boxShadow: `0 16px 30px -14px ${oracle.color}aa`,
+                      }}
+                    />
+                  ))}
+                </div>
+                <h3 style={{ ...PIXEL, color: PAPER }} className="mt-7 text-2xl leading-tight">{t('home.desk.essenceEmptyTitle')}</h3>
+                <p className="mt-3 text-sm leading-relaxed" style={{ color: MIST }}>{t('home.desk.essenceEmptyDesc')}</p>
+                <Link to="/oracle" className={`mt-auto pt-6 block rounded-xl ${focusRing}`}>
+                  <span className="flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition">
+                    {t('oracle.discoverYourEssence')}
+                    <ArrowRight className="w-4 h-4" aria-hidden />
+                  </span>
+                </Link>
+              </>
+            )}
           </div>
-        </div>,
-        document.body
+        </aside>
+      </section>
+
+      {/* ---------- Próximos passos ---------- */}
+      {stats && (
+        <section className="border-t border-white/[0.07]">
+          <ul className="mx-auto max-w-6xl px-5 sm:px-8 py-10 grid gap-x-8 gap-y-7 sm:grid-cols-2 xl:grid-cols-4">
+            <li>
+              <div className="flex gap-4">
+                <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center text-xl ring-1 ring-white/10" style={{ background: VELVET }} aria-hidden>
+                  {stats.nextTag?.emoji ?? '🏆'}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs" style={{ color: MIST }}>{t('home.panels.nextTag')}</p>
+                  {stats.nextTag ? (
+                    <>
+                      <p className="font-semibold truncate" style={{ color: PAPER }}>{stats.nextTag.name}</p>
+                      <p className="mt-0.5 text-sm" style={{ color: MIST }}>{isPt ? stats.nextTag.hintPt : stats.nextTag.hint}</p>
+                      <div className="mt-2.5 flex items-center gap-2.5">
+                        <span className="flex-1 h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
+                          <span
+                            className="block h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                            style={{ width: `${Math.min(100, (stats.nextTag.current / stats.nextTag.target) * 100)}%` }}
+                          />
+                        </span>
+                        <span className="text-xs tabular-nums" style={{ color: MIST }}>
+                          {t('home.desk.tagProgress', { current: stats.nextTag.current, target: stats.nextTag.target })}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="font-semibold" style={{ color: PAPER }}>{t('home.panels.allTagsUnlocked')}</p>
+                  )}
+                </div>
+              </div>
+            </li>
+
+            {stats.watchlist >= 4 && (
+              <li>
+                <Link to="/library" state={{ openWatchlistDuel: true }} className={`group flex justify-start items-start gap-4 rounded-xl text-left ${focusRing}`}>
+                  <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center ring-1 ring-white/10 text-violet-200" style={{ background: VELVET }} aria-hidden>
+                    <Swords className="w-5 h-5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-semibold group-hover:underline underline-offset-4" style={{ color: PAPER }}>{t('home.panels.watchlistDuel')}</span>
+                    <span className="block mt-0.5 text-sm leading-relaxed" style={{ color: MIST }}>{t('home.panels.watchlistDuelHint')}</span>
+                  </span>
+                </Link>
+              </li>
+            )}
+
+            {stats.lists.length > 0 && (
+              <li>
+                <Link to="/lists" className={`group flex justify-start items-start gap-4 rounded-xl text-left ${focusRing}`}>
+                  <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center ring-1 ring-white/10 text-violet-200" style={{ background: VELVET }} aria-hidden>
+                    <ListVideo className="w-5 h-5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-semibold group-hover:underline underline-offset-4" style={{ color: PAPER }}>{t('home.panels.yourLists')}</span>
+                    <span className="block mt-0.5 text-sm leading-relaxed line-clamp-2" style={{ color: MIST }}>
+                      {stats.lists.map((list) => list.name).join(' · ')}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            )}
+
+            <li>
+              <Link to="/community" className={`group flex justify-start items-start gap-4 rounded-xl text-left ${focusRing}`}>
+                <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center ring-1 ring-white/10 text-violet-200" style={{ background: VELVET }} aria-hidden>
+                  <Users className="w-5 h-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-semibold group-hover:underline underline-offset-4" style={{ color: PAPER }}>
+                    {stats.friends > 0 ? t('home.panels.matchWithFriends') : t('home.panels.openCommunity')}
+                  </span>
+                  <span className="block mt-0.5 text-sm leading-relaxed" style={{ color: MIST }}>
+                    {stats.friends > 0 ? t('home.panels.matchWithFriendsHint') : t('home.desk.findFriendsHint')}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          </ul>
+        </section>
+      )}
+
+      {/* ---------- Modais ---------- */}
+      {showWhispers && (
+        <WhispersModal isOpen onClose={() => setShowWhispers(false)} userId={userId} />
+      )}
+
+      {showInsights && (
+        <MonthlyInsightsModal isOpen onClose={() => setShowInsights(false)} userId={userId} />
+      )}
+
+      {showOracleInfo && (
+        <Sheet title={t('oracle.cards.infoTitle')} onClose={() => setShowOracleInfo(false)} wide>
+          <ul className="space-y-7">
+            {ORACLES.map((oracle) => (
+              <li key={oracle.id} className="flex gap-5">
+                <img
+                  src={oracle.img}
+                  alt=""
+                  loading="lazy"
+                  className="w-20 sm:w-24 shrink-0 self-start rounded-[4px] ring-1 ring-white/10"
+                  style={{ boxShadow: `0 16px 32px -16px ${oracle.color}99` }}
+                />
+                <div className="min-w-0">
+                  <p style={{ ...PIXEL, color: oracle.color }} className="text-2xl leading-none">{oracle.name}</p>
+                  <p className="mt-2 font-semibold" style={{ color: PAPER }}>
+                    {t(`oracle.cards.${oracle.id}`)} · {t(`oracle.cards.${oracle.id}Subtitle`)}
+                  </p>
+                  <p className="mt-1.5 text-sm leading-relaxed" style={{ color: MIST }}>{t(`oracle.cards.${oracle.id}Desc`)}</p>
+                  <p className="mt-2 text-sm leading-relaxed" style={{ color: PAPER }}>{t(`oracle.cards.${oracle.id}Rec`)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-7 pt-5 border-t border-white/[0.07] text-sm leading-relaxed" style={{ color: MIST }}>
+            {t('home.desk.todayExplain')}
+          </p>
+        </Sheet>
+      )}
+
+      {showPersona && persona && (
+        <Sheet title={t('home.panels.yourPersona')} onClose={() => setShowPersona(false)}>
+          {persona.imageUrl && (
+            <div className="w-full aspect-[4/3] rounded-xl overflow-hidden ring-1 ring-white/10 mb-5">
+              <img src={persona.imageUrl} alt={persona.name} className="w-full h-full object-cover object-top" />
+            </div>
+          )}
+          <p className="text-sm" style={{ color: MIST }}>
+            {code} · {essence?.personality_description || `${essence?.archetype_name ?? ''} ${essence?.subcategory_name ?? ''}`}
+          </p>
+          <h3 style={{ ...PIXEL, color: PAPER }} className="mt-1 text-3xl leading-tight">{persona.name}</h3>
+          <p className="mt-3 text-sm leading-relaxed" style={{ color: MIST }}>
+            {isPt ? persona.descriptionPt : persona.descriptionEn}
+          </p>
+        </Sheet>
       )}
     </>
   );
