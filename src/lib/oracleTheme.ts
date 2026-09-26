@@ -20,8 +20,12 @@ export const NIGHT_BACKGROUND = `radial-gradient(ellipse 80% 50% at 75% 0%, rgba
 // Pixelify Sans é carregada no index.html; o fallback monoespaçado mantém
 // o ar "blocado" enquanto a fonte não chega. Ligaduras desligadas: a
 // ligadura "fi" dessa fonte faz "filme" ser lido como "Alme".
+// "CineOracle Five" vem primeiro e só cobre o caractere 5 (ver index.css):
+// o 5 original da Pixelify é idêntico ao S e parece um 8 em tamanho pequeno.
+export const PIXEL_FONT_STACK = '"CineOracle Five", "Pixelify Sans", ui-monospace, "SF Mono", Menlo, monospace';
+
 export const PIXEL: React.CSSProperties = {
-  fontFamily: '"Pixelify Sans", ui-monospace, "SF Mono", Menlo, monospace',
+  fontFamily: PIXEL_FONT_STACK,
   fontVariantLigatures: 'none',
   fontFeatureSettings: '"liga" 0, "clig" 0',
 };
