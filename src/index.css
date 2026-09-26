@@ -5,6 +5,12 @@
 /* Base styles */
 @layer base {
   html {
+    /* Cor-base do fundo noturno (NIGHT em src/lib/oracleTheme.ts). Fica no
+       html porque é ele que pinta a "tela" do navegador — inclusive a área
+       que aparece quando a página é puxada além do topo ou do fim. Assim o
+       fundo parece infinito em vez de revelar outra cor por baixo. */
+    background-color: #120D22;
+    color-scheme: dark;
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
     /* Desabilita o gesto nativo de "arrastar da borda esquerda/direita
