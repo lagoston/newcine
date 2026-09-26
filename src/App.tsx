@@ -57,7 +57,7 @@ function App() {
               quando uma notificação é clicada (Home vs. qualquer outra
               página), e useLocation só funciona dentro de um Router. */}
           <WhispersProvider>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pt-[calc(env(safe-area-inset-top)+3.5rem)]">
+          <div className="min-h-screen pt-[calc(env(safe-area-inset-top)+3.5rem)]">
             <PageBackground />
             <Navbar />
             <WhispersNotificationPopup />
