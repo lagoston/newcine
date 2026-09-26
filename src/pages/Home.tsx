@@ -12,7 +12,7 @@ import FloatingFriendBubbles, { FriendBubbleData } from '../components/FloatingF
 import HomeUserPanels from '../components/HomeUserPanels';
 import GlassLoader from '../components/GlassLoader';
 import GuestLanding from '../components/GuestLanding';
-import { NIGHT_BACKGROUND, VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
 
 // ---------------------------------------------------------------------------
 // Pré-carregamento dos detalhes (hover no pôster já adianta o modal)
@@ -214,7 +214,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, movies, meta, friendActivity, onMo
       ) : (
         <div
           ref={scrollRef}
-          className="mt-6 overflow-x-auto cursor-grab select-none"
+          className="mt-3 pt-3 overflow-x-auto cursor-grab select-none"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -222,7 +222,9 @@ const Shelf: React.FC<ShelfProps> = ({ title, movies, meta, friendActivity, onMo
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
         >
           {/* A faixa rola de ponta a ponta da tela; o recuo lateral acompanha
-              a margem do conteúdo, então dá pra ver que tem mais. */}
+              a margem do conteúdo, então dá pra ver que tem mais. O pt-3 do
+              container dá espaço pro pôster subir no hover/toque sem ser
+              cortado (overflow-x:auto também recorta na vertical). */}
           <ol className="flex gap-4 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] pb-2">
             {movies.map((movie, index) => (
               <li key={movieKey(movie)} className="shrink-0 w-[124px] sm:w-[148px]">
@@ -420,10 +422,7 @@ const Home = () => {
 
       {/* O conteúdo já monta escondido pra buscar tudo em paralelo com o
           carregador; aparece inteiro de uma vez quando o topo está pronto. */}
-      <div
-        className={pageReady ? 'relative min-h-[calc(100vh-3.5rem)] overflow-x-hidden pb-6' : 'hidden'}
-        style={{ background: NIGHT_BACKGROUND }}
-      >
+      <div className={pageReady ? 'relative min-h-[calc(100vh-3.5rem)] overflow-x-hidden pb-6' : 'hidden'}>
         {userId && (
           <HomeUserPanels
             userId={userId}
