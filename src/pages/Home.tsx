@@ -1,451 +1,509 @@
-import React, { useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Star, Users, ArrowRight } from 'lucide-react';
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Star, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { Movie, getTrending, getMovieDetails, getComingSoon, getBestOfYear, getFriendsBestMovies } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import OptimizedPoster from '../components/OptimizedPoster';
-import FloatingFriendBubbles from '../components/FloatingFriendBubbles';
+import FloatingFriendBubbles, { FriendBubbleData } from '../components/FloatingFriendBubbles';
 import HomeUserPanels from '../components/HomeUserPanels';
-import { motion } from 'framer-motion';
-import { toast } from 'react-hot-toast';
-import { useTranslation } from 'react-i18next';
 import GlassLoader from '../components/GlassLoader';
 import GuestLanding from '../components/GuestLanding';
+import { NIGHT_BACKGROUND, VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
+
+// ---------------------------------------------------------------------------
+// Pré-carregamento dos detalhes (hover no pôster já adianta o modal)
+// ---------------------------------------------------------------------------
 
 const detailsCache = new Map<string, Promise<Movie>>();
 
 function prefetchMovie(id: number, mediaType: 'movie' | 'tv' = 'movie') {
- const key = `${mediaType}:${id}`;
- if (!detailsCache.has(key)) {
- detailsCache.set(key, getMovieDetails(id, mediaType));
- }
+  const key = `${mediaType}:${id}`;
+  if (!detailsCache.has(key)) {
+    detailsCache.set(key, getMovieDetails(id, mediaType));
+  }
 }
 
 async function getOrFetchDetails(id: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<Movie> {
- const key = `${mediaType}:${id}`;
- const pending = detailsCache.get(key);
- if (pending) return pending;
- const promise = getMovieDetails(id, mediaType);
- detailsCache.set(key, promise);
- return promise;
+  const key = `${mediaType}:${id}`;
+  const pending = detailsCache.get(key);
+  if (pending) return pending;
+  const promise = getMovieDetails(id, mediaType);
+  detailsCache.set(key, promise);
+  return promise;
 }
 
-interface MovieCarouselProps {
- title: string | JSX.Element;
- movies: Movie[];
- loading: boolean;
- onViewAll: () => void;
- onMovieClick: (movie: Movie) => void;
- viewAllLabel: string;
- // Tema opcional do "vidro" por trás do carrossel — extensão do Chroma
- // Box (que já colore as rating boxes da Biblioteca) pras seções da
- // Home. Sem tema, mantém o azul/ciano padrão de sempre.
- theme?: 'gold' | 'purple';
- // Conteúdo alternativo pra quando a lista vem vazia (não carregando) —
- // ex: "Melhores dos Amigos" sem seguir ninguém ainda. Sem isso, o
- // carrossel mostra a área vazia normalmente.
- emptyState?: React.ReactNode;
- // Mostra as bolhas flutuantes de amigos (versão fechada, sem balão de
- // diálogo) em cada pôster — só usado no "Popular Agora", não nos
- // outros carrosséis que reaproveitam esse mesmo componente genérico.
- showFriendBubbles?: boolean;
+const movieKey = (movie: Pick<Movie, 'id' | 'media_type'>) => `${movie.media_type || 'movie'}:${movie.id}`;
+
+// "2026-10-12" vira 12/out no fuso do usuário (new Date("AAAA-MM-DD") seria
+// meia-noite UTC e cairia no dia anterior no Brasil).
+function parseLocalDate(value?: string): Date | null {
+  if (!value) return null;
+  const [y, m, d] = value.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
 }
 
-const getCarouselThemeClasses = (theme?: 'gold' | 'purple') => {
- if (theme === 'gold') {
- return {
- panel: 'bg-amber-500/5 backdrop-blur-2xl border border-amber-400/20 shadow-2xl shadow-amber-900/10',
- glowTopRight: 'bg-gradient-to-br from-amber-500/10 to-yellow-400/5',
- glowBottomLeft: 'bg-gradient-to-tr from-yellow-500/8 to-amber-400/5',
- bar: 'bg-gradient-to-b from-amber-400 via-yellow-400 to-amber-500',
- titleText: 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400',
- button: 'bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-600 hover:shadow-amber-500/25',
- };
- }
- if (theme === 'purple') {
- return {
- panel: 'bg-purple-500/5 backdrop-blur-2xl border border-purple-400/20 shadow-2xl shadow-purple-900/10',
- glowTopRight: 'bg-gradient-to-br from-purple-500/10 to-fuchsia-400/5',
- glowBottomLeft: 'bg-gradient-to-tr from-fuchsia-500/8 to-purple-400/5',
- bar: 'bg-gradient-to-b from-purple-400 via-fuchsia-400 to-purple-500',
- titleText: 'bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-400',
- button: 'bg-gradient-to-r from-purple-600 via-fuchsia-600 to-purple-600 hover:shadow-purple-500/25',
- };
- }
- return {
- panel: 'bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl',
- glowTopRight: 'bg-gradient-to-br from-blue-500/10 to-cyan-400/5',
- glowBottomLeft: 'bg-gradient-to-tr from-pink-500/8 to-blue-400/5',
- bar: 'bg-gradient-to-b from-blue-400 via-cyan-400 to-blue-500',
- titleText: 'bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400',
- button: 'bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:shadow-blue-500/25',
- };
+// ---------------------------------------------------------------------------
+// Atividade dos amigos em lote: uma consulta para TODOS os pôsteres da
+// página, em vez de três consultas por pôster (antes eram ~240 requisições
+// ao abrir a home).
+// ---------------------------------------------------------------------------
+
+function useFriendActivity(userId: string | undefined, movies: Movie[]) {
+  const [activity, setActivity] = useState<Record<string, FriendBubbleData[]>>({});
+
+  const idsKey = useMemo(
+    () => Array.from(new Set(movies.map((movie) => movie.id))).sort((a, b) => a - b).join(','),
+    [movies]
+  );
+
+  useEffect(() => {
+    if (!userId || !idsKey) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data: friendships } = await supabase
+          .from('friendships')
+          .select('requester_id, addressee_id')
+          .eq('status', 'accepted')
+          .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+
+        const friendIds = (friendships ?? []).map((f: { requester_id: string; addressee_id: string }) =>
+          f.requester_id === userId ? f.addressee_id : f.requester_id
+        );
+        if (friendIds.length === 0) {
+          if (!cancelled) setActivity({});
+          return;
+        }
+
+        const ids = idsKey.split(',').map(Number);
+        const { data: entries } = await supabase
+          .from('user_movies')
+          .select('user_id, movie_id, media_type, rating')
+          .in('movie_id', ids)
+          .in('user_id', friendIds);
+
+        if (!entries || entries.length === 0) {
+          if (!cancelled) setActivity({});
+          return;
+        }
+
+        const userIds = Array.from(new Set(entries.map((e: { user_id: string }) => e.user_id)));
+        const { data: profiles } = await supabase
+          .from('public_profiles')
+          .select('id, username, avatar_url')
+          .in('id', userIds);
+
+        const byId = new Map((profiles ?? []).map((p: { id: string; username: string; avatar_url: string | null }) => [p.id, p]));
+        const grouped: Record<string, FriendBubbleData[]> = {};
+
+        (entries as { user_id: string; movie_id: number; media_type: string | null; rating: number | null }[]).forEach((entry) => {
+          const profile = byId.get(entry.user_id);
+          if (!profile) return;
+          const key = `${entry.media_type || 'movie'}:${entry.movie_id}`;
+          (grouped[key] ||= []).push({
+            user_id: entry.user_id,
+            username: profile.username,
+            avatar_url: profile.avatar_url,
+            rating: entry.rating,
+            is_watchlist_only: entry.rating === null,
+          });
+        });
+
+        // Quem avaliou vem antes de quem só guardou na watchlist; notas maiores primeiro.
+        Object.values(grouped).forEach((list) =>
+          list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1))
+        );
+
+        if (!cancelled) setActivity(grouped);
+      } catch (error) {
+        console.error('Home: friend activity error', error);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [userId, idsKey]);
+
+  return activity;
+}
+
+// ---------------------------------------------------------------------------
+// Prateleira horizontal
+// ---------------------------------------------------------------------------
+
+type ShelfMeta = 'rank' | 'release' | 'score' | 'year';
+
+interface ShelfProps {
+  title: string;
+  movies: Movie[];
+  meta: ShelfMeta;
+  friendActivity: Record<string, FriendBubbleData[]>;
+  onMovieClick: (movie: Movie) => void;
+  onViewAll: () => void;
+  emptyState?: React.ReactNode;
+}
+
+const Shelf: React.FC<ShelfProps> = ({ title, movies, meta, friendActivity, onMovieClick, onViewAll, emptyState }) => {
+  const { t, i18n } = useTranslation();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollStartRef = useRef(0);
+  const dragDistanceRef = useRef(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    isDraggingRef.current = true;
+    startXRef.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollStartRef.current = scrollRef.current.scrollLeft;
+    dragDistanceRef.current = 0;
+    scrollRef.current.style.cursor = 'grabbing';
+  };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    dragDistanceRef.current = Math.abs(x - startXRef.current);
+    scrollRef.current.scrollLeft = scrollStartRef.current - (x - startXRef.current) * 2;
+  };
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+    if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
+  };
+
+  if (movies.length === 0 && !emptyState) return null;
+
+  const metaLine = (movie: Movie) => {
+    if (meta === 'release') {
+      const date = parseLocalDate(movie.release_date);
+      return date ? date.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long' }) : null;
+    }
+    if (meta === 'score' && movie.vote_average) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          <Star className="w-3 h-3 fill-amber-300 text-amber-300" aria-hidden />
+          {movie.vote_average.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+        </span>
+      );
+    }
+    return movie.release_date?.slice(0, 4) ?? null;
+  };
+
+  return (
+    <section className="border-t border-white/[0.07] py-12 sm:py-14">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 flex items-end justify-between gap-4">
+        <h2 style={{ ...PIXEL, color: PAPER }} className="text-2xl sm:text-3xl leading-tight">{title}</h2>
+        {movies.length > 0 && (
+          <button
+            onClick={onViewAll}
+            className="shrink-0 px-4 py-2 rounded-lg text-sm font-medium border border-white/15 hover:border-white/35 hover:bg-white/5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
+            style={{ color: PAPER }}
+          >
+            {t('common.view_all')}
+          </button>
+        )}
+      </div>
+
+      {movies.length === 0 ? (
+        <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-6">{emptyState}</div>
+      ) : (
+        <div
+          ref={scrollRef}
+          className="mt-6 overflow-x-auto cursor-grab select-none"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+        >
+          {/* A faixa rola de ponta a ponta da tela; o recuo lateral acompanha
+              a margem do conteúdo, então dá pra ver que tem mais. */}
+          <ol className="flex gap-4 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] pb-2">
+            {movies.map((movie, index) => (
+              <li key={movieKey(movie)} className="shrink-0 w-[124px] sm:w-[148px]">
+                <button
+                  onClick={() => { if (dragDistanceRef.current > 5) return; onMovieClick(movie); }}
+                  onMouseEnter={() => prefetchMovie(movie.id, movie.media_type || 'movie')}
+                  className="group block w-full text-left rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
+                >
+                  <div
+                    className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
+                    style={{ background: VELVET }}
+                  >
+                    <OptimizedPoster
+                      src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                      alt={movie.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    {meta === 'rank' && (
+                      <span
+                        style={{ ...PIXEL, background: 'rgba(18,13,34,0.82)', color: PAPER }}
+                        className="absolute bottom-2 left-2 min-w-[1.9rem] text-center px-1.5 py-0.5 rounded-md text-sm ring-1 ring-white/15"
+                      >
+                        {index + 1}
+                      </span>
+                    )}
+                    <FloatingFriendBubbles
+                      movieId={movie.id}
+                      mediaType={movie.media_type || 'movie'}
+                      friends={friendActivity[movieKey(movie)] ?? []}
+                    />
+                  </div>
+                  <p className="mt-2.5 text-sm font-medium leading-snug line-clamp-2" style={{ color: PAPER }}>
+                    {movie.title}
+                  </p>
+                  <p className="mt-0.5 text-xs" style={{ color: MIST }}>{metaLine(movie)}</p>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </section>
+  );
 };
 
-const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies, loading, onViewAll, onMovieClick, viewAllLabel, theme, emptyState, showFriendBubbles }) => {
- const themeClasses = getCarouselThemeClasses(theme);
- const scrollRef = useRef<HTMLDivElement>(null);
- const isDraggingRef = useRef(false);
- const startXRef = useRef(0);
- const scrollStartRef = useRef(0);
- const dragDistanceRef = useRef(0);
+// ---------------------------------------------------------------------------
+// Página
+// ---------------------------------------------------------------------------
 
- const handleHover = useCallback((movie: Movie) => {
- prefetchMovie(movie.id, movie.media_type || 'movie');
- }, []);
+interface ShelfData {
+  trending: Movie[];
+  comingSoon: Movie[];
+  bestOfYear: Movie[];
+  friendsBest: Movie[];
+}
 
- const handleMouseDown = (e: React.MouseEvent) => {
- if (!scrollRef.current) return;
- isDraggingRef.current = true;
- startXRef.current = e.pageX - scrollRef.current.offsetLeft;
- scrollStartRef.current = scrollRef.current.scrollLeft;
- dragDistanceRef.current = 0;
- scrollRef.current.style.cursor = 'grabbing';
- };
- const handleMouseMove = (e: React.MouseEvent) => {
- if (!isDraggingRef.current || !scrollRef.current) return;
- e.preventDefault();
- const x = e.pageX - scrollRef.current.offsetLeft;
- dragDistanceRef.current = Math.abs(x - startXRef.current);
- scrollRef.current.scrollLeft = scrollStartRef.current - (x - startXRef.current) * 2;
- };
- const handleMouseUp = () => {
- isDraggingRef.current = false;
- if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
- };
-
- if (loading) {
- return (
- <div className={`relative mb-10 p-6 sm:p-8 rounded-3xl overflow-hidden ${themeClasses.panel}`}>
- <div className="flex justify-center py-8">
- <GlassLoader size="md" />
- </div>
- </div>
- );
- }
-
- return (
- <motion.div
- className={`relative mb-10 p-6 sm:p-8 rounded-3xl overflow-hidden ${themeClasses.panel}`}
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.5 }}
- >
- <div className="absolute inset-0 pointer-events-none">
- <div className={`absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl ${themeClasses.glowTopRight}`}></div>
- <div className={`absolute bottom-0 left-0 w-40 h-40 rounded-full blur-3xl ${themeClasses.glowBottomLeft}`}></div>
- </div>
- <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
- backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
- backgroundSize: '24px 24px'
- }}></div>
- <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
- <div className="flex items-center gap-3">
- <div className={`h-10 w-1 rounded-full ${themeClasses.bar}`}></div>
- <h2 className={`text-xl sm:text-2xl font-bold text-transparent bg-clip-text leading-relaxed ${themeClasses.titleText}`}>
- {title}
- </h2>
- </div>
- {!(emptyState && movies.length === 0) && (
- <button
- onClick={onViewAll}
- className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-semibold text-white hover:shadow-lg rounded-xl transition-all duration-300 whitespace-nowrap flex-shrink-0 overflow-hidden relative group ${themeClasses.button}`}
- >
- <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
- <span className="relative z-10 hidden sm:inline">{viewAllLabel}</span>
- <span className="relative z-10 sm:hidden">Ver</span>
- <ArrowRight className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4" />
- </button>
- )}
- </div>
- {emptyState && movies.length === 0 ? (
- <div className="relative z-10">{emptyState}</div>
- ) : (
- <div
- ref={scrollRef}
- className="relative z-10 overflow-x-auto py-4 pb-2 cursor-grab select-none"
- onMouseDown={handleMouseDown}
- onMouseMove={handleMouseMove}
- onMouseUp={handleMouseUp}
- onMouseLeave={handleMouseUp}
- style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
- >
- <div className="flex gap-4">
- {movies.map((movie, index) => (
- <motion.div
- key={movie.id}
- className="relative rounded-2xl overflow-hidden cursor-pointer group flex-shrink-0 shadow-xl border border-white/10"
- style={{ width: '160px', height: '240px', willChange: 'transform' }}
- onClick={() => { if (dragDistanceRef.current > 5) return; onMovieClick(movie); }}
- onMouseEnter={() => handleHover(movie)}
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: index * 0.05, duration: 0.3 }}
- whileHover={{ scale: 1.05, y: -8 }}
- whileTap={{ scale: 0.97 }}
- >
- <div
- className="absolute top-2 left-2 bg-blue-500/80 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg border border-blue-400/30"
- style={{ zIndex: 30, transform: 'translateZ(0)' }}
- >
- #{index + 1}
- </div>
- {showFriendBubbles && (
- <FloatingFriendBubbles movieId={movie.id} mediaType={movie.media_type || 'movie'} />
- )}
- <OptimizedPoster
- src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
- alt={movie.title}
- className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
- />
- <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-[2px] pointer-events-none">
- <div className="p-3">
- <h3 className="text-white font-bold mb-1.5 line-clamp-2 text-sm drop-shadow-lg">{movie.title}</h3>
- <div className="flex items-center gap-1.5 flex-wrap">
- <div className="flex items-center bg-blue-500/20 backdrop-blur-md px-2 py-1 rounded-lg border border-blue-400/30">
- <Star className="w-3 h-3 fill-blue-400 text-blue-400" />
- <span className="ml-1 text-blue-100 font-bold text-xs">{movie.vote_average.toFixed(1)}</span>
- </div>
- <span className="text-gray-200 text-xs font-semibold bg-white/10 backdrop-blur-sm px-2 py-1 rounded-lg border border-white/10">
- {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}
- </span>
- </div>
- </div>
- </div>
- </motion.div>
- ))}
- </div>
- </div>
- )}
- </motion.div>
- );
-};
+const EMPTY_SHELVES: ShelfData = { trending: [], comingSoon: [], bestOfYear: [], friendsBest: [] };
 
 const Home = () => {
- const { session } = useAuth();
- const { t } = useTranslation();
- const navigate = useNavigate();
- const [trendingMovies, setTrendingMovies] = React.useState<Movie[]>([]);
- const [comingSoonMovies, setComingSoonMovies] = React.useState<Movie[]>([]);
- const [bestOfYearMovies, setBestOfYearMovies] = React.useState<Movie[]>([]);
- const [friendsBestMovies, setFriendsBestMovies] = React.useState<Movie[]>([]);
- const [guestTrendingMovies, setGuestTrendingMovies] = React.useState<Movie[]>([]);
- const [userPersonalidade, setUserPersonalidade] = React.useState<string | null>(null);
- const [loading, setLoading] = React.useState({ trending: false, comingSoon: false, bestOfYear: false, friendsBest: false });
- const [guestLoadingTrending, setGuestLoadingTrending] = React.useState(false);
- const [selectedMovie, setSelectedMovie] = React.useState<Movie | null>(null);
- const [username, setUsername] = React.useState('');
- const [allMoviesModal, setAllMoviesModal] = React.useState<{ isOpen: boolean; title: string; movies: Movie[]; theme?: 'gold' | 'purple' }>({ isOpen: false, title: '', movies: [] });
- useEffect(() => {
- if (session?.user) {
- fetchUsername();
- fetchAllMovies();
- fetchUserEssence();
- } else {
- fetchGuestTrending();
- }
- }, [session?.user]);
+  const { session } = useAuth();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const userId = session?.user?.id;
 
- const fetchGuestTrending = async () => {
- try {
- setGuestLoadingTrending(true);
- const trending = await getTrending();
- setGuestTrendingMovies(trending);
- trending.slice(0, 5).forEach(m => prefetchMovie(m.id, 'movie'));
- } catch (err) {
- console.error('Error fetching guest trending:', err);
- } finally {
- setGuestLoadingTrending(false);
- }
- };
+  const [shelves, setShelves] = useState<ShelfData>(EMPTY_SHELVES);
+  const [shelvesLoading, setShelvesLoading] = useState(true);
+  const [panelsReady, setPanelsReady] = useState(false);
+  const [readyTimeout, setReadyTimeout] = useState(false);
+  const [guestTrendingMovies, setGuestTrendingMovies] = useState<Movie[]>([]);
+  const [guestLoadingTrending, setGuestLoadingTrending] = useState(false);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [username, setUsername] = useState('');
+  const [allMoviesModal, setAllMoviesModal] = useState<{ isOpen: boolean; title: string; movies: Movie[] }>({ isOpen: false, title: '', movies: [] });
 
- const fetchUsername = async () => {
- try {
- const { data, error } = await supabase
- .from('public_profiles')
- .select('username')
- .eq('id', session?.user?.id)
- .maybeSingle();
- if (error) throw error;
- setUsername(data?.username || '');
- } catch (error) {
- console.error('Error fetching username:', error);
- }
- };
+  // Rede de segurança: se o topo demorar demais, a página abre mesmo assim
+  // (cada bloco tem o próprio esqueleto de carregamento).
+  useEffect(() => {
+    if (!userId) return;
+    const id = setTimeout(() => setReadyTimeout(true), 6000);
+    return () => clearTimeout(id);
+  }, [userId]);
 
- const fetchAllMovies = async () => {
- try {
- setLoading({ trending: true, comingSoon: true, bestOfYear: true, friendsBest: true });
- const [trending, comingSoon, bestOfYear, friendsBest] = await Promise.all([
- getTrending(),
- getComingSoon(),
- getBestOfYear(),
- session?.user?.id ? getFriendsBestMovies(session.user.id) : Promise.resolve([]),
- ]);
- setTrendingMovies(trending);
- setComingSoonMovies(comingSoon);
- setBestOfYearMovies(bestOfYear);
- setFriendsBestMovies(friendsBest);
- } catch (error) {
- console.error('Error fetching movies:', error);
- } finally {
- setLoading({ trending: false, comingSoon: false, bestOfYear: false, friendsBest: false });
- }
- };
+  const fetchGuestTrending = async () => {
+    try {
+      setGuestLoadingTrending(true);
+      const trending = await getTrending();
+      setGuestTrendingMovies(trending);
+      trending.slice(0, 5).forEach((m) => prefetchMovie(m.id, 'movie'));
+    } catch (err) {
+      console.error('Error fetching guest trending:', err);
+    } finally {
+      setGuestLoadingTrending(false);
+    }
+  };
 
- const fetchUserEssence = async () => {
- if (!session?.user?.id) return;
- try {
- const { data } = await supabase
- .from('profiles')
- .select('personalidade_completa')
- .eq('id', session.user.id)
- .maybeSingle();
- setUserPersonalidade(data?.personalidade_completa ?? null);
- } catch {
- // ignore
- }
- };
+  const fetchUsername = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('public_profiles')
+        .select('username')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      setUsername(data?.username || '');
+    } catch (error) {
+      console.error('Error fetching username:', error);
+    }
+  };
 
- const handleMovieClick = async (movie: Movie) => {
- setSelectedMovie(movie);
- try {
- const details = await getOrFetchDetails(movie.id, movie.media_type || 'movie');
- setSelectedMovie(details);
- } catch (error) {
- console.error('Error fetching movie details:', error);
- }
- };
+  const fetchShelves = async (id: string) => {
+    setShelvesLoading(true);
+    const [trending, comingSoon, bestOfYear, friendsBest] = await Promise.allSettled([
+      getTrending(),
+      getComingSoon(),
+      getBestOfYear(),
+      getFriendsBestMovies(id),
+    ]);
+    const value = (result: PromiseSettledResult<Movie[]>) => (result.status === 'fulfilled' ? result.value : []);
+    setShelves({
+      trending: value(trending),
+      comingSoon: value(comingSoon),
+      bestOfYear: value(bestOfYear),
+      friendsBest: value(friendsBest),
+    });
+    setShelvesLoading(false);
+  };
 
- const handleAddToLibrary = () => {};
+  useEffect(() => {
+    if (userId) {
+      fetchUsername(userId);
+      fetchShelves(userId);
+    } else {
+      fetchGuestTrending();
+    }
+  }, [userId]);
 
- if (session?.user && loading.trending) {
- return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
- }
+  const allShelfMovies = useMemo(
+    () => [...shelves.trending, ...shelves.comingSoon, ...shelves.bestOfYear, ...shelves.friendsBest],
+    [shelves]
+  );
+  const friendActivity = useFriendActivity(userId, allShelfMovies);
 
- if (!session) {
- return (
- <>
- <GuestLanding
- movies={guestTrendingMovies}
- loading={guestLoadingTrending}
- onMovieClick={handleMovieClick}
- onMovieHover={(movie) => prefetchMovie(movie.id, movie.media_type || 'movie')}
- onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('guestHome.trendingTitle'), movies: guestTrendingMovies })}
- />
+  const handleMovieClick = useCallback(async (movie: Movie) => {
+    setSelectedMovie(movie);
+    try {
+      const details = await getOrFetchDetails(movie.id, movie.media_type || 'movie');
+      setSelectedMovie(details);
+    } catch (error) {
+      console.error('Error fetching movie details:', error);
+    }
+  }, []);
 
- {selectedMovie && (
- <MovieDetailsModal
- movie={selectedMovie}
- isOpen={true}
- onClose={() => setSelectedMovie(null)}
- isOtherUserProfile={true}
- onAddToLibrary={() => navigate('/auth')}
- />
- )}
+  const handlePanelsReady = useCallback(() => setPanelsReady(true), []);
+  const handleAddToLibrary = () => {};
 
- <AllMoviesModal
- isOpen={allMoviesModal.isOpen}
- onClose={() => setAllMoviesModal({ isOpen: false, title: '', movies: [] })}
- title={allMoviesModal.title}
- movies={allMoviesModal.movies}
- rating={null}
- onAddToLibrary={() => navigate('/auth')}
- />
- </>
- );
- }
+  if (!session) {
+    return (
+      <>
+        <GuestLanding
+          movies={guestTrendingMovies}
+          loading={guestLoadingTrending}
+          onMovieClick={handleMovieClick}
+          onMovieHover={(movie) => prefetchMovie(movie.id, movie.media_type || 'movie')}
+          onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('guestHome.trendingTitle'), movies: guestTrendingMovies })}
+        />
 
- return (
- <div className="min-h-[calc(100vh-4rem)] py-8 px-4 relative overflow-hidden">
+        {selectedMovie && (
+          <MovieDetailsModal
+            movie={selectedMovie}
+            isOpen={true}
+            onClose={() => setSelectedMovie(null)}
+            isOtherUserProfile={true}
+            onAddToLibrary={() => navigate('/auth')}
+          />
+        )}
 
- <div className="max-w-7xl mx-auto relative">
- {session?.user && (
- <HomeUserPanels userId={session.user.id} username={username} />
- )}
- <MovieCarousel
- title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🔥</span> {t('home.popularNow')}</span>}
- movies={trendingMovies}
- loading={loading.trending}
- onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.popularNow'), movies: trendingMovies })}
- onMovieClick={handleMovieClick}
- viewAllLabel={t('common.view_all')}
- showFriendBubbles
- />
- <MovieCarousel
- title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🎬</span> {t('home.comingSoon')}</span>}
- movies={comingSoonMovies}
- loading={loading.comingSoon}
- onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.comingSoon'), movies: comingSoonMovies })}
- onMovieClick={handleMovieClick}
- viewAllLabel={t('common.view_all')}
- showFriendBubbles
- />
- <MovieCarousel
- title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>🏆</span> {t('home.bestOfYear')}</span>}
- movies={bestOfYearMovies}
- loading={loading.bestOfYear}
- onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.bestOfYear'), movies: bestOfYearMovies, theme: 'gold' })}
- onMovieClick={handleMovieClick}
- viewAllLabel={t('common.view_all')}
- theme="gold"
- showFriendBubbles
- />
- <MovieCarousel
- title={<span className="flex items-center gap-3"><span className="text-3xl" style={{fontFamily: 'system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"'}}>👥</span> {t('home.friendsBest')}</span>}
- movies={friendsBestMovies}
- loading={loading.friendsBest}
- onViewAll={() => setAllMoviesModal({ isOpen: true, title: t('home.friendsBest'), movies: friendsBestMovies, theme: 'purple' })}
- onMovieClick={handleMovieClick}
- viewAllLabel={t('common.view_all')}
- theme="purple"
- showFriendBubbles
- emptyState={
- <div className="flex flex-col sm:flex-row items-center gap-5 py-6 px-2">
- <div className="relative flex-shrink-0">
- <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/15 to-purple-500/15 dark:from-violet-500/20 dark:to-purple-500/20 flex items-center justify-center rotate-3">
- <Users className="w-9 h-9 text-violet-500" />
- </div>
- <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-white dark:bg-gray-800 border-2 border-violet-300/50 dark:border-violet-600/50 flex items-center justify-center shadow-sm">
- <span className="text-xs">👋</span>
- </div>
- </div>
- <div className="flex-1 text-center sm:text-left">
- <h3 className="text-base font-bold text-gray-800 dark:text-white mb-1">
- {t('profile.noFriendsActivityTitle')}
- </h3>
- <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
- {t('profile.noFriendsActivityDescription')}
- </p>
- </div>
- </div>
- }
- />
- </div>
+        <AllMoviesModal
+          isOpen={allMoviesModal.isOpen}
+          onClose={() => setAllMoviesModal({ isOpen: false, title: '', movies: [] })}
+          title={allMoviesModal.title}
+          movies={allMoviesModal.movies}
+          rating={null}
+          onAddToLibrary={() => navigate('/auth')}
+        />
+      </>
+    );
+  }
 
- {selectedMovie && (
- <MovieDetailsModal
- movie={selectedMovie}
- isOpen={true}
- onClose={() => setSelectedMovie(null)}
- isOtherUserProfile={false}
- onAddToLibrary={handleAddToLibrary}
- />
- )}
- <AllMoviesModal
- isOpen={allMoviesModal.isOpen}
- onClose={() => setAllMoviesModal({ isOpen: false, title: '', movies: [] })}
- title={allMoviesModal.title}
- movies={allMoviesModal.movies}
- theme={allMoviesModal.theme}
- rating={null}
- onAddToLibrary={handleAddToLibrary}
- />
- </div>
- );
+  const pageReady = !shelvesLoading && (panelsReady || readyTimeout);
+  const openAll = (title: string, movies: Movie[]) => setAllMoviesModal({ isOpen: true, title, movies });
+
+  return (
+    <>
+      {!pageReady && <GlassLoader fullPage size="lg" label={t('common.loading')} />}
+
+      {/* O conteúdo já monta escondido pra buscar tudo em paralelo com o
+          carregador; aparece inteiro de uma vez quando o topo está pronto. */}
+      <div
+        className={pageReady ? 'relative min-h-[calc(100vh-3.5rem)] overflow-x-hidden pb-6' : 'hidden'}
+        style={{ background: NIGHT_BACKGROUND }}
+      >
+        {userId && (
+          <HomeUserPanels
+            userId={userId}
+            username={username}
+            visible={pageReady}
+            onReady={handlePanelsReady}
+            onMovieClick={handleMovieClick}
+          />
+        )}
+
+        <Shelf
+          title={t('home.popularNow')}
+          movies={shelves.trending}
+          meta="rank"
+          friendActivity={friendActivity}
+          onMovieClick={handleMovieClick}
+          onViewAll={() => openAll(t('home.popularNow'), shelves.trending)}
+        />
+        <Shelf
+          title={t('home.comingSoon')}
+          movies={shelves.comingSoon}
+          meta="release"
+          friendActivity={friendActivity}
+          onMovieClick={handleMovieClick}
+          onViewAll={() => openAll(t('home.comingSoon'), shelves.comingSoon)}
+        />
+        <Shelf
+          title={t('home.bestOfYear')}
+          movies={shelves.bestOfYear}
+          meta="score"
+          friendActivity={friendActivity}
+          onMovieClick={handleMovieClick}
+          onViewAll={() => openAll(t('home.bestOfYear'), shelves.bestOfYear)}
+        />
+        <Shelf
+          title={t('home.friendsBest')}
+          movies={shelves.friendsBest}
+          meta="year"
+          friendActivity={friendActivity}
+          onMovieClick={handleMovieClick}
+          onViewAll={() => openAll(t('home.friendsBest'), shelves.friendsBest)}
+          emptyState={
+            <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 rounded-2xl ring-1 ring-white/10 p-6" style={{ background: VELVET }}>
+              <span className="w-12 h-12 shrink-0 rounded-xl grid place-items-center ring-1 ring-violet-300/30 text-violet-200" style={{ background: 'rgba(255,255,255,0.03)' }} aria-hidden>
+                <Users className="w-6 h-6" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold" style={{ color: PAPER }}>{t('profile.noFriendsActivityTitle')}</p>
+                <p className="mt-1 text-sm leading-relaxed max-w-lg" style={{ color: MIST }}>{t('profile.noFriendsActivityDescription')}</p>
+              </div>
+              <Link
+                to="/community"
+                className="shrink-0 inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
+              >
+                {t('home.panels.openCommunity')}
+              </Link>
+            </div>
+          }
+        />
+      </div>
+
+      {selectedMovie && (
+        <MovieDetailsModal
+          movie={selectedMovie}
+          isOpen={true}
+          onClose={() => setSelectedMovie(null)}
+          isOtherUserProfile={false}
+          onAddToLibrary={handleAddToLibrary}
+        />
+      )}
+      <AllMoviesModal
+        isOpen={allMoviesModal.isOpen}
+        onClose={() => setAllMoviesModal({ isOpen: false, title: '', movies: [] })}
+        title={allMoviesModal.title}
+        movies={allMoviesModal.movies}
+        rating={null}
+        onAddToLibrary={handleAddToLibrary}
+      />
+    </>
+  );
 };
 
 export default Home;
