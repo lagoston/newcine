@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
-interface FriendBubbleData {
+export interface FriendBubbleData {
   user_id: string;
   username: string;
   avatar_url: string | null;
@@ -17,6 +17,10 @@ interface FloatingFriendBubblesProps {
   // menores que o pôster grande do MovieDetailsModal, então por padrão
   // mostra menos (3) pra não lotar um card pequeno.
   maxBubbles?: number;
+  // Dados já carregados em lote pela página (ex.: Home busca a atividade
+  // dos amigos de TODOS os pôsteres numa consulta só). Quando vem
+  // preenchido, o componente só desenha — não faz nenhuma consulta.
+  friends?: FriendBubbleData[];
 }
 
 // Versão "fechada" das bolhas flutuantes que já existem no
@@ -28,12 +32,14 @@ interface FloatingFriendBubblesProps {
 // planejando assistir" (Comunidade), "Popular Agora" e "Recomendações
 // do Oráculo" (Home) — nunca na Biblioteca, buscas de filme, ou perfis
 // da comunidade, onde as bolhas continuam desativadas.
-const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, mediaType = 'movie', maxBubbles = 3 }) => {
+const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, mediaType = 'movie', maxBubbles = 3, friends }) => {
   const { session } = useAuth();
-  const [bubbles, setBubbles] = useState<FriendBubbleData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [fetchedBubbles, setBubbles] = useState<FriendBubbleData[]>([]);
+  const [fetching, setLoading] = useState(!friends);
+  const preloaded = friends !== undefined;
 
   useEffect(() => {
+    if (preloaded) return;
     let cancelled = false;
 
     const load = async () => {
@@ -98,7 +104,10 @@ const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, 
 
     load();
     return () => { cancelled = true; };
-  }, [movieId, mediaType, session?.user?.id, maxBubbles]);
+  }, [movieId, mediaType, session?.user?.id, maxBubbles, preloaded]);
+
+  const bubbles = friends ? friends.slice(0, maxBubbles) : fetchedBubbles;
+  const loading = preloaded ? false : fetching;
 
   const getBubbleColor = (rating: number | null) => {
     if (rating === null) return 'from-sky-400 to-blue-500';
