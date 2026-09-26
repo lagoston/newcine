@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import OracleCardFan from './OracleCardFan';
-import { NIGHT_BACKGROUND, VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
 
 // Peças visuais das telas de conta (Entrar, Criar conta, Esqueci a senha,
 // Verifique seu e-mail, Nova senha). Mesma linguagem da home de visitante:
@@ -11,7 +11,7 @@ import { NIGHT_BACKGROUND, VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme
 // Moldura: formulário à esquerda, leque de cartas à direita no desktop;
 // no celular, um leque compacto acima do formulário.
 export const AuthShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="relative min-h-[calc(100dvh-4rem)] overflow-x-hidden" style={{ background: NIGHT_BACKGROUND }}>
+  <div className="relative min-h-[calc(100dvh-4rem)] overflow-x-hidden">
     <div className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 pb-14 sm:pt-10 lg:py-12 lg:min-h-[calc(100dvh-4rem)] grid lg:grid-cols-12 items-center content-start lg:content-center gap-6 lg:gap-12">
       <div className="lg:hidden">
         <OracleCardFan className="max-w-[210px]" cardClassName="w-[35%] -ml-[17.5%]" />
