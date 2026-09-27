@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { BarChart3, MessageCircle, HelpCircle, Wand2, Star, ArrowRight, Film, Library as LibraryIcon, Eye, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -86,6 +86,23 @@ const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:o
 // Componente
 // ---------------------------------------------------------------------------
 
+// Celular e tablet usam o carrossel das Recomendações do Dia; no desktop as três
+// cartas ficam lado a lado. O timer do carrossel só roda quando ele aparece.
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const update = () => setMatches(mql.matches);
+    update();
+    mql.addEventListener('change', update);
+    return () => mql.removeEventListener('change', update);
+  }, [query]);
+  return matches;
+}
+
+const PICK_INTERVAL_MS = 6000;
+const SWIPE_THRESHOLD = 50;
+
 interface Props {
   userId: string;
   username: string;
@@ -105,6 +122,14 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
   const [picks, setPicks] = useState<DailyPick[]>([]);
   const [picksLoading, setPicksLoading] = useState(true);
   const [predictions, setPredictions] = useState<Record<number, number>>({});
+
+  // Carrossel das Recomendações do Dia (celular): troca sozinho a cada 6s;
+  // depois que a pessoa arrasta ou toca num pontinho, para de trocar sozinho.
+  const [pickIndex, setPickIndex] = useState(0);
+  const [pickDirection, setPickDirection] = useState(1);
+  const [pickAutoPaused, setPickAutoPaused] = useState(false);
+  const pickDragged = useRef(false);
+  const isMobile = useMediaQuery('(max-width: 1023px)');
 
   const [insightsIsNew, setInsightsIsNew] = useState(false);
   const [showWhispers, setShowWhispers] = useState(false);
@@ -223,6 +248,30 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     return () => { cancelled = true; };
   }, [fetchStats, fetchDailyPicks]);
 
+  useEffect(() => {
+    if (!isMobile || !visible || pickAutoPaused || picks.length <= 1) return;
+    const id = setInterval(() => {
+      setPickDirection(1);
+      setPickIndex((i) => (i + 1) % picks.length);
+    }, PICK_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [isMobile, visible, pickAutoPaused, picks.length]);
+
+  const goToPick = (index: number, direction: number) => {
+    setPickAutoPaused(true);
+    setPickDirection(direction);
+    setPickIndex(index);
+  };
+
+  const handlePickSwipe = (_event: unknown, info: { offset: { x: number } }) => {
+    if (Math.abs(info.offset.x) > SWIPE_THRESHOLD && picks.length > 1) {
+      const direction = info.offset.x < 0 ? 1 : -1;
+      goToPick((pickIndex + direction + picks.length) % picks.length, direction);
+    }
+    // o toque que termina um arraste não deve abrir o filme
+    setTimeout(() => { pickDragged.current = false; }, 60);
+  };
+
   // ---------------------------------------------------------------------
   // Derivados
   // ---------------------------------------------------------------------
@@ -313,6 +362,78 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     return null;
   };
 
+  const pickSlide = {
+    enter: (direction: number) => (reduceMotion ? { opacity: 0 } : { opacity: 0, x: direction * 56 }),
+    center: { opacity: 1, x: 0 },
+    exit: (direction: number) => (reduceMotion ? { opacity: 0 } : { opacity: 0, x: direction * -56 }),
+  };
+
+  const renderPickTile = (pick: DailyPick) => {
+    const oracle = ORACLE_BY_ID[pick.oracle];
+    const year = pick.movie.release_date?.slice(0, 4);
+    const score = formatScore(pick.movie.vote_average);
+    const inWatchlist = stats?.movieRatings.get(pick.movie.id) === null;
+    return (
+      <button
+        onClick={() => { if (pickDragged.current) return; onMovieClick(pick.movie); }}
+        className={`group w-full h-full flex justify-start items-stretch gap-4 p-3 text-left rounded-xl ring-1 ring-white/10 hover:ring-white/25 transition ${focusRing}`}
+        style={{ background: VELVET }}
+      >
+        <span
+          className="relative shrink-0 w-[84px] sm:w-[92px] aspect-[2/3] self-start rounded-lg overflow-hidden ring-1 ring-white/10"
+          style={{ background: NIGHT, boxShadow: `0 14px 28px -16px ${oracle.color}` }}
+        >
+          {pick.movie.poster_path ? (
+            <OptimizedPoster
+              src={`https://image.tmdb.org/t/p/w185${pick.movie.poster_path}`}
+              alt={pick.movie.title}
+              className="absolute inset-0 w-full h-full object-cover"
+              priority
+            />
+          ) : (
+            <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
+              <Film className="w-7 h-7" aria-hidden />
+            </span>
+          )}
+          {pickBadge(pick.movie.id)}
+          <span aria-hidden className="absolute inset-x-0 bottom-0 h-1" style={{ background: oracle.color }} />
+        </span>
+        <span className="min-w-0 flex-1 flex flex-col py-0.5">
+          <span className="flex items-center gap-2">
+            <img
+              src={oracle.avatar}
+              alt=""
+              width={22}
+              height={22}
+              loading="lazy"
+              decoding="async"
+              className="w-[22px] h-[22px] rounded-full object-cover"
+              style={{ boxShadow: `0 0 0 2px ${oracle.color}` }}
+            />
+            <span style={{ ...PIXEL, color: oracle.color }} className="text-base leading-none">{oracle.name}</span>
+          </span>
+          <span className="mt-2 font-semibold leading-snug line-clamp-2 group-hover:underline underline-offset-4" style={{ color: PAPER }}>
+            {pick.movie.title}
+          </span>
+          <span className="mt-1 text-sm flex flex-wrap items-center gap-x-2" style={{ color: MIST }}>
+            {year && <span>{year}</span>}
+            {score && (
+              <span className="inline-flex items-center gap-1">
+                <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" aria-hidden />
+                {t('home.desk.publicScore', { score })}
+              </span>
+            )}
+          </span>
+          {inWatchlist ? (
+            <span className="mt-auto pt-2 text-xs" style={{ color: MIST }}>{t('home.desk.inWatchlist')}</span>
+          ) : pick.movie.overview ? (
+            <span className="mt-2 text-sm leading-snug line-clamp-2" style={{ color: MIST }}>{pick.movie.overview}</span>
+          ) : null}
+        </span>
+      </button>
+    );
+  };
+
   return (
     <>
       {/* ---------- Cabeçalho ---------- */}
@@ -386,7 +507,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
                 </span>
                 <span className="min-w-0 sm:flex-1">
                   <span className="block text-sm sm:text-base font-semibold" style={{ color: PAPER }}>{label}</span>
-                  <span className="hidden sm:block mt-0.5 text-sm truncate" style={{ color: MIST }}>{hint}</span>
+                  <span className="hidden lg:block mt-0.5 text-sm truncate" style={{ color: MIST }}>{hint}</span>
                 </span>
                 <ArrowRight className="hidden lg:block w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: MIST }} aria-hidden />
               </Link>
@@ -418,9 +539,9 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
         </div>
 
         {picksLoading ? (
-          <div className="mt-6 grid gap-3 sm:gap-4 md:grid-cols-3" aria-hidden>
+          <div className="mt-6 grid gap-4 lg:grid-cols-3" aria-hidden>
             {[0, 1, 2].map((i) => (
-              <div key={i} className="flex gap-4 p-3 rounded-xl ring-1 ring-white/10" style={{ background: VELVET }}>
+              <div key={i} className={`${i > 0 ? 'hidden lg:flex' : 'flex'} gap-4 p-3 rounded-xl ring-1 ring-white/10`} style={{ background: VELVET }}>
                 <div className="w-[84px] sm:w-[92px] aspect-[2/3] rounded-lg bg-white/10 animate-pulse" />
                 <div className="flex-1 space-y-2.5 pt-1">
                   <div className="h-4 w-20 rounded bg-white/10 animate-pulse" />
@@ -431,80 +552,84 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
             ))}
           </div>
         ) : picks.length > 0 ? (
-          <motion.ol
-            className="mt-6 grid gap-3 sm:gap-4 md:grid-cols-3"
-            variants={dealList}
-            initial="hidden"
-            animate={visible ? 'shown' : 'hidden'}
-          >
-            {picks.map((pick, i) => {
-              const oracle = ORACLE_BY_ID[pick.oracle];
-              const year = pick.movie.release_date?.slice(0, 4);
-              const score = formatScore(pick.movie.vote_average);
-              const inWatchlist = stats?.movieRatings.get(pick.movie.id) === null;
-              return (
+          <>
+            {/* Desktop: as três cartas lado a lado, distribuídas na mesa */}
+            <motion.ol
+              className="mt-6 hidden lg:grid gap-4 lg:grid-cols-3"
+              variants={dealList}
+              initial="hidden"
+              animate={visible ? 'shown' : 'hidden'}
+            >
+              {picks.map((pick, i) => (
                 <motion.li key={pick.oracle} custom={i} variants={dealCard}>
-                  <button
-                    onClick={() => onMovieClick(pick.movie)}
-                    className={`group w-full h-full flex justify-start items-stretch gap-4 p-3 text-left rounded-xl ring-1 ring-white/10 hover:ring-white/25 transition ${focusRing}`}
-                    style={{ background: VELVET }}
-                  >
-                    <span
-                      className="relative shrink-0 w-[84px] sm:w-[92px] aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/10"
-                      style={{ background: NIGHT, boxShadow: `0 14px 28px -16px ${oracle.color}` }}
-                    >
-                      {pick.movie.poster_path ? (
-                        <OptimizedPoster
-                          src={`https://image.tmdb.org/t/p/w185${pick.movie.poster_path}`}
-                          alt={pick.movie.title}
-                          className="absolute inset-0 w-full h-full object-cover"
-                          priority
-                        />
-                      ) : (
-                        <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
-                          <Film className="w-7 h-7" aria-hidden />
-                        </span>
-                      )}
-                      {pickBadge(pick.movie.id)}
-                      <span aria-hidden className="absolute inset-x-0 bottom-0 h-1" style={{ background: oracle.color }} />
-                    </span>
-                    <span className="min-w-0 flex-1 flex flex-col py-0.5">
-                      <span className="flex items-center gap-2">
-                        <img
-                          src={oracle.avatar}
-                          alt=""
-                          width={22}
-                          height={22}
-                          loading="lazy"
-                          decoding="async"
-                          className="w-[22px] h-[22px] rounded-full object-cover"
-                          style={{ boxShadow: `0 0 0 2px ${oracle.color}` }}
-                        />
-                        <span style={{ ...PIXEL, color: oracle.color }} className="text-base leading-none">{oracle.name}</span>
-                      </span>
-                      <span className="mt-2 font-semibold leading-snug line-clamp-2 group-hover:underline underline-offset-4" style={{ color: PAPER }}>
-                        {pick.movie.title}
-                      </span>
-                      <span className="mt-1 text-sm flex flex-wrap items-center gap-x-2" style={{ color: MIST }}>
-                        {year && <span>{year}</span>}
-                        {score && (
-                          <span className="inline-flex items-center gap-1">
-                            <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" aria-hidden />
-                            {t('home.desk.publicScore', { score })}
-                          </span>
-                        )}
-                      </span>
-                      {inWatchlist ? (
-                        <span className="mt-auto pt-2 text-xs" style={{ color: MIST }}>{t('home.desk.inWatchlist')}</span>
-                      ) : pick.movie.overview ? (
-                        <span className="mt-2 text-sm leading-snug line-clamp-2" style={{ color: MIST }}>{pick.movie.overview}</span>
-                      ) : null}
-                    </span>
-                  </button>
+                  {renderPickTile(pick)}
                 </motion.li>
-              );
-            })}
-          </motion.ol>
+              ))}
+            </motion.ol>
+
+            {/* Celular e tablet: uma carta por vez, arrastando para os lados */}
+            <div
+              className="mt-6 lg:hidden"
+              aria-roledescription="carousel"
+              aria-label={t('home.panels.dailyRecommendation')}
+            >
+              {/* As três cartas ficam empilhadas invisíveis na mesma célula do
+                  grid só para dar a altura da mais alta: a troca nunca faz a
+                  página pular, mesmo com títulos de uma ou duas linhas. */}
+              <div className="grid">
+                {picks.map((pick) => (
+                  <div key={`sizer-${pick.oracle}`} className="invisible" style={{ gridArea: '1 / 1' }} aria-hidden>
+                    {renderPickTile(pick)}
+                  </div>
+                ))}
+                <AnimatePresence initial={false} custom={pickDirection}>
+                  <motion.div
+                    key={picks[pickIndex % picks.length].oracle}
+                    className="h-full"
+                    style={{ gridArea: '1 / 1' }}
+                    custom={pickDirection}
+                    variants={pickSlide}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                    drag={picks.length > 1 ? 'x' : false}
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={0.22}
+                    onDragStart={() => { pickDragged.current = true; }}
+                    onDragEnd={handlePickSwipe}
+                  >
+                    {renderPickTile(picks[pickIndex % picks.length])}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {picks.length > 1 && (
+                <div className="mt-2 flex items-center justify-center" role="tablist" aria-label={t('home.panels.dailyRecommendation')}>
+                  {picks.map((pick, i) => {
+                    const active = i === pickIndex % picks.length;
+                    const oracle = ORACLE_BY_ID[pick.oracle];
+                    return (
+                      <button
+                        key={pick.oracle}
+                        role="tab"
+                        aria-selected={active}
+                        aria-label={oracle.name}
+                        onClick={() => goToPick(i, i >= pickIndex ? 1 : -1)}
+                        className="grid place-items-center"
+                        style={{ minWidth: 0, minHeight: 0, width: 30, height: 28, padding: 0 }}
+                      >
+                        <span
+                          className="block rounded-full transition-all duration-300"
+                          style={{ height: 8, width: active ? 22 : 8, background: active ? oracle.color : 'rgba(189,180,214,0.3)' }}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
         ) : (
           <p className="mt-6 text-sm" style={{ color: MIST }}>{t('home.panels.noRecommendationToday')}</p>
         )}
