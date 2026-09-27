@@ -6,7 +6,7 @@ import { useAuth } from '../lib/auth';
 import MovieDetailsModal from './MovieDetailsModal';
 import OptimizedPoster from './OptimizedPoster';
 import OracleSheet from './OracleSheet';
-import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL, ratingTone } from '../lib/oracleTheme';
 
 interface AllMoviesModalProps {
   isOpen: boolean;
@@ -21,16 +21,6 @@ interface AllMoviesModalProps {
   // novo todas as prateleiras usam a mesma identidade.
   theme?: 'gold' | 'purple';
 }
-
-// Faixa de cor da nota — a mesma lógica das rating boxes (vermelho pras
-// baixas, verde pras boas, rosa pro 10), agora sobre o fundo noite.
-const ratingTone = (rating: number): { color: string; ring: string } => {
-  if (rating === 10) return { color: '#F9A8D4', ring: 'rgba(249,168,212,0.45)' };
-  if (rating >= 7) return { color: '#86EFAC', ring: 'rgba(134,239,172,0.4)' };
-  if (rating >= 4) return { color: '#FCD34D', ring: 'rgba(252,211,77,0.4)' };
-  if (rating >= 1) return { color: '#FCA5A5', ring: 'rgba(252,165,165,0.4)' };
-  return { color: MIST, ring: 'rgba(189,180,214,0.35)' };
-};
 
 const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
   isOpen,

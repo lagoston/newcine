@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { Movie } from '../lib/tmdb';
+import { PIXEL } from '../lib/oracleTheme';
 
 interface OracleReviewSectionProps {
   movie: Movie;
@@ -77,12 +78,12 @@ const OracleCountdown: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-pink-500/10 dark:bg-pink-500/15 rounded-xl border border-pink-400/25">
-      <Clock className="w-4 h-4 text-pink-500 dark:text-pink-400 flex-shrink-0" />
-      <span className="text-sm text-gray-600 dark:text-gray-300">
+    <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-pink-500/10 rounded-xl border border-pink-400/25">
+      <Clock className="w-4 h-4 text-pink-300 flex-shrink-0" />
+      <span className="text-sm text-[#BDB4D6]">
         {t('reviews.oracle.nextGenerationIn')}
       </span>
-      <span className="text-sm font-mono font-semibold text-pink-600 dark:text-pink-400 tabular-nums">
+      <span className="text-sm font-mono font-semibold text-pink-200 tabular-nums">
         {formatCountdown(countdown)}
       </span>
     </div>
@@ -258,7 +259,7 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
   if (step === 'checking') {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-pink-500" />
+        <Loader2 className="w-6 h-6 animate-spin text-pink-300" />
       </div>
     );
   }
@@ -267,27 +268,27 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
     return (
       <div className="bg-pink-500/10 border border-pink-400/30 rounded-2xl p-5 text-center space-y-3">
         <div className="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-br from-pink-500/20 to-fuchsia-500/20 border border-pink-400/30 flex items-center justify-center">
-          <Lock className="w-6 h-6 text-pink-500" />
+          <Lock className="w-6 h-6 text-pink-300" />
         </div>
         {step === 'locked_premium' ? (
           <>
-            <p className="font-medium text-gray-800 dark:text-gray-100 flex items-center justify-center gap-1.5">
+            <p className="font-medium text-[#F3EAD3] flex items-center justify-center gap-1.5">
               <Crown className="w-4 h-4 text-yellow-400" />
               {t('reviews.oracle.lockedPremiumTitle')}
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-[#BDB4D6]">
               {t('reviews.oracle.lockedPremiumHint')}
             </p>
           </>
         ) : (
           <>
-            <p className="font-medium text-gray-800 dark:text-gray-100">
+            <p className="font-medium text-[#F3EAD3]">
               {t('reviews.oracle.lockedReviewsTitle')}
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-[#BDB4D6]">
               {t('reviews.oracle.lockedReviewsHint', { count: reviewCount })}
             </p>
-            <div className="w-full h-2 bg-gray-200/50 dark:bg-gray-700/50 rounded-full overflow-hidden max-w-xs mx-auto">
+            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden max-w-xs mx-auto">
               <div
                 className="h-full bg-gradient-to-r from-pink-500 to-fuchsia-500 rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(100, (reviewCount / 10) * 100)}%` }}
@@ -309,13 +310,13 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
     return (
       <div className="bg-pink-500/10 border border-pink-400/30 rounded-2xl p-5 text-center space-y-4">
         <div className="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-br from-pink-500/20 to-fuchsia-500/20 border border-pink-400/30 flex items-center justify-center">
-          <Sparkles className="w-6 h-6 text-pink-500" />
+          <Sparkles className="w-6 h-6 text-pink-300" />
         </div>
         <div>
-          <p className="font-medium text-gray-800 dark:text-gray-100">
+          <p className="font-medium text-[#F3EAD3]">
             {t('reviews.oracle.dailyLimitTitle')}
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-[#BDB4D6] mt-1">
             {t('reviews.oracle.dailyLimitHint')}
           </p>
         </div>
@@ -327,7 +328,7 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
   return (
     <div className="space-y-5">
       {(step === 'idle' || step === 'generating') && (
-        <div className="bg-gray-50/70 dark:bg-gray-900/40 rounded-2xl p-4 space-y-4 border border-pink-300/30 dark:border-pink-500/20">
+        <div className="bg-[#1C1433] rounded-2xl p-4 space-y-4 border border-pink-400/20">
           <div className="pointer-events-none opacity-60">
             <AnimatePresence mode="wait">
               <motion.div
@@ -337,10 +338,10 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.4 }}
               >
-                <div className="w-full px-3.5 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/60 dark:bg-gray-700/40 text-gray-500 dark:text-gray-400 italic text-sm mb-2">
+                <div className="w-full px-3.5 py-2.5 border border-white/10 rounded-xl bg-black/20 text-[#BDB4D6] italic text-sm mb-2">
                   {EXAMPLES[exampleIndex].title}
                 </div>
-                <div className="w-full px-3.5 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/60 dark:bg-gray-700/40 text-gray-500 dark:text-gray-400 text-sm">
+                <div className="w-full px-3.5 py-2.5 border border-white/10 rounded-xl bg-black/20 text-[#BDB4D6] text-sm">
                   {EXAMPLES[exampleIndex].content}
                 </div>
               </motion.div>
@@ -350,7 +351,7 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
           <button
             onClick={handleGenerate}
             disabled={step === 'generating'}
-            className="w-full bg-gradient-to-r from-pink-500 to-fuchsia-500 hover:from-pink-600 hover:to-fuchsia-600 text-white font-medium py-3 rounded-2xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-70"
+            className="w-full bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:from-pink-400 hover:to-fuchsia-500 text-white font-semibold h-12 rounded-xl transition shadow-lg shadow-fuchsia-900/30 flex items-center justify-center gap-2 disabled:opacity-70"
           >
             {step === 'generating' ? (
               <>
@@ -368,18 +369,18 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
       )}
 
       {(step === 'generated' || step === 'posting') && (
-        <div className="bg-pink-500/5 dark:bg-pink-500/10 rounded-2xl p-4 space-y-4 border border-pink-300/40 dark:border-pink-500/30">
-          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+        <div className="bg-[#1C1433] rounded-2xl p-4 space-y-4 border border-pink-400/30">
+          <div className="flex items-center gap-2 text-pink-300">
             <Sparkles className="w-4 h-4" />
             <span className="text-sm font-semibold">{t('reviews.oracle.readyTitle')}</span>
           </div>
-          <h3 className="font-semibold text-gray-900 dark:text-white">{generatedTitle}</h3>
-          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{generatedContent}</p>
+          <h3 className="font-semibold text-[#F3EAD3]">{generatedTitle}</h3>
+          <p className="text-[#F3EAD3]/85 whitespace-pre-wrap leading-relaxed">{generatedContent}</p>
           <div className="flex gap-2">
             <button
               onClick={handlePost}
               disabled={step === 'posting'}
-              className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="flex-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 disabled:opacity-60 text-white font-semibold h-12 rounded-xl transition flex items-center justify-center gap-2"
             >
               {step === 'posting' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               {t('reviews.oracle.postButton')}
@@ -388,7 +389,7 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
               <button
                 onClick={handleGenerate}
                 disabled={step === 'posting'}
-                className="px-4 py-2.5 border border-pink-300 dark:border-pink-500/40 text-pink-600 dark:text-pink-400 rounded-xl hover:bg-pink-500/10 transition-colors flex items-center gap-2 disabled:opacity-60"
+                className="px-4 h-12 border border-pink-400/40 text-pink-200 rounded-xl hover:bg-pink-500/10 transition-colors flex items-center gap-2 disabled:opacity-60"
               >
                 <RefreshCw className="w-4 h-4" />
                 {t('reviews.oracle.regenerateButton')}
@@ -406,16 +407,16 @@ const OracleReviewSection: React.FC<OracleReviewSectionProps> = ({ movie, userRa
       {/* Passo a passo ilustrado — substitui as Resenhas da Comunidade
           enquanto o modo Oráculo está ativo. */}
       <div>
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+        <h3 className="text-lg leading-none text-[#F3EAD3] mb-4" style={PIXEL}>
           {t('reviews.oracle.howItWorks')}
         </h3>
         <div className="space-y-3">
           {oracleSteps.map((s, i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500/15 to-fuchsia-500/15 border border-pink-400/25 flex items-center justify-center text-pink-500">
+              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500/15 to-fuchsia-500/15 border border-pink-400/25 flex items-center justify-center text-pink-300">
                 {s.icon}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">{s.text}</p>
+              <p className="text-sm text-[#BDB4D6]">{s.text}</p>
             </div>
           ))}
         </div>

@@ -396,7 +396,14 @@
     "viewTags": "Ver minhas tags",
     "friendRequestAccepted": "Você e @{{username}} agora são amigos!",
     "friendRequestDeclined": "Pedido de amizade recusado.",
-    "respondError": "Erro ao responder o pedido."
+    "respondError": "Erro ao responder o pedido.",
+    "noFriendMatch": "Nenhum amigo com esse nome",
+    "noFriendsHint": "Compartilhe seu perfil para fazer amigos por aqui.",
+    "sendingTo": "Indicando para",
+    "changeFriend": "Trocar",
+    "messagePlaceholder": "Por que essa pessoa precisa ver isso?",
+    "loadFriendsError": "Erro ao carregar seus amigos.",
+    "sendError": "Erro ao enviar a indicação."
   },
   "whispers": {
     "title": "Sussurros",
@@ -445,7 +452,8 @@
     "noSeasonsAvailable": "Informações de temporada não disponíveis ainda. Tente novamente em instantes.",
     "progress": "Progresso",
     "complete": "completo",
-    "seasonsAndEpisodes": "Temporadas e Episódios"
+    "seasonsAndEpisodes": "Temporadas e Episódios",
+    "upToDate": "em dia — aguardando novos episódios"
   },
   "oracle": {
     "title": "Central dos Oráculos",
@@ -1039,5 +1047,44 @@
     "imgEpisodes2": "assistidos",
     "imgHours1": "Horas",
     "imgHours2": "assistidas"
+  },
+  "movieModal": {
+    "playTrailer": "Ver o trailer",
+    "trailer": "Trailer",
+    "shareStory": "Story",
+    "shareStoryHint": "Criar imagem para os stories",
+    "seasonCount_one": "{{count}} temporada",
+    "seasonCount_other": "{{count}} temporadas",
+    "episodesWatched_one": "{{count}} episódio visto",
+    "episodesWatched_other": "{{count}} episódios vistos",
+    "seeSeasons": "Ver temporadas",
+    "showEpisodes": "Ver episódios",
+    "hideEpisodes": "Esconder episódios",
+    "markSeason": "Marcar a temporada inteira como vista",
+    "unmarkSeason": "Desmarcar a temporada inteira",
+    "markEpisode": "marcar como visto",
+    "unmarkEpisode": "desmarcar",
+    "rateToTrack": "Avalie a série para poder marcar os episódios que já viu.",
+    "minutes": "{{count}} min",
+    "readMore": "Ler mais",
+    "readLess": "Mostrar menos",
+    "friendsHere": "Quem já viu",
+    "friendRated": "{{name}} deu nota {{rating}}",
+    "oracleSays": "O que {{name}} diz sobre este filme",
+    "tapToRemove": "toque para remover da biblioteca"
+  },
+  "mobileSearch": {
+    "open": "Buscar",
+    "heading": "O que vamos assistir?",
+    "modeLabel": "Buscar por",
+    "modeTitles": "Filmes e séries",
+    "modePeople": "Pessoas",
+    "peopleHint": "Digite o nome de usuário depois do @.",
+    "fullSearch": "Busca completa por “{{query}}”",
+    "series": "Série",
+    "film": "Filme",
+    "clear": "Limpar busca",
+    "placeholderTitles": "Nome do filme ou série",
+    "placeholderPeople": "Nome de usuário"
   }
 }

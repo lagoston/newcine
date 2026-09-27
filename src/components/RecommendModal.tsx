@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Search, Send, Loader2, Film } from 'lucide-react';
-import GlassLoader from './GlassLoader';
+import { Search, Send, Loader2, Film, Users } from 'lucide-react';
+import OracleSheet from './OracleSheet';
+import { NIGHT, VELVET, PAPER, MIST, FOCUS_RING } from '../lib/oracleTheme';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -91,7 +91,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
       setFilteredFollowers(formattedFollowers);
     } catch (error) {
       console.error('Error loading followers:', error);
-      toast.error('Erro ao carregar seguidores');
+      toast.error(t('indications.loadFriendsError'));
     } finally {
       setLoading(false);
     }
@@ -165,194 +165,138 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
       setSearchQuery('');
     } catch (error) {
       console.error('Error sending indication:', error);
-      toast.error('Erro ao enviar indicação');
+      toast.error(t('indications.sendError'));
     } finally {
       setSending(false);
     }
   };
 
+  const resetSelection = () => {
+    setSelectedFollower(null);
+    setMessage('');
+  };
+
+  const avatarFor = (f: Follower, size: string) => (
+    f.avatar_url ? (
+      <img src={f.avatar_url} alt="" className={`${size} rounded-full object-cover ring-1 ring-white/15`} loading="lazy" decoding="async" />
+    ) : (
+      <span className={`${size} rounded-full grid place-items-center font-semibold ring-1 ring-white/15`} style={{ background: VELVET, color: PAPER }}>
+        {f.username.charAt(0).toUpperCase()}
+      </span>
+    )
+  );
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50"
-            onClick={onClose}
-          />
-          <div className="flex min-h-full items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.2 }}
-              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl"
-            >
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {t('indications.indicateMovie')}
-            </h2>
+    <OracleSheet
+      open={isOpen}
+      onClose={onClose}
+      title={t('indications.indicateMovie')}
+      subtitle={movieTitle}
+      size="md"
+      zIndexClass="z-[10000]"
+      bodyClassName="px-5 sm:px-7 py-5"
+      footer={selectedFollower ? (
+        <button
+          onClick={handleSendRecommendation}
+          disabled={sending || message.trim().length === 0}
+          className={`w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-fuchsia-900/30 transition disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`}
+        >
+          {sending ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden /> : <Send className="w-5 h-5" aria-hidden />}
+          {t('indications.sendIndication')}
+        </button>
+      ) : undefined}
+    >
+      {!selectedFollower ? (
+        <>
+          <label className="relative block">
+            <span className="sr-only">{t('indications.selectFollower')}</span>
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none" style={{ color: MIST }} aria-hidden />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('indications.selectFollower')}
+              className="w-full h-12 pl-11 pr-4 rounded-xl ring-1 ring-white/10 focus:ring-2 focus:ring-fuchsia-300/70 outline-none text-[15px] placeholder:text-[#BDB4D6]/70"
+              style={{ background: VELVET, color: PAPER }}
+            />
+          </label>
+
+          {loading ? (
+            <ul className="mt-4 space-y-2" aria-busy="true">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <li key={i} className="h-16 rounded-xl animate-pulse" style={{ background: VELVET }} />
+              ))}
+            </ul>
+          ) : filteredFollowers.length === 0 ? (
+            <div className="py-12 text-center">
+              <Users className="w-8 h-8 mx-auto" style={{ color: MIST }} aria-hidden />
+              <p className="mt-3 font-medium" style={{ color: PAPER }}>
+                {followers.length === 0 ? t('indications.noFollowers') : t('indications.noFriendMatch')}
+              </p>
+              {followers.length === 0 && (
+                <p className="mt-1 text-sm" style={{ color: MIST }}>{t('indications.noFriendsHint')}</p>
+              )}
+            </div>
+          ) : (
+            <ul className="mt-4 space-y-1.5">
+              {filteredFollowers.map((follower) => (
+                <li key={follower.id}>
+                  <button
+                    onClick={() => setSelectedFollower(follower)}
+                    className={`group w-full flex justify-start items-center gap-3.5 px-3 py-2.5 rounded-xl hover:bg-white/5 text-left transition ${FOCUS_RING}`}
+                  >
+                    {avatarFor(follower, 'w-11 h-11 shrink-0')}
+                    <span className="flex-1 min-w-0 font-medium truncate" style={{ color: PAPER }}>@{follower.username}</span>
+                    <Send className="w-[18px] h-[18px] shrink-0 opacity-60 group-hover:opacity-100 transition text-orange-300" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : (
+        <div className="space-y-5">
+          <div className="flex items-center gap-3.5 p-3 rounded-xl ring-1 ring-white/10" style={{ background: VELVET }}>
+            <span className="relative shrink-0 w-12 aspect-[2/3] rounded-md overflow-hidden ring-1 ring-white/10" style={{ background: NIGHT }}>
+              {moviePoster ? (
+                <img src={`https://image.tmdb.org/t/p/w92${moviePoster}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <Film className="absolute inset-0 m-auto w-5 h-5" style={{ color: MIST }} aria-hidden />
+              )}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm" style={{ color: MIST }}>{t('indications.sendingTo')}</span>
+              <span className="flex items-center gap-2 mt-1 min-w-0">
+                {avatarFor(selectedFollower, 'w-7 h-7 shrink-0 text-xs')}
+                <span className="font-semibold truncate" style={{ color: PAPER }}>@{selectedFollower.username}</span>
+              </span>
+            </span>
             <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+              onClick={resetSelection}
+              className={`shrink-0 h-11 px-3 rounded-lg text-sm font-medium hover:bg-white/10 transition ${FOCUS_RING}`}
+              style={{ color: MIST }}
             >
-              <X className="w-6 h-6" />
+              {t('indications.changeFriend')}
             </button>
           </div>
 
-          <div className="p-6">
-            {!selectedFollower ? (
-              <>
-                <div className="mb-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder={t('indications.selectFollower')}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                </div>
-
-                {loading ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <GlassLoader size="md" label={`${t('indications.selectFollower')}...`} />
-                  </div>
-                ) : filteredFollowers.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <Search className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">
-                      {followers.length === 0 ? t('indications.noFollowers') : 'Nenhum amigo encontrado'}
-                    </p>
-                    {followers.length === 0 && (
-                      <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                        Compartilhe seu perfil para receber seguidores
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-96 overflow-y-auto pr-2 -mr-2">
-                    {filteredFollowers.map((follower) => (
-                      <button
-                        key={follower.id}
-                        onClick={() => setSelectedFollower(follower)}
-                        className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 border border-transparent hover:border-orange-200 dark:hover:border-orange-800 group"
-                      >
-                        <div className="relative flex-shrink-0">
-                          {follower.avatar_url ? (
-                            <img
-                              src={follower.avatar_url}
-                              alt={follower.username}
-                              className="w-14 h-14 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700 group-hover:ring-orange-400 transition-all"
-                            />
-                          ) : (
-                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl ring-2 ring-gray-200 dark:ring-gray-700 group-hover:ring-orange-400 transition-all">
-                              {follower.username.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-gray-800" />
-                        </div>
-                        <div className="flex-1 text-left min-w-0">
-                          <div className="font-semibold text-gray-900 dark:text-white truncate">
-                            @{follower.username}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {t('indications.sendIndication')}
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <Send className="w-5 h-5 text-gray-400 group-hover:text-orange-500 transition-colors" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="space-y-4">
-                <div className="relative flex items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl border-2 border-orange-200 dark:border-orange-800">
-                  <div className="relative flex-shrink-0">
-                    {selectedFollower.avatar_url ? (
-                      <img
-                        src={selectedFollower.avatar_url}
-                        alt={selectedFollower.username}
-                        className="w-16 h-16 rounded-full object-cover ring-2 ring-orange-400"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl ring-2 ring-orange-400">
-                        {selectedFollower.username.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-gray-800" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-gray-900 dark:text-white text-lg truncate">
-                      @{selectedFollower.username}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 truncate flex items-center gap-1">
-                      <Film className="w-4 h-4" />
-                      {movieTitle}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setSelectedFollower(null);
-                      setMessage('');
-                    }}
-                    className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-800 p-2 rounded-full transition-all"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t('indications.writeMessage')}
-                  </label>
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder={t('indications.writeMessage') + '...'}
-                    rows={4}
-                    maxLength={500}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-                  />
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
-                    {message.length}/500
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleSendRecommendation}
-                  disabled={sending || message.trim().length === 0}
-                  className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
-                >
-                  {sending ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      {t('indications.sendIndication')}...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-5 h-5" />
-                      {t('indications.sendIndication')}
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-            </motion.div>
-          </div>
+          <label className="block">
+            <span className="block text-sm font-medium mb-2" style={{ color: PAPER }}>{t('indications.writeMessage')}</span>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={t('indications.messagePlaceholder')}
+              rows={4}
+              maxLength={500}
+              autoFocus
+              className="w-full px-4 py-3 rounded-xl ring-1 ring-white/10 focus:ring-2 focus:ring-fuchsia-300/70 outline-none resize-none text-[15px] leading-relaxed placeholder:text-[#BDB4D6]/70"
+              style={{ background: VELVET, color: PAPER }}
+            />
+            <span className="block mt-1 text-xs text-right tabular-nums" style={{ color: MIST }}>{message.length}/500</span>
+          </label>
         </div>
       )}
-    </AnimatePresence>
+    </OracleSheet>
   );
 };
 

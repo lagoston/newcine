@@ -394,7 +394,14 @@
     "viewTags": "View my tags",
     "friendRequestAccepted": "You and @{{username}} are now friends!",
     "friendRequestDeclined": "Friend request declined.",
-    "respondError": "Couldn't respond to the request."
+    "respondError": "Couldn't respond to the request.",
+    "noFriendMatch": "No friend with that name",
+    "noFriendsHint": "Share your profile to make friends here.",
+    "sendingTo": "Recommending to",
+    "changeFriend": "Change",
+    "messagePlaceholder": "Why does this person need to see it?",
+    "loadFriendsError": "Couldn't load your friends.",
+    "sendError": "Couldn't send the recommendation."
   },
   "whispers": {
     "title": "Whispers",
@@ -442,7 +449,8 @@
     "noSeasonsAvailable": "Season information not available yet. Try again in a moment.",
     "progress": "Progress",
     "complete": "complete",
-    "seasonsAndEpisodes": "Seasons & Episodes"
+    "seasonsAndEpisodes": "Seasons & Episodes",
+    "upToDate": "up to date — waiting for new episodes"
   },
   "oracle": {
     "title": "Oracles Hub",
@@ -1034,5 +1042,44 @@
     "imgEpisodes2": "watched",
     "imgHours1": "Hours",
     "imgHours2": "watched"
+  },
+  "movieModal": {
+    "playTrailer": "Watch the trailer",
+    "trailer": "Trailer",
+    "shareStory": "Story",
+    "shareStoryHint": "Create an image for your stories",
+    "seasonCount_one": "{{count}} season",
+    "seasonCount_other": "{{count}} seasons",
+    "episodesWatched_one": "{{count}} episode watched",
+    "episodesWatched_other": "{{count}} episodes watched",
+    "seeSeasons": "See seasons",
+    "showEpisodes": "Show episodes",
+    "hideEpisodes": "Hide episodes",
+    "markSeason": "Mark the whole season as watched",
+    "unmarkSeason": "Unmark the whole season",
+    "markEpisode": "mark as watched",
+    "unmarkEpisode": "unmark",
+    "rateToTrack": "Rate the show to start marking the episodes you have seen.",
+    "minutes": "{{count}} min",
+    "readMore": "Read more",
+    "readLess": "Show less",
+    "friendsHere": "Who has seen it",
+    "friendRated": "{{name}} rated it {{rating}}",
+    "oracleSays": "What {{name}} says about this film",
+    "tapToRemove": "tap to remove from your library"
+  },
+  "mobileSearch": {
+    "open": "Search",
+    "heading": "What are we watching?",
+    "modeLabel": "Search for",
+    "modeTitles": "Movies & shows",
+    "modePeople": "People",
+    "peopleHint": "Type a username after the @.",
+    "fullSearch": "Full search for “{{query}}”",
+    "series": "Show",
+    "film": "Film",
+    "clear": "Clear search",
+    "placeholderTitles": "Movie or show title",
+    "placeholderPeople": "Username"
   }
 }

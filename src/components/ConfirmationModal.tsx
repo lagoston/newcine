@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { NIGHT, PAPER, MIST, FOCUS_RING } from '../lib/oracleTheme';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -16,11 +18,14 @@ interface ConfirmationModalProps {
 }
 
 // A prop `title` continua existindo pra não quebrar quem já chama esse
-// componente (RatingBox.tsx, MovieDetailsModal.tsx), mas não é mais
-// renderizada — ela sempre chegava com o mesmo texto do botão de
-// confirmar (ex: "Excluir"), duplicando a mesma palavra duas vezes na
-// tela: uma vez como título do cabeçalho, outra no botão. Só a
-// pergunta/mensagem e os dois botões (Cancelar/Confirmar) ficam agora.
+// componente, mas não é renderizada — ela sempre chegava com o mesmo texto
+// do botão de confirmar (ex: "Excluir"), duplicando a palavra na tela. Só a
+// pergunta e os dois botões (Cancelar/Confirmar) aparecem.
+//
+// Renderizado via Portal no <body> e numa camada acima de tudo (10050): uma
+// confirmação é sempre a coisa mais recente na tela. Antes ela nascia dentro
+// de quem a abriu e, aberta de dentro das Resenhas (que ficam em 10000),
+// aparecia ESCONDIDA atrás delas.
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
   onClose,
@@ -29,32 +34,48 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   confirmLabel,
 }) => {
   const { t } = useTranslation();
+  const messageId = useId();
 
-  return (
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      // Só a confirmação fecha — o modal de baixo continua aberto.
+      e.stopImmediatePropagation();
+      onClose();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [isOpen, onClose]);
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[10050] flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-describedby={messageId}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[calc(100dvh-4rem)] flex flex-col overflow-hidden"
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            transition={{ duration: 0.18 }}
+            className="relative w-full max-w-sm max-h-[calc(100dvh-4rem)] flex flex-col rounded-2xl ring-1 ring-white/10 shadow-2xl overflow-hidden"
+            style={{ background: NIGHT }}
           >
-            <div className="p-5 pt-6 overflow-y-auto">
-              <p className="text-gray-700 dark:text-gray-200">{message}</p>
+            <div className="px-6 pt-6 pb-5 overflow-y-auto">
+              <p id={messageId} className="text-[15px] leading-relaxed" style={{ color: PAPER }}>{message}</p>
             </div>
-            <div className="flex-shrink-0 flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="shrink-0 flex gap-2.5 px-6 pb-6">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                autoFocus
+                className={`flex-1 h-11 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
+                style={{ color: MIST }}
               >
                 {t('common.cancel')}
               </button>
@@ -63,7 +84,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                   onConfirm();
                   onClose();
                 }}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 rounded-md transition-colors"
+                className={`flex-1 h-11 rounded-xl bg-red-500/90 hover:bg-red-500 text-white text-sm font-semibold transition ${FOCUS_RING}`}
               >
                 {confirmLabel ?? t('common.delete')}
               </button>
@@ -71,7 +92,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

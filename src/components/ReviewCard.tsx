@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Star, AlertTriangle, Eye, EyeOff, Pencil, Trash2, Film, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
 
 export interface Review {
   id: string;
@@ -44,123 +45,116 @@ interface ReviewCardProps {
   onMovieClick?: () => void;
 }
 
-// Mesmo mapeamento de nota pra cor usado na Biblioteca (chroma box) —
-// reaproveitado aqui pra dar a mesma identidade visual às reviews.
-const getChromaClass = (rating: number | null | undefined): string => {
-  if (rating === null || rating === undefined) return '';
-  if (rating === 10) return 'chroma-box-gold';
-  if (rating >= 7) return 'chroma-box-green';
-  if (rating >= 4) return 'chroma-box-yellow';
-  if (rating >= 1) return 'chroma-box-red';
-  return 'chroma-box-glitch';
-};
-
 /**
  * Card de review compartilhado entre ReviewsModal e UserReviewsModal —
- * antes cada modal tinha sua própria cópia quase idêntica dessa
- * renderização (mesmo layout, mesmo blur de spoiler, mesma estrutura),
- * divergindo só em detalhes pequenos. Consolidado aqui numa única fonte
- * de verdade.
+ * uma única fonte de verdade pro layout, o desfoque de spoiler e as ações.
+ * A cor da nota (mesma faixa das rating boxes) aparece no selo e numa
+ * faixa fina à esquerda do card.
  */
 const ReviewCard: React.FC<ReviewCardProps> = ({ review, isOwnReview = false, onEdit, onDelete, movieInfo, onMovieClick }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isRevealed, setIsRevealed] = useState(false);
   const showSpoilerBlur = review.has_spoilers && !isRevealed;
-  const chromaClass = getChromaClass(review.rating);
+  const hasRating = review.rating !== null && review.rating !== undefined;
+  const tone = hasRating ? ratingTone(review.rating) : { color: MIST, ring: 'rgba(189,180,214,0.35)' };
 
   const movieTitle = movieInfo?.title || movieInfo?.name;
   const movieYear = movieInfo?.release_date || movieInfo?.first_air_date;
-  const movieYearDisplay = movieYear ? new Date(movieYear).getFullYear() : '';
+  const movieYearDisplay = movieYear ? movieYear.slice(0, 4) : '';
+  const createdAt = new Date(review.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' });
+
+  const moviePoster = movieInfo?.poster_path ? (
+    <img
+      src={`https://image.tmdb.org/t/p/w92${movieInfo.poster_path}`}
+      alt=""
+      className="w-12 h-[72px] rounded-lg object-cover ring-1 ring-white/10"
+    />
+  ) : (
+    <span className="grid place-items-center w-12 h-[72px] rounded-lg ring-1 ring-white/10" style={{ background: NIGHT, color: MIST }}>
+      <Film className="w-5 h-5" aria-hidden />
+    </span>
+  );
 
   return (
-    <div
-      className={`rounded-2xl p-4 backdrop-blur-xl border transition-colors ${
-        isOwnReview
-          ? 'bg-blue-500/10 border-blue-400/40'
-          : 'bg-white/5 dark:bg-gray-900/30 border-white/10 dark:border-gray-700/40'
-      } ${chromaClass}`}
+    <article
+      className={`relative rounded-2xl p-4 sm:p-5 ring-1 overflow-hidden ${isOwnReview ? 'ring-violet-400/40' : 'ring-white/10'}`}
+      style={{ background: VELVET }}
     >
+      <span aria-hidden className="absolute left-0 inset-y-0 w-1" style={{ background: tone.color, opacity: 0.8 }} />
+
       {movieInfo && (
-        <div className="flex gap-3 mb-3 pb-3 border-b border-white/10 dark:border-gray-700/40">
-          {movieInfo.poster_path ? (
-            <img
-              src={`https://image.tmdb.org/t/p/w92${movieInfo.poster_path}`}
-              alt={movieTitle}
-              onClick={onMovieClick}
-              className={`w-12 h-[72px] rounded-lg object-cover flex-shrink-0 ${onMovieClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
-            />
-          ) : (
-            <div
-              onClick={onMovieClick}
-              className={`w-12 h-[72px] rounded-lg bg-gray-300/20 flex items-center justify-center flex-shrink-0 ${onMovieClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
-            >
-              <Film className="w-5 h-5 text-gray-400" />
-            </div>
-          )}
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <h4
-              onClick={onMovieClick}
-              className={`font-semibold text-gray-900 dark:text-white truncate ${onMovieClick ? 'cursor-pointer hover:text-blue-500 transition-colors' : ''}`}
-            >
-              {movieTitle} {movieYearDisplay && `(${movieYearDisplay})`}
-            </h4>
+        onMovieClick ? (
+          <button
+            onClick={onMovieClick}
+            className={`w-full flex justify-start items-center gap-3 mb-3 pb-3 border-b border-white/[0.07] text-left group rounded-lg ${FOCUS_RING}`}
+          >
+            <span className="shrink-0 group-hover:opacity-85 transition-opacity">{moviePoster}</span>
+            <span className="min-w-0 font-semibold truncate group-hover:underline underline-offset-4" style={{ color: PAPER }}>
+              {movieTitle} {movieYearDisplay && <span style={{ color: MIST }}>({movieYearDisplay})</span>}
+            </span>
+          </button>
+        ) : (
+          <div className="flex items-center gap-3 mb-3 pb-3 border-b border-white/[0.07]">
+            <span className="shrink-0">{moviePoster}</span>
+            <span className="min-w-0 font-semibold truncate" style={{ color: PAPER }}>
+              {movieTitle} {movieYearDisplay && <span style={{ color: MIST }}>({movieYearDisplay})</span>}
+            </span>
           </div>
-        </div>
+        )
       )}
 
-      <div className="flex items-start justify-between mb-2 gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
           {review.profiles?.avatar_url ? (
             <img
               src={review.profiles.avatar_url}
-              alt={review.profiles.username}
-              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              alt=""
+              className="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-white/15"
+              loading="lazy"
+              decoding="async"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gray-300/30 flex items-center justify-center flex-shrink-0">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                {review.profiles?.username?.[0]?.toUpperCase()}
-              </span>
-            </div>
+            <span className="grid place-items-center w-9 h-9 rounded-full shrink-0 ring-1 ring-white/15 text-sm font-semibold" style={{ background: NIGHT, color: PAPER }}>
+              {review.profiles?.username?.[0]?.toUpperCase()}
+            </span>
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               {review.profiles?.username && (
-                <p className="font-medium text-gray-900 dark:text-white truncate">
-                  {review.profiles.username}
-                </p>
+                <p className="font-medium truncate" style={{ color: PAPER }}>{review.profiles.username}</p>
               )}
               {isOwnReview && (
-                <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full flex-shrink-0">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/25 text-violet-100">
                   {t('reviews.you')}
                 </span>
               )}
-              <div className="flex items-center gap-1 bg-yellow-500/15 px-2 py-0.5 rounded-full flex-shrink-0">
-                <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">
+              {hasRating && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[13px] leading-none"
+                  style={{ ...PIXEL, color: tone.color, boxShadow: `inset 0 0 0 1.5px ${tone.ring}` }}
+                >
+                  <Star className="w-3 h-3 fill-current" aria-hidden />
                   {review.rating}
                 </span>
-              </div>
+              )}
               {review.is_ai_generated && (
-                <div className="flex items-center gap-1 bg-violet-500/15 px-2 py-0.5 rounded-full flex-shrink-0">
-                  <Sparkles className="w-3 h-3 text-violet-500" />
-                  <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">
-                    {t('reviews.aiGenerated')}
-                  </span>
-                </div>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-pink-500/15 text-pink-200">
+                  <Sparkles className="w-3 h-3" aria-hidden />
+                  {t('reviews.aiGenerated')}
+                </span>
               )}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {new Date(review.created_at).toLocaleDateString()}
-            </p>
+            <p className="text-xs mt-0.5" style={{ color: MIST }}>{createdAt}</p>
           </div>
         </div>
         {isOwnReview && (onEdit || onDelete) && (
-          <div className="flex gap-1 flex-shrink-0">
+          <div className="flex shrink-0 -mr-2 -mt-1">
             {onEdit && (
               <button
                 onClick={onEdit}
-                className="p-1.5 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
+                aria-label={t('reviews.editReview')}
+                title={t('reviews.editReview')}
+                className={`rounded-full text-violet-200 hover:bg-white/10 transition ${FOCUS_RING}`}
               >
                 <Pencil className="w-4 h-4" />
               </button>
@@ -168,7 +162,9 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, isOwnReview = false, on
             {onDelete && (
               <button
                 onClick={onDelete}
-                className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                aria-label={t('common.delete')}
+                title={t('common.delete')}
+                className={`rounded-full text-red-300 hover:bg-red-500/15 transition ${FOCUS_RING}`}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -177,49 +173,46 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, isOwnReview = false, on
         )}
       </div>
 
-      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-        {review.title}
-      </h3>
+      <h4 className="mt-3 font-semibold leading-snug" style={{ color: PAPER }}>{review.title}</h4>
 
       {review.has_spoilers && (
-        <div className="flex items-center gap-2 mb-2">
-          <AlertTriangle className="w-4 h-4 text-yellow-500" />
-          <span className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
-            {t('reviews.hasSpoilers')}
-          </span>
-        </div>
+        <p className="mt-1.5 flex items-center gap-1.5 text-sm font-medium text-amber-300">
+          <AlertTriangle className="w-4 h-4" aria-hidden />
+          {t('reviews.hasSpoilers')}
+        </p>
       )}
 
-      <div className="relative">
+      <div className="relative mt-2">
         <p
-          className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap ${
-            showSpoilerBlur ? 'blur-sm select-none' : ''
-          }`}
+          className={`whitespace-pre-wrap text-[15px] leading-relaxed ${showSpoilerBlur ? 'blur-sm select-none' : ''}`}
+          style={{ color: 'rgba(243,234,211,0.85)' }}
+          aria-hidden={showSpoilerBlur || undefined}
         >
           {review.content}
         </p>
         {showSpoilerBlur && (
           <button
             onClick={() => setIsRevealed(true)}
-            className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors rounded-lg"
+            className={`absolute inset-0 bg-black/25 hover:bg-black/35 transition-colors rounded-lg ${FOCUS_RING}`}
           >
-            <div className="flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-xl font-medium">
-              <Eye className="w-5 h-5" />
+            <span className="inline-flex items-center gap-2 px-4 h-10 rounded-full bg-amber-300 text-[#221B36] text-sm font-semibold shadow-lg">
+              <Eye className="w-4 h-4" aria-hidden />
               {t('reviews.clickToReveal')}
-            </div>
+            </span>
           </button>
         )}
         {!showSpoilerBlur && review.has_spoilers && (
           <button
             onClick={() => setIsRevealed(false)}
-            className="mt-2 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className={`mt-1 -ml-2 inline-flex justify-start items-center gap-1.5 px-2 rounded-lg text-sm hover:bg-white/5 transition ${FOCUS_RING}`}
+            style={{ color: MIST }}
           >
-            <EyeOff className="w-4 h-4" />
+            <EyeOff className="w-4 h-4" aria-hidden />
             {t('reviews.hideSpoilers')}
           </button>
         )}
       </div>
-    </div>
+    </article>
   );
 };
 

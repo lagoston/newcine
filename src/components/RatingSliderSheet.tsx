@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BookmarkPlus, Star, X, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { NIGHT, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
 interface RatingSliderSheetProps {
   movieTitle: string;
@@ -81,6 +82,19 @@ const RatingSliderSheet: React.FC<RatingSliderSheetProps> = ({
   const [rating, setRating] = useState(initialRating);
   const [committedRating, setCommittedRating] = useState(initialRating);
 
+  // Esc fecha a gaveta (e só ela — quem está por baixo continua aberto),
+  // a não ser no meio de um salvamento.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || loading !== null) return;
+      e.stopImmediatePropagation();
+      onClose();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [isOpen, loading, onClose]);
+
   if (!isOpen) return null;
 
   const commit = () => setCommittedRating(rating);
@@ -138,39 +152,34 @@ const RatingSliderSheet: React.FC<RatingSliderSheetProps> = ({
       `}</style>
 
       <div
-        className="fixed inset-0 bg-black/60 z-[60]"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60]"
         onClick={onClose}
       />
 
-      <div className="fixed bottom-0 left-0 right-0 bg-neutral-950 rounded-t-[24px] z-[60] shadow-2xl overflow-hidden">
-        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-1" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={movieTitle}
+        className="fixed bottom-0 left-0 right-0 sm:bottom-6 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-md sm:-translate-x-1/2 rounded-t-[24px] sm:rounded-[24px] ring-1 ring-white/10 z-[60] shadow-2xl overflow-hidden"
+        style={{ background: `radial-gradient(ellipse 80% 60% at 80% 0%, rgba(139,92,246,0.16), transparent 70%), ${NIGHT}` }}
+      >
+        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-1 sm:hidden" />
 
-        {/* Otimização de performance — antes tinha 5 camadas de blur
-            sobrepostas (2 "blobs" de fundo sempre ativos + o brilho da
-            nota 10 + o vidro do cartão + o brilho do slider). Blur é uma
-            das operações mais caras de renderizar, principalmente em
-            mobile, e ter várias simultâneas pesava o modal inteiro. Os 2
-            blobs decorativos saíram (eram só estética de fundo, sem
-            função). O brilho da nota 10 agora fica SEMPRE montado no DOM,
-            só variando opacidade — antes ele entrava/saía via
-            AnimatePresence (montava/desmontava de verdade), o que causava
-            o "glitch": ao aparecer do nada por cima de outros elementos
-            de fundo, gerava um recálculo de composição abrupto. Só
-            trocar opacidade num elemento que já existe é bem mais barato
-            e suave que inserir/remover do DOM. */}
+        {/* Brilho da nota 10 — sempre montado, só varia a opacidade (montar e
+            desmontar um blur causava um "glitch" de composição). */}
         <motion.div
           className="absolute inset-0 bg-pink-500/10 blur-[50px] pointer-events-none"
           animate={{ opacity: committedRating === 10 ? 1 : 0 }}
           transition={{ duration: 0.4 }}
         />
 
-        <div className="relative px-5 pb-6 pt-2">
-          <p className="text-center text-sm font-semibold text-white truncate mb-5 px-8">
+        <div className="relative px-5 sm:px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 sm:pt-6">
+          <p style={{ ...PIXEL, color: PAPER }} className="text-center text-xl leading-tight truncate mb-5 px-6">
             {movieTitle}
           </p>
 
           <motion.div
-            className="relative w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-[20px] p-5 shadow-2xl mb-4"
+            className="relative w-full bg-white/[0.04] border border-white/10 rounded-[20px] p-5 mb-4"
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.3 }}
@@ -180,11 +189,12 @@ const RatingSliderSheet: React.FC<RatingSliderSheetProps> = ({
                 key={label}
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                className={`relative flex items-center text-sm font-medium px-4 py-1.5 rounded-full border backdrop-blur-md ${
+                className={`relative flex items-center text-sm font-medium px-4 py-1.5 rounded-full border ${
                   committedRating === 10
                     ? 'text-pink-200 border-pink-500/40 bg-pink-500/20'
-                    : 'text-white/80 border-white/10 bg-white/5'
+                    : 'border-white/15 bg-white/5'
                 }`}
+                style={committedRating === 10 ? undefined : { color: PAPER }}
               >
                 {committedRating === 10 && <Sparkles className="w-3.5 h-3.5 inline mr-1.5 text-pink-300" />}
                 {label}
@@ -194,14 +204,15 @@ const RatingSliderSheet: React.FC<RatingSliderSheetProps> = ({
                 key={committedRating}
                 initial={{ y: -8, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="text-3xl font-bold tracking-tighter leading-none"
+                className="text-4xl leading-none"
                 style={{
-                  color: committedRating === 10 ? '#ff71ce' : 'white',
+                  ...PIXEL,
+                  color: committedRating === 10 ? '#ff71ce' : PAPER,
                   textShadow: committedRating === 10 ? '0 0 20px rgba(255,113,206,0.6)' : 'none'
                 }}
               >
                 {committedRating}
-                <span className="text-lg text-white/40 font-normal">/10</span>
+                <span className="text-lg" style={{ color: MIST }}>/10</span>
               </motion.div>
             </div>
 
@@ -254,6 +265,8 @@ const RatingSliderSheet: React.FC<RatingSliderSheetProps> = ({
                 onTouchEnd={commit}
                 onKeyUp={commit}
                 disabled={loading !== null}
+                aria-label={isPt ? `Nota para ${movieTitle}` : `Rating for ${movieTitle}`}
+                aria-valuetext={`${rating} — ${RATING_LABELS[rating] ? (isPt ? RATING_LABELS[rating].pt : RATING_LABELS[rating].en) : ''}`}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 m-0"
               />
             </div>
@@ -263,7 +276,7 @@ const RatingSliderSheet: React.FC<RatingSliderSheetProps> = ({
             <button
               onClick={handleConfirmRating}
               disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed shadow-md shadow-blue-600/20"
+              className={`w-full flex items-center justify-center gap-2 px-4 h-12 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-fuchsia-900/30 ${FOCUS_RING}`}
             >
               {loading === 'rate' ? (
                 <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
@@ -277,12 +290,12 @@ const RatingSliderSheet: React.FC<RatingSliderSheetProps> = ({
               <button
                 onClick={handleWatchlist}
                 disabled={loading !== null}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-white font-semibold rounded-xl transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed shadow-md shadow-sky-500/30"
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 min-h-[48px] text-[15px] leading-snug text-center border border-sky-400/40 bg-sky-500/10 hover:bg-sky-500/20 text-sky-100 font-semibold rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed ${FOCUS_RING}`}
               >
                 {loading === 'watchlist' ? (
                   <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
                 ) : (
-                  <BookmarkPlus className="w-4 h-4" />
+                  <BookmarkPlus className="w-4 h-4 shrink-0" />
                 )}
                 {watchlistText}
               </button>
@@ -291,7 +304,8 @@ const RatingSliderSheet: React.FC<RatingSliderSheetProps> = ({
             <button
               onClick={onClose}
               disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 text-white/70 font-medium rounded-xl transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+              className={`w-full flex items-center justify-center gap-2 px-4 h-11 hover:bg-white/5 font-medium rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed ${FOCUS_RING}`}
+              style={{ color: MIST }}
             >
               <X className="w-4 h-4" />
               {isPt ? 'Cancelar' : 'Cancel'}

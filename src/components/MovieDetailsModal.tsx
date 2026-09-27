@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { X, Star, Loader2, Calendar, Clock, User, Film, Shield, Globe, Share2, Instagram, Tv, Users, MessageSquare, Play, ChevronRight, AlertCircle } from 'lucide-react';
+import {
+  X, Star, Loader2, Film, Instagram, Tv, Send, MessageSquare, Play, ChevronRight,
+  ChevronDown, AlertCircle, Wand2, Plus, Check, Eye,
+} from 'lucide-react';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile } from '../lib/tmdb';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
 import { useAuth } from '../lib/auth';
@@ -14,25 +17,82 @@ import RecommendModal from './RecommendModal';
 import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
 import ConfirmationModal from './ConfirmationModal';
-import html2canvas from 'html2canvas';
+import {
+  NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, ORACLE_BY_ID, OracleId, ratingTone,
+} from '../lib/oracleTheme';
 
-// As mesmas 9 categorias/cores usadas pra organizar as prateleiras na
-// Biblioteca dos Oráculos (ver OracleLibraries.tsx) — "random-surprise"
-// não entra aqui por ser uma pool coringa, não uma categoria de verdade.
-// Estilo de pill no mesmo padrão já usado nos badges de nota (ver
-// getRatingPillClasses em RatingBox.tsx): texto/borda/fundo na mesma
-// família de cor, tingido mais forte no modo escuro.
+// Detalhes de um filme/série — "a ficha na mesa do oráculo".
+//   • Topo: o fundo (backdrop) do filme se dissolvendo na noite, o pôster
+//     (toque = trailer) com os selos dos oráculos e as bolhas dos amigos,
+//     título, ficha rápida, notas (pública, prevista ou a sua) e gêneros.
+//   • Corpo: sinopse, onde assistir, direção (com o Top 10) e elenco.
+//   • Rodapé fixo: adicionar à biblioteca / já na biblioteca, e resenhas.
+// No celular abre como gaveta de baixo pra cima; no desktop, centralizado.
+// Fecha no X, no fundo escuro e no Esc (o Esc fecha primeiro o trailer ou
+// as temporadas, se estiverem abertos).
+
+// As mesmas 9 categorias usadas pra organizar as prateleiras na Biblioteca
+// dos Oráculos (ver OracleLibraries.tsx) — "random-surprise" não entra por
+// ser uma pool coringa, não uma categoria de verdade. Tons pensados pro
+// fundo noite: texto claro, borda e fundo da mesma família de cor.
 const MOOD_TAG_CONFIG: Record<string, { labelKey: string; pillClasses: string }> = {
-  'adventures': { labelKey: 'oracle.moods.adventures', pillClasses: 'text-sky-700 dark:text-sky-300 border-sky-400/50 dark:border-sky-500/40 bg-sky-500/10 dark:bg-sky-500/20' },
-  'catharsis': { labelKey: 'oracle.moods.catharsis', pillClasses: 'text-blue-700 dark:text-blue-300 border-blue-400/50 dark:border-blue-500/40 bg-blue-500/10 dark:bg-blue-500/20' },
-  'adrenaline': { labelKey: 'oracle.moods.adrenaline', pillClasses: 'text-red-700 dark:text-red-300 border-red-400/50 dark:border-red-500/40 bg-red-500/10 dark:bg-red-500/20' },
-  'mind-blowing': { labelKey: 'oracle.moods.mindBlowing', pillClasses: 'text-pink-700 dark:text-pink-300 border-pink-400/50 dark:border-pink-500/40 bg-pink-500/10 dark:bg-pink-500/20' },
-  'laugh-out-loud': { labelKey: 'oracle.moods.laughOutLoud', pillClasses: 'text-green-700 dark:text-green-300 border-green-400/50 dark:border-green-500/40 bg-green-500/10 dark:bg-green-500/20' },
-  'drug-trip': { labelKey: 'oracle.moods.drugTrip', pillClasses: 'text-emerald-700 dark:text-emerald-300 border-emerald-400/50 dark:border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-500/20' },
-  'romantic': { labelKey: 'oracle.moods.romantic', pillClasses: 'text-orange-700 dark:text-orange-300 border-orange-400/50 dark:border-orange-500/40 bg-orange-500/10 dark:bg-orange-500/20' },
-  'dark-and-scary': { labelKey: 'oracle.moods.darkScary', pillClasses: 'text-gray-700 dark:text-gray-300 border-gray-400/50 dark:border-gray-500/40 bg-gray-500/10 dark:bg-gray-500/20' },
-  'family-time': { labelKey: 'oracle.moods.familyTime', pillClasses: 'text-yellow-700 dark:text-yellow-300 border-yellow-400/50 dark:border-yellow-500/40 bg-yellow-500/10 dark:bg-yellow-500/20' },
+  'adventures': { labelKey: 'oracle.moods.adventures', pillClasses: 'text-sky-200 border-sky-400/40 bg-sky-500/15' },
+  'catharsis': { labelKey: 'oracle.moods.catharsis', pillClasses: 'text-blue-200 border-blue-400/40 bg-blue-500/15' },
+  'adrenaline': { labelKey: 'oracle.moods.adrenaline', pillClasses: 'text-red-200 border-red-400/40 bg-red-500/15' },
+  'mind-blowing': { labelKey: 'oracle.moods.mindBlowing', pillClasses: 'text-pink-200 border-pink-400/40 bg-pink-500/15' },
+  'laugh-out-loud': { labelKey: 'oracle.moods.laughOutLoud', pillClasses: 'text-green-200 border-green-400/40 bg-green-500/15' },
+  'drug-trip': { labelKey: 'oracle.moods.drugTrip', pillClasses: 'text-emerald-200 border-emerald-400/40 bg-emerald-500/15' },
+  'romantic': { labelKey: 'oracle.moods.romantic', pillClasses: 'text-orange-200 border-orange-400/40 bg-orange-500/15' },
+  'dark-and-scary': { labelKey: 'oracle.moods.darkScary', pillClasses: 'text-gray-200 border-gray-400/40 bg-gray-500/20' },
+  'family-time': { labelKey: 'oracle.moods.familyTime', pillClasses: 'text-yellow-200 border-yellow-400/40 bg-yellow-500/15' },
 };
+
+// Padroniza QUALQUER classificação de origem (americana, britânica, etc.)
+// pra escala brasileira única (L, +10, +12, +14, +16, +18). Não existe
+// "+13" oficial no ClassInd — "PG-13" arredonda pra +14, o balde real mais
+// próximo. Qualquer coisa não reconhecida (incluindo "NR") volta null:
+// melhor não mostrar nada do que mostrar um selo enganoso.
+const standardizeCertification = (raw: string): string | null => {
+  const upper = raw.trim().toUpperCase();
+  if (upper === 'L') return 'L';
+  if (['10', '12', '14', '16', '18'].includes(upper)) return `+${upper}`;
+  const usMap: Record<string, string> = { 'G': 'L', 'PG': '+10', 'PG-13': '+14', 'R': '+16', 'NC-17': '+18' };
+  if (usMap[upper]) return usMap[upper];
+  const ukMap: Record<string, string> = { 'U': 'L', '12A': '+12', '15': '+16' };
+  if (ukMap[upper]) return ukMap[upper];
+  return null;
+};
+
+// Cores oficiais do selo ClassInd: Livre=verde, 10=azul, 12=amarelo,
+// 14=laranja, 16=vermelho, 18=preto (com contorno, pra não sumir na noite).
+const certificationClasses = (standardized: string): string => {
+  if (standardized === '+18') return 'bg-black text-white ring-1 ring-white/40';
+  if (standardized === '+16') return 'bg-red-600 text-white';
+  if (standardized === '+14') return 'bg-orange-500 text-white';
+  if (standardized === '+12') return 'bg-yellow-400 text-gray-900';
+  if (standardized === '+10') return 'bg-blue-500 text-white';
+  return 'bg-green-600 text-white';
+};
+
+const countryFlag = (countryCode: string) => {
+  if (!countryCode || countryCode.length !== 2) return '🌍';
+  const codePoints = countryCode.toUpperCase().split('').map((char) => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+};
+
+// Posições das bolhas dos amigos sobre o pôster. A 5ª fica logo à direita
+// de onde nasce o balão do oráculo (canto inferior esquerdo), "quase
+// raspando" sem sobrepor.
+const FRIEND_POSITIONS: React.CSSProperties[] = [
+  { top: '14%', left: '8%' },
+  { top: '24%', right: '10%' },
+  { top: '48%', left: '6%' },
+  { top: '62%', right: '8%' },
+  { bottom: '4%', left: '52%' },
+];
+
+// Fundo translúcido dos balões e selos sobre o pôster.
+const BUBBLE_BG = 'rgba(18,13,34,0.94)';
 
 interface FriendRating {
   user_id: string;
@@ -51,9 +111,7 @@ interface MovieDetailsModalProps {
   // Sobrescreve o z-index padrão (z-[9999]) — necessário quando esse
   // modal é aberto DE DENTRO de outro modal que já tem um z-index alto
   // (como os modais de review, em z-[10000]), garantindo que este fique
-  // por cima do modal que o abriu, não escondido atrás dele. Nos
-  // chamadores que não passam essa prop, o comportamento é idêntico a
-  // antes.
+  // por cima do modal que o abriu, não escondido atrás dele.
   zIndexClass?: string;
   // ID do dono do perfil sendo visitado — quando presente junto com
   // isOtherUserProfile, os episódios exibidos como assistidos são os
@@ -66,8 +124,6 @@ interface MovieDetailsModalProps {
   // aninhada dentro de outra (aberta pelo Top 10 do diretor, por exemplo),
   // ela não abre uma TERCEIRA camada por conta própria — em vez disso pede
   // pra quem a abriu (o modal-pai) TROCAR o filme exibido no lugar dela.
-  // Resultado: o aninhamento nunca passa de 1 nível de profundidade, não
-  // importa quantos filmes o usuário abra clicando de Top 10 em Top 10.
   isNested?: boolean;
   onReplaceMovie?: (movie: Movie) => void;
 }
@@ -117,6 +173,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [loadingTrailer, setLoadingTrailer] = useState(false);
   const [oracleSources, setOracleSources] = useState<string[]>([]);
   const [certification, setCertification] = useState<string | null>(null);
+  // A nota do próprio usuário chega por uma consulta separada — até ela
+  // voltar, o espaço da nota fica com um esqueleto (sem piscar a prevista).
+  const [userRatingLoaded, setUserRatingLoaded] = useState(false);
+  const [posterFailed, setPosterFailed] = useState(false);
+  const [synopsisExpanded, setSynopsisExpanded] = useState(false);
+  const titleId = useId();
+  const seasonsTitleId = useId();
 
   // Top 10 do diretor — busca sob demanda, só quando o usuário clica.
   const [showDirectorTopTen, setShowDirectorTopTen] = useState(false);
@@ -142,24 +205,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   const toggleOracleBubble = (source: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    // O toque "quebra a cadeia" — cancela qualquer aparição/desaparição
-    // automática pendente pra esse oráculo, o resto vira controle manual.
-    clearBubbleTimers(source);
-    setVisibleOracleBubbles((prev) => {
-      const next = new Set(prev);
-      if (next.has(source)) {
-        next.delete(source);
-      } else {
-        next.add(source);
-      }
-      return next;
-    });
+    // O toque "quebra a cadeia" — cancela as aparições/desaparições
+    // automáticas pendentes, e dali em diante é controle manual. Um balão
+    // por vez: abrir o de um oráculo fecha o do outro (os selos ficam
+    // lado a lado e os balões se cobririam).
+    Object.keys(bubbleTimersRef.current).forEach(clearBubbleTimers);
+    setVisibleOracleBubbles((prev) => (prev.has(source) ? new Set() : new Set([source])));
   };
 
   // Reset seasons when movie changes
   useEffect(() => {
     setSeasons(movie.seasons || []);
     setLoadingSeasons(false);
+    setPosterFailed(false);
+    setSynopsisExpanded(false);
+    setActiveFriendBubble(null);
   }, [movie.id]);
 
   // Necessário desde que o aninhamento passou a REAPROVEITAR a mesma
@@ -232,13 +292,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         });
         setOracleFlavorPhrases(phrases);
 
-        // Temporizador por selo: aparece sozinho 2s depois de abrir o modal,
-        // fica visível por 6s, depois retrai sozinho. Um toque a qualquer
-        // momento cancela esse ciclo (ver toggleOracleBubble).
-        sources.forEach((source) => {
-          if (!phrases[source]) return;
+        // Temporizador por selo: o primeiro balão aparece sozinho 2s depois
+        // de abrir o modal e fica 6s; os seguintes entram em fila, um de
+        // cada vez. Um toque a qualquer momento cancela esse ciclo (ver
+        // toggleOracleBubble).
+        sources.filter((source) => !!phrases[source]).forEach((source, order) => {
           const showTimer = setTimeout(() => {
-            setVisibleOracleBubbles((prev) => new Set(prev).add(source));
+            setVisibleOracleBubbles(new Set([source]));
             const hideTimer = setTimeout(() => {
               setVisibleOracleBubbles((prev) => {
                 const next = new Set(prev);
@@ -247,7 +307,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
               });
             }, 6000);
             bubbleTimersRef.current[source] = { ...bubbleTimersRef.current[source], hideTimer };
-          }, 2000);
+          }, 2000 + order * 6500);
           bubbleTimersRef.current[source] = { showTimer };
         });
       });
@@ -317,6 +377,23 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       };
     }
   }, [isOpen]);
+
+  // Esc fecha a camada de cima: trailer → temporadas → o próprio modal.
+  // Com um modal filho aberto (resenhas, nota, indicar, confirmação ou
+  // outro filme aninhado), quem responde ao Esc é ele, não este.
+  const childModalOpen = showReviewsModal || showQuickAdd || showDeleteConfirmation || showRecommendModal || !!directorNestedMovie;
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (showTrailerModal) { setShowTrailerModal(false); return; }
+      if (showSeasonsModal) { setShowSeasonsModal(false); return; }
+      if (childModalOpen) return;
+      onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, showTrailerModal, showSeasonsModal, childModalOpen, onClose]);
 
   const checkIfInLibrary = async () => {
     try {
@@ -586,6 +663,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   const loadUserRating = async () => {
     if (!session?.user?.id) return;
+    setUserRatingLoaded(false);
 
     try {
       const { data, error } = await supabase
@@ -599,6 +677,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       setUserRating(data?.rating !== undefined ? data.rating : null);
     } catch (error) {
       console.error('Error loading user rating:', error);
+    } finally {
+      setUserRatingLoaded(true);
     }
   };
 
@@ -743,7 +823,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     // isOtherUserProfile bloqueado aqui também, não só escondendo o
     // botão — defesa em profundidade contra marcar episódio na conta de
     // outra pessoa por qualquer caminho de código.
-    if (!session?.user?.id || !userRating || isOtherUserProfile) return;
+    if (!session?.user?.id || userRating === null || isOtherUserProfile) return;
 
     const key = `${seasonNumber}-${episodeNumber}`;
 
@@ -822,7 +902,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   };
 
   const toggleSeason = async (season: any) => {
-    if (!session?.user?.id || !userRating || isOtherUserProfile) return;
+    if (!session?.user?.id || userRating === null || isOtherUserProfile) return;
 
     const seasonKey = `season-${season.season_number}-all`;
     if (pendingEpisodes.has(seasonKey)) return;
@@ -1109,6 +1189,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     if (libraryError) throw libraryError;
 
     setIsInLibrary(true);
+    setUserRating(rating !== undefined ? rating : null);
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(session.user.id));
     cache.invalidatePattern('stats:');
     toast.success(t('library.inLibrary'));
@@ -1136,6 +1217,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
 
     setIsInLibrary(false);
+    setUserRating(null);
     cache.invalidate(CACHE_KEYS.USER_LIBRARY(session.user.id));
     cache.invalidatePattern('stats:');
     toast.success(t('library.movieRemovedSuccess'));
@@ -1146,9 +1228,15 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const hasStreamingProviders = movie.watchProviders?.flatrate && movie.watchProviders.flatrate.length > 0;
+  const isTvShow = movie.media_type === 'tv';
+  // Nota 0 ("Crime Cinematográfico") também é nota — por isso a checagem
+  // é por null, não por "falsy" como antes.
+  const hasRated = userRating !== null && userRating !== undefined;
+  const providers = movie.watchProviders?.flatrate || [];
+  const hasStreamingProviders = providers.length > 0;
 
-  // For TV shows, look for Creator or Director; for movies, look for Director
+  // Séries: Creator ou Director; filmes: Director (Executive Producer como
+  // último recurso, como sempre foi).
   let director = t('movies.unknown');
   if (movie.credits?.crew) {
     const directorPerson = movie.credits.crew.find(person =>
@@ -1159,14 +1247,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   }
 
-  const cast = movie.credits?.cast?.slice(0, 5) || [];
-  const year = new Date(movie.release_date).getFullYear();
+  const cast = movie.credits?.cast?.slice(0, 6) || [];
+  const releaseSource = movie.release_date || movie.first_air_date || '';
+  // Ano lido direto do texto "AAAA-MM-DD": new Date() interpretaria como
+  // meia-noite UTC e, no Brasil, um filme de 1º de janeiro viraria do ano
+  // anterior.
+  const releaseYearNumber = parseInt(releaseSource.slice(0, 4), 10);
+  const year = Number.isNaN(releaseYearNumber) ? null : releaseYearNumber;
 
   // Obra ainda não lançada, com data de estreia conhecida — usada pra
-  // preencher a seção "Assistir em" com a data em vez da mensagem
-  // genérica de "não disponível", já que nesse caso a ausência de
-  // streaming não é falta de informação, é só que ainda não chegou lá.
-  const releaseDateObj = movie.release_date ? new Date(movie.release_date) : null;
+  // preencher "Assistir em" com a data em vez da mensagem genérica de "não
+  // disponível", já que nesse caso a ausência de streaming não é falta de
+  // informação, é só que ainda não chegou lá.
+  const releaseDateObj = movie.release_date
+    ? new Date(movie.release_date.length === 10 ? `${movie.release_date}T12:00:00` : movie.release_date)
+    : null;
   const isUpcomingRelease = !!releaseDateObj && !isNaN(releaseDateObj.getTime()) && releaseDateObj.getTime() > Date.now();
   const formattedReleaseDate = releaseDateObj?.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -1284,785 +1379,702 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   };
 
-  const isTvShow = movie.media_type === 'tv';
   const runtime = movie.runtime
     ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m`
-    : t('movies.unknown');
-  const seasonsText = movie.number_of_seasons
-    ? `${movie.number_of_seasons} ${movie.number_of_seasons === 1 ? 'Season' : 'Seasons'}`
-    : t('movies.unknown');
+    : null;
+  const seasonCount = movie.number_of_seasons || 0;
+  const backdropPath = (movie as Movie & { backdrop_path?: string | null }).backdrop_path || null;
+  const posterSrc = movie.poster_path && !posterFailed ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null;
+  const longSynopsis = (movie.overview?.length || 0) > 320;
+  const today = new Date().toISOString().slice(0, 10);
+  const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
 
-  // Padroniza QUALQUER classificação de origem (americana, britânica, etc.)
-  // pra escala brasileira única (L, +10, +12, +14, +16, +18) — antes,
-  // "PG-13" aparecia igual do TMDB, mas um filme "18" não virava "PG-18"
-  // nem nada parecido, porque são sistemas de países diferentes, não uma
-  // mesma escala com números diferentes. Agora tudo sai no mesmo padrão,
-  // não importa de qual país o dado original veio. Não existe "+13" oficial
-  // no ClassInd brasileiro — "PG-13" arredonda pra +14, o balde real mais
-  // próximo, em vez de inventar uma faixa que não existe de verdade.
-  const standardizeCertification = (raw: string): string | null => {
-    const upper = raw.trim().toUpperCase();
-
-    // Já no padrão brasileiro
-    if (upper === 'L') return 'L';
-    if (['10', '12', '14', '16', '18'].includes(upper)) return `+${upper}`;
-
-    // Padrão americano (MPAA)
-    const usMap: Record<string, string> = {
-      'G': 'L',
-      'PG': '+10',
-      'PG-13': '+14',
-      'R': '+16',
-      'NC-17': '+18',
-    };
-    if (usMap[upper]) return usMap[upper];
-
-    // Padrão britânico (BBFC) — pode aparecer se nem BR nem US tiverem dado
-    const ukMap: Record<string, string> = {
-      'U': 'L',
-      '12A': '+12',
-      '15': '+16',
-    };
-    if (ukMap[upper]) return ukMap[upper];
-
-    // Qualquer coisa não reconhecida (incluindo "NR"/"Not Rated") — melhor
-    // não mostrar nada do que mostrar um símbolo enganoso.
-    return null;
-  };
-
-  // Cores oficiais do selo ClassInd brasileiro: Livre=verde, 10=azul,
-  // 12=amarelo, 14=laranja, 16=vermelho, 18=preto.
-  const getCertificationColor = (standardized: string): string => {
-    if (standardized === '+18') return 'bg-black text-white';
-    if (standardized === '+16') return 'bg-red-600 text-white';
-    if (standardized === '+14') return 'bg-orange-500 text-white';
-    if (standardized === '+12') return 'bg-yellow-500 text-gray-900';
-    if (standardized === '+10') return 'bg-blue-500 text-white';
-    return 'bg-green-600 text-white';
-  };
-
-  // Cor específica pro ÍCONE do escudo — getCertificationColor mistura
-  // fundo+texto (formato certo pro badge de texto), mas não dá pra
-  // aplicar isso direto num ícone SVG. O escudo ficava sempre cinza
-  // porque nunca recebia nenhuma cor condicional, só o badge de texto ao
-  // lado dele mudava de cor.
-  const getCertificationIconColor = (standardized: string | null): string => {
-    if (!standardized) return 'text-gray-400 dark:text-gray-500';
-    if (standardized === '+18') return 'text-gray-900 dark:text-gray-100';
-    if (standardized === '+16') return 'text-red-600 dark:text-red-400';
-    if (standardized === '+14') return 'text-orange-500 dark:text-orange-400';
-    if (standardized === '+12') return 'text-yellow-500 dark:text-yellow-400';
-    if (standardized === '+10') return 'text-blue-500 dark:text-blue-400';
-    return 'text-green-600 dark:text-green-400';
-  };
-
-  // Get origin country - support both API format (production_countries) and cache format (origin_country)
-  const getOriginCountry = () => {
-    // Try cache format first (origin_country: ["US"])
+  // País de origem — aceita o formato do cache (origin_country: ["US"]) e o
+  // da API (production_countries: [{ iso_3166_1, name }]).
+  const originCountry = (() => {
     if (movie.origin_country && movie.origin_country.length > 0) {
-      return {
-        iso_3166_1: movie.origin_country[0],
-        name: '' // Name will be displayed as flag emoji
-      };
+      return { iso_3166_1: movie.origin_country[0], name: '' };
     }
-    // Fallback to API format (production_countries: [{iso_3166_1: "US", name: "United States"}])
     if (movie.production_countries && movie.production_countries.length > 0) {
       return movie.production_countries[0];
     }
     return null;
+  })();
+  const originName = (() => {
+    if (!originCountry) return '';
+    try {
+      return new Intl.DisplayNames([i18n.language], { type: 'region' }).of(originCountry.iso_3166_1) || originCountry.name || originCountry.iso_3166_1;
+    } catch {
+      return originCountry.name || originCountry.iso_3166_1;
+    }
+  })();
+
+  const formatScore = (value: number) =>
+    value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+  // Ficha rápida embaixo do título: ano · duração (ou temporadas) · selo
+  // de classificação · bandeira. Cada item só entra se existir.
+  const metaItems: React.ReactNode[] = [];
+  if (year) {
+    metaItems.push(
+      <span key="year"><span className="sr-only">{t('movies.year')}: </span>{year}</span>
+    );
+  }
+  if (isTvShow ? seasonCount > 0 : !!runtime) {
+    metaItems.push(
+      <span key="length">
+        <span className="sr-only">{isTvShow ? t('movies.seasons') : t('movies.runtime')}: </span>
+        {isTvShow ? t('movieModal.seasonCount', { count: seasonCount }) : runtime}
+      </span>
+    );
+  }
+  if (certification) {
+    metaItems.push(
+      <span
+        key="cert"
+        title={t('movies.ageLabel')}
+        className={`inline-flex items-center h-5 px-1.5 rounded text-[11px] font-bold leading-none ${certificationClasses(certification)}`}
+      >
+        <span className="sr-only">{t('movies.ageLabel')}: </span>
+        {certification}
+      </span>
+    );
+  }
+  if (originCountry) {
+    metaItems.push(
+      <span key="origin" title={originName} className="text-base leading-none">
+        <span className="sr-only">{t('movies.origin')}: {originName} </span>
+        <span aria-hidden>{countryFlag(originCountry.iso_3166_1)}</span>
+      </span>
+    );
+  }
+
+  const ghostPill = `inline-flex items-center gap-2 h-11 px-4 rounded-full border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;
+  const sectionClass = 'pt-6 mt-6 border-t border-white/[0.07]';
+  const sectionTitle = (text: string) => (
+    <h3 style={{ ...PIXEL, color: PAPER }} className="text-xl leading-none">{text}</h3>
+  );
+
+  // Onde assistir — aparece embaixo do pôster no desktop e depois da
+  // sinopse no celular. Sempre presente (com a data de estreia ou "não
+  // disponível"), pra estrutura da ficha ser a mesma em qualquer filme.
+  const whereToWatch = (
+    <>
+      {sectionTitle(t('movies.watchOn'))}
+      <div className="mt-3">
+        {hasStreamingProviders ? (
+          <ul className="flex flex-wrap gap-2.5">
+            {providers.map((provider) => (
+              <li key={provider.provider_id}>
+                <img
+                  src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
+                  alt={provider.provider_name}
+                  title={provider.provider_name}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-11 h-11 rounded-xl object-cover ring-1 ring-white/10"
+                />
+              </li>
+            ))}
+          </ul>
+        ) : isUpcomingRelease ? (
+          <p className="text-sm" style={{ color: PAPER }}>
+            {t('movies.upcomingRelease', { date: formattedReleaseDate, defaultValue: `Estreia em ${formattedReleaseDate}` })}
+          </p>
+        ) : (
+          <p className="text-sm" style={{ color: MIST }}>{t('movies.noStreamingAvailable')}</p>
+        )}
+      </div>
+    </>
+  );
+
+  // Nota em destaque ao lado da nota pública: a sua (se já avaliou), a
+  // prevista pelo oráculo (se o filme está em alguma pool), ou "na sua
+  // watchlist". Enquanto carrega, um esqueleto do mesmo tamanho segura o
+  // lugar pra nada pular.
+  const personalChip = (() => {
+    if (!session?.user) return null;
+    if (!userRatingLoaded || (!hasRated && predictionLoading)) {
+      return <span className="h-8 w-44 rounded-full animate-pulse" style={{ background: VELVET }} aria-hidden />;
+    }
+    if (hasRated) {
+      return (
+        <span className="inline-flex items-center gap-1.5 h-8 pl-2.5 pr-3 rounded-full text-sm font-semibold" style={{ background: PAPER, color: INK }}>
+          <Star className="w-3.5 h-3.5 fill-current" aria-hidden />
+          {t('home.desk.yourRating')}
+          <span style={PIXEL} className="text-base leading-none">{userRating}</span>
+        </span>
+      );
+    }
+    if (predictedRating !== null) {
+      return (
+        <span className="inline-flex items-center gap-1.5 h-8 pl-2.5 pr-3 rounded-full text-sm bg-violet-600/90 text-white ring-1 ring-white/20">
+          <Wand2 className="w-3.5 h-3.5" aria-hidden />
+          {t('home.desk.predictedForYou')}
+          <span style={PIXEL} className="text-base leading-none">{predictedRating}</span>
+        </span>
+      );
+    }
+    if (isInLibrary) {
+      return (
+        <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-sm border border-sky-400/40 bg-sky-500/10 text-sky-200">
+          <Eye className="w-3.5 h-3.5" aria-hidden />
+          {t('home.desk.inWatchlist')}
+        </span>
+      );
+    }
+    return null;
+  })();
+
+  const friendAriaLabel = (friend: FriendRating) => {
+    if (friend.is_watchlist_only) return `${friend.username}: ${t('movies.wantingToWatch')}`;
+    if (friend.rating !== null) return t('movieModal.friendRated', { name: friend.username, rating: friend.rating });
+    return friend.username;
   };
 
-  const originCountry = getOriginCountry();
-
-  // Function to get flag emoji from country code
-  const getCountryFlag = (countryCode: string) => {
-    if (!countryCode || countryCode.length !== 2) return '🌍';
-    const codePoints = countryCode
-      .toUpperCase()
-      .split('')
-      .map(char => 127397 + char.charCodeAt(0));
-    return String.fromCodePoint(...codePoints);
-  };
-
-  // Função para obter cor da bolha baseada na nota
-  const getBubbleColor = (rating: number | null) => {
-    if (rating === null) return 'from-sky-400 to-blue-500'; // Watchlist — neutro, não sugere "nota ruim"
-    if (rating === 10) return 'from-purple-400 via-pink-400 to-blue-400'; // Holográfico
-    if (rating >= 7) return 'from-green-400 to-emerald-500'; // Verde
-    if (rating >= 4) return 'from-orange-400 to-amber-500'; // Laranja
-    return 'from-red-400 to-rose-500'; // Vermelho
-  };
-
-    // Função para verificar se a nota é 10
-  const isPerfectScore = (rating: number | null) => rating === 10;
-
-  // Mesmas cores usadas no Duelo e na Recomendação do Dia — identidade
-  // visual consistente de cada oráculo em todo o site.
-    const ORACLE_SEAL: Record<string, { emoji: string; bg: string }> = {
-    bogart: { emoji: '🐸', bg: 'bg-emerald-500' },
-    fincher: { emoji: '🦊', bg: 'bg-red-500' },
-    cypher: { emoji: '🐍', bg: 'bg-yellow-500' }
-  };
-
-  // Cor do balão de fala combinando com o selo — amarelo puro fica ilegível
-  // com texto branco, por isso a Cobra usa texto escuro em vez de branco.
-  const ORACLE_BUBBLE: Record<string, { bg: string; text: string; arrow: string }> = {
-    bogart: { bg: 'bg-emerald-600/95', text: 'text-white', arrow: 'border-t-emerald-600' },
-    fincher: { bg: 'bg-red-600/95', text: 'text-white', arrow: 'border-t-red-600' },
-    cypher: { bg: 'bg-yellow-400/95', text: 'text-gray-900', arrow: 'border-t-yellow-400' }
+  const handleFriendClick = (friend: FriendRating) => {
+    // Com resenha: abre as resenhas do filme (a dele já aparece lá).
+    // Só watchlist: vai direto pro perfil. Só nota: o primeiro toque mostra
+    // o balão com nome e nota; o segundo, na mesma bolha, abre o perfil.
+    if (friend.review_title) {
+      setShowReviewsModal(true);
+    } else if (friend.is_watchlist_only) {
+      navigate(`/profile/${friend.username}`);
+    } else if (activeFriendBubble === friend.user_id) {
+      navigate(`/profile/${friend.username}`);
+    } else {
+      setActiveFriendBubble(friend.user_id);
+    }
   };
 
   // Renderizado via Portal, direto no <body> — não como filho de onde o
   // componente foi chamado. Sem isso, quando o modal é aberto de dentro de
   // uma página cujo container raiz é um motion.div (Framer Motion aplica
-  // transform via style inline, mesmo em animações simples), o modal ficava
-  // PRESO no contexto de empilhamento isolado desse container — o z-index
-  // altíssimo (9999) só competia DENTRO dali, nunca contra elementos
-  // realmente globais como a navbar (z-40), que ficava por cima mesmo sendo
-  // "menor". É por isso que o bug só aparecia em certas páginas (as que
-  // usam motion.div como wrapper raiz) e não em outras.
+  // transform via style inline), o modal ficava preso no contexto de
+  // empilhamento desse container e a navbar passava por cima dele.
   return createPortal(
-    <div className={`fixed inset-0 ${zIndexClass} flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-4`}>
+    <div className={`fixed inset-0 ${zIndexClass}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
       />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="relative w-full max-w-4xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-xl overflow-y-auto max-h-[calc(100vh-5rem)]" style={{ zIndex: 10 }}>
-          <div className="sticky top-0 z-20 flex justify-end p-3">
-            <button
-              onClick={onClose}
-              className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-full p-2 shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
-            >
-              <X className="w-6 h-6 text-gray-600 dark:text-gray-300" />
-            </button>
-          </div>
+      <div className="absolute inset-0 flex items-end sm:items-center justify-center sm:p-6 pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0, y: 32 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+          className="pointer-events-auto relative w-full sm:max-w-4xl max-h-[94dvh] sm:max-h-[calc(100dvh-5rem)] flex flex-col rounded-t-2xl sm:rounded-2xl ring-1 ring-white/10 shadow-2xl overflow-hidden"
+          style={{ background: NIGHT }}
+        >
+          <button
+            onClick={onClose}
+            aria-label={t('common.close')}
+            className={`absolute top-3 right-3 z-30 grid place-items-center w-11 h-11 rounded-full ring-1 ring-white/15 backdrop-blur-md hover:bg-white/10 transition ${FOCUS_RING}`}
+            style={{ background: 'rgba(18,13,34,0.6)', color: PAPER }}
+          >
+            <X className="w-5 h-5" />
+          </button>
 
-          <div className="px-6 pt-2 pb-6">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
-                {movie.title}
-                <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
-                  ({year})
-                </span>
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div
-                className="relative bg-gray-800 rounded-lg overflow-hidden shadow-lg cursor-pointer group/poster"
-                onClick={handleOpenTrailer}
-              >
-                <img
-                  src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                  alt={movie.title}
-                  className="w-full h-auto aspect-[2/3] object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://via.placeholder.com/500x750?text=No+Image';
-                  }}
-                />
-                                                {/* Selo(s) de oráculo — canto inferior esquerdo, pequeno, discreto.
-                    Cada selo tem sua própria frase característica, revelada num
-                    balão ao passar o mouse/tocar (evita poluir o pôster, que já
-                    tem bolhas de amigos e a indicação de trailer). */}
-                {oracleSources.length > 0 && (
-                  <div className="absolute bottom-2 left-2 flex items-end gap-1 z-10 pointer-events-auto">
-                    {oracleSources.map((source) => {
-                      const bubbleStyle = ORACLE_BUBBLE[source] || { bg: 'bg-gray-900/95', text: 'text-white', arrow: 'border-t-gray-900' };
-                      const showBubble = !!oracleFlavorPhrases[source] && visibleOracleBubbles.has(source);
-                      return (
-                        <div key={source} className="relative">
-                          <div
-                            onClick={(e) => toggleOracleBubble(source, e)}
-                            className={`w-6 h-6 rounded-full ${ORACLE_SEAL[source]?.bg || 'bg-gray-500'} ring-2 ring-white/70 dark:ring-gray-800/70 shadow-md flex items-center justify-center text-[11px] cursor-pointer`}
-                          >
-                            {ORACLE_SEAL[source]?.emoji || '🎬'}
-                          </div>
-                          {showBubble && (
-                            <div
-                              className="absolute bottom-full left-0 mb-2 w-48 z-20 cursor-pointer"
-                              onClick={(e) => toggleOracleBubble(source, e)}
-                            >
-                              <div className={`relative ${bubbleStyle.bg} backdrop-blur-sm rounded-xl px-3 py-2 shadow-2xl`}>
-                                <p className={`${bubbleStyle.text} text-[10px] italic leading-snug`}>
-                                  "{oracleFlavorPhrases[source]}"
-                                </p>
-                                <div className={`absolute top-full left-3 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent ${bubbleStyle.arrow}`} />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+            {/* ---------- Topo: fundo do filme + pôster + título ---------- */}
+            <div className="relative">
+              <div className="absolute inset-x-0 top-0 h-64 sm:h-80 overflow-hidden pointer-events-none" aria-hidden>
+                {backdropPath ? (
+                  <img
+                    src={`https://image.tmdb.org/t/p/w1280${backdropPath}`}
+                    alt=""
+                    decoding="async"
+                    className="w-full h-full object-cover opacity-45"
+                  />
+                ) : (
+                  <div className="w-full h-full" style={{ background: 'radial-gradient(ellipse 80% 70% at 70% 0%, rgba(139,92,246,0.28), transparent 70%)' }} />
                 )}
-
-                {/* Indicação sutil de trailer — canto superior direito, com frase que
-                    aparece ao passar o mouse/tocar */}
-                <div className="absolute top-3 right-3 flex items-center gap-2 pointer-events-none">
-                  <span className="text-[10px] font-medium text-white bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full opacity-0 group-hover/poster:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                    {t('movies.clickForTrailer')}
-                  </span>
-                  <div className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-60 group-hover/poster:opacity-100 group-hover/poster:bg-black/60 group-hover/poster:scale-110 transition-all duration-200 flex-shrink-0">
-                    <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-                  </div>
-                </div>
-
-                  {/* Bolhas de amigos que avaliaram - limitadas ao poster */}
-                  {!loadingFriends && friendRatings.length > 0 && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      {friendRatings.map((friend, index) => {
-                        const positions = [
-                          { top: '15%', left: '10%' },
-                          { top: '25%', right: '15%' },
-                          { top: '50%', left: '8%' },
-                          { top: '65%', right: '12%' },
-                          // O balão de diálogo do oráculo (quando aberto) nasce do
-                          // selo no canto inferior esquerdo (bottom-2 left-2) e se
-                          // estende pra cima com w-48 (192px) de largura — ocupa
-                          // aproximadamente a metade esquerda do pôster, na faixa
-                          // mais baixa dele. Essa 5ª bolha fica logo à direita da
-                          // borda direita estimada do balão, na mesma altura,
-                          // "quase raspando" sem sobrepor.
-                          { bottom: '4%', left: '52%' }
-                        ];
-                        const position = positions[index] || positions[0];
-
-                        return (
-                          <div
-                            key={friend.user_id}
-                            className="absolute animate-float-slow pointer-events-auto"
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              ...position,
-                              animationDelay: `${index * 0.3}s`,
-                              zIndex: 10
-                            }}
-                          >
-                            <div
-                              className="relative group cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (friend.review_title) {
-                                  setShowReviewsModal(true);
-                                } else if (friend.is_watchlist_only) {
-                                  navigate(`/profile/${friend.username}`);
-                                } else if (activeFriendBubble === friend.user_id) {
-                                  navigate(`/profile/${friend.username}`);
-                                } else {
-                                  setActiveFriendBubble(friend.user_id);
-                                }
-                              }}
-                            >
-                              {/* Container principal da bolha */}
-                              <div className="relative w-16 h-16">
-                                {/* Avatar */}
-                                <div className={`absolute inset-0 rounded-full border-3 border-white dark:border-gray-700 shadow-2xl overflow-hidden bg-gradient-to-br ${getBubbleColor(friend.rating)} p-0.5`}>
-                                  <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
-                                    {friend.avatar_url ? (
-                                      <img
-                                        src={friend.avatar_url}
-                                        alt={friend.username}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold text-xl">
-                                        {friend.username.charAt(0).toUpperCase()}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Badge - nota, ou emoji de olhos quando é
-                                    só watchlist (ainda não assistiu, não faz
-                                    sentido mostrar nota nenhuma) */}
-                                <div className="absolute -bottom-2 -right-2" style={{ zIndex: 20 }}>
-                                  {isPerfectScore(friend.rating) && (
-                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 animate-ping opacity-75"></div>
-                                  )}
-                                  <div className={`relative w-8 h-8 rounded-full bg-gradient-to-br ${getBubbleColor(friend.rating)} border-3 border-white dark:border-gray-800 shadow-2xl flex items-center justify-center ${isPerfectScore(friend.rating) ? 'shadow-[0_0_20px_rgba(168,85,247,0.8)] ring-2 ring-purple-400/50' : ''}`}>
-                                    <span className="text-xs font-extrabold text-white drop-shadow-lg">
-                                      {friend.is_watchlist_only ? '👀' : friend.rating}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {friend.review_title ? (
-                                /* Tem review — balão sempre visível, igual ao Friends Activity.
-                                   Puramente visual agora: o clique real é tratado pelo container
-                                   "group" pai, que envolve o avatar visível (abre o modal de
-                                   reviews desse filme, já mostra todas, incluindo essa). */
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2" style={{ zIndex: 50 }}>
-                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl w-[110px] group-hover:bg-gray-800/95 transition-colors">
-                                    <p className="text-white text-[9px] font-semibold text-center truncate">
-                                      {friend.username}
-                                    </p>
-                                    <p className="text-gray-300 text-[9px] italic text-center leading-tight line-clamp-2 whitespace-normal mt-0.5">
-                                      "{friend.review_title}"
-                                    </p>
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900/95" />
-                                  </div>
-                                </div>
-                              ) : friend.is_watchlist_only ? (
-                                /* Só watchlist, sem review — balão sempre visível também, com
-                                   texto "Querendo Assistir...", igual em espírito ao balão de review.
-                                   Puramente visual: o clique real (que leva direto pro perfil) é
-                                   tratado pelo container "group" pai. */
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2" style={{ zIndex: 50 }}>
-                                  <div className="relative bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl px-2.5 py-1.5 shadow-2xl group-hover:bg-gray-800/95 transition-colors">
-                                    <p className="text-white text-[9px] font-semibold text-center whitespace-nowrap">
-                                      {friend.username}
-                                    </p>
-                                    <p className="text-sky-300 text-[9px] italic text-center leading-tight mt-0.5 whitespace-nowrap">
-                                      {t('movies.wantingToWatch', { defaultValue: 'Querendo Assistir...' })}
-                                    </p>
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900/95" />
-                                  </div>
-                                </div>
-                              ) : (
-                                /* Sem review — primeiro clique (no avatar, via container "group"
-                                   pai) mostra o balão com nome e nota; um segundo clique na MESMA
-                                   bolha (já ativa) navega pro perfil, em vez de não fazer nada como
-                                   antes. Puramente visual aqui: opacity controlada pelo state
-                                   activeFriendBubble (clique) ou por hover (desktop, sem tocar em
-                                   mobile). */
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3" style={{ zIndex: 50 }}>
-                                  <div
-                                    className={`px-3 py-2 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg transition-all duration-200 whitespace-nowrap shadow-2xl ${
-                                      activeFriendBubble === friend.user_id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                                    }`}
-                                  >
-                                    <div className="font-semibold">{friend.username}</div>
-                                    <div className="text-yellow-400 flex items-center gap-1">
-                                      <span>★</span>
-                                      <span>{friend.rating}/10</span>
-                                    </div>
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-                                      <div className="border-4 border-transparent border-t-gray-900/95"></div>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Assistir em - desktop only (mobile shows after cast) */}
-                <div className="hidden md:block bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                    {t('movies.watchOn')}
-                  </h3>
-                  {/* Altura máxima + rolagem, mesmo tratamento da sinopse —
-                      antes o bloco crescia junto com a quantidade de
-                      serviços de streaming. E agora aparece sempre, com
-                      mensagem de "não disponível" em vez de sumir — sumir
-                      completamente fazia a tela parecer estruturada
-                      diferente de filme pra filme. */}
-                  <div className="max-h-20 overflow-y-auto">
-                    {hasStreamingProviders ? (
-                      <div className="flex flex-wrap gap-3">
-                        {movie.watchProviders.flatrate.map((provider) => (
-                          <div
-                            key={provider.provider_id}
-                            className="relative group"
-                          >
-                            <img
-                              src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
-                              alt={provider.provider_name}
-                              className="h-10 w-10 rounded-lg object-contain"
-                            />
-                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                              {provider.provider_name}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : isUpcomingRelease ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {t('movies.upcomingRelease', { date: formattedReleaseDate, defaultValue: `Estreia em ${formattedReleaseDate}` })}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('movies.noStreamingAvailable')}</p>
-                    )}
-                  </div>
-                </div>
+                <div
+                  className="absolute inset-0"
+                  style={{ background: `linear-gradient(to bottom, rgba(18,13,34,0.25) 0%, rgba(18,13,34,0.7) 55%, ${NIGHT} 100%)` }}
+                />
               </div>
 
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center">
-                    <Star className="w-5 h-5 text-yellow-500 fill-current mr-1" />
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {movie.vote_average.toFixed(1)}
-                    </span>
-                  </div>
-                  
-                  {predictionLoading ? (
-                    <div className="h-[26px] w-48 max-w-[60vw] bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse" />
-                  ) : (
-                    predictedRating !== null && !userRating && (
-                      <div className="flex items-center px-2 py-1 bg-violet-100 dark:bg-violet-900/30 rounded-md">
-                        <span className="font-medium text-violet-700 dark:text-violet-400">
-                          {t('movies.predictedRatingForYou', { defaultValue: 'Nota Prevista para Você' })}: {predictedRating}
-                        </span>
-                      </div>
-                    )
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  {movie.genres?.map(genre => (
-                    <span key={genre.id} className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs text-gray-700 dark:text-gray-300">
-                      {genre.name}
-                    </span>
-                  ))}
-
-                  {movieMoodKey && MOOD_TAG_CONFIG[movieMoodKey] && (
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${MOOD_TAG_CONFIG[movieMoodKey].pillClasses}`}>
-                      {t(MOOD_TAG_CONFIG[movieMoodKey].labelKey)}
-                    </span>
-                  )}
-
-                  {session?.user && (
-                    <div className="ml-auto flex items-center gap-2">
-                      <button
-                        onClick={() => setShowRecommendModal(true)}
-                        className="p-1 text-orange-500 hover:text-orange-600 transition-colors"
-                        title={t('indications.indicateToFriend')}
-                      >
-                        <Users className="w-6 h-6" />
-                      </button>
-                      <button
-                        onClick={handleShareToInstagram}
-                        disabled={isSharing}
-                        className="p-1 text-purple-500 hover:text-pink-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Compartilhar no Instagram"
-                      >
-                        {isSharing ? (
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                        ) : (
-                          <Instagram className="w-6 h-6" />
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                    {t('movies.synopsis')}
-                  </h3>
-                  {/* Altura máxima + rolagem interna — antes, sinopses muito
-                      longas esticavam o card e desalinhavam o resto do
-                      layout com a coluna do pôster ao lado. */}
-                  <p className="text-gray-600 dark:text-gray-300 text-sm max-h-32 overflow-y-auto pr-1">
-                    {movie.overview || t('movies.noSynopsis')}
-                  </p>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                    <div className="flex items-center justify-center mb-2">
-                      <Calendar className="w-5 h-5 text-blue-500" />
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.year')}</div>
-                      <div className="font-medium text-gray-900 dark:text-white text-sm">{year}</div>
-                    </div>
-                  </div>
-
-                  {isTvShow ? (
-                    <motion.div
-                      className="relative rounded-lg p-3 cursor-pointer overflow-hidden bg-gradient-to-br from-violet-500/15 to-pink-500/15 dark:from-violet-500/20 dark:to-pink-500/20 border border-violet-400/30"
-                      onClick={() => handleOpenSeasons()}
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.9 }}
-                      animate={{
-                        boxShadow: [
-                          '0 0 0px rgba(168, 85, 247, 0)',
-                          '0 0 14px rgba(168, 85, 247, 0.35)',
-                          '0 0 0px rgba(168, 85, 247, 0)',
-                        ],
-                      }}
-                      transition={{ boxShadow: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } }}
+              <div className="relative px-5 sm:px-8 pt-14 sm:pt-12 pb-8 md:grid md:grid-cols-[240px_minmax(0,1fr)] lg:grid-cols-[264px_minmax(0,1fr)] md:gap-8">
+                {/* Coluna do pôster */}
+                <div>
+                  <div className="relative mx-auto md:mx-0 w-[min(66vw,260px)] md:w-full">
+                    <button
+                      type="button"
+                      onClick={handleOpenTrailer}
+                      aria-label={t('movieModal.playTrailer')}
+                      className={`group/poster relative block w-full aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/15 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.9)] ${FOCUS_RING}`}
+                      style={{ background: VELVET }}
                     >
-                      {/* Brilho diagonal que atravessa o card, chamando
-                          atenção pra essa ação sem depender só de cor —
-                          hoje o único sinal de "isso é clicável" era o
-                          cursor mudando, imperceptível até passar o mouse. */}
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                        style={{ width: '50%' }}
-                        animate={{ x: ['-100%', '250%'] }}
-                        transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.5, ease: 'easeInOut' }}
-                      />
-                      <div className="relative flex items-center justify-center mb-2">
-                        <Tv className="w-5 h-5 text-violet-500 dark:text-violet-400" />
-                      </div>
-                      <div className="relative text-center">
-                        <div className="text-xs text-violet-600/80 dark:text-violet-300/80 flex items-center justify-center gap-0.5">
-                          {t('movies.seasons', { defaultValue: 'Seasons' })}
-                          <ChevronRight className="w-3 h-3" />
-                        </div>
-                        <div className="font-semibold text-violet-700 dark:text-violet-200 text-sm">
-                          {seasonsText}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                      <div className="flex items-center justify-center mb-2">
-                        <Clock className="w-5 h-5 text-green-500" />
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {t('movies.runtime')}
-                        </div>
-                        <div className="font-medium text-gray-900 dark:text-white text-sm">
-                          {runtime}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Classificação — antes tentava mostrar o "motivo" (campo
-                      note/meaning do TMDB), mas esse campo é uma anotação
-                      livre por TIPO de lançamento (relançamento IMAX,
-                      première, digital, etc.), não uma justificativa de
-                      censura de verdade — por isso às vezes vinha coisa tipo
-                      "Hollywood, California" no lugar. Mostra só o selo,
-                      já padronizado (ver standardizeCertification acima).
-                      Ícone trocado de AlertCircle (parecia erro) pra Shield,
-                      e rótulo encurtado — "Classificação Indicativa" estava
-                      esticando o quadrado pro lado, puxando os vizinhos
-                      junto (linha inteira do grid cresce igual).
-
-                      IMPORTANTE: esse quadrado agora SEMPRE mostra
-                      Classificação (com "—" se o filme não tiver esse dado)
-                      — antes, filmes sem classificação mostravam o Diretor
-                      aqui no lugar, fazendo a tela parecer "num modelo
-                      diferente" dependendo do filme. Agora a estrutura é
-                      idêntica pra qualquer filme. */}
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                    <div className="flex items-center justify-center mb-2">
-                      <Shield className={`w-5 h-5 ${getCertificationIconColor(certification)}`} />
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.ageLabel')}</div>
-                      <div className="flex justify-center mt-0.5">
-                        {certification ? (
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${getCertificationColor(certification)}`}>
-                            {certification}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {originCountry && (
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                      <div className="flex items-center justify-center mb-2">
-                        <Globe className="w-5 h-5 text-indigo-500" />
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{t('movies.origin')}</div>
-                        <div className="font-medium text-gray-900 dark:text-white text-xl" title={originCountry.name}>
-                          {getCountryFlag(originCountry.iso_3166_1)}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Diretor — sempre em linha própria agora, pra manter a
-                    mesma estrutura em qualquer filme (com ou sem
-                    classificação disponível). */}
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                  <div className="flex items-center gap-3 justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <User className="w-5 h-5 text-purple-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">{t('movies.director')}:</span>
-                        <span className="font-medium text-gray-900 dark:text-white text-sm">{director}</span>
-                      </div>
-                    </div>
-                    {director !== t('movies.unknown') && (
-                      <button
-                        onClick={handleOpenDirectorTopTen}
-                        className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 dark:bg-purple-500/15 dark:hover:bg-purple-500/25 text-purple-600 dark:text-purple-400 text-xs font-semibold rounded-lg transition-colors"
-                      >
-                        {t('movies.viewTopTen')}
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-
-                  {showDirectorTopTen && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">
-                        {t('movies.directorTopTen', { director })}
-                      </p>
-
-                      {directorTopTenLoading && (
-                        <div className="flex items-center justify-center py-4">
-                          <Loader2 className="w-5 h-5 text-purple-500 animate-spin" />
-                        </div>
+                      {posterSrc ? (
+                        <img
+                          src={posterSrc}
+                          alt=""
+                          decoding="async"
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={() => setPosterFailed(true)}
+                        />
+                      ) : (
+                        <span className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center" style={{ color: MIST }}>
+                          <Film className="w-10 h-10" aria-hidden />
+                          <span style={{ ...PIXEL, color: PAPER }} className="text-lg leading-tight">{movie.title}</span>
+                        </span>
                       )}
+                      {/* Convite discreto pro trailer — frase só no hover (desktop) */}
+                      <span className="absolute top-2.5 right-2.5 flex items-center gap-2 pointer-events-none">
+                        <span className="hidden sm:inline text-[11px] font-medium text-white bg-black/55 backdrop-blur-sm px-2 py-1 rounded-full opacity-0 group-hover/poster:opacity-100 transition-opacity whitespace-nowrap">
+                          {t('movies.clickForTrailer')}
+                        </span>
+                        <span className="grid place-items-center w-10 h-10 rounded-full bg-black/45 backdrop-blur-sm ring-1 ring-white/20 opacity-80 group-hover/poster:opacity-100 group-hover/poster:scale-105 transition">
+                          <Play className="w-4 h-4 fill-white text-white ml-0.5" aria-hidden />
+                        </span>
+                      </span>
+                    </button>
 
-                      {!directorTopTenLoading && directorTopTenError && (
-                        <div className="flex items-center gap-2 py-2 text-sm text-gray-500 dark:text-gray-400">
-                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                          {directorTopTenError}
-                        </div>
-                      )}
-
-                      {!directorTopTenLoading && !directorTopTenError && directorTopTenMovies.length > 0 && (
-                        <div className="grid grid-cols-5 gap-2">
-                          {directorTopTenMovies.map((m: any) => (
-                            <button
-                              key={m.id}
-                              onClick={() => handleOpenDirectorMovie(m.id)}
-                              className="w-full group"
-                            >
-                              {/* Só o pôster, proporção 2:3 fixa — nenhum
-                                  texto embaixo. O título variando de 1 pra
-                                  2 linhas entre itens era o que fazia o
-                                  CSS Grid esticar cada célula da linha até
-                                  a altura da mais alta, dando a impressão
-                                  de pôsteres "transpassados" e de tamanhos
-                                  diferentes entre si. */}
-                              <div className="relative w-full aspect-[2/3] rounded-md overflow-hidden bg-gray-200 dark:bg-gray-600">
-                                {m.poster_path ? (
+                    {/* Selos dos oráculos cuja pool tem esse filme — cada um com
+                        a sua frase, num balão que aparece sozinho 2s depois de
+                        abrir, some depois de 6s, e alterna a qualquer toque. */}
+                    {oracleSources.length > 0 && (
+                      <div className="absolute bottom-0.5 left-0.5 z-20 flex items-end">
+                        {oracleSources.map((source) => {
+                          const oracle = ORACLE_BY_ID[source as OracleId];
+                          const phrase = oracleFlavorPhrases[source];
+                          const showBubble = !!phrase && visibleOracleBubbles.has(source);
+                          return (
+                            <div key={source} className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => toggleOracleBubble(source, e)}
+                                aria-label={t('movieModal.oracleSays', { name: oracle?.name || source })}
+                                aria-expanded={showBubble}
+                                className={`grid place-items-center w-11 h-11 rounded-full ${FOCUS_RING}`}
+                              >
+                                {oracle ? (
                                   <img
-                                    src={`https://image.tmdb.org/t/p/w200${m.poster_path}`}
-                                    alt={m.title}
-                                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                    src={oracle.avatar}
+                                    alt=""
+                                    width={28}
+                                    height={28}
+                                    className="w-7 h-7 rounded-full object-cover"
+                                    style={{ boxShadow: `0 0 0 2px ${oracle.color}, 0 6px 14px -4px rgba(0,0,0,0.85)` }}
                                   />
                                 ) : (
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <Film className="w-5 h-5 text-gray-400" />
-                                  </div>
+                                  <span className="grid place-items-center w-7 h-7 rounded-full" style={{ background: BUBBLE_BG, color: MIST }}>
+                                    <Film className="w-3.5 h-3.5" aria-hidden />
+                                  </span>
                                 )}
-                                {loadingNestedMovieId === m.id && (
-                                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                    <Loader2 className="w-4 h-4 text-white animate-spin" />
-                                  </div>
+                              </button>
+                              <AnimatePresence>
+                                {showBubble && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 6 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="absolute bottom-full left-1 mb-1 w-52 z-30 cursor-pointer"
+                                    onClick={(e) => toggleOracleBubble(source, e)}
+                                  >
+                                    <div
+                                      className="relative rounded-xl px-3 py-2 shadow-2xl"
+                                      style={{ background: PAPER, color: INK, borderLeft: `4px solid ${oracle?.color || MIST}` }}
+                                    >
+                                      {oracle && <p style={PIXEL} className="text-[13px] leading-none mb-1">{oracle.name}</p>}
+                                      <p className="text-[11px] italic leading-snug">“{phrase}”</p>
+                                      <span
+                                        aria-hidden
+                                        className="absolute top-full left-4 w-0 h-0 border-x-[6px] border-x-transparent border-t-[7px]"
+                                        style={{ borderTopColor: PAPER }}
+                                      />
+                                    </div>
+                                  </motion.div>
                                 )}
-                                <div className="absolute bottom-0.5 right-0.5 bg-black/70 rounded px-1 flex items-center gap-0.5">
-                                  <Star className="w-2.5 h-2.5 text-amber-400 fill-current" />
-                                  <span className="text-[10px] text-white font-semibold">{m.vote_average?.toFixed(1)}</span>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+                              </AnimatePresence>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Bolhas de quem viu: amigos primeiro, depois resenhas de
+                        outras pessoas, depois amigos de amigos (até 5). */}
+                    {!loadingFriends && friendRatings.length > 0 && (
+                      <div className="absolute inset-0 pointer-events-none" role="group" aria-label={t('movieModal.friendsHere')}>
+                        {friendRatings.map((friend, index) => {
+                          const tone = friend.is_watchlist_only
+                            ? ratingTone(null)
+                            : friend.rating === null
+                              ? { color: MIST, ring: 'rgba(189,180,214,0.35)' }
+                              : ratingTone(friend.rating);
+                          const position = FRIEND_POSITIONS[index] || FRIEND_POSITIONS[0];
+                          const isActive = activeFriendBubble === friend.user_id;
+                          return (
+                            <div
+                              key={friend.user_id}
+                              className="absolute animate-float-slow pointer-events-auto"
+                              style={{ ...position, animationDelay: `${index * 0.3}s`, zIndex: isActive ? 25 : 10 }}
+                            >
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleFriendClick(friend); }}
+                                aria-label={friendAriaLabel(friend)}
+                                className={`group relative block w-12 h-12 sm:w-14 sm:h-14 rounded-full ${FOCUS_RING}`}
+                                style={{ minWidth: 0, minHeight: 0, padding: 0 }}
+                              >
+                                <span
+                                  className="absolute inset-0 rounded-full overflow-hidden"
+                                  style={{ background: VELVET, boxShadow: `0 0 0 2.5px ${tone.color}, 0 12px 24px -8px rgba(0,0,0,0.85)` }}
+                                >
+                                  {friend.avatar_url ? (
+                                    <img src={friend.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                                  ) : (
+                                    <span className="w-full h-full grid place-items-center text-lg font-semibold" style={{ color: PAPER }}>
+                                      {friend.username.charAt(0).toUpperCase()}
+                                    </span>
+                                  )}
+                                </span>
+
+                                {/* Selo: a nota, ou um olho quando é só watchlist */}
+                                <span
+                                  className="absolute -bottom-1.5 -right-1.5 grid place-items-center w-7 h-7 rounded-full text-[13px] leading-none"
+                                  style={{
+                                    ...PIXEL,
+                                    background: NIGHT,
+                                    color: tone.color,
+                                    boxShadow: `0 0 0 2px ${tone.color}${friend.rating === 10 ? ', 0 0 16px rgba(249,168,212,0.85)' : ''}`,
+                                  }}
+                                >
+                                  {friend.is_watchlist_only ? <Eye className="w-3.5 h-3.5" aria-hidden /> : (friend.rating ?? '–')}
+                                </span>
+
+                                {friend.review_title ? (
+                                  // Com resenha: balão sempre visível com o título dela.
+                                  <span
+                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 block w-[118px] px-2.5 py-1.5 rounded-xl text-center shadow-2xl ring-1 ring-white/15"
+                                    style={{ background: BUBBLE_BG }}
+                                  >
+                                    <span className="block text-[10px] font-semibold truncate" style={{ color: PAPER }}>{friend.username}</span>
+                                    <span className="block text-[10px] italic leading-tight line-clamp-2 mt-0.5" style={{ color: MIST }}>“{friend.review_title}”</span>
+                                    <span aria-hidden className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-[5px] border-x-transparent border-t-[6px]" style={{ borderTopColor: BUBBLE_BG }} />
+                                  </span>
+                                ) : friend.is_watchlist_only ? (
+                                  // Só watchlist: balão sempre visível, "querendo assistir".
+                                  <span
+                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 block px-2.5 py-1.5 rounded-xl text-center whitespace-nowrap shadow-2xl ring-1 ring-white/15"
+                                    style={{ background: BUBBLE_BG }}
+                                  >
+                                    <span className="block text-[10px] font-semibold" style={{ color: PAPER }}>{friend.username}</span>
+                                    <span className="block text-[10px] italic leading-tight mt-0.5 text-sky-300">
+                                      {t('movies.wantingToWatch', { defaultValue: 'Querendo Assistir...' })}
+                                    </span>
+                                    <span aria-hidden className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-[5px] border-x-transparent border-t-[6px]" style={{ borderTopColor: BUBBLE_BG }} />
+                                  </span>
+                                ) : (
+                                  // Só nota: balão aparece no primeiro toque (ou no hover).
+                                  <span
+                                    className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 block px-3 py-1.5 rounded-xl text-left whitespace-nowrap shadow-2xl ring-1 ring-white/15 transition-opacity duration-200 ${
+                                      isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                    }`}
+                                    style={{ background: BUBBLE_BG }}
+                                  >
+                                    <span className="block text-xs font-semibold" style={{ color: PAPER }}>{friend.username}</span>
+                                    <span className="flex items-center gap-1 text-xs" style={{ color: tone.color }}>
+                                      <Star className="w-3 h-3 fill-current" aria-hidden />
+                                      {friend.rating}/10
+                                    </span>
+                                    <span aria-hidden className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-[5px] border-x-transparent border-t-[6px]" style={{ borderTopColor: BUBBLE_BG }} />
+                                  </span>
+                                )}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="hidden md:block mt-8">{whereToWatch}</div>
+                </div>
+
+                {/* Coluna das informações */}
+                <div className="mt-6 md:mt-0 min-w-0">
+                  <div className="text-center md:text-left md:pr-12">
+                    <h2 id={titleId} style={{ ...PIXEL, color: PAPER }} className="text-[1.9rem] sm:text-4xl leading-[1.05] [text-wrap:balance]">
+                      {movie.title}
+                    </h2>
+                    {metaItems.length > 0 && (
+                      <p className="mt-3 flex flex-wrap items-center justify-center md:justify-start gap-x-2.5 gap-y-1.5 text-sm" style={{ color: MIST }}>
+                        {metaItems.map((item, i) => (
+                          <React.Fragment key={i}>
+                            {i > 0 && <span aria-hidden className="w-1 h-1 rounded-full bg-white/25" />}
+                            {item}
+                          </React.Fragment>
+                        ))}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-center md:justify-start gap-2">
+                    {movie.vote_average > 0 && (
+                      <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-sm ring-1 ring-white/10" style={{ background: VELVET, color: PAPER }}>
+                        <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" aria-hidden />
+                        {t('home.desk.publicScore', { score: formatScore(movie.vote_average) })}
+                      </span>
+                    )}
+                    {personalChip}
+                  </div>
+
+                  {((movie.genres && movie.genres.length > 0) || (movieMoodKey && MOOD_TAG_CONFIG[movieMoodKey])) && (
+                    <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
+                      {movie.genres?.map((genre) => (
+                        <span key={genre.id ?? genre.name} className="px-3 py-1 rounded-full text-[13px] border border-white/15" style={{ color: MIST }}>
+                          {genre.name}
+                        </span>
+                      ))}
+                      {movieMoodKey && MOOD_TAG_CONFIG[movieMoodKey] && (
+                        <span className={`px-3 py-1 rounded-full text-[13px] font-medium border ${MOOD_TAG_CONFIG[movieMoodKey].pillClasses}`}>
+                          {t(MOOD_TAG_CONFIG[movieMoodKey].labelKey)}
+                        </span>
                       )}
                     </div>
                   )}
-                </div>
 
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                    {t('movies.cast')}
-                  </h3>
-                  {/* Altura máxima + rolagem — elenco grande não estica mais
-                      o card (nem os vizinhos), igual à sinopse. */}
-                  <div className="max-h-40 overflow-y-auto pr-1">
-                    {cast.length > 0 ? (
-                      <div className="space-y-2">
-                        {cast.map((actor) => (
-                          <div key={actor.id} className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">{actor.character}</span>
-                            <span className="text-sm text-gray-900 dark:text-white">{actor.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('movies.noCastAvailable')}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Assistir em - mobile only (desktop shows in left column) */}
-                <div className="md:hidden bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                    {t('movies.watchOn')}
-                  </h3>
-                  <div className="max-h-20 overflow-y-auto">
-                    {hasStreamingProviders ? (
-                      <div className="flex flex-wrap gap-3">
-                        {movie.watchProviders.flatrate.map((provider) => (
-                          <div
-                            key={provider.provider_id}
-                            className="relative group"
-                          >
-                            <img
-                              src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
-                              alt={provider.provider_name}
-                              className="h-10 w-10 rounded-lg object-contain"
-                            />
-                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                              {provider.provider_name}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : isUpcomingRelease ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {t('movies.upcomingRelease', { date: formattedReleaseDate, defaultValue: `Estreia em ${formattedReleaseDate}` })}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('movies.noStreamingAvailable')}</p>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            {session?.user && (
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-1 gap-3">
-                  {!isInLibrary ? (
-                    <button
-                      onClick={() => setShowQuickAdd(true)}
-                      className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-all flex items-center justify-center font-medium text-sm shadow-lg hover:shadow-xl"
-                    >
-                      {t('library.addToLibrary')}
+                  <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-2">
+                    <button onClick={handleOpenTrailer} className={ghostPill} style={{ color: PAPER }}>
+                      <Play className="w-4 h-4 fill-fuchsia-300 text-fuchsia-300" aria-hidden />
+                      {t('movieModal.trailer')}
                     </button>
-                  ) : (
+                    {session?.user && (
+                      <>
+                        <button onClick={() => setShowRecommendModal(true)} className={ghostPill} style={{ color: PAPER }}>
+                          <Send className="w-4 h-4 text-orange-300" aria-hidden />
+                          {t('indications.indicate')}
+                        </button>
+                        <button
+                          onClick={handleShareToInstagram}
+                          disabled={isSharing}
+                          aria-label={t('movieModal.shareStoryHint')}
+                          title={t('movieModal.shareStoryHint')}
+                          className={ghostPill}
+                          style={{ color: PAPER }}
+                        >
+                          {isSharing ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-pink-300" aria-hidden />
+                          ) : (
+                            <Instagram className="w-4 h-4 text-pink-300" aria-hidden />
+                          )}
+                          {t('movieModal.shareStory')}
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {isTvShow && (
                     <button
-                      onClick={() => setShowDeleteConfirmation(true)}
-                      className="px-4 py-3 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-center font-medium flex items-center justify-center text-sm shadow-md hover:bg-green-200 dark:hover:bg-green-900/40 transition-colors"
+                      onClick={handleOpenSeasons}
+                      className={`mt-5 w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl ring-1 ring-white/10 hover:ring-white/25 text-left transition ${FOCUS_RING}`}
+                      style={{ background: VELVET }}
                     >
-                      <span>✓ {t('movies.inLibrary')}</span>
+                      <span className="flex items-center gap-3 min-w-0">
+                        <span className="grid place-items-center w-10 h-10 shrink-0 rounded-lg bg-violet-500/15 text-violet-300">
+                          <Tv className="w-5 h-5" aria-hidden />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block font-semibold" style={{ color: PAPER }}>{t('movies.seasonsAndEpisodes')}</span>
+                          <span className="block text-sm truncate" style={{ color: MIST }}>
+                            {[
+                              seasonCount > 0 ? t('movieModal.seasonCount', { count: seasonCount }) : null,
+                              hasRated && watchedEpisodes.size > 0 ? t('movieModal.episodesWatched', { count: watchedEpisodes.size }) : null,
+                            ].filter(Boolean).join(' · ') || t('movieModal.seeSeasons')}
+                          </span>
+                        </span>
+                      </span>
+                      <ChevronRight className="w-5 h-5 shrink-0" style={{ color: MIST }} aria-hidden />
                     </button>
                   )}
-                  <button
-                    onClick={() => setShowReviewsModal(true)}
-                    className="px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2 font-medium text-sm shadow-md hover:shadow-lg"
-                  >
-                    <MessageSquare className="w-5 h-5" />
-                    Reviews
-                  </button>
+
+                  {/* ---------- Corpo ---------- */}
+                  <div className="text-left">
+                    <section className={sectionClass}>
+                      {sectionTitle(t('movies.synopsis'))}
+                      <p
+                        className={`mt-3 text-[15px] leading-relaxed ${longSynopsis && !synopsisExpanded ? 'line-clamp-5' : ''}`}
+                        style={{ color: 'rgba(243,234,211,0.86)' }}
+                      >
+                        {movie.overview || t('movies.noSynopsis')}
+                      </p>
+                      {longSynopsis && (
+                        <button
+                          onClick={() => setSynopsisExpanded((v) => !v)}
+                          aria-expanded={synopsisExpanded}
+                          className={`mt-1 -ml-2 px-2 rounded-lg text-sm font-medium text-violet-300 hover:text-violet-200 justify-start ${FOCUS_RING}`}
+                        >
+                          {synopsisExpanded ? t('movieModal.readLess') : t('movieModal.readMore')}
+                        </button>
+                      )}
+                    </section>
+
+                    <section className={`md:hidden ${sectionClass}`}>{whereToWatch}</section>
+
+                    <section className={sectionClass}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm" style={{ color: MIST }}>{t('movies.director')}</p>
+                          <p className="mt-0.5 text-lg font-semibold truncate" style={{ color: PAPER }}>{director}</p>
+                        </div>
+                        {director !== t('movies.unknown') && (
+                          <button
+                            onClick={handleOpenDirectorTopTen}
+                            aria-expanded={showDirectorTopTen}
+                            className={`shrink-0 ${ghostPill}`}
+                            style={{ color: PAPER }}
+                          >
+                            {t('movies.viewTopTen')}
+                            <ChevronDown className={`w-4 h-4 transition-transform ${showDirectorTopTen ? 'rotate-180' : ''}`} aria-hidden />
+                          </button>
+                        )}
+                      </div>
+
+                      {showDirectorTopTen && (
+                        <div className="mt-4">
+                          <p className="text-sm mb-3" style={{ color: MIST }}>{t('movies.directorTopTen', { director })}</p>
+
+                          {directorTopTenLoading && (
+                            <div className="grid grid-cols-5 gap-2" aria-busy="true">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className="aspect-[2/3] rounded-lg animate-pulse" style={{ background: VELVET }} />
+                              ))}
+                            </div>
+                          )}
+
+                          {!directorTopTenLoading && directorTopTenError && (
+                            <p className="flex items-center gap-2 text-sm" style={{ color: MIST }}>
+                              <AlertCircle className="w-4 h-4 shrink-0" aria-hidden />
+                              {directorTopTenError}
+                            </p>
+                          )}
+
+                          {!directorTopTenLoading && !directorTopTenError && directorTopTenMovies.length > 0 && (
+                            <ol className="grid grid-cols-5 gap-2">
+                              {directorTopTenMovies.map((m: any) => (
+                                <li key={m.id}>
+                                  {/* Só o pôster, proporção 2:3 fixa — título no
+                                      hover/leitor de tela, pra células nunca
+                                      esticarem umas às outras. */}
+                                  <button
+                                    onClick={() => handleOpenDirectorMovie(m.id)}
+                                    aria-label={m.release_date ? `${m.title} (${m.release_date.slice(0, 4)})` : m.title}
+                                    title={m.title}
+                                    className={`group relative block w-full aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/10 hover:ring-white/35 transition ${FOCUS_RING}`}
+                                    style={{ background: VELVET, minWidth: 0 }}
+                                  >
+                                    {m.poster_path ? (
+                                      <img
+                                        src={`https://image.tmdb.org/t/p/w185${m.poster_path}`}
+                                        alt=""
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                      />
+                                    ) : (
+                                      <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
+                                        <Film className="w-5 h-5" aria-hidden />
+                                      </span>
+                                    )}
+                                    {loadingNestedMovieId === m.id && (
+                                      <span className="absolute inset-0 bg-black/55 grid place-items-center">
+                                        <Loader2 className="w-4 h-4 text-white animate-spin" aria-hidden />
+                                      </span>
+                                    )}
+                                    {m.vote_average > 0 && (
+                                      <span
+                                        className="absolute bottom-1 right-1 inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] leading-none"
+                                        style={{ background: 'rgba(18,13,34,0.86)', color: PAPER }}
+                                      >
+                                        <Star className="w-2.5 h-2.5 fill-amber-300 text-amber-300" aria-hidden />
+                                        {formatScore(m.vote_average)}
+                                      </span>
+                                    )}
+                                  </button>
+                                </li>
+                              ))}
+                            </ol>
+                          )}
+                        </div>
+                      )}
+                    </section>
+
+                    <section className={sectionClass}>
+                      {sectionTitle(t('movies.cast'))}
+                      {cast.length > 0 ? (
+                        <ul className="mt-4 grid sm:grid-cols-2 gap-x-6 gap-y-3">
+                          {cast.map((actor) => (
+                            <li key={actor.id} className="flex items-center gap-3 min-w-0">
+                              <span
+                                aria-hidden
+                                className="grid place-items-center w-9 h-9 shrink-0 rounded-full ring-1 ring-white/10 text-sm font-semibold"
+                                style={{ background: VELVET, color: MIST }}
+                              >
+                                {actor.name.charAt(0)}
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block font-medium truncate" style={{ color: PAPER }}>{actor.name}</span>
+                                {actor.character && (
+                                  <span className="block text-sm truncate" style={{ color: MIST }}>{actor.character}</span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-3 text-sm" style={{ color: MIST }}>{t('movies.noCastAvailable')}</p>
+                      )}
+                    </section>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
+
+          {/* ---------- Rodapé fixo ---------- */}
+          {session?.user && (
+            <div
+              className="shrink-0 flex gap-2.5 px-5 sm:px-8 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-white/[0.07]"
+              style={{ background: 'rgba(18,13,34,0.97)' }}
+            >
+              {!isInLibrary ? (
+                <button
+                  onClick={() => setShowQuickAdd(true)}
+                  className={`flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`}
+                >
+                  <Plus className="w-5 h-5" aria-hidden />
+                  {t('library.addToLibrary')}
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowDeleteConfirmation(true)}
+                  aria-label={`${t('movies.inLibrary')} — ${t('movieModal.tapToRemove')}`}
+                  title={t('movieModal.tapToRemove')}
+                  className={`flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl border border-emerald-400/30 bg-emerald-400/10 hover:bg-emerald-400/15 text-emerald-200 font-semibold transition ${FOCUS_RING}`}
+                >
+                  <Check className="w-5 h-5" aria-hidden />
+                  {t('movies.inLibrary')}
+                </button>
+              )}
+              <button
+                onClick={() => setShowReviewsModal(true)}
+                title={t('reviews.title')}
+                className={`inline-flex items-center justify-center gap-2 h-12 w-12 sm:w-auto sm:px-5 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 font-medium transition ${FOCUS_RING}`}
+                style={{ color: PAPER }}
+              >
+                <MessageSquare className="w-5 h-5 text-violet-300" aria-hidden />
+                <span className="sr-only sm:not-sr-only">{t('reviews.title')}</span>
+              </button>
+            </div>
+          )}
         </motion.div>
+      </div>
 
       <RecommendModal
         isOpen={showRecommendModal}
@@ -2088,345 +2100,340 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         message={t('library.movieRemoved')}
       />
 
-      {showTrailerModal && (
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
-          onClick={() => setShowTrailerModal(false)}
-        >
-          <div
-            className="relative w-full max-w-2xl bg-gray-950 rounded-2xl overflow-hidden shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-4 border-b border-gray-800">
-              <h3 className="text-white font-semibold truncate pr-4">{movie.title}</h3>
-              <button onClick={() => setShowTrailerModal(false)} className="text-gray-400 hover:text-white flex-shrink-0">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="aspect-video bg-black flex items-center justify-center">
-              {loadingTrailer ? (
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
-              ) : trailerKey ? (
-                <iframe
-                  className="w-full h-full"
-                  src={`https://www.youtube.com/embed/${trailerKey}`}
-                  title="Trailer"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : (
-                <p className="text-gray-400 text-center px-6">
-                  {t('duel.noTrailer')}
-                </p>
-              )}
-            </div>
+      {/* ---------- Trailer ---------- */}
+      <AnimatePresence>
+        {showTrailerModal && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${t('movieModal.trailer')} — ${movie.title}`}>
+            <motion.div
+              className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowTrailerModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.18 }}
+              className="relative w-full max-w-3xl rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl"
+              style={{ background: NIGHT }}
+            >
+              <div className="flex items-center justify-between gap-4 pl-5 pr-2 py-2 border-b border-white/[0.07]">
+                <div className="min-w-0">
+                  <p style={{ ...PIXEL, color: PAPER }} className="text-lg leading-none">{t('movieModal.trailer')}</p>
+                  <p className="mt-1 text-sm truncate" style={{ color: MIST }}>{movie.title}</p>
+                </div>
+                <button
+                  onClick={() => setShowTrailerModal(false)}
+                  aria-label={t('common.close')}
+                  className={`shrink-0 rounded-full hover:bg-white/10 transition ${FOCUS_RING}`}
+                  style={{ color: MIST }}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="aspect-video bg-black grid place-items-center">
+                {loadingTrailer ? (
+                  <Loader2 className="w-8 h-8 animate-spin" style={{ color: MIST }} aria-hidden />
+                ) : trailerKey ? (
+                  <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${trailerKey}`}
+                    title={`${t('movieModal.trailer')} — ${movie.title}`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-3 px-6 text-center">
+                    <Film className="w-8 h-8" style={{ color: MIST }} aria-hidden />
+                    <p style={{ color: MIST }}>{t('duel.noTrailer')}</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
-      {/* Seasons Modal */}
-      {showSeasonsModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center z-10">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                {movie.title} - {t('movies.seasonsAndEpisodes')}
-              </h3>
-              <button
-                onClick={() => setShowSeasonsModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+      {/* ---------- Temporadas e episódios ---------- */}
+      <AnimatePresence>
+        {showSeasonsModal && (
+          <div className="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-labelledby={seasonsTitleId}>
+            <motion.div
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSeasonsModal(false)}
+            />
+            <div className="absolute inset-0 flex items-end sm:items-center justify-center sm:p-6 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, y: 32 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 32 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                className="pointer-events-auto relative w-full sm:max-w-3xl max-h-[92dvh] sm:max-h-[calc(100dvh-6rem)] flex flex-col rounded-t-2xl sm:rounded-2xl ring-1 ring-white/10 shadow-2xl overflow-hidden"
+                style={{ background: `radial-gradient(ellipse 70% 40% at 85% 0%, rgba(139,92,246,0.14), transparent 70%), ${NIGHT}` }}
               >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              {loadingSeasons ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
-                  <p className="text-gray-500 dark:text-gray-400 mt-2">{t('movies.loadingSeasons')}</p>
+                <div className="shrink-0 flex items-start justify-between gap-4 px-5 sm:px-7 pt-5 pb-4 border-b border-white/[0.07]">
+                  <div className="min-w-0">
+                    <h2 id={seasonsTitleId} style={{ ...PIXEL, color: PAPER }} className="text-2xl sm:text-[1.7rem] leading-tight">
+                      {t('movies.seasonsAndEpisodes')}
+                    </h2>
+                    <p className="mt-1 text-sm truncate" style={{ color: MIST }}>{movie.title}</p>
+                  </div>
+                  <button
+                    onClick={() => setShowSeasonsModal(false)}
+                    aria-label={t('common.close')}
+                    className={`shrink-0 -mr-2 rounded-full hover:bg-white/10 transition ${FOCUS_RING}`}
+                    style={{ color: MIST }}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-              ) : !seasons || seasons.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  {t('movies.noSeasonsAvailable')}
-                </div>
-              ) : (
-                <>
-                  {/* Progress Bar — mesma lógica de cor da Biblioteca:
-                      roxo quando 100% assistida mas a série ainda está
-                      no ar, rosa quando 100% assistida e já terminou de
-                      vez. Usa motion.div em vez de transition CSS pura
-                      pra um easing mais suave e controlado. */}
-                  {userRating && (() => {
-                    // Antes contava TODOS os episódios (s.episodes.length),
-                    // incluindo os que ainda vão ao ar — uma série em
-                    // andamento nunca alcançava 100% mesmo com o usuário
-                    // 100% em dia com tudo já lançado. Agora só conta
-                    // episódios com air_date já no passado (ou hoje).
-                    const today = new Date().toISOString().slice(0, 10);
-                    const totalEpisodes = seasons.reduce(
-                      (sum, s) => sum + (s.episodes?.filter((ep: any) => ep.air_date && ep.air_date <= today).length || 0),
-                      0
-                    );
-                    const watchedCount = Array.from(watchedEpisodes).length;
-                    const progress = totalEpisodes > 0 ? (watchedCount / totalEpisodes) * 100 : 0;
-                    const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
-                    const isComplete = progress >= 100;
 
-                    const barGradient = isComplete
-                      ? (stillAiring ? 'from-purple-500 to-purple-600' : 'from-pink-500 to-pink-600')
-                      : 'from-blue-500 to-cyan-500';
-                    const labelColor = isComplete
-                      ? (stillAiring ? 'text-purple-600 dark:text-purple-400' : 'text-pink-600 dark:text-pink-400')
-                      : 'text-gray-500 dark:text-gray-400';
-
-                    return (
-                      <div className="mb-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {t('movies.progress')}
-                          </span>
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {watchedCount} / {totalEpisodes} {t('movies.episodes').toLowerCase()}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                          <motion.div
-                            className={`bg-gradient-to-r ${barGradient} h-full rounded-full`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${progress}%` }}
-                            transition={{ duration: 0.6, ease: 'easeOut' }}
-                          />
-                        </div>
-                        <p className={`text-xs mt-1 text-center font-medium ${labelColor}`}>
-                          {progress.toFixed(1)}% {isComplete
-                            ? (stillAiring
-                              ? t('movies.upToDate', { defaultValue: 'em dia — aguardando novos episódios' })
-                              : t('movies.complete'))
-                            : t('movies.complete')}
-                        </p>
-                      </div>
-                    );
-                  })()}
-
-                  {seasons.map((season: any) => {
-                  if (!season.episodes || season.episodes.length === 0) {
-                    return null;
-                  }
-
-                  const allWatched = season.episodes.every((ep: any) =>
-                    watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
-                  );
-                  const isSeasonPending = pendingEpisodes.has(`season-${season.season_number}-all`);
-                  const isExpanded = expandedSeasons.has(season.season_number);
-                  const toggleExpanded = () => {
-                    setExpandedSeasons((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(season.season_number)) next.delete(season.season_number);
-                      else next.add(season.season_number);
-                      return next;
-                    });
-                  };
-
-                  // Progresso ESPECÍFICO dessa temporada (não da série
-                  // inteira) — conta só episódios já lançados dentro
-                  // dela, e quantos desses o usuário já marcou. Mesma
-                  // paleta de cor da Biblioteca: azul incompleto, roxo
-                  // quando 100% em dia mas a série ainda está no ar
-                  // (então essa temporada específica pode não ser a
-                  // última palavra), rosa quando 100% e a série já
-                  // terminou de vez.
-                  const today = new Date().toISOString().slice(0, 10);
-                  const airedInSeason = season.episodes.filter((ep: any) => ep.air_date && ep.air_date <= today).length;
-                  const watchedInSeason = season.episodes.filter((ep: any) =>
-                    watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
-                  ).length;
-                  const seasonComplete = airedInSeason > 0 && watchedInSeason >= airedInSeason;
-                  const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
-
-                  let sealClasses = 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
-                  if (seasonComplete) {
-                    sealClasses = stillAiring
-                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
-                      : 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300';
-                  }
-
-                  return (
-                  <div key={season.season_number} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                    <div className={`p-4 transition-colors ${allWatched && userRating ? 'bg-green-50 dark:bg-green-900/20' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
-                      <div className="flex items-start gap-4">
-                        {season.poster_path && (
-                          <img
-                            src={`https://image.tmdb.org/t/p/w92${season.poster_path}`}
-                            alt={season.name}
-                            className="w-16 h-24 object-cover rounded"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {season.name}
-                          </h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            {season.episode_count} {t('movies.episodes')}
-                            {season.air_date && ` • ${new Date(season.air_date).getFullYear()}`}
-                          </p>
-                          {/* Sinalização visível mesmo com a temporada
-                              recolhida — quantos episódios o usuário já
-                              marcou, sem precisar expandir pra ver a
-                              lista completa. */}
-                          {userRating && airedInSeason > 0 && (
-                            <span className={`inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${sealClasses}`}>
-                              {seasonComplete ? (
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              ) : (
-                                <Tv className="w-3 h-3" />
-                              )}
-                              {watchedInSeason}/{airedInSeason}
-                            </span>
-                          )}
-                          {season.overview && (
-                            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">
-                              {season.overview}
-                            </p>
-                          )}
-                        </div>
-                        {userRating && !isOtherUserProfile && (
-                          <button
-                            onClick={() => toggleSeason(season)}
-                            disabled={isSeasonPending}
-                            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                              isSeasonPending
-                                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
-                                : allWatched
-                                ? 'bg-green-500 hover:bg-green-600'
-                                : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
-                            }`}
-                          >
-                            {isSeasonPending ? (
-                              <Loader2 className="w-4 h-4 text-white animate-spin" />
-                            ) : allWatched ? (
-                              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            ) : (
-                              <div className="w-3 h-3 rounded-full bg-white dark:bg-gray-800" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                      {/* Seta de expandir/recolher — centralizada abaixo do
-                          cabeçalho da temporada, como pedido. Gira 180°
-                          suavemente ao alternar, servindo de indicador
-                          visual do estado atual sem precisar de texto. */}
-                      <button
-                        onClick={toggleExpanded}
-                        className="w-full flex items-center justify-center mt-3 pt-2 border-t border-gray-200/70 dark:border-gray-600/50 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                      >
-                        <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.25 }}>
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </motion.div>
-                      </button>
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-7 py-5 space-y-4">
+                  {loadingSeasons ? (
+                    <div className="py-12 flex flex-col items-center gap-3" style={{ color: MIST }}>
+                      <Loader2 className="w-7 h-7 animate-spin" aria-hidden />
+                      <p className="text-sm">{t('movies.loadingSeasons')}</p>
                     </div>
-                    <AnimatePresence initial={false}>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3, ease: 'easeInOut' }}
-                          className="overflow-hidden"
-                        >
-                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {season.episodes.map((episode: any) => {
-                        const episodeKey = `${season.season_number}-${episode.episode_number}`;
-                        const isWatched = watchedEpisodes.has(episodeKey);
-                        const isPending = pendingEpisodes.has(episodeKey);
+                  ) : !seasons || seasons.length === 0 ? (
+                    <p className="py-12 text-center text-sm" style={{ color: MIST }}>{t('movies.noSeasonsAvailable')}</p>
+                  ) : (
+                    <>
+                      {!hasRated && !isOtherUserProfile && session?.user && (
+                        <p className="flex items-start gap-2.5 rounded-xl px-4 py-3 text-sm ring-1 ring-white/10" style={{ background: VELVET, color: MIST }}>
+                          <Star className="w-4 h-4 mt-0.5 shrink-0 text-amber-300" aria-hidden />
+                          {t('movieModal.rateToTrack')}
+                        </p>
+                      )}
+
+                      {/* Progresso da série — só conta episódios que já foram
+                          ao ar. Cores da Biblioteca: azul em andamento, roxo
+                          quando em dia com uma série ainda no ar, rosa quando
+                          completa e encerrada. */}
+                      {hasRated && (() => {
+                        const totalEpisodes = seasons.reduce(
+                          (sum, s) => sum + (s.episodes?.filter((ep: any) => ep.air_date && ep.air_date <= today).length || 0),
+                          0
+                        );
+                        const watchedCount = Array.from(watchedEpisodes).length;
+                        const progress = totalEpisodes > 0 ? Math.min(100, (watchedCount / totalEpisodes) * 100) : 0;
+                        const isComplete = progress >= 100;
+                        const barGradient = isComplete
+                          ? (stillAiring ? 'from-violet-500 to-violet-400' : 'from-pink-500 to-pink-400')
+                          : 'from-sky-400 to-cyan-300';
+                        const labelColor = isComplete ? (stillAiring ? 'text-violet-300' : 'text-pink-300') : '';
+
+                        return (
+                          <div className="rounded-xl px-4 py-3.5 ring-1 ring-white/10" style={{ background: VELVET }}>
+                            <div className="flex items-baseline justify-between gap-3">
+                              <span className="text-sm font-medium" style={{ color: PAPER }}>{t('movies.progress')}</span>
+                              <span className="text-sm" style={{ color: MIST }}>
+                                <span style={{ ...PIXEL, color: PAPER }} className="text-base">{watchedCount}</span>
+                                {' / '}{totalEpisodes} {t('movies.episodes').toLowerCase()}
+                              </span>
+                            </div>
+                            <div className="mt-2.5 w-full h-2.5 rounded-full bg-white/10 overflow-hidden">
+                              <motion.div
+                                className={`h-full rounded-full bg-gradient-to-r ${barGradient}`}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progress}%` }}
+                                transition={{ duration: 0.6, ease: 'easeOut' }}
+                              />
+                            </div>
+                            <p className={`mt-2 text-xs ${labelColor}`} style={labelColor ? undefined : { color: MIST }}>
+                              {progress.toLocaleString(i18n.language, { maximumFractionDigits: 1 })}%{' '}
+                              {isComplete && stillAiring
+                                ? t('movies.upToDate', { defaultValue: 'em dia — aguardando novos episódios' })
+                                : t('movies.complete')}
+                            </p>
+                          </div>
+                        );
+                      })()}
+
+                      {seasons.map((season: any) => {
+                        if (!season.episodes || season.episodes.length === 0) return null;
+
+                        const allWatched = season.episodes.every((ep: any) =>
+                          watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
+                        );
+                        const isSeasonPending = pendingEpisodes.has(`season-${season.season_number}-all`);
+                        const isExpanded = expandedSeasons.has(season.season_number);
+                        const toggleExpanded = () => {
+                          setExpandedSeasons((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(season.season_number)) next.delete(season.season_number);
+                            else next.add(season.season_number);
+                            return next;
+                          });
+                        };
+
+                        // Progresso só dessa temporada, contando episódios já lançados.
+                        const airedInSeason = season.episodes.filter((ep: any) => ep.air_date && ep.air_date <= today).length;
+                        const watchedInSeason = season.episodes.filter((ep: any) =>
+                          watchedEpisodes.has(`${season.season_number}-${ep.episode_number}`)
+                        ).length;
+                        const seasonComplete = airedInSeason > 0 && watchedInSeason >= airedInSeason;
+                        const sealClasses = seasonComplete
+                          ? (stillAiring ? 'bg-violet-500/20 text-violet-200' : 'bg-pink-500/20 text-pink-200')
+                          : 'bg-sky-500/15 text-sky-200';
+                        const seasonYear = season.air_date ? season.air_date.slice(0, 4) : null;
 
                         return (
                           <div
-                            key={episode.episode_number}
-                            className={`p-4 transition-colors ${
-                              isWatched && userRating
-                                ? 'bg-green-50/50 dark:bg-green-900/10 hover:bg-green-100/50 dark:hover:bg-green-900/20'
-                                : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'
-                            }`}
+                            key={season.season_number}
+                            className={`rounded-xl overflow-hidden ring-1 ${allWatched && hasRated ? 'ring-emerald-400/30' : 'ring-white/10'}`}
+                            style={{ background: VELVET }}
                           >
-                            <div className="flex items-start gap-3">
+                            <div className="flex items-start gap-3.5 p-3.5">
+                              {season.poster_path ? (
+                                <img
+                                  src={`https://image.tmdb.org/t/p/w92${season.poster_path}`}
+                                  alt=""
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="w-14 h-[84px] shrink-0 object-cover rounded-md ring-1 ring-white/10"
+                                />
+                              ) : (
+                                <span className="grid place-items-center w-14 h-[84px] shrink-0 rounded-md" style={{ background: NIGHT, color: MIST }}>
+                                  <Tv className="w-5 h-5" aria-hidden />
+                                </span>
+                              )}
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2">
-                                  <h5 className="font-medium text-gray-900 dark:text-white">
-                                    {episode.episode_number}. {episode.name}
-                                  </h5>
-                                  <div className="flex items-center gap-3 flex-shrink-0">
-                                    {episode.runtime && (
-                                      <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                        {episode.runtime}min
-                                      </span>
-                                    )}
-                                    {userRating && !isOtherUserProfile && (
-                                      <button
-                                        onClick={() => toggleEpisode(season.season_number, episode.episode_number)}
-                                        disabled={isPending}
-                                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                                          isPending
-                                            ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
-                                            : isWatched
-                                            ? 'bg-green-500 hover:bg-green-600'
-                                            : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
-                                        }`}
-                                      >
-                                        {isPending ? (
-                                          <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-                                        ) : isWatched ? (
-                                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                          </svg>
-                                        ) : (
-                                          <div className="w-2 h-2 rounded-full bg-white dark:bg-gray-800" />
-                                        )}
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                                {episode.air_date && (
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {new Date(episode.air_date).toLocaleDateString()}
-                                  </p>
+                                <h3 className="font-semibold leading-snug" style={{ color: PAPER }}>{season.name}</h3>
+                                <p className="mt-0.5 text-sm" style={{ color: MIST }}>
+                                  {season.episode_count} {t('movies.episodes').toLowerCase()}
+                                  {seasonYear && ` · ${seasonYear}`}
+                                </p>
+                                {hasRated && airedInSeason > 0 && (
+                                  <span className={`inline-flex items-center gap-1 mt-2 h-6 px-2 rounded-full text-xs font-semibold ${sealClasses}`}>
+                                    {seasonComplete ? <Check className="w-3 h-3" aria-hidden /> : <Tv className="w-3 h-3" aria-hidden />}
+                                    {watchedInSeason}/{airedInSeason}
+                                  </span>
                                 )}
-                                {episode.overview && (
-                                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
-                                    {episode.overview}
-                                  </p>
-                                )}
-                                {episode.vote_average > 0 && (
-                                  <div className="flex items-center gap-1 mt-2">
-                                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                                      {episode.vote_average.toFixed(1)}
-                                    </span>
-                                  </div>
+                                {season.overview && (
+                                  <p className="mt-2 text-sm line-clamp-2" style={{ color: 'rgba(243,234,211,0.72)' }}>{season.overview}</p>
                                 )}
                               </div>
+                              {hasRated && !isOtherUserProfile && (
+                                <button
+                                  onClick={() => toggleSeason(season)}
+                                  disabled={isSeasonPending}
+                                  aria-pressed={allWatched}
+                                  aria-label={allWatched ? t('movieModal.unmarkSeason') : t('movieModal.markSeason')}
+                                  title={allWatched ? t('movieModal.unmarkSeason') : t('movieModal.markSeason')}
+                                  className={`shrink-0 grid place-items-center w-11 h-11 rounded-full transition disabled:cursor-wait ${
+                                    allWatched ? 'bg-emerald-500 hover:bg-emerald-400' : 'ring-2 ring-inset ring-white/20 hover:ring-white/40 hover:bg-white/5'
+                                  } ${FOCUS_RING}`}
+                                >
+                                  {isSeasonPending ? (
+                                    <Loader2 className="w-4 h-4 text-white animate-spin" aria-hidden />
+                                  ) : (
+                                    <Check className={`w-5 h-5 ${allWatched ? 'text-white' : 'text-white/30'}`} aria-hidden />
+                                  )}
+                                </button>
+                              )}
                             </div>
+
+                            <button
+                              onClick={toggleExpanded}
+                              aria-expanded={isExpanded}
+                              className={`w-full gap-1.5 border-t border-white/[0.07] text-sm font-medium hover:bg-white/[0.03] transition ${FOCUS_RING}`}
+                              style={{ color: MIST }}
+                            >
+                              {isExpanded ? t('movieModal.hideEpisodes') : t('movieModal.showEpisodes')}
+                              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} aria-hidden />
+                            </button>
+
+                            <AnimatePresence initial={false}>
+                              {isExpanded && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                  className="overflow-hidden"
+                                >
+                                  <ul className="divide-y divide-white/[0.06] border-t border-white/[0.07]">
+                                    {season.episodes.map((episode: any) => {
+                                      const episodeKey = `${season.season_number}-${episode.episode_number}`;
+                                      const isWatched = watchedEpisodes.has(episodeKey);
+                                      const isPending = pendingEpisodes.has(episodeKey);
+                                      const airDate = episode.air_date
+                                        ? new Date(`${episode.air_date}T12:00:00`).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' })
+                                        : null;
+
+                                      return (
+                                        <li
+                                          key={episode.episode_number}
+                                          className={`flex items-start gap-3 px-3.5 py-3 ${isWatched && hasRated ? 'bg-emerald-400/[0.06]' : ''}`}
+                                        >
+                                          <span
+                                            style={{ ...PIXEL, color: isWatched && hasRated ? '#6EE7B7' : MIST }}
+                                            className="w-7 shrink-0 text-lg leading-6 text-right"
+                                          >
+                                            {episode.episode_number}
+                                          </span>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium leading-6" style={{ color: PAPER }}>{episode.name}</p>
+                                            {(airDate || episode.runtime || episode.vote_average > 0) && (
+                                              <p className="mt-0.5 flex flex-wrap items-center gap-x-2.5 text-xs" style={{ color: MIST }}>
+                                                {airDate && <span>{airDate}</span>}
+                                                {episode.runtime && <span>{t('movieModal.minutes', { count: episode.runtime })}</span>}
+                                                {episode.vote_average > 0 && (
+                                                  <span className="inline-flex items-center gap-1">
+                                                    <Star className="w-3 h-3 fill-amber-300 text-amber-300" aria-hidden />
+                                                    {formatScore(episode.vote_average)}
+                                                  </span>
+                                                )}
+                                              </p>
+                                            )}
+                                            {episode.overview && (
+                                              <p className="mt-1.5 text-sm line-clamp-2" style={{ color: 'rgba(243,234,211,0.7)' }}>{episode.overview}</p>
+                                            )}
+                                          </div>
+                                          {hasRated && !isOtherUserProfile && (
+                                            <button
+                                              onClick={() => toggleEpisode(season.season_number, episode.episode_number)}
+                                              disabled={isPending}
+                                              aria-pressed={isWatched}
+                                              aria-label={`${episode.episode_number}. ${episode.name} — ${isWatched ? t('movieModal.unmarkEpisode') : t('movieModal.markEpisode')}`}
+                                              className={`shrink-0 -my-1 grid place-items-center w-11 h-11 rounded-full transition disabled:cursor-wait ${FOCUS_RING}`}
+                                            >
+                                              <span
+                                                className={`grid place-items-center w-7 h-7 rounded-full transition ${
+                                                  isWatched ? 'bg-emerald-500' : 'ring-2 ring-inset ring-white/20 hover:ring-white/40'
+                                                }`}
+                                              >
+                                                {isPending ? (
+                                                  <Loader2 className="w-3.5 h-3.5 text-white animate-spin" aria-hidden />
+                                                ) : (
+                                                  <Check className={`w-4 h-4 ${isWatched ? 'text-white' : 'text-white/25'}`} aria-hidden />
+                                                )}
+                                              </span>
+                                            </button>
+                                          )}
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         );
                       })}
-                    </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                  );
-                  })}
-                </>
-              )}
+                    </>
+                  )}
+                </div>
+              </motion.div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {showReviewsModal && (
         <ReviewsModal

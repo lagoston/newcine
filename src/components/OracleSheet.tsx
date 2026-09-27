@@ -32,6 +32,10 @@ interface OracleSheetProps {
   // Desliga o Esc enquanto um modal filho (ex.: detalhes do filme) está aberto.
   escapeEnabled?: boolean;
   bodyClassName?: string;
+  // Camada da gaveta. O padrão (9990) fica abaixo dos detalhes do filme
+  // (9999); quem abre POR CIMA dos detalhes (resenhas, indicar) passa um
+  // valor maior, ex.: 'z-[10000]'.
+  zIndexClass?: string;
   children: React.ReactNode;
 }
 
@@ -45,6 +49,7 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
   size = 'lg',
   escapeEnabled = true,
   bodyClassName = 'px-5 sm:px-7 py-6',
+  zIndexClass = 'z-[9990]',
   children,
 }) => {
   const { t } = useTranslation();
@@ -71,7 +76,7 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[9990]" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <div className={`fixed inset-0 ${zIndexClass}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             initial={{ opacity: 0 }}

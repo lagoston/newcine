@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, AlertTriangle, Loader2, MessageSquare, Clock, ArrowUp, ArrowDown, Sparkles, ArrowLeft } from 'lucide-react';
+import { Loader2, Clock, ArrowUp, ArrowDown, Sparkles, ArrowLeft, Star, PenLine, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Movie } from '../lib/tmdb';
@@ -10,6 +8,8 @@ import { useTranslation } from 'react-i18next';
 import ConfirmationModal from './ConfirmationModal';
 import ReviewCard, { Review } from './ReviewCard';
 import OracleReviewSection from './OracleReviewSection';
+import OracleSheet from './OracleSheet';
+import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
 interface ReviewsModalProps {
   movie: Movie;
@@ -74,12 +74,6 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
   useEffect(() => {
     fetchReviews();
   }, [movie.id]);
-
-  useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = originalOverflow; };
-  }, []);
 
   const handleSaveReview = async () => {
     if (!session?.user?.id) return;
@@ -167,239 +161,215 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
     { id: 'lowest', label: t('reviews.lowestRating'), icon: <ArrowDown className="w-3.5 h-3.5" /> },
   ];
 
+  const fieldClass = 'w-full px-4 rounded-xl ring-1 ring-white/10 focus:ring-2 focus:ring-fuchsia-300/70 outline-none text-[15px] placeholder:text-[#BDB4D6]/70';
+  const sectionHeading = (text: React.ReactNode) => (
+    <h3 style={{ ...PIXEL, color: PAPER }} className="text-lg leading-none">{text}</h3>
+  );
+
   return (
     <>
-      {createPortal(
-        <AnimatePresence>
-          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={onClose}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.2 }}
-              className="relative w-full max-w-2xl max-h-[calc(100dvh-4rem)] flex flex-col rounded-3xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-2xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-br from-blue-400/15 to-purple-500/15 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="relative flex-shrink-0 flex items-center justify-between p-5 sm:p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-                <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30">
-                      <MessageSquare className="w-5 h-5 text-blue-500" />
-                    </div>
-                    {t('reviews.title')}
-                  </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
-                    {movie.title || movie.name}
-                  </p>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="flex-shrink-0 p-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="relative flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
-                {!hasRating && (
-                  <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-2xl p-4 flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-yellow-700 dark:text-yellow-300">
-                        {t('reviews.rateToReview')}
-                      </p>
-                      <p className="text-sm text-yellow-600/80 dark:text-yellow-400/80 mt-1">
-                        {t('reviews.rateToReviewHint')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {!loading && hasRating && !showWriteForm && !userReview && !showOraclePanel && (
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setShowWriteForm(true)}
-                      className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 rounded-2xl transition-colors shadow-lg hover:shadow-xl"
-                    >
-                      {t('reviews.writeReview')}
-                    </button>
-                    <button
-                      onClick={() => setShowOraclePanel(true)}
-                      className="w-full bg-gradient-to-r from-pink-500 to-fuchsia-500 hover:from-pink-600 hover:to-fuchsia-600 text-white font-medium py-3 rounded-2xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      {t('reviews.oracle.generateReviewButton')}
-                    </button>
-                  </div>
-                )}
-
-                {showOraclePanel ? (
-                  <>
-                    <button
-                      onClick={() => setShowOraclePanel(false)}
-                      className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                      {t('common.back')}
-                    </button>
-                    <OracleReviewSection
-                      movie={movie}
-                      userRating={userRating as number}
-                      onPosted={() => {
-                        setShowOraclePanel(false);
-                        fetchReviews();
-                      }}
-                    />
-                  </>
-                ) : (
-                  <>
-                    {hasRating && showWriteForm && (
-                      <div className="bg-gray-50/70 dark:bg-gray-900/40 rounded-2xl p-4 space-y-4 border border-gray-200/50 dark:border-gray-700/50">
-                        <h3 className="font-semibold text-gray-900 dark:text-white">
-                          {userReview ? t('reviews.editReview') : t('reviews.writeReview')}
-                        </h3>
-
-                        <input
-                          type="text"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          placeholder={t('reviews.titlePlaceholder')}
-                          className="w-full px-3.5 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/60 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/50 backdrop-blur-sm"
-                          maxLength={100}
-                        />
-
-                        <div>
-                          <textarea
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            placeholder={t('reviews.contentPlaceholder')}
-                            className="w-full px-3.5 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-700/60 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/50 backdrop-blur-sm resize-none"
-                            rows={7}
-                            maxLength={1500}
-                          />
-                          <div className="flex justify-end mt-1">
-                            <span className="text-xs text-gray-400 dark:text-gray-500">
-                              {t('reviews.charactersCount', { count: content.length })}
-                            </span>
-                          </div>
-                        </div>
-
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={hasSpoilers}
-                            onChange={(e) => setHasSpoilers(e.target.checked)}
-                            className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-400"
-                          />
-                          <span className="text-sm text-gray-600 dark:text-gray-300">
-                            {t('reviews.containsSpoilersCheckbox')}
-                          </span>
-                        </label>
-
-                        <div className="flex gap-2">
-                          <button
-                            onClick={handleSaveReview}
-                            disabled={saving || !title.trim() || !content.trim()}
-                            className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:opacity-60 text-white font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
-                          >
-                            {saving ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                {t('reviews.saving')}
-                              </>
-                            ) : (
-                              t('reviews.save')
-                            )}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowWriteForm(false);
-                              if (userReview) {
-                                setTitle(userReview.title);
-                                setContent(userReview.content);
-                                setHasSpoilers(userReview.has_spoilers);
-                              }
-                            }}
-                            className="px-4 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                          >
-                            {t('common.cancel')}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {userReview && !showWriteForm && (
-                      <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
-                          {t('reviews.yourReview')}
-                        </h3>
-                        <ReviewCard
-                          review={userReview}
-                          isOwnReview
-                          onEdit={() => setShowWriteForm(true)}
-                          onDelete={() => setShowDeleteConfirm(true)}
-                        />
-                      </div>
-                    )}
-
-                    {loading ? (
-                      <div className="flex justify-center py-12">
-                        <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
-                      </div>
-                    ) : reviews.length > 0 ? (
-                      <div>
-                        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                          <h3 className="font-semibold text-gray-900 dark:text-white">
-                            {t('reviews.communityReviews')} ({reviews.length})
-                          </h3>
-                          <div className="flex gap-1.5">
-                            {sortOptions.map((opt) => (
-                              <button
-                                key={opt.id}
-                                onClick={() => setSortOrder(opt.id)}
-                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                  sortOrder === opt.id
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600/60'
-                                }`}
-                              >
-                                {opt.icon}
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="space-y-3">
-                          {sortedReviews.map((review) => (
-                            <ReviewCard key={review.id} review={review} />
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      !userReview && (
-                        <div className="text-center py-12">
-                          <p className="text-gray-400 dark:text-gray-500">
-                            {t('reviews.noReviews')}
-                          </p>
-                        </div>
-                      )
-                    )}
-                  </>
-                )}
-              </div>
-            </motion.div>
+      <OracleSheet
+        open
+        onClose={onClose}
+        title={t('reviews.title')}
+        subtitle={movie.title || movie.name}
+        size="lg"
+        zIndexClass="z-[10000]"
+        escapeEnabled={!showDeleteConfirm}
+        bodyClassName="px-5 sm:px-7 py-5 space-y-6"
+      >
+        {!hasRating && (
+          <div className="flex items-start gap-3 rounded-xl px-4 py-3.5 ring-1 ring-amber-300/25 bg-amber-400/10">
+            <Star className="w-5 h-5 mt-0.5 shrink-0 text-amber-300" aria-hidden />
+            <div>
+              <p className="font-medium text-amber-100">{t('reviews.rateToReview')}</p>
+              <p className="mt-0.5 text-sm text-amber-100/70">{t('reviews.rateToReviewHint')}</p>
+            </div>
           </div>
-        </AnimatePresence>,
-        document.body
-      )}
+        )}
+
+        {!loading && hasRating && !showWriteForm && !userReview && !showOraclePanel && (
+          <div className="grid sm:grid-cols-2 gap-2.5">
+            <button
+              onClick={() => setShowWriteForm(true)}
+              className={`inline-flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`}
+            >
+              <PenLine className="w-[18px] h-[18px]" aria-hidden />
+              {t('reviews.writeReview')}
+            </button>
+            <button
+              onClick={() => setShowOraclePanel(true)}
+              className={`inline-flex items-center justify-center gap-2 h-12 rounded-xl border border-pink-400/40 bg-pink-500/10 hover:bg-pink-500/20 text-pink-100 font-semibold transition ${FOCUS_RING}`}
+            >
+              <Sparkles className="w-[18px] h-[18px] text-pink-300" aria-hidden />
+              {t('reviews.oracle.generateReviewButton')}
+            </button>
+          </div>
+        )}
+
+        {showOraclePanel ? (
+          <div className="space-y-4">
+            <button
+              onClick={() => setShowOraclePanel(false)}
+              className={`-ml-2 inline-flex justify-start items-center gap-1.5 px-2 rounded-lg text-sm font-medium hover:bg-white/5 transition ${FOCUS_RING}`}
+              style={{ color: MIST }}
+            >
+              <ArrowLeft className="w-4 h-4" aria-hidden />
+              {t('common.back')}
+            </button>
+            <OracleReviewSection
+              movie={movie}
+              userRating={userRating as number}
+              onPosted={() => {
+                setShowOraclePanel(false);
+                fetchReviews();
+              }}
+            />
+          </div>
+        ) : (
+          <>
+            {hasRating && showWriteForm && (
+              <div className="rounded-2xl p-4 sm:p-5 space-y-4 ring-1 ring-white/10" style={{ background: VELVET }}>
+                {sectionHeading(userReview ? t('reviews.editReview') : t('reviews.writeReview'))}
+
+                <label className="block">
+                  <span className="sr-only">{t('reviews.titlePlaceholder')}</span>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={t('reviews.titlePlaceholder')}
+                    className={`${fieldClass} h-12 font-medium`}
+                    style={{ background: 'rgba(18,13,34,0.7)', color: PAPER }}
+                    maxLength={100}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="sr-only">{t('reviews.contentPlaceholder')}</span>
+                  <textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder={t('reviews.contentPlaceholder')}
+                    className={`${fieldClass} py-3 resize-none leading-relaxed`}
+                    style={{ background: 'rgba(18,13,34,0.7)', color: PAPER }}
+                    rows={7}
+                    maxLength={1500}
+                  />
+                  <span className="block mt-1 text-xs text-right tabular-nums" style={{ color: MIST }}>
+                    {t('reviews.charactersCount', { count: content.length })}
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={hasSpoilers}
+                    onChange={(e) => setHasSpoilers(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <span
+                    aria-hidden
+                    className="grid place-items-center w-5 h-5 rounded-md ring-2 ring-white/25 peer-checked:ring-amber-300 peer-checked:bg-amber-300 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-fuchsia-300 transition"
+                  >
+                    {hasSpoilers && <Check className="w-3.5 h-3.5 text-[#221B36]" strokeWidth={3} />}
+                  </span>
+                  <span className="text-sm" style={{ color: PAPER }}>{t('reviews.containsSpoilersCheckbox')}</span>
+                </label>
+
+                <div className="flex gap-2.5 pt-1">
+                  <button
+                    onClick={handleSaveReview}
+                    disabled={saving || !title.trim() || !content.trim()}
+                    className={`flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+                        {t('reviews.saving')}
+                      </>
+                    ) : (
+                      t('reviews.save')
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowWriteForm(false);
+                      if (userReview) {
+                        setTitle(userReview.title);
+                        setContent(userReview.content);
+                        setHasSpoilers(userReview.has_spoilers);
+                      }
+                    }}
+                    className={`h-12 px-5 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 font-medium transition ${FOCUS_RING}`}
+                    style={{ color: MIST }}
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {userReview && !showWriteForm && (
+              <section className="space-y-3">
+                {sectionHeading(t('reviews.yourReview'))}
+                <ReviewCard
+                  review={userReview}
+                  isOwnReview
+                  onEdit={() => setShowWriteForm(true)}
+                  onDelete={() => setShowDeleteConfirm(true)}
+                />
+              </section>
+            )}
+
+            {loading ? (
+              <div className="space-y-3" aria-busy="true">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-32 rounded-2xl animate-pulse" style={{ background: VELVET }} />
+                ))}
+              </div>
+            ) : reviews.length > 0 ? (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-x-3 gap-y-2">
+                  {sectionHeading(
+                    <>
+                      {t('reviews.communityReviews')}{' '}
+                      <span style={{ color: MIST }}>({reviews.length})</span>
+                    </>
+                  )}
+                  <div className="flex rounded-full ring-1 ring-white/10 p-0.5" role="group" aria-label={t('reviews.communityReviews')}>
+                    {sortOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setSortOrder(opt.id)}
+                        aria-pressed={sortOrder === opt.id}
+                        className={`inline-flex items-center gap-1 px-3 rounded-full text-xs font-medium whitespace-nowrap transition ${FOCUS_RING} ${
+                          sortOrder === opt.id ? 'bg-white/10' : 'hover:bg-white/5'
+                        }`}
+                        style={{ color: sortOrder === opt.id ? PAPER : MIST }}
+                      >
+                        <span className="hidden sm:inline-flex" aria-hidden>{opt.icon}</span>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {sortedReviews.map((review) => (
+                    <ReviewCard key={review.id} review={review} />
+                  ))}
+                </div>
+              </section>
+            ) : (
+              !userReview && (
+                <p className="py-10 text-center text-sm" style={{ color: MIST }}>
+                  {t('reviews.noReviews')}
+                </p>
+              )
+            )}
+          </>
+        )}
+      </OracleSheet>
 
       <ConfirmationModal
         isOpen={showDeleteConfirm}

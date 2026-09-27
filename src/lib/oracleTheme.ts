@@ -30,6 +30,21 @@ export const PIXEL: React.CSSProperties = {
   fontFeatureSettings: '"liga" 0, "clig" 0',
 };
 
+// Anel de foco padrão pra tudo que é clicável (teclado).
+export const FOCUS_RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300';
+
+// Faixa de cor de uma nota de 0 a 10 sobre o fundo noite — a mesma lógica
+// das rating boxes: vermelho pras baixas, amarelo pras medianas, verde pras
+// boas, rosa pro 10. `null` é "só na watchlist" (azul-céu, neutro).
+export const ratingTone = (rating: number | null): { color: string; ring: string } => {
+  if (rating === null) return { color: '#7DD3FC', ring: 'rgba(125,211,252,0.45)' };
+  if (rating === 10) return { color: '#F9A8D4', ring: 'rgba(249,168,212,0.45)' };
+  if (rating >= 7) return { color: '#86EFAC', ring: 'rgba(134,239,172,0.4)' };
+  if (rating >= 4) return { color: '#FCD34D', ring: 'rgba(252,211,77,0.4)' };
+  if (rating >= 1) return { color: '#FCA5A5', ring: 'rgba(252,165,165,0.4)' };
+  return { color: MIST, ring: 'rgba(189,180,214,0.35)' };
+};
+
 export type OracleId = 'bogart' | 'fincher' | 'cypher';
 
 export interface OracleCard {
