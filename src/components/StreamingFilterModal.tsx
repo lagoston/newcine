@@ -1,9 +1,9 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Tv, Check, Wand2 } from 'lucide-react';
+import { Check, Wand2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { POPULAR_STREAMING_PROVIDERS } from '../lib/providers';
+import OracleSheet from './OracleSheet';
+import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
 interface StreamingFilterModalProps {
   isOpen: boolean;
@@ -12,19 +12,15 @@ interface StreamingFilterModalProps {
   onToggleProvider: (providerId: number) => void;
   onClearFilter: () => void;
   // Oracle Filter — categoria separada dentro do mesmo modal, não um
-  // provedor de streaming: liga/desliga a ordenação da Watchlist pela
-  // Nota Prevista, em vez de selecionar múltiplos serviços. Opcional
-  // porque esse mesmo modal também é usado na Biblioteca dos Oráculos,
-  // onde as prateleiras já usam a previsão automaticamente pra ordenar
-  // — não faz sentido ter esse toggle lá. Passar as duas props omite a
-  // seção inteira; passá-las mostra e liga o toggle normalmente.
+  // provedor: liga/desliga a ordenação da Watchlist pela Nota Prevista.
+  // Opcional porque esse modal também é usado na Biblioteca dos Oráculos,
+  // onde as prateleiras já ordenam pela previsão — lá a seção não aparece.
   oracleFilterActive?: boolean;
   onToggleOracleFilter?: () => void;
 }
 
-// Seleção MÚLTIPLA (não única) — faz mais sentido pra streaming, já que a
-// maioria das pessoas tem mais de um serviço assinado ao mesmo tempo
-// ("mostra o que eu posso assistir com o que já tenho"), não só um.
+// Seleção MÚLTIPLA — a maioria das pessoas assina mais de um serviço
+// ("mostra o que eu posso assistir com o que já tenho").
 const StreamingFilterModal: React.FC<StreamingFilterModalProps> = ({
   isOpen,
   onClose,
@@ -35,147 +31,104 @@ const StreamingFilterModal: React.FC<StreamingFilterModalProps> = ({
   onToggleOracleFilter,
 }) => {
   const { t } = useTranslation();
+  const selectedCount = selectedProviderIds.length;
 
-  React.useEffect(() => {
-    if (isOpen) {
-      const originalOverflow = document.body.style.overflow;
-      const originalTouchAction = document.body.style.touchAction;
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
-      return () => {
-        document.body.style.overflow = originalOverflow;
-        document.body.style.touchAction = originalTouchAction;
-      };
-    }
-  }, [isOpen]);
-
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="relative w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-4rem)] flex flex-col bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20 dark:border-gray-700/50 overflow-hidden"
+  return (
+    <OracleSheet
+      open={isOpen}
+      onClose={onClose}
+      title={t('library.filters', { defaultValue: 'Filtros' })}
+      subtitle={t('library.filtersSubtitle')}
+      size="lg"
+      footer={
+        <div className="flex items-center justify-between gap-3">
+          <button
+            onClick={onClearFilter}
+            disabled={selectedCount === 0}
+            className={`px-3 -ml-3 rounded-xl text-sm font-medium hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition ${FOCUS_RING}`}
+            style={{ color: MIST }}
           >
-            <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Tv className="w-5 h-5 text-blue-500" />
-                {t('library.filters', { defaultValue: 'Filtros' })}
-              </h2>
-              <button
-                onClick={onClose}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6">
-              {/* Oracle Filter — categoria própria, separada dos
-                  provedores de streaming abaixo: liga/desliga a
-                  ordenação da lista pela Nota Prevista, não soma
-                  serviços a um filtro. Só existe onde onToggleOracleFilter
-                  é passado (a Watchlist) — na Biblioteca dos Oráculos,
-                  que reaproveita este mesmo modal, essa prop nunca é
-                  passada, então a seção inteira não aparece, já que as
-                  prateleiras de lá já ordenam pela previsão sozinhas. */}
-              {onToggleOracleFilter && (
-                <button
-                  onClick={onToggleOracleFilter}
-                  className={`w-full flex items-center gap-3 p-3 mb-5 rounded-xl border-2 transition-all ${
-                    oracleFilterActive
-                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 shadow-md'
-                      : 'border-transparent bg-gray-50 dark:bg-gray-700/40 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    oracleFilterActive ? 'bg-violet-600' : 'bg-gray-300 dark:bg-gray-600'
-                  }`}>
-                    <Wand2 className="w-4.5 h-4.5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {t('library.oracleFilter', { defaultValue: 'Oracle Filter' })}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {t('library.oracleFilterDescription', { defaultValue: 'Ordena pela Nota Prevista para você' })}
-                    </p>
-                  </div>
-                  {oracleFilterActive && (
-                    <div className="w-5 h-5 bg-violet-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </button>
-              )}
-
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                {t('library.filterByStreaming', { defaultValue: 'Filtrar por streaming' })}
-              </p>
-
-              <div className="grid grid-cols-4 gap-3">
-                {POPULAR_STREAMING_PROVIDERS.map((provider) => {
-                  const isSelected = selectedProviderIds.includes(provider.provider_id);
-                  return (
-                    <button
-                      key={provider.provider_id}
-                      onClick={() => onToggleProvider(provider.provider_id)}
-                      title={provider.provider_name}
-                      className={`relative flex flex-col items-center gap-1.5 p-2 rounded-xl border-2 transition-all ${
-                        isSelected
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-md scale-105'
-                          : 'border-transparent bg-gray-50 dark:bg-gray-700/40 hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      {isSelected && (
-                        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center shadow-md">
-                          <Check className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                      <img
-                        src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
-                        alt={provider.provider_name}
-                        className="h-10 w-10 rounded-lg object-contain"
-                      />
-                      <span className="text-[10px] text-center text-gray-600 dark:text-gray-300 line-clamp-2 leading-tight">
-                        {provider.provider_name}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex-shrink-0 flex items-center justify-between p-4 border-t border-gray-200/50 dark:border-gray-700/50">
-              <button
-                onClick={onClearFilter}
-                disabled={selectedProviderIds.length === 0}
-                className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                {t('library.clearFilter', { defaultValue: 'Limpar filtro' })}
-              </button>
-              <button
-                onClick={onClose}
-                className="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 rounded-xl transition-all shadow-lg"
-              >
-                {t('common.apply', { defaultValue: 'Aplicar' })}
-              </button>
-            </div>
-          </motion.div>
+            {t('library.clearFilter', { defaultValue: 'Limpar filtro' })}
+          </button>
+          <button
+            onClick={onClose}
+            className={`h-12 px-6 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`}
+          >
+            {t('common.apply', { defaultValue: 'Aplicar' })}
+          </button>
         </div>
+      }
+    >
+      {onToggleOracleFilter && (
+        <button
+          onClick={onToggleOracleFilter}
+          role="switch"
+          aria-checked={!!oracleFilterActive}
+          className={`w-full justify-start gap-3.5 p-3.5 mb-7 rounded-xl text-left ring-1 transition ${FOCUS_RING} ${
+            oracleFilterActive ? 'ring-2 ring-violet-400/70 bg-violet-500/15' : 'ring-white/10 hover:ring-white/25'
+          }`}
+          style={{ background: oracleFilterActive ? undefined : VELVET }}
+        >
+          <span className={`grid place-items-center w-10 h-10 shrink-0 rounded-lg ${oracleFilterActive ? 'bg-violet-600 text-white' : 'bg-white/10 text-violet-300'}`}>
+            <Wand2 className="w-5 h-5" aria-hidden />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-semibold" style={{ color: PAPER }}>
+              {t('library.oracleFilter', { defaultValue: 'Oracle Filter' })}
+            </span>
+            <span className="block mt-0.5 text-xs" style={{ color: MIST }}>
+              {t('library.oracleFilterDescription', { defaultValue: 'Ordena pela Nota Prevista para você' })}
+            </span>
+          </span>
+          <span aria-hidden className={`relative block shrink-0 w-11 h-6 rounded-full transition-colors ${oracleFilterActive ? 'bg-violet-500' : 'bg-white/15'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${oracleFilterActive ? 'translate-x-5' : ''}`} />
+          </span>
+        </button>
       )}
-    </AnimatePresence>,
-    document.body
+
+      <div className="flex items-baseline justify-between gap-3 mb-3">
+        <h3 style={{ ...PIXEL, color: PAPER }} className="text-lg leading-none">
+          {t('library.filterByStreaming', { defaultValue: 'Filtrar por streaming' })}
+        </h3>
+        {selectedCount > 0 && (
+          <span className="text-sm" style={{ color: MIST }}>{t('library.selectedCount', { count: selectedCount })}</span>
+        )}
+      </div>
+
+      <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+        {POPULAR_STREAMING_PROVIDERS.map((provider) => {
+          const isSelected = selectedProviderIds.includes(provider.provider_id);
+          return (
+            <li key={provider.provider_id}>
+              <button
+                onClick={() => onToggleProvider(provider.provider_id)}
+                aria-pressed={isSelected}
+                className={`relative w-full flex-col gap-2 p-2.5 rounded-xl ring-1 transition ${FOCUS_RING} ${
+                  isSelected ? 'ring-2 ring-violet-400/80 bg-violet-500/15' : 'ring-white/10 hover:ring-white/25'
+                }`}
+                style={{ background: isSelected ? undefined : VELVET }}
+              >
+                {isSelected && (
+                  <span className="absolute top-1.5 right-1.5 grid place-items-center w-5 h-5 rounded-full bg-violet-500 shadow" aria-hidden>
+                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                  </span>
+                )}
+                <img
+                  src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="h-11 w-11 rounded-xl object-cover ring-1 ring-white/10"
+                />
+                <span className="text-[11px] text-center leading-tight line-clamp-2" style={{ color: isSelected ? PAPER : MIST }}>
+                  {provider.provider_name}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </OracleSheet>
   );
 };
 

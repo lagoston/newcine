@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Swords, Loader2, Play, User, Star, ArrowLeft, Trophy } from 'lucide-react';
+import { X, Swords, Loader2, Play, Star, ArrowLeft, Trophy, Film, Crown, Check } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { supabase, supabaseUrl } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { getMovieTrailer, getMovieDetailsFromDB } from '../lib/tmdb';
 import MovieDetailsModal from './MovieDetailsModal';
+import OracleSheet from './OracleSheet';
+import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
 interface WatchlistDuelModalProps {
   isOpen: boolean;
@@ -34,8 +36,28 @@ interface DuelMovie {
 
 type Phase = 'setup' | 'loading' | 'bracket' | 'champion';
 
-const posterUrl = (path: string | null) =>
-  path ? `https://image.tmdb.org/t/p/w500${path}` : 'https://via.placeholder.com/500x750?text=No+Image';
+// Pôster do duelo — sem imagem, vira um cartão com o título (antes caía
+// num placeholder externo que já não existe).
+const DuelPoster: React.FC<{ movie: DuelMovie; className?: string }> = ({ movie, className = '' }) => {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className={`relative block aspect-[2/3] w-full overflow-hidden rounded-xl ring-1 ring-white/10 ${className}`} style={{ background: VELVET }}>
+      {movie.poster_path && !failed ? (
+        <img
+          src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center" style={{ color: MIST }}>
+          <Film className="w-8 h-8" aria-hidden />
+          <span className="text-sm leading-snug" style={{ color: PAPER }}>{movie.title}</span>
+        </span>
+      )}
+    </span>
+  );
+};
 
 export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelModalProps) {
   const { session } = useAuth();
@@ -191,6 +213,16 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
     }
   };
 
+  // Esc fecha o trailer primeiro (a gaveta do duelo espera).
+  useEffect(() => {
+    if (!trailerMovie) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTrailerMovie(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [trailerMovie]);
+
   const handleClose = () => {
     setPhase('setup');
     setSelectedFriend(null);
@@ -198,213 +230,215 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
     onClose();
   };
 
-  if (!isOpen) return null;
-
   const currentPair = phase === 'bracket' ? [roundMovies[pairIndex * 2], roundMovies[pairIndex * 2 + 1]] : [];
+
+  const subtitle = !isPremium || checkingPremium
+    ? undefined
+    : phase === 'bracket'
+      ? `${t('duel.roundOf', { count: roundMovies.length })} · ${t('duel.pairProgress', { current: pairIndex + 1, total: roundMovies.length / 2 })}`
+      : phase === 'champion'
+        ? t('duel.champion')
+        : selectedFriend && phase === 'loading'
+          ? `@${selectedFriend.username}`
+          : t('watchlistDuel.description');
+
+  const primaryButton = `w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:from-pink-400 hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-fuchsia-900/30 transition disabled:opacity-40 disabled:cursor-not-allowed ${FOCUS_RING}`;
+  const ghostButton = `w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 font-medium transition ${FOCUS_RING}`;
 
   return (
     <>
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9998] flex items-center justify-center p-4"
-          onClick={handleClose}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-blue-50/95 via-purple-50/90 to-pink-50/95 dark:from-gray-900/95 dark:via-blue-950/90 dark:to-purple-950/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 dark:border-gray-700/60 p-6 sm:p-8"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <OracleSheet
+        open={isOpen}
+        onClose={handleClose}
+        title={t('watchlistDuel.title')}
+        subtitle={subtitle}
+        leading={
+          <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-pink-500/15 ring-1 ring-pink-400/30">
+            <Swords className="w-5 h-5 text-pink-300" aria-hidden />
+          </span>
+        }
+        size="lg"
+        escapeEnabled={!trailerMovie && !detailsMovie}
+        footer={isPremium && !checkingPremium && phase === 'setup' && friends.length > 0 ? (
+          <button onClick={handleStartDuel} disabled={!selectedFriend || starting} className={primaryButton}>
+            <Swords className="w-5 h-5" aria-hidden />
+            {t('watchlistDuel.startButton')}
+          </button>
+        ) : undefined}
+      >
+        {checkingPremium ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="w-7 h-7 animate-spin text-pink-300" aria-hidden />
+          </div>
+        ) : !isPremium ? (
+          // Duelo de Watchlist é um recurso Premium — sem o plano, só o aviso.
+          <div className="text-center py-6">
+            <span className="mx-auto grid place-items-center w-16 h-16 rounded-2xl bg-amber-400/15 ring-1 ring-amber-300/30">
+              <Crown className="w-8 h-8 text-amber-300" aria-hidden />
+            </span>
+            <h3 style={{ ...PIXEL, color: PAPER }} className="mt-5 text-2xl leading-tight">
+              {t('watchlistDuel.premiumFeatureTitle', { defaultValue: 'Duelo de Watchlist é exclusivo Premium' })}
+            </h3>
+            <p className="mt-2 mx-auto max-w-sm text-sm" style={{ color: MIST }}>
+              {t('watchlistDuel.premiumFeatureDescription', { defaultValue: 'Assine o Premium pra fazer quantos duelos de watchlist quiser, sem limite.' })}
+            </p>
             <button
-              onClick={handleClose}
-              className="absolute top-4 right-4 p-2 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-full transition-colors z-10"
+              onClick={() => { onClose(); navigate('/premium'); }}
+              className={`mt-7 inline-flex items-center gap-2 h-12 px-7 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-[#221B36] font-semibold shadow-lg shadow-amber-900/30 transition ${FOCUS_RING}`}
             >
-              <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              <Crown className="w-5 h-5" aria-hidden />
+              {t('oracle.viewPremium', { defaultValue: 'Ver Premium' })}
             </button>
-
-            {checkingPremium ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
-              </div>
-            ) : !isPremium ? (
-              // Duelo de Watchlist virou um recurso inteiramente premium,
-              // junto com o Duelo padrão — a tela de setup (escolher
-              // amigo, etc.) nem chega a ser montada pra quem não é
-              // premium, só esse aviso com CTA.
-              <div className="text-center py-6">
-                <div className="inline-flex p-4 rounded-full bg-gradient-to-br from-amber-400/20 to-orange-500/20 border border-amber-400/30 mb-5">
-                  <Swords className="w-10 h-10 text-amber-500" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                  {t('watchlistDuel.premiumFeatureTitle', { defaultValue: 'Duelo de Watchlist é exclusivo Premium' })}
-                </h2>
-                <p className="text-gray-600 dark:text-gray-300 mb-7 max-w-sm mx-auto text-sm">
-                  {t('watchlistDuel.premiumFeatureDescription', { defaultValue: 'Assine o Premium pra fazer quantos duelos de watchlist quiser, sem limite.' })}
-                </p>
-                <button
-                  onClick={() => { onClose(); navigate('/premium'); }}
-                  className="px-7 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl hover:shadow-xl hover:shadow-amber-500/30 transition-all"
-                >
-                  {t('oracle.viewPremium', { defaultValue: 'Ver Premium' })}
-                </button>
-              </div>
-            ) : (
-              <>
+          </div>
+        ) : (
+          <>
             {/* SETUP — escolher o amigo */}
             {phase === 'setup' && (
               <div>
-                <div className="text-center mb-6">
-                  <motion.div
-                    className="inline-flex p-4 rounded-full bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-pink-400/30 mb-4"
-                    animate={{ y: [-4, 4, -4] }}
-                    transition={{ duration: 3, repeat: Infinity, repeatType: 'reverse' }}
-                  >
-                    <Swords className="w-10 h-10 text-pink-500 dark:text-pink-400" />
-                  </motion.div>
-                  <h2 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-rose-500 to-pink-500">
-                    {t('watchlistDuel.title')}
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
-                    {t('watchlistDuel.description')}
-                  </p>
-                </div>
-
+                <h3 style={{ ...PIXEL, color: PAPER }} className="text-lg leading-none mb-3">
+                  {t('watchlistDuel.pickFriend')}
+                </h3>
                 {loadingFriends ? (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
-                  </div>
-                ) : friends.length === 0 ? (
-                  <div className="text-center py-10 px-4">
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
-                      {t('watchlistDuel.noEligibleFriends')}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1 mb-6">
-                    {friends.map((friend) => (
-                      <button
-                        key={friend.id}
-                        onClick={() => setSelectedFriend(friend)}
-                        className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-all ${
-                          selectedFriend?.id === friend.id
-                            ? 'border-pink-400 bg-pink-500/10 dark:bg-pink-500/15 shadow-lg shadow-pink-500/10'
-                            : 'border-white/60 dark:border-gray-700/60 bg-white/40 dark:bg-gray-800/40 hover:bg-white/70 dark:hover:bg-gray-700/60'
-                        }`}
-                      >
-                        <div className="w-11 h-11 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
-                          {friend.avatar_url ? (
-                            <img src={friend.avatar_url} alt={friend.username} className="w-full h-full object-cover" />
-                          ) : (
-                            <User className="w-full h-full p-2.5 text-gray-400" />
-                          )}
-                        </div>
-                        <div className="flex-1 text-left min-w-0">
-                          <p className="font-semibold text-gray-900 dark:text-white truncate">
-                            @{friend.username}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {t('watchlistDuel.moviesInWatchlist', { count: friend.watchlist_count })}
-                          </p>
-                        </div>
-                        {selectedFriend?.id === friend.id && (
-                          <div className="w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center flex-shrink-0">
-                            <Swords className="w-3.5 h-3.5 text-white" />
-                          </div>
-                        )}
-                      </button>
+                  <ul className="space-y-2" aria-busy="true">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <li key={i} className="h-16 rounded-xl animate-pulse" style={{ background: VELVET }} />
                     ))}
-                  </div>
+                  </ul>
+                ) : friends.length === 0 ? (
+                  <p className="py-10 px-4 text-center text-sm" style={{ color: MIST }}>
+                    {t('watchlistDuel.noEligibleFriends')}
+                  </p>
+                ) : (
+                  <ul className="space-y-1.5" role="radiogroup" aria-label={t('watchlistDuel.pickFriend')}>
+                    {friends.map((friend) => {
+                      const active = selectedFriend?.id === friend.id;
+                      return (
+                        <li key={friend.id}>
+                          <button
+                            onClick={() => setSelectedFriend(friend)}
+                            role="radio"
+                            aria-checked={active}
+                            className={`w-full justify-start gap-3.5 px-3 py-2.5 rounded-xl text-left ring-1 transition ${FOCUS_RING} ${
+                              active ? 'ring-2 ring-pink-400/70 bg-pink-500/10' : 'ring-transparent hover:bg-white/5'
+                            }`}
+                          >
+                            {friend.avatar_url ? (
+                              <img src={friend.avatar_url} alt="" className="w-11 h-11 shrink-0 rounded-full object-cover ring-1 ring-white/15" loading="lazy" decoding="async" />
+                            ) : (
+                              <span className="grid place-items-center w-11 h-11 shrink-0 rounded-full ring-1 ring-white/15 font-semibold" style={{ background: VELVET, color: PAPER }}>
+                                {friend.username.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                            <span className="flex-1 min-w-0">
+                              <span className="block font-semibold truncate" style={{ color: PAPER }}>@{friend.username}</span>
+                              <span className="block text-xs" style={{ color: MIST }}>
+                                {t('watchlistDuel.moviesInWatchlist', { count: friend.watchlist_count })}
+                              </span>
+                            </span>
+                            <span
+                              aria-hidden
+                              className={`grid place-items-center w-6 h-6 shrink-0 rounded-full ${active ? 'bg-pink-500' : 'ring-2 ring-white/20'}`}
+                            >
+                              {active && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
-
-                <button
-                  onClick={handleStartDuel}
-                  disabled={!selectedFriend || starting}
-                  className="w-full py-3.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold rounded-2xl hover:shadow-xl hover:shadow-pink-500/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <Swords className="w-5 h-5" />
-                  {t('watchlistDuel.startButton')}
-                </button>
               </div>
             )}
 
             {/* LOADING */}
             {phase === 'loading' && (
-              <div className="flex flex-col items-center py-16 gap-4">
-                <motion.div
+              <div className="flex flex-col items-center py-16 gap-4" role="status">
+                <motion.span
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  className="grid place-items-center w-14 h-14 rounded-2xl bg-pink-500/15 ring-1 ring-pink-400/30"
                 >
-                  <Swords className="w-10 h-10 text-pink-500" />
-                </motion.div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">
-                  {t('watchlistDuel.assembling')}
-                </p>
+                  <Swords className="w-7 h-7 text-pink-300" aria-hidden />
+                </motion.span>
+                <p className="text-sm" style={{ color: MIST }}>{t('watchlistDuel.assembling')}</p>
               </div>
             )}
 
             {/* BRACKET */}
             {phase === 'bracket' && currentPair[0] && currentPair[1] && (
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <button
-                    onClick={() => setPhase('setup')}
-                    className="p-2 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-full transition-colors"
-                  >
-                    <ArrowLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                  </button>
-                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">
-                    {t('duel.roundOf', { count: roundMovies.length })} · {t('duel.pairProgress', { current: pairIndex + 1, total: roundMovies.length / 2 })}
-                  </p>
-                  <div className="w-8" />
-                </div>
+                <button
+                  onClick={() => setPhase('setup')}
+                  className={`-ml-2 mb-4 inline-flex justify-start items-center gap-1.5 px-2 rounded-lg text-sm hover:bg-white/5 transition ${FOCUS_RING}`}
+                  style={{ color: MIST }}
+                >
+                  <ArrowLeft className="w-4 h-4" aria-hidden />
+                  {t('watchlistDuel.changeFriend')}
+                </button>
 
-                <div className="grid grid-cols-2 gap-4">
-                  {currentPair.map((movie, idx) => (
-                    <motion.div
-                      key={movie.id}
-                      initial={{ opacity: 0, x: idx === 0 ? -20 : 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex flex-col"
-                    >
-                      <div
-                        className="aspect-[2/3] w-full overflow-hidden cursor-pointer group relative rounded-2xl shadow-xl"
-                        onClick={() => openDetails(movie)}
+                <div className="relative grid grid-cols-2 gap-3 sm:gap-5">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {currentPair.map((movie, idx) => (
+                      <motion.div
+                        key={`${pairIndex}-${movie.id}`}
+                        initial={{ opacity: 0, x: idx === 0 ? -16 : 16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.22 }}
+                        className="flex flex-col min-w-0"
                       >
-                        <img
-                          src={posterUrl(movie.poster_path)}
-                          alt={movie.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/500x750?text=No+Image'; }}
-                        />
-                        <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold">
-                          {movie.source === 'me' ? t('watchlistDuel.yourList') : `@${selectedFriend?.username}`}
-                        </div>
-                        {loadingDetailsFor === movie.id && (
-                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <Loader2 className="w-6 h-6 text-white animate-spin" />
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openTrailer(movie); }}
-                        className="flex items-center justify-center gap-1.5 mt-2 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-xl transition-colors"
-                      >
-                        <Play className="w-3 h-3" />
-                        {t('duel.watchTrailer')}
-                      </button>
-                      <button
-                        onClick={() => handleChoose(movie)}
-                        className="flex items-center justify-center gap-1.5 mt-2 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-pink-500 to-rose-500 hover:shadow-lg hover:shadow-pink-500/30 rounded-xl transition-all"
-                      >
-                        <Swords className="w-4 h-4" />
-                        {t('duel.choose')}
-                      </button>
-                    </motion.div>
-                  ))}
+                        <button
+                          onClick={() => openDetails(movie)}
+                          aria-label={t('watchlistDuel.openDetails', { title: movie.title })}
+                          className={`group relative block w-full rounded-xl ${FOCUS_RING}`}
+                        >
+                          <DuelPoster movie={movie} className="shadow-xl" />
+                          <span
+                            className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate px-2 py-0.5 rounded-full text-[11px] font-semibold ring-1 ring-white/15"
+                            style={{ background: 'rgba(18,13,34,0.86)', color: PAPER }}
+                          >
+                            {movie.source === 'me' ? t('watchlistDuel.yourList') : `@${selectedFriend?.username}`}
+                          </span>
+                          {loadingDetailsFor === movie.id && (
+                            <span className="absolute inset-0 rounded-xl bg-black/55 grid place-items-center">
+                              <Loader2 className="w-6 h-6 text-white animate-spin" aria-hidden />
+                            </span>
+                          )}
+                        </button>
+                        <p className="mt-2.5 text-sm font-semibold leading-snug line-clamp-2 min-h-[2.5rem]" style={{ color: PAPER }}>
+                          {movie.title}
+                        </p>
+                        <p className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: MIST }}>
+                          {movie.release_date && <span>{movie.release_date.slice(0, 4)}</span>}
+                          {movie.vote_average > 0 && (
+                            <span className="inline-flex items-center gap-1">
+                              <Star className="w-3 h-3 fill-amber-300 text-amber-300" aria-hidden />
+                              {movie.vote_average.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                            </span>
+                          )}
+                        </p>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openTrailer(movie); }}
+                          className={`mt-2.5 ${ghostButton} h-10 text-xs`}
+                          style={{ color: PAPER }}
+                        >
+                          <Play className="w-3.5 h-3.5 fill-fuchsia-300 text-fuchsia-300" aria-hidden />
+                          {t('duel.watchTrailer')}
+                        </button>
+                        <button onClick={() => handleChoose(movie)} className={`mt-2 ${primaryButton} text-sm`}>
+                          <Swords className="w-4 h-4" aria-hidden />
+                          {t('duel.choose')}
+                        </button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  <span
+                    aria-hidden
+                    className="absolute left-1/2 top-[34%] -translate-x-1/2 -translate-y-1/2 grid place-items-center w-10 h-10 rounded-full ring-2 ring-pink-400/50 text-sm pointer-events-none"
+                    style={{ ...PIXEL, background: NIGHT, color: PAPER }}
+                  >
+                    vs
+                  </span>
                 </div>
               </div>
             )}
@@ -412,91 +446,104 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
             {/* CAMPEÃO */}
             {phase === 'champion' && champion && (
               <div className="text-center">
-                <motion.div
+                <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 200 }}
-                  className="inline-flex p-4 rounded-full bg-gradient-to-br from-amber-400/20 to-yellow-500/20 border border-amber-400/30 mb-4"
+                  transition={{ type: 'spring', stiffness: 220, damping: 16 }}
+                  className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-amber-400/15 ring-1 ring-amber-300/30"
                 >
-                  <Trophy className="w-10 h-10 text-amber-400" />
-                </motion.div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  {t('duel.champion')}
-                </h2>
-                <div
-                  className="w-40 mx-auto aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl cursor-pointer group relative mb-4"
+                  <Trophy className="w-7 h-7 text-amber-300" aria-hidden />
+                </motion.span>
+                <button
                   onClick={() => openDetails(champion)}
+                  aria-label={t('watchlistDuel.openDetails', { title: champion.title })}
+                  className={`group relative mt-5 mx-auto block w-40 rounded-xl ${FOCUS_RING}`}
                 >
-                  <img
-                    src={posterUrl(champion.poster_path)}
-                    alt={champion.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/500x750?text=No+Image'; }}
-                  />
-                </div>
-                <p className="font-bold text-lg text-gray-900 dark:text-white mb-1">{champion.title}</p>
-                <div className="flex items-center justify-center gap-1 text-amber-500 mb-6">
-                  <Star className="w-4 h-4 fill-current" />
-                  <span className="text-sm">{champion.vote_average?.toFixed(1)}</span>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => openDetails(champion)}
-                    className="flex-1 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold rounded-2xl hover:shadow-lg hover:shadow-pink-500/30 transition-all"
-                  >
+                  <DuelPoster movie={champion} className="shadow-2xl ring-2 ring-amber-300/40" />
+                  {loadingDetailsFor === champion.id && (
+                    <span className="absolute inset-0 rounded-xl bg-black/55 grid place-items-center">
+                      <Loader2 className="w-6 h-6 text-white animate-spin" aria-hidden />
+                    </span>
+                  )}
+                </button>
+                <p style={{ ...PIXEL, color: PAPER }} className="mt-4 text-2xl leading-tight">{champion.title}</p>
+                {champion.vote_average > 0 && (
+                  <p className="mt-1 inline-flex items-center justify-center gap-1 text-sm" style={{ color: MIST }}>
+                    <Star className="w-4 h-4 fill-amber-300 text-amber-300" aria-hidden />
+                    {champion.vote_average.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                  </p>
+                )}
+                <div className="mt-6 grid sm:grid-cols-2 gap-2.5">
+                  <button onClick={() => openDetails(champion)} className={primaryButton}>
                     {t('duel.viewAndAdd')}
                   </button>
-                  <button
-                    onClick={() => setPhase('setup')}
-                    className="flex-1 py-3 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-700 dark:text-gray-200 font-bold rounded-2xl transition-colors"
-                  >
+                  <button onClick={() => setPhase('setup')} className={ghostButton} style={{ color: PAPER }}>
                     {t('duel.newDuel')}
                   </button>
                 </div>
               </div>
             )}
-              </>
-            )}
-          </motion.div>
-        </motion.div>
+          </>
+        )}
+      </OracleSheet>
+
+      {/* Trailer */}
+      <AnimatePresence>
+        {trailerMovie && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${t('duel.watchTrailer')} — ${trailerMovie.title}`}>
+            <motion.div
+              className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setTrailerMovie(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.18 }}
+              className="relative w-full max-w-3xl rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl"
+              style={{ background: NIGHT }}
+            >
+              <div className="flex items-center justify-between gap-4 pl-5 pr-2 py-2 border-b border-white/[0.07]">
+                <div className="min-w-0">
+                  <p style={{ ...PIXEL, color: PAPER }} className="text-lg leading-none">{t('movieModal.trailer')}</p>
+                  <p className="mt-1 text-sm truncate" style={{ color: MIST }}>{trailerMovie.title}</p>
+                </div>
+                <button
+                  onClick={() => setTrailerMovie(null)}
+                  aria-label={t('common.close')}
+                  className={`shrink-0 rounded-full hover:bg-white/10 transition ${FOCUS_RING}`}
+                  style={{ color: MIST }}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="aspect-video bg-black grid place-items-center">
+                {loadingTrailer ? (
+                  <Loader2 className="w-8 h-8 animate-spin" style={{ color: MIST }} aria-hidden />
+                ) : trailerKey ? (
+                  <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${trailerKey}`}
+                    title={`${t('movieModal.trailer')} — ${trailerMovie.title}`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-3 px-6 text-center">
+                    <Film className="w-8 h-8" style={{ color: MIST }} aria-hidden />
+                    <p style={{ color: MIST }}>{t('duel.noTrailer')}</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
 
-      {/* Modal de trailer */}
-      {trailerMovie && (
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
-          onClick={() => setTrailerMovie(null)}
-        >
-          <div
-            className="relative w-full max-w-2xl bg-gray-950 rounded-2xl overflow-hidden shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-4 border-b border-gray-800">
-              <h3 className="text-white font-semibold truncate pr-4">{trailerMovie.title}</h3>
-              <button onClick={() => setTrailerMovie(null)} className="text-gray-400 hover:text-white flex-shrink-0">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="aspect-video bg-black flex items-center justify-center">
-              {loadingTrailer ? (
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
-              ) : trailerKey ? (
-                <iframe
-                  className="w-full h-full"
-                  src={`https://www.youtube.com/embed/${trailerKey}`}
-                  title="Trailer"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : (
-                <p className="text-gray-400 text-center px-6">{t('duel.noTrailer')}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de detalhes do filme */}
+      {/* Detalhes do filme */}
       {detailsMovie && (
         <MovieDetailsModal
           movie={detailsMovie}

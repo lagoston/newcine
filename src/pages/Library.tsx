@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, ListPlus, Film, MessageSquare, FileEdit as Edit, Swords } from 'lucide-react';
+import { Plus, ListPlus, MessageSquare, SlidersHorizontal, Library as LibraryIcon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
-import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import RatingBox from '../components/RatingBox';
 import StreamingFilterModal from '../components/StreamingFilterModal';
@@ -15,7 +15,15 @@ import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import WatchListDuelModal from '../components/WatchListDuelModal';
 import GlassLoader from '../components/GlassLoader';
+import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingBarColor } from '../lib/oracleTheme';
 
+// Biblioteca — "a estante".
+//   1. Cabeçalho: título, números da coleção, atalhos (adicionar, listas,
+//      resenhas, ajustes) e o gráfico "Suas notas", que também serve de
+//      índice: tocar numa barra leva até a prateleira daquela nota.
+//   2. Prateleiras: Watchlist (com filtros e duelo) e uma por nota, de 10
+//      a 0 — ou, no layout One Grid, uma de filmes e uma de séries.
+// O único momento animado da página é o gráfico subindo ao abrir.
 
 interface UserMovie {
   id: string;
@@ -28,6 +36,100 @@ interface LibraryMovie extends Movie {
   predictedRating?: number;
 }
 
+// ---------------------------------------------------------------------------
+// Gráfico "Suas notas" — quantos títulos em cada nota, de 0 a 10. A cor da
+// barra é a faixa da nota (a mesma do resto do site) e o número da nota fica
+// sempre embaixo, então a cor nunca é a única pista.
+// ---------------------------------------------------------------------------
+
+interface RatingSpectrumProps {
+  counts: number[];
+  average: number | null;
+  onJump?: (rating: number) => void;
+}
+
+const RatingSpectrum: React.FC<RatingSpectrumProps> = ({ counts, average, onJump }) => {
+  const { t, i18n } = useTranslation();
+  const reduceMotion = useReducedMotion();
+  const max = Math.max(1, ...counts);
+  const peak = counts.indexOf(Math.max(...counts));
+  const BAR_AREA = 72;
+
+  return (
+    <figure>
+      <figcaption className="flex items-baseline justify-between gap-3">
+        <span style={{ ...PIXEL, color: PAPER }} className="text-lg leading-none">{t('library.spectrumTitle')}</span>
+        {average !== null && (
+          <span className="text-sm" style={{ color: MIST }}>
+            {t('library.spectrumAverage', {
+              value: average.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+            })}
+          </span>
+        )}
+      </figcaption>
+      <ol className="mt-4 grid grid-cols-11 gap-1.5 sm:gap-2" aria-label={t('library.spectrumTitle')}>
+        {counts.map((count, rating) => {
+          const height = count === 0 ? 0 : Math.max(6, Math.round((count / max) * BAR_AREA));
+          const label = t('library.spectrumBar', { rating, count });
+          const interactive = !!onJump && count > 0;
+          const body = (
+            <>
+              <span className="relative flex items-end justify-center w-full border-b border-white/10" style={{ height: BAR_AREA + 18 }}>
+                {count > 0 && (
+                  <span
+                    className={`absolute left-1/2 -translate-x-1/2 text-[11px] leading-none tabular-nums transition-opacity ${
+                      rating === peak ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'
+                    }`}
+                    style={{ bottom: height + 5, color: PAPER }}
+                    aria-hidden
+                  >
+                    {count}
+                  </span>
+                )}
+                {count > 0 ? (
+                  <motion.span
+                    className="block w-full rounded-t-[4px]"
+                    style={{ height, background: ratingBarColor(rating), transformOrigin: 'bottom' }}
+                    initial={reduceMotion ? false : { scaleY: 0 }}
+                    animate={{ scaleY: 1 }}
+                    transition={{ delay: 0.15 + rating * 0.04, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                ) : null}
+              </span>
+              <span
+                style={{ ...PIXEL, color: count > 0 ? PAPER : MIST, opacity: count > 0 ? 1 : 0.55 }}
+                className="mt-1.5 text-sm leading-none"
+                aria-hidden
+              >
+                {rating}
+              </span>
+            </>
+          );
+          return (
+            <li key={rating} className="min-w-0">
+              {interactive ? (
+                <button
+                  onClick={() => onJump!(rating)}
+                  aria-label={label}
+                  title={label}
+                  className={`group w-full flex flex-col items-center rounded-md hover:bg-white/[0.04] transition ${FOCUS_RING}`}
+                  style={{ minWidth: 0, minHeight: 0, padding: 0 }}
+                >
+                  {body}
+                </button>
+              ) : (
+                <div className="group w-full flex flex-col items-center" role="img" aria-label={label} title={label}>
+                  {body}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </figure>
+  );
+};
+
 export default function Library() {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
@@ -38,17 +140,24 @@ export default function Library() {
   const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
   const [showWatchlistDuel, setShowWatchlistDuel] = useState(false);
   const [username, setUsername] = useState<string>('');
-  const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [alternateNames, setAlternateNames] = useState<Record<string, string>>(() => {
-    const saved = localStorage.getItem('libraryAlternateNames');
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem('libraryAlternateNames');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
   });
 
   // Library preferences
   const [tvOrder, setTvOrder] = useState<'auto' | 'first' | 'last'>('auto');
   const [chromaBoxEnabled, setChromaBoxEnabled] = useState(true);
   const [ratedLayout, setRatedLayout] = useState<'notes' | 'onegrid'>(() => {
-    return (localStorage.getItem('libraryRatedLayout') as 'notes' | 'onegrid') || 'notes';
+    try {
+      return (localStorage.getItem('libraryRatedLayout') as 'notes' | 'onegrid') || 'notes';
+    } catch {
+      return 'notes';
+    }
   });
 
   // Progress tracking states
@@ -57,6 +166,10 @@ export default function Library() {
   const [processedMovies, setProcessedMovies] = useState(0);
   const [loadingError, setLoadingError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  // Notas cruas da coleção inteira (só movie_id + rating), disponíveis logo
+  // na primeira consulta — os números do cabeçalho e o gráfico já saem
+  // certos enquanto os detalhes dos filmes ainda estão chegando.
+  const [ratingRows, setRatingRows] = useState<(number | null)[]>([]);
 
   // Track if this is the initial load
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -99,19 +212,20 @@ export default function Library() {
   }, [session?.user?.id]);
 
   useEffect(() => {
-    localStorage.setItem('libraryAlternateNames', JSON.stringify(alternateNames));
+    try {
+      localStorage.setItem('libraryAlternateNames', JSON.stringify(alternateNames));
+    } catch {
+      // armazenamento indisponível (aba anônima etc.) — os nomes valem só nesta visita
+    }
   }, [alternateNames]);
 
   // Reload movies when language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      console.log('🌍 Language changed, reloading library...');
-      // Clear memory cache to force reload with new language
       const cacheKey = CACHE_KEYS.USER_LIBRARY(session?.user?.id || '');
       cache.delete(cacheKey);
-      // Clear all movie details cache (so they reload with new language)
+      // Detalhes dos filmes recarregam no idioma novo
       cache.invalidatePattern('movie:');
-      // Reload movies
       if (session?.user?.id) {
         fetchUserMovies();
       }
@@ -145,6 +259,7 @@ export default function Library() {
 
       if (cachedLibrary) {
         setUserMovies(cachedLibrary);
+        setRatingRows(cachedLibrary.map((m) => (typeof m.userRating === 'number' ? m.userRating : null)));
         setTotalMovies(cachedLibrary.length);
         setProcessedMovies(cachedLibrary.length);
         setLoadingProgress(100);
@@ -163,6 +278,7 @@ export default function Library() {
 
       const total = (userMoviesData || []).length;
       setTotalMovies(total);
+      setRatingRows((userMoviesData || []).map((row: UserMovie) => (typeof row.rating === 'number' ? row.rating : null)));
 
       setLoading(false);
 
@@ -198,14 +314,14 @@ export default function Library() {
               ...details,
               userRating: userMovie.rating,
             };
-          } catch (err) {
+          } catch {
             console.warn(`Failed to fetch movie ${userMovie.movie_id}`);
             return null;
           }
         })
       );
 
-      const firstBatchMovies = firstBatchDetails.filter(movie => movie !== null);
+      const firstBatchMovies = firstBatchDetails.filter((movie) => movie !== null) as LibraryMovie[];
       setUserMovies(firstBatchMovies);
       setProcessedMovies(firstBatchMovies.length);
       setInitialLoadComplete(true);
@@ -220,14 +336,14 @@ export default function Library() {
                 ...details,
                 userRating: userMovie.rating,
               };
-            } catch (err) {
+            } catch {
               console.warn(`Failed to fetch movie ${userMovie.movie_id}`);
               return null;
             }
           })
         );
 
-          const remainingBatchMovies = remainingDetails.filter(movie => movie !== null);
+        const remainingBatchMovies = remainingDetails.filter((movie) => movie !== null) as LibraryMovie[];
         const allMovies = [...firstBatchMovies, ...remainingBatchMovies];
         setUserMovies(allMovies);
         setProcessedMovies(allMovies.length);
@@ -262,7 +378,7 @@ export default function Library() {
   const handleRate = async (movieId: number, rating: number | null) => {
     try {
       // Encontrar o filme para obter os gêneros
-      const movie = userMovies.find(m => m.id === movieId);
+      const movie = userMovies.find((m) => m.id === movieId);
 
       // Cache dos gêneros para o Espectrograma Cinematográfico
       if (movie?.genres && movie.genres.length > 0) {
@@ -287,8 +403,8 @@ export default function Library() {
       if (error) throw error;
 
       setUserMovies((movies) =>
-        movies.map((movie) =>
-          movie.id === movieId ? { ...movie, userRating: rating } : movie
+        movies.map((m) =>
+          m.id === movieId ? { ...m, userRating: rating } : m
         )
       );
 
@@ -314,7 +430,7 @@ export default function Library() {
 
       // Remover localmente
       setUserMovies((movies) =>
-        movies.filter((movie) => movie.id !== movieId)
+        movies.filter((m) => m.id !== movieId)
       );
 
       cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
@@ -327,7 +443,7 @@ export default function Library() {
   };
 
   const handleAlternateNameChange = (rating: number | null, name: string) => {
-    setAlternateNames(prev => ({
+    setAlternateNames((prev) => ({
       ...prev,
       [rating === null ? 'unrated' : rating]: name.trim()
     }));
@@ -335,13 +451,19 @@ export default function Library() {
 
   const handleRatedLayoutChange = (layout: 'notes' | 'onegrid') => {
     setRatedLayout(layout);
-    localStorage.setItem('libraryRatedLayout', layout);
+    try {
+      localStorage.setItem('libraryRatedLayout', layout);
+    } catch {
+      // sem armazenamento — a escolha vale só nesta visita
+    }
   };
 
+  const emptyBuckets: Record<string, LibraryMovie[]> = { unrated: [] };
+  for (let r = 0; r <= 10; r++) emptyBuckets[r] = [];
   const moviesByRating = userMovies.reduce(
     (acc, movie) => {
       const rating = movie.userRating;
-      if (rating === null) {
+      if (rating === null || rating === undefined) {
         acc.unrated.push(movie);
       } else {
         acc[rating] = acc[rating] || [];
@@ -349,23 +471,18 @@ export default function Library() {
       }
       return acc;
     },
-    { unrated: [], ...Array.from({ length: 11 }, () => []) }
+    emptyBuckets
   );
 
-  // Filtro por streaming — só afeta a Watchlist. selectedStreamingProviders
-  // guarda os provider_ids escolhidos (seleção múltipla); um filme passa no
-  // filtro se estiver disponível em QUALQUER UM deles (não precisa estar em
-  // todos), já que a intenção é "o que posso assistir com o que já tenho
-  // assinado". Sem nenhum provedor selecionado, mostra a lista completa.
+  // Filtro por streaming — só afeta a Watchlist. Seleção múltipla: um filme
+  // passa se estiver em QUALQUER um dos serviços escolhidos ("o que posso
+  // assistir com o que já assino"). Sem nenhum escolhido, lista completa.
   const [showStreamingFilter, setShowStreamingFilter] = useState(false);
   const [selectedStreamingProviders, setSelectedStreamingProviders] = useState<number[]>([]);
 
-  // Oracle Filter — categoria separada dentro do mesmo modal: ordena a
-  // Watchlist pela Nota Prevista (maior primeiro), em vez de filtrar por
-  // disponibilidade. movie_id -> nota prevista, buscado em lote uma vez
-  // quando ativado (só filmes; séries não entram em pool nenhuma, então
-  // nunca têm previsão). Filmes ausentes do mapa (fora de qualquer pool,
-  // ou o próprio filtro desligado) ficam sempre por último.
+  // Oracle Filter — ordena a Watchlist pela Nota Prevista (maior primeiro).
+  // movie_id -> nota prevista, buscado em lote quando ativado (só filmes;
+  // séries não entram em pool). Sem previsão vai pro fim.
   const [oracleFilterActive, setOracleFilterActive] = useState(false);
   const [predictedRatings, setPredictedRatings] = useState<Record<number, number>>({});
 
@@ -420,24 +537,16 @@ export default function Library() {
     );
   };
 
-  // Abre o Duelo de Watchlist automaticamente quando a Home manda o
-  // usuário pra cá com esse propósito específico (prateleira "Duelo de
-  // Watchlist" do modal "Bem-vindo de volta"). Só dispara uma vez, depois
-  // que os dados já carregaram de verdade (senão moviesByRating.unrated
-  // ainda estaria vazio) e só se realmente tiver os 4 filmes mínimos
-  // exigidos. Usa initialLoadComplete, não loading — loading já vira
-  // false logo após buscar só os IDs básicos (user_movies), bem antes do
-  // processamento que busca os detalhes de cada filme e popula
-  // moviesByRating de verdade; guardar pelo loading fazia o efeito
-  // disparar cedo demais na primeira visita (sem cache), marcar o ref
-  // como "já tentei" pra sempre, e nunca mais reavaliar quando os dados
-  // reais finalmente chegavam — só funcionava quando a biblioteca já
-  // tinha sido carregada antes nessa sessão (cache já vinha completo).
+  // Abre o Duelo de Watchlist automaticamente quando outra página manda o
+  // usuário pra cá com esse propósito (ex.: Hub dos Oráculos). Só depois que
+  // os detalhes chegaram de verdade (initialLoadComplete, não loading — que
+  // vira false antes de moviesByRating estar populado) e só com os 4 filmes
+  // mínimos exigidos.
   const autoOpenDuelRef = useRef(false);
   useEffect(() => {
     if (autoOpenDuelRef.current) return;
     if (!initialLoadComplete) return;
-    if (!(location.state as any)?.openWatchlistDuel) return;
+    if (!(location.state as { openWatchlistDuel?: boolean } | null)?.openWatchlistDuel) return;
     autoOpenDuelRef.current = true;
     if (moviesByRating.unrated.length >= 4) {
       setShowWatchlistDuel(true);
@@ -450,229 +559,201 @@ export default function Library() {
       return movies; // Keep original order
     }
 
-    const tvShows = movies.filter(m => m.media_type === 'tv');
-    const films = movies.filter(m => m.media_type !== 'tv');
+    const tvShows = movies.filter((m) => m.media_type === 'tv');
+    const films = movies.filter((m) => m.media_type !== 'tv');
 
     if (tvOrder === 'first') {
       return [...tvShows, ...films];
-    } else {
-      return [...films, ...tvShows];
     }
+    return [...films, ...tvShows];
   };
 
   // Apply sorting to all rating categories
-  Object.keys(moviesByRating).forEach(key => {
+  Object.keys(moviesByRating).forEach((key) => {
     moviesByRating[key] = sortMoviesByTvOrder(moviesByRating[key]);
   });
 
-  // Loading screen with container animation
+  // Números do cabeçalho e do gráfico — da lista crua enquanto os detalhes
+  // carregam, da lista completa (que reflete notas trocadas e exclusões)
+  // depois disso.
+  const stats = useMemo(() => {
+    const source = loadingProgress >= 100 || ratingRows.length === 0
+      ? userMovies.map((m) => (typeof m.userRating === 'number' ? m.userRating : null))
+      : ratingRows;
+    const counts = Array.from({ length: 11 }, () => 0);
+    let rated = 0;
+    let sum = 0;
+    source.forEach((r) => {
+      if (r === null) return;
+      counts[r] = (counts[r] || 0) + 1;
+      rated += 1;
+      sum += r;
+    });
+    return {
+      counts,
+      rated,
+      watchlist: source.length - rated,
+      total: source.length,
+      average: rated > 0 ? sum / rated : null,
+    };
+  }, [loadingProgress, ratingRows, userMovies]);
 
-  // Container animations for main content
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05
-      }
-    }
+  const jumpToRating = (rating: number) => {
+    const el = document.getElementById(`library-rating-${rating}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 300, damping: 24 }
-    }
-  };
-
-  // Antes, essa checagem simplesmente não existia — a página não mostrava
-  // nenhum indicador durante o carregamento inicial, a lista aparecia do
-  // nada assim que os dados chegavam. Mesmo componente oficial usado nas
-  // outras páginas do site (GlassLoader), pra manter o visual consistente.
   if (loading) {
     return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
   }
 
+  const isEmpty = initialLoadComplete && stats.total === 0 && userMovies.length === 0;
+  const ghostButton = `inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`;
+
   return (
-    <div className="min-h-screen relative overflow-hidden">
-
-      <motion.div
-        className="relative max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-8"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Loading Progress Bar - Fixed at top */}
-        {loadingProgress > 0 && loadingProgress < 100 && (
-          <motion.div
-            className="sticky top-0 z-30 mb-6"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg border border-blue-200 dark:border-blue-800/30 p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {t('library.loadingMovies')}
+    <div className="min-h-screen pb-16">
+      {/* ---------- Cabeçalho ---------- */}
+      <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10 pb-10">
+        <div className="lg:flex lg:items-end lg:justify-between lg:gap-12">
+          <div className="min-w-0">
+            <h1 style={{ ...PIXEL, color: PAPER }} className="text-[2.2rem] sm:text-5xl leading-none">
+              {t('library.title')}
+            </h1>
+            {stats.total > 0 && (
+              <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:text-base" style={{ color: MIST }}>
+                <span>
+                  <span style={{ ...PIXEL, color: PAPER }} className="text-lg">{stats.rated}</span>{' '}
+                  {t('library.statsRated', { count: stats.rated })}
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {processedMovies} / {totalMovies}
+                <span aria-hidden className="w-1 h-1 rounded-full bg-white/25" />
+                <span>
+                  <span style={{ ...PIXEL, color: PAPER }} className="text-lg">{stats.watchlist}</span>{' '}
+                  {t('library.statsWatchlist')}
                 </span>
-              </div>
-              <LinearProgressBar
-                progress={loadingProgress}
-                total={totalMovies}
-                current={processedMovies}
-                isError={loadingError}
-                errorMessage={errorMessage}
-              />
-            </div>
-          </motion.div>
-        )}
+              </p>
+            )}
 
-        <motion.div
-          className="flex flex-col gap-6 mb-8"
-          variants={itemVariants}
-        >
-          {/* Header moderno */}
-          <div className="relative p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden">
-            {/* Padrão decorativo de fundo */}
-            <div className="absolute inset-0 opacity-30 dark:opacity-20">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-pink-500/20 to-blue-500/20 rounded-full blur-3xl"></div>
-            </div>
-
-            {/* Grid pattern decorativo */}
-            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{
-              backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
-              backgroundSize: '24px 24px'
-            }}></div>
-
-            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="self-stretch w-1.5 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-full flex-shrink-0"></div>
-                <div className="flex items-center gap-3 flex-nowrap min-w-0">
-                  <h1 className="text-2xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 truncate min-w-0">
-                    {t('library.title')}
-                  </h1>
-                  <div className="inline-flex items-center text-sm font-semibold bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 backdrop-blur-sm border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-xl shadow-lg whitespace-nowrap flex-shrink-0">
-                    <Film className="w-4 h-4 mr-2 flex-shrink-0" />
-                    <span>
-                      {userMovies.length}
-                      <span className="hidden sm:inline ml-1">{t('community.films')}</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-          
-              <div className="relative z-10 flex flex-wrap gap-2 justify-end">
-                <button
-                  onClick={() => setIsReviewsModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('profile.reviews')}</span>
-                </button>
-
-                <button
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-                >
-                  <Edit className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('common.edit')}</span>
-                </button>
-
-                <Link
-                  to="/lists"
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-                >
-                  <ListPlus className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('lists.title')}</span>
-                </Link>
-
-                <Link
-                  to="/add-movies"
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>{t('library.addMovies')}</span>
-                </Link>
-              </div>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Link
+                to="/add-movies"
+                className={`inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`}
+              >
+                <Plus className="w-[18px] h-[18px]" aria-hidden />
+                {t('library.addMovies')}
+              </Link>
+              <Link to="/lists" className={ghostButton} style={{ color: PAPER }}>
+                <ListPlus className="w-[18px] h-[18px] text-violet-300" aria-hidden />
+                {t('library.listsShort')}
+              </Link>
+              <button onClick={() => setIsReviewsModalOpen(true)} className={ghostButton} style={{ color: PAPER }}>
+                <MessageSquare className="w-[18px] h-[18px] text-violet-300" aria-hidden />
+                {t('reviews.title')}
+              </button>
+              <button onClick={() => setIsEditModalOpen(true)} className={ghostButton} style={{ color: PAPER }}>
+                <SlidersHorizontal className="w-[18px] h-[18px] text-violet-300" aria-hidden />
+                {t('library.settings')}
+              </button>
             </div>
           </div>
-        </motion.div>
 
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-                                  <motion.div variants={itemVariants}>
+          {stats.rated > 0 && (
+            <div className="mt-10 lg:mt-0 lg:w-[400px] shrink-0 rounded-2xl px-4 sm:px-5 pt-4 pb-3 ring-1 ring-white/10" style={{ background: VELVET }}>
+              <RatingSpectrum
+                counts={stats.counts}
+                average={stats.average}
+                onJump={ratedLayout === 'notes' ? jumpToRating : undefined}
+              />
+            </div>
+          )}
+        </div>
+
+        {loadingProgress > 0 && loadingProgress < 100 && (
+          <div className="mt-8 rounded-xl px-4 py-3 ring-1 ring-white/10" style={{ background: VELVET }} role="status">
+            <div className="flex items-center justify-between gap-3 mb-2 text-sm">
+              <span style={{ color: PAPER }}>{t('library.loadingMovies')}</span>
+              <span className="tabular-nums" style={{ color: MIST }}>{processedMovies} / {totalMovies}</span>
+            </div>
+            <LinearProgressBar
+              progress={loadingProgress}
+              total={totalMovies}
+              current={processedMovies}
+              isError={loadingError}
+              errorMessage={errorMessage}
+            />
+          </div>
+        )}
+      </section>
+
+      {isEmpty ? (
+        <section className="border-t border-white/[0.07] py-16">
+          <div className="mx-auto max-w-xl px-5 text-center">
+            <span className="mx-auto grid place-items-center w-14 h-14 rounded-2xl ring-1 ring-white/10" style={{ background: VELVET }}>
+              <LibraryIcon className="w-6 h-6 text-violet-300" aria-hidden />
+            </span>
+            <h2 style={{ ...PIXEL, color: PAPER }} className="mt-5 text-2xl sm:text-3xl leading-tight">{t('library.emptyTitle')}</h2>
+            <p className="mt-2" style={{ color: MIST }}>{t('library.noMoviesInLibrary')}</p>
+            <Link
+              to="/add-movies"
+              className={`mt-6 inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`}
+            >
+              <Plus className="w-5 h-5" aria-hidden />
+              {t('library.addMovies')}
+            </Link>
+          </div>
+        </section>
+      ) : (
+        <>
           <RatingBox
+            anchorId="library-watchlist"
+            fullBleed
             title={alternateNames['unrated'] || t('library.watchList')}
             movies={filteredWatchlistMovies}
             rating={null}
             onRate={handleRate}
             onDelete={handleDelete}
             isNotRated
-            className=""
             chromaBoxEnabled={chromaBoxEnabled}
             onFilterClick={() => setShowStreamingFilter(true)}
             activeFilterCount={selectedStreamingProviders.length + (oracleFilterActive ? 1 : 0)}
             showPredictedRating={oracleFilterActive}
+            onDuelClick={moviesByRating.unrated.length >= 4 ? () => setShowWatchlistDuel(true) : undefined}
           />
-        </motion.div>
-
-        <StreamingFilterModal
-          isOpen={showStreamingFilter}
-          onClose={() => setShowStreamingFilter(false)}
-          selectedProviderIds={selectedStreamingProviders}
-          onToggleProvider={handleToggleStreamingProvider}
-          onClearFilter={() => setSelectedStreamingProviders([])}
-          oracleFilterActive={oracleFilterActive}
-          onToggleOracleFilter={() => setOracleFilterActive((prev) => !prev)}
-        />
 
           {ratedLayout === 'onegrid' ? (() => {
             const allRated: LibraryMovie[] = [...Array(11)].reduce((acc: LibraryMovie[], _, i) => {
               const r = 10 - i;
               return [...acc, ...(moviesByRating[r] || [])];
             }, []);
-            const ratedMovies = allRated.filter(m => m.media_type !== 'tv');
-            const ratedSeries = allRated.filter(m => m.media_type === 'tv');
+            const ratedMovies = allRated.filter((m) => m.media_type !== 'tv');
+            const ratedSeries = allRated.filter((m) => m.media_type === 'tv');
             return (
               <>
                 {ratedMovies.length > 0 && (
-                  <motion.div variants={itemVariants}>
-                    <RatingBox
-                      title={t('library.ratedMoviesTitle')}
-                      movies={ratedMovies}
-                      rating={null}
-                      onRate={handleRate}
-                      onDelete={handleDelete}
-                      className=""
-                      chromaBoxEnabled={false}
-                      isOneGrid
-                    />
-                  </motion.div>
+                  <RatingBox
+                    anchorId="library-rated-movies"
+                    fullBleed
+                    title={t('library.ratedMoviesTitle')}
+                    movies={ratedMovies}
+                    rating={null}
+                    onRate={handleRate}
+                    onDelete={handleDelete}
+                    chromaBoxEnabled={false}
+                    isOneGrid
+                  />
                 )}
                 {ratedSeries.length > 0 && (
-                  <motion.div variants={itemVariants}>
-                    <RatingBox
-                      title={t('library.ratedSeriesTitle')}
-                      movies={ratedSeries}
-                      rating={null}
-                      onRate={handleRate}
-                      onDelete={handleDelete}
-                      className=""
-                      chromaBoxEnabled={chromaBoxEnabled}
-                      isOneGrid
-                      isOneGridTv
-                    />
-                  </motion.div>
+                  <RatingBox
+                    anchorId="library-rated-series"
+                    fullBleed
+                    title={t('library.ratedSeriesTitle')}
+                    movies={ratedSeries}
+                    rating={null}
+                    onRate={handleRate}
+                    onDelete={handleDelete}
+                    chromaBoxEnabled={chromaBoxEnabled}
+                    isOneGrid
+                    isOneGridTv
+                  />
                 )}
               </>
             );
@@ -680,38 +761,55 @@ export default function Library() {
             [...Array(11)].map((_, i) => {
               const rating = 10 - i;
               return (
-                <motion.div key={rating} variants={itemVariants}>
-                  <RatingBox
-                    key={rating}
-                    title={alternateNames[rating] || t('library.rating', { value: rating })}
-                    movies={moviesByRating[rating] || []}
-                    rating={rating}
-                    onRate={handleRate}
-                    onDelete={handleDelete}
-                    className=""
-                    chromaBoxEnabled={chromaBoxEnabled}
-                  />
-                </motion.div>
+                <RatingBox
+                  key={rating}
+                  anchorId={`library-rating-${rating}`}
+                  fullBleed
+                  title={t('library.rating', { value: rating })}
+                  displayName={alternateNames[rating] || undefined}
+                  movies={moviesByRating[rating] || []}
+                  rating={rating}
+                  onRate={handleRate}
+                  onDelete={handleDelete}
+                  chromaBoxEnabled={chromaBoxEnabled}
+                />
               );
             })
           )}
-        </motion.div>
+        </>
+      )}
 
-        <LibraryEditModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          onReset={() => {
-            setUserMovies([]);
-            setAlternateNames({});
-          }}
-          rating={selectedRating}
-          alternateNames={alternateNames}
-          onAlternateNameChange={handleAlternateNameChange}
-          ratedLayout={ratedLayout}
-          onRatedLayoutChange={handleRatedLayoutChange}
-        />
+      <StreamingFilterModal
+        isOpen={showStreamingFilter}
+        onClose={() => setShowStreamingFilter(false)}
+        selectedProviderIds={selectedStreamingProviders}
+        onToggleProvider={handleToggleStreamingProvider}
+        onClearFilter={() => setSelectedStreamingProviders([])}
+        oracleFilterActive={oracleFilterActive}
+        onToggleOracleFilter={() => setOracleFilterActive((prev) => !prev)}
+      />
 
-                    {isReviewsModalOpen && session?.user?.id && (
+      <LibraryEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onReset={() => {
+          setUserMovies([]);
+          setRatingRows([]);
+          setTotalMovies(0);
+          setAlternateNames({});
+          cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
+          cache.invalidatePattern('stats:');
+        }}
+        rating={null}
+        alternateNames={alternateNames}
+        onAlternateNameChange={handleAlternateNameChange}
+        ratedLayout={ratedLayout}
+        onRatedLayoutChange={handleRatedLayoutChange}
+        onTvOrderChange={setTvOrder}
+        onChromaBoxChange={setChromaBoxEnabled}
+      />
+
+      {isReviewsModalOpen && session?.user?.id && (
         <UserReviewsModal
           userId={session.user.id}
           username={username}
@@ -723,7 +821,6 @@ export default function Library() {
         isOpen={showWatchlistDuel}
         onClose={() => setShowWatchlistDuel(false)}
       />
-    </motion.div>
     </div>
   );
 }

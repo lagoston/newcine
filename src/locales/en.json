@@ -345,7 +345,40 @@
     "ratedTitle": "Rated",
     "ratedMoviesTitle": "Rated Movies",
     "ratedSeriesTitle": "Rated Series",
-    "randomMovie": "Random film"
+    "randomMovie": "Random film",
+    "titleCount_one": "{{count}} title",
+    "titleCount_other": "{{count}} titles",
+    "duel": "Duel",
+    "rateAction": "Rate",
+    "moreActions": "More actions for {{title}}",
+    "removeFromLibrary": "Remove from library",
+    "tvProgress": "{{watched}} of {{aired}} episodes watched",
+    "statsRated_one": "rated",
+    "statsRated_other": "rated",
+    "statsWatchlist": "on your watchlist",
+    "settings": "Settings",
+    "listsShort": "Lists",
+    "emptyTitle": "Your shelf is empty",
+    "spectrumTitle": "Your ratings",
+    "spectrumAverage": "average {{value}}",
+    "spectrumBar_one": "Rating {{rating}}: {{count}} title",
+    "spectrumBar_other": "Rating {{rating}}: {{count}} titles",
+    "settingsTitle": "Library settings",
+    "settingsSubtitle": "How your shelf looks",
+    "renameTitle": "Shelf names",
+    "renameDesc": "Give any shelf a name of your own — it replaces the rating name.",
+    "renameWhich": "Shelf",
+    "renameNewName": "New name",
+    "renamePlaceholder": "New shelf name",
+    "renameRestore": "Restore the original name",
+    "exportDesc": "Download your collection as CSV (opens in Excel and Google Sheets).",
+    "resetDesc": "Deletes every movie and show in your library, rated and on your watchlist. This cannot be undone.",
+    "filtersSubtitle": "Filter and sort your watchlist",
+    "selectedCount_one": "{{count}} selected",
+    "selectedCount_other": "{{count}} selected",
+    "oracleFilter": "Oracle Filter",
+    "oracleFilterDescription": "Sorts by your predicted rating",
+    "noMoviesForFilter": "None of your watchlist titles are on the selected services."
   },
   "indications": {
     "indicate": "Indicate",
@@ -790,7 +823,8 @@
     "reorder": "Re-Order",
     "doneReordering": "Done Reordering",
     "reorderTitle": "Reorder: {{name}}",
-    "reorderInstructions": "Drag and drop movies to reorder them. Changes will be saved when you click \"Done Reordering\"."
+    "reorderInstructions": "Drag and drop movies to reorder them. Changes will be saved when you click \"Done Reordering\".",
+    "inThisList": "In list"
   },
   "settings": {
     "title": "Settings",
@@ -866,7 +900,10 @@
     "moviesInWatchlist": "{{count}} movies in watchlist",
     "startButton": "Start the Duel",
     "assembling": "Assembling your watchlists...",
-    "yourList": "Your list"
+    "yourList": "Your list",
+    "pickFriend": "Pick your opponent",
+    "changeFriend": "Change friend",
+    "openDetails": "See details for {{title}}"
   },
   "customize": {
     "title": "Customize Profile",

@@ -45,6 +45,26 @@ export const ratingTone = (rating: number | null): { color: string; ring: string
   return { color: MIST, ring: 'rgba(189,180,214,0.35)' };
 };
 
+// Cor de PREENCHIMENTO (barras, faixas) da mesma faixa de notas — tons mais
+// fechados que os de ratingTone (que são pra texto), validados contra o
+// fundo noite: todos com contraste >= 3:1 e distinguíveis entre si. Sempre
+// acompanhados do número da nota (nunca só a cor).
+const RATING_BAR = { low: '#D93A45', mid: '#C58300', good: '#30A46C', top: '#D6409F', zero: '#7A7196' };
+export const ratingBarColor = (rating: number | null): string => {
+  if (rating === null) return '#3B9BD1';
+  if (rating === 10) return RATING_BAR.top;
+  if (rating >= 7) return RATING_BAR.good;
+  if (rating >= 4) return RATING_BAR.mid;
+  if (rating >= 1) return RATING_BAR.low;
+  return RATING_BAR.zero;
+};
+
+// "#RRGGBB" + opacidade → "rgba(r,g,b,a)", pra tingir fundos com a cor da nota.
+export const withAlpha = (hex: string, alpha: number): string => {
+  const n = parseInt(hex.replace('#', ''), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+};
+
 export type OracleId = 'bogart' | 'fincher' | 'cypher';
 
 export interface OracleCard {

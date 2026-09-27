@@ -193,7 +193,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
       title={t('indications.indicateMovie')}
       subtitle={movieTitle}
       size="md"
-      zIndexClass="z-[10000]"
+      zIndexClass="z-[10010]"
       bodyClassName="px-5 sm:px-7 py-5"
       footer={selectedFollower ? (
         <button

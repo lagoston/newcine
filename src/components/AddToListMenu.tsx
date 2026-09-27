@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { ListPlus, Loader2, Check, X, PlusSquare as SquarePlus } from 'lucide-react';
-import GlassLoader from './GlassLoader';
+import { ListPlus, Loader2, Check, PlusSquare as SquarePlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import OracleSheet from './OracleSheet';
+import { VELVET, PAPER, MIST, FOCUS_RING } from '../lib/oracleTheme';
 
 interface AddToListMenuProps {
   movieId: number;
   movieTitle: string;
   isOpen: boolean;
   onClose: () => void;
-  position: {
+  // Mantida por compatibilidade — a janela agora é uma gaveta padrão
+  // (de baixo pra cima no celular, centralizada no desktop).
+  position?: {
     top?: number;
     right?: number;
     bottom?: number;
@@ -32,7 +35,6 @@ const AddToListMenu: React.FC<AddToListMenuProps> = ({
   movieTitle,
   isOpen,
   onClose,
-  position
 }) => {
   const { session } = useAuth();
   const { t } = useTranslation();
@@ -44,8 +46,8 @@ const AddToListMenu: React.FC<AddToListMenuProps> = ({
   useEffect(() => {
     if (isOpen && session?.user?.id) {
       fetchUserLists();
-      checkMovieInLists();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, session?.user?.id, movieId]);
 
   const fetchUserLists = async () => {
@@ -58,7 +60,22 @@ const AddToListMenu: React.FC<AddToListMenuProps> = ({
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setLists(data || []);
+      const userLists: List[] = data || [];
+      setLists(userLists);
+
+      // Em quais das SUAS listas o filme já está (antes a consulta olhava
+      // list_movies de qualquer lista, não só as do usuário).
+      if (userLists.length > 0) {
+        const { data: entries, error: entriesError } = await supabase
+          .from('list_movies')
+          .select('list_id')
+          .eq('movie_id', movieId)
+          .in('list_id', userLists.map((l) => l.id));
+        if (entriesError) throw entriesError;
+        setAlreadyInLists(new Set((entries || []).map((item: { list_id: string }) => item.list_id)));
+      } else {
+        setAlreadyInLists(new Set());
+      }
     } catch (error) {
       console.error('Error fetching lists:', error);
     } finally {
@@ -66,30 +83,12 @@ const AddToListMenu: React.FC<AddToListMenuProps> = ({
     }
   };
 
-  const checkMovieInLists = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('list_movies')
-        .select('list_id')
-        .eq('movie_id', movieId);
-
-      if (error) throw error;
-      
-      if (data) {
-        const listIds = new Set(data.map(item => item.list_id));
-        setAlreadyInLists(listIds);
-      }
-    } catch (error) {
-      console.error('Error checking movie in lists:', error);
-    }
-  };
-
   const addToList = async (listId: string) => {
     if (addingToList || !session?.user?.id) return;
-    
+
     try {
       setAddingToList(listId);
-      
+
       const { error } = await supabase
         .from('list_movies')
         .insert({
@@ -106,7 +105,7 @@ const AddToListMenu: React.FC<AddToListMenuProps> = ({
         return;
       }
 
-      setAlreadyInLists(prev => new Set([...prev, listId]));
+      setAlreadyInLists((prev) => new Set([...prev, listId]));
       toast.success(t('lists.movieAdded', { defaultValue: 'Movie added to list' }));
     } catch (error) {
       console.error('Error adding movie to list:', error);
@@ -116,88 +115,67 @@ const AddToListMenu: React.FC<AddToListMenuProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
-  // Calculate centered position
-  const calculatedStyle: React.CSSProperties = {
-    position: 'fixed',
-    zIndex: 1000,
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    maxHeight: '80vh'
-  };
-
   return (
-    <>
-      <div className="fixed inset-0 z-20 bg-black/20" onClick={onClose}></div>
-      <div 
-        style={calculatedStyle}
-        className="w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
-      >
-        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-            {t('lists.addToList')}
-          </h3>
-          <button
+    <OracleSheet
+      open={isOpen}
+      onClose={onClose}
+      title={t('lists.addToList')}
+      subtitle={movieTitle}
+      size="md"
+      bodyClassName="px-3 sm:px-5 py-4"
+    >
+      {loading ? (
+        <ul className="space-y-2 px-2" aria-busy="true">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <li key={i} className="h-12 rounded-xl animate-pulse" style={{ background: VELVET }} />
+          ))}
+        </ul>
+      ) : lists.length === 0 ? (
+        <div className="px-2 py-8 text-center">
+          <ListPlus className="w-7 h-7 mx-auto text-violet-300" aria-hidden />
+          <p className="mt-3" style={{ color: MIST }}>{t('lists.noListsYet')}</p>
+          <Link
+            to="/lists"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+            className={`mt-5 inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold transition ${FOCUS_RING}`}
           >
-            <X className="w-5 h-5" />
-          </button>
+            <SquarePlus className="w-4 h-4" aria-hidden />
+            {t('lists.createNew')}
+          </Link>
         </div>
-        
-        <div className="max-h-60 overflow-y-auto">
-          {loading ? (
-            <div className="py-8 flex justify-center">
-              <GlassLoader size="sm" />
-            </div>
-          ) : lists.length === 0 ? (
-            <div className="p-4 text-center">
-              <p className="text-gray-600 dark:text-gray-400 mb-3">
-                {t('lists.noListsYet')}
-              </p>
-              <Link
-                to="/lists"
-                onClick={onClose}
-                className="inline-flex items-center text-sm px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <SquarePlus className="w-4 h-4 mr-2" />
-                {t('lists.createNew')}
-              </Link>
-            </div>
-          ) : (
-            <ul className="py-1">
-              {lists.map(list => (
-                <li key={list.id} className="px-1">
-                  <button
-                    onClick={() => !alreadyInLists.has(list.id) ? addToList(list.id) : null}
-                    disabled={addingToList !== null || alreadyInLists.has(list.id)}
-                    className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center justify-between ${
-                      alreadyInLists.has(list.id)
-                        ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <ListPlus className={`w-4 h-4 mr-2 ${
-                        alreadyInLists.has(list.id) ? 'text-green-500' : 'text-gray-400'
-                      }`} />
-                      <span className="truncate">{list.name}</span>
-                    </div>
-                    {addingToList === list.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                    ) : alreadyInLists.has(list.id) ? (
-                      <Check className="w-4 h-4 text-green-500" />
-                    ) : null}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </>
+      ) : (
+        <ul className="space-y-1">
+          {lists.map((list) => {
+            const inList = alreadyInLists.has(list.id);
+            return (
+              <li key={list.id}>
+                <button
+                  onClick={() => (!inList ? addToList(list.id) : null)}
+                  disabled={addingToList !== null || inList}
+                  aria-pressed={inList}
+                  className={`w-full justify-between gap-3 px-3 py-3 rounded-xl text-left transition ${FOCUS_RING} ${
+                    inList ? 'bg-emerald-400/10 cursor-default' : 'hover:bg-white/5'
+                  }`}
+                >
+                  <span className="flex items-center gap-3 min-w-0">
+                    <ListPlus className={`w-5 h-5 shrink-0 ${inList ? 'text-emerald-300' : 'text-violet-300'}`} aria-hidden />
+                    <span className="font-medium truncate" style={{ color: PAPER }}>{list.name}</span>
+                  </span>
+                  {addingToList === list.id ? (
+                    <Loader2 className="w-4 h-4 shrink-0 animate-spin text-violet-300" aria-hidden />
+                  ) : inList ? (
+                    <span className="inline-flex items-center gap-1 shrink-0 text-xs font-semibold text-emerald-300">
+                      <Check className="w-4 h-4" aria-hidden />
+                      {t('lists.inThisList')}
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </OracleSheet>
   );
 };
 

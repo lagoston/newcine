@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { AlertCircle } from 'lucide-react';
 
 interface LinearProgressBarProps {
   progress: number;
@@ -9,6 +10,7 @@ interface LinearProgressBarProps {
   errorMessage?: string;
 }
 
+// Barra fina de progresso no padrão noite (violeta → fúcsia).
 const LinearProgressBar: React.FC<LinearProgressBarProps> = ({
   progress,
   total,
@@ -21,33 +23,27 @@ const LinearProgressBar: React.FC<LinearProgressBarProps> = ({
 
   return (
     <div className="w-full">
-      {isError ? (
-        <motion.p 
-          className="text-center text-red-500 mb-2 flex items-center justify-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
+      {isError && (
+        <p className="mb-2 flex items-center justify-center gap-2 text-sm text-red-300" role="alert">
+          <AlertCircle className="w-4 h-4" aria-hidden />
           {errorMessage}
-        </motion.p>
-      ) : null}
-      <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden relative">
+        </p>
+      )}
+      <div
+        className="w-full h-1.5 rounded-full overflow-hidden relative bg-white/10"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={total || 100}
+        aria-valuenow={total ? current : Math.round(safeProgress)}
+      >
         <motion.div
           className={`h-full rounded-full absolute top-0 left-0 ${
-            isError
-              ? 'bg-red-500'
-              : 'bg-gradient-to-r from-blue-500 to-purple-500 dark:from-blue-400 dark:to-purple-400'
+            isError ? 'bg-red-400' : 'bg-gradient-to-r from-violet-500 to-fuchsia-500'
           }`}
-          style={{ width: `${safeProgress}%` }}
           initial={{ width: '0%' }}
           animate={{ width: `${safeProgress}%` }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        ></motion.div>
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+        />
       </div>
     </div>
   );

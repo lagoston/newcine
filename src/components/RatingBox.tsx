@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, Trash2, Star, Eye, ListPlus, XCircle, ArrowUpDown, Film, Filter, Wand2 } from 'lucide-react';
+import {
+  MoreHorizontal, Trash2, Star, ListPlus, XCircle, ArrowUpDown, Film, Filter, Wand2, Bookmark, Tv, Swords,
+} from 'lucide-react';
 import { Movie, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import ConfirmationModal from './ConfirmationModal';
@@ -8,11 +10,17 @@ import MovieDetailsModal from './MovieDetailsModal';
 import AllMoviesModal from './AllMoviesModal';
 import AddToListMenu from './AddToListMenu';
 import RateMenuSheet from './RateMenuSheet';
+import OracleSheet from './OracleSheet';
 import { RATING_LABELS } from './RatingSliderSheet';
 import { useTranslation } from 'react-i18next';
 import OptimizedPoster from './OptimizedPoster';
-import { motion } from 'framer-motion';
-import { supabase } from '../lib/supabase';
+import {
+  NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, ratingTone, ratingBarColor, withAlpha,
+} from '../lib/oracleTheme';
+
+// Uma prateleira da estante — usada na Biblioteca (uma por nota, mais a
+// Watchlist), no perfil de outra pessoa e nas listas. Cabeçalho com o selo
+// da nota, o nome e a contagem; faixa de pôsteres que rola de lado.
 
 interface RatingBoxProps {
   title: string;
@@ -34,31 +42,26 @@ interface RatingBoxProps {
   chromaBoxEnabled?: boolean;
   isOneGrid?: boolean;
   isOneGridTv?: boolean;
-  // Também só na Watchlist — abre o seletor de streamings pra filtrar a
-  // lista. activeFilterCount mostra um badge no botão quando há filtros
-  // aplicados, pra deixar claro que a lista está sendo filtrada.
+  // Só na Watchlist — abre o seletor de streamings. activeFilterCount põe
+  // um selo no botão quando há filtros aplicados.
   onFilterClick?: () => void;
   activeFilterCount?: number;
-  // Oracle Filter ativo — mostra a Nota Prevista em cada capa, mesmo
-  // badge visual usado nas prateleiras da Biblioteca dos Oráculos.
+  // Oracle Filter ativo — mostra a Nota Prevista em cada capa.
   showPredictedRating?: boolean;
+  // Nome escolhido pelo usuário pra essa prateleira (Ajustes da
+  // biblioteca). Sem ele, uma prateleira de nota mostra o nome da nota
+  // ("Obra-Prima", "Ótimo"...).
+  displayName?: string;
+  // Faixa de pôsteres de ponta a ponta da tela (Biblioteca). Dentro de um
+  // container com margem própria (perfil, listas), fica desligado.
+  fullBleed?: boolean;
+  // Atalho pro Duelo de Watchlist no cabeçalho (só a Biblioteca passa).
+  onDuelClick?: () => void;
+  // id da <section>, pra poder rolar até ela (gráfico de notas).
+  anchorId?: string;
 }
 
-// Mesma faixa de cores do slider de avaliação (RatingSliderSheet) — pílula
-// do nome da nota no cabeçalho da caixa usa a identidade visual idêntica,
-// com destaque especial holográfico/rosa pra nota 10.
-const getRatingPillClasses = (rating: number): string => {
-  if (rating === 10) return 'text-pink-600 dark:text-pink-300 border-pink-400/50 dark:border-pink-500/40 bg-pink-500/10 dark:bg-pink-500/20';
-  if (rating >= 7) return 'text-green-700 dark:text-green-300 border-green-400/50 dark:border-green-500/40 bg-green-500/10 dark:bg-green-500/20';
-  if (rating >= 4) return 'text-amber-700 dark:text-amber-300 border-amber-400/50 dark:border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/20';
-  if (rating >= 1) return 'text-red-700 dark:text-red-300 border-red-400/50 dark:border-red-500/40 bg-red-500/10 dark:bg-red-500/20';
-  // Nota 0 é um caso especial no card (chroma-box-glitch, cinza escuro/
-  // preto — não vermelho). A pílula do nome segue a MESMA cor real do
-  // card, não o contrário — antes eu tinha feito o card mudar pra
-  // vermelho só pra bater com a pílula, só que era a pílula que estava
-  // errada, não o card original.
-  return 'text-gray-700 dark:text-gray-300 border-gray-400/50 dark:border-gray-500/40 bg-gray-500/10 dark:bg-gray-500/20';
-};
+type LibraryTile = Movie & { predictedRating?: number };
 
 const RatingBox: React.FC<RatingBoxProps> = ({
   title,
@@ -68,7 +71,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   onDelete,
   onRemoveFromList,
   isNotRated,
-  className,
+  className = '',
   isOtherUserProfile = false,
   profileUserId,
   onAddToLibrary,
@@ -80,37 +83,35 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   onFilterClick,
   activeFilterCount = 0,
   showPredictedRating = false,
+  displayName,
+  fullBleed = false,
+  onDuelClick,
+  anchorId,
 }) => {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
-  const isPt = i18n.language === 'pt';
+  const isPt = i18n.language.startsWith('pt');
   const [deleteMovieId, setDeleteMovieId] = useState<number | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [rateMenuMovie, setRateMenuMovie] = useState<Movie | null>(null);
   const [showAllMovies, setShowAllMovies] = useState(false);
-  const [showAddToList, setShowAddToList] = useState<{movieId: number, title: string} | null>(null);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-  const [mobileMenuMovie, setMobileMenuMovie] = useState<Movie | null>(null);
-  // tmdb_id -> { watchedCount, airedCount }. Buscado em lote (uma
-  // consulta pra todas as séries visíveis nesse card, não uma por
-  // série) sempre que a lista de filmes mudar. airedCount (não o total
-  // de episódios da série) é o denominador certo do progresso — conta
-  // só o que já foi lançado, não episódios futuros ainda inéditos.
+  const [showAddToList, setShowAddToList] = useState<{ movieId: number; title: string } | null>(null);
+  const [menuMovie, setMenuMovie] = useState<Movie | null>(null);
+  // tmdb_id -> { watchedCount, airedCount }. Buscado em lote (uma consulta
+  // pra todas as séries dessa prateleira) sempre que a lista mudar.
+  // airedCount (não o total de episódios) é o denominador certo do
+  // progresso — conta só o que já foi lançado.
   const [tvProgressData, setTvProgressData] = useState<Map<number, TvProgress>>(new Map());
 
-  // Extraída do useEffect pra poder ser chamada manualmente também —
-  // usada pelo onEpisodeToggle abaixo, que dispara um refetch assim que
-  // o usuário marca/desmarca um episódio dentro do modal expandido,
-  // sem precisar sair e voltar à página pra ver a barra atualizar.
+  // Também chamada pelo onEpisodeToggle do modal de detalhes: marcar um
+  // episódio lá atualiza a barra aqui na hora.
   const refetchTvProgress = useCallback(() => {
     const tvIds = movies.filter((m) => m.media_type === 'tv').map((m) => m.id);
     if (tvIds.length === 0 || !session?.user?.id) {
       setTvProgressData(new Map());
       return;
     }
-    // Em perfil de outra pessoa, o progresso mostrado é o DELA, não o de
-    // quem está olhando — usa a variante que respeita a visibilidade do
-    // perfil e lê os episódios assistidos do dono.
+    // Em perfil de outra pessoa, o progresso mostrado é o DELA.
     const fetchFn = isOtherUserProfile && profileUserId
       ? getTvProgressBatchForProfile(session.user.id, profileUserId, tvIds)
       : getTvProgressBatch(session.user.id, tvIds);
@@ -149,482 +150,440 @@ const RatingBox: React.FC<RatingBoxProps> = ({
     if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
   };
 
-  // Caixas de nota normais somem quando vazias (não faz sentido mostrar
-  // "nenhum filme com nota 3"). A Watchlist é diferente — ela pode ficar
-  // vazia só porque um FILTRO de streaming não bateu com nada, não
-  // porque o usuário não tem nada lá. Se ela sumisse por completo nesse
-  // caso, o cabeçalho com o próprio botão de filtro desaparecia junto,
-  // deixando sem como desfazer o filtro de dentro da tela.
+  // Prateleiras de nota somem quando vazias. A Watchlist não: ela pode
+  // ficar vazia só por causa de um FILTRO, e sem o cabeçalho não haveria
+  // como desfazer o filtro.
   if (movies.length === 0 && !isNotRated) return null;
 
-  // Check if box contains any TV series
-  const hasTvSeries = movies.some(m => m.media_type === 'tv');
-
-  // Calcula o progresso de episódios assistidos de uma série, e decide
-  // a cor da barra: roxo quando 100% assistida mas a série ainda está
-  // no ar (vai ganhar mais episódios), rosa quando 100% assistida e já
-  // terminou de vez (Ended/Canceled) — "completamente vista" de
-  // verdade, sem mais nada vindo por aí.
+  // Progresso de episódios de uma série. Cores da Biblioteca: azul em
+  // andamento, roxo quando em dia com uma série ainda no ar, rosa quando
+  // completa e encerrada.
   const getTvProgress = (movie: Movie) => {
     const progress = tvProgressData.get(movie.id);
     const aired = progress?.airedCount || 0;
     const watched = progress?.watchedCount || 0;
     const percent = aired > 0 ? Math.min(100, (watched / aired) * 100) : 0;
     const stillAiring = movie.in_production === true || movie.status === 'Returning Series';
-
-    let barColor = 'from-blue-400 to-blue-500';
-    let bgTint = 'bg-blue-50 dark:bg-blue-950/40';
-    if (percent >= 100) {
-      if (stillAiring) {
-        barColor = 'from-purple-400 to-purple-500';
-        bgTint = 'bg-purple-50 dark:bg-purple-950/40';
-      } else {
-        barColor = 'from-pink-400 to-pink-500';
-        bgTint = 'bg-pink-50 dark:bg-pink-950/40';
-      }
-    }
-
-    return { percent, barColor, bgTint };
+    let barColor = 'from-sky-400 to-cyan-300';
+    if (percent >= 100) barColor = stillAiring ? 'from-violet-500 to-violet-400' : 'from-pink-500 to-pink-400';
+    return { percent, barColor, watched, aired };
   };
 
-  // Chroma Box Effects
-  const getChromaBoxClasses = () => {
-    if (isOneGrid && isOneGridTv && chromaBoxEnabled) {
-      return 'chroma-box-blue';
-    }
-    if (!chromaBoxEnabled || rating === null) return '';
+  const isRatingShelf = rating !== null && !isOneGrid;
+  const tone = isRatingShelf ? ratingTone(rating) : null;
+  const ratingLabel = isRatingShelf && RATING_LABELS[rating]
+    ? (isPt ? RATING_LABELS[rating].pt : RATING_LABELS[rating].en)
+    : '';
+  const heading = isRatingShelf ? (displayName || ratingLabel || title) : title;
 
-    if (rating === 10) {
-      return 'chroma-box-gold';
-    } else if (rating >= 7 && rating <= 9) {
-      return 'chroma-box-green';
-    } else if (rating >= 4 && rating <= 6) {
-      return 'chroma-box-yellow';
-    } else if (rating >= 1 && rating <= 3) {
-      return 'chroma-box-red';
-    } else if (rating === 0) {
-      return 'chroma-box-glitch';
-    }
-    return '';
-  };
+  // Chroma Box — um véu da cor da nota no topo da prateleira.
+  const chromaColor = !chromaBoxEnabled
+    ? null
+    : isOneGridTv
+      ? ratingBarColor(null)
+      : isRatingShelf
+        ? ratingBarColor(rating)
+        : null;
+  const sectionStyle: React.CSSProperties | undefined = chromaColor
+    ? { background: `linear-gradient(180deg, ${withAlpha(chromaColor, 0.12)} 0%, ${withAlpha(chromaColor, 0.03)} 55%, transparent 100%)` }
+    : undefined;
 
-  const chromaClass = getChromaBoxClasses();
+  const innerPad = fullBleed ? 'mx-auto max-w-6xl px-5 sm:px-8' : 'px-1';
+  const listPad = fullBleed ? 'px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))]' : 'px-1';
+  const ghostPill = `inline-flex items-center gap-2 h-11 px-4 rounded-full border text-sm font-medium transition ${FOCUS_RING}`;
+  const canManage = !isOtherUserProfile;
+  const formatScore = (value: number) =>
+    value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+  const headerIcon = isRatingShelf ? (
+    <span
+      className="grid place-items-center w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl text-2xl sm:text-3xl leading-none"
+      style={{ ...PIXEL, background: VELVET, color: tone!.color, boxShadow: `inset 0 0 0 1.5px ${tone!.ring}` }}
+      aria-hidden
+    >
+      {rating}
+    </span>
+  ) : (
+    <span
+      className="grid place-items-center w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl ring-1 ring-inset ring-white/10"
+      style={{ background: VELVET }}
+      aria-hidden
+    >
+      {isNotRated ? (
+        <Bookmark className="w-5 h-5 text-sky-300" />
+      ) : isOneGridTv ? (
+        <Tv className="w-5 h-5 text-sky-300" />
+      ) : (
+        <Film className="w-5 h-5 text-violet-300" />
+      )}
+    </span>
+  );
+
+  const countLine = [
+    t('library.titleCount', { count: movies.length }),
+    isRatingShelf && displayName && ratingLabel ? ratingLabel : null,
+  ].filter(Boolean).join(' · ');
 
   return (
     <>
-    <div className={`relative mb-12 p-6 sm:p-8 rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl transition-all duration-300 ${chromaClass}`}>
-      {/* Padrão decorativo de fundo - com overflow hidden */}
-      <div className="absolute inset-0 opacity-30 dark:opacity-20 overflow-hidden rounded-3xl pointer-events-none">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-pink-500/20 to-blue-500/20 rounded-full blur-3xl"></div>
-      </div>
+      <section
+        id={anchorId}
+        className={`relative scroll-mt-20 border-t border-white/[0.07] py-10 sm:py-12 ${className}`}
+        style={sectionStyle}
+        aria-label={isRatingShelf ? `${t('library.rating', { value: rating })} — ${heading}` : heading}
+      >
+        <div className={`${innerPad} flex flex-wrap items-center justify-between gap-x-4 gap-y-3`}>
+          <div className="flex items-center gap-3.5 min-w-0">
+            {headerIcon}
+            <div className="min-w-0">
+              <h2 style={{ ...PIXEL, color: PAPER }} className="text-2xl sm:text-3xl leading-tight truncate">
+                {isRatingShelf && <span className="sr-only">{t('library.rating', { value: rating })} — </span>}
+                {heading}
+              </h2>
+              <p className="mt-0.5 text-sm" style={{ color: MIST }}>{countLine}</p>
+            </div>
+          </div>
 
-      {/* Grid pattern decorativo */}
-      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none rounded-3xl overflow-hidden" style={{
-        backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
-        backgroundSize: '24px 24px'
-      }}></div>
-
-      {/* Header da seção — tudo numa linha horizontal só, alinhado com a
-          barrinha colorida que marca o início do bloco: estrela+nota,
-          nome (com a mesma borda/estética de pílula do slider de
-          avaliação), contagem de filmes, e o botão "Ver" à direita. Antes,
-          a nota+estrela ficavam em uma linha, a contagem de filmes numa
-          linha própria embaixo, e o nome flutuava solto do outro lado —
-          três elementos relacionados desalinhados entre si. */}
-      <div className="relative z-10 flex items-center justify-between mb-6 gap-4">
-        <div className={`flex items-center gap-3 min-w-0 ${isNotRated ? 'flex-wrap' : 'flex-nowrap'}`}>
-          <div className={`self-stretch w-1.5 rounded-full flex-shrink-0 ${
-            isOneGridTv
-              ? 'bg-gradient-to-b from-blue-400 via-blue-500 to-blue-700'
-              : hasTvSeries
-              ? 'bg-gradient-to-b from-purple-500 via-purple-600 to-purple-700'
-              : 'bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500'
-          }`}></div>
-
-          {rating !== null && !isOneGrid && (
-            <span className={`flex items-center text-xl sm:text-2xl font-bold text-transparent bg-clip-text flex-shrink-0 ${
-              isOneGridTv
-                ? 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 dark:from-blue-400 dark:via-blue-300 dark:to-blue-400'
-                : hasTvSeries
-                ? 'bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400'
-                : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400'
-            }`}>
-              <Star className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 fill-yellow-500 mr-1.5" />
-              {rating}
-            </span>
-          )}
-          {/* Título em texto — usado tanto pra isOneGrid (ex: "Séries
-              Assistidas") quanto pra caixas sem nota nenhuma como a
-              Watchlist (rating null, isOneGrid false). Antes, só existiam
-              casos pra "tem nota" ou "isOneGrid" — a Watchlist não batia
-              em nenhum dos dois, então o título simplesmente sumia. Fonte
-              um pouco menor que o número de nota (que é só 1-2
-              caracteres) porque um título por extenso ocupa bem mais
-              espaço horizontal — sem isso, o badge de contagem de filmes
-              ficava sem espaço na mesma linha e quebrava pra baixo. */}
-          {(isOneGrid || rating === null) && (
-            <span className={`text-lg sm:text-xl font-bold text-transparent bg-clip-text truncate min-w-0 ${
-              isOneGridTv
-                ? 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 dark:from-blue-400 dark:via-blue-300 dark:to-blue-400'
-                : hasTvSeries
-                ? 'bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400'
-                : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400'
-            }`}>
-              {title}
-            </span>
-          )}
-
-          {rating !== null && !isOneGrid && RATING_LABELS[rating] && (
-            <span className={`text-xs sm:text-sm font-medium px-3 py-1 rounded-full border backdrop-blur-sm whitespace-nowrap ${getRatingPillClasses(rating)}`}>
-              {isPt ? RATING_LABELS[rating].pt : RATING_LABELS[rating].en}
-            </span>
-          )}
-
-          <div className={`inline-flex items-center text-xs font-semibold backdrop-blur-sm px-3 py-1 rounded-lg whitespace-nowrap flex-shrink-0 ${
-            isOneGridTv
-              ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 dark:from-blue-500/30 dark:to-blue-600/30 border border-blue-500/30 text-blue-700 dark:text-blue-300'
-              : hasTvSeries
-              ? 'bg-gradient-to-r from-purple-500/20 to-purple-600/20 dark:from-purple-500/30 dark:to-purple-600/30 border border-purple-500/30 text-purple-700 dark:text-purple-300'
-              : 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-500/30 dark:to-purple-500/30 border border-blue-500/30 dark:border-purple-500/30 text-blue-700 dark:text-blue-300'
-          }`}>
-            <Film className="w-3 h-3 mr-1.5" />
-            {movies.length}
-            <span className="hidden sm:inline ml-1">
-              {movies.length === 1 ? t('community.film') : t('community.films')}
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {isNotRated && onFilterClick && (
+              <button
+                onClick={onFilterClick}
+                aria-label={activeFilterCount > 0
+                  ? `${t('library.filters', { defaultValue: 'Filtros' })} (${activeFilterCount})`
+                  : t('library.filters', { defaultValue: 'Filtros' })}
+                className={`${ghostPill} ${activeFilterCount > 0 ? 'border-violet-400/60 bg-violet-500/20' : 'border-white/15 hover:border-white/35 hover:bg-white/5'}`}
+                style={{ color: PAPER }}
+              >
+                <Filter className="w-4 h-4 text-violet-300" aria-hidden />
+                {t('library.filters', { defaultValue: 'Filtros' })}
+                {activeFilterCount > 0 && (
+                  <span
+                    className="grid place-items-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs leading-none"
+                    style={{ ...PIXEL, background: PAPER, color: INK }}
+                    aria-hidden
+                  >
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            )}
+            {onDuelClick && (
+              <button
+                onClick={onDuelClick}
+                className={`${ghostPill} border-white/15 hover:border-white/35 hover:bg-white/5`}
+                style={{ color: PAPER }}
+              >
+                <Swords className="w-4 h-4 text-pink-300" aria-hidden />
+                {t('library.duel')}
+              </button>
+            )}
+            {movies.length > 0 && (
+              <button
+                onClick={() => setShowAllMovies(true)}
+                className={`${ghostPill} border-white/15 hover:border-white/35 hover:bg-white/5`}
+                style={{ color: PAPER }}
+              >
+                {t('common.view_all')}
+              </button>
+            )}
           </div>
         </div>
-        <div className={`flex items-center gap-2 flex-shrink-0 ${isNotRated ? 'flex-wrap justify-end' : ''}`}>
-          {isNotRated && onFilterClick && (
-            <button
-              onClick={onFilterClick}
-              title={t('library.filterByStreaming', { defaultValue: 'Filtrar por streaming' })}
-              className={`relative flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 text-xs sm:text-sm font-bold text-white ${
-                activeFilterCount > 0
-                  ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600'
-                  : 'bg-blue-500 hover:bg-blue-600'
-              }`}
-            >
-              <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              {t('library.filters', { defaultValue: 'Filtros' })}
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white text-purple-600 text-[10px] font-bold rounded-full flex items-center justify-center shadow-md">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          )}
-          <button
-            onClick={() => setShowAllMovies(true)}
-            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition-all duration-300 whitespace-nowrap shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-          >
-            <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">{t('common.view_all')}</span>
-            <span className="sm:hidden">Ver</span>
-          </button>
-        </div>
-      </div>
 
-      {/* Carrossel unificado - scroll nativo suave em todos os dispositivos */}
-      {movies.length === 0 && isNotRated ? (
-        <div className="relative z-10 flex flex-col items-center justify-center py-10 px-4 text-center">
-          <Filter className="w-8 h-8 text-gray-400 dark:text-gray-500 mb-2" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {t('library.noMoviesForFilter', { defaultValue: 'Nenhum filme da sua watchlist está disponível nos streamings selecionados.' })}
-          </p>
-        </div>
-      ) : (
-      <div
-        ref={scrollRef}
-        className="relative z-10 overflow-x-auto py-4 pb-2 cursor-grab select-none"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
-      >
-        <div className="flex gap-3">
-          {movies.map((movie) => (
-            <div
-              key={movie.id}
-              className="relative group flex-shrink-0 rounded-t-xl"
-              style={{ width: '140px' }}
-            >
-              {!isOtherUserProfile && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMobileMenuMovie(movie);
-                  }}
-                  className="absolute top-1 right-1 z-10 w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 active:bg-black/90 rounded-full text-white transition-colors"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-              )}
-              {showPredictedRating && typeof (movie as Movie & { predictedRating?: number }).predictedRating === 'number' ? (
-                // Nota PREVISTA pra esse usuário — mesmo ícone, cor e
-                // posição do badge usado nas prateleiras da Biblioteca
-                // dos Oráculos, deixando claro que não é a nota pública.
-                <div className="absolute top-1 left-1 z-10 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-violet-600/90 backdrop-blur-sm shadow-lg">
-                  <Wand2 className="w-3 h-3 text-white" />
-                  <span className="text-[10px] font-black text-white leading-none">
-                    {(movie as Movie & { predictedRating?: number }).predictedRating}
-                  </span>
-                </div>
-              ) : (
-                <div className="absolute top-1 left-1 z-10 bg-black/40 rounded-md px-1.5 py-0.5 flex items-center">
-                  <Star className="w-3 h-3 text-blue-400 fill-current" />
-                  <span className="text-white text-[10px] ml-1">{movie.vote_average.toFixed(1)}</span>
-                </div>
-              )}
-              <motion.button
-                onClick={() => { if (dragDistanceRef.current > 5) return; setSelectedMovie(movie); }}
-                className="relative w-full aspect-[2/3] block rounded-t-xl overflow-hidden shadow-lg"
-                whileHover={{ scale: 1.04, y: -5 }}
-                whileTap={{ scale: 0.97 }}
-                style={{ willChange: 'transform' }}
-              >
-                <OptimizedPoster
-                  src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
-                  alt={movie.title}
-                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ease-out"
-                />
-                <div className="absolute inset-0 rounded-t-xl bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                  <div className="absolute bottom-0 left-0 right-0 p-2">
-                    <h3 className="text-white text-xs font-semibold line-clamp-2 drop-shadow">
-                      {movie.title}
-                    </h3>
-                    <p className="text-gray-300 text-[10px] mt-0.5">
-                      {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}
-                    </p>
-                  </div>
-                </div>
-              </motion.button>
-              <div className={`pt-1.5 px-1 pb-1.5 rounded-b-xl relative overflow-hidden ${
-                movie.media_type === 'tv'
-                  ? getTvProgress(movie).bgTint
-                  : 'bg-gray-100 dark:bg-gray-800/95'
-              }`}>
-                {movie.media_type === 'tv' && (
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-black/10 dark:bg-white/10 overflow-hidden">
-                    <motion.div
-                      className={`h-full bg-gradient-to-r ${getTvProgress(movie).barColor}`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${getTvProgress(movie).percent}%` }}
-                      transition={{ duration: 0.7, ease: 'easeOut' }}
-                    />
-                  </div>
-                )}
-                <h4 className="text-xs font-medium text-gray-900 dark:text-white line-clamp-1">
-                  {movie.title}
-                </h4>
-                <div className="flex items-center justify-between mt-0.5">
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                    {movie.release_date ? new Date(movie.release_date).getFullYear() : ''}
+        {movies.length === 0 && isNotRated ? (
+          <div className={`${innerPad} mt-6`}>
+            <div className="rounded-xl px-5 py-8 text-center ring-1 ring-white/10" style={{ background: VELVET }}>
+              {activeFilterCount > 0 ? (
+                <>
+                  <Filter className="w-6 h-6 mx-auto" style={{ color: MIST }} aria-hidden />
+                  <p className="mt-2 text-sm" style={{ color: MIST }}>
+                    {t('library.noMoviesForFilter', { defaultValue: 'Nenhum filme da sua watchlist está disponível nos streamings selecionados.' })}
                   </p>
-                  {!isNotRated && movie.userRating !== null && (
-                    <div className="bg-black/30 dark:bg-black/50 rounded px-1 py-0.5 flex items-center">
-                      <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                      <span className="text-white text-[10px] ml-0.5">{movie.userRating}</span>
-                    </div>
-                  )}
-                </div>
-                {isNotRated && onRate && (
-                  <div className="mt-1.5 flex flex-col gap-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setRateMenuMovie(movie);
-                      }}
-                      className="w-full flex items-center justify-center gap-1 px-1.5 py-1 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-[10px] font-semibold rounded-lg transition-all duration-150"
-                    >
-                      {t('movies.rating')}
-                      <Star className="w-2.5 h-2.5 fill-current" />
-                    </button>
-                  </div>
-                )}
-              </div>
+                </>
+              ) : (
+                <>
+                  <Bookmark className="w-6 h-6 mx-auto" style={{ color: MIST }} aria-hidden />
+                  <p className="mt-2 text-sm" style={{ color: MIST }}>{t('library.noWatchlistMovies')}</p>
+                </>
+              )}
             </div>
-          ))}
-        </div>
-      </div>
-      )}
-    </div>
+          </div>
+        ) : (
+          <div
+            ref={scrollRef}
+            className="mt-3 pt-3 overflow-x-auto cursor-grab select-none"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+          >
+            {/* pt-3: espaço pro pôster subir no hover sem ser cortado
+                (overflow-x:auto também recorta na vertical). */}
+            <ol className={`flex gap-4 pb-2 ${listPad}`}>
+              {movies.map((raw) => {
+                const movie = raw as LibraryTile;
+                const isTv = movie.media_type === 'tv';
+                const tv = isTv ? getTvProgress(movie) : null;
+                const year = (movie.release_date || movie.first_air_date || '').slice(0, 4);
+                const predicted = showPredictedRating && typeof movie.predictedRating === 'number' ? movie.predictedRating : null;
+                const ownRating = typeof movie.userRating === 'number' ? movie.userRating : null;
+                // Na prateleira de uma nota, todos os títulos têm a mesma nota —
+                // o selo só aparece onde as notas se misturam (One Grid, listas).
+                const showOwnRating = ownRating !== null && !isNotRated && !isRatingShelf;
+                return (
+                  <li key={`${movie.media_type || 'movie'}:${movie.id}`} className="group relative shrink-0 w-[124px] sm:w-[148px]">
+                    <button
+                      onClick={() => { if (dragDistanceRef.current > 5) return; setSelectedMovie(movie); }}
+                      className={`block w-full text-left rounded-xl ${FOCUS_RING}`}
+                    >
+                      <span
+                        className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
+                        style={{ background: VELVET }}
+                      >
+                        {movie.poster_path ? (
+                          <OptimizedPoster
+                            src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                            alt={movie.title}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center" style={{ color: MIST }}>
+                            <Film className="w-7 h-7" aria-hidden />
+                            <span className="text-xs leading-snug line-clamp-3" style={{ color: PAPER }}>{movie.title}</span>
+                          </span>
+                        )}
 
-    {/* Modals - rendered via portal to escape any parent stacking context */}
-    {createPortal(
-      <>
-        <ConfirmationModal
-          isOpen={deleteMovieId !== null}
-          onClose={() => setDeleteMovieId(null)}
-          onConfirm={() => {
-            if (deleteMovieId && onDelete) {
-              onDelete(deleteMovieId);
-            }
-          }}
-          title={t('common.delete')}
-          message={t('library.movieRemoved')}
-        />
+                        {predicted !== null ? (
+                          <span
+                            className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full bg-violet-600/95 text-white shadow-lg ring-1 ring-white/20"
+                            title={t('home.desk.predictedForYou')}
+                          >
+                            <Wand2 className="w-3 h-3" aria-hidden />
+                            <span className="sr-only">{t('home.desk.predictedForYou')}:</span>
+                            <span style={PIXEL} className="text-sm leading-none">{predicted}</span>
+                          </span>
+                        ) : showOwnRating ? (
+                          <span
+                            className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 pl-1 pr-1.5 py-0.5 rounded-full text-xs font-semibold shadow-lg"
+                            style={{ background: PAPER, color: INK }}
+                            title={t('home.desk.yourRating')}
+                          >
+                            <Star className="w-3 h-3 fill-current" aria-hidden />
+                            <span className="sr-only">{t('home.desk.yourRating')}:</span>
+                            {ownRating}
+                          </span>
+                        ) : null}
 
-        {selectedMovie && (
-          <MovieDetailsModal
-            movie={selectedMovie}
-            isOpen={true}
-            onClose={() => setSelectedMovie(null)}
+                        {tv && (
+                          <span
+                            className="absolute inset-x-0 bottom-0 h-1.5 bg-black/55"
+                            role="progressbar"
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={Math.round(tv.percent)}
+                            aria-label={t('library.tvProgress', { watched: tv.watched, aired: tv.aired })}
+                          >
+                            <span
+                              className={`block h-full bg-gradient-to-r ${tv.barColor} transition-[width] duration-700 ease-out`}
+                              style={{ width: `${tv.percent}%` }}
+                            />
+                          </span>
+                        )}
+                      </span>
+                      <span className="mt-2.5 block text-sm font-medium leading-snug line-clamp-2" style={{ color: PAPER }}>
+                        {movie.title}
+                      </span>
+                      <span className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: MIST }}>
+                        {isTv && <Tv className="w-3 h-3 shrink-0 text-sky-300" aria-label={t('mobileSearch.series')} />}
+                        {year && <span>{year}</span>}
+                        {movie.vote_average > 0 && (
+                          <span className="inline-flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-amber-300 text-amber-300" aria-hidden />
+                            {formatScore(movie.vote_average)}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+
+                    {isNotRated && onRate && canManage && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setRateMenuMovie(movie); }}
+                        className={`mt-2 w-full gap-1.5 rounded-lg border border-white/15 hover:border-white/35 hover:bg-white/5 text-xs font-medium transition ${FOCUS_RING}`}
+                        style={{ color: PAPER }}
+                      >
+                        <Star className="w-3.5 h-3.5 text-amber-300" aria-hidden />
+                        {t('library.rateAction')}
+                      </button>
+                    )}
+
+                    {canManage && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setMenuMovie(movie); }}
+                        aria-label={t('library.moreActions', { title: movie.title })}
+                        className={`absolute top-0 right-0 w-11 h-11 grid place-items-center rounded-full transition-transform duration-200 group-hover:-translate-y-1 ${FOCUS_RING}`}
+                      >
+                        <span className="grid place-items-center w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm ring-1 ring-white/15 text-white">
+                          <MoreHorizontal className="w-4 h-4" aria-hidden />
+                        </span>
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        )}
+      </section>
+
+      {/* Modais — via portal, fora de qualquer contexto de empilhamento */}
+      {createPortal(
+        <>
+          <ConfirmationModal
+            isOpen={deleteMovieId !== null}
+            onClose={() => setDeleteMovieId(null)}
+            onConfirm={() => {
+              if (deleteMovieId && onDelete) {
+                onDelete(deleteMovieId);
+              }
+            }}
+            title={t('common.delete')}
+            message={t('library.movieRemoved')}
+          />
+
+          {selectedMovie && (
+            <MovieDetailsModal
+              movie={selectedMovie}
+              isOpen={true}
+              onClose={() => setSelectedMovie(null)}
+              isOtherUserProfile={isOtherUserProfile}
+              profileUserId={profileUserId}
+              onAddToLibrary={onAddToLibrary}
+              onEpisodeToggle={refetchTvProgress}
+            />
+          )}
+
+          <AllMoviesModal
+            isOpen={showAllMovies}
+            onClose={() => setShowAllMovies(false)}
+            title={isRatingShelf ? `${t('library.rating', { value: rating })} · ${heading}` : title}
+            movies={movies}
+            rating={rating}
             isOtherUserProfile={isOtherUserProfile}
             profileUserId={profileUserId}
             onAddToLibrary={onAddToLibrary}
-            onEpisodeToggle={refetchTvProgress}
           />
-        )}
 
-        <AllMoviesModal
-          isOpen={showAllMovies}
-          onClose={() => setShowAllMovies(false)}
-          title={rating !== null ? t('library.rating', { value: rating }) : title}
-          movies={movies}
-          rating={rating}
-          isOtherUserProfile={isOtherUserProfile}
-          profileUserId={profileUserId}
-          onAddToLibrary={onAddToLibrary}
-        />
+          {showAddToList && (
+            <AddToListMenu
+              movieId={showAddToList.movieId}
+              movieTitle={showAddToList.title}
+              isOpen={true}
+              onClose={() => setShowAddToList(null)}
+              position={{}}
+            />
+          )}
 
-        {showAddToList && (
-          <AddToListMenu
-            movieId={showAddToList.movieId}
-            movieTitle={showAddToList.title}
-            isOpen={true}
-            onClose={() => setShowAddToList(null)}
-            position={menuPosition}
-          />
-        )}
+          {rateMenuMovie && onRate && (
+            <RateMenuSheet
+              movieTitle={rateMenuMovie.title}
+              isOpen={true}
+              onClose={() => setRateMenuMovie(null)}
+              onRate={async (newRating) => {
+                onRate(rateMenuMovie.id, newRating);
+              }}
+              showMoveToWatchlist={!isNotRated}
+              currentRating={typeof rateMenuMovie.userRating === 'number' ? rateMenuMovie.userRating : undefined}
+            />
+          )}
+        </>,
+        document.body
+      )}
 
-        {rateMenuMovie && onRate && (
-          <RateMenuSheet
-            movieTitle={rateMenuMovie.title}
-            isOpen={true}
-            onClose={() => setRateMenuMovie(null)}
-            onRate={async (rating) => {
-              onRate(rateMenuMovie.id, rating);
-            }}
-            showMoveToWatchlist={!isNotRated}
-          />
-        )}
-      </>,
-      document.body
-    )}
-
-    {/* MOBILE BOTTOM SHEET MENU - rendered via portal to escape transform context */}
-    {mobileMenuMovie && createPortal(
-      <>
-        <div
-          className="fixed inset-0 bg-black/50 z-[9999]"
-          onClick={() => setMobileMenuMovie(null)}
-        />
-        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl z-[9999] animate-slide-up pb-[env(safe-area-inset-bottom)]">
-          <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-3 mb-4" />
-
-          <div className="px-4 pb-6">
-            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-              <img
-                src={`https://image.tmdb.org/t/p/w92${mobileMenuMovie.poster_path}`}
-                alt={mobileMenuMovie.title}
-                className="w-12 h-18 object-cover rounded"
-              />
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-                  {mobileMenuMovie.title}
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {mobileMenuMovie.release_date?.split('-')[0] || 'N/A'}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {isPersonalList ? (
-                <>
+      {/* Ações de um título (botão "…" no pôster) */}
+      <OracleSheet
+        open={!!menuMovie}
+        onClose={() => setMenuMovie(null)}
+        size="md"
+        title={menuMovie?.title || ''}
+        subtitle={menuMovie ? (menuMovie.release_date || menuMovie.first_air_date || '').slice(0, 4) || undefined : undefined}
+        leading={menuMovie ? (
+          <span className="relative shrink-0 w-10 aspect-[2/3] rounded-md overflow-hidden ring-1 ring-white/10" style={{ background: NIGHT }}>
+            {menuMovie.poster_path ? (
+              <img src={`https://image.tmdb.org/t/p/w92${menuMovie.poster_path}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            ) : (
+              <Film className="absolute inset-0 m-auto w-4 h-4" style={{ color: MIST }} aria-hidden />
+            )}
+          </span>
+        ) : undefined}
+        bodyClassName="px-3 sm:px-5 py-3"
+      >
+        {menuMovie && (
+          <ul className="space-y-1">
+            {isPersonalList ? (
+              <>
+                <li>
                   <button
-                    onClick={() => {
-                      if (onRemoveFromList) {
-                        onRemoveFromList(mobileMenuMovie.id);
-                      }
-                      setMobileMenuMovie(null);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:bg-gray-200 dark:active:bg-gray-600"
+                    onClick={() => { onRemoveFromList?.(menuMovie.id); setMenuMovie(null); }}
+                    className={`w-full flex justify-start items-center gap-3.5 px-3 py-3 rounded-xl text-left text-red-300 hover:bg-red-500/10 transition ${FOCUS_RING}`}
                   >
-                    <XCircle className="w-5 h-5" />
+                    <XCircle className="w-5 h-5" aria-hidden />
                     <span className="font-medium">{t('common.remove')}</span>
                   </button>
+                </li>
+                <li>
                   <button
-                    onClick={() => {
-                      if (enableDragDrop) {
-                        enableDragDrop();
-                      }
-                      setMobileMenuMovie(null);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:bg-gray-200 dark:active:bg-gray-600"
+                    onClick={() => { enableDragDrop?.(); setMenuMovie(null); }}
+                    className={`w-full flex justify-start items-center gap-3.5 px-3 py-3 rounded-xl text-left hover:bg-white/5 transition ${FOCUS_RING}`}
+                    style={{ color: PAPER }}
                   >
-                    <ArrowUpDown className="w-5 h-5" />
+                    <ArrowUpDown className="w-5 h-5" style={{ color: MIST }} aria-hidden />
                     <span className="font-medium">{t('lists.reorder')}</span>
                   </button>
-                </>
-              ) : (
-                <>
-                  {(rating !== null || isOneGrid) && onRate && (
+                </li>
+              </>
+            ) : (
+              <>
+                {onRate && (
+                  <li>
                     <button
-                      onClick={() => {
-                        setRateMenuMovie(mobileMenuMovie);
-                        setMobileMenuMovie(null);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:bg-gray-200 dark:active:bg-gray-600"
+                      onClick={() => { setRateMenuMovie(menuMovie); setMenuMovie(null); }}
+                      className={`w-full flex justify-start items-center gap-3.5 px-3 py-3 rounded-xl text-left hover:bg-white/5 transition ${FOCUS_RING}`}
+                      style={{ color: PAPER }}
                     >
-                      <Star className="w-5 h-5" />
-                      <span className="font-medium">{t('library.changeRating')}</span>
+                      <Star className="w-5 h-5 text-amber-300" aria-hidden />
+                      <span className="font-medium">{isNotRated ? t('library.rateAction') : t('library.changeRating')}</span>
                     </button>
-                  )}
+                  </li>
+                )}
+                <li>
                   <button
                     onClick={() => {
-                      const ww = window.innerWidth;
-                      const wh = window.innerHeight;
-                      setMenuPosition({
-                        top: Math.max(window.scrollY + (wh / 2) - 150, window.scrollY + 20),
-                        left: (ww / 2) - 128
-                      });
-                      setShowAddToList({ movieId: mobileMenuMovie.id, title: mobileMenuMovie.title });
-                      setMobileMenuMovie(null);
+                      setShowAddToList({ movieId: menuMovie.id, title: menuMovie.title });
+                      setMenuMovie(null);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:bg-gray-200 dark:active:bg-gray-600"
+                    className={`w-full flex justify-start items-center gap-3.5 px-3 py-3 rounded-xl text-left hover:bg-white/5 transition ${FOCUS_RING}`}
+                    style={{ color: PAPER }}
                   >
-                    <ListPlus className="w-5 h-5" />
-                    <span className="font-medium">{t('lists.title', { defaultValue: 'List' })}</span>
+                    <ListPlus className="w-5 h-5 text-violet-300" aria-hidden />
+                    <span className="font-medium">{t('lists.addToList')}</span>
                   </button>
-                  <button
-                    onClick={() => {
-                      setDeleteMovieId(mobileMenuMovie.id);
-                      setMobileMenuMovie(null);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:bg-gray-200 dark:active:bg-gray-600"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                    <span className="font-medium">{t('common.delete')}</span>
-                  </button>
-                </>
-              )}
-            </div>
-
-            <button
-              onClick={() => setMobileMenuMovie(null)}
-              className="w-full mt-4 px-4 py-3 text-center font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"
-            >
-              {t('common.cancel', { defaultValue: 'Cancel' })}
-            </button>
-          </div>
-        </div>
-      </>,
-      document.body
-    )}
+                </li>
+                {onDelete && (
+                  <li>
+                    <button
+                      onClick={() => { setDeleteMovieId(menuMovie.id); setMenuMovie(null); }}
+                      className={`w-full flex justify-start items-center gap-3.5 px-3 py-3 rounded-xl text-left text-red-300 hover:bg-red-500/10 transition ${FOCUS_RING}`}
+                    >
+                      <Trash2 className="w-5 h-5" aria-hidden />
+                      <span className="font-medium">{t('library.removeFromLibrary')}</span>
+                    </button>
+                  </li>
+                )}
+              </>
+            )}
+          </ul>
+        )}
+      </OracleSheet>
     </>
   );
 };

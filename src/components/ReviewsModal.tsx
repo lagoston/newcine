@@ -174,7 +174,7 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ movie, onClose, userRating 
         title={t('reviews.title')}
         subtitle={movie.title || movie.name}
         size="lg"
-        zIndexClass="z-[10000]"
+        zIndexClass="z-[10010]"
         escapeEnabled={!showDeleteConfirm}
         bodyClassName="px-5 sm:px-7 py-5 space-y-6"
       >

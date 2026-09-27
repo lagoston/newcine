@@ -2448,6 +2448,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           movie={directorNestedMovie}
           isOpen={true}
           onClose={() => setDirectorNestedMovie(null)}
+          zIndexClass={zIndexClass}
           isNested={true}
           onReplaceMovie={setDirectorNestedMovie}
         />

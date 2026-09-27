@@ -30,8 +30,8 @@ const OptimizedPoster: React.FC<OptimizedPosterProps> = ({
 
   if (imageError) {
     return (
-      <div className={`flex items-center justify-center bg-gray-800 ${className}`}>
-        <Film className="w-16 h-16 text-gray-600" />
+      <div className={`flex items-center justify-center ${className}`} style={{ background: '#1C1433' }}>
+        <Film className="w-10 h-10 text-[#BDB4D6]/40" aria-hidden />
       </div>
     );
   }
@@ -39,9 +39,9 @@ const OptimizedPoster: React.FC<OptimizedPosterProps> = ({
   return (
     <>
       {!imageLoaded && (
-        <div className={`absolute inset-0 bg-gray-800 animate-pulse ${className}`}>
+        <div className={`absolute inset-0 animate-pulse ${className}`} style={{ background: '#1C1433' }}>
           <div className="absolute inset-0 flex items-center justify-center">
-            <Film className="w-16 h-16 text-gray-600" />
+            <Film className="w-10 h-10 text-[#BDB4D6]/30" aria-hidden />
           </div>
         </div>
       )}

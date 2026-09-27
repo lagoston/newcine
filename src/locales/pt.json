@@ -347,7 +347,40 @@
     "ratedLayoutOneGrid": "One Grid",
     "ratedTitle": "Avaliados",
     "ratedMoviesTitle": "Filmes Avaliados",
-    "ratedSeriesTitle": "Séries Avaliadas"
+    "ratedSeriesTitle": "Séries Avaliadas",
+    "titleCount_one": "{{count}} título",
+    "titleCount_other": "{{count}} títulos",
+    "duel": "Duelo",
+    "rateAction": "Avaliar",
+    "moreActions": "Mais ações para {{title}}",
+    "removeFromLibrary": "Remover da biblioteca",
+    "tvProgress": "{{watched}} de {{aired}} episódios vistos",
+    "statsRated_one": "avaliado",
+    "statsRated_other": "avaliados",
+    "statsWatchlist": "na watchlist",
+    "settings": "Ajustes",
+    "listsShort": "Listas",
+    "emptyTitle": "Sua estante está vazia",
+    "spectrumTitle": "Suas notas",
+    "spectrumAverage": "média {{value}}",
+    "spectrumBar_one": "Nota {{rating}}: {{count}} título",
+    "spectrumBar_other": "Nota {{rating}}: {{count}} títulos",
+    "settingsTitle": "Ajustes da biblioteca",
+    "settingsSubtitle": "Como a sua estante aparece",
+    "renameTitle": "Nomes das prateleiras",
+    "renameDesc": "Dê um nome seu a qualquer prateleira — ele aparece no lugar do nome da nota.",
+    "renameWhich": "Prateleira",
+    "renameNewName": "Novo nome",
+    "renamePlaceholder": "Novo nome da prateleira",
+    "renameRestore": "Voltar ao nome original",
+    "exportDesc": "Baixe a sua coleção em CSV (abre no Excel e no Google Planilhas).",
+    "resetDesc": "Apaga todos os filmes e séries da sua biblioteca, avaliados e da watchlist. Não dá para desfazer.",
+    "filtersSubtitle": "Filtre e ordene a sua watchlist",
+    "selectedCount_one": "{{count}} selecionado",
+    "selectedCount_other": "{{count}} selecionados",
+    "oracleFilter": "Filtro do Oráculo",
+    "oracleFilterDescription": "Ordena pela nota prevista para você",
+    "noMoviesForFilter": "Nenhum título da sua watchlist está nos streamings escolhidos."
   },
   "indications": {
     "indicate": "Indicar",
@@ -793,7 +826,8 @@
     "reorder": "Reordenar",
     "doneReordering": "Concluir Reordenação",
     "reorderTitle": "Reordenar: {{name}}",
-    "reorderInstructions": "Arraste e solte filmes para reordenar. As alterações serão salvas quando você clicar em \"Concluir Reordenação\"."
+    "reorderInstructions": "Arraste e solte filmes para reordenar. As alterações serão salvas quando você clicar em \"Concluir Reordenação\".",
+    "inThisList": "Na lista"
   },
   "settings": {
     "title": "Configurações",
@@ -869,7 +903,10 @@
     "moviesInWatchlist": "{{count}} filmes na watchlist",
     "startButton": "Iniciar o Duelo",
     "assembling": "Reunindo as watchlists...",
-    "yourList": "Sua lista"
+    "yourList": "Sua lista",
+    "pickFriend": "Escolha o adversário",
+    "changeFriend": "Trocar de amigo",
+    "openDetails": "Ver detalhes de {{title}}"
   },
   "customize": {
     "title": "Personalizar Perfil",
