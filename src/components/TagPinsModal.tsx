@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Loader2, Tag, Palette, Users, BrainCircuit, Lock, Check, Clock } from 'lucide-react';
+import { Sparkles, Loader2, Tag, Palette, Users, BrainCircuit, Lock, Check, Clock, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -9,6 +7,8 @@ import { useAuth } from '../lib/auth';
 import { getContinent } from '../lib/continents';
 import { syncUnlockedTagsAndNotify } from '../lib/tagNotifications';
 import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
+import OracleSheet from './OracleSheet';
+import { NIGHT, VELVET, PAPER, MIST, FOCUS_RING, tagCategoryStyle, withAlpha } from '../lib/oracleTheme';
 
 interface TagPinsModalProps {
   isOpen: boolean;
@@ -17,12 +17,13 @@ interface TagPinsModalProps {
   onSave?: () => void;
 }
 
-type ViewMode = 'pins' | 'basic' | 'theme' | 'community' | 'oracle' | 'special';
+type TagCategoryId = 'basic' | 'theme' | 'community' | 'oracle' | 'special';
+type ViewMode = 'pins' | TagCategoryId;
 
 interface UnlockedPin {
   emoji: string;
   name: string;
-  category: 'basic' | 'theme' | 'community' | 'oracle' | 'special';
+  category: TagCategoryId;
 }
 
 interface SpecialTag {
@@ -44,68 +45,20 @@ interface ActiveTag {
   emoji: string;
 }
 
-// Mesmas cores que existiam em CustomizeModal.tsx antes de o sistema de
-// tags migrar pra cá — nada mudou na paleta, só o endereço.
-const getTagColorClasses = (category: string) => {
-  switch (category) {
-    case 'basic':
-      return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
-    case 'theme':
-      return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
-    case 'community':
-      return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-    case 'oracle':
-      return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400';
-    case 'special':
-      return 'bg-black dark:bg-black text-white dark:text-gray-100';
-    default:
-      return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
-  }
-};
-
-const getCategoryButtonStyle = (isActive: boolean, category: string) => {
-  switch (category) {
-    case 'basic':
-      return isActive
-        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-        : 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600';
-    case 'theme':
-      return isActive
-        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-        : 'bg-yellow-600 text-white hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600';
-    case 'community':
-      return isActive
-        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-        : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600';
-    case 'oracle':
-      return isActive
-        ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'
-        : 'bg-pink-600 text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600';
-    case 'special':
-      return isActive
-        ? 'bg-black text-white dark:bg-gray-800 dark:text-gray-100'
-        : 'bg-black text-white hover:bg-gray-900 dark:bg-black dark:hover:bg-gray-900';
-    default:
-      return isActive
-        ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
-        : 'bg-gray-600 text-white hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600';
-  }
-};
-
-const formatTimeRemaining = (endsAt: string) => {
-  const now = new Date();
-  const end = new Date(endsAt);
-  const diff = end.getTime() - now.getTime();
-  if (diff <= 0) return 'Expired';
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  if (days > 30) {
-    const months = Math.floor(days / 30);
-    return `${months} month${months > 1 ? 's' : ''} left`;
-  }
-  if (days > 0) return `${days}d ${hours}h left`;
-  return `${hours}h left`;
-};
+// Formato único de um cartão de tag — as 5 categorias tinham cada uma o
+// seu próprio bloco de JSX quase idêntico; agora todas viram esta linha.
+interface TagRow {
+  key: string;
+  emoji: string;
+  name: string;
+  description: string;
+  detail?: string;
+  progress: number | null; // null = sem contador (especiais)
+  goal: number | null;
+  isUnlocked: boolean;
+  category: TagCategoryId;
+  note?: { icon: 'clock' | 'sparkles'; text: string };
+}
 
 // Todo o sistema de categorias, progresso e ativação de tags que antes
 // morava em CustomizeModal.tsx — movido pra cá pra não ficar redundante
@@ -116,7 +69,8 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
   const isPt = i18n.language.startsWith('pt');
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('pins');
-  const [savingTag, setSavingTag] = useState(false);
+  // Nome da tag sendo gravada agora (null = nenhuma).
+  const [savingName, setSavingName] = useState<string | null>(null);
 
   const [ratedMoviesCount, setRatedMoviesCount] = useState(0);
   const [followersCount, setFollowersCount] = useState(0);
@@ -131,20 +85,8 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
     if (isOpen && userId) {
       fetchAllData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, userId]);
-
-  useEffect(() => {
-    if (isOpen) {
-      const originalOverflow = document.body.style.overflow;
-      const originalTouchAction = document.body.style.touchAction;
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
-      return () => {
-        document.body.style.overflow = originalOverflow;
-        document.body.style.touchAction = originalTouchAction;
-      };
-    }
-  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -385,499 +327,385 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
     }
   };
 
+    // Toca de novo na tag em uso = tira do perfil.
   const handleUseTag = async (tag: { name: string; emoji: string }, category: string) => {
-    if (savingTag) return;
+    if (savingName) return;
     try {
-      setSavingTag(true);
+      setSavingName(tag.name);
       const isCurrentlyActive = activeTag?.name === tag.name;
       const newTag = isCurrentlyActive ? null : { category, name: tag.name, emoji: tag.emoji };
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({ active_tag: newTag })
-        .eq('id', userId);
+      const { error } = await supabase.from('profiles').update({ active_tag: newTag }).eq('id', userId);
 
       if (error) throw error;
 
       setActiveTag(newTag);
       toast.success(isCurrentlyActive ? t('customize.tagRemoved') : t('customize.tagUpdated'));
-      // Mesma correção aplicada no CustomizeModal — propaga a mudança pro
-      // Profile assim que ela acontece de verdade, sem depender de um
-      // botão "salvar" que o usuário poderia nunca clicar (fechando o
-      // modal pelo X, por exemplo, deixando a tag ativa "invisível" até
-      // sair e voltar pro perfil).
+      // Propaga a mudança pro Profile assim que ela acontece de verdade,
+      // sem depender de um botão "salvar".
       onSave?.();
     } catch (error) {
       console.error('Error updating tag:', error);
       toast.error(t('customize.updateError'));
     } finally {
-      setSavingTag(false);
+      setSavingName(null);
     }
   };
 
-  const categories: { id: ViewMode; label: string; icon: any }[] = [
-    { id: 'pins', label: t('profile.myPins', { defaultValue: isPt ? 'Meus Pins' : 'My Pins' }), icon: Sparkles },
+  const formatTimeRemaining = (endsAt: string) => {
+    const diff = new Date(endsAt).getTime() - Date.now();
+    if (diff <= 0) return t('tagPins.expired');
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (days > 30) return t('tagPins.monthsLeft', { count: Math.floor(days / 30) });
+    if (days > 0) return t('tagPins.daysLeft', { days, hours });
+    return t('tagPins.hoursLeft', { hours });
+  };
+
+  // ---- Linhas de cada categoria, no formato único TagRow ----
+  const rowsFor = (category: TagCategoryId): TagRow[] => {
+    switch (category) {
+      case 'basic':
+        return PROGRESSION_TAGS.map((tag) => {
+          const progress = tag.condition ? basicTagProgress[tag.name] || 0 : ratedMoviesCount;
+          return {
+            key: tag.name,
+            emoji: tag.emoji,
+            name: tag.name,
+            description: isPt ? tag.descriptionPt : tag.description,
+            progress,
+            goal: tag.minMovies,
+            isUnlocked: progress >= tag.minMovies,
+            category,
+          };
+        });
+      case 'theme':
+        return THEME_TAGS.map((tag) => {
+          const progress = themeTagProgress[tag.id] || 0;
+          return {
+            key: tag.id,
+            emoji: tag.emoji,
+            name: tag.name,
+            description: isPt ? tag.requirementPt : tag.requirement,
+            progress,
+            goal: tag.condition.count,
+            isUnlocked: progress >= tag.condition.count,
+            category,
+          };
+        });
+      case 'community':
+        return COMMUNITY_TAGS.map((tag) => ({
+          key: tag.name,
+          emoji: tag.emoji,
+          name: tag.name,
+          description: isPt ? tag.descriptionPt : tag.description,
+          progress: followersCount,
+          goal: tag.minFollowers,
+          isUnlocked: followersCount >= tag.minFollowers,
+          category,
+        }));
+      case 'oracle':
+        return ORACLE_TAGS.map((tag) => {
+          const progress = oracleTagProgress[tag.id] || 0;
+          return {
+            key: tag.id,
+            emoji: tag.emoji,
+            name: tag.name,
+            description: isPt ? tag.requirementPt : tag.requirement,
+            progress,
+            goal: tag.condition.count,
+            isUnlocked: progress >= tag.condition.count,
+            category,
+          };
+        });
+      case 'special':
+        return specialTags.map((tag) => ({
+          key: tag.id,
+          emoji: tag.emoji,
+          name: tag.name,
+          description: tag.description,
+          detail: tag.requirement_description,
+          progress: null,
+          goal: null,
+          isUnlocked: tag.is_unlocked,
+          category,
+          note:
+            tag.ends_at && tag.is_currently_active
+              ? { icon: 'clock' as const, text: formatTimeRemaining(tag.ends_at) }
+              : tag.ends_at && tag.is_unlocked
+                ? { icon: 'sparkles' as const, text: t('customize.tags.permanentlyEarned') }
+                : undefined,
+        }));
+    }
+  };
+
+  const categories: { id: ViewMode; label: string; icon: typeof Tag }[] = [
+    { id: 'pins', label: t('tagPins.myPins'), icon: Sparkles },
     { id: 'basic', label: t('customize.categories.basic'), icon: Tag },
     { id: 'theme', label: t('customize.categories.theme'), icon: Palette },
     { id: 'community', label: t('customize.categories.community'), icon: Users },
     { id: 'oracle', label: t('customize.categories.oracle'), icon: BrainCircuit },
-    { id: 'special', label: t('customize.categories.special'), icon: Sparkles }
+    { id: 'special', label: t('customize.categories.special'), icon: Sparkles },
   ];
 
-  const renderPinsView = () => {
-    if (pins.length === 0) {
-      return (
-        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-          <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-40" />
-          <p>{t('profile.noTagPins', { defaultValue: isPt ? 'Nenhum pin desbloqueado ainda.' : 'No pins unlocked yet.' })}</p>
-        </div>
-      );
-    }
+  const pinsByCategory = (category: string) => pins.filter((p) => p.category === category).length;
+
+  const tagToggleButton = (name: string, emoji: string, category: TagCategoryId, compact = false) => {
+    const isActive = activeTag?.name === name;
+    const isSaving = savingName === name;
+    const style = tagCategoryStyle(category);
     return (
-      <>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          {isPt
-            ? `${pins.length} pin${pins.length === 1 ? '' : 's'} desbloqueado${pins.length === 1 ? '' : 's'}`
-            : `${pins.length} pin${pins.length === 1 ? '' : 's'} unlocked`}
-        </p>
-        <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
-          {pins.map((pin, idx) => (
-            <div
-              key={`${pin.name}-${idx}`}
-              title={pin.name}
-              className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border border-transparent hover:border-blue-400/50 dark:hover:border-blue-500/50 transition-colors ${getTagColorClasses(pin.category)}`}
-            >
-              <span className="text-3xl leading-none">{pin.emoji}</span>
-              <span className="text-[10px] text-center text-gray-600 dark:text-gray-300 line-clamp-2 leading-tight">
-                {pin.name}
-              </span>
-            </div>
-          ))}
-        </div>
-      </>
+      <button
+        onClick={() => handleUseTag({ name, emoji }, category)}
+        disabled={!!savingName}
+        aria-pressed={isActive}
+        aria-label={isActive ? `${t('tagPins.removeFromProfile')}: ${name}` : `${t('customize.tags.use')}: ${name}`}
+        className={`shrink-0 gap-1.5 ${compact ? 'h-9 px-3' : 'h-10 px-4'} rounded-full text-sm font-semibold transition disabled:cursor-wait ${FOCUS_RING} ${
+          isActive ? style.pill : 'border border-white/15 hover:border-white/35 hover:bg-white/5'
+        }`}
+        style={isActive ? undefined : { color: PAPER }}
+      >
+        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : isActive ? <Check className="w-4 h-4" aria-hidden /> : null}
+        {isActive ? t('customize.tags.active') : t('customize.tags.use')}
+      </button>
     );
   };
 
-  const renderCategoryContent = () => {
-    switch (viewMode) {
-      case 'basic':
-        return (
-          <div className="space-y-6">
-            <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {t('customize.progress.moviesRated', { count: ratedMoviesCount })}
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {PROGRESSION_TAGS.map((tag) => {
-                const progress = tag.condition ? basicTagProgress[tag.name] || 0 : ratedMoviesCount;
-                const isUnlocked = progress >= tag.minMovies;
-                const progressPercentage = tag.maxMovies
-                  ? Math.min(100, (progress - tag.minMovies) / (tag.maxMovies - tag.minMovies) * 100)
-                  : progress >= tag.minMovies ? 100 : (progress / tag.minMovies) * 100;
-                const isActive = activeTag?.name === tag.name;
-
-                return (
-                  <div
-                    key={tag.name}
-                    className={`relative rounded-2xl border ${
-                      isUnlocked
-                        ? 'border-green-300/50 dark:border-green-700/50 bg-green-50/50 dark:bg-green-900/20'
-                        : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
-                    } p-4 transition-all duration-200`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{tag.emoji}</span>
-                          <span className={`text-sm font-medium ${isUnlocked ? 'text-green-700 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                            {tag.name}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                          {isPt ? tag.descriptionPt : tag.description}
-                        </p>
-                        <div className="mt-2 text-sm">
-                          <span className={isUnlocked ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}>{progress}</span>
-                          <span className="text-gray-400 dark:text-gray-500">/{tag.minMovies}</span>
-                        </div>
-                      </div>
-                      {!isUnlocked ? (
-                        <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                      ) : (
-                        <button
-                          onClick={() => handleUseTag(tag, 'basic')}
-                          disabled={savingTag}
-                          className={`px-3 py-1 text-sm rounded-lg transition-colors ${getCategoryButtonStyle(isActive, 'basic')}`}
-                        >
-                          {isActive ? (
-                            <span className="flex items-center"><Check className="w-4 h-4 mr-1" />{t('customize.tags.active')}</span>
-                          ) : savingTag ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            t('customize.tags.use')
-                          )}
-                        </button>
-                      )}
-                    </div>
-                    <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${isUnlocked ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-                        style={{ width: `${progressPercentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-
-      case 'theme':
-        return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {THEME_TAGS.map((tag) => {
-              const progress = themeTagProgress[tag.id] || 0;
-              const isUnlocked = progress >= tag.condition.count;
-              const isActive = activeTag?.name === tag.name;
-
-              return (
-                <div
-                  key={tag.id}
-                  className={`relative rounded-2xl border ${
-                    isUnlocked
-                      ? 'border-yellow-300/50 dark:border-yellow-700/50 bg-yellow-50/50 dark:bg-yellow-900/20'
-                      : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
-                  } p-4 transition-all duration-200`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{tag.emoji}</span>
-                        <span className={`text-sm font-medium ${isUnlocked ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                          {tag.name}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        {isPt ? tag.requirementPt : tag.requirement}
-                      </p>
-                      <div className="mt-2 text-sm">
-                        <span className={isUnlocked ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}>{progress}</span>
-                        <span className="text-gray-400 dark:text-gray-500">/{tag.condition.count}</span>
-                      </div>
-                    </div>
-                    {!isUnlocked ? (
-                      <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                    ) : (
-                      <button
-                        onClick={() => handleUseTag(tag, 'theme')}
-                        disabled={savingTag}
-                        className={`px-3 py-1 text-sm rounded-lg transition-colors ${getCategoryButtonStyle(isActive, 'theme')}`}
-                      >
-                        {isActive ? (
-                          <span className="flex items-center"><Check className="w-4 h-4 mr-1" />Active</span>
-                        ) : savingTag ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : 'Use'}
-                      </button>
-                    )}
-                  </div>
-                  <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${isUnlocked ? 'bg-gradient-to-r from-yellow-400 to-amber-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-                      style={{ width: `${Math.min(100, (progress / tag.condition.count) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-
-      case 'community':
-        return (
-          <div className="space-y-6">
-            <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {t('customize.progress.followers', { count: followersCount })}
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {COMMUNITY_TAGS.map((tag) => {
-                const isUnlocked = followersCount >= tag.minFollowers;
-                const progress = tag.maxFollowers
-                  ? Math.min(100, (followersCount - tag.minFollowers) / (tag.maxFollowers - tag.minFollowers) * 100)
-                  : followersCount >= tag.minFollowers ? 100 : 0;
-                const isActive = activeTag?.name === tag.name;
-
-                return (
-                  <div
-                    key={tag.name}
-                    className={`relative rounded-2xl border ${
-                      isUnlocked
-                        ? 'border-blue-300/50 dark:border-blue-700/50 bg-blue-50/50 dark:bg-blue-900/20'
-                        : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
-                    } p-4 transition-all duration-200`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{tag.emoji}</span>
-                          <span className={`text-sm font-medium ${isUnlocked ? 'text-blue-700 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                            {tag.name}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                          {isPt ? tag.descriptionPt : tag.description}
-                        </p>
-                        <div className="mt-2 text-sm">
-                          <span className={isUnlocked ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}>{followersCount}</span>
-                          <span className="text-gray-400 dark:text-gray-500">/{tag.maxFollowers || tag.minFollowers}+</span>
-                        </div>
-                      </div>
-                      {!isUnlocked ? (
-                        <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                      ) : (
-                        <button
-                          onClick={() => handleUseTag(tag, 'community')}
-                          disabled={savingTag}
-                          className={`px-3 py-1 text-sm rounded-lg transition-colors ${getCategoryButtonStyle(isActive, 'community')}`}
-                        >
-                          {isActive ? (
-                            <span className="flex items-center"><Check className="w-4 h-4 mr-1" />{t('customize.tags.active')}</span>
-                          ) : savingTag ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            t('customize.tags.use')
-                          )}
-                        </button>
-                      )}
-                    </div>
-                    <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${isUnlocked ? 'bg-gradient-to-r from-blue-400 to-cyan-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-
-      case 'oracle':
-        return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {ORACLE_TAGS.map((tag) => {
-              const progress = oracleTagProgress[tag.id] || 0;
-              const isUnlocked = progress >= tag.condition.count;
-              const isActive = activeTag?.name === tag.name;
-
-              return (
-                <div
-                  key={tag.id}
-                  className={`relative rounded-2xl border ${
-                    isUnlocked
-                      ? 'border-pink-300/50 dark:border-pink-700/50 bg-pink-50/50 dark:bg-pink-900/20'
-                      : 'border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/30'
-                  } p-4 transition-all duration-200`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{tag.emoji}</span>
-                        <span className={`text-sm font-medium ${isUnlocked ? 'text-pink-700 dark:text-pink-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                          {tag.name}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        {isPt ? tag.requirementPt : tag.requirement}
-                      </p>
-                      <div className="mt-2 text-sm">
-                        <span className={isUnlocked ? 'text-pink-600 dark:text-pink-400' : 'text-gray-500 dark:text-gray-400'}>{progress}</span>
-                        <span className="text-gray-400 dark:text-gray-500">/{tag.condition.count}</span>
-                      </div>
-                    </div>
-                    {!isUnlocked ? (
-                      <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                    ) : (
-                      <button
-                        onClick={() => handleUseTag(tag, 'oracle')}
-                        disabled={savingTag}
-                        className={`px-3 py-1 text-sm rounded-lg transition-colors ${getCategoryButtonStyle(isActive, 'oracle')}`}
-                      >
-                        {isActive ? (
-                          <span className="flex items-center"><Check className="w-4 h-4 mr-1" />{t('customize.tags.active')}</span>
-                        ) : savingTag ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          t('customize.tags.use')
-                        )}
-                      </button>
-                    )}
-                  </div>
-                  <div className="mt-3 h-1.5 bg-gray-200/80 dark:bg-gray-700/80 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${isUnlocked ? 'bg-gradient-to-r from-pink-400 to-rose-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-                      style={{ width: `${Math.min(100, (progress / tag.condition.count) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-
-      case 'special':
-        return (
-          <div className="space-y-6">
-            <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {t('customize.tags.limitedTime')}
-            </div>
-            {specialTags.length === 0 ? (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>{t('customize.tags.noSpecialTags')}</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {specialTags.map((tag) => {
-                  const isActive = activeTag?.name === tag.name;
-                  return (
-                    <div
-                      key={tag.id}
-                      className={`relative rounded-2xl border ${
-                        tag.is_unlocked
-                          ? 'border-black/50 dark:border-gray-500/40 bg-black/[0.06] dark:bg-black/20'
-                          : 'border-gray-300/50 dark:border-gray-700/50 bg-gray-100/50 dark:bg-gray-800/20'
-                      } p-4 transition-all duration-200`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">{tag.emoji}</span>
-                            <span className={`text-sm font-medium ${tag.is_unlocked ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
-                              {tag.name}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">{tag.description}</p>
-                          <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">{tag.requirement_description}</p>
-                          {tag.ends_at && tag.is_currently_active && (
-                            <div className="mt-2 flex items-center gap-1.5 text-xs">
-                              <Clock className="w-3.5 h-3.5 text-amber-500" />
-                              <span className="text-amber-600 dark:text-amber-400 font-medium">{formatTimeRemaining(tag.ends_at)}</span>
-                            </div>
-                          )}
-                          {tag.ends_at && !tag.is_currently_active && tag.is_unlocked && (
-                            <div className="mt-2 flex items-center gap-1.5 text-xs">
-                              <Sparkles className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
-                              <span className="text-gray-500 dark:text-gray-400 font-medium">
-                                {t('customize.tags.permanentlyEarned')}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        {!tag.is_unlocked ? (
-                          <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                        ) : (
-                          <button
-                            onClick={() => handleUseTag({ name: tag.name, emoji: tag.emoji }, 'special')}
-                            disabled={savingTag}
-                            className={`px-3 py-1 text-sm rounded-lg transition-colors ${getCategoryButtonStyle(isActive, 'special')}`}
-                          >
-                            {isActive ? (
-                              <span className="flex items-center"><Check className="w-4 h-4 mr-1" />{t('customize.tags.active')}</span>
-                            ) : savingTag ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              t('customize.tags.use')
-                            )}
-                          </button>
-                        )}
-                      </div>
-                      {tag.is_unlocked && (
-                        <div className="mt-3 h-1.5 bg-gray-200 dark:bg-gray-800/40 rounded-full overflow-hidden">
-                          <div className="h-full w-full rounded-full bg-black dark:bg-gray-300" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+  const renderTagRow = (row: TagRow) => {
+    const { accent } = tagCategoryStyle(row.category);
+    const isActive = activeTag?.name === row.name;
+    const pct = row.goal ? Math.min(100, ((row.progress || 0) / row.goal) * 100) : row.isUnlocked ? 100 : 0;
+    return (
+      <li
+        key={row.key}
+        className="rounded-2xl p-4 ring-1 ring-white/[0.07] flex flex-col gap-3"
+        style={{
+          background: VELVET,
+          // Desbloqueada: contorno na cor da categoria (mais forte se em uso).
+          boxShadow: row.isUnlocked ? `inset 0 0 0 1px ${withAlpha(accent, isActive ? 0.75 : 0.3)}` : undefined,
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <span
+            className={`grid place-items-center w-11 h-11 shrink-0 rounded-xl text-2xl leading-none ${row.isUnlocked ? '' : 'grayscale opacity-50'}`}
+            style={{ background: NIGHT }}
+            aria-hidden
+          >
+            {row.emoji}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold leading-snug" style={{ color: row.isUnlocked ? PAPER : MIST }}>
+              {row.name}
+            </p>
+            <p className="mt-0.5 text-[13px] leading-snug" style={{ color: MIST }}>
+              {row.description}
+            </p>
+            {row.detail && (
+              <p className="mt-1 text-xs leading-snug" style={{ color: MIST, opacity: 0.8 }}>
+                {row.detail}
+              </p>
+            )}
+            {row.note && (
+              <p className={`mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium ${row.note.icon === 'clock' ? 'text-amber-200' : ''}`} style={row.note.icon === 'clock' ? undefined : { color: MIST }}>
+                {row.note.icon === 'clock' ? <Clock className="w-3.5 h-3.5" aria-hidden /> : <Sparkles className="w-3.5 h-3.5" aria-hidden />}
+                {row.note.text}
+              </p>
             )}
           </div>
-        );
-
-      default:
-        return null;
-    }
+          {row.isUnlocked ? (
+            tagToggleButton(row.name, row.emoji, row.category, true)
+          ) : (
+            <span className="grid place-items-center w-9 h-9 shrink-0 rounded-full bg-white/[0.06]" style={{ color: MIST }}>
+              <Lock className="w-4 h-4" aria-hidden />
+              <span className="sr-only">{t('customize.locked')}</span>
+            </span>
+          )}
+        </div>
+        {row.goal !== null && (
+          <div className="flex items-center gap-3">
+            <span
+              className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={row.goal}
+              aria-valuenow={Math.min(row.progress || 0, row.goal)}
+              aria-label={row.name}
+            >
+              <span className="block h-full rounded-full transition-[width] duration-500" style={{ width: `${pct}%`, background: row.isUnlocked ? accent : 'rgba(189,180,214,0.55)' }} />
+            </span>
+            <span className="shrink-0 text-xs tabular-nums" style={{ color: row.isUnlocked ? PAPER : MIST }}>
+              {Math.min(row.progress || 0, row.goal)}/{row.goal}
+            </span>
+          </div>
+        )}
+      </li>
+    );
   };
 
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-8 overflow-y-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="relative w-full max-w-3xl max-h-[calc(100dvh-env(safe-area-inset-top)-4rem)] flex flex-col bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20 dark:border-gray-700/50 overflow-hidden"
-          >
-            <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-              <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                {t('profile.tagPins', { defaultValue: isPt ? 'Pins de Tags' : 'Tag Pins' })}
-              </h2>
-              <button
-                onClick={onClose}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+  const renderPinsView = () => (
+    <div className="space-y-6">
+      {/* A tag em uso no perfil agora */}
+      <section className="rounded-2xl p-4 ring-1 ring-white/10 flex items-center gap-3" style={{ background: VELVET }}>
+        {activeTag ? (
+          <>
+            <span className="grid place-items-center w-12 h-12 shrink-0 rounded-xl text-2xl leading-none" style={{ background: NIGHT }} aria-hidden>
+              {activeTag.emoji}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs" style={{ color: MIST }}>
+                {t('customize.tags.currentlyActive')}
+              </p>
+              <p className="font-semibold truncate" style={{ color: PAPER }}>
+                {activeTag.name}
+              </p>
             </div>
+            <button
+              onClick={() => handleUseTag(activeTag, activeTag.category)}
+              disabled={!!savingName}
+              className={`shrink-0 gap-1.5 h-10 px-4 rounded-full border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
+              style={{ color: PAPER }}
+            >
+              {savingName === activeTag.name ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <X className="w-4 h-4" aria-hidden />}
+              {t('customize.tags.remove')}
+            </button>
+          </>
+        ) : (
+          <p className="text-sm" style={{ color: MIST }}>
+            {pins.length > 0 ? t('tagPins.noneActive') : t('tagPins.noneYetHint')}
+          </p>
+        )}
+      </section>
 
-            <div className="flex-shrink-0 px-6 pt-4">
-              <div className="flex gap-2 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-                {categories.map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    onClick={() => setViewMode(id)}
-                    className={`flex items-center flex-shrink-0 whitespace-nowrap px-3.5 py-2 text-sm font-medium rounded-xl transition-all ${
-                      viewMode === id
-                        ? id === 'pins'
-                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
-                          : getTagColorClasses(id)
-                        : 'bg-gray-100/80 text-gray-600 hover:bg-gray-200 dark:bg-gray-700/50 dark:text-gray-400 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 mr-2" />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-6 pb-6">
-              {loading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
-                </div>
-              ) : viewMode === 'pins' ? (
-                renderPinsView()
-              ) : (
-                renderCategoryContent()
-              )}
-            </div>
-          </motion.div>
+      {pins.length === 0 ? (
+        <div className="text-center py-10">
+          <span className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
+            <Sparkles className="w-7 h-7 text-violet-300" aria-hidden />
+          </span>
+          <p className="mt-4 font-semibold" style={{ color: PAPER }}>
+            {t('profile.noTagPins')}
+          </p>
         </div>
+      ) : (
+        <section>
+          <p className="text-sm" style={{ color: MIST }}>
+            {t('tagPins.unlockedCount', { count: pins.length })} · {t('tagPins.tapToUse')}
+          </p>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {pins.map((pin, idx) => {
+              const isActive = activeTag?.name === pin.name;
+              const style = tagCategoryStyle(pin.category);
+              return (
+                <li key={`${pin.category}-${pin.name}-${idx}`}>
+                  <button
+                    onClick={() => handleUseTag(pin, pin.category)}
+                    disabled={!!savingName}
+                    aria-pressed={isActive}
+                    className={`gap-1.5 h-10 pl-2.5 pr-3.5 rounded-full text-sm font-medium transition disabled:cursor-wait ${FOCUS_RING} ${style.pill} ${
+                      isActive ? 'ring-2' : 'opacity-90 hover:opacity-100'
+                    }`}
+                    style={isActive ? { boxShadow: `0 0 0 2px ${NIGHT}, 0 0 0 4px ${style.accent}` } : undefined}
+                  >
+                    <span className="text-lg leading-none" aria-hidden>
+                      {pin.emoji}
+                    </span>
+                    {pin.name}
+                    {savingName === pin.name ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden /> : isActive ? <Check className="w-3.5 h-3.5" aria-hidden /> : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
-    </AnimatePresence>,
-    document.body
+    </div>
+  );
+
+  const renderCategoryContent = (category: TagCategoryId) => {
+    const rows = rowsFor(category);
+    const intro =
+      category === 'basic'
+        ? t('customize.progress.moviesRated', { count: ratedMoviesCount })
+        : category === 'community'
+          ? t('customize.progress.followers', { count: followersCount })
+          : category === 'special'
+            ? t('customize.tags.limitedTime')
+            : null;
+    return (
+      <div>
+        {intro && (
+          <p className="mb-3 text-sm" style={{ color: MIST }}>
+            {intro}
+          </p>
+        )}
+        {rows.length === 0 ? (
+          <div className="text-center py-10">
+            <Sparkles className="w-8 h-8 mx-auto text-violet-300/70" aria-hidden />
+            <p className="mt-3 text-sm" style={{ color: MIST }}>
+              {t('customize.tags.noSpecialTags')}
+            </p>
+          </div>
+        ) : (
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">{rows.map(renderTagRow)}</ul>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <OracleSheet
+      open={isOpen}
+      onClose={onClose}
+      title={t('profile.tagPins')}
+      subtitle={t('tagPins.subtitle')}
+      leading={
+        <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-violet-500/15 ring-1 ring-violet-400/30">
+          <Tag className="w-5 h-5 text-violet-300" aria-hidden />
+        </span>
+      }
+      size="lg"
+      bodyClassName="px-5 sm:px-7 pb-6"
+    >
+      {/* Categorias — rolagem lateral, grudadas no topo */}
+      <div className="sticky top-0 z-10 -mx-5 sm:-mx-7 pt-4 pb-3 mb-4 border-b border-white/[0.07]" style={{ background: NIGHT }}>
+        <div role="tablist" aria-label={t('profile.tagPins')} className="flex gap-2 overflow-x-auto px-5 sm:px-7 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+          {categories.map(({ id, label, icon: Icon }) => {
+            const active = viewMode === id;
+            const accent = id === 'pins' ? '#A78BFA' : tagCategoryStyle(id).accent;
+            const count = id === 'pins' ? pins.length : pinsByCategory(id);
+            return (
+              <button
+                key={id}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setViewMode(id)}
+                className={`shrink-0 whitespace-nowrap gap-2 h-10 px-3.5 rounded-full text-sm font-medium transition ${FOCUS_RING} ${
+                  active ? 'bg-white/[0.12] ring-1 ring-white/25' : 'ring-1 ring-white/10 hover:ring-white/25'
+                }`}
+                style={{ color: active ? PAPER : MIST, background: active ? undefined : VELVET }}
+              >
+                <Icon className="w-4 h-4" style={{ color: accent }} aria-hidden />
+                {label}
+                {!loading && count > 0 && (
+                  <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full text-[11px] font-bold tabular-nums grid place-items-center" style={{ background: withAlpha(accent, 0.2), color: accent }}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {loading ? (
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3" aria-busy="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <li key={i} className="h-28 rounded-2xl ring-1 ring-white/[0.07] animate-pulse" style={{ background: VELVET }} />
+          ))}
+        </ul>
+      ) : (
+        <div role="tabpanel">{viewMode === 'pins' ? renderPinsView() : renderCategoryContent(viewMode)}</div>
+      )}
+    </OracleSheet>
   );
 };
 

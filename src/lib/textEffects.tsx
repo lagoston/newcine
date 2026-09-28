@@ -19,8 +19,9 @@ export const textEffects = {
     isPremium: false,
     requiredTag: null as string | null,
     requiredReviewCount: 0,
-    nameClassName: 'text-gray-900 dark:text-white',
-    secondaryClassName: 'text-gray-600 dark:text-gray-300',
+    // Tons do padrão noite (PAPER / MIST) — o site inteiro é escuro agora.
+    nameClassName: 'text-[#F3EAD3]',
+    secondaryClassName: 'text-[#BDB4D6]',
   },
   // "Literalmente uma fonte nova" — Courier Prime, a fonte monoespaçada
   // que é o padrão real da indústria pra roteiros de cinema (todo

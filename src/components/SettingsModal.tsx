@@ -1,21 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { X, Crown, Send, AlertTriangle, Infinity } from 'lucide-react';
+import React, { useState, useEffect, useId } from 'react';
+import { Crown, Send, AlertTriangle, Infinity as InfinityIcon, Settings, Globe2, Users, ChevronDown, Mail, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import i18n from '../i18n';
+import OracleSheet from './OracleSheet';
+import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+const APP_VERSION = 'Beta 4.6';
+
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { session, isPremium, isLifetimePremium } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends_only'>('public');
   const [feedback, setFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -24,12 +27,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [cooldownRemaining, setCooldownRemaining] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [dangerOpen, setDangerOpen] = useState(false);
+  const feedbackId = useId();
+  const deleteInputId = useId();
 
   useEffect(() => {
     if (isOpen && session?.user?.id) {
       fetchSettings();
       checkFeedbackCooldown();
     }
+    if (!isOpen) {
+      // Fechar sempre "desarma" a exclusão de conta.
+      setDangerOpen(false);
+      setDeleteConfirmation('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, session?.user?.id]);
 
   useEffect(() => {
@@ -40,6 +52,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
       return () => clearInterval(interval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastFeedbackTime]);
 
   const checkFeedbackCooldown = async () => {
@@ -94,11 +107,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('profile_visibility')
-        .eq('id', session.user.id)
-        .single();
+      const { data, error } = await supabase.from('profiles').select('profile_visibility').eq('id', session.user.id).single();
 
       if (error) throw error;
 
@@ -113,13 +122,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleVisibilityChange = async (visibility: 'public' | 'friends_only') => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || visibility === profileVisibility) return;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ profile_visibility: visibility })
-        .eq('id', session.user.id);
+      const { error } = await supabase.from('profiles').update({ profile_visibility: visibility }).eq('id', session.user.id);
 
       if (error) throw error;
 
@@ -143,13 +149,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       setSubmitting(true);
 
       const now = new Date();
-      const { error } = await supabase
-        .from('feedback')
-        .insert({
-          user_id: session.user.id,
-          message: feedback.trim(),
-          created_at: now.toISOString()
-        });
+      const { error } = await supabase.from('feedback').insert({
+        user_id: session.user.id,
+        message: feedback.trim(),
+        created_at: now.toISOString(),
+      });
 
       if (error) throw error;
 
@@ -165,12 +169,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  // "pt-BR" também é português — antes só "pt" exato pedia EXCLUIR, e quem
+  // estava em pt-BR via o texto pedindo EXCLUIR mas precisava digitar DELETE.
+  const expectedDeleteText = i18n.language.startsWith('pt') ? 'EXCLUIR' : 'DELETE';
+  const deleteMatches = deleteConfirmation.trim().toUpperCase() === expectedDeleteText;
+
   const handleDeleteAccount = async () => {
     if (!session?.user?.id) return;
 
-    const expectedText = i18n.language === 'pt' ? 'EXCLUIR' : 'DELETE';
-
-    if (deleteConfirmation !== expectedText) {
+    if (!deleteMatches) {
       toast.error(t('settings.confirmationRequired'));
       return;
     }
@@ -179,7 +186,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       setIsDeleting(true);
 
       const { data, error } = await supabase.rpc('delete_user_account', {
-        user_id_param: session.user.id
+        user_id_param: session.user.id,
       });
 
       if (error) throw error;
@@ -187,16 +194,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       if (data?.success) {
         toast.success(t('settings.accountDeleted'));
 
-        // Sign out
         await supabase.auth.signOut();
 
-        // Close modal and redirect
         onClose();
         navigate('/auth');
       } else {
         throw new Error(data?.error || 'Unknown error');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting account:', error);
       toast.error(t('settings.deleteAccountError'));
     } finally {
@@ -204,230 +209,211 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  if (!isOpen) return null;
-
   const isFeedbackDisabled = !!lastFeedbackTime || !feedback.trim() || submitting;
-  const expectedDeleteText = i18n.language === 'pt' ? 'EXCLUIR' : 'DELETE';
-  const isDeleteDisabled = deleteConfirmation !== expectedDeleteText || isDeleting;
+  const isDeleteDisabled = !deleteMatches || isDeleting;
+
+  const sectionTitle = (text: string) => (
+    <h3 style={{ ...PIXEL, color: PAPER }} className="text-lg leading-none">
+      {text}
+    </h3>
+  );
+
+  const visibilityOptions: { value: 'public' | 'friends_only'; icon: typeof Globe2; label: string; desc: string }[] = [
+    { value: 'public', icon: Globe2, label: t('settings.public'), desc: t('settings.publicDescription') },
+    { value: 'friends_only', icon: Users, label: t('settings.friendsOnly'), desc: t('settings.friendsOnlyDescription') },
+  ];
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={onClose}
+    <OracleSheet
+      open={isOpen}
+      onClose={onClose}
+      title={t('settings.title')}
+      leading={
+        <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-violet-500/15 ring-1 ring-violet-400/30">
+          <Settings className="w-5 h-5 text-violet-300" aria-hidden />
+        </span>
+      }
+      size="lg"
+      bodyClassName="px-5 sm:px-7 py-6 space-y-8"
     >
-      <div
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            {t('settings.title')}
-          </h2>
+      {/* Conta */}
+      <section className="rounded-2xl ring-1 ring-white/10 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4" style={{ background: VELVET }}>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm" style={{ color: MIST }}>
+            {t('settings.email')}
+          </p>
+          <p className="mt-0.5 font-medium truncate" style={{ color: PAPER }}>
+            {session?.user?.email || t('settings.noEmail')}
+          </p>
+        </div>
+        <div className="flex flex-col items-start sm:items-end gap-1">
+          <p className="text-sm" style={{ color: MIST }}>
+            {t('settings.accountStatus')}
+          </p>
+          {isLifetimePremium ? (
+            <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-emerald-500/15 ring-1 ring-emerald-400/30 text-emerald-200 text-sm font-semibold">
+              <InfinityIcon className="w-4 h-4" aria-hidden />
+              {t('premium.lifetimePremium')}
+            </span>
+          ) : isPremium ? (
+            <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-amber-500/15 ring-1 ring-amber-400/30 text-amber-200 text-sm font-semibold">
+              <Crown className="w-4 h-4" aria-hidden />
+              {t('settings.premium')}
+            </span>
+          ) : (
+            <span className="inline-flex items-center h-8 px-3 rounded-full bg-white/10 ring-1 ring-white/15 text-sm font-semibold" style={{ color: PAPER }}>
+              {t('settings.free')}
+            </span>
+          )}
+        </div>
+      </section>
+
+      {!isLifetimePremium && (
+        <button
+          onClick={() => {
+            navigate('/premium');
+            onClose();
+          }}
+          className={`-mt-5 w-full h-12 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-[#221B36] text-sm font-semibold shadow-lg shadow-amber-900/30 gap-2 transition ${FOCUS_RING}`}
+        >
+          <Crown className="w-[18px] h-[18px]" aria-hidden />
+          {t('settings.manageSubscription')}
+        </button>
+      )}
+
+      {/* Privacidade */}
+      <section>
+        {sectionTitle(t('settings.profileVisibility'))}
+        <div role="radiogroup" aria-label={t('settings.profileVisibility')} aria-busy={loading || undefined} className="mt-3 grid sm:grid-cols-2 gap-2.5">
+          {visibilityOptions.map(({ value, icon: Icon, label, desc }) => {
+            const selected = profileVisibility === value;
+            return (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={selected}
+                disabled={loading}
+                onClick={() => handleVisibilityChange(value)}
+                className={`w-full justify-start items-start gap-3 p-3.5 rounded-xl text-left ring-1 transition disabled:opacity-60 ${FOCUS_RING} ${
+                  selected ? 'ring-2 ring-violet-400/70 bg-violet-500/15' : 'ring-white/10 hover:ring-white/25'
+                }`}
+                style={{ background: selected ? undefined : VELVET }}
+              >
+                <span className={`grid place-items-center w-9 h-9 shrink-0 rounded-lg ${selected ? 'bg-violet-600 text-white' : 'bg-white/10 text-violet-300'}`}>
+                  <Icon className="w-[18px] h-[18px]" aria-hidden />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-semibold" style={{ color: PAPER }}>
+                    {label}
+                  </span>
+                  <span className="block mt-0.5 text-xs leading-snug" style={{ color: MIST }}>
+                    {desc}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Suporte */}
+      <section>
+        {sectionTitle(t('settings.feedback'))}
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: MIST }}>
+          {t('settings.feedbackDescription')}
+        </p>
+        <p className="mt-1 inline-flex items-center gap-1.5 text-sm" style={{ color: MIST }}>
+          <Mail className="w-4 h-4 shrink-0" aria-hidden />
+          <a href="mailto:support@cineoracle.com" className="min-h-0 min-w-0 underline underline-offset-4 hover:text-[#F3EAD3]">
+            support@cineoracle.com
+          </a>
+        </p>
+
+        {cooldownRemaining && (
+          <p className="mt-3 flex items-center gap-2 rounded-xl px-3.5 py-2.5 bg-amber-500/10 ring-1 ring-amber-400/25 text-sm text-amber-200">
+            <Clock className="w-4 h-4 shrink-0" aria-hidden />
+            {cooldownRemaining}
+          </p>
+        )}
+
+        <label htmlFor={feedbackId} className="sr-only">
+          {t('settings.feedbackPlaceholder')}
+        </label>
+        <textarea
+          id={feedbackId}
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          placeholder={t('settings.feedbackPlaceholder')}
+          rows={4}
+          disabled={!!lastFeedbackTime}
+          className="mt-3 w-full px-4 py-3 rounded-xl ring-1 ring-white/15 focus:ring-2 focus:ring-fuchsia-300/70 outline-none resize-none text-[15px] leading-relaxed placeholder:text-[#BDB4D6]/70 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ background: VELVET, color: PAPER }}
+        />
+        <div className="mt-2.5 flex justify-end">
           <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            onClick={handleFeedbackSubmit}
+            disabled={isFeedbackDisabled}
+            className={`gap-2 h-11 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-fuchsia-900/30 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none ${FOCUS_RING}`}
           >
-            <X className="w-6 h-6" />
+            <Send className="w-4 h-4" aria-hidden />
+            {submitting ? t('settings.sending') : t('settings.sendFeedback')}
           </button>
         </div>
+      </section>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-              {t('settings.appVersion')}
-            </h3>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">
-              Beta 4.6
-            </p>
-          </div>
+      {/* Zona de perigo — fechada por padrão */}
+      <section className="border-t border-white/[0.07] pt-6">
+        <button
+          onClick={() => setDangerOpen((v) => !v)}
+          aria-expanded={dangerOpen}
+          className={`w-full justify-between gap-3 px-1 rounded-xl text-left text-red-300 hover:text-red-200 transition ${FOCUS_RING}`}
+        >
+          <span className="inline-flex items-center gap-2 font-semibold">
+            <AlertTriangle className="w-[18px] h-[18px]" aria-hidden />
+            {t('settings.deleteAccount')}
+          </span>
+          <ChevronDown className={`w-5 h-5 transition-transform ${dangerOpen ? 'rotate-180' : ''}`} aria-hidden />
+        </button>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {t('settings.privacy')}
-            </h3>
-
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                  {t('settings.email')}
-                </h4>
-                <p className="text-gray-900 dark:text-white">
-                  {session?.user?.email || t('settings.noEmail')}
-                </p>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                  {t('settings.profileVisibility')}
-                </h4>
-                {loading ? (
-                  <div className="text-gray-500 dark:text-gray-400">{t('settings.loading')}</div>
-                ) : (
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleVisibilityChange('public')}
-                      className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
-                        profileVisibility === 'public'
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
-                      }`}
-                    >
-                      {t('settings.public')}
-                    </button>
-                    <button
-                      onClick={() => handleVisibilityChange('friends_only')}
-                      className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
-                        profileVisibility === 'friends_only'
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
-                      }`}
-                    >
-                      {t('settings.friendsOnly')}
-                    </button>
-                  </div>
-                )}
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  {profileVisibility === 'public'
-                    ? t('settings.publicDescription')
-                    : t('settings.friendsOnlyDescription')}
-                </p>
-              </div>
+        {dangerOpen && (
+          <div className="mt-3 rounded-2xl p-4 sm:p-5 ring-1 ring-red-400/30 bg-red-500/[0.07] space-y-4">
+            <div className="space-y-1.5">
+              <p className="text-sm font-semibold text-red-200">{t('common.warningPermanent')}</p>
+              <p className="text-sm leading-relaxed text-red-200/80">{t('settings.deleteAccountWarning')}</p>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {t('settings.subscription')}
-            </h3>
-
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    {t('settings.accountStatus')}
-                  </h4>
-                  <div className="flex items-center gap-2">
-                    {isLifetimePremium ? (
-                      <>
-                        <Infinity className="w-5 h-5 text-emerald-500" />
-                        <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-500">
-                          {t('premium.lifetimePremium')}
-                        </span>
-                      </>
-                    ) : isPremium ? (
-                      <>
-                        <Crown className="w-5 h-5 text-yellow-500" />
-                        <span className="text-lg font-semibold text-yellow-600 dark:text-yellow-500">
-                          {t('settings.premium')}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                        {t('settings.free')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {!isLifetimePremium && (
-                <button
-                  onClick={() => {
-                    navigate('/premium');
-                    onClose();
-                  }}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-all font-semibold shadow-md hover:shadow-lg"
-                >
-                  {t('settings.manageSubscription')}
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {t('settings.feedback')}
-            </h3>
-
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {t('settings.feedbackDescription')}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                {t('settings.feedbackEmailAlternative')}
-              </p>
-
-              {cooldownRemaining && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
-                    {cooldownRemaining}
-                  </p>
-                </div>
-              )}
-
-              <textarea
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-                placeholder={t('settings.feedbackPlaceholder')}
-                rows={4}
-                disabled={!!lastFeedbackTime}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+            <div>
+              <label htmlFor={deleteInputId} className="block text-sm mb-1.5 text-red-100">
+                {t('settings.deleteAccountConfirm')}
+              </label>
+              <input
+                id={deleteInputId}
+                type="text"
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                placeholder={t('settings.typeDelete')}
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                className="w-full h-12 px-4 rounded-xl ring-1 ring-red-400/40 focus:ring-2 focus:ring-red-400 outline-none text-[15px] tracking-wide placeholder:text-red-200/40"
+                style={{ background: 'rgba(18,13,34,0.75)', color: PAPER }}
               />
-
-              <button
-                onClick={handleFeedbackSubmit}
-                disabled={isFeedbackDisabled}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold shadow-md hover:shadow-lg"
-              >
-                <Send className="w-5 h-5" />
-                {submitting ? t('settings.sending') : t('settings.sendFeedback')}
-              </button>
             </div>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={isDeleteDisabled}
+              className={`w-full gap-2 h-12 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed ${FOCUS_RING}`}
+            >
+              <AlertTriangle className="w-[18px] h-[18px]" aria-hidden />
+              {isDeleting ? t('common.loading') : t('settings.deleteAccountButton')}
+            </button>
           </div>
+        )}
+      </section>
 
-          {/* Delete Account Section */}
-          <div className="space-y-4 pt-6 border-t border-red-200 dark:border-red-900">
-            <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
-              {t('settings.deleteAccount')}
-            </h3>
-
-            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 space-y-4 border-2 border-red-200 dark:border-red-800">
-              <div className="space-y-2">
-                <p className="text-sm text-red-800 dark:text-red-200 font-semibold">
-                  ⚠️ {t('common.warningPermanent')}
-                </p>
-                <p className="text-sm text-red-700 dark:text-red-300">
-                  {t('settings.deleteAccountWarning')}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-red-800 dark:text-red-200">
-                  {t('settings.deleteAccountConfirm')}
-                </label>
-                <input
-                  type="text"
-                  value={deleteConfirmation}
-                  onChange={(e) => setDeleteConfirmation(e.target.value)}
-                  placeholder={t('settings.typeDelete')}
-                  className="w-full px-4 py-2 rounded-lg border-2 border-red-300 dark:border-red-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-red-400 focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-
-              <button
-                onClick={handleDeleteAccount}
-                disabled={isDeleteDisabled}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold shadow-md hover:shadow-lg"
-              >
-                <AlertTriangle className="w-5 h-5" />
-                {isDeleting ? t('common.loading') : t('settings.deleteAccountButton')}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <p className="text-center text-xs" style={{ color: MIST }}>
+        {t('settings.appVersion')} · <span style={PIXEL}>{APP_VERSION}</span>
+      </p>
+    </OracleSheet>
   );
 };
 

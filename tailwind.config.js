@@ -236,9 +236,12 @@ export default {
         },
         // ── TEXT EFFECTS (Customize Profile) ────────────────────────────────
         // Typewriter — cursor de máquina de escrever piscando no final do nome.
+        // Só a BORDA (o cursor) pisca — antes a animação mexia na opacidade
+        // do elemento inteiro, e o nome todo sumia e voltava a cada meio
+        // segundo, não só o cursor.
         'typewriter-cursor-blink': {
-          '0%, 49%': { opacity: '1' },
-          '50%, 100%': { opacity: '0' },
+          '0%, 49%': { borderRightColor: 'currentColor' },
+          '50%, 100%': { borderRightColor: 'transparent' },
         },
         // Technicolor — o gradiente de 5 cores desliza continuamente pelo
         // texto (background-position em movimento), nunca uma cor parada.

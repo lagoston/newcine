@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Image as ImageIcon, Layout, Crown, Lock, Unlock, Check, User, Film, Type } from 'lucide-react';
-import GlassLoader from './GlassLoader';
+import { Image as ImageIcon, Layout, Crown, Lock, Unlock, Check, User, Film, Type, Palette } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
@@ -9,8 +8,9 @@ import { GhostRiderFrame } from './GhostRiderFrame';
 import { THEME_TAGS, PROGRESSION_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
 import { banners, BannerId } from '../lib/banners';
 import { textEffects, TextEffectId, meetsTextEffectRequirement } from '../lib/textEffects';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import OracleSheet from './OracleSheet';
+import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
 interface CustomizeModalProps {
   isOpen: boolean;
@@ -18,16 +18,20 @@ interface CustomizeModalProps {
   onSave?: () => void;
 }
 
-interface Frame {
-  id: string;
-  name: string;
-  isPremium: boolean;
-  className: string;
-}
-
 type TabType = 'frames' | 'banners' | 'cards' | 'textEffects';
 
-const ORACLE_CARDS: Record<CardStyle, OracleCard> = {
+// Estilos das cartas dos oráculos (o que aparece nas recomendações).
+type CardStyle = 'default' | 'yugioh' | 'horror';
+
+interface OracleCardStyle {
+  id: CardStyle;
+  name: string;
+  isPremium: boolean;
+  requiredTag?: string;
+  images: { bogart: string; fincher: string; cypher: string };
+}
+
+const ORACLE_CARDS: Record<CardStyle, OracleCardStyle> = {
   default: {
     id: 'default',
     name: 'Default',
@@ -35,8 +39,8 @@ const ORACLE_CARDS: Record<CardStyle, OracleCard> = {
     images: {
       bogart: '/assets/BOGART.webp',
       fincher: '/assets/FINCHER.webp',
-      cypher: '/assets/CYPHER.webp'
-    }
+      cypher: '/assets/CYPHER.webp',
+    },
   },
   yugioh: {
     id: 'yugioh',
@@ -45,8 +49,8 @@ const ORACLE_CARDS: Record<CardStyle, OracleCard> = {
     images: {
       bogart: '/assets/BOGART2.webp',
       fincher: '/assets/FINCHER2.webp',
-      cypher: '/assets/CYPHER2.webp'
-    }
+      cypher: '/assets/CYPHER2.webp',
+    },
   },
   horror: {
     id: 'horror',
@@ -56,14 +60,60 @@ const ORACLE_CARDS: Record<CardStyle, OracleCard> = {
     images: {
       bogart: '/assets/BOGART3.webp',
       fincher: '/assets/FINCHER3.webp',
-      cypher: '/assets/CYPHER3.webp'
+      cypher: '/assets/CYPHER3.webp',
+    },
+  },
+};
+
+// Resultado do RPC set_user_cosmetic (o servidor valida se o item foi
+// realmente desbloqueado antes de gravar).
+type CosmeticResult = { success?: boolean } | null;
+
+// As animações das prévias (molduras e banners) ficam PAUSADAS e só rodam
+// com o mouse em cima do cartão (ou foco de teclado) — são até 12 animações
+// pesadas ao mesmo tempo na tela. Precisa ser CSS de verdade porque
+// ::before/::after não obedecem estilo inline. Quem prefere menos
+// movimento nunca vê a animação rodando.
+const PREVIEW_ANIM_CSS = `
+  .cz-anim, .cz-anim::before, .cz-anim::after { animation-play-state: paused !important; }
+  .cz-tile:hover .cz-anim, .cz-tile:hover .cz-anim::before, .cz-tile:hover .cz-anim::after,
+  .cz-tile:focus-visible .cz-anim, .cz-tile:focus-visible .cz-anim::before, .cz-tile:focus-visible .cz-anim::after {
+    animation-play-state: running !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cz-tile:hover .cz-anim, .cz-tile:hover .cz-anim::before, .cz-tile:hover .cz-anim::after,
+    .cz-tile:focus-visible .cz-anim, .cz-tile:focus-visible .cz-anim::before, .cz-tile:focus-visible .cz-anim::after {
+      animation-play-state: paused !important;
     }
   }
+`;
+
+interface UnlockTagInfo {
+  emoji: string;
+  name: string;
+  requiredCount: number;
+}
+
+// Busca info de desbloqueio de uma tag de forma unificada — frames e
+// banners referenciam THEME_TAGS pelo id, cards referenciam
+// PROGRESSION_TAGS pelo próprio nome (ex.: 'Bloody Mary'); essa função
+// resolve os dois casos numa única chamada, pra todas as 4 categorias
+// mostrarem exatamente o mesmo formato (emoji + nome + progresso).
+const getUnlockTagInfo = (requiredTagName: string | null | undefined): UnlockTagInfo | null => {
+  if (!requiredTagName) return null;
+  const themeTag = THEME_TAGS.find((tag) => tag.id === requiredTagName || tag.name === requiredTagName);
+  if (themeTag) {
+    return { emoji: themeTag.emoji, name: themeTag.name, requiredCount: themeTag.condition.count };
+  }
+  const progressionTag = PROGRESSION_TAGS.find((tag) => tag.name === requiredTagName);
+  if (progressionTag) {
+    return { emoji: progressionTag.emoji, name: progressionTag.name, requiredCount: progressionTag.minMovies };
+  }
+  return null;
 };
 
 const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave }) => {
-  const { t, i18n } = useTranslation();
-  const isPt = i18n.language.startsWith('pt');
+  const { t } = useTranslation();
   const { session, isPremium } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('frames');
   const [loading, setLoading] = useState(true);
@@ -82,38 +132,18 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [frozenAvatarUrl, setFrozenAvatarUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>('');
+  // Item sendo gravado agora — evita clique duplo e mostra o estado no cartão.
+  const [savingKey, setSavingKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (session?.user?.id && isOpen) {
-      const t0 = performance.now();
-      console.log('[CustomizeModal] abrindo, iniciando carregamento…', { userId: session.user.id, timestamp: t0 });
       setLoading(true);
-      Promise.all([
-        fetchProfile(),
-        fetchThemeTagProgress(),
-        fetchRealReviewCount()
-      ])
+      Promise.all([fetchProfile(), fetchThemeTagProgress(), fetchRealReviewCount()])
         .catch((err) => console.error('[CustomizeModal] erro ao carregar dados', err))
-        .finally(() => {
-          const t1 = performance.now();
-          console.log('[CustomizeModal] carregamento concluído, loading=false', { duracaoMs: Math.round(t1 - t0) });
-          setLoading(false);
-        });
+        .finally(() => setLoading(false));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id, isOpen]);
-
-  // Log de diagnóstico — mostra toda vez que `loading` muda de valor. Se o
-  // flick persistir mesmo com o corpo inteiro protegido, esse log revela
-  // se `loading` está alternando MAIS de uma vez (true→false→true→false),
-  // o que apontaria pra causa diferente (efeito duplicado, StrictMode,
-  // remontagem do componente) em vez de só "dados chegando aos poucos".
-  useEffect(() => {
-    console.log('[CustomizeModal] loading mudou para:', loading, { timestamp: performance.now() });
-  }, [loading]);
-
-  useEffect(() => {
-    console.log('[CustomizeModal] isOpen mudou para:', isOpen);
-  }, [isOpen]);
 
   // Se o avatar do usuário for um GIF, congela o primeiro frame numa imagem
   // estática uma única vez (via canvas) e reaproveita em todas as prévias de
@@ -159,18 +189,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         .single();
 
       if (error) throw error;
-      if (data?.avatar_frame) {
-        setSelectedFrame(data.avatar_frame as FrameId);
-      }
-      if (data?.banner) {
-        setSelectedBanner(data.banner as BannerId);
-      }
-      if (data?.card_style) {
-        setSelectedCard(data.card_style as CardStyle);
-      }
-      if (data?.text_effect) {
-        setSelectedTextEffect(data.text_effect as TextEffectId);
-      }
+      if (data?.avatar_frame) setSelectedFrame(data.avatar_frame as FrameId);
+      if (data?.banner) setSelectedBanner(data.banner as BannerId);
+      if (data?.card_style) setSelectedCard(data.card_style as CardStyle);
+      if (data?.text_effect) setSelectedTextEffect(data.text_effect as TextEffectId);
       setUserAvatarUrl(data?.avatar_url || null);
       setUsername(data?.username || '');
     } catch (error) {
@@ -180,8 +202,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
 
   // Contagem de resenhas REAIS (não geradas pelo Oráculo) — mesma
   // fonte de verdade usada pelo TagPinsModal pra decidir se Scribbler
-  // /Screenwriter/Memoirist estão desbloqueadas. Como os 3 limiares são
-  // cumulativos (1/10/30), checar >= 30 aqui já cobre as 3 tags de uma vez.
+  // /Screenwriter/Memoirist estão desbloqueadas.
   const fetchRealReviewCount = async () => {
     if (!session?.user?.id) return;
     try {
@@ -196,106 +217,47 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     }
   };
 
-  const handleFrameSelect = async (frameId: FrameId) => {
-    if (!session?.user?.id) return;
-
+  // Uma rotina só pras 4 categorias. Antes fazia um UPDATE direto em
+  // profiles, sem nenhuma validação no servidor — o botão desabilitado no
+  // frontend era a única barreira, contornável via console.
+  // set_user_cosmetic valida no servidor se o usuário realmente desbloqueou
+  // esse item antes de escrever.
+  const applyCosmetic = async (category: 'frame' | 'banner' | 'card' | 'text_effect', cosmeticId: string, onApplied: () => void, successMessage: string) => {
+    if (!session?.user?.id || savingKey) return;
+    const key = `${category}:${cosmeticId}`;
+    setSavingKey(key);
     try {
-      // Antes fazia um UPDATE direto em profiles, sem nenhuma validação no
-      // servidor — o botão desabilitado no frontend era a única barreira,
-      // contornável via console. set_user_cosmetic valida no servidor se o
-      // usuário realmente desbloqueou esse item antes de escrever.
       const { data, error } = await supabase
-        .rpc('set_user_cosmetic', { p_user_id: session.user.id, p_category: 'frame', p_cosmetic_id: frameId })
+        .rpc('set_user_cosmetic', { p_user_id: session.user.id, p_category: category, p_cosmetic_id: cosmeticId })
         .single();
 
       if (error) throw error;
-      if (!data.success) {
+      if (!(data as CosmeticResult)?.success) {
         toast.error(t('customize.updateError'));
         return;
       }
 
-      setSelectedFrame(frameId);
-      toast.success(t('customize.frameUpdated'));
-      // Propaga a mudança pro Profile IMEDIATAMENTE, sem depender do
-      // usuário clicar em "Salvar" — antes, se o modal fosse fechado de
-      // qualquer outra forma (X, clique fora, ESC), a mudança já estava
-      // salva no banco mas não aparecia na tela até sair e voltar pro
-      // perfil, o que parecia um bug de "não salvou" mesmo já tendo salvo.
+      onApplied();
+      toast.success(successMessage);
+      // Propaga a mudança pro Profile IMEDIATAMENTE — o modal não tem mais
+      // botão de "Salvar": cada escolha já é gravada na hora.
       onSave?.();
     } catch (error) {
-      console.error('Error updating frame:', error);
+      console.error(`Error updating ${category}:`, error);
       toast.error(t('customize.updateError'));
+    } finally {
+      setSavingKey(null);
     }
   };
 
-  const handleBannerSelect = async (bannerId: BannerId) => {
-    if (!session?.user?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .rpc('set_user_cosmetic', { p_user_id: session.user.id, p_category: 'banner', p_cosmetic_id: bannerId })
-        .single();
-
-      if (error) throw error;
-      if (!data.success) {
-        toast.error(t('customize.updateError'));
-        return;
-      }
-
-      setSelectedBanner(bannerId);
-      toast.success(t('customize.bannerUpdated'));
-      onSave?.();
-    } catch (error) {
-      console.error('Error updating banner:', error);
-      toast.error(t('customize.updateError'));
-    }
-  };
-
-  const handleCardSelect = async (cardStyle: CardStyle) => {
-    if (!session?.user?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .rpc('set_user_cosmetic', { p_user_id: session.user.id, p_category: 'card', p_cosmetic_id: cardStyle })
-        .single();
-
-      if (error) throw error;
-      if (!data.success) {
-        toast.error(t('customize.updateError'));
-        return;
-      }
-
-      setSelectedCard(cardStyle);
-      toast.success(t('customize.cardUpdated'));
-      onSave?.();
-    } catch (error) {
-      console.error('Error updating card style:', error);
-      toast.error(t('customize.updateError'));
-    }
-  };
-
-  const handleTextEffectSelect = async (effectId: TextEffectId) => {
-    if (!session?.user?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .rpc('set_user_cosmetic', { p_user_id: session.user.id, p_category: 'text_effect', p_cosmetic_id: effectId })
-        .single();
-
-      if (error) throw error;
-      if (!data.success) {
-        toast.error(t('customize.updateError'));
-        return;
-      }
-
-      setSelectedTextEffect(effectId);
-      toast.success(t('customize.textEffectUpdated', { defaultValue: 'Efeito de texto atualizado!' }));
-      onSave?.();
-    } catch (error) {
-      console.error('Error updating text effect:', error);
-      toast.error(t('customize.updateError'));
-    }
-  };
+  const handleFrameSelect = (frameId: FrameId) =>
+    applyCosmetic('frame', frameId, () => setSelectedFrame(frameId), t('customize.frameUpdated'));
+  const handleBannerSelect = (bannerId: BannerId) =>
+    applyCosmetic('banner', bannerId, () => setSelectedBanner(bannerId), t('customize.bannerUpdated'));
+  const handleCardSelect = (cardStyle: CardStyle) =>
+    applyCosmetic('card', cardStyle, () => setSelectedCard(cardStyle), t('customize.cardUpdated'));
+  const handleTextEffectSelect = (effectId: TextEffectId) =>
+    applyCosmetic('text_effect', effectId, () => setSelectedTextEffect(effectId), t('customize.textEffectUpdated'));
 
   const fetchThemeTagProgress = async () => {
     if (!session?.user?.id) return;
@@ -310,40 +272,31 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         .not('rating', 'is', null);
 
       if (!userMoviesError && userMovies) {
-        const ratedMovieIds = new Set(userMovies.map(movie => movie.movie_id));
+        const ratedMovieIds = new Set(userMovies.map((movie) => movie.movie_id));
 
         Object.entries(FRANCHISE_MOVIES).forEach(([franchise, movieIds]) => {
-          const watchedCount = movieIds.filter(id => ratedMovieIds.has(id)).length;
-          const tagId = THEME_TAGS.find(tag =>
-            tag.condition.type === 'franchise' &&
-            tag.condition.value === franchise
-          )?.id;
+          const watchedCount = movieIds.filter((id) => ratedMovieIds.has(id)).length;
+          const tagId = THEME_TAGS.find((tag) => tag.condition.type === 'franchise' && tag.condition.value === franchise)?.id;
 
           if (tagId) {
             progress[tagId] = watchedCount;
           }
         });
 
-        THEME_TAGS.forEach(tag => {
+        THEME_TAGS.forEach((tag) => {
           if (tag.condition.type === 'franchise' && Array.isArray(tag.condition.value)) {
-            const watchedCount = tag.condition.value.filter(id => ratedMovieIds.has(id)).length;
+            const watchedCount = tag.condition.value.filter((id) => ratedMovieIds.has(id)).length;
             progress[tag.id] = watchedCount;
           }
         });
 
         // Progresso real das PROGRESSION_TAGS de gênero (ex.: Bloody
-        // Mary/Horror, usada como requiredTag no card "Horror") — antes
-        // dessa correção, esse progresso nunca era calculado aqui (só
-        // franquias eram), então esse card ficava bloqueado pra sempre,
-        // independente de quantos filmes do gênero o usuário avaliasse.
-        // Mesma lógica de contagem já usada em TagPinsModal.tsx.
-        const genreTags = PROGRESSION_TAGS.filter(tag => tag.condition?.type === 'genre');
+        // Mary/Horror, usada como requiredTag no card "Horror") — mesma
+        // lógica de contagem já usada em TagPinsModal.tsx.
+        const genreTags = PROGRESSION_TAGS.filter((tag) => tag.condition?.type === 'genre');
         if (genreTags.length > 0) {
           const movieIds = [...new Set(userMovies.map((m: any) => m.movie_id))];
-          const { data: cacheData } = await supabase
-            .from('movie_cache')
-            .select('tmdb_id, media_type, genres_en')
-            .in('tmdb_id', movieIds);
+          const { data: cacheData } = await supabase.from('movie_cache').select('tmdb_id, media_type, genres_en').in('tmdb_id', movieIds);
 
           const cacheMap = new Map((cacheData || []).map((m: any) => [`${m.tmdb_id}_${m.media_type}`, m]));
           const genreCounts: Record<string, number> = {};
@@ -356,7 +309,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
             });
           });
 
-          genreTags.forEach(tag => {
+          genreTags.forEach((tag) => {
             progress[tag.name] = genreCounts[tag.condition?.value as string] || 0;
           });
         }
@@ -368,659 +321,374 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     }
   };
 
-  // Busca info de desbloqueio de uma tag de forma unificada — frames e
-  // banners referenciam THEME_TAGS pelo id, cards referenciam
-  // PROGRESSION_TAGS pelo próprio nome (ex.: 'Bloody Mary'); essa função
-  // resolve os dois casos numa única chamada, pra todas as 4 categorias
-  // mostrarem exatamente o mesmo formato (emoji + nome + progresso).
-  interface UnlockTagInfo {
-    emoji: string;
-    name: string;
-    requiredCount: number;
-  }
-
-  const getUnlockTagInfo = (requiredTagName: string | null | undefined): UnlockTagInfo | null => {
-    if (!requiredTagName) return null;
-    const themeTag = THEME_TAGS.find(t => t.id === requiredTagName || t.name === requiredTagName);
-    if (themeTag) {
-      return { emoji: themeTag.emoji, name: themeTag.name, requiredCount: themeTag.condition.count };
-    }
-    const progressionTag = PROGRESSION_TAGS.find(t => t.name === requiredTagName);
-    if (progressionTag) {
-      return { emoji: progressionTag.emoji, name: progressionTag.name, requiredCount: progressionTag.minMovies };
-    }
-    return null;
+  // Estado de desbloqueio comum a molduras, banners e cartas.
+  const lockState = (item: { isPremium: boolean; requiredTag?: string | null }) => {
+    const isPremiumLocked = item.isPremium && !isPremium;
+    const unlockInfo = getUnlockTagInfo(item.requiredTag);
+    const progress = item.requiredTag ? themeTagProgress[item.requiredTag] || 0 : 0;
+    const required = unlockInfo?.requiredCount || 0;
+    const tagMet = !item.requiredTag || progress >= required;
+    return { isPremiumLocked, unlockInfo, progress: Math.min(progress, required || progress), required, tagMet, isLocked: isPremiumLocked || !tagMet };
   };
 
-  if (!isOpen) return null;
+  // ---- Peças visuais compartilhadas ----
+  const tileClass = (selected: boolean, locked: boolean) =>
+    `cz-tile group relative w-full rounded-2xl text-left ring-1 transition ${FOCUS_RING} ${
+      selected && !locked ? 'ring-2 ring-violet-400/80 bg-violet-500/15' : locked ? 'ring-white/[0.07]' : 'ring-white/10 hover:ring-white/30'
+    } ${locked ? 'cursor-not-allowed' : ''}`;
+  const tileStyle = (selected: boolean, locked = false): React.CSSProperties => ({ background: selected && !locked ? undefined : VELVET });
 
-  const tabs = [
-    { id: 'frames', label: t('customize.tabs.avatars'), icon: ImageIcon },
-    { id: 'banners', label: t('customize.tabs.banners'), icon: Layout },
-    { id: 'cards', label: t('customize.tabs.cards'), icon: Film },
-    { id: 'textEffects', label: t('customize.tabs.textEffects', { defaultValue: 'Text FX' }), icon: Type }
-  ];
+  const selectedBadge = (
+    <span className="absolute top-2 right-2 z-20 grid place-items-center w-6 h-6 rounded-full bg-violet-500 text-white shadow" aria-hidden>
+      <Check className="w-3.5 h-3.5" strokeWidth={3} />
+    </span>
+  );
 
+  const premiumChip = (
+    <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-amber-400 text-[#221B36] text-[11px] font-bold shadow">
+      <Crown className="w-3 h-3" aria-hidden />
+      Premium
+    </span>
+  );
+
+  const lockChip = (
+    <span className="grid place-items-center w-6 h-6 rounded-full bg-black/60 ring-1 ring-white/20 text-white" aria-hidden>
+      <Lock className="w-3 h-3" />
+    </span>
+  );
+
+  // Faixa "🩸 Bloody Mary · 3/10" com barrinha de progresso.
+  const unlockStrip = (info: UnlockTagInfo, progress: number, required: number, met: boolean) => (
+    <span className="block w-full">
+      <span className="flex items-center justify-center gap-1.5 text-[11px] leading-tight" style={{ color: met ? '#A7F3D0' : MIST }}>
+        {met ? <Unlock className="w-3 h-3 shrink-0" aria-hidden /> : <Lock className="w-3 h-3 shrink-0" aria-hidden />}
+        <span className="truncate">
+          {info.emoji} {info.name}
+        </span>
+        <span className="shrink-0 tabular-nums">
+          {progress}/{required}
+        </span>
+      </span>
+      {!met && required > 0 && (
+        <span className="mt-1.5 block h-1 rounded-full bg-white/10 overflow-hidden" aria-hidden>
+          <span className="block h-full rounded-full bg-violet-400" style={{ width: `${Math.min(100, (progress / required) * 100)}%` }} />
+        </span>
+      )}
+    </span>
+  );
+
+  const ariaLabelFor = (name: string, selected: boolean, locked: boolean, isPremiumLocked: boolean) =>
+    [name, selected ? t('customize.inUse') : null, isPremiumLocked ? 'Premium' : locked ? t('customize.locked') : null].filter(Boolean).join(' — ');
+
+  const avatarPlaceholder = (iconClass: string) => (
+    <span className="w-full h-full grid place-items-center" style={{ background: NIGHT, color: MIST }}>
+      <User className={iconClass} aria-hidden />
+    </span>
+  );
+
+  // ---- Molduras ----
   const renderFrameContent = () => {
-    const defaultFrame = frames.default;
-    const otherFrames = Object.values(frames).filter(frame => frame.id !== 'default');
+    const ordered = [frames.default, ...Object.values(frames).filter((frame) => frame.id !== 'default')];
 
-    // Recebe o frame inteiro (não só a className) pra poder decidir
-    // internamente entre o wrapper normal (className, todos os outros
-    // frames) ou o componente dedicado (só o Ghost Rider por enquanto).
-    // Nota: o preview aqui usa um tamanho fixo (72px) em vez do
-    // responsivo w-16/sm:w-20 dos outros frames — o GhostRiderFrame
-    // controla o tamanho via style (pixels), não via className
-    // responsiva do Tailwind, então não replica os dois breakpoints
-    // exatamente. Diferença pequena o suficiente pra não incomodar
-    // numa grade de preview, mas vale saber que existe.
-    const avatarPreview = (frame: (typeof frames)[FrameId], extraClassName: string = '') => {
+    const avatarPreview = (frame: (typeof frames)[FrameId], animate: boolean) => {
       if ('renderType' in frame && frame.renderType === 'component' && frame.component === 'GhostRiderFrame') {
-        return <GhostRiderFrame src={frozenAvatarUrl || ''} alt="" size={72} className="flex-shrink-0" />;
+        return <GhostRiderFrame src={frozenAvatarUrl || ''} alt="" size={72} className="shrink-0" />;
       }
+      const anim = animate ? 'cz-anim' : '';
+      const ring = frame.id === 'default' ? 'ring-2 ring-white/15' : frame.className;
       return (
-        <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-xl flex-shrink-0 ${frame.className} ${extraClassName}`}>
-          {frozenAvatarUrl ? (
-            // extraClassName (frame-preview-anim) precisa estar AQUI
-            // também, não só no elemento pai — a regra CSS que pausa a
-            // animação (.frame-preview-anim { animation-play-state:
-            // paused }) só afeta o elemento que TEM a classe
-            // diretamente nele, nunca filhos reais automaticamente
-            // (diferente de ::before/::after, que são do mesmo
-            // elemento). Sem isso aqui, a animação do PAI (borda)
-            // ficava pausada a maior parte do tempo, mas a da foto
-            // (aplicada via [&>img]:animate-tf-shape-morph no
-            // Transformers) continuava rodando sem parar — nunca
-            // sincronizadas, exceto brevemente durante o hover.
-            <img src={frozenAvatarUrl} alt="" className={`w-full h-full object-cover ${extraClassName}`} />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
-              <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-            </div>
-          )}
-        </div>
+        <span className={`block w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-xl shrink-0 ${ring} ${anim}`}>
+          {/* A classe de animação vai TAMBÉM na foto: algumas molduras animam
+              a própria imagem ([&>img]:...), e a regra que pausa só afeta o
+              elemento que tem a classe diretamente. */}
+          {frozenAvatarUrl ? <img src={frozenAvatarUrl} alt="" className={`w-full h-full object-cover ${anim}`} /> : avatarPlaceholder('w-8 h-8')}
+        </span>
       );
     };
 
-    // Animações pausadas por padrão (só rodam ao passar o mouse/tocar) —
-    // via CSS de verdade (não classes Tailwind), porque antes/depois
-    // (pseudo-elementos ::before/::after) só respeitam regras CSS reais,
-    // não conseguem ser controlados por estilo inline.
-    const hoverAnimClasses = 'frame-preview-anim';
-
-    const pauseAnimationCss = `
-      .frame-preview-anim,
-      .frame-preview-anim::before,
-      .frame-preview-anim::after {
-        animation-play-state: paused !important;
-      }
-      .frame-preview-anim:hover,
-      .frame-preview-anim:hover::before,
-      .frame-preview-anim:hover::after {
-        animation-play-state: running !important;
-      }
-    `;
-
     return (
-      <div>
-        <style>{pauseAnimationCss}</style>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-1">
-          <motion.div
-            key={defaultFrame.id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            className={`relative aspect-square rounded-2xl ${selectedFrame === defaultFrame.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
-          >
-            <button
-              onClick={() => handleFrameSelect(defaultFrame.id as FrameId)}
-              className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 flex flex-col items-center justify-center p-3 rounded-2xl overflow-hidden"
-            >
-              {avatarPreview(defaultFrame)}
-              <span className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
-                {defaultFrame.name}
-              </span>
-              {selectedFrame === defaultFrame.id && (
-                <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full">
-                  <Check className="w-4 h-4" />
-                </div>
-              )}
-            </button>
-          </motion.div>
-
-          {otherFrames.map((frame, index) => {
-            const isPremiumLocked = frame.isPremium && !isPremium;
-            const unlockInfo = getUnlockTagInfo(frame.requiredTag);
-            const requiredTagProgress = frame.requiredTag ? (themeTagProgress[frame.requiredTag] || 0) : 0;
-            const requiredTagCount = unlockInfo?.requiredCount || 0;
-            const requiredTagMet = !frame.requiredTag || requiredTagProgress >= requiredTagCount;
-            const isLocked = isPremiumLocked || !requiredTagMet;
-
+      <>
+        <p className="mb-4 text-sm" style={{ color: MIST }}>
+          {t('customize.frames.changePhotoHint')}
+        </p>
+        <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {ordered.map((frame) => {
+            const state = lockState(frame);
+            const selected = selectedFrame === frame.id;
+            const busy = savingKey === `frame:${frame.id}`;
+            const isLockedNow = state.isLocked;
             return (
-              <motion.div
-                key={frame.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.2, delay: (index + 1) * 0.03 }}
-                className={`relative aspect-square rounded-2xl ${
-                  isLocked ? 'opacity-60' : ''
-                } ${selectedFrame === frame.id ? 'ring-4 ring-blue-500 shadow-lg shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
-              >
+              <li key={frame.id}>
                 <button
-                  onClick={() => !isLocked && handleFrameSelect(frame.id as FrameId)}
-                  disabled={isLocked}
-                  className="w-full h-full relative group bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700 transition-all duration-300 disabled:cursor-not-allowed disabled:hover:from-gray-100 disabled:hover:to-gray-200 dark:disabled:hover:from-gray-700 dark:disabled:hover:to-gray-800 flex flex-col items-center justify-center p-3 rounded-2xl overflow-hidden"
+                  onClick={() => !state.isLocked && !selected && handleFrameSelect(frame.id as FrameId)}
+                  aria-disabled={state.isLocked || undefined}
+                  aria-pressed={selected}
+                  aria-busy={busy || undefined}
+                  aria-label={ariaLabelFor(frame.name, selected, state.isLocked, state.isPremiumLocked)}
+                  className={`${tileClass(selected, state.isLocked)} flex-col justify-start gap-3 px-3 pt-5 pb-3.5 h-full`}
+                  style={tileStyle(selected, state.isLocked)}
                 >
-                  {avatarPreview(frame, hoverAnimClasses)}
-                  <span className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm text-center line-clamp-1">
+                  <span className={`grid place-items-center h-24 ${state.isLocked ? 'opacity-50 saturate-50' : ''} ${busy ? 'animate-pulse' : ''}`}>
+                    {avatarPreview(frame, frame.id !== 'default')}
+                  </span>
+                  <span className="block w-full text-center text-[13px] font-medium truncate" style={{ color: PAPER }}>
                     {frame.name}
                   </span>
-                  {isLocked && (
-                    <div className="absolute top-2 right-2 z-10">
-                      {isPremiumLocked ? (
-                        <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                          <Crown className="w-3 h-3" />
-                          <span>Premium</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                          <Lock className="w-3 h-3" />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {!isLocked && selectedFrame === frame.id && (
-                    <div className="absolute top-2 right-2 bg-blue-500 text-white p-1.5 rounded-full">
-                      <Check className="w-4 h-4" />
-                    </div>
-                  )}
-                  {!isPremiumLocked && unlockInfo && (
-                    <div className="absolute bottom-1 left-1 right-1 bg-black/60 backdrop-blur-sm rounded-lg px-1.5 py-1 flex items-center justify-center gap-1">
-                      {requiredTagMet ? (
-                        <Unlock className="w-2.5 h-2.5 text-emerald-400 flex-shrink-0" />
-                      ) : (
-                        <Lock className="w-2.5 h-2.5 text-gray-300 flex-shrink-0" />
-                      )}
-                      <p className="text-[9px] text-white text-center font-medium truncate">
-                        {unlockInfo.emoji} {unlockInfo.name} · {requiredTagProgress}/{requiredTagCount}
-                      </p>
-                    </div>
-                  )}
+                  {!state.isPremiumLocked && state.unlockInfo && unlockStrip(state.unlockInfo, state.progress, state.required, state.tagMet)}
+                  {selected && !isLockedNow && selectedBadge}
+                  {state.isLocked && <span className="absolute top-2 right-2 z-20">{state.isPremiumLocked ? premiumChip : lockChip}</span>}
                 </button>
-              </motion.div>
+              </li>
             );
           })}
-        </div>
-      </div>
+        </ul>
+      </>
     );
   };
 
+  // ---- Banners ----
   const renderBannerContent = () => {
-    const defaultBanner = banners.default;
-    const otherBanners = Object.values(banners).filter(banner => banner.id !== 'default');
-
-    // Mesma técnica de pausar animação via CSS de verdade que já usamos nas
-    // molduras — pseudo-elementos (::before/::after) não respeitam estilo inline.
-    const bannerAnimClass = 'banner-preview-anim';
-    const pauseAnimationCss = `
-      .banner-preview-anim,
-      .banner-preview-anim::before,
-      .banner-preview-anim::after {
-        animation-play-state: paused !important;
-      }
-      .banner-preview-anim:hover,
-      .banner-preview-anim:hover::before,
-      .banner-preview-anim:hover::after {
-        animation-play-state: running !important;
-      }
-    `;
+    const ordered = [banners.default, ...Object.values(banners).filter((banner) => banner.id !== 'default')];
 
     // Mini simulação de como o cabeçalho do perfil fica em cima do banner —
-    // com o avatar e nome de usuário reais, não só o nome do banner escrito.
+    // com o avatar e nome de usuário reais.
     const profileMockup = (
-      <div className="relative z-10 flex items-center gap-2.5">
-        <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-white/70 shadow-lg flex-shrink-0">
-          {frozenAvatarUrl ? (
-            <img src={frozenAvatarUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
-            </div>
-          )}
-        </div>
-        <span className="text-sm font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
-          @{username || 'you'}
+      <span className="relative z-10 flex items-center gap-2.5 min-w-0">
+        <span className="block w-10 h-10 rounded-full overflow-hidden ring-2 ring-white/70 shadow-lg shrink-0">
+          {frozenAvatarUrl ? <img src={frozenAvatarUrl} alt="" className="w-full h-full object-cover" /> : avatarPlaceholder('w-5 h-5')}
         </span>
-      </div>
+        <span className="text-sm font-bold text-white truncate drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]" style={PIXEL}>
+          @{username || t('customize.you')}
+        </span>
+      </span>
     );
 
     return (
-      <div>
-        <style>{pauseAnimationCss}</style>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1">
-          <motion.div
-            key={defaultBanner.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className={`relative rounded-2xl ${selectedBanner === defaultBanner.id ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
-          >
-            <button
-              onClick={() => handleBannerSelect(defaultBanner.id as BannerId)}
-              className="w-full relative group transition-all duration-300 hover:scale-[1.02] rounded-2xl overflow-hidden"
-            >
-              <div className="relative bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 rounded-2xl h-28 w-full flex items-center px-4">
-                {profileMockup}
-                <span className="absolute top-2 right-3 text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
-                  {defaultBanner.name}
-                </span>
-              </div>
-              {selectedBanner === defaultBanner.id && (
-                <div className="absolute top-2 left-2 bg-blue-500 text-white p-1 rounded-full z-10">
-                  <Check className="w-3 h-3" />
-                </div>
-              )}
-            </button>
-          </motion.div>
-
-          {otherBanners.map((banner, index) => {
-            const isPremiumLocked = banner.isPremium && !isPremium;
-            const unlockInfo = getUnlockTagInfo(banner.requiredTag);
-            const requiredTagProgress = banner.requiredTag ? (themeTagProgress[banner.requiredTag] || 0) : 0;
-            const requiredTagCount = unlockInfo?.requiredCount || 0;
-            const requiredTagMet = !banner.requiredTag || requiredTagProgress >= requiredTagCount;
-            const isLocked = isPremiumLocked || !requiredTagMet;
-
-            return (
-              <motion.div
-                key={banner.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: (index + 1) * 0.05 }}
-                className={`relative rounded-2xl ${
-                  isLocked ? 'opacity-60' : ''
-                } ${selectedBanner === banner.id ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-500/30' : 'ring-1 ring-white/20'}`}
-              >
-                <button
-                  onClick={() => !isLocked && handleBannerSelect(banner.id as BannerId)}
-                  disabled={isLocked}
-                  className="block w-full relative group transition-all duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100 rounded-2xl overflow-hidden"
-                >
-                  <div className={`rounded-2xl h-28 w-full flex items-center px-4 ${banner.className} ${bannerAnimClass}`}>
-                    {profileMockup}
-                    <span className="absolute top-2 right-3 text-[10px] font-bold text-white/70 uppercase tracking-wide drop-shadow z-10">
-                      {banner.name}
-                    </span>
-                  </div>
-                  {isLocked && (
-                    <div className="absolute top-2 left-2 z-10">
-                      {isPremiumLocked ? (
-                        <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                          <Crown className="w-3 h-3" />
-                          <span>Premium</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                          <Lock className="w-3 h-3" />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {!isLocked && selectedBanner === banner.id && (
-                    <div className="absolute top-2 left-2 bg-blue-500 text-white p-1 rounded-full z-10">
-                      <Check className="w-3 h-3" />
-                    </div>
-                  )}
-                  {!isPremiumLocked && unlockInfo && (
-                    <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 z-10 flex items-center justify-center gap-1.5">
-                      {requiredTagMet ? (
-                        <Unlock className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                      ) : (
-                        <Lock className="w-3 h-3 text-gray-300 flex-shrink-0" />
-                      )}
-                      <p className="text-[10px] text-white text-center font-medium truncate">
-                        {unlockInfo.emoji} {unlockInfo.name} · {requiredTagProgress}/{requiredTagCount}
-                      </p>
-                    </div>
-                  )}
-                </button>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const renderCardContent = () => {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {Object.values(ORACLE_CARDS).map((card, index) => {
-          const isPremiumLocked = card.isPremium && !isPremium;
-          const unlockInfo = getUnlockTagInfo(card.requiredTag);
-          const requiredTagProgress = card.requiredTag ? (themeTagProgress[card.requiredTag] || 0) : 0;
-          const requiredTagCount = unlockInfo?.requiredCount || 0;
-          const isTagUnlocked = !card.requiredTag || requiredTagProgress >= requiredTagCount;
-          const isLocked = isPremiumLocked || !isTagUnlocked;
-
+      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {ordered.map((banner) => {
+          const state = lockState(banner);
+          const selected = selectedBanner === banner.id;
+          const busy = savingKey === `banner:${banner.id}`;
+          const isLockedNow = state.isLocked;
+          const isDefault = banner.id === 'default';
           return (
-            <motion.div
-              key={card.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              className={`relative rounded-2xl overflow-hidden border-2 ${
-                selectedCard === card.id
-                  ? 'border-blue-500 shadow-xl shadow-blue-500/30'
-                  : 'border-white/20 dark:border-gray-700/60'
-              } ${isLocked ? 'opacity-60' : ''} bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl`}
-            >
+            <li key={banner.id}>
               <button
-                onClick={() => !isLocked && handleCardSelect(card.id)}
-                disabled={isLocked}
-                className="w-full p-5 hover:bg-white/30 dark:hover:bg-gray-700/30 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                onClick={() => !state.isLocked && !selected && handleBannerSelect(banner.id as BannerId)}
+                aria-disabled={state.isLocked || undefined}
+                aria-pressed={selected}
+                aria-busy={busy || undefined}
+                aria-label={ariaLabelFor(banner.name, selected, state.isLocked, state.isPremiumLocked)}
+                className={`${tileClass(selected, state.isLocked)} flex-col items-stretch justify-start gap-2.5 p-2 pb-3 h-full`}
+                style={tileStyle(selected, state.isLocked)}
               >
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="flex-1 min-w-0 truncate text-lg font-bold text-gray-900 dark:text-white">
-                      {card.name}
-                    </h3>
-                    {isPremiumLocked ? (
-                      <div className="flex items-center gap-1.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-3 py-1.5 rounded-full">
-                        <Crown className="w-4 h-4" />
-                        <span>Premium</span>
-                      </div>
-                    ) : selectedCard === card.id && !isLocked ? (
-                      <div className="bg-blue-500 text-white p-1.5 rounded-full">
-                        <Check className="w-4 h-4" />
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="relative">
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
-                        <img
-                          src={card.images.bogart}
-                          alt="Bogart"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
-                        <img
-                          src={card.images.fincher}
-                          alt="Fincher"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
-                        <img
-                          src={card.images.cypher}
-                          alt="Cypher"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
-                    {!isPremiumLocked && unlockInfo && (
-                      <div className="absolute bottom-1.5 left-1.5 right-1.5 bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 flex items-center justify-center gap-1.5">
-                        {isTagUnlocked ? (
-                          <Unlock className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                        ) : (
-                          <Lock className="w-3 h-3 text-gray-300 flex-shrink-0" />
-                        )}
-                        <p className="text-[10px] text-white text-center font-medium truncate">
-                          {unlockInfo.emoji} {unlockInfo.name} · {requiredTagProgress}/{requiredTagCount}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                    {t('customize.cards.oracleCards')}
-                  </p>
-                </div>
+                <span
+                  className={`relative block h-28 w-full rounded-xl overflow-hidden ${isDefault ? '' : `${banner.className} cz-anim`} ${state.isLocked ? 'opacity-50 saturate-50' : ''} ${busy ? 'animate-pulse' : ''}`}
+                  style={
+                    isDefault
+                      ? { background: `radial-gradient(ellipse 70% 90% at 100% 0%, rgba(139,92,246,0.22), transparent 65%), ${NIGHT}` }
+                      : undefined
+                  }
+                >
+                  <span className="absolute inset-0 flex items-center px-4">{profileMockup}</span>
+                </span>
+                <span className="flex items-center justify-between gap-2 px-1.5">
+                  <span className="text-[13px] font-medium truncate" style={{ color: PAPER }}>
+                    {banner.name}
+                  </span>
+                </span>
+                {!state.isPremiumLocked && state.unlockInfo && (
+                  <span className="px-1.5">{unlockStrip(state.unlockInfo, state.progress, state.required, state.tagMet)}</span>
+                )}
+                {selected && !isLockedNow && selectedBadge}
+                {state.isLocked && <span className="absolute top-4 right-4 z-20">{state.isPremiumLocked ? premiumChip : lockChip}</span>}
               </button>
-            </motion.div>
+            </li>
           );
         })}
-      </div>
+      </ul>
     );
   };
 
-  // Text Effects — diferente de frames/banners/cards (Premium + no
-  // máximo 1 tag temática), aqui o desbloqueio exige Premium E as 3
-  // tags de resenha (Scribbler/Screenwriter/Memoirist) — resumido a
-  // "realReviewCount >= 30" porque os limiares das 3 são cumulativos.
+  // ---- Cartas dos oráculos ----
+  const renderCardContent = () => (
+    <>
+      <p className="mb-4 text-sm" style={{ color: MIST }}>
+        {t('customize.cards.oracleCards')}
+      </p>
+      <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {Object.values(ORACLE_CARDS).map((card) => {
+          const state = lockState(card);
+          const selected = selectedCard === card.id;
+          const busy = savingKey === `card:${card.id}`;
+          const isLockedNow = state.isLocked;
+          return (
+            <li key={card.id}>
+              <button
+                onClick={() => !state.isLocked && !selected && handleCardSelect(card.id)}
+                aria-disabled={state.isLocked || undefined}
+                aria-pressed={selected}
+                aria-busy={busy || undefined}
+                aria-label={ariaLabelFor(card.name, selected, state.isLocked, state.isPremiumLocked)}
+                className={`${tileClass(selected, state.isLocked)} flex-col items-stretch justify-start gap-3 p-3 pb-3.5 h-full`}
+                style={tileStyle(selected, state.isLocked)}
+              >
+                <span className={`grid grid-cols-3 gap-2 ${state.isLocked ? 'opacity-50 saturate-50' : ''} ${busy ? 'animate-pulse' : ''}`}>
+                  {(['bogart', 'fincher', 'cypher'] as const).map((oracle) => (
+                    <span key={oracle} className="block aspect-[2/3] rounded-lg overflow-hidden shadow-lg" style={{ background: NIGHT }}>
+                      <img src={card.images[oracle]} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                    </span>
+                  ))}
+                </span>
+                <span className="px-1 text-[13px] font-medium truncate" style={{ color: PAPER }}>
+                  {card.name}
+                </span>
+                {!state.isPremiumLocked && state.unlockInfo && (
+                  <span className="px-1">{unlockStrip(state.unlockInfo, state.progress, state.required, state.tagMet)}</span>
+                )}
+                {selected && !isLockedNow && selectedBadge}
+                {state.isLocked && <span className="absolute top-4 right-4 z-20">{state.isPremiumLocked ? premiumChip : lockChip}</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+
+  // ---- Efeitos de texto ----
+  // Diferente de frames/banners/cards, aqui cada efeito exige Premium E a
+  // sua própria tag de resenha (Typewriter/Scribbler, Technicolor/
+  // Screenwriter, Marquee Lights/Memoirist).
   const renderTextEffectsContent = () => {
-    const otherEffects = Object.values(textEffects).filter(effect => effect.id !== 'default');
-    const previewName = username ? `@${username}` : '@seu_usuario';
+    const previewName = username ? `@${username}` : `@${t('customize.you')}`;
+    const ordered = Object.values(textEffects);
 
     return (
-      <div className="space-y-4">
-        {/* Opção padrão — sem nenhum efeito, sempre disponível */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`rounded-2xl overflow-hidden border-2 ${
-            selectedTextEffect === 'default'
-              ? 'border-blue-500 shadow-xl shadow-blue-500/30'
-              : 'border-white/20 dark:border-gray-700/60'
-          } bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl`}
-        >
-          <button
-            onClick={() => handleTextEffectSelect('default')}
-            className="w-full p-5 hover:bg-white/30 dark:hover:bg-gray-700/30 transition-all flex items-center justify-between gap-4"
-          >
-            <div className="text-left flex-1 min-w-0">
-              <h3 className="truncate text-lg font-bold text-gray-900 dark:text-white">{t('customize.textEffects.none', { defaultValue: 'Nenhum' })}</h3>
-              <p className="truncate text-sm text-gray-500 dark:text-gray-400">{previewName}</p>
-            </div>
-            {selectedTextEffect === 'default' && (
-              <div className="bg-blue-500 text-white p-1.5 rounded-full flex-shrink-0">
-                <Check className="w-4 h-4" />
-              </div>
-            )}
-          </button>
-        </motion.div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {otherEffects.map((effect, index) => {
-            // Cada efeito desbloqueia sozinho, pela sua própria tag —
-            // Typewriter/Scribbler, Technicolor/Screenwriter,
-            // Marquee Lights/Memoirist — nunca as 3 juntas.
-            const unlocked = meetsTextEffectRequirement(effect.id, isPremium, realReviewCount);
-            const isLocked = !unlocked;
-            const unlockInfo = getUnlockTagInfo(effect.requiredTag);
-            const reviewProgress = Math.min(realReviewCount, effect.requiredReviewCount);
-
-            return (
-              <motion.div
-                key={effect.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                className={`relative rounded-2xl overflow-hidden border-2 ${
-                  selectedTextEffect === effect.id
-                    ? 'border-blue-500 shadow-xl shadow-blue-500/30'
-                    : 'border-white/20 dark:border-gray-700/60'
-                } ${isLocked ? 'opacity-75' : ''} bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl`}
+      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {ordered.map((effect) => {
+          const isDefault = effect.id === 'default';
+          const unlocked = meetsTextEffectRequirement(effect.id, isPremium, realReviewCount);
+          const isLocked = !unlocked;
+          const isPremiumLocked = effect.isPremium && !isPremium;
+          const unlockInfo = getUnlockTagInfo(effect.requiredTag);
+          const reviewProgress = Math.min(realReviewCount, effect.requiredReviewCount);
+          const selected = selectedTextEffect === effect.id;
+          const busy = savingKey === `text_effect:${effect.id}`;
+          const isLockedNow = isLocked;
+          const displayName = isDefault ? t('customize.textEffects.none') : effect.name;
+          return (
+            <li key={effect.id}>
+              <button
+                onClick={() => !isLocked && !selected && handleTextEffectSelect(effect.id as TextEffectId)}
+                aria-disabled={isLocked || undefined}
+                aria-pressed={selected}
+                aria-busy={busy || undefined}
+                aria-label={ariaLabelFor(displayName, selected, isLocked, isPremiumLocked)}
+                className={`${tileClass(selected, isLocked)} flex-col items-stretch justify-start gap-2.5 p-2 pb-3 h-full`}
+                style={tileStyle(selected, isLocked)}
               >
-                <button
-                  onClick={() => !isLocked && handleTextEffectSelect(effect.id as TextEffectId)}
-                  disabled={isLocked}
-                  className="w-full p-5 hover:bg-white/30 dark:hover:bg-gray-700/30 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                {/* Prévia real — o próprio nome de usuário com o efeito aplicado. */}
+                <span
+                  className={`grid place-items-center min-h-[76px] px-3 rounded-xl ring-1 ring-white/[0.06] ${isLocked ? 'opacity-60' : ''} ${busy ? 'animate-pulse' : ''}`}
+                  style={{ background: NIGHT, color: PAPER }}
                 >
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="flex-1 min-w-0 truncate text-base font-bold text-gray-900 dark:text-white text-left">
-                        {effect.name}
-                      </h3>
-                      {selectedTextEffect === effect.id && !isLocked && (
-                        <div className="bg-blue-500 text-white p-1.5 rounded-full flex-shrink-0">
-                          <Check className="w-4 h-4" />
-                        </div>
-                      )}
-                    </div>
+                  <span className={`text-xl leading-tight break-all ${effect.nameClassName}`} style={effect.nameClassName.includes('font-[') ? undefined : PIXEL}>
+                    {previewName}
+                  </span>
+                </span>
+                <span className="px-1.5 text-[13px] font-medium truncate" style={{ color: PAPER }}>
+                  {displayName}
+                </span>
+                {isDefault ? (
+                  <span className="px-1.5 text-[11px]" style={{ color: MIST }}>
+                    {t('customize.textEffects.noneDesc')}
+                  </span>
+                ) : (
+                  unlockInfo && <span className="px-1.5">{unlockStrip(unlockInfo, reviewProgress, effect.requiredReviewCount, reviewProgress >= effect.requiredReviewCount)}</span>
+                )}
+                {selected && !isLockedNow && selectedBadge}
+                {isLocked && <span className="absolute top-4 right-4 z-20">{isPremiumLocked ? premiumChip : lockChip}</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
 
-                    {/* Preview real — o próprio nome de usuário com a
-                        classe do efeito aplicada, não um texto genérico,
-                        pra mostrar exatamente como vai ficar. */}
-                    <div className="rounded-xl bg-gray-900/90 py-4 px-3 flex items-center justify-center min-h-[64px]">
-                      <span className={`text-lg font-bold ${effect.nameClassName}`}>
-                        {previewName}
-                      </span>
-                    </div>
+  const tabs: { id: TabType; label: string; icon: typeof ImageIcon }[] = [
+    { id: 'frames', label: t('customize.tabs.avatars'), icon: ImageIcon },
+    { id: 'banners', label: t('customize.tabs.banners'), icon: Layout },
+    { id: 'cards', label: t('customize.tabs.cards'), icon: Film },
+    { id: 'textEffects', label: t('customize.tabs.textEffects'), icon: Type },
+  ];
 
-                    {/* Faixa de desbloqueio — bloco próprio abaixo do
-                        preview, não sobreposta a ele. O preview de texto
-                        é pequeno demais (min-h-64px) pra caber o próprio
-                        exemplo E uma faixa por cima sem espremer/cortar
-                        um dos dois — diferente de frames/banners/cards,
-                        que sobrepõem a faixa numa imagem grande o
-                        suficiente pra sobrar espaço. */}
-                    {unlockInfo && (
-                      <div className="flex items-center justify-center gap-1.5 bg-black/10 dark:bg-white/10 rounded-lg px-2 py-1.5">
-                        {!isLocked ? (
-                          <Unlock className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
-                        ) : (
-                          <Lock className="w-3.5 h-3.5 text-gray-500 dark:text-gray-300 flex-shrink-0" />
-                        )}
-                        <p className="text-[11px] text-gray-700 dark:text-white text-center font-medium">
-                          {unlockInfo.emoji} {unlockInfo.name} · {reviewProgress}/{effect.requiredReviewCount}
-                        </p>
-                      </div>
-                    )}
+  return (
+    <OracleSheet
+      open={isOpen}
+      onClose={onClose}
+      title={t('customize.title')}
+      subtitle={t('customize.subtitle')}
+      leading={
+        <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-violet-500/15 ring-1 ring-violet-400/30">
+          <Palette className="w-5 h-5 text-violet-300" aria-hidden />
+        </span>
+      }
+      size="xl"
+      bodyClassName="px-5 sm:px-7 pb-6"
+      footer={
+        <div className="flex justify-end">
+          <button
+            onClick={onClose}
+            className={`h-12 px-6 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`}
+          >
+            {t('customize.done')}
+          </button>
+        </div>
+      }
+    >
+      <style>{PREVIEW_ANIM_CSS}</style>
 
-                    {!isPremium && (
-                      <div className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-bold px-3 py-1.5 rounded-full">
-                        <Crown className="w-4 h-4" />
-                        <span>Premium</span>
-                      </div>
-                    )}
-                  </div>
-                </button>
-              </motion.div>
+      {/* Abas — grudadas no topo enquanto a grade rola */}
+      <div className="sticky top-0 z-30 -mx-5 sm:-mx-7 px-5 sm:px-7 pt-4 pb-3 mb-4 border-b border-white/[0.07]" style={{ background: NIGHT }}>
+        <div role="tablist" aria-label={t('customize.title')} className="grid grid-cols-4 gap-1 p-1 rounded-xl ring-1 ring-white/10" style={{ background: VELVET }}>
+          {tabs.map(({ id, label, icon: Icon }) => {
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setActiveTab(id)}
+                className={`min-w-0 gap-1.5 h-11 px-1 sm:px-3 rounded-lg text-[13px] sm:text-sm font-medium transition ${FOCUS_RING} ${
+                  active ? 'bg-violet-600 text-white shadow' : 'hover:bg-white/[0.06]'
+                }`}
+                style={active ? { minWidth: 0 } : { color: MIST, minWidth: 0 }}
+              >
+                <Icon className="hidden sm:block w-4 h-4 shrink-0" aria-hidden />
+                <span className="truncate">{label}</span>
+              </button>
             );
           })}
         </div>
       </div>
-    );
-  };
 
-  return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-[100] overflow-y-auto">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
-          onClick={onClose}
-        />
-        <div className="flex min-h-full items-start justify-center p-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-8 relative z-[101]">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.3 }}
-            className="relative w-full max-w-4xl max-h-[calc(100dvh-env(safe-area-inset-top)-4rem)] flex flex-col bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/20 dark:border-gray-700/50 overflow-hidden"
-          >
-            <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400">
-                {t('customize.title')}
-              </h2>
-              <button
-                onClick={onClose}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Corpo com scroll PRÓPRIO — antes, o motion.div inteiro (sem
-                nenhum limite de altura) crescia livremente pra caber TODO
-                o conteúdo (cabeçalho + abas + grade + rodapé de botões),
-                sem overflow interno, empurrando o modal inteiro pra além
-                da viewport — daí o tamanho "indecente" mesmo em telas
-                grandes, e o modal cobrindo/vazando por cima da navbar.
-                Agora o container principal tem um teto real de altura
-                (calc(100dvh - área segura - respiro)), cabeçalho e rodapé
-                nunca encolhem (flex-shrink-0), e só o MEIO rola quando o
-                conteúdo é maior que o espaço disponível. */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {/* AnimatePresence com key própria pra essa troca específica
-                  — antes, a troca loading→carregado era um swap instantâneo
-                  de React (sem nenhuma animação explícita), e a suavização
-                  que aparecia no desktop vinha só do reflow natural do
-                  navegador (via transition-all da classe do modal). Esse
-                  reflow implícito se comporta de forma diferente em mobile
-                  — combinado com unidades dvh (que recalculam conforme a
-                  barra de endereço do navegador mobile aparece/some), o
-                  resultado ali era abrupto (sumiço + reaparecimento) em vez
-                  de suave. Com fade explícito e determinístico, o
-                  comportamento fica igual em qualquer aparelho, sem
-                  depender de como cada navegador decide suavizar sozinho. */}
-              <AnimatePresence mode="wait">
-                {loading ? (
-                  <motion.div
-                    key="loading-state"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="h-full min-h-[400px] flex items-center justify-center"
-                  >
-                    <GlassLoader size="lg" />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="loaded-state"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                  <div className="grid grid-cols-4 gap-1 sm:flex sm:gap-2 border-b border-gray-200/50 dark:border-gray-700/50 mb-6 pb-2">
-                    {tabs.map(({ id, label, icon: Icon }) => (
-                      <button
-                        key={id}
-                        onClick={() => setActiveTab(id)}
-                        className={`flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-0.5 sm:gap-0 sm:flex-shrink-0 sm:whitespace-nowrap px-0.5 sm:px-4 py-1.5 sm:py-2.5 text-[9px] sm:text-sm font-medium rounded-xl transition-all ${
-                          activeTab === id
-                            ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2 flex-shrink-0" />
-                        <span className="truncate max-w-full leading-tight">{label}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="min-h-[400px]">
-                    {activeTab === 'frames' && renderFrameContent()}
-                    {activeTab === 'banners' && renderBannerContent()}
-                    {activeTab === 'cards' && renderCardContent()}
-                    {activeTab === 'textEffects' && renderTextEffectsContent()}
-                  </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="flex-shrink-0 flex justify-end gap-4 p-6 border-t border-gray-200/50 dark:border-gray-700/50">
-              <button
-                onClick={onClose}
-                className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
-              >
-                <X className="w-4 h-4" />
-                {t('common.close')}
-              </button>
-            </div>
-          </motion.div>
+      {loading ? (
+        <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" aria-busy="true">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <li key={i} className="h-44 rounded-2xl ring-1 ring-white/[0.07] animate-pulse" style={{ background: VELVET }} />
+          ))}
+        </ul>
+      ) : (
+        <div role="tabpanel">
+          {activeTab === 'frames' && renderFrameContent()}
+          {activeTab === 'banners' && renderBannerContent()}
+          {activeTab === 'cards' && renderCardContent()}
+          {activeTab === 'textEffects' && renderTextEffectsContent()}
         </div>
-      </div>
-    </AnimatePresence>
+      )}
+    </OracleSheet>
   );
 };
 

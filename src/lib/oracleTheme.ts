@@ -65,6 +65,27 @@ export const withAlpha = (hex: string, alpha: number): string => {
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
 };
 
+// Cores das categorias de tag (pin ativo no perfil, abas e cartões do Tag
+// Pins): básico = verde, tema = âmbar, comunidade = azul-céu, oráculo =
+// rosa, especial = preto com contorno claro.
+export type TagCategory = 'basic' | 'theme' | 'community' | 'oracle' | 'special';
+export const tagCategoryStyle = (category: string): { pill: string; accent: string } => {
+  switch (category) {
+    case 'basic':
+      return { pill: 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/30', accent: '#34D399' };
+    case 'theme':
+      return { pill: 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/30', accent: '#FBBF24' };
+    case 'community':
+      return { pill: 'bg-sky-500/15 text-sky-200 ring-1 ring-sky-400/30', accent: '#38BDF8' };
+    case 'oracle':
+      return { pill: 'bg-pink-500/15 text-pink-200 ring-1 ring-pink-400/30', accent: '#F472B6' };
+    case 'special':
+      return { pill: 'bg-black text-[#F3EAD3] ring-1 ring-white/30', accent: '#F3EAD3' };
+    default:
+      return { pill: 'bg-white/10 text-[#BDB4D6] ring-1 ring-white/15', accent: MIST };
+  }
+};
+
 export type OracleId = 'bogart' | 'fincher' | 'cypher';
 
 export interface OracleCard {
