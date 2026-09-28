@@ -6,7 +6,7 @@ import { useAuth } from '../lib/auth';
 import MovieDetailsModal from './MovieDetailsModal';
 import OptimizedPoster from './OptimizedPoster';
 import OracleSheet from './OracleSheet';
-import { VELVET, PAPER, MIST, PIXEL, ratingTone } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE, ratingTone } from '../lib/oracleTheme';
 
 interface AllMoviesModalProps {
   isOpen: boolean;
@@ -166,7 +166,7 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
                       </span>
                     )}
                   </div>
-                  <p className="mt-2 text-sm font-medium leading-snug line-clamp-2" style={{ color: PAPER }}>{movie.title}</p>
+                  <p className={`mt-2 text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>{movie.title}</p>
                   <p className="mt-0.5 text-xs inline-flex flex-wrap items-center gap-x-1.5" style={{ color: MIST }}>
                     {year && <span>{year}</span>}
                     {score && (

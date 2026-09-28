@@ -15,7 +15,7 @@ import { RATING_LABELS } from './RatingSliderSheet';
 import { useTranslation } from 'react-i18next';
 import OptimizedPoster from './OptimizedPoster';
 import {
-  NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, ratingTone, ratingBarColor, withAlpha,
+  NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ratingTone, ratingBarColor, withAlpha,
 } from '../lib/oracleTheme';
 
 // Uma prateleira da estante — usada na Biblioteca (uma por nota, mais a
@@ -57,7 +57,7 @@ interface RatingBoxProps {
   fullBleed?: boolean;
   // Atalho pro Duelo de Watchlist no cabeçalho (só a Biblioteca passa).
   onDuelClick?: () => void;
-  // id da <section>, pra poder rolar até ela (gráfico de notas).
+  // id da <section>, pra poder rolar até ela.
   anchorId?: string;
 }
 
@@ -390,7 +390,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                           </span>
                         )}
                       </span>
-                      <span className="mt-2.5 block text-sm font-medium leading-snug line-clamp-2" style={{ color: PAPER }}>
+                      <span className={`mt-2.5 text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
                         {movie.title}
                       </span>
                       <span className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: MIST }}>

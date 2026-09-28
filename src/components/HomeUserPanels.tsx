@@ -12,12 +12,13 @@ import OptimizedPoster from './OptimizedPoster';
 import OracleSheet from './OracleSheet';
 import WhispersModal from './WhispersModal';
 import MonthlyInsightsModal from './MonthlyInsightsModal';
-import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, ORACLES, ORACLE_BY_ID, OracleId } from '../lib/oracleTheme';
+import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, ORACLES, ORACLE_BY_ID, OracleId, withAlpha } from '../lib/oracleTheme';
 
 // Topo da home de quem está logado — "a mesa do oráculo".
-//   1. Cabeçalho: saudação, números da conta e os atalhos pessoais
-//      (Insights do mês e Sussurros).
-//   2. Três botões de acesso: Biblioteca, Oráculo e Perfil.
+//   1. Cabeçalho: saudação e os atalhos pessoais (Insights do mês e
+//      Sussurros).
+//   2. Três botões de acesso, cada um com a sua cor: Biblioteca (azul),
+//      Oráculo (rosa) e Perfil (roxo).
 //   3. Recomendações do Dia: as três cartas do dia, uma por oráculo, com a
 //      nota prevista (ou a sua nota, se já avaliou). É o único momento
 //      animado da página: as cartas são "distribuídas" na mesa ao abrir.
@@ -68,9 +69,6 @@ interface AccountStats {
   avatarUrl: string | null;
   avatarFrame: string | null;
   avatarIsPremium: boolean;
-  rated: number;
-  watchlist: number;
-  friends: number;
   // nota do usuário por id de filme (null = está na watchlist sem nota)
   movieRatings: Map<number, number | null>;
 }
@@ -177,10 +175,9 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
   };
 
   const fetchStats = useCallback(async () => {
-    const [profileRes, moviesRes, friendsRes] = await Promise.all([
+    const [profileRes, moviesRes] = await Promise.all([
       supabase.from('public_profiles').select('username, avatar_url, avatar_frame, plan_type, is_premium').eq('id', userId).maybeSingle(),
       supabase.from('user_movies').select('movie_id, media_type, rating').eq('user_id', userId),
-      supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
     ]);
 
     const rows = (moviesRes.data ?? []) as { movie_id: number; media_type: string | null; rating: number | null }[];
@@ -188,7 +185,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     rows.forEach((row) => {
       if ((row.media_type ?? 'movie') === 'movie') movieRatings.set(row.movie_id, row.rating);
     });
-    const friends = friendsRes.count ?? 0;
     const profile = profileRes.data as { username?: string; avatar_url?: string | null; avatar_frame?: string | null; plan_type?: string; is_premium?: boolean } | null;
 
     setStats({
@@ -196,9 +192,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
       avatarUrl: profile?.avatar_url ?? null,
       avatarFrame: profile?.avatar_frame ?? null,
       avatarIsPremium: profile?.is_premium ?? profile?.plan_type === 'premium',
-      rated: rows.filter((row) => row.rating !== null).length,
-      watchlist: rows.filter((row) => row.rating === null).length,
-      friends,
       movieRatings,
     });
   }, [userId]);
@@ -307,17 +300,11 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     );
   })();
 
-  const statLink = (to: string, count: number, labelKey: string) => (
-    <Link to={to} className={`group inline-flex items-baseline gap-1.5 rounded ${focusRing}`}>
-      <span className="font-semibold tabular-nums" style={{ color: PAPER }}>{count}</span>
-      <span className="group-hover:underline underline-offset-4" style={{ color: MIST }}>{t(labelKey, { count })}</span>
-    </Link>
-  );
-
+  // Cada atalho tem a sua cor: azul, rosa e roxo.
   const quickLinks = [
-    { to: '/library', icon: LibraryIcon, label: t('nav.library'), hint: t('home.desk.navLibraryHint') },
-    { to: '/oracle', icon: Eye, label: t('nav.oracle'), hint: t('home.desk.navOracleHint') },
-    { to: '/profile', icon: User, label: t('nav.profile'), hint: t('home.desk.navProfileHint') },
+    { to: '/library', icon: LibraryIcon, label: t('nav.library'), hint: t('home.desk.navLibraryHint'), color: '#38BDF8', tint: '#7DD3FC' },
+    { to: '/oracle', icon: Eye, label: t('nav.oracle'), hint: t('home.desk.navOracleHint'), color: '#EC4899', tint: '#F9A8D4' },
+    { to: '/profile', icon: User, label: t('nav.profile'), hint: t('home.desk.navProfileHint'), color: '#8B5CF6', tint: '#C4B5FD' },
   ];
 
   const dealList = {
@@ -482,34 +469,33 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
             </button>
           </div>
         </div>
-
-        {stats && (
-          <p className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm sm:text-[15px]">
-            {statLink('/library', stats.rated, 'home.desk.statRated')}
-            {statLink('/library', stats.watchlist, 'home.desk.statWatchlist')}
-            {statLink('/community', stats.friends, 'home.desk.statFriends')}
-          </p>
-        )}
       </section>
 
       {/* ---------- Acesso rápido ---------- */}
-      <nav aria-label={t('home.desk.shortcutsLabel')} className="mx-auto max-w-6xl px-5 sm:px-8 pt-7">
+      <nav aria-label={t('home.desk.shortcutsLabel')} className="mx-auto max-w-6xl px-5 sm:px-8 pt-5 sm:pt-6">
         <ul className="grid grid-cols-3 gap-3 sm:gap-4">
-          {quickLinks.map(({ to, icon: Icon, label, hint }) => (
+          {quickLinks.map(({ to, icon: Icon, label, hint, color, tint }) => (
             <li key={to}>
               <Link
                 to={to}
-                className={`group h-full flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2.5 sm:gap-4 p-3.5 sm:px-5 sm:py-4 rounded-2xl ring-1 ring-white/10 hover:ring-white/25 hover:bg-white/[0.03] text-center sm:text-left transition ${focusRing}`}
-                style={{ background: VELVET }}
+                className={`group h-full flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2.5 sm:gap-4 p-3.5 sm:px-5 sm:py-4 rounded-2xl ring-1 hover:brightness-125 text-center sm:text-left transition ${focusRing}`}
+                style={{
+                  background: `linear-gradient(135deg, ${withAlpha(color, 0.2)}, ${withAlpha(color, 0.06)} 70%), ${VELVET}`,
+                  ['--tw-ring-color' as string]: withAlpha(color, 0.38),
+                } as React.CSSProperties}
               >
-                <span className="w-11 h-11 shrink-0 rounded-xl grid place-items-center ring-1 ring-white/10 text-violet-200" style={{ background: NIGHT }} aria-hidden>
+                <span
+                  className="w-11 h-11 shrink-0 rounded-xl grid place-items-center ring-1"
+                  style={{ background: withAlpha(color, 0.2), color: tint, ['--tw-ring-color' as string]: withAlpha(color, 0.45) } as React.CSSProperties}
+                  aria-hidden
+                >
                   <Icon className="w-5 h-5" />
                 </span>
                 <span className="min-w-0 sm:flex-1">
                   <span className="block text-sm sm:text-base font-semibold" style={{ color: PAPER }}>{label}</span>
                   <span className="hidden lg:block mt-0.5 text-sm truncate" style={{ color: MIST }}>{hint}</span>
                 </span>
-                <ArrowRight className="hidden lg:block w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: MIST }} aria-hidden />
+                <ArrowRight className="hidden lg:block w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: tint }} aria-hidden />
               </Link>
             </li>
           ))}
@@ -635,7 +621,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
         )}
 
         <Link
-          to="/oracle/libraries"
+          to="/oracle"
           className={`mt-6 inline-flex items-center gap-2 text-sm font-semibold text-violet-200 hover:text-white transition rounded ${focusRing}`}
         >
           {t('home.desk.moreRecs')}

@@ -415,7 +415,7 @@ export default function Community() {
 
     if (status === 'friends') {
       return (
-        <span className="relative z-10 shrink-0 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full text-sm font-medium bg-emerald-500/15 ring-1 ring-emerald-400/30 text-emerald-200">
+        <span className="relative z-10 shrink-0 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full text-sm font-semibold bg-emerald-600 text-white shadow-lg shadow-emerald-900/30">
           <UserCheck className="w-4 h-4" aria-hidden />
           {t('profile.friendsButton')}
         </span>

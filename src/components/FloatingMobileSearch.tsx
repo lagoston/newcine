@@ -274,7 +274,7 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
                     )}
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className="block font-semibold leading-snug line-clamp-2" style={{ color: PAPER }}>{title}</span>
+                    <span className="font-semibold leading-snug line-clamp-2" style={{ color: PAPER }}>{title}</span>
                     <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]" style={{ color: MIST }}>
                       {year && <span>{year}</span>}
                       <span

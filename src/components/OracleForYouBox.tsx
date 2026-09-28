@@ -7,7 +7,7 @@ import { getMovieDetails, Movie } from '../lib/tmdb';
 import MovieDetailsModal from './MovieDetailsModal';
 import OptimizedPoster from './OptimizedPoster';
 import FloatingFriendBubbles from './FloatingFriendBubbles';
-import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
+import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE } from '../lib/oracleTheme';
 
 interface Props {
   userId: string;
@@ -167,7 +167,7 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
                         </span>
                         <FloatingFriendBubbles movieId={movie.id} mediaType={movie.media_type || 'movie'} />
                       </span>
-                      <span className="mt-2.5 block text-sm font-medium leading-snug line-clamp-2" style={{ color: PAPER }}>
+                      <span className={`mt-2.5 text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
                         {movie.title}
                       </span>
                       <span className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: MIST }}>

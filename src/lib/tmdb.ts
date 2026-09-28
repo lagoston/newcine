@@ -839,28 +839,15 @@ interface PredictedShelfMovie {
 // mais 30").
 export const getOraclePoolPredictions = async (
   cardType: 'bogart' | 'fincher' | 'cypher',
-  moodKey: string,
-  accessToken: string
+  moodKey: string
 ): Promise<PredictedShelfMovie[]> => {
-  try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/predict-oracle-shelf`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ cardType, moodKey }),
-    });
-    const data = await response.json();
-    if (!response.ok || data.error) {
-      console.error('Error fetching oracle pool predictions:', data.error);
-      return [];
-    }
-    return data.movies || [];
-  } catch (error) {
-    console.error('Error fetching oracle pool predictions:', error);
-    return [];
-  }
+  // functions.invoke manda o token da sessão atual (renovado sozinho). Erro
+  // agora é LANÇADO: antes virava lista vazia e a prateleira dizia "Você já
+  // assistiu tudo dessa categoria" quando na verdade a busca tinha falhado.
+  const { data, error } = await supabase.functions.invoke('predict-oracle-shelf', { body: { cardType, moodKey } });
+  if (error) throw error;
+  if (data?.error) throw new Error(String(data.error));
+  return (data?.movies as PredictedShelfMovie[]) || [];
 };
 
 // Busca os detalhes completos (poster, título, etc.) só pra uma FATIA

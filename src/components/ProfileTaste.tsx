@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Star, Clock, BarChart3, Globe2, Gem, ArrowRight, Loader2 } from 'lucide-react';
+import { Star, Clock, Gem, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import RatingSpectrum from './RatingSpectrum';
 import WorldMapCard from './WorldMapCard';
@@ -12,7 +12,7 @@ import { formatWatchTime } from '../lib/profileStats';
 
 // Peças do "retrato de gosto" de um perfil — usadas no seu Perfil e no
 // perfil de outra pessoa, pra que os dois falem exatamente a mesma língua:
-//   • ProfileStatTiles: os quatro números (avaliados, tempo, média, países)
+//   • ProfileStatTiles: os dois números (filmes avaliados e tempo assistindo)
 //   • ProfileTasteGrid: espectro de notas, gêneros/palavras-chave, década,
 //     diretores, joia menos conhecida e o atlas
 //   • ProfileSectionHeading: título Pixelify + dica de cada seção
@@ -45,28 +45,22 @@ const CardTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 // Números
 // ---------------------------------------------------------------------------
 
+// A média de notas já aparece no espectro de notas e os países no atlas —
+// aqui ficam só os dois números que não aparecem em outro lugar.
 interface ProfileStatTilesProps {
   ratedCount: number;
   watchMinutes: number;
-  average: number | null;
-  countriesCount: number;
   label?: string;
 }
 
-export const ProfileStatTiles: React.FC<ProfileStatTilesProps> = ({ ratedCount, watchMinutes, average, countriesCount, label }) => {
-  const { t, i18n } = useTranslation();
+export const ProfileStatTiles: React.FC<ProfileStatTilesProps> = ({ ratedCount, watchMinutes, label }) => {
+  const { t } = useTranslation();
   const tiles = [
     { icon: Star, label: t('profile.stats.ratedMovies'), value: String(ratedCount) },
     { icon: Clock, label: t('profile.stats.timeWatching'), value: formatWatchTime(watchMinutes) },
-    {
-      icon: BarChart3,
-      label: t('profile.stats.averageRating'),
-      value: average !== null ? average.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—',
-    },
-    { icon: Globe2, label: t('profile.statCountries'), value: String(countriesCount) },
   ];
   return (
-    <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3" aria-label={label ?? t('profile.numbersLabel')}>
+    <dl className="grid grid-cols-2 gap-3" aria-label={label ?? t('profile.numbersLabel')}>
       {tiles.map(({ icon: Icon, label: tileLabel, value }) => (
         <div key={tileLabel} className="rounded-2xl px-4 py-4 ring-1 ring-white/10" style={{ background: VELVET }}>
           <dt className="flex items-center gap-2 text-sm" style={{ color: MIST }}>

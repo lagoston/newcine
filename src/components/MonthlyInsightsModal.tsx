@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import OptimizedPoster from './OptimizedPoster';
 import OracleSheet from './OracleSheet';
-import { NIGHT, VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
+import { NIGHT, VELVET, PAPER, MIST, PIXEL, POSTER_TITLE } from '../lib/oracleTheme';
 
 interface Props {
   isOpen: boolean;
@@ -55,7 +55,7 @@ const SITE_ICON_URL = '/assets/Symbal512.webp';
 // brilho violeta, títulos em Pixelify Sans, texto em papel/névoa.
 // ============================================================
 
-const PIXEL_FONT = '"CineOracle Five", "Pixelify Sans", ui-monospace, monospace';
+const PIXEL_FONT = '"CineOracle Digits", "Pixelify Sans", ui-monospace, monospace';
 const SANS_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
 const C_PAPER = '#F3EAD3';
 const C_MIST = '#BDB4D6';
@@ -194,11 +194,12 @@ async function generateShareImage(data: MonthlyData, profile: ProfileInfo, copy:
   if (!ctx) throw new Error('Canvas context unavailable');
 
   // A Pixelify já está carregada na página; isto garante que o canvas a use.
-  // O texto de exemplo inclui o "5" pra baixar também a fonte do 5 redesenhado.
+  // O texto de exemplo inclui "257" pra baixar também a fonte dos
+  // algarismos redesenhados.
   try {
     await Promise.all([
-      document.fonts.load(`400 40px ${PIXEL_FONT}`, 'Aa5'),
-      document.fonts.load(`600 80px ${PIXEL_FONT}`, 'Aa5'),
+      document.fonts.load(`400 40px ${PIXEL_FONT}`, 'Aa257'),
+      document.fonts.load(`600 80px ${PIXEL_FONT}`, 'Aa257'),
     ]);
   } catch {
     // sem a fonte, cai no monoespaçado — a imagem continua legível
@@ -620,7 +621,7 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
                           {i + 1}
                         </span>
                       </div>
-                      <p className="mt-2 text-sm font-medium leading-snug line-clamp-2" style={{ color: PAPER }}>{m.title}</p>
+                      <p className={`mt-2 text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={m.title}>{m.title}</p>
                       <p className="mt-0.5 text-sm inline-flex items-center gap-1" style={{ color: PAPER }}>
                         <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" aria-hidden />
                         {m.rating}

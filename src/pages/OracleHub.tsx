@@ -14,16 +14,17 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { MOOD_BY_LETTER, withMoodAlpha } from '../lib/moods';
 import { fetchUserPersona, personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../lib/persona';
-import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES, withAlpha } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES, oracleCardImage, withAlpha } from '../lib/oracleTheme';
 
 // Central dos Oráculos — "a mesa do oráculo".
-//   Sem personalidade ainda: o convite do Oráculo (cinco falas), o
-//   progresso até 10 filmes das prateleiras e as prateleiras até agora.
-//   Com personalidade: o pôster do personagem, o código de 3 letras, o
-//   título, as três prateleiras e as nove barras; atalhos pra Revelação,
-//   Como funciona, as 84 personalidades e Compartilhar.
-//   Sempre: Consultar os oráculos — Biblioteca (destaque), Duelo e Duelo
-//   de Watchlist.
+//   1. Consultar os oráculos: as três cartas (cada uma abre direto as nove
+//      prateleiras daquele oráculo), o Duelo e o Duelo de Watchlist.
+//   2. Sua personalidade cinematográfica:
+//      - sem personalidade ainda: o convite do Oráculo (cinco falas), o
+//        progresso até 10 filmes das prateleiras e as prateleiras até agora;
+//      - com personalidade: o pôster do personagem, o código de 3 letras, o
+//        título, as três prateleiras e as nove barras; atalhos pra
+//        Revelação, Como funciona, as 84 personalidades e Compartilhar.
 // A revelação (modal) aparece uma vez por personalidade: na primeira vez
 // que ela surge e sempre que mudar.
 
@@ -33,16 +34,23 @@ const GHOST_BUTTON = `gap-2 h-11 px-4 rounded-xl border border-white/15 hover:bo
 const PRIMARY_BUTTON = `gap-2 h-12 px-6 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`;
 
 const seenKey = (userId: string) => `cineoracle:persona-seen:${userId}`;
+// Em 28/09 duas letras mudaram: Sombrio e Assustador D → X e Adrenalina
+// X → Z. Códigos guardados antes disso (texto puro, sem o prefixo "v2:")
+// são traduzidos, pra ninguém ver uma "Nova revelação" só por causa da
+// troca de letra.
 const readSeen = (userId: string): string | null => {
   try {
-    return window.localStorage.getItem(seenKey(userId));
+    const raw = window.localStorage.getItem(seenKey(userId));
+    if (!raw) return null;
+    if (raw.startsWith('v2:')) return raw.slice(3);
+    return raw.replace(/[DX]/g, (letter) => (letter === 'D' ? 'X' : 'Z'));
   } catch {
     return null;
   }
 };
 const writeSeen = (userId: string, code: string) => {
   try {
-    window.localStorage.setItem(seenKey(userId), code);
+    window.localStorage.setItem(seenKey(userId), `v2:${code}`);
   } catch {
     /* sem armazenamento local: a revelação só volta a aparecer */
   }
@@ -60,6 +68,8 @@ export default function OracleHub() {
   const [persona, setPersona] = useState<UserPersona | null>(null);
   const [isPremium, setIsPremium] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
+  // Estilo das cartas escolhido no Personalizar perfil (padrão, Yu-Gi-Oh…).
+  const [cardStyle, setCardStyle] = useState<string>('default');
 
   const [sheet, setSheet] = useState<HubSheet>(null);
   const [showPersonas, setShowPersonas] = useState(false);
@@ -72,11 +82,12 @@ export default function OracleHub() {
       setLoadError(false);
       const [personaData, profileResult, premiumResult] = await Promise.all([
         fetchUserPersona(userId),
-        supabase.from('profiles').select('username').eq('id', userId).single(),
+        supabase.from('profiles').select('username, card_style').eq('id', userId).single(),
         supabase.rpc('get_user_premium_status', { user_id_input: userId }),
       ]);
       setPersona(personaData);
       setUsername((profileResult.data?.username as string | undefined) ?? null);
+      setCardStyle((profileResult.data?.card_style as string | undefined) || 'default');
       setIsPremium(Boolean(premiumResult.data));
 
       if (personaData?.code && personaData.persona) {
@@ -164,8 +175,8 @@ export default function OracleHub() {
     ];
 
     return (
-      <>
-        <section className="mx-auto max-w-2xl px-5 sm:px-8 pt-8 sm:pt-12 text-center">
+      <div className="mt-10 border-t border-white/[0.07]">
+        <section className="mx-auto max-w-2xl px-5 sm:px-8 pt-10 sm:pt-12 text-center">
           <motion.div className="flex justify-center" initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             {oracleTrio('lg')}
           </motion.div>
@@ -229,7 +240,7 @@ export default function OracleHub() {
                 {t('oracle.intro.countedHint')}
               </p>
               <div className="mt-6 flex flex-col sm:flex-row flex-wrap gap-2">
-                <Link to="/oracle/libraries" className={`${PRIMARY_BUTTON} h-auto min-h-[48px] py-2.5 text-center leading-snug`}>
+                <Link to="/oracle/libraries?oracle=bogart" className={`${PRIMARY_BUTTON} h-auto min-h-[48px] py-2.5 text-center leading-snug`}>
                   <LibraryBig className="w-5 h-5 shrink-0" aria-hidden />
                   {t('oracle.intro.exploreLibrary')}
                 </Link>
@@ -254,7 +265,7 @@ export default function OracleHub() {
             </div>
           </div>
         </motion.section>
-      </>
+      </div>
     );
   })();
 
@@ -270,7 +281,8 @@ export default function OracleHub() {
       { key: 'share', icon: Share2, tint: 'text-amber-300', label: t('oracle.hub.share'), onClick: () => setShowShare(true) },
     ];
     return (
-      <motion.section variants={rise} className="mx-auto max-w-6xl px-5 sm:px-8 mt-8">
+      <motion.section variants={rise} className="mt-10 border-t border-white/[0.07] pt-10">
+        <div className="mx-auto max-w-6xl px-5 sm:px-8">
         <div
           className="relative overflow-hidden rounded-2xl ring-1 ring-white/10 p-5 sm:p-7"
           style={{ background: `radial-gradient(ellipse 60% 70% at 0% 0%, ${glowMood ? withMoodAlpha(glowMood, 0.14) : 'rgba(139,92,246,0.14)'}, transparent 70%), ${VELVET}` }}
@@ -334,6 +346,7 @@ export default function OracleHub() {
             </div>
           </div>
         </div>
+        </div>
       </motion.section>
     );
   })();
@@ -350,85 +363,86 @@ export default function OracleHub() {
     { key: 'watchlist', to: '/library', state: { openWatchlistDuel: true }, title: t('watchlistDuel.title'), description: t('watchlistDuel.description'), tint: '#38BDF8' },
   ];
 
+  // As três cartas dos oráculos: cada uma leva direto às nove prateleiras
+  // daquele oráculo. No celular ficam lado a lado, como cartas na mesa (só
+  // a carta e o nome); do sm pra cima ganham o critério de cada um.
   const explore = (
-    <motion.section variants={rise} className="mt-10 border-t border-white/[0.07] pt-10">
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <h2 style={{ ...PIXEL, color: PAPER }} className="text-3xl sm:text-4xl leading-none">
-          {t('oracle.hub.exploreTitle')}
-        </h2>
+    <motion.section variants={rise} className="mx-auto max-w-6xl px-5 sm:px-8 mt-8 sm:mt-10">
+      <h2 style={{ ...PIXEL, color: PAPER }} className="text-3xl sm:text-4xl leading-none">
+        {t('oracle.hub.exploreTitle')}
+      </h2>
+      <p className="mt-2 text-[15px] max-w-xl" style={{ color: MIST }}>
+        {t('oracle.hub.exploreHint')}
+      </p>
 
-        {/* Biblioteca dos Oráculos — o destaque */}
-        <Link
-          to="/oracle/libraries"
-          className={`group mt-6 relative flex flex-col sm:flex-row sm:items-center gap-6 overflow-hidden rounded-2xl ring-1 ring-white/10 hover:ring-white/25 p-5 sm:p-7 transition ${FOCUS_RING}`}
-          style={{ background: `radial-gradient(ellipse 55% 90% at 100% 100%, rgba(139,92,246,0.18), transparent 70%), ${VELVET}` }}
-        >
-          <div className="min-w-0 flex-1">
-            <span className="grid place-items-center w-11 h-11 rounded-xl bg-amber-500/15 ring-1 ring-amber-400/30">
-              <LibraryBig className="w-5 h-5 text-amber-300" aria-hidden />
-            </span>
-            <h3 style={{ ...PIXEL, color: PAPER }} className="mt-4 text-[1.7rem] sm:text-3xl leading-tight">
-              {t('oracle.libraries.title')}
-            </h3>
-            <p className="mt-2 max-w-xl text-[15px] leading-relaxed" style={{ color: MIST }}>
-              {t('oracle.libraries.description')}
-            </p>
-            <span className="mt-5 inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 group-hover:from-violet-500 group-hover:to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-fuchsia-900/30 transition">
-              {t('oracle.hub.openLibrary')}
-              <ArrowRight className="w-[18px] h-[18px] transition group-hover:translate-x-0.5" aria-hidden />
-            </span>
-          </div>
-
-          {/* As três cartas, em leque discreto */}
-          <div className="relative shrink-0 self-center h-[150px] w-[230px] sm:h-[190px] sm:w-[290px] transition-transform duration-300 group-hover:-translate-y-1" aria-hidden>
-            {ORACLES.map((oracle, i) => (
-              <img
-                key={oracle.id}
-                src={oracle.img}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="absolute bottom-0 left-1/2 w-[92px] sm:w-[116px] -ml-[46px] sm:-ml-[58px] rounded-[5px]"
-                style={{
-                  transform: `translateX(${(i - 1) * 62}%) rotate(${(i - 1) * 10}deg)`,
-                  transformOrigin: '50% 100%',
-                  zIndex: i === 1 ? 2 : 1,
-                  boxShadow: '0 18px 36px -14px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.06)',
-                }}
-              />
-            ))}
-          </div>
-        </Link>
-
-        {/* Os dois duelos */}
-        <div className="mt-4 grid md:grid-cols-2 gap-4">
-          {duelCards.map((card) => (
+      <ul className="mt-6 grid grid-cols-3 gap-3 sm:gap-4">
+        {ORACLES.map((oracle) => (
+          <li key={oracle.id}>
             <Link
-              key={card.key}
-              to={card.to}
-              state={card.state}
-              className={`group flex flex-col items-stretch justify-start text-left rounded-2xl ring-1 ring-white/10 hover:ring-white/25 p-5 sm:p-6 transition ${FOCUS_RING}`}
-              style={{ background: VELVET }}
+              to={`/oracle/libraries?oracle=${oracle.id}`}
+              aria-label={`${oracle.name} — ${t('oracle.libraries.exploreShelves')}`}
+              className={`group h-full flex flex-col items-stretch justify-start text-left rounded-2xl ring-1 ring-white/10 hover:ring-white/25 p-2 sm:p-4 transition ${FOCUS_RING}`}
+              style={{ background: `radial-gradient(ellipse 80% 50% at 50% 0%, ${withAlpha(oracle.color, 0.14)}, transparent 70%), ${VELVET}` }}
             >
-              <span className="flex items-center justify-between gap-3">
-                <span className="grid place-items-center w-11 h-11 rounded-xl" style={{ background: withAlpha(card.tint, 0.14), boxShadow: `inset 0 0 0 1px ${withAlpha(card.tint, 0.3)}` }}>
-                  <Swords className="w-5 h-5" style={{ color: card.tint }} aria-hidden />
+              <span className="block overflow-hidden rounded-lg sm:rounded-xl" style={{ boxShadow: `0 18px 36px -18px ${withAlpha(oracle.color, 0.75)}` }}>
+                <img
+                  src={oracleCardImage(oracle.id, cardStyle)}
+                  alt=""
+                  decoding="async"
+                  className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.03]"
+                />
+              </span>
+              <span className="mt-2.5 sm:mt-4 flex-1 flex flex-col min-w-0 px-0.5 sm:px-0">
+                <span style={{ ...PIXEL, color: oracle.color }} className="text-lg sm:text-3xl leading-none">
+                  {oracle.name}
+                </span>
+                <span className="mt-1 sm:mt-1.5 text-xs sm:text-sm leading-snug" style={{ color: MIST }}>
+                  {t(`oracle.cards.${oracle.id}`)}
+                  <span className="hidden sm:inline"> · {t(`oracle.cards.${oracle.id}Subtitle`)}</span>
+                </span>
+                <span className="hidden sm:block mt-2.5 text-[15px] leading-snug" style={{ color: PAPER }}>
+                  {t(`oracle.libraries.${oracle.id}FunctionDesc`)}
+                </span>
+                <span className="hidden sm:inline-flex mt-auto pt-3 items-center gap-1.5 text-sm font-semibold" style={{ color: oracle.color }}>
+                  {t('oracle.libraries.exploreShelves')}
+                  <ArrowRight className="w-4 h-4 transition group-hover:translate-x-0.5" aria-hidden />
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      {/* Os dois duelos */}
+      <div className="mt-4 grid md:grid-cols-2 gap-3 sm:gap-4">
+        {duelCards.map((card) => (
+          <Link
+            key={card.key}
+            to={card.to}
+            state={card.state}
+            className={`group flex items-start justify-start gap-4 text-left rounded-2xl ring-1 ring-white/10 hover:ring-white/25 p-4 sm:p-6 transition ${FOCUS_RING}`}
+            style={{ background: VELVET }}
+          >
+            <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl" style={{ background: withAlpha(card.tint, 0.14), boxShadow: `inset 0 0 0 1px ${withAlpha(card.tint, 0.3)}` }}>
+              <Swords className="w-5 h-5" style={{ color: card.tint }} aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1 flex flex-col">
+              <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <span style={{ ...PIXEL, color: PAPER }} className="text-xl sm:text-2xl leading-tight">
+                  {card.title}
                 </span>
                 {!isPremium && premiumChip}
               </span>
-              <span style={{ ...PIXEL, color: PAPER }} className="mt-4 text-2xl leading-tight">
-                {card.title}
-              </span>
-              <span className="mt-2 text-[15px] leading-relaxed" style={{ color: MIST }}>
+              <span className="mt-1.5 text-sm sm:text-[15px] leading-relaxed" style={{ color: MIST }}>
                 {card.description}
               </span>
-              <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: card.tint }}>
+              <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: card.tint }}>
                 {t('oracle.hub.play')}
                 <ArrowRight className="w-4 h-4 transition group-hover:translate-x-0.5" aria-hidden />
               </span>
-            </Link>
-          ))}
-        </div>
+            </span>
+          </Link>
+        ))}
       </div>
     </motion.section>
   );
@@ -451,8 +465,8 @@ export default function OracleHub() {
           </div>
         </motion.section>
 
-        {hasPersona ? hero : intro}
         {explore}
+        {hasPersona ? hero : intro}
       </motion.div>
 
       {/* ---------- Gavetas ---------- */}

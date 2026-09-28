@@ -14,16 +14,14 @@ import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import WatchListDuelModal from '../components/WatchListDuelModal';
 import GlassLoader from '../components/GlassLoader';
-import RatingSpectrum from '../components/RatingSpectrum';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
 // Biblioteca — "a estante".
-//   1. Cabeçalho: título, números da coleção, atalhos (adicionar, listas,
-//      resenhas, ajustes) e o gráfico "Suas notas", que também serve de
-//      índice: tocar numa barra leva até a prateleira daquela nota.
+//   1. Cabeçalho: título, números da coleção e atalhos (adicionar, listas,
+//      resenhas, ajustes). No celular os três últimos viram só ícone, na
+//      mesma linha do "Adicionar Filmes". O gráfico de notas mora no Perfil.
 //   2. Prateleiras: Watchlist (com filtros e duelo) e uma por nota, de 10
 //      a 0 — ou, no layout One Grid, uma de filmes e uma de séries.
-// O único momento animado da página é o gráfico subindo ao abrir.
 
 interface UserMovie {
   id: string;
@@ -73,8 +71,8 @@ export default function Library() {
   const [loadingError, setLoadingError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   // Notas cruas da coleção inteira (só movie_id + rating), disponíveis logo
-  // na primeira consulta — os números do cabeçalho e o gráfico já saem
-  // certos enquanto os detalhes dos filmes ainda estão chegando.
+  // na primeira consulta — os números do cabeçalho já saem certos enquanto
+  // os detalhes dos filmes ainda estão chegando.
   const [ratingRows, setRatingRows] = useState<(number | null)[]>([]);
 
   // Track if this is the initial load
@@ -479,48 +477,34 @@ export default function Library() {
     moviesByRating[key] = sortMoviesByTvOrder(moviesByRating[key]);
   });
 
-  // Números do cabeçalho e do gráfico — da lista crua enquanto os detalhes
-  // carregam, da lista completa (que reflete notas trocadas e exclusões)
-  // depois disso.
+  // Números do cabeçalho — da lista crua enquanto os detalhes carregam, da
+  // lista completa (que reflete notas trocadas e exclusões) depois disso.
   const stats = useMemo(() => {
     const source = loadingProgress >= 100 || ratingRows.length === 0
       ? userMovies.map((m) => (typeof m.userRating === 'number' ? m.userRating : null))
       : ratingRows;
-    const counts = Array.from({ length: 11 }, () => 0);
-    let rated = 0;
-    let sum = 0;
-    source.forEach((r) => {
-      if (r === null) return;
-      counts[r] = (counts[r] || 0) + 1;
-      rated += 1;
-      sum += r;
-    });
+    const rated = source.filter((r) => r !== null).length;
     return {
-      counts,
       rated,
       watchlist: source.length - rated,
       total: source.length,
-      average: rated > 0 ? sum / rated : null,
     };
   }, [loadingProgress, ratingRows, userMovies]);
-
-  const jumpToRating = (rating: number) => {
-    const el = document.getElementById(`library-rating-${rating}`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   if (loading) {
     return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
   }
 
   const isEmpty = initialLoadComplete && stats.total === 0 && userMovies.length === 0;
-  const ghostButton = `inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`;
+  // No celular os atalhos secundários são só ícone (quadrados de 44px), pra
+  // caberem na mesma linha do "Adicionar Filmes"; o nome volta a partir do sm.
+  const ghostButton = `shrink-0 inline-flex items-center justify-center gap-2 w-11 sm:w-auto h-11 px-0 sm:px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`;
 
   return (
     <div className="min-h-screen pb-16">
       {/* ---------- Cabeçalho ---------- */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10 pb-10">
-        <div className="lg:flex lg:items-end lg:justify-between lg:gap-12">
+        <div>
           <div className="min-w-0">
             <h1 style={{ ...PIXEL, color: PAPER }} className="text-[2.2rem] sm:text-5xl leading-none">
               {t('library.title')}
@@ -539,38 +523,28 @@ export default function Library() {
               </p>
             )}
 
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-6 flex flex-nowrap sm:flex-wrap items-center gap-2">
               <Link
                 to="/add-movies"
-                className={`inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`}
+                className={`min-w-0 inline-flex items-center gap-2 h-11 px-4 sm:px-5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold whitespace-nowrap shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`}
               >
-                <Plus className="w-[18px] h-[18px]" aria-hidden />
+                <Plus className="w-[18px] h-[18px] shrink-0" aria-hidden />
                 {t('library.addMovies')}
               </Link>
-              <Link to="/lists" className={ghostButton} style={{ color: PAPER }}>
+              <Link to="/lists" className={ghostButton} style={{ color: PAPER }} aria-label={t('library.listsShort')} title={t('library.listsShort')}>
                 <ListPlus className="w-[18px] h-[18px] text-violet-300" aria-hidden />
-                {t('library.listsShort')}
+                <span className="hidden sm:inline">{t('library.listsShort')}</span>
               </Link>
-              <button onClick={() => setIsReviewsModalOpen(true)} className={ghostButton} style={{ color: PAPER }}>
+              <button onClick={() => setIsReviewsModalOpen(true)} className={ghostButton} style={{ color: PAPER }} aria-label={t('reviews.title')} title={t('reviews.title')}>
                 <MessageSquare className="w-[18px] h-[18px] text-violet-300" aria-hidden />
-                {t('reviews.title')}
+                <span className="hidden sm:inline">{t('reviews.title')}</span>
               </button>
-              <button onClick={() => setIsEditModalOpen(true)} className={ghostButton} style={{ color: PAPER }}>
+              <button onClick={() => setIsEditModalOpen(true)} className={ghostButton} style={{ color: PAPER }} aria-label={t('library.settings')} title={t('library.settings')}>
                 <SlidersHorizontal className="w-[18px] h-[18px] text-violet-300" aria-hidden />
-                {t('library.settings')}
+                <span className="hidden sm:inline">{t('library.settings')}</span>
               </button>
             </div>
           </div>
-
-          {stats.rated > 0 && (
-            <div className="mt-10 lg:mt-0 lg:w-[400px] shrink-0 rounded-2xl px-4 sm:px-5 pt-4 pb-3 ring-1 ring-white/10" style={{ background: VELVET }}>
-              <RatingSpectrum
-                counts={stats.counts}
-                average={stats.average}
-                onJump={ratedLayout === 'notes' ? jumpToRating : undefined}
-              />
-            </div>
-          )}
         </div>
 
         {loadingProgress > 0 && loadingProgress < 100 && (

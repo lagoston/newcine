@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import OracleSheet from '../components/OracleSheet';
 import { MOODS } from '../lib/moods';
-import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES, ORACLE_BY_ID, OracleId, oracleCardImage, withAlpha } from '../lib/oracleTheme';
+import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, ORACLE_BY_ID, OracleId, oracleCardImage, withAlpha } from '../lib/oracleTheme';
 
 // Duelo do Oráculo (Premium).
 //   1. Escolha os oráculos e os humores (as 9 prateleiras + Surpresa).
@@ -433,7 +433,7 @@ export default function OracleDuel() {
                             </span>
                           )}
                         </button>
-                        <p className="mt-2.5 text-sm sm:text-base font-semibold leading-snug line-clamp-2 min-h-[2.5rem]" style={{ color: PAPER }}>
+                        <p className={`mt-2.5 text-sm sm:text-base font-semibold ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
                           {movie.title}
                         </p>
                         <p className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: MIST }}>

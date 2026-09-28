@@ -12,7 +12,7 @@ import FloatingFriendBubbles, { FriendBubbleData } from '../components/FloatingF
 import HomeUserPanels from '../components/HomeUserPanels';
 import GlassLoader from '../components/GlassLoader';
 import GuestLanding from '../components/GuestLanding';
-import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE } from '../lib/oracleTheme';
 
 // ---------------------------------------------------------------------------
 // Pré-carregamento dos detalhes (hover no pôster já adianta o modal)
@@ -256,7 +256,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, movies, meta, friendActivity, onMo
                       friends={friendActivity[movieKey(movie)] ?? []}
                     />
                   </div>
-                  <p className="mt-2.5 text-sm font-medium leading-snug line-clamp-2" style={{ color: PAPER }}>
+                  <p className={`mt-2.5 text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
                     {movie.title}
                   </p>
                   <p className="mt-0.5 text-xs" style={{ color: MIST }}>{metaLine(movie)}</p>

@@ -273,7 +273,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
         )}
       </span>
       <span className="min-w-0 pt-0.5">
-        <span className="block font-semibold leading-snug line-clamp-2 group-hover:underline underline-offset-4" style={{ color: PAPER }}>
+        <span className="font-semibold leading-snug line-clamp-2 group-hover:underline underline-offset-4" style={{ color: PAPER }}>
           {whisper.movie_title}
         </span>
         {detail}
@@ -288,7 +288,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
           whisper,
           whisper.media_type,
           whisper.message ? (
-            <span className="mt-1.5 block text-sm leading-relaxed line-clamp-3" style={{ color: MIST }}>“{whisper.message}”</span>
+            <span className="mt-1.5 text-sm leading-relaxed line-clamp-3" style={{ color: MIST }}>“{whisper.message}”</span>
           ) : null
         );
       case 'new_episode':

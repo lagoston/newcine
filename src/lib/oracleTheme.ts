@@ -20,9 +20,10 @@ export const NIGHT_BACKGROUND = `radial-gradient(ellipse 80% 50% at 75% 0%, rgba
 // Pixelify Sans é carregada no index.html; o fallback monoespaçado mantém
 // o ar "blocado" enquanto a fonte não chega. Ligaduras desligadas: a
 // ligadura "fi" dessa fonte faz "filme" ser lido como "Alme".
-// "CineOracle Five" vem primeiro e só cobre o caractere 5 (ver index.css):
-// o 5 original da Pixelify é idêntico ao S e parece um 8 em tamanho pequeno.
-export const PIXEL_FONT_STACK = '"CineOracle Five", "Pixelify Sans", ui-monospace, "SF Mono", Menlo, monospace';
+// "CineOracle Digits" vem primeiro e só cobre os algarismos 2, 5 e 7 (ver
+// index.css): na Pixelify o 5 é igual ao S, o 7 parece um 1 e o 2 parece um
+// S invertido em tamanho pequeno.
+export const PIXEL_FONT_STACK = '"CineOracle Digits", "Pixelify Sans", ui-monospace, "SF Mono", Menlo, monospace';
 
 export const PIXEL: React.CSSProperties = {
   fontFamily: PIXEL_FONT_STACK,
@@ -32,6 +33,13 @@ export const PIXEL: React.CSSProperties = {
 
 // Anel de foco padrão pra tudo que é clicável (teclado).
 export const FOCUS_RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300';
+
+// Nome de uma obra embaixo do pôster (carrosséis, prateleiras, grades): no
+// máximo duas linhas, com reticências, e sempre com a altura de duas linhas
+// — assim o que vem depois (ano, nota, botão "Avaliar") fica alinhado em
+// todos os cartões, com título curto ou comprido. Não junte com "block",
+// "flex" ou "grid" na mesma className: o display deles anula o line-clamp.
+export const POSTER_TITLE = 'line-clamp-2 min-h-[2.75em] leading-snug break-words';
 
 // Faixa de cor de uma nota de 0 a 10 sobre o fundo noite — a mesma lógica
 // das rating boxes: vermelho pras baixas, amarelo pras medianas, verde pras

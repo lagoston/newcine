@@ -325,7 +325,6 @@ export default function UserProfile() {
   const isOwnerPremium = profile.is_premium ?? profile.plan_type === 'premium';
   const isSelf = session?.user?.id === profile.id;
   const { counts: ratingCounts, average } = summarizeRatings(ratingDistribution);
-  const countriesCount = Object.values(countryCounts || {}).filter((c) => c > 0).length;
 
   // Prateleiras: uma por nota (10 → 0) e a Watchlist no fim.
   const buckets: Record<number, MovieWithRating[]> = {};
@@ -462,8 +461,6 @@ export default function UserProfile() {
         <ProfileStatTiles
           ratedCount={ratedMoviesCount}
           watchMinutes={totalWatchTime}
-          average={average}
-          countriesCount={countriesCount}
           label={t('profile.numbersOf', { username: profile.username })}
         />
       </section>

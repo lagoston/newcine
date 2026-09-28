@@ -1755,7 +1755,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                     style={{ background: BUBBLE_BG }}
                                   >
                                     <span className="block text-[10px] font-semibold truncate" style={{ color: PAPER }}>{friend.username}</span>
-                                    <span className="block text-[10px] italic leading-tight line-clamp-2 mt-0.5" style={{ color: MIST }}>“{friend.review_title}”</span>
+                                    <span className="text-[10px] italic leading-tight line-clamp-2 mt-0.5" style={{ color: MIST }}>“{friend.review_title}”</span>
                                     <span aria-hidden className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-[5px] border-x-transparent border-t-[6px]" style={{ borderTopColor: BUBBLE_BG }} />
                                   </span>
                                 ) : friend.is_watchlist_only ? (

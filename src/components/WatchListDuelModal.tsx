@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { getMovieTrailer, getMovieDetailsFromDB } from '../lib/tmdb';
 import MovieDetailsModal from './MovieDetailsModal';
 import OracleSheet from './OracleSheet';
-import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
+import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE } from '../lib/oracleTheme';
 
 interface WatchlistDuelModalProps {
   isOpen: boolean;
@@ -405,7 +405,7 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
                             </span>
                           )}
                         </button>
-                        <p className="mt-2.5 text-sm font-semibold leading-snug line-clamp-2 min-h-[2.5rem]" style={{ color: PAPER }}>
+                        <p className={`mt-2.5 text-sm font-semibold ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
                           {movie.title}
                         </p>
                         <p className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: MIST }}>

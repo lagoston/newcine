@@ -1,25 +1,21 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Loader2, Filter, PartyPopper, Star, Wand2, Crown, Film } from 'lucide-react';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Loader2, Filter, PartyPopper, Star, Wand2, Crown, Film, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { getOraclePoolPredictions, getMoviesForPredictedSlice, Movie, getMovieDetails } from '../lib/tmdb';
 import MovieDetailsModal from '../components/MovieDetailsModal';
-import OracleForYouBox from '../components/OracleForYouBox';
 import StreamingFilterModal from '../components/StreamingFilterModal';
 import OptimizedPoster from '../components/OptimizedPoster';
-import { VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, ORACLES, ORACLE_BY_ID, OracleId, oracleCardImage, withAlpha } from '../lib/oracleTheme';
+import { VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, ORACLE_BY_ID, OracleId, oracleCardImage, withAlpha } from '../lib/oracleTheme';
 import { MOODS, type Mood } from '../lib/moods';
 
-// Biblioteca dos Oráculos.
-//   Nível 1 (/oracle/libraries): escolher um dos três oráculos, mais o
-//     "Do Oráculo para Você" do dia.
-//   Nível 2 (?oracle=bogart): as 9 prateleiras temáticas daquele oráculo,
-//     cada filme com a nota PREVISTA pra você; troca de oráculo e filtro
-//     de streaming no topo. O oráculo escolhido fica na URL, então o
-//     "voltar" do navegador também volta pra escolha.
+// Biblioteca dos Oráculos (/oracle/libraries?oracle=bogart): as 9
+// prateleiras temáticas de um oráculo, cada filme com a nota PREVISTA pra
+// você; troca de oráculo e filtro de streaming no topo. As cartas pra
+// escolher o oráculo ficam na Central dos Oráculos — sem ?oracle= válido,
+// a página volta pra lá.
 
 type CardType = OracleId;
 
@@ -47,7 +43,11 @@ interface ShelfState {
   totalCount: number;
   loading: boolean;
   loadingMore: boolean;
+  // Falha ao falar com o servidor — diferente de "prateleira vazia".
+  error: boolean;
 }
+
+const INITIAL_SHELF: ShelfState = { movies: [], totalCount: 0, loading: true, loadingMore: false, error: false };
 
 type PredictedMovie = Movie & { predictedRating?: number };
 
@@ -56,21 +56,34 @@ type PredictedMovie = Movie & { predictedRating?: number };
 // Premium (sem custo por uso) e some quando não há mais nada — ou quando
 // o filtro de streaming está ligado (carregar filmes "crus" que o filtro
 // esconderia não ajuda ninguém).
+//
+// Cada prateleira pertence a UM oráculo: a página monta uma prateleira nova
+// (key = oráculo + humor) quando o oráculo muda. Antes a mesma prateleira
+// era reaproveitada e a primeira busca do oráculo novo lia o estado do
+// oráculo anterior ("já tenho 20 filmes") — pulava a busca das previsões,
+// ficava com uma lista vazia e mostrava "Você já assistiu tudo dessa
+// categoria" em todas as prateleiras. E uma resposta atrasada do oráculo
+// anterior podia chegar depois e ocupar a prateleira nova.
 const Shelf: React.FC<{
   cardType: CardType;
   mood: Mood;
-  userId: string;
-  accessToken: string;
   selectedProviderIds: number[];
   isPremium: boolean;
   onMovieClick: (movie: Movie) => void;
-}> = ({ cardType, mood, userId, accessToken, selectedProviderIds, isPremium, onMovieClick }) => {
+}> = ({ cardType, mood, selectedProviderIds, isPremium, onMovieClick }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const [state, setState] = useState<ShelfState>({ movies: [], totalCount: 0, loading: true, loadingMore: false });
+  const [state, setState] = useState<ShelfState>(INITIAL_SHELF);
   const stateRef = useRef(state);
   stateRef.current = state;
   const isFetchingRef = useRef(false);
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
   // Cache da lista completa de IDs já ordenados pela nota PREVISTA
   // (calculada uma vez pela Edge Function) — "carregar mais" só fatia essa
   // lista e busca os detalhes da fatia nova.
@@ -106,18 +119,19 @@ const Shelf: React.FC<{
   const loadMore = useCallback(async () => {
     if (isFetchingRef.current) return;
     const current = stateRef.current;
-    if (current.movies.length > 0 && current.movies.length >= current.totalCount) return;
+    const isFirstPage = current.movies.length === 0;
+    if (!isFirstPage && current.movies.length >= current.totalCount) return;
 
     isFetchingRef.current = true;
-    setState((s) => ({ ...s, loadingMore: current.movies.length > 0, loading: current.movies.length === 0 }));
+    setState((s) => ({ ...s, error: false, loadingMore: !isFirstPage, loading: isFirstPage }));
     try {
       // Primeira carga: previsões pro pool inteiro, numa chamada só.
-      if (current.movies.length === 0) {
-        predictedIdsRef.current = await getOraclePoolPredictions(cardType, mood.key, accessToken);
+      if (isFirstPage) {
+        predictedIdsRef.current = await getOraclePoolPredictions(cardType, mood.key);
       }
 
       const allPredicted = predictedIdsRef.current;
-      const pageSize = current.movies.length === 0 ? INITIAL_PAGE_SIZE : LOAD_MORE_INCREMENT;
+      const pageSize = isFirstPage ? INITIAL_PAGE_SIZE : LOAD_MORE_INCREMENT;
       const nextSlice = allPredicted.slice(current.movies.length, current.movies.length + pageSize);
       const sliceMovies = await getMoviesForPredictedSlice(nextSlice.map((p) => p.movie_id));
 
@@ -127,27 +141,27 @@ const Shelf: React.FC<{
         predictedRating: ratingByMovieId.get(movie.id)?.predicted_rating,
       }));
 
+      if (!aliveRef.current) return;
       setState((s) => ({
-        movies: current.movies.length === 0 ? enrichedMovies : [...s.movies, ...enrichedMovies],
+        movies: isFirstPage ? enrichedMovies : [...s.movies, ...enrichedMovies],
         totalCount: allPredicted.length,
         loading: false,
         loadingMore: false,
+        error: false,
       }));
     } catch (error) {
       console.error(`Error loading shelf ${cardType}/${mood.key}:`, error);
-      setState((s) => ({ ...s, loading: false, loadingMore: false }));
+      if (!aliveRef.current) return;
+      setState((s) => ({ ...s, loading: false, loadingMore: false, error: s.movies.length === 0 }));
     } finally {
       isFetchingRef.current = false;
     }
-  }, [cardType, mood.key, userId, accessToken]);
+  }, [cardType, mood.key]);
 
   useEffect(() => {
-    isFetchingRef.current = false;
-    predictedIdsRef.current = [];
-    setState({ movies: [], totalCount: 0, loading: true, loadingMore: false });
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cardType, mood.key, userId]);
+  }, []);
 
   // Filtro de streaming — no cliente, sobre os filmes já carregados.
   const visibleMovies: PredictedMovie[] =
@@ -161,7 +175,7 @@ const Shelf: React.FC<{
 
   const hasMore = state.movies.length < state.totalCount;
   const showLoadMoreButton = hasMore && selectedProviderIds.length === 0;
-  const isFullyEmpty = !state.loading && state.totalCount === 0;
+  const isFullyEmpty = !state.loading && !state.error && state.totalCount === 0;
   const Icon = mood.icon;
   const label = t(mood.labelKey);
   const formatScore = (value: number) => value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -201,6 +215,20 @@ const Shelf: React.FC<{
               <div className="mt-2.5 h-3.5 w-4/5 rounded bg-white/[0.07] animate-pulse" />
             </div>
           ))}
+        </div>
+      ) : state.error ? (
+        <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-5">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl px-4 py-3 text-sm ring-1 ring-white/10" style={{ background: VELVET, color: MIST }}>
+            <span className="flex-1 min-w-[12rem]">{t('oracle.libraries.shelfError')}</span>
+            <button
+              onClick={() => loadMore()}
+              className={`gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
+              style={{ color: PAPER }}
+            >
+              <RefreshCw className="w-4 h-4 text-violet-300" aria-hidden />
+              {t('common.retry')}
+            </button>
+          </div>
         </div>
       ) : isFullyEmpty ? (
         <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-5">
@@ -267,7 +295,7 @@ const Shelf: React.FC<{
                             </span>
                           )}
                         </span>
-                        <span className="mt-2.5 block text-sm font-medium leading-snug line-clamp-2" style={{ color: PAPER }}>
+                        <span className={`mt-2.5 text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
                           {movie.title}
                         </span>
                         <span className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: MIST }}>
@@ -321,7 +349,6 @@ const Shelf: React.FC<{
 export default function OracleLibraries() {
   const { t } = useTranslation();
   const { session } = useAuth();
-  const reduceMotion = useReducedMotion();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const oracleParam = searchParams.get('oracle');
@@ -331,8 +358,8 @@ export default function OracleLibraries() {
   const [showStreamingFilter, setShowStreamingFilter] = useState(false);
   const [selectedProviderIds, setSelectedProviderIds] = useState<number[]>([]);
   const [isPremium, setIsPremium] = useState(false);
-  // Estilo de carta do Personalizar perfil. Começa null de propósito: as
-  // cartas só montam com a imagem certa, sem piscar a padrão antes.
+  // Estilo de carta do Personalizar perfil. Começa null de propósito: a
+  // carta só monta com a imagem certa, sem piscar a padrão antes.
   const [cardStyle, setCardStyle] = useState<string | null>(null);
   // Prateleiras na ordem dos humores favoritos do usuário (calculada no
   // servidor); a ordem padrão vale até ela chegar.
@@ -376,10 +403,6 @@ export default function OracleLibraries() {
     window.scrollTo({ top: 0 });
   }, [selectedOracle]);
 
-  const selectOracle = (id: CardType | null, replace = false) => {
-    setSearchParams(id ? { oracle: id } : {}, { replace });
-  };
-
   const handleMovieClick = async (movie: Movie) => {
     try {
       const details = await getMovieDetails(movie.id, movie.media_type || 'movie');
@@ -393,179 +416,101 @@ export default function OracleLibraries() {
     setSelectedProviderIds((prev) => (prev.includes(providerId) ? prev.filter((id) => id !== providerId) : [...prev, providerId]));
   };
 
-  const ghostButton = `gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`;
-  const dealList = { hidden: {}, shown: { transition: { staggerChildren: reduceMotion ? 0 : 0.09, delayChildren: 0.05 } } };
-  const dealCard = {
-    hidden: (i: number) => (reduceMotion ? { opacity: 1 } : { opacity: 0, y: 18, rotate: (i - 1) * 2.5 }),
-    shown: reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 220, damping: 22 } },
-  };
+  // Sem oráculo escolhido: as cartas moram na Central dos Oráculos.
+  if (!selectedOracle) return <Navigate to="/oracle" replace />;
 
-  const current = selectedOracle ? ORACLE_BY_ID[selectedOracle] : null;
+  const current = ORACLE_BY_ID[selectedOracle];
+  const ghostButton = `gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`;
 
   return (
     <div className="min-h-screen pb-16">
-      {!current ? (
-        <>
-          {/* ---------- Nível 1: escolher o oráculo ---------- */}
-          <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10">
-            <Link to="/oracle" className={`-ml-2 gap-1.5 h-11 px-2 rounded-xl hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`} style={{ color: MIST, justifyContent: 'flex-start', display: 'inline-flex' }}>
-              <ArrowLeft className="w-[18px] h-[18px]" aria-hidden />
-              {t('oracle.title')}
-            </Link>
-            <h1 style={{ ...PIXEL, color: PAPER }} className="mt-3 text-[2.2rem] sm:text-5xl leading-none">
-              {t('oracle.libraries.title')}
-            </h1>
-            <p className="mt-3 text-[15px] sm:text-base max-w-xl" style={{ color: MIST }}>
-              {t('oracle.libraries.chooseOracle')}
-            </p>
-
-            {!cardStyle ? (
-              <div className="mt-8 grid sm:grid-cols-3 gap-4" aria-busy="true">
-                {ORACLES.map((oracle) => (
-                  <div key={oracle.id} className="h-[168px] sm:h-auto sm:aspect-[3/5] rounded-2xl bg-white/[0.06] animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              <motion.ul className="mt-8 grid sm:grid-cols-3 gap-4" variants={dealList} initial="hidden" animate="shown">
-                {ORACLES.map((oracle, i) => (
-                  <motion.li key={oracle.id} custom={i} variants={dealCard}>
-                    <button
-                      onClick={() => selectOracle(oracle.id)}
-                      className={`group w-full h-full flex flex-row sm:flex-col items-start sm:items-stretch justify-start gap-4 sm:gap-0 text-left rounded-2xl ring-1 ring-white/10 hover:ring-white/25 p-3 sm:p-4 transition ${FOCUS_RING}`}
-                      style={{ background: `radial-gradient(ellipse 80% 50% at 50% 0%, ${withAlpha(oracle.color, 0.12)}, transparent 70%), ${VELVET}` }}
-                    >
-                      <span className="block shrink-0 w-[104px] sm:w-full overflow-hidden rounded-lg sm:rounded-xl" style={{ boxShadow: `0 18px 36px -18px ${withAlpha(oracle.color, 0.7)}` }}>
-                        <img
-                          src={oracleCardImage(oracle.id, cardStyle)}
-                          alt=""
-                          decoding="async"
-                          className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.03]"
-                        />
-                      </span>
-                      <span className="min-w-0 flex-1 flex flex-col sm:mt-4">
-                        <span style={{ ...PIXEL, color: oracle.color }} className="text-2xl sm:text-3xl leading-none">
-                          {oracle.name}
-                        </span>
-                        <span className="mt-1.5 text-sm" style={{ color: MIST }}>
-                          {t(`oracle.cards.${oracle.id}`)} · {t(`oracle.cards.${oracle.id}Subtitle`)}
-                        </span>
-                        <span className="mt-2.5 text-[15px] leading-snug" style={{ color: PAPER }}>
-                          {t(LIBRARY_FUNCTION_DESC_KEY[oracle.id])}
-                        </span>
-                        <span className="mt-auto pt-3 inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: oracle.color }}>
-                          {t('oracle.libraries.exploreShelves')}
-                          <ArrowRight className="w-4 h-4 transition group-hover:translate-x-0.5" aria-hidden />
-                        </span>
-                      </span>
-                    </button>
-                  </motion.li>
-                ))}
-              </motion.ul>
+      <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10 pb-8">
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            to="/oracle"
+            className={`-ml-2 gap-1.5 h-11 px-2 rounded-xl hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
+            style={{ color: MIST, justifyContent: 'flex-start', display: 'inline-flex' }}
+          >
+            <ArrowLeft className="w-[18px] h-[18px]" aria-hidden />
+            {t('oracle.title')}
+          </Link>
+          <button
+            onClick={() => setShowStreamingFilter(true)}
+            aria-label={selectedProviderIds.length > 0 ? `${t('library.filters')} (${selectedProviderIds.length})` : t('library.filters')}
+            className={`${ghostButton} ${selectedProviderIds.length > 0 ? '!border-violet-400/60 bg-violet-500/20' : ''}`}
+            style={{ color: PAPER }}
+          >
+            <Filter className="w-4 h-4 text-violet-300" aria-hidden />
+            {t('library.filters')}
+            {selectedProviderIds.length > 0 && (
+              <span className="grid place-items-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs leading-none" style={{ ...PIXEL, background: PAPER, color: INK }} aria-hidden>
+                {selectedProviderIds.length}
+              </span>
             )}
-          </section>
+          </button>
+        </div>
 
-          {session?.user?.id && (
-            <section className="mt-10 border-t border-white/[0.07] pt-10">
-              <div className="mx-auto max-w-6xl px-5 sm:px-8">
-                <OracleForYouBox userId={session.user.id} hasEssence={true} />
-              </div>
-            </section>
+        <div className="mt-5 flex items-center gap-4 sm:gap-5">
+          {cardStyle ? (
+            <img
+              src={oracleCardImage(current.id, cardStyle)}
+              alt=""
+              decoding="async"
+              className="w-[72px] sm:w-[92px] h-auto shrink-0 rounded-lg"
+              style={{ boxShadow: `0 16px 32px -16px ${withAlpha(current.color, 0.8)}` }}
+            />
+          ) : (
+            <span className="w-[72px] sm:w-[92px] aspect-[3/5] shrink-0 rounded-lg bg-white/[0.06] animate-pulse" />
           )}
-        </>
-      ) : (
-        <>
-          {/* ---------- Nível 2: as prateleiras de um oráculo ---------- */}
-          <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10 pb-8">
-            <div className="flex items-center justify-between gap-3">
-              <button
-                onClick={() => selectOracle(null)}
-                className={`-ml-2 gap-1.5 h-11 px-2 rounded-xl hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
-                style={{ color: MIST }}
-              >
-                <ArrowLeft className="w-[18px] h-[18px]" aria-hidden />
-                {t('oracle.libraries.allOracles')}
-              </button>
-              <button
-                onClick={() => setShowStreamingFilter(true)}
-                aria-label={selectedProviderIds.length > 0 ? `${t('library.filters')} (${selectedProviderIds.length})` : t('library.filters')}
-                className={`${ghostButton} ${selectedProviderIds.length > 0 ? '!border-violet-400/60 bg-violet-500/20' : ''}`}
-                style={{ color: PAPER }}
-              >
-                <Filter className="w-4 h-4 text-violet-300" aria-hidden />
-                {t('library.filters')}
-                {selectedProviderIds.length > 0 && (
-                  <span className="grid place-items-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs leading-none" style={{ ...PIXEL, background: PAPER, color: INK }} aria-hidden>
-                    {selectedProviderIds.length}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            <div className="mt-5 flex items-center gap-4 sm:gap-5">
-              {cardStyle ? (
-                <img
-                  src={oracleCardImage(current.id, cardStyle)}
-                  alt=""
-                  decoding="async"
-                  className="w-[72px] sm:w-[92px] h-auto shrink-0 rounded-lg"
-                  style={{ boxShadow: `0 16px 32px -16px ${withAlpha(current.color, 0.8)}` }}
-                />
-              ) : (
-                <span className="w-[72px] sm:w-[92px] aspect-[2/3] shrink-0 rounded-lg bg-white/[0.06] animate-pulse" />
-              )}
-              <div className="min-w-0">
-                <p className="text-sm" style={{ color: MIST }}>
-                  {t('oracle.libraries.title')}
-                </p>
-                <h1 style={{ ...PIXEL, color: current.color }} className="mt-1 text-[2.4rem] sm:text-5xl leading-none">
-                  {current.name}
-                </h1>
-                <p className="mt-2 text-sm sm:text-[15px] leading-snug" style={{ color: PAPER }}>
-                  {t(LIBRARY_FUNCTION_DESC_KEY[current.id])}
-                </p>
-              </div>
-            </div>
-
-            {/* Trocar de oráculo sem voltar */}
-            <div className="mt-6 flex flex-wrap items-center gap-2" role="group" aria-label={t('oracle.libraries.switchOracle')}>
-              {ORACLES.map((oracle) => {
-                const active = oracle.id === current.id;
-                return (
-                  <button
-                    key={oracle.id}
-                    onClick={() => !active && selectOracle(oracle.id, true)}
-                    aria-pressed={active}
-                    className={`gap-2 h-11 pl-1.5 pr-4 rounded-full text-sm font-medium transition ${FOCUS_RING} ${active ? 'bg-white/10' : 'hover:bg-white/5'}`}
-                    style={{ color: active ? PAPER : MIST, boxShadow: `inset 0 0 0 1.5px ${active ? oracle.color : 'rgba(255,255,255,0.15)'}` }}
-                  >
-                    <img src={oracle.avatar} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
-                    {oracle.name}
-                  </button>
-                );
-              })}
-            </div>
-
-            <p className="mt-4 inline-flex items-start gap-2 text-sm" style={{ color: MIST }}>
-              <Wand2 className="w-4 h-4 mt-0.5 shrink-0 text-violet-300" aria-hidden />
-              {t('oracle.libraries.predictedRatingLegend')}
+          <div className="min-w-0">
+            <p className="text-sm" style={{ color: MIST }}>
+              {t('oracle.libraries.title')}
             </p>
-          </section>
+            <h1 style={{ ...PIXEL, color: current.color }} className="mt-1 text-[2.4rem] sm:text-5xl leading-none">
+              {current.name}
+            </h1>
+            <p className="mt-2 text-sm sm:text-[15px] leading-snug" style={{ color: PAPER }}>
+              {t(LIBRARY_FUNCTION_DESC_KEY[current.id])}
+            </p>
+          </div>
+        </div>
 
-          {session?.user?.id &&
-            orderedMoods.map((mood) => (
-              <Shelf
-                key={mood.key}
-                cardType={current.id}
-                mood={mood}
-                userId={session.user.id}
-                accessToken={session.access_token}
-                selectedProviderIds={selectedProviderIds}
-                isPremium={isPremium}
-                onMovieClick={handleMovieClick}
-              />
-            ))}
-        </>
-      )}
+        {/* Trocar de oráculo sem voltar */}
+        <div className="mt-6 flex flex-wrap items-center gap-2" role="group" aria-label={t('oracle.libraries.switchOracle')}>
+          {ORACLES.map((oracle) => {
+            const active = oracle.id === current.id;
+            return (
+              <button
+                key={oracle.id}
+                onClick={() => !active && setSearchParams({ oracle: oracle.id }, { replace: true })}
+                aria-pressed={active}
+                className={`gap-2 h-11 pl-1.5 pr-4 rounded-full text-sm font-medium transition ${FOCUS_RING} ${active ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                style={{ color: active ? PAPER : MIST, boxShadow: `inset 0 0 0 1.5px ${active ? oracle.color : 'rgba(255,255,255,0.15)'}` }}
+              >
+                <img src={oracle.avatar} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
+                {oracle.name}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="mt-4 inline-flex items-start gap-2 text-sm" style={{ color: MIST }}>
+          <Wand2 className="w-4 h-4 mt-0.5 shrink-0 text-violet-300" aria-hidden />
+          {t('oracle.libraries.predictedRatingLegend')}
+        </p>
+      </section>
+
+      {session?.user?.id &&
+        orderedMoods.map((mood) => (
+          <Shelf
+            key={`${current.id}:${mood.key}`}
+            cardType={current.id}
+            mood={mood}
+            selectedProviderIds={selectedProviderIds}
+            isPremium={isPremium}
+            onMovieClick={handleMovieClick}
+          />
+        ))}
 
       {selectedMovie && <MovieDetailsModal movie={selectedMovie} isOpen={true} onClose={() => setSelectedMovie(null)} isOtherUserProfile={false} />}
 

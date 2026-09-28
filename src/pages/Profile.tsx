@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Users, Film, MessageCircle, Crown, Palette, Settings, Tag, ArrowRight, Camera, Trash2, Check, Pencil, Star, User } from 'lucide-react';
+import { Users, Film, MessageCircle, Crown, Palette, Settings, Tag, ArrowRight, Camera, Trash2, Check, Pencil, User } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import { supabase, getProfile } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -15,13 +15,12 @@ import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON } fro
 import { ProfileStatTiles, ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD } from '../components/ProfileTaste';
 import { summarizeRatings } from '../lib/profileStats';
 import ProfileEssence from '../components/ProfileEssence';
+import FriendsActivityCarousel from '../components/FriendsActivityCarousel';
 import { toast } from 'sonner';
-import { getFrameClass, frameUsesComponent } from '../lib/frames';
-import { GhostRiderFrame } from '../components/GhostRiderFrame';
 import { useTranslation } from 'react-i18next';
 import { cache } from '../lib/cache';
 import { useProfileData } from '../hooks/useProfileData';
-import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES, ratingTone } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
 
 interface Profile {
   id: string;
@@ -161,10 +160,6 @@ export default function Profile() {
   const [realReviewCount, setRealReviewCount] = useState(0);
   const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
   const [showTagPinsModal, setShowTagPinsModal] = useState(false);
-  // Joia menos conhecida aberta nos detalhes do filme.
-  // Faixa de atividade dos amigos (rolagem horizontal, arrastável no desktop).
-  const friendsScrollRef = useRef<HTMLDivElement>(null);
-  const friendsDrag = useRef({ active: false, startX: 0, scrollStart: 0, distance: 0 });
 
   const {
     ratedMoviesCount,
@@ -591,23 +586,6 @@ export default function Profile() {
     }
   };
 
-  // Arrastar a faixa de amigos com o mouse (no celular é o toque nativo).
-  const handleFriendsMouseDown = (e: React.MouseEvent) => {
-    const el = friendsScrollRef.current;
-    if (!el) return;
-    friendsDrag.current = { active: true, startX: e.pageX, scrollStart: el.scrollLeft, distance: 0 };
-  };
-  const handleFriendsMouseMove = (e: React.MouseEvent) => {
-    const el = friendsScrollRef.current;
-    if (!el || !friendsDrag.current.active) return;
-    e.preventDefault();
-    const dx = e.pageX - friendsDrag.current.startX;
-    friendsDrag.current.distance = Math.abs(dx);
-    el.scrollLeft = friendsDrag.current.scrollStart - dx;
-  };
-  const handleFriendsMouseUp = () => {
-    friendsDrag.current.active = false;
-  };
 
   if (loading) {
     return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
@@ -639,7 +617,6 @@ export default function Profile() {
 
   // ---- Valores derivados ----
   const { counts: ratingCounts, average } = summarizeRatings(ratingDistribution);
-  const countriesCount = Object.values(countryCounts || {}).filter((c) => c > 0).length;
 
   return (
     <div className="min-h-screen pb-16">
@@ -805,7 +782,7 @@ export default function Profile() {
 
       {/* ---------- Números ---------- */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 mt-4">
-        <ProfileStatTiles ratedCount={ratedMoviesCount} watchMinutes={totalWatchTime} average={average} countriesCount={countriesCount} />
+        <ProfileStatTiles ratedCount={ratedMoviesCount} watchMinutes={totalWatchTime} />
       </section>
 
       {/* ---------- Atividade dos amigos ---------- */}
@@ -828,78 +805,8 @@ export default function Profile() {
         </div>
 
         {followedUsersCarousel.length > 0 ? (
-          <div
-            ref={friendsScrollRef}
-            className="mt-5 overflow-x-auto cursor-grab select-none"
-            onMouseDown={handleFriendsMouseDown}
-            onMouseMove={handleFriendsMouseMove}
-            onMouseUp={handleFriendsMouseUp}
-            onMouseLeave={handleFriendsMouseUp}
-            onClickCapture={(e) => {
-              if (friendsDrag.current.distance > 5) {
-                e.preventDefault();
-                e.stopPropagation();
-                friendsDrag.current.distance = 0;
-              }
-            }}
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
-          >
-            <ol className="flex gap-3 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] pb-2">
-              {followedUsersCarousel.map((friend) => {
-                const friendFrameRaw = getFrameClass(friend.avatar_frame || undefined, friend.plan_type === 'premium');
-                const friendFrame = !friendFrameRaw || friendFrameRaw === 'ring-0' ? 'ring-2 ring-white/15' : friendFrameRaw;
-                const tone = friend.lastRating !== null ? ratingTone(friend.lastRating) : null;
-                return (
-                  <li key={friend.id} className="shrink-0 w-[140px]">
-                    <Link
-                      to={`/profile/${friend.username}`}
-                      draggable={false}
-                      className={`group h-full flex flex-col items-center justify-start text-center rounded-2xl px-3 pt-4 pb-3.5 ring-1 ring-white/10 hover:ring-white/25 transition ${FOCUS_RING}`}
-                      style={{ background: VELVET }}
-                    >
-                      {frameUsesComponent(friend.avatar_frame || undefined, friend.plan_type === 'premium') === 'GhostRiderFrame' && friend.avatar_url ? (
-                        <GhostRiderFrame src={friend.avatar_url} alt="" size={64} />
-                      ) : (
-                        <span className={`block w-16 h-16 rounded-full overflow-hidden ${friendFrame}`} style={{ background: NIGHT }}>
-                          {friend.avatar_url ? (
-                            <img src={friend.avatar_url} alt="" draggable={false} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                          ) : (
-                            <span className="w-full h-full grid place-items-center text-xl font-semibold" style={{ color: PAPER }}>
-                              {friend.username.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                        </span>
-                      )}
-                      <span className="mt-2.5 max-w-full text-sm font-semibold truncate group-hover:underline underline-offset-4" style={{ color: PAPER }}>
-                        @{friend.username}
-                      </span>
-                      {friend.lastRatedTitle ? (
-                        <>
-                          <span className="mt-1 text-xs leading-snug line-clamp-2" style={{ color: MIST }}>
-                            {friend.lastRatedTitle}
-                          </span>
-                          {tone ? (
-                            <span
-                              className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[13px] leading-none"
-                              style={{ ...PIXEL, color: tone.color, boxShadow: `inset 0 0 0 1.5px ${tone.ring}` }}
-                            >
-                              <Star className="w-3 h-3 fill-current" aria-hidden />
-                              {friend.lastRating}
-                            </span>
-                          ) : (
-                            <span className="mt-2 text-[11px] text-sky-300">{t('profile.onWatchlist')}</span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="mt-1 text-xs" style={{ color: MIST }}>
-                          {t('profile.noRecentActivity')}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ol>
+          <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-6">
+            <FriendsActivityCarousel friends={followedUsersCarousel} />
           </div>
         ) : (
           <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-5">

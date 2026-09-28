@@ -1,59 +1,91 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Globe } from 'lucide-react';
+import { Globe, Check } from 'lucide-react';
+import { VELVET, PAPER, MIST, FOCUS_RING } from '../lib/oracleTheme';
+
+// Troca de idioma da navbar, no tema noite: o globo com a sigla do idioma
+// atual e um menu curto com os dois idiomas. Fecha no clique fora, no Esc
+// e ao escolher.
+
+const LANGUAGES = [
+  { code: 'pt', short: 'PT', name: 'Português', flag: '🇧🇷' },
+  { code: 'en', short: 'EN', name: 'English', flag: '🇺🇸' },
+];
 
 export default function LanguageSwitcher() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setIsOpen(false);
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         setIsOpen(false);
+        buttonRef.current?.focus();
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [isOpen]);
 
-  const languages = [
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'pt', name: 'Português', flag: '🇧🇷' }
-  ];
+  const current = LANGUAGES.find((lang) => i18n.language?.startsWith(lang.code)) || LANGUAGES[1];
 
-  const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng);
+  const changeLanguage = (code: string) => {
+    i18n.changeLanguage(code);
     setIsOpen(false);
   };
-
-  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
 
   return (
     <div className="relative" ref={menuRef}>
       <button
-        className="flex items-center p-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label="Change language"
+        ref={buttonRef}
+        onClick={() => setIsOpen((open) => !open)}
+        aria-label={t('common.changeLanguage', { defaultValue: 'Change language' })}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        className={`flex items-center gap-1.5 h-10 px-2.5 rounded-xl border text-sm font-medium transition-all duration-300 ${FOCUS_RING} ${
+          isOpen ? 'text-white bg-white/10 border-violet-400/40' : 'text-gray-300 hover:text-white hover:bg-white/10 border-transparent'
+        }`}
       >
-        <Globe className="w-4 h-4" />
+        <Globe className="w-[18px] h-[18px]" aria-hidden />
+        <span className="text-xs font-semibold tracking-wide">{current.short}</span>
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
-          {languages.map((language) => (
-            <button
-              key={language.code}
-              onClick={() => changeLanguage(language.code)}
-              className={`w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center ${
-                i18n.language === language.code ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              <span className="text-lg mr-3">{language.flag}</span>
-              <span className="font-medium">{language.name}</span>
-            </button>
-          ))}
+        <div
+          role="menu"
+          aria-label={t('common.changeLanguage', { defaultValue: 'Change language' })}
+          className="absolute right-0 mt-2 w-48 p-1.5 rounded-xl ring-1 ring-white/10 shadow-2xl shadow-black/60 z-50"
+          style={{ background: VELVET }}
+        >
+          {LANGUAGES.map((language) => {
+            const active = language.code === current.code;
+            return (
+              <button
+                key={language.code}
+                role="menuitemradio"
+                aria-checked={active}
+                onClick={() => changeLanguage(language.code)}
+                className={`w-full flex justify-start items-center gap-3 h-11 px-3 rounded-lg text-left text-sm transition ${FOCUS_RING} ${
+                  active ? 'bg-violet-500/15' : 'hover:bg-white/5'
+                }`}
+                style={{ color: active ? PAPER : MIST }}
+              >
+                <span className="text-lg leading-none" aria-hidden>{language.flag}</span>
+                <span className="flex-1 font-medium">{language.name}</span>
+                {active && <Check className="w-4 h-4 text-violet-300" aria-hidden />}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
