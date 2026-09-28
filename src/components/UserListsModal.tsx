@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { X, ListPlus, Film, Eye } from 'lucide-react';
-import GlassLoader from './GlassLoader';
+import { useState, useEffect } from 'react';
+import { ListPlus, Film } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Movie, getMovieDetails } from '../lib/tmdb';
 import { toast } from 'sonner';
 import RatingBox from './RatingBox';
+import OracleSheet from './OracleSheet';
 import { useTranslation } from 'react-i18next';
+import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
 
 interface UserListsModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
+  // Dono das listas — só pra dar nome no título e no vazio.
+  username?: string;
 }
 
 interface List {
@@ -20,16 +23,19 @@ interface List {
   movies: Movie[];
 }
 
-export default function UserListsModal({ isOpen, onClose, userId }: UserListsModalProps) {
+// Listas de outra pessoa (aberto do perfil dela). Cada lista vira uma
+// prateleira de pôsteres, a mesma da Biblioteca.
+export default function UserListsModal({ isOpen, onClose, userId, username }: UserListsModalProps) {
   const [lists, setLists] = useState<List[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     if (isOpen && userId) {
       fetchUserLists();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, userId]);
 
   const fetchUserLists = async () => {
@@ -37,166 +43,121 @@ export default function UserListsModal({ isOpen, onClose, userId }: UserListsMod
       setLoading(true);
       setError(null);
 
-      console.log('Fetching lists for user:', userId);
-
-      // Use RPC function to get user's lists
       const { data: listsData, error: listsError } = await supabase
         .rpc('get_user_lists_by_id', { target_user_id: userId })
         .order('created_at', { ascending: false });
 
-      if (listsError) {
-        console.error('Error fetching lists:', listsError);
-        throw listsError;
-      }
-      
-      console.log('Lists fetched:', listsData?.length || 0);
-      
+      if (listsError) throw listsError;
+
       if (!listsData || listsData.length === 0) {
         setLists([]);
-        setLoading(false);
         return;
       }
 
-      // For each list, get its movies
+      // Pra cada lista, os títulos dela.
       const listsWithMovies = await Promise.all(
-        listsData.map(async (list) => {
-          console.log('Fetching movies for list:', list.id);
-          
-          const { data: movieIds, error: moviesError } = await supabase
-            .from('list_movies')
-            .select('movie_id')
-            .eq('list_id', list.id);
+        (listsData as Omit<List, 'movies'>[]).map(async (list) => {
+          const { data: movieIds, error: moviesError } = await supabase.from('list_movies').select('movie_id').eq('list_id', list.id);
 
-          if (moviesError) {
-            console.error('Error fetching movies for list:', moviesError);
-            throw moviesError;
-          }
-          
-          console.log('Movies in list:', movieIds?.length || 0);
+          if (moviesError) throw moviesError;
+          if (!movieIds || movieIds.length === 0) return { ...list, movies: [] };
 
-          if (!movieIds || movieIds.length === 0) {
-            return {
-              ...list,
-              movies: []
-            };
-          }
-
-          // Get movie details for each movie ID
           const movies = await Promise.all(
-            movieIds.map(async ({ movie_id }) => {
+            movieIds.map(async ({ movie_id }: { movie_id: number }) => {
               try {
-                const movieDetails = await getMovieDetails(movie_id);
-                return movieDetails;
-              } catch (error) {
-                console.error(`Failed to fetch details for movie ${movie_id}:`, error);
+                return await getMovieDetails(movie_id);
+              } catch (err) {
+                console.error(`Failed to fetch details for movie ${movie_id}:`, err);
                 return null;
               }
-            })
+            }),
           );
 
-          return {
-            ...list,
-            movies: movies.filter(Boolean) // Remove any null results from failed fetches
-          };
-        })
+          return { ...list, movies: movies.filter((m): m is Movie => m !== null) };
+        }),
       );
 
       setLists(listsWithMovies);
-    } catch (error: any) {
-      console.error('Error fetching user lists:', error);
-      setError(error.message || 'Failed to load user lists');
-      toast.error('Failed to load user lists');
+    } catch (err: unknown) {
+      console.error('Error fetching user lists:', err);
+      setError(err instanceof Error ? err.message : 'error');
+      toast.error(t('lists.loadError'));
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
+  const formatDate = (value: string) => new Date(value).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/50 flex items-center justify-center p-4 pt-[calc(env(safe-area-inset-top)+4rem)]">
-      <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-xl shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center">
-            <ListPlus className="w-6 h-6 mr-2 text-blue-500" />
-            {t('lists.userLists')}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-          >
-            <X className="w-6 h-6" />
-          </button>
+    <OracleSheet
+      open={isOpen}
+      onClose={onClose}
+      title={t('profile.listsShort')}
+      subtitle={[username ? `@${username}` : null, !loading && lists.length > 0 ? t('lists.listCount', { count: lists.length }) : null].filter(Boolean).join(' · ') || undefined}
+      leading={
+        <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-violet-500/15 ring-1 ring-violet-400/30">
+          <ListPlus className="w-5 h-5 text-violet-300" aria-hidden />
+        </span>
+      }
+      size="full"
+      bodyClassName="py-4"
+    >
+      {loading ? (
+        <div className="px-5 sm:px-7 space-y-6" aria-busy="true">
+          {[0, 1].map((i) => (
+            <div key={i}>
+              <div className="h-6 w-48 rounded bg-white/10 animate-pulse" />
+              <div className="mt-4 flex gap-3">
+                {[0, 1, 2, 3].map((j) => (
+                  <div key={j} className="w-[110px] aspect-[2/3] rounded-xl bg-white/[0.07] animate-pulse" />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
-
-        <div className="flex-1 overflow-y-auto p-6">
-          {loading ? (
-            <div className="flex justify-center items-center h-40">
-              <GlassLoader size="md" />
-            </div>
-          ) : error ? (
-            <div className="text-center py-12 text-red-500">
-              <p className="mb-2">Error loading lists:</p>
-              <p>{error}</p>
-            </div>
-          ) : lists.length === 0 ? (
-            <div className="text-center py-12">
-              <ListPlus className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                {t('lists.noListsYet')}
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                {t('lists.createFirstMsg')}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {lists.map(list => (
-                <div key={list.id} className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      {list.name}
-                    </h3>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {new Date(list.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </span>
-                  </div>
-                  
-                  {list.movies.length === 0 ? (
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6 text-center">
-                      <Film className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-gray-600 dark:text-gray-400">
-                        {t('lists.noMoviesInList')}
-                      </p>
-                    </div>
-                  ) : (
-                    <RatingBox
-                      title={list.name}
-                      movies={list.movies}
-                      rating={null}
-                      isOtherUserProfile={true}
-                      className="border-2 border-gray-200 dark:border-gray-700"
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
+      ) : error ? (
+        <p className="px-5 sm:px-7 py-12 text-center" style={{ color: MIST }}>
+          {t('lists.loadError')}
+        </p>
+      ) : lists.length === 0 ? (
+        <div className="px-5 sm:px-7 py-12 text-center">
+          <span className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
+            <ListPlus className="w-7 h-7 text-violet-300" aria-hidden />
+          </span>
+          <p className="mt-4 font-semibold" style={{ color: PAPER }}>
+            {t('lists.noListsYet')}
+          </p>
+          {username && (
+            <p className="mt-1 text-sm" style={{ color: MIST }}>
+              {t('lists.noListsOther', { username })}
+            </p>
           )}
         </div>
-
-        <div className="flex justify-end p-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-          >
-            {t('common.close')}
-          </button>
+      ) : (
+        <div className="space-y-2">
+          {lists.map((list) =>
+            list.movies.length === 0 ? (
+              <section key={list.id} className="px-5 sm:px-7 py-6">
+                <h3 style={{ ...PIXEL, color: PAPER }} className="text-2xl leading-tight">
+                  {list.name}
+                </h3>
+                <p className="mt-1 text-xs" style={{ color: MIST }}>
+                  {formatDate(list.created_at)}
+                </p>
+                <div className="mt-4 flex items-center gap-3 rounded-xl px-4 py-4 ring-1 ring-white/10" style={{ background: VELVET }}>
+                  <Film className="w-5 h-5 shrink-0 text-violet-300" aria-hidden />
+                  <p className="text-sm" style={{ color: MIST }}>
+                    {t('lists.noMoviesInList')}
+                  </p>
+                </div>
+              </section>
+            ) : (
+              <RatingBox key={list.id} title={list.name} movies={list.movies} rating={null} isOtherUserProfile={true} chromaBoxEnabled={false} />
+            ),
+          )}
         </div>
-      </div>
-    </div>
+      )}
+    </OracleSheet>
   );
 }

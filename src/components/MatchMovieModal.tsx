@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, Wand2, Star, Eye, EyeOff, Users2, Search, Plus } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { X, Loader2, Wand2, Eye, EyeOff, Users2, Search, Plus, Film, RotateCcw, Shuffle } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { supabase, supabaseUrl } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { getMovieDetailsFromDB } from '../lib/tmdb';
+import { getMovieDetailsFromDB, type Movie } from '../lib/tmdb';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from './GhostRiderFrame';
 import MovieDetailsModal from './MovieDetailsModal';
+import OracleSheet from './OracleSheet';
+import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
 
 interface MatchMovieModalProps {
   isOpen: boolean;
@@ -57,53 +59,33 @@ interface FollowedUser {
 // plan_type sozinho não reflete premium vitalício concedido diretamente
 // na tabela (fora do fluxo normal do Stripe) — combina os dois campos,
 // mesma lógica de is_premium_active() no banco.
-const isUserPremium = (u: { plan_type?: string | null; lifetime_premium?: boolean | null }) =>
-  u.plan_type === 'premium' || !!u.lifetime_premium;
+const isUserPremium = (u: { plan_type?: string | null; lifetime_premium?: boolean | null }) => u.plan_type === 'premium' || !!u.lifetime_premium;
 
-const posterUrl = (path: string | null) =>
-  path ? `https://image.tmdb.org/t/p/w500${path}` : 'https://via.placeholder.com/500x750?text=No+Image';
-
-// Mesma paleta oficial usada na Recomendação Clássica (OracleRecommend) —
-// só em escala menor aqui, já que o Match Movie é um modal compacto, não
-// uma página inteira. Antes o seletor de humor usava só rosa genérico,
-// sem nenhuma relação com as cores reais de cada humor no resto do site.
-const MOODS: { labelKey: string; value: string; bg: string; hover: string; text: string; border: string }[] = [
-  { labelKey: 'oracle.moods.adventures', value: 'adventures', bg: 'bg-sky-500/20 dark:bg-sky-500/30', hover: 'hover:bg-sky-500/30 dark:hover:bg-sky-500/40', text: 'text-sky-700 dark:text-sky-300', border: 'border-sky-400/50 dark:border-sky-500/50' },
-  { labelKey: 'oracle.moods.catharsis', value: 'catharsis', bg: 'bg-blue-500/20 dark:bg-blue-500/30', hover: 'hover:bg-blue-500/30 dark:hover:bg-blue-500/40', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-400/50 dark:border-blue-500/50' },
-  { labelKey: 'oracle.moods.adrenaline', value: 'adrenaline', bg: 'bg-red-500/20 dark:bg-red-500/30', hover: 'hover:bg-red-500/30 dark:hover:bg-red-500/40', text: 'text-red-700 dark:text-red-300', border: 'border-red-400/50 dark:border-red-500/50' },
-  { labelKey: 'oracle.moods.mindBlowing', value: 'mind-blowing', bg: 'bg-pink-500/20 dark:bg-pink-500/30', hover: 'hover:bg-pink-500/30 dark:hover:bg-pink-500/40', text: 'text-pink-700 dark:text-pink-300', border: 'border-pink-400/50 dark:border-pink-500/50' },
-  { labelKey: 'oracle.moods.laughOutLoud', value: 'laugh-out-loud', bg: 'bg-green-500/20 dark:bg-green-500/30', hover: 'hover:bg-green-500/30 dark:hover:bg-green-500/40', text: 'text-green-700 dark:text-green-300', border: 'border-green-400/50 dark:border-green-500/50' },
-  { labelKey: 'oracle.moods.drugTrip', value: 'drug-trip', bg: 'bg-emerald-500/20 dark:bg-emerald-500/30', hover: 'hover:bg-emerald-500/30 dark:hover:bg-emerald-500/40', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-400/50 dark:border-emerald-500/50' },
-  { labelKey: 'oracle.moods.romantic', value: 'romantic', bg: 'bg-orange-500/20 dark:bg-orange-500/30', hover: 'hover:bg-orange-500/30 dark:hover:bg-orange-500/40', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-400/50 dark:border-orange-500/50' },
-  { labelKey: 'oracle.moods.darkScary', value: 'dark-and-scary', bg: 'bg-gray-500/20 dark:bg-gray-500/30', hover: 'hover:bg-gray-500/30 dark:hover:bg-gray-500/40', text: 'text-gray-700 dark:text-gray-300', border: 'border-gray-400/50 dark:border-gray-500/50' },
-  { labelKey: 'oracle.moods.familyTime', value: 'family-time', bg: 'bg-yellow-500/20 dark:bg-yellow-500/30', hover: 'hover:bg-yellow-500/30 dark:hover:bg-yellow-500/40', text: 'text-yellow-700 dark:text-yellow-300', border: 'border-yellow-400/50 dark:border-yellow-500/50' },
+// Humores — as mesmas cores dos selos de humor dos detalhes do filme.
+const MOODS: { labelKey: string; value: string; pill: string }[] = [
+  { labelKey: 'oracle.moods.adventures', value: 'adventures', pill: 'text-sky-200 ring-sky-400/50 bg-sky-500/20' },
+  { labelKey: 'oracle.moods.catharsis', value: 'catharsis', pill: 'text-blue-200 ring-blue-400/50 bg-blue-500/20' },
+  { labelKey: 'oracle.moods.adrenaline', value: 'adrenaline', pill: 'text-red-200 ring-red-400/50 bg-red-500/20' },
+  { labelKey: 'oracle.moods.mindBlowing', value: 'mind-blowing', pill: 'text-pink-200 ring-pink-400/50 bg-pink-500/20' },
+  { labelKey: 'oracle.moods.laughOutLoud', value: 'laugh-out-loud', pill: 'text-green-200 ring-green-400/50 bg-green-500/20' },
+  { labelKey: 'oracle.moods.drugTrip', value: 'drug-trip', pill: 'text-emerald-200 ring-emerald-400/50 bg-emerald-500/20' },
+  { labelKey: 'oracle.moods.romantic', value: 'romantic', pill: 'text-orange-200 ring-orange-400/50 bg-orange-500/20' },
+  { labelKey: 'oracle.moods.darkScary', value: 'dark-and-scary', pill: 'text-gray-100 ring-gray-400/50 bg-gray-500/25' },
+  { labelKey: 'oracle.moods.familyTime', value: 'family-time', pill: 'text-yellow-200 ring-yellow-400/50 bg-yellow-500/20' },
 ];
 
 const ALL_MOOD_VALUES = MOODS.map((m) => m.value);
 
-// "Surpresa Aleatória" não é um humor de verdade — é um atalho que
-// seleciona TODOS os 9 de uma vez, mesmo espírito do resto do site.
-const RANDOM_SURPRISE_MOOD = {
-  labelKey: 'oracle.moods.randomSurprise',
-  value: 'random-surprise',
-  bg: 'bg-violet-500/20 dark:bg-violet-500/30',
-  hover: 'hover:bg-violet-500/30 dark:hover:bg-violet-500/40',
-  text: 'text-violet-700 dark:text-violet-300',
-  border: 'border-violet-400/50 dark:border-violet-500/50',
-};
-
+// Até 4 pessoas no total: você + quem abriu + 2 convidados.
 const MAX_PARTICIPANTS = 4;
 
 export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUsername }: MatchMovieModalProps) {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
+  const reduceMotion = useReducedMotion();
 
   const [participants, setParticipants] = useState<Participant[]>([{ id: otherUserId, username: otherUsername, avatar_url: null, avatar_frame: null, plan_type: null }]);
-  const [myUsername, setMyUsername] = useState<string>('');
-  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
-  const [myAvatarFrame, setMyAvatarFrame] = useState<string | null>(null);
-  const [myPlanType, setMyPlanType] = useState<string | null>(null);
-  const [myLifetimePremium, setMyLifetimePremium] = useState<boolean>(false);
+  const [me, setMe] = useState<Participant | null>(null);
   const [showAddViewer, setShowAddViewer] = useState(false);
   const [followedUsers, setFollowedUsers] = useState<FollowedUser[]>([]);
   const [loadingFollowed, setLoadingFollowed] = useState(false);
@@ -113,11 +95,11 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
   const [mode, setMode] = useState<Mode>('unseen');
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [matches, setMatches] = useState<MatchedMovie[]>([]);
-  const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
 
   // Busca username + avatar + moldura do usuário atual, e o mesmo do
-  // participante original (que chega só com username via prop).
+  // participante original (que chega só com o username).
   useEffect(() => {
     if (!session?.user?.id) return;
     supabase
@@ -126,11 +108,14 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
       .eq('id', session.user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.username) setMyUsername(data.username);
-        if (data?.avatar_url) setMyAvatarUrl(data.avatar_url);
-        setMyAvatarFrame(data?.avatar_frame || null);
-        setMyPlanType(data?.plan_type || null);
-        setMyLifetimePremium(data?.lifetime_premium || false);
+        setMe({
+          id: session.user.id,
+          username: data?.username || '',
+          avatar_url: data?.avatar_url || null,
+          avatar_frame: data?.avatar_frame || null,
+          plan_type: data?.plan_type || null,
+          lifetime_premium: data?.lifetime_premium || false,
+        });
       });
 
     supabase
@@ -141,24 +126,22 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
       .then(({ data }) => {
         if (data) {
           setParticipants((prev) =>
-            prev.map((p) => (p.id === otherUserId
-              ? { ...p, avatar_url: data.avatar_url, avatar_frame: data.avatar_frame, plan_type: data.plan_type, lifetime_premium: data.lifetime_premium }
-              : p))
+            prev.map((p) =>
+              p.id === otherUserId
+                ? { ...p, avatar_url: data.avatar_url, avatar_frame: data.avatar_frame, plan_type: data.plan_type, lifetime_premium: data.lifetime_premium }
+                : p,
+            ),
           );
         }
       });
-  }, [session?.user?.id]);
+  }, [session?.user?.id, otherUserId]);
 
   const toggleMood = (value: string) => {
-    if (value === 'random-surprise') {
-      // Se já estão todos selecionados, desmarca tudo; senão, marca tudo.
-      setSelectedMoods((prev) => (prev.length === ALL_MOOD_VALUES.length ? [] : ALL_MOOD_VALUES));
-      return;
-    }
-    setSelectedMoods((prev) =>
-      prev.includes(value) ? prev.filter((m) => m !== value) : [...prev, value]
-    );
+    setSelectedMoods((prev) => (prev.includes(value) ? prev.filter((m) => m !== value) : [...prev, value]));
   };
+  // "Surpresa" não é um humor — seleciona (ou limpa) todos de uma vez.
+  const allMoodsSelected = selectedMoods.length === ALL_MOOD_VALUES.length;
+  const toggleAllMoods = () => setSelectedMoods(allMoodsSelected ? [] : ALL_MOOD_VALUES);
 
   const modes: { id: Mode; icon: React.ElementType; labelKey: string }[] = [
     { id: 'unseen', icon: EyeOff, labelKey: 'matchMovie.modeUnseen' },
@@ -192,7 +175,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
         .in('id', followingIds);
       if (profileError) throw profileError;
 
-      setFollowedUsers((profileRows || []) as FollowedUser[]);
+      setFollowedUsers(((profileRows || []) as FollowedUser[]).sort((a, b) => a.username.localeCompare(b.username)));
     } catch (error) {
       console.error('Error loading followed users:', error);
       toast.error(t('common.error'));
@@ -203,24 +186,22 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
 
   const handleAddParticipant = (user: FollowedUser) => {
     if (participants.length >= MAX_PARTICIPANTS - 1) return;
-    setParticipants((prev) => [...prev, {
-      id: user.id, username: user.username, avatar_url: user.avatar_url,
-      avatar_frame: user.avatar_frame, plan_type: user.plan_type, lifetime_premium: user.lifetime_premium
-    }]);
+    setParticipants((prev) => [
+      ...prev,
+      { id: user.id, username: user.username, avatar_url: user.avatar_url, avatar_frame: user.avatar_frame, plan_type: user.plan_type, lifetime_premium: user.lifetime_premium },
+    ]);
     setShowAddViewer(false);
     setViewerSearch('');
   };
 
   const handleRemoveParticipant = (id: string) => {
-    // Sempre mantém pelo menos o participante original.
+    // Sempre mantém o participante original.
     if (id === otherUserId) return;
     setParticipants((prev) => prev.filter((p) => p.id !== id));
   };
 
   const filteredFollowedUsers = followedUsers.filter(
-    (u) =>
-      !participants.some((p) => p.id === u.id) &&
-      u.username.toLowerCase().includes(viewerSearch.toLowerCase())
+    (u) => !participants.some((p) => p.id === u.id) && u.username.toLowerCase().includes(viewerSearch.toLowerCase()),
   );
 
   const handleFindMatch = async () => {
@@ -229,15 +210,15 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
       const response = await fetch(`${supabaseUrl}/functions/v1/match-movie`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
+          Authorization: `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           friendIds: participants.map((p) => p.id),
           mode,
           moods: selectedMoods,
-          language: i18n.language
-        })
+          language: i18n.language,
+        }),
       });
       const data = await response.json();
       if (!response.ok || data.error) {
@@ -257,8 +238,7 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
   const handleOpenMovie = async (movieId: number) => {
     setLoadingMovieId(movieId);
     try {
-      const details = await getMovieDetailsFromDB(movieId, 'movie');
-      setSelectedMovie(details);
+      setSelectedMovie(await getMovieDetailsFromDB(movieId));
     } catch (error) {
       console.error('Error loading movie details:', error);
       toast.error(t('common.error'));
@@ -274,379 +254,371 @@ export default function MatchMovieModal({ isOpen, onClose, otherUserId, otherUse
     onClose();
   };
 
-  if (!isOpen) return null;
-
-  // Você + os demais, numa lista só, pra formar os 4 slots.
-  const bubbleParticipants: Participant[] = [
-    { id: session?.user?.id || 'me', username: myUsername || t('matchMovie.you'), avatar_url: myAvatarUrl, avatar_frame: myAvatarFrame, plan_type: myPlanType, lifetime_premium: myLifetimePremium },
+  // Você + os demais, numa fileira só.
+  const everyone: Participant[] = [
+    me || { id: session?.user?.id || 'me', username: t('matchMovie.you'), avatar_url: null, avatar_frame: null, plan_type: null },
     ...participants,
   ];
+  const openSlots = Math.max(0, MAX_PARTICIPANTS - everyone.length);
+
+  const avatar = (p: Participant, size: number) => {
+    const premium = isUserPremium(p);
+    if (frameUsesComponent(p.avatar_frame || undefined, premium) === 'GhostRiderFrame' && p.avatar_url) {
+      return <GhostRiderFrame src={p.avatar_url} alt="" size={size} />;
+    }
+    const raw = getFrameClass(p.avatar_frame || undefined, premium);
+    const frame = !raw || raw === 'ring-0' ? 'ring-2 ring-white/15' : raw;
+    return (
+      <span className={`block rounded-full overflow-hidden ${frame}`} style={{ width: size, height: size, background: VELVET }}>
+        {p.avatar_url ? (
+          <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="w-full h-full grid place-items-center text-sm font-semibold" style={{ color: PAPER }}>
+            {(p.username || '?').charAt(0).toUpperCase()}
+          </span>
+        )}
+      </span>
+    );
+  };
+
+  // O servidor devolve notas com casas decimais soltas (ex.: 8.200000001).
+  const formatScore = (value: number) => value.toLocaleString(i18n.language, { maximumFractionDigits: 1 });
 
   const topMatch = matches[0];
   const restMatches = matches.slice(1);
 
-  const renderScores = (scores: ScoreEntry[]) => (
-    <div className="space-y-0.5">
+  const scoresLine = (scores: ScoreEntry[]) => (
+    <ul className="space-y-0.5 text-xs" style={{ color: MIST }}>
       {scores.map((s) => (
-        <span key={s.userId} className="text-xs text-gray-500 dark:text-gray-400 block">
-          {s.username}: <strong className="text-gray-800 dark:text-gray-200">{s.score}</strong>
-          {!s.wasRated && <span className="text-gray-400"> ({t('matchMovie.predicted')})</span>}
-        </span>
+        <li key={s.userId}>
+          @{s.username}{' '}
+          <span style={{ ...PIXEL, color: PAPER }} className="text-sm">
+            {formatScore(s.score)}
+          </span>
+          {!s.wasRated && <span> · {t('matchMovie.predicted')}</span>}
+        </li>
       ))}
-    </div>
+    </ul>
   );
+
+  const posterThumb = (path: string | null, className: string, busy: boolean) => (
+    <span className={`relative block shrink-0 overflow-hidden ring-1 ring-white/10 ${className}`} style={{ background: VELVET }}>
+      {path ? (
+        <img src={`https://image.tmdb.org/t/p/w342${path}`} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+      ) : (
+        <span className="w-full h-full grid place-items-center" style={{ color: MIST }}>
+          <Film className="w-5 h-5" aria-hidden />
+        </span>
+      )}
+      {busy && (
+        <span className="absolute inset-0 grid place-items-center bg-black/50">
+          <Loader2 className="w-5 h-5 text-white animate-spin" aria-hidden />
+        </span>
+      )}
+    </span>
+  );
+
+  const sectionTitle = (text: string) => (
+    <h3 style={{ ...PIXEL, color: PAPER }} className="text-lg leading-none">
+      {text}
+    </h3>
+  );
+
+  const footer =
+    phase === 'setup' && !showAddViewer ? (
+      <button
+        onClick={handleFindMatch}
+        disabled={selectedMoods.length === 0}
+        className={`w-full gap-2 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-fuchsia-900/30 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none ${FOCUS_RING}`}
+      >
+        <Wand2 className="w-5 h-5" aria-hidden />
+        {selectedMoods.length === 0 ? t('matchMovie.pickMoodFirst') : t('matchMovie.findButton')}
+      </button>
+    ) : phase === 'results' ? (
+      <button
+        onClick={() => setPhase('setup')}
+        className={`w-full gap-2 h-12 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
+        style={{ color: PAPER }}
+      >
+        <RotateCcw className="w-4 h-4" aria-hidden />
+        {t('matchMovie.tryAgain')}
+      </button>
+    ) : undefined;
 
   return (
     <>
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9998] flex items-center justify-center p-4"
-          onClick={handleClose}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-gradient-to-br from-blue-50/95 via-purple-50/90 to-pink-50/95 dark:from-gray-900/95 dark:via-blue-950/90 dark:to-purple-950/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 dark:border-gray-700/60 p-6 sm:p-8"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={handleClose}
-              className="absolute top-3 right-3 p-2 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-full transition-colors z-20"
-            >
-              <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-            </button>
-
-            {/* Layout reorganizado: os 2 slots PRINCIPAIS (Você + o
-                participante original, sempre preenchidos automaticamente)
-                ficam lado a lado com a varinha/título, no mesmo nível
-                vertical — o "coração" do modal fica visualmente unificado.
-                Os 2 slots OPCIONAIS (adicionáveis) ficam mais pra fora,
-                levemente deslocados pra cima, criando uma composição mais
-                dinâmica em vez de uma fileira única e reta no topo. */}
-            {(() => {
-              const renderFilledSlot = (p: Participant, isCoreSlot: boolean, size: 'core' | 'optional') => {
-                const dimension = size === 'core' ? 'w-12 h-12' : 'w-11 h-11';
-                const dimensionPx = size === 'core' ? 48 : 44;
-                return (
-                  <div key={p.id} className="relative flex-shrink-0">
-                    {frameUsesComponent(p.avatar_frame || undefined, isUserPremium(p)) === 'GhostRiderFrame' && p.avatar_url ? (
-                      <GhostRiderFrame src={p.avatar_url} alt={p.username} size={dimensionPx} />
-                    ) : (
-                    <div
-                      title={p.username}
-                      className={`${dimension} rounded-full overflow-hidden bg-gradient-to-br from-pink-400 to-purple-500 flex-shrink-0 ${getFrameClass(p.avatar_frame || undefined, isUserPremium(p))}`}
-                    >
-                      {p.avatar_url ? (
-                        <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold">
-                          {p.username.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    )}
-                    {!isCoreSlot && phase === 'setup' && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveParticipant(p.id)}
-                        style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px', padding: 0, boxSizing: 'border-box', flexShrink: 0 }}
-                        className="absolute top-0 right-0 rounded-full bg-red-500 border border-white dark:border-gray-900 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors z-10"
-                      >
-                        <X style={{ width: '9px', height: '9px' }} className="text-white" strokeWidth={3} />
-                      </button>
-                    )}
-                  </div>
-                );
-              };
-
-              const renderEmptySlot = (slotIndex: number) => (
-                <button
-                  key={`empty-${slotIndex}`}
-                  type="button"
-                  onClick={handleOpenAddViewer}
-                  disabled={phase !== 'setup'}
-                  className="w-10 h-10 rounded-full border-2 border-dashed border-pink-400/60 flex items-center justify-center text-pink-500 dark:text-pink-400 hover:bg-pink-500/10 transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              );
-
-              const slot0 = bubbleParticipants[0]; // Você — principal
-              const slot1 = bubbleParticipants[1]; // Amigo original — principal
-              const slot2 = bubbleParticipants[2]; // Opcional
-              const slot3 = bubbleParticipants[3]; // Opcional
-
+      <OracleSheet
+        open={isOpen}
+        onClose={handleClose}
+        title={t('matchMovie.title')}
+        subtitle={t('matchMovie.subtitle', { username: otherUsername })}
+        leading={
+          <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-fuchsia-500/15 ring-1 ring-fuchsia-400/30">
+            <Wand2 className="w-5 h-5 text-fuchsia-300" aria-hidden />
+          </span>
+        }
+        size="lg"
+        escapeEnabled={!selectedMovie}
+        footer={footer}
+        bodyClassName="px-5 sm:px-7 py-6 space-y-7"
+      >
+        {/* Quem vai assistir */}
+        <section>
+          {sectionTitle(t('matchMovie.whoIsWatching'))}
+          <ul className="mt-4 flex flex-wrap items-start gap-4">
+            {everyone.map((p, index) => {
+              const removable = index > 1 && phase === 'setup';
               return (
-                <div className="flex items-center justify-center gap-2 mb-6 pt-6">
-                  {/* Grupo esquerdo: opcional (deslocado pra cima) + principal */}
-                  <div className="flex items-end gap-2">
-                    <div className="-translate-y-2">
-                      {slot2 ? renderFilledSlot(slot2, false, 'optional') : renderEmptySlot(2)}
-                    </div>
-                    {slot0 && renderFilledSlot(slot0, true, 'core')}
-                  </div>
-
-                  {/* Centro: varinha + título */}
-                  <div className="text-center px-2 flex-shrink-0">
-                    {phase === 'loading' ? (
-                      <motion.div
-                        key="wand-spinning"
-                        className="inline-flex p-3 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-400/30 mb-2"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
-                      >
-                        <Wand2 className="w-6 h-6 text-pink-500 dark:text-pink-400" />
-                      </motion.div>
-                    ) : (
-                      <div
-                        key="wand-static"
-                        className="inline-flex p-3 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-400/30 mb-2"
-                      >
-                        <Wand2 className="w-6 h-6 text-pink-500 dark:text-pink-400" />
-                      </div>
-                    )}
-                    <h2 className="text-base font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 whitespace-nowrap">
-                      {t('matchMovie.title')}
-                    </h2>
-                  </div>
-
-                  {/* Grupo direito: principal + opcional (deslocado pra cima) */}
-                  <div className="flex items-end gap-2">
-                    {slot1 && renderFilledSlot(slot1, true, 'core')}
-                    <div className="-translate-y-2">
-                      {slot3 ? renderFilledSlot(slot3, false, 'optional') : renderEmptySlot(3)}
-                    </div>
-                  </div>
-                </div>
+                <li key={p.id} className="relative flex flex-col items-center w-16">
+                  {avatar(p, 56)}
+                  <span className="mt-1.5 max-w-full text-xs truncate" style={{ color: index === 0 ? MIST : PAPER }}>
+                    {index === 0 ? t('matchMovie.you') : `@${p.username}`}
+                  </span>
+                  {removable && (
+                    <button
+                      onClick={() => handleRemoveParticipant(p.id)}
+                      aria-label={t('matchMovie.removeViewer', { username: p.username })}
+                      className={`absolute -top-2 -right-1 grid place-items-center w-7 h-7 rounded-full bg-black/70 ring-1 ring-white/25 text-white hover:bg-red-500 transition ${FOCUS_RING}`}
+                      style={{ minWidth: 0, minHeight: 0 }}
+                    >
+                      <X className="w-3.5 h-3.5" strokeWidth={3} aria-hidden />
+                    </button>
+                  )}
+                </li>
               );
-            })()}
+            })}
+            {phase === 'setup' &&
+              Array.from({ length: openSlots }).map((_, i) => (
+                <li key={`slot-${i}`} className="flex flex-col items-center w-16">
+                  <button
+                    onClick={handleOpenAddViewer}
+                    aria-label={t('matchMovie.addViewer')}
+                    aria-expanded={showAddViewer}
+                    className={`grid place-items-center w-14 h-14 rounded-full border-2 border-dashed border-white/20 hover:border-fuchsia-300/70 hover:bg-fuchsia-500/10 text-fuchsia-200 transition ${FOCUS_RING}`}
+                  >
+                    <Plus className="w-5 h-5" aria-hidden />
+                  </button>
+                  <span className="mt-1.5 text-xs" style={{ color: MIST }}>
+                    {t('matchMovie.addShort')}
+                  </span>
+                </li>
+              ))}
+          </ul>
 
-            {/* Sub-tela de adicionar espectador */}
-            {showAddViewer && (
-              <div className="mb-6">
-                <div className="relative mb-3">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={viewerSearch}
-                    onChange={(e) => setViewerSearch(e.target.value)}
-                    placeholder={t('matchMovie.searchViewer')}
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/60 dark:bg-gray-800/60 border border-white/60 dark:border-gray-700/60 text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-pink-400/50"
-                  />
+          {/* Adicionar espectador */}
+          {showAddViewer && phase === 'setup' && (
+            <div className="mt-4 rounded-2xl p-3 ring-1 ring-white/10" style={{ background: VELVET }}>
+              <label className="relative block">
+                <span className="sr-only">{t('matchMovie.searchViewer')}</span>
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: MIST }} aria-hidden />
+                <input
+                  type="text"
+                  value={viewerSearch}
+                  onChange={(e) => setViewerSearch(e.target.value)}
+                  placeholder={t('matchMovie.searchViewer')}
+                  autoFocus
+                  className="w-full h-11 pl-10 pr-3 rounded-xl ring-1 ring-white/15 focus:ring-2 focus:ring-fuchsia-300/70 outline-none text-sm placeholder:text-[#BDB4D6]/70"
+                  style={{ background: NIGHT, color: PAPER }}
+                />
+              </label>
+              {loadingFollowed ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="w-5 h-5 text-violet-300 animate-spin" aria-hidden />
                 </div>
-                {loadingFollowed ? (
-                  <div className="flex justify-center py-6">
-                    <Loader2 className="w-5 h-5 text-pink-500 animate-spin" />
-                  </div>
-                ) : filteredFollowedUsers.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                    {t('matchMovie.noViewersFound')}
-                  </p>
-                ) : (
-                  <div className="max-h-48 overflow-y-auto space-y-1.5">
-                    {filteredFollowedUsers.map((u) => (
+              ) : filteredFollowedUsers.length === 0 ? (
+                <p className="text-sm text-center py-5" style={{ color: MIST }}>
+                  {t('matchMovie.noViewersFound')}
+                </p>
+              ) : (
+                <ul className="mt-2 max-h-52 overflow-y-auto overscroll-contain">
+                  {filteredFollowedUsers.map((u) => (
+                    <li key={u.id}>
                       <button
-                        key={u.id}
                         onClick={() => handleAddParticipant(u)}
-                        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/60 dark:hover:bg-gray-700/60 transition-colors text-left"
+                        className={`w-full justify-start gap-3 px-2 py-1.5 rounded-xl text-left hover:bg-white/[0.06] transition ${FOCUS_RING}`}
                       >
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-300 dark:bg-gray-700 flex-shrink-0">
-                          {u.avatar_url ? (
-                            <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">
-                              {u.username.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">@{u.username}</span>
+                        {avatar(u, 36)}
+                        <span className="flex-1 min-w-0 truncate text-sm font-medium" style={{ color: PAPER }}>
+                          @{u.username}
+                        </span>
+                        <Plus className="w-4 h-4 shrink-0" style={{ color: MIST }} aria-hidden />
                       </button>
-                    ))}
-                  </div>
-                )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-1 flex justify-end">
                 <button
                   onClick={() => setShowAddViewer(false)}
-                  className="w-full mt-3 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:underline"
+                  className={`h-10 px-3 rounded-lg text-sm font-medium hover:bg-white/5 transition ${FOCUS_RING}`}
+                  style={{ color: MIST }}
                 >
                   {t('common.cancel')}
                 </button>
               </div>
-            )}
+            </div>
+          )}
+        </section>
 
-            {!showAddViewer && phase === 'setup' && (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
-                  {t('matchMovie.chooseMoods')}
-                </p>
-                <div className="grid grid-cols-5 gap-1.5 mb-6">
-                  {[...MOODS, RANDOM_SURPRISE_MOOD].map(({ labelKey, value, bg, hover, text, border }) => {
-                    const isRandomSurprise = value === 'random-surprise';
-                    const isSelected = isRandomSurprise
-                      ? selectedMoods.length === ALL_MOOD_VALUES.length
-                      : selectedMoods.includes(value);
-                    return (
+        {phase === 'setup' && !showAddViewer && (
+          <>
+            {/* Humores */}
+            <section>
+              {sectionTitle(t('matchMovie.chooseMoods'))}
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {MOODS.map(({ labelKey, value, pill }) => {
+                  const selected = selectedMoods.includes(value);
+                  return (
+                    <li key={value}>
                       <button
-                        key={value}
                         onClick={() => toggleMood(value)}
-                        className={`px-1.5 py-2 rounded-xl text-[11px] font-semibold border backdrop-blur-sm transition-all text-center leading-tight ${
-                          isSelected
-                            ? `${bg} ${hover} ${text} ${border} ring-1 ring-offset-1 ring-offset-transparent`
-                            : 'bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700/60 text-gray-500 dark:text-gray-400 border-transparent'
-                        }`}
+                        aria-pressed={selected}
+                        className={`h-10 px-4 rounded-full text-sm font-medium ring-1 transition ${FOCUS_RING} ${selected ? pill : 'ring-white/10 hover:ring-white/30'}`}
+                        style={selected ? undefined : { background: VELVET, color: MIST }}
                       >
                         {t(labelKey)}
                       </button>
-                    );
-                  })}
-                </div>
+                    </li>
+                  );
+                })}
+                <li>
+                  <button
+                    onClick={toggleAllMoods}
+                    aria-pressed={allMoodsSelected}
+                    className={`gap-1.5 h-10 px-4 rounded-full text-sm font-medium transition ${FOCUS_RING} ${
+                      allMoodsSelected ? 'ring-1 bg-violet-500/25 ring-violet-400/60 text-violet-100' : 'border border-dashed border-white/25 hover:border-white/45'
+                    }`}
+                    style={allMoodsSelected ? undefined : { color: MIST }}
+                  >
+                    <Shuffle className="w-4 h-4" aria-hidden />
+                    {t('oracle.moods.randomSurprise')}
+                  </button>
+                </li>
+              </ul>
+            </section>
 
-                <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
-                  {t('matchMovie.chooseFilter')}
-                </p>
-                <div className="space-y-2 mb-6">
-                  {modes.map(({ id, icon: Icon, labelKey }) => (
+            {/* Filtro */}
+            <section>
+              {sectionTitle(t('matchMovie.chooseFilter'))}
+              <div role="radiogroup" aria-label={t('matchMovie.chooseFilter')} className="mt-3 grid sm:grid-cols-3 gap-2">
+                {modes.map(({ id, icon: Icon, labelKey }) => {
+                  const selected = mode === id;
+                  return (
                     <button
                       key={id}
+                      role="radio"
+                      aria-checked={selected}
                       onClick={() => setMode(id)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${
-                        mode === id
-                          ? 'border-pink-400 bg-pink-500/10 dark:bg-pink-500/15'
-                          : 'border-white/60 dark:border-gray-700/60 bg-white/40 dark:bg-gray-800/40 hover:bg-white/70 dark:hover:bg-gray-700/60'
+                      className={`w-full flex-col items-start justify-start gap-1.5 p-3.5 rounded-xl text-left ring-1 transition ${FOCUS_RING} ${
+                        selected ? 'ring-2 ring-violet-400/70 bg-violet-500/15' : 'ring-white/10 hover:ring-white/25'
                       }`}
+                      style={{ background: selected ? undefined : VELVET }}
                     >
-                      <Icon className={`w-5 h-5 flex-shrink-0 ${mode === id ? 'text-pink-500' : 'text-gray-400'}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-semibold ${mode === id ? 'text-pink-600 dark:text-pink-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                      <span className="flex items-center gap-2">
+                        <Icon className={`w-[18px] h-[18px] ${selected ? 'text-violet-200' : 'text-violet-300'}`} aria-hidden />
+                        <span className="text-sm font-semibold" style={{ color: PAPER }}>
                           {t(labelKey)}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {t(`${labelKey}Desc`)}
-                        </p>
-                      </div>
+                        </span>
+                      </span>
+                      <span className="text-xs leading-snug" style={{ color: MIST }}>
+                        {t(`${labelKey}Desc`)}
+                      </span>
                     </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={handleFindMatch}
-                  disabled={selectedMoods.length === 0}
-                  className="w-full py-3.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold rounded-2xl hover:shadow-xl hover:shadow-pink-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Wand2 className="w-5 h-5" />
-                  {t('matchMovie.findButton')}
-                </button>
+                  );
+                })}
               </div>
-            )}
+            </section>
+          </>
+        )}
 
-            {phase === 'loading' && (
-              <div className="flex flex-col items-center py-16 gap-4">
-                <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{t('matchMovie.searching')}</p>
-              </div>
-            )}
+        {phase === 'loading' && (
+          <div className="flex flex-col items-center py-10 gap-5" role="status">
+            <div className="flex">
+              {ORACLES.map((oracle, i) => (
+                <motion.img
+                  key={oracle.id}
+                  src={oracle.avatar}
+                  alt=""
+                  width={48}
+                  height={48}
+                  className={`w-12 h-12 rounded-full object-cover ${i > 0 ? '-ml-2' : ''}`}
+                  style={{ boxShadow: `0 0 0 2px ${NIGHT}, 0 0 0 4px ${oracle.color}` }}
+                  animate={reduceMotion ? undefined : { y: [0, -8, 0] }}
+                  transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
+                />
+              ))}
+            </div>
+            <p className="text-sm" style={{ color: MIST }}>
+              {t('matchMovie.searching')}
+            </p>
+          </div>
+        )}
 
-            {phase === 'results' && (
-              <div>
-                {matches.length === 0 ? (
-                  <div className="text-center py-10">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('matchMovie.noMatchesFound')}</p>
-                    <button
-                      onClick={() => setPhase('setup')}
-                      className="mt-4 text-sm font-semibold text-pink-600 dark:text-pink-400 hover:underline"
-                    >
-                      {t('matchMovie.tryAgain')}
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    {topMatch && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="mb-6"
-                      >
-                        <p className="text-xs font-bold uppercase tracking-wide text-pink-500 dark:text-pink-400 text-center mb-2 flex items-center justify-center gap-1.5">
-                          {t('matchMovie.perfectMatch')}
-                        </p>
+        {phase === 'results' &&
+          (matches.length === 0 ? (
+            <div className="text-center py-8">
+              <span className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
+                <Film className="w-7 h-7 text-violet-300" aria-hidden />
+              </span>
+              <p className="mt-4 text-sm" style={{ color: MIST }}>
+                {t('matchMovie.noMatchesFound')}
+              </p>
+            </div>
+          ) : (
+            <>
+              {topMatch && (
+                <section>
+                  {sectionTitle(t('matchMovie.perfectMatch'))}
+                  <button
+                    onClick={() => handleOpenMovie(topMatch.id)}
+                    className={`group mt-3 w-full justify-start items-stretch gap-4 p-3 rounded-2xl text-left ring-2 ring-fuchsia-400/50 hover:ring-fuchsia-300/80 bg-fuchsia-500/[0.07] transition ${FOCUS_RING}`}
+                  >
+                    {posterThumb(topMatch.poster_path, 'w-24 aspect-[2/3] rounded-xl', loadingMovieId === topMatch.id)}
+                    <span className="flex-1 min-w-0 flex flex-col">
+                      <span className="text-lg font-semibold leading-snug line-clamp-2 group-hover:underline underline-offset-4" style={{ color: PAPER }}>
+                        {topMatch.title}
+                      </span>
+                      <span className="mt-2">{scoresLine(topMatch.scores)}</span>
+                      <span className="mt-auto pt-3 inline-flex items-center gap-2 text-xs" style={{ color: MIST }}>
+                        {t('matchMovie.matchScore')}
+                        <span style={{ ...PIXEL }} className="text-xl leading-none text-fuchsia-200">
+                          {formatScore(topMatch.matchScore)}
+                        </span>
+                      </span>
+                    </span>
+                  </button>
+                </section>
+              )}
+
+              {restMatches.length > 0 && (
+                <section>
+                  {sectionTitle(t('matchMovie.otherOptions'))}
+                  <ul className="mt-3 space-y-1">
+                    {restMatches.map((m) => (
+                      <li key={m.id}>
                         <button
-                          onClick={() => handleOpenMovie(topMatch.id)}
-                          className="w-full flex gap-4 p-3 rounded-2xl bg-white/60 dark:bg-gray-800/60 border-2 border-pink-400/50 hover:bg-white/90 dark:hover:bg-gray-700/70 transition-all text-left"
+                          onClick={() => handleOpenMovie(m.id)}
+                          className={`group -mx-2 w-[calc(100%+1rem)] justify-start gap-3 p-2 rounded-xl text-left hover:bg-white/[0.05] transition ${FOCUS_RING}`}
                         >
-                          <div className="relative w-20 h-28 flex-shrink-0 rounded-lg overflow-hidden shadow-lg">
-                            <img src={posterUrl(topMatch.poster_path)} alt={topMatch.title} className="w-full h-full object-cover" />
-                            {loadingMovieId === topMatch.id && (
-                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                <Loader2 className="w-5 h-5 text-white animate-spin" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-900 dark:text-white leading-snug line-clamp-2">{topMatch.title}</p>
-                            <div className="mt-2">
-                              {renderScores(topMatch.scores)}
-                            </div>
-                            <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-500/15 text-pink-600 dark:text-pink-400 text-xs font-bold">
-                              <Star className="w-3 h-3 fill-current" />
-                              {topMatch.matchScore}
-                            </div>
-                          </div>
+                          {posterThumb(m.poster_path, 'w-9 h-[54px] rounded-md', loadingMovieId === m.id)}
+                          <span className="flex-1 min-w-0 text-sm font-medium leading-snug line-clamp-2 group-hover:underline underline-offset-4" style={{ color: PAPER }}>
+                            {m.title}
+                          </span>
+                          <span style={PIXEL} className="shrink-0 text-lg leading-none text-fuchsia-200">
+                            <span className="sr-only">{t('matchMovie.matchScore')}:</span>
+                            {formatScore(m.matchScore)}
+                          </span>
                         </button>
-                      </motion.div>
-                    )}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </>
+          ))}
+      </OracleSheet>
 
-                    {restMatches.length > 0 && (
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
-                          {t('matchMovie.otherOptions')}
-                        </p>
-                        <div className="space-y-1.5">
-                          {restMatches.map((m) => (
-                            <button
-                              key={m.id}
-                              onClick={() => handleOpenMovie(m.id)}
-                              className="w-full flex items-center gap-3 p-2 rounded-xl bg-white/40 dark:bg-gray-800/40 hover:bg-white/70 dark:hover:bg-gray-700/60 transition-colors text-left"
-                            >
-                              <img
-                                src={posterUrl(m.poster_path)}
-                                alt={m.title}
-                                className="w-8 h-12 object-cover rounded flex-shrink-0"
-                              />
-                              <span className="flex-1 min-w-0 text-sm text-gray-900 dark:text-white truncate">{m.title}</span>
-                              <span className="flex-shrink-0 text-xs font-semibold text-pink-500 dark:text-pink-400">
-                                {m.matchScore}
-                              </span>
-                              {loadingMovieId === m.id && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 flex-shrink-0" />}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <button
-                      onClick={() => setPhase('setup')}
-                      className="w-full mt-5 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-white/40 dark:bg-gray-800/40 hover:bg-white/70 dark:hover:bg-gray-700/60 rounded-xl transition-colors"
-                    >
-                      {t('matchMovie.tryAgain')}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
-
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isOpen={true}
-          onClose={() => setSelectedMovie(null)}
-        />
-      )}
+      {selectedMovie && <MovieDetailsModal movie={selectedMovie} isOpen={true} onClose={() => setSelectedMovie(null)} />}
     </>
   );
 }

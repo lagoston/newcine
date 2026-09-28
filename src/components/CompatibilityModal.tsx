@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, Sparkles, Film } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Loader2, Sparkles, Film } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import MovieDetailsModal from './MovieDetailsModal';
-import { getMovieDetailsFromDB } from '../lib/tmdb';
+import OracleSheet from './OracleSheet';
+import { getMovieDetailsFromDB, type Movie } from '../lib/tmdb';
+import { VELVET, NIGHT, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
 
 interface CompatibilityModalProps {
   isOpen: boolean;
@@ -22,16 +24,15 @@ interface RawComparison {
   rating_b: number;
 }
 
-// Modelo reconstruído do zero — categórico, não baseado em nota pública
-// nem em qualquer medida de magnitude/desvio. Três grupos de nota:
+// Modelo categórico, não baseado em nota pública nem em qualquer medida de
+// magnitude/desvio. Três grupos de nota:
 //   A = 10, 9, 8, 7   B = 6, 5, 4   C = 3, 2, 1, 0
-// A e B são grupos conectados (vizinhos); B e C também são conectados;
-// A e C NÃO são conectados entre si (só se chega de um ao outro
+// A e B são vizinhos; B e C também; A e C NÃO (só se chega de um ao outro
 // atravessando B). Cada filme comparado cai em exatamente uma categoria:
 //   - notas EXATAMENTE iguais (qualquer nota)      -> grande concordância
 //   - notas diferentes, mesmo grupo                -> concordância leve
-//   - notas em grupos conectados diferentes (A-B ou B-C) -> discordância leve
-//   - notas em grupos desconectados (só A-C)        -> grande discordância
+//   - grupos vizinhos diferentes (A-B ou B-C)      -> discordância leve
+//   - grupos desconectados (só A-C)                -> grande discordância
 type RatingGroup = 'A' | 'B' | 'C';
 type AgreementCategory = 'strong_agree' | 'light_agree' | 'light_disagree' | 'strong_disagree';
 
@@ -50,16 +51,23 @@ function classifyComparison(ratingA: number, ratingB: number): AgreementCategory
   return disconnected ? 'strong_disagree' : 'light_disagree';
 }
 
-// Delta simétrico por categoria — a escala em si (2/1/-1/-2) é arbitrária
-// no valor absoluto, mas a simetria não é: grande concordância e grande
-// discordância têm o mesmo peso em módulo, e concordância/discordância
-// leves também, garantindo que 50% (delta médio 0) seja o verdadeiro
-// ponto de neutralidade, não um valor que só aparece por acaso.
+// Delta simétrico por categoria — grande concordância e grande
+// discordância têm o mesmo peso em módulo, garantindo que 50% (delta médio
+// 0) seja o verdadeiro ponto de neutralidade.
 const CATEGORY_DELTA: Record<AgreementCategory, number> = {
   strong_agree: 2,
   light_agree: 1,
   light_disagree: -1,
   strong_disagree: -2,
+};
+
+// "Mais concordam" prioriza grande concordância; "mais discordam" prioriza
+// grande discordância.
+const CATEGORY_PRIORITY: Record<AgreementCategory, number> = {
+  strong_agree: 0,
+  light_agree: 1,
+  light_disagree: 1,
+  strong_disagree: 0,
 };
 
 interface MovieComparison extends RawComparison {
@@ -70,31 +78,38 @@ interface MovieComparison extends RawComparison {
 
 const MIN_MOVIES = 5;
 
+// Faixas do placar, nas cores do fundo noite.
 function getTier(score: number) {
-  if (score >= 90) return { key: 'soulmates', color: 'text-emerald-500', ring: 'ring-emerald-400/40', bg: 'from-emerald-500/20 to-teal-500/20', emoji: '💫' };
-  if (score >= 75) return { key: 'great', color: 'text-green-500', ring: 'ring-green-400/40', bg: 'from-green-500/20 to-emerald-500/20', emoji: '🎬' };
-  if (score >= 60) return { key: 'good', color: 'text-blue-500', ring: 'ring-blue-400/40', bg: 'from-blue-500/20 to-cyan-500/20', emoji: '🍿' };
-  if (score >= 40) return { key: 'different', color: 'text-amber-500', ring: 'ring-amber-400/40', bg: 'from-amber-500/20 to-orange-500/20', emoji: '🎭' };
-  return { key: 'opposite', color: 'text-red-500', ring: 'ring-red-400/40', bg: 'from-red-500/20 to-rose-500/20', emoji: '🌗' };
+  if (score >= 90) return { key: 'soulmates', color: '#6EE7B7', emoji: '💫' };
+  if (score >= 75) return { key: 'great', color: '#86EFAC', emoji: '🎬' };
+  if (score >= 60) return { key: 'good', color: '#7DD3FC', emoji: '🍿' };
+  if (score >= 40) return { key: 'different', color: '#FCD34D', emoji: '🎭' };
+  return { key: 'opposite', color: '#FCA5A5', emoji: '🌗' };
 }
+
+const RING_SIZE = 148;
+const RING_STROKE = 10;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 
 export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUserId, otherUsername }: CompatibilityModalProps) {
   const { t, i18n } = useTranslation();
+  const reduceMotion = useReducedMotion();
   const [loading, setLoading] = useState(true);
   const [comparisons, setComparisons] = useState<MovieComparison[]>([]);
-  const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isOpen || !myUserId || !otherUserId) return;
     fetchCompatibility();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, myUserId, otherUserId]);
 
   const fetchCompatibility = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .rpc('get_user_compatibility', { p_user_a: myUserId, p_user_b: otherUserId });
+      const { data, error } = await supabase.rpc('get_user_compatibility', { p_user_a: myUserId, p_user_b: otherUserId });
       if (error) throw error;
       const rows: RawComparison[] = data || [];
 
@@ -110,16 +125,14 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
         .select('tmdb_id, media_type, title_en, title_pt, poster_path, poster_path_pt')
         .in('tmdb_id', ids);
 
-      const cacheMap = new Map(
-        (cacheRows || []).map((c: any) => [`${c.tmdb_id}_${c.media_type}`, c])
-      );
+      const cacheMap = new Map((cacheRows || []).map((c: any) => [`${c.tmdb_id}_${c.media_type}`, c]));
 
       const enriched: MovieComparison[] = rows.map((r) => {
-        const cached = cacheMap.get(`${r.movie_id}_${r.media_type}`);
+        const cached: any = cacheMap.get(`${r.movie_id}_${r.media_type}`);
         return {
           ...r,
-          title: cached ? ((isPt && cached.title_pt) ? cached.title_pt : cached.title_en) : `#${r.movie_id}`,
-          poster_path: cached ? ((isPt && cached.poster_path_pt) ? cached.poster_path_pt : cached.poster_path) : null,
+          title: cached ? (isPt && cached.title_pt ? cached.title_pt : cached.title_en) : `#${r.movie_id}`,
+          poster_path: cached ? (isPt && cached.poster_path_pt ? cached.poster_path_pt : cached.poster_path) : null,
           category: classifyComparison(r.rating_a, r.rating_b),
         };
       });
@@ -134,48 +147,26 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
 
   const stats = useMemo(() => {
     if (comparisons.length === 0) return null;
-
     const n = comparisons.length;
-    // Média simples dos deltas por categoria — nunca soma bruta. Isso é
-    // o que garante a proporcionalidade pedida: 5 concordâncias fortes +
-    // 3 discordâncias fortes dá a MESMA média (e o mesmo placar) que 50
-    // concordâncias fortes + 30 discordâncias fortes, na mesma proporção
-    // — o volume de dados nunca empurra o sinal sozinho, só a PROPORÇÃO
-    // entre as categorias importa.
+    // Média simples dos deltas — nunca soma bruta: só a PROPORÇÃO entre as
+    // categorias importa, não o volume de filmes.
     const avgDelta = comparisons.reduce((sum, m) => sum + CATEGORY_DELTA[m.category], 0) / n;
-
-    // 50% é o ponto de partida da neutralidade, não um valor que emerge
-    // por acaso de alguma fórmula — delta médio 0 (concordâncias e
-    // discordâncias se cancelando, ou nenhum dos dois) mapeia
-    // exatamente pra 50%. Delta médio no extremo positivo (+2, só
-    // grandes concordâncias) mapeia pra 100%; no extremo negativo (-2,
-    // só grandes discordâncias) mapeia pra 0%.
+    // Delta médio 0 → 50%; +2 (só grandes concordâncias) → 100%; -2 → 0%.
     const score = Math.max(0, Math.min(100, Math.round(50 + (avgDelta / 2) * 50)));
-
     return { score, count: n };
   }, [comparisons]);
 
-  // "Mais concordam" prioriza grande concordância (mesma nota exata)
-  // sobre concordância leve (mesmo grupo, notas diferentes); "mais
-  // discordam" prioriza grande discordância (grupos desconectados A-C)
-  // sobre discordância leve (grupos vizinhos). A exclusão mútua entre as
-  // duas listas é garantida por construção: discordâncias só escolhem
-  // entre os filmes que sobraram depois de reservar as concordâncias,
-  // nunca reavaliando os mesmos filmes duas vezes.
-  const CATEGORY_PRIORITY: Record<AgreementCategory, number> = {
-    strong_agree: 0,
-    light_agree: 1,
-    light_disagree: 1,
-    strong_disagree: 0,
-  };
+  const topAgreements = useMemo(
+    () =>
+      [...comparisons]
+        .filter((m) => m.category === 'strong_agree' || m.category === 'light_agree')
+        .sort((a, b) => CATEGORY_PRIORITY[a.category] - CATEGORY_PRIORITY[b.category])
+        .slice(0, 3),
+    [comparisons],
+  );
 
-  const topAgreements = useMemo(() => {
-    return [...comparisons]
-      .filter((m) => m.category === 'strong_agree' || m.category === 'light_agree')
-      .sort((a, b) => CATEGORY_PRIORITY[a.category] - CATEGORY_PRIORITY[b.category])
-      .slice(0, 3);
-  }, [comparisons]);
-
+  // Exclusão mútua garantida: discordâncias só escolhem entre os filmes que
+  // sobraram depois de reservar as concordâncias.
   const topDisagreements = useMemo(() => {
     const agreedIds = new Set(topAgreements.map((m) => `${m.movie_id}_${m.media_type}`));
     return [...comparisons]
@@ -184,11 +175,10 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
       .slice(0, 3);
   }, [comparisons, topAgreements]);
 
-  const handleOpenMovie = async (movieId: number, mediaType: string) => {
+  const handleOpenMovie = async (movieId: number) => {
     setLoadingMovieId(movieId);
     try {
-      const details = await getMovieDetailsFromDB(movieId, mediaType as 'movie' | 'tv');
-      setSelectedMovie(details);
+      setSelectedMovie(await getMovieDetailsFromDB(movieId));
     } catch (error) {
       console.error('Error loading movie details:', error);
       toast.error(t('common.error'));
@@ -197,147 +187,150 @@ export default function CompatibilityModal({ isOpen, onClose, myUserId, otherUse
     }
   };
 
-  if (!isOpen) return null;
-
   const tier = stats ? getTier(stats.score) : null;
+
+  const ratingChip = (value: number, label: string) => {
+    const tone = ratingTone(value);
+    return (
+      <span
+        className="grid place-items-center w-9 h-7 rounded-full text-[15px] leading-none"
+        style={{ ...PIXEL, color: tone.color, boxShadow: `inset 0 0 0 1.5px ${tone.ring}` }}
+        title={`${label}: ${value}`}
+      >
+        <span className="sr-only">{label}:</span>
+        {value}
+      </span>
+    );
+  };
+
+  const renderList = (title: string, items: MovieComparison[]) => (
+    <section>
+      <div className="flex items-end justify-between gap-3">
+        <h3 style={{ ...PIXEL, color: PAPER }} className="text-lg leading-tight">
+          {title}
+        </h3>
+        {/* Legenda das duas colunas de nota */}
+        <div className="shrink-0 flex gap-1.5 text-[11px]" style={{ color: MIST }} aria-hidden>
+          <span className="w-9 text-center">{t('matchMovie.you')}</span>
+          <span className="w-9 text-center truncate">@{otherUsername}</span>
+        </div>
+      </div>
+      <ul className="mt-2.5 space-y-1">
+        {items.map((m) => (
+          <li key={`${m.movie_id}_${m.media_type}`}>
+            <button
+              onClick={() => handleOpenMovie(m.movie_id)}
+              aria-busy={loadingMovieId === m.movie_id || undefined}
+              className={`group w-full justify-start gap-3 p-2 -mx-2 rounded-xl text-left hover:bg-white/[0.05] transition ${FOCUS_RING}`}
+              style={{ width: 'calc(100% + 1rem)' }}
+            >
+              <span className="relative block w-9 h-[54px] shrink-0 rounded-md overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
+                {m.poster_path ? (
+                  <img src={`https://image.tmdb.org/t/p/w92${m.poster_path}`} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="w-full h-full grid place-items-center" style={{ color: MIST }}>
+                    <Film className="w-4 h-4" aria-hidden />
+                  </span>
+                )}
+                {loadingMovieId === m.movie_id && (
+                  <span className="absolute inset-0 grid place-items-center bg-black/50">
+                    <Loader2 className="w-4 h-4 text-white animate-spin" aria-hidden />
+                  </span>
+                )}
+              </span>
+              <span className="flex-1 min-w-0 text-sm font-medium leading-snug line-clamp-2 group-hover:underline underline-offset-4" style={{ color: PAPER }}>
+                {m.title}
+              </span>
+              <span className="shrink-0 flex gap-1.5">
+                {ratingChip(m.rating_a, t('matchMovie.you'))}
+                {ratingChip(m.rating_b, `@${otherUsername}`)}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 
   return (
     <>
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9998] flex items-center justify-center p-4"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-gradient-to-br from-blue-50/95 via-purple-50/90 to-pink-50/95 dark:from-gray-900/95 dark:via-blue-950/90 dark:to-purple-950/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 dark:border-gray-700/60 p-6 sm:p-8"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 p-2 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-full transition-colors z-10"
-            >
-              <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-            </button>
-
-            <div className="text-center mb-6">
-              <div className="inline-flex p-3 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-400/30 mb-3">
-                <Sparkles className="w-7 h-7 text-pink-500 dark:text-pink-400" />
+      <OracleSheet
+        open={isOpen}
+        onClose={onClose}
+        title={t('compatibility.buttonLabel')}
+        subtitle={t('compatibility.subtitle', { username: otherUsername })}
+        leading={
+          <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-pink-500/15 ring-1 ring-pink-400/30">
+            <Sparkles className="w-5 h-5 text-pink-300" aria-hidden />
+          </span>
+        }
+        size="md"
+        escapeEnabled={!selectedMovie}
+        bodyClassName="px-5 sm:px-7 py-6"
+      >
+        {loading ? (
+          <div className="flex flex-col items-center py-8" aria-busy="true">
+            <div className="rounded-full bg-white/[0.06] animate-pulse" style={{ width: RING_SIZE, height: RING_SIZE }} />
+            <div className="mt-4 h-5 w-44 rounded bg-white/10 animate-pulse" />
+          </div>
+        ) : !stats || stats.count < MIN_MOVIES ? (
+          <div className="text-center py-8">
+            <span className="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
+              <Film className="w-7 h-7 text-violet-300" aria-hidden />
+            </span>
+            <p className="mt-4 font-semibold" style={{ color: PAPER }}>
+              {t('compatibility.notEnoughDataTitle')}
+            </p>
+            <p className="mt-1 text-sm max-w-sm mx-auto leading-relaxed" style={{ color: MIST }}>
+              {t('compatibility.notEnoughDataDescription', { count: stats?.count || 0, min: MIN_MOVIES })}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-7">
+            {/* Placar — o anel enche até a porcentagem */}
+            <div className="flex flex-col items-center text-center">
+              <div className="relative" style={{ width: RING_SIZE, height: RING_SIZE }}>
+                <svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`} className="-rotate-90" aria-hidden>
+                  <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} fill={NIGHT} stroke="rgba(255,255,255,0.08)" strokeWidth={RING_STROKE} />
+                  <motion.circle
+                    cx={RING_SIZE / 2}
+                    cy={RING_SIZE / 2}
+                    r={RING_RADIUS}
+                    fill="none"
+                    stroke={tier!.color}
+                    strokeWidth={RING_STROKE}
+                    strokeLinecap="round"
+                    strokeDasharray={RING_LENGTH}
+                    initial={{ strokeDashoffset: reduceMotion ? RING_LENGTH * (1 - stats.score / 100) : RING_LENGTH }}
+                    animate={{ strokeDashoffset: RING_LENGTH * (1 - stats.score / 100) }}
+                    transition={{ duration: reduceMotion ? 0 : 0.9, ease: 'easeOut' }}
+                  />
+                </svg>
+                <span className="absolute inset-0 grid place-items-center">
+                  <span style={{ ...PIXEL, color: PAPER }} className="text-5xl leading-none">
+                    {stats.score}
+                    <span className="text-2xl" style={{ color: MIST }}>
+                      %
+                    </span>
+                  </span>
+                </span>
               </div>
-              <h2 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500">
-                {t('compatibility.title')}
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
-                {t('compatibility.subtitle', { username: otherUsername })}
+              <p className="mt-4 text-lg font-semibold inline-flex items-center gap-2" style={{ color: tier!.color }}>
+                <span aria-hidden>{tier!.emoji}</span>
+                {t(`compatibility.tier.${tier!.key}`)}
+              </p>
+              <p className="mt-1 text-sm" style={{ color: MIST }}>
+                {t('compatibility.moviesCompared', { count: stats.count })}
               </p>
             </div>
 
-            {loading ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
-              </div>
-            ) : !stats || stats.count < MIN_MOVIES ? (
-              <div className="text-center py-10 px-4">
-                <div className="inline-flex p-4 rounded-full bg-gray-100 dark:bg-gray-800/50 mb-4">
-                  <Film className="w-8 h-8 text-gray-400 dark:text-gray-500" />
-                </div>
-                <h3 className="font-bold text-gray-800 dark:text-white mb-1">
-                  {t('compatibility.notEnoughDataTitle')}
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                  {t('compatibility.notEnoughDataDescription', { count: stats?.count || 0, min: MIN_MOVIES })}
-                </p>
-              </div>
-            ) : (
-              <div>
-                <div className="flex flex-col items-center mb-6">
-                  <div className={`relative w-32 h-32 rounded-full bg-gradient-to-br ${tier!.bg} ring-4 ${tier!.ring} flex items-center justify-center mb-3`}>
-                    <div className="text-center">
-                      <div className={`text-3xl font-extrabold ${tier!.color}`}>{stats.score}%</div>
-                    </div>
-                  </div>
-                  <p className={`text-lg font-bold ${tier!.color} flex items-center gap-1.5`}>
-                    <span>{tier!.emoji}</span>
-                    {t(`compatibility.tier.${tier!.key}`)}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {t('compatibility.moviesCompared', { count: stats.count })}
-                  </p>
-                </div>
+            {topAgreements.length > 0 && renderList(t('compatibility.mostAgree'), topAgreements)}
+            {topDisagreements.length > 0 && renderList(t('compatibility.mostDisagree'), topDisagreements)}
+          </div>
+        )}
+      </OracleSheet>
 
-                {topAgreements.length > 0 && (
-                  <div className="mb-5">
-                    <h4 className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
-                      {t('compatibility.mostAgree')}
-                    </h4>
-                    <div className="space-y-1.5">
-                      {topAgreements.map((m) => (
-                        <button
-                          key={`${m.movie_id}_${m.media_type}`}
-                          onClick={() => handleOpenMovie(m.movie_id, m.media_type)}
-                          className="w-full flex items-center gap-3 p-2 rounded-xl bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/60 transition-colors text-left"
-                        >
-                          <img
-                            src={m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : 'https://via.placeholder.com/80x120?text=No+Image'}
-                            alt={m.title}
-                            className="w-8 h-12 object-cover rounded flex-shrink-0"
-                          />
-                          <span className="flex-1 min-w-0 text-sm text-gray-900 dark:text-white truncate">{m.title}</span>
-                          <span className="flex-shrink-0 text-xs font-semibold text-green-600 dark:text-green-400">
-                            {m.rating_a} / {m.rating_b}
-                          </span>
-                          {loadingMovieId === m.movie_id && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 flex-shrink-0" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {topDisagreements.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
-                      {t('compatibility.mostDisagree')}
-                    </h4>
-                    <div className="space-y-1.5">
-                      {topDisagreements.map((m) => (
-                        <button
-                          key={`${m.movie_id}_${m.media_type}`}
-                          onClick={() => handleOpenMovie(m.movie_id, m.media_type)}
-                          className="w-full flex items-center gap-3 p-2 rounded-xl bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/60 transition-colors text-left"
-                        >
-                          <img
-                            src={m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : 'https://via.placeholder.com/80x120?text=No+Image'}
-                            alt={m.title}
-                            className="w-8 h-12 object-cover rounded flex-shrink-0"
-                          />
-                          <span className="flex-1 min-w-0 text-sm text-gray-900 dark:text-white truncate">{m.title}</span>
-                          <span className="flex-shrink-0 text-xs font-semibold text-red-500 dark:text-red-400">
-                            {m.rating_a} / {m.rating_b}
-                          </span>
-                          {loadingMovieId === m.movie_id && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 flex-shrink-0" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
-
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isOpen={true}
-          onClose={() => setSelectedMovie(null)}
-        />
-      )}
+      {selectedMovie && <MovieDetailsModal movie={selectedMovie} isOpen={true} onClose={() => setSelectedMovie(null)} />}
     </>
   );
 }
