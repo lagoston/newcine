@@ -45,7 +45,8 @@ function Navbar() {
     showBadge?: boolean;
     labelClassName?: string;
   }) => {
-    const isActive = location.pathname === to;
+    // A Central dos Oráculos continua acesa na Biblioteca dos Oráculos e no Duelo.
+    const isActive = location.pathname === to || (to === '/oracle' && location.pathname.startsWith('/oracle/'));
     return (
       <Link
         to={to}

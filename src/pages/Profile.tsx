@@ -10,9 +10,7 @@ import WhispersModal from '../components/WhispersModal';
 import CustomizeModal from '../components/CustomizeModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import SettingsModal from '../components/SettingsModal';
-import PersonasModal from '../components/PersonasModal';
 import TagPinsModal from '../components/TagPinsModal';
-import PersonaShareModal from '../components/PersonaShareModal';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON } from '../components/ProfileIdentityCard';
 import { ProfileStatTiles, ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD } from '../components/ProfileTaste';
 import { summarizeRatings } from '../lib/profileStats';
@@ -162,9 +160,7 @@ export default function Profile() {
   // desbloqueados. Mesma fonte de verdade do TagPinsModal/CustomizeModal.
   const [realReviewCount, setRealReviewCount] = useState(0);
   const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
-  const [showPersonasModal, setShowPersonasModal] = useState(false);
   const [showTagPinsModal, setShowTagPinsModal] = useState(false);
-  const [showPersonaShare, setShowPersonaShare] = useState(false);
   // Joia menos conhecida aberta nos detalhes do filme.
   // Faixa de atividade dos amigos (rolagem horizontal, arrastável no desktop).
   const friendsScrollRef = useRef<HTMLDivElement>(null);
@@ -180,10 +176,8 @@ export default function Profile() {
     topDirectors,
     leastKnownGem,
     friendsCount,
-    essencePersonality,
-    essenceArchetype,
-    spectrumPoints,
-    essenceLoading,
+    persona,
+    personaLoading,
     countryCounts,
     countryAvgRatings,
     movies,
@@ -973,14 +967,8 @@ export default function Profile() {
           <div className="mt-6">
             <ProfileEssence
               isOwn
-              loading={essenceLoading}
-              personality={essencePersonality}
-              archetype={essenceArchetype}
-              spectrumPoints={spectrumPoints}
-              onRetakeConfirmed={async () => {
-                await supabase.from('profiles').update({ subcategoria_id: null }).eq('id', session?.user?.id);
-                refetchProfileData();
-              }}
+              loading={personaLoading}
+              persona={persona}
               emptyState={
                 <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: VELVET }}>
                   <div className="flex shrink-0" aria-hidden>
@@ -1039,16 +1027,6 @@ export default function Profile() {
       />
 
       {session?.user?.id && (
-        <PersonasModal
-          isOpen={showPersonasModal}
-          onClose={() => setShowPersonasModal(false)}
-          viewerId={session.user.id}
-          viewerPersonaCode={essencePersonality?.personalidade_completa ?? null}
-          onUserClick={(uname) => navigate(`/profile/${uname}`)}
-        />
-      )}
-
-      {session?.user?.id && (
         <TagPinsModal
           isOpen={showTagPinsModal}
           onClose={() => setShowTagPinsModal(false)}
@@ -1056,17 +1034,6 @@ export default function Profile() {
           onSave={() => {
             fetchProfile();
           }}
-        />
-      )}
-
-      {essencePersonality?.personalidade_completa && essenceArchetype && (
-        <PersonaShareModal
-          isOpen={showPersonaShare}
-          onClose={() => setShowPersonaShare(false)}
-          personaCode={essencePersonality.personalidade_completa}
-          archetypeName={essenceArchetype.archetype_name}
-          subcategoryName={essenceArchetype.subcategory_name}
-          username={profile?.username}
         />
       )}
 

@@ -1,77 +1,204 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Scroll, Info, RefreshCw } from 'lucide-react';
-import ArchetypeSymbol from './ArchetypeSymbol';
-import PentagonGraph from './PentagonGraph';
+import { Scroll, Info } from 'lucide-react';
 import OracleSheet from './OracleSheet';
-import ConfirmationModal from './ConfirmationModal';
-import { getEssenceLabel, getSubcategoryName } from '../lib/mood-genres';
-import type { EssencePersonality, EssenceArchetype } from '../hooks/useProfileData';
+import MoodBars from './MoodBars';
+import { PersonaCode, PersonaPoster, MoodChip } from './PersonaBits';
 import { PROFILE_GHOST_BUTTON } from './ProfileIdentityCard';
 import { PROFILE_CARD } from './ProfileTaste';
+import { MOODS, MOOD_BY_KEY, withMoodAlpha } from '../lib/moods';
+import { personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../lib/persona';
 import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
 
-// Essência cinematográfica de um perfil: o cartão com o código (ex.: EID),
-// o nome do arquétipo e a descrição, mais as duas gavetas — "Revelação"
-// (a leitura completa) e "A Arquitetura da Alma" (como é calculada).
-// Usado no seu Perfil (com "Refazer questionário") e no perfil de outra
-// pessoa (só leitura).
+// Personalidade cinematográfica de um perfil: o cartão com o código (ex.:
+// MPC), o título, o personagem e as três prateleiras, mais as duas gavetas
+// — "Revelação" (a leitura completa) e "Como funciona" (a Arquitetura da
+// Alma). Usado no seu Perfil e no perfil de outra pessoa; as gavetas
+// também são exportadas sozinhas pra Central dos Oráculos.
 
-// Cor do código pelo terceiro eixo (Radiante, Sombrio, Clássico,
-// Experimental, Denso, Leve).
-const SUBCATEGORY_TEXT_COLOR: Record<string, string> = { A: '#fbbf24', B: '#a78bfa', K: '#f87171', X: '#60a5fa', D: '#F3EAD3', L: '#34d399' };
+// Revelação — quem você é no cinema.
+export const PersonaRevelationSheet: React.FC<{ open: boolean; onClose: () => void; persona: UserPersona; isOwn?: boolean }> = ({ open, onClose, persona, isOwn = false }) => {
+  const { t, i18n } = useTranslation();
+  if (!persona.persona || !persona.code) return null;
+  const text = personaText(persona.persona, i18n.language);
+
+  return (
+    <OracleSheet
+      open={open}
+      onClose={onClose}
+      title={t('oracle.revelation')}
+      subtitle={text.title}
+      leading={
+        <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-pink-500/15 ring-1 ring-pink-400/30">
+          <Scroll className="w-5 h-5 text-pink-300" aria-hidden />
+        </span>
+      }
+      size="lg"
+      bodyClassName="px-5 sm:px-7 py-6 space-y-6"
+    >
+      <div className="flex gap-4 sm:gap-5">
+        <PersonaPoster path={persona.persona.posterPath} alt={text.film} className="w-[92px] sm:w-[112px] shrink-0 rounded-lg self-start" eager />
+        <div className="min-w-0">
+          <PersonaCode code={persona.code} className="text-4xl sm:text-5xl leading-none" />
+          <p className="mt-2 text-lg sm:text-xl font-semibold leading-snug" style={{ color: PAPER }}>
+            {text.title}
+          </p>
+          <p className="mt-1 text-sm" style={{ color: MIST }}>
+            {text.sameAsFilm ? text.filmWithYear : t('oracle.persona.characterIn', { character: text.character, film: text.filmWithYear })}
+          </p>
+          <p className="mt-3 text-[15px] leading-relaxed" style={{ color: 'rgba(243,234,211,0.86)' }}>
+            {text.blurb}
+          </p>
+        </div>
+      </div>
+
+      <section>
+        <h3 className="font-semibold" style={{ color: PAPER }}>
+          {isOwn ? t('oracle.persona.yourShelves') : t('oracle.persona.theirShelves')}
+        </h3>
+        <ol className="mt-3 space-y-3">
+          {topMoodKeys(persona).map((key, i) => {
+            const mood = MOOD_BY_KEY[key];
+            if (!mood) return null;
+            return (
+              <li key={key} className="rounded-xl p-4 ring-1 ring-white/10" style={{ background: `linear-gradient(90deg, ${withMoodAlpha(mood, 0.1)}, transparent 70%), ${VELVET}` }}>
+                <MoodChip moodKey={key} rank={i + 1} />
+                <p className="mt-2.5 text-[15px] leading-relaxed" style={{ color: 'rgba(243,234,211,0.86)' }}>
+                  {t(mood.readingKey)}
+                </p>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+    </OracleSheet>
+  );
+};
+
+// Como funciona — a Arquitetura da Alma.
+export const PersonaHowItWorksSheet: React.FC<{ open: boolean; onClose: () => void; persona: UserPersona | null; isOwn?: boolean }> = ({ open, onClose, persona, isOwn = true }) => {
+  const { t } = useTranslation();
+  const threshold = persona?.threshold || PERSONA_THRESHOLD;
+
+  const step = (n: number, color: string, title: string, children: React.ReactNode) => (
+    <div className="rounded-xl p-4 sm:p-5 ring-1 ring-white/10" style={{ background: VELVET }}>
+      <h3 className="flex items-baseline gap-2 font-semibold" style={{ color: PAPER }}>
+        <span style={{ ...PIXEL, color }} className="text-lg">
+          {n}
+        </span>
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+
+  return (
+    <OracleSheet open={open} onClose={onClose} title={t('oracle.architectureTitle')} subtitle={t('oracle.howItWorks.intro')} size="lg" bodyClassName="px-5 sm:px-7 py-6 space-y-4">
+      {step(
+        1,
+        '#C4B5FD',
+        t('oracle.howItWorks.shelvesTitle'),
+        <>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: MIST }}>
+            {t('oracle.howItWorks.shelvesText')}
+          </p>
+          <ul className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {MOODS.map((mood) => (
+              <li key={mood.key} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 bg-black/25 min-w-0">
+                <span style={{ ...PIXEL, color: mood.color }} className="w-4 shrink-0 text-lg leading-none text-center" aria-hidden>
+                  {mood.letter}
+                </span>
+                <span className="text-sm truncate" style={{ color: PAPER }}>
+                  {t(mood.labelKey)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>,
+      )}
+
+      {step(
+        2,
+        '#FCD34D',
+        isOwn ? t('oracle.howItWorks.pointsTitle') : t('oracle.howItWorks.pointsTitleOther'),
+        <>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: MIST }}>
+            {t('oracle.howItWorks.pointsText')}
+          </p>
+          <div className="mt-4">
+            <MoodBars scores={persona?.scores ?? []} highlight={persona?.code ? 3 : 0} />
+          </div>
+        </>,
+      )}
+
+      {step(
+        3,
+        '#7DD3FC',
+        isOwn ? t('oracle.howItWorks.personaTitle') : t('oracle.howItWorks.personaTitleOther'),
+        <>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: MIST }}>
+            {t('oracle.howItWorks.personaText')}
+          </p>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: MIST }}>
+            {t('oracle.howItWorks.thresholdText', { count: threshold })}
+          </p>
+        </>,
+      )}
+    </OracleSheet>
+  );
+};
 
 interface ProfileEssenceProps {
   loading: boolean;
-  personality: EssencePersonality | null;
-  archetype: EssenceArchetype | null;
-  spectrumPoints: { e: number; i: number; c: number; s: number; r: number };
-  // Seu próprio perfil ("Sua essência") ou o de outra pessoa ("Essência").
+  persona: UserPersona | null;
+  // Seu próprio perfil ("Suas prateleiras") ou o de outra pessoa.
   isOwn?: boolean;
-  // O que mostrar quando ainda não há essência.
+  // O que mostrar quando ainda não há personalidade.
   emptyState: React.ReactNode;
-  // Só no seu perfil: confirma e zera o questionário de calibragem.
-  onRetakeConfirmed?: () => void | Promise<void>;
 }
 
-const ProfileEssence: React.FC<ProfileEssenceProps> = ({ loading, personality, archetype, spectrumPoints, isOwn = false, emptyState, onRetakeConfirmed }) => {
+const ProfileEssence: React.FC<ProfileEssenceProps> = ({ loading, persona, isOwn = false, emptyState }) => {
   const { t, i18n } = useTranslation();
   const [showRevelation, setShowRevelation] = useState(false);
-  const [showArchitecture, setShowArchitecture] = useState(false);
-  const [showRetakeConfirm, setShowRetakeConfirm] = useState(false);
-  const lang = i18n.language.startsWith('pt') ? 'pt' : 'en';
-
-  const code = personality?.personalidade_completa || '';
-  const hasEssence = !!code && !!archetype;
-  const codeColor = SUBCATEGORY_TEXT_COLOR[code.charAt(2)] || '#60a5fa';
-  const essenceLabel = personality ? getEssenceLabel(personality.arquetipo_primario, personality.arquetipo_secundario, lang) : '';
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   if (loading) {
     return (
-      <div className={`${PROFILE_CARD} space-y-3`} style={{ background: VELVET }} aria-busy="true">
-        <div className="h-14 w-56 rounded-lg bg-white/10 animate-pulse" />
-        <div className="h-4 w-full max-w-lg rounded bg-white/10 animate-pulse" />
+      <div className={`${PROFILE_CARD} flex gap-5`} style={{ background: VELVET }} aria-busy="true">
+        <div className="w-[72px] aspect-[2/3] rounded-lg bg-white/10 animate-pulse" />
+        <div className="flex-1 space-y-3">
+          <div className="h-10 w-32 rounded-lg bg-white/10 animate-pulse" />
+          <div className="h-4 w-full max-w-sm rounded bg-white/10 animate-pulse" />
+        </div>
       </div>
     );
   }
 
-  if (!hasEssence) return <>{emptyState}</>;
+  if (!persona?.code || !persona.persona) return <>{emptyState}</>;
+
+  const text = personaText(persona.persona, i18n.language);
 
   return (
     <>
       <div className={PROFILE_CARD} style={{ background: VELVET }}>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            <span className="shrink-0">
-              <ArchetypeSymbol archetypeId={code.slice(0, 2)} subcategoryId={code.slice(2, 3) || null} size={72} animated={false} />
-            </span>
+        <div className="flex flex-col md:flex-row md:items-center gap-5">
+          <div className="flex gap-4 sm:gap-5 min-w-0 flex-1">
+            <PersonaPoster path={persona.persona.posterPath} alt={text.film} className="w-[72px] sm:w-[84px] shrink-0 rounded-lg self-start" />
             <div className="min-w-0">
-              <p style={{ ...PIXEL, color: codeColor }} className="text-4xl leading-none">
-                {code}
-              </p>
+              <PersonaCode code={persona.code} className="text-4xl leading-none" />
               <p className="mt-1.5 text-lg font-semibold leading-snug" style={{ color: PAPER }}>
-                {archetype!.archetype_name} {archetype!.subcategory_name}
+                {text.title}
               </p>
+              <p className="mt-0.5 text-sm" style={{ color: MIST }}>
+                {text.sameAsFilm ? text.filmWithYear : t('oracle.persona.characterIn', { character: text.character, film: text.filmWithYear })}
+              </p>
+              <ul className="mt-3 flex flex-wrap gap-1.5">
+                {topMoodKeys(persona).map((key, i) => (
+                  <li key={key}>
+                    <MoodChip moodKey={key} rank={i + 1} size="sm" />
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -79,175 +206,16 @@ const ProfileEssence: React.FC<ProfileEssenceProps> = ({ loading, personality, a
               <Scroll className="w-[18px] h-[18px] text-pink-300" aria-hidden />
               {t('oracle.revelation')}
             </button>
-            <button onClick={() => setShowArchitecture(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
+            <button onClick={() => setShowHowItWorks(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
               <Info className="w-[18px] h-[18px] text-sky-300" aria-hidden />
               {t('profile.howItWorks')}
             </button>
           </div>
         </div>
-        {archetype!.archetype_description && (
-          <p className="mt-5 max-w-3xl text-[15px] leading-relaxed line-clamp-3" style={{ color: MIST }}>
-            {archetype!.archetype_description}
-          </p>
-        )}
       </div>
 
-      {/* Revelação — a leitura completa da essência */}
-      <OracleSheet
-        open={showRevelation}
-        onClose={() => setShowRevelation(false)}
-        title={t('oracle.revelation')}
-        subtitle={`${archetype!.archetype_name} ${archetype!.subcategory_name}`}
-        leading={
-          <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-pink-500/15 ring-1 ring-pink-400/30">
-            <Scroll className="w-5 h-5 text-pink-300" aria-hidden />
-          </span>
-        }
-        size="lg"
-        bodyClassName="px-5 sm:px-7 py-6 space-y-4"
-      >
-        <div className="flex items-center gap-4 rounded-xl p-4 ring-1 ring-white/10" style={{ background: VELVET }}>
-          <ArchetypeSymbol archetypeId={code.slice(0, 2)} subcategoryId={code.slice(2, 3) || null} size={56} animated={false} />
-          <div className="min-w-0">
-            <p style={{ ...PIXEL, color: codeColor }} className="text-3xl leading-none">
-              {code}
-            </p>
-            <p className="mt-1 font-semibold" style={{ color: PAPER }}>
-              {archetype!.archetype_name} {archetype!.subcategory_name}
-            </p>
-          </div>
-        </div>
-        <div className="rounded-xl p-4 sm:p-5 ring-1 ring-pink-400/25 bg-pink-500/[0.06]">
-          <h3 className="font-semibold text-pink-200">
-            {isOwn ? t('oracle.yourEssence') : t('oracle.theEssence')} ({essenceLabel})
-          </h3>
-          <p className="mt-2 text-[15px] leading-relaxed" style={{ color: 'rgba(243,234,211,0.86)' }}>
-            {archetype!.archetype_description}
-          </p>
-        </div>
-        <div className="rounded-xl p-4 sm:p-5 ring-1 ring-sky-400/25 bg-sky-500/[0.06]">
-          <h3 className="font-semibold text-sky-200">
-            {isOwn ? t('oracle.yourAttunement') : t('oracle.theAttunement')} ({getSubcategoryName(archetype!.subcategory_name, lang)})
-          </h3>
-          <p className="mt-2 text-[15px] leading-relaxed" style={{ color: 'rgba(243,234,211,0.86)' }}>
-            {archetype!.subcategory_description}
-          </p>
-        </div>
-      </OracleSheet>
-
-      {/* A Arquitetura da Alma — como a essência é calculada */}
-      <OracleSheet
-        open={showArchitecture}
-        onClose={() => setShowArchitecture(false)}
-        title={t('oracle.architectureTitle')}
-        subtitle={t('oracle.architectureIntro')}
-        size="lg"
-        escapeEnabled={!showRetakeConfirm}
-        bodyClassName="px-5 sm:px-7 py-6 space-y-4"
-      >
-        <div className="rounded-xl p-4 sm:p-5 ring-1 ring-white/10" style={{ background: VELVET }}>
-          <h3 className="flex items-baseline gap-2 font-semibold" style={{ color: PAPER }}>
-            <span style={PIXEL} className="text-lg text-violet-300">
-              1
-            </span>
-            {t('oracle.theEssence')} ({essenceLabel})
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed" style={{ color: MIST }}>
-            {t('oracle.essenceProfileText', { profile: `${personality!.arquetipo_primario}${personality!.arquetipo_secundario}` })}
-          </p>
-          <div className="mt-3 grid sm:grid-cols-2 gap-2">
-            <div className="rounded-lg p-3 bg-black/25">
-              <p className="text-xs font-semibold" style={{ color: PAPER }}>
-                {t('oracle.essenceLogicLabel')}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed" style={{ color: MIST }}>
-                {t('oracle.essenceLogicText')}
-              </p>
-            </div>
-            <div className="rounded-lg p-3 bg-black/25">
-              <p className="text-xs font-semibold" style={{ color: PAPER }}>
-                {t('oracle.essenceResultLabel')}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed" style={{ color: MIST }}>
-                {t('oracle.essenceResultText')}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl p-4 sm:p-5 ring-1 ring-white/10" style={{ background: VELVET }}>
-          <h3 className="flex items-baseline gap-2 font-semibold" style={{ color: PAPER }}>
-            <span style={PIXEL} className="text-lg text-amber-300">
-              2
-            </span>
-            {t('oracle.theAttunement')} ({getSubcategoryName(archetype!.subcategory_name, lang)})
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed" style={{ color: MIST }}>
-            {/* O id da subcategoria às vezes não vem (perfil antigo); o
-                terceiro caractere do código é a mesma informação. */}
-            {t('oracle.subarchetypeText', { id: personality!.subcategoria_id || code.charAt(2) })}
-          </p>
-          <p className="mt-3 text-xs" style={{ color: MIST }}>
-            {t('oracle.axesListTitle')}
-          </p>
-          <ul className="mt-2 space-y-1.5 text-xs">
-            {[
-              { a: t('oracle.axisRadiant'), b: t('oracle.axisShadowy'), desc: t('oracle.axisOptimismMelancholy'), ca: '#fbbf24', cb: '#a78bfa' },
-              { a: t('oracle.axisClassic'), b: t('oracle.axisExperimental'), desc: t('oracle.axisTraditionBoldness'), ca: '#f87171', cb: '#60a5fa' },
-              { a: t('oracle.axisDense'), b: t('oracle.axisLight'), desc: t('oracle.axisComplexityAccessibility'), ca: '#F3EAD3', cb: '#34d399' },
-            ].map((row) => (
-              <li key={row.a} className="flex items-start gap-2" style={{ color: MIST }}>
-                <span aria-hidden>•</span>
-                <span>
-                  <span className="font-semibold" style={{ color: row.ca }}>
-                    {row.a}
-                  </span>
-                  {' vs. '}
-                  <span className="font-semibold" style={{ color: row.cb }}>
-                    {row.b}
-                  </span>
-                  {' — '}
-                  {row.desc}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="rounded-xl p-4 sm:p-5 ring-1 ring-white/10" style={{ background: VELVET }}>
-          <h3 className="flex items-baseline gap-2 font-semibold" style={{ color: PAPER }}>
-            <span style={PIXEL} className="text-lg text-sky-300">
-              3
-            </span>
-            {t('oracle.theGraph')}
-          </h3>
-          <div className="mt-4 flex justify-center">
-            <PentagonGraph points={spectrumPoints} subcategoryId={code} />
-          </div>
-          {onRetakeConfirmed && (
-            <div className="mt-4 flex justify-center">
-              <button onClick={() => setShowRetakeConfirm(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
-                <RefreshCw className="w-[18px] h-[18px] text-sky-300" aria-hidden />
-                {t('oracle.retakeQuiz')}
-              </button>
-            </div>
-          )}
-        </div>
-      </OracleSheet>
-
-      {onRetakeConfirmed && (
-        <ConfirmationModal
-          isOpen={showRetakeConfirm}
-          onClose={() => setShowRetakeConfirm(false)}
-          onConfirm={async () => {
-            setShowArchitecture(false);
-            await onRetakeConfirmed();
-          }}
-          title={t('oracle.retakeQuizTitle')}
-          message={t('oracle.retakeQuizConfirm')}
-          confirmLabel={t('oracle.retakeQuiz')}
-        />
-      )}
+      <PersonaRevelationSheet open={showRevelation} onClose={() => setShowRevelation(false)} persona={persona} isOwn={isOwn} />
+      <PersonaHowItWorksSheet open={showHowItWorks} onClose={() => setShowHowItWorks(false)} persona={persona} isOwn={isOwn} />
     </>
   );
 };

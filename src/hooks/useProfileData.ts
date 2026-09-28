@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { getMovieDetailsFromDB, Movie } from '../lib/tmdb';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
+import { fetchUserPersona, type UserPersona } from '../lib/persona';
 
 // --- Tipos ---
 
@@ -55,21 +56,6 @@ export interface LeastKnownGem {
   userRating?: number;
 }
 
-export interface EssencePersonality {
-  subcategoria_id: string | null;
-  personalidade_completa: string | null;
-  arquetipo_primario: string | null;
-  arquetipo_secundario: string | null;
-}
-
-export interface EssenceArchetype {
-  archetype_name: string;
-  subcategory_name: string;
-  description: string;
-  archetype_description: string;
-  subcategory_description: string;
-}
-
 export interface ProfileData {
   loading: boolean;
   error: string | null;
@@ -94,11 +80,9 @@ export interface ProfileData {
   countryCounts: Record<string, number>;
   countryAvgRatings: Record<string, number>;
 
-  // Essência / personalidade
-  essencePersonality: EssencePersonality | null;
-  essenceArchetype: EssenceArchetype | null;
-  spectrumPoints: { e: number; i: number; c: number; s: number; r: number };
-  essenceLoading: boolean;
+  // Personalidade cinematográfica (as 3 prateleiras mais usadas)
+  persona: UserPersona | null;
+  personaLoading: boolean;
 
   refetch: () => void;
 }
@@ -175,7 +159,7 @@ async function batchFetchFromCache(
 
 export function useProfileData(userId: string | undefined, language: string): ProfileData {
   const [loading, setLoading] = useState(true);
-  const [essenceLoading, setEssenceLoading] = useState(true);
+  const [personaLoading, setPersonaLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadFlag, setReloadFlag] = useState(0);
 
@@ -193,9 +177,7 @@ export function useProfileData(userId: string | undefined, language: string): Pr
   const [countryCounts, setCountryCounts] = useState<Record<string, number>>({});
   const [countryAvgRatings, setCountryAvgRatings] = useState<Record<string, number>>({});
 
-  const [essencePersonality, setEssencePersonality] = useState<EssencePersonality | null>(null);
-  const [essenceArchetype, setEssenceArchetype] = useState<EssenceArchetype | null>(null);
-  const [spectrumPoints, setSpectrumPoints] = useState({ e: 0, i: 0, c: 0, s: 0, r: 0 });
+  const [persona, setPersona] = useState<UserPersona | null>(null);
 
   const refetch = useCallback(() => setReloadFlag((f) => f + 1), []);
 
@@ -498,47 +480,21 @@ export function useProfileData(userId: string | undefined, language: string): Pr
       }
     };
 
-    const runEssence = async () => {
+    const runPersona = async () => {
       try {
-        setEssenceLoading(true);
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('subcategoria_id, personalidade_completa, arquetipo_primario, arquetipo_secundario, pontos_e, pontos_i, pontos_c, pontos_s, pontos_r')
-          .eq('id', userId)
-          .maybeSingle();
-
-        if (cancelled) return;
-
-        if (!profileData?.personalidade_completa) {
-          setEssencePersonality(profileData ?? null);
-          return;
-        }
-        setEssencePersonality(profileData);
-        setSpectrumPoints({
-          e: Number(profileData.pontos_e) || 0,
-          i: Number(profileData.pontos_i) || 0,
-          c: Number(profileData.pontos_c) || 0,
-          s: Number(profileData.pontos_s) || 0,
-          r: Number(profileData.pontos_r) || 0
-        });
-
-        const { data: archetypeData } = await supabase
-          .rpc('get_user_complete_personality', {
-            p_user_id: userId,
-            p_language: language.startsWith('pt') ? 'pt' : 'en'
-          })
-          .maybeSingle();
-
-        if (!cancelled) setEssenceArchetype(archetypeData ?? null);
+        setPersonaLoading(true);
+        const data = await fetchUserPersona(userId);
+        if (!cancelled) setPersona(data);
       } catch (err) {
-        console.error('useProfileData essence error:', err);
+        console.error('useProfileData persona error:', err);
+        if (!cancelled) setPersona(null);
       } finally {
-        if (!cancelled) setEssenceLoading(false);
+        if (!cancelled) setPersonaLoading(false);
       }
     };
 
     run();
-    runEssence();
+    runPersona();
 
     return () => {
       cancelled = true;
@@ -561,10 +517,8 @@ export function useProfileData(userId: string | undefined, language: string): Pr
     friendsCount,
     countryCounts,
     countryAvgRatings,
-    essencePersonality,
-    essenceArchetype,
-    spectrumPoints,
-    essenceLoading,
+    persona,
+    personaLoading,
     refetch
   };
 }

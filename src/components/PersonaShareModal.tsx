@@ -1,98 +1,116 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Download, Share2, Loader2, Check } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import ArchetypeSymbol from './ArchetypeSymbol';
+import { Download, Share2, Loader2, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import OracleSheet from './OracleSheet';
+import { MOOD_BY_KEY, MOOD_BY_LETTER } from '../lib/moods';
+import { personaText, posterUrl, topMoodKeys, type UserPersona } from '../lib/persona';
+import { drawPersonaCard } from '../lib/personaCard';
+import { NIGHT, PAPER, MIST, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
+
+// Compartilhar personalidade: uma imagem 9:16 (pros stories) com o pôster
+// do personagem, o código de 3 letras, o título, as três prateleiras e o @.
+// A arte é desenhada num canvas (lib/personaCard) e a prévia mostra
+// exatamente a imagem que vai ser baixada/compartilhada.
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  personaCode: string;        // e.g. "EIA"
-  archetypeName: string;
-  subcategoryName: string;
+  persona: UserPersona;
   username?: string | null;
 }
 
-const SUBCATEGORY_COLOR: Record<string, string> = {
-  A: '#fbbf24', B: '#64748b', K: '#ef4444', X: '#3b82f6', D: '#9ca3af', L: '#10b981',
-};
-
-const SPECTRUM_PT: Record<string, string> = {
-  E: 'Emocional', I: 'Intelectual', C: 'Cultural', S: 'Sensorial', R: 'Recreativo',
-};
-const SPECTRUM_EN: Record<string, string> = {
-  E: 'Emotional', I: 'Intellectual', C: 'Cultural', S: 'Sensorial', R: 'Recreational',
-};
-
-const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, personaCode, archetypeName, subcategoryName, username }) => {
-  const { i18n } = useTranslation();
-  const isPt = i18n.language.startsWith('pt');
-  const cardRef = useRef<HTMLDivElement>(null);
+const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, username }) => {
+  const { t, i18n } = useTranslation();
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
 
-  useEffect(() => { if (!isOpen) setDone(false); }, [isOpen]);
+  const code = persona.code;
+  const entry = persona.persona;
 
-  if (!isOpen) return null;
+  // Desenha a arte sempre que a gaveta abre (ou muda idioma/personalidade).
+  useEffect(() => {
+    if (!isOpen || !code || !entry) return;
+    let cancelled = false;
+    setDone(false);
+    setPreview(null);
+    const text = personaText(entry, i18n.language);
+    const shelves = topMoodKeys(persona)
+      .map((key) => MOOD_BY_KEY[key])
+      .filter(Boolean)
+      .map((mood) => ({ letter: mood.letter, label: t(mood.labelKey), color: mood.color }));
+    drawPersonaCard({
+      code,
+      codeColors: code.split('').map((l) => MOOD_BY_LETTER[l]?.color ?? PAPER),
+      label: t('oracle.share.cardMyPersona'),
+      title: text.title,
+      subtitle: text.sameAsFilm ? text.filmWithYear : `${text.character} · ${text.filmWithYear}`,
+      shelves,
+      username,
+      cta: t('oracle.share.cardCta'),
+      posterUrl: posterUrl(entry.posterPath, 'w500'),
+      glow: MOOD_BY_LETTER[code.charAt(0)]?.color ?? '#8B5CF6',
+      oracles: ORACLES.map((o) => ({ avatar: o.avatar, color: o.color })),
+    })
+      .then((canvas) => {
+        if (cancelled) return;
+        canvasRef.current = canvas;
+        setPreview(canvas.toDataURL('image/png'));
+      })
+      .catch((err) => {
+        console.error('Error drawing persona card:', err);
+        if (!cancelled) toast.error(t('oracle.share.error'));
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, code, entry, i18n.language, username]);
 
-  const archetypeId = personaCode.slice(0, 2);
-  const subcategoryId = personaCode.slice(2, 3);
-  const color = SUBCATEGORY_COLOR[subcategoryId] || '#3b82f6';
+  if (!code || !entry) return null;
+  const title = personaText(entry, i18n.language).title;
 
-  const primaryLetter = archetypeId.charAt(0);
-  const secondaryLetter = archetypeId.charAt(1);
-  const primaryName = isPt ? SPECTRUM_PT[primaryLetter] : SPECTRUM_EN[primaryLetter];
-  const secondaryName = isPt ? SPECTRUM_PT[secondaryLetter] : SPECTRUM_EN[secondaryLetter];
-
-    const generateBlob = async (): Promise<Blob | null> => {
-    if (!cardRef.current) return null;
-    const canvas = await html2canvas(cardRef.current, {
-      backgroundColor: null,
-      // Reduzido de 1 pra 0.66 — o card continua desenhado em 1080x1920
-      // internamente (o layout não muda em nada), só a imagem final sai
-      // menor (~713x1267px). Isso corta o trabalho de renderização e
-      // codificação do PNG em quase 60%, sem perda visível numa imagem
-      // feita pra ser vista em tela de celular (Stories, WhatsApp, etc).
-      scale: 0.66,
-      useCORS: true,
-      logging: false,
-    });
+  const getBlob = async (): Promise<Blob | null> => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
     return await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
+  };
+
+  const saveBlob = (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cineoracle-${code}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleShare = async () => {
     setGenerating(true);
     try {
-      const blob = await generateBlob();
-      if (!blob) throw new Error('Falha ao gerar imagem');
-      const file = new File([blob], `cineoracle-${personaCode}.png`, { type: 'image/png' });
+      const blob = await getBlob();
+      if (!blob) throw new Error('no image');
+      const file = new File([blob], `cineoracle-${code}.png`, { type: 'image/png' });
 
       if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: `${personaCode} — ${archetypeName}`,
-          text: isPt
-            ? `Minha persona cinematográfica é ${personaCode} — ${archetypeName} ${subcategoryName}`
-            : `My cinematic persona is ${personaCode} — ${archetypeName} ${subcategoryName}`,
+          title: `${code} — ${title}`,
+          text: t('oracle.share.shareText', { code, name: title }),
         });
         setDone(true);
       } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `cineoracle-${personaCode}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        saveBlob(blob);
         setDone(true);
-        toast.success(isPt ? 'Imagem baixada! Compartilhe nos seus stories.' : 'Image saved! Share it on your stories.');
+        toast.success(t('oracle.share.downloadedStories'));
       }
-    } catch (err: any) {
-      if (err?.name !== 'AbortError') {
-        toast.error(isPt ? 'Não foi possível gerar a imagem.' : 'Could not generate image.');
+    } catch (err: unknown) {
+      if ((err as { name?: string })?.name !== 'AbortError') {
+        toast.error(t('oracle.share.error'));
       }
     } finally {
       setGenerating(false);
@@ -102,344 +120,64 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, personaCode, arch
   const handleDownload = async () => {
     setGenerating(true);
     try {
-      const blob = await generateBlob();
-      if (!blob) throw new Error();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cineoracle-${personaCode}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const blob = await getBlob();
+      if (!blob) throw new Error('no image');
+      saveBlob(blob);
       setDone(true);
-      toast.success(isPt ? 'Imagem baixada!' : 'Image downloaded!');
+      toast.success(t('oracle.share.downloaded'));
     } catch {
-      toast.error(isPt ? 'Falha ao baixar.' : 'Download failed.');
+      toast.error(t('oracle.share.error'));
     } finally {
       setGenerating(false);
     }
   };
 
+  const busy = generating || !preview;
+
   return (
-    <AnimatePresence>
-      <motion.div
-        key="share-overlay"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-md flex items-center justify-center p-3"
-        onClick={onClose}
-      >
-        <motion.div
-          key="share-panel"
-          initial={{ y: 30, opacity: 0, scale: 0.96 }}
-          animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: 30, opacity: 0, scale: 0.96 }}
-          transition={{ type: 'spring', damping: 26, stiffness: 280 }}
-          onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-md rounded-3xl bg-gradient-to-br from-gray-900 to-black border border-white/10 shadow-2xl overflow-hidden flex flex-col"
-        >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-            <h3 className="text-base font-bold text-white">
-              {isPt ? 'Compartilhar Persona' : 'Share Persona'}
-            </h3>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Preview (scaled-down version of the 1080x1920 card) */}
-          <div className="px-4 py-5 bg-gradient-to-b from-gray-950 to-black flex items-center justify-center">
-            <div
-              className="rounded-2xl overflow-hidden shadow-2xl"
-              style={{
-                width: 270,
-                height: 480,
-                transform: 'translateZ(0)',
-              }}
-            >
-              <div
-                style={{
-                  width: 270,
-                  height: 480,
-                  transform: 'scale(0.25)',
-                  transformOrigin: 'top left',
-                }}
-              >
-                <div style={{ width: 1080, height: 1920 }}>
-                  <ShareCardContent
-                    refEl={cardRef}
-                    personaCode={personaCode}
-                    archetypeId={archetypeId}
-                    subcategoryId={subcategoryId}
-                    color={color}
-                    archetypeName={archetypeName}
-                    subcategoryName={subcategoryName}
-                    primaryName={primaryName}
-                    secondaryName={secondaryName}
-                    username={username}
-                    isPt={isPt}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="px-5 pb-5 pt-2 flex gap-2 border-t border-white/10 bg-gray-950/40">
-            <button
-              onClick={handleDownload}
-              disabled={generating}
-              className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm flex items-center justify-center gap-2 transition disabled:opacity-50"
-            >
-              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : done ? <Check className="w-4 h-4" /> : <Download className="w-4 h-4" />}
-              {isPt ? 'Baixar' : 'Download'}
-            </button>
-            <button
-              onClick={handleShare}
-              disabled={generating}
-              className="flex-1 py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-lg"
-              style={{ background: `linear-gradient(135deg, ${color}, ${color}cc)` }}
-            >
-              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
-              {isPt ? 'Compartilhar' : 'Share'}
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  );
-};
-
-const ShareCardContent: React.FC<{
-  refEl: React.RefObject<HTMLDivElement>;
-  personaCode: string;
-  archetypeId: string;
-  subcategoryId: string;
-  color: string;
-  archetypeName: string;
-  subcategoryName: string;
-  primaryName: string;
-  secondaryName: string;
-  username?: string | null;
-  isPt: boolean;
-}> = ({ refEl, personaCode, archetypeId, subcategoryId, color, archetypeName, subcategoryName, primaryName, secondaryName, username, isPt }) => {
-  return (
-    <div
-      ref={refEl}
-      style={{
-        width: 1080,
-        height: 1920,
-        position: 'relative',
-        background: `radial-gradient(circle at 50% 25%, ${color}55 0%, transparent 55%), linear-gradient(180deg, #0a0a0f 0%, #000000 100%)`,
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        color: '#fff',
-        overflow: 'hidden',
-      }}
+    <OracleSheet
+      open={isOpen}
+      onClose={onClose}
+      title={t('oracle.share.title')}
+      subtitle={t('oracle.share.hint')}
+      size="md"
+      zIndexClass="z-[9995]"
+      bodyClassName="px-5 sm:px-7 py-6"
+      footer={
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={handleDownload}
+            disabled={busy}
+            className={`gap-2 h-12 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-semibold transition disabled:opacity-50 ${FOCUS_RING}`}
+            style={{ color: PAPER }}
+          >
+            {generating ? <Loader2 className="w-[18px] h-[18px] animate-spin" aria-hidden /> : done ? <Check className="w-[18px] h-[18px] text-emerald-300" aria-hidden /> : <Download className="w-[18px] h-[18px] text-violet-300" aria-hidden />}
+            {t('oracle.share.download')}
+          </button>
+          <button
+            onClick={handleShare}
+            disabled={busy}
+            className={`gap-2 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-fuchsia-900/30 transition disabled:opacity-50 ${FOCUS_RING}`}
+          >
+            {generating ? <Loader2 className="w-[18px] h-[18px] animate-spin" aria-hidden /> : <Share2 className="w-[18px] h-[18px]" aria-hidden />}
+            {t('oracle.share.share')}
+          </button>
+        </div>
+      }
     >
-      {/* Decorative grid lines */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `linear-gradient(${color}10 1px, transparent 1px), linear-gradient(90deg, ${color}10 1px, transparent 1px)`,
-          backgroundSize: '120px 120px',
-          opacity: 0.5,
-        }}
-      />
-
-      {/* Top brand */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 80,
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          fontSize: 28,
-          fontWeight: 600,
-          letterSpacing: 8,
-          color: '#9ca3af',
-          textTransform: 'uppercase',
-        }}
-      >
-        Cine Oracle
-      </div>
-
-      {/* Symbol */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 220,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 380,
-          height: 380,
-          borderRadius: 40,
-          border: `3px solid ${color}60`,
-          background: `${color}10`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: `0 0 80px ${color}40, inset 0 0 60px ${color}15`,
-        }}
-      >
-        <ArchetypeSymbol archetypeId={archetypeId} subcategoryId={subcategoryId} size={260} animated={false} />
-      </div>
-
-      {/* Persona code */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 680,
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          fontSize: 200,
-          fontWeight: 900,
-          letterSpacing: 12,
-          lineHeight: 1,
-          color,
-          textShadow: `0 0 60px ${color}60`,
-        }}
-      >
-        {personaCode}
-      </div>
-
-      {/* Archetype name */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 920,
-          left: 60,
-          right: 60,
-          textAlign: 'center',
-          fontSize: 72,
-          fontWeight: 800,
-          color: '#fff',
-          lineHeight: 1.1,
-        }}
-      >
-        {archetypeName}
-      </div>
-
-      {/* Subcategory */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 1040,
-          left: 60,
-          right: 60,
-          textAlign: 'center',
-          fontSize: 44,
-          fontWeight: 500,
-          color: '#d1d5db',
-        }}
-      >
-        {subcategoryName}
-      </div>
-
-      {/* Spectrum tags */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 1180,
-          left: 0,
-          right: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 16,
-        }}
-      >
-        <div
-          style={{
-            padding: '14px 32px',
-            borderRadius: 999,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            fontSize: 28,
-            fontWeight: 600,
-            color: '#e5e7eb',
-          }}
-        >
-          {primaryName}
-        </div>
-        <div
-          style={{
-            padding: '14px 32px',
-            borderRadius: 999,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            fontSize: 28,
-            fontWeight: 600,
-            color: '#e5e7eb',
-          }}
-        >
-          {secondaryName}
+      <div className="flex justify-center">
+        <div className="relative rounded-2xl overflow-hidden ring-1 ring-white/15 shadow-2xl shadow-black/60" style={{ width: 270, height: 480, background: NIGHT }}>
+          {preview ? (
+            <img src={preview} alt={`${code} — ${title}`} width={270} height={480} className="block w-full h-full" />
+          ) : (
+            <span className="absolute inset-0 grid place-items-center" role="status">
+              <Loader2 className="w-7 h-7 animate-spin" style={{ color: MIST }} aria-hidden />
+              <span className="sr-only">{t('common.loading')}</span>
+            </span>
+          )}
         </div>
       </div>
-
-      {/* Username block */}
-      {username && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 1320,
-            left: 0,
-            right: 0,
-            textAlign: 'center',
-            fontSize: 32,
-            color: '#9ca3af',
-            fontWeight: 500,
-          }}
-        >
-          @{username}
-        </div>
-      )}
-
-      {/* Bottom message */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 220,
-          left: 60,
-          right: 60,
-          textAlign: 'center',
-          fontSize: 36,
-          fontWeight: 600,
-          color: '#fff',
-          lineHeight: 1.4,
-        }}
-      >
-        {isPt ? 'Descubra a sua persona cinematográfica' : 'Discover your cinematic persona'}
-      </div>
-
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 130,
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          fontSize: 28,
-          fontWeight: 700,
-          letterSpacing: 4,
-          color,
-        }}
-      >
-        cineoracle.com
-      </div>
-
-      {/* Bottom accent line */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 8,
-          background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
-        }}
-      />
-    </div>
+    </OracleSheet>
   );
 };
 

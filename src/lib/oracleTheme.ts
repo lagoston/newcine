@@ -108,3 +108,13 @@ export const ORACLE_BY_ID: Record<OracleId, OracleCard> = {
   fincher: ORACLES[1],
   cypher: ORACLES[2],
 };
+
+// Estilo de carta escolhido no Personalizar perfil (profiles.card_style):
+// troca o sufixo do arquivo — BOGART.webp, BOGART2.webp (Yu-Gi-Oh!),
+// BOGART3.webp (Horror).
+export type OracleCardStyle = 'default' | 'yugioh' | 'horror';
+const CARD_STYLE_SUFFIX: Record<OracleCardStyle, string> = { default: '', yugioh: '2', horror: '3' };
+export const oracleCardImage = (id: OracleId, style: string | null | undefined): string => {
+  const suffix = CARD_STYLE_SUFFIX[(style as OracleCardStyle) ?? 'default'] ?? '';
+  return `/assets/${id.toUpperCase()}${suffix}.webp`;
+};

@@ -88,10 +88,8 @@ export default function UserProfile() {
     topDirectors,
     leastKnownGem,
     friendsCount,
-    essencePersonality,
-    essenceArchetype,
-    spectrumPoints,
-    essenceLoading,
+    persona,
+    personaLoading,
     countryCounts,
     countryAvgRatings,
     refetch: refetchProfileData,
@@ -476,10 +474,8 @@ export default function UserProfile() {
           <ProfileSectionHeading title={t('profile.essenceOf', { username: profile.username })} />
           <div className="mt-6">
             <ProfileEssence
-              loading={essenceLoading}
-              personality={essencePersonality}
-              archetype={essenceArchetype}
-              spectrumPoints={spectrumPoints}
+              loading={personaLoading}
+              persona={persona}
               emptyState={
                 <div className={`${PROFILE_CARD} flex items-center gap-5`} style={{ background: VELVET }}>
                   <div className="flex shrink-0" aria-hidden>
