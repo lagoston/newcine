@@ -907,7 +907,7 @@
     "signInToAdd": "Sign in to add",
     "listsShort": "Lists",
     "collectionTab": "Collection",
-    "tasteTab": "Taste",
+    "infoTab": "Info",
     "numbersOf": "@{{username}}’s numbers",
     "essenceOf": "@{{username}}’s personality",
     "essenceEmptyOther": "@{{username}} hasn’t revealed a personality yet.",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ListPlus, MessageSquare, UserCheck, UserPlus, Clock, Sparkles, Wand2, Loader2, Film, UserX, LogIn, User } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
@@ -6,7 +6,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { Movie } from '../lib/tmdb';
 import RatingBox from '../components/RatingBox';
-import RatingSpectrum from '../components/RatingSpectrum';
 import FollowersModal from '../components/FollowersModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import UserPinsCard from '../components/UserPinsCard';
@@ -23,7 +22,8 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS } from '../lib/cache';
 import { useProfileData, type MovieWithRating } from '../hooks/useProfileData';
-import { VELVET, PAPER, MIST, NIGHT, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
+import { VELVET, SURFACE, SURFACE_VAR, PAPER, MIST, NIGHT, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
+import { getBannerTone } from '../lib/banners';
 
 // Perfil de outra pessoa (vindo da Comunidade, da atividade dos amigos,
 // das resenhas...). Mesma "cara" do seu Perfil — cartão de identidade,
@@ -31,7 +31,9 @@ import { VELVET, PAPER, MIST, NIGHT, FOCUS_RING, ORACLES } from '../lib/oracleTh
 //   • amizade (adicionar, cancelar pedido, aceitar, desfazer)
 //   • Compatibilidade e Match Movie com você
 //   • listas e resenhas dela
-//   • a coleção (prateleiras por nota) e o retrato de gosto, em abas.
+//   • a coleção (prateleiras por nota) e o Info (personalidade, notas e o
+//     retrato de gosto), em abas.
+// Os blocos da página vestem o tom do banner da pessoa (--co-surface).
 
 interface Profile {
   id: string;
@@ -49,7 +51,7 @@ interface Profile {
 }
 
 type FriendshipStatus = 'none' | 'pending_sent' | 'pending_received' | 'friends';
-type Tab = 'collection' | 'taste';
+type Tab = 'collection' | 'info';
 
 export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
@@ -337,6 +339,16 @@ export default function UserProfile() {
   const jumpToRating = (rating: number) => {
     document.getElementById(`profile-rating-${rating}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+  // Tocar numa nota em "Notas de @" (aba Info) abre a Coleção já na
+  // prateleira daquela nota.
+  const jumpFromInfo = (rating: number) => {
+    setTab('collection');
+    window.setTimeout(() => jumpToRating(rating), 80);
+  };
+
+  // Tom do banner da pessoa pros blocos da página (null = violeta padrão).
+  const bannerTone = getBannerTone(profile.banner, isOwnerPremium);
+  const pageStyle = bannerTone ? ({ [SURFACE_VAR]: bannerTone.surface } as CSSProperties) : undefined;
 
   // Botão de amizade — muda com o estado da relação.
   const friendButton = (() => {
@@ -429,11 +441,11 @@ export default function UserProfile() {
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'collection', label: t('profile.collectionTab'), count: movies.length },
-    { id: 'taste', label: t('profile.tasteTab') },
+    { id: 'info', label: t('profile.infoTab') },
   ];
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="min-h-screen pb-16" style={pageStyle}>
       {/* ---------- Cartão de identidade ---------- */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-3 sm:pt-6">
         {backButton}
@@ -465,40 +477,7 @@ export default function UserProfile() {
         />
       </section>
 
-      {/* ---------- Essência ---------- */}
-      <section className="mt-12 border-t border-white/[0.07] pt-10">
-        <div className="mx-auto max-w-6xl px-5 sm:px-8">
-          <ProfileSectionHeading title={t('profile.essenceOf', { username: profile.username })} />
-          <div className="mt-6">
-            <ProfileEssence
-              loading={personaLoading}
-              persona={persona}
-              emptyState={
-                <div className={`${PROFILE_CARD} flex items-center gap-5`} style={{ background: VELVET }}>
-                  <div className="flex shrink-0" aria-hidden>
-                    {ORACLES.map((oracle, i) => (
-                      <img
-                        key={oracle.id}
-                        src={oracle.avatar}
-                        alt=""
-                        width={40}
-                        height={40}
-                        className={`w-10 h-10 rounded-full object-cover opacity-70 ${i > 0 ? '-ml-2' : ''}`}
-                        style={{ boxShadow: `0 0 0 2px ${VELVET}, 0 0 0 4px ${oracle.color}` }}
-                      />
-                    ))}
-                  </div>
-                  <p className="flex-1 min-w-0 text-sm" style={{ color: MIST }}>
-                    {t('profile.essenceEmptyOther', { username: profile.username })}
-                  </p>
-                </div>
-              }
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- Coleção / Gosto ---------- */}
+      {/* ---------- Coleção / Info ---------- */}
       <section className="mt-12 border-t border-white/[0.07] pt-10">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
           <div role="tablist" aria-label={profile.username} className="inline-flex p-1 rounded-full ring-1 ring-white/10" style={{ background: NIGHT }}>
@@ -529,7 +508,7 @@ export default function UserProfile() {
           <div id="profile-panel-collection" role="tabpanel" aria-labelledby="profile-tab-collection">
             {movies.length === 0 ? (
               <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-6">
-                <div className={`${PROFILE_CARD} flex items-center gap-5`} style={{ background: VELVET }}>
+                <div className={`${PROFILE_CARD} flex items-center gap-5`} style={{ background: SURFACE }}>
                   <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
                     <Film className="w-7 h-7 text-violet-300" aria-hidden />
                   </span>
@@ -540,18 +519,6 @@ export default function UserProfile() {
               </div>
             ) : (
               <>
-                {ratedMoviesCount > 0 && (
-                  <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-6">
-                    <div className="lg:max-w-[560px] rounded-2xl px-4 sm:px-5 pt-4 pb-3 ring-1 ring-white/10" style={{ background: VELVET }}>
-                      <RatingSpectrum
-                        counts={ratingCounts}
-                        average={average}
-                        onJump={jumpToRating}
-                        title={t('profile.ratingsOf', { username: profile.username })}
-                      />
-                    </div>
-                  </div>
-                )}
                 <div className="mt-2">
                   {[...Array(11)].map((_, i) => {
                     const rating = 10 - i;
@@ -588,32 +555,71 @@ export default function UserProfile() {
             )}
           </div>
         ) : (
-          <div id="profile-panel-taste" role="tabpanel" aria-labelledby="profile-tab-taste" className="mx-auto max-w-6xl px-5 sm:px-8 mt-6">
-            {ratedMoviesCount > 0 ? (
-              <ProfileTasteGrid
-                ratingCounts={ratingCounts}
-                average={average}
-                favoriteGenres={favoriteGenres}
-                favoriteKeywords={favoriteKeywords}
-                favoriteDecade={favoriteDecade}
-                topDirectors={topDirectors}
-                leastKnownGem={leastKnownGem}
-                countryCounts={countryCounts}
-                countryAvgRatings={countryAvgRatings}
-                onViewCountryMovies={handleViewCountryMovies}
-                ownerRatingLabel={t('profile.ratingOf', { username: profile.username })}
-                extra={<UserPinsCard userId={profile.id} title={t('profile.pinsOf', { username: profile.username })} className="md:col-span-2 lg:col-span-3" />}
-              />
-            ) : (
-              <div className={`${PROFILE_CARD} flex items-center gap-5`} style={{ background: VELVET }}>
-                <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
-                  <Film className="w-7 h-7 text-violet-300" aria-hidden />
-                </span>
-                <p className="flex-1 min-w-0 text-[15px]" style={{ color: MIST }}>
-                  {t('profile.tasteEmptyOther', { username: profile.username })}
-                </p>
+          <div id="profile-panel-info" role="tabpanel" aria-labelledby="profile-tab-info" className="mx-auto max-w-6xl px-5 sm:px-8 mt-8 space-y-12">
+            {/* Personalidade de @ */}
+            <div>
+              <ProfileSectionHeading title={t('profile.essenceOf', { username: profile.username })} />
+              <div className="mt-6">
+                <ProfileEssence
+                  loading={personaLoading}
+                  persona={persona}
+                  emptyState={
+                    <div className={`${PROFILE_CARD} flex items-center gap-5`} style={{ background: SURFACE }}>
+                      <div className="flex shrink-0" aria-hidden>
+                        {ORACLES.map((oracle, i) => (
+                          <img
+                            key={oracle.id}
+                            src={oracle.avatar}
+                            alt=""
+                            width={40}
+                            height={40}
+                            className={`w-10 h-10 rounded-full object-cover opacity-70 ${i > 0 ? '-ml-2' : ''}`}
+                            style={{ boxShadow: `0 0 0 2px ${SURFACE}, 0 0 0 4px ${oracle.color}` }}
+                          />
+                        ))}
+                      </div>
+                      <p className="flex-1 min-w-0 text-sm" style={{ color: MIST }}>
+                        {t('profile.essenceEmptyOther', { username: profile.username })}
+                      </p>
+                    </div>
+                  }
+                />
               </div>
-            )}
+            </div>
+
+            {/* Notas de @ e o retrato de gosto */}
+            <div>
+              <ProfileSectionHeading title={t('profile.ratingsOf', { username: profile.username })} />
+              <div className="mt-6">
+                {ratedMoviesCount > 0 ? (
+                  <ProfileTasteGrid
+                    ratingCounts={ratingCounts}
+                    average={average}
+                    ratingTitle={t('profile.stats.ratingDistribution')}
+                    onJumpToRating={jumpFromInfo}
+                    favoriteGenres={favoriteGenres}
+                    favoriteKeywords={favoriteKeywords}
+                    favoriteDecade={favoriteDecade}
+                    topDirectors={topDirectors}
+                    leastKnownGem={leastKnownGem}
+                    countryCounts={countryCounts}
+                    countryAvgRatings={countryAvgRatings}
+                    onViewCountryMovies={handleViewCountryMovies}
+                    ownerRatingLabel={t('profile.ratingOf', { username: profile.username })}
+                    extra={<UserPinsCard userId={profile.id} title={t('profile.pinsOf', { username: profile.username })} className="md:col-span-2 lg:col-span-3" />}
+                  />
+                ) : (
+                  <div className={`${PROFILE_CARD} flex items-center gap-5`} style={{ background: SURFACE }}>
+                    <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
+                      <Film className="w-7 h-7 text-violet-300" aria-hidden />
+                    </span>
+                    <p className="flex-1 min-w-0 text-[15px]" style={{ color: MIST }}>
+                      {t('profile.tasteEmptyOther', { username: profile.username })}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </section>

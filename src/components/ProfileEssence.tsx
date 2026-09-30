@@ -8,7 +8,7 @@ import { PROFILE_GHOST_BUTTON } from './ProfileIdentityCard';
 import { PROFILE_CARD } from './ProfileTaste';
 import { MOODS, MOOD_BY_KEY, withMoodAlpha } from '../lib/moods';
 import { personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../lib/persona';
-import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
+import { VELVET, SURFACE, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
 
 // Personalidade cinematográfica de um perfil: o cartão com o código (ex.:
 // MPC), o título, o personagem e as três prateleiras, mais as duas gavetas
@@ -164,7 +164,7 @@ const ProfileEssence: React.FC<ProfileEssenceProps> = ({ loading, persona, isOwn
 
   if (loading) {
     return (
-      <div className={`${PROFILE_CARD} flex gap-5`} style={{ background: VELVET }} aria-busy="true">
+      <div className={`${PROFILE_CARD} flex gap-5`} style={{ background: SURFACE }} aria-busy="true">
         <div className="w-[72px] aspect-[2/3] rounded-lg bg-white/10 animate-pulse" />
         <div className="flex-1 space-y-3">
           <div className="h-10 w-32 rounded-lg bg-white/10 animate-pulse" />
@@ -180,7 +180,7 @@ const ProfileEssence: React.FC<ProfileEssenceProps> = ({ loading, persona, isOwn
 
   return (
     <>
-      <div className={PROFILE_CARD} style={{ background: VELVET }}>
+      <div className={PROFILE_CARD} style={{ background: SURFACE }}>
         <div className="flex flex-col md:flex-row md:items-center gap-5">
           <div className="flex gap-4 sm:gap-5 min-w-0 flex-1">
             <PersonaPoster path={persona.persona.posterPath} alt={text.film} className="w-[72px] sm:w-[84px] shrink-0 rounded-lg self-start" />

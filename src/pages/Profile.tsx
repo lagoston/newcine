@@ -20,7 +20,8 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache } from '../lib/cache';
 import { useProfileData } from '../hooks/useProfileData';
-import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
+import { VELVET, SURFACE, SURFACE_VAR, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
+import { getBannerTone } from '../lib/banners';
 
 interface Profile {
   id: string;
@@ -617,9 +618,13 @@ export default function Profile() {
 
   // ---- Valores derivados ----
   const { counts: ratingCounts, average } = summarizeRatings(ratingDistribution);
+  // Os blocos da página (Números, Seu gosto, Essência…) vestem o tom do seu
+  // banner — a mesma regra dos perfis da Comunidade (lib/banners.ts).
+  const bannerTone = getBannerTone(profile?.banner, isPremium);
+  const pageStyle = bannerTone ? ({ [SURFACE_VAR]: bannerTone.surface } as React.CSSProperties) : undefined;
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="min-h-screen pb-16" style={pageStyle}>
       {/* ---------- Cartão de identidade ---------- */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10">
         <ProfileIdentityCard
@@ -738,7 +743,10 @@ export default function Profile() {
                 </button>
               </>
             ) : (
-              <>
+              // No celular, grade 2×2 de caixas com a mesma largura (Sussurros
+              // e Tags em cima, Personalizar e Editar perfil embaixo); a partir
+              // do sm, uma fileira só.
+              <div className="w-full grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:w-auto">
                 <button
                   onClick={() => setShowWhispersModal(true)}
                   aria-label={unreadWhispers > 0 ? `${t('profile.whispers')} (${unreadWhispers})` : t('profile.whispers')}
@@ -753,13 +761,13 @@ export default function Profile() {
                     </span>
                   )}
                 </button>
-                <button onClick={() => setShowCustomizeModal(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
-                  <Palette className="w-[18px] h-[18px] text-violet-300" aria-hidden />
-                  {t('profile.customize')}
-                </button>
                 <button onClick={() => setShowTagPinsModal(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
                   <Tag className="w-[18px] h-[18px] text-violet-300" aria-hidden />
                   {t('profile.tagPins', { defaultValue: 'Tags' })}
+                </button>
+                <button onClick={() => setShowCustomizeModal(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
+                  <Palette className="w-[18px] h-[18px] text-violet-300" aria-hidden />
+                  {t('profile.customize')}
                 </button>
                 <button onClick={handleStartEditing} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
                   <Pencil className="w-[18px] h-[18px] text-violet-300" aria-hidden />
@@ -768,13 +776,13 @@ export default function Profile() {
                 {!isPremium && (
                   <button
                     onClick={() => navigate('/premium')}
-                    className={`inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-[#221B36] text-sm font-semibold shadow-lg shadow-amber-900/30 transition ${FOCUS_RING}`}
+                    className={`col-span-2 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-[#221B36] text-sm font-semibold shadow-lg shadow-amber-900/30 transition ${FOCUS_RING}`}
                   >
                     <Crown className="w-[18px] h-[18px]" aria-hidden />
                     {t('oracle.premium.upgrade')}
                   </button>
                 )}
-              </>
+              </div>
             )
           }
         />
@@ -810,7 +818,7 @@ export default function Profile() {
           </div>
         ) : (
           <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-5">
-            <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: VELVET }}>
+            <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: SURFACE }}>
               <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
                 <Users className="w-7 h-7 text-violet-300" aria-hidden />
               </span>
@@ -846,7 +854,7 @@ export default function Profile() {
                 onViewCountryMovies={handleViewCountryMovies}
               />
             ) : (
-              <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: VELVET }}>
+              <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: SURFACE }}>
                 <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
                   <Film className="w-7 h-7 text-violet-300" aria-hidden />
                 </span>
@@ -877,7 +885,7 @@ export default function Profile() {
               loading={personaLoading}
               persona={persona}
               emptyState={
-                <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: VELVET }}>
+                <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: SURFACE }}>
                   <div className="flex shrink-0" aria-hidden>
                     {ORACLES.map((oracle, i) => (
                       <img
@@ -887,7 +895,7 @@ export default function Profile() {
                         width={44}
                         height={44}
                         className={`w-11 h-11 rounded-full object-cover ${i > 0 ? '-ml-2' : ''}`}
-                        style={{ boxShadow: `0 0 0 2px ${VELVET}, 0 0 0 4px ${oracle.color}` }}
+                        style={{ boxShadow: `0 0 0 2px ${SURFACE}, 0 0 0 4px ${oracle.color}` }}
                       />
                     ))}
                   </div>

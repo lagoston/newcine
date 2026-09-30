@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Star, Bookmark } from 'lucide-react';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from './GhostRiderFrame';
-import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
+import { NIGHT, SURFACE, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
 
 // Atividade dos amigos — a mecânica antiga de volta, no tema noite: cada
 // amigo é uma bolha de perfil com um balão em cima contando o último título
@@ -121,7 +121,7 @@ const FriendsActivityCarousel: React.FC<{ friends: FriendActivity[] }> = ({ frie
           <span className="relative w-full max-w-[128px] mb-3">
             <span
               className="block rounded-xl px-1.5 py-1.5 sm:px-2.5 sm:py-2 shadow-lg transition-transform duration-200 group-hover:-translate-y-0.5"
-              style={{ background: VELVET, boxShadow: `inset 0 0 0 1.5px ${edge}, 0 10px 24px -12px rgba(0,0,0,0.8)` }}
+              style={{ background: SURFACE, boxShadow: `inset 0 0 0 1.5px ${edge}, 0 10px 24px -12px rgba(0,0,0,0.8)` }}
             >
               {friend.lastRatedTitle ? (
                 <>
@@ -150,7 +150,7 @@ const FriendsActivityCarousel: React.FC<{ friends: FriendActivity[] }> = ({ frie
             <span
               aria-hidden
               className="absolute left-1/2 top-full -translate-x-1/2 -mt-[5px] w-2.5 h-2.5 rotate-45"
-              style={{ background: VELVET, boxShadow: `inset -1.5px -1.5px 0 0 ${edge}` }}
+              style={{ background: SURFACE, boxShadow: `inset -1.5px -1.5px 0 0 ${edge}` }}
             />
           </span>
 

@@ -14,6 +14,12 @@ export const PAPER = '#F3EAD3';   // texto principal no escuro / faixas "papel"
 export const INK = '#221B36';     // texto sobre papel
 export const MIST = '#BDB4D6';    // texto secundário no escuro
 
+// Superfície dos blocos de um perfil (Números, Década favorita, Atlas…).
+// Nos perfis, a página define --co-surface com a cor do banner do dono
+// (lib/banners.ts → getBannerTone); fora deles vale o VELVET de sempre.
+export const SURFACE_VAR = '--co-surface';
+export const SURFACE = `var(${SURFACE_VAR}, ${VELVET})`;
+
 // Fundo padrão de página: noite com um brilho violeta no canto superior.
 export const NIGHT_BACKGROUND = `radial-gradient(ellipse 80% 50% at 75% 0%, rgba(139,92,246,0.16), transparent 60%), ${NIGHT}`;
 

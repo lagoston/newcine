@@ -6,7 +6,7 @@ import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from '../components/GhostRiderFrame';
-import { getBannerClass } from '../lib/banners';
+import { getBannerClass, getBannerTone } from '../lib/banners';
 import { getTextEffectNameClass, getTextEffectSecondaryClass } from '../lib/textEffects';
 import { useTranslation } from 'react-i18next';
 import MovieDetailsModal from '../components/MovieDetailsModal';
@@ -401,21 +401,23 @@ export default function Community() {
 
   // ---- Peças ----
 
+  // Todos os estados com 44px de altura (o mínimo de toque dos botões), pra
+  // o nome começar na mesma altura em todos os cartões.
   const friendButton = (profile: Profile) => {
     if (profile.id === session?.user?.id) {
       return (
-        <span className="shrink-0 inline-flex items-center h-10 px-3.5 rounded-full text-sm font-medium bg-white/[0.06] ring-1 ring-white/10" style={{ color: MIST }}>
+        <span className="shrink-0 inline-flex items-center h-11 px-3.5 rounded-full text-sm font-medium bg-white/[0.06] ring-1 ring-white/10" style={{ color: MIST }}>
           {t('community.you')}
         </span>
       );
     }
     const status = friendshipStatuses[profile.id] || 'none';
     const busy = togglingFriendId === profile.id;
-    const base = `relative z-10 shrink-0 gap-1.5 h-10 px-3.5 rounded-full text-sm font-semibold transition disabled:cursor-wait ${FOCUS_RING}`;
+    const base = `relative z-10 shrink-0 gap-1.5 h-11 px-3.5 rounded-full text-sm font-semibold transition disabled:cursor-wait ${FOCUS_RING}`;
 
     if (status === 'friends') {
       return (
-        <span className="relative z-10 shrink-0 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full text-sm font-semibold bg-emerald-600 text-white shadow-lg shadow-emerald-900/30">
+        <span className="relative z-10 shrink-0 inline-flex items-center gap-1.5 h-11 px-3.5 rounded-full text-sm font-semibold bg-emerald-600 text-white shadow-lg shadow-emerald-900/30">
           <UserCheck className="w-4 h-4" aria-hidden />
           {t('profile.friendsButton')}
         </span>
@@ -469,18 +471,26 @@ export default function Community() {
     const secondaryClass = getTextEffectSecondaryClass(profile.text_effect, premium, reviews);
     const rawFrame = getFrameClass(profile.avatar_frame, premium);
     const frame = !rawFrame || rawFrame === 'ring-0' ? 'ring-2 ring-white/15' : rawFrame;
+    const isMe = profile.id === session?.user?.id;
+    // A parte de informações veste o tom do banner da pessoa (a cor do
+    // contorno dele, escurecida até o limite que mantém o texto legível).
+    const surface = getBannerTone(profile.banner, premium)?.surface ?? VELVET;
 
     return (
-      <li key={profile.id} className="relative h-full flex flex-col rounded-2xl ring-1 ring-white/10 hover:ring-white/25 overflow-hidden transition" style={{ background: VELVET }}>
-        {/* Faixa do banner da pessoa */}
+      <li key={profile.id} className="relative h-full flex flex-col rounded-2xl ring-1 ring-white/10 hover:ring-white/25 overflow-hidden transition" style={{ background: surface }}>
+        {/* Faixa do banner da pessoa. Arredondada em cima como o cartão, pra
+            o contorno do banner acompanhar a curva (antes sumia nos cantos). */}
         <div
-          className={`relative h-20 ${bannerClass}`}
+          className={`relative h-20 rounded-t-2xl ${bannerClass}`}
           style={bannerClass ? undefined : { background: `radial-gradient(ellipse 80% 120% at 100% 0%, rgba(139,92,246,0.35), transparent 70%), ${NIGHT}` }}
           aria-hidden
         />
         <div className="flex-1 flex flex-col px-5 pb-4" style={{ color: MIST }}>
-          <div className="-mt-9 flex items-end justify-between gap-3">
-            <span className="relative shrink-0 rounded-full" style={{ boxShadow: `0 0 0 4px ${VELVET}` }}>
+          {/* O avatar sobe metade sobre o banner; o botão fica inteiro na
+              parte de informações (mt-11 = 36px do avatar acima da linha do
+              banner + 8px de folga). */}
+          <div className="-mt-9 flex items-start justify-between gap-3">
+            <span className="relative shrink-0 rounded-full" style={{ boxShadow: `0 0 0 4px ${surface}` }}>
               {frameUsesComponent(profile.avatar_frame, premium) === 'GhostRiderFrame' && profile.avatar_url ? (
                 <GhostRiderFrame src={profile.avatar_url} alt="" size={72} />
               ) : (
@@ -495,10 +505,11 @@ export default function Community() {
                 </span>
               )}
             </span>
-            {session?.user?.id && <div className="pb-1">{friendButton(profile)}</div>}
+            {session?.user?.id && <div className="mt-11">{friendButton(profile)}</div>}
           </div>
 
-          <div className="mt-3 flex items-center gap-2 min-w-0" style={{ color: PAPER }}>
+          {/* Com o botão, a linha do avatar já termina 12px abaixo dele. */}
+          <div className={`${session?.user?.id ? 'mt-0' : 'mt-3'} flex items-center gap-2 min-w-0`} style={{ color: PAPER }}>
             <h3 className="min-w-0">
               {/* O link cobre o cartão inteiro (after:inset-0); o botão de
                   amizade fica por cima dele (z-10). */}
@@ -532,7 +543,8 @@ export default function Community() {
               </span>{' '}
               {t('profile.friendsLabel', { defaultValue: 'Amigos' })}
             </span>
-            {!!profile.mutual_friends_count && profile.mutual_friends_count > 0 && (
+            {/* "amigos em comum" não faz sentido no seu próprio cartão */}
+            {!isMe && !!profile.mutual_friends_count && profile.mutual_friends_count > 0 && (
               <span className="text-violet-200">· {t('community.mutualFriends', { count: profile.mutual_friends_count })}</span>
             )}
           </p>

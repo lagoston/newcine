@@ -7,7 +7,7 @@ import WorldMapCard from './WorldMapCard';
 import MovieDetailsModal from './MovieDetailsModal';
 import { getMovieDetailsFromDB, type Movie } from '../lib/tmdb';
 import type { Genre, Keyword, FavoriteDecade, DirectorCount, LeastKnownGem } from '../hooks/useProfileData';
-import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
+import { SURFACE, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
 import { formatWatchTime } from '../lib/profileStats';
 
 // Peças do "retrato de gosto" de um perfil — usadas no seu Perfil e no
@@ -62,7 +62,7 @@ export const ProfileStatTiles: React.FC<ProfileStatTilesProps> = ({ ratedCount, 
   return (
     <dl className="grid grid-cols-2 gap-3" aria-label={label ?? t('profile.numbersLabel')}>
       {tiles.map(({ icon: Icon, label: tileLabel, value }) => (
-        <div key={tileLabel} className="rounded-2xl px-4 py-4 ring-1 ring-white/10" style={{ background: VELVET }}>
+        <div key={tileLabel} className="rounded-2xl px-4 py-4 ring-1 ring-white/10" style={{ background: SURFACE }}>
           <dt className="flex items-center gap-2 text-sm" style={{ color: MIST }}>
             <Icon className="w-4 h-4 shrink-0 text-violet-300" aria-hidden />
             <span className="min-w-0 leading-tight">{tileLabel}</span>
@@ -93,6 +93,10 @@ interface ProfileTasteGridProps {
   onViewCountryMovies?: (countryCode: string, countryName: string) => void;
   // Rótulo da nota do dono do perfil na joia ("Sua nota" / "Nota de @fulano").
   ownerRatingLabel?: string;
+  // Título do espectro de notas (padrão: "Distribuição de notas") e o que
+  // fazer ao tocar numa nota (ex.: ir pra prateleira dela na Coleção).
+  ratingTitle?: string;
+  onJumpToRating?: (rating: number) => void;
   // Cartões extras no fim da grade (ex.: pins de outra pessoa).
   extra?: React.ReactNode;
 }
@@ -109,6 +113,8 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
   countryAvgRatings,
   onViewCountryMovies,
   ownerRatingLabel,
+  ratingTitle,
+  onJumpToRating,
   extra,
 }) => {
   const { t, i18n } = useTranslation();
@@ -154,11 +160,11 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
   return (
     <>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className={`${PROFILE_CARD} md:col-span-2`} style={{ background: VELVET }}>
-          <RatingSpectrum counts={ratingCounts} average={average} title={t('profile.stats.ratingDistribution')} />
+        <div className={`${PROFILE_CARD} md:col-span-2`} style={{ background: SURFACE }}>
+          <RatingSpectrum counts={ratingCounts} average={average} onJump={onJumpToRating} title={ratingTitle ?? t('profile.stats.ratingDistribution')} />
         </div>
 
-        <div className={PROFILE_CARD} style={{ background: VELVET }}>
+        <div className={PROFILE_CARD} style={{ background: SURFACE }}>
           <div className="grid grid-cols-2 gap-5">
             {[
               { title: t('profile.stats.favoriteGenres'), items: favoriteGenres, empty: t('profile.stats.noGenresYet'), capitalize: false },
@@ -190,7 +196,7 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
         </div>
 
         {favoriteDecade && decadeView && (
-          <div className={PROFILE_CARD} style={{ background: VELVET }}>
+          <div className={PROFILE_CARD} style={{ background: SURFACE }}>
             <CardTitle>{t('profile.stats.favoriteDecade')}</CardTitle>
             <div className="mt-4 flex items-baseline gap-3">
               <span style={{ ...PIXEL, color: PAPER }} className="text-5xl leading-none">
@@ -238,7 +244,7 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
           </div>
         )}
 
-        <div className={PROFILE_CARD} style={{ background: VELVET }}>
+        <div className={PROFILE_CARD} style={{ background: SURFACE }}>
           <CardTitle>{t('profile.stats.favoriteDirectors')}</CardTitle>
           {topDirectors.length > 0 ? (
             <ol className="mt-4 space-y-2.5">
@@ -263,7 +269,7 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
           )}
         </div>
 
-        <div className={PROFILE_CARD} style={{ background: VELVET }}>
+        <div className={PROFILE_CARD} style={{ background: SURFACE }}>
           <CardTitle>{t('profile.stats.leastKnownGem')}</CardTitle>
           {leastKnownGem ? (
             <button

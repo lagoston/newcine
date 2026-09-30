@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { ZoomIn, ZoomOut, Maximize2, ListOrdered, Map as MapIcon, ArrowRight, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { COUNTRY_PATHS, WORLD_MAP_VIEWBOX } from '../data/worldMapPaths';
-import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
+import { NIGHT, SURFACE, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
 
 interface WorldMapCardProps {
   countryCounts: Record<string, number>;
@@ -186,7 +186,7 @@ const WorldMapCard: React.FC<WorldMapCardProps> = ({ countryCounts, countryAvgRa
   const mapButton = `grid place-items-center w-11 h-11 rounded-xl ring-1 ring-white/10 hover:ring-white/30 hover:bg-white/5 disabled:opacity-35 disabled:hover:bg-transparent transition ${FOCUS_RING}`;
 
   return (
-    <div className="relative rounded-2xl ring-1 ring-white/10 p-5 sm:p-6" style={{ background: VELVET }}>
+    <div className="relative rounded-2xl ring-1 ring-white/10 p-5 sm:p-6" style={{ background: SURFACE }}>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="min-w-0">
           <h3 style={{ ...PIXEL, color: PAPER }} className="text-lg leading-none">
