@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
-import { getContinent } from '../lib/continents';
 import { syncUnlockedTagsAndNotify } from '../lib/tagNotifications';
-import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
+import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS } from '../lib/tags';
+import { fetchTagProgress, unlockedPinsFrom, type UnlockedPin, type SpecialTagStatus } from '../lib/tagProgress';
 import OracleSheet from './OracleSheet';
 import { NIGHT, VELVET, PAPER, MIST, FOCUS_RING, tagCategoryStyle, withAlpha } from '../lib/oracleTheme';
 
@@ -19,25 +19,6 @@ interface TagPinsModalProps {
 
 type TagCategoryId = 'basic' | 'theme' | 'community' | 'oracle' | 'special';
 type ViewMode = 'pins' | TagCategoryId;
-
-interface UnlockedPin {
-  emoji: string;
-  name: string;
-  category: TagCategoryId;
-}
-
-interface SpecialTag {
-  id: string;
-  name: string;
-  emoji: string;
-  description: string;
-  requirement_description: string;
-  starts_at: string | null;
-  ends_at: string | null;
-  is_unlocked: boolean;
-  unlocked_at?: string;
-  is_currently_active: boolean;
-}
 
 interface ActiveTag {
   category: string;
@@ -60,9 +41,9 @@ interface TagRow {
   note?: { icon: 'clock' | 'sparkles'; text: string };
 }
 
-// Todo o sistema de categorias, progresso e ativação de tags que antes
-// morava em CustomizeModal.tsx — movido pra cá pra não ficar redundante
-// entre os dois modais. O CustomizeModal manteve só avatar/banner/cards.
+// Modal "Tags": as tags desbloqueadas (e qual está no perfil agora) e o
+// progresso de cada categoria. O cálculo do progresso mora em
+// lib/tagProgress.ts, o mesmo usado pelo card de tags e pelo Personalizar.
 const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, onSave }) => {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
@@ -77,7 +58,7 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
   const [basicTagProgress, setBasicTagProgress] = useState<Record<string, number>>({});
   const [themeTagProgress, setThemeTagProgress] = useState<Record<string, number>>({});
   const [oracleTagProgress, setOracleTagProgress] = useState<Record<string, number>>({});
-  const [specialTags, setSpecialTags] = useState<SpecialTag[]>([]);
+  const [specialTags, setSpecialTags] = useState<SpecialTagStatus[]>([]);
   const [activeTag, setActiveTag] = useState<ActiveTag | null>(null);
   const [pins, setPins] = useState<UnlockedPin[]>([]);
 
@@ -97,229 +78,23 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
   const fetchAllData = async () => {
     try {
       setLoading(true);
-
-      const { data: userMovies } = await supabase
-        .from('user_movies')
-        .select('movie_id, rating, movies!inner(media_type)')
-        .eq('user_id', userId)
-        .not('rating', 'is', null);
-
-      const ratedCount = userMovies?.length || 0;
-      setRatedMoviesCount(ratedCount);
-
-      const basicProgress: Record<string, number> = {};
-      if (userMovies && userMovies.length > 0) {
-        basicProgress['CineHater'] = userMovies.filter((m: any) => m.rating <= 2).length;
-        basicProgress['Golden Reel'] = userMovies.filter((m: any) => m.rating === 10).length;
-
-        const movieIds = [...new Set(userMovies.map((m: any) => m.movie_id))];
-        const { data: cacheData } = await supabase
-          .from('movie_cache')
-          .select('tmdb_id, media_type, genres_en, director, origin_country')
-          .in('tmdb_id', movieIds);
-
-        const cacheMap = new Map((cacheData || []).map((m: any) => [`${m.tmdb_id}_${m.media_type}`, m]));
-        const genreCounts: Record<string, number> = {};
-        const directorCounts: Record<string, number> = {};
-        const countrySet = new Set<string>();
-        const continentSet = new Set<string>();
-
-        userMovies.forEach((entry: any) => {
-          const mediaType = entry.movies?.media_type || 'movie';
-          const cached: any = cacheMap.get(`${entry.movie_id}_${mediaType}`);
-          if (cached?.genres_en) {
-            cached.genres_en.forEach((g: any) => {
-              genreCounts[g.name] = (genreCounts[g.name] || 0) + 1;
-            });
-          }
-          if (cached?.director) {
-            directorCounts[cached.director] = (directorCounts[cached.director] || 0) + 1;
-          }
-          const countryCode = cached?.origin_country?.[0];
-          if (countryCode) {
-            countrySet.add(countryCode);
-            const continent = getContinent(countryCode);
-            if (continent) continentSet.add(continent);
-          }
-        });
-
-        const countGenres = (...keys: string[]) => keys.reduce((sum, k) => sum + (genreCounts[k] || 0), 0);
-        basicProgress['Bloody Mary'] = countGenres('Horror', 'Terror');
-        basicProgress['Punchliner'] = countGenres('Comedy', 'Comédia');
-        basicProgress['Star Gazer'] = countGenres('Science Fiction', 'Ficção científica', 'Sci-Fi & Fantasy');
-        basicProgress['Cine Cupid'] = countGenres('Romance');
-        basicProgress['Truth Digger'] = countGenres('Documentary', 'Documentário');
-        basicProgress["Director's Cut"] = Math.max(...Object.values(directorCounts), 0);
-        basicProgress['Nowhere'] = countrySet.size;
-        basicProgress['World Tour'] = continentSet.size;
-      }
-      setBasicTagProgress(basicProgress);
-
-      const { data: userMoviesForTheme } = await supabase
-        .from('user_movies')
-        .select('movie_id')
-        .eq('user_id', userId)
-        .not('rating', 'is', null);
-      const ratedMovieIds = new Set((userMoviesForTheme || []).map((m: any) => m.movie_id));
-      const themeProgress: Record<string, number> = {};
-      Object.entries(FRANCHISE_MOVIES).forEach(([franchise, movieIds]) => {
-        const watchedCount = movieIds.filter((id) => ratedMovieIds.has(id)).length;
-        const tagId = THEME_TAGS.find((tag) => tag.condition.type === 'franchise' && tag.condition.value === franchise)?.id;
-        if (tagId) themeProgress[tagId] = watchedCount;
-      });
-      THEME_TAGS.forEach((tag) => {
-        if (tag.condition.type === 'franchise' && Array.isArray(tag.condition.value)) {
-          const watchedCount = tag.condition.value.filter((id) => ratedMovieIds.has(id)).length;
-          themeProgress[tag.id] = watchedCount;
-        }
-      });
-
-      const { count: followers } = await supabase
-        .from('friendships')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'accepted')
-        .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
-      setFollowersCount(followers || 0);
-
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('active_tag')
-        .eq('id', userId)
-        .single();
-
-      // curated_pool — soma os movie_ids de TODOS os moods de cada
-      // card_type (recommendation_pools guarda um pool por mood, não um
-      // pool único por oráculo). Une os IDs num Set por card_type antes
-      // de contar, pra não contar o mesmo filme mais de uma vez caso
-      // apareça em vários moods do mesmo oráculo.
-      const { data: poolRows } = await supabase
-        .from('recommendation_pools')
-        .select('card_type, movie_ids');
-
-      const poolIdsByType: Record<string, Set<number>> = {};
-      (poolRows || []).forEach((row: any) => {
-        if (!poolIdsByType[row.card_type]) poolIdsByType[row.card_type] = new Set();
-        (row.movie_ids || []).forEach((id: number) => poolIdsByType[row.card_type].add(id));
-      });
-      const curatedProgress: Record<string, number> = {};
-      Object.keys(poolIdsByType).forEach((cardType) => {
-        curatedProgress[cardType] = [...poolIdsByType[cardType]].filter((id) => ratedMovieIds.has(id)).length;
-      });
-
-      // review_count / ai_review_count — reais vs. geradas pelo
-      // Oráculo, contadas separadamente.
-      const [{ count: realReviewCount }, { count: aiReviewCount }] = await Promise.all([
-        supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_ai_generated', false),
-        supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_ai_generated', true),
+      const [progress, { data: profileData }] = await Promise.all([
+        fetchTagProgress(userId),
+        supabase.from('profiles').select('active_tag').eq('id', userId).single(),
       ]);
-      basicProgress['Scribbler'] = realReviewCount || 0;
-      basicProgress['Screenwriter'] = realReviewCount || 0;
-      basicProgress['Memoirist'] = realReviewCount || 0;
 
-      // completed_series — pelo menos uma série na biblioteca que já
-      // terminou (não está mais no ar) E tem 100% dos episódios já
-      // lançados assistidos. Reaproveita a mesma RPC que já calcula
-      // isso pra barra de progresso na Biblioteca.
-      const { data: userMoviesForTv } = await supabase
-        .from('user_movies')
-        .select('movie_id, media_type')
-        .eq('user_id', userId)
-        .not('rating', 'is', null);
-      const tvIds = (userMoviesForTv || []).filter((m: any) => m.media_type === 'tv').map((m: any) => m.movie_id);
+      setRatedMoviesCount(progress.ratedCount);
+      setFollowersCount(progress.followers);
+      setBasicTagProgress(progress.basic);
+      setThemeTagProgress(progress.theme);
+      setOracleTagProgress(progress.oracle);
+      setSpecialTags(progress.specialTags);
+      setActiveTag((profileData?.active_tag as ActiveTag | null) ?? null);
 
-      let hasCompletedSeries = false;
-      if (tvIds.length > 0) {
-        const [{ data: progressRows }, { data: tvCacheRows }] = await Promise.all([
-          supabase.rpc('get_tv_progress_batch', { p_user_id: userId, p_tmdb_ids: tvIds }),
-          supabase.from('movie_cache').select('tmdb_id, status').eq('media_type', 'tv').in('tmdb_id', tvIds),
-        ]);
-        const statusMap = new Map((tvCacheRows || []).map((r: any) => [r.tmdb_id, r.status]));
-        hasCompletedSeries = (progressRows || []).some((p: any) => {
-          const status = statusMap.get(p.tmdb_id);
-          const isFinished = status === 'Ended' || status === 'Canceled';
-          return isFinished && p.aired_count > 0 && p.watched_count >= p.aired_count;
-        });
-      }
-      basicProgress['Sofa Sleeper'] = hasCompletedSeries ? 1 : 0;
-      setBasicTagProgress(basicProgress);
-
-      const oracleProgress: Record<string, number> = {};
-      ORACLE_TAGS.forEach((tag) => {
-        if (tag.condition.type === 'curated_pool' && tag.condition.value) {
-          oracleProgress[tag.id] = curatedProgress[tag.condition.value] || 0;
-        } else if (tag.condition.type === 'ai_review_count') {
-          oracleProgress[tag.id] = aiReviewCount || 0;
-        }
-      });
-      setOracleTagProgress(oracleProgress);
-      setThemeTagProgress(themeProgress);
-
-      if (profileData?.active_tag) {
-        setActiveTag(profileData.active_tag as ActiveTag);
-      }
-
-      const { data: allSpecialTags } = await supabase.from('special_tags').select('*');
-      const { data: userSpecialTags } = await supabase
-        .from('user_special_tags')
-        .select('tag_id, unlocked_at, is_permanent')
-        .eq('user_id', userId);
-
-      const userTagsMap = new Map((userSpecialTags || []).map((ut: any) => [ut.tag_id, ut]));
-      const now = new Date();
-      const specialTagsWithStatus: SpecialTag[] = (allSpecialTags || [])
-        .map((tag: any) => {
-          const userTag: any = userTagsMap.get(tag.id);
-          const isCurrentlyActive = !tag.ends_at || new Date(tag.ends_at) > now;
-          return {
-            id: tag.id,
-            name: tag.name,
-            emoji: tag.emoji,
-            description: tag.description,
-            requirement_description: tag.requirement_description,
-            starts_at: tag.starts_at,
-            ends_at: tag.ends_at,
-            is_unlocked: !!userTag,
-            unlocked_at: userTag?.unlocked_at,
-            is_currently_active: isCurrentlyActive
-          };
-        })
-        .filter((tag) => tag.is_unlocked || tag.is_currently_active);
-      setSpecialTags(specialTagsWithStatus);
-
-      // ---- Deriva a lista de pins desbloqueados de todos os dados já
-      // buscados acima, sem precisar de nenhuma consulta extra. ----
-      const unlockedPins: UnlockedPin[] = [];
-
-      PROGRESSION_TAGS.forEach((tag) => {
-        const progress = tag.condition ? (basicProgress[tag.name] || 0) : ratedCount;
-        if (progress >= tag.minMovies) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'basic' });
-      });
-      THEME_TAGS.forEach((tag) => {
-        if ((themeProgress[tag.id] || 0) >= tag.condition.count) {
-          unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'theme' });
-        }
-      });
-      COMMUNITY_TAGS.forEach((tag) => {
-        if ((followers || 0) >= tag.minFollowers) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'community' });
-      });
-      ORACLE_TAGS.forEach((tag) => {
-        if ((oracleProgress[tag.id] || 0) >= tag.condition.count) {
-          unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'oracle' });
-        }
-      });
-      specialTagsWithStatus.forEach((tag) => {
-        if (tag.is_unlocked) unlockedPins.push({ emoji: tag.emoji, name: tag.name, category: 'special' });
-      });
-
-      setPins(unlockedPins);
-
-      // Só sincroniza/notifica quando é o PRÓPRIO usuário logado — por
-      // precaução, mesmo esse modal parecendo ser usado só assim hoje
-      // (não importa useAuth nem distingue "usuário logado" de
-      // "usuário sendo visto" em nenhum outro lugar do componente).
-      if (userId === session?.user?.id) {
-        syncUnlockedTagsAndNotify(userId, unlockedPins);
-      }
+      const unlocked = unlockedPinsFrom(progress);
+      setPins(unlocked);
+      // Notifica tag nova só pro próprio usuário logado.
+      if (userId === session?.user?.id) syncUnlockedTagsAndNotify(userId, unlocked);
     } catch (error) {
       console.error('Error fetching tag pins data:', error);
     } finally {

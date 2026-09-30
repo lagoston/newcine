@@ -790,8 +790,8 @@
   },
   "profile": {
     "followers": "{{count}} followers",
-    "tagPins": "Tag Pins",
-    "noTagPins": "No pins unlocked yet.",
+    "tagPins": "Tags",
+    "noTagPins": "No tags unlocked yet.",
     "friendsActivitySubtitle": "{{count}} friends you follow",
     "noFriendsActivityTitle": "No activity yet",
     "noFriendsActivityDescription": "Follow people in the community to see what they're watching and rating here.",
@@ -915,7 +915,7 @@
     "tasteEmptyOther": "The taste portrait shows up once @{{username}} rates a few titles.",
     "ratingsOf": "@{{username}}’s ratings",
     "ratingOf": "@{{username}}’s rating",
-    "pinsOf": "@{{username}}’s pins"
+    "pinsOf": "@{{username}}’s tags"
   },
   "premium": {
     "title": "Upgrade to Premium",
@@ -1195,7 +1195,8 @@
     "textEffects": {
       "none": "No effect",
       "noneDesc": "Your name in the site’s default style"
-    }
+    },
+    "preview": "How your profile looks"
   },
   "reviews": {
     "title": "Reviews",
@@ -1368,7 +1369,7 @@
     "placeholderPeople": "Username"
   },
   "tagPins": {
-    "myPins": "My pins",
+    "myPins": "My tags",
     "subtitle": "Pick the tag shown on your profile",
     "expired": "Ended",
     "monthsLeft_one": "{{count}} month left",
@@ -1376,10 +1377,10 @@
     "daysLeft": "{{days}}d {{hours}}h left",
     "hoursLeft": "{{hours}}h left",
     "removeFromProfile": "Remove from profile",
-    "noneActive": "No tag on your profile right now. Tap a pin below to show it.",
+    "noneActive": "No tag on your profile right now. Tap a tag below to show it.",
     "noneYetHint": "Rate movies, make friends and talk to the oracles to unlock tags.",
-    "unlockedCount_one": "{{count}} pin unlocked",
-    "unlockedCount_other": "{{count}} pins unlocked",
+    "unlockedCount_one": "{{count}} tag unlocked",
+    "unlockedCount_other": "{{count}} tags unlocked",
     "tapToUse": "tap to use on your profile"
   },
   "worldMap": {

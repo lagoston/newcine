@@ -759,7 +759,7 @@ export default function Profile() {
                 </button>
                 <button onClick={() => setShowTagPinsModal(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
                   <Tag className="w-[18px] h-[18px] text-violet-300" aria-hidden />
-                  {t('profile.tagPins', { defaultValue: 'Tag Pins' })}
+                  {t('profile.tagPins', { defaultValue: 'Tags' })}
                 </button>
                 <button onClick={handleStartEditing} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
                   <Pencil className="w-[18px] h-[18px] text-violet-300" aria-hidden />

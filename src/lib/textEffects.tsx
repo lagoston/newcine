@@ -38,18 +38,17 @@ export const textEffects = {
     nameClassName: "font-['Courier_Prime',monospace] tracking-tight pr-[3px] border-r-2 border-current animate-typewriter-cursor-blink",
     secondaryClassName: "font-['Courier_Prime',monospace] tracking-tight",
   },
-  // Cor específica — gradiente de 5 cores saturadas deslizando pelo
-  // texto, remetendo ao processo Technicolor clássico de Hollywood (as
-  // cores extremamente vívidas de filmes como O Mágico de Oz). Uma
-  // única direção de gradiente sempre em movimento, nunca uma cor fixa.
+  // O processo Technicolor clássico de Hollywood (O Mágico de Oz): as cores
+  // deslizam pelo texto, sempre em movimento. Tons claros, pra continuarem
+  // legíveis no fundo noite; a bio usa a mesma faixa um pouco mais suave.
   technicolor: {
     id: 'technicolor',
     name: 'Technicolor',
     isPremium: true,
     requiredTag: 'Screenwriter',
     requiredReviewCount: 10,
-    nameClassName: "bg-[length:300%_auto] bg-[linear-gradient(90deg,#ef4444,#facc15,#22c55e,#3b82f6,#a855f7,#ef4444)] bg-clip-text text-transparent animate-technicolor-shift",
-    secondaryClassName: "bg-[length:300%_auto] bg-[linear-gradient(90deg,#ef4444,#facc15,#22c55e,#3b82f6,#a855f7,#ef4444)] bg-clip-text text-transparent animate-technicolor-shift opacity-80",
+    nameClassName: "bg-[length:300%_auto] bg-[linear-gradient(90deg,#FCA5A5,#FDE68A,#86EFAC,#93C5FD,#D8B4FE,#FCA5A5)] bg-clip-text text-transparent animate-technicolor-shift",
+    secondaryClassName: "bg-[length:300%_auto] bg-[linear-gradient(90deg,#FECACA,#FEF3C7,#BBF7D0,#BFDBFE,#E9D5FF,#FECACA)] bg-clip-text text-transparent animate-technicolor-shift",
   },
   // Efeito de texto no mesmo espírito animado dos efeitos de frame —
   // brilho neon pulsante em tom âmbar/vermelho, como as lâmpadas de uma
@@ -60,8 +59,9 @@ export const textEffects = {
     isPremium: true,
     requiredTag: 'Memoirist',
     requiredReviewCount: 30,
-    nameClassName: 'text-amber-300 animate-marquee-glow',
-    secondaryClassName: 'text-amber-100/90 animate-marquee-glow',
+    nameClassName: 'text-amber-200 animate-marquee-glow',
+    // Na bio, só a cor quente — o brilho pulsando num parágrafo cansa.
+    secondaryClassName: 'text-amber-100/85',
   },
 } as const;
 

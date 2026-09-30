@@ -793,8 +793,8 @@
   },
   "profile": {
     "followers": "{{count}} seguidores",
-    "tagPins": "Pins de tags",
-    "noTagPins": "Nenhum pin desbloqueado ainda.",
+    "tagPins": "Tags",
+    "noTagPins": "Nenhuma tag desbloqueada ainda.",
     "friendsActivitySubtitle": "{{count}} amigos que você segue",
     "noFriendsActivityTitle": "Nenhuma atividade ainda",
     "noFriendsActivityDescription": "Siga pessoas na comunidade para ver aqui o que elas estão assistindo e avaliando.",
@@ -918,7 +918,7 @@
     "tasteEmptyOther": "O retrato de gosto aparece quando @{{username}} avaliar alguns títulos.",
     "ratingsOf": "Notas de @{{username}}",
     "ratingOf": "Nota de @{{username}}",
-    "pinsOf": "Pins de @{{username}}"
+    "pinsOf": "Tags de @{{username}}"
   },
   "premium": {
     "title": "Upgrade para Premium",
@@ -1198,7 +1198,8 @@
     "textEffects": {
       "none": "Sem efeito",
       "noneDesc": "O nome no estilo padrão do site"
-    }
+    },
+    "preview": "Assim fica o seu perfil"
   },
   "reviews": {
     "title": "Resenhas",
@@ -1373,7 +1374,7 @@
     "placeholderPeople": "Nome de usuário"
   },
   "tagPins": {
-    "myPins": "Meus pins",
+    "myPins": "Minhas tags",
     "subtitle": "Escolha a tag que aparece no seu perfil",
     "expired": "Encerrada",
     "monthsLeft_one": "{{count}} mês restante",
@@ -1381,10 +1382,10 @@
     "daysLeft": "{{days}}d {{hours}}h restantes",
     "hoursLeft": "{{hours}}h restantes",
     "removeFromProfile": "Tirar do perfil",
-    "noneActive": "Nenhuma tag no seu perfil agora. Toque em um pin abaixo para exibi-lo.",
+    "noneActive": "Nenhuma tag no seu perfil agora. Toque numa tag abaixo para exibi-la.",
     "noneYetHint": "Avalie filmes, faça amigos e converse com os oráculos para desbloquear tags.",
-    "unlockedCount_one": "{{count}} pin desbloqueado",
-    "unlockedCount_other": "{{count}} pins desbloqueados",
+    "unlockedCount_one": "{{count}} tag desbloqueada",
+    "unlockedCount_other": "{{count}} tags desbloqueadas",
     "tapToUse": "toque para usar no perfil"
   },
   "worldMap": {

@@ -1,8 +1,9 @@
 // Fonte única de verdade para as definições de tags/conquistas do site.
-// Usado por CustomizeModal.tsx (tela completa de tags, com progresso detalhado)
-// e por HomeUserPanels.tsx (dica de "próxima tag" na tela inicial).
-// Antes, esses dois arquivos tinham listas duplicadas e independentes — mudar um
-// limiar exigia lembrar de editar nos dois lugares. Agora só existe aqui.
+// O progresso de cada uma é calculado em lib/tagProgress.ts (usado pelo
+// modal de Tags, pelo card de tags dos perfis e pelo Personalizar perfil).
+// Tags de humor (condition.type 'mood') contam os filmes avaliados que moram
+// naquela prateleira da Biblioteca dos Oráculos — as mesmas prateleiras da
+// personalidade (lib/moods.ts).
 
 export interface ProgressionTag {
   name: string;
@@ -12,7 +13,7 @@ export interface ProgressionTag {
   description: string;
   descriptionPt: string;
   condition?: {
-    type: 'rating' | 'genre' | 'director' | 'countries' | 'continents' | 'review_count' | 'completed_series';
+    type: 'rating' | 'mood' | 'director' | 'countries' | 'continents' | 'review_count' | 'completed_series';
     value?: number | number[] | string;
   };
 }
@@ -66,9 +67,9 @@ export const PROGRESSION_TAGS: ProgressionTag[] = [
     name: 'CineHater',
     emoji: '👎',
     minMovies: 20,
-    description: '20 movies rated 0-2/10',
-    descriptionPt: '20 filmes avaliados com 0-2/10',
-    condition: { type: 'rating', value: [0, 1, 2] }
+    description: '20 movies rated 0-3/10',
+    descriptionPt: '20 filmes avaliados com 0-3/10',
+    condition: { type: 'rating', value: [0, 1, 2, 3] }
   },
   {
     name: 'Golden Reel',
@@ -82,41 +83,25 @@ export const PROGRESSION_TAGS: ProgressionTag[] = [
     name: 'Bloody Mary',
     emoji: '🩸',
     minMovies: 50,
-    description: '50 Horror movies',
-    descriptionPt: '50 filmes de Terror',
-    condition: { type: 'genre', value: 'Horror' }
+    description: '50 movies from the Dark & Scary shelf',
+    descriptionPt: '50 filmes da prateleira Sombrio e Assustador',
+    condition: { type: 'mood', value: 'dark-and-scary' }
   },
   {
     name: 'Punchliner',
     emoji: '😂',
     minMovies: 50,
-    description: '50 Comedy movies',
-    descriptionPt: '50 filmes de Comédia',
-    condition: { type: 'genre', value: 'Comedy' }
-  },
-  {
-    name: 'Star Gazer',
-    emoji: '🚀',
-    minMovies: 50,
-    description: '50 Sci-Fi movies',
-    descriptionPt: '50 filmes de Ficção Científica',
-    condition: { type: 'genre', value: 'Science Fiction' }
+    description: '50 movies from the Laugh Out Loud shelf',
+    descriptionPt: '50 filmes da prateleira Muitas Risadas',
+    condition: { type: 'mood', value: 'laugh-out-loud' }
   },
   {
     name: 'Cine Cupid',
     emoji: '💕',
     minMovies: 50,
-    description: '50 Romance movies',
-    descriptionPt: '50 filmes de Romance',
-    condition: { type: 'genre', value: 'Romance' }
-  },
-  {
-    name: 'Truth Digger',
-    emoji: '📹',
-    minMovies: 50,
-    description: '50 Documentary movies',
-    descriptionPt: '50 Documentários',
-    condition: { type: 'genre', value: 'Documentary' }
+    description: '50 movies from the Romantic shelf',
+    descriptionPt: '50 filmes da prateleira Romântico',
+    condition: { type: 'mood', value: 'romantic' }
   },
   {
     name: "Director's Cut",

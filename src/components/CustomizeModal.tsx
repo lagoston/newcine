@@ -3,11 +3,12 @@ import { Image as ImageIcon, Layout, Crown, Lock, Unlock, Check, User, Film, Typ
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
-import { frames, FrameId } from '../lib/frames';
+import { frames, FrameId, getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from './GhostRiderFrame';
-import { THEME_TAGS, PROGRESSION_TAGS, FRANCHISE_MOVIES } from '../lib/tags';
-import { banners, BannerId } from '../lib/banners';
-import { textEffects, TextEffectId, meetsTextEffectRequirement } from '../lib/textEffects';
+import { THEME_TAGS, PROGRESSION_TAGS } from '../lib/tags';
+import { fetchTagProgress } from '../lib/tagProgress';
+import { banners, BannerId, getBannerClass } from '../lib/banners';
+import { textEffects, TextEffectId, meetsTextEffectRequirement, getTextEffectNameClass } from '../lib/textEffects';
 import { useTranslation } from 'react-i18next';
 import OracleSheet from './OracleSheet';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
@@ -117,12 +118,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const { session, isPremium } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('frames');
   const [loading, setLoading] = useState(true);
-  // themeTagProgress é a ÚNICA parte do antigo sistema de tags que
-  // continua aqui — molduras, banners e cards têm requisitos de tags
-  // temáticas específicas (ex: moldura "Bloody Mary" exige a tag de
-  // mesmo nome) pra desbloquear. O resto do sistema (categorias, ativar
-  // tag, cores, progresso detalhado) mudou de casa pro modal "Tag Pins",
-  // aberto direto do Profile — ficaria redundante manter os dois.
+  // Progresso das tags que desbloqueiam itens (a carta Horror exige a tag
+  // Bloody Mary, a moldura Matrix exige Red-Pill Adept…). O resto do
+  // sistema de tags mora no modal "Tags", aberto direto do Perfil.
   const [themeTagProgress, setThemeTagProgress] = useState<Record<string, number>>({});
   const [selectedFrame, setSelectedFrame] = useState<FrameId>('default');
   const [selectedBanner, setSelectedBanner] = useState<BannerId>('default');
@@ -201,7 +199,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   };
 
   // Contagem de resenhas REAIS (não geradas pelo Oráculo) — mesma
-  // fonte de verdade usada pelo TagPinsModal pra decidir se Scribbler
+  // fonte de verdade usada pelo modal de Tags pra decidir se Scribbler
   // /Screenwriter/Memoirist estão desbloqueadas.
   const fetchRealReviewCount = async () => {
     if (!session?.user?.id) return;
@@ -259,63 +257,14 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const handleTextEffectSelect = (effectId: TextEffectId) =>
     applyCosmetic('text_effect', effectId, () => setSelectedTextEffect(effectId), t('customize.textEffectUpdated'));
 
+  // Progresso das tags que liberam itens: temáticas pelo id (molduras e
+  // banners, ex.: 'red-pill-adept') e básicas pelo nome (carta Horror =
+  // 'Bloody Mary'). Mesmo cálculo do modal de Tags (lib/tagProgress.ts).
   const fetchThemeTagProgress = async () => {
     if (!session?.user?.id) return;
-
     try {
-      const progress: Record<string, number> = {};
-
-      const { data: userMovies, error: userMoviesError } = await supabase
-        .from('user_movies')
-        .select('movie_id, movies!inner(media_type)')
-        .eq('user_id', session.user.id)
-        .not('rating', 'is', null);
-
-      if (!userMoviesError && userMovies) {
-        const ratedMovieIds = new Set(userMovies.map((movie) => movie.movie_id));
-
-        Object.entries(FRANCHISE_MOVIES).forEach(([franchise, movieIds]) => {
-          const watchedCount = movieIds.filter((id) => ratedMovieIds.has(id)).length;
-          const tagId = THEME_TAGS.find((tag) => tag.condition.type === 'franchise' && tag.condition.value === franchise)?.id;
-
-          if (tagId) {
-            progress[tagId] = watchedCount;
-          }
-        });
-
-        THEME_TAGS.forEach((tag) => {
-          if (tag.condition.type === 'franchise' && Array.isArray(tag.condition.value)) {
-            const watchedCount = tag.condition.value.filter((id) => ratedMovieIds.has(id)).length;
-            progress[tag.id] = watchedCount;
-          }
-        });
-
-        // Progresso real das PROGRESSION_TAGS de gênero (ex.: Bloody
-        // Mary/Horror, usada como requiredTag no card "Horror") — mesma
-        // lógica de contagem já usada em TagPinsModal.tsx.
-        const genreTags = PROGRESSION_TAGS.filter((tag) => tag.condition?.type === 'genre');
-        if (genreTags.length > 0) {
-          const movieIds = [...new Set(userMovies.map((m: any) => m.movie_id))];
-          const { data: cacheData } = await supabase.from('movie_cache').select('tmdb_id, media_type, genres_en').in('tmdb_id', movieIds);
-
-          const cacheMap = new Map((cacheData || []).map((m: any) => [`${m.tmdb_id}_${m.media_type}`, m]));
-          const genreCounts: Record<string, number> = {};
-
-          userMovies.forEach((entry: any) => {
-            const mediaType = entry.movies?.media_type || 'movie';
-            const cached: any = cacheMap.get(`${entry.movie_id}_${mediaType}`);
-            cached?.genres_en?.forEach((g: any) => {
-              genreCounts[g.name] = (genreCounts[g.name] || 0) + 1;
-            });
-          });
-
-          genreTags.forEach((tag) => {
-            progress[tag.name] = genreCounts[tag.condition?.value as string] || 0;
-          });
-        }
-      }
-
-      setThemeTagProgress(progress);
+      const progress = await fetchTagProgress(session.user.id);
+      setThemeTagProgress({ ...progress.theme, ...progress.basic });
     } catch (error) {
       console.error('Error fetching theme tag progress:', error);
     }
@@ -397,7 +346,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       const anim = animate ? 'cz-anim' : '';
       const ring = frame.id === 'default' ? 'ring-2 ring-white/15' : frame.className;
       return (
-        <span className={`block w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-xl shrink-0 ${ring} ${anim}`}>
+        <span className={`block w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full overflow-hidden shrink-0 ${ring} ${anim}`} style={{ background: NIGHT }}>
           {/* A classe de animação vai TAMBÉM na foto: algumas molduras animam
               a própria imagem ([&>img]:...), e a regra que pausa só afeta o
               elemento que tem a classe diretamente. */}
@@ -617,6 +566,43 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     );
   };
 
+  // Prévia viva: o cartão do perfil com a moldura, o banner e o efeito de
+  // texto escolhidos agora — pra ver as três peças juntas.
+  const livePreview = () => {
+    const bannerClass = getBannerClass(selectedBanner, isPremium);
+    const rawFrame = getFrameClass(selectedFrame, isPremium);
+    const frameClass = !rawFrame || rawFrame === 'ring-0' ? 'ring-2 ring-white/15' : rawFrame;
+    const nameClass = getTextEffectNameClass(selectedTextEffect, isPremium, realReviewCount);
+    return (
+      <section aria-label={t('customize.preview')} className="mb-5">
+        <p className="mb-2 text-xs font-medium uppercase tracking-wider" style={{ color: MIST }}>
+          {t('customize.preview')}
+        </p>
+        <div
+          className={`relative rounded-2xl ring-1 ring-white/10 overflow-hidden ${bannerClass}`}
+          style={bannerClass ? undefined : { background: `radial-gradient(ellipse 70% 90% at 100% 0%, rgba(139,92,246,0.22), transparent 65%), ${VELVET}` }}
+        >
+          <div className="relative z-10 flex items-center gap-4 px-4 sm:px-6 py-5">
+            {frameUsesComponent(selectedFrame, isPremium) === 'GhostRiderFrame' && frozenAvatarUrl ? (
+              <GhostRiderFrame src={frozenAvatarUrl} alt="" size={64} className="shrink-0" />
+            ) : (
+              <span className={`block w-16 h-16 shrink-0 rounded-full overflow-hidden ${frameClass}`} style={{ background: NIGHT }}>
+                {frozenAvatarUrl ? <img src={frozenAvatarUrl} alt="" className="w-full h-full object-cover" /> : avatarPlaceholder('w-7 h-7')}
+              </span>
+            )}
+            {/* A cor fica no pai: efeitos como o Technicolor pintam o texto
+                com gradiente e precisam do text-transparent intacto. */}
+            <span className="min-w-0" style={{ color: PAPER }}>
+              <span className={`text-2xl sm:text-3xl leading-none break-all ${nameClass}`} style={nameClass.includes('font-[') ? undefined : PIXEL}>
+                @{username || t('customize.you')}
+              </span>
+            </span>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
   const tabs: { id: TabType; label: string; icon: typeof ImageIcon }[] = [
     { id: 'frames', label: t('customize.tabs.avatars'), icon: ImageIcon },
     { id: 'banners', label: t('customize.tabs.banners'), icon: Layout },
@@ -682,6 +668,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         </ul>
       ) : (
         <div role="tabpanel">
+          {activeTab !== 'cards' && livePreview()}
           {activeTab === 'frames' && renderFrameContent()}
           {activeTab === 'banners' && renderBannerContent()}
           {activeTab === 'cards' && renderCardContent()}

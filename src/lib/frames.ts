@@ -1,123 +1,91 @@
+// Molduras de avatar. O desenho de cada uma mora em src/styles/cosmetics.css
+// (classes .co-frame--<id>): um aro em gradiente por cima da borda da foto,
+// um detalhe temático fino sobre a foto e um brilho externo na cor do tema.
+// Aqui ficam só os metadados — nome, se é Premium e qual tag desbloqueia —
+// e a classe que o wrapper redondo do avatar recebe (ele já tem
+// rounded-full + overflow-hidden).
+//
+// requiredTag precisa bater com is_required_tag_met() no banco, que é quem
+// valida o desbloqueio de verdade (set_user_cosmetic).
+
 export const frames = {
   gold: {
     id: 'gold',
     name: 'Gold Frame',
     isPremium: true,
     requiredTag: null,
-    className: 'relative ring-4 ring-yellow-400 dark:ring-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.6)] dark:shadow-[0_0_40px_rgba(234,179,8,0.8)] animate-gold-shimmer before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-tr before:from-yellow-200/30 before:via-yellow-400/20 before:to-yellow-600/30 before:animate-gold-rotate before:pointer-events-none'
+    className: 'co-frame co-frame--gold',
   },
   matrix: {
     id: 'matrix',
     name: 'Matrix Frame',
     isPremium: true,
     requiredTag: 'red-pill-adept',
-    // Rotação removida. O "glitch" é o avatar desaparecendo — mas agora,
-    // em vez de cobrir com um verde-escuro quase sólido, o overlay é um
-    // brilho radial verde saturado emanando do centro (mais forte no
-    // meio, decaindo pras bordas) — dá a sensação de o avatar sumindo
-    // dentro de uma explosão de energia verde, não só apagando pra preto.
-    className: 'relative ring-4 ring-green-400 dark:ring-green-500 shadow-[0_0_25px_rgba(34,197,94,0.8),0_0_50px_rgba(34,197,94,0.4)] dark:shadow-[0_0_30px_rgba(34,197,94,0.9),0_0_60px_rgba(34,197,94,0.5)] before:absolute before:inset-0 before:rounded-full before:border-2 before:border-green-400/50 after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle,rgba(74,222,128,0.95)_0%,rgba(21,128,61,0.9)_55%,rgba(2,11,2,0.85)_100%)] after:animate-matrix-frame-glitch after:pointer-events-none'
+    className: 'co-frame co-frame--matrix',
   },
   saw: {
     id: 'saw',
     name: 'Saw Frame',
     isPremium: true,
     requiredTag: 'visceral-gamer',
-    className: 'relative ring-4 ring-red-700 dark:ring-red-600 shadow-[0_0_20px_rgba(185,28,28,0.7),0_0_40px_rgba(185,28,28,0.4),inset_0_0_20px_rgba(185,28,28,0.2)] dark:shadow-[0_0_25px_rgba(185,28,28,0.8),0_0_50px_rgba(185,28,28,0.5),inset_0_0_25px_rgba(185,28,28,0.3)] animate-saw-throb before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-b before:from-transparent before:via-red-900/20 before:to-red-950/60 before:animate-saw-drip after:absolute after:top-0 after:left-0 after:right-0 after:h-1/2 after:rounded-t-full after:bg-gradient-to-b after:from-red-600/30 after:to-transparent after:animate-saw-flicker after:pointer-events-none'
+    className: 'co-frame co-frame--saw',
   },
   ice: {
     id: 'ice',
     name: 'Ice Age Frame',
     isPremium: true,
     requiredTag: 'nuts',
-    className: 'relative ring-4 ring-cyan-400 dark:ring-cyan-300 shadow-[0_0_25px_rgba(34,211,238,0.7),0_0_50px_rgba(34,211,238,0.3),inset_0_0_20px_rgba(147,197,253,0.4)] dark:shadow-[0_0_30px_rgba(34,211,238,0.8),0_0_60px_rgba(34,211,238,0.4),inset_0_0_25px_rgba(147,197,253,0.5)] animate-ice-crystallize before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-br before:from-cyan-200/40 before:via-blue-200/30 before:to-cyan-300/40 before:animate-ice-shimmer after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_70%,rgba(147,197,253,0.4)_0%,transparent_40%)] after:animate-ice-sparkle after:pointer-events-none'
+    className: 'co-frame co-frame--ice',
   },
   bttf: {
     id: 'bttf',
     name: 'Back to the Future Frame',
     isPremium: true,
     requiredTag: 'flux-capacitor-fan',
-    // As listras diagonais laranjas (o "after" antigo, um padrão xadrez
-    // repetido) saíram. Rotação removida, e o flash de raio voltou — o
-    // gradiente de energia agora pisca com um clarão branco/dourado
-    // intermitente (2 flashes rápidos por ciclo, como um raio de
-    // verdade), em vez de ficar parado ou girando.
-    className: 'relative ring-4 ring-orange-400 dark:ring-orange-500 shadow-[0_0_25px_rgba(251,146,60,0.8),0_0_50px_rgba(251,146,60,0.4)] dark:shadow-[0_0_30px_rgba(251,146,60,0.9),0_0_60px_rgba(251,146,60,0.5)] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-tr before:from-orange-100/70 before:via-yellow-200/80 before:to-orange-300/70 before:animate-bttf-frame-flash before:pointer-events-none'
+    className: 'co-frame co-frame--bttf',
   },
   potter: {
     id: 'potter',
     name: 'Harry Potter Frame',
     isPremium: true,
     requiredTag: 'hogwarts-graduate',
-    className: 'relative ring-4 ring-purple-500 dark:ring-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.8),0_0_60px_rgba(168,85,247,0.4),inset_0_0_25px_rgba(168,85,247,0.3)] dark:shadow-[0_0_40px_rgba(168,85,247,0.9),0_0_70px_rgba(168,85,247,0.5),inset_0_0_30px_rgba(168,85,247,0.4)] animate-hp-magic before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-br before:from-purple-200/40 before:via-violet-300/30 before:to-purple-400/40 before:animate-hp-sparkle after:absolute after:inset-0 after:rounded-full after:bg-[radial-gradient(circle_at_30%_30%,rgba(168,85,247,0.4)_0%,transparent_40%),radial-gradient(circle_at_70%_70%,rgba(217,70,239,0.3)_0%,transparent_40%)] after:animate-hp-shimmer after:pointer-events-none'
+    className: 'co-frame co-frame--potter',
   },
   transformers: {
     id: 'transformers',
     name: 'Transformers Frame',
     isPremium: true,
     requiredTag: 'cybertron-sentinel',
-    // Achado o bug real do "só funciona no Profile / borda não segue a
-    // forma mesmo onde funciona": existe uma regra CSS GLOBAL no
-    // index.css, aplicada a TODA tag <img> do site, com:
-    //   transform: translateZ(0);
-    //   backface-visibility: hidden;
-    //   will-change: auto;
-    // Isso é uma otimização de performance antiga (evitar flickering ao
-    // rolar a página), mas força a <img> pra sua PRÓPRIA camada de
-    // composição na GPU — um comportamento que pode fazer o clip-path do
-    // elemento PAI não recortar esse filho de forma consistente em todos
-    // os navegadores/GPUs, especialmente com formas não retangulares.
-    //
-    // Em vez de tentar neutralizar o transform da <img> (o que
-    // conflitaria com minha própria animação de escala pretendida nela),
-    // a correção mais robusta é aplicar a MESMA animação de clip-path
-    // diretamente na <img> filha também — via seletor de filho direto do
-    // Tailwind ([&>img]:). Mesmo que o clip-path do pai não seja
-    // suficiente sozinho por causa da composição em camada separada, a
-    // própria <img> agora tem seu clip-path idêntico e independente,
-    // recortando-se corretamente por conta própria.
-    //
-    // p-1 mantido — não era o padding que fazia o frame parecer menor
-    // (diagnóstico anterior errado). A causa real: todo frame tem uma
-    // borda ring-4 de tamanho padrão, que dá definição visual constante
-    // à borda — esta era cinza e se camuflava com fundos escuros/cinza
-    // comuns do site, dando a impressão de frame "menor"/menos definido
-    // que os outros. Trocada pra um azul marinho escuro, que se destaca
-    // bem mais nesses fundos.
-    className: 'relative !rounded-none ring-4 ring-[#011f4b] !bg-gray-800 dark:!bg-gray-700 p-1 shadow-[0_0_30px_rgba(23,23,23,0.9),0_0_50px_rgba(59,130,246,0.3)] dark:shadow-[0_0_40px_rgba(23,23,23,1),0_0_60px_rgba(59,130,246,0.4)] animate-tf-shape-morph [&>img]:!backface-visible [&>img]:rounded-none [&>img]:animate-tf-shape-morph'
+    className: 'co-frame co-frame--transformers',
   },
-'death-dodger': {
-  id: 'death-dodger',
-  name: 'Death Dodger Frame',
-  isPremium: true,
-  requiredTag: 'death-dodger',
-  className: 'relative ring-4 ring-red-900 shadow-[0_0_18px_rgba(220,38,38,0.9),0_0_40px_rgba(185,28,28,0.5),inset_0_0_15px_rgba(185,28,28,0.2)] before:absolute before:inset-0 before:rounded-full before:shadow-[inset_0_0_20px_rgba(220,38,38,0.5)] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:flex after:items-center after:justify-center after:text-4xl after:content-["💀"] after:bg-[radial-gradient(circle,rgba(255,255,255,1)_0%,rgba(254,202,202,1)_25%,rgba(239,68,68,1)_60%,rgba(127,29,29,1)_100%)] after:shadow-[0_0_25px_rgba(255,255,255,0.9),0_0_55px_rgba(239,68,68,1),0_0_90px_rgba(220,38,38,0.8)] after:animate-deathdodger-skull-reveal after:pointer-events-none'
-},
+  'death-dodger': {
+    id: 'death-dodger',
+    name: 'Death Dodger Frame',
+    isPremium: true,
+    requiredTag: 'death-dodger',
+    className: 'co-frame co-frame--death-dodger',
+  },
   'casual-drinker': {
     id: 'casual-drinker',
     name: 'Casual Drinker Frame',
     isPremium: true,
     requiredTag: 'casual-drinker',
-    className: 'relative ring-4 ring-amber-400 dark:ring-amber-300 shadow-[0_0_22px_rgba(251,191,36,0.75),0_0_45px_rgba(245,158,11,0.35),inset_0_0_18px_rgba(251,191,36,0.2)] before:absolute before:inset-0 before:rounded-full before:bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.55)_0%,transparent_28%),radial-gradient(circle_at_70%_75%,rgba(255,255,255,0.3)_0%,transparent_22%)] before:animate-[casual-drinker-frame-bubbles_2.5s_ease-in-out_infinite] before:pointer-events-none after:absolute after:inset-0 after:rounded-full after:bg-gradient-to-t after:from-amber-600/95 after:via-amber-400/85 after:to-transparent after:animate-[casual-drinker-frame-level_4s_ease-in-out_infinite] after:pointer-events-none'
+    className: 'co-frame co-frame--casual-drinker',
   },
   default: {
     id: 'default',
     name: 'Default',
     isPremium: false,
     requiredTag: null,
-    className: 'ring-0'
+    // Sem moldura: quem renderiza troca 'ring-0' por um contorno neutro.
+    className: 'ring-0',
   },
-  // Ghost Rider Frame (Motoqueiro Fantasma) — diferente de todos os outros
-  // frames acima, que são só className (ring/shadow/::before/::after) numa
-  // <img> única. Este precisa de DUAS faces reais (frente = foto, verso =
-  // caveira flamejante) e estrutura 3D com giro — não cabe numa string de
-  // className. renderType:'component' é o marcador pro código que renderiza
-  // o avatar: quando encontrar isso, deve renderizar <GhostRiderFrame
-  // src={avatarUrl} /> no lugar do wrapper <div className={frame.className}>
-  // padrão, em vez de tentar aplicar className nele. className aqui fica só
-  // como fallback caso algum lugar do código ainda não tenha sido
-  // atualizado pra checar renderType (evita que o avatar fique sem
-  // nenhuma borda enquanto a integração não é feita em todos os lugares).
+  // Motoqueiro Fantasma — precisa de duas faces reais (frente = foto, verso =
+  // caveira flamejante) e giro 3D, então é um componente próprio
+  // (GhostRiderFrame). renderType:'component' avisa quem renderiza avatar
+  // pra usar o componente em vez de aplicar className num wrapper. A classe
+  // abaixo é a mesma que o componente usa nas duas faces e serve de reserva
+  // caso algum lugar ainda aplique só a classe.
   ghostRider: {
     id: 'ghostRider',
     name: 'Ghost Rider Frame',
@@ -125,8 +93,8 @@ export const frames = {
     requiredTag: 'hell-rider',
     renderType: 'component',
     component: 'GhostRiderFrame',
-    className: 'relative ring-4 ring-[#c5b358] animate-ghost-rider-glow'
-  }
+    className: 'co-frame co-frame--ghost-rider',
+  },
 } as const;
 
 export type FrameId = keyof typeof frames;
@@ -134,7 +102,7 @@ export type FrameId = keyof typeof frames;
 // Frames com renderType:'component' precisam de tratamento especial em
 // qualquer lugar que renderiza avatar+frame — checar isso ANTES de decidir
 // se aplica getFrameClass() num wrapper simples ou renderiza um componente
-// dedicado. Ver GhostRiderFrame.tsx e o exemplo de integração no Profile.
+// dedicado. Ver GhostRiderFrame.tsx.
 export function frameUsesComponent(frameId: string = 'default', isPremium: boolean = false): string | null {
   const frame = frames[frameId as FrameId];
   if (!frame || (frame.isPremium && !isPremium)) return null;
@@ -142,15 +110,9 @@ export function frameUsesComponent(frameId: string = 'default', isPremium: boole
 }
 
 export function getFrameClass(frameId: string = 'default', isPremium: boolean = false): string {
-  if (!frameId) {
+  const frame = frameId ? frames[frameId as FrameId] : undefined;
+  if (!frame || (frame.isPremium && !isPremium)) {
     return frames.default.className;
   }
-
-  const frame = frames[frameId as FrameId];
-
-  if (!frameId || !frame || (frame.isPremium && !isPremium)) {
-    return frames.default.className;
-  }
-
   return frame.className;
 }
