@@ -7,6 +7,7 @@ import {
   ChevronDown, AlertCircle, Wand2, Plus, Check, Eye,
 } from 'lucide-react';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile } from '../lib/tmdb';
+import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
 import { useAuth } from '../lib/auth';
 import { supabase, supabaseUrl } from '../lib/supabase';
@@ -233,6 +234,25 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     setDirectorTopTenError(null);
     setDirectorTopTenMovies([]);
   }, [movie.id]);
+
+  // Fotos do elenco: vêm da tabela people do site (cada artista é
+  // cadastrado uma vez só a partir do TMDB — ver lib/castPhotos.ts).
+  // Enquanto não chegam, ou pra quem não tem foto, fica a inicial do nome.
+  const [castPhotos, setCastPhotos] = useState<Record<number, string | null>>({});
+  const [failedCastPhotos, setFailedCastPhotos] = useState<Set<number>>(new Set());
+  const castIdsKey = (movie.credits?.cast || []).slice(0, 6).map((c) => c.id).join(',');
+  useEffect(() => {
+    setCastPhotos({});
+    setFailedCastPhotos(new Set());
+    if (!castIdsKey) return;
+    let cancelled = false;
+    getCastPhotos(movie.id, movie.media_type === 'tv' ? 'tv' : 'movie', castIdsKey.split(',').map(Number)).then((photos) => {
+      if (!cancelled) setCastPhotos(photos);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [movie.id, movie.media_type, castIdsKey]);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -2009,14 +2029,26 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       {sectionTitle(t('movies.cast'))}
                       {cast.length > 0 ? (
                         <ul className="mt-4 grid sm:grid-cols-2 gap-x-6 gap-y-3">
-                          {cast.map((actor) => (
+                          {cast.map((actor) => {
+                            const photo = failedCastPhotos.has(actor.id) ? null : castPhotos[actor.id] ?? actor.profile_path ?? null;
+                            return (
                             <li key={actor.id} className="flex items-center gap-3 min-w-0">
                               <span
                                 aria-hidden
-                                className="grid place-items-center w-9 h-9 shrink-0 rounded-full ring-1 ring-white/10 text-sm font-semibold"
+                                className="relative grid place-items-center w-11 h-11 shrink-0 rounded-full overflow-hidden ring-1 ring-white/10 text-sm font-semibold"
                                 style={{ background: VELVET, color: MIST }}
                               >
                                 {actor.name.charAt(0)}
+                                {photo && (
+                                  <img
+                                    src={`${PROFILE_IMAGE_BASE}${photo}`}
+                                    alt=""
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                    onError={() => setFailedCastPhotos((prev) => new Set(prev).add(actor.id))}
+                                  />
+                                )}
                               </span>
                               <span className="min-w-0">
                                 <span className="block font-medium truncate" style={{ color: PAPER }}>{actor.name}</span>
@@ -2025,7 +2057,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                 )}
                               </span>
                             </li>
-                          ))}
+                            );
+                          })}
                         </ul>
                       ) : (
                         <p className="mt-3 text-sm" style={{ color: MIST }}>{t('movies.noCastAvailable')}</p>

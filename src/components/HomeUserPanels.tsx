@@ -503,7 +503,9 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
       </nav>
 
       {/* ---------- Recomendações do Dia ---------- */}
-      <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-10 sm:pt-12 pb-14 sm:pb-16">
+      {/* pb menor: o link "Mais recomendações" encosta na próxima seção
+          (que já tem o próprio respiro de 48px) sem um vão enorme. */}
+      <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-10 sm:pt-12 pb-4 sm:pb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 style={{ ...PIXEL, color: PAPER }} className="text-3xl sm:text-4xl leading-tight">
@@ -622,7 +624,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
 
         <Link
           to="/oracle"
-          className={`mt-6 inline-flex items-center gap-2 text-sm font-semibold text-violet-200 hover:text-white transition rounded ${focusRing}`}
+          className={`mt-2 inline-flex items-center gap-2 min-h-[44px] text-sm font-semibold text-violet-200 hover:text-white transition rounded ${focusRing}`}
         >
           {t('home.desk.moreRecs')}
           <ArrowRight className="w-4 h-4" aria-hidden />

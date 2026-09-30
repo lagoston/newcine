@@ -341,11 +341,12 @@ const FloatingMobileSearch: React.FC<FloatingMobileSearchProps> = ({ onMovieSele
           onClick={() => setIsOpen(true)}
           initial={false}
           aria-label={t('mobileSearch.open')}
-          className={`md:hidden fixed left-0 z-40 w-12 h-14 rounded-r-2xl ring-1 ring-white/15 flex items-center justify-center ${FOCUS_RING}`}
+          className={`md:hidden fixed left-0 z-40 w-12 h-14 rounded-r-2xl ring-1 ring-white/25 flex items-center justify-center ${FOCUS_RING}`}
           style={{
             paddingLeft: 'env(safe-area-inset-left)',
             bottom: '25vh',
-            background: 'rgba(28,20,51,0.92)',
+            // Violeta mais claro que o fundo do site, pra lupa não sumir.
+            background: 'linear-gradient(135deg, #5B3FA6, #3F2B7A)',
             boxShadow: '0 12px 28px -12px rgba(139,92,246,0.75), inset -1px 0 0 rgba(255,255,255,0.06)',
             minWidth: 0,
           }}

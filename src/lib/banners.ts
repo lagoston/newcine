@@ -24,6 +24,8 @@ export const banners = {
     requiredTag: null,
     // cor do contorno (a mesma do --co-line em cosmetics.css)
     accent: '#FAE596',
+    // cor escolhida pro fundo das informações/blocos (substitui a calculada)
+    surface: '#BFA869',
     className: 'co-banner co-banner--gold co-banner--fade-left',
   },
   matrix: {
@@ -60,6 +62,8 @@ export const banners = {
     requiredTag: 'flux-capacitor-fan',
     // cor do contorno (a mesma do --co-line em cosmetics.css)
     accent: '#FDBA74',
+    // cor escolhida pro fundo das informações/blocos (substitui a calculada)
+    surface: '#25162E',
     className: 'co-banner co-banner--bttf',
   },
   potter: {
@@ -69,6 +73,8 @@ export const banners = {
     requiredTag: 'hogwarts-graduate',
     // cor do contorno (a mesma do --co-line em cosmetics.css)
     accent: '#C4B5FD',
+    // cor escolhida pro fundo das informações/blocos (substitui a calculada)
+    surface: '#5C2D87',
     className: 'co-banner co-banner--potter',
   },
   transformers: {
@@ -78,6 +84,8 @@ export const banners = {
     requiredTag: 'cybertron-sentinel',
     // cor do contorno (a mesma do --co-line em cosmetics.css)
     accent: '#93C5FD',
+    // cor escolhida pro fundo das informações/blocos (substitui a calculada)
+    surface: '#151C3D',
     className: 'co-banner co-banner--transformers co-banner--fade-left',
   },
   hellrider: {
@@ -87,6 +95,8 @@ export const banners = {
     requiredTag: 'hell-rider',
     // cor do contorno (a mesma do --co-line em cosmetics.css)
     accent: '#C5B358',
+    // cor escolhida pro fundo das informações/blocos (substitui a calculada)
+    surface: '#521A00',
     className: 'co-banner co-banner--hellrider co-banner--fade-left',
   },
   deathdodger: {
@@ -96,6 +106,8 @@ export const banners = {
     requiredTag: 'death-dodger',
     // cor do contorno (a mesma do --co-line em cosmetics.css)
     accent: '#F87171',
+    // cor escolhida pro fundo das informações/blocos (substitui a calculada)
+    surface: '#300202',
     className: 'co-banner co-banner--deathdodger',
   },
   'casual-drinker': {
@@ -105,6 +117,8 @@ export const banners = {
     requiredTag: 'casual-drinker',
     // cor do contorno (a mesma do --co-line em cosmetics.css)
     accent: '#FCD34D',
+    // cor escolhida pro fundo das informações/blocos (substitui a calculada)
+    surface: '#573100',
     className: 'co-banner co-banner--casual-drinker',
   },
 } as const;
@@ -139,9 +153,12 @@ function hueSat(hex: string): [number, number] {
 
 // Tom do banner pra pintar o resto do perfil: a parte de informações do
 // cartão da Comunidade e os blocos do perfil (Números, Década favorita,
-// Atlas…). É a cor do contorno do banner escurecida até uma luminosidade
-// fixa de 13% (saturação no máximo 50%) — o limite de claridade que mantém
-// nome, bio e números legíveis (texto papel/névoa com contraste >= 7:1).
+// Atlas…). Quando o banner tem `surface` (cor escolhida à mão: Ouro, De
+// Volta para o Futuro, Harry Potter, Transformers, Motoqueiro, Premonição e
+// Se Beber), é ela; senão, é a cor do contorno escurecida até uma
+// luminosidade fixa de 13% (saturação no máximo 50%) — texto papel/névoa
+// com contraste >= 7:1. Atenção: o Ouro (#BFA869) é claro e o texto claro
+// fica com pouco contraste em cima dele — escolha feita de propósito.
 // Sem banner (ou banner Premium de quem não é Premium): null → VELVET.
 export interface BannerTone {
   accent: string;
@@ -151,6 +168,9 @@ export interface BannerTone {
 export function getBannerTone(bannerId?: string | null, isPremium: boolean = false): BannerTone | null {
   const banner = bannerId ? banners[bannerId as BannerId] : undefined;
   if (!banner || !banner.accent || (banner.isPremium && !isPremium)) return null;
+  // Alguns banners têm a cor escolhida à mão (surface); os outros usam a
+  // calculada a partir do contorno.
+  if ('surface' in banner && banner.surface) return { accent: banner.accent, surface: banner.surface };
   const [h, s] = hueSat(banner.accent);
   return { accent: banner.accent, surface: `hsl(${h}, ${Math.round(Math.min(s, 0.5) * 100)}%, 13%)` };
 }

@@ -49,6 +49,9 @@ export interface Cast {
   id: number;
   name: string;
   character: string;
+  // Só vem quando o título foi buscado direto no TMDB; a foto de verdade
+  // sai da tabela people (lib/castPhotos.ts).
+  profile_path?: string | null;
 }
 
 export interface StreamingProvider {
