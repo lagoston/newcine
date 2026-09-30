@@ -11,7 +11,7 @@ import { withAlpha } from './oracleTheme';
 //
 // `key` é o identificador interno do banco (recommendation_pools.mood_key)
 // e não aparece pra ninguém — por isso "drug-trip" continua sendo a chave
-// do humor exibido como "Psychedelic".
+// do humor exibido como "Psicodélico" (em inglês, "Psychedelic").
 
 export type MoodKey =
   | 'mind-blowing'

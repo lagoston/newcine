@@ -25,7 +25,7 @@ export const banners = {
     // cor do contorno (a mesma do --co-line em cosmetics.css)
     accent: '#FAE596',
     // cor escolhida pro fundo das informações/blocos (substitui a calculada)
-    surface: '#BFA869',
+    surface: '#524723',
     className: 'co-banner co-banner--gold co-banner--fade-left',
   },
   matrix: {
@@ -157,8 +157,8 @@ function hueSat(hex: string): [number, number] {
 // Volta para o Futuro, Harry Potter, Transformers, Motoqueiro, Premonição e
 // Se Beber), é ela; senão, é a cor do contorno escurecida até uma
 // luminosidade fixa de 13% (saturação no máximo 50%) — texto papel/névoa
-// com contraste >= 7:1. Atenção: o Ouro (#BFA869) é claro e o texto claro
-// fica com pouco contraste em cima dele — escolha feita de propósito.
+// com contraste >= 7:1. O Ouro é o #BFA869 escolhido, escurecido até o
+// texto claro ficar legível (#524723, contraste ~4,6:1 com a névoa).
 // Sem banner (ou banner Premium de quem não é Premium): null → VELVET.
 export interface BannerTone {
   accent: string;

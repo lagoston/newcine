@@ -44,18 +44,11 @@ export default function Library() {
   const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
   const [showWatchlistDuel, setShowWatchlistDuel] = useState(false);
   const [username, setUsername] = useState<string>('');
-  const [alternateNames, setAlternateNames] = useState<Record<string, string>>(() => {
-    try {
-      const saved = localStorage.getItem('libraryAlternateNames');
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
 
   // Library preferences
   const [tvOrder, setTvOrder] = useState<'auto' | 'first' | 'last'>('auto');
-  const [chromaBoxEnabled, setChromaBoxEnabled] = useState(true);
+  // Chroma Box é sempre ligada (não é mais uma opção).
+  const chromaBoxEnabled = true;
   const [ratedLayout, setRatedLayout] = useState<'notes' | 'onegrid'>(() => {
     try {
       return (localStorage.getItem('libraryRatedLayout') as 'notes' | 'onegrid') || 'notes';
@@ -88,13 +81,12 @@ export default function Library() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('tv_order, chroma_box_enabled, username')
+        .select('tv_order, username')
         .eq('id', session.user.id)
         .single();
 
       if (data) {
         setTvOrder(data.tv_order || 'auto');
-        setChromaBoxEnabled(data.chroma_box_enabled ?? true);
         setUsername(data.username || '');
       }
     };
@@ -115,13 +107,15 @@ export default function Library() {
     };
   }, [session?.user?.id]);
 
+  // Os nomes das prateleiras não são mais personalizáveis: some o que
+  // tinha ficado salvo neste navegador.
   useEffect(() => {
     try {
-      localStorage.setItem('libraryAlternateNames', JSON.stringify(alternateNames));
+      localStorage.removeItem('libraryAlternateNames');
     } catch {
-      // armazenamento indisponível (aba anônima etc.) — os nomes valem só nesta visita
+      // armazenamento indisponível (aba anônima etc.)
     }
-  }, [alternateNames]);
+  }, []);
 
   // Reload movies when language changes
   useEffect(() => {
@@ -344,13 +338,6 @@ export default function Library() {
       console.error('Error deleting movie:', error);
       toast.error(t('common.error'));
     }
-  };
-
-  const handleAlternateNameChange = (rating: number | null, name: string) => {
-    setAlternateNames((prev) => ({
-      ...prev,
-      [rating === null ? 'unrated' : rating]: name.trim()
-    }));
   };
 
   const handleRatedLayoutChange = (layout: 'notes' | 'onegrid') => {
@@ -586,7 +573,7 @@ export default function Library() {
           <RatingBox
             anchorId="library-watchlist"
             fullBleed
-            title={alternateNames['unrated'] || t('library.watchList')}
+            title={t('library.watchList')}
             movies={filteredWatchlistMovies}
             rating={null}
             onRate={handleRate}
@@ -646,7 +633,6 @@ export default function Library() {
                   anchorId={`library-rating-${rating}`}
                   fullBleed
                   title={t('library.rating', { value: rating })}
-                  displayName={alternateNames[rating] || undefined}
                   movies={moviesByRating[rating] || []}
                   rating={rating}
                   onRate={handleRate}
@@ -676,17 +662,12 @@ export default function Library() {
           setUserMovies([]);
           setRatingRows([]);
           setTotalMovies(0);
-          setAlternateNames({});
           cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
           cache.invalidatePattern('stats:');
         }}
-        rating={null}
-        alternateNames={alternateNames}
-        onAlternateNameChange={handleAlternateNameChange}
         ratedLayout={ratedLayout}
         onRatedLayoutChange={handleRatedLayoutChange}
         onTvOrderChange={setTvOrder}
-        onChromaBoxChange={setChromaBoxEnabled}
       />
 
       {isReviewsModalOpen && session?.user?.id && (

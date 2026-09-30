@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useId } from 'react';
-import { Download, Loader2, Check, RotateCcw, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, Loader2, Check, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -8,11 +8,11 @@ import * as XLSX from 'xlsx';
 import { getMovieDetails } from '../lib/tmdb';
 import OracleSheet from './OracleSheet';
 import ConfirmationModal from './ConfirmationModal';
-import { RATING_LABELS } from './RatingSliderSheet';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
 
-// Ajustes da Biblioteca: como os avaliados aparecem, nomes das
-// prateleiras, ordem das séries, Chroma Box, exportar e zerar a coleção.
+// Ajustes da Biblioteca: como os avaliados aparecem, ordem das séries,
+// exportar e zerar a coleção. Os nomes das prateleiras são sempre os
+// padrão (não dá pra renomear) e a Chroma Box é sempre ligada.
 
 type TvOrder = 'auto' | 'first' | 'last';
 
@@ -20,50 +20,28 @@ interface LibraryEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onReset: () => void;
-  // Prateleira que já vem selecionada no campo de renomear (null = Watchlist).
-  rating: number | null;
-  alternateNames: Record<string, string>;
-  onAlternateNameChange: (rating: number | null, name: string) => void;
   ratedLayout: 'notes' | 'onegrid';
   onRatedLayoutChange: (layout: 'notes' | 'onegrid') => void;
   // Opcionais: quando passados, a Biblioteca aplica a mudança na hora; sem
   // eles, a página recarrega pra aplicar (comportamento antigo).
   onTvOrderChange?: (order: TvOrder) => void;
-  onChromaBoxChange?: (enabled: boolean) => void;
 }
-
-const RENAME_TARGETS: (number | 'unrated')[] = ['unrated', 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
 
 const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
   isOpen,
   onClose,
   onReset,
-  rating,
-  alternateNames,
-  onAlternateNameChange,
   ratedLayout,
   onRatedLayoutChange,
   onTvOrderChange,
-  onChromaBoxChange,
 }) => {
   const { session } = useAuth();
-  const { t, i18n } = useTranslation();
-  const isPt = i18n.language.startsWith('pt');
-  const renameSelectId = useId();
-  const renameInputId = useId();
-  const chromaLabelId = useId();
+  const { t } = useTranslation();
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [renameTarget, setRenameTarget] = useState<number | 'unrated'>(rating === null ? 'unrated' : rating);
-  const [alternateName, setAlternateName] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
   const [tvOrder, setTvOrder] = useState<TvOrder>('auto');
-  const [chromaBoxEnabled, setChromaBoxEnabled] = useState(false);
-  const [savingPref, setSavingPref] = useState<'tv' | 'chroma' | null>(null);
-
-  useEffect(() => {
-    setAlternateName(alternateNames[String(renameTarget)] || '');
-  }, [alternateNames, renameTarget]);
+  const [savingPref, setSavingPref] = useState<'tv' | null>(null);
 
   useEffect(() => {
     const loadPreferences = async () => {
@@ -71,14 +49,12 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
 
       const { data } = await supabase
         .from('profiles')
-        .select('tv_order, chroma_box_enabled')
+        .select('tv_order')
         .eq('id', session.user.id)
         .single();
 
       if (data) {
         setTvOrder(data.tv_order || 'auto');
-        // Mesmo padrão da Biblioteca: sem valor salvo, a Chroma Box vem ligada.
-        setChromaBoxEnabled(data.chroma_box_enabled ?? true);
       }
     };
 
@@ -86,12 +62,6 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
       loadPreferences();
     }
   }, [isOpen, session?.user?.id]);
-
-  const targetLabel = (target: number | 'unrated') => {
-    if (target === 'unrated') return t('library.watchList');
-    const label = RATING_LABELS[target] ? (isPt ? RATING_LABELS[target].pt : RATING_LABELS[target].en) : '';
-    return `${t('library.rating', { value: target })}${label ? ` — ${label}` : ''}`;
-  };
 
   const handleResetLibrary = async () => {
     if (!session?.user?.id) return;
@@ -111,16 +81,6 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
       console.error('Error resetting library:', error);
       toast.error(t('common.error'));
     }
-  };
-
-  const handleAlternateNameSave = () => {
-    onAlternateNameChange(renameTarget === 'unrated' ? null : renameTarget, alternateName);
-    toast.success(t('common.success'));
-  };
-
-  const handleAlternateNameReset = () => {
-    setAlternateName('');
-    onAlternateNameChange(renameTarget === 'unrated' ? null : renameTarget, '');
   };
 
   const handleTvOrderChange = async (newOrder: TvOrder) => {
@@ -143,33 +103,6 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
       }
     } catch (error) {
       console.error('Error updating tv_order:', error);
-      toast.error(t('common.error'));
-    } finally {
-      setSavingPref(null);
-    }
-  };
-
-  const handleChromaBoxToggle = async () => {
-    if (!session?.user?.id || savingPref) return;
-
-    try {
-      setSavingPref('chroma');
-      const newValue = !chromaBoxEnabled;
-      const { error } = await supabase
-        .from('profiles')
-        .update({ chroma_box_enabled: newValue })
-        .eq('id', session.user.id);
-
-      if (error) throw error;
-
-      setChromaBoxEnabled(newValue);
-      if (onChromaBoxChange) {
-        onChromaBoxChange(newValue);
-      } else {
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('Error updating chroma_box_enabled:', error);
       toast.error(t('common.error'));
     } finally {
       setSavingPref(null);
@@ -290,8 +223,6 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
     { value: 'last', title: t('library.orderSeriesLast'), desc: t('library.orderSeriesLastDesc') },
   ];
 
-  const previewTone = renameTarget === 'unrated' ? null : ratingTone(renameTarget);
-
   return (
     <>
       <OracleSheet
@@ -347,67 +278,6 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
           </div>
         </section>
 
-        {/* Nomes das prateleiras */}
-        <section className="pt-7 border-t border-white/[0.07]">
-          {sectionTitle(t('library.renameTitle'), t('library.renameDesc'))}
-          <div className="space-y-2.5">
-            <label htmlFor={renameSelectId} className="sr-only">{t('library.renameWhich')}</label>
-            <div className="relative">
-              <select
-                id={renameSelectId}
-                value={String(renameTarget)}
-                onChange={(e) => setRenameTarget(e.target.value === 'unrated' ? 'unrated' : Number(e.target.value))}
-                className="w-full h-12 pl-11 pr-4 rounded-xl ring-1 ring-white/10 focus:ring-2 focus:ring-fuchsia-300/70 outline-none text-[15px] appearance-none"
-                style={{ background: VELVET, color: PAPER }}
-              >
-                {RENAME_TARGETS.map((target) => (
-                  <option key={String(target)} value={String(target)}>
-                    {targetLabel(target)}
-                    {alternateNames[String(target)] ? ` · “${alternateNames[String(target)]}”` : ''}
-                  </option>
-                ))}
-              </select>
-              <span
-                aria-hidden
-                className="absolute left-3 top-1/2 -translate-y-1/2 grid place-items-center w-6 h-6 rounded-md text-sm leading-none"
-                style={{ ...PIXEL, background: 'rgba(18,13,34,0.7)', color: previewTone ? previewTone.color : '#7DD3FC' }}
-              >
-                {renameTarget === 'unrated' ? 'W' : renameTarget}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <label htmlFor={renameInputId} className="sr-only">{t('library.renameNewName')}</label>
-              <input
-                type="text"
-                id={renameInputId}
-                value={alternateName}
-                onChange={(e) => setAlternateName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleAlternateNameSave(); }}
-                maxLength={30}
-                placeholder={t('library.renamePlaceholder')}
-                className="flex-1 min-w-0 h-12 px-4 rounded-xl ring-1 ring-white/10 focus:ring-2 focus:ring-fuchsia-300/70 outline-none text-[15px] placeholder:text-[#BDB4D6]/70"
-                style={{ background: VELVET, color: PAPER }}
-              />
-              <button
-                onClick={handleAlternateNameSave}
-                className={`shrink-0 h-12 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold transition ${FOCUS_RING}`}
-              >
-                {t('common.save')}
-              </button>
-            </div>
-            {alternateNames[String(renameTarget)] && (
-              <button
-                onClick={handleAlternateNameReset}
-                className={`-ml-2 inline-flex justify-start items-center gap-1.5 px-2 rounded-lg text-sm hover:bg-white/5 transition ${FOCUS_RING}`}
-                style={{ color: MIST }}
-              >
-                <RotateCcw className="w-4 h-4" aria-hidden />
-                {t('library.renameRestore')}
-              </button>
-            )}
-          </div>
-        </section>
-
         {/* Ordem das séries — só no layout por notas */}
         {ratedLayout === 'notes' && (
           <section className="pt-7 border-t border-white/[0.07]">
@@ -441,40 +311,6 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
             </div>
           </section>
         )}
-
-        {/* Chroma Box */}
-        <section className="pt-7 border-t border-white/[0.07]">
-          {sectionTitle(t('library.chromaBox'), t('library.chromaBoxDesc'))}
-          <div className="flex items-center justify-between gap-4 rounded-xl p-3.5 ring-1 ring-white/10" style={{ background: VELVET }}>
-            <span className="min-w-0">
-              <span id={chromaLabelId} className="block text-sm font-semibold" style={{ color: PAPER }}>{t('library.enableChromaBox')}</span>
-              <span className="mt-2 flex items-center gap-1" aria-hidden>
-                {[10, 8, 5, 2, 0].map((r) => (
-                  <span key={r} className="w-5 h-2 rounded-full" style={{ background: ratingTone(r).color, opacity: chromaBoxEnabled ? 1 : 0.3 }} />
-                ))}
-              </span>
-            </span>
-            <button
-              role="switch"
-              aria-checked={chromaBoxEnabled}
-              aria-labelledby={chromaLabelId}
-              onClick={handleChromaBoxToggle}
-              disabled={savingPref !== null}
-              className={`shrink-0 relative ${FOCUS_RING} rounded-full`}
-            >
-              <span
-                aria-hidden
-                className={`relative block w-12 h-7 rounded-full transition-colors ${chromaBoxEnabled ? 'bg-violet-500' : 'bg-white/15'}`}
-              >
-                <span
-                  className={`absolute top-1 left-1 grid place-items-center w-5 h-5 rounded-full bg-white shadow transition-transform ${chromaBoxEnabled ? 'translate-x-5' : ''}`}
-                >
-                  {savingPref === 'chroma' && <Loader2 className="w-3 h-3 animate-spin text-violet-600" />}
-                </span>
-              </span>
-            </button>
-          </div>
-        </section>
 
         {/* Exportar */}
         <section className="pt-7 border-t border-white/[0.07]">

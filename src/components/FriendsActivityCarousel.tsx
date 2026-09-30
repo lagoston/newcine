@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Star, Bookmark } from 'lucide-react';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
 import { GhostRiderFrame } from './GhostRiderFrame';
-import { NIGHT, SURFACE, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
+import { NIGHT, VELVET, INK, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
 
 // Atividade dos amigos — a mecânica antiga de volta, no tema noite: cada
 // amigo é uma bolha de perfil com um balão em cima contando o último título
@@ -101,7 +101,12 @@ const FriendsActivityCarousel: React.FC<{ friends: FriendActivity[] }> = ({ frie
     const frameRaw = getFrameClass(friend.avatar_frame || undefined, friend.plan_type === 'premium');
     const frame = !frameRaw || frameRaw === 'ring-0' ? 'ring-2 ring-white/15' : frameRaw;
     const tone = friend.lastRating !== null ? ratingTone(friend.lastRating) : null;
-    const edge = tone ? tone.ring : friend.lastRatedTitle ? 'rgba(125,211,252,0.45)' : 'rgba(255,255,255,0.12)';
+    // O balão inteiro é pintado com a cor da designação — a mesma das notas
+    // (vermelho/amarelo/verde/rosa) e da watchlist (azul-céu) — com texto
+    // tinta por cima. Sem atividade, fica neutro. Nunca usa a cor do banner.
+    const hasActivity = !!friend.lastRatedTitle;
+    const fill = tone ? tone.color : hasActivity ? ratingTone(null).color : VELVET;
+    const bubbleText = hasActivity ? INK : MIST;
 
     return (
       <li key={friend.id} className="min-w-0 shrink-0 basis-1/4 sm:basis-1/6 lg:basis-[12.5%] px-1 sm:px-1.5">
@@ -121,36 +126,42 @@ const FriendsActivityCarousel: React.FC<{ friends: FriendActivity[] }> = ({ frie
           <span className="relative w-full max-w-[128px] mb-3">
             <span
               className="block rounded-xl px-1.5 py-1.5 sm:px-2.5 sm:py-2 shadow-lg transition-transform duration-200 group-hover:-translate-y-0.5"
-              style={{ background: SURFACE, boxShadow: `inset 0 0 0 1.5px ${edge}, 0 10px 24px -12px rgba(0,0,0,0.8)` }}
+              style={{
+                background: fill,
+                color: bubbleText,
+                boxShadow: hasActivity ? '0 10px 24px -12px rgba(0,0,0,0.8)' : 'inset 0 0 0 1.5px rgba(255,255,255,0.12), 0 10px 24px -12px rgba(0,0,0,0.8)',
+              }}
             >
-              {friend.lastRatedTitle ? (
+              {hasActivity ? (
                 <>
-                  <span className="text-[10.5px] sm:text-xs font-semibold leading-tight line-clamp-2 min-h-[2.5em] break-words [hyphens:auto]" style={{ color: PAPER }} lang={i18n.language}>
-                    {friend.lastRatedTitle}
+                  {/* Sempre a altura de duas linhas, com o título centralizado
+                      nela (um título curto não fica grudado no topo). */}
+                  <span className="flex items-center justify-center min-h-[2.5em] text-[10.5px] sm:text-xs font-semibold leading-tight">
+                    <span className="line-clamp-2 break-words [hyphens:auto]" lang={i18n.language}>
+                      {friend.lastRatedTitle}
+                    </span>
                   </span>
                   {tone ? (
-                    <span className="mt-1 flex items-center justify-center gap-1 text-sm leading-none" style={{ ...PIXEL, color: tone.color }} aria-hidden>
+                    <span className="mt-1 flex items-center justify-center gap-1 text-sm leading-none" style={PIXEL} aria-hidden>
                       <Star className="w-3 h-3 fill-current" />
                       {friend.lastRating}
                     </span>
                   ) : (
-                    <span className="mt-1 flex items-center justify-center gap-1 text-[10px] leading-none text-sky-300" aria-hidden>
+                    <span className="mt-1 flex items-center justify-center gap-1 text-[10px] font-semibold leading-none" aria-hidden>
                       <Bookmark className="w-3 h-3" />
                       {t('profile.onWatchlist')}
                     </span>
                   )}
                 </>
               ) : (
-                <span className="block py-1 text-[11px] leading-tight" style={{ color: MIST }}>
-                  {t('profile.noRecentActivity')}
-                </span>
+                <span className="block py-1 text-[11px] leading-tight">{t('profile.noRecentActivity')}</span>
               )}
             </span>
-            {/* rabinho do balão apontando pra bolha */}
+            {/* rabinho do balão apontando pra bolha, da mesma cor */}
             <span
               aria-hidden
               className="absolute left-1/2 top-full -translate-x-1/2 -mt-[5px] w-2.5 h-2.5 rotate-45"
-              style={{ background: SURFACE, boxShadow: `inset -1.5px -1.5px 0 0 ${edge}` }}
+              style={{ background: fill, boxShadow: hasActivity ? undefined : 'inset -1.5px -1.5px 0 0 rgba(255,255,255,0.12)' }}
             />
           </span>
 

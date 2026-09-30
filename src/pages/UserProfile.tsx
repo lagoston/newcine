@@ -46,7 +46,6 @@ interface Profile {
   avatar_frame: string;
   banner?: string;
   text_effect?: string;
-  chroma_box_enabled?: boolean;
   active_tag?: ProfileActiveTag;
 }
 
@@ -534,7 +533,7 @@ export default function UserProfile() {
                         rating={rating}
                         isOtherUserProfile
                         profileUserId={profile.id}
-                        chromaBoxEnabled={profile.chroma_box_enabled ?? true}
+                        chromaBoxEnabled
                       />
                     );
                   })}
@@ -547,7 +546,7 @@ export default function UserProfile() {
                       rating={null}
                       isOtherUserProfile
                       profileUserId={profile.id}
-                      chromaBoxEnabled={profile.chroma_box_enabled ?? true}
+                      chromaBoxEnabled
                     />
                   )}
                 </div>

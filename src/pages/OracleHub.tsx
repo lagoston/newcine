@@ -366,16 +366,11 @@ export default function OracleHub() {
   // As três cartas dos oráculos: cada uma leva direto às nove prateleiras
   // daquele oráculo. No celular ficam lado a lado, como cartas na mesa (só
   // a carta e o nome); do sm pra cima ganham o critério de cada um.
+  // Sem título próprio: a explicação ("Cada oráculo guarda nove
+  // prateleiras…") é o subtítulo do cabeçalho da página, logo acima.
   const explore = (
-    <motion.section variants={rise} className="mx-auto max-w-6xl px-5 sm:px-8 mt-8 sm:mt-10">
-      <h2 style={{ ...PIXEL, color: PAPER }} className="text-3xl sm:text-4xl leading-none">
-        {t('oracle.hub.exploreTitle')}
-      </h2>
-      <p className="mt-2 text-[15px] max-w-xl" style={{ color: MIST }}>
-        {t('oracle.hub.exploreHint')}
-      </p>
-
-      <ul className="mt-6 grid grid-cols-3 gap-3 sm:gap-4">
+    <motion.section variants={rise} className="mx-auto max-w-6xl px-5 sm:px-8 mt-6 sm:mt-8">
+      <ul className="grid grid-cols-3 gap-3 sm:gap-4">
         {ORACLES.map((oracle) => (
           <li key={oracle.id}>
             <Link
@@ -458,7 +453,7 @@ export default function OracleHub() {
                 {t('oracle.title')}
               </h1>
               <p className="mt-3 text-[15px] sm:text-base max-w-xl" style={{ color: MIST }}>
-                {t('oracle.hub.subtitle')}
+                {t('oracle.hub.exploreHint')}
               </p>
             </div>
             {hasPersona && <span className="hidden sm:flex shrink-0">{oracleTrio('sm')}</span>}

@@ -490,7 +490,9 @@ export default function Community() {
               parte de informações (mt-11 = 36px do avatar acima da linha do
               banner + 8px de folga). */}
           <div className="-mt-9 flex items-start justify-between gap-3">
-            <span className="relative shrink-0 rounded-full" style={{ boxShadow: `0 0 0 4px ${surface}` }}>
+            {/* Sem anel em volta: a moldura da pessoa já é o contorno do
+                avatar (um anel na cor da info virava uma segunda borda). */}
+            <span className="relative shrink-0 rounded-full">
               {frameUsesComponent(profile.avatar_frame, premium) === 'GhostRiderFrame' && profile.avatar_url ? (
                 <GhostRiderFrame src={profile.avatar_url} alt="" size={72} />
               ) : (

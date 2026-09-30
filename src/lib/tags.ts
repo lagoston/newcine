@@ -101,7 +101,7 @@ export const PROGRESSION_TAGS: ProgressionTag[] = [
     emoji: '🍭',
     minMovies: 50,
     description: '50 movies from the Psychedelic shelf',
-    descriptionPt: '50 filmes da prateleira Psychedelic',
+    descriptionPt: '50 filmes da prateleira Psicodélico',
     condition: { type: 'mood', value: 'drug-trip' }
   },
   {
