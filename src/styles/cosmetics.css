@@ -566,4 +566,13 @@
   .co-banner::after {
     animation: none !important;
   }
+  /* Os SVGs animados (1 e 0 do Matrix, geada do Gelo) têm a animação dentro
+     da imagem e não obedecem ao animation: none — ficam sem eles. */
+  .co-banner--matrix::before,
+  .co-banner--ice::after {
+    background: none;
+  }
+  .co-frame--ice::after {
+    background: radial-gradient(circle, transparent 60%, rgba(224, 242, 254, 0.32) 100%);
+  }
 }
