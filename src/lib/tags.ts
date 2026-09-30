@@ -79,6 +79,15 @@ export const PROGRESSION_TAGS: ProgressionTag[] = [
     descriptionPt: '20 filmes avaliados com 10/10',
     condition: { type: 'rating', value: 10 }
   },
+  // Uma tag por prateleira (humor), na ordem das letras da personalidade.
+  {
+    name: 'Enigmatic',
+    emoji: '🧩',
+    minMovies: 50,
+    description: '50 movies from the Mind-Blowing shelf',
+    descriptionPt: '50 filmes da prateleira Mind-Blowing',
+    condition: { type: 'mood', value: 'mind-blowing' }
+  },
   {
     name: 'Bloody Mary',
     emoji: '🩸',
@@ -88,12 +97,36 @@ export const PROGRESSION_TAGS: ProgressionTag[] = [
     condition: { type: 'mood', value: 'dark-and-scary' }
   },
   {
-    name: 'Punchliner',
-    emoji: '😂',
+    name: 'Dreamwalker',
+    emoji: '🍭',
     minMovies: 50,
-    description: '50 movies from the Laugh Out Loud shelf',
-    descriptionPt: '50 filmes da prateleira Muitas Risadas',
-    condition: { type: 'mood', value: 'laugh-out-loud' }
+    description: '50 movies from the Psychedelic shelf',
+    descriptionPt: '50 filmes da prateleira Psychedelic',
+    condition: { type: 'mood', value: 'drug-trip' }
+  },
+  {
+    name: 'Trailblazer',
+    emoji: '🤿',
+    minMovies: 50,
+    description: '50 movies from the Adventures shelf',
+    descriptionPt: '50 filmes da prateleira Aventuras',
+    condition: { type: 'mood', value: 'adventures' }
+  },
+  {
+    name: 'Soul Collector',
+    emoji: '☯️',
+    minMovies: 50,
+    description: '50 movies from the Catharsis shelf',
+    descriptionPt: '50 filmes da prateleira Catarse',
+    condition: { type: 'mood', value: 'catharsis' }
+  },
+  {
+    name: 'Daredevil',
+    emoji: '🧨',
+    minMovies: 50,
+    description: '50 movies from the Adrenaline shelf',
+    descriptionPt: '50 filmes da prateleira Adrenalina',
+    condition: { type: 'mood', value: 'adrenaline' }
   },
   {
     name: 'Cine Cupid',
@@ -102,6 +135,22 @@ export const PROGRESSION_TAGS: ProgressionTag[] = [
     description: '50 movies from the Romantic shelf',
     descriptionPt: '50 filmes da prateleira Romântico',
     condition: { type: 'mood', value: 'romantic' }
+  },
+  {
+    name: 'Peter Pan',
+    emoji: '🧚‍♂️',
+    minMovies: 50,
+    description: '50 movies from the Family Time shelf',
+    descriptionPt: '50 filmes da prateleira Família',
+    condition: { type: 'mood', value: 'family-time' }
+  },
+  {
+    name: 'Punchliner',
+    emoji: '😂',
+    minMovies: 50,
+    description: '50 movies from the Laugh Out Loud shelf',
+    descriptionPt: '50 filmes da prateleira Muitas Risadas',
+    condition: { type: 'mood', value: 'laugh-out-loud' }
   },
   {
     name: "Director's Cut",

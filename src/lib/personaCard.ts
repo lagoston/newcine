@@ -1,4 +1,4 @@
-import { NIGHT, VELVET, PAPER, MIST, PIXEL_FONT_STACK, withAlpha } from './oracleTheme';
+import { NIGHT, VELVET, PAPER, MIST, PIXEL_FONT_STACK, PIXEL_FONT_SAMPLE, withAlpha } from './oracleTheme';
 
 // Arte 9:16 (1080×1920) da personalidade, desenhada direto num canvas.
 // Antes usava html2canvas, que deslocava o texto (a fonte pixel descia e
@@ -81,7 +81,8 @@ const wrapLines = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number
 export async function drawPersonaCard(input: PersonaCardInput, scale = 0.66): Promise<HTMLCanvasElement> {
   // As fontes precisam estar prontas antes do primeiro fillText.
   try {
-    await Promise.all([document.fonts.load(`200px ${PIXEL_FONT_STACK}`), document.fonts.load(`600 30px ${SANS}`)]);
+    // A amostra inclui L e Z: as letras do código vêm da fonte de glifos.
+    await Promise.all([document.fonts.load(`200px ${PIXEL_FONT_STACK}`, PIXEL_FONT_SAMPLE), document.fonts.load(`600 30px ${SANS}`)]);
     await document.fonts.ready;
   } catch {
     /* segue com a fonte que houver */

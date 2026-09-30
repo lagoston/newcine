@@ -317,17 +317,34 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
     );
   };
 
+  // O bloco "Ativa no momento" veste a cor da categoria da tag em uso
+  // (verde básico, âmbar tema…); a especial é preta com contorno claro,
+  // igual ao selo dela no perfil.
+  const activeBlockStyle = (): React.CSSProperties => {
+    if (!activeTag) return { background: VELVET, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)' };
+    if (activeTag.category === 'special') return { background: '#000', boxShadow: `inset 0 0 0 1px ${withAlpha(PAPER, 0.35)}` };
+    const { accent } = tagCategoryStyle(activeTag.category);
+    return {
+      background: `linear-gradient(135deg, ${withAlpha(accent, 0.24)}, ${withAlpha(accent, 0.08)}), ${VELVET}`,
+      boxShadow: `inset 0 0 0 1px ${withAlpha(accent, 0.45)}`,
+    };
+  };
+
   const renderPinsView = () => (
     <div className="space-y-6">
       {/* A tag em uso no perfil agora */}
-      <section className="rounded-2xl p-4 ring-1 ring-white/10 flex items-center gap-3" style={{ background: VELVET }}>
+      <section className="rounded-2xl p-4 flex items-center gap-3" style={activeBlockStyle()}>
         {activeTag ? (
           <>
-            <span className="grid place-items-center w-12 h-12 shrink-0 rounded-xl text-2xl leading-none" style={{ background: NIGHT }} aria-hidden>
+            <span
+              className="grid place-items-center w-12 h-12 shrink-0 rounded-xl text-2xl leading-none"
+              style={{ background: NIGHT, boxShadow: `inset 0 0 0 1px ${withAlpha(tagCategoryStyle(activeTag.category).accent, 0.35)}` }}
+              aria-hidden
+            >
               {activeTag.emoji}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-xs" style={{ color: MIST }}>
+              <p className="text-xs font-medium" style={{ color: tagCategoryStyle(activeTag.category).accent }}>
                 {t('customize.tags.currentlyActive')}
               </p>
               <p className="font-semibold truncate" style={{ color: PAPER }}>
@@ -365,7 +382,9 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
           <p className="text-sm" style={{ color: MIST }}>
             {t('tagPins.unlockedCount', { count: pins.length })} · {t('tagPins.tapToUse')}
           </p>
-          <ul className="mt-3 flex flex-wrap gap-2">
+          {/* Só o símbolo de cada tag — o nome aparece no "Ativa no momento"
+              (e no title/aria-label do botão). */}
+          <ul className="mt-3 flex flex-wrap gap-2.5">
             {pins.map((pin, idx) => {
               const isActive = activeTag?.name === pin.name;
               const style = tagCategoryStyle(pin.category);
@@ -375,16 +394,29 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
                     onClick={() => handleUseTag(pin, pin.category)}
                     disabled={!!savingName}
                     aria-pressed={isActive}
-                    className={`gap-1.5 h-10 pl-2.5 pr-3.5 rounded-full text-sm font-medium transition disabled:cursor-wait ${FOCUS_RING} ${style.pill} ${
-                      isActive ? 'ring-2' : 'opacity-90 hover:opacity-100'
+                    aria-label={pin.name}
+                    title={pin.name}
+                    className={`relative grid place-items-center w-12 h-12 rounded-full transition disabled:cursor-wait ${FOCUS_RING} ${style.pill} ${
+                      isActive ? '' : 'opacity-90 hover:opacity-100'
                     }`}
                     style={isActive ? { boxShadow: `0 0 0 2px ${NIGHT}, 0 0 0 4px ${style.accent}` } : undefined}
                   >
-                    <span className="text-lg leading-none" aria-hidden>
-                      {pin.emoji}
-                    </span>
-                    {pin.name}
-                    {savingName === pin.name ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden /> : isActive ? <Check className="w-3.5 h-3.5" aria-hidden /> : null}
+                    {savingName === pin.name ? (
+                      <Loader2 className="w-5 h-5 animate-spin" aria-hidden />
+                    ) : (
+                      <span className="text-2xl leading-none" aria-hidden>
+                        {pin.emoji}
+                      </span>
+                    )}
+                    {isActive && savingName !== pin.name && (
+                      <span
+                        className="absolute -top-1 -right-1 grid place-items-center w-5 h-5 rounded-full"
+                        style={{ background: style.accent, color: NIGHT, boxShadow: `0 0 0 2px ${NIGHT}` }}
+                        aria-hidden
+                      >
+                        <Check className="w-3 h-3" strokeWidth={3} />
+                      </span>
+                    )}
                   </button>
                 </li>
               );
@@ -441,8 +473,12 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       bodyClassName="px-5 sm:px-7 pb-6"
     >
       {/* Categorias — rolagem lateral, grudadas no topo */}
-      <div className="sticky top-0 z-10 -mx-5 sm:-mx-7 pt-4 pb-3 mb-4 border-b border-white/[0.07]" style={{ background: NIGHT }}>
-        <div role="tablist" aria-label={t('profile.tagPins')} className="flex gap-2 overflow-x-auto px-5 sm:px-7 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+      {/* py-1.5 dentro da faixa que rola: o overflow corta tudo que passa da
+          caixa, e o contorno (ring) e o foco dos botões ficam um pouco fora
+          deles — sem essa folga as categorias apareciam cortadas em cima e
+          embaixo. */}
+      <div className="sticky top-0 z-10 -mx-5 sm:-mx-7 pt-2.5 pb-1.5 mb-4 border-b border-white/[0.07]" style={{ background: NIGHT }}>
+        <div role="tablist" aria-label={t('profile.tagPins')} className="flex gap-2 overflow-x-auto px-5 sm:px-7 py-1.5 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
           {categories.map(({ id, label, icon: Icon }) => {
             const active = viewMode === id;
             const accent = id === 'pins' ? '#A78BFA' : tagCategoryStyle(id).accent;

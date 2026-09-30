@@ -20,10 +20,13 @@ export const NIGHT_BACKGROUND = `radial-gradient(ellipse 80% 50% at 75% 0%, rgba
 // Pixelify Sans é carregada no index.html; o fallback monoespaçado mantém
 // o ar "blocado" enquanto a fonte não chega. Ligaduras desligadas: a
 // ligadura "fi" dessa fonte faz "filme" ser lido como "Alme".
-// "CineOracle Digits" vem primeiro e só cobre os algarismos 2, 5 e 7 (ver
-// index.css): na Pixelify o 5 é igual ao S, o 7 parece um 1 e o 2 parece um
-// S invertido em tamanho pequeno.
-export const PIXEL_FONT_STACK = '"CineOracle Digits", "Pixelify Sans", ui-monospace, "SF Mono", Menlo, monospace';
+// "CineOracle Glyphs" vem primeiro e só cobre 2, 5, 7, L e Z (ver
+// index.css): na Pixelify o 5 é igual ao S, o 7 parece um 1, o 2 e o Z
+// parecem um S invertido e o L parece um J invertido em tamanho pequeno.
+export const PIXEL_FONT_STACK = '"CineOracle Glyphs", "Pixelify Sans", ui-monospace, "SF Mono", Menlo, monospace';
+// Texto de amostra pra document.fonts.load() baixar também a fonte dos
+// glifos redesenhados antes de desenhar num canvas.
+export const PIXEL_FONT_SAMPLE = 'Aa257LZ';
 
 export const PIXEL: React.CSSProperties = {
   fontFamily: PIXEL_FONT_STACK,
