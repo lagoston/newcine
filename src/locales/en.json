@@ -453,6 +453,13 @@
   },
   "movies": {
     "director": "Director",
+    "budget": "Budget",
+    "budgetUnknown": "Not disclosed",
+    "budgetThousand": "${{value}} thousand",
+    "budgetMillion_one": "${{value}} million",
+    "budgetMillion_other": "${{value}} million",
+    "budgetBillion_one": "${{value}} billion",
+    "budgetBillion_other": "${{value}} billion",
     "wantingToWatch": "Wanting to Watch...",
     "directorTopTen": "{{director}}'s top rated films",
     "noDirectorMoviesFound": "No other films found for this director.",

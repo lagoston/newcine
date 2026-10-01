@@ -455,6 +455,13 @@
   },
   "movies": {
     "director": "Diretor",
+    "budget": "Orçamento",
+    "budgetUnknown": "Não divulgado",
+    "budgetThousand": "US$ {{value}} mil",
+    "budgetMillion_one": "US$ {{value}} milhão",
+    "budgetMillion_other": "US$ {{value}} milhões",
+    "budgetBillion_one": "US$ {{value}} bilhão",
+    "budgetBillion_other": "US$ {{value}} bilhões",
     "wantingToWatch": "Querendo Assistir...",
     "openWatchlistDuel": "Iniciar Duelo",
     "directorTopTen": "Melhores filmes de {{director}}",

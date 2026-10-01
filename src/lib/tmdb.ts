@@ -88,6 +88,9 @@ export interface Movie {
   status?: string;
   in_production?: boolean;
   episode_run_time?: number | number[];
+  // Orçamento em dólares (TMDB). 0 = não divulgado; ausente = ainda não
+  // buscado (o menu do filme busca e grava no movie_cache).
+  budget?: number | null;
   genres: Genre[];
   userRating?: number | null;
   popularity?: number;
@@ -354,6 +357,7 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
       in_production: data.in_production,
       episode_run_time: data.episode_run_time,
       origin_country: data.origin_country,
+      budget: data.budget,
       media_type: data.media_type as 'movie' | 'tv',
       genres: parsedGenres,
       credits: {
@@ -442,6 +446,7 @@ export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 't
       director,
       cast_members: castMembers,
       keywords,
+      budget: mediaType === 'movie' ? (enData.budget ?? 0) : null,
       status: mediaType === 'tv' ? enData.status : null,
       in_production: mediaType === 'tv' ? (enData.in_production ?? false) : false,
       last_air_date: mediaType === 'tv' ? enData.last_air_date : null,
@@ -564,6 +569,7 @@ export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv
       director,
       cast_members: castMembers,
       keywords,
+      budget: mediaType === 'movie' ? (enData.budget ?? 0) : null,
       status: mediaType === 'tv' ? enData.status : null,
       in_production: mediaType === 'tv' ? (enData.in_production ?? false) : false,
       last_air_date: mediaType === 'tv' ? enData.last_air_date : null,
@@ -1026,3 +1032,19 @@ export const getWatchedEpisodesForProfile = async (
 
   return set;
 };
+// Orçamento de um filme que veio do cache sem ele (cache antigo): busca no
+// TMDB uma vez e grava no movie_cache, pra próxima abertura já ter.
+// Devolve 0 quando o TMDB não tem (não divulgado) e null em caso de erro.
+export async function fetchAndStoreBudget(movieId: number): Promise<number | null> {
+  try {
+    const data = await tmdbFetch(`/movie/${movieId}?language=en-US`);
+    const budget = typeof data?.budget === 'number' ? data.budget : 0;
+    await supabase.from('movie_cache').update({ budget }).eq('tmdb_id', movieId).eq('media_type', 'movie');
+    // a chave em memória leva o idioma no fim: some com todas as variações
+    cache.invalidatePattern(CACHE_KEYS.MOVIE_DETAILS(movieId, 'movie'));
+    return budget;
+  } catch (error) {
+    console.error('Error fetching movie budget:', error);
+    return null;
+  }
+}

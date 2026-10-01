@@ -6,7 +6,7 @@ import {
   X, Star, Loader2, Film, Instagram, Tv, Send, MessageSquare, Play, ChevronRight,
   ChevronDown, AlertCircle, Wand2, Plus, Check, Eye, Layers,
 } from 'lucide-react';
-import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile } from '../lib/tmdb';
+import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget } from '../lib/tmdb';
 import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
 import { getMovieCollections, collectionDisplayName, sortedParts, type MovieCollection } from '../lib/collections';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
@@ -235,6 +235,29 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     setDirectorTopTenError(null);
     setDirectorTopTenMovies([]);
   }, [movie.id]);
+
+  // Orçamento (só filmes). Vem do movie_cache; se o filme veio de um cache
+  // antigo sem ele, busca no TMDB uma vez e grava (lib/tmdb.ts).
+  //   undefined = carregando · null = erro (some) · 0 = não divulgado
+  const [budget, setBudget] = useState<number | null | undefined>(typeof movie.budget === 'number' ? movie.budget : undefined);
+  useEffect(() => {
+    if (movie.media_type === 'tv' || !movie.id) {
+      setBudget(null);
+      return;
+    }
+    if (typeof movie.budget === 'number') {
+      setBudget(movie.budget);
+      return;
+    }
+    setBudget(undefined);
+    let cancelled = false;
+    fetchAndStoreBudget(movie.id).then((value) => {
+      if (!cancelled) setBudget(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [movie.id, movie.media_type, movie.budget]);
 
   // Saga / trilogia / continuação (coleção do TMDB ou cadastrada à mão —
   // lib/collections.ts). Só filmes; séries não têm coleção.
@@ -1286,6 +1309,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   }
 
   const cast = movie.credits?.cast?.slice(0, 6) || [];
+
+  // "US$ 165 milhões" / "$165 million" (1 casa decimal quando precisa).
+  const formatBudget = (value: number) => {
+    const fmt = (n: number) => n.toLocaleString(i18n.language, { maximumFractionDigits: 1 });
+    if (value >= 1e9) return t('movies.budgetBillion', { value: fmt(value / 1e9), count: value < 2e9 ? 1 : 2 });
+    if (value >= 1e6) return t('movies.budgetMillion', { value: fmt(value / 1e6), count: value < 2e6 ? 1 : 2 });
+    return t('movies.budgetThousand', { value: fmt(Math.max(1, Math.round(value / 1e3))) });
+  };
   const releaseSource = movie.release_date || movie.first_air_date || '';
   // Ano lido direto do texto "AAAA-MM-DD": new Date() interpretaria como
   // meia-noite UTC e, no Brasil, um filme de 1º de janeiro viraria do ano
@@ -2049,10 +2080,25 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     <section className={`md:hidden ${sectionClass}`}>{whereToWatch}</section>
 
                     <section className={sectionClass}>
-                      <div className="flex items-center justify-between gap-3">
+                      {/* items-start: o "Ver Top 10" fica na altura do diretor,
+                          não no meio entre diretor e orçamento. */}
+                      <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-sm" style={{ color: MIST }}>{t('movies.director')}</p>
                           <p className="mt-0.5 text-lg font-semibold truncate" style={{ color: PAPER }}>{director}</p>
+                          {/* Orçamento, logo abaixo do diretor (só filmes) */}
+                          {!isTvShow && budget !== null && (
+                            <>
+                              <p className="mt-3 text-sm" style={{ color: MIST }}>{t('movies.budget')}</p>
+                              {budget === undefined ? (
+                                <span className="mt-1 block h-6 w-32 rounded-md animate-pulse" style={{ background: VELVET }} aria-hidden />
+                              ) : (
+                                <p className="mt-0.5 text-lg font-semibold" style={{ color: budget > 0 ? PAPER : MIST }}>
+                                  {budget > 0 ? formatBudget(budget) : t('movies.budgetUnknown')}
+                                </p>
+                              )}
+                            </>
+                          )}
                         </div>
                         {director !== t('movies.unknown') && (
                           <button
