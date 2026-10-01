@@ -1343,6 +1343,16 @@
     "minutes": "{{count}} min",
     "readMore": "Ler mais",
     "readLess": "Mostrar menos",
+    "collection": {
+      "duology": "Duologia",
+      "trilogy": "Trilogia",
+      "saga": "Saga",
+      "count_one": "{{count}} filme",
+      "count_other": "{{count}} filmes",
+      "thisIs": "este é o {{n}}º",
+      "thisMovie": "Este filme",
+      "soon": "Em breve"
+    },
     "friendsHere": "Quem já viu",
     "friendRated": "{{name}} deu nota {{rating}}",
     "oracleSays": "O que {{name}} diz sobre este filme",
