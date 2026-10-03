@@ -1,12 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 
 // Nota prevista de UM título (menu do filme/série), sob demanda, e a chance
-// de ele virar um 9 ou 10 do usuário. Só sai previsão pra títulos que estão
-// em alguma prateleira dos oráculos: filmes em recommendation_pools.movie_ids,
-// séries em recommendation_pools.tv_ids.
+// de ele virar nota 10 do usuário (o menu mostra essa chance quando a nota
+// prevista é 9 ou menos). Só sai previsão pra títulos que estão em alguma
+// prateleira dos oráculos: filmes em recommendation_pools.movie_ids, séries
+// em recommendation_pools.tv_ids.
 //
-// A fórmula (v4) mora no banco, na função predict_ratings_v4 — ver a
-// migração 20261003200000_prediction_v4.sql.
+// A fórmula (v4) mora no banco, na função predict_ratings — ver as migrações
+// 20261003200000_prediction_v4.sql, 20261003210000_prediction_v4_cut.sql e
+// 20261003220000_prediction_ten_chance.sql.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -70,16 +72,22 @@ Deno.serve(async (req) => {
     if (!poolMatches || poolMatches.length === 0) return json({ inPool: false, predictedRating: null });
 
     const { data: rows, error: predictionError } = await supabase
-      .rpc('predict_ratings_v4', { p_user_id: userId, p_media_type: mediaType, p_ids: [Number(movieId)] });
+      .rpc('predict_ratings', { p_user_id: userId, p_media_type: mediaType, p_ids: [Number(movieId)] });
 
     if (predictionError) throw new Error(`Prediction: ${predictionError.message}`);
 
-    const row = (rows || [])[0] as { predicted_rating: number | null; chance_9plus: number | null } | undefined;
+    const row = (rows || [])[0] as
+      | { predicted_rating: number | null; chance_9plus: number | null; chance_10: number | null }
+      | undefined;
     if (!row) return json({ inPool: true, predictedRating: null, reason: 'movie_not_cached' });
 
+    const round3 = (value: number | null) => (value === null ? null : Math.round(value * 1000) / 1000);
     return json({
       inPool: true,
       predictedRating: row.predicted_rating,
+      // chance de nota 10 (0 a 1)
+      tenChance: round3(row.chance_10),
+      // chance de 9 ou 10 — mantida pra versões antigas do app
       masterpieceChance: row.chance_9plus === null ? null : Math.round(row.chance_9plus * 100) / 100,
     });
   } catch (error) {

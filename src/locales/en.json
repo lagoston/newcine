@@ -524,7 +524,7 @@
       "cost": "Consult the Oracle ({{cost}} tickets)"
     },
     "masterpiece": {
-      "chanceLong": "{{chance}} chance of being a 9 or 10 for you"
+      "tenChance": "{{chance}} chance of a 10"
     },
     "libraries": {
       "bogartFunctionDesc": "Popular and highly rated films released after 2000.",

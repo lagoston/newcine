@@ -527,7 +527,7 @@
       "cost": "Consultar o Oráculo ({{cost}} tickets)"
     },
     "masterpiece": {
-      "chanceLong": "{{chance}} de chance de ser um 9 ou 10 seu"
+      "tenChance": "{{chance}} de chance de nota 10"
     },
     "libraries": {
       "bogartFunctionDesc": "Filmes Pós-2000, populares e bem avaliados.",

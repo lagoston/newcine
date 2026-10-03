@@ -165,9 +165,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [pendingEpisodes, setPendingEpisodes] = useState<Set<string>>(new Set());
   const [userRating, setUserRating] = useState<number | null>(null);
   const [predictedRating, setPredictedRating] = useState<number | null>(null);
-  // Chance de o título virar um 9 ou 10 da pessoa (0 a 1) — aparece no menu
-  // quando a nota prevista fica em 8 ou menos (ver lib/prediction).
-  const [masterpieceChance, setMasterpieceChance] = useState<number | null>(null);
+  // Chance de o título virar nota 10 da pessoa (0 a 1) — aparece no menu
+  // quando a nota prevista é 9 ou menos (ver lib/prediction).
+  const [tenChance, setTenChance] = useState<number | null>(null);
   const [predictionLoading, setPredictionLoading] = useState(true);
   const [movieMoodKey, setMovieMoodKey] = useState<string | null>(null);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
@@ -770,7 +770,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     if (!session?.user?.id) return;
     setPredictionLoading(true);
     setPredictedRating(null);
-    setMasterpieceChance(null);
+    setTenChance(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('predict-single-movie', {
@@ -780,11 +780,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       if (error) throw error;
       const inPool = Boolean(data?.inPool) && typeof data?.predictedRating === 'number';
       setPredictedRating(inPool ? data.predictedRating : null);
-      setMasterpieceChance(inPool && typeof data?.masterpieceChance === 'number' ? data.masterpieceChance : null);
+      setTenChance(inPool && typeof data?.tenChance === 'number' ? data.tenChance : null);
     } catch (error) {
       console.error('Error loading predicted rating:', error);
       setPredictedRating(null);
-      setMasterpieceChance(null);
+      setTenChance(null);
     } finally {
       setPredictionLoading(false);
     }
@@ -1910,12 +1910,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       </span>
                     )}
                     {personalChip}
-                    {/* Nota prevista até 8: a chance de mesmo assim virar um 9 ou
-                        10 seu (a partir de 40% a própria nota já sobe pra 9). */}
-                    {!hasRated && predictedRating !== null && predictedRating <= 8 && masterpieceChance !== null && (
+                    {/* Nota prevista até 9: a chance de virar nota 10. */}
+                    {!hasRated && predictedRating !== null && predictedRating <= 9 && tenChance !== null && (
                       <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-sm ring-1 ring-white/10" style={{ background: VELVET, color: MIST }}>
                         <Sparkles className="w-3.5 h-3.5 text-violet-300" aria-hidden />
-                        {t('oracle.masterpiece.chanceLong', { chance: formatChance(masterpieceChance) })}
+                        {t('oracle.masterpiece.tenChance', { chance: formatChance(tenChance) })}
                       </span>
                     )}
                   </div>
