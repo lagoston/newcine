@@ -1507,6 +1507,7 @@
     "endsToday": "termina hoje",
     "next": "Próxima etapa",
     "conquered": "Conquistada",
+    "gifted": "De presente",
     "locked": "Bloqueada",
     "inProgress": "Em andamento",
     "counted": "Já conta para o evento",
@@ -1520,8 +1521,7 @@
       "forever_other": "São suas para sempre: as tags ficam no seu perfil mesmo depois do evento.",
       "useTag": "Usar {{name}} no perfil",
       "using": "No seu perfil",
-      "continue": "Continuar",
-      "decorated": "Seu perfil foi decorado! A decoração fica no ar até {{date}}."
+      "continue": "Continuar"
     },
     "halloween": {
       "tab": "Halloween",
@@ -1530,9 +1530,9 @@
       "subtitle": "A seleção assombrada dos três oráculos: {{count}} filmes para outubro, com algumas surpresas escondidas no meio.",
       "trackTitle": "Ritual de Halloween",
       "summary": "{{done}} de {{total}} filmes avaliados em outubro",
-      "footnote": "Valem as notas dadas durante outubro. As tags ficam no seu perfil para sempre.",
+      "footnote": "Vale a primeira nota de cada filme, dada em outubro. Quem já tinha visto quase a lista toda ganha missões de presente. As tags ficam no seu perfil para sempre.",
       "doneTitle": "Ritual completo",
-      "doneText": "Seu perfil está vestido para o Halloween até {{date}}.",
+      "doneText": "Use a {{tag}} no perfil e ele se veste de Halloween o ano inteiro, com a contagem para o próximo 31/10.",
       "steps": {
         "scary-clown": {
           "label": "1º filme",
@@ -1552,7 +1552,11 @@
           "hint": "O último acende a abóbora e decora o seu perfil.",
           "reward": "A abóbora acendeu: o ritual está completo."
         }
-      }
+      },
+      "decorationHint": "Use a {{tag}} no perfil e ele se veste de Halloween o ano inteiro, com a contagem regressiva para o próximo 31/10.",
+      "countdown_one": "Day for next Halloween",
+      "countdown_other": "Days for next Halloween",
+      "countdownToday": "Happy Halloween!"
     },
     "christmas": {
       "tab": "Natal",
@@ -1560,30 +1564,36 @@
       "title": "Recomendações de Natal",
       "subtitle": "A ceia de filmes dos três oráculos: {{count}} títulos para dezembro, com algumas surpresas embrulhadas no meio.",
       "trackTitle": "Noite de Natal",
-      "summary": "{{done}} de {{total}} etapas",
-      "footnote": "Valem as ações feitas durante dezembro. As tags ficam no seu perfil para sempre.",
+      "summary": "{{done}} de {{total}} missões",
+      "footnote": "Valem as ações feitas em dezembro. Quem já tinha visto quase a lista toda ganha missões de presente. As tags ficam no seu perfil para sempre.",
       "doneTitle": "Natal completo",
-      "doneText": "Seu perfil está vestido para o Natal até {{date}}.",
+      "doneText": "Use a {{tag}} no perfil e ele se veste de Natal o ano inteiro, com a contagem para o próximo 25/12.",
       "steps": {
-        "spark-of-grace": {
-          "label": "Monte a árvore",
-          "task": "Coloque 3 filmes da seleção na sua Watchlist",
-          "hint": "Cada filme guardado é um enfeite na árvore.",
-          "reward": "A árvore acendeu com a sua lista. Agora, um presente."
-        },
         "secret-friend": {
           "label": "Amigo secreto",
-          "task": "Sussurre um filme da seleção para um amigo",
-          "hint": "Abra um filme e toque em Sussurrar.",
-          "reward": "Seu presente chegou. Falta só a noite de Natal."
+          "task": "Sussurre um filme da lista para um amigo",
+          "hint": "Abra um filme abaixo e toque em Sussurrar.",
+          "reward": "Seu presente chegou ao amigo. Agora, assista e avalie um filme da lista."
+        },
+        "spark-of-grace": {
+          "label": "Avalie um filme",
+          "task": "Avalie 1 filme da lista",
+          "hint": "Assista a um filme da lista e dê a sua nota.",
+          "reward": "A árvore acendeu. Falta só a resenha."
         },
         "ho-ho-ho": {
-          "label": "Noite Feliz · decora o perfil",
-          "task": "Avalie 2 filmes da seleção",
-          "hint": "Assista, dê a nota e o Papai Noel decora o seu perfil.",
+          "label": "Resenha · decora o perfil",
+          "task": "Escreva uma resenha do filme que você avaliou",
+          "hint": "Abra o filme da lista que você avaliou e publique a sua resenha.",
           "reward": "O Papai Noel passou por aqui: o Natal está completo."
         }
-      }
-    }
+      },
+      "decorationHint": "Use a {{tag}} no perfil e ele se veste de Natal o ano inteiro, com a contagem regressiva para o próximo 25/12.",
+      "countdown_one": "Day for next Christmas",
+      "countdown_other": "Days for next Christmas",
+      "countdownToday": "Merry Christmas!"
+    },
+    "giftedNote_one": "Você já tinha visto {{seen}} dos {{size}} filmes desta lista antes do evento, então {{count}} missão veio de presente.",
+    "giftedNote_other": "Você já tinha visto {{seen}} dos {{size}} filmes desta lista antes do evento, então {{count}} missões vieram de presente."
   }
 }

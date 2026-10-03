@@ -1502,6 +1502,7 @@
     "endsToday": "ends today",
     "next": "Next step",
     "conquered": "Earned",
+    "gifted": "Gifted",
     "locked": "Locked",
     "inProgress": "In progress",
     "counted": "Already counts for the event",
@@ -1515,8 +1516,7 @@
       "forever_other": "They're yours forever: the tags stay on your profile after the event ends.",
       "useTag": "Show {{name}} on my profile",
       "using": "On your profile",
-      "continue": "Continue",
-      "decorated": "Your profile has been decorated! The decoration stays up until {{date}}."
+      "continue": "Continue"
     },
     "halloween": {
       "tab": "Halloween",
@@ -1525,9 +1525,9 @@
       "subtitle": "The oracles' haunted selection: {{count}} films for October, with a few surprises hidden in the mix.",
       "trackTitle": "Halloween Ritual",
       "summary": "{{done}} of {{total}} films rated in October",
-      "footnote": "Only ratings given during October count. The tags stay on your profile forever.",
+      "footnote": "Each film's first rating, given in October, counts. If you had already seen almost the whole list, you get missions as a gift. The tags stay on your profile forever.",
       "doneTitle": "Ritual complete",
-      "doneText": "Your profile is dressed for Halloween until {{date}}.",
+      "doneText": "Wear {{tag}} on your profile and it dresses up for Halloween all year, with a countdown to the next Oct 31.",
       "steps": {
         "scary-clown": {
           "label": "1st film",
@@ -1547,7 +1547,11 @@
           "hint": "The last one lights the pumpkin and decorates your profile.",
           "reward": "The pumpkin is lit: the ritual is complete."
         }
-      }
+      },
+      "decorationHint": "Wear {{tag}} on your profile and it dresses up for Halloween all year, with a countdown to the next Oct 31.",
+      "countdown_one": "Day for next Halloween",
+      "countdown_other": "Days for next Halloween",
+      "countdownToday": "Happy Halloween!"
     },
     "christmas": {
       "tab": "Christmas",
@@ -1555,30 +1559,36 @@
       "title": "Christmas Recommendations",
       "subtitle": "The oracles' holiday feast: {{count}} titles for December, with a few surprises wrapped in the mix.",
       "trackTitle": "Christmas Night",
-      "summary": "{{done}} of {{total}} steps",
-      "footnote": "Only actions taken during December count. The tags stay on your profile forever.",
+      "summary": "{{done}} of {{total}} missions",
+      "footnote": "Only actions taken in December count. If you had already seen almost the whole list, you get missions as a gift. The tags stay on your profile forever.",
       "doneTitle": "Christmas complete",
-      "doneText": "Your profile is dressed for Christmas until {{date}}.",
+      "doneText": "Wear {{tag}} on your profile and it dresses up for Christmas all year, with a countdown to the next Dec 25.",
       "steps": {
-        "spark-of-grace": {
-          "label": "Trim the tree",
-          "task": "Put 3 films from the selection on your Watchlist",
-          "hint": "Every saved film is an ornament on the tree.",
-          "reward": "Your list lit up the tree. Now, a gift."
-        },
         "secret-friend": {
           "label": "Secret friend",
-          "task": "Whisper a film from the selection to a friend",
-          "hint": "Open a film and tap Whisper.",
-          "reward": "Your gift has arrived. Only Christmas night is left."
+          "task": "Whisper a film from the list to a friend",
+          "hint": "Open a film below and tap Whisper.",
+          "reward": "Your gift has arrived. Now watch and rate a film from the list."
+        },
+        "spark-of-grace": {
+          "label": "Rate a film",
+          "task": "Rate 1 film from the list",
+          "hint": "Watch a film from the list and give it your rating.",
+          "reward": "The tree is lit. Only the review is left."
         },
         "ho-ho-ho": {
-          "label": "Silent Night · decorates your profile",
-          "task": "Rate 2 films from the selection",
-          "hint": "Watch, rate, and Santa decorates your profile.",
+          "label": "Review · decorates your profile",
+          "task": "Write a review of the film you rated",
+          "hint": "Open the film from the list you rated and post your review.",
           "reward": "Santa stopped by: Christmas is complete."
         }
-      }
-    }
+      },
+      "decorationHint": "Wear {{tag}} on your profile and it dresses up for Christmas all year, with a countdown to the next Dec 25.",
+      "countdown_one": "Day for next Christmas",
+      "countdown_other": "Days for next Christmas",
+      "countdownToday": "Merry Christmas!"
+    },
+    "giftedNote_one": "You had already seen {{seen}} of the {{size}} films on this list before the event, so {{count}} mission came as a gift.",
+    "giftedNote_other": "You had already seen {{seen}} of the {{size}} films on this list before the event, so {{count}} missions came as a gift."
   }
 }

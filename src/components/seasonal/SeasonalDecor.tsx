@@ -1,7 +1,8 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSeasonalEvent } from '../../contexts/SeasonalEventContext';
-import { withAlpha } from '../../lib/oracleTheme';
-import type { SeasonalEventId } from '../../lib/seasonalEvents';
+import { PAPER, PIXEL, withAlpha } from '../../lib/oracleTheme';
+import { daysUntilEventDay, type SeasonalEventId } from '../../lib/seasonalEvents';
 import { BatFlights, Cobweb, GoldStar, HangingSpider, JackOLantern, LightsGarland, MoonGlow, PennantBunting, SantaHat, Snowfall } from './SeasonalArt';
 
 // Decoração dos eventos espalhada pelo site — de propósito, mínima:
@@ -10,8 +11,9 @@ import { BatFlights, Cobweb, GoldStar, HangingSpider, JackOLantern, LightsGarlan
 //   • NavbarSeasonalAccent: um fio no pé da barra do topo (brilho de abóbora
 //     com uma aranha / varal de luzes);
 //   • PanelSeasonalScene: a cena dentro do painel do evento na home;
-//   • ProfileSeasonalScene + AvatarSeasonalAccessory: o perfil decorado de
-//     quem completou o evento.
+//   • ProfileSeasonalScene + AvatarSeasonalAccessory + SeasonalCountdown: o
+//     perfil decorado de quem está usando 🎃 Pumpkin Head ou 🎅 Ho Ho Ho
+//     (o ano inteiro, com a contagem para o próximo 31/10 ou 25/12).
 
 const HALLOWEEN_ORANGE = '#FF8A1F';
 
@@ -166,3 +168,45 @@ export const AvatarSeasonalAccessory: React.FC<{ eventId: SeasonalEventId; size?
     </span>
   );
 };
+
+// Contagem regressiva no perfil decorado: dias para o próximo 31/10
+// (Halloween) ou 25/12 (Natal), no calendário de Brasília. No dia, a saudação.
+export const SeasonalCountdown: React.FC<{ eventId: SeasonalEventId }> = ({ eventId }) => {
+  const { t } = useTranslation();
+  const days = daysUntilEventDay(eventId);
+  const halloween = eventId === 'halloween';
+  const accent = halloween ? HALLOWEEN_ORANGE : '#F5C451';
+  const ring = halloween ? withAlpha(HALLOWEEN_ORANGE, 0.55) : 'rgba(229,72,77,0.6)';
+  return (
+    <p
+      className="relative inline-flex items-center gap-3 rounded-2xl pl-2 pr-4 py-2 backdrop-blur-[2px]"
+      style={{ background: 'rgba(0,0,0,0.42)', boxShadow: `inset 0 0 0 1px ${ring}, 0 12px 26px -16px ${accent}` }}
+    >
+      <span
+        className="grid place-items-center w-11 h-11 shrink-0 rounded-xl text-2xl leading-none"
+        style={{ background: halloween ? withAlpha(HALLOWEEN_ORANGE, 0.16) : 'rgba(229,72,77,0.2)' }}
+        aria-hidden
+      >
+        {halloween ? '🎃' : '🎅'}
+      </span>
+      {days === 0 ? (
+        <span style={{ ...PIXEL, color: accent, textShadow: `0 0 16px ${withAlpha(accent, 0.6)}` }} className="text-xl leading-none">
+          {t(`events.${eventId}.countdownToday`)}
+        </span>
+      ) : (
+        <>
+          <span
+            style={{ ...PIXEL, color: accent, textShadow: `0 0 16px ${withAlpha(accent, 0.6)}` }}
+            className="text-[2rem] leading-none tabular-nums"
+          >
+            {days}
+          </span>
+          <span className="max-w-[7.5rem] text-[11px] font-semibold uppercase tracking-wider leading-tight text-left" style={{ color: PAPER }}>
+            {t(`events.${eventId}.countdown`, { count: days })}
+          </span>
+        </>
+      )}
+    </p>
+  );
+};
+

@@ -7,7 +7,7 @@ import { getBannerClass } from '../lib/banners';
 import { getTextEffectNameClass, getTextEffectSecondaryClass } from '../lib/textEffects';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, tagCategoryStyle } from '../lib/oracleTheme';
 import type { SeasonalEventId } from '../lib/seasonalEvents';
-import { AvatarSeasonalAccessory, ProfileSeasonalScene } from './seasonal/SeasonalDecor';
+import { AvatarSeasonalAccessory, ProfileSeasonalScene, SeasonalCountdown } from './seasonal/SeasonalDecor';
 
 // Cartão de identidade de um perfil — o mesmo no seu Perfil e no perfil
 // de outra pessoa (Comunidade). Mostra banner, moldura, efeito de texto,
@@ -49,8 +49,8 @@ interface ProfileIdentityCardProps {
   // Quando presente, substitui nome/bio/amigos (formulário de edição).
   editor?: React.ReactNode;
   actions?: React.ReactNode;
-  // Perfil decorado pelo evento sazonal no ar (quem completou o Halloween ou
-  // o Natal). Quem calcula é useProfileSeasonalDecoration.
+  // Perfil decorado de Halloween ou Natal (dono usando 🎃 Pumpkin Head ou
+  // 🎅 Ho Ho Ho). Quem calcula é useTagDecoration.
   seasonalDecoration?: SeasonalEventId | null;
 }
 
@@ -169,6 +169,11 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
                     </span>
                   )}
                 </div>
+                {seasonalDecoration && (
+                  <div className="mt-4 flex justify-center sm:justify-start">
+                    <SeasonalCountdown eventId={seasonalDecoration} />
+                  </div>
+                )}
               </>
             )}
           </div>

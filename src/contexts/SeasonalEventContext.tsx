@@ -5,6 +5,8 @@ import { useAuth } from '../lib/auth';
 import {
   SEASONAL_THEMES,
   PREVIEW_ALIASES,
+  DECORATION_TAGS,
+  decorationForActiveTag,
   isSeasonalEventId,
   type SeasonalEventId,
   type SeasonalEventState,
@@ -15,8 +17,8 @@ import SeasonalCelebration from '../components/seasonal/SeasonalCelebration';
 
 // Evento sazonal no ar (Halloween em outubro, Natal em dezembro…), um só
 // para o site inteiro: a home mostra o painel do evento, o fundo e a barra
-// do topo ganham a decoração do tema e os perfis de quem completou o evento
-// aparecem decorados.
+// do topo ganham a decoração do tema. A decoração dos perfis depende da tag
+// em uso (useTagDecoration), não do evento.
 //
 // O estado vem de get_seasonal_event_state() e é atualizado ao trocar de
 // página, ao voltar para a aba e quando alguém pede (requestSeasonalRefresh,
@@ -178,35 +180,43 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
 
 export const useSeasonalEvent = () => useContext(SeasonalEventContext);
 
-// Decoração do perfil: o evento no ar e o dono do perfil com a última tag
-// do evento. No seu próprio perfil, a prévia (?evento=natal) também mostra.
-export function useProfileSeasonalDecoration(profileUserId: string | null | undefined, isOwn: boolean): SeasonalEventId | null {
+// Decoração do perfil: aparece o ano inteiro em quem estiver USANDO a
+// última tag de um evento (🎃 Pumpkin Head → Halloween, 🎅 Ho Ho Ho → Natal).
+// Para quem está logado, confere no banco se o dono tem mesmo a tag (a tag
+// em uso é gravada pelo navegador); visitantes, que não leem as tags, veem
+// a tag em uso. No seu próprio perfil, a prévia (?evento=natal) também mostra.
+export function useTagDecoration(
+  profileUserId: string | null | undefined,
+  activeTag: { name?: string; category?: string } | null | undefined,
+  isOwn: boolean,
+): SeasonalEventId | null {
   const { event } = useSeasonalEvent();
-  const [othersHasTag, setOthersHasTag] = useState(false);
-
-  const eventId = event?.id ?? null;
-  const decorationTag = event?.decoration_tag ?? null;
-  const active = Boolean(event?.is_active);
+  const { session } = useAuth();
+  const signedIn = Boolean(session?.user?.id);
+  const wanted = decorationForActiveTag(activeTag);
+  const key = `${profileUserId ?? ''}:${wanted ?? ''}`;
+  const [verified, setVerified] = useState<{ key: string; owned: boolean } | null>(null);
 
   useEffect(() => {
-    setOthersHasTag(false);
-    if (isOwn || !profileUserId || !decorationTag || !active) return;
+    if (!wanted || !profileUserId || !signedIn) return;
     let cancelled = false;
     supabase
       .from('user_special_tags')
       .select('tag_id')
       .eq('user_id', profileUserId)
-      .eq('tag_id', decorationTag)
+      .eq('tag_id', DECORATION_TAGS[wanted].id)
       .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) setOthersHasTag(Boolean(data));
+      .then(({ data, error }) => {
+        // erro de leitura: na dúvida, mostra (é só enfeite)
+        if (!cancelled) setVerified({ key, owned: Boolean(error) || Boolean(data) });
       });
     return () => {
       cancelled = true;
     };
-  }, [isOwn, profileUserId, decorationTag, active]);
+  }, [key, wanted, profileUserId, signedIn]);
 
-  if (!event || !eventId) return null;
-  if (isOwn) return event.decoration_unlocked || event.is_preview ? eventId : null;
-  return active && othersHasTag ? eventId : null;
+  if (isOwn && event?.is_preview) return event.id;
+  if (!wanted) return null;
+  if (!signedIn) return wanted;
+  return verified?.key === key && verified.owned ? wanted : null;
 }

@@ -22,7 +22,7 @@ import { cache } from '../lib/cache';
 import { useProfileData } from '../hooks/useProfileData';
 import { VELVET, SURFACE, SURFACE_VAR, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
 import { getBannerTone } from '../lib/banners';
-import { useProfileSeasonalDecoration } from '../contexts/SeasonalEventContext';
+import { useTagDecoration } from '../contexts/SeasonalEventContext';
 
 interface Profile {
   id: string;
@@ -180,8 +180,8 @@ export default function Profile() {
     movies,
     refetch: refetchProfileData,
   } = useProfileData(session?.user?.id, i18n.language);
-  // Perfil decorado pelo evento sazonal (quem completou o Halloween/Natal).
-  const seasonalDecoration = useProfileSeasonalDecoration(session?.user?.id, true);
+  // Perfil decorado de Halloween/Natal: com 🎃 Pumpkin Head ou 🎅 Ho Ho Ho em uso.
+  const seasonalDecoration = useTagDecoration(session?.user?.id, profile?.active_tag, true);
 
   const [countryMoviesModal, setCountryMoviesModal] = useState<{ isOpen: boolean; title: string; movies: any[] }>({
     isOpen: false,

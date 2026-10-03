@@ -10,7 +10,7 @@ import type { OracleId } from './oracleTheme';
 // events.<id> nos arquivos de idioma.
 
 export type SeasonalEventId = 'halloween' | 'christmas';
-export type SeasonalStepKind = 'rate' | 'watchlist' | 'whisper';
+export type SeasonalStepKind = 'rate' | 'watchlist' | 'whisper' | 'review';
 
 export interface SeasonalStep {
   index: number;
@@ -22,6 +22,9 @@ export interface SeasonalStep {
   progress: number;
   unlocked: boolean;
   unlocked_at: string | null;
+  // missão de presente: quem já tinha visto quase a lista toda antes do
+  // evento (18 de 20 → a 1ª, 19 → as duas primeiras, 20 → as três)
+  credited: boolean;
   // a etapa anterior já foi conquistada (a primeira sempre está liberada)
   available: boolean;
 }
@@ -43,6 +46,9 @@ export interface SeasonalEventState {
   items: SeasonalItem[];
   actions: Partial<Record<SeasonalStepKind, number[]>>;
   steps: SeasonalStep[];
+  // filmes da lista que a pessoa já tinha avaliado antes do evento
+  pre_rated: number;
+  list_size: number;
   decoration_tag: string | null;
   decoration_unlocked: boolean;
 }
@@ -124,3 +130,39 @@ export const countedIds = (state: SeasonalEventState, kind: SeasonalStepKind): S
 
 // Etapa em andamento: a primeira ainda não conquistada (null = tudo feito).
 export const currentStep = (state: SeasonalEventState): SeasonalStep | null => state.steps.find((step) => !step.unlocked) ?? null;
+
+// ---------------------------------------------------------------------------
+// Decoração do perfil
+// ---------------------------------------------------------------------------
+
+// A decoração aparece o ano inteiro em quem estiver USANDO a última tag do
+// evento no perfil (profiles.active_tag guarda o nome da tag).
+export const DECORATION_TAGS: Record<SeasonalEventId, { id: string; name: string }> = {
+  halloween: { id: 'pumpkin-head', name: 'Pumpkin Head' },
+  christmas: { id: 'ho-ho-ho', name: 'Ho Ho Ho' },
+};
+
+export const decorationForActiveTag = (activeTag: { name?: string; category?: string } | null | undefined): SeasonalEventId | null => {
+  if (!activeTag || activeTag.category !== 'special') return null;
+  const found = (Object.keys(DECORATION_TAGS) as SeasonalEventId[]).find((id) => DECORATION_TAGS[id].name === activeTag.name);
+  return found ?? null;
+};
+
+// O grande dia de cada tema (contagem regressiva da decoração).
+export const EVENT_DAY: Record<SeasonalEventId, { month: number; day: number }> = {
+  halloween: { month: 10, day: 31 },
+  christmas: { month: 12, day: 25 },
+};
+
+// Dias até o próximo grande dia, no calendário de Brasília (0 = é hoje).
+export const daysUntilEventDay = (eventId: SeasonalEventId, now = new Date()): number => {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: BRASILIA, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  const y = get('year');
+  const today = Date.UTC(y, get('month') - 1, get('day'));
+  const { month, day } = EVENT_DAY[eventId];
+  let target = Date.UTC(y, month - 1, day);
+  if (target < today) target = Date.UTC(y + 1, month - 1, day);
+  return Math.round((target - today) / 86_400_000);
+};
+

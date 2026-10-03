@@ -170,6 +170,7 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
   const sameKind = steps.every((s) => s.kind === steps[0]?.kind);
   const last = steps[steps.length - 1];
   const unlockedCount = steps.filter((s) => s.unlocked).length;
+  const giftedCount = steps.filter((s) => s.credited).length;
   const summary = sameKind && last
     ? t(`events.${event.id}.summary`, { done: Math.min(last.progress, last.count), total: last.count })
     : t(`events.${event.id}.summary`, { done: unlockedCount, total: steps.length });
@@ -249,7 +250,13 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
           {s.name}
         </span>
         <span className="mt-1 text-xs leading-snug" style={{ color: state === 'done' ? theme.accentText : MIST }}>
-          {state === 'done' ? t('events.conquered') : state === 'locked' ? t('events.locked') : t(`events.${event.id}.steps.${s.tag}.label`)}
+          {state === 'done'
+            ? s.credited
+              ? t('events.gifted')
+              : t('events.conquered')
+            : state === 'locked'
+              ? t('events.locked')
+              : t(`events.${event.id}.steps.${s.tag}.label`)}
         </span>
         <span className="sr-only">
           {state === 'done' ? t('events.conquered') : state === 'locked' ? t('events.locked') : t('events.inProgress')}
@@ -378,6 +385,18 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
                 {steps.map(nodeFor)}
               </ol>
 
+              {giftedCount > 0 && (
+                <p
+                  className="mt-5 flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 text-xs leading-snug"
+                  style={{ background: 'rgba(0,0,0,0.28)', color: MIST, boxShadow: `inset 0 0 0 1px ${withAlpha(theme.glow, 0.25)}` }}
+                >
+                  <span className="text-base leading-none" aria-hidden>
+                    🎁
+                  </span>
+                  <span>{t('events.giftedNote', { seen: event.pre_rated, size: event.list_size, count: giftedCount })}</span>
+                </p>
+              )}
+
               {step ? (
                 <div
                   className="mt-5 flex items-start gap-3 rounded-xl px-3.5 py-3"
@@ -427,7 +446,7 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
                       {t(`events.${event.id}.doneTitle`)}
                     </p>
                     <p className="text-xs" style={{ color: MIST }}>
-                      {t(`events.${event.id}.doneText`, { date: endLabel })}
+                      {t(`events.${event.id}.doneText`, { tag: last?.name ?? '' })}
                     </p>
                   </div>
                   <Link

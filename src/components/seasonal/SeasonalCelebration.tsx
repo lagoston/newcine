@@ -7,7 +7,7 @@ import { Check, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { PAPER, MIST, PIXEL, FOCUS_RING, withAlpha } from '../../lib/oracleTheme';
-import { formatDayMonth, lastDayOf, type SeasonalEventState, type SeasonalStep, type SeasonalTheme } from '../../lib/seasonalEvents';
+import type { SeasonalEventState, SeasonalStep, SeasonalTheme } from '../../lib/seasonalEvents';
 import { BatFlights, LightsGarland, MoonGlow, Snowfall } from './SeasonalArt';
 
 // Comemoração de uma tag especial do evento: aparece por cima de qualquer
@@ -23,7 +23,7 @@ interface Props {
 }
 
 const SeasonalCelebration: React.FC<Props> = ({ steps, event, theme, userId, onClose }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const primaryRef = useRef<HTMLButtonElement>(null);
   const [saving, setSaving] = useState(false);
@@ -32,7 +32,6 @@ const SeasonalCelebration: React.FC<Props> = ({ steps, event, theme, userId, onC
   const ordered = [...steps].sort((a, b) => a.index - b.index);
   const top = ordered[ordered.length - 1];
   const decorated = ordered.some((step) => step.tag === event.decoration_tag);
-  const endDate = formatDayMonth(lastDayOf(event), i18n.language);
 
   useEffect(() => {
     primaryRef.current?.focus();
@@ -132,7 +131,7 @@ const SeasonalCelebration: React.FC<Props> = ({ steps, event, theme, userId, onC
                 style={{ background: withAlpha(theme.accent, 0.14), color: PAPER, boxShadow: `inset 0 0 0 1px ${withAlpha(theme.accent, 0.35)}` }}
               >
                 <Sparkles className="w-4 h-4 mt-0.5 shrink-0" style={{ color: theme.glow }} aria-hidden />
-                {t('events.celebration.decorated', { date: endDate })}
+                {t(`events.${event.id}.decorationHint`, { tag: top.name })}
               </p>
             )}
 
