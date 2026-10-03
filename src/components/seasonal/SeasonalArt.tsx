@@ -182,20 +182,25 @@ export const JackOLantern: React.FC<{ size?: number; className?: string; style?:
 // Varal de bandeirinhas (laranja, roxo e verde-gosma), balançando de leve.
 const PENNANT_COLORS = ['#FF8A1F', '#8B5CF6', '#65A30D'];
 
-export const PennantBunting: React.FC<{ count?: number; className?: string; style?: React.CSSProperties }> = ({ count = 12, className = '', style }) => (
+export const PennantBunting: React.FC<{ count?: number; scale?: number; className?: string; style?: React.CSSProperties }> = ({
+  count = 12,
+  scale = 1,
+  className = '',
+  style,
+}) => (
   <div aria-hidden className={`pointer-events-none flex ${className}`} style={style}>
     {Array.from({ length: count }).map((_, i) => (
-      <span key={i} className="relative flex-1 block" style={{ height: 34 }}>
-        <svg className="absolute inset-x-0 top-0 w-full" height="12" viewBox="0 0 100 12" preserveAspectRatio="none">
+      <span key={i} className="relative flex-1 block" style={{ height: 34 * scale }}>
+        <svg className="absolute inset-x-0 top-0 w-full" height={12 * scale} viewBox="0 0 100 12" preserveAspectRatio="none">
           <path d="M0 1Q50 15 100 1" fill="none" stroke="rgba(243,234,211,0.4)" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
         </svg>
         <span
           className="co-pennant absolute left-1/2 block"
           style={{
-            top: 6,
-            width: 16,
-            height: 21,
-            marginLeft: -8,
+            top: 6 * scale,
+            width: 16 * scale,
+            height: 21 * scale,
+            marginLeft: -8 * scale,
             background: `linear-gradient(180deg, ${PENNANT_COLORS[i % PENNANT_COLORS.length]}, ${PENNANT_COLORS[i % PENNANT_COLORS.length]}cc)`,
             clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
             ['--delay' as string]: `${-((i * 7) % 5) * 0.4}s`,

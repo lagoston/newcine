@@ -1544,8 +1544,8 @@
         "pumpkin-head": {
           "label": "3rd film · decorates your profile",
           "task": "Rate 3 films from the selection",
-          "hint": "The last one lights the pumpkin and decorates your profile.",
-          "reward": "The pumpkin is lit: the ritual is complete."
+          "hint": "The last one summons the Headless Horseman and decorates your profile.",
+          "reward": "The Headless Horseman rides with you: the ritual is complete."
         }
       },
       "decorationHint": "Wear {{tag}} on your profile and it dresses up for Halloween all year, with a countdown to the next Oct 31.",

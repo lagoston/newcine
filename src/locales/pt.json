@@ -1549,8 +1549,8 @@
         "pumpkin-head": {
           "label": "3º filme · decora o perfil",
           "task": "Avalie 3 filmes da seleção",
-          "hint": "O último acende a abóbora e decora o seu perfil.",
-          "reward": "A abóbora acendeu: o ritual está completo."
+          "hint": "O último chama o Cavaleiro Sem Cabeça e decora o seu perfil.",
+          "reward": "O Cavaleiro Sem Cabeça cavalga com você: o ritual está completo."
         }
       },
       "decorationHint": "Use a {{tag}} no perfil e ele se veste de Halloween o ano inteiro, com a contagem regressiva para o próximo 31/10.",

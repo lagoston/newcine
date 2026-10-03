@@ -181,7 +181,7 @@ export const SeasonalEventProvider: React.FC<{ children: React.ReactNode }> = ({
 export const useSeasonalEvent = () => useContext(SeasonalEventContext);
 
 // Decoração do perfil: aparece o ano inteiro em quem estiver USANDO a
-// última tag de um evento (🎃 Pumpkin Head → Halloween, 🎅 Ho Ho Ho → Natal).
+// última tag de um evento (🎃 Headless Horseman → Halloween, 🎅 Ho Ho Ho → Natal).
 // Para quem está logado, confere no banco se o dono tem mesmo a tag (a tag
 // em uso é gravada pelo navegador); visitantes, que não leem as tags, veem
 // a tag em uso. No seu próprio perfil, a prévia (?evento=natal) também mostra.
@@ -220,3 +220,50 @@ export function useTagDecoration(
   if (!signedIn) return wanted;
   return verified?.key === key && verified.owned ? wanted : null;
 }
+
+// Mini perfis (cartões da Comunidade): a mesma regra da decoração do perfil,
+// com uma consulta só para todos os cartões da página.
+export function useTagDecorations(
+  profiles: { id: string; active_tag?: { name?: string; category?: string } | null }[],
+): Record<string, SeasonalEventId> {
+  const candidates = profiles
+    .map((profile) => ({ id: profile.id, deco: decorationForActiveTag(profile.active_tag) }))
+    .filter((c): c is { id: string; deco: SeasonalEventId } => c.deco !== null);
+  const key = candidates
+    .map((c) => `${c.id}:${c.deco}`)
+    .sort()
+    .join(',');
+  const [owned, setOwned] = useState<{ key: string; pairs: Set<string> } | null>(null);
+
+  useEffect(() => {
+    if (!key) return;
+    let cancelled = false;
+    const wanted = key.split(',').map((pair) => {
+      const [userId, deco] = pair.split(':');
+      return { userId, tagId: DECORATION_TAGS[deco as SeasonalEventId].id };
+    });
+    supabase
+      .from('user_special_tags')
+      .select('user_id, tag_id')
+      .in('user_id', [...new Set(wanted.map((w) => w.userId))])
+      .in('tag_id', [...new Set(wanted.map((w) => w.tagId))])
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        // erro de leitura: na dúvida, mostra (é só enfeite)
+        const rows = error ? wanted.map((w) => ({ user_id: w.userId, tag_id: w.tagId })) : ((data ?? []) as { user_id: string; tag_id: string }[]);
+        setOwned({ key, pairs: new Set(rows.map((row) => `${row.user_id}:${row.tag_id}`)) });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [key]);
+
+  const result: Record<string, SeasonalEventId> = {};
+  if (owned?.key === key) {
+    candidates.forEach((c) => {
+      if (owned.pairs.has(`${c.id}:${DECORATION_TAGS[c.deco].id}`)) result[c.id] = c.deco;
+    });
+  }
+  return result;
+}
+

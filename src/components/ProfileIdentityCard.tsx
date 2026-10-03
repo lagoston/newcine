@@ -49,7 +49,7 @@ interface ProfileIdentityCardProps {
   // Quando presente, substitui nome/bio/amigos (formulário de edição).
   editor?: React.ReactNode;
   actions?: React.ReactNode;
-  // Perfil decorado de Halloween ou Natal (dono usando 🎃 Pumpkin Head ou
+  // Perfil decorado de Halloween ou Natal (dono usando 🎃 Headless Horseman ou
   // 🎅 Ho Ho Ho). Quem calcula é useTagDecoration.
   seasonalDecoration?: SeasonalEventId | null;
 }

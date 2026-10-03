@@ -59,7 +59,7 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [profile, setProfile] = useState<Profile | null>(null);
-  // Perfil decorado de Halloween/Natal: o dono usando 🎃 Pumpkin Head ou 🎅 Ho Ho Ho.
+  // Perfil decorado de Halloween/Natal: o dono usando 🎃 Headless Horseman ou 🎅 Ho Ho Ho.
   const seasonalDecoration = useTagDecoration(profile?.id, profile?.active_tag, Boolean(profile?.id) && profile?.id === session?.user?.id);
   // Contagem de resenhas REAIS do dono deste perfil (não do viewer) —
   // usada só pra decidir se os Text Effects dele estão desbloqueados,

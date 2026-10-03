@@ -180,7 +180,7 @@ export default function Profile() {
     movies,
     refetch: refetchProfileData,
   } = useProfileData(session?.user?.id, i18n.language);
-  // Perfil decorado de Halloween/Natal: com 🎃 Pumpkin Head ou 🎅 Ho Ho Ho em uso.
+  // Perfil decorado de Halloween/Natal: com 🎃 Headless Horseman ou 🎅 Ho Ho Ho em uso.
   const seasonalDecoration = useTagDecoration(session?.user?.id, profile?.active_tag, true);
 
   const [countryMoviesModal, setCountryMoviesModal] = useState<{ isOpen: boolean; title: string; movies: any[] }>({

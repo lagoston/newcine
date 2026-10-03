@@ -12,8 +12,10 @@ import { BatFlights, Cobweb, GoldStar, HangingSpider, JackOLantern, LightsGarlan
 //     com uma aranha / varal de luzes);
 //   • PanelSeasonalScene: a cena dentro do painel do evento na home;
 //   • ProfileSeasonalScene + AvatarSeasonalAccessory + SeasonalCountdown: o
-//     perfil decorado de quem está usando 🎃 Pumpkin Head ou 🎅 Ho Ho Ho
-//     (o ano inteiro, com a contagem para o próximo 31/10 ou 25/12).
+//     perfil decorado de quem está usando 🎃 Headless Horseman ou 🎅 Ho Ho Ho
+//     (o ano inteiro, com a contagem para o próximo 31/10 ou 25/12);
+//   • CardSeasonalScene + SeasonalCountdownMini: a versão do mini perfil
+//     (cartões da Comunidade).
 
 const HALLOWEEN_ORANGE = '#FF8A1F';
 
@@ -207,6 +209,64 @@ export const SeasonalCountdown: React.FC<{ eventId: SeasonalEventId }> = ({ even
         </>
       )}
     </p>
+  );
+};
+
+// Mini perfil (cartão da Comunidade): a faixa do banner decorada. O pai é a
+// faixa do banner (position relative).
+export const CardSeasonalScene: React.FC<{ eventId: SeasonalEventId }> = ({ eventId }) => {
+  if (eventId === 'halloween') {
+    return (
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-t-2xl">
+        <div
+          className="absolute inset-0"
+          style={{ background: `radial-gradient(ellipse 80% 120% at 60% 130%, ${withAlpha(HALLOWEEN_ORANGE, 0.28)}, transparent 70%)` }}
+        />
+        <Cobweb size={66} className="absolute left-0 top-0" color="rgba(243,234,211,0.32)" />
+        <PennantBunting count={9} scale={0.7} className="absolute top-0" style={{ left: '18%', right: '3%' }} />
+        <BatFlights flights={[{ top: '42%', size: 14, dur: 15, delay: -5, rest: '55%' }]} color="#0B0612" glow={withAlpha(HALLOWEEN_ORANGE, 0.5)} />
+      </div>
+    );
+  }
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-t-2xl">
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 120% at 60% 130%, rgba(245,196,81,0.18), transparent 70%)' }} />
+      <LightsGarland count={10} className="absolute inset-x-0 top-0" sag={8} bulb={6} />
+      <Snowfall count={14} seed={13} maxSize={3} opacity={[0.35, 0.8]} speed={[6, 11]} />
+    </div>
+  );
+};
+
+// Contagem do mini perfil: uma pílula no canto da faixa do banner.
+export const SeasonalCountdownMini: React.FC<{ eventId: SeasonalEventId; className?: string; style?: React.CSSProperties }> = ({
+  eventId,
+  className = '',
+  style,
+}) => {
+  const { t } = useTranslation();
+  const days = daysUntilEventDay(eventId);
+  const halloween = eventId === 'halloween';
+  const accent = halloween ? HALLOWEEN_ORANGE : '#F5C451';
+  const ring = halloween ? withAlpha(HALLOWEEN_ORANGE, 0.6) : 'rgba(229,72,77,0.65)';
+  return (
+    <span
+      className={`pointer-events-none inline-flex items-center gap-1.5 h-7 pl-1.5 pr-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap backdrop-blur-[2px] ${className}`}
+      style={{ background: 'rgba(0,0,0,0.58)', boxShadow: `inset 0 0 0 1px ${ring}`, color: PAPER, ...style }}
+    >
+      <span className="text-sm leading-none normal-case" aria-hidden>
+        {halloween ? '🎃' : '🎅'}
+      </span>
+      {days === 0 ? (
+        <span style={{ color: accent }}>{t(`events.${eventId}.countdownToday`)}</span>
+      ) : (
+        <>
+          <span style={{ ...PIXEL, color: accent }} className="text-sm leading-none tabular-nums normal-case tracking-normal">
+            {days}
+          </span>
+          <span>{t(`events.${eventId}.countdown`, { count: days })}</span>
+        </>
+      )}
+    </span>
   );
 };
 

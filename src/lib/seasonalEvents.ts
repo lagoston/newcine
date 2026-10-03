@@ -136,15 +136,19 @@ export const currentStep = (state: SeasonalEventState): SeasonalStep | null => s
 // ---------------------------------------------------------------------------
 
 // A decoração aparece o ano inteiro em quem estiver USANDO a última tag do
-// evento no perfil (profiles.active_tag guarda o nome da tag).
-export const DECORATION_TAGS: Record<SeasonalEventId, { id: string; name: string }> = {
-  halloween: { id: 'pumpkin-head', name: 'Pumpkin Head' },
+// evento no perfil (profiles.active_tag guarda o nome da tag). `aliases`:
+// nomes antigos da mesma tag (a do Halloween se chamava "Pumpkin Head").
+export const DECORATION_TAGS: Record<SeasonalEventId, { id: string; name: string; aliases?: string[] }> = {
+  halloween: { id: 'pumpkin-head', name: 'Headless Horseman', aliases: ['Pumpkin Head'] },
   christmas: { id: 'ho-ho-ho', name: 'Ho Ho Ho' },
 };
 
 export const decorationForActiveTag = (activeTag: { name?: string; category?: string } | null | undefined): SeasonalEventId | null => {
-  if (!activeTag || activeTag.category !== 'special') return null;
-  const found = (Object.keys(DECORATION_TAGS) as SeasonalEventId[]).find((id) => DECORATION_TAGS[id].name === activeTag.name);
+  if (!activeTag || activeTag.category !== 'special' || !activeTag.name) return null;
+  const name = activeTag.name;
+  const found = (Object.keys(DECORATION_TAGS) as SeasonalEventId[]).find(
+    (id) => DECORATION_TAGS[id].name === name || (DECORATION_TAGS[id].aliases ?? []).includes(name),
+  );
   return found ?? null;
 };
 

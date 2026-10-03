@@ -16,6 +16,8 @@ import { useAuth } from '../lib/auth';
 import { getMovieDetailsFromDB, Movie, getTrending } from '../lib/tmdb';
 import { cache } from '../lib/cache';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, tagCategoryStyle } from '../lib/oracleTheme';
+import { useTagDecorations } from '../contexts/SeasonalEventContext';
+import { AvatarSeasonalAccessory, CardSeasonalScene, SeasonalCountdownMini } from '../components/seasonal/SeasonalDecor';
 
 // Comunidade — "a praça".
 //   1. Cabeçalho: título e busca de membros.
@@ -74,6 +76,9 @@ export default function Community() {
   const [debouncedQuery] = useDebounce(searchQuery, 300);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [filteredProfiles, setFilteredProfiles] = useState<Profile[]>([]);
+  // Mini perfis decorados de Halloween/Natal (dono usando 🎃 Headless
+  // Horseman ou 🎅 Ho Ho Ho), conferidos numa consulta só.
+  const cardDecorations = useTagDecorations(filteredProfiles);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [shelf, setShelf] = useState<WatchlistShelfItem[]>([]);
@@ -475,6 +480,7 @@ export default function Community() {
     // A parte de informações veste o tom do banner da pessoa (a cor do
     // contorno dele, escurecida até o limite que mantém o texto legível).
     const surface = getBannerTone(profile.banner, premium)?.surface ?? VELVET;
+    const decoration = cardDecorations[profile.id] ?? null;
 
     return (
       <li key={profile.id} className="relative h-full flex flex-col rounded-2xl ring-1 ring-white/10 hover:ring-white/25 overflow-hidden transition" style={{ background: surface }}>
@@ -484,7 +490,11 @@ export default function Community() {
           className={`relative h-20 rounded-t-2xl ${bannerClass}`}
           style={bannerClass ? undefined : { background: `radial-gradient(ellipse 80% 120% at 100% 0%, rgba(139,92,246,0.35), transparent 70%), ${NIGHT}` }}
           aria-hidden
-        />
+        >
+          {decoration && <CardSeasonalScene eventId={decoration} />}
+        </div>
+        {/* Contagem para o próximo 31/10 ou 25/12, no canto da faixa. */}
+        {decoration && <SeasonalCountdownMini eventId={decoration} className="absolute right-3 z-[2]" style={{ top: 46 }} />}
         <div className="flex-1 flex flex-col px-5 pb-4" style={{ color: MIST }}>
           {/* O avatar sobe metade sobre o banner; o botão fica inteiro na
               parte de informações (mt-11 = 36px do avatar acima da linha do
@@ -506,6 +516,7 @@ export default function Community() {
                   )}
                 </span>
               )}
+              {decoration && <AvatarSeasonalAccessory eventId={decoration} size={72} />}
             </span>
             {session?.user?.id && <div className="mt-11">{friendButton(profile)}</div>}
           </div>
