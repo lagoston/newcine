@@ -15,6 +15,7 @@ import FloatingMobileSearch from './FloatingMobileSearch';
 const MovieDetailsModal = lazy(() => import('./MovieDetailsModal'));
 import { Movie } from '../lib/tmdb';
 import { useWhispers } from '../contexts/WhispersContext';
+import { NavbarSeasonalAccent } from './seasonal/SeasonalDecor';
 
 function Navbar() {
   const navigate = useNavigate();
@@ -71,6 +72,8 @@ function Navbar() {
   return (
     <>
     <nav className="fixed top-0 left-0 right-0 z-40 bg-slate-950/75 backdrop-blur-2xl border-b border-white/10 shadow-lg shadow-black/20 transition-all duration-300">
+      {/* Fio do evento sazonal no pé da barra (só durante o evento). */}
+      <NavbarSeasonalAccent />
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Altura total = 3.5rem (+ área segura), a mesma que o App reserva
             no topo de todas as páginas. Com 1rem de respiro + os 44px mínimos

@@ -1,6 +1,8 @@
 /* Molduras e banners do perfil — vem antes do Tailwind pra que as classes
    utilitárias de quem usa (absolute, shadow, etc.) continuem valendo. */
 @import './styles/cosmetics.css';
+/* Decorações dos eventos sazonais (Halloween, Natal). */
+@import './styles/seasonal.css';
 
 @tailwind base;
 @tailwind components;

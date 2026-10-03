@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { requestSeasonalRefresh } from '../contexts/SeasonalEventContext';
 
 interface Follower {
   id: string;
@@ -159,6 +160,8 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
       }
 
       toast.success(t('indications.indicationSent', { username: selectedFollower.username }));
+      // sussurrar um filme da seleção de Natal conta para o evento
+      requestSeasonalRefresh();
       onClose();
       setSelectedFollower(null);
       setMessage('');

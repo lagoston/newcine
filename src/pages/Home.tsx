@@ -12,6 +12,7 @@ import FloatingFriendBubbles, { FriendBubbleData } from '../components/FloatingF
 import HomeUserPanels from '../components/HomeUserPanels';
 import GlassLoader from '../components/GlassLoader';
 import GuestLanding from '../components/GuestLanding';
+import { requestSeasonalRefresh } from '../contexts/SeasonalEventContext';
 import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE } from '../lib/oracleTheme';
 
 // ---------------------------------------------------------------------------
@@ -488,7 +489,11 @@ const Home = () => {
         <MovieDetailsModal
           movie={selectedMovie}
           isOpen={true}
-          onClose={() => setSelectedMovie(null)}
+          onClose={() => {
+            setSelectedMovie(null);
+            // a nota pode ter avançado o evento sazonal (tags, progresso)
+            requestSeasonalRefresh();
+          }}
           isOtherUserProfile={false}
           onAddToLibrary={handleAddToLibrary}
         />

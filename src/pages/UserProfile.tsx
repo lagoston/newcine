@@ -15,6 +15,7 @@ import UserReviewsModal from '../components/UserReviewsModal';
 import CompatibilityModal from '../components/CompatibilityModal';
 import MatchMovieModal from '../components/MatchMovieModal';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON, type ProfileActiveTag } from '../components/ProfileIdentityCard';
+import { useProfileSeasonalDecoration } from '../contexts/SeasonalEventContext';
 import { ProfileStatTiles, ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD } from '../components/ProfileTaste';
 import { summarizeRatings } from '../lib/profileStats';
 import ProfileEssence from '../components/ProfileEssence';
@@ -58,6 +59,8 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [profile, setProfile] = useState<Profile | null>(null);
+  // Perfil decorado pelo evento sazonal (dono completou o Halloween/Natal).
+  const seasonalDecoration = useProfileSeasonalDecoration(profile?.id, false);
   // Contagem de resenhas REAIS do dono deste perfil (não do viewer) —
   // usada só pra decidir se os Text Effects dele estão desbloqueados,
   // mesma lógica de Profile.tsx (o próprio perfil).
@@ -463,6 +466,7 @@ export default function UserProfile() {
             joinedAt={profile.created_at}
             onFriendsClick={() => setShowFriendsModal(true)}
             actions={actions}
+            seasonalDecoration={seasonalDecoration}
           />
         </div>
       </section>

@@ -33,6 +33,9 @@ export interface SpecialTagStatus {
   emoji: string;
   description: string;
   requirement_description: string;
+  // Textos em português (null = usa o inglês)
+  description_pt: string | null;
+  requirement_description_pt: string | null;
   starts_at: string | null;
   ends_at: string | null;
   is_unlocked: boolean;
@@ -207,11 +210,16 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
         emoji: tag.emoji,
         description: tag.description,
         requirement_description: tag.requirement_description,
+        description_pt: tag.description_pt ?? null,
+        requirement_description_pt: tag.requirement_description_pt ?? null,
         starts_at: tag.starts_at,
         ends_at: tag.ends_at,
         is_unlocked: Boolean(mine),
         unlocked_at: mine?.unlocked_at,
-        is_currently_active: !tag.ends_at || new Date(tag.ends_at).getTime() > now,
+        // no ar agora: já começou e ainda não acabou (as do Natal só
+        // aparecem em dezembro para quem ainda não tem)
+        is_currently_active:
+          (!tag.starts_at || new Date(tag.starts_at).getTime() <= now) && (!tag.ends_at || new Date(tag.ends_at).getTime() > now),
       };
     })
     .filter((tag) => tag.is_unlocked || tag.is_currently_active);

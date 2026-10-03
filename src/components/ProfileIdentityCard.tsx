@@ -6,6 +6,8 @@ import { GhostRiderFrame } from './GhostRiderFrame';
 import { getBannerClass } from '../lib/banners';
 import { getTextEffectNameClass, getTextEffectSecondaryClass } from '../lib/textEffects';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, tagCategoryStyle } from '../lib/oracleTheme';
+import type { SeasonalEventId } from '../lib/seasonalEvents';
+import { AvatarSeasonalAccessory, ProfileSeasonalScene } from './seasonal/SeasonalDecor';
 
 // Cartão de identidade de um perfil — o mesmo no seu Perfil e no perfil
 // de outra pessoa (Comunidade). Mostra banner, moldura, efeito de texto,
@@ -47,6 +49,9 @@ interface ProfileIdentityCardProps {
   // Quando presente, substitui nome/bio/amigos (formulário de edição).
   editor?: React.ReactNode;
   actions?: React.ReactNode;
+  // Perfil decorado pelo evento sazonal no ar (quem completou o Halloween ou
+  // o Natal). Quem calcula é useProfileSeasonalDecoration.
+  seasonalDecoration?: SeasonalEventId | null;
 }
 
 const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
@@ -67,6 +72,7 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
   avatarBadge,
   editor,
   actions,
+  seasonalDecoration = null,
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -91,6 +97,7 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
             }
       }
     >
+      {seasonalDecoration && <ProfileSeasonalScene eventId={seasonalDecoration} />}
       <div className="relative z-10 p-5 sm:p-8">
         {topRight && <div className="absolute top-3 right-3 sm:top-5 sm:right-5">{topRight}</div>}
 
@@ -114,6 +121,7 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
                 )}
               </div>
             )}
+            {seasonalDecoration && !avatarBusy && <AvatarSeasonalAccessory eventId={seasonalDecoration} size={120} />}
             {avatarBadge}
           </div>
 

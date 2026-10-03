@@ -12,6 +12,9 @@ import OptimizedPoster from './OptimizedPoster';
 import OracleSheet from './OracleSheet';
 import WhispersModal from './WhispersModal';
 import MonthlyInsightsModal from './MonthlyInsightsModal';
+import SeasonalEventPanel, { PanelSwitch, type HomePanelView } from './seasonal/SeasonalEventPanel';
+import { useSeasonalEvent } from '../contexts/SeasonalEventContext';
+import { formatDayMonth } from '../lib/seasonalEvents';
 import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, ORACLES, ORACLE_BY_ID, OracleId, withAlpha } from '../lib/oracleTheme';
 
 // Topo da home de quem está logado — "a mesa do oráculo".
@@ -20,8 +23,11 @@ import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, ORACLES, ORACLE_BY_ID, OracleId
 //   2. Três botões de acesso, cada um com a sua cor: Biblioteca (azul),
 //      Oráculo (rosa) e Perfil (roxo).
 //   3. Recomendações do Dia: as três cartas do dia, uma por oráculo, com a
-//      nota prevista (ou a sua nota, se já avaliou). É o único momento
-//      animado da página: as cartas são "distribuídas" na mesa ao abrir.
+//      nota prevista (ou a sua nota, se já avaliou), num painel com contorno
+//      e a data do dia. É o único momento animado da página: as cartas são
+//      "distribuídas" na mesa ao abrir. Durante um evento sazonal (Halloween
+//      em outubro, Natal em dezembro) o painel vira o do evento
+//      (seasonal/SeasonalEventPanel), com uma alternância para voltar ao do dia.
 //
 // O painel "Sua essência" (arquétipo + cinco balanças + persona) saiu da
 // home e está guardado para a repaginação do Hub dos Oráculos.
@@ -100,6 +106,13 @@ function useMediaQuery(query: string): boolean {
 
 const PICK_INTERVAL_MS = 6000;
 const SWIPE_THRESHOLD = 50;
+// Escolha entre o painel do evento e o do dia (vale enquanto a aba está aberta).
+const PANEL_VIEW_KEY = 'cineoracle:homePanelView';
+
+// Contorno e fundo do painel das Recomendações do Dia.
+const DAILY_BORDER = 'linear-gradient(135deg, rgba(167,139,250,0.7), rgba(255,255,255,0.08) 38%, rgba(255,255,255,0.06) 62%, rgba(232,121,249,0.5))';
+const DAILY_SURFACE =
+  'radial-gradient(ellipse 60% 80% at 100% 0%, rgba(139,92,246,0.2), transparent 60%), radial-gradient(ellipse 50% 60% at 0% 100%, rgba(217,70,239,0.09), transparent 70%), #150F28';
 
 interface Props {
   userId: string;
@@ -133,6 +146,24 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
   const [showWhispers, setShowWhispers] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
   const [showOracleInfo, setShowOracleInfo] = useState(false);
+
+  const { event: seasonal, theme: seasonalTheme } = useSeasonalEvent();
+  const [panelView, setPanelView] = useState<HomePanelView>(() => {
+    try {
+      return sessionStorage.getItem(PANEL_VIEW_KEY) === 'daily' ? 'daily' : 'event';
+    } catch {
+      return 'event';
+    }
+  });
+  const changePanelView = (view: HomePanelView) => {
+    setPanelView(view);
+    try {
+      sessionStorage.setItem(PANEL_VIEW_KEY, view);
+    } catch {
+      // segue sem guardar
+    }
+  };
+  const showEvent = Boolean(seasonal && seasonalTheme) && panelView === 'event';
 
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
@@ -242,13 +273,13 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
   }, [fetchStats, fetchDailyPicks]);
 
   useEffect(() => {
-    if (!isMobile || !visible || pickAutoPaused || picks.length <= 1) return;
+    if (!isMobile || !visible || showEvent || pickAutoPaused || picks.length <= 1) return;
     const id = setInterval(() => {
       setPickDirection(1);
       setPickIndex((i) => (i + 1) % picks.length);
     }, PICK_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [isMobile, visible, pickAutoPaused, picks.length]);
+  }, [isMobile, visible, showEvent, pickAutoPaused, picks.length]);
 
   const goToPick = (index: number, direction: number) => {
     setPickAutoPaused(true);
@@ -364,7 +395,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
       <button
         onClick={() => { if (pickDragged.current) return; onMovieClick(pick.movie); }}
         className={`group w-full h-full flex justify-start items-stretch gap-4 p-3 text-left rounded-xl ring-1 ring-white/10 hover:ring-white/25 transition ${focusRing}`}
-        style={{ background: VELVET }}
+        style={{ background: VELVET, boxShadow: '0 14px 30px -22px rgba(0,0,0,0.9)' }}
       >
         <span
           className="relative shrink-0 w-[84px] sm:w-[92px] aspect-[2/3] self-start rounded-lg overflow-hidden ring-1 ring-white/10"
@@ -502,129 +533,168 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
         </ul>
       </nav>
 
-      {/* ---------- Recomendações do Dia ---------- */}
+      {/* ---------- Recomendações do Dia (ou do evento sazonal) ---------- */}
       {/* pb menor: o link "Mais recomendações" encosta na próxima seção
           (que já tem o próprio respiro de 48px) sem um vão enorme. */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-10 sm:pt-12 pb-4 sm:pb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 style={{ ...PIXEL, color: PAPER }} className="text-3xl sm:text-4xl leading-tight">
-              {t('home.panels.dailyRecommendation')}
-            </h2>
-            <p className="mt-2 text-sm sm:text-base" style={{ color: MIST }}>
-              {t('home.desk.todaySubtitle')} {t('home.desk.todayRenews')} <ResetCountdown />
-            </p>
-          </div>
-          <button
-            onClick={() => setShowOracleInfo(true)}
-            aria-label={t('home.desk.todayHelp')}
-            title={t('home.desk.todayHelp')}
-            className={`shrink-0 rounded-full hover:bg-white/5 transition ${focusRing}`}
-            style={{ color: MIST }}
-          >
-            <HelpCircle className="w-5 h-5" />
-          </button>
-        </div>
-
-        {picksLoading ? (
-          <div className="mt-6 grid gap-4 lg:grid-cols-3" aria-hidden>
-            {[0, 1, 2].map((i) => (
-              <div key={i} className={`${i > 0 ? 'hidden lg:flex' : 'flex'} gap-4 p-3 rounded-xl ring-1 ring-white/10`} style={{ background: VELVET }}>
-                <div className="w-[84px] sm:w-[92px] aspect-[2/3] rounded-lg bg-white/10 animate-pulse" />
-                <div className="flex-1 space-y-2.5 pt-1">
-                  <div className="h-4 w-20 rounded bg-white/10 animate-pulse" />
-                  <div className="h-4 w-32 rounded bg-white/10 animate-pulse" />
-                  <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : picks.length > 0 ? (
-          <>
-            {/* Desktop: as três cartas lado a lado, distribuídas na mesa */}
-            <motion.ol
-              className="mt-6 hidden lg:grid gap-4 lg:grid-cols-3"
-              variants={dealList}
-              initial="hidden"
-              animate={visible ? 'shown' : 'hidden'}
-            >
-              {picks.map((pick, i) => (
-                <motion.li key={pick.oracle} custom={i} variants={dealCard}>
-                  {renderPickTile(pick)}
-                </motion.li>
-              ))}
-            </motion.ol>
-
-            {/* Celular e tablet: uma carta por vez, arrastando para os lados */}
-            <div
-              className="mt-6 lg:hidden"
-              aria-roledescription="carousel"
-              aria-label={t('home.panels.dailyRecommendation')}
-            >
-              {/* As três cartas ficam empilhadas invisíveis na mesma célula do
-                  grid só para dar a altura da mais alta: a troca nunca faz a
-                  página pular, mesmo com títulos de uma ou duas linhas. */}
-              <div className="grid">
-                {picks.map((pick) => (
-                  <div key={`sizer-${pick.oracle}`} className="invisible" style={{ gridArea: '1 / 1' }} aria-hidden>
-                    {renderPickTile(pick)}
-                  </div>
+        {showEvent && seasonal && seasonalTheme ? (
+          <SeasonalEventPanel
+            event={seasonal}
+            theme={seasonalTheme}
+            onMovieClick={onMovieClick}
+            switcher={<PanelSwitch view={panelView} onChange={changePanelView} theme={seasonalTheme} />}
+          />
+        ) : (
+          <div className="relative rounded-3xl p-px" style={{ background: DAILY_BORDER, boxShadow: '0 34px 80px -44px rgba(139,92,246,0.75)' }}>
+            <div className="relative overflow-hidden rounded-[calc(1.5rem-1px)] p-5 sm:p-7" style={{ background: DAILY_SURFACE }}>
+              {/* faixa com as cores dos três oráculos: um filme de cada */}
+              <span aria-hidden className="absolute inset-x-0 top-0 flex h-1">
+                {ORACLES.map((oracle) => (
+                  <span key={oracle.id} className="flex-1" style={{ background: oracle.color }} />
                 ))}
-                <AnimatePresence initial={false} custom={pickDirection}>
-                  <motion.div
-                    key={picks[pickIndex % picks.length].oracle}
-                    className="h-full"
-                    style={{ gridArea: '1 / 1' }}
-                    custom={pickDirection}
-                    variants={pickSlide}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                    drag={picks.length > 1 ? 'x' : false}
-                    dragConstraints={{ left: 0, right: 0 }}
-                    dragElastic={0.22}
-                    onDragStart={() => { pickDragged.current = true; }}
-                    onDragEnd={handlePickSwipe}
+              </span>
+
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h2 style={{ ...PIXEL, color: PAPER }} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-3xl sm:text-4xl leading-tight">
+                    <span>{t('home.panels.dailyRecommendation')}</span>
+                    <span
+                      className="inline-flex items-center h-9 sm:h-10 px-2.5 rounded-lg text-xl sm:text-2xl leading-none tabular-nums"
+                      style={{ background: PAPER, color: INK, boxShadow: '0 8px 18px -10px rgba(0,0,0,0.8)' }}
+                    >
+                      {formatDayMonth(new Date(), i18n.language)}
+                    </span>
+                  </h2>
+                  <p className="mt-2 text-sm sm:text-base" style={{ color: MIST }}>
+                    {t('home.desk.todaySubtitle')} {t('home.desk.todayRenews')} <ResetCountdown />
+                  </p>
+                  {/* no celular a alternância do evento fica embaixo do título */}
+                  {seasonal && seasonalTheme && (
+                    <div className="mt-4 sm:hidden">
+                      <PanelSwitch view={panelView} onChange={changePanelView} theme={seasonalTheme} />
+                    </div>
+                  )}
+                </div>
+                <div className="shrink-0 flex items-center gap-2">
+                  {seasonal && seasonalTheme && (
+                    <div className="hidden sm:block">
+                      <PanelSwitch view={panelView} onChange={changePanelView} theme={seasonalTheme} />
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setShowOracleInfo(true)}
+                    aria-label={t('home.desk.todayHelp')}
+                    title={t('home.desk.todayHelp')}
+                    className={`shrink-0 grid place-items-center w-10 h-10 rounded-full hover:bg-white/5 transition ${focusRing}`}
+                    style={{ color: MIST }}
                   >
-                    {renderPickTile(picks[pickIndex % picks.length])}
-                  </motion.div>
-                </AnimatePresence>
+                    <HelpCircle className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
-              {picks.length > 1 && (
-                <div className="mt-2 flex items-center justify-center" role="tablist" aria-label={t('home.panels.dailyRecommendation')}>
-                  {picks.map((pick, i) => {
-                    const active = i === pickIndex % picks.length;
-                    const oracle = ORACLE_BY_ID[pick.oracle];
-                    return (
-                      <button
-                        key={pick.oracle}
-                        role="tab"
-                        aria-selected={active}
-                        aria-label={oracle.name}
-                        onClick={() => goToPick(i, i >= pickIndex ? 1 : -1)}
-                        className="grid place-items-center"
-                        style={{ minWidth: 0, minHeight: 0, width: 30, height: 28, padding: 0 }}
-                      >
-                        <span
-                          className="block rounded-full transition-all duration-300"
-                          style={{ height: 8, width: active ? 22 : 8, background: active ? oracle.color : 'rgba(189,180,214,0.3)' }}
-                        />
-                      </button>
-                    );
-                  })}
+              {picksLoading ? (
+                <div className="mt-6 grid gap-4 lg:grid-cols-3" aria-hidden>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className={`${i > 0 ? 'hidden lg:flex' : 'flex'} gap-4 p-3 rounded-xl ring-1 ring-white/10`} style={{ background: VELVET }}>
+                      <div className="w-[84px] sm:w-[92px] aspect-[2/3] rounded-lg bg-white/10 animate-pulse" />
+                      <div className="flex-1 space-y-2.5 pt-1">
+                        <div className="h-4 w-20 rounded bg-white/10 animate-pulse" />
+                        <div className="h-4 w-32 rounded bg-white/10 animate-pulse" />
+                        <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              ) : picks.length > 0 ? (
+                <>
+                  {/* Desktop: as três cartas lado a lado, distribuídas na mesa */}
+                  <motion.ol
+                    className="mt-6 hidden lg:grid gap-4 lg:grid-cols-3"
+                    variants={dealList}
+                    initial="hidden"
+                    animate={visible ? 'shown' : 'hidden'}
+                  >
+                    {picks.map((pick, i) => (
+                      <motion.li key={pick.oracle} custom={i} variants={dealCard}>
+                        {renderPickTile(pick)}
+                      </motion.li>
+                    ))}
+                  </motion.ol>
+
+                  {/* Celular e tablet: uma carta por vez, arrastando para os lados */}
+                  <div
+                    className="mt-6 lg:hidden"
+                    aria-roledescription="carousel"
+                    aria-label={t('home.panels.dailyRecommendation')}
+                  >
+                    {/* As três cartas ficam empilhadas invisíveis na mesma célula do
+                        grid só para dar a altura da mais alta: a troca nunca faz a
+                        página pular, mesmo com títulos de uma ou duas linhas. */}
+                    <div className="grid">
+                      {picks.map((pick) => (
+                        <div key={`sizer-${pick.oracle}`} className="invisible" style={{ gridArea: '1 / 1' }} aria-hidden>
+                          {renderPickTile(pick)}
+                        </div>
+                      ))}
+                      <AnimatePresence initial={false} custom={pickDirection}>
+                        <motion.div
+                          key={picks[pickIndex % picks.length].oracle}
+                          className="h-full"
+                          style={{ gridArea: '1 / 1' }}
+                          custom={pickDirection}
+                          variants={pickSlide}
+                          initial="enter"
+                          animate="center"
+                          exit="exit"
+                          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                          drag={picks.length > 1 ? 'x' : false}
+                          dragConstraints={{ left: 0, right: 0 }}
+                          dragElastic={0.22}
+                          onDragStart={() => { pickDragged.current = true; }}
+                          onDragEnd={handlePickSwipe}
+                        >
+                          {renderPickTile(picks[pickIndex % picks.length])}
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
+
+                    {picks.length > 1 && (
+                      <div className="mt-2 -mb-2 flex items-center justify-center" role="tablist" aria-label={t('home.panels.dailyRecommendation')}>
+                        {picks.map((pick, i) => {
+                          const active = i === pickIndex % picks.length;
+                          const oracle = ORACLE_BY_ID[pick.oracle];
+                          return (
+                            <button
+                              key={pick.oracle}
+                              role="tab"
+                              aria-selected={active}
+                              aria-label={oracle.name}
+                              onClick={() => goToPick(i, i >= pickIndex ? 1 : -1)}
+                              className="grid place-items-center"
+                              style={{ minWidth: 0, minHeight: 0, width: 30, height: 28, padding: 0 }}
+                            >
+                              <span
+                                className="block rounded-full transition-all duration-300"
+                                style={{ height: 8, width: active ? 22 : 8, background: active ? oracle.color : 'rgba(189,180,214,0.3)' }}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="mt-6 text-sm" style={{ color: MIST }}>{t('home.panels.noRecommendationToday')}</p>
               )}
             </div>
-          </>
-        ) : (
-          <p className="mt-6 text-sm" style={{ color: MIST }}>{t('home.panels.noRecommendationToday')}</p>
+          </div>
         )}
 
         <Link
           to="/oracle"
-          className={`mt-2 inline-flex items-center gap-2 min-h-[44px] text-sm font-semibold text-violet-200 hover:text-white transition rounded ${focusRing}`}
+          className={`mt-3 inline-flex items-center gap-2 min-h-[44px] text-sm font-semibold text-violet-200 hover:text-white transition rounded ${focusRing}`}
         >
           {t('home.desk.moreRecs')}
           <ArrowRight className="w-4 h-4" aria-hidden />

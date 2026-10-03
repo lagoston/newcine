@@ -12,6 +12,8 @@ import { ThemeProvider } from './lib/theme';
 import InstallPrompt from './components/InstallPrompt';
 import GlassLoader from './components/GlassLoader';
 import PageBackground from './components/PageBackground';
+import { SeasonalEventProvider } from './contexts/SeasonalEventContext';
+import { SeasonalBackdrop } from './components/seasonal/SeasonalDecor';
 import { registerSW } from 'virtual:pwa-register';
 import './i18n';
 
@@ -57,8 +59,12 @@ function App() {
               quando uma notificação é clicada (Home vs. qualquer outra
               página), e useLocation só funciona dentro de um Router. */}
           <WhispersProvider>
+          {/* Evento sazonal no ar (Halloween, Natal…): painel da home,
+              decoração do site e dos perfis, comemoração das tags. */}
+          <SeasonalEventProvider>
           <div className="min-h-screen pt-[calc(env(safe-area-inset-top)+3.5rem)]">
             <PageBackground />
+            <SeasonalBackdrop />
             <Navbar />
             <WhispersNotificationPopup />
             <main>
@@ -85,6 +91,7 @@ function App() {
             </main>
             <InstallPrompt />
           </div>
+          </SeasonalEventProvider>
           </WhispersProvider>
         </BrowserRouter>
         <Toaster

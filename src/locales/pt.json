@@ -226,8 +226,8 @@
       "insights": "Insights do mês",
       "newBadge": "novo",
       "todayTitle": "Na mesa hoje",
-      "todaySubtitle": "Uma carta de cada oráculo.",
-      "todayRenews": "Novas cartas em",
+      "todaySubtitle": "Um filme de cada oráculo.",
+      "todayRenews": "Novos filmes em",
       "todayHelp": "Como os oráculos escolhem",
       "todayExplain": "As cartas do dia são as mesmas para todo mundo e mudam à meia-noite (horário de Brasília). O selo roxo é a nota que o Oráculo prevê para você; se você já avaliou o filme, aparece a sua nota.",
       "predictedForYou": "Nota prevista para você",
@@ -1495,5 +1495,95 @@
     "errNoMovies": "Nenhum filme encontrado no arquivo.",
     "errWrongFormat": "Formato de arquivo inválido para este tipo de importação.",
     "errParse": "Não foi possível ler o arquivo."
+  },
+  "events": {
+    "switchLabel": "Escolher as recomendações",
+    "dailyTab": "Do dia",
+    "preview": "Prévia",
+    "previewWindow": "no ar de {{start}} a {{end}}",
+    "previewNote": "Prévia do evento: as tags só podem ser conquistadas de {{start}} a {{end}}.",
+    "endsIn_one": "termina em {{count}} dia",
+    "endsIn_other": "termina em {{count}} dias",
+    "endsToday": "termina hoje",
+    "next": "Próxima etapa",
+    "conquered": "Conquistada",
+    "locked": "Bloqueada",
+    "inProgress": "Em andamento",
+    "counted": "Já conta para o evento",
+    "curatedBy": "Curadoria de {{name}}",
+    "viewProfile": "Ver meu perfil",
+    "loadError": "Não foi possível carregar a seleção agora. Tente de novo em instantes.",
+    "celebration": {
+      "eyebrow_one": "Tag especial desbloqueada",
+      "eyebrow_other": "{{count}} tags especiais desbloqueadas",
+      "forever_one": "É sua para sempre: a tag fica no seu perfil mesmo depois do evento.",
+      "forever_other": "São suas para sempre: as tags ficam no seu perfil mesmo depois do evento.",
+      "useTag": "Usar {{name}} no perfil",
+      "using": "No seu perfil",
+      "continue": "Continuar",
+      "decorated": "Seu perfil foi decorado! A decoração fica no ar até {{date}}."
+    },
+    "halloween": {
+      "tab": "Halloween",
+      "eyebrow": "Evento de outubro",
+      "title": "Recomendações de Halloween",
+      "subtitle": "A seleção assombrada dos três oráculos: {{count}} filmes para outubro, com algumas surpresas escondidas no meio.",
+      "trackTitle": "Ritual de Halloween",
+      "summary": "{{done}} de {{total}} filmes avaliados em outubro",
+      "footnote": "Valem as notas dadas durante outubro. As tags ficam no seu perfil para sempre.",
+      "doneTitle": "Ritual completo",
+      "doneText": "Seu perfil está vestido para o Halloween até {{date}}.",
+      "steps": {
+        "scary-clown": {
+          "label": "1º filme",
+          "task": "Avalie 1 filme da seleção",
+          "hint": "Abra um filme abaixo e dê a sua nota.",
+          "reward": "O palhaço já sabe onde você mora. Primeira tag do ritual conquistada."
+        },
+        "deadly-sleeping": {
+          "label": "2º filme",
+          "task": "Avalie 2 filmes da seleção",
+          "hint": "Mais um filme e o caixão se abre.",
+          "reward": "Você dormiu num caixão e acordou mais forte. Falta só uma."
+        },
+        "pumpkin-head": {
+          "label": "3º filme · decora o perfil",
+          "task": "Avalie 3 filmes da seleção",
+          "hint": "O último acende a abóbora e decora o seu perfil.",
+          "reward": "A abóbora acendeu: o ritual está completo."
+        }
+      }
+    },
+    "christmas": {
+      "tab": "Natal",
+      "eyebrow": "Evento de dezembro",
+      "title": "Recomendações de Natal",
+      "subtitle": "A ceia de filmes dos três oráculos: {{count}} títulos para dezembro, com algumas surpresas embrulhadas no meio.",
+      "trackTitle": "Noite de Natal",
+      "summary": "{{done}} de {{total}} etapas",
+      "footnote": "Valem as ações feitas durante dezembro. As tags ficam no seu perfil para sempre.",
+      "doneTitle": "Natal completo",
+      "doneText": "Seu perfil está vestido para o Natal até {{date}}.",
+      "steps": {
+        "spark-of-grace": {
+          "label": "Monte a árvore",
+          "task": "Coloque 3 filmes da seleção na sua Watchlist",
+          "hint": "Cada filme guardado é um enfeite na árvore.",
+          "reward": "A árvore acendeu com a sua lista. Agora, um presente."
+        },
+        "secret-friend": {
+          "label": "Amigo secreto",
+          "task": "Sussurre um filme da seleção para um amigo",
+          "hint": "Abra um filme e toque em Sussurrar.",
+          "reward": "Seu presente chegou. Falta só a noite de Natal."
+        },
+        "ho-ho-ho": {
+          "label": "Noite Feliz · decora o perfil",
+          "task": "Avalie 2 filmes da seleção",
+          "hint": "Assista, dê a nota e o Papai Noel decora o seu perfil.",
+          "reward": "O Papai Noel passou por aqui: o Natal está completo."
+        }
+      }
+    }
   }
 }

@@ -1,0 +1,115 @@
+/* Eventos sazonais (Halloween, Natal…): animações das decorações.
+   Tudo é decorativo (aria-hidden, sem clique) e para com
+   prefers-reduced-motion. Os desenhos ficam em
+   src/components/seasonal/SeasonalArt.tsx. */
+
+@keyframes co-fly-across {
+  from { transform: translateX(-14%); }
+  to { transform: translateX(106%); }
+}
+@keyframes co-bat-bob {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -12px; }
+}
+@keyframes co-bat-flap {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.5); }
+}
+@keyframes co-spider-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(9px); }
+}
+@keyframes co-twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+@keyframes co-fall {
+  from { transform: translateY(-6%); }
+  to { transform: translateY(104%); }
+}
+@keyframes co-sway {
+  from { transform: translateX(-6px); }
+  to { transform: translateX(6px); }
+}
+@keyframes co-flicker {
+  0%, 100% { opacity: 0.95; }
+  35% { opacity: 0.7; }
+  55% { opacity: 1; }
+  80% { opacity: 0.78; }
+}
+@keyframes co-pennant {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+@keyframes co-node-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--co-pulse, rgba(255, 138, 31, 0.45)); }
+  50% { box-shadow: 0 0 0 8px rgba(0, 0, 0, 0); }
+}
+
+/* Morcego atravessando: o invólucro ocupa a largura toda e anda; o morcego
+   fica na ponta esquerda dele. */
+.co-fly {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  animation: co-fly-across var(--dur, 40s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+.co-bat {
+  display: inline-block;
+  animation: co-bat-bob 3.4s ease-in-out infinite;
+}
+.co-bat svg {
+  animation: co-bat-flap 0.24s ease-in-out infinite alternate;
+  transform-origin: 50% 40%;
+}
+.co-spider {
+  animation: co-spider-bob 5s ease-in-out infinite;
+}
+.co-bulb {
+  animation: co-twinkle var(--dur, 2.4s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+/* Floco: o invólucro tem a altura toda e cai; o ponto fica no topo dele. */
+.co-flake {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  animation: co-fall var(--dur, 18s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+.co-flake > span {
+  display: block;
+  border-radius: 9999px;
+  background: #fff;
+  animation: co-sway var(--sway, 3s) ease-in-out infinite alternate;
+}
+.co-flicker {
+  animation: co-flicker 3.2s ease-in-out infinite;
+}
+.co-node-pulse {
+  animation: co-node-pulse 2.4s ease-in-out infinite;
+}
+.co-pennant {
+  transform-origin: 50% 0;
+  animation: co-pennant 3.6s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .co-fly,
+  .co-bat,
+  .co-bat svg,
+  .co-spider,
+  .co-bulb,
+  .co-flake,
+  .co-flake > span,
+  .co-flicker,
+  .co-node-pulse,
+  .co-pennant {
+    animation: none !important;
+  }
+  /* parados, mas espalhados pela cena em vez de todos no canto */
+  .co-fly { transform: translateX(var(--rest-x, 40%)); }
+  .co-flake { transform: translateY(var(--rest-y, 40%)); }
+}
