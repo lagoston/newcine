@@ -322,14 +322,17 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     Object.keys(bubbleTimersRef.current).forEach(clearBubbleTimers);
     setVisibleOracleBubbles(new Set());
 
-    if (movie.media_type === 'tv') {
-      setOracleSources([]);
-      setOracleFlavorPhrases({});
-      return;
-    }
+    // Filmes e séries têm prateleiras próprias (movie_ids / tv_ids). Pra
+    // série aparece o selo, sem a frase: as frases dos oráculos foram
+    // escritas pra filmes ("Esse filme...").
+    const isSeries = movie.media_type === 'tv';
+    setOracleSources([]);
+    setOracleFlavorPhrases({});
+    let cancelled = false;
     supabase
-      .rpc('get_movie_oracle_mood_sources', { movie_id_param: movie.id })
+      .rpc('get_title_oracle_mood_sources', { p_id: movie.id, p_media_type: isSeries ? 'tv' : 'movie' })
       .then(({ data, error }) => {
+        if (cancelled) return;
         if (error) {
           console.error('Error fetching oracle mood sources:', error);
           return;
@@ -354,7 +357,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         // continua a mesma durante toda essa abertura do modal.
         const isPt = i18n.language.startsWith('pt');
         const phrases: Record<string, string> = {};
-        sources.forEach((source) => {
+        if (!isSeries) sources.forEach((source) => {
           const phrase = getRandomFlavorPhrase(source, moodsByOracle[source]);
           if (phrase) phrases[source] = isPt ? phrase.pt : phrase.en;
         });
@@ -381,6 +384,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       });
 
     return () => {
+      cancelled = true;
       Object.keys(bubbleTimersRef.current).forEach(clearBubbleTimers);
     };
   }, [movie.id, movie.media_type, i18n.language]);
@@ -778,18 +782,17 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   };
 
-  // Mood da pool a que o filme pertence — mostrado como mais um
-  // "gênero" ao lado dos reais. Independente de previsão: um filme já
+  // Mood da pool a que o título pertence — mostrado como mais um
+  // "gênero" ao lado dos reais. Independente de previsão: um título já
   // avaliado, ou de um usuário sem questionário completo, ainda pode
-  // (e deve) mostrar essa tag, já que é informação sobre o filme em
-  // si, não sobre a previsão pessoal de ninguém. Só filmes entram em
-  // pool — séries nunca têm mood.
+  // (e deve) mostrar essa tag, já que é informação sobre o título em
+  // si, não sobre a previsão pessoal de ninguém. Filmes e séries têm
+  // prateleiras próprias (recommendation_pools.movie_ids / tv_ids).
   const loadMovieMood = async () => {
-    if (movie.media_type !== 'movie') return;
-
+    setMovieMoodKey(null);
     try {
       const { data, error } = await supabase
-        .rpc('get_pools_containing_movie', { p_movie_id: movie.id });
+        .rpc('get_pools_containing_title', { p_id: movie.id, p_media_type: movie.media_type === 'tv' ? 'tv' : 'movie' });
 
       if (error) throw error;
 

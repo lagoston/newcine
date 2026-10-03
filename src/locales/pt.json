@@ -544,7 +544,9 @@
       "tapToLoad": "Toque para carregar",
       "premiumRequired": "Exclusivo Premium",
       "noMoviesForFilter": "Nenhum filme já carregado dessa prateleira está nos streamings escolhidos.",
-      "shelfError": "Não deu pra abrir esta prateleira agora."
+      "shelfError": "Não deu pra abrir esta prateleira agora.",
+      "includeSeries": "Incluir Séries",
+      "seriesBadge": "Série"
     },
     "selectMood": "Selecione Seu Humor",
     "ticketsLabel": "tickets",

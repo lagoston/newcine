@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Filter, PartyPopper, Star, Wand2, Crown, Film, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, Filter, PartyPopper, Star, Wand2, Crown, Film, RefreshCw, Tv } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { getOraclePoolPredictions, getMoviesForPredictedSlice, Movie, getMovieDetails } from '../lib/tmdb';
+import { getOraclePoolPredictions, getMoviesForPredictedSlice, Movie, getMovieDetails, type PredictedShelfMovie } from '../lib/tmdb';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import StreamingFilterModal from '../components/StreamingFilterModal';
 import OptimizedPoster from '../components/OptimizedPoster';
@@ -12,10 +12,15 @@ import { VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, ORA
 import { MOODS, type Mood } from '../lib/moods';
 
 // Biblioteca dos Oráculos (/oracle/libraries?oracle=bogart): as 9
-// prateleiras temáticas de um oráculo, cada filme com a nota PREVISTA pra
-// você; troca de oráculo e filtro de streaming no topo. As cartas pra
-// escolher o oráculo ficam na Central dos Oráculos — sem ?oracle= válido,
-// a página volta pra lá.
+// prateleiras temáticas de um oráculo, cada título com a nota PREVISTA pra
+// você; troca de oráculo, "Incluir Séries" e filtro de streaming no topo.
+// As cartas pra escolher o oráculo ficam na Central dos Oráculos — sem
+// ?oracle= válido, a página volta pra lá.
+//
+// Séries: cada prateleira guarda filmes (recommendation_pools.movie_ids) e
+// séries (tv_ids) em listas separadas. Por padrão só filmes; com "Incluir
+// Séries" ligado, as séries entram na mesma fileira, ordenadas pela mesma
+// nota prevista. A escolha fica salva neste aparelho.
 
 type CardType = OracleId;
 
@@ -29,6 +34,24 @@ const LIBRARY_FUNCTION_DESC_KEY: Record<CardType, string> = {
   bogart: 'oracle.libraries.bogartFunctionDesc',
   fincher: 'oracle.libraries.fincherFunctionDesc',
   cypher: 'oracle.libraries.cypherFunctionDesc',
+};
+
+const INCLUDE_SERIES_KEY = 'cineoracle:oracleLibraries:includeSeries';
+
+const readIncludeSeries = (): boolean => {
+  try {
+    return window.localStorage.getItem(INCLUDE_SERIES_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const saveIncludeSeries = (value: boolean) => {
+  try {
+    window.localStorage.setItem(INCLUDE_SERIES_KEY, value ? '1' : '0');
+  } catch {
+    // sem armazenamento (aba anônima etc.): vale só nesta visita
+  }
 };
 
 // Carga inicial (grátis) é menor que o incremento premium.
@@ -58,7 +81,8 @@ type PredictedMovie = Movie & { predictedRating?: number };
 // esconderia não ajuda ninguém).
 //
 // Cada prateleira pertence a UM oráculo: a página monta uma prateleira nova
-// (key = oráculo + humor) quando o oráculo muda. Antes a mesma prateleira
+// (key = oráculo + humor + séries) quando o oráculo — ou o "Incluir
+// Séries" — muda. Antes a mesma prateleira
 // era reaproveitada e a primeira busca do oráculo novo lia o estado do
 // oráculo anterior ("já tenho 20 filmes") — pulava a busca das previsões,
 // ficava com uma lista vazia e mostrava "Você já assistiu tudo dessa
@@ -67,10 +91,11 @@ type PredictedMovie = Movie & { predictedRating?: number };
 const Shelf: React.FC<{
   cardType: CardType;
   mood: Mood;
+  includeSeries: boolean;
   selectedProviderIds: number[];
   isPremium: boolean;
   onMovieClick: (movie: Movie) => void;
-}> = ({ cardType, mood, selectedProviderIds, isPremium, onMovieClick }) => {
+}> = ({ cardType, mood, includeSeries, selectedProviderIds, isPremium, onMovieClick }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [state, setState] = useState<ShelfState>(INITIAL_SHELF);
@@ -87,7 +112,7 @@ const Shelf: React.FC<{
   // Cache da lista completa de IDs já ordenados pela nota PREVISTA
   // (calculada uma vez pela Edge Function) — "carregar mais" só fatia essa
   // lista e busca os detalhes da fatia nova.
-  const predictedIdsRef = useRef<{ movie_id: number; predicted_rating: number }[]>([]);
+  const predictedIdsRef = useRef<PredictedShelfMovie[]>([]);
 
   // Arrastar com o mouse no desktop (a barra de rolagem fica escondida).
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -127,18 +152,18 @@ const Shelf: React.FC<{
     try {
       // Primeira carga: previsões pro pool inteiro, numa chamada só.
       if (isFirstPage) {
-        predictedIdsRef.current = await getOraclePoolPredictions(cardType, mood.key);
+        predictedIdsRef.current = await getOraclePoolPredictions(cardType, mood.key, includeSeries);
       }
 
       const allPredicted = predictedIdsRef.current;
       const pageSize = isFirstPage ? INITIAL_PAGE_SIZE : LOAD_MORE_INCREMENT;
       const nextSlice = allPredicted.slice(current.movies.length, current.movies.length + pageSize);
-      const sliceMovies = await getMoviesForPredictedSlice(nextSlice.map((p) => p.movie_id));
+      const sliceMovies = await getMoviesForPredictedSlice(nextSlice);
 
-      const ratingByMovieId = new Map(nextSlice.map((p) => [p.movie_id, p]));
+      const ratingByTitle = new Map(nextSlice.map((p) => [`${p.media_type}:${p.movie_id}`, p.predicted_rating]));
       const enrichedMovies = sliceMovies.map((movie) => ({
         ...movie,
-        predictedRating: ratingByMovieId.get(movie.id)?.predicted_rating,
+        predictedRating: ratingByTitle.get(`${movie.media_type === 'tv' ? 'tv' : 'movie'}:${movie.id}`),
       }));
 
       if (!aliveRef.current) return;
@@ -156,7 +181,7 @@ const Shelf: React.FC<{
     } finally {
       isFetchingRef.current = false;
     }
-  }, [cardType, mood.key]);
+  }, [cardType, mood.key, includeSeries]);
 
   useEffect(() => {
     loadMore();
@@ -202,7 +227,6 @@ const Shelf: React.FC<{
           </h2>
           <p className="mt-0.5 text-sm truncate" style={{ color: MIST }}>
             {t(mood.tagKey)}
-            {!state.loading && state.totalCount > 0 && ` · ${t('library.titleCount', { count: state.totalCount })}`}
           </p>
         </div>
       </div>
@@ -259,6 +283,7 @@ const Shelf: React.FC<{
                 {visibleMovies.map((movie) => {
                   const year = (movie.release_date || '').slice(0, 4);
                   const predicted = typeof movie.predictedRating === 'number' ? movie.predictedRating : null;
+                  const isSeries = movie.media_type === 'tv';
                   return (
                     <li key={`${movie.media_type || 'movie'}:${movie.id}`} className={`group relative shrink-0 ${TILE_WIDTH}`}>
                       <button
@@ -292,6 +317,12 @@ const Shelf: React.FC<{
                               <span style={PIXEL} className="text-sm leading-none">
                                 {predicted}
                               </span>
+                            </span>
+                          )}
+                          {isSeries && (
+                            <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 text-white text-[11px] font-semibold leading-none shadow-lg ring-1 ring-white/20">
+                              <Tv className="w-3 h-3" aria-hidden />
+                              {t('oracle.libraries.seriesBadge')}
                             </span>
                           )}
                         </span>
@@ -357,6 +388,7 @@ export default function OracleLibraries() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [showStreamingFilter, setShowStreamingFilter] = useState(false);
   const [selectedProviderIds, setSelectedProviderIds] = useState<number[]>([]);
+  const [includeSeries, setIncludeSeries] = useState(readIncludeSeries);
   const [isPremium, setIsPremium] = useState(false);
   // Estilo de carta do Personalizar perfil. Começa null de propósito: a
   // carta só monta com a imagem certa, sem piscar a padrão antes.
@@ -412,6 +444,12 @@ export default function OracleLibraries() {
     }
   };
 
+  const toggleIncludeSeries = () => {
+    const next = !includeSeries;
+    setIncludeSeries(next);
+    saveIncludeSeries(next);
+  };
+
   const handleToggleProvider = (providerId: number) => {
     setSelectedProviderIds((prev) => (prev.includes(providerId) ? prev.filter((id) => id !== providerId) : [...prev, providerId]));
   };
@@ -420,34 +458,47 @@ export default function OracleLibraries() {
   if (!selectedOracle) return <Navigate to="/oracle" replace />;
 
   const current = ORACLE_BY_ID[selectedOracle];
-  const ghostButton = `gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`;
+  const ghostButton = `gap-2 h-11 px-3 sm:px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium whitespace-nowrap transition ${FOCUS_RING}`;
 
   return (
     <div className="min-h-screen pb-16">
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10 pb-8">
         <div className="flex items-center justify-between gap-3">
+          {/* No celular a volta fica só com a seta, pra caber os dois botões. */}
           <Link
             to="/oracle"
-            className={`-ml-2 gap-1.5 h-11 px-2 rounded-xl hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
+            aria-label={t('oracle.title')}
+            className={`-ml-2 shrink-0 gap-1.5 h-11 px-2 rounded-xl hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
             style={{ color: MIST, justifyContent: 'flex-start', display: 'inline-flex' }}
           >
             <ArrowLeft className="w-[18px] h-[18px]" aria-hidden />
-            {t('oracle.title')}
+            <span className="hidden sm:inline">{t('oracle.title')}</span>
           </Link>
-          <button
-            onClick={() => setShowStreamingFilter(true)}
-            aria-label={selectedProviderIds.length > 0 ? `${t('library.filters')} (${selectedProviderIds.length})` : t('library.filters')}
-            className={`${ghostButton} ${selectedProviderIds.length > 0 ? '!border-violet-400/60 bg-violet-500/20' : ''}`}
-            style={{ color: PAPER }}
-          >
-            <Filter className="w-4 h-4 text-violet-300" aria-hidden />
-            {t('library.filters')}
-            {selectedProviderIds.length > 0 && (
-              <span className="grid place-items-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs leading-none" style={{ ...PIXEL, background: PAPER, color: INK }} aria-hidden>
-                {selectedProviderIds.length}
-              </span>
-            )}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2 min-w-0">
+            <button
+              onClick={toggleIncludeSeries}
+              aria-pressed={includeSeries}
+              className={`${ghostButton} ${includeSeries ? '!border-violet-400/60 bg-violet-500/20' : ''}`}
+              style={{ color: PAPER }}
+            >
+              <Tv className="w-4 h-4 text-violet-300" aria-hidden />
+              {t('oracle.libraries.includeSeries')}
+            </button>
+            <button
+              onClick={() => setShowStreamingFilter(true)}
+              aria-label={selectedProviderIds.length > 0 ? `${t('library.filters')} (${selectedProviderIds.length})` : t('library.filters')}
+              className={`${ghostButton} ${selectedProviderIds.length > 0 ? '!border-violet-400/60 bg-violet-500/20' : ''}`}
+              style={{ color: PAPER }}
+            >
+              <Filter className="w-4 h-4 text-violet-300" aria-hidden />
+              {t('library.filters')}
+              {selectedProviderIds.length > 0 && (
+                <span className="grid place-items-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs leading-none" style={{ ...PIXEL, background: PAPER, color: INK }} aria-hidden>
+                  {selectedProviderIds.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="mt-5 flex items-center gap-4 sm:gap-5">
@@ -503,9 +554,10 @@ export default function OracleLibraries() {
       {session?.user?.id &&
         orderedMoods.map((mood) => (
           <Shelf
-            key={`${current.id}:${mood.key}`}
+            key={`${current.id}:${mood.key}:${includeSeries ? 'series' : 'movies'}`}
             cardType={current.id}
             mood={mood}
+            includeSeries={includeSeries}
             selectedProviderIds={selectedProviderIds}
             isPremium={isPremium}
             onMovieClick={handleMovieClick}

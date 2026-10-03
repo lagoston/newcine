@@ -372,22 +372,29 @@ export default function Library() {
   const [selectedStreamingProviders, setSelectedStreamingProviders] = useState<number[]>([]);
 
   // Oracle Filter — ordena a Watchlist pela Nota Prevista (maior primeiro).
-  // movie_id -> nota prevista, buscado em lote quando ativado (só filmes;
-  // séries não entram em pool). Sem previsão vai pro fim.
+  // "movie:id" / "tv:id" -> nota prevista, buscado em lote quando ativado.
+  // Só títulos que estão nas prateleiras dos oráculos têm previsão (filmes
+  // e, desde 03/10/2026, séries). Sem previsão vai pro fim.
   const [oracleFilterActive, setOracleFilterActive] = useState(false);
-  const [predictedRatings, setPredictedRatings] = useState<Record<number, number>>({});
+  const [predictedRatings, setPredictedRatings] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!oracleFilterActive || !session?.user?.id) return;
-    const movieIds = moviesByRating.unrated
-      .filter((m) => m.media_type !== 'tv')
-      .map((m) => m.id);
-    if (movieIds.length === 0) return;
+    const movieIds = moviesByRating.unrated.filter((m) => m.media_type !== 'tv').map((m) => m.id);
+    const seriesIds = moviesByRating.unrated.filter((m) => m.media_type === 'tv').map((m) => m.id);
+    if (movieIds.length === 0 && seriesIds.length === 0) return;
 
-    supabase.functions.invoke('predict-watchlist-ratings', { body: { movieIds } })
+    supabase.functions.invoke('predict-watchlist-ratings', { body: { movieIds, seriesIds } })
       .then(({ data, error }) => {
         if (error) throw error;
-        setPredictedRatings(data?.ratings || {});
+        const next: Record<string, number> = {};
+        Object.entries((data?.ratings || {}) as Record<string, number>).forEach(([id, rating]) => {
+          next[`movie:${id}`] = rating;
+        });
+        Object.entries((data?.seriesRatings || {}) as Record<string, number>).forEach(([id, rating]) => {
+          next[`tv:${id}`] = rating;
+        });
+        setPredictedRatings(next);
       })
       .catch((error) => {
         console.error('Error loading watchlist predictions:', error);
@@ -408,7 +415,7 @@ export default function Library() {
 
     if (oracleFilterActive) {
       list = list
-        .map((movie) => ({ ...movie, predictedRating: predictedRatings[movie.id] }))
+        .map((movie) => ({ ...movie, predictedRating: predictedRatings[`${movie.media_type === 'tv' ? 'tv' : 'movie'}:${movie.id}`] }))
         .sort((a, b) => {
           const aHas = typeof a.predictedRating === 'number';
           const bHas = typeof b.predictedRating === 'number';

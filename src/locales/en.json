@@ -541,7 +541,9 @@
       "tapToLoad": "Tap to load",
       "premiumRequired": "Premium only",
       "noMoviesForFilter": "None of the films loaded on this shelf are on the streaming services you picked.",
-      "shelfError": "Couldn't open this shelf right now."
+      "shelfError": "Couldn't open this shelf right now.",
+      "includeSeries": "Include Series",
+      "seriesBadge": "Series"
     },
     "selectMood": "Select Your Mood",
     "ticketsLabel": "tickets",

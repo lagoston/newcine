@@ -833,58 +833,54 @@ export interface OraclePoolPage {
   totalCount: number;
 }
 
-interface PredictedShelfMovie {
+export interface PredictedShelfMovie {
   movie_id: number;
+  media_type: 'movie' | 'tv';
   predicted_rating: number;
 }
 
 // Chama a Edge Function que calcula a nota PREVISTA pra esse usuário
-// específico, pra cada filme do pool de uma prateleira — mesmo modelo
-// bayesiano do Match Movie Modal, mais o "Filtro do 10" (bônus por
-// diretor/país/mood/keyword em comum com os filmes que o usuário deu
-// nota 10). Retorna a lista JÁ ordenada por essa nota, sem paginação —
-// o cálculo é feito uma vez só; quem chama guarda o resultado e pagina
-// localmente sobre ele (evita recalcular tudo de novo a cada "carregar
-// mais 30").
+// específico, pra cada título de uma prateleira (oráculo + humor) — o
+// mesmo modelo da nota prevista do menu do filme, da Watchlist e do Match
+// (ver predict-oracle-shelf). Com includeSeries, as séries da prateleira
+// (recommendation_pools.tv_ids) entram na mesma lista; cada item diz se é
+// filme ou série. Retorna a lista JÁ ordenada por essa nota, sem
+// paginação — o cálculo é feito uma vez só; quem chama guarda o resultado
+// e pagina localmente sobre ele (evita recalcular tudo de novo a cada
+// "carregar mais 30").
 export const getOraclePoolPredictions = async (
   cardType: 'bogart' | 'fincher' | 'cypher',
-  moodKey: string
+  moodKey: string,
+  includeSeries = false
 ): Promise<PredictedShelfMovie[]> => {
   // functions.invoke manda o token da sessão atual (renovado sozinho). Erro
   // agora é LANÇADO: antes virava lista vazia e a prateleira dizia "Você já
   // assistiu tudo dessa categoria" quando na verdade a busca tinha falhado.
-  const { data, error } = await supabase.functions.invoke('predict-oracle-shelf', { body: { cardType, moodKey } });
+  const { data, error } = await supabase.functions.invoke('predict-oracle-shelf', { body: { cardType, moodKey, includeSeries } });
   if (error) throw error;
   if (data?.error) throw new Error(String(data.error));
-  return (data?.movies as PredictedShelfMovie[]) || [];
+  return ((data?.movies as PredictedShelfMovie[]) || []).map((item) => ({
+    ...item,
+    media_type: item.media_type === 'tv' ? 'tv' : 'movie',
+  }));
 };
 
 // Busca os detalhes completos (poster, título, etc.) só pra uma FATIA
-// de IDs já escolhida — usada junto com getOraclePoolPredictions pra
-// não buscar detalhes de filmes que ainda não vão ser exibidos.
+// já escolhida — usada junto com getOraclePoolPredictions pra não buscar
+// detalhes de títulos que ainda não vão ser exibidos. Mantém a ordem da
+// fatia.
 export const getMoviesForPredictedSlice = async (
-  movieIds: number[]
+  items: { movie_id: number; media_type: 'movie' | 'tv' }[]
 ): Promise<Movie[]> => {
-  if (movieIds.length === 0) return [];
+  if (items.length === 0) return [];
 
-  const { data: cacheRows } = await supabase
-    .from('movie_cache')
-    .select('tmdb_id, media_type')
-    .in('tmdb_id', movieIds);
+  const movieMap = await getMoviesFromCacheByType(items);
 
-  const entries = (cacheRows || []).map((row: any) => ({ movie_id: row.tmdb_id, media_type: row.media_type }));
-  const movieMap = await getMoviesFromCacheByType(entries);
-
-  // Chave EXATA `${id}_movie` — nunca aceita `${id}_tv` como substituto
-  // aqui. Prateleiras de Oráculo são exclusivamente de filmes (a própria
-  // predict-oracle-shelf já filtra media_type='movie' pro score); usar
-  // `.find(key => key.startsWith(...))` pegava qualquer entrada com esse
-  // prefixo, sem prioridade — quando um tmdb_id existe cacheado tanto
-  // como filme quanto como série (coincidência de numeração entre os
-  // dois namespaces do TMDB), isso podia silenciosamente exibir a série
-  // errada no lugar do filme certo.
-  return movieIds
-    .map((id: number) => movieMap.get(`${id}_movie`))
+  // Chave EXATA `${id}_${tipo}`: o mesmo tmdb_id pode existir cacheado como
+  // filme E como série (as numerações do TMDB são independentes) — a
+  // prateleira sabe qual dos dois pediu, então nunca troca um pelo outro.
+  return items
+    .map((item) => movieMap.get(`${item.movie_id}_${item.media_type}`))
     .filter((m: Movie | undefined): m is Movie => m !== undefined);
 };
 
