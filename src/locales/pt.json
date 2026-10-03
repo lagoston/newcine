@@ -526,6 +526,11 @@
       "consulting": "Consultando o Oráculo...",
       "cost": "Consultar o Oráculo ({{cost}} tickets)"
     },
+    "masterpiece": {
+      "badgeWithChance": "Nota prevista pra você: {{rating}} · {{chance}} de chance de virar um 9 ou 10 seu",
+      "chanceShort": "{{chance}} de chance de virar um 9 ou 10 seu",
+      "chanceLong": "{{chance}} de chance de ser um 9 ou 10 seu"
+    },
     "libraries": {
       "bogartFunctionDesc": "Filmes Pós-2000, populares e bem avaliados.",
       "fincherFunctionDesc": "Filmes Pré-2000 populares e joias cult.",
@@ -546,7 +551,8 @@
       "noMoviesForFilter": "Nenhum filme já carregado dessa prateleira está nos streamings escolhidos.",
       "shelfError": "Não deu pra abrir esta prateleira agora.",
       "includeSeries": "Incluir Séries",
-      "seriesBadge": "Série"
+      "seriesBadge": "Série",
+      "masterpieceLegend": "Dourado: boa chance de virar um 9 ou 10 seu — a porcentagem embaixo do pôster é essa chance."
     },
     "selectMood": "Selecione Seu Humor",
     "ticketsLabel": "tickets",

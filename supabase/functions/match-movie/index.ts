@@ -17,13 +17,6 @@ interface RequestBody {
   language?: string;
 }
 
-interface RatedMovieRow {
-  movie_id: number;
-  director: string | null;
-  vote_average: number;
-  rating: number;
-}
-
 interface CandidateRow {
   tmdb_id: number;
   title_en: string;
@@ -37,25 +30,6 @@ interface CandidateRow {
   origin_country: string[] | null;
   keyword_ids: number[] | null;
   ratings: Record<string, number> | null;
-}
-
-interface PositiveSignals {
-  top_directors: string[];
-  top_countries: string[];
-  top_keywords: number[];
-}
-
-interface NegativeSignals {
-  bottom_directors: Record<string, number>;
-  bottom_countries: Record<string, number>;
-  bottom_keywords: number[];
-}
-
-function calculateUserBias(history: RatedMovieRow[]): number {
-  const withAnchor = history.filter((m) => typeof m.vote_average === 'number');
-  if (withAnchor.length === 0) return 0;
-  const sum = withAnchor.reduce((acc, m) => acc + (m.rating - m.vote_average), 0);
-  return sum / withAnchor.length;
 }
 
 function harmonicMeanN(values: number[]): number {
@@ -88,43 +62,11 @@ function pickSamplingProfile(): Record<string, number> {
   }
 }
 
-// --- Modelo de previsão v3 (03/10/2026) — réplica exata de
-// predict-oracle-shelf (lá está a explicação completa e o teste que
-// justificou a mudança):
-//   nota = arredonda( nota TMDB + viés pessoal + 0,3 × (ajuste positivo + ajuste negativo) )
-// travada entre 0 e 10, arredondada pro inteiro mais próximo; o viés de
-// cada participante vale sempre. A combinação entre participantes (a média
-// harmônica que gera o matchScore) continua igual — só a nota INDIVIDUAL
-// de cada um é calculada assim.
-const SIGNAL_WEIGHT = 0.3;
-
-function computeFinalRating(
-  voteAverage: number,
-  bias: number,
-  director: string | null,
-  primaryCountry: string | null,
-  keywordIds: number[],
-  movieMoodKey: string | undefined,
-  positive: PositiveSignals,
-  negative: NegativeSignals,
-  top3Moods: Set<string>
-): number {
-  let positiveAdjustment = 0;
-  if (director && positive.top_directors.includes(director)) positiveAdjustment += 1;
-  if (movieMoodKey && top3Moods.has(movieMoodKey)) positiveAdjustment += 1;
-  if (primaryCountry && positive.top_countries.includes(primaryCountry)) positiveAdjustment += 0.5;
-  positiveAdjustment += keywordIds.filter((k) => positive.top_keywords.includes(k)).length * 0.5;
-
-  let negativeAdjustment = 0;
-  if (director && negative.bottom_directors[director]) negativeAdjustment -= negative.bottom_directors[director];
-  if (primaryCountry && negative.bottom_countries[primaryCountry] !== undefined) {
-    negativeAdjustment += negative.bottom_countries[primaryCountry]; // já vem negativo
-  }
-  negativeAdjustment -= keywordIds.filter((k) => negative.bottom_keywords.includes(k)).length * 0.5;
-
-  const raw = voteAverage + bias + SIGNAL_WEIGHT * (positiveAdjustment + negativeAdjustment);
-  return Math.max(0, Math.min(10, Math.round(raw)));
-}
+// --- Nota individual de cada participante: modelo de previsão v4, que
+// mora no banco (função predict_ratings_v4 — ver a migração
+// 20261003200000_prediction_v4.sql). A combinação entre participantes (a
+// média harmônica que gera o matchScore) continua igual. Quem já avaliou o
+// filme entra com a nota real.
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -235,47 +177,9 @@ Deno.serve(async (req) => {
       allCandidates = (res.data || []) as CandidateRow[];
     }
 
-    const [historyResults, profilesRes, positiveResults, negativeResults, moodRankResults] = await Promise.all([
-      Promise.all(participantIds.map((id) => supabase.rpc('get_user_rated_movies_for_fishing', { p_user_id: id }))),
-      supabase.from('profiles').select('id, username').in('id', participantIds),
-      Promise.all(participantIds.map((id) => supabase.rpc('get_user_top10_signals', { p_user_id: id }))),
-      Promise.all(participantIds.map((id) => supabase.rpc('get_user_bottom_signals', { p_user_id: id }))),
-      Promise.all(participantIds.map((id) => supabase.rpc('get_user_favorite_moods_order', { p_user_id: id }))),
-    ]);
-
-    for (const r of historyResults) {
-      if (r.error) throw new Error(`History: ${r.error.message}`);
-    }
-    for (const r of positiveResults) {
-      if (r.error) throw new Error(`Positive signals: ${r.error.message}`);
-    }
-    for (const r of negativeResults) {
-      if (r.error) throw new Error(`Negative signals: ${r.error.message}`);
-    }
-    for (const r of moodRankResults) {
-      if (r.error) throw new Error(`Mood rank: ${r.error.message}`);
-    }
-
-    const historiesById: Record<string, RatedMovieRow[]> = {};
-    participantIds.forEach((id, idx) => { historiesById[id] = historyResults[idx].data || []; });
-
-    const biasById: Record<string, number> = {};
-    participantIds.forEach((id) => { biasById[id] = calculateUserBias(historiesById[id]); });
-
+    const { data: profileRows } = await supabase.from('profiles').select('id, username').in('id', participantIds);
     const usernamesById: Record<string, string> = {};
-    (profilesRes.data || []).forEach((r: any) => { usernamesById[r.id] = r.username; });
-
-    const positiveSignalsById: Record<string, PositiveSignals> = {};
-    participantIds.forEach((id, idx) => { positiveSignalsById[id] = positiveResults[idx].data as PositiveSignals; });
-
-    const negativeSignalsById: Record<string, NegativeSignals> = {};
-    participantIds.forEach((id, idx) => { negativeSignalsById[id] = negativeResults[idx].data as NegativeSignals; });
-
-    const top3MoodsById: Record<string, Set<string>> = {};
-    participantIds.forEach((id, idx) => {
-      const rows = (moodRankResults[idx].data || []) as { mood_key: string; score: number }[];
-      top3MoodsById[id] = new Set(rows.slice(0, 3).map((r) => r.mood_key));
-    });
+    (profileRows || []).forEach((r: any) => { usernamesById[r.id] = r.username; });
 
     if (allCandidates.length === 0) {
       return new Response(
@@ -284,33 +188,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    const movieMoodById: Record<number, string> = {};
-    if (mode === 'unseen') {
-      const { data: moodRows, error: moodError } = await supabase.rpc('get_movie_mood_keys', {
-        p_movie_ids: allCandidates.map((c) => c.tmdb_id),
-      });
-      if (moodError) throw new Error(`Movie moods: ${moodError.message}`);
-      (moodRows || []).forEach((row: { movie_id: number; mood_key: string }) => {
-        movieMoodById[row.movie_id] = row.mood_key;
-      });
-    }
+    // Previsão de cada participante pra todos os candidatos, uma chamada por pessoa.
+    const candidateIds = allCandidates.map((c) => c.tmdb_id);
+    const predictionResults = await Promise.all(
+      participantIds.map((id) => supabase.rpc('predict_ratings_v4', { p_user_id: id, p_media_type: 'movie', p_ids: candidateIds }))
+    );
+    const predictedById: Record<string, Map<number, number>> = {};
+    participantIds.forEach((id, idx) => {
+      const r = predictionResults[idx];
+      if (r.error) throw new Error(`Predictions: ${r.error.message}`);
+      predictedById[id] = new Map(
+        ((r.data || []) as { id: number; predicted_rating: number | null }[])
+          .filter((row) => row.predicted_rating !== null)
+          .map((row) => [row.id, row.predicted_rating as number])
+      );
+    });
 
     const scored = allCandidates.map((c) => {
-      const primaryCountry = c.origin_country?.[0] || null;
-      const movieMoodKey = movieMoodById[c.tmdb_id];
-
       const perUserScores = participantIds.map((id) => {
         const realRating = c.ratings?.[id];
         if (realRating !== undefined && realRating !== null) {
           return { id, score: realRating, wasRated: true };
         }
-
-        const score = computeFinalRating(
-          c.vote_average || 0, biasById[id], c.director, primaryCountry,
-          c.keyword_ids || [], movieMoodKey, positiveSignalsById[id], negativeSignalsById[id], top3MoodsById[id]
-        );
-
-        return { id, score, wasRated: false };
+        return { id, score: predictedById[id].get(c.tmdb_id) ?? 0, wasRated: false };
       });
 
       const matchScore = harmonicMeanN(perUserScores.map((s) => s.score));

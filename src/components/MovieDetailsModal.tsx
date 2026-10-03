@@ -4,8 +4,9 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   X, Star, Loader2, Film, Instagram, Tv, Send, MessageSquare, Play, ChevronRight,
-  ChevronDown, AlertCircle, Wand2, Plus, Check, Eye, Layers,
+  ChevronDown, AlertCircle, Wand2, Plus, Check, Eye, Layers, Sparkles,
 } from 'lucide-react';
+import { formatChance, isMasterpieceCandidate } from '../lib/prediction';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget } from '../lib/tmdb';
 import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
 import { getMovieCollections, collectionDisplayName, sortedParts, type MovieCollection } from '../lib/collections';
@@ -164,6 +165,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [pendingEpisodes, setPendingEpisodes] = useState<Set<string>>(new Set());
   const [userRating, setUserRating] = useState<number | null>(null);
   const [predictedRating, setPredictedRating] = useState<number | null>(null);
+  // Chance de o título virar um 9 ou 10 da pessoa (0 a 1) — ver lib/prediction.
+  const [masterpieceChance, setMasterpieceChance] = useState<number | null>(null);
   const [predictionLoading, setPredictionLoading] = useState(true);
   const [movieMoodKey, setMovieMoodKey] = useState<string | null>(null);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
@@ -766,6 +769,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     if (!session?.user?.id) return;
     setPredictionLoading(true);
     setPredictedRating(null);
+    setMasterpieceChance(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('predict-single-movie', {
@@ -773,10 +777,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       });
 
       if (error) throw error;
-      setPredictedRating(data?.inPool && data?.predictedRating !== null ? data.predictedRating : null);
+      const inPool = Boolean(data?.inPool) && typeof data?.predictedRating === 'number';
+      setPredictedRating(inPool ? data.predictedRating : null);
+      setMasterpieceChance(inPool && typeof data?.masterpieceChance === 'number' ? data.masterpieceChance : null);
     } catch (error) {
       console.error('Error loading predicted rating:', error);
       setPredictedRating(null);
+      setMasterpieceChance(null);
     } finally {
       setPredictionLoading(false);
     }
@@ -1902,6 +1909,20 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       </span>
                     )}
                     {personalChip}
+                    {/* A chance de virar um 9 ou 10 seu: dourada quando passa de 40%. */}
+                    {!hasRated && predictedRating !== null && masterpieceChance !== null && (
+                      <span
+                        className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-sm ${
+                          isMasterpieceCandidate(masterpieceChance)
+                            ? 'font-semibold border border-amber-300/50 bg-amber-400/15 text-amber-100'
+                            : 'ring-1 ring-white/10'
+                        }`}
+                        style={isMasterpieceCandidate(masterpieceChance) ? undefined : { background: VELVET, color: MIST }}
+                      >
+                        <Sparkles className={`w-3.5 h-3.5 ${isMasterpieceCandidate(masterpieceChance) ? 'text-amber-300' : ''}`} aria-hidden />
+                        {t('oracle.masterpiece.chanceLong', { chance: formatChance(masterpieceChance) })}
+                      </span>
+                    )}
                   </div>
 
                   {((movie.genres && movie.genres.length > 0) || (movieMoodKey && MOOD_TAG_CONFIG[movieMoodKey])) && (

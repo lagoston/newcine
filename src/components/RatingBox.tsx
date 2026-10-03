@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  MoreHorizontal, Trash2, Star, ListPlus, XCircle, ArrowUpDown, Film, Filter, Wand2, Bookmark, Tv, Swords,
+  MoreHorizontal, Trash2, Star, ListPlus, XCircle, ArrowUpDown, Film, Filter, Bookmark, Tv, Swords,
 } from 'lucide-react';
 import { Movie, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
@@ -14,6 +14,7 @@ import OracleSheet from './OracleSheet';
 import { RATING_LABELS } from './RatingSliderSheet';
 import { useTranslation } from 'react-i18next';
 import OptimizedPoster from './OptimizedPoster';
+import PredictedBadge from './PredictedBadge';
 import {
   NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ratingTone, ratingBarColor, withAlpha,
 } from '../lib/oracleTheme';
@@ -61,7 +62,7 @@ interface RatingBoxProps {
   anchorId?: string;
 }
 
-type LibraryTile = Movie & { predictedRating?: number };
+type LibraryTile = Movie & { predictedRating?: number; masterpieceChance?: number | null };
 
 const RatingBox: React.FC<RatingBoxProps> = ({
   title,
@@ -354,14 +355,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                         )}
 
                         {predicted !== null ? (
-                          <span
-                            className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full bg-violet-600/95 text-white shadow-lg ring-1 ring-white/20"
-                            title={t('home.desk.predictedForYou')}
-                          >
-                            <Wand2 className="w-3 h-3" aria-hidden />
-                            <span className="sr-only">{t('home.desk.predictedForYou')}:</span>
-                            <span style={PIXEL} className="text-sm leading-none">{predicted}</span>
-                          </span>
+                          <PredictedBadge rating={predicted} chance={movie.masterpieceChance} />
                         ) : showOwnRating ? (
                           <span
                             className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 pl-1 pr-1.5 py-0.5 rounded-full text-xs font-semibold shadow-lg"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Filter, PartyPopper, Star, Wand2, Crown, Film, RefreshCw, Tv } from 'lucide-react';
+import { ArrowLeft, Loader2, Filter, PartyPopper, Star, Wand2, Crown, Film, RefreshCw, Tv, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -10,6 +10,8 @@ import StreamingFilterModal from '../components/StreamingFilterModal';
 import OptimizedPoster from '../components/OptimizedPoster';
 import { VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, ORACLE_BY_ID, OracleId, oracleCardImage, withAlpha } from '../lib/oracleTheme';
 import { MOODS, type Mood } from '../lib/moods';
+import PredictedBadge from '../components/PredictedBadge';
+import { formatChance, isMasterpieceCandidate } from '../lib/prediction';
 
 // Biblioteca dos Oráculos (/oracle/libraries?oracle=bogart): as 9
 // prateleiras temáticas de um oráculo, cada título com a nota PREVISTA pra
@@ -72,7 +74,7 @@ interface ShelfState {
 
 const INITIAL_SHELF: ShelfState = { movies: [], totalCount: 0, loading: true, loadingMore: false, error: false };
 
-type PredictedMovie = Movie & { predictedRating?: number };
+type PredictedMovie = Movie & { predictedRating?: number | null; masterpieceChance?: number | null };
 
 // Uma prateleira: o humor, e a fileira de pôsteres ordenada pela nota
 // prevista. O primeiro lote de 20 é grátis; carregar mais de 30 em 30 é
@@ -160,11 +162,11 @@ const Shelf: React.FC<{
       const nextSlice = allPredicted.slice(current.movies.length, current.movies.length + pageSize);
       const sliceMovies = await getMoviesForPredictedSlice(nextSlice);
 
-      const ratingByTitle = new Map(nextSlice.map((p) => [`${p.media_type}:${p.movie_id}`, p.predicted_rating]));
-      const enrichedMovies = sliceMovies.map((movie) => ({
-        ...movie,
-        predictedRating: ratingByTitle.get(`${movie.media_type === 'tv' ? 'tv' : 'movie'}:${movie.id}`),
-      }));
+      const predictionByTitle = new Map(nextSlice.map((p) => [`${p.media_type}:${p.movie_id}`, p]));
+      const enrichedMovies: PredictedMovie[] = sliceMovies.map((movie) => {
+        const prediction = predictionByTitle.get(`${movie.media_type === 'tv' ? 'tv' : 'movie'}:${movie.id}`);
+        return { ...movie, predictedRating: prediction?.predicted_rating ?? null, masterpieceChance: prediction?.masterpiece_chance ?? null };
+      });
 
       if (!aliveRef.current) return;
       setState((s) => ({
@@ -284,6 +286,7 @@ const Shelf: React.FC<{
                   const year = (movie.release_date || '').slice(0, 4);
                   const predicted = typeof movie.predictedRating === 'number' ? movie.predictedRating : null;
                   const isSeries = movie.media_type === 'tv';
+                  const chance = predicted !== null && isMasterpieceCandidate(movie.masterpieceChance) ? movie.masterpieceChance : null;
                   return (
                     <li key={`${movie.media_type || 'movie'}:${movie.id}`} className={`group relative shrink-0 ${TILE_WIDTH}`}>
                       <button
@@ -307,18 +310,7 @@ const Shelf: React.FC<{
                               </span>
                             </span>
                           )}
-                          {predicted !== null && (
-                            <span
-                              className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full bg-violet-600/95 text-white shadow-lg ring-1 ring-white/20"
-                              title={t('home.desk.predictedForYou')}
-                            >
-                              <Wand2 className="w-3 h-3" aria-hidden />
-                              <span className="sr-only">{t('home.desk.predictedForYou')}:</span>
-                              <span style={PIXEL} className="text-sm leading-none">
-                                {predicted}
-                              </span>
-                            </span>
-                          )}
+                          {predicted !== null && <PredictedBadge rating={predicted} chance={movie.masterpieceChance} />}
                           {isSeries && (
                             <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 text-white text-[11px] font-semibold leading-none shadow-lg ring-1 ring-white/20">
                               <Tv className="w-3 h-3" aria-hidden />
@@ -335,6 +327,13 @@ const Shelf: React.FC<{
                             <span className="inline-flex items-center gap-1">
                               <Star className="w-3 h-3 fill-amber-300 text-amber-300" aria-hidden />
                               {formatScore(movie.vote_average)}
+                            </span>
+                          )}
+                          {chance !== null && (
+                            <span className="inline-flex items-center gap-0.5 font-semibold text-amber-200" title={t('oracle.masterpiece.chanceShort', { chance: formatChance(chance) })}>
+                              <Sparkles className="w-3 h-3" aria-hidden />
+                              <span className="sr-only">{t('oracle.masterpiece.chanceShort', { chance: formatChance(chance) })}</span>
+                              <span aria-hidden>{formatChance(chance)}</span>
                             </span>
                           )}
                         </span>
@@ -545,10 +544,16 @@ export default function OracleLibraries() {
           })}
         </div>
 
-        <p className="mt-4 inline-flex items-start gap-2 text-sm" style={{ color: MIST }}>
-          <Wand2 className="w-4 h-4 mt-0.5 shrink-0 text-violet-300" aria-hidden />
-          {t('oracle.libraries.predictedRatingLegend')}
-        </p>
+        <div className="mt-4 space-y-1.5 text-sm" style={{ color: MIST }}>
+          <p className="flex items-start gap-2">
+            <Wand2 className="w-4 h-4 mt-0.5 shrink-0 text-violet-300" aria-hidden />
+            {t('oracle.libraries.predictedRatingLegend')}
+          </p>
+          <p className="flex items-start gap-2">
+            <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-amber-300" aria-hidden />
+            {t('oracle.libraries.masterpieceLegend')}
+          </p>
+        </div>
       </section>
 
       {session?.user?.id &&

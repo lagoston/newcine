@@ -1,11 +1,16 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 
 // Nota prevista de VÁRIOS títulos de uma vez (Filtro do Oráculo na
-// Watchlist), buscando os sinais do usuário uma vez só. Só títulos que
-// estão em alguma prateleira dos oráculos recebem previsão: filmes
-// (movieIds) em recommendation_pools.movie_ids, séries (seriesIds) em
-// recommendation_pools.tv_ids. Resposta: { ratings: {id: nota} } pros
-// filmes e { seriesRatings: {id: nota} } pras séries.
+// Watchlist). Só títulos que estão em alguma prateleira dos oráculos
+// recebem previsão: filmes (movieIds) em recommendation_pools.movie_ids,
+// séries (seriesIds) em recommendation_pools.tv_ids.
+//
+// Resposta: { ratings, chances } pros filmes e { seriesRatings,
+// seriesChances } pras séries, todos no formato { id: valor }. "chances" é
+// a chance de o título virar um 9 ou 10 do usuário (0 a 1).
+//
+// A fórmula (v4) mora no banco, na função predict_ratings_v4 — ver a
+// migração 20261003200000_prediction_v4.sql.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,70 +18,16 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-interface RatedMovieRow {
-  movie_id: number;
-  director: string | null;
-  vote_average: number;
-  rating: number;
-}
-
-interface PositiveSignals {
-  top_directors: string[];
-  top_countries: string[];
-  top_keywords: number[];
-}
-
-interface NegativeSignals {
-  bottom_directors: Record<string, number>;
-  bottom_countries: Record<string, number>;
-  bottom_keywords: number[];
-}
-
-// --- Modelo de previsão v3 (03/10/2026) — réplica exata de
-// predict-oracle-shelf (lá está a explicação completa e o teste que
-// justificou a mudança):
-//   nota = arredonda( nota TMDB + viés pessoal + 0,3 × (ajuste positivo + ajuste negativo) )
-// travada entre 0 e 10, arredondada pro inteiro mais próximo; o viés vale
-// sempre.
-const SIGNAL_WEIGHT = 0.3;
-
-function calculateUserBias(history: RatedMovieRow[]): number {
-  const withAnchor = history.filter((m) => typeof m.vote_average === 'number');
-  if (withAnchor.length === 0) return 0;
-  const sum = withAnchor.reduce((acc, m) => acc + (m.rating - m.vote_average), 0);
-  return sum / withAnchor.length;
-}
-
-function computeFinalRating(
-  voteAverage: number,
-  bias: number,
-  director: string | null,
-  primaryCountry: string | null,
-  keywordIds: number[],
-  movieMoodKey: string | undefined,
-  positive: PositiveSignals,
-  negative: NegativeSignals,
-  top3Moods: Set<string>
-): number {
-  let positiveAdjustment = 0;
-  if (director && positive.top_directors.includes(director)) positiveAdjustment += 1;
-  if (movieMoodKey && top3Moods.has(movieMoodKey)) positiveAdjustment += 1;
-  if (primaryCountry && positive.top_countries.includes(primaryCountry)) positiveAdjustment += 0.5;
-  positiveAdjustment += keywordIds.filter((k) => positive.top_keywords.includes(k)).length * 0.5;
-
-  let negativeAdjustment = 0;
-  if (director && negative.bottom_directors[director]) negativeAdjustment -= negative.bottom_directors[director];
-  if (primaryCountry && negative.bottom_countries[primaryCountry] !== undefined) {
-    negativeAdjustment += negative.bottom_countries[primaryCountry]; // já vem negativo
-  }
-  negativeAdjustment -= keywordIds.filter((k) => negative.bottom_keywords.includes(k)).length * 0.5;
-
-  const raw = voteAverage + bias + SIGNAL_WEIGHT * (positiveAdjustment + negativeAdjustment);
-  return Math.max(0, Math.min(10, Math.round(raw)));
+interface PredictionRow {
+  id: number;
+  predicted_rating: number | null;
+  chance_9plus: number | null;
 }
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status });
+
+const EMPTY = { ratings: {}, chances: {}, seriesRatings: {}, seriesChances: {} };
 
 const toIds = (value: unknown): number[] =>
   Array.isArray(value) ? [...new Set(value.map(Number).filter((n) => Number.isInteger(n) && n > 0))] : [];
@@ -104,7 +55,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const movieIds = toIds(body?.movieIds);
     const seriesIds = toIds(body?.seriesIds);
-    if (movieIds.length === 0 && seriesIds.length === 0) return json({ ratings: {}, seriesRatings: {} });
+    if (movieIds.length === 0 && seriesIds.length === 0) return json(EMPTY);
 
     // Sem questionário completo, nenhum título tem previsão — mesma regra
     // de predict-single-movie.
@@ -114,93 +65,50 @@ Deno.serve(async (req) => {
       .eq('id', userId)
       .maybeSingle();
 
-    if (!profileRow?.personalidade_completa) return json({ ratings: {}, seriesRatings: {} });
+    if (!profileRow?.personalidade_completa) return json(EMPTY);
 
-    // Humores (prateleiras) de cada título — a coringa "random-surprise"
-    // nunca conta.
-    const [moviePoolsRes, seriesPoolsRes] = await Promise.all([
-      movieIds.length > 0
-        ? supabase.rpc('get_pools_for_movies', { p_movie_ids: movieIds })
-        : Promise.resolve({ data: [], error: null }),
-      seriesIds.length > 0
-        ? supabase.from('recommendation_pools').select('mood_key, tv_ids').neq('mood_key', 'random-surprise')
-        : Promise.resolve({ data: [], error: null }),
-    ]);
+    // Quais estão em alguma prateleira (a coringa "random-surprise" não conta).
+    const { data: pools, error: poolError } = await supabase
+      .from('recommendation_pools')
+      .select('movie_ids, tv_ids')
+      .neq('mood_key', 'random-surprise');
 
-    if (moviePoolsRes.error) throw new Error(`Pool lookup: ${moviePoolsRes.error.message}`);
-    if (seriesPoolsRes.error) throw new Error(`Series pool lookup: ${seriesPoolsRes.error.message}`);
+    if (poolError) throw new Error(`Pool lookup: ${poolError.message}`);
 
-    const movieMoods = new Map<number, string[]>();
-    (moviePoolsRes.data || []).forEach((row: { movie_id: number; mood_key: string }) => {
-      if (row.mood_key === 'random-surprise') return;
-      movieMoods.set(row.movie_id, [...(movieMoods.get(row.movie_id) || []), row.mood_key]);
+    const pooledMovies = new Set<number>();
+    const pooledSeries = new Set<number>();
+    (pools || []).forEach((row: { movie_ids: number[] | null; tv_ids: number[] | null }) => {
+      (row.movie_ids || []).forEach((id) => pooledMovies.add(id));
+      (row.tv_ids || []).forEach((id) => pooledSeries.add(id));
     });
 
-    const wantedSeries = new Set(seriesIds);
-    const seriesMoods = new Map<number, string[]>();
-    (seriesPoolsRes.data || []).forEach((row: { mood_key: string; tv_ids: number[] | null }) => {
-      (row.tv_ids || []).forEach((id) => {
-        if (!wantedSeries.has(id)) return;
-        seriesMoods.set(id, [...(seriesMoods.get(id) || []), row.mood_key]);
+    const moviesInPool = movieIds.filter((id) => pooledMovies.has(id));
+    const seriesInPool = seriesIds.filter((id) => pooledSeries.has(id));
+
+    const predict = (mediaType: 'movie' | 'tv', ids: number[]) =>
+      ids.length > 0
+        ? supabase.rpc('predict_ratings_v4', { p_user_id: userId, p_media_type: mediaType, p_ids: ids })
+        : Promise.resolve({ data: [] as PredictionRow[], error: null });
+
+    const [moviesRes, seriesRes] = await Promise.all([predict('movie', moviesInPool), predict('tv', seriesInPool)]);
+    if (moviesRes.error) throw new Error(`Movie predictions: ${moviesRes.error.message}`);
+    if (seriesRes.error) throw new Error(`Series predictions: ${seriesRes.error.message}`);
+
+    const collect = (rows: PredictionRow[]) => {
+      const ratings: Record<number, number> = {};
+      const chances: Record<number, number> = {};
+      rows.forEach((row) => {
+        if (row.predicted_rating === null) return;
+        ratings[row.id] = row.predicted_rating;
+        if (row.chance_9plus !== null) chances[row.id] = Math.round(row.chance_9plus * 100) / 100;
       });
-    });
+      return { ratings, chances };
+    };
 
-    const moviesInPool = [...movieMoods.keys()];
-    const seriesInPool = [...seriesMoods.keys()];
-    if (moviesInPool.length === 0 && seriesInPool.length === 0) return json({ ratings: {}, seriesRatings: {} });
+    const movies = collect((moviesRes.data || []) as PredictionRow[]);
+    const series = collect((seriesRes.data || []) as PredictionRow[]);
 
-    const fields = 'tmdb_id, vote_average, director, origin_country, keywords';
-    const [moviesRes, seriesRes, historyRes, positiveRes, negativeRes, moodRankRes] = await Promise.all([
-      moviesInPool.length > 0
-        ? supabase.from('movie_cache').select(fields).eq('media_type', 'movie').in('tmdb_id', moviesInPool)
-        : Promise.resolve({ data: [], error: null }),
-      seriesInPool.length > 0
-        ? supabase.from('movie_cache').select(fields).eq('media_type', 'tv').in('tmdb_id', seriesInPool)
-        : Promise.resolve({ data: [], error: null }),
-      supabase.rpc('get_user_rated_movies_for_fishing', { p_user_id: userId }),
-      supabase.rpc('get_user_top10_signals', { p_user_id: userId }),
-      supabase.rpc('get_user_bottom_signals', { p_user_id: userId }),
-      supabase.rpc('get_user_favorite_moods_order', { p_user_id: userId }),
-    ]);
-
-    if (moviesRes.error) throw new Error(`Movies: ${moviesRes.error.message}`);
-    if (seriesRes.error) throw new Error(`Series: ${seriesRes.error.message}`);
-    if (historyRes.error) throw new Error(`History: ${historyRes.error.message}`);
-    if (positiveRes.error) throw new Error(`Positive signals: ${positiveRes.error.message}`);
-    if (negativeRes.error) throw new Error(`Negative signals: ${negativeRes.error.message}`);
-    if (moodRankRes.error) throw new Error(`Mood rank: ${moodRankRes.error.message}`);
-
-    const bias = calculateUserBias((historyRes.data || []) as RatedMovieRow[]);
-    const positive = positiveRes.data as PositiveSignals;
-    const negative = negativeRes.data as NegativeSignals;
-
-    const moodRankRows = (moodRankRes.data || []) as { mood_key: string; score: number }[];
-    const top3Moods = new Set(moodRankRows.slice(0, 3).map((r) => r.mood_key));
-
-    const predict = (row: any, moods: string[]) =>
-      computeFinalRating(
-        row.vote_average || 0,
-        bias,
-        row.director,
-        row.origin_country?.[0] || null,
-        (row.keywords || []).map((k: any) => k.id),
-        moods.find((mk) => top3Moods.has(mk)),
-        positive,
-        negative,
-        top3Moods
-      );
-
-    const ratings: Record<number, number> = {};
-    (moviesRes.data || []).forEach((row: any) => {
-      ratings[row.tmdb_id] = predict(row, movieMoods.get(row.tmdb_id) || []);
-    });
-
-    const seriesRatings: Record<number, number> = {};
-    (seriesRes.data || []).forEach((row: any) => {
-      seriesRatings[row.tmdb_id] = predict(row, seriesMoods.get(row.tmdb_id) || []);
-    });
-
-    return json({ ratings, seriesRatings });
+    return json({ ratings: movies.ratings, chances: movies.chances, seriesRatings: series.ratings, seriesChances: series.chances });
   } catch (error) {
     console.error('Error in predict-watchlist-ratings:', error);
     return json({ error: error.message || 'Something went wrong predicting watchlist ratings.' }, 500);

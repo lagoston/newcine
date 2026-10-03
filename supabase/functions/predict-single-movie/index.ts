@@ -1,76 +1,18 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 
-// Nota prevista de UM título (menu do filme/série), sob demanda. Só sai
-// previsão pra títulos que estão em alguma prateleira dos oráculos: filmes
-// em recommendation_pools.movie_ids, séries em recommendation_pools.tv_ids.
+// Nota prevista de UM título (menu do filme/série), sob demanda, e a chance
+// de ele virar um 9 ou 10 do usuário. Só sai previsão pra títulos que estão
+// em alguma prateleira dos oráculos: filmes em recommendation_pools.movie_ids,
+// séries em recommendation_pools.tv_ids.
+//
+// A fórmula (v4) mora no banco, na função predict_ratings_v4 — ver a
+// migração 20261003200000_prediction_v4.sql.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-
-interface RatedMovieRow {
-  movie_id: number;
-  director: string | null;
-  vote_average: number;
-  rating: number;
-}
-
-interface PositiveSignals {
-  top_directors: string[];
-  top_countries: string[];
-  top_keywords: number[];
-}
-
-interface NegativeSignals {
-  bottom_directors: Record<string, number>;
-  bottom_countries: Record<string, number>;
-  bottom_keywords: number[];
-}
-
-// --- Modelo de previsão v3 (03/10/2026) — réplica exata de
-// predict-oracle-shelf (lá está a explicação completa e o teste que
-// justificou a mudança):
-//   nota = arredonda( nota TMDB + viés pessoal + 0,3 × (ajuste positivo + ajuste negativo) )
-// travada entre 0 e 10, arredondada pro inteiro mais próximo; o viés vale
-// sempre.
-const SIGNAL_WEIGHT = 0.3;
-
-function calculateUserBias(history: RatedMovieRow[]): number {
-  const withAnchor = history.filter((m) => typeof m.vote_average === 'number');
-  if (withAnchor.length === 0) return 0;
-  const sum = withAnchor.reduce((acc, m) => acc + (m.rating - m.vote_average), 0);
-  return sum / withAnchor.length;
-}
-
-function computeFinalRating(
-  voteAverage: number,
-  bias: number,
-  director: string | null,
-  primaryCountry: string | null,
-  keywordIds: number[],
-  movieMoodKey: string | undefined,
-  positive: PositiveSignals,
-  negative: NegativeSignals,
-  top3Moods: Set<string>
-): number {
-  let positiveAdjustment = 0;
-  if (director && positive.top_directors.includes(director)) positiveAdjustment += 1;
-  if (movieMoodKey && top3Moods.has(movieMoodKey)) positiveAdjustment += 1;
-  if (primaryCountry && positive.top_countries.includes(primaryCountry)) positiveAdjustment += 0.5;
-  positiveAdjustment += keywordIds.filter((k) => positive.top_keywords.includes(k)).length * 0.5;
-
-  let negativeAdjustment = 0;
-  if (director && negative.bottom_directors[director]) negativeAdjustment -= negative.bottom_directors[director];
-  if (primaryCountry && negative.bottom_countries[primaryCountry] !== undefined) {
-    negativeAdjustment += negative.bottom_countries[primaryCountry]; // já vem negativo
-  }
-  negativeAdjustment -= keywordIds.filter((k) => negative.bottom_keywords.includes(k)).length * 0.5;
-
-  const raw = voteAverage + bias + SIGNAL_WEIGHT * (positiveAdjustment + negativeAdjustment);
-  return Math.max(0, Math.min(10, Math.round(raw)));
-}
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status });
@@ -127,58 +69,19 @@ Deno.serve(async (req) => {
     if (poolError) throw new Error(`Pool lookup: ${poolError.message}`);
     if (!poolMatches || poolMatches.length === 0) return json({ inPool: false, predictedRating: null });
 
-    const { data: titleRow, error: titleError } = await supabase
-      .from('movie_cache')
-      .select('vote_average, director, origin_country, keywords')
-      .eq('tmdb_id', movieId)
-      .eq('media_type', mediaType)
-      .maybeSingle();
+    const { data: rows, error: predictionError } = await supabase
+      .rpc('predict_ratings_v4', { p_user_id: userId, p_media_type: mediaType, p_ids: [Number(movieId)] });
 
-    if (titleError || !titleRow) return json({ inPool: true, predictedRating: null, reason: 'movie_not_cached' });
+    if (predictionError) throw new Error(`Prediction: ${predictionError.message}`);
 
-    const keywordIds = (titleRow.keywords || []).map((k: any) => k.id);
-    const primaryCountry = titleRow.origin_country?.[0] || null;
-    const voteAverage = titleRow.vote_average || 0;
+    const row = (rows || [])[0] as { predicted_rating: number | null; chance_9plus: number | null } | undefined;
+    if (!row) return json({ inPool: true, predictedRating: null, reason: 'movie_not_cached' });
 
-    const { data: historyRaw, error: historyError } = await supabase
-      .rpc('get_user_rated_movies_for_fishing', { p_user_id: userId });
-
-    if (historyError) throw new Error(`History: ${historyError.message}`);
-
-    // O histórico é só de filmes; pra um filme, ele mesmo nunca entra.
-    const history: RatedMovieRow[] = (historyRaw || []).filter(
-      (m: RatedMovieRow) => mediaType !== 'movie' || m.movie_id !== movieId
-    );
-
-    const [positiveRes, negativeRes, moodRankRes] = await Promise.all([
-      supabase.rpc('get_user_top10_signals', { p_user_id: userId }),
-      supabase.rpc('get_user_bottom_signals', { p_user_id: userId }),
-      supabase.rpc('get_user_favorite_moods_order', { p_user_id: userId }),
-    ]);
-
-    if (positiveRes.error) throw new Error(`Positive signals: ${positiveRes.error.message}`);
-    if (negativeRes.error) throw new Error(`Negative signals: ${negativeRes.error.message}`);
-    if (moodRankRes.error) throw new Error(`Mood rank: ${moodRankRes.error.message}`);
-
-    const bias = calculateUserBias(history);
-    const positive = positiveRes.data as PositiveSignals;
-    const negative = negativeRes.data as NegativeSignals;
-
-    const moodRankRows = (moodRankRes.data || []) as { mood_key: string; score: number }[];
-    const top3Moods = new Set(moodRankRows.slice(0, 3).map((r) => r.mood_key));
-
-    // "random-surprise" é a pool coringa, nunca conta pro bônus de humor.
-    const realMoodKeys = (poolMatches || [])
-      .map((p: { mood_key: string }) => p.mood_key)
-      .filter((mk: string) => mk !== 'random-surprise');
-    const matchingMoodKey = realMoodKeys.find((mk: string) => top3Moods.has(mk));
-
-    const predictedRating = computeFinalRating(
-      voteAverage, bias, titleRow.director, primaryCountry, keywordIds,
-      matchingMoodKey, positive, negative, top3Moods
-    );
-
-    return json({ inPool: true, predictedRating });
+    return json({
+      inPool: true,
+      predictedRating: row.predicted_rating,
+      masterpieceChance: row.chance_9plus === null ? null : Math.round(row.chance_9plus * 100) / 100,
+    });
   } catch (error) {
     console.error('Error in predict-single-movie:', error);
     return json({ error: error.message || 'Something went wrong predicting the rating.' }, 500);

@@ -523,6 +523,11 @@
       "consulting": "Consulting the Oracle...",
       "cost": "Consult the Oracle ({{cost}} tickets)"
     },
+    "masterpiece": {
+      "badgeWithChance": "Rating predicted for you: {{rating}} · {{chance}} chance of becoming one of your 9s or 10s",
+      "chanceShort": "{{chance}} chance of becoming one of your 9s or 10s",
+      "chanceLong": "{{chance}} chance of being a 9 or 10 for you"
+    },
     "libraries": {
       "bogartFunctionDesc": "Popular and highly rated films released after 2000.",
       "fincherFunctionDesc": "Popular pre-2000 movies and cult gems.",
@@ -543,7 +548,8 @@
       "noMoviesForFilter": "None of the films loaded on this shelf are on the streaming services you picked.",
       "shelfError": "Couldn't open this shelf right now.",
       "includeSeries": "Include Series",
-      "seriesBadge": "Series"
+      "seriesBadge": "Series",
+      "masterpieceLegend": "Gold: a good chance of becoming one of your 9s or 10s — the percentage under the poster is that chance."
     },
     "selectMood": "Select Your Mood",
     "ticketsLabel": "tickets",
