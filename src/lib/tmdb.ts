@@ -837,8 +837,6 @@ export interface PredictedShelfMovie {
   movie_id: number;
   media_type: 'movie' | 'tv';
   predicted_rating: number | null;
-  // Chance de virar um 9 ou 10 da pessoa (0 a 1) — ver lib/prediction.
-  masterpiece_chance?: number | null;
 }
 
 // Chama a Edge Function que calcula a nota PREVISTA pra esse usuário

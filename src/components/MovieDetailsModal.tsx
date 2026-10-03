@@ -6,7 +6,7 @@ import {
   X, Star, Loader2, Film, Instagram, Tv, Send, MessageSquare, Play, ChevronRight,
   ChevronDown, AlertCircle, Wand2, Plus, Check, Eye, Layers, Sparkles,
 } from 'lucide-react';
-import { formatChance, isMasterpieceCandidate } from '../lib/prediction';
+import { formatChance } from '../lib/prediction';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget } from '../lib/tmdb';
 import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
 import { getMovieCollections, collectionDisplayName, sortedParts, type MovieCollection } from '../lib/collections';
@@ -165,7 +165,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [pendingEpisodes, setPendingEpisodes] = useState<Set<string>>(new Set());
   const [userRating, setUserRating] = useState<number | null>(null);
   const [predictedRating, setPredictedRating] = useState<number | null>(null);
-  // Chance de o título virar um 9 ou 10 da pessoa (0 a 1) — ver lib/prediction.
+  // Chance de o título virar um 9 ou 10 da pessoa (0 a 1) — aparece no menu
+  // quando a nota prevista fica em 8 ou menos (ver lib/prediction).
   const [masterpieceChance, setMasterpieceChance] = useState<number | null>(null);
   const [predictionLoading, setPredictionLoading] = useState(true);
   const [movieMoodKey, setMovieMoodKey] = useState<string | null>(null);
@@ -1909,17 +1910,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       </span>
                     )}
                     {personalChip}
-                    {/* A chance de virar um 9 ou 10 seu: dourada quando passa de 40%. */}
-                    {!hasRated && predictedRating !== null && masterpieceChance !== null && (
-                      <span
-                        className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-sm ${
-                          isMasterpieceCandidate(masterpieceChance)
-                            ? 'font-semibold border border-amber-300/50 bg-amber-400/15 text-amber-100'
-                            : 'ring-1 ring-white/10'
-                        }`}
-                        style={isMasterpieceCandidate(masterpieceChance) ? undefined : { background: VELVET, color: MIST }}
-                      >
-                        <Sparkles className={`w-3.5 h-3.5 ${isMasterpieceCandidate(masterpieceChance) ? 'text-amber-300' : ''}`} aria-hidden />
+                    {/* Nota prevista até 8: a chance de mesmo assim virar um 9 ou
+                        10 seu (a partir de 40% a própria nota já sobe pra 9). */}
+                    {!hasRated && predictedRating !== null && predictedRating <= 8 && masterpieceChance !== null && (
+                      <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-sm ring-1 ring-white/10" style={{ background: VELVET, color: MIST }}>
+                        <Sparkles className="w-3.5 h-3.5 text-violet-300" aria-hidden />
                         {t('oracle.masterpiece.chanceLong', { chance: formatChance(masterpieceChance) })}
                       </span>
                     )}

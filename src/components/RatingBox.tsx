@@ -62,7 +62,7 @@ interface RatingBoxProps {
   anchorId?: string;
 }
 
-type LibraryTile = Movie & { predictedRating?: number; masterpieceChance?: number | null };
+type LibraryTile = Movie & { predictedRating?: number };
 
 const RatingBox: React.FC<RatingBoxProps> = ({
   title,
@@ -355,7 +355,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                         )}
 
                         {predicted !== null ? (
-                          <PredictedBadge rating={predicted} chance={movie.masterpieceChance} />
+                          <PredictedBadge rating={predicted} />
                         ) : showOwnRating ? (
                           <span
                             className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 pl-1 pr-1.5 py-0.5 rounded-full text-xs font-semibold shadow-lg"

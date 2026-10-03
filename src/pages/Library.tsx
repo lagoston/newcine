@@ -377,8 +377,6 @@ export default function Library() {
   // e, desde 03/10/2026, séries). Sem previsão vai pro fim.
   const [oracleFilterActive, setOracleFilterActive] = useState(false);
   const [predictedRatings, setPredictedRatings] = useState<Record<string, number>>({});
-  // "movie:id" / "tv:id" -> chance de virar um 9 ou 10 (0 a 1).
-  const [masterpieceChances, setMasterpieceChances] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!oracleFilterActive || !session?.user?.id) return;
@@ -392,7 +390,6 @@ export default function Library() {
         const keyed = (prefix: string, values: unknown) =>
           Object.fromEntries(Object.entries((values || {}) as Record<string, number>).map(([id, value]) => [`${prefix}:${id}`, value]));
         setPredictedRatings({ ...keyed('movie', data?.ratings), ...keyed('tv', data?.seriesRatings) });
-        setMasterpieceChances({ ...keyed('movie', data?.chances), ...keyed('tv', data?.seriesChances) });
       })
       .catch((error) => {
         console.error('Error loading watchlist predictions:', error);
@@ -415,7 +412,7 @@ export default function Library() {
       list = list
         .map((movie) => {
           const key = `${movie.media_type === 'tv' ? 'tv' : 'movie'}:${movie.id}`;
-          return { ...movie, predictedRating: predictedRatings[key], masterpieceChance: masterpieceChances[key] ?? null };
+          return { ...movie, predictedRating: predictedRatings[key] };
         })
         .sort((a, b) => {
           const aHas = typeof a.predictedRating === 'number';
@@ -428,7 +425,7 @@ export default function Library() {
     }
 
     return list;
-  }, [moviesByRating.unrated, selectedStreamingProviders, oracleFilterActive, predictedRatings, masterpieceChances]);
+  }, [moviesByRating.unrated, selectedStreamingProviders, oracleFilterActive, predictedRatings]);
 
   const handleToggleStreamingProvider = (providerId: number) => {
     setSelectedStreamingProviders((prev) =>
