@@ -9,6 +9,7 @@ import {
 import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget } from '../lib/tmdb';
 import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
 import { getMovieCollections, collectionDisplayName, sortedParts, type MovieCollection } from '../lib/collections';
+import { budgetLevel, budgetOracle, adjustedBudget, BUDGET_LEVEL_EMOJI, BUDGET_LEVEL_LABEL, BUDGET_SAYINGS } from '../lib/budgetTiers';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
 import { useAuth } from '../lib/auth';
 import { supabase, supabaseUrl } from '../lib/supabase';
@@ -20,7 +21,7 @@ import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
 import ConfirmationModal from './ConfirmationModal';
 import {
-  NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, ORACLE_BY_ID, OracleId, ratingTone,
+  NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, ORACLE_BY_ID, OracleId, ratingTone, withAlpha,
 } from '../lib/oracleTheme';
 
 // Detalhes de um filme/série — "a ficha na mesa do oráculo".
@@ -258,6 +259,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       cancelled = true;
     };
   }, [movie.id, movie.media_type, movie.budget]);
+
+  // Balão do selo de orçamento (abre/fecha no toque, como os selos da capa).
+  const [budgetBubbleOpen, setBudgetBubbleOpen] = useState(false);
+  useEffect(() => {
+    setBudgetBubbleOpen(false);
+  }, [movie.id]);
 
   // Saga / trilogia / continuação (coleção do TMDB ou cadastrada à mão —
   // lib/collections.ts). Só filmes; séries não têm coleção.
@@ -2080,25 +2087,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     <section className={`md:hidden ${sectionClass}`}>{whereToWatch}</section>
 
                     <section className={sectionClass}>
-                      {/* items-start: o "Ver Top 10" fica na altura do diretor,
-                          não no meio entre diretor e orçamento. */}
+                      {/* Linha 1: diretor | Ver Top 10. Linha 2: orçamento | selo do
+                          oráculo (só filmes com orçamento conhecido). */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-sm" style={{ color: MIST }}>{t('movies.director')}</p>
                           <p className="mt-0.5 text-lg font-semibold truncate" style={{ color: PAPER }}>{director}</p>
-                          {/* Orçamento, logo abaixo do diretor (só filmes) */}
-                          {!isTvShow && budget !== null && (
-                            <>
-                              <p className="mt-3 text-sm" style={{ color: MIST }}>{t('movies.budget')}</p>
-                              {budget === undefined ? (
-                                <span className="mt-1 block h-6 w-32 rounded-md animate-pulse" style={{ background: VELVET }} aria-hidden />
-                              ) : (
-                                <p className="mt-0.5 text-lg font-semibold" style={{ color: budget > 0 ? PAPER : MIST }}>
-                                  {budget > 0 ? formatBudget(budget) : t('movies.budgetUnknown')}
-                                </p>
-                              )}
-                            </>
-                          )}
                         </div>
                         {director !== t('movies.unknown') && (
                           <button
@@ -2112,6 +2106,101 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           </button>
                         )}
                       </div>
+
+                      {!isTvShow && budget !== null && (() => {
+                        const isPtLang = i18n.language.startsWith('pt');
+                        const level = typeof budget === 'number' ? budgetLevel(budget, movie.release_date) : null;
+                        const oracleId = budgetOracle(movie.release_date, movie.vote_count, oracleSources);
+                        const oracle = ORACLE_BY_ID[oracleId];
+                        const saying = level ? BUDGET_SAYINGS[oracleId][level] : null;
+                        const levelLabel = level ? (isPtLang ? BUDGET_LEVEL_LABEL[level].pt : BUDGET_LEVEL_LABEL[level].en) : '';
+                        // Pra filmes antigos, o balão mostra o valor corrigido
+                        // pela inflação (é ele que decide o nível).
+                        const adjusted = typeof budget === 'number' && budget > 0 ? adjustedBudget(budget, movie.release_date) : 0;
+                        const showAdjusted = adjusted > 0 && adjusted / (budget as number) >= 1.15;
+                        return (
+                          // Sem quebra de linha: o selo fica sempre à direita (o
+                          // título dele quebra em duas linhas se precisar).
+                          <div className="mt-3 flex items-center justify-between gap-3">
+                            <div className="shrink-0">
+                              <p className="text-sm" style={{ color: MIST }}>{t('movies.budget')}</p>
+                              {budget === undefined ? (
+                                <span className="mt-1 block h-6 w-32 rounded-md animate-pulse" style={{ background: VELVET }} aria-hidden />
+                              ) : (
+                                <p className="mt-0.5 text-base sm:text-lg font-semibold whitespace-nowrap" style={{ color: budget > 0 ? PAPER : MIST }}>
+                                  {budget > 0 ? formatBudget(budget) : t('movies.budgetUnknown')}
+                                </p>
+                              )}
+                            </div>
+
+                            {level && saying && oracle && (
+                              <div className="relative min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setBudgetBubbleOpen((v) => !v)}
+                                  aria-expanded={budgetBubbleOpen}
+                                  aria-label={t('movies.budgetSealAria', { name: oracle.name, level: levelLabel, title: isPtLang ? saying.title.pt : saying.title.en })}
+                                  className={`flex items-center justify-start gap-2.5 pl-1.5 pr-3.5 py-1.5 rounded-full text-left transition hover:brightness-110 ${FOCUS_RING}`}
+                                  style={{
+                                    background: withAlpha(oracle.color, 0.12),
+                                    boxShadow: `inset 0 0 0 1px ${withAlpha(oracle.color, 0.45)}`,
+                                  }}
+                                >
+                                  <img
+                                    src={oracle.avatar}
+                                    alt=""
+                                    width={32}
+                                    height={32}
+                                    className="w-7 h-7 sm:w-8 sm:h-8 shrink-0 rounded-full object-cover"
+                                    style={{ boxShadow: `0 0 0 2px ${oracle.color}` }}
+                                  />
+                                  <span className="min-w-0">
+                                    <span className="block text-xs leading-tight" style={{ color: MIST }}>
+                                      <span aria-hidden>{BUDGET_LEVEL_EMOJI[level]}</span> {levelLabel}
+                                    </span>
+                                    <span className="block text-[13px] sm:text-sm font-semibold leading-tight break-words" style={{ color: PAPER }}>
+                                      {isPtLang ? saying.title.pt : saying.title.en}
+                                    </span>
+                                  </span>
+                                </button>
+                                <AnimatePresence>
+                                  {budgetBubbleOpen && (
+                                    <motion.div
+                                      initial={{ opacity: 0, y: 6 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: 6 }}
+                                      transition={{ duration: 0.2 }}
+                                      className="absolute bottom-full right-0 mb-2 w-64 max-w-[calc(100vw-3rem)] z-30 cursor-pointer"
+                                      onClick={() => setBudgetBubbleOpen(false)}
+                                    >
+                                      <div
+                                        className="relative rounded-xl px-3 py-2.5 shadow-2xl"
+                                        style={{ background: PAPER, color: INK, borderLeft: `4px solid ${oracle.color}` }}
+                                      >
+                                        <p style={PIXEL} className="text-[13px] leading-none mb-1.5">{oracle.name}</p>
+                                        <p className="text-sm font-semibold leading-snug">
+                                          <span aria-hidden>{BUDGET_LEVEL_EMOJI[level]}</span> {isPtLang ? saying.title.pt : saying.title.en}
+                                        </p>
+                                        <p className="mt-1 text-xs italic leading-snug">“{isPtLang ? saying.text.pt : saying.text.en}”</p>
+                                        {showAdjusted && (
+                                          <p className="mt-1.5 text-[11px] leading-snug opacity-75">
+                                            {t('movies.budgetAdjusted', { value: formatBudget(adjusted) })}
+                                          </p>
+                                        )}
+                                        <span
+                                          aria-hidden
+                                          className="absolute top-full right-6 w-0 h-0 border-x-[6px] border-x-transparent border-t-[7px]"
+                                          style={{ borderTopColor: PAPER }}
+                                        />
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {showDirectorTopTen && (
                         <div className="mt-4">

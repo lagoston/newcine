@@ -455,6 +455,8 @@
     "director": "Director",
     "budget": "Budget",
     "budgetUnknown": "Not disclosed",
+    "budgetSealAria": "{{name}}: {{level}} budget — {{title}}",
+    "budgetAdjusted": "≈ {{value}} in today's money (adjusted for inflation)",
     "budgetThousand": "${{value}} thousand",
     "budgetMillion_one": "${{value}} million",
     "budgetMillion_other": "${{value}} million",

@@ -457,6 +457,8 @@
     "director": "Diretor",
     "budget": "Orçamento",
     "budgetUnknown": "Não divulgado",
+    "budgetSealAria": "{{name}}: orçamento {{level}} — {{title}}",
+    "budgetAdjusted": "≈ {{value}} em valores de hoje (corrigido pela inflação)",
     "budgetThousand": "US$ {{value}} mil",
     "budgetMillion_one": "US$ {{value}} milhão",
     "budgetMillion_other": "US$ {{value}} milhões",
