@@ -455,8 +455,11 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
 
   return (
     <>
+      {/* ---------- Feed dos Amigos: os stories, no topo ---------- */}
+      <FriendsFeed userId={userId} onMovieClick={onMovieClick} />
+
       {/* ---------- Cabeçalho ---------- */}
-      <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10">
+      <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-5 sm:pt-7">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <Link to="/profile" aria-label={t('nav.profile')} className={`shrink-0 rounded-full ${focusRing}`}>
@@ -701,9 +704,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
           <ArrowRight className="w-4 h-4" aria-hidden />
         </Link>
       </section>
-
-      {/* ---------- Feed dos Amigos (stories) ---------- */}
-      <FriendsFeed userId={userId} onMovieClick={onMovieClick} />
 
       {/* ---------- Modais ---------- */}
       <WhispersModal isOpen={showWhispers} onClose={() => setShowWhispers(false)} userId={userId} />

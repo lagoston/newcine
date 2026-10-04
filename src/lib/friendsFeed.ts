@@ -5,6 +5,7 @@ import { supabase } from './supabase';
 // (supabase/migrations/20261004500000_friends_feed.sql) devolve só as 10
 // interações mais recentes; quando surge uma nova, a mais antiga sai, e as
 // que ficam não expiram. Curtir vira sussurro para o amigo; comentar também.
+// O dono pode ocultar um story seu da visão dos amigos.
 
 export type StoryKind = 'rate' | 'watchlist' | 'review';
 
@@ -41,6 +42,8 @@ export interface FeedStory {
   kind: StoryKind;
   review: FeedReview | null;
   activity_at: string;
+  // o dono ocultou este story dos amigos (só o dono chega a ver um oculto)
+  hidden?: boolean;
   like_count: number;
   liked: boolean;
   likers: { username: string; avatar_url: string | null }[];
@@ -146,6 +149,13 @@ export async function toggleStoryLike(story: FeedStory): Promise<{ liked: boolea
   const { data, error } = await supabase.rpc('toggle_feed_like', storyArgs(story));
   if (error) throw error;
   return data as { liked: boolean; like_count: number };
+}
+
+// Ocultar / mostrar o próprio story para os amigos.
+export async function toggleStoryHidden(story: FeedStory): Promise<boolean> {
+  const { data, error } = await supabase.rpc('toggle_feed_story_hidden', { p_movie_id: story.movie_id, p_media_type: story.media_type });
+  if (error) throw error;
+  return Boolean((data as { hidden?: boolean } | null)?.hidden);
 }
 
 export async function fetchStoryComments(story: FeedStory): Promise<FeedComment[]> {

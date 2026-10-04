@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, Heart, PenLine, Play, Star, Users } from 'lucide-react';
+import { Bookmark, EyeOff, Heart, PenLine, Star, UserPlus } from 'lucide-react';
 import type { Movie } from '../../lib/tmdb';
 import { INK, MIST, NIGHT, PAPER, PIXEL, VELVET, FOCUS_RING, ratingTone } from '../../lib/oracleTheme';
 import {
@@ -18,11 +18,11 @@ import {
 import StoryRing from './StoryRing';
 import StoryViewer from './StoryViewer';
 
-// Feed dos Amigos, na home logo abaixo das Recomendações do Dia. Junta o que
-// antes eram "Melhores dos amigos", "Na watchlist dos amigos" e "Atividade
-// dos amigos": uma fileira de avatares no jeito dos stories, um por amigo,
-// com um gomo no anel para cada atividade recente dele (no máximo 10 no
-// total). Tocar abre os stories em tela cheia.
+// Feed dos Amigos, no topo da home (só os avatares, sem título, como nos
+// stories do Instagram). Junta o que antes eram "Melhores dos amigos", "Na
+// watchlist dos amigos" e "Atividade dos amigos": um avatar por amigo, com
+// um gomo no anel para cada atividade recente dele (no máximo 10 no total).
+// O primeiro é o seu ("Você"). Tocar abre os stories em tela cheia.
 
 const AVATAR = 66;
 const REFRESH_AFTER_MS = 60_000;
@@ -67,7 +67,6 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
   }, [load, viewer]);
 
   const groups = useMemo(() => groupStories(data?.stories ?? []), [data?.stories]);
-  const unseenCount = (data?.stories ?? []).filter((story) => !story.seen).length;
 
   const updateStory = useCallback((updated: FeedStory) => {
     setData((current) => {
@@ -134,103 +133,55 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
   };
 
   const loading = data === null && !failed;
-  const noFriends = data !== null && data.friend_count === 0;
-  const noActivity = data !== null && data.friend_count > 0 && groups.length === 0;
+  const showFindFriends = data !== null && groups.length === 0;
 
   return (
-    <section className="border-t border-white/[0.07] pt-10 pb-8 sm:pt-12 sm:pb-10" aria-labelledby="friends-feed-title">
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <div className="flex items-center justify-between gap-4">
-          <h2 id="friends-feed-title" style={{ ...PIXEL, color: PAPER }} className="min-w-0 text-2xl sm:text-3xl leading-tight">
-            {t('feed.title')}
-          </h2>
-          {groups.length > 0 && (
-            <button
-              onClick={() => openGroup(0)}
-              aria-label={t('feed.playAll')}
-              className={`shrink-0 inline-flex items-center justify-center gap-2 h-10 w-10 sm:w-auto sm:px-4 rounded-full sm:rounded-lg text-sm font-medium border border-white/15 hover:border-white/35 hover:bg-white/5 transition ${FOCUS_RING}`}
-              style={{ color: PAPER }}
-            >
-              <Play className="w-4 h-4" fill="currentColor" aria-hidden />
-              <span className="hidden sm:inline">{t('feed.playAll')}</span>
-            </button>
-          )}
-        </div>
-        <p className="mt-1.5 text-sm" style={{ color: MIST }}>
-          {unseenCount > 0 && (
-            <span className="inline-flex items-center h-5 px-2 mr-2 rounded-full align-[1px] text-[11px] font-semibold text-white bg-gradient-to-r from-fuchsia-500 to-violet-500">
-              {t('feed.newCount', { count: unseenCount })}
-            </span>
-          )}
-          {t('feed.subtitle')}
-        </p>
-      </div>
-
+    // Sem título: só os avatares no topo da home, como nos stories do Instagram.
+    <section aria-label={t('feed.title')} className="border-b border-white/[0.06] pt-3 sm:pt-5 pb-2">
       {loading ? (
-        <ol className="mt-5 flex gap-4 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] overflow-hidden" aria-hidden>
+        <ol className="flex gap-3 sm:gap-4 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] pt-2 pb-1 overflow-hidden" aria-hidden>
           {Array.from({ length: 8 }).map((_, i) => (
             <li key={i} className="shrink-0 w-[84px] flex flex-col items-center">
-              <span className="w-[76px] h-[76px] rounded-full bg-white/10 animate-pulse" />
+              <span className="w-[78px] h-[78px] rounded-full bg-white/10 animate-pulse" />
               <span className="mt-3 h-3 w-14 rounded bg-white/10 animate-pulse" />
             </li>
           ))}
         </ol>
-      ) : failed ? (
-        <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-5">
-          <p className="text-sm" style={{ color: MIST }}>
-            {t('feed.loadError')}{' '}
-            <button onClick={load} className={`font-semibold underline underline-offset-4 rounded ${FOCUS_RING}`} style={{ color: PAPER }}>
-              {t('feed.retry')}
-            </button>
-          </p>
-        </div>
-      ) : noFriends || noActivity ? (
-        <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-6">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 rounded-2xl ring-1 ring-white/10 p-6" style={{ background: VELVET }}>
-            <span className="w-12 h-12 shrink-0 rounded-xl grid place-items-center ring-1 ring-violet-300/30 text-violet-200" style={{ background: 'rgba(255,255,255,0.03)' }} aria-hidden>
-              <Users className="w-6 h-6" />
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold" style={{ color: PAPER }}>
-                {noFriends ? t('feed.emptyNoFriendsTitle') : t('feed.emptyNoActivityTitle')}
-              </p>
-              <p className="mt-1 text-sm leading-relaxed max-w-lg" style={{ color: MIST }}>
-                {noFriends ? t('feed.emptyNoFriendsText') : t('feed.emptyNoActivityText')}
-              </p>
-            </div>
-            {noFriends && (
-              <Link
-                to="/community"
-                className={`shrink-0 inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition ${FOCUS_RING}`}
-              >
-                {t('feed.openCommunity')}
-              </Link>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="co-feed-row mt-4 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+      ) : failed ? null : (
+        <div className="co-feed-row overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
           {/* rola de ponta a ponta; o recuo acompanha a margem do conteúdo */}
-          <ol className="flex gap-3 sm:gap-4 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] pt-2 pb-2">
+          <ol className="flex gap-3 sm:gap-4 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] pt-2 pb-1">
             {data?.me && (
               <li className="shrink-0 w-[84px]">
                 <button
                   onClick={openOwn}
-                  aria-label={t('feed.ownStory')}
+                  aria-label={data.me.hidden ? `${t('feed.ownStory')} · ${t('feed.hiddenBadge')}` : t('feed.ownStory')}
                   className={`group w-full flex flex-col items-center rounded-2xl pb-1 ${FOCUS_RING}`}
                 >
                   <span className="relative transition-transform duration-200 group-hover:scale-105">
-                    <StoryRing size={AVATAR} segments={[false]} avatarUrl={data.me.owner.avatar_url} username={data.me.owner.username} still />
+                    <span style={{ opacity: data.me.hidden ? 0.55 : 1 }}>
+                      <StoryRing size={AVATAR} segments={[false]} avatarUrl={data.me.owner.avatar_url} username={data.me.owner.username} still />
+                    </span>
                     {kindBadge(data.me, true)}
-                    {data.me.like_count + data.me.comment_count > 0 && (
+                    {data.me.hidden ? (
                       <span
-                        className="absolute -top-1 -right-1.5 inline-flex items-center gap-0.5 h-[22px] px-1.5 rounded-full text-[11px] font-bold text-white bg-rose-500"
-                        style={{ boxShadow: `0 0 0 2.5px ${NIGHT}` }}
+                        className="absolute -top-1 -right-1.5 grid place-items-center w-[24px] h-[24px] rounded-full bg-amber-300"
+                        style={{ color: INK, boxShadow: `0 0 0 2.5px ${NIGHT}` }}
                         aria-hidden
                       >
-                        <Heart className="w-2.5 h-2.5" fill="currentColor" />
-                        {data.me.like_count + data.me.comment_count}
+                        <EyeOff className="w-3.5 h-3.5" />
                       </span>
+                    ) : (
+                      data.me.like_count + data.me.comment_count > 0 && (
+                        <span
+                          className="absolute -top-1 -right-1.5 inline-flex items-center gap-0.5 h-[22px] px-1.5 rounded-full text-[11px] font-bold text-white bg-rose-500"
+                          style={{ boxShadow: `0 0 0 2.5px ${NIGHT}` }}
+                          aria-hidden
+                        >
+                          <Heart className="w-2.5 h-2.5" fill="currentColor" />
+                          {data.me.like_count + data.me.comment_count}
+                        </span>
+                      )
                     )}
                   </span>
                   <span className="mt-3 max-w-full text-xs font-semibold truncate" style={{ color: MIST }}>
@@ -267,6 +218,27 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
                 </li>
               );
             })}
+            {/* sem atividade de amigos ainda: um convite no lugar dos stories */}
+            {showFindFriends && (
+              <li className="shrink-0 w-[84px]">
+                <Link
+                  to="/community"
+                  aria-label={t('feed.findFriendsLabel')}
+                  className={`group w-full flex flex-col items-center rounded-2xl pb-1 ${FOCUS_RING}`}
+                >
+                  <span
+                    className="grid place-items-center w-[78px] h-[78px] rounded-full transition-transform duration-200 group-hover:scale-105"
+                    style={{ border: '2px dashed rgba(243,234,211,0.3)', background: VELVET, color: PAPER }}
+                    aria-hidden
+                  >
+                    <UserPlus className="w-6 h-6" />
+                  </span>
+                  <span className="mt-3 max-w-full text-xs font-semibold truncate" style={{ color: MIST }}>
+                    {t('feed.findFriends')}
+                  </span>
+                </Link>
+              </li>
+            )}
           </ol>
         </div>
       )}

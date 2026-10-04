@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Bookmark, ChevronLeft, ChevronRight, EyeOff, Heart, Loader2, MessageCircle, Quote, Send, Star, Trash2, X } from 'lucide-react';
+import { ArrowRight, Bookmark, ChevronLeft, ChevronRight, Eye, EyeOff, Heart, Loader2, MessageCircle, Quote, Send, Star, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { INK, MIST, NIGHT, PAPER, PIXEL, FOCUS_RING, ratingTone, withAlpha } from '../../lib/oracleTheme';
 import {
@@ -14,6 +14,7 @@ import {
   storyPoster,
   storyTitle,
   storyYear,
+  toggleStoryHidden,
   toggleStoryLike,
   type FeedComment,
   type FeedGroup,
@@ -62,6 +63,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [likeBusy, setLikeBusy] = useState(false);
+  const [hideBusy, setHideBusy] = useState(false);
   const [likePulse, setLikePulse] = useState(0);
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
 
@@ -222,6 +224,24 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
       toast.error(t('feed.likeError'));
     } finally {
       setLikeBusy(false);
+    }
+  };
+
+  // ------------------------------------------- ocultar (só o próprio story)
+  const toggleHidden = async () => {
+    if (!story || !isOwn || hideBusy) return;
+    const wasHidden = Boolean(story.hidden);
+    updateStory({ ...story, hidden: !wasHidden });
+    setHideBusy(true);
+    try {
+      const hidden = await toggleStoryHidden(story);
+      updateStory({ ...story, hidden });
+      toast.success(hidden ? t('feed.hiddenToast') : t('feed.shownToast'));
+    } catch {
+      updateStory({ ...story, hidden: wasHidden });
+      toast.error(t('common.error'));
+    } finally {
+      setHideBusy(false);
     }
   };
 
@@ -468,6 +488,27 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
                   {paused && !typing && !drawerOpen && <span className="ml-1.5">· {t('feed.paused')}</span>}
                 </p>
               </div>
+              {isOwn && (
+                <button
+                  onClick={toggleHidden}
+                  disabled={hideBusy}
+                  aria-pressed={Boolean(story.hidden)}
+                  title={story.hidden ? t('feed.showToFriends') : t('feed.hideFromFriends')}
+                  className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold transition disabled:opacity-60 ${FOCUS_RING} ${
+                    story.hidden ? 'bg-amber-300 hover:bg-amber-200' : 'bg-white/10 hover:bg-white/20'
+                  }`}
+                  style={{ color: story.hidden ? INK : PAPER }}
+                >
+                  {hideBusy ? (
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+                  ) : story.hidden ? (
+                    <Eye className="w-4 h-4" aria-hidden />
+                  ) : (
+                    <EyeOff className="w-4 h-4" aria-hidden />
+                  )}
+                  {story.hidden ? t('feed.show') : t('feed.hide')}
+                </button>
+              )}
               <button
                 ref={closeRef}
                 onClick={onClose}
@@ -496,6 +537,15 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
                   exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10 }}
                   transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                 >
+                  {isOwn && story.hidden && (
+                    <p
+                      className="mb-3 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold"
+                      style={{ background: 'rgba(252,211,77,0.16)', color: '#FDE68A', boxShadow: 'inset 0 0 0 1px rgba(252,211,77,0.4)' }}
+                    >
+                      <EyeOff className="w-3.5 h-3.5" aria-hidden />
+                      {t('feed.hiddenNote')}
+                    </p>
+                  )}
                   <div className="relative">
                     <div
                       className="relative aspect-[2/3] rounded-2xl overflow-hidden ring-1 ring-white/15"
