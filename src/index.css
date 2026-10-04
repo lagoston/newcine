@@ -3,6 +3,8 @@
 @import './styles/cosmetics.css';
 /* Decorações dos eventos sazonais (Halloween, Natal). */
 @import './styles/seasonal.css';
+/* Anel dos stories do Feed dos Amigos. */
+@import './styles/feed.css';
 
 @tailwind base;
 @tailwind components;

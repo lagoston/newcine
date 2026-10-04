@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSeasonalEvent } from '../../contexts/SeasonalEventContext';
 import { PAPER, PIXEL, withAlpha } from '../../lib/oracleTheme';
 import { daysUntilEventDay, type SeasonalEventId } from '../../lib/seasonalEvents';
-import { BatFlights, Cobweb, GoldStar, HangingSpider, JackOLantern, LightsGarland, MoonGlow, PennantBunting, SantaHat, Snowfall } from './SeasonalArt';
+import { BatFlights, Cobweb, GoldStar, HangingSpider, JackOLantern, LightsGarland, MoonGlow, PennantBunting, SantaCap, Snowfall } from './SeasonalArt';
 
 // Decoração dos eventos espalhada pelo site — de propósito, mínima:
 //   • SeasonalBackdrop: atmosfera no fundo de todas as páginas (lua e três
@@ -163,12 +163,10 @@ export const AvatarSeasonalAccessory: React.FC<{ eventId: SeasonalEventId; size?
       </span>
     );
   }
-  const s = Math.round(size * 0.58);
-  return (
-    <span aria-hidden className="pointer-events-none absolute z-20 block" style={{ left: -s * 0.2, top: -s * 0.28, transform: 'rotate(-16deg)' }}>
-      <SantaHat size={s} style={{ filter: 'drop-shadow(0 6px 8px rgba(0,0,0,0.45))' }} />
-    </span>
-  );
+  // O gorro senta no topo, levemente inclinado, com a barra encostada na
+  // borda do avatar (o desenho já vem na escala do avatar).
+  // Ele sobe ~46% do tamanho acima do avatar: quem usa reserva esse espaço.
+  return <SantaCap size={size} className="z-20" style={{ filter: 'drop-shadow(0 5px 6px rgba(0,0,0,0.45))' }} />;
 };
 
 // Contagem regressiva no perfil decorado: dias para o próximo 31/10

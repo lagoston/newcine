@@ -103,7 +103,9 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-7">
           {/* Avatar (com a moldura escolhida) */}
-          <div className="relative mx-auto sm:mx-0 shrink-0">
+          {/* O gorro de Natal sobe ~55px acima do avatar: margem para ele não
+              ser cortado pela borda de cima do cartão. */}
+          <div className={`relative mx-auto sm:mx-0 shrink-0 ${seasonalDecoration === 'christmas' ? 'mt-9 sm:mt-6' : ''}`}>
             {!avatarBusy && avatarUrl && frameUsesComponent(avatarFrame || undefined, isPremium) === 'GhostRiderFrame' ? (
               <GhostRiderFrame src={avatarUrl} alt={username} size={120} />
             ) : (

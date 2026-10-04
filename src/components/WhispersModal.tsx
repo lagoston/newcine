@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Trash2, Tv, Trophy, MessageCircle, UserPlus } from 'lucide-react';
+import { Loader2, Trash2, Tv, Trophy, MessageCircle, UserPlus, Heart, Play } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -11,6 +11,8 @@ import MovieDetailsModal from './MovieDetailsModal';
 import OptimizedPoster from './OptimizedPoster';
 import OracleSheet from './OracleSheet';
 import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
+import { fetchStory, markStoryViewed, storyPoster, storyTitle, type FeedStory } from '../lib/friendsFeed';
+import StoryViewer from './feed/StoryViewer';
 
 interface WhispersModalProps {
   isOpen: boolean;
@@ -26,7 +28,8 @@ interface WhispersModalProps {
 interface Whisper {
   id: string;
   from_user_id: string | null;
-  type: 'movie' | 'friend_request' | 'new_episode' | 'tag_unlocked';
+  // story_*: curtidas, comentários e respostas no Feed dos Amigos
+  type: 'movie' | 'friend_request' | 'new_episode' | 'tag_unlocked' | 'story_like' | 'story_comment' | 'story_reply';
   movie_id?: number;
   movie_title?: string;
   movie_poster?: string;
@@ -43,7 +46,7 @@ interface Whisper {
   from_user: { username: string; avatar_url: string | null } | null;
 }
 
-type Filter = 'all' | 'friend_request' | 'movie' | 'new_episode' | 'tag_unlocked';
+type Filter = 'all' | 'friend_request' | 'movie' | 'new_episode' | 'tag_unlocked' | 'story';
 
 const FILTER_LABEL: Record<Filter, string> = {
   all: 'indications.filterAll',
@@ -51,6 +54,17 @@ const FILTER_LABEL: Record<Filter, string> = {
   movie: 'indications.filterRecs',
   new_episode: 'indications.filterEpisodes',
   tag_unlocked: 'indications.filterTags',
+  story: 'indications.filterFeed',
+};
+
+const isStoryWhisper = (type: Whisper['type']) => type === 'story_like' || type === 'story_comment' || type === 'story_reply';
+// as três notificações do feed dividem um filtro só
+const filterOf = (type: Whisper['type']): Filter => (isStoryWhisper(type) ? 'story' : (type as Filter));
+
+const STORY_VERB: Record<'story_like' | 'story_comment' | 'story_reply', string> = {
+  story_like: 'indications.storyLiked',
+  story_comment: 'indications.storyCommented',
+  story_reply: 'indications.storyReplied',
 };
 
 function relativeTime(iso: string, lang: string): string {
@@ -83,6 +97,8 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  // story aberto a partir de uma curtida/comentário
+  const [openStory, setOpenStory] = useState<FeedStory | null>(null);
 
   // Guardados em ref: as funções do contexto/i18n podem mudar de identidade
   // a cada render e não devem disparar uma nova busca.
@@ -137,9 +153,9 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
     return () => { cancelled = true; };
   }, [isOpen, session?.user?.id]);
 
-  const presentTypes = useMemo(() => Array.from(new Set(whispers.map((w) => w.type))), [whispers]);
+  const presentTypes = useMemo(() => Array.from(new Set(whispers.map((w) => filterOf(w.type)))), [whispers]);
   const filters: Filter[] = presentTypes.length > 1 ? ['all', ...presentTypes] : [];
-  const visible = filter === 'all' ? whispers : whispers.filter((w) => w.type === filter);
+  const visible = filter === 'all' ? whispers : whispers.filter((w) => filterOf(w.type) === filter);
   const fresh = visible.filter((w) => freshIds.has(w.id));
   const earlier = visible.filter((w) => !freshIds.has(w.id));
 
@@ -211,6 +227,28 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
     }
   };
 
+  // O story de uma curtida/comentário é o seu (o dono é você); o de uma
+  // resposta é de quem respondeu.
+  const viewStory = async (whisper: Whisper) => {
+    if (!session?.user?.id || !whisper.movie_id) return;
+    const ownerId = whisper.type === 'story_reply' ? whisper.from_user_id : session.user.id;
+    if (!ownerId) return;
+    setBusyId(whisper.id);
+    try {
+      const story = await fetchStory(ownerId, whisper.movie_id, whisper.media_type ?? 'movie');
+      if (!story) {
+        toast(t('feed.unavailable'));
+        return;
+      }
+      setOpenStory(story);
+    } catch (error) {
+      console.error('Error loading story:', error);
+      toast.error(t('common.error'));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const goTo = (path: string) => {
     onClose();
     navigate(path);
@@ -238,7 +276,11 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
 
   const headline = (whisper: Whisper) => {
     if (whisper.from_user) {
-      const verb = whisper.type === 'friend_request' ? t('indications.sentFriendRequest') : t('indications.recommended');
+      const verb = isStoryWhisper(whisper.type)
+        ? t(STORY_VERB[whisper.type as keyof typeof STORY_VERB])
+        : whisper.type === 'friend_request'
+          ? t('indications.sentFriendRequest')
+          : t('indications.recommended');
       return (
         <>
           <span className="font-semibold" style={{ color: PAPER }}>{whisper.from_user.username}</span> {verb}
@@ -300,6 +342,24 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
             {whisper.episode_name ? ` · ${whisper.episode_name}` : ''}
           </span>
         );
+      case 'story_like':
+        return posterBlock(
+          whisper,
+          whisper.media_type,
+          <span className="mt-1.5 flex items-center gap-1.5 text-sm" style={{ color: MIST }}>
+            <Heart className="w-4 h-4 text-rose-400" fill="currentColor" aria-hidden />
+            {t('indications.storyLikedDetail')}
+          </span>
+        );
+      case 'story_comment':
+      case 'story_reply':
+        return posterBlock(
+          whisper,
+          whisper.media_type,
+          whisper.message ? (
+            <span className="mt-1.5 text-sm leading-relaxed line-clamp-3" style={{ color: MIST }}>“{whisper.message}”</span>
+          ) : null
+        );
       case 'tag_unlocked':
         return (
           <div className="mt-3 flex items-center gap-3.5">
@@ -347,6 +407,20 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
           </button>
           <button onClick={() => goTo(`/profile/${whisper.from_user?.username}`)} className={`${ghostButton} border-transparent`} style={{ color: MIST }}>
             {t('indications.viewProfile')}
+          </button>
+        </>
+      );
+    }
+
+    if (isStoryWhisper(whisper.type)) {
+      return (
+        <>
+          <button onClick={() => viewStory(whisper)} disabled={busy} className={primaryButton}>
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" fill="currentColor" aria-hidden />}
+            {t('indications.viewStory')}
+          </button>
+          <button onClick={() => openMovie(whisper, whisper.media_type)} disabled={busy} className={ghostButton} style={{ color: PAPER }}>
+            {t('indications.viewMovie')}
           </button>
         </>
       );
@@ -411,7 +485,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
         title={t('profile.whispers')}
         subtitle={!loading ? (freshCount > 0 ? t('indications.subtitleNew', { count: freshCount }) : t('indications.subtitleNone')) : undefined}
         size="lg"
-        escapeEnabled={!selectedMovie}
+        escapeEnabled={!selectedMovie && !openStory}
       >
         {loading ? (
           <div className="flex justify-center py-14">
@@ -468,6 +542,22 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
 
       {selectedMovie && (
         <MovieDetailsModal movie={selectedMovie} isOpen onClose={() => setSelectedMovie(null)} />
+      )}
+
+      {openStory && session?.user?.id && (
+        <StoryViewer
+          groups={[{ owner: openStory.owner, stories: [openStory], seen: openStory.seen, latestAt: openStory.activity_at }]}
+          start={{ group: 0, story: 0 }}
+          viewerId={session.user.id}
+          onClose={() => setOpenStory(null)}
+          onSeen={markStoryViewed}
+          onOpenMovie={(story) => {
+            setOpenStory(null);
+            getMovieDetails(story.movie_id, story.media_type)
+              .then(setSelectedMovie)
+              .catch(() => setSelectedMovie({ id: story.movie_id, title: storyTitle(story, lang), poster_path: storyPoster(story, lang) ?? '', media_type: story.media_type } as Movie));
+          }}
+        />
       )}
     </>
   );

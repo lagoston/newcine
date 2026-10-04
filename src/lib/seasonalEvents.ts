@@ -14,7 +14,10 @@ export type SeasonalStepKind = 'rate' | 'watchlist' | 'whisper' | 'review';
 
 export interface SeasonalStep {
   index: number;
+  // tag desta edição: 'ho-ho-ho' no 1º Natal, 'ho-ho-ho-2' no 2º ("Ho Ho Ho II")…
   tag: string;
+  // a tag-mãe ('ho-ho-ho'): chave dos textos em events.<id>.steps.<base_tag>
+  base_tag: string;
   name: string;
   emoji: string;
   kind: SeasonalStepKind;
@@ -37,6 +40,8 @@ export interface SeasonalItem {
 export interface SeasonalEventState {
   id: SeasonalEventId;
   edition: number;
+  // 1 no primeiro ano do evento, 2 no segundo… (as tags ganham II, III…)
+  level: number;
   starts_at: string;
   // fim exclusivo (meia-noite de Brasília do dia seguinte ao último)
   ends_at: string;
@@ -128,6 +133,10 @@ export const daysLeft = (state: Pick<SeasonalEventState, 'ends_at'>, now = Date.
 // Filmes da seleção que já contaram para o evento, por tipo de ação.
 export const countedIds = (state: SeasonalEventState, kind: SeasonalStepKind): Set<number> => new Set(state.actions[kind] ?? []);
 
+// Chave dos textos de uma etapa (events.<id>.steps.<chave>): a tag-mãe, a
+// mesma em todas as edições.
+export const stepTextKey = (step: Pick<SeasonalStep, 'tag' | 'base_tag'>): string => step.base_tag || step.tag;
+
 // Etapa em andamento: a primeira ainda não conquistada (null = tudo feito).
 export const currentStep = (state: SeasonalEventState): SeasonalStep | null => state.steps.find((step) => !step.unlocked) ?? null;
 
@@ -143,13 +152,63 @@ export const DECORATION_TAGS: Record<SeasonalEventId, { id: string; name: string
   christmas: { id: 'ho-ho-ho', name: 'Ho Ho Ho' },
 };
 
-export const decorationForActiveTag = (activeTag: { name?: string; category?: string } | null | undefined): SeasonalEventId | null => {
+// Edições seguintes do mesmo evento: o 2º Natal dá "Ho Ho Ho II" (id
+// 'ho-ho-ho-2'), o 3º "Ho Ho Ho III" ('ho-ho-ho-3')… — o banco cria as tags
+// (ensure_seasonal_edition_tags). Todas decoram o perfil do mesmo jeito.
+const ROMAN_VALUES: Record<string, number> = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+
+export const toRoman = (n: number): string => {
+  const table: [number, string][] = [
+    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
+    [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+  ];
+  let rest = Math.max(0, Math.floor(n));
+  let out = '';
+  for (const [value, symbol] of table) {
+    while (rest >= value) {
+      out += symbol;
+      rest -= value;
+    }
+  }
+  return out;
+};
+
+// "XIV" → 14; null se não for um numeral romano bem escrito.
+export const fromRoman = (text: string): number | null => {
+  if (!/^[IVXLCDM]+$/.test(text)) return null;
+  let total = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const value = ROMAN_VALUES[text[i]];
+    const next = ROMAN_VALUES[text[i + 1]] ?? 0;
+    total += value < next ? -value : value;
+  }
+  return total > 0 && toRoman(total) === text ? total : null;
+};
+
+export const editionTagId = (baseId: string, level: number): string => (level > 1 ? `${baseId}-${level}` : baseId);
+
+export interface TagDecoration {
+  eventId: SeasonalEventId;
+  // id da tag que a pessoa precisa ter (o da edição certa)
+  tagId: string;
+  level: number;
+}
+
+export const decorationForActiveTag = (activeTag: { name?: string; category?: string } | null | undefined): TagDecoration | null => {
   if (!activeTag || activeTag.category !== 'special' || !activeTag.name) return null;
-  const name = activeTag.name;
-  const found = (Object.keys(DECORATION_TAGS) as SeasonalEventId[]).find(
-    (id) => DECORATION_TAGS[id].name === name || (DECORATION_TAGS[id].aliases ?? []).includes(name),
-  );
-  return found ?? null;
+  const full = activeTag.name.trim();
+  // "Ho Ho Ho II" → base "Ho Ho Ho", nível 2
+  const candidates: [string, number][] = [[full, 1]];
+  const match = /^(.*\S)\s+([IVXLCDM]+)$/.exec(full);
+  const suffixLevel = match ? fromRoman(match[2]) : null;
+  if (match && suffixLevel && suffixLevel > 1) candidates.unshift([match[1], suffixLevel]);
+  for (const [name, level] of candidates) {
+    const eventId = (Object.keys(DECORATION_TAGS) as SeasonalEventId[]).find(
+      (id) => DECORATION_TAGS[id].name === name || (DECORATION_TAGS[id].aliases ?? []).includes(name),
+    );
+    if (eventId) return { eventId, tagId: editionTagId(DECORATION_TAGS[eventId].id, level), level };
+  }
+  return null;
 };
 
 // O grande dia de cada tema (contagem regressiva da decoração).

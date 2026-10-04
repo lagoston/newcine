@@ -12,6 +12,7 @@ import {
   daysLeft,
   formatDayMonth,
   lastDayOf,
+  stepTextKey,
   type SeasonalEventState,
   type SeasonalStep,
   type SeasonalTheme,
@@ -256,7 +257,7 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
               : t('events.conquered')
             : state === 'locked'
               ? t('events.locked')
-              : t(`events.${event.id}.steps.${s.tag}.label`)}
+              : t(`events.${event.id}.steps.${stepTextKey(s)}.label`)}
         </span>
         <span className="sr-only">
           {state === 'done' ? t('events.conquered') : state === 'locked' ? t('events.locked') : t('events.inProgress')}
@@ -415,10 +416,10 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
                       </p>
                     </div>
                     <p className="text-sm font-semibold leading-snug" style={{ color: PAPER }}>
-                      {t(`events.${event.id}.steps.${step.tag}.task`)}
+                      {t(`events.${event.id}.steps.${stepTextKey(step)}.task`)}
                     </p>
                     <p className="mt-0.5 text-xs leading-snug" style={{ color: MIST }}>
-                      {t(`events.${event.id}.steps.${step.tag}.hint`)}
+                      {t(`events.${event.id}.steps.${stepTextKey(step)}.hint`)}
                     </p>
                     <span
                       className="mt-2.5 block h-1 rounded-full bg-white/10 overflow-hidden"
@@ -436,22 +437,22 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
                   </div>
                 </div>
               ) : (
+                // Um parágrafo só (título em negrito emendado no texto) e o
+                // atalho para o perfil logo abaixo, alinhado ao texto.
                 <div
-                  className="mt-5 flex flex-wrap items-center gap-3 rounded-xl px-3.5 py-3"
+                  className="mt-5 rounded-xl px-3.5 pt-3 pb-1.5"
                   style={{ background: withAlpha(theme.accent, 0.14), boxShadow: `inset 0 0 0 1px ${withAlpha(theme.accent, 0.35)}` }}
                 >
-                  <Sparkles className="w-5 h-5 shrink-0" style={{ color: theme.glow }} aria-hidden />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold" style={{ color: PAPER }}>
-                      {t(`events.${event.id}.doneTitle`)}
-                    </p>
-                    <p className="text-xs" style={{ color: MIST }}>
-                      {t(`events.${event.id}.doneText`, { tag: last?.name ?? '' })}
-                    </p>
-                  </div>
+                  <p className="text-[13px] leading-relaxed" style={{ color: MIST }}>
+                    <Sparkles className="inline-block w-4 h-4 mr-1.5 -mt-0.5 align-middle" style={{ color: theme.glow }} aria-hidden />
+                    <strong className="font-semibold" style={{ color: PAPER }}>
+                      {t(`events.${event.id}.doneTitle`)}.
+                    </strong>{' '}
+                    {t(`events.${event.id}.doneText`, { tag: last?.name ?? '' })}
+                  </p>
                   <Link
                     to="/profile"
-                    className={`inline-flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg text-sm font-semibold hover:bg-white/10 transition ${FOCUS_RING}`}
+                    className={`-ml-2 mt-0.5 inline-flex items-center gap-1.5 min-h-[36px] px-2 rounded-lg text-sm font-semibold hover:bg-white/10 transition ${FOCUS_RING}`}
                     style={{ color: theme.accentText }}
                   >
                     {t('events.viewProfile')}

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Star, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
-import { Movie, getTrending, getMovieDetails, getComingSoon, getBestOfYear, getFriendsBestMovies } from '../lib/tmdb';
+import { Movie, getTrending, getMovieDetails, getComingSoon, getBestOfYear } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
@@ -279,10 +279,9 @@ interface ShelfData {
   trending: Movie[];
   comingSoon: Movie[];
   bestOfYear: Movie[];
-  friendsBest: Movie[];
 }
 
-const EMPTY_SHELVES: ShelfData = { trending: [], comingSoon: [], bestOfYear: [], friendsBest: [] };
+const EMPTY_SHELVES: ShelfData = { trending: [], comingSoon: [], bestOfYear: [] };
 
 const Home = () => {
   const { session } = useAuth();
@@ -335,20 +334,18 @@ const Home = () => {
     }
   };
 
-  const fetchShelves = async (id: string) => {
+  const fetchShelves = async () => {
     setShelvesLoading(true);
-    const [trending, comingSoon, bestOfYear, friendsBest] = await Promise.allSettled([
+    const [trending, comingSoon, bestOfYear] = await Promise.allSettled([
       getTrending(),
       getComingSoon(),
       getBestOfYear(),
-      getFriendsBestMovies(id),
     ]);
     const value = (result: PromiseSettledResult<Movie[]>) => (result.status === 'fulfilled' ? result.value : []);
     setShelves({
       trending: value(trending),
       comingSoon: value(comingSoon),
       bestOfYear: value(bestOfYear),
-      friendsBest: value(friendsBest),
     });
     setShelvesLoading(false);
   };
@@ -356,14 +353,14 @@ const Home = () => {
   useEffect(() => {
     if (userId) {
       fetchUsername(userId);
-      fetchShelves(userId);
+      fetchShelves();
     } else {
       fetchGuestTrending();
     }
   }, [userId]);
 
   const allShelfMovies = useMemo(
-    () => [...shelves.trending, ...shelves.comingSoon, ...shelves.bestOfYear, ...shelves.friendsBest],
+    () => [...shelves.trending, ...shelves.comingSoon, ...shelves.bestOfYear],
     [shelves]
   );
   const friendActivity = useFriendActivity(userId, allShelfMovies);
@@ -457,31 +454,6 @@ const Home = () => {
           friendActivity={friendActivity}
           onMovieClick={handleMovieClick}
           onViewAll={() => openAll(t('home.bestOfYear'), shelves.bestOfYear)}
-        />
-        <Shelf
-          title={t('home.friendsBest')}
-          movies={shelves.friendsBest}
-          meta="year"
-          friendActivity={friendActivity}
-          onMovieClick={handleMovieClick}
-          onViewAll={() => openAll(t('home.friendsBest'), shelves.friendsBest)}
-          emptyState={
-            <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 rounded-2xl ring-1 ring-white/10 p-6" style={{ background: VELVET }}>
-              <span className="w-12 h-12 shrink-0 rounded-xl grid place-items-center ring-1 ring-violet-300/30 text-violet-200" style={{ background: 'rgba(255,255,255,0.03)' }} aria-hidden>
-                <Users className="w-6 h-6" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold" style={{ color: PAPER }}>{t('profile.noFriendsActivityTitle')}</p>
-                <p className="mt-1 text-sm leading-relaxed max-w-lg" style={{ color: MIST }}>{t('profile.noFriendsActivityDescription')}</p>
-              </div>
-              <Link
-                to="/community"
-                className="shrink-0 inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
-              >
-                {t('home.panels.openCommunity')}
-              </Link>
-            </div>
-          }
         />
       </div>
 

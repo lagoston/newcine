@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Users, Film, MessageCircle, Crown, Palette, Settings, Tag, ArrowRight, Camera, Trash2, Check, Pencil, User } from 'lucide-react';
+import { Film, MessageCircle, Crown, Palette, Settings, Tag, Camera, Trash2, Check, Pencil, User } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import { supabase, getProfile } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -15,7 +15,6 @@ import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON } fro
 import { ProfileStatTiles, ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD } from '../components/ProfileTaste';
 import { summarizeRatings } from '../lib/profileStats';
 import ProfileEssence from '../components/ProfileEssence';
-import FriendsActivityCarousel from '../components/FriendsActivityCarousel';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache } from '../lib/cache';
@@ -40,16 +39,6 @@ interface Profile {
   plan_type?: string;
   oracle_predictions_count?: number;
   oracle_recommendations_count?: number;
-}
-
-interface FollowedUserCarousel {
-  id: string;
-  username: string;
-  avatar_url: string | null;
-  avatar_frame: string | null;
-  plan_type: string | null;
-  lastRatedTitle: string | null;
-  lastRating: number | null;
 }
 
 const AVATAR_MAX_DIMENSION = 500;
@@ -160,7 +149,6 @@ export default function Profile() {
   // pra decidir se os Text Effects (Customize Profile) estão
   // desbloqueados. Mesma fonte de verdade do TagPinsModal/CustomizeModal.
   const [realReviewCount, setRealReviewCount] = useState(0);
-  const [followedUsersCarousel, setFollowedUsersCarousel] = useState<FollowedUserCarousel[]>([]);
   const [showTagPinsModal, setShowTagPinsModal] = useState(false);
 
   const {
@@ -197,7 +185,6 @@ export default function Profile() {
   useEffect(() => {
     if (session?.user?.id) {
       fetchProfile();
-      fetchFollowedUsersForCarousel();
     }
   }, [session?.user?.id]);
 
@@ -225,60 +212,6 @@ export default function Profile() {
       window.removeEventListener('episodeToggled', handleEpisodeToggled);
     };
   }, [i18n, session?.user?.id]);
-
-  const fetchFollowedUsersForCarousel = async () => {
-    if (!session?.user?.id) return;
-    try {
-      const { data: friendships, error: followsError } = await supabase
-        .from('friendships')
-        .select('requester_id, addressee_id')
-        .eq('status', 'accepted')
-        .or(`requester_id.eq.${session.user.id},addressee_id.eq.${session.user.id}`);
-
-      if (followsError) throw followsError;
-      if (!friendships || friendships.length === 0) {
-        setFollowedUsersCarousel([]);
-        return;
-      }
-
-      const followingIds = friendships.map((f: any) => (f.requester_id === session.user.id ? f.addressee_id : f.requester_id));
-
-      const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, avatar_url, avatar_frame, plan_type').in('id', followingIds);
-
-      if (profilesError) throw profilesError;
-
-      const { data: lastRatings, error: ratingsError } = await supabase
-        .from('user_movies')
-        .select('user_id, rating, created_at, movies!inner(title)')
-        .in('user_id', followingIds)
-        .order('created_at', { ascending: false });
-
-      if (ratingsError) throw ratingsError;
-
-      const lastEntryPerUser = new Map<string, { title: string; rating: number | null }>();
-      (lastRatings || []).forEach((r: any) => {
-        if (!lastEntryPerUser.has(r.user_id) && r.movies?.title) {
-          lastEntryPerUser.set(r.user_id, { title: r.movies.title, rating: r.rating ?? null });
-        }
-      });
-
-      const shuffled = [...(profiles || [])].sort(() => Math.random() - 0.5);
-
-      const result: FollowedUserCarousel[] = shuffled.map((p: any) => ({
-        id: p.id,
-        username: p.username,
-        avatar_url: p.avatar_url,
-        avatar_frame: p.avatar_frame,
-        plan_type: p.plan_type,
-        lastRatedTitle: lastEntryPerUser.get(p.id)?.title || null,
-        lastRating: lastEntryPerUser.get(p.id)?.rating ?? null,
-      }));
-
-      setFollowedUsersCarousel(result);
-    } catch (error) {
-      console.error('Error fetching followed users carousel:', error);
-    }
-  };
 
   const fetchProfile = async () => {
     try {
@@ -797,48 +730,6 @@ export default function Profile() {
         <ProfileStatTiles ratedCount={ratedMoviesCount} watchMinutes={totalWatchTime} />
       </section>
 
-      {/* ---------- Atividade dos amigos ---------- */}
-      <section className="mt-12 border-t border-white/[0.07] pt-10">
-        <div className="mx-auto max-w-6xl px-5 sm:px-8">
-          <ProfileSectionHeading
-            title={t('profile.friendsActivity')}
-            hint={followedUsersCarousel.length > 0 ? t('profile.friendsActivityHint') : undefined}
-            action={
-              <Link
-                to="/community"
-                className={`inline-flex items-center gap-2 h-11 px-4 rounded-full border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
-                style={{ color: PAPER }}
-              >
-                {t('profile.accessCommunity')}
-                <ArrowRight className="w-4 h-4" aria-hidden />
-              </Link>
-            }
-          />
-        </div>
-
-        {followedUsersCarousel.length > 0 ? (
-          <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-6">
-            <FriendsActivityCarousel friends={followedUsersCarousel} />
-          </div>
-        ) : (
-          <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-5">
-            <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: SURFACE }}>
-              <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
-                <Users className="w-7 h-7 text-violet-300" aria-hidden />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold" style={{ color: PAPER }}>
-                  {t('profile.noFriendsActivityTitle')}
-                </p>
-                <p className="mt-1 text-sm" style={{ color: MIST }}>
-                  {t('profile.noFriendsActivityDescription')}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
       {/* ---------- Seu gosto ---------- */}
       <section className="mt-12 border-t border-white/[0.07] pt-10">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
@@ -926,10 +817,7 @@ export default function Profile() {
           isOpen={showWhispersModal}
           onClose={() => setShowWhispersModal(false)}
           userId={session.user.id}
-          onFriendAccepted={() => {
-            refetchProfileData();
-            fetchFollowedUsersForCarousel();
-          }}
+          onFriendAccepted={refetchProfileData}
         />
       )}
 

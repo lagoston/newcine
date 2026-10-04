@@ -5,13 +5,13 @@ import { useAuth } from '../lib/auth';
 import {
   SEASONAL_THEMES,
   PREVIEW_ALIASES,
-  DECORATION_TAGS,
   decorationForActiveTag,
   isSeasonalEventId,
   type SeasonalEventId,
   type SeasonalEventState,
   type SeasonalStep,
   type SeasonalTheme,
+  type TagDecoration,
 } from '../lib/seasonalEvents';
 import SeasonalCelebration from '../components/seasonal/SeasonalCelebration';
 
@@ -193,18 +193,20 @@ export function useTagDecoration(
   const { event } = useSeasonalEvent();
   const { session } = useAuth();
   const signedIn = Boolean(session?.user?.id);
-  const wanted = decorationForActiveTag(activeTag);
-  const key = `${profileUserId ?? ''}:${wanted ?? ''}`;
+  const decoration = decorationForActiveTag(activeTag);
+  const wanted = decoration?.eventId ?? null;
+  const wantedTagId = decoration?.tagId ?? null;
+  const key = `${profileUserId ?? ''}:${wantedTagId ?? ''}`;
   const [verified, setVerified] = useState<{ key: string; owned: boolean } | null>(null);
 
   useEffect(() => {
-    if (!wanted || !profileUserId || !signedIn) return;
+    if (!wantedTagId || !profileUserId || !signedIn) return;
     let cancelled = false;
     supabase
       .from('user_special_tags')
       .select('tag_id')
       .eq('user_id', profileUserId)
-      .eq('tag_id', DECORATION_TAGS[wanted].id)
+      .eq('tag_id', wantedTagId)
       .maybeSingle()
       .then(({ data, error }) => {
         // erro de leitura: na dúvida, mostra (é só enfeite)
@@ -213,7 +215,7 @@ export function useTagDecoration(
     return () => {
       cancelled = true;
     };
-  }, [key, wanted, profileUserId, signedIn]);
+  }, [key, wantedTagId, profileUserId, signedIn]);
 
   if (isOwn && event?.is_preview) return event.id;
   if (!wanted) return null;
@@ -228,9 +230,9 @@ export function useTagDecorations(
 ): Record<string, SeasonalEventId> {
   const candidates = profiles
     .map((profile) => ({ id: profile.id, deco: decorationForActiveTag(profile.active_tag) }))
-    .filter((c): c is { id: string; deco: SeasonalEventId } => c.deco !== null);
+    .filter((c): c is { id: string; deco: TagDecoration } => c.deco !== null);
   const key = candidates
-    .map((c) => `${c.id}:${c.deco}`)
+    .map((c) => `${c.id}:${c.deco.tagId}`)
     .sort()
     .join(',');
   const [owned, setOwned] = useState<{ key: string; pairs: Set<string> } | null>(null);
@@ -239,8 +241,8 @@ export function useTagDecorations(
     if (!key) return;
     let cancelled = false;
     const wanted = key.split(',').map((pair) => {
-      const [userId, deco] = pair.split(':');
-      return { userId, tagId: DECORATION_TAGS[deco as SeasonalEventId].id };
+      const [userId, tagId] = pair.split(':');
+      return { userId, tagId };
     });
     supabase
       .from('user_special_tags')
@@ -261,7 +263,7 @@ export function useTagDecorations(
   const result: Record<string, SeasonalEventId> = {};
   if (owned?.key === key) {
     candidates.forEach((c) => {
-      if (owned.pairs.has(`${c.id}:${DECORATION_TAGS[c.deco].id}`)) result[c.id] = c.deco;
+      if (owned.pairs.has(`${c.id}:${c.deco.tagId}`)) result[c.id] = c.deco.eventId;
     });
   }
   return result;

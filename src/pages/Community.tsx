@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, User, Users, Loader2, Crown, UserPlus, UserCheck, Clock, X, ChevronLeft, ChevronRight, Film } from 'lucide-react';
+import { Search, User, Users, Loader2, Crown, UserPlus, UserCheck, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
@@ -9,11 +9,7 @@ import { GhostRiderFrame } from '../components/GhostRiderFrame';
 import { getBannerClass, getBannerTone } from '../lib/banners';
 import { getTextEffectNameClass, getTextEffectSecondaryClass } from '../lib/textEffects';
 import { useTranslation } from 'react-i18next';
-import MovieDetailsModal from '../components/MovieDetailsModal';
-import FloatingFriendBubbles, { type FriendBubbleData } from '../components/FloatingFriendBubbles';
-import OptimizedPoster from '../components/OptimizedPoster';
 import { useAuth } from '../lib/auth';
-import { getMovieDetailsFromDB, Movie, getTrending } from '../lib/tmdb';
 import { cache } from '../lib/cache';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, tagCategoryStyle } from '../lib/oracleTheme';
 import { useTagDecorations } from '../contexts/SeasonalEventContext';
@@ -21,10 +17,9 @@ import { AvatarSeasonalAccessory, CardSeasonalScene, SeasonalCountdownMini } fro
 
 // Comunidade — "a praça".
 //   1. Cabeçalho: título e busca de membros.
-//   2. Na watchlist dos amigos: faixa de pôsteres do que seus amigos
-//      guardaram pra ver (sem amigos ainda: o que está em alta).
-//   3. Membros: cartões com banner, moldura, efeito de texto e tag de cada
+//   2. Membros: cartões com banner, moldura, efeito de texto e tag de cada
 //      pessoa, e o botão de amizade; paginados de 12 em 12.
+// O que os amigos guardaram/avaliaram agora vive no Feed dos Amigos, na home.
 
 interface Profile {
   id: string;
@@ -46,28 +41,9 @@ interface Profile {
   };
 }
 
-interface FriendWatchlistRow {
-  movie_id: number;
-  media_type?: string;
-  title: string;
-  friend_username: string;
-  friend_id: string;
-}
-
-// Um pôster da faixa: o filme + os amigos que o guardaram.
-interface WatchlistShelfItem {
-  key: string;
-  movieId: number;
-  mediaType: 'movie' | 'tv';
-  title: string;
-  movie?: Movie;
-  friends: FriendBubbleData[];
-}
-
 type FriendshipStatus = 'none' | 'pending_sent' | 'pending_received' | 'friends';
 
 const USERS_PER_PAGE = 12;
-const SHELF_LIMIT = 20;
 
 export default function Community() {
   const { t, i18n } = useTranslation();
@@ -81,12 +57,6 @@ export default function Community() {
   const cardDecorations = useTagDecorations(filteredProfiles);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
-  const [shelf, setShelf] = useState<WatchlistShelfItem[]>([]);
-  // A faixa mostra o que está em alta quando você ainda não tem amigos
-  // (ou eles não guardaram nada).
-  const [shelfIsFallback, setShelfIsFallback] = useState(false);
-  const [loadingShelf, setLoadingShelf] = useState(true);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalMembers, setTotalMembers] = useState<number | null>(null);
@@ -95,26 +65,6 @@ export default function Community() {
 
   const membersRef = useRef<HTMLElement>(null);
   const firstPageLoad = useRef(true);
-
-  // Arrastar a faixa com o mouse (no celular é o toque nativo).
-  const shelfScrollRef = useRef<HTMLDivElement>(null);
-  const shelfDrag = useRef({ active: false, startX: 0, scrollStart: 0, distance: 0 });
-  const handleShelfMouseDown = (e: React.MouseEvent) => {
-    const el = shelfScrollRef.current;
-    if (!el) return;
-    shelfDrag.current = { active: true, startX: e.pageX, scrollStart: el.scrollLeft, distance: 0 };
-  };
-  const handleShelfMouseMove = (e: React.MouseEvent) => {
-    const el = shelfScrollRef.current;
-    if (!el || !shelfDrag.current.active) return;
-    e.preventDefault();
-    const dx = e.pageX - shelfDrag.current.startX;
-    shelfDrag.current.distance = Math.abs(dx);
-    el.scrollLeft = shelfDrag.current.scrollStart - dx;
-  };
-  const handleShelfMouseUp = () => {
-    shelfDrag.current.active = false;
-  };
 
   useEffect(() => {
     fetchProfiles();
@@ -128,19 +78,9 @@ export default function Community() {
   }, [currentPage]);
 
   useEffect(() => {
-    if (session?.user?.id) {
-      fetchFriendsWatchlist();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]);
-
-  useEffect(() => {
     const handleLanguageChange = () => {
       cache.invalidatePattern('movie:');
       fetchProfiles();
-      if (session?.user?.id) {
-        fetchFriendsWatchlist();
-      }
     };
 
     i18n.on('languageChanged', handleLanguageChange);
@@ -321,88 +261,7 @@ export default function Community() {
     }
   };
 
-  const loadTrendingFallback = async () => {
-    try {
-      const trendingMovies = await getTrending();
-      setShelf(
-        trendingMovies.slice(0, 12).map((movie) => ({
-          key: `${movie.media_type || 'movie'}:${movie.id}`,
-          movieId: movie.id,
-          mediaType: (movie.media_type as 'movie' | 'tv') || 'movie',
-          title: movie.title,
-          movie,
-          friends: [],
-        })),
-      );
-      setShelfIsFallback(true);
-    } catch {
-      setShelf([]);
-    }
-  };
-
-  const fetchFriendsWatchlist = async () => {
-    if (!session?.user?.id) return;
-
-    try {
-      setLoadingShelf(true);
-      const { data, error } = await supabase.rpc('get_friends_watchlist_movies', { user_id_param: session.user.id });
-
-      if (error) throw error;
-
-      const rows: FriendWatchlistRow[] = data || [];
-      if (rows.length === 0) {
-        await loadTrendingFallback();
-        return;
-      }
-
-      // Uma linha por (filme, amigo) → um pôster por filme, com todos os
-      // amigos que o guardaram. Antes o mesmo filme aparecia repetido, uma
-      // vez por amigo, e cada pôster fazia as próprias consultas de bolhas.
-      const grouped = new Map<string, WatchlistShelfItem>();
-      rows.forEach((row) => {
-        const mediaType = (row.media_type as 'movie' | 'tv') || 'movie';
-        const key = `${mediaType}:${row.movie_id}`;
-        if (!grouped.has(key)) {
-          grouped.set(key, { key, movieId: row.movie_id, mediaType, title: row.title, friends: [] });
-        }
-        const item = grouped.get(key)!;
-        if (row.friend_id && !item.friends.some((f) => f.user_id === row.friend_id)) {
-          item.friends.push({ user_id: row.friend_id, username: row.friend_username, avatar_url: null, rating: null, is_watchlist_only: true });
-        }
-      });
-
-      // Os mais desejados primeiro.
-      const items = [...grouped.values()].sort((a, b) => b.friends.length - a.friends.length).slice(0, SHELF_LIMIT);
-
-      // Avatares dos amigos numa consulta só.
-      const friendIds = [...new Set(items.flatMap((i) => i.friends.map((f) => f.user_id)))];
-      if (friendIds.length > 0) {
-        const { data: friendProfiles } = await supabase.from('profiles').select('id, avatar_url').in('id', friendIds);
-        const avatarById = new Map((friendProfiles || []).map((p: { id: string; avatar_url: string | null }) => [p.id, p.avatar_url]));
-        items.forEach((item) => item.friends.forEach((f) => (f.avatar_url = avatarById.get(f.user_id) ?? null)));
-      }
-
-      const withDetails = await Promise.all(
-        items.map(async (item) => {
-          try {
-            return { ...item, movie: await getMovieDetailsFromDB(item.movieId) };
-          } catch {
-            return item;
-          }
-        }),
-      );
-      setShelf(withDetails);
-      setShelfIsFallback(false);
-    } catch (error) {
-      console.error('Error fetching friends watchlist:', error);
-      await loadTrendingFallback();
-    } finally {
-      setLoadingShelf(false);
-    }
-  };
-
   const isSearching = debouncedQuery.trim().length > 0;
-  const showShelf = currentPage === 1 && !searchQuery;
 
   // ---- Peças ----
 
@@ -620,98 +479,6 @@ export default function Community() {
         </div>
       </section>
 
-      {/* ---------- Na watchlist dos amigos ---------- */}
-      {showShelf && (
-        <section className="mt-10 border-t border-white/[0.07] pt-10">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <h2 style={{ ...PIXEL, color: PAPER }} className="text-2xl sm:text-3xl leading-tight">
-              {shelfIsFallback ? t('community.trendingFallbackTitle') : t('community.friendsWatchlistTitle')}
-            </h2>
-            <p className="mt-1 text-sm" style={{ color: MIST }}>
-              {shelfIsFallback ? t('community.trendingFallbackHint') : t('community.friendsWatchlistHint')}
-            </p>
-          </div>
-
-          {loadingShelf ? (
-            <div className="mt-5 flex gap-4 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] overflow-hidden" aria-busy="true">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="shrink-0 w-[124px] sm:w-[148px]">
-                  <div className="aspect-[2/3] rounded-xl ring-1 ring-white/[0.07] animate-pulse" style={{ background: VELVET }} />
-                  <div className="mt-2.5 h-3.5 w-24 rounded bg-white/10 animate-pulse" />
-                </div>
-              ))}
-            </div>
-          ) : shelf.length > 0 ? (
-            <div
-              ref={shelfScrollRef}
-              className="mt-3 pt-3 overflow-x-auto cursor-grab select-none"
-              onMouseDown={handleShelfMouseDown}
-              onMouseMove={handleShelfMouseMove}
-              onMouseUp={handleShelfMouseUp}
-              onMouseLeave={handleShelfMouseUp}
-              onClickCapture={(e) => {
-                if (shelfDrag.current.distance > 5) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  shelfDrag.current.distance = 0;
-                }
-              }}
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
-            >
-              <ol className="flex gap-4 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] pb-2">
-                {shelf.map((item) => {
-                  const title = item.movie?.title || item.title;
-                  const firstFriend = item.friends[0];
-                  return (
-                    <li key={item.key} className="shrink-0 w-[124px] sm:w-[148px]">
-                      <button
-                        onClick={() => item.movie && setSelectedMovie(item.movie)}
-                        disabled={!item.movie}
-                        className={`group block w-full text-left rounded-xl disabled:cursor-default ${FOCUS_RING}`}
-                      >
-                        <div
-                          className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
-                          style={{ background: VELVET }}
-                        >
-                          {item.movie?.poster_path ? (
-                            <OptimizedPoster src={`https://image.tmdb.org/t/p/w342${item.movie.poster_path}`} alt={title} className="absolute inset-0 w-full h-full object-cover" />
-                          ) : (
-                            <span className="absolute inset-0 grid place-items-center p-3 text-center text-xs" style={{ color: MIST }}>
-                              <Film className="w-8 h-8 opacity-50" aria-hidden />
-                            </span>
-                          )}
-                          {item.friends.length > 0 && <FloatingFriendBubbles movieId={item.movieId} mediaType={item.mediaType} friends={item.friends} />}
-                        </div>
-                        <p className="mt-2.5 text-sm font-medium leading-snug line-clamp-2" style={{ color: PAPER }}>
-                          {title}
-                        </p>
-                        {firstFriend ? (
-                          <p className="mt-0.5 text-xs truncate text-sky-300">
-                            {item.friends.length > 1
-                              ? t('community.wantedByMore', { username: firstFriend.username, count: item.friends.length - 1 })
-                              : t('community.wantedBy', { username: firstFriend.username })}
-                          </p>
-                        ) : (
-                          item.movie?.release_date && (
-                            <p className="mt-0.5 text-xs" style={{ color: MIST }}>
-                              {item.movie.release_date.slice(0, 4)}
-                            </p>
-                          )
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          ) : (
-            <p className="mx-auto max-w-6xl px-5 sm:px-8 mt-5 text-sm" style={{ color: MIST }}>
-              {t('common.noMoviesFound')}
-            </p>
-          )}
-        </section>
-      )}
-
       {/* ---------- Membros ---------- */}
       <section ref={membersRef} className="mt-12 border-t border-white/[0.07] pt-10 scroll-mt-20">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
@@ -799,7 +566,6 @@ export default function Community() {
         </div>
       </section>
 
-      {selectedMovie && <MovieDetailsModal movie={selectedMovie} isOpen={true} onClose={() => setSelectedMovie(null)} />}
     </div>
   );
 }

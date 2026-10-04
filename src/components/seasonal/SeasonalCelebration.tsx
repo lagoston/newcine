@@ -7,7 +7,7 @@ import { Check, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { PAPER, MIST, PIXEL, FOCUS_RING, withAlpha } from '../../lib/oracleTheme';
-import type { SeasonalEventState, SeasonalStep, SeasonalTheme } from '../../lib/seasonalEvents';
+import { stepTextKey, type SeasonalEventState, type SeasonalStep, type SeasonalTheme } from '../../lib/seasonalEvents';
 import { BatFlights, LightsGarland, MoonGlow, Snowfall } from './SeasonalArt';
 
 // Comemoração de uma tag especial do evento: aparece por cima de qualquer
@@ -122,7 +122,7 @@ const SeasonalCelebration: React.FC<Props> = ({ steps, event, theme, userId, onC
               {ordered.map((step) => step.name).join(' · ')}
             </h2>
             <p className="mt-3 text-[15px] leading-relaxed" style={{ color: PAPER }}>
-              {t(`events.${event.id}.steps.${top.tag}.reward`)}
+              {t(`events.${event.id}.steps.${stepTextKey(top)}.reward`)}
             </p>
 
             {decorated && (

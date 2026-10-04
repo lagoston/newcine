@@ -1,0 +1,83 @@
+/* Feed dos Amigos (src/components/feed): o anel dos stories ainda não
+   vistos chama o clique como uma flor chama a abelha — o degradê gira bem
+   devagar, um halo "respira" em volta e dois grãos de pólen orbitam o anel.
+   Visto, o anel fica fino e parado. Tudo some com prefers-reduced-motion. */
+
+@keyframes co-ring-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes co-ring-bloom {
+  0%, 100% { opacity: 0.3; transform: scale(0.97); }
+  50% { opacity: 0.85; transform: scale(1.05); }
+}
+
+@keyframes co-pollen {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  35%, 65% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes co-like-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.38); }
+  65% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+@keyframes co-heart-burst {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  18% { transform: translate(-50%, -50%) scale(1.18); opacity: 1; }
+  32% { transform: translate(-50%, -50%) scale(0.94); opacity: 1; }
+  48% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -70%) scale(1.06); opacity: 0; }
+}
+
+.co-ring-spin {
+  animation: co-ring-spin 14s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+.co-ring-bloom {
+  animation: co-ring-bloom 3.4s ease-in-out infinite;
+}
+
+.co-pollen-orbit {
+  animation: co-ring-spin 9s linear infinite reverse;
+  transform-origin: 50% 50%;
+}
+
+.co-pollen {
+  animation: co-pollen 3s ease-in-out infinite;
+}
+
+.co-like-pop {
+  animation: co-like-pop 0.38s ease-out;
+}
+
+.co-heart-burst {
+  animation: co-heart-burst 0.9s ease-out forwards;
+}
+
+/* faixa de avatares sem barra de rolagem */
+.co-feed-row {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.co-feed-row::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .co-ring-spin,
+  .co-ring-bloom,
+  .co-pollen-orbit,
+  .co-pollen,
+  .co-like-pop,
+  .co-heart-burst {
+    animation: none !important;
+  }
+  .co-pollen,
+  .co-heart-burst {
+    opacity: 0;
+  }
+}

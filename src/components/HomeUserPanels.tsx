@@ -13,6 +13,7 @@ import OracleSheet from './OracleSheet';
 import WhispersModal from './WhispersModal';
 import MonthlyInsightsModal from './MonthlyInsightsModal';
 import SeasonalEventPanel, { PanelSwitch, type HomePanelView } from './seasonal/SeasonalEventPanel';
+import FriendsFeed from './feed/FriendsFeed';
 import { useSeasonalEvent } from '../contexts/SeasonalEventContext';
 import { formatDayMonth } from '../lib/seasonalEvents';
 import { NIGHT, VELVET, PAPER, INK, MIST, PIXEL, ORACLES, ORACLE_BY_ID, OracleId, withAlpha } from '../lib/oracleTheme';
@@ -700,6 +701,9 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
           <ArrowRight className="w-4 h-4" aria-hidden />
         </Link>
       </section>
+
+      {/* ---------- Feed dos Amigos (stories) ---------- */}
+      <FriendsFeed userId={userId} onMovieClick={onMovieClick} />
 
       {/* ---------- Modais ---------- */}
       <WhispersModal isOpen={showWhispers} onClose={() => setShowWhispers(false)} userId={userId} />

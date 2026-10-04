@@ -294,15 +294,38 @@ export const Snowfall: React.FC<{ count?: number; seed?: number; maxSize?: numbe
 };
 
 // Gorro de Papai Noel (inclinado, pra pôr no canto do avatar).
-export const SantaHat: React.FC<{ size?: number; className?: string; style?: React.CSSProperties }> = ({ size = 60, className = '', style }) => (
-  <svg viewBox="0 0 60 50" width={size} height={(size * 50) / 60} aria-hidden className={`pointer-events-none ${className}`} style={style}>
-    <path d="M5 39C8 22 21 7 39 4.5C49.5 3 56.5 10 54.5 19C50.5 13.5 44.5 12.8 40.5 16.5C35 21.5 34.5 30 36.5 39Z" fill="#D93A45" />
-    <path d="M39 4.5C49.5 3 56.5 10 54.5 19C52 15.5 48.5 13.8 45 14C48 10 46 6 39 4.5Z" fill="#B42A35" />
-    <rect x="1.5" y="34.5" width="39" height="11" rx="5.5" fill="#F8F4EC" />
-    <circle cx="54" cy="20.5" r="5.8" fill="#F8F4EC" />
-    <path d="M6 37.5H36" stroke="#E3DCCD" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
-  </svg>
-);
+// Desenhado no sistema do próprio avatar (círculo de centro 50,50 e raio 50,
+// o avatar ocupa 0–100): a barra branca é um arco que abraça a borda, então
+// o gorro "senta" no topo da cabeça em qualquer tamanho. `tilt` gira o gorro
+// em torno do centro do avatar — a barra continua encostada na borda.
+// Já vem posicionado (absolute) em relação ao canto do avatar: o pai precisa
+// ser `relative` e ter o tamanho do avatar.
+const SANTA_CAP_BOX = { left: -8, top: -50, width: 120, height: 80 };
+
+export const SantaCap: React.FC<{ size: number; tilt?: number; className?: string; style?: React.CSSProperties }> = ({ size, tilt = -8, className = '', style }) => {
+  const box = SANTA_CAP_BOX;
+  return (
+    <svg
+      viewBox={`${box.left} ${box.top} ${box.width} ${box.height}`}
+      width={(size * box.width) / 100}
+      height={(size * box.height) / 100}
+      aria-hidden
+      overflow="visible"
+      className={`pointer-events-none absolute ${className}`}
+      style={{ left: (size * box.left) / 100, top: (size * box.top) / 100, ...style }}
+    >
+      <g transform={`rotate(${tilt} 50 50)`}>
+        {/* corpo: sobe do topo da cabeça e a ponta tomba para a direita */}
+        <path d="M16 12C16 -16 32 -42 56 -45C76 -47 93 -33 99 -11C91 -20 82 -23 76 -18C80 -8 83 2 84 12A52 52 0 0 0 16 12Z" fill="#D93A45" />
+        <path d="M56 -45C76 -47 93 -33 99 -11C94 -17 87 -20 81 -20C78 -32 69 -42 56 -45Z" fill="#B42A35" />
+        {/* barra de pelúcia em arco, sobre a borda do avatar */}
+        <path d="M11.7 15.5A51.5 51.5 0 0 1 88.3 15.5" fill="none" stroke="#F8F4EC" strokeWidth={12.5} strokeLinecap="round" />
+        <path d="M14.5 19.5A47 47 0 0 1 85.5 19.5" fill="none" stroke="#E3DCCD" strokeWidth={1.2} strokeLinecap="round" opacity={0.8} />
+        <circle cx={99.5} cy={-8} r={8} fill="#F8F4EC" />
+      </g>
+    </svg>
+  );
+};
 
 // Estrela dourada pequena (topo da árvore, brilho do painel).
 export const GoldStar: React.FC<{ size?: number; className?: string; style?: React.CSSProperties }> = ({ size = 18, className = '', style }) => (
