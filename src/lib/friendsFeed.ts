@@ -2,9 +2,9 @@ import { supabase } from './supabase';
 
 // Feed dos Amigos (home): stories feitos das interações dos amigos com as
 // obras — avaliou, guardou na watchlist, escreveu resenha. O banco
-// (supabase/migrations/20261004500000_friends_feed.sql) devolve só as 10
-// interações mais recentes; quando surge uma nova, a mais antiga sai, e as
-// que ficam não expiram. Curtir vira sussurro para o amigo; comentar também.
+// (supabase/migrations/20261004500000_friends_feed.sql e as seguintes)
+// devolve as 10 interações mais recentes, no máximo 2 por amigo, dos últimos
+// 30 dias. Curtir vira sussurro para o amigo; comentar também.
 // O dono pode ocultar um story seu da visão dos amigos.
 
 export type StoryKind = 'rate' | 'watchlist' | 'review';
@@ -62,7 +62,9 @@ export interface FeedComment {
 
 export interface FriendsFeedData {
   stories: FeedStory[];
-  me: FeedStory | null;
+  // os seus stories como os amigos veem (os 2 mais recentes dos últimos 30
+  // dias), mais os que você ocultou entre eles; do mais recente ao mais antigo
+  mine: FeedStory[];
   friend_count: number;
 }
 
@@ -126,10 +128,10 @@ const storyArgs = (story: Pick<FeedStory, 'owner' | 'movie_id' | 'media_type'>) 
 export async function fetchFriendsFeed(): Promise<FriendsFeedData> {
   const { data, error } = await supabase.rpc('get_friends_feed', { p_limit: FEED_LIMIT });
   if (error) throw error;
-  const payload = (data ?? {}) as Partial<FriendsFeedData>;
+  const payload = (data ?? {}) as Partial<FriendsFeedData> & { me?: FeedStory | null };
   return {
     stories: payload.stories ?? [],
-    me: payload.me ?? null,
+    mine: payload.mine ?? (payload.me ? [payload.me] : []),
     friend_count: payload.friend_count ?? 0,
   };
 }

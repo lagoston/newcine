@@ -32,7 +32,7 @@ interface FriendsFeedProps {
   onMovieClick: (movie: Movie) => void;
 }
 
-type ViewerState = { groups: FeedGroup[]; start: { group: number; story: number } };
+type ViewerState = { groups: FeedGroup[]; start: { group: number; story: number }; own?: boolean };
 
 const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
   const { t, i18n } = useTranslation();
@@ -74,7 +74,7 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
       return {
         ...current,
         stories: current.stories.map((story) => (story.id === updated.id ? updated : story)),
-        me: current.me?.id === updated.id ? updated : current.me,
+        mine: current.mine.map((story) => (story.id === updated.id ? updated : story)),
       };
     });
   }, []);
@@ -88,10 +88,25 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
     setViewer({ groups, start: { group: index, story: firstUnseenIndex(groups[index]) } });
   };
 
+  // os seus stories, do mais antigo ao mais recente (como os dos amigos)
+  const mine = useMemo(() => [...(data?.mine ?? [])].sort((a, b) => a.activity_at.localeCompare(b.activity_at)), [data?.mine]);
+  const latestMine = mine[mine.length - 1];
+  const mineHidden = mine.filter((story) => story.hidden).length;
+  const mineReactions = mine.reduce((sum, story) => sum + story.like_count + story.comment_count, 0);
+
   const openOwn = () => {
-    if (!data?.me) return;
-    const me = data.me;
-    setViewer({ groups: [{ owner: me.owner, stories: [me], seen: true, latestAt: me.activity_at }], start: { group: 0, story: 0 } });
+    if (!latestMine) return;
+    setViewer({
+      groups: [{ owner: latestMine.owner, stories: mine, seen: true, latestAt: latestMine.activity_at }],
+      start: { group: 0, story: 0 },
+      own: true,
+    });
+  };
+
+  const closeViewer = () => {
+    // ocultar/mostrar muda quais dos seus stories os amigos veem: recarrega
+    if (viewer?.own) load();
+    setViewer(null);
   };
 
   const openMovie = (story: FeedStory) => {
@@ -151,19 +166,19 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
         <div className="co-feed-row overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
           {/* rola de ponta a ponta; o recuo acompanha a margem do conteúdo */}
           <ol className="flex gap-3 sm:gap-4 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] pt-2 pb-1">
-            {data?.me && (
+            {latestMine && (
               <li className="shrink-0 w-[84px]">
                 <button
                   onClick={openOwn}
-                  aria-label={data.me.hidden ? `${t('feed.ownStory')} · ${t('feed.hiddenBadge')}` : t('feed.ownStory')}
+                  aria-label={mineHidden === mine.length ? `${t('feed.ownStory')} · ${t('feed.hiddenBadge')}` : t('feed.ownStory')}
                   className={`group w-full flex flex-col items-center rounded-2xl pb-1 ${FOCUS_RING}`}
                 >
                   <span className="relative transition-transform duration-200 group-hover:scale-105">
-                    <span style={{ opacity: data.me.hidden ? 0.55 : 1 }}>
-                      <StoryRing size={AVATAR} segments={[false]} avatarUrl={data.me.owner.avatar_url} username={data.me.owner.username} still />
+                    <span style={{ opacity: mineHidden === mine.length ? 0.55 : 1 }}>
+                      <StoryRing size={AVATAR} segments={mine.map(() => false)} avatarUrl={latestMine.owner.avatar_url} username={latestMine.owner.username} still />
                     </span>
-                    {kindBadge(data.me, true)}
-                    {data.me.hidden ? (
+                    {kindBadge(latestMine, true)}
+                    {mineHidden > 0 ? (
                       <span
                         className="absolute -top-1 -right-1.5 grid place-items-center w-[24px] h-[24px] rounded-full bg-amber-300"
                         style={{ color: INK, boxShadow: `0 0 0 2.5px ${NIGHT}` }}
@@ -172,14 +187,14 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
                         <EyeOff className="w-3.5 h-3.5" />
                       </span>
                     ) : (
-                      data.me.like_count + data.me.comment_count > 0 && (
+                      mineReactions > 0 && (
                         <span
                           className="absolute -top-1 -right-1.5 inline-flex items-center gap-0.5 h-[22px] px-1.5 rounded-full text-[11px] font-bold text-white bg-rose-500"
                           style={{ boxShadow: `0 0 0 2.5px ${NIGHT}` }}
                           aria-hidden
                         >
                           <Heart className="w-2.5 h-2.5" fill="currentColor" />
-                          {data.me.like_count + data.me.comment_count}
+                          {mineReactions}
                         </span>
                       )
                     )}
@@ -248,7 +263,7 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
           groups={viewer.groups}
           start={viewer.start}
           viewerId={userId}
-          onClose={() => setViewer(null)}
+          onClose={closeViewer}
           onStoryUpdate={updateStory}
           onSeen={handleSeen}
           onOpenMovie={openMovie}
