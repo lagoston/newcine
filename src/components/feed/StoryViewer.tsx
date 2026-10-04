@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Bookmark, ChevronLeft, ChevronRight, Eye, EyeOff, Heart, Loader2, MessageCircle, Quote, Send, Star, Trash2, X } from 'lucide-react';
@@ -9,6 +10,7 @@ import {
   addStoryComment,
   fetchStoryComments,
   firstUnseenIndex,
+  isAchievement,
   relativeTime,
   removeStoryComment,
   storyPoster,
@@ -21,6 +23,7 @@ import {
   type FeedStory,
 } from '../../lib/friendsFeed';
 import StoryRing from './StoryRing';
+import { AchievementBackdrop, AchievementCard } from './AchievementStory';
 
 // "Stories automáticos" do Feed dos Amigos: ocupa a tela, monta um cartão
 // com a capa da obra, a nota do amigo e o começo da resenha. Embaixo, curtir
@@ -43,13 +46,17 @@ interface StoryViewerProps {
   onOpenMovie?: (story: FeedStory) => void;
 }
 
-const durationFor = (story: FeedStory) =>
-  story.review ? Math.min(MAX_MS, BASE_MS + story.review.excerpt.length * 30) : BASE_MS;
+const durationFor = (story: FeedStory) => {
+  if (story.kind === 'event') return 9000;
+  if (story.review) return Math.min(MAX_MS, BASE_MS + story.review.excerpt.length * 30);
+  return BASE_MS;
+};
 
 const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start, viewerId, onClose, onStoryUpdate, onSeen, onOpenMovie }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const reduceMotion = useReducedMotion();
+  const navigate = useNavigate();
 
   const [groups, setGroups] = useState(initialGroups);
   const [pos, setPos] = useState(start);
@@ -319,6 +326,11 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
   if (!group || !story) return null;
 
   const kindLabel = t(`feed.kind.${story.kind}`);
+  const achievement = isAchievement(story);
+  const openOwnerProfile = () => {
+    onClose();
+    navigate(isOwn ? '/profile' : `/profile/${story.owner.username}`);
+  };
   const hasMany = groups.length > 1 || group.stories.length > 1;
   const spoilerHidden = Boolean(story.review?.has_spoilers && !revealed[story.id]);
 
@@ -442,7 +454,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
           className="relative w-full h-[100dvh] sm:h-[min(92vh,860px)] sm:w-[min(460px,92vw)] sm:rounded-[28px] overflow-hidden flex flex-col shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)] sm:ring-1 sm:ring-white/10"
           style={{ background: NIGHT }}
         >
-          {/* a capa, grande e borrada, como fundo do cartão */}
+          {/* conquista: a cena dela; obra: a capa, grande e borrada */}
+          {achievement ? (
+            <AchievementBackdrop story={story} />
+          ) : (
           <div aria-hidden className="absolute inset-0 overflow-hidden">
             {poster && (
               <img
@@ -459,6 +474,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
               }}
             />
           </div>
+          )}
 
           <div className="relative z-10 flex flex-col h-full" style={{ paddingTop: 'max(env(safe-area-inset-top), 10px)' }}>
             {/* barras de progresso: uma por story deste amigo */}
@@ -546,94 +562,112 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
                       {t('feed.hiddenNote')}
                     </p>
                   )}
-                  <div className="relative">
-                    <div
-                      className="relative aspect-[2/3] rounded-2xl overflow-hidden ring-1 ring-white/15"
-                      style={{
-                        height: story.review ? 'min(31dvh, 280px)' : 'min(42dvh, 360px)',
-                        background: NIGHT,
-                        boxShadow: `0 30px 60px -24px rgba(0,0,0,0.9), 0 0 70px -18px ${withAlpha(tone.color, 0.55)}`,
-                      }}
-                    >
-                      {poster ? (
-                        <img src={`https://image.tmdb.org/t/p/w500${poster}`} alt={title} draggable={false} className="absolute inset-0 w-full h-full object-cover" />
-                      ) : (
-                        <span className="absolute inset-0 grid place-items-center p-4 text-center" style={{ ...PIXEL, color: MIST }}>
-                          {title}
-                        </span>
-                      )}
-                    </div>
-                    {/* a nota do amigo (ou o marcador da watchlist) */}
-                    <span
-                      className="absolute -right-4 -bottom-4 grid place-items-center w-[60px] h-[60px] rounded-full"
-                      style={{
-                        background: INK,
-                        boxShadow: `inset 0 0 0 2.5px ${tone.color}, 0 12px 26px -10px rgba(0,0,0,0.9), 0 0 24px -4px ${withAlpha(tone.color, 0.6)}`,
-                      }}
-                      aria-label={story.rating === null ? t('feed.onWatchlist') : `${story.rating}/10`}
-                    >
-                      {story.rating === null ? (
-                        <Bookmark className="w-6 h-6" style={{ color: tone.color }} fill="currentColor" aria-hidden />
-                      ) : (
-                        <span className="flex flex-col items-center leading-none" style={{ color: tone.color }} aria-hidden>
-                          <span style={PIXEL} className="text-[26px] leading-none">{story.rating}</span>
-                          <Star className="mt-0.5 w-3 h-3" fill="currentColor" />
-                        </span>
-                      )}
-                    </span>
-                  </div>
-
-                  <h3 style={{ ...PIXEL, color: PAPER }} className="mt-6 max-w-full text-center text-2xl leading-tight line-clamp-2 break-words">
-                    {title}
-                  </h3>
-                  <p className="mt-1 text-xs" style={{ color: MIST }}>
-                    {[year, story.media_type === 'tv' ? t('feed.tv') : t('feed.movie'), story.rating === null ? t('feed.onWatchlist') : null]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
-                  {onOpenMovie && (
-                    <button
-                      onPointerDown={stop}
-                      onPointerUp={stop}
-                      onClick={() => onOpenMovie(story)}
-                      className={`mt-2 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 transition ${FOCUS_RING}`}
-                      style={{ color: PAPER }}
-                    >
-                      {t('feed.viewWork')}
-                      <ArrowRight className="w-3.5 h-3.5" aria-hidden />
-                    </button>
-                  )}
-
-                  {story.review && (
-                    <div
-                      className="relative mt-4 w-full rounded-2xl px-4 py-3.5 text-left"
-                      style={{ background: 'rgba(18,13,34,0.62)', boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.12)' }}
-                    >
-                      <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: PAPER }}>
-                        <Quote className="w-4 h-4 shrink-0" style={{ color: tone.color }} fill="currentColor" aria-hidden />
-                        <span className="line-clamp-1">{story.review.title || t('feed.review')}</span>
-                      </p>
-                      <p
-                        className="mt-1 text-sm leading-relaxed line-clamp-4"
-                        style={{ color: MIST, filter: spoilerHidden ? 'blur(6px)' : undefined }}
-                        aria-hidden={spoilerHidden}
+                  {achievement ? (
+                    <>
+                      <AchievementCard story={story} />
+                      <button
+                        onPointerDown={stop}
+                        onPointerUp={stop}
+                        onClick={openOwnerProfile}
+                        className={`mt-5 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 transition ${FOCUS_RING}`}
+                        style={{ color: PAPER }}
                       >
-                        {story.review.truncated ? `${story.review.excerpt.replace(/[\s.,;:…]+$/, '')}…` : story.review.excerpt}
+                        {t('feed.viewProfile')}
+                        <ArrowRight className="w-3.5 h-3.5" aria-hidden />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="relative">
+                        <div
+                          className="relative aspect-[2/3] rounded-2xl overflow-hidden ring-1 ring-white/15"
+                          style={{
+                            height: story.review ? 'min(31dvh, 280px)' : 'min(42dvh, 360px)',
+                            background: NIGHT,
+                            boxShadow: `0 30px 60px -24px rgba(0,0,0,0.9), 0 0 70px -18px ${withAlpha(tone.color, 0.55)}`,
+                          }}
+                        >
+                          {poster ? (
+                            <img src={`https://image.tmdb.org/t/p/w500${poster}`} alt={title} draggable={false} className="absolute inset-0 w-full h-full object-cover" />
+                          ) : (
+                            <span className="absolute inset-0 grid place-items-center p-4 text-center" style={{ ...PIXEL, color: MIST }}>
+                              {title}
+                            </span>
+                          )}
+                        </div>
+                        {/* a nota do amigo (ou o marcador da watchlist) */}
+                        <span
+                          className="absolute -right-4 -bottom-4 grid place-items-center w-[60px] h-[60px] rounded-full"
+                          style={{
+                            background: INK,
+                            boxShadow: `inset 0 0 0 2.5px ${tone.color}, 0 12px 26px -10px rgba(0,0,0,0.9), 0 0 24px -4px ${withAlpha(tone.color, 0.6)}`,
+                          }}
+                          aria-label={story.rating === null ? t('feed.onWatchlist') : `${story.rating}/10`}
+                        >
+                          {story.rating === null ? (
+                            <Bookmark className="w-6 h-6" style={{ color: tone.color }} fill="currentColor" aria-hidden />
+                          ) : (
+                            <span className="flex flex-col items-center leading-none" style={{ color: tone.color }} aria-hidden>
+                              <span style={PIXEL} className="text-[26px] leading-none">{story.rating}</span>
+                              <Star className="mt-0.5 w-3 h-3" fill="currentColor" />
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
+                      <h3 style={{ ...PIXEL, color: PAPER }} className="mt-6 max-w-full text-center text-2xl leading-tight line-clamp-2 break-words">
+                        {title}
+                      </h3>
+                      <p className="mt-1 text-xs" style={{ color: MIST }}>
+                        {[year, story.media_type === 'tv' ? t('feed.tv') : t('feed.movie'), story.rating === null ? t('feed.onWatchlist') : null]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </p>
-                      {spoilerHidden && (
+                      {onOpenMovie && (
                         <button
                           onPointerDown={stop}
                           onPointerUp={stop}
-                          onClick={() => setRevealed((map) => ({ ...map, [story.id]: true }))}
-                          className={`absolute inset-0 grid place-items-center rounded-2xl ${FOCUS_RING}`}
+                          onClick={() => onOpenMovie(story)}
+                          className={`mt-2 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 transition ${FOCUS_RING}`}
+                          style={{ color: PAPER }}
                         >
-                          <span className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full text-xs font-semibold" style={{ background: INK, color: PAPER, boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.2)' }}>
-                            <EyeOff className="w-3.5 h-3.5" aria-hidden />
-                            {t('feed.spoiler')} · {t('feed.revealSpoiler')}
-                          </span>
+                          {t('feed.viewWork')}
+                          <ArrowRight className="w-3.5 h-3.5" aria-hidden />
                         </button>
                       )}
-                    </div>
+
+                      {story.review && (
+                        <div
+                          className="relative mt-4 w-full rounded-2xl px-4 py-3.5 text-left"
+                          style={{ background: 'rgba(18,13,34,0.62)', boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.12)' }}
+                        >
+                          <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: PAPER }}>
+                            <Quote className="w-4 h-4 shrink-0" style={{ color: tone.color }} fill="currentColor" aria-hidden />
+                            <span className="line-clamp-1">{story.review.title || t('feed.review')}</span>
+                          </p>
+                          <p
+                            className="mt-1 text-sm leading-relaxed line-clamp-4"
+                            style={{ color: MIST, filter: spoilerHidden ? 'blur(6px)' : undefined }}
+                            aria-hidden={spoilerHidden}
+                          >
+                            {story.review.truncated ? `${story.review.excerpt.replace(/[\s.,;:…]+$/, '')}…` : story.review.excerpt}
+                          </p>
+                          {spoilerHidden && (
+                            <button
+                              onPointerDown={stop}
+                              onPointerUp={stop}
+                              onClick={() => setRevealed((map) => ({ ...map, [story.id]: true }))}
+                              className={`absolute inset-0 grid place-items-center rounded-2xl ${FOCUS_RING}`}
+                            >
+                              <span className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full text-xs font-semibold" style={{ background: INK, color: PAPER, boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.2)' }}>
+                                <EyeOff className="w-3.5 h-3.5" aria-hidden />
+                                {t('feed.spoiler')} · {t('feed.revealSpoiler')}
+                              </span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                 </motion.div>
               </AnimatePresence>

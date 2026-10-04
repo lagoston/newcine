@@ -313,3 +313,25 @@ export const FRANCHISE_MOVIES = {
   'Twilight': [122, 121, 240, 50619, 50620],
   'Apes Reboot': [61791, 119450, 281338, 653346]
 } as const;
+// O que a tag pede, pelo nome e pela categoria — usado nos stories de
+// conquista do Feed dos Amigos ("Nova tag desbloqueada").
+export const tagRequirementText = (category: string, name: string, language: string): string | null => {
+  const pt = language.toLowerCase().startsWith('pt');
+  if (category === 'basic') {
+    const tag = PROGRESSION_TAGS.find((item) => item.name === name);
+    return tag ? (pt ? tag.descriptionPt : tag.description) : null;
+  }
+  if (category === 'theme') {
+    const tag = THEME_TAGS.find((item) => item.name === name);
+    return tag ? (pt ? tag.requirementPt : tag.requirement) : null;
+  }
+  if (category === 'oracle') {
+    const tag = ORACLE_TAGS.find((item) => item.name === name);
+    return tag ? (pt ? tag.requirementPt : tag.requirement) : null;
+  }
+  if (category === 'community') {
+    const tag = COMMUNITY_TAGS.find((item) => item.name === name);
+    return tag ? (pt ? tag.descriptionPt : tag.description) : null;
+  }
+  return null;
+};

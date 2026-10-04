@@ -3,11 +3,17 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Bookmark, EyeOff, Heart, PenLine, Star, UserPlus } from 'lucide-react';
 import type { Movie } from '../../lib/tmdb';
-import { INK, MIST, NIGHT, PAPER, PIXEL, VELVET, FOCUS_RING, ratingTone } from '../../lib/oracleTheme';
+import { INK, MIST, NIGHT, PAPER, PIXEL, VELVET, FOCUS_RING, ratingTone, tagCategoryStyle } from '../../lib/oracleTheme';
+import { SEASONAL_THEMES, isSeasonalEventId } from '../../lib/seasonalEvents';
+import { fetchTagProgress, unlockedPinsFrom } from '../../lib/tagProgress';
+import { syncUnlockedTagsFromHome } from '../../lib/tagNotifications';
 import {
+  eventAchievementOf,
   fetchFriendsFeed,
   firstUnseenIndex,
   groupStories,
+  isAchievement,
+  tagAchievementOf,
   markStoryViewed,
   storyPoster,
   storyTitle,
@@ -27,6 +33,8 @@ import StoryViewer from './StoryViewer';
 
 const AVATAR = 66;
 const REFRESH_AFTER_MS = 60_000;
+// de quanto em quanto tempo a home confere as tags (tag nova vira story)
+const TAG_SYNC_EVERY_MS = 15 * 60_000;
 
 interface FriendsFeedProps {
   userId: string;
@@ -57,6 +65,40 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
   useEffect(() => {
     load();
   }, [load, userId]);
+
+  // Tags: a home confere de tempos em tempos (em segundo plano) se surgiu
+  // alguma nova — ela vira aviso e story. Na primeira vez da pessoa o banco
+  // só registra o que ela já tem.
+  useEffect(() => {
+    if (!userId) return;
+    const key = `cineoracle:tagSyncAt:${userId}`;
+    let last = 0;
+    try {
+      last = Number(localStorage.getItem(key) || 0);
+    } catch {
+      last = 0;
+    }
+    if (Date.now() - last < TAG_SYNC_EVERY_MS) return;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        localStorage.setItem(key, String(Date.now()));
+      } catch {
+        // sem localStorage: confere de novo na próxima visita
+      }
+      try {
+        const progress = await fetchTagProgress(userId);
+        const created = await syncUnlockedTagsFromHome(userId, unlockedPinsFrom(progress));
+        if (created > 0 && !cancelled) load();
+      } catch (error) {
+        console.error('feed: tag sync', error);
+      }
+    }, 2500);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [userId, load]);
 
   // voltou para a aba depois de um tempo: atualiza (sem atrapalhar quem está vendo)
   useEffect(() => {
@@ -111,17 +153,36 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
   };
 
   const openMovie = (story: FeedStory) => {
+    if (isAchievement(story)) return;
     setViewer(null);
     onMovieClick({
       id: story.movie_id,
       title: storyTitle(story, i18n.language),
       poster_path: storyPoster(story, i18n.language) ?? '',
-      media_type: story.media_type,
+      media_type: story.media_type as 'movie' | 'tv',
       release_date: story.release_date ?? '',
     } as Movie);
   };
 
   const kindBadge = (story: FeedStory, seen: boolean) => {
+    if (isAchievement(story)) {
+      const tag = tagAchievementOf(story);
+      const event = eventAchievementOf(story);
+      const color = tag
+        ? tagCategoryStyle(tag.category).accent
+        : event && isSeasonalEventId(event.event_id)
+          ? SEASONAL_THEMES[event.event_id].accent
+          : '#A78BFA';
+      return (
+        <span
+          className="absolute left-1/2 -bottom-1.5 -translate-x-1/2 inline-flex items-center h-[22px] px-2 rounded-full text-[13px] leading-none whitespace-nowrap"
+          style={{ background: color, boxShadow: `0 0 0 2.5px ${NIGHT}`, opacity: seen ? 0.78 : 1 }}
+          aria-hidden
+        >
+          {tag?.emoji ?? event?.emoji ?? '🏅'}
+        </span>
+      );
+    }
     const tone = ratingTone(story.rating);
     return (
       <span
@@ -142,10 +203,18 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
     );
   };
 
+  const storyLabel = (story: FeedStory) => {
+    const tag = tagAchievementOf(story);
+    if (tag) return `${t('feed.achievement.tagEyebrow')}: ${tag.name}`;
+    const event = eventAchievementOf(story);
+    if (event) return t('feed.achievement.eventEyebrow', { event: t(`feed.event.${event.event_id}`, { defaultValue: event.event_id }), edition: event.edition });
+    const what = story.rating === null ? t('feed.onWatchlist') : `${story.rating}/10`;
+    return `${storyTitle(story, i18n.language)} (${what})`;
+  };
+
   const groupLabel = (group: FeedGroup) => {
     const latest = group.stories[group.stories.length - 1];
-    const what = latest.rating === null ? t('feed.onWatchlist') : `${latest.rating}/10`;
-    return `${t('feed.storyOf', { username: group.owner.username })} — ${storyTitle(latest, i18n.language)} (${what})${group.seen ? '' : ` · ${t('feed.unseen')}`}`;
+    return `${t('feed.storyOf', { username: group.owner.username })} — ${storyLabel(latest)}${group.seen ? '' : ` · ${t('feed.unseen')}`}`;
   };
 
   const loading = data === null && !failed;

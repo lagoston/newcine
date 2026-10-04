@@ -1511,7 +1511,9 @@
     "kind": {
       "rate": "avaliou",
       "watchlist": "quer ver",
-      "review": "escreveu sobre"
+      "review": "escreveu sobre",
+      "tag": "desbloqueou uma tag",
+      "event": "concluiu as missões"
     },
     "onWatchlist": "Na watchlist",
     "storyOf": "Story de @{{username}}",
@@ -1551,7 +1553,24 @@
     "hiddenBadge": "oculto",
     "hiddenToast": "Story oculto. Seus amigos não veem mais.",
     "shownToast": "Story visível de novo para os seus amigos.",
-    "findFriendsLabel": "Encontrar amigos na Comunidade"
+    "findFriendsLabel": "Encontrar amigos na Comunidade",
+    "achievement": {
+      "tagEyebrow": "Nova tag desbloqueada",
+      "eventEyebrow": "Missões de {{event}} {{edition}}",
+      "eventDone": "Missões concluídas",
+      "eventText": "Concluiu as três missões de {{event}} e ganhou as tags do evento.",
+      "category": {
+        "basic": "Tag básica",
+        "theme": "Tag de tema",
+        "community": "Tag da comunidade",
+        "oracle": "Tag do oráculo"
+      }
+    },
+    "event": {
+      "halloween": "Halloween",
+      "christmas": "Natal"
+    },
+    "viewProfile": "Ver perfil"
   },
   "events": {
     "switchLabel": "Escolher as recomendações",

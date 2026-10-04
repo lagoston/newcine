@@ -36,7 +36,8 @@ interface Whisper {
   message?: string;
   read: boolean;
   created_at: string;
-  media_type?: 'movie' | 'tv';
+  // 'achievement': curtida/comentário num story de conquista (tag ou evento)
+  media_type?: 'movie' | 'tv' | 'achievement';
   season_number?: number;
   episode_number?: number;
   episode_name?: string;
@@ -294,9 +295,28 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
     );
   };
 
-  const posterBlock = (whisper: Whisper, mediaType: 'movie' | 'tv' | undefined, detail: React.ReactNode) => (
+  // Story de conquista: o emoji no lugar da capa. Tag: o nome dela;
+  // evento: "Missões de Halloween 2026" (tag_name = evento, movie_title = edição).
+  const achievementBlock = (whisper: Whisper, detail: React.ReactNode) => (
+    <div className="mt-3 flex items-start gap-3.5">
+      <span className="w-14 h-14 shrink-0 rounded-xl grid place-items-center text-3xl ring-1 ring-white/10" style={{ background: VELVET }} aria-hidden>
+        {whisper.tag_emoji || '🏅'}
+      </span>
+      <span className="min-w-0 pt-0.5">
+        <span className="block font-semibold leading-snug" style={{ color: PAPER }}>
+          {whisper.tag_category === 'event'
+            ? t('feed.achievement.eventEyebrow', { event: t(`feed.event.${whisper.tag_name}`, { defaultValue: whisper.tag_name }), edition: whisper.movie_title })
+            : whisper.tag_name || whisper.movie_title}
+        </span>
+        {detail}
+      </span>
+    </div>
+  );
+
+  const posterBlock = (whisper: Whisper, mediaType: 'movie' | 'tv' | 'achievement' | undefined, detail: React.ReactNode) =>
+    mediaType === 'achievement' ? achievementBlock(whisper, detail) : (
     <button
-      onClick={() => openMovie(whisper, mediaType)}
+      onClick={() => openMovie(whisper, mediaType as 'movie' | 'tv' | undefined)}
       disabled={busyId === whisper.id}
       className={`mt-3 w-full flex justify-start items-start gap-3.5 text-left rounded-xl group ${focusRing}`}
     >
@@ -419,9 +439,11 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" fill="currentColor" aria-hidden />}
             {t('indications.viewStory')}
           </button>
-          <button onClick={() => openMovie(whisper, whisper.media_type)} disabled={busy} className={ghostButton} style={{ color: PAPER }}>
-            {t('indications.viewMovie')}
-          </button>
+          {whisper.media_type !== 'achievement' && (
+            <button onClick={() => openMovie(whisper, whisper.media_type as 'movie' | 'tv' | undefined)} disabled={busy} className={ghostButton} style={{ color: PAPER }}>
+              {t('indications.viewMovie')}
+            </button>
+          )}
         </>
       );
     }
@@ -436,7 +458,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
     }
 
     return (
-      <button onClick={() => openMovie(whisper, whisper.type === 'new_episode' ? 'tv' : whisper.media_type)} disabled={busy} className={ghostButton} style={{ color: PAPER }}>
+      <button onClick={() => openMovie(whisper, whisper.type === 'new_episode' ? 'tv' : (whisper.media_type as 'movie' | 'tv' | undefined))} disabled={busy} className={ghostButton} style={{ color: PAPER }}>
         {whisper.type === 'new_episode' ? t('indications.viewEpisode') : t('indications.viewMovie')}
       </button>
     );
@@ -553,6 +575,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
           onSeen={markStoryViewed}
           onOpenMovie={(story) => {
             setOpenStory(null);
+            if (story.media_type === 'achievement') return;
             getMovieDetails(story.movie_id, story.media_type)
               .then(setSelectedMovie)
               .catch(() => setSelectedMovie({ id: story.movie_id, title: storyTitle(story, lang), poster_path: storyPoster(story, lang) ?? '', media_type: story.media_type } as Movie));

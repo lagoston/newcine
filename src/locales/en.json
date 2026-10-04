@@ -1506,7 +1506,9 @@
     "kind": {
       "rate": "rated",
       "watchlist": "wants to watch",
-      "review": "wrote about"
+      "review": "wrote about",
+      "tag": "unlocked a tag",
+      "event": "completed the missions"
     },
     "onWatchlist": "On watchlist",
     "storyOf": "@{{username}}'s story",
@@ -1546,7 +1548,24 @@
     "hiddenBadge": "hidden",
     "hiddenToast": "Story hidden. Your friends can't see it anymore.",
     "shownToast": "Story visible to your friends again.",
-    "findFriendsLabel": "Find friends in the Community"
+    "findFriendsLabel": "Find friends in the Community",
+    "achievement": {
+      "tagEyebrow": "New tag unlocked",
+      "eventEyebrow": "{{event}} {{edition}} missions",
+      "eventDone": "Missions complete",
+      "eventText": "Completed all three {{event}} missions and earned the event tags.",
+      "category": {
+        "basic": "Basic tag",
+        "theme": "Theme tag",
+        "community": "Community tag",
+        "oracle": "Oracle tag"
+      }
+    },
+    "event": {
+      "halloween": "Halloween",
+      "christmas": "Christmas"
+    },
+    "viewProfile": "View profile"
   },
   "events": {
     "switchLabel": "Choose recommendations",

@@ -40,3 +40,23 @@ export async function syncUnlockedTagsAndNotify(userId: string, pins: UnlockedPi
     console.error('Error syncing unlocked tags:', error);
   }
 }
+/**
+ * Versão da home (em segundo plano, de tempos em tempos): faz as tags novas
+ * virarem aviso e story no Feed dos Amigos sem a pessoa abrir o modal de
+ * Tags. Na primeira vez de alguém, o banco só registra o que ela já tem —
+ * sem sussurro e sem story. Devolve quantas tags novas apareceram.
+ */
+export async function syncUnlockedTagsFromHome(userId: string, pins: UnlockedPin[]): Promise<number> {
+  if (pins.length === 0) return 0;
+  try {
+    const { data, error } = await supabase.rpc('sync_unlocked_tags_from_home', {
+      p_user_id: userId,
+      p_tags: pins.map((pin) => ({ category: pin.category, name: pin.name, emoji: pin.emoji })),
+    });
+    if (error) throw error;
+    return typeof data === 'number' ? data : 0;
+  } catch (error) {
+    console.error('Error syncing unlocked tags from home:', error);
+    return 0;
+  }
+}

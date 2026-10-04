@@ -6,8 +6,28 @@ import { supabase } from './supabase';
 // devolve as 40 interações mais recentes, no máximo 4 por amigo, dos últimos
 // 30 dias. Curtir vira sussurro para o amigo; comentar também.
 // O dono pode ocultar um story seu da visão dos amigos.
+//
+// Conquistas também viram stories (media_type 'achievement'): cada tag
+// desbloqueada (menos as especiais) e, no lugar das especiais, a conclusão
+// das missões de um evento (Halloween, Natal…).
 
-export type StoryKind = 'rate' | 'watchlist' | 'review';
+export type StoryKind = 'rate' | 'watchlist' | 'review' | 'tag' | 'event';
+export type StoryMediaType = 'movie' | 'tv' | 'achievement';
+
+export interface FeedTagAchievement {
+  category: 'basic' | 'theme' | 'community' | 'oracle';
+  name: string;
+  emoji: string;
+}
+
+export interface FeedEventAchievement {
+  event_id: string;
+  edition: number;
+  // 1 no primeiro ano do evento, 2 no segundo…
+  level: number;
+  emoji: string;
+  tags: { tag: string; name: string; emoji: string }[];
+}
 
 export interface FeedOwner {
   id: string;
@@ -26,11 +46,12 @@ export interface FeedReview {
 }
 
 export interface FeedStory {
-  // "<dono>:<movie|tv>:<id>"
+  // "<dono>:<movie|tv|achievement>:<id>"
   id: string;
   owner: FeedOwner;
+  // obra: id do TMDB; conquista: id da conquista
   movie_id: number;
-  media_type: 'movie' | 'tv';
+  media_type: StoryMediaType;
   title: string | null;
   title_pt: string | null;
   title_en: string | null;
@@ -41,6 +62,8 @@ export interface FeedStory {
   rating: number | null;
   kind: StoryKind;
   review: FeedReview | null;
+  // só nas conquistas (kind 'tag' ou 'event')
+  achievement?: FeedTagAchievement | FeedEventAchievement | null;
   activity_at: string;
   // o dono ocultou este story dos amigos (só o dono chega a ver um oculto)
   hidden?: boolean;
@@ -105,6 +128,14 @@ export const firstUnseenIndex = (group: FeedGroup): number => {
   return index === -1 ? 0 : index;
 };
 
+export const isAchievement = (story: Pick<FeedStory, 'media_type'>): boolean => story.media_type === 'achievement';
+
+export const tagAchievementOf = (story: FeedStory): FeedTagAchievement | null =>
+  story.kind === 'tag' && story.achievement ? (story.achievement as FeedTagAchievement) : null;
+
+export const eventAchievementOf = (story: FeedStory): FeedEventAchievement | null =>
+  story.kind === 'event' && story.achievement ? (story.achievement as FeedEventAchievement) : null;
+
 const isPt = (language: string) => language.toLowerCase().startsWith('pt');
 
 export const storyTitle = (story: FeedStory, language: string): string =>
@@ -136,7 +167,7 @@ export async function fetchFriendsFeed(): Promise<FriendsFeedData> {
   };
 }
 
-export async function fetchStory(ownerId: string, movieId: number, mediaType: 'movie' | 'tv'): Promise<FeedStory | null> {
+export async function fetchStory(ownerId: string, movieId: number, mediaType: StoryMediaType): Promise<FeedStory | null> {
   const { data, error } = await supabase.rpc('get_feed_story', { p_owner: ownerId, p_movie_id: movieId, p_media_type: mediaType });
   if (error) throw error;
   return (data as FeedStory | null) ?? null;
