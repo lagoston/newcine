@@ -1588,8 +1588,8 @@
     "celebration": {
       "eyebrow_one": "Special tag unlocked",
       "eyebrow_other": "{{count}} special tags unlocked",
-      "forever_one": "It's yours forever: the tag stays on your profile after the event ends.",
-      "forever_other": "They're yours forever: the tags stay on your profile after the event ends.",
+      "forever_one": "It stays on your profile forever if the films that counted remain in your library until the event ends.",
+      "forever_other": "They stay on your profile forever if the films that counted remain in your library until the event ends.",
       "useTag": "Show {{name}} on my profile",
       "using": "On your profile",
       "continue": "Continue"
@@ -1601,7 +1601,7 @@
       "subtitle": "The oracles' haunted selection: {{count}} films for October, with a few surprises hidden in the mix.",
       "trackTitle": "Halloween Ritual",
       "summary": "{{done}} of {{total}} films rated in October",
-      "footnote": "Each film's first rating, given in October, counts. If you had already seen almost the whole list, you get missions as a gift. The tags stay on your profile forever.",
+      "footnote": "Each film's first rating, given in October, counts. If you had already seen almost the whole list, you get missions as a gift. Until the event ends, the tags depend on the films: if one leaves your library, its tag goes too. After that, they stay on your profile forever.",
       "doneTitle": "Ritual complete",
       "doneText": "Wear {{tag}} on your profile and it dresses up for Halloween all year, with a countdown to the next Oct 31.",
       "steps": {
@@ -1636,7 +1636,7 @@
       "subtitle": "The oracles' holiday feast: {{count}} titles for December, with a few surprises wrapped in the mix.",
       "trackTitle": "Christmas Night",
       "summary": "{{done}} of {{total}} missions",
-      "footnote": "Only actions taken in December count. If you had already seen almost the whole list, you get missions as a gift. The tags stay on your profile forever.",
+      "footnote": "Only actions taken in December count. If you had already seen almost the whole list, you get missions as a gift. Until the event ends, the tags depend on the film and the review: if they leave your library, the tag goes too. After that, they stay on your profile forever.",
       "doneTitle": "Christmas complete",
       "doneText": "Wear {{tag}} on your profile and it dresses up for Christmas all year, with a countdown to the next Dec 25.",
       "steps": {

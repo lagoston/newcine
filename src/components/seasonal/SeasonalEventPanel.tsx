@@ -172,8 +172,9 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
   const last = steps[steps.length - 1];
   const unlockedCount = steps.filter((s) => s.unlocked).length;
   const giftedCount = steps.filter((s) => s.credited).length;
+  // (tags ganhas antes da regra dos filmes ficam mesmo sem os filmes: conta como completo)
   const summary = sameKind && last
-    ? t(`events.${event.id}.summary`, { done: Math.min(last.progress, last.count), total: last.count })
+    ? t(`events.${event.id}.summary`, { done: last.unlocked ? last.count : Math.min(last.progress, last.count), total: last.count })
     : t(`events.${event.id}.summary`, { done: unlockedCount, total: steps.length });
 
   // Filmes que já contaram para alguma etapa deste evento (só os tipos de
