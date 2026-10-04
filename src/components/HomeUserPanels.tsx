@@ -6,8 +6,6 @@ import { BarChart3, MessageCircle, HelpCircle, Wand2, Star, ArrowRight, Film, Li
 import { supabase } from '../lib/supabase';
 import { useWhispers } from '../contexts/WhispersContext';
 import { getMovieDetails, Movie } from '../lib/tmdb';
-import { getFrameClass, frameUsesComponent } from '../lib/frames';
-import { GhostRiderFrame } from './GhostRiderFrame';
 import OptimizedPoster from './OptimizedPoster';
 import OracleSheet from './OracleSheet';
 import WhispersModal from './WhispersModal';
@@ -73,9 +71,6 @@ const ResetCountdown: React.FC = () => {
 
 interface AccountStats {
   username: string;
-  avatarUrl: string | null;
-  avatarFrame: string | null;
-  avatarIsPremium: boolean;
   // nota do usuário por id de filme (null = está na watchlist sem nota)
   movieRatings: Map<number, number | null>;
 }
@@ -208,7 +203,7 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
 
   const fetchStats = useCallback(async () => {
     const [profileRes, moviesRes] = await Promise.all([
-      supabase.from('public_profiles').select('username, avatar_url, avatar_frame, plan_type, is_premium').eq('id', userId).maybeSingle(),
+      supabase.from('public_profiles').select('username').eq('id', userId).maybeSingle(),
       supabase.from('user_movies').select('movie_id, media_type, rating').eq('user_id', userId),
     ]);
 
@@ -217,13 +212,10 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
     rows.forEach((row) => {
       if ((row.media_type ?? 'movie') === 'movie') movieRatings.set(row.movie_id, row.rating);
     });
-    const profile = profileRes.data as { username?: string; avatar_url?: string | null; avatar_frame?: string | null; plan_type?: string; is_premium?: boolean } | null;
+    const profile = profileRes.data as { username?: string } | null;
 
     setStats({
       username: profile?.username ?? '',
-      avatarUrl: profile?.avatar_url ?? null,
-      avatarFrame: profile?.avatar_frame ?? null,
-      avatarIsPremium: profile?.is_premium ?? profile?.plan_type === 'premium',
       movieRatings,
     });
   }, [userId]);
@@ -314,23 +306,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
       ? value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
       : null;
 
-  const avatar = (() => {
-    const frameComponent = frameUsesComponent(stats?.avatarFrame || undefined, stats?.avatarIsPremium ?? false);
-    if (frameComponent === 'GhostRiderFrame' && stats?.avatarUrl) {
-      return <GhostRiderFrame src={stats.avatarUrl} alt={displayName} size={64} />;
-    }
-    return (
-      <div className={`w-16 h-16 rounded-full overflow-hidden ${getFrameClass(stats?.avatarFrame || undefined, stats?.avatarIsPremium ?? false)}`}>
-        {stats?.avatarUrl ? (
-          <img src={stats.avatarUrl} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full grid place-items-center text-2xl" style={{ ...PIXEL, background: VELVET, color: PAPER }}>
-            {displayName.charAt(0).toUpperCase()}
-          </div>
-        )}
-      </div>
-    );
-  })();
 
   // Cada atalho tem a sua cor: azul, rosa e roxo.
   const quickLinks = [
@@ -461,16 +436,12 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
       {/* ---------- Cabeçalho ---------- */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-5 sm:pt-7">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
-            <Link to="/profile" aria-label={t('nav.profile')} className={`shrink-0 rounded-full ${focusRing}`}>
-              {avatar}
-            </Link>
-            <div className="min-w-0">
-              <p className="text-sm sm:text-base" style={{ color: MIST }}>{greeting}</p>
-              <h1 style={{ ...PIXEL, color: PAPER }} className="mt-1 text-[2rem] sm:text-5xl leading-none truncate">
-                {displayName}
-              </h1>
-            </div>
+          {/* Sem foto aqui: o seu avatar já abre a fileira de stories logo acima. */}
+          <div className="min-w-0">
+            <p className="text-sm sm:text-base" style={{ color: MIST }}>{greeting}</p>
+            <h1 style={{ ...PIXEL, color: PAPER }} className="mt-1 text-[2rem] sm:text-5xl leading-none truncate">
+              {displayName}
+            </h1>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
