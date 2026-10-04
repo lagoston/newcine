@@ -1601,7 +1601,6 @@
       "subtitle": "The oracles' haunted selection: {{count}} films for October, with a few surprises hidden in the mix.",
       "trackTitle": "Halloween Ritual",
       "summary": "{{done}} of {{total}} films rated in October",
-      "footnote": "Each film's first rating, given in October, counts. If you had already seen almost the whole list, you get missions as a gift. Until the event ends, the tags depend on the films: if one leaves your library, its tag goes too. After that, they stay on your profile forever.",
       "doneTitle": "Ritual complete",
       "doneText": "Wear {{tag}} on your profile and it dresses up for Halloween all year, with a countdown to the next Oct 31.",
       "steps": {
@@ -1636,7 +1635,6 @@
       "subtitle": "The oracles' holiday feast: {{count}} titles for December, with a few surprises wrapped in the mix.",
       "trackTitle": "Christmas Night",
       "summary": "{{done}} of {{total}} missions",
-      "footnote": "Only actions taken in December count. If you had already seen almost the whole list, you get missions as a gift. Until the event ends, the tags depend on the film and the review: if they leave your library, the tag goes too. After that, they stay on your profile forever.",
       "doneTitle": "Christmas complete",
       "doneText": "Wear {{tag}} on your profile and it dresses up for Christmas all year, with a countdown to the next Dec 25.",
       "steps": {

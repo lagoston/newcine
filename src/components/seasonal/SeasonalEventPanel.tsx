@@ -552,12 +552,12 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
             </div>
           )}
 
-          <p className="mt-3 px-5 sm:px-8 flex items-start gap-2 text-xs leading-relaxed" style={{ color: MIST }}>
-            <Film className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
-            <span>
-              {event.is_preview ? t('events.previewNote', { start: startLabel, end: endLabel }) : t(`events.${event.id}.footnote`)}
-            </span>
-          </p>
+          {event.is_preview && (
+            <p className="mt-3 px-5 sm:px-8 flex items-start gap-2 text-xs leading-relaxed" style={{ color: MIST }}>
+              <Film className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
+              <span>{t('events.previewNote', { start: startLabel, end: endLabel })}</span>
+            </p>
+          )}
         </div>
       </section>
     </div>

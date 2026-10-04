@@ -1606,7 +1606,6 @@
       "subtitle": "A seleção assombrada dos três oráculos: {{count}} filmes para outubro, com algumas surpresas escondidas no meio.",
       "trackTitle": "Ritual de Halloween",
       "summary": "{{done}} de {{total}} filmes avaliados em outubro",
-      "footnote": "Vale a primeira nota de cada filme, dada em outubro. Quem já tinha visto quase a lista toda ganha missões de presente. Até o fim do evento, as tags dependem dos filmes: se um sair da biblioteca, a tag sai junto. Depois, ficam no seu perfil para sempre.",
       "doneTitle": "Ritual completo",
       "doneText": "Use a {{tag}} no perfil e ele se veste de Halloween o ano inteiro, com a contagem para o próximo 31/10.",
       "steps": {
@@ -1641,7 +1640,6 @@
       "subtitle": "A ceia de filmes dos três oráculos: {{count}} títulos para dezembro, com algumas surpresas embrulhadas no meio.",
       "trackTitle": "Noite de Natal",
       "summary": "{{done}} de {{total}} missões",
-      "footnote": "Valem as ações feitas em dezembro. Quem já tinha visto quase a lista toda ganha missões de presente. Até o fim do evento, as tags dependem do filme e da resenha: se saírem da biblioteca, a tag sai junto. Depois, ficam no seu perfil para sempre.",
       "doneTitle": "Natal completo",
       "doneText": "Use a {{tag}} no perfil e ele se veste de Natal o ano inteiro, com a contagem para o próximo 25/12.",
       "steps": {
