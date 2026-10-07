@@ -88,7 +88,9 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
 
   return (
     <div
-      className={`relative rounded-3xl ring-1 ring-white/10 overflow-hidden shadow-2xl ${bannerClass}`}
+      // co-banner--card: o cartão grande do perfil (no celular, centralizado),
+      // para o banner poder arrumar o desenho em volta da foto e do texto.
+      className={`relative rounded-3xl ring-1 ring-white/10 overflow-hidden shadow-2xl ${bannerClass ? `${bannerClass} co-banner--card` : ''}`}
       style={
         bannerClass
           ? undefined

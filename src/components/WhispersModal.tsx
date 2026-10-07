@@ -9,7 +9,7 @@ import { useWhispers } from '../contexts/WhispersContext';
 import { Movie, getMovieDetails, getMovieDetailsFromDB } from '../lib/tmdb';
 import MovieDetailsModal from './MovieDetailsModal';
 import OptimizedPoster from './OptimizedPoster';
-import OracleSheet from './OracleSheet';
+import OracleSheet, { SheetFade } from './OracleSheet';
 import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
 import { fetchStory, markStoryViewed, storyPoster, storyTitle, type FeedStory } from '../lib/friendsFeed';
 import StoryViewer from './feed/StoryViewer';
@@ -508,6 +508,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
         subtitle={!loading ? (freshCount > 0 ? t('indications.subtitleNew', { count: freshCount }) : t('indications.subtitleNone')) : undefined}
         size="lg"
         escapeEnabled={!selectedMovie && !openStory}
+        contentKey={filter}
       >
         {loading ? (
           <div className="flex justify-center py-14">
@@ -544,20 +545,22 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
               </div>
             )}
 
-            {fresh.length > 0 && (
-              <section className="mt-4">
-                <h3 className="text-sm font-semibold" style={{ color: PAPER }}>{t('indications.sectionNew')}</h3>
-                <ul>{fresh.map(renderItem)}</ul>
-              </section>
-            )}
-            {earlier.length > 0 && (
-              <section className={fresh.length > 0 ? 'mt-6' : 'mt-2'}>
-                {fresh.length > 0 && (
-                  <h3 className="text-sm font-semibold" style={{ color: PAPER }}>{t('indications.sectionEarlier')}</h3>
-                )}
-                <ul>{earlier.map(renderItem)}</ul>
-              </section>
-            )}
+            <SheetFade id={filter}>
+              {fresh.length > 0 && (
+                <section className="mt-4">
+                  <h3 className="text-sm font-semibold" style={{ color: PAPER }}>{t('indications.sectionNew')}</h3>
+                  <ul>{fresh.map(renderItem)}</ul>
+                </section>
+              )}
+              {earlier.length > 0 && (
+                <section className={fresh.length > 0 ? 'mt-6' : 'mt-2'}>
+                  {fresh.length > 0 && (
+                    <h3 className="text-sm font-semibold" style={{ color: PAPER }}>{t('indications.sectionEarlier')}</h3>
+                  )}
+                  <ul>{earlier.map(renderItem)}</ul>
+                </section>
+              )}
+            </SheetFade>
           </>
         )}
       </OracleSheet>

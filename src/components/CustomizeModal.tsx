@@ -10,7 +10,7 @@ import { fetchTagProgress } from '../lib/tagProgress';
 import { banners, BannerId, getBannerClass } from '../lib/banners';
 import { textEffects, TextEffectId, meetsTextEffectRequirement, getTextEffectNameClass } from '../lib/textEffects';
 import { useTranslation } from 'react-i18next';
-import OracleSheet from './OracleSheet';
+import OracleSheet, { SheetFade } from './OracleSheet';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
 interface CustomizeModalProps {
@@ -47,6 +47,7 @@ const ORACLE_CARDS: Record<CardStyle, OracleCardStyle> = {
     id: 'yugioh',
     name: 'Yu-Gi-Oh!',
     isPremium: true,
+    requiredTag: 'Trailblazer',
     images: {
       bogart: '/assets/BOGART2.webp',
       fincher: '/assets/FINCHER2.webp',
@@ -119,7 +120,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const [activeTab, setActiveTab] = useState<TabType>('frames');
   const [loading, setLoading] = useState(true);
   // Progresso das tags que desbloqueiam itens (a carta Horror exige a tag
-  // Bloody Mary, a moldura Matrix exige Red-Pill Adept…). O resto do
+  // Bloody Mary, a Yu-Gi-Oh! exige Trailblazer, a moldura Matrix exige
+  // Red-Pill Adept…). O resto do
   // sistema de tags mora no modal "Tags", aberto direto do Perfil.
   const [themeTagProgress, setThemeTagProgress] = useState<Record<string, number>>({});
   const [selectedFrame, setSelectedFrame] = useState<FrameId>('default');
@@ -623,6 +625,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
       }
       size="xl"
       bodyClassName="px-5 sm:px-7 pb-6"
+      contentKey={activeTab}
       footer={
         <div className="flex justify-end">
           <button
@@ -667,13 +670,15 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           ))}
         </ul>
       ) : (
-        <div role="tabpanel">
-          {activeTab !== 'cards' && livePreview()}
-          {activeTab === 'frames' && renderFrameContent()}
-          {activeTab === 'banners' && renderBannerContent()}
-          {activeTab === 'cards' && renderCardContent()}
-          {activeTab === 'textEffects' && renderTextEffectsContent()}
-        </div>
+        <SheetFade id={activeTab}>
+          <div role="tabpanel">
+            {activeTab !== 'cards' && livePreview()}
+            {activeTab === 'frames' && renderFrameContent()}
+            {activeTab === 'banners' && renderBannerContent()}
+            {activeTab === 'cards' && renderCardContent()}
+            {activeTab === 'textEffects' && renderTextEffectsContent()}
+          </div>
+        </SheetFade>
       )}
     </OracleSheet>
   );

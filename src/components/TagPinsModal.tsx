@@ -7,7 +7,7 @@ import { useAuth } from '../lib/auth';
 import { syncUnlockedTagsAndNotify } from '../lib/tagNotifications';
 import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS } from '../lib/tags';
 import { fetchTagProgress, unlockedPinsFrom, type UnlockedPin, type SpecialTagStatus } from '../lib/tagProgress';
-import OracleSheet from './OracleSheet';
+import OracleSheet, { SheetFade } from './OracleSheet';
 import { NIGHT, VELVET, PAPER, MIST, FOCUS_RING, tagCategoryStyle, withAlpha } from '../lib/oracleTheme';
 
 interface TagPinsModalProps {
@@ -471,6 +471,7 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       }
       size="lg"
       bodyClassName="px-5 sm:px-7 pb-6"
+      contentKey={viewMode}
     >
       {/* Categorias — rolagem lateral, grudadas no topo */}
       {/* py-1.5 dentro da faixa que rola: o overflow corta tudo que passa da
@@ -514,7 +515,9 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
           ))}
         </ul>
       ) : (
-        <div role="tabpanel">{viewMode === 'pins' ? renderPinsView() : renderCategoryContent(viewMode)}</div>
+        <SheetFade id={viewMode}>
+          <div role="tabpanel">{viewMode === 'pins' ? renderPinsView() : renderCategoryContent(viewMode)}</div>
+        </SheetFade>
       )}
     </OracleSheet>
   );

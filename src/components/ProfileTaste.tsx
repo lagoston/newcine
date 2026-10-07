@@ -60,7 +60,7 @@ export const ProfileStatTiles: React.FC<ProfileStatTilesProps> = ({ ratedCount, 
     { icon: Clock, label: t('profile.stats.timeWatching'), value: formatWatchTime(watchMinutes) },
   ];
   return (
-    <dl className="grid grid-cols-2 gap-3" aria-label={label ?? t('profile.numbersLabel')}>
+    <dl className="grid grid-cols-2 gap-3 sm:gap-4" aria-label={label ?? t('profile.numbersLabel')}>
       {tiles.map(({ icon: Icon, label: tileLabel, value }) => (
         <div key={tileLabel} className="rounded-2xl px-4 py-4 ring-1 ring-white/10" style={{ background: SURFACE }}>
           <dt className="flex items-center gap-2 text-sm" style={{ color: MIST }}>

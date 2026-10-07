@@ -72,6 +72,13 @@ export const frames = {
     requiredTag: 'casual-drinker',
     className: 'co-frame co-frame--casual-drinker',
   },
+  avengers: {
+    id: 'avengers',
+    name: 'Avengers Frame',
+    isPremium: true,
+    requiredTag: 'infinity-gauntlet',
+    className: 'co-frame co-frame--avengers',
+  },
   default: {
     id: 'default',
     name: 'Default',

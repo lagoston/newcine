@@ -725,48 +725,43 @@ export default function Profile() {
         />
       </section>
 
-      {/* ---------- Números ---------- */}
+      {/* ---------- Números e retrato de gosto ----------
+          Um bloco só, logo abaixo do cartão: os dois números e, emendadas
+          neles, as estatísticas (notas, gêneros, década, diretores, atlas…). */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 mt-4">
         <ProfileStatTiles ratedCount={ratedMoviesCount} watchMinutes={totalWatchTime} />
-      </section>
-
-      {/* ---------- Seu gosto ---------- */}
-      <section className="mt-12 border-t border-white/[0.07] pt-10">
-        <div className="mx-auto max-w-6xl px-5 sm:px-8">
-          <ProfileSectionHeading title={t('profile.tasteTitle')} hint={t('profile.tasteHint')} />
-          <div className="mt-6">
-            {ratedMoviesCount > 0 ? (
-              <ProfileTasteGrid
-                ratingCounts={ratingCounts}
-                average={average}
-                favoriteGenres={favoriteGenres}
-                favoriteKeywords={favoriteKeywords}
-                favoriteDecade={favoriteDecade}
-                topDirectors={topDirectors}
-                leastKnownGem={leastKnownGem}
-                countryCounts={countryCounts}
-                countryAvgRatings={countryAvgRatings}
-                onViewCountryMovies={handleViewCountryMovies}
-              />
-            ) : (
-              <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: SURFACE }}>
-                <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
-                  <Film className="w-7 h-7 text-violet-300" aria-hidden />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold" style={{ color: PAPER }}>
-                    {t('profile.tasteEmptyTitle')}
-                  </p>
-                  <p className="mt-1 text-sm" style={{ color: MIST }}>
-                    {t('profile.tasteEmptyDesc')}
-                  </p>
-                </div>
-                <Link to="/add-movies" className={`shrink-0 ${PROFILE_PRIMARY_BUTTON}`}>
-                  {t('library.addMovies')}
-                </Link>
+        <div className="mt-4">
+          {ratedMoviesCount > 0 ? (
+            <ProfileTasteGrid
+              ratingCounts={ratingCounts}
+              average={average}
+              favoriteGenres={favoriteGenres}
+              favoriteKeywords={favoriteKeywords}
+              favoriteDecade={favoriteDecade}
+              topDirectors={topDirectors}
+              leastKnownGem={leastKnownGem}
+              countryCounts={countryCounts}
+              countryAvgRatings={countryAvgRatings}
+              onViewCountryMovies={handleViewCountryMovies}
+            />
+          ) : (
+            <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: SURFACE }}>
+              <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
+                <Film className="w-7 h-7 text-violet-300" aria-hidden />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold" style={{ color: PAPER }}>
+                  {t('profile.tasteEmptyTitle')}
+                </p>
+                <p className="mt-1 text-sm" style={{ color: MIST }}>
+                  {t('profile.tasteEmptyDesc')}
+                </p>
               </div>
-            )}
-          </div>
+              <Link to="/add-movies" className={`shrink-0 ${PROFILE_PRIMARY_BUTTON}`}>
+                {t('library.addMovies')}
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 

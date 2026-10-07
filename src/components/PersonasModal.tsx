@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Users, Crown, Loader2, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import OracleSheet from './OracleSheet';
+import OracleSheet, { SheetFade } from './OracleSheet';
 import { PersonaCode, PersonaPoster, MoodChip } from './PersonaBits';
 import { getFrameClass } from '../lib/frames';
 import { MOODS, MOOD_BY_KEY, withMoodAlpha } from '../lib/moods';
@@ -356,26 +356,30 @@ const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPerso
           <span className="sr-only">{t('common.loading')}</span>
         </div>
       ) : selected ? (
-        <PersonaDetail
-          persona={selected}
-          matching={matching}
-          matchingLoading={matchingLoading}
-          isViewerPersona={selected.code === viewerPersonaCode}
-          totalUsersGlobal={totalUsers}
-          onUserClick={(uname) => {
-            onClose();
-            onUserClick?.(uname);
-          }}
-        />
+        <SheetFade id={selected.code}>
+          <PersonaDetail
+            persona={selected}
+            matching={matching}
+            matchingLoading={matchingLoading}
+            isViewerPersona={selected.code === viewerPersonaCode}
+            totalUsersGlobal={totalUsers}
+            onUserClick={(uname) => {
+              onClose();
+              onUserClick?.(uname);
+            }}
+          />
+        </SheetFade>
       ) : (
-        <PersonaGrid
-          visible={visible}
-          filter={filter}
-          onFilter={setFilter}
-          viewerPersonaCode={viewerPersonaCode}
-          lastViewed={lastViewed}
-          onSelect={openPersona}
-        />
+        <SheetFade id="grid">
+          <PersonaGrid
+            visible={visible}
+            filter={filter}
+            onFilter={setFilter}
+            viewerPersonaCode={viewerPersonaCode}
+            lastViewed={lastViewed}
+            onSelect={openPersona}
+          />
+        </SheetFade>
       )}
     </OracleSheet>
   );

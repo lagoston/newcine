@@ -121,6 +121,17 @@ export const banners = {
     surface: '#573100',
     className: 'co-banner co-banner--casual-drinker',
   },
+  avengers: {
+    id: 'avengers',
+    name: 'Avengers Banner',
+    isPremium: true,
+    requiredTag: 'infinity-gauntlet',
+    // cor do contorno (a mesma do --co-line em cosmetics.css)
+    accent: '#FACC15',
+    // cor escolhida pro fundo das informações/blocos (substitui a calculada)
+    surface: '#1A1533',
+    className: 'co-banner co-banner--avengers',
+  },
 } as const;
 
 export type BannerId = keyof typeof banners;
@@ -154,8 +165,8 @@ function hueSat(hex: string): [number, number] {
 // Tom do banner pra pintar o resto do perfil: a parte de informações do
 // cartão da Comunidade e os blocos do perfil (Números, Década favorita,
 // Atlas…). Quando o banner tem `surface` (cor escolhida à mão: Ouro, De
-// Volta para o Futuro, Harry Potter, Transformers, Motoqueiro, Premonição e
-// Se Beber), é ela; senão, é a cor do contorno escurecida até uma
+// Volta para o Futuro, Harry Potter, Transformers, Motoqueiro, Premonição,
+// Se Beber e Vingadores), é ela; senão, é a cor do contorno escurecida até uma
 // luminosidade fixa de 13% (saturação no máximo 50%) — texto papel/névoa
 // com contraste >= 7:1. O Ouro é o #BFA869 escolhido, escurecido até o
 // texto claro ficar legível (#524723, contraste ~4,6:1 com a névoa).
