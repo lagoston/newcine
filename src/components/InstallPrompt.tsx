@@ -59,7 +59,7 @@ export default function InstallPrompt() {
   if (!showPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="co-install-prompt fixed bottom-4 right-4 z-50">
       <button
         onClick={handleInstall}
         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"

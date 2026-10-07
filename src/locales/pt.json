@@ -140,6 +140,9 @@
     "requestNewLink": "Pedir novo link"
   },
   "nav": {
+    "mobileLabel": "Navegação",
+    "unreadWhispers_one": "{{count}} sussurro não lido",
+    "unreadWhispers_other": "{{count}} sussurros não lidos",
     "home": "Início",
     "library": "Biblioteca",
     "community": "Comunidade",
@@ -1064,6 +1067,7 @@
     "noListsOther": "@{{username}} ainda não criou listas."
   },
   "settings": {
+    "signOut": "Sair da conta",
     "title": "Configurações",
     "appVersion": "Versão do app",
     "privacy": "Privacidade",
@@ -1377,6 +1381,7 @@
     "tapToRemove": "toque para remover da biblioteca"
   },
   "mobileSearch": {
+    "placeholderSite": "Pesquisar no CineOracle",
     "open": "Buscar",
     "heading": "O que vamos assistir?",
     "modeLabel": "Buscar por",
@@ -1387,7 +1392,6 @@
     "series": "Série",
     "film": "Filme",
     "clear": "Limpar busca",
-    "placeholderTitles": "Nome do filme ou série",
     "placeholderPeople": "Nome de usuário"
   },
   "tagPins": {

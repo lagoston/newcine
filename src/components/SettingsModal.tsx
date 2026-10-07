@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useId } from 'react';
-import { Crown, Send, AlertTriangle, Infinity as InfinityIcon, Settings, Globe2, Users, ChevronDown, Mail, Clock } from 'lucide-react';
+import { Crown, Send, AlertTriangle, Infinity as InfinityIcon, Settings, Globe2, Users, ChevronDown, Mail, Clock, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -16,7 +16,7 @@ interface SettingsModalProps {
 const APP_VERSION = 'Beta 4.6';
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { session, isPremium, isLifetimePremium } = useAuth();
+  const { session, isPremium, isLifetimePremium, signOut } = useAuth();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends_only'>('public');
@@ -209,6 +209,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  // Sair da conta — no celular é o único lugar (o menu do topo saiu).
+  const [signingOut, setSigningOut] = useState(false);
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await signOut();
+      onClose();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error during sign out:', error);
+      setSigningOut(false);
+    }
+  };
+
   const isFeedbackDisabled = !!lastFeedbackTime || !feedback.trim() || submitting;
   const isDeleteDisabled = !deleteMatches || isDeleting;
 
@@ -360,6 +375,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
       </section>
+
+      {/* Sair da conta */}
+      <button
+        onClick={handleSignOut}
+        disabled={signingOut}
+        className={`w-full gap-2 h-12 rounded-xl ring-1 ring-white/15 hover:ring-white/30 hover:bg-white/5 text-sm font-semibold transition disabled:opacity-50 ${FOCUS_RING}`}
+        style={{ color: PAPER }}
+      >
+        <LogOut className="w-[18px] h-[18px]" aria-hidden />
+        {t('settings.signOut')}
+      </button>
 
       {/* Zona de perigo — fechada por padrão */}
       <section className="border-t border-white/[0.07] pt-6">

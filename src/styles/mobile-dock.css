@@ -1,0 +1,52 @@
+/* ==========================================================================
+   Navegação do celular e do tablet (abaixo de 1024px): a barra de vidro na
+   base da tela (src/components/MobileDock.tsx) e a busca com o campo
+   embaixo (src/components/MobileSearch.tsx).
+   ========================================================================== */
+
+/* Vidro: noite translúcida com desfoque, um fio claro em volta e um brilho
+   fino no alto (a luz batendo na borda de cima), como as barras do
+   Instagram e do IMDb. */
+.co-glass {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03) 55%),
+    rgba(26, 19, 48, 0.62);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px rgba(243, 234, 211, 0.12),
+    0 16px 36px -14px rgba(0, 0, 0, 0.75);
+}
+
+/* Sem desfoque (navegador antigo): fica mais opaca para o texto de trás
+   não brigar com os ícones. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .co-glass {
+    background: rgba(26, 19, 48, 0.94);
+  }
+}
+
+/* Altura da barra (4rem) + o vão até a borda (área segura do iPhone). */
+:root {
+  --co-dock-space: calc(max(10px, env(safe-area-inset-bottom)) + 4rem);
+}
+
+@media (max-width: 1023px) {
+  /* O fim de cada página não fica escondido atrás da barra. */
+  .has-mobile-dock main {
+    padding-bottom: calc(var(--co-dock-space) + 1.25rem);
+  }
+
+  /* Avisos (sonner e react-hot-toast) e o botão de instalar o app, acima
+     da barra. */
+  .has-mobile-dock [data-sonner-toaster][data-y-position='bottom'] {
+    bottom: calc(var(--co-dock-space) + 0.75rem) !important;
+  }
+  .has-mobile-dock .co-hot-toaster {
+    bottom: calc(var(--co-dock-space) + 0.75rem) !important;
+  }
+  .has-mobile-dock .co-install-prompt {
+    bottom: calc(var(--co-dock-space) + 0.75rem) !important;
+  }
+}

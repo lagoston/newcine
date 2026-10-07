@@ -96,6 +96,9 @@ function App() {
         </BrowserRouter>
         <Toaster
           position="bottom-right"
+          // co-hot-toaster: no celular sobe acima da barra de navegação
+          // (src/styles/mobile-dock.css).
+          containerClassName="co-hot-toaster"
           // z-index padrão da biblioteca é 9999 — menor que vários
           // modais do site (os de review, por exemplo, usam z-[10000]
           // e z-[10001]). Um toast escondido atrás de um modal aberto é

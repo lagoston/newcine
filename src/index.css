@@ -5,6 +5,8 @@
 @import './styles/seasonal.css';
 /* Anel dos stories do Feed dos Amigos. */
 @import './styles/feed.css';
+/* Barra de navegação de vidro do celular e busca com o campo embaixo. */
+@import './styles/mobile-dock.css';
 
 @tailwind base;
 @tailwind components;

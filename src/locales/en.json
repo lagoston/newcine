@@ -140,6 +140,9 @@
     "requestNewLink": "Request new link"
   },
   "nav": {
+    "mobileLabel": "Navigation",
+    "unreadWhispers_one": "{{count}} unread whisper",
+    "unreadWhispers_other": "{{count}} unread whispers",
     "home": "Home",
     "library": "Library",
     "community": "Community",
@@ -1061,6 +1064,7 @@
     "noListsOther": "@{{username}} hasn’t created any lists yet."
   },
   "settings": {
+    "signOut": "Sign out",
     "title": "Settings",
     "appVersion": "App version",
     "privacy": "Privacy",
@@ -1372,6 +1376,7 @@
     "tapToRemove": "tap to remove from your library"
   },
   "mobileSearch": {
+    "placeholderSite": "Search CineOracle",
     "open": "Search",
     "heading": "What are we watching?",
     "modeLabel": "Search for",
@@ -1382,7 +1387,6 @@
     "series": "Show",
     "film": "Film",
     "clear": "Clear search",
-    "placeholderTitles": "Movie or show title",
     "placeholderPeople": "Username"
   },
   "tagPins": {

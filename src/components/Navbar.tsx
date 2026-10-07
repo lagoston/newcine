@@ -1,13 +1,13 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Library as LibraryIcon, LogIn, LogOut, User, Menu, X, Eye, Home, Users } from 'lucide-react';
+import { Library as LibraryIcon, LogIn, LogOut, User, Eye, Home, Users } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import Logo from './Logo';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import NavbarSearch from './NavbarSearch';
-import FloatingMobileSearch from './FloatingMobileSearch';
+import MobileDock from './MobileDock';
 // Carregado sob demanda: a Navbar aparece em TODAS as páginas, então um
 // import direto aqui colocava o modal inteiro (~100 KB com as frases do
 // Oráculo e os submodais de review/recomendação) no pacote inicial de
@@ -21,7 +21,6 @@ function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, session } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   // unreadWhispers vem do Context agora — antes esse componente tinha
   // seu PRÓPRIO estado e subscription, uma cópia separada da que o
   // Profile.tsx também mantinha por conta própria; as duas podiam
@@ -32,7 +31,6 @@ function Navbar() {
   const { t } = useTranslation();
 
   const handleMovieSelect = (movie: Movie) => {
-    setIsMenuOpen(false);
     setSelectedMovie(movie);
   };
 
@@ -51,7 +49,6 @@ function Navbar() {
     return (
       <Link
         to={to}
-        onClick={() => setIsMenuOpen(false)}
         className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300 relative whitespace-nowrap ${
           isActive
             ? 'text-white bg-gradient-to-r from-violet-500/25 to-fuchsia-500/25 border border-violet-400/40'
@@ -121,53 +118,26 @@ function Navbar() {
             )}
           </div>
 
-          {/* Mobile — idioma sempre visível + hambúrguer */}
+          {/* Celular e tablet — no topo só o idioma (e Entrar, para quem
+              não entrou). A navegação fica na barra de vidro da base
+              (MobileDock); Sair fica nas Configurações do Perfil. */}
           <div className="flex items-center lg:hidden gap-1 flex-shrink-0">
             <LanguageSwitcher />
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {isMenuOpen && (
-        <div className="lg:hidden border-t border-white/10 bg-slate-950/95 backdrop-blur-2xl">
-          <div className="px-4 py-3 space-y-1.5">
-            {user ? (
-              <>
-                <NavLink to="/" icon={Home} labelClassName="">{t('nav.home')}</NavLink>
-                <NavLink to="/library" icon={LibraryIcon} labelClassName="">{t('nav.library')}</NavLink>
-                <NavLink to="/oracle" icon={Eye} labelClassName="">{t('nav.oracle')}</NavLink>
-                <NavLink to="/community" icon={Users} labelClassName="">{t('nav.community')}</NavLink>
-                <NavLink to="/profile" icon={User} showBadge={true} labelClassName="">{t('nav.profile')}</NavLink>
-                <div className="my-2 border-t border-white/10" />
-                <SignOutButton onSignOut={() => { setIsMenuOpen(false); navigate('/auth'); }} t={t} />
-              </>
-            ) : (
+            {!user && location.pathname !== '/auth' && (
               <Link
                 to="/auth"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all"
+                className="flex items-center h-10 min-h-0 px-4 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 text-white text-sm font-semibold rounded-xl"
               >
-                <LogIn className="h-4 w-4 mr-2" />
+                <LogIn className="h-4 w-4 mr-2" aria-hidden />
                 {t('auth.signIn')}
               </Link>
             )}
           </div>
         </div>
-      )}
+      </div>
     </nav>
 
-    {user && <FloatingMobileSearch onMovieSelect={handleMovieSelect} />}
+    {user && <MobileDock onMovieSelect={handleMovieSelect} />}
 
     {selectedMovie && createPortal(
       <Suspense fallback={null}>
