@@ -1350,7 +1350,8 @@
       "yours": "Sua nota",
       "predicted": "Prevista para você",
       "tenChance": "Chance de virar 10",
-      "public": "Público (TMDB)"
+      "public": "Público (TMDB)",
+      "noPrediction": "Sem previsão"
     },
     "genres": "Gêneros",
     "oracleShelf": "Prateleira dos oráculos",

@@ -54,6 +54,27 @@ const MOOD_TAG_CONFIG: Record<string, { labelKey: string; color: string }> = {
   'family-time': { labelKey: 'oracle.moods.familyTime', color: '#FDE047' },
 };
 
+// Gêneros mostrados embaixo do título: no máximo 3, sem os que repetem o
+// que quase todo filme é ou o que a prateleira já diz — Drama, Família e
+// Aventura (na série, "Action & Adventure" vira só Ação). Thriller vira
+// Suspense em português. Pelo id do TMDB e, no cache sem id, pelo nome.
+const HIDDEN_GENRE_IDS = new Set([18, 10751, 12]);
+const HIDDEN_GENRE_NAMES = new Set(['drama', 'família', 'familia', 'family', 'aventura', 'aventuras', 'adventure']);
+const displayGenres = (genres: { id?: number; name: string }[] | undefined, isPt: boolean): string[] => {
+  const out: string[] = [];
+  for (const genre of genres || []) {
+    const name = (genre.name || '').trim();
+    const lower = name.toLowerCase();
+    if (!name || (genre.id && HIDDEN_GENRE_IDS.has(genre.id)) || HIDDEN_GENRE_NAMES.has(lower)) continue;
+    let label = name;
+    if (genre.id === 53 || lower === 'thriller') label = isPt ? 'Suspense' : 'Thriller';
+    else if (genre.id === 10759 || lower === 'action & adventure' || lower === 'ação e aventura') label = isPt ? 'Ação' : 'Action';
+    if (!out.includes(label)) out.push(label);
+    if (out.length === 3) break;
+  }
+  return out;
+};
+
 // Padroniza QUALQUER classificação de origem (americana, britânica, etc.)
 // pra escala brasileira única (L, +10, +12, +14, +16, +18). Não existe
 // "+13" oficial no ClassInd — "PG-13" arredonda pra +14, o balde real mais
@@ -173,6 +194,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [tenChance, setTenChance] = useState<number | null>(null);
   const [predictionLoading, setPredictionLoading] = useState(true);
   const [movieMoodKey, setMovieMoodKey] = useState<string | null>(null);
+  // A prateleira já foi consultada (a linha de gêneros espera por ela, pra
+  // não aparecer e depois ser empurrada).
+  const [moodLoaded, setMoodLoaded] = useState(false);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
   const [seasons, setSeasons] = useState<any[]>(movie.seasons || []);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
@@ -801,6 +825,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // prateleiras próprias (recommendation_pools.movie_ids / tv_ids).
   const loadMovieMood = async () => {
     setMovieMoodKey(null);
+    setMoodLoaded(false);
     try {
       const { data, error } = await supabase
         .rpc('get_pools_containing_title', { p_id: movie.id, p_media_type: movie.media_type === 'tv' ? 'tv' : 'movie' });
@@ -812,6 +837,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     } catch (error) {
       console.error('Error loading movie mood:', error);
       setMovieMoodKey(null);
+    } finally {
+      setMoodLoaded(true);
     }
   };
 
@@ -1581,34 +1608,71 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // Placar logo abaixo do título: números grandes com o nome embaixo, sem
   // cápsulas, separados por fios finos. A sua nota (ou a prevista pelo
   // oráculo) vem primeiro e é o destaque; depois a chance de virar 10 (só
-  // com nota prevista até 9) e a nota do público. Enquanto a sua carrega,
-  // um esqueleto do mesmo tamanho segura o lugar pra nada pular.
-  type ScoreCell = { key: string; value: React.ReactNode; label: string; color: string; icon?: React.ReactNode; glow?: string };
-  const personalLoading = !!session?.user && (!userRatingLoaded || (!hasRated && predictionLoading));
+  // com nota prevista até 9) e a nota do público.
+  //
+  // Lugares fixos: assim que se sabe se você já avaliou (consulta rápida),
+  // o placar entra com as colunas definidas — 3 (prevista, chance, público)
+  // ou 2 (sua nota, público). A previsão demora mais: enquanto ela não
+  // chega, os nomes já aparecem com um esqueleto no lugar do número, e o
+  // número entra com um fade. Se não houver chance de 10 (nota prevista
+  // 10) ou previsão (fora das prateleiras), a 1ª coluna ocupa o lugar das
+  // duas — o público nunca sai do lugar.
+  type ScoreCell = {
+    key: string;
+    value?: React.ReactNode;
+    label: string;
+    color: string;
+    icon?: React.ReactNode;
+    glow?: string;
+    span?: 2;
+    pending?: boolean;
+  };
+  const loggedIn = !!session?.user;
+  const scoreReady = !loggedIn || userRatingLoaded;
+  const scoreCols = !loggedIn ? 1 : hasRated ? 2 : 3;
   const scoreCells: ScoreCell[] = [];
-  if (session?.user && !personalLoading) {
+  if (loggedIn && userRatingLoaded) {
+    const predictedCell = (span?: 2): ScoreCell => ({
+      key: 'slot1',
+      value: predictedRating,
+      label: t('movieModal.score.predicted'),
+      color: '#C4B5FD',
+      glow: 'rgba(139,92,246,0.6)',
+      icon: <Wand2 className="w-4 h-4" aria-hidden />,
+      span,
+    });
     if (hasRated) {
-      scoreCells.push({ key: 'yours', value: userRating, label: t('movieModal.score.yours'), color: PAPER, icon: <Star className="w-4 h-4 fill-current" aria-hidden /> });
+      scoreCells.push({ key: 'slot1', value: userRating, label: t('movieModal.score.yours'), color: PAPER, icon: <Star className="w-4 h-4 fill-current" aria-hidden /> });
+    } else if (predictionLoading) {
+      scoreCells.push({ key: 'slot1', label: t('movieModal.score.predicted'), color: '#C4B5FD', pending: true });
+      scoreCells.push({ key: 'slot2', label: t('movieModal.score.tenChance'), color: PAPER, pending: true });
+    } else if (predictedRating !== null && predictedRating <= 9 && tenChance !== null) {
+      scoreCells.push(predictedCell());
+      scoreCells.push({ key: 'slot2', value: formatChance(tenChance), label: t('movieModal.score.tenChance'), color: PAPER, icon: <Sparkles className="w-4 h-4 text-violet-300" aria-hidden /> });
     } else if (predictedRating !== null) {
-      scoreCells.push({
-        key: 'predicted',
-        value: predictedRating,
-        label: t('movieModal.score.predicted'),
-        color: '#C4B5FD',
-        glow: 'rgba(139,92,246,0.6)',
-        icon: <Wand2 className="w-4 h-4" aria-hidden />,
-      });
-      if (predictedRating <= 9 && tenChance !== null) {
-        scoreCells.push({ key: 'ten', value: formatChance(tenChance), label: t('movieModal.score.tenChance'), color: PAPER, icon: <Sparkles className="w-4 h-4 text-violet-300" aria-hidden /> });
-      }
+      scoreCells.push(predictedCell(2));
     } else if (isInLibrary) {
-      scoreCells.push({ key: 'watchlist', value: <Eye className="w-7 h-7" aria-hidden />, label: t('home.desk.inWatchlist'), color: '#BAE6FD' });
+      scoreCells.push({ key: 'slot1', value: <Eye className="w-7 h-7" aria-hidden />, label: t('home.desk.inWatchlist'), color: '#BAE6FD', span: 2 });
+    } else {
+      scoreCells.push({ key: 'slot1', value: '—', label: t('movieModal.score.noPrediction'), color: MIST, span: 2 });
     }
   }
-  if (movie.vote_average > 0) {
-    scoreCells.push({ key: 'public', value: formatScore(movie.vote_average), label: t('movieModal.score.public'), color: PAPER, icon: <Star className="w-4 h-4 fill-amber-300 text-amber-300" aria-hidden /> });
-  }
-  const scoreCellClass = 'flex flex-col-reverse items-center md:items-start px-4 sm:px-6 md:first:pl-0 border-l border-white/10 first:border-l-0';
+  scoreCells.push({
+    key: 'public',
+    value: movie.vote_average > 0 ? formatScore(movie.vote_average) : '—',
+    label: t('movieModal.score.public'),
+    color: movie.vote_average > 0 ? PAPER : MIST,
+    icon: movie.vote_average > 0 ? <Star className="w-4 h-4 fill-amber-300 text-amber-300" aria-hidden /> : undefined,
+  });
+  // flex-col-reverse + justify-end: o número fica sempre no alto da coluna,
+  // na mesma altura nas três, mesmo com nome de uma ou duas linhas.
+  const scoreCellClass = 'flex flex-col-reverse justify-end items-center md:items-start px-3 sm:px-5 md:first:pl-0 border-l border-white/10 first:border-l-0';
+
+  // Prateleira e gêneros: a linha espera a prateleira (consulta rápida)
+  // pra entrar inteira, com fade, em vez de os gêneros serem empurrados.
+  const shownGenres = displayGenres(movie.genres, i18n.language.startsWith('pt'));
+  const mood = movieMoodKey ? MOOD_TAG_CONFIG[movieMoodKey] : undefined;
+  const genresReady = !loggedIn || moodLoaded;
 
   // Ações rápidas: ícone em cima, nome embaixo, sem contorno.
   const quickAction = `flex-col gap-1.5 w-[5.5rem] py-2 rounded-xl text-xs font-medium hover:bg-white/[0.06] active:bg-white/[0.09] transition disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;
@@ -1902,54 +1966,85 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     )}
                   </div>
 
-                  {/* Gêneros numa linha de texto (e a prateleira dos oráculos,
-                      na cor dela, com um pontinho) — sem cápsulas. */}
-                  {((movie.genres && movie.genres.length > 0) || (movieMoodKey && MOOD_TAG_CONFIG[movieMoodKey])) && (
-                    <p className="mt-2 flex flex-wrap items-center justify-center md:justify-start gap-x-2.5 gap-y-1 text-sm" style={{ color: MIST }}>
-                      {movie.genres && movie.genres.length > 0 && (
-                        <span>
-                          <span className="sr-only">{t('movieModal.genres')}: </span>
-                          {movie.genres.map((genre) => genre.name).join(', ')}
-                        </span>
-                      )}
-                      {movieMoodKey && MOOD_TAG_CONFIG[movieMoodKey] && (
-                        <span
-                          className="inline-flex items-center gap-1.5 font-medium"
-                          style={{ color: MOOD_TAG_CONFIG[movieMoodKey].color }}
-                          title={t('movieModal.oracleShelf')}
+                  {/* A prateleira dos oráculos é a "mãe" dos gêneros: vem
+                      primeiro, marcada na cor dela, e os gêneros (no máximo
+                      3) saem dela por um fio que se apaga. Lugar reservado
+                      desde a abertura; a linha entra com um fade. */}
+                  {(shownGenres.length > 0 || mood || (loggedIn && !moodLoaded)) && (
+                    <div className="mt-2.5 h-7 flex items-center justify-center md:justify-start">
+                      {genresReady && (
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.3, ease: 'easeOut' }}
+                          className="min-w-0 max-w-full flex items-center text-sm"
                         >
-                          <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: MOOD_TAG_CONFIG[movieMoodKey].color }} />
-                          <span className="sr-only">{t('movieModal.oracleShelf')}: </span>
-                          {t(MOOD_TAG_CONFIG[movieMoodKey].labelKey)}
-                        </span>
+                          {mood && (
+                            <span
+                              className="shrink-0 inline-flex items-center gap-1.5 h-7 pl-2.5 pr-3 rounded-full text-[13px] font-semibold"
+                              style={{ color: mood.color, background: withAlpha(mood.color, 0.12), boxShadow: `inset 0 0 0 1px ${withAlpha(mood.color, 0.32)}` }}
+                              title={t('movieModal.oracleShelf')}
+                            >
+                              <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: mood.color, boxShadow: `0 0 8px ${mood.color}` }} />
+                              <span className="sr-only">{t('movieModal.oracleShelf')}: </span>
+                              {t(mood.labelKey)}
+                            </span>
+                          )}
+                          {mood && shownGenres.length > 0 && (
+                            <span
+                              aria-hidden
+                              className="shrink-0 w-5 h-px mx-2"
+                              style={{ background: `linear-gradient(90deg, ${withAlpha(mood.color, 0.7)}, ${withAlpha(mood.color, 0)})` }}
+                            />
+                          )}
+                          {shownGenres.length > 0 && (
+                            <span className="min-w-0 truncate" style={{ color: MIST }}>
+                              <span className="sr-only">{t('movieModal.genres')}: </span>
+                              {shownGenres.join(' · ')}
+                            </span>
+                          )}
+                        </motion.p>
                       )}
-                    </p>
+                    </div>
                   )}
 
-                  {/* Placar */}
-                  {(scoreCells.length > 0 || personalLoading) && (
-                    <dl className="mt-6 flex justify-center md:justify-start">
-                      {personalLoading && (
-                        <div className={scoreCellClass} aria-hidden>
-                          <span className="mt-2 block h-3 w-20 rounded animate-pulse" style={{ background: VELVET }} />
-                          <span className="block h-8 w-12 rounded-md animate-pulse" style={{ background: VELVET }} />
-                        </div>
-                      )}
-                      {scoreCells.map((cell) => (
-                        <div key={cell.key} className={scoreCellClass}>
-                          <dt className="mt-1.5 max-w-[7.5rem] text-xs leading-snug text-center md:text-left" style={{ color: MIST }}>
-                            {cell.label}
-                          </dt>
-                          <dd className="flex items-center gap-1.5 leading-none" style={{ color: cell.color }}>
-                            {cell.icon}
-                            <span style={{ ...PIXEL, textShadow: cell.glow ? `0 0 18px ${cell.glow}` : undefined }} className="text-[1.9rem] leading-none">
-                              {cell.value}
-                            </span>
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
+                  {/* Placar (lugar reservado desde a abertura) */}
+                  <div className="mt-5 min-h-[4.6rem]">
+                    {scoreReady && (
+                      <motion.dl
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                        className="grid w-full mx-auto md:mx-0"
+                        style={{ gridTemplateColumns: `repeat(${scoreCols}, minmax(0, 1fr))`, maxWidth: `${scoreCols * 9.75}rem` }}
+                      >
+                        {scoreCells.map((cell) => (
+                          <div key={cell.key} className={`${scoreCellClass} ${cell.span === 2 ? 'col-span-2' : ''}`}>
+                            <dt className="mt-1.5 text-xs leading-snug text-center md:text-left" style={{ color: MIST }}>
+                              {cell.label}
+                            </dt>
+                            <dd className="h-[1.9rem] flex items-center" style={{ color: cell.color }}>
+                              {cell.pending ? (
+                                <span className="block h-7 w-12 rounded-md animate-pulse" style={{ background: VELVET }} aria-hidden />
+                              ) : (
+                                <motion.span
+                                  initial={{ opacity: 0, y: 6, filter: 'blur(4px)' }}
+                                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                                  className="flex items-center gap-1.5"
+                                >
+                                  {cell.icon}
+                                  <span style={{ ...PIXEL, textShadow: cell.glow ? `0 0 18px ${cell.glow}` : undefined }} className="text-[1.9rem] leading-none">
+                                    {cell.value}
+                                  </span>
+                                </motion.span>
+                              )}
+                            </dd>
+                          </div>
+                        ))}
+                      </motion.dl>
+                    )}
+                  </div>
 
                   {/* Ações rápidas */}
                   <div className="mt-5 flex justify-center md:justify-start gap-1 md:-ml-4">

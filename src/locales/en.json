@@ -1345,7 +1345,8 @@
       "yours": "Your rating",
       "predicted": "Predicted for you",
       "tenChance": "Chance of a 10",
-      "public": "Audience (TMDB)"
+      "public": "Audience (TMDB)",
+      "noPrediction": "No prediction"
     },
     "genres": "Genres",
     "oracleShelf": "Oracles' shelf",
