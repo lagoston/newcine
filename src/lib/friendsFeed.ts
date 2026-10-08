@@ -3,9 +3,10 @@ import { supabase } from './supabase';
 // Feed dos Amigos (home): stories feitos das interações dos amigos com as
 // obras — avaliou, guardou na watchlist, escreveu resenha. O banco
 // (supabase/migrations/20261004500000_friends_feed.sql e as seguintes)
-// devolve as 40 interações mais recentes, no máximo 4 por amigo, dos últimos
-// 30 dias. Curtir vira sussurro para o amigo; comentar também.
-// O dono pode ocultar um story seu da visão dos amigos.
+// devolve as 50 interações mais recentes, no máximo 5 por amigo, dos últimos
+// 30 dias (20261008100000_feed_five_per_friend_hidden_not_replaced.sql). Curtir vira sussurro para o amigo; comentar também.
+// O dono pode ocultar um story seu da visão dos amigos. Story oculto não é
+// reposto por um mais antigo: quem oculta os 5 não aparece para ninguém.
 //
 // Conquistas também viram stories (media_type 'achievement'): cada tag
 // desbloqueada (menos as especiais) e, no lugar das especiais, a conclusão
@@ -85,8 +86,9 @@ export interface FeedComment {
 
 export interface FriendsFeedData {
   stories: FeedStory[];
-  // os seus stories como os amigos veem (os 4 mais recentes dos últimos 30
-  // dias), mais os que você ocultou entre eles; do mais recente ao mais antigo
+  // os seus 5 stories mais recentes dos últimos 30 dias, com os ocultos
+  // marcados (os amigos veem os mesmos, sem os ocultos); do mais recente ao
+  // mais antigo
   mine: FeedStory[];
   friend_count: number;
 }
@@ -100,7 +102,7 @@ export interface FeedGroup {
   latestAt: string;
 }
 
-export const FEED_LIMIT = 40;
+export const FEED_LIMIT = 50;
 
 export const groupStories = (stories: FeedStory[]): FeedGroup[] => {
   const byOwner = new Map<string, FeedStory[]>();

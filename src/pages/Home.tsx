@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star } from 'lucide-react';
+import { Star, Wand2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { Movie, getTrending, getMovieDetails, getComingSoon, getBestOfYear } from '../lib/tmdb';
@@ -13,7 +13,9 @@ import HomeUserPanels from '../components/HomeUserPanels';
 import GlassLoader from '../components/GlassLoader';
 import GuestLanding from '../components/GuestLanding';
 import { requestSeasonalRefresh } from '../contexts/SeasonalEventContext';
-import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE, ORACLE_BY_ID } from '../lib/oracleTheme';
+import { MOOD_BY_KEY } from '../lib/moods';
+import { EMPTY_FOR_YOU, ForYouInfo, ForYouShelf, getForYouShelf } from '../lib/forYou';
 
 // ---------------------------------------------------------------------------
 // Pré-carregamento dos detalhes (hover no pôster já adianta o modal)
@@ -137,19 +139,25 @@ function useFriendActivity(userId: string | undefined, movies: Movie[]) {
 // Prateleira horizontal
 // ---------------------------------------------------------------------------
 
-type ShelfMeta = 'rank' | 'release' | 'score' | 'year';
+// rank: posição no canto do pôster; release: data de estreia; score: nota
+// do público; year: ano; forYou: posição + nota prevista e de qual oráculo e
+// prateleira o título veio.
+type ShelfMeta = 'rank' | 'release' | 'score' | 'year' | 'forYou';
 
 interface ShelfProps {
   title: string;
+  subtitle?: string;
   movies: Movie[];
   meta: ShelfMeta;
   friendActivity: Record<string, FriendBubbleData[]>;
   onMovieClick: (movie: Movie) => void;
   onViewAll: () => void;
   emptyState?: React.ReactNode;
+  // meta 'forYou': nota prevista, oráculo e prateleira de cada título
+  forYouInfo?: Record<string, ForYouInfo>;
 }
 
-const Shelf: React.FC<ShelfProps> = ({ title, movies, meta, friendActivity, onMovieClick, onViewAll, emptyState }) => {
+const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, meta, friendActivity, onMovieClick, onViewAll, emptyState, forYouInfo }) => {
   const { t, i18n } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -180,6 +188,20 @@ const Shelf: React.FC<ShelfProps> = ({ title, movies, meta, friendActivity, onMo
   if (movies.length === 0 && !emptyState) return null;
 
   const metaLine = (movie: Movie) => {
+    if (meta === 'forYou') {
+      const info = forYouInfo?.[movieKey(movie)];
+      const oracle = info ? ORACLE_BY_ID[info.oracle] : undefined;
+      const mood = info ? MOOD_BY_KEY[info.moodKey] : undefined;
+      if (!oracle || !mood) return movie.release_date?.slice(0, 4) ?? null;
+      const moodLabel = t(mood.labelKey);
+      return (
+        <span className="flex items-center gap-1.5 min-w-0" title={`${oracle.name} · ${moodLabel}`}>
+          <img src={oracle.avatar} alt="" className="w-4 h-4 shrink-0 rounded-full object-cover ring-1" style={{ ['--tw-ring-color' as string]: oracle.color } as React.CSSProperties} loading="lazy" />
+          <span className="truncate" style={{ color: mood.color }}>{moodLabel}</span>
+          <span className="sr-only">{`(${oracle.name})`}</span>
+        </span>
+      );
+    }
     if (meta === 'release') {
       const date = parseLocalDate(movie.release_date);
       return date ? date.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long' }) : null;
@@ -196,9 +218,12 @@ const Shelf: React.FC<ShelfProps> = ({ title, movies, meta, friendActivity, onMo
   };
 
   return (
-    <section className="border-t border-white/[0.07] py-12 sm:py-14">
+    <section className="border-t border-white/[0.07] pt-6 pb-4 sm:pt-8 sm:pb-6">
       <div className="mx-auto max-w-6xl px-5 sm:px-8 flex items-end justify-between gap-4">
-        <h2 style={{ ...PIXEL, color: PAPER }} className="text-2xl sm:text-3xl leading-tight">{title}</h2>
+        <div className="min-w-0">
+          <h2 style={{ ...PIXEL, color: PAPER }} className="text-2xl sm:text-3xl leading-tight">{title}</h2>
+          {subtitle && <p className="mt-1 text-sm leading-snug" style={{ color: MIST }}>{subtitle}</p>}
+        </div>
         {movies.length > 0 && (
           <button
             onClick={onViewAll}
@@ -215,7 +240,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, movies, meta, friendActivity, onMo
       ) : (
         <div
           ref={scrollRef}
-          className="mt-3 pt-3 overflow-x-auto cursor-grab select-none"
+          className="mt-1 pt-3 overflow-x-auto cursor-grab select-none"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -243,12 +268,22 @@ const Shelf: React.FC<ShelfProps> = ({ title, movies, meta, friendActivity, onMo
                       alt={movie.title}
                       className="absolute inset-0 w-full h-full object-cover"
                     />
-                    {meta === 'rank' && (
+                    {(meta === 'rank' || meta === 'forYou') && (
                       <span
                         style={{ ...PIXEL, background: 'rgba(18,13,34,0.82)', color: PAPER }}
                         className="absolute bottom-2 left-2 min-w-[1.9rem] text-center px-1.5 py-0.5 rounded-md text-sm ring-1 ring-white/15"
                       >
                         {index + 1}
+                      </span>
+                    )}
+                    {meta === 'forYou' && typeof forYouInfo?.[movieKey(movie)]?.predicted === 'number' && (
+                      <span
+                        className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full bg-violet-600/95 text-white shadow-lg ring-1 ring-white/20"
+                        title={t('home.desk.predictedForYou')}
+                      >
+                        <Wand2 className="w-3 h-3" aria-hidden />
+                        <span className="sr-only">{t('home.desk.predictedForYou')}:</span>
+                        <span style={PIXEL} className="text-sm leading-none">{forYouInfo?.[movieKey(movie)]?.predicted}</span>
                       </span>
                     )}
                     <FloatingFriendBubbles
@@ -260,7 +295,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, movies, meta, friendActivity, onMo
                   <p className={`mt-2.5 text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
                     {movie.title}
                   </p>
-                  <p className="mt-0.5 text-xs" style={{ color: MIST }}>{metaLine(movie)}</p>
+                  <div className="mt-0.5 text-xs" style={{ color: MIST }}>{metaLine(movie)}</div>
                 </button>
               </li>
             ))}
@@ -298,6 +333,10 @@ const Home = () => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [username, setUsername] = useState('');
   const [allMoviesModal, setAllMoviesModal] = useState<{ isOpen: boolean; title: string; movies: Movie[] }>({ isOpen: false, title: '', movies: [] });
+  // Filmes e Séries Para Você: chegam depois, sem segurar a página (o banco
+  // guarda o resultado; o primeiro cálculo do dia pode levar ~1s).
+  const [forYouMovies, setForYouMovies] = useState<ForYouShelf>(EMPTY_FOR_YOU);
+  const [forYouSeries, setForYouSeries] = useState<ForYouShelf>(EMPTY_FOR_YOU);
 
   // Rede de segurança: se o topo demorar demais, a página abre mesmo assim
   // (cada bloco tem o próprio esqueleto de carregamento).
@@ -359,9 +398,29 @@ const Home = () => {
     }
   }, [userId]);
 
+  useEffect(() => {
+    if (!userId) {
+      setForYouMovies(EMPTY_FOR_YOU);
+      setForYouSeries(EMPTY_FOR_YOU);
+      return;
+    }
+    let cancelled = false;
+    const load = (mediaType: 'movie' | 'tv', set: (shelf: ForYouShelf) => void) =>
+      getForYouShelf(mediaType)
+        .then((shelf) => {
+          if (!cancelled) set(shelf);
+        })
+        .catch((error) => console.error(`Home: for-you ${mediaType} error`, error));
+    load('movie', setForYouMovies);
+    load('tv', setForYouSeries);
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
   const allShelfMovies = useMemo(
-    () => [...shelves.trending, ...shelves.comingSoon, ...shelves.bestOfYear],
-    [shelves]
+    () => [...forYouMovies.movies, ...forYouSeries.movies, ...shelves.trending, ...shelves.comingSoon, ...shelves.bestOfYear],
+    [shelves, forYouMovies, forYouSeries]
   );
   const friendActivity = useFriendActivity(userId, allShelfMovies);
 
@@ -431,6 +490,29 @@ const Home = () => {
           />
         )}
 
+        {/* Para você: some quando não há nada (ninguém avaliado ainda, ou
+            tudo das prateleiras favoritas já está na biblioteca). A
+            explicação aparece só na primeira das duas listas. */}
+        <Shelf
+          title={t('home.forYouMovies')}
+          subtitle={t('home.forYouSubtitle')}
+          movies={forYouMovies.movies}
+          meta="forYou"
+          forYouInfo={forYouMovies.info}
+          friendActivity={friendActivity}
+          onMovieClick={handleMovieClick}
+          onViewAll={() => openAll(t('home.forYouMovies'), forYouMovies.movies)}
+        />
+        <Shelf
+          title={t('home.forYouSeries')}
+          subtitle={forYouMovies.movies.length === 0 ? t('home.forYouSubtitle') : undefined}
+          movies={forYouSeries.movies}
+          meta="forYou"
+          forYouInfo={forYouSeries.info}
+          friendActivity={friendActivity}
+          onMovieClick={handleMovieClick}
+          onViewAll={() => openAll(t('home.forYouSeries'), forYouSeries.movies)}
+        />
         <Shelf
           title={t('home.popularNow')}
           movies={shelves.trending}

@@ -155,6 +155,9 @@
     "startTypingToSearch": "Type to search, or use @ to find people."
   },
   "home": {
+    "forYouMovies": "Movies For You",
+    "forYouSeries": "Series For You",
+    "forYouSubtitle": "From your 3 favorite shelves, across all three oracles",
     "welcome": "Welcome back, {{username}}!",
     "bestOfYear": "Best of the Year",
     "friendsBest": "Friends' Best",
@@ -1512,6 +1515,8 @@
     "errParse": "Couldn't read the file."
   },
   "feed": {
+    "viewProfileOf": "View @{{username}}'s profile",
+    "viewOwnProfile": "View your profile",
     "title": "Friends Feed",
     "unseen": "not seen",
     "you": "You",

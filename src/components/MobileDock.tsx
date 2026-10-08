@@ -27,6 +27,8 @@ import MobileSearch, { DOCK_SEARCH_LAYOUT_ID } from './MobileSearch';
 
 interface MobileDockProps {
   onMovieSelect: (movie: Movie) => void;
+  // Há um filme aberto (modal do filme) — a busca continua aberta por baixo.
+  movieOpen?: boolean;
 }
 
 const isTextField = (el: Element | null) => {
@@ -54,7 +56,7 @@ function useTypingOnTouch() {
   return typing;
 }
 
-const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect }) => {
+const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect, movieOpen = false }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const { user } = useAuth();
@@ -210,7 +212,7 @@ const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect }) => {
         )}
       </AnimatePresence>
 
-      <MobileSearch open={searchOpen} onClose={() => setSearchOpen(false)} onMovieSelect={onMovieSelect} />
+      <MobileSearch open={searchOpen} suspended={searchOpen && movieOpen} onClose={() => setSearchOpen(false)} onMovieSelect={onMovieSelect} />
     </>
   );
 };

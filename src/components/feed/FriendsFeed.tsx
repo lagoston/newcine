@@ -27,8 +27,8 @@ import StoryViewer from './StoryViewer';
 // Feed dos Amigos, no topo da home (só os avatares, sem título, como nos
 // stories do Instagram). Junta o que antes eram "Melhores dos amigos", "Na
 // watchlist dos amigos" e "Atividade dos amigos": um avatar por amigo, com
-// um gomo no anel para cada atividade recente dele (até 4 por amigo, 40 no
-// total, dos últimos 30 dias).
+// um gomo no anel para cada atividade recente dele (até 5 por amigo, 50 no
+// total, dos últimos 30 dias; os que o amigo ocultou não são repostos).
 // O primeiro é o seu ("Você"). Tocar abre os stories em tela cheia.
 
 const AVATAR = 66;

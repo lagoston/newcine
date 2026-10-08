@@ -494,16 +494,26 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
 
             {/* cabeçalho */}
             <div className="flex items-center gap-3 px-3 pt-3">
-              <StoryRing size={36} segments={[false]} avatarUrl={story.owner.avatar_url} username={story.owner.username} ringWidth={2} gap={2} still />
-              <div className="min-w-0 flex-1 leading-tight">
-                <p className="text-sm font-semibold truncate" style={{ color: PAPER }}>
-                  {isOwn ? t('feed.ownStory') : `@${story.owner.username}`}
-                </p>
-                <p className="text-xs truncate" style={{ color: MIST }}>
-                  {kindLabel} · <time dateTime={story.activity_at}>{relativeTime(story.activity_at, lang)}</time>
-                  {paused && !typing && !drawerOpen && <span className="ml-1.5">· {t('feed.paused')}</span>}
-                </p>
-              </div>
+              {/* Foto e nome do dono levam ao perfil dele (o seu: ao seu Perfil). */}
+              <button
+                type="button"
+                onPointerDown={stop}
+                onPointerUp={stop}
+                onClick={openOwnerProfile}
+                aria-label={isOwn ? t('feed.viewOwnProfile') : t('feed.viewProfileOf', { username: story.owner.username })}
+                className={`min-w-0 flex-1 flex items-center gap-3 -ml-1 pl-1 pr-2 py-1 min-h-0 rounded-full text-left hover:bg-white/5 active:bg-white/10 transition ${FOCUS_RING}`}
+              >
+                <StoryRing size={36} segments={[false]} avatarUrl={story.owner.avatar_url} username={story.owner.username} ringWidth={2} gap={2} still />
+                <span className="min-w-0 flex-1 leading-tight">
+                  <span className="block text-sm font-semibold truncate" style={{ color: PAPER }}>
+                    {isOwn ? t('feed.ownStory') : `@${story.owner.username}`}
+                  </span>
+                  <span className="block text-xs truncate" style={{ color: MIST }}>
+                    {kindLabel} · <time dateTime={story.activity_at}>{relativeTime(story.activity_at, lang)}</time>
+                    {paused && !typing && !drawerOpen && <span className="ml-1.5">· {t('feed.paused')}</span>}
+                  </span>
+                </span>
+              </button>
               {isOwn && (
                 <button
                   onClick={toggleHidden}

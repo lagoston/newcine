@@ -155,6 +155,9 @@
     "startTypingToSearch": "Digite pra buscar, ou @ pra encontrar pessoas."
   },
   "home": {
+    "forYouMovies": "Filmes Para Você",
+    "forYouSeries": "Séries Para Você",
+    "forYouSubtitle": "Das suas 3 prateleiras favoritas, nos três oráculos",
     "welcome": "Bem-vindo de volta, {{username}}!",
     "friendsBest": "Melhores dos Amigos",
     "bestOfYear": "Melhores do Ano",
@@ -1517,6 +1520,8 @@
     "errParse": "Não foi possível ler o arquivo."
   },
   "feed": {
+    "viewProfileOf": "Ver o perfil de @{{username}}",
+    "viewOwnProfile": "Ver o seu perfil",
     "title": "Feed dos Amigos",
     "unseen": "não visto",
     "you": "Você",

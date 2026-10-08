@@ -33,6 +33,10 @@ interface MobileSearchProps {
   open: boolean;
   onClose: () => void;
   onMovieSelect: (movie: Movie) => void;
+  // Um filme aberto daqui está por cima (o modal do filme). A busca fica
+  // aberta por baixo, com os resultados, e volta a aparecer quando o filme
+  // fecha; enquanto isso ela não reage a Esc nem segura o toque da tela.
+  suspended?: boolean;
 }
 
 // Área visível da tela (encolhe quando o teclado abre).
@@ -68,7 +72,7 @@ function useVisibleViewport(active: boolean) {
   return { ...box, keyboard };
 }
 
-const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelect }) => {
+const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelect, suspended = false }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -152,12 +156,21 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
     if (open) inputRef.current?.focus({ preventScroll: true });
   }, [open]);
 
-  // Página de fundo parada enquanto a busca está aberta.
+  // Página de fundo parada enquanto a busca está aberta. Com um filme
+  // aberto por cima, o bloqueio do toque sai (senão o modal do filme não
+  // rolaria); a página continua sem rolar (overflow).
   useEffect(() => {
     if (!open) return;
     const html = document.documentElement;
     const originalHtmlOverflow = html.style.overflow;
     html.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = originalHtmlOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || suspended) return;
     const preventBackgroundScroll = (e: TouchEvent) => {
       const target = e.target as Node;
       if (resultsScrollRef.current?.contains(target)) return;
@@ -165,10 +178,9 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
     };
     document.addEventListener('touchmove', preventBackgroundScroll, { passive: false });
     return () => {
-      html.style.overflow = originalHtmlOverflow;
       document.removeEventListener('touchmove', preventBackgroundScroll);
     };
-  }, [open]);
+  }, [open, suspended]);
 
   const handleClose = useCallback(() => {
     inputRef.current?.blur();
@@ -178,15 +190,16 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
     setProfileResults([]);
   }, [onClose]);
 
-  // Esc fecha (tablet com teclado físico).
+  // Esc fecha (tablet com teclado físico). Com um filme aberto por cima, o
+  // Esc é dele: fecha o filme e a busca continua.
   useEffect(() => {
-    if (!open) return;
+    if (!open || suspended) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handleClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, handleClose]);
+  }, [open, suspended, handleClose]);
 
   // Alterna entre filmes e pessoas mexendo só no @ do começo do texto.
   const setPeopleMode = (people: boolean) => {
@@ -203,8 +216,10 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
     try {
       const pending = prefetchRef.current.get(`${mediaType}:${movie.id}`);
       const details = pending ? await pending : await getMovieDetails(movie.id, mediaType);
+      // O filme abre por cima e a busca fica aberta embaixo, com os mesmos
+      // resultados: fechar o filme volta para a busca. O teclado fecha.
+      inputRef.current?.blur();
       onMovieSelect(details);
-      handleClose();
 
       ensureMovieCached(movie.id, mediaType).catch((err) => {
         console.error('Error caching movie on open:', err);
@@ -413,7 +428,8 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
           <div
             key="mobile-search-panel"
             role="dialog"
-            aria-modal="true"
+            aria-modal={suspended ? undefined : true}
+            aria-hidden={suspended || undefined}
             aria-label={t('mobileSearch.open')}
             className="lg:hidden fixed inset-x-0 z-[95] flex flex-col"
             style={{ top: viewport.top, height: viewport.height }}

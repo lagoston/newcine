@@ -206,7 +206,7 @@ function Navbar() {
       </div>
     </nav>
 
-    {user && <MobileDock onMovieSelect={handleMovieSelect} />}
+    {user && <MobileDock onMovieSelect={handleMovieSelect} movieOpen={selectedMovie !== null} />}
     {user && <WhispersHost />}
 
     {selectedMovie && createPortal(
