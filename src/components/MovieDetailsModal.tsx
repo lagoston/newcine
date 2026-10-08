@@ -58,6 +58,17 @@ const MOOD_TAG_CONFIG: Record<string, { labelKey: string; color: string }> = {
 // que quase todo filme é ou o que a prateleira já diz — Drama, Família e
 // Aventura (na série, "Action & Adventure" vira só Ação). Thriller vira
 // Suspense em português. Pelo id do TMDB e, no cache sem id, pelo nome.
+// A mesma cor, mais clara (misturada com branco): os gêneros que "saem"
+// da prateleira usam o tom dela, mais suave.
+const lighten = (hex: string, amount: number): string => {
+  const n = hex.replace('#', '');
+  const channel = (i: number) => {
+    const v = parseInt(n.slice(i, i + 2), 16);
+    return Math.round(v + (255 - v) * amount);
+  };
+  return `rgb(${channel(0)}, ${channel(2)}, ${channel(4)})`;
+};
+
 const HIDDEN_GENRE_IDS = new Set([18, 10751, 12]);
 const HIDDEN_GENRE_NAMES = new Set(['drama', 'família', 'familia', 'family', 'aventura', 'aventuras', 'adventure']);
 const displayGenres = (genres: { id?: number; name: string }[] | undefined, isPt: boolean): string[] => {
@@ -1628,10 +1639,15 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     pending?: boolean;
   };
   const loggedIn = !!session?.user;
-  const scoreReady = !loggedIn || userRatingLoaded;
-  const scoreCols = !loggedIn ? 1 : hasRated ? 2 : 3;
+  // Título fora das prateleiras dos oráculos: não existe previsão para ele,
+  // então o placar já abre só com a nota do público (ou sua nota + público),
+  // sem reservar o lugar da previsão. Por isso o placar espera também a
+  // consulta da prateleira (rápida) antes de entrar.
+  const inOraclePools = moodLoaded && movieMoodKey !== null;
+  const scoreReady = !loggedIn || (userRatingLoaded && moodLoaded);
+  const scoreCols = !loggedIn ? 1 : hasRated ? 2 : inOraclePools ? 3 : 1;
   const scoreCells: ScoreCell[] = [];
-  if (loggedIn && userRatingLoaded) {
+  if (loggedIn && scoreReady && (hasRated || inOraclePools)) {
     const predictedCell = (span?: 2): ScoreCell => ({
       key: 'slot1',
       value: predictedRating,
@@ -1967,9 +1983,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   </div>
 
                   {/* A prateleira dos oráculos é a "mãe" dos gêneros: vem
-                      primeiro, marcada na cor dela, e os gêneros (no máximo
-                      3) saem dela por um fio que se apaga. Lugar reservado
-                      desde a abertura; a linha entra com um fade. */}
+                      primeiro, na cor dela, com a bolinha que brilha, e os
+                      gêneros (no máximo 3) saem de dentro dela, no mesmo tom
+                      mais claro e um pouco menores. Lugar reservado desde a
+                      abertura; a linha entra com um fade. */}
                   {(shownGenres.length > 0 || mood || (loggedIn && !moodLoaded)) && (
                     <div className="mt-2.5 h-7 flex items-center justify-center md:justify-start">
                       {genresReady && (
@@ -1981,8 +1998,8 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                         >
                           {mood && (
                             <span
-                              className="shrink-0 inline-flex items-center gap-1.5 h-7 pl-2.5 pr-3 rounded-full text-[13px] font-semibold"
-                              style={{ color: mood.color, background: withAlpha(mood.color, 0.12), boxShadow: `inset 0 0 0 1px ${withAlpha(mood.color, 0.32)}` }}
+                              className="relative z-10 shrink-0 inline-flex items-center gap-1.5 text-[13px] font-semibold"
+                              style={{ color: mood.color }}
                               title={t('movieModal.oracleShelf')}
                             >
                               <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: mood.color, boxShadow: `0 0 8px ${mood.color}` }} />
@@ -1991,13 +2008,27 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                             </span>
                           )}
                           {mood && shownGenres.length > 0 && (
-                            <span
-                              aria-hidden
-                              className="shrink-0 w-5 h-px mx-2"
-                              style={{ background: `linear-gradient(90deg, ${withAlpha(mood.color, 0.7)}, ${withAlpha(mood.color, 0)})` }}
-                            />
+                            // A faixa dos gêneros desliza para fora de trás da
+                            // prateleira (o recorte começa logo depois dela).
+                            <span className="min-w-0 flex overflow-hidden">
+                              <span className="sr-only">{t('movieModal.genres')}: </span>
+                              <motion.span
+                                initial={{ x: '-100%', opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: 0.2, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                                className="min-w-0 block truncate text-xs font-medium"
+                                style={{ color: lighten(mood.color, 0.45) }}
+                              >
+                                {shownGenres.map((genre) => (
+                                  <React.Fragment key={genre}>
+                                    <span aria-hidden className="mx-1.5 opacity-60">·</span>
+                                    {genre}
+                                  </React.Fragment>
+                                ))}
+                              </motion.span>
+                            </span>
                           )}
-                          {shownGenres.length > 0 && (
+                          {!mood && shownGenres.length > 0 && (
                             <span className="min-w-0 truncate" style={{ color: MIST }}>
                               <span className="sr-only">{t('movieModal.genres')}: </span>
                               {shownGenres.join(' · ')}
