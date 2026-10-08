@@ -1341,6 +1341,14 @@
     "imgHours2": "watched"
   },
   "movieModal": {
+    "score": {
+      "yours": "Your rating",
+      "predicted": "Predicted for you",
+      "tenChance": "Chance of a 10",
+      "public": "Audience (TMDB)"
+    },
+    "genres": "Genres",
+    "oracleShelf": "Oracles' shelf",
     "playTrailer": "Watch the trailer",
     "trailer": "Trailer",
     "shareStory": "Story",

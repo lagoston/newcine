@@ -28,7 +28,10 @@ import {
 // Detalhes de um filme/série — "a ficha na mesa do oráculo".
 //   • Topo: o fundo (backdrop) do filme se dissolvendo na noite, o pôster
 //     (toque = trailer) com os selos dos oráculos e as bolhas dos amigos,
-//     título, ficha rápida, notas (pública, prevista ou a sua) e gêneros.
+//     título, ficha rápida e gêneros (texto corrido, sem cápsulas), o placar
+//     (a sua nota ou a prevista, a chance de virar 10 e a do público: número
+//     grande e nome embaixo) e as ações rápidas (trailer, sussurrar, story:
+//     ícone em cima, nome embaixo, sem contorno).
 //   • Corpo: sinopse, onde assistir, direção (com o Top 10) e elenco.
 //   • Rodapé fixo: adicionar à biblioteca / já na biblioteca, e resenhas.
 // No celular abre como gaveta de baixo pra cima; no desktop, centralizado.
@@ -37,18 +40,18 @@ import {
 
 // As mesmas 9 categorias usadas pra organizar as prateleiras na Biblioteca
 // dos Oráculos (ver OracleLibraries.tsx) — "random-surprise" não entra por
-// ser uma pool coringa, não uma categoria de verdade. Tons pensados pro
-// fundo noite: texto claro, borda e fundo da mesma família de cor.
-const MOOD_TAG_CONFIG: Record<string, { labelKey: string; pillClasses: string }> = {
-  'adventures': { labelKey: 'oracle.moods.adventures', pillClasses: 'text-sky-200 border-sky-400/40 bg-sky-500/15' },
-  'catharsis': { labelKey: 'oracle.moods.catharsis', pillClasses: 'text-blue-200 border-blue-400/40 bg-blue-500/15' },
-  'adrenaline': { labelKey: 'oracle.moods.adrenaline', pillClasses: 'text-red-200 border-red-400/40 bg-red-500/15' },
-  'mind-blowing': { labelKey: 'oracle.moods.mindBlowing', pillClasses: 'text-pink-200 border-pink-400/40 bg-pink-500/15' },
-  'laugh-out-loud': { labelKey: 'oracle.moods.laughOutLoud', pillClasses: 'text-green-200 border-green-400/40 bg-green-500/15' },
-  'drug-trip': { labelKey: 'oracle.moods.drugTrip', pillClasses: 'text-emerald-200 border-emerald-400/40 bg-emerald-500/15' },
-  'romantic': { labelKey: 'oracle.moods.romantic', pillClasses: 'text-orange-200 border-orange-400/40 bg-orange-500/15' },
-  'dark-and-scary': { labelKey: 'oracle.moods.darkScary', pillClasses: 'text-gray-200 border-gray-400/40 bg-gray-500/20' },
-  'family-time': { labelKey: 'oracle.moods.familyTime', pillClasses: 'text-yellow-200 border-yellow-400/40 bg-yellow-500/15' },
+// ser uma pool coringa, não uma categoria de verdade. Cada uma com a sua cor
+// clara (texto e pontinho), pensada pro fundo noite.
+const MOOD_TAG_CONFIG: Record<string, { labelKey: string; color: string }> = {
+  'adventures': { labelKey: 'oracle.moods.adventures', color: '#7DD3FC' },
+  'catharsis': { labelKey: 'oracle.moods.catharsis', color: '#93C5FD' },
+  'adrenaline': { labelKey: 'oracle.moods.adrenaline', color: '#FCA5A5' },
+  'mind-blowing': { labelKey: 'oracle.moods.mindBlowing', color: '#F9A8D4' },
+  'laugh-out-loud': { labelKey: 'oracle.moods.laughOutLoud', color: '#86EFAC' },
+  'drug-trip': { labelKey: 'oracle.moods.drugTrip', color: '#6EE7B7' },
+  'romantic': { labelKey: 'oracle.moods.romantic', color: '#FDBA74' },
+  'dark-and-scary': { labelKey: 'oracle.moods.darkScary', color: '#D1D5DB' },
+  'family-time': { labelKey: 'oracle.moods.familyTime', color: '#FDE047' },
 };
 
 // Padroniza QUALQUER classificação de origem (americana, britânica, etc.)
@@ -1575,43 +1578,40 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     </>
   );
 
-  // Nota em destaque ao lado da nota pública: a sua (se já avaliou), a
-  // prevista pelo oráculo (se o filme está em alguma pool), ou "na sua
-  // watchlist". Enquanto carrega, um esqueleto do mesmo tamanho segura o
-  // lugar pra nada pular.
-  const personalChip = (() => {
-    if (!session?.user) return null;
-    if (!userRatingLoaded || (!hasRated && predictionLoading)) {
-      return <span className="h-8 w-44 rounded-full animate-pulse" style={{ background: VELVET }} aria-hidden />;
-    }
+  // Placar logo abaixo do título: números grandes com o nome embaixo, sem
+  // cápsulas, separados por fios finos. A sua nota (ou a prevista pelo
+  // oráculo) vem primeiro e é o destaque; depois a chance de virar 10 (só
+  // com nota prevista até 9) e a nota do público. Enquanto a sua carrega,
+  // um esqueleto do mesmo tamanho segura o lugar pra nada pular.
+  type ScoreCell = { key: string; value: React.ReactNode; label: string; color: string; icon?: React.ReactNode; glow?: string };
+  const personalLoading = !!session?.user && (!userRatingLoaded || (!hasRated && predictionLoading));
+  const scoreCells: ScoreCell[] = [];
+  if (session?.user && !personalLoading) {
     if (hasRated) {
-      return (
-        <span className="inline-flex items-center gap-1.5 h-8 pl-2.5 pr-3 rounded-full text-sm font-semibold" style={{ background: PAPER, color: INK }}>
-          <Star className="w-3.5 h-3.5 fill-current" aria-hidden />
-          {t('home.desk.yourRating')}
-          <span style={PIXEL} className="text-base leading-none">{userRating}</span>
-        </span>
-      );
+      scoreCells.push({ key: 'yours', value: userRating, label: t('movieModal.score.yours'), color: PAPER, icon: <Star className="w-4 h-4 fill-current" aria-hidden /> });
+    } else if (predictedRating !== null) {
+      scoreCells.push({
+        key: 'predicted',
+        value: predictedRating,
+        label: t('movieModal.score.predicted'),
+        color: '#C4B5FD',
+        glow: 'rgba(139,92,246,0.6)',
+        icon: <Wand2 className="w-4 h-4" aria-hidden />,
+      });
+      if (predictedRating <= 9 && tenChance !== null) {
+        scoreCells.push({ key: 'ten', value: formatChance(tenChance), label: t('movieModal.score.tenChance'), color: PAPER, icon: <Sparkles className="w-4 h-4 text-violet-300" aria-hidden /> });
+      }
+    } else if (isInLibrary) {
+      scoreCells.push({ key: 'watchlist', value: <Eye className="w-7 h-7" aria-hidden />, label: t('home.desk.inWatchlist'), color: '#BAE6FD' });
     }
-    if (predictedRating !== null) {
-      return (
-        <span className="inline-flex items-center gap-1.5 h-8 pl-2.5 pr-3 rounded-full text-sm bg-violet-600/90 text-white ring-1 ring-white/20">
-          <Wand2 className="w-3.5 h-3.5" aria-hidden />
-          {t('home.desk.predictedForYou')}
-          <span style={PIXEL} className="text-base leading-none">{predictedRating}</span>
-        </span>
-      );
-    }
-    if (isInLibrary) {
-      return (
-        <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-sm border border-sky-400/40 bg-sky-500/10 text-sky-200">
-          <Eye className="w-3.5 h-3.5" aria-hidden />
-          {t('home.desk.inWatchlist')}
-        </span>
-      );
-    }
-    return null;
-  })();
+  }
+  if (movie.vote_average > 0) {
+    scoreCells.push({ key: 'public', value: formatScore(movie.vote_average), label: t('movieModal.score.public'), color: PAPER, icon: <Star className="w-4 h-4 fill-amber-300 text-amber-300" aria-hidden /> });
+  }
+  const scoreCellClass = 'flex flex-col-reverse items-center md:items-start px-4 sm:px-6 md:first:pl-0 border-l border-white/10 first:border-l-0';
+
+  // Ações rápidas: ícone em cima, nome embaixo, sem contorno.
+  const quickAction = `flex-col gap-1.5 w-[5.5rem] py-2 rounded-xl text-xs font-medium hover:bg-white/[0.06] active:bg-white/[0.09] transition disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;
 
   const friendAriaLabel = (friend: FriendRating) => {
     if (friend.is_watchlist_only) return `${friend.username}: ${t('movies.wantingToWatch')}`;
@@ -1902,47 +1902,65 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     )}
                   </div>
 
-                  <div className="mt-4 flex flex-wrap items-center justify-center md:justify-start gap-2">
-                    {movie.vote_average > 0 && (
-                      <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-sm ring-1 ring-white/10" style={{ background: VELVET, color: PAPER }}>
-                        <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" aria-hidden />
-                        {t('home.desk.publicScore', { score: formatScore(movie.vote_average) })}
-                      </span>
-                    )}
-                    {personalChip}
-                    {/* Nota prevista até 9: a chance de virar nota 10. */}
-                    {!hasRated && predictedRating !== null && predictedRating <= 9 && tenChance !== null && (
-                      <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-sm ring-1 ring-white/10" style={{ background: VELVET, color: MIST }}>
-                        <Sparkles className="w-3.5 h-3.5 text-violet-300" aria-hidden />
-                        {t('oracle.masterpiece.tenChance', { chance: formatChance(tenChance) })}
-                      </span>
-                    )}
-                  </div>
-
+                  {/* Gêneros numa linha de texto (e a prateleira dos oráculos,
+                      na cor dela, com um pontinho) — sem cápsulas. */}
                   {((movie.genres && movie.genres.length > 0) || (movieMoodKey && MOOD_TAG_CONFIG[movieMoodKey])) && (
-                    <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
-                      {movie.genres?.map((genre) => (
-                        <span key={genre.id ?? genre.name} className="px-3 py-1 rounded-full text-[13px] border border-white/15" style={{ color: MIST }}>
-                          {genre.name}
+                    <p className="mt-2 flex flex-wrap items-center justify-center md:justify-start gap-x-2.5 gap-y-1 text-sm" style={{ color: MIST }}>
+                      {movie.genres && movie.genres.length > 0 && (
+                        <span>
+                          <span className="sr-only">{t('movieModal.genres')}: </span>
+                          {movie.genres.map((genre) => genre.name).join(', ')}
                         </span>
-                      ))}
+                      )}
                       {movieMoodKey && MOOD_TAG_CONFIG[movieMoodKey] && (
-                        <span className={`px-3 py-1 rounded-full text-[13px] font-medium border ${MOOD_TAG_CONFIG[movieMoodKey].pillClasses}`}>
+                        <span
+                          className="inline-flex items-center gap-1.5 font-medium"
+                          style={{ color: MOOD_TAG_CONFIG[movieMoodKey].color }}
+                          title={t('movieModal.oracleShelf')}
+                        >
+                          <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: MOOD_TAG_CONFIG[movieMoodKey].color }} />
+                          <span className="sr-only">{t('movieModal.oracleShelf')}: </span>
                           {t(MOOD_TAG_CONFIG[movieMoodKey].labelKey)}
                         </span>
                       )}
-                    </div>
+                    </p>
                   )}
 
-                  <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-2">
-                    <button onClick={handleOpenTrailer} className={ghostPill} style={{ color: PAPER }}>
-                      <Play className="w-4 h-4 fill-fuchsia-300 text-fuchsia-300" aria-hidden />
+                  {/* Placar */}
+                  {(scoreCells.length > 0 || personalLoading) && (
+                    <dl className="mt-6 flex justify-center md:justify-start">
+                      {personalLoading && (
+                        <div className={scoreCellClass} aria-hidden>
+                          <span className="mt-2 block h-3 w-20 rounded animate-pulse" style={{ background: VELVET }} />
+                          <span className="block h-8 w-12 rounded-md animate-pulse" style={{ background: VELVET }} />
+                        </div>
+                      )}
+                      {scoreCells.map((cell) => (
+                        <div key={cell.key} className={scoreCellClass}>
+                          <dt className="mt-1.5 max-w-[7.5rem] text-xs leading-snug text-center md:text-left" style={{ color: MIST }}>
+                            {cell.label}
+                          </dt>
+                          <dd className="flex items-center gap-1.5 leading-none" style={{ color: cell.color }}>
+                            {cell.icon}
+                            <span style={{ ...PIXEL, textShadow: cell.glow ? `0 0 18px ${cell.glow}` : undefined }} className="text-[1.9rem] leading-none">
+                              {cell.value}
+                            </span>
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+
+                  {/* Ações rápidas */}
+                  <div className="mt-5 flex justify-center md:justify-start gap-1 md:-ml-4">
+                    <button onClick={handleOpenTrailer} className={quickAction} style={{ color: PAPER }}>
+                      <Play className="w-[22px] h-[22px] fill-fuchsia-300 text-fuchsia-300" aria-hidden />
                       {t('movieModal.trailer')}
                     </button>
                     {session?.user && (
                       <>
-                        <button onClick={() => setShowRecommendModal(true)} className={ghostPill} style={{ color: PAPER }}>
-                          <Send className="w-4 h-4 text-orange-300" aria-hidden />
+                        <button onClick={() => setShowRecommendModal(true)} className={quickAction} style={{ color: PAPER }}>
+                          <Send className="w-[22px] h-[22px] text-orange-300" aria-hidden />
                           {t('indications.indicate')}
                         </button>
                         <button
@@ -1950,13 +1968,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                           disabled={isSharing}
                           aria-label={t('movieModal.shareStoryHint')}
                           title={t('movieModal.shareStoryHint')}
-                          className={ghostPill}
+                          className={quickAction}
                           style={{ color: PAPER }}
                         >
                           {isSharing ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-pink-300" aria-hidden />
+                            <Loader2 className="w-[22px] h-[22px] animate-spin text-pink-300" aria-hidden />
                           ) : (
-                            <Instagram className="w-4 h-4 text-pink-300" aria-hidden />
+                            <Instagram className="w-[22px] h-[22px] text-pink-300" aria-hidden />
                           )}
                           {t('movieModal.shareStory')}
                         </button>

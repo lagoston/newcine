@@ -1346,6 +1346,14 @@
     "imgHours2": "assistidas"
   },
   "movieModal": {
+    "score": {
+      "yours": "Sua nota",
+      "predicted": "Prevista para você",
+      "tenChance": "Chance de virar 10",
+      "public": "Público (TMDB)"
+    },
+    "genres": "Gêneros",
+    "oracleShelf": "Prateleira dos oráculos",
     "playTrailer": "Ver o trailer",
     "trailer": "Trailer",
     "shareStory": "Story",
