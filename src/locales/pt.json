@@ -717,6 +717,8 @@
       "watching": "O Oráculo observa atentamente suas escolhas..."
     },
     "hub": {
+      "shelves": "Prateleiras",
+      "seeRecommendations": "Ver recomendações dos oráculos",
       "loadError": "Não foi possível abrir a Central dos Oráculos.",
       "archetypes": "Personalidades",
       "share": "Compartilhar",

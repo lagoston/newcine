@@ -714,6 +714,8 @@
       "watching": "The Oracle watches your choices attentively..."
     },
     "hub": {
+      "shelves": "Shelves",
+      "seeRecommendations": "See the oracles' recommendations",
       "loadError": "Couldn't open the Oracles Hub.",
       "archetypes": "Personalities",
       "share": "Share",

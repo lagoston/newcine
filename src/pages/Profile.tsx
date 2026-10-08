@@ -11,14 +11,14 @@ import AllMoviesModal from '../components/AllMoviesModal';
 import SettingsModal from '../components/SettingsModal';
 import TagPinsModal from '../components/TagPinsModal';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON } from '../components/ProfileIdentityCard';
-import { ProfileStatTiles, ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD } from '../components/ProfileTaste';
+import { ProfileStatTiles, ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
 import { summarizeRatings } from '../lib/profileStats';
 import ProfileEssence from '../components/ProfileEssence';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache } from '../lib/cache';
 import { useProfileData } from '../hooks/useProfileData';
-import { VELVET, SURFACE, SURFACE_VAR, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
+import { VELVET, SURFACE, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES, surfaceVars, glassPanel, PROFILE_ACCENTS } from '../lib/oracleTheme';
 import { getBannerTone } from '../lib/banners';
 import { useTagDecoration } from '../contexts/SeasonalEventContext';
 
@@ -548,7 +548,7 @@ export default function Profile() {
   // Os blocos da página (Números, Seu gosto, Essência…) vestem o tom do seu
   // banner — a mesma regra dos perfis da Comunidade (lib/banners.ts).
   const bannerTone = getBannerTone(profile?.banner, isPremium);
-  const pageStyle = bannerTone ? ({ [SURFACE_VAR]: bannerTone.surface } as React.CSSProperties) : undefined;
+  const pageStyle = bannerTone ? surfaceVars(bannerTone.surface) : undefined;
 
   return (
     <div className="min-h-screen pb-16" style={pageStyle}>
@@ -705,7 +705,8 @@ export default function Profile() {
       {/* ---------- Números e retrato de gosto ----------
           Um bloco só, logo abaixo do cartão: os dois números e, emendadas
           neles, as estatísticas (notas, gêneros, década, diretores, atlas…). */}
-      <section className="mx-auto max-w-6xl px-5 sm:px-8 mt-4">
+      <section className="relative isolate mx-auto max-w-6xl px-5 sm:px-8 mt-4">
+        <ProfileGlassAmbient accent={bannerTone?.accent} />
         <ProfileStatTiles ratedCount={ratedMoviesCount} watchMinutes={totalWatchTime} />
         <div className="mt-4">
           {ratedMoviesCount > 0 ? (
@@ -722,7 +723,7 @@ export default function Profile() {
               onViewCountryMovies={handleViewCountryMovies}
             />
           ) : (
-            <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: SURFACE }}>
+            <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={glassPanel(PROFILE_ACCENTS.rated)}>
               <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
                 <Film className="w-7 h-7 text-violet-300" aria-hidden />
               </span>
@@ -744,7 +745,8 @@ export default function Profile() {
 
       {/* ---------- Essência cinematográfica ---------- */}
       <section className="mt-12 border-t border-white/[0.07] pt-10">
-        <div className="mx-auto max-w-6xl px-5 sm:px-8">
+        <div className="relative isolate mx-auto max-w-6xl px-5 sm:px-8">
+          <ProfileGlassAmbient accent={bannerTone?.accent} />
           <ProfileSectionHeading title={t('oracle.cinematicEssenceLabel')} />
           <div className="mt-6">
             <ProfileEssence
@@ -752,7 +754,7 @@ export default function Profile() {
               loading={personaLoading}
               persona={persona}
               emptyState={
-                <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={{ background: SURFACE }}>
+                <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={glassPanel(PROFILE_ACCENTS.essence)}>
                   <div className="flex shrink-0" aria-hidden>
                     {ORACLES.map((oracle, i) => (
                       <img

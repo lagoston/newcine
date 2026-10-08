@@ -7,7 +7,7 @@ import WorldMapCard from './WorldMapCard';
 import MovieDetailsModal from './MovieDetailsModal';
 import { getMovieDetailsFromDB, type Movie } from '../lib/tmdb';
 import type { Genre, Keyword, FavoriteDecade, DirectorCount, LeastKnownGem } from '../hooks/useProfileData';
-import { SURFACE, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
+import { PAPER, MIST, PIXEL, FOCUS_RING, ratingTone, glassPanel, colorWithAlpha, PROFILE_ACCENTS } from '../lib/oracleTheme';
 import { formatWatchTime } from '../lib/profileStats';
 
 // Peças do "retrato de gosto" de um perfil — usadas no seu Perfil e no
@@ -17,7 +17,34 @@ import { formatWatchTime } from '../lib/profileStats';
 //     diretores, joia menos conhecida e o atlas
 //   • ProfileSectionHeading: título Pixelify + dica de cada seção
 
-export const PROFILE_CARD = 'rounded-2xl ring-1 ring-white/10 p-5 sm:p-6';
+// Os blocos de estatística são painéis de vidro (glassPanel em
+// lib/oracleTheme): a superfície do perfil translúcida, com o reflexo da
+// cor de cada bloco. ProfileGlassAmbient põe luzes suaves atrás deles, para
+// o vidro ter o que refletir.
+export const PROFILE_CARD = 'rounded-2xl p-5 sm:p-6';
+
+// Luzes atrás dos painéis de vidro: manchas grandes e suaves (a primeira na
+// cor do banner do dono, quando há). Vai dentro de um container
+// "relative isolate". A máscara apaga as bordas da camada, para as manchas
+// sumirem aos poucos em vez de terminar numa linha reta.
+const AMBIENT_MASK = 'radial-gradient(closest-side, #000 55%, transparent 100%)';
+
+export const ProfileGlassAmbient: React.FC<{ accent?: string }> = ({ accent = '#8B5CF6' }) => (
+  <div
+    aria-hidden
+    className="pointer-events-none absolute inset-x-0 -top-10 -bottom-10 -z-10"
+    style={{
+      background: [
+        `radial-gradient(38% 26% at 18% 14%, ${colorWithAlpha(accent, 0.22)}, transparent 70%)`,
+        'radial-gradient(34% 24% at 82% 32%, rgba(232,121,249,0.16), transparent 70%)',
+        'radial-gradient(36% 22% at 22% 64%, rgba(56,189,248,0.13), transparent 70%)',
+        'radial-gradient(40% 22% at 78% 86%, rgba(45,212,191,0.12), transparent 70%)',
+      ].join(', '),
+      WebkitMaskImage: AMBIENT_MASK,
+      maskImage: AMBIENT_MASK,
+    }}
+  />
+);
 
 export const ProfileSectionHeading: React.FC<{ title: string; hint?: string; action?: React.ReactNode }> = ({ title, hint, action }) => (
   <div className="flex flex-wrap items-end justify-between gap-4">
@@ -56,15 +83,15 @@ interface ProfileStatTilesProps {
 export const ProfileStatTiles: React.FC<ProfileStatTilesProps> = ({ ratedCount, watchMinutes, label }) => {
   const { t } = useTranslation();
   const tiles = [
-    { icon: Star, label: t('profile.stats.ratedMovies'), value: String(ratedCount) },
-    { icon: Clock, label: t('profile.stats.timeWatching'), value: formatWatchTime(watchMinutes) },
+    { icon: Star, label: t('profile.stats.ratedMovies'), value: String(ratedCount), accent: PROFILE_ACCENTS.rated },
+    { icon: Clock, label: t('profile.stats.timeWatching'), value: formatWatchTime(watchMinutes), accent: PROFILE_ACCENTS.time },
   ];
   return (
     <dl className="grid grid-cols-2 gap-3 sm:gap-4" aria-label={label ?? t('profile.numbersLabel')}>
-      {tiles.map(({ icon: Icon, label: tileLabel, value }) => (
-        <div key={tileLabel} className="rounded-2xl px-4 py-4 ring-1 ring-white/10" style={{ background: SURFACE }}>
+      {tiles.map(({ icon: Icon, label: tileLabel, value, accent }) => (
+        <div key={tileLabel} className="rounded-2xl px-4 py-4" style={glassPanel(accent)}>
           <dt className="flex items-center gap-2 text-sm" style={{ color: MIST }}>
-            <Icon className="w-4 h-4 shrink-0 text-violet-300" aria-hidden />
+            <Icon className="w-4 h-4 shrink-0" style={{ color: accent }} aria-hidden />
             <span className="min-w-0 leading-tight">{tileLabel}</span>
           </dt>
           <dd style={{ ...PIXEL, color: PAPER }} className="mt-2 text-3xl leading-none truncate">
@@ -160,11 +187,11 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
   return (
     <>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className={`${PROFILE_CARD} md:col-span-2`} style={{ background: SURFACE }}>
+        <div className={`${PROFILE_CARD} md:col-span-2`} style={glassPanel(average !== null ? ratingTone(Math.round(average)).color : PROFILE_ACCENTS.rated)}>
           <RatingSpectrum counts={ratingCounts} average={average} onJump={onJumpToRating} title={ratingTitle ?? t('profile.stats.ratingDistribution')} />
         </div>
 
-        <div className={PROFILE_CARD} style={{ background: SURFACE }}>
+        <div className={PROFILE_CARD} style={glassPanel(PROFILE_ACCENTS.genres)}>
           <div className="grid grid-cols-2 gap-5">
             {[
               { title: t('profile.stats.favoriteGenres'), items: favoriteGenres, empty: t('profile.stats.noGenresYet'), capitalize: false },
@@ -196,7 +223,7 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
         </div>
 
         {favoriteDecade && decadeView && (
-          <div className={PROFILE_CARD} style={{ background: SURFACE }}>
+          <div className={PROFILE_CARD} style={glassPanel(decadeView.accent)}>
             <CardTitle>{t('profile.stats.favoriteDecade')}</CardTitle>
             <div className="mt-4 flex items-baseline gap-3">
               <span style={{ ...PIXEL, color: PAPER }} className="text-5xl leading-none">
@@ -244,7 +271,7 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
           </div>
         )}
 
-        <div className={PROFILE_CARD} style={{ background: SURFACE }}>
+        <div className={PROFILE_CARD} style={glassPanel(PROFILE_ACCENTS.directors)}>
           <CardTitle>{t('profile.stats.favoriteDirectors')}</CardTitle>
           {topDirectors.length > 0 ? (
             <ol className="mt-4 space-y-2.5">
@@ -269,7 +296,7 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
           )}
         </div>
 
-        <div className={PROFILE_CARD} style={{ background: SURFACE }}>
+        <div className={PROFILE_CARD} style={glassPanel(PROFILE_ACCENTS.gem)}>
           <CardTitle>{t('profile.stats.leastKnownGem')}</CardTitle>
           {leastKnownGem ? (
             <button

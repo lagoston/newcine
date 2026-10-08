@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useUnlockedTagPins } from '../hooks/useUnlockedTagPins';
-import { SURFACE, PAPER, MIST, PIXEL, tagCategoryStyle } from '../lib/oracleTheme';
+import { PAPER, MIST, PIXEL, tagCategoryStyle, glassPanel } from '../lib/oracleTheme';
 
 interface UserPinsCardProps {
   userId: string;
@@ -21,7 +21,7 @@ const UserPinsCard: React.FC<UserPinsCardProps> = ({ userId, title, className = 
   if (!loading && pins.length === 0) return null;
 
   return (
-    <div className={`rounded-2xl ring-1 ring-white/10 p-5 sm:p-6 ${className}`} style={{ background: SURFACE }}>
+    <div className={`rounded-2xl p-5 sm:p-6 ${className}`} style={glassPanel('#C084FC')}>
       <div className="flex items-baseline justify-between gap-3">
         <h3 style={{ ...PIXEL, color: PAPER }} className="text-lg leading-none">
           {title ?? t('profile.tagPins')}

@@ -1,4 +1,4 @@
-import { useState, useEffect, type CSSProperties } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ListPlus, MessageSquare, UserCheck, UserPlus, Clock, Sparkles, Wand2, Loader2, Film, UserX, LogIn, User } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
@@ -16,14 +16,14 @@ import CompatibilityModal from '../components/CompatibilityModal';
 import MatchMovieModal from '../components/MatchMovieModal';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON, type ProfileActiveTag } from '../components/ProfileIdentityCard';
 import { useTagDecoration } from '../contexts/SeasonalEventContext';
-import { ProfileStatTiles, ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD } from '../components/ProfileTaste';
+import { ProfileStatTiles, ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
 import { summarizeRatings } from '../lib/profileStats';
 import ProfileEssence from '../components/ProfileEssence';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS } from '../lib/cache';
 import { useProfileData, type MovieWithRating } from '../hooks/useProfileData';
-import { VELVET, SURFACE, SURFACE_VAR, PAPER, MIST, NIGHT, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
+import { VELVET, SURFACE, PAPER, MIST, NIGHT, FOCUS_RING, ORACLES, surfaceVars, glassPanel, PROFILE_ACCENTS } from '../lib/oracleTheme';
 import { getBannerTone } from '../lib/banners';
 
 // Perfil de outra pessoa (vindo da Comunidade, da atividade dos amigos,
@@ -350,7 +350,7 @@ export default function UserProfile() {
 
   // Tom do banner da pessoa pros blocos da página (null = violeta padrão).
   const bannerTone = getBannerTone(profile.banner, isOwnerPremium);
-  const pageStyle = bannerTone ? ({ [SURFACE_VAR]: bannerTone.surface } as CSSProperties) : undefined;
+  const pageStyle = bannerTone ? surfaceVars(bannerTone.surface) : undefined;
 
   // Botão de amizade — muda com o estado da relação.
   const friendButton = (() => {
@@ -511,7 +511,7 @@ export default function UserProfile() {
           <div id="profile-panel-collection" role="tabpanel" aria-labelledby="profile-tab-collection">
             {movies.length === 0 ? (
               <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-6">
-                <div className={`${PROFILE_CARD} flex items-center gap-5`} style={{ background: SURFACE }}>
+                <div className={`${PROFILE_CARD} flex items-center gap-5`} style={glassPanel(PROFILE_ACCENTS.rated)}>
                   <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
                     <Film className="w-7 h-7 text-violet-300" aria-hidden />
                   </span>
@@ -558,7 +558,8 @@ export default function UserProfile() {
             )}
           </div>
         ) : (
-          <div id="profile-panel-info" role="tabpanel" aria-labelledby="profile-tab-info" className="mx-auto max-w-6xl px-5 sm:px-8 mt-8 space-y-12">
+          <div id="profile-panel-info" role="tabpanel" aria-labelledby="profile-tab-info" className="relative isolate mx-auto max-w-6xl px-5 sm:px-8 mt-8 space-y-12">
+            <ProfileGlassAmbient accent={bannerTone?.accent} />
             {/* Personalidade de @ */}
             <div>
               <ProfileSectionHeading title={t('profile.essenceOf', { username: profile.username })} />
@@ -567,7 +568,7 @@ export default function UserProfile() {
                   loading={personaLoading}
                   persona={persona}
                   emptyState={
-                    <div className={`${PROFILE_CARD} flex items-center gap-5`} style={{ background: SURFACE }}>
+                    <div className={`${PROFILE_CARD} flex items-center gap-5`} style={glassPanel(PROFILE_ACCENTS.essence)}>
                       <div className="flex shrink-0" aria-hidden>
                         {ORACLES.map((oracle, i) => (
                           <img
@@ -612,7 +613,7 @@ export default function UserProfile() {
                     extra={<UserPinsCard userId={profile.id} title={t('profile.pinsOf', { username: profile.username })} className="md:col-span-2 lg:col-span-3" />}
                   />
                 ) : (
-                  <div className={`${PROFILE_CARD} flex items-center gap-5`} style={{ background: SURFACE }}>
+                  <div className={`${PROFILE_CARD} flex items-center gap-5`} style={glassPanel(PROFILE_ACCENTS.rated)}>
                     <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-violet-500/15 ring-1 ring-violet-400/30">
                       <Film className="w-7 h-7 text-violet-300" aria-hidden />
                     </span>

@@ -19,6 +19,10 @@ export const MIST = '#BDB4D6';    // texto secundário no escuro
 // (lib/banners.ts → getBannerTone); fora deles vale o VELVET de sempre.
 export const SURFACE_VAR = '--co-surface';
 export const SURFACE = `var(${SURFACE_VAR}, ${VELVET})`;
+// A mesma cor, translúcida, para os painéis de vidro (glassPanel). A página
+// do perfil define as duas a partir do banner do dono (surfaceVars).
+export const SURFACE_GLASS_VAR = '--co-surface-glass';
+export const SURFACE_GLASS = `var(${SURFACE_GLASS_VAR}, rgba(28,20,51,0.56))`;
 
 // Fundo padrão de página: noite com um brilho violeta no canto superior.
 export const NIGHT_BACKGROUND = `radial-gradient(ellipse 80% 50% at 75% 0%, rgba(139,92,246,0.16), transparent 60%), ${NIGHT}`;
@@ -81,6 +85,53 @@ export const withAlpha = (hex: string, alpha: number): string => {
   const n = parseInt(hex.replace('#', ''), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
 };
+
+// Como withAlpha, mas aceita também "hsl(h, s%, l%)" (o tom dos banners sem
+// cor escolhida à mão vem assim).
+export const colorWithAlpha = (color: string, alpha: number): string => {
+  const hsl = color.match(/^hsl\((.+)\)$/i);
+  if (hsl) return `hsla(${hsl[1]}, ${alpha})`;
+  return withAlpha(color, alpha);
+};
+
+// Variáveis da superfície dos blocos de um perfil, a partir do tom do banner
+// do dono: a sólida (SURFACE) e a translúcida dos painéis de vidro.
+export const surfaceVars = (surface: string): React.CSSProperties =>
+  ({ [SURFACE_VAR]: surface, [SURFACE_GLASS_VAR]: colorWithAlpha(surface, 0.56) }) as React.CSSProperties;
+
+// Cor de cada bloco de estatística do perfil (o reflexo no vidro).
+export const PROFILE_ACCENTS = {
+  rated: '#A78BFA',
+  time: '#38BDF8',
+  genres: '#E879F9',
+  directors: '#FB923C',
+  gem: '#34D399',
+  atlas: '#2DD4BF',
+  pins: '#C084FC',
+  essence: '#F472B6',
+};
+
+// Painel de vidro dos blocos de estatística do perfil: a superfície do
+// perfil translúcida, com desfoque do que está atrás, um brilho fino no
+// alto e o reflexo da cor do próprio painel (accent) no canto de cima e no
+// contorno — cada bloco puxa a cor do que ele mostra.
+export const glassPanel = (accent?: string): React.CSSProperties => ({
+  background: [
+    accent ? `radial-gradient(120% 95% at 100% 0%, ${colorWithAlpha(accent, 0.22)}, transparent 62%)` : '',
+    accent ? `radial-gradient(90% 70% at 0% 100%, ${colorWithAlpha(accent, 0.1)}, transparent 70%)` : '',
+    'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012) 55%)',
+    SURFACE_GLASS,
+  ]
+    .filter(Boolean)
+    .join(', '),
+  WebkitBackdropFilter: 'blur(16px) saturate(150%)',
+  backdropFilter: 'blur(16px) saturate(150%)',
+  boxShadow: [
+    'inset 0 1px 0 rgba(255,255,255,0.09)',
+    `inset 0 0 0 1px ${accent ? colorWithAlpha(accent, 0.3) : 'rgba(243,234,211,0.1)'}`,
+    '0 18px 40px -26px rgba(0,0,0,0.7)',
+  ].join(', '),
+});
 
 // Cores das categorias de tag (pin ativo no perfil, abas e cartões do Tag
 // Pins): básico = verde, tema = âmbar, comunidade = azul-céu, oráculo =
