@@ -2,15 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe, Check } from 'lucide-react';
 import { VELVET, PAPER, MIST, FOCUS_RING } from '../lib/oracleTheme';
+import { LANGUAGES } from '../lib/languages';
 
 // Troca de idioma da navbar, no tema noite: o globo com a sigla do idioma
 // atual e um menu curto com os dois idiomas. Fecha no clique fora, no Esc
 // e ao escolher.
-
-const LANGUAGES = [
-  { code: 'pt', short: 'PT', name: 'Português', flag: '🇧🇷' },
-  { code: 'en', short: 'EN', name: 'English', flag: '🇺🇸' },
-];
 
 export default function LanguageSwitcher() {
   const { i18n, t } = useTranslation();

@@ -43,7 +43,7 @@ interface ProfileInfo {
   avatar_url: string | null;
 }
 
-const SITE_ICON_URL = '/assets/Symbal512.webp';
+const SITE_ICON_URL = '/assets/icon-192.png';
 
 // ============================================================
 // IMAGEM PARA OS STORIES (1080×1920)

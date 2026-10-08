@@ -2,13 +2,11 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { BarChart3, MessageCircle, HelpCircle, Wand2, Star, ArrowRight, Film, Library as LibraryIcon, Eye, User } from 'lucide-react';
+import { BarChart3, HelpCircle, Wand2, Star, ArrowRight, Film, Library as LibraryIcon, Eye, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useWhispers } from '../contexts/WhispersContext';
 import { getMovieDetails, Movie } from '../lib/tmdb';
 import OptimizedPoster from './OptimizedPoster';
 import OracleSheet from './OracleSheet';
-import WhispersModal from './WhispersModal';
 import MonthlyInsightsModal from './MonthlyInsightsModal';
 import SeasonalEventPanel, { PanelSwitch, type HomePanelView } from './seasonal/SeasonalEventPanel';
 import FriendsFeed from './feed/FriendsFeed';
@@ -123,7 +121,6 @@ interface Props {
 const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onReady, onMovieClick }) => {
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
-  const { unreadCount: unreadWhispers, openWhispersTarget, clearOpenWhispersTarget } = useWhispers();
 
   const [stats, setStats] = useState<AccountStats | null>(null);
   const [picks, setPicks] = useState<DailyPick[]>([]);
@@ -139,7 +136,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
   const isMobile = useMediaQuery('(max-width: 1023px)');
 
   const [insightsIsNew, setInsightsIsNew] = useState(false);
-  const [showWhispers, setShowWhispers] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
   const [showOracleInfo, setShowOracleInfo] = useState(false);
 
@@ -163,14 +159,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
 
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
-
-  // Pedido de abertura dos Sussurros vindo de uma notificação em outra tela.
-  useEffect(() => {
-    if (openWhispersTarget === 'home') {
-      setShowWhispers(true);
-      clearOpenWhispersTarget();
-    }
-  }, [openWhispersTarget, clearOpenWhispersTarget]);
 
   // O relatório do mês passado sempre existe a partir do dia 1º; o ponto
   // "novo" some depois que o usuário abre esse relatório específico.
@@ -459,20 +447,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
                 </span>
               )}
             </button>
-            <button
-              onClick={() => setShowWhispers(true)}
-              aria-label={t('profile.whispers')}
-              className={`relative inline-flex items-center gap-2 h-11 px-3 sm:px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${focusRing}`}
-              style={{ color: PAPER }}
-            >
-              <MessageCircle className="w-[18px] h-[18px] text-violet-300" aria-hidden />
-              <span className="hidden sm:inline">{t('profile.whispers')}</span>
-              {unreadWhispers > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 grid place-items-center rounded-full bg-fuchsia-500 text-white text-[11px] font-bold ring-2" style={{ '--tw-ring-color': NIGHT } as React.CSSProperties}>
-                  {unreadWhispers}
-                </span>
-              )}
-            </button>
           </div>
         </div>
       </section>
@@ -677,7 +651,6 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
       </section>
 
       {/* ---------- Modais ---------- */}
-      <WhispersModal isOpen={showWhispers} onClose={() => setShowWhispers(false)} userId={userId} />
       <MonthlyInsightsModal isOpen={showInsights} onClose={() => setShowInsights(false)} userId={userId} />
 
       <OracleSheet open={showOracleInfo} onClose={() => setShowOracleInfo(false)} title={t('oracle.cards.infoTitle')} size="lg">

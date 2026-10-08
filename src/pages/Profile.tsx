@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Film, MessageCircle, Crown, Palette, Settings, Tag, Camera, Trash2, Check, Pencil, User } from 'lucide-react';
+import { Film, Crown, Palette, Settings, Tag, Camera, Trash2, Check, Pencil, User } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import { supabase, getProfile } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useWhispers } from '../contexts/WhispersContext';
 import FollowersModal from '../components/FollowersModal';
-import WhispersModal from '../components/WhispersModal';
 import CustomizeModal from '../components/CustomizeModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import SettingsModal from '../components/SettingsModal';
@@ -44,6 +43,8 @@ interface Profile {
 const AVATAR_MAX_DIMENSION = 500;
 const AVATAR_MAX_INPUT_BYTES = 15 * 1024 * 1024;
 const STORAGE_AVATARS_PATH_MARKER = '/storage/v1/object/public/avatars/';
+// Ações do cartão no celular: ícone sobre o nome, para três caberem lado a lado.
+const PROFILE_ACTION_STACK = 'max-sm:flex-col max-sm:h-auto max-sm:min-h-[4.25rem] max-sm:py-2.5 max-sm:px-1.5 max-sm:gap-1.5 max-sm:text-[13px] max-sm:leading-tight';
 
 const convertImageToWebP = (file: File): Promise<Blob> =>
   new Promise((resolve, reject) => {
@@ -123,27 +124,11 @@ export default function Profile() {
   const [profileExists, setProfileExists] = useState(true);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
-  const [showWhispersModal, setShowWhispersModal] = useState(false);
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  // unreadWhispers vem do Context agora — a subscription antiga daqui
-  // escutava a tabela "recommendations" (nome desatualizado, renomeada
-  // pra "friend_indications" há tempos), então nunca disparava de
-  // verdade; a contagem só atualizava em reloads manuais ou quando o
-  // modal fechava e chamava fetchUnreadWhispers explicitamente. Uma
-  // fonte de verdade só agora, compartilhada com o Navbar.
-  const { unreadCount: unreadWhispers, refetchUnreadCount: fetchUnreadWhispers, openWhispersTarget, clearOpenWhispersTarget } = useWhispers();
-
-  // Antes uma notificação clicada em qualquer outra página só navegava
-  // pra cá sem nunca abrir o modal de verdade — o usuário precisava
-  // clicar de novo no ícone de sussurros. Agora, chegando aqui com um
-  // pedido pendente (target === 'profile'), o modal já abre sozinho.
-  useEffect(() => {
-    if (openWhispersTarget === 'profile') {
-      setShowWhispersModal(true);
-      clearOpenWhispersTarget();
-    }
-  }, [openWhispersTarget, clearOpenWhispersTarget]);
+  // Pedido de amizade aceito pelo modal dos Sussurros (aberto pelo sino do
+  // topo): recarrega o número de amigos.
+  const { friendsVersion } = useWhispers();
   const [profile, setProfile] = useState<Profile | null>(null);
   // Contagem de resenhas REAIS (não geradas pelo Oráculo) — usada só
   // pra decidir se os Text Effects (Customize Profile) estão
@@ -187,6 +172,12 @@ export default function Profile() {
       fetchProfile();
     }
   }, [session?.user?.id]);
+
+  // Amizade aceita pelo sino dos Sussurros: atualiza o número de amigos.
+  useEffect(() => {
+    if (friendsVersion > 0 && session?.user?.id) refetchProfileData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friendsVersion]);
 
   useEffect(() => {
     const handleLanguageChange = () => {
@@ -680,40 +671,26 @@ export default function Profile() {
                 </button>
               </>
             ) : (
-              // No celular, grade 2×2 de caixas com a mesma largura (Sussurros
-              // e Tags em cima, Personalizar e Editar perfil embaixo); a partir
-              // do sm, uma fileira só.
-              <div className="w-full grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:w-auto">
-                <button
-                  onClick={() => setShowWhispersModal(true)}
-                  aria-label={unreadWhispers > 0 ? `${t('profile.whispers')} (${unreadWhispers})` : t('profile.whispers')}
-                  className={PROFILE_GHOST_BUTTON}
-                  style={{ color: PAPER }}
-                >
-                  <MessageCircle className="w-[18px] h-[18px] text-violet-300" aria-hidden />
-                  {t('profile.whispers')}
-                  {unreadWhispers > 0 && (
-                    <span className="grid place-items-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-fuchsia-500 text-white text-xs font-bold" aria-hidden>
-                      {unreadWhispers}
-                    </span>
-                  )}
-                </button>
-                <button onClick={() => setShowTagPinsModal(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
+              // No celular, três caixas iguais lado a lado, com o ícone sobre o
+              // nome (os Sussurros foram para o sino do topo); a partir do sm,
+              // uma fileira só de botões.
+              <div className="w-full grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:w-auto">
+                <button onClick={() => setShowTagPinsModal(true)} className={`${PROFILE_GHOST_BUTTON} ${PROFILE_ACTION_STACK}`} style={{ color: PAPER }}>
                   <Tag className="w-[18px] h-[18px] text-violet-300" aria-hidden />
                   {t('profile.tagPins', { defaultValue: 'Tags' })}
                 </button>
-                <button onClick={() => setShowCustomizeModal(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
+                <button onClick={() => setShowCustomizeModal(true)} className={`${PROFILE_GHOST_BUTTON} ${PROFILE_ACTION_STACK}`} style={{ color: PAPER }}>
                   <Palette className="w-[18px] h-[18px] text-violet-300" aria-hidden />
                   {t('profile.customize')}
                 </button>
-                <button onClick={handleStartEditing} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
+                <button onClick={handleStartEditing} className={`${PROFILE_GHOST_BUTTON} ${PROFILE_ACTION_STACK}`} style={{ color: PAPER }}>
                   <Pencil className="w-[18px] h-[18px] text-violet-300" aria-hidden />
                   {t('profile.editProfile')}
                 </button>
                 {!isPremium && (
                   <button
                     onClick={() => navigate('/premium')}
-                    className={`col-span-2 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-[#221B36] text-sm font-semibold shadow-lg shadow-amber-900/30 transition ${FOCUS_RING}`}
+                    className={`col-span-3 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-[#221B36] text-sm font-semibold shadow-lg shadow-amber-900/30 transition ${FOCUS_RING}`}
                   >
                     <Crown className="w-[18px] h-[18px]" aria-hidden />
                     {t('oracle.premium.upgrade')}
@@ -806,15 +783,6 @@ export default function Profile() {
           </div>
         </div>
       </section>
-
-      {showWhispersModal && session?.user?.id && (
-        <WhispersModal
-          isOpen={showWhispersModal}
-          onClose={() => setShowWhispersModal(false)}
-          userId={session.user.id}
-          onFriendAccepted={refetchProfileData}
-        />
-      )}
 
       {showFriendsModal && session?.user?.id && (
         <FollowersModal isOpen={true} onClose={() => setShowFriendsModal(false)} userId={session.user.id} onFollowChange={refetchProfileData} />

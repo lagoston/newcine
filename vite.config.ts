@@ -7,43 +7,33 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['assets/*.{png,svg,ico}'],
+      includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'brand/*.svg'],
       manifest: {
+        id: '/',
         name: 'CineOracle',
         short_name: 'CineOracle',
-        description: 'Your personal movie companion. Discover, rate, and build your ultimate movie collection.',
+        description: 'Avalie os filmes que você já viu e deixe três oráculos preverem o quanto você vai gostar do próximo.',
+        lang: 'pt-BR',
+        dir: 'ltr',
         theme_color: '#120D22',
         background_color: '#120D22',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
+        categories: ['entertainment', 'social', 'lifestyle'],
+        // Ícones gerados por scripts/brand/build-brand.py (o Olho Lunar).
+        // O "maskable" tem o símbolo menor, dentro da área segura que o
+        // Android recorta em círculo/gota.
         icons: [
-          {
-            src: '/assets/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: '/assets/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
+          { src: '/assets/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/assets/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/assets/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
         shortcuts: [
-          {
-            name: 'Library',
-            url: '/library',
-            description: 'View your movie library'
-          },
-          {
-            name: 'Oracle',
-            url: '/oracle',
-            description: 'Get movie predictions'
-          }
-        ]
+          { name: 'Biblioteca', short_name: 'Biblioteca', url: '/library', icons: [{ src: '/assets/icon-192.png', sizes: '192x192', type: 'image/png' }] },
+          { name: 'Oráculo', short_name: 'Oráculo', url: '/oracle', icons: [{ src: '/assets/icon-192.png', sizes: '192x192', type: 'image/png' }] },
+        ],
       },
       workbox: {
         // Imagens .webp (cartas dos oráculos, molduras, banners — 148 arquivos,

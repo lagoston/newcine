@@ -1,47 +1,77 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Library as LibraryIcon, LogIn, LogOut, User, Eye, Home, Users } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import Logo from './Logo';
+import { LogoLockup, LogoMark, LogoWordmark } from './Logo';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import NavbarSearch from './NavbarSearch';
 import MobileDock from './MobileDock';
+import { WhispersBell, WhispersHost } from './WhispersBell';
+import { FOCUS_RING } from '../lib/oracleTheme';
 // Carregado sob demanda: a Navbar aparece em TODAS as páginas, então um
 // import direto aqui colocava o modal inteiro (~100 KB com as frases do
 // Oráculo e os submodais de review/recomendação) no pacote inicial de
 // qualquer visita — mesmo que o usuário nunca abrisse um filme pela busca.
 const MovieDetailsModal = lazy(() => import('./MovieDetailsModal'));
 import { Movie } from '../lib/tmdb';
-import { useWhispers } from '../contexts/WhispersContext';
 import { NavbarSeasonalAccent } from './seasonal/SeasonalDecor';
+
+// Topo do site.
+//
+// Celular e tablet (abaixo de 1024px), no jeito de app:
+//
+//   [olho]            CineOracle            [sino]
+//
+// • O Olho Lunar à esquerda leva para o Início (ou volta ao topo, se já
+//   estiver lá); o logotipo fica no centro; o sino dos Sussurros, à direita.
+// • A navegação fica na barra de vidro da base (MobileDock). O idioma foi
+//   para as Configurações do Perfil.
+// • Sem conta: assinatura (olho + logotipo) à esquerda, idioma e Entrar à
+//   direita.
+//
+// Computador: assinatura, as cinco páginas no meio e, à direita, busca,
+// sino, idioma e Sair.
+//
+// No topo da página a barra é transparente (fica sobre o fundo da página,
+// como nos apps); rolando, vira vidro com uma linha fina embaixo.
+
+function useScrolled(threshold = 4) {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > threshold);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [threshold]);
+  return scrolled;
+}
 
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, session } = useAuth();
-  // unreadWhispers vem do Context agora — antes esse componente tinha
-  // seu PRÓPRIO estado e subscription, uma cópia separada da que o
-  // Profile.tsx também mantinha por conta própria; as duas podiam
-  // dessincronizar (e a do Profile nem funcionava de verdade, já que
-  // escutava o nome de tabela errado). Uma fonte de verdade só agora.
-  const { unreadCount: unreadWhispers } = useWhispers();
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const { t } = useTranslation();
+  const scrolled = useScrolled();
+  const onHome = location.pathname === '/';
 
   const handleMovieSelect = (movie: Movie) => {
     setSelectedMovie(movie);
   };
 
-  // Item de navegação — compacto o bastante pra 5 links + busca + idioma
-  // + sair caberem numa navbar de largura real sem espremer nada, mas
-  // sem abrir mão do ícone (clareza) nem do texto (acessibilidade).
-  const NavLink = ({ to, icon: Icon, children, showBadge = false, labelClassName = 'hidden xl:inline' }: {
+  // Tocar na marca estando no Início: volta ao topo.
+  const handleBrandClick = () => {
+    if (onHome) window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Item de navegação (computador) — compacto o bastante pra 5 links +
+  // busca + sino + idioma + sair caberem sem espremer nada.
+  const NavLink = ({ to, icon: Icon, children, labelClassName = 'hidden xl:inline' }: {
     to: string;
     icon: React.ElementType;
     children: React.ReactNode;
-    showBadge?: boolean;
     labelClassName?: string;
   }) => {
     // A Central dos Oráculos continua acesa na Biblioteca dos Oráculos e no Duelo.
@@ -49,61 +79,116 @@ function Navbar() {
     return (
       <Link
         to={to}
+        aria-current={isActive ? 'page' : undefined}
         className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300 relative whitespace-nowrap ${
           isActive
             ? 'text-white bg-gradient-to-r from-violet-500/25 to-fuchsia-500/25 border border-violet-400/40'
             : 'text-gray-300 hover:text-white hover:bg-white/10 border border-transparent'
         }`}
       >
-        <div className="relative flex-shrink-0">
-          <Icon className="h-4.5 w-4.5" strokeWidth={isActive ? 2.25 : 2} />
-          {showBadge && unreadWhispers > 0 && (
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full ring-2 ring-slate-900 animate-pulse" />
-          )}
-        </div>
+        <Icon className="h-4.5 w-4.5 flex-shrink-0" strokeWidth={isActive ? 2.25 : 2} />
         <span className={labelClassName}>{children}</span>
       </Link>
     );
   };
 
+  const brandLabel = t('nav.brandHome');
+
   return (
     <>
-    <nav className="fixed top-0 left-0 right-0 z-40 bg-slate-950/75 backdrop-blur-2xl border-b border-white/10 shadow-lg shadow-black/20 transition-all duration-300">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-40 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 border-b ${
+        scrolled
+          ? 'bg-[#120D22]/80 backdrop-blur-2xl backdrop-saturate-150 border-white/[0.07] shadow-lg shadow-black/25'
+          : 'bg-transparent border-transparent'
+      }`}
+    >
       {/* Fio do evento sazonal no pé da barra (só durante o evento). */}
       <NavbarSeasonalAccent />
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-screen-2xl mx-auto px-2 sm:px-4 lg:px-8">
         {/* Altura total = 3.5rem (+ área segura), a mesma que o App reserva
-            no topo de todas as páginas. Com 1rem de respiro + os 44px mínimos
-            dos botões, a barra chegava a 76px e cobria 20px de cada página. */}
-        <div className="flex items-center justify-between gap-3" style={{
-          paddingTop: 'calc(env(safe-area-inset-top) + 0.375rem)',
-          paddingBottom: '0.375rem',
-          minHeight: 'calc(env(safe-area-inset-top) + 3.5rem)'
-        }}>
-          {/* Zona esquerda — identidade, tamanho fixo */}
-          <Link to="/" className="flex items-center text-white group flex-shrink-0">
-            <div className="transform transition-transform duration-300 group-hover:scale-110">
-              <Logo className="mr-2" />
-            </div>
-            <span className="text-xl font-bold hidden xs:block bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-clip-text text-transparent">CineOracle</span>
+            no topo de todas as páginas. */}
+        <div
+          className="relative flex items-center justify-between gap-3"
+          style={{
+            paddingTop: 'env(safe-area-inset-top)',
+            minHeight: 'calc(env(safe-area-inset-top) + 3.5rem)',
+          }}
+        >
+          {/* ---------- Celular e tablet ---------- */}
+          {user ? (
+            <>
+              <Link
+                to="/"
+                onClick={handleBrandClick}
+                aria-label={brandLabel}
+                className={`lg:hidden grid place-items-center w-11 h-11 min-h-0 min-w-0 rounded-full hover:bg-white/10 transition-colors ${FOCUS_RING}`}
+              >
+                <LogoMark className="w-[30px] h-auto" />
+              </Link>
+              <div className="lg:hidden absolute inset-x-0 bottom-0 h-14 flex items-center justify-center pointer-events-none">
+                <Link
+                  to="/"
+                  onClick={handleBrandClick}
+                  tabIndex={-1}
+                  aria-hidden
+                  className="pointer-events-auto min-h-0 min-w-0 px-3 py-3"
+                >
+                  <LogoWordmark className="h-3 w-auto" />
+                </Link>
+              </div>
+              <div className="lg:hidden flex items-center">
+                <WhispersBell />
+              </div>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/"
+                onClick={handleBrandClick}
+                aria-label={brandLabel}
+                className={`lg:hidden flex items-center min-h-0 min-w-0 h-11 px-2 rounded-xl ${FOCUS_RING}`}
+              >
+                <LogoLockup markClassName="w-[30px] h-auto" wordClassName="h-3 w-auto" />
+              </Link>
+              <div className="lg:hidden flex items-center gap-1 pr-1">
+                <LanguageSwitcher />
+                {location.pathname !== '/auth' && (
+                  <Link
+                    to="/auth"
+                    className="flex items-center h-10 min-h-0 px-4 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 text-white text-sm font-semibold rounded-full"
+                  >
+                    <LogIn className="h-4 w-4 mr-2" aria-hidden />
+                    {t('auth.signIn')}
+                  </Link>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ---------- Computador ---------- */}
+          <Link
+            to="/"
+            onClick={handleBrandClick}
+            aria-label={brandLabel}
+            className={`hidden lg:flex items-center flex-shrink-0 min-h-0 h-11 px-1 rounded-xl ${FOCUS_RING}`}
+          >
+            <LogoLockup markClassName="w-6 h-auto" wordClassName="h-3 w-auto" />
           </Link>
 
-          {/* Zona central — navegação, cresce e centraliza no espaço
-              que sobra entre logo e ações, em vez de disputar espaço
-              dentro de um único bloco à direita. */}
           {user && (
             <div className="hidden lg:flex flex-1 items-center justify-center gap-1 min-w-0">
               <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
               <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
               <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
               <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
-              <NavLink to="/profile" icon={User} showBadge={true}>{t('nav.profile')}</NavLink>
+              <NavLink to="/profile" icon={User}>{t('nav.profile')}</NavLink>
             </div>
           )}
 
-          {/* Zona direita — busca + idioma + sessão, tamanho fixo */}
           <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
             <NavbarSearch onMovieSelect={handleMovieSelect} />
+            {user && <WhispersBell />}
             <LanguageSwitcher />
             {user ? (
               <SignOutButton onSignOut={() => navigate('/auth')} t={t} labelClassName="hidden xl:inline" />
@@ -117,27 +202,12 @@ function Navbar() {
               </Link>
             )}
           </div>
-
-          {/* Celular e tablet — no topo só o idioma (e Entrar, para quem
-              não entrou). A navegação fica na barra de vidro da base
-              (MobileDock); Sair fica nas Configurações do Perfil. */}
-          <div className="flex items-center lg:hidden gap-1 flex-shrink-0">
-            <LanguageSwitcher />
-            {!user && location.pathname !== '/auth' && (
-              <Link
-                to="/auth"
-                className="flex items-center h-10 min-h-0 px-4 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 text-white text-sm font-semibold rounded-xl"
-              >
-                <LogIn className="h-4 w-4 mr-2" aria-hidden />
-                {t('auth.signIn')}
-              </Link>
-            )}
-          </div>
         </div>
       </div>
     </nav>
 
     {user && <MobileDock onMovieSelect={handleMovieSelect} />}
+    {user && <WhispersHost />}
 
     {selectedMovie && createPortal(
       <Suspense fallback={null}>

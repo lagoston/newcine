@@ -5,7 +5,6 @@ import { Home, Library as LibraryIcon, Eye, Users, User, Search } from 'lucide-r
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { useWhispers } from '../contexts/WhispersContext';
 import { PAPER, MIST, ORACLES, FOCUS_RING } from '../lib/oracleTheme';
 import { Movie } from '../lib/tmdb';
 import MobileSearch, { DOCK_SEARCH_LAYOUT_ID } from './MobileSearch';
@@ -18,7 +17,7 @@ import MobileSearch, { DOCK_SEARCH_LAYOUT_ID } from './MobileSearch';
 //
 // • A aba da página atual fica dentro de uma "lente" violeta que desliza
 //   de uma aba para a outra. Tocar na aba em que você já está volta ao topo.
-// • Perfil mostra a sua foto, com o ponto de sussurros não lidos.
+// • Perfil mostra a sua foto. (Os sussurros não lidos ficam no sino do topo.)
 // • O botão redondo da busca tem o anel nas cores dos três oráculos e vira
 //   a barra de busca de vidro (MobileSearch).
 // • Com o teclado aberto (digitando uma resenha, um comentário…), a barra
@@ -59,7 +58,6 @@ const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const { user } = useAuth();
-  const { unreadCount } = useWhispers();
   const [searchOpen, setSearchOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const typing = useTypingOnTouch();
@@ -171,19 +169,11 @@ const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect }) => {
                               ) : (
                                 <User className="w-6 h-6" strokeWidth={tab.active ? 2.4 : 1.9} style={{ color: tab.active ? PAPER : MIST }} aria-hidden />
                               )}
-                              {unreadCount > 0 && (
-                                <span
-                                  className="absolute -top-0.5 -right-1 w-2.5 h-2.5 rounded-full bg-fuchsia-400"
-                                  style={{ boxShadow: '0 0 0 2px rgba(26,19,48,0.95)' }}
-                                  aria-hidden
-                                />
-                              )}
                             </span>
                           ) : (
                             Icon && <Icon className="w-6 h-6" strokeWidth={tab.active ? 2.4 : 1.9} style={{ color: tab.active ? PAPER : MIST }} aria-hidden />
                           )}
                         </span>
-                        {isProfile && unreadCount > 0 && <span className="sr-only">{t('nav.unreadWhispers', { count: unreadCount })}</span>}
                       </Link>
                     </li>
                   );

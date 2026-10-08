@@ -1,65 +1,51 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+
+// Sussurros: a contagem de não lidos e o modal, num lugar só.
+//
+// O modal agora é um só para o site inteiro, aberto pelo sino do topo
+// (WhispersBell, na Navbar). Antes cada tela tinha o seu — a Home abria
+// um, o Perfil abria outro — e uma notificação clicada precisava navegar
+// até o Perfil para abrir lá. Agora qualquer lugar chama openWhispers()
+// e o modal abre ali mesmo, na página em que a pessoa está.
 
 interface WhispersContextValue {
   unreadCount: number;
   refetchUnreadCount: () => void;
-  // Pra onde o modal de sussurros deve abrir agora — null quando
-  // nenhum pedido está pendente. Quem consome (Profile.tsx,
-  // HomeUserPanels.tsx) observa o valor que lhe interessa e chama
-  // clearOpenWhispersTarget() depois de abrir seu próprio modal.
-  openWhispersTarget: 'profile' | 'home' | null;
-  // Chamado por qualquer notificação/preview de sussurro clicável em
-  // qualquer lugar do app (ex.: WhispersNotificationPopup). Decide "o
-  // mais perto" pra abrir: se já está na Home, abre o mini-whisper de
-  // lá; em qualquer outro lugar (incluindo já estando em Profile),
-  // abre — ou navega e abre — direto no Profile.
-  requestOpenWhispers: () => void;
-  clearOpenWhispersTarget: () => void;
+  whispersOpen: boolean;
+  openWhispers: () => void;
+  closeWhispers: () => void;
+  // Sobe 1 sempre que um pedido de amizade é aceito pelo modal — o Perfil
+  // observa e recarrega o número de amigos.
+  friendsVersion: number;
+  notifyFriendAccepted: () => void;
 }
 
 const WhispersContext = createContext<WhispersContextValue>({
   unreadCount: 0,
   refetchUnreadCount: () => {},
-  openWhispersTarget: null,
-  requestOpenWhispers: () => {},
-  clearOpenWhispersTarget: () => {},
+  whispersOpen: false,
+  openWhispers: () => {},
+  closeWhispers: () => {},
+  friendsVersion: 0,
+  notifyFriendAccepted: () => {},
 });
 
 export const useWhispers = () => useContext(WhispersContext);
 
-// Antes existiam DOIS estados de "não lidos" completamente separados —
-// um no Navbar (atualizado via subscription realtime) e outro no
-// Profile (atualizado manualmente via callback), cada um com sua
-// própria cópia da contagem. Achamos também que a subscription do
-// Profile escutava a tabela ERRADA ("recommendations", renomeada há
-// tempos para "friend_indications") — ela nunca disparava de verdade.
-// Resultado: os dois contadores podiam ficar dessincronizados, dando a
-// impressão de "notificação que não some" mesmo depois de aberta.
-//
-// Esse Provider é a ÚNICA fonte de verdade agora — um estado, uma
-// subscription (na tabela certa), consumido por qualquer componente via
-// useWhispers(). Envolve o app inteiro (ou pelo menos tudo que precisa
-// mostrar o badge) uma vez só, em vez de cada tela reimplementar a
-// mesma lógica com o risco de divergir de novo no futuro.
+// Uma única fonte de verdade para os não lidos: um estado e uma subscription
+// (na tabela friend_indications), consumidos por qualquer componente via
+// useWhispers().
 export const WhispersProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { session } = useAuth();
-  const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [openWhispersTarget, setOpenWhispersTarget] = useState<'profile' | 'home' | null>(null);
+  const [whispersOpen, setWhispersOpen] = useState(false);
+  const [friendsVersion, setFriendsVersion] = useState(0);
 
-  const requestOpenWhispers = useCallback(() => {
-    // "Mais perto de onde o usuário está": só a Home tem sua própria
-    // versão mini do inbox — qualquer outra página (incluindo Profile)
-    // usa o modal completo, que vive em Profile.
-    setOpenWhispersTarget(location.pathname === '/' ? 'home' : 'profile');
-  }, [location.pathname]);
-
-  const clearOpenWhispersTarget = useCallback(() => {
-    setOpenWhispersTarget(null);
-  }, []);
+  const openWhispers = useCallback(() => setWhispersOpen(true), []);
+  const closeWhispers = useCallback(() => setWhispersOpen(false), []);
+  const notifyFriendAccepted = useCallback(() => setFriendsVersion((v) => v + 1), []);
 
   const refetchUnreadCount = useCallback(async () => {
     if (!session?.user?.id) {
@@ -80,14 +66,12 @@ export const WhispersProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     if (!session?.user?.id) {
       setUnreadCount(0);
+      setWhispersOpen(false);
       return;
     }
 
     refetchUnreadCount();
 
-    // Nome de tabela corrigido — "friend_indications", não
-    // "recommendations" (a subscription antiga do Profile nunca
-    // disparava por causa desse nome desatualizado).
     const channel = supabase
       .channel('whispers-global-updates')
       .on(
@@ -110,7 +94,9 @@ export const WhispersProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [session?.user?.id, refetchUnreadCount]);
 
   return (
-    <WhispersContext.Provider value={{ unreadCount, refetchUnreadCount, openWhispersTarget, requestOpenWhispers, clearOpenWhispersTarget }}>
+    <WhispersContext.Provider
+      value={{ unreadCount, refetchUnreadCount, whispersOpen, openWhispers, closeWhispers, friendsVersion, notifyFriendAccepted }}
+    >
       {children}
     </WhispersContext.Provider>
   );

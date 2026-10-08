@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import OracleSheet from './OracleSheet';
+import { LANGUAGES } from '../lib/languages';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
 interface SettingsModalProps {
@@ -19,6 +20,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { session, isPremium, isLifetimePremium, signOut } = useAuth();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const currentLanguage = (LANGUAGES.find((l) => i18n.language?.startsWith(l.code)) || LANGUAGES[1]).code;
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends_only'>('public');
   const [feedback, setFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -324,6 +326,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   <span className="block mt-0.5 text-xs leading-snug" style={{ color: MIST }}>
                     {desc}
                   </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Idioma (saiu do topo do celular) */}
+      <section>
+        {sectionTitle(t('settings.language'))}
+        <div role="radiogroup" aria-label={t('settings.language')} className="mt-3 grid grid-cols-2 gap-2.5">
+          {LANGUAGES.map((language) => {
+            const selected = currentLanguage === language.code;
+            return (
+              <button
+                key={language.code}
+                role="radio"
+                aria-checked={selected}
+                lang={language.code}
+                onClick={() => i18n.changeLanguage(language.code)}
+                className={`w-full justify-start items-center gap-2.5 h-14 px-3 rounded-xl text-left ring-1 transition ${FOCUS_RING} ${
+                  selected ? 'ring-2 ring-violet-400/70 bg-violet-500/15' : 'ring-white/10 hover:ring-white/25'
+                }`}
+                style={{ background: selected ? undefined : VELVET }}
+              >
+                <span className="text-xl leading-none" aria-hidden>{language.flag}</span>
+                <span className="flex-1 min-w-0 text-sm font-semibold" style={{ color: PAPER }}>
+                  {language.name}
                 </span>
               </button>
             );

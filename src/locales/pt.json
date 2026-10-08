@@ -140,6 +140,7 @@
     "requestNewLink": "Pedir novo link"
   },
   "nav": {
+    "brandHome": "CineOracle — Início",
     "mobileLabel": "Navegação",
     "unreadWhispers_one": "{{count}} sussurro não lido",
     "unreadWhispers_other": "{{count}} sussurros não lidos",
@@ -1067,6 +1068,7 @@
     "noListsOther": "@{{username}} ainda não criou listas."
   },
   "settings": {
+    "language": "Idioma",
     "signOut": "Sair da conta",
     "title": "Configurações",
     "appVersion": "Versão do app",

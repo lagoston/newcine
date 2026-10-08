@@ -1,0 +1,29 @@
+// GERADO por scripts/brand/build-brand.py — não edite à mão.
+// O "Olho Lunar" (símbolo) e o logotipo CineOracle em pixel art.
+
+export interface BrandLayer { fill: string; d: string }
+
+export const MARK_VIEWBOX = '0 0 24 21';
+export const MARK_ASPECT = 1.1429;
+export const MARK_LAYERS: BrandLayer[] = [
+  { fill: '#B9A6FF', d: 'M5 6h1v1h-1zM4 7h2v1h-2zM3 8h3v1h-3zM2 9h4v1h-4zM2 10h2v1h-2zM1 11h2v1h-2zM1 12h1v1h-1z' },
+  { fill: '#E2A9F3', d: 'M10 4h2v1h-2zM7 5h5v1h-5zM6 6h6v1h-6zM6 7h6v1h-6zM6 8h3v1h-3z' },
+  { fill: '#A6CFF5', d: 'M12 4h2v1h-2zM12 5h5v1h-5zM12 6h6v1h-6zM12 7h6v1h-6zM15 8h3v1h-3z' },
+  { fill: '#86E3CC', d: 'M18 6h1v1h-1zM18 7h2v1h-2zM18 8h3v1h-3zM18 9h4v1h-4zM20 10h2v1h-2zM21 11h2v1h-2zM22 12h1v1h-1z' },
+  { fill: '#F3EAD3', d: 'M0 13h1v1h-1zM23 13h1v1h-1zM1 14h1v1h-1zM22 14h1v1h-1zM1 15h1v1h-1zM22 15h1v1h-1zM2 16h1v1h-1zM21 16h1v1h-1zM3 17h2v1h-2zM19 17h2v1h-2zM5 18h2v1h-2zM17 18h2v1h-2zM7 19h3v1h-3zM14 19h3v1h-3zM10 20h4v1h-4z' },
+  { fill: '#8B5CF6', d: 'M10 9h4v1h-4zM8 10h8v1h-8zM7 11h3v1h-3zM14 11h3v1h-3zM7 12h2v1h-2zM15 12h2v1h-2zM7 13h1v1h-1zM16 13h1v1h-1zM6 14h2v1h-2zM16 14h2v1h-2zM6 15h2v1h-2zM16 15h2v1h-2zM7 16h1v1h-1zM16 16h1v1h-1zM7 17h2v1h-2zM15 17h2v1h-2zM8 18h2v1h-2zM14 18h2v1h-2zM10 19h4v1h-4z' },
+  { fill: '#D946EF', d: 'M10 11h4v1h-4zM10 12h5v1h-5zM8 13h3v1h-3zM13 13h3v1h-3zM8 14h2v1h-2zM14 14h2v1h-2zM8 15h2v1h-2zM14 15h2v1h-2zM8 16h3v1h-3zM13 16h3v1h-3zM9 17h6v1h-6zM10 18h4v1h-4z' },
+  { fill: '#120D22', d: 'M11 13h2v1h-2zM10 14h4v1h-4zM10 15h4v1h-4zM11 16h2v1h-2z' },
+  { fill: '#F3EAD3', d: 'M9 12h1v1h-1z' },
+  { fill: '#F3EAD3', d: 'M20 0h1v1h-1zM20 1h1v1h-1zM19 2h3v1h-3zM17 3h7v1h-7zM19 4h3v1h-3zM20 5h1v1h-1zM20 6h1v1h-1z' },
+];
+
+export const WORDMARK_VIEWBOX = '0 0 81 12';
+export const WORDMARK_ASPECT = 6.75;
+export const WORDMARK_LAYERS: BrandLayer[] = [
+  { fill: '#F3EAD3', d: 'M2 0h6v1h-6zM11 0h1v1h-1zM1 1h7v1h-7zM10 1h3v1h-3zM0 2h3v1h-3zM11 2h1v1h-1zM0 3h2v1h-2zM0 4h2v1h-2zM11 4h2v1h-2zM15 4h6v1h-6zM25 4h5v1h-5zM0 5h2v1h-2zM11 5h2v1h-2zM15 5h7v1h-7zM24 5h7v1h-7zM0 6h2v1h-2zM11 6h2v1h-2zM15 6h2v1h-2zM20 6h2v1h-2zM24 6h2v1h-2zM29 6h2v1h-2zM0 7h2v1h-2zM11 7h2v1h-2zM15 7h2v1h-2zM20 7h2v1h-2zM24 7h7v1h-7zM0 8h2v1h-2zM11 8h2v1h-2zM15 8h2v1h-2zM20 8h2v1h-2zM24 8h7v1h-7zM0 9h3v1h-3zM11 9h2v1h-2zM15 9h2v1h-2zM20 9h2v1h-2zM24 9h2v1h-2zM1 10h7v1h-7zM11 10h2v1h-2zM15 10h2v1h-2zM20 10h2v1h-2zM24 10h7v1h-7zM2 11h6v1h-6zM11 11h2v1h-2zM15 11h2v1h-2zM20 11h2v1h-2zM25 11h6v1h-6z' },
+  { fill: '#B9A6FF', d: 'M35 0h5v1h-5zM34 1h7v1h-7zM33 2h3v1h-3zM39 2h3v1h-3zM33 3h2v1h-2zM40 3h2v1h-2zM33 4h2v1h-2zM40 4h2v1h-2zM44 4h1v1h-1zM33 5h2v1h-2zM40 5h2v1h-2zM44 5h1v1h-1zM33 6h2v1h-2zM40 6h2v1h-2zM44 6h1v1h-1zM33 7h2v1h-2zM40 7h2v1h-2zM44 7h1v1h-1zM33 8h2v1h-2zM40 8h2v1h-2zM44 8h1v1h-1zM33 9h3v1h-3zM39 9h3v1h-3zM44 9h1v1h-1zM34 10h7v1h-7zM44 10h1v1h-1zM35 11h5v1h-5zM44 11h1v1h-1z' },
+  { fill: '#E2A9F3', d: 'M45 4h1v1h-1zM47 4h3v1h-3zM52 4h5v1h-5zM45 5h5v1h-5zM52 5h5v1h-5zM45 6h2v1h-2zM45 7h1v1h-1zM53 7h4v1h-4zM45 8h1v1h-1zM52 8h5v1h-5zM45 9h1v1h-1zM52 9h2v1h-2zM45 10h1v1h-1zM52 10h5v1h-5zM45 11h1v1h-1zM53 11h4v1h-4z' },
+  { fill: '#A6CFF5', d: 'M57 4h1v1h-1zM62 4h6v1h-6zM57 5h2v1h-2zM61 5h7v1h-7zM57 6h2v1h-2zM61 6h2v1h-2zM57 7h2v1h-2zM61 7h2v1h-2zM57 8h2v1h-2zM61 8h2v1h-2zM57 9h2v1h-2zM61 9h2v1h-2zM57 10h2v1h-2zM61 10h7v1h-7zM57 11h2v1h-2zM62 11h6v1h-6z' },
+  { fill: '#86E3CC', d: 'M70 0h2v1h-2zM70 1h2v1h-2zM70 2h2v1h-2zM70 3h2v1h-2zM70 4h2v1h-2zM75 4h5v1h-5zM70 5h2v1h-2zM74 5h7v1h-7zM70 6h2v1h-2zM74 6h2v1h-2zM79 6h2v1h-2zM70 7h2v1h-2zM74 7h7v1h-7zM70 8h2v1h-2zM74 8h7v1h-7zM70 9h2v1h-2zM74 9h2v1h-2zM70 10h2v1h-2zM74 10h7v1h-7zM70 11h2v1h-2zM75 11h6v1h-6z' },
+];
