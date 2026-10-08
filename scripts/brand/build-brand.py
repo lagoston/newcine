@@ -338,7 +338,7 @@ def main():
 
     # app nativo (Capacitor: npx @capacitor/assets generate)
     save(icon(1024, mark, fill=0.70), 'resources/icon-only.png', rgb=True)
-    save(icon(1024, mark, fill=0.52, transparent=True), 'resources/icon-foreground.png')
+    save(icon(1024, mark, fill=0.62, transparent=True), 'resources/icon-foreground.png')
     save(night_background(1024), 'resources/icon-background.png', rgb=True)
     sp = splash(2732, mark, word)
     save(sp, 'resources/splash.png', rgb=True)

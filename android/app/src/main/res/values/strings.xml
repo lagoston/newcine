@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CineOracle</string>
+    <string name="title_activity_main">CineOracle</string>
+    <string name="package_name">com.cineoracle.app</string>
+    <string name="custom_url_scheme">com.cineoracle.app</string>
+</resources>

@@ -618,6 +618,7 @@
       "12": "Adjusting the crystal lens..."
     },
     "premium": {
+      "inAppSoon": "Subscribing from the app is coming soon.",
       "required": "Premium Feature",
       "whispers": "Oracle Whispers is a premium feature. Upgrade to access your prediction history!",
       "upgrade": "Upgrade to Premium"

@@ -621,6 +621,7 @@
       "12": "Ajustando a lente de cristal..."
     },
     "premium": {
+      "inAppSoon": "A assinatura pelo app chega em breve.",
       "required": "Recurso Premium",
       "whispers": "Sussurros do Oráculo é um recurso premium. Faça upgrade para acessar seu histórico de previsões!",
       "upgrade": "Upgrade para Premium"

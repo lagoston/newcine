@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Crown, Star, Palette, Check, Settings, Loader2, Shield, Sparkles, Infinity, Swords, LibraryBig, PenLine } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { createCheckoutSession, createPortalSession } from '../lib/stripe';
+import { WEB_CHECKOUT_AVAILABLE } from '../lib/platform';
 import { toast } from 'sonner';
 import { products } from '../stripe-config';
 import { useTranslation } from 'react-i18next';
@@ -170,7 +171,8 @@ export default function Premium() {
  </div>
  </div>
 
- {!isLifetimePremium && (
+ {/* No app das lojas o portal do Stripe não abre (a cobrança lá é da loja). */}
+ {!isLifetimePremium && WEB_CHECKOUT_AVAILABLE && (
  <div className="text-center">
  <button
  onClick={handleManageSubscription}
@@ -275,6 +277,9 @@ export default function Premium() {
  ))}
  </ul>
 
+ {/* Dentro do app das lojas o checkout do site não pode abrir: a assinatura
+ por lá vai ser cobrada pela própria loja (em breve). */}
+ {WEB_CHECKOUT_AVAILABLE ? (
  <button
  onClick={handleSubscribe}
  disabled={loading.monthly}
@@ -292,6 +297,11 @@ export default function Premium() {
  </>
  )}
  </button>
+ ) : (
+ <p className="w-full py-4 px-6 rounded-xl text-center text-sm font-semibold bg-white/5 ring-1 ring-white/10 text-gray-300">
+ {t('premium.inAppSoon')}
+ </p>
+ )}
  </div>
  </motion.div>
  </div>

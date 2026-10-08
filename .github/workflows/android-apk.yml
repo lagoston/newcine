@@ -1,0 +1,59 @@
+# APK de teste do app Android do CineOracle, gerado pelo GitHub (sem precisar
+# instalar o Android Studio). Rodar em: Actions → "App Android (APK de teste)"
+# → Run workflow. No fim, o APK fica em "Artifacts" da execução.
+#
+# Antes da primeira vez, cadastre em Settings → Secrets and variables →
+# Actions → Variables (os mesmos valores do Netlify):
+#   VITE_SUPABASE_URL
+#   VITE_SUPABASE_ANON_KEY
+#
+# O APK de teste é assinado com a chave de depuração: serve para instalar no
+# celular e testar, não para a Play Store (que recebe um .aab assinado com a
+# chave de upload — ver claude/app-nas-lojas.md no projeto).
+name: App Android (APK de teste)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Conferir as variáveis do Supabase
+        run: |
+          if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "::error::Cadastre VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY em Settings → Secrets and variables → Actions → Variables."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar o site e copiar para o projeto Android
+        run: npx vite build && npx cap sync android
+
+      - name: Compilar o APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cineoracle-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
