@@ -37,7 +37,7 @@ revoke all on function curation.bot_tag_stats() from public, anon, authenticated
 
 -- Veste os bots: em cada categoria (moldura, banner, carta, efeito de texto), um item ao acaso entre os
 -- que is_cosmetic_unlocked() libera para aquele bot (fora o padrão); sem nenhum liberado, fica o padrão.
--- Hoje quase todo item exige premium, então bot gratuito continua com o padrão.
+-- Quem já veste um item liberado continua com ele (rodar de novo não embaralha).
 create or replace function curation.dress_bots()
 returns integer
 language plpgsql
@@ -47,20 +47,25 @@ as $fn$
 declare
   v_bot record;
   v_cat text;
+  v_col text;
+  v_cur text;
   v_pick text;
   v_n integer := 0;
 begin
   for v_bot in select user_id from public.bot_accounts loop
     foreach v_cat in array array['frame', 'banner', 'card', 'text_effect'] loop
+      v_col := case v_cat when 'frame' then 'avatar_frame' when 'banner' then 'banner' when 'card' then 'card_style' else 'text_effect' end;
+      execute format('select %I from public.profiles where id = $1', v_col) into v_cur using v_bot.user_id;
+      if coalesce(v_cur, 'default') <> 'default' and public.is_cosmetic_unlocked(v_bot.user_id, v_cat, v_cur) then
+        continue;
+      end if;
       select cr.cosmetic_id into v_pick
       from public.cosmetic_requirements cr
       where cr.category = v_cat and cr.cosmetic_id <> 'default'
         and public.is_cosmetic_unlocked(v_bot.user_id, v_cat, cr.cosmetic_id)
       order by random() limit 1;
       v_pick := coalesce(v_pick, 'default');
-      execute format('update public.profiles set %I = $1 where id = $2 and %I is distinct from $1',
-                     case v_cat when 'frame' then 'avatar_frame' when 'banner' then 'banner' when 'card' then 'card_style' else 'text_effect' end,
-                     case v_cat when 'frame' then 'avatar_frame' when 'banner' then 'banner' when 'card' then 'card_style' else 'text_effect' end)
+      execute format('update public.profiles set %I = $1 where id = $2 and %I is distinct from $1', v_col, v_col)
         using v_pick, v_bot.user_id;
       if v_pick <> 'default' then v_n := v_n + 1; end if;
     end loop;
