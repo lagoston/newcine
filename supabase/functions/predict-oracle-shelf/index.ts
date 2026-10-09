@@ -3,9 +3,16 @@ import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 // Prateleira da Biblioteca dos Oráculos (oráculo + humor): a nota PREVISTA
 // pra este usuário de cada título da prateleira que ele ainda não tem, e a
 // chance de virar um 9 ou 10 dele, em ordem. Filmes vêm de
-// recommendation_pools.movie_ids; com includeSeries, as séries de
-// recommendation_pools.tv_ids entram na mesma lista (cada item diz o
-// media_type).
+// recommendation_pools.movie_ids e séries de recommendation_pools.tv_ids.
+//
+// mediaType ('movie' | 'tv') escolhe UMA das duas listas — desde 09/10/2026
+// o botão "Séries" da Biblioteca mostra só séries, sem misturar com filmes.
+// Sem mediaType vale o pedido antigo (includeSeries: filmes + séries na
+// mesma lista), para quem ainda está com a versão anterior do site aberta.
+//
+// poolCount diz quantos títulos daquele tipo a prateleira tem no total
+// (antes de tirar os que a pessoa já tem) — a tela usa para separar
+// "ainda não há séries aqui" de "você já viu tudo".
 //
 // A fórmula (v4) mora no banco, na função predict_ratings_v4 — ver a
 // migração 20261003200000_prediction_v4.sql. Todas as previsões do site
@@ -20,6 +27,7 @@ const corsHeaders = {
 interface RequestBody {
   cardType: 'bogart' | 'fincher' | 'cypher';
   moodKey: string;
+  mediaType?: 'movie' | 'tv';
   includeSeries?: boolean;
 }
 
@@ -53,12 +61,16 @@ Deno.serve(async (req) => {
     if (authError || !user) return json({ error: 'Unauthorized' }, 401);
     const userId = user.id;
 
-    const { cardType, moodKey, includeSeries = false } = await req.json() as RequestBody;
+    const { cardType, moodKey, mediaType, includeSeries = false } = await req.json() as RequestBody;
     if (!cardType || !moodKey) return json({ error: 'cardType and moodKey are required' }, 400);
+    if (mediaType !== undefined && mediaType !== 'movie' && mediaType !== 'tv') return json({ error: 'mediaType must be movie or tv' }, 400);
+
+    const wantMovies = mediaType ? mediaType === 'movie' : true;
+    const wantSeries = mediaType ? mediaType === 'tv' : includeSeries;
 
     const [poolRes, ratedRes] = await Promise.all([
       supabase.from('recommendation_pools').select('movie_ids, tv_ids').eq('card_type', cardType).eq('mood_key', moodKey).maybeSingle(),
-      supabase.from('user_movies').select('movie_id, media_type').eq('user_id', userId),
+      supabase.from('user_movies').select('movie_id, media_type').eq('user_id', userId).limit(50000),
     ]);
 
     if (poolRes.error) throw new Error(`Pool: ${poolRes.error.message}`);
@@ -73,23 +85,27 @@ Deno.serve(async (req) => {
       else ratedMovies.add(r.movie_id);
     });
 
-    const freshMovieIds = ((poolRes.data?.movie_ids as number[]) || []).filter((id) => !ratedMovies.has(id));
-    const freshSeriesIds = includeSeries ? ((poolRes.data?.tv_ids as number[]) || []).filter((id) => !ratedSeries.has(id)) : [];
+    const poolMovieIds = wantMovies ? ((poolRes.data?.movie_ids as number[]) || []) : [];
+    const poolSeriesIds = wantSeries ? ((poolRes.data?.tv_ids as number[]) || []) : [];
+    const poolCount = poolMovieIds.length + poolSeriesIds.length;
 
-    if (freshMovieIds.length === 0 && freshSeriesIds.length === 0) return json({ movies: [] });
+    const freshMovieIds = poolMovieIds.filter((id) => !ratedMovies.has(id));
+    const freshSeriesIds = poolSeriesIds.filter((id) => !ratedSeries.has(id));
 
-    const predict = (mediaType: 'movie' | 'tv', ids: number[]) =>
+    if (freshMovieIds.length === 0 && freshSeriesIds.length === 0) return json({ movies: [], poolCount });
+
+    const predict = (type: 'movie' | 'tv', ids: number[]) =>
       ids.length > 0
-        ? supabase.rpc('predict_ratings_v4', { p_user_id: userId, p_media_type: mediaType, p_ids: ids })
+        ? supabase.rpc('predict_ratings_v4', { p_user_id: userId, p_media_type: type, p_ids: ids })
         : Promise.resolve({ data: [] as PredictionRow[], error: null });
 
     const [moviesRes, seriesRes] = await Promise.all([predict('movie', freshMovieIds), predict('tv', freshSeriesIds)]);
     if (moviesRes.error) throw new Error(`Movie predictions: ${moviesRes.error.message}`);
     if (seriesRes.error) throw new Error(`Series predictions: ${seriesRes.error.message}`);
 
-    const toItem = (row: PredictionRow, mediaType: 'movie' | 'tv') => ({
+    const toItem = (row: PredictionRow, type: 'movie' | 'tv') => ({
       movie_id: row.id,
-      media_type: mediaType,
+      media_type: type,
       predicted_rating: row.predicted_rating,
       masterpiece_chance: row.chance_9plus === null ? null : Math.round(row.chance_9plus * 100) / 100,
       mu: row.mu,
@@ -104,7 +120,7 @@ Deno.serve(async (req) => {
     // previsão vai pro fim.
     scored.sort((a, b) => (b.mu ?? -1) - (a.mu ?? -1) || a.movie_id - b.movie_id);
 
-    return json({ movies: scored.map(({ mu: _mu, ...item }) => item) });
+    return json({ movies: scored.map(({ mu: _mu, ...item }) => item), poolCount });
   } catch (error) {
     console.error('Error in predict-oracle-shelf:', error);
     return json({ error: error.message || 'Something went wrong predicting shelf ratings.' }, 500);

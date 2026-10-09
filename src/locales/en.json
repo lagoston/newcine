@@ -543,6 +543,9 @@
       "bogartFunctionDesc": "Popular and highly rated films released after 2000.",
       "fincherFunctionDesc": "Popular pre-2000 movies and cult gems.",
       "cypherFunctionDesc": "Lesser-known films, regardless of ratings.",
+      "bogartSeriesFunctionDesc": "Popular, highly rated series that premiered in 2000 or later.",
+      "fincherSeriesFunctionDesc": "Popular pre-2000 series and cult gems.",
+      "cypherSeriesFunctionDesc": "Lesser-known series, regardless of ratings.",
       "title": "Oracles' Library",
       "description": "Collections and trails curated by the Oracles, built from everything they've already learned about your cinematic taste.",
       "chooseOracle": "Each oracle sees cinema its own way. Pick one of the three to explore everything it has already set aside for you.",
@@ -558,8 +561,11 @@
       "premiumRequired": "Premium only",
       "noMoviesForFilter": "None of the films loaded on this shelf are on the streaming services you picked.",
       "shelfError": "Couldn't open this shelf right now.",
-      "includeSeries": "Include Series",
-      "seriesBadge": "Series"
+      "showMovies": "Movies",
+      "showSeries": "Series",
+      "mediaTypeGroup": "Show movies or series",
+      "shelfNoSeries": "This shelf doesn't have any series yet.",
+      "shelfNoMovies": "This shelf doesn't have any movies yet."
     },
     "selectMood": "Select Your Mood",
     "ticketsLabel": "tickets",

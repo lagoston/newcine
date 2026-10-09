@@ -546,6 +546,9 @@
       "bogartFunctionDesc": "Filmes Pós-2000, populares e bem avaliados.",
       "fincherFunctionDesc": "Filmes Pré-2000 populares e joias cult.",
       "cypherFunctionDesc": "Filmes pouco populares independente de avaliações.",
+      "bogartSeriesFunctionDesc": "Séries de 2000 em diante, populares e bem avaliadas.",
+      "fincherSeriesFunctionDesc": "Séries de antes de 2000, populares e joias cult.",
+      "cypherSeriesFunctionDesc": "Séries pouco conhecidas, independente de avaliações.",
       "title": "Biblioteca dos Oráculos",
       "description": "Coleções e trilhas curadas pelos Oráculos, construídas a partir de tudo que eles já aprenderam sobre o seu gosto cinematográfico.",
       "chooseOracle": "Cada oráculo enxerga o cinema à sua própria maneira. Escolha um dos três para explorar tudo que ele já separou pra você.",
@@ -561,8 +564,11 @@
       "premiumRequired": "Exclusivo Premium",
       "noMoviesForFilter": "Nenhum filme já carregado dessa prateleira está nos streamings escolhidos.",
       "shelfError": "Não deu pra abrir esta prateleira agora.",
-      "includeSeries": "Incluir Séries",
-      "seriesBadge": "Série"
+      "showMovies": "Filmes",
+      "showSeries": "Séries",
+      "mediaTypeGroup": "Mostrar filmes ou séries",
+      "shelfNoSeries": "Esta prateleira ainda não tem séries.",
+      "shelfNoMovies": "Esta prateleira ainda não tem filmes."
     },
     "selectMood": "Selecione Seu Humor",
     "ticketsLabel": "tickets",

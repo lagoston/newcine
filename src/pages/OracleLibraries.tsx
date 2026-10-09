@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Filter, PartyPopper, Star, Wand2, Crown, Film, RefreshCw, Tv } from 'lucide-react';
+import { ArrowLeft, Loader2, Filter, PartyPopper, Star, Wand2, Crown, Film, RefreshCw, Tv, Inbox } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -14,14 +14,15 @@ import PredictedBadge from '../components/PredictedBadge';
 
 // Biblioteca dos Oráculos (/oracle/libraries?oracle=bogart): as 9
 // prateleiras temáticas de um oráculo, cada título com a nota PREVISTA pra
-// você; troca de oráculo, "Incluir Séries" e filtro de streaming no topo.
+// você; troca de oráculo, Filmes | Séries e filtro de streaming no topo.
 // As cartas pra escolher o oráculo ficam na Central dos Oráculos — sem
 // ?oracle= válido, a página volta pra lá.
 //
 // Séries: cada prateleira guarda filmes (recommendation_pools.movie_ids) e
-// séries (tv_ids) em listas separadas. Por padrão só filmes; com "Incluir
-// Séries" ligado, as séries entram na mesma fileira, ordenadas pela mesma
-// nota prevista. A escolha fica salva neste aparelho.
+// séries (tv_ids) em listas separadas. A chave Filmes | Séries mostra uma
+// OU outra — desde 09/10/2026 as séries não se misturam mais com os filmes
+// (antes, "Incluir Séries" juntava as duas na mesma fileira). A escolha
+// fica salva neste aparelho.
 
 type CardType = OracleId;
 
@@ -36,24 +37,43 @@ const LIBRARY_FUNCTION_DESC_KEY: Record<CardType, string> = {
   fincher: 'oracle.libraries.fincherFunctionDesc',
   cypher: 'oracle.libraries.cypherFunctionDesc',
 };
+// O mesmo critério, escrito para as séries (Séries ligado).
+const LIBRARY_SERIES_FUNCTION_DESC_KEY: Record<CardType, string> = {
+  bogart: 'oracle.libraries.bogartSeriesFunctionDesc',
+  fincher: 'oracle.libraries.fincherSeriesFunctionDesc',
+  cypher: 'oracle.libraries.cypherSeriesFunctionDesc',
+};
 
-const INCLUDE_SERIES_KEY = 'cineoracle:oracleLibraries:includeSeries';
+type ShelfMediaType = 'movie' | 'tv';
 
-const readIncludeSeries = (): boolean => {
+const MEDIA_TYPE_KEY = 'cineoracle:oracleLibraries:mediaType';
+// Chave antiga do "Incluir Séries" (filmes + séries juntos): quem tinha
+// ligado passa a ver as séries.
+const LEGACY_INCLUDE_SERIES_KEY = 'cineoracle:oracleLibraries:includeSeries';
+
+const readMediaType = (): ShelfMediaType => {
   try {
-    return window.localStorage.getItem(INCLUDE_SERIES_KEY) === '1';
+    const saved = window.localStorage.getItem(MEDIA_TYPE_KEY);
+    if (saved === 'movie' || saved === 'tv') return saved;
+    return window.localStorage.getItem(LEGACY_INCLUDE_SERIES_KEY) === '1' ? 'tv' : 'movie';
   } catch {
-    return false;
+    return 'movie';
   }
 };
 
-const saveIncludeSeries = (value: boolean) => {
+const saveMediaType = (value: ShelfMediaType) => {
   try {
-    window.localStorage.setItem(INCLUDE_SERIES_KEY, value ? '1' : '0');
+    window.localStorage.setItem(MEDIA_TYPE_KEY, value);
+    window.localStorage.removeItem(LEGACY_INCLUDE_SERIES_KEY);
   } catch {
     // sem armazenamento (aba anônima etc.): vale só nesta visita
   }
 };
+
+const MEDIA_TYPE_OPTIONS: { value: ShelfMediaType; icon: typeof Film; labelKey: string }[] = [
+  { value: 'movie', icon: Film, labelKey: 'oracle.libraries.showMovies' },
+  { value: 'tv', icon: Tv, labelKey: 'oracle.libraries.showSeries' },
+];
 
 // Carga inicial (grátis) é menor que o incremento premium.
 const INITIAL_PAGE_SIZE = 20;
@@ -65,13 +85,16 @@ const SHELF_PAD = 'px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))]';
 interface ShelfState {
   movies: Movie[];
   totalCount: number;
+  // Quantos títulos do tipo a prateleira tem ao todo (com os que a pessoa
+  // já tem). 0 = a prateleira ainda não tem esse tipo de título.
+  poolCount: number;
   loading: boolean;
   loadingMore: boolean;
   // Falha ao falar com o servidor — diferente de "prateleira vazia".
   error: boolean;
 }
 
-const INITIAL_SHELF: ShelfState = { movies: [], totalCount: 0, loading: true, loadingMore: false, error: false };
+const INITIAL_SHELF: ShelfState = { movies: [], totalCount: 0, poolCount: 0, loading: true, loadingMore: false, error: false };
 
 type PredictedMovie = Movie & { predictedRating?: number | null };
 
@@ -82,8 +105,8 @@ type PredictedMovie = Movie & { predictedRating?: number | null };
 // esconderia não ajuda ninguém).
 //
 // Cada prateleira pertence a UM oráculo: a página monta uma prateleira nova
-// (key = oráculo + humor + séries) quando o oráculo — ou o "Incluir
-// Séries" — muda. Antes a mesma prateleira
+// (key = oráculo + humor + filmes/séries) quando o oráculo — ou a chave
+// Filmes | Séries — muda. Antes a mesma prateleira
 // era reaproveitada e a primeira busca do oráculo novo lia o estado do
 // oráculo anterior ("já tenho 20 filmes") — pulava a busca das previsões,
 // ficava com uma lista vazia e mostrava "Você já assistiu tudo dessa
@@ -92,11 +115,11 @@ type PredictedMovie = Movie & { predictedRating?: number | null };
 const Shelf: React.FC<{
   cardType: CardType;
   mood: Mood;
-  includeSeries: boolean;
+  mediaType: ShelfMediaType;
   selectedProviderIds: number[];
   isPremium: boolean;
   onMovieClick: (movie: Movie) => void;
-}> = ({ cardType, mood, includeSeries, selectedProviderIds, isPremium, onMovieClick }) => {
+}> = ({ cardType, mood, mediaType, selectedProviderIds, isPremium, onMovieClick }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [state, setState] = useState<ShelfState>(INITIAL_SHELF);
@@ -114,6 +137,7 @@ const Shelf: React.FC<{
   // (calculada uma vez pela Edge Function) — "carregar mais" só fatia essa
   // lista e busca os detalhes da fatia nova.
   const predictedIdsRef = useRef<PredictedShelfMovie[]>([]);
+  const poolCountRef = useRef(0);
 
   // Arrastar com o mouse no desktop (a barra de rolagem fica escondida).
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -153,7 +177,9 @@ const Shelf: React.FC<{
     try {
       // Primeira carga: previsões pro pool inteiro, numa chamada só.
       if (isFirstPage) {
-        predictedIdsRef.current = await getOraclePoolPredictions(cardType, mood.key, includeSeries);
+        const { titles, poolCount } = await getOraclePoolPredictions(cardType, mood.key, mediaType);
+        predictedIdsRef.current = titles;
+        poolCountRef.current = poolCount;
       }
 
       const allPredicted = predictedIdsRef.current;
@@ -171,6 +197,7 @@ const Shelf: React.FC<{
       setState((s) => ({
         movies: isFirstPage ? enrichedMovies : [...s.movies, ...enrichedMovies],
         totalCount: allPredicted.length,
+        poolCount: poolCountRef.current,
         loading: false,
         loadingMore: false,
         error: false,
@@ -182,7 +209,7 @@ const Shelf: React.FC<{
     } finally {
       isFetchingRef.current = false;
     }
-  }, [cardType, mood.key, includeSeries]);
+  }, [cardType, mood.key, mediaType]);
 
   useEffect(() => {
     loadMore();
@@ -202,6 +229,9 @@ const Shelf: React.FC<{
   const hasMore = state.movies.length < state.totalCount;
   const showLoadMoreButton = hasMore && selectedProviderIds.length === 0;
   const isFullyEmpty = !state.loading && !state.error && state.totalCount === 0;
+  // Prateleira sem nenhum título do tipo escolhido (ex.: ainda sem séries) —
+  // diferente de "você já assistiu tudo".
+  const hasNoTitlesOfType = isFullyEmpty && state.poolCount === 0;
   const Icon = mood.icon;
   const label = t(mood.labelKey);
   const formatScore = (value: number) => value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -258,8 +288,17 @@ const Shelf: React.FC<{
       ) : isFullyEmpty ? (
         <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-5">
           <p className="flex items-center gap-3 rounded-xl px-4 py-4 text-sm ring-1 ring-white/10" style={{ background: VELVET, color: MIST }}>
-            <PartyPopper className="w-5 h-5 shrink-0 text-amber-300" aria-hidden />
-            {t('oracle.libraries.shelfFullyWatched')}
+            {hasNoTitlesOfType ? (
+              <>
+                <Inbox className="w-5 h-5 shrink-0 text-violet-300" aria-hidden />
+                {t(mediaType === 'tv' ? 'oracle.libraries.shelfNoSeries' : 'oracle.libraries.shelfNoMovies')}
+              </>
+            ) : (
+              <>
+                <PartyPopper className="w-5 h-5 shrink-0 text-amber-300" aria-hidden />
+                {t('oracle.libraries.shelfFullyWatched')}
+              </>
+            )}
           </p>
         </div>
       ) : (
@@ -284,7 +323,6 @@ const Shelf: React.FC<{
                 {visibleMovies.map((movie) => {
                   const year = (movie.release_date || '').slice(0, 4);
                   const predicted = typeof movie.predictedRating === 'number' ? movie.predictedRating : null;
-                  const isSeries = movie.media_type === 'tv';
                   return (
                     <li key={`${movie.media_type || 'movie'}:${movie.id}`} className={`group relative shrink-0 ${TILE_WIDTH}`}>
                       <button
@@ -309,12 +347,6 @@ const Shelf: React.FC<{
                             </span>
                           )}
                           {predicted !== null && <PredictedBadge rating={predicted} />}
-                          {isSeries && (
-                            <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 text-white text-[11px] font-semibold leading-none shadow-lg ring-1 ring-white/20">
-                              <Tv className="w-3 h-3" aria-hidden />
-                              {t('oracle.libraries.seriesBadge')}
-                            </span>
-                          )}
                         </span>
                         <span className={`mt-2.5 text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
                           {movie.title}
@@ -378,7 +410,7 @@ export default function OracleLibraries() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [showStreamingFilter, setShowStreamingFilter] = useState(false);
   const [selectedProviderIds, setSelectedProviderIds] = useState<number[]>([]);
-  const [includeSeries, setIncludeSeries] = useState(readIncludeSeries);
+  const [mediaType, setMediaType] = useState<ShelfMediaType>(readMediaType);
   const [isPremium, setIsPremium] = useState(false);
   // Estilo de carta do Personalizar perfil. Começa null de propósito: a
   // carta só monta com a imagem certa, sem piscar a padrão antes.
@@ -434,10 +466,10 @@ export default function OracleLibraries() {
     }
   };
 
-  const toggleIncludeSeries = () => {
-    const next = !includeSeries;
-    setIncludeSeries(next);
-    saveIncludeSeries(next);
+  const chooseMediaType = (next: ShelfMediaType) => {
+    if (next === mediaType) return;
+    setMediaType(next);
+    saveMediaType(next);
   };
 
   const handleToggleProvider = (providerId: number) => {
@@ -465,15 +497,30 @@ export default function OracleLibraries() {
             <span className="hidden sm:inline">{t('oracle.title')}</span>
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-2 min-w-0">
-            <button
-              onClick={toggleIncludeSeries}
-              aria-pressed={includeSeries}
-              className={`${ghostButton} ${includeSeries ? '!border-violet-400/60 bg-violet-500/20' : ''}`}
-              style={{ color: PAPER }}
+            {/* Filmes | Séries: uma lista OU a outra, nunca as duas juntas. */}
+            <div
+              role="group"
+              aria-label={t('oracle.libraries.mediaTypeGroup')}
+              className="inline-flex items-center h-11 p-1 rounded-xl border border-white/15"
             >
-              <Tv className="w-4 h-4 text-violet-300" aria-hidden />
-              {t('oracle.libraries.includeSeries')}
-            </button>
+              {MEDIA_TYPE_OPTIONS.map(({ value, icon: OptionIcon, labelKey }) => {
+                const active = mediaType === value;
+                return (
+                  <button
+                    key={value}
+                    onClick={() => chooseMediaType(value)}
+                    aria-pressed={active}
+                    className={`inline-flex items-center gap-1.5 h-full px-2.5 sm:px-3 rounded-lg text-sm font-medium whitespace-nowrap transition ${FOCUS_RING} ${
+                      active ? 'bg-violet-500/25 shadow-[inset_0_0_0_1px_rgba(167,139,250,0.55)]' : 'hover:bg-white/5'
+                    }`}
+                    style={{ color: active ? PAPER : MIST }}
+                  >
+                    <OptionIcon className={`w-4 h-4 ${active ? 'text-violet-200' : 'text-violet-300/70'}`} aria-hidden />
+                    {t(labelKey)}
+                  </button>
+                );
+              })}
+            </div>
             <button
               onClick={() => setShowStreamingFilter(true)}
               aria-label={selectedProviderIds.length > 0 ? `${t('library.filters')} (${selectedProviderIds.length})` : t('library.filters')}
@@ -511,7 +558,7 @@ export default function OracleLibraries() {
               {current.name}
             </h1>
             <p className="mt-2 text-sm sm:text-[15px] leading-snug" style={{ color: PAPER }}>
-              {t(LIBRARY_FUNCTION_DESC_KEY[current.id])}
+              {t((mediaType === 'tv' ? LIBRARY_SERIES_FUNCTION_DESC_KEY : LIBRARY_FUNCTION_DESC_KEY)[current.id])}
             </p>
           </div>
         </div>
@@ -544,10 +591,10 @@ export default function OracleLibraries() {
       {session?.user?.id &&
         orderedMoods.map((mood) => (
           <Shelf
-            key={`${current.id}:${mood.key}:${includeSeries ? 'series' : 'movies'}`}
+            key={`${current.id}:${mood.key}:${mediaType}`}
             cardType={current.id}
             mood={mood}
-            includeSeries={includeSeries}
+            mediaType={mediaType}
             selectedProviderIds={selectedProviderIds}
             isPremium={isPremium}
             onMovieClick={handleMovieClick}

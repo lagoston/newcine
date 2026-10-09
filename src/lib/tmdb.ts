@@ -800,27 +800,36 @@ export interface PredictedShelfMovie {
 // Chama a Edge Function que calcula a nota PREVISTA pra esse usuário
 // específico, pra cada título de uma prateleira (oráculo + humor) — o
 // mesmo modelo da nota prevista do menu do filme, da Watchlist e do Match
-// (ver predict-oracle-shelf). Com includeSeries, as séries da prateleira
-// (recommendation_pools.tv_ids) entram na mesma lista; cada item diz se é
-// filme ou série. Retorna a lista JÁ ordenada por essa nota, sem
-// paginação — o cálculo é feito uma vez só; quem chama guarda o resultado
-// e pagina localmente sobre ele (evita recalcular tudo de novo a cada
-// "carregar mais 30").
+// (ver predict-oracle-shelf). mediaType escolhe a lista: os filmes
+// (recommendation_pools.movie_ids) ou só as séries (tv_ids) — desde
+// 09/10/2026 as duas não se misturam mais. Retorna a lista JÁ ordenada por
+// essa nota, sem paginação — o cálculo é feito uma vez só; quem chama
+// guarda o resultado e pagina localmente sobre ele (evita recalcular tudo
+// de novo a cada "carregar mais 30"). poolCount é quantos títulos daquele
+// tipo a prateleira tem ao todo, inclusive os que a pessoa já tem.
+export interface OraclePoolPredictions {
+  titles: PredictedShelfMovie[];
+  poolCount: number;
+}
+
 export const getOraclePoolPredictions = async (
   cardType: 'bogart' | 'fincher' | 'cypher',
   moodKey: string,
-  includeSeries = false
-): Promise<PredictedShelfMovie[]> => {
+  mediaType: 'movie' | 'tv' = 'movie'
+): Promise<OraclePoolPredictions> => {
   // functions.invoke manda o token da sessão atual (renovado sozinho). Erro
   // agora é LANÇADO: antes virava lista vazia e a prateleira dizia "Você já
   // assistiu tudo dessa categoria" quando na verdade a busca tinha falhado.
-  const { data, error } = await supabase.functions.invoke('predict-oracle-shelf', { body: { cardType, moodKey, includeSeries } });
+  const { data, error } = await supabase.functions.invoke('predict-oracle-shelf', { body: { cardType, moodKey, mediaType } });
   if (error) throw error;
   if (data?.error) throw new Error(String(data.error));
-  return ((data?.movies as PredictedShelfMovie[]) || []).map((item) => ({
+  const titles = ((data?.movies as PredictedShelfMovie[]) || []).map((item) => ({
     ...item,
-    media_type: item.media_type === 'tv' ? 'tv' : 'movie',
+    media_type: item.media_type === 'tv' ? ('tv' as const) : ('movie' as const),
   }));
+  // Função antiga (sem poolCount): considera a prateleira cheia.
+  const poolCount = typeof data?.poolCount === 'number' ? data.poolCount : titles.length;
+  return { titles, poolCount };
 };
 
 // Busca os detalhes completos (poster, título, etc.) só pra uma FATIA
