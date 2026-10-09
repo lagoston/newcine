@@ -212,10 +212,11 @@ set search_path to 'curation', 'public'
 as $$
 begin
   insert into curation.imdb_map (imdb_id, tmdb_id, media_type, status, resolved_at)
-  select x->>'imdbId', nullif(x->>'tmdbId', '')::int, x->>'mediaType', x->>'status', now()
+  select distinct on (x->>'imdbId') x->>'imdbId', nullif(x->>'tmdbId', '')::int, x->>'mediaType', x->>'status', now()
   from curation.seed_requests s
   join net._http_response r on r.id = s.req_id
   cross join lateral jsonb_array_elements(case when r.status_code = 200 then coalesce(r.content::jsonb->'results', '[]') else '[]' end) x
+  order by x->>'imdbId', (x->>'status' in ('cached', 'added')) desc, s.req_id desc
   on conflict (imdb_id) do update set tmdb_id = excluded.tmdb_id, media_type = excluded.media_type,
     status = excluded.status, resolved_at = excluded.resolved_at
   where curation.imdb_map.status <> 'cached' and curation.imdb_map.status <> 'added';
