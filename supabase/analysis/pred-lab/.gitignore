@@ -1,0 +1,7 @@
+data*/
+cache/
+raw/
+__pycache__/
+*.tsv
+experiments/log_*.txt
+parity_report.md
