@@ -71,7 +71,7 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
   const tileFor = (entry: ShelfEntry): Movie | undefined => {
     const base = entry.movie ?? cardOf(entry);
     if (!base) return undefined;
-    return { ...base, media_type: entry.media_type, userRating: entry.userRating ?? base.userRating ?? null };
+    return { ...base, title: base.title || t('library.unavailableTitle'), media_type: entry.media_type, userRating: entry.userRating ?? base.userRating ?? null };
   };
 
   const visibleTvKey = useMemo(

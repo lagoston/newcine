@@ -471,6 +471,21 @@ export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 't
   }
 }
 
+// Grava no movie_cache só se o título ainda não estiver lá (adicionar à
+// biblioteca pelo menu do título, por exemplo). Sem isso, títulos vindos das
+// listas do TMDB (home, Top 10 do diretor, perfil de amigo) entravam na
+// biblioteca sem cache — e ficavam sem ano nas décadas, sem palavras-chave
+// na previsão etc.
+export async function ensureMovieCachedIfMissing(movieId: number, mediaType: 'movie' | 'tv'): Promise<void> {
+  const { data } = await supabase
+    .from('movie_cache')
+    .select('tmdb_id')
+    .eq('tmdb_id', movieId)
+    .eq('media_type', mediaType)
+    .maybeSingle();
+  if (!data) await ensureMovieCached(movieId, mediaType);
+}
+
 // Fetches all seasons with their episodes for a TV show from TMDB API
 export async function fetchTVSeasonsData(showId: number, numberOfSeasons: number): Promise<any[]> {
   const seasonPromises = Array.from({ length: numberOfSeasons }, (_, i) =>

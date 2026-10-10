@@ -1,18 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowDownUp, Check, Film, GripVertical, Loader2, Plus, Star, X } from 'lucide-react';
+import { ArrowDownUp, Check, Film, GripVertical, Loader2, Plus, Star, Swords, Tv, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { Movie } from '../lib/tmdb';
 import { getFullTitle, prefetchFullTitle, titleKey } from '../lib/titleCards';
-import { RatedTitle, TOP_LIMIT, Top100Saved } from '../lib/libraryLayouts';
+import { EMPTY_TOP100, RatedTitle, TOP_LIMIT, Top100Saved } from '../lib/libraryLayouts';
+import Top100Duel from './Top100Duel';
 import { useProgressiveCount, useReveal, useTitleCards } from '../hooks/useLazyList';
 import MovieDetailsModal from './MovieDetailsModal';
 import OptimizedPoster from './OptimizedPoster';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone, withAlpha } from '../lib/oracleTheme';
 
-// Top 100 da Biblioteca (10/10/2026): até 100 filmes avaliados, um embaixo
-// do outro, com a posição. Na Biblioteca, "Organizar" deixa a pessoa:
+// Top 100 da Biblioteca (10/10/2026): até 100 avaliados (filmes e séries),
+// um embaixo do outro, com a posição. Na Biblioteca, "Duelo" ordena em
+// confrontos de 1 contra 1 (Top100Duel) e "Organizar" deixa a pessoa:
 //   • arrastar pela alça (ou usar as setas do teclado na alça);
 //   • tocar no número e digitar a posição nova;
 //   • tirar um filme (ele não volta sozinho) e pôr outros avaliados.
@@ -24,9 +26,10 @@ const ROW_GAP = 8;
 
 interface Top100ListProps {
   entries: RatedTitle[];
-  // Filmes avaliados fora do Top 100 (só quando dá pra organizar).
+  // Avaliados fora do Top 100 (só quando dá pra organizar).
   others?: RatedTitle[];
-  excluded?: number[];
+  // O que está guardado (ordem, tirados e o andamento dos duelos).
+  saved?: Top100Saved | null;
   editable?: boolean;
   onSave?: (next: Top100Saved) => Promise<void>;
   isOtherUserProfile?: boolean;
@@ -37,7 +40,7 @@ interface Top100ListProps {
 const Top100List: React.FC<Top100ListProps> = ({
   entries,
   others = [],
-  excluded = [],
+  saved = null,
   editable = false,
   onSave,
   isOtherUserProfile = false,
@@ -47,7 +50,8 @@ const Top100List: React.FC<Top100ListProps> = ({
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<RatedTitle[]>(entries);
-  const [removed, setRemoved] = useState<Set<number>>(new Set());
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
+  const [dueling, setDueling] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showOthers, setShowOthers] = useState(20);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -77,19 +81,22 @@ const Top100List: React.FC<Top100ListProps> = ({
   const needsCards = useMemo(() => list.some((title) => !title.movie), [list]);
   const cardOf = useTitleCards(needsCards ? list : [], shown, { ahead: editing ? 0 : 10 });
   const othersPool = useMemo(() => {
-    const inDraft = new Set(draft.map((title) => title.id));
-    const back = entries.filter((title) => !inDraft.has(title.id));
-    const pool = [...back, ...others.filter((title) => !inDraft.has(title.id))];
-    const seen = new Set<number>();
+    const inDraft = new Set(draft.map(titleKey));
+    const back = entries.filter((title) => !inDraft.has(titleKey(title)));
+    const pool = [...back, ...others.filter((title) => !inDraft.has(titleKey(title)))];
+    const seen = new Set<string>();
     return pool
-      .filter((title) => (seen.has(title.id) ? false : (seen.add(title.id), true)))
+      .filter((title) => (seen.has(titleKey(title)) ? false : (seen.add(titleKey(title)), true)))
       .sort((a, b) => b.userRating - a.userRating);
   }, [draft, entries, others]);
   const othersShown = othersPool.slice(0, showOthers);
   const othersCard = useTitleCards(editing ? othersShown : [], othersShown.length, { enabled: editing, ahead: 0 });
   const reveal = useReveal();
 
-  const cardFor = (title: RatedTitle) => title.movie ?? cardOf(title) ?? othersCard(title);
+  const cardFor = (title: RatedTitle): Movie | undefined => {
+    const card = title.movie ?? cardOf(title) ?? othersCard(title);
+    return card && !card.title ? { ...card, title: t('library.unavailableTitle') } : card;
+  };
 
   const openTitle = async (title: RatedTitle) => {
     if (title.movie) {
@@ -142,7 +149,7 @@ const Top100List: React.FC<Top100ListProps> = ({
     const title = draft[index];
     if (!title) return;
     setDraft((prev) => prev.filter((_, i) => i !== index));
-    setRemoved((prev) => new Set(prev).add(title.id));
+    setRemoved((prev) => new Set(prev).add(titleKey(title)));
   };
 
   const add = (title: RatedTitle) => {
@@ -150,7 +157,7 @@ const Top100List: React.FC<Top100ListProps> = ({
     setDraft((prev) => [...prev, title]);
     setRemoved((prev) => {
       const next = new Set(prev);
-      next.delete(title.id);
+      next.delete(titleKey(title));
       return next;
     });
   };
@@ -159,11 +166,13 @@ const Top100List: React.FC<Top100ListProps> = ({
     if (!onSave) return;
     setSaving(true);
     try {
-      const inDraft = new Set(draft.map((title) => title.id));
-      const nextExcluded = new Set(excluded);
-      removed.forEach((id) => nextExcluded.add(id));
-      inDraft.forEach((id) => nextExcluded.delete(id));
-      await onSave({ items: draft.map((title) => title.id), excluded: Array.from(nextExcluded) });
+      const base = saved || EMPTY_TOP100;
+      const inDraft = new Set(draft.map(titleKey));
+      const nextExcluded = new Set(base.excluded);
+      removed.forEach((key) => nextExcluded.add(key));
+      inDraft.forEach((key) => nextExcluded.delete(key));
+      // O que os duelos confirmaram continua valendo até onde a ordem não mudou.
+      await onSave({ ...base, items: draft.map(titleKey), excluded: Array.from(nextExcluded) });
       setEditing(false);
       setEditingPosition(null);
       toast.success(t('library.top100Saved'));
@@ -285,14 +294,26 @@ const Top100List: React.FC<Top100ListProps> = ({
           </div>
         </div>
         {editable && onSave && !editing && entries.length > 0 && (
-          <button
-            onClick={startEditing}
-            className={`inline-flex items-center gap-2 h-11 px-4 rounded-full border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
-            style={{ color: PAPER }}
-          >
-            <ArrowDownUp className="w-4 h-4 text-violet-300" aria-hidden />
-            {t('library.top100Organize')}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {entries.length > 1 && (
+              <button
+                onClick={() => setDueling(true)}
+                className={`inline-flex items-center gap-2 h-11 px-4 rounded-full border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
+                style={{ color: PAPER }}
+              >
+                <Swords className="w-4 h-4 text-pink-300" aria-hidden />
+                {t('library.top100Duel')}
+              </button>
+            )}
+            <button
+              onClick={startEditing}
+              className={`inline-flex items-center gap-2 h-11 px-4 rounded-full border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
+              style={{ color: PAPER }}
+            >
+              <ArrowDownUp className="w-4 h-4 text-violet-300" aria-hidden />
+              {t('library.top100Organize')}
+            </button>
+          </div>
         )}
       </div>
   );
@@ -395,6 +416,7 @@ const Top100List: React.FC<Top100ListProps> = ({
                     <span className="block h-4 w-3/5 rounded poster-skeleton" />
                   )}
                   <span className="mt-1 flex items-center gap-2 text-xs" style={{ color: MIST }}>
+                    {title.media_type === 'tv' && <Tv className="w-3 h-3 shrink-0 text-sky-300" aria-label={t('mobileSearch.series')} />}
                     {year && <span>{year}</span>}
                     {card?.genres?.[0]?.name && <span className="truncate">{card.genres[0].name}</span>}
                   </span>
@@ -562,6 +584,16 @@ const Top100List: React.FC<Top100ListProps> = ({
           )}
         </div>
       </section>
+
+      {dueling && onSave && (
+        <Top100Duel
+          entries={entries}
+          outside={others}
+          saved={saved}
+          onSave={onSave}
+          onClose={() => setDueling(false)}
+        />
+      )}
 
       {selectedMovie &&
         createPortal(

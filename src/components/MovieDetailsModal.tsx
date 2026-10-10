@@ -7,7 +7,7 @@ import {
   ChevronDown, AlertCircle, Wand2, Plus, Check, Eye, Layers, Sparkles,
 } from 'lucide-react';
 import { formatChance } from '../lib/prediction';
-import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget } from '../lib/tmdb';
+import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget, ensureMovieCachedIfMissing } from '../lib/tmdb';
 import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
 import { getMovieCollections, collectionDisplayName, sortedParts, type MovieCollection } from '../lib/collections';
 import { budgetLevel, budgetOracle, adjustedBudget, BUDGET_LEVEL_EMOJI, BUDGET_LEVEL_LABEL, BUDGET_SAYINGS } from '../lib/budgetTiers';
@@ -1307,6 +1307,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       .insert(insertData);
 
     if (libraryError) throw libraryError;
+
+    // Garante o título no movie_cache (em segundo plano).
+    ensureMovieCachedIfMissing(movie.id, mediaType === 'tv' ? 'tv' : 'movie').catch(() => undefined);
 
     setIsInLibrary(true);
     setUserRating(rating !== undefined ? rating : null);

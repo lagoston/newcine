@@ -8,7 +8,7 @@ import type { Movie } from '../lib/tmdb';
 import RatingBox from '../components/RatingBox';
 import Top100List from '../components/Top100List';
 import {
-  RatedLayout, RatedTitle, Top100Saved, buildTop100, fetchRatedLayout, fetchTop100, groupByDecade, mediaTypeOf, yearOf,
+  RatedLayout, RatedTitle, Top100Saved, buildTop100, decadeColor, fetchRatedLayout, fetchTop100, groupByDecade, mediaTypeOf, yearOf,
 } from '../lib/libraryLayouts';
 import FollowersModal from '../components/FollowersModal';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -577,6 +577,8 @@ export default function UserProfile() {
                         title={shelf.decade === null ? t('library.decadeUnknown') : t('library.decadeTitle', { decade: shelf.decade })}
                         badgeText={shelf.decade === null ? '?' : `'${String(shelf.decade).slice(2)}`}
                         items={shelf.items}
+                        accentColor={decadeColor(shelf.decade)}
+                        average={shelf.average}
                         rating={null}
                         isOtherUserProfile
                         profileUserId={profile.id}

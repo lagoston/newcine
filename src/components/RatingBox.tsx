@@ -75,6 +75,11 @@ interface RatingBoxProps {
   anchorId?: string;
   // Texto curto no selo do cabeçalho (ex.: "'90" nas prateleiras por década).
   badgeText?: string;
+  // Cor própria da prateleira (véu no topo e selo), como a Chroma Box das
+  // notas — as décadas usam a cor da era.
+  accentColor?: string;
+  // Nota média da pessoa na prateleira, num selo ao lado do título.
+  average?: number | null;
 }
 
 type LibraryTile = Movie & { predictedRating?: number | null };
@@ -121,6 +126,8 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   onDuelClick,
   anchorId,
   badgeText,
+  accentColor,
+  average,
 }) => {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
@@ -163,6 +170,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
     if (!base) return undefined;
     return {
       ...base,
+      title: base.title || t('library.unavailableTitle'),
       media_type: entry.media_type,
       userRating: entry.userRating ?? base.userRating ?? null,
       predictedRating: entry.predictedRating ?? (base as LibraryTile).predictedRating,
@@ -276,7 +284,9 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const heading = isRatingShelf ? (displayName || ratingLabel || title) : title;
 
   // Chroma Box — um véu da cor da nota no topo da prateleira.
-  const chromaColor = !chromaBoxEnabled
+  const chromaColor = accentColor
+    ? accentColor
+    : !chromaBoxEnabled
     ? null
     : isOneGridTv
       ? ratingBarColor(null)
@@ -296,8 +306,13 @@ const RatingBox: React.FC<RatingBoxProps> = ({
 
   const headerIcon = badgeText ? (
     <span
-      className="grid place-items-center w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl text-xl sm:text-2xl leading-none ring-1 ring-inset ring-violet-300/30"
-      style={{ ...PIXEL, background: VELVET, color: PAPER }}
+      className="grid place-items-center w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl text-xl sm:text-2xl leading-none"
+      style={{
+        ...PIXEL,
+        background: VELVET,
+        color: accentColor || PAPER,
+        boxShadow: `inset 0 0 0 1.5px ${accentColor ? withAlpha(accentColor, 0.55) : 'rgba(196,181,253,0.3)'}`,
+      }}
       aria-hidden
     >
       {badgeText}
@@ -344,10 +359,23 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           <div className="flex items-center gap-3.5 min-w-0">
             {headerIcon}
             <div className="min-w-0">
-              <h2 style={{ ...PIXEL, color: PAPER }} className="text-2xl sm:text-3xl leading-tight truncate">
-                {isRatingShelf && <span className="sr-only">{t('library.rating', { value: rating })} — </span>}
-                {heading}
-              </h2>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <h2 style={{ ...PIXEL, color: PAPER }} className="text-2xl sm:text-3xl leading-tight truncate">
+                  {isRatingShelf && <span className="sr-only">{t('library.rating', { value: rating })} — </span>}
+                  {heading}
+                </h2>
+                {typeof average === 'number' && (
+                  <span
+                    className="shrink-0 inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full text-sm leading-none"
+                    style={{ ...PIXEL, color: ratingTone(Math.round(average)).color, boxShadow: `inset 0 0 0 1.5px ${ratingTone(Math.round(average)).ring}` }}
+                    title={t('library.decadeAverage', { value: formatScore(average) })}
+                  >
+                    <Star className="w-3 h-3 fill-current" aria-hidden />
+                    <span className="sr-only">{t('library.decadeAverage', { value: formatScore(average) })}</span>
+                    <span aria-hidden>{formatScore(average)}</span>
+                  </span>
+                )}
+              </div>
               <p className="mt-0.5 text-sm" style={{ color: MIST }}>{countLine}</p>
             </div>
           </div>

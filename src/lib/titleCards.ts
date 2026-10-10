@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Movie, getCurrentLanguage, getMovieDetails, getMovieDetailsFromDB } from './tmdb';
+import { Movie, ensureMovieCached, getCurrentLanguage, getMovieDetails, getMovieDetailsFromDB } from './tmdb';
 
 // Cartões de título — o mínimo que uma prateleira precisa pra desenhar um
 // pôster (título, pôster, ano, nota do público, gêneros, streamings e o
@@ -112,6 +112,19 @@ const rowToCard = (row: CardRow, pt: boolean): Movie => ({
 
 const cacheKeyFor = (ref: TitleRef, lang = langPrefix()) => `${lang}|${titleKey(ref)}`;
 
+// Título que nem o TMDB tem mais: sem título e sem pôster.
+const unavailableCard = (ref: TitleRef): Movie => ({
+  id: ref.id,
+  title: '',
+  poster_path: '',
+  overview: '',
+  release_date: '',
+  vote_average: 0,
+  runtime: 0,
+  genres: [],
+  media_type: ref.media_type,
+});
+
 async function flush() {
   flushScheduled = false;
   const batch = queue;
@@ -149,20 +162,28 @@ async function flush() {
   });
   await Promise.all(requests);
 
-  // O que não estava no movie_cache (raro: título antigo nunca cacheado) vem
-  // pelo caminho completo, que busca no TMDB e grava.
+  // O que não estava no movie_cache (raro: título adicionado por um caminho
+  // que não gravava o cache, como o menu do título antes de 10/10/2026) vem
+  // direto do TMDB e é gravado no cache em segundo plano — da próxima vez já
+  // vem no lote (e com o ano, para as décadas). Se nem o TMDB tem mais o
+  // título, fica um cartão vazio (sem título nem pôster): a prateleira mostra
+  // "Título indisponível" em vez de um esqueleto eterno.
   await Promise.all(
     Array.from(batch.values()).map(async ({ ref, resolve }) => {
       const key = cacheKeyFor(ref, lang);
       let card = cards.get(key) || null;
       if (!card) {
         try {
-          card = await getMovieDetailsFromDB(ref.id, ref.media_type);
-          if (card) cards.set(key, { ...card, media_type: ref.media_type });
-          card = cards.get(key) || null;
+          const full = await getMovieDetailsFromDB(ref.id, ref.media_type);
+          if (full?.title) {
+            cards.set(key, { ...full, media_type: ref.media_type });
+            ensureMovieCached(ref.id, ref.media_type).catch(() => undefined);
+          }
         } catch {
-          card = null;
+          // segue para o cartão vazio
         }
+        if (!cards.has(key)) cards.set(key, unavailableCard(ref));
+        card = cards.get(key) || null;
       }
       pending.delete(key);
       resolve(card);

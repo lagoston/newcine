@@ -9,6 +9,7 @@ import { getMovieDetailsFromDB, type Movie } from '../lib/tmdb';
 import type { Genre, Keyword, FavoriteDecade, DirectorCount, LeastKnownGem } from '../hooks/useProfileData';
 import { PAPER, MIST, PIXEL, FOCUS_RING, ratingTone, glassPanel, colorWithAlpha, PROFILE_ACCENTS } from '../lib/oracleTheme';
 import { formatWatchTime } from '../lib/profileStats';
+import { DECADE_ERA_COLORS } from '../lib/libraryLayouts';
 
 // Peças do "retrato de gosto" de um perfil — usadas no seu Perfil e no
 // perfil de outra pessoa, pra que os dois falem exatamente a mesma língua:
@@ -175,7 +176,8 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
     const top3 = sorted.slice(0, 3);
     const othersCount = sorted.slice(3).reduce((a, b) => a + b.count, 0);
     const kind = favoriteDecade.label === 'Grandpa Cinema' ? 'grandpa' : favoriteDecade.label === 'Nostalgic' ? 'nostalgic' : 'modern';
-    const accent = kind === 'grandpa' ? '#F59E0B' : kind === 'nostalgic' ? '#38BDF8' : '#34D399';
+    // as mesmas cores das prateleiras por década da Biblioteca
+    const accent = DECADE_ERA_COLORS[kind];
     const descKey = kind === 'grandpa' ? 'classicFilm' : kind;
     const segments = [
       ...top3.map((d, i) => ({ key: d.decade, label: d.decade, count: d.count, rank: i })),

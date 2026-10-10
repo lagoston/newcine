@@ -15,7 +15,7 @@ import GlassLoader from '../components/GlassLoader';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 import { ShelfItem, TitleMediaType, asMediaType, loadTitleCards, peekTitleCard } from '../lib/titleCards';
 import {
-  RatedLayout, RatedTitle, Top100Saved, buildTop100, fetchRatedLayout, fetchTop100, groupByDecade, outsideTop100,
+  RatedLayout, RatedTitle, Top100Saved, buildTop100, decadeColor, fetchRatedLayout, fetchTop100, groupByDecade, outsideTop100,
   readLegacyLayout, saveRatedLayout, saveTop100,
 } from '../lib/libraryLayouts';
 import Top100List from '../components/Top100List';
@@ -154,6 +154,29 @@ export default function Library() {
       setInitialLoadComplete(true);
     }
   };
+
+  // Títulos sem ano no cache (não estavam no movie_cache): o ano vem do
+  // cartão, que busca no TMDB e grava o cache para a próxima vez.
+  useEffect(() => {
+    const missing = rows.filter((row) => row.rating !== null && row.year === null);
+    if (missing.length === 0) return;
+    let alive = true;
+    loadTitleCards(missing.map((row) => ({ id: row.movie_id, media_type: row.media_type }))).then((cards) => {
+      if (!alive) return;
+      const years = new Map<string, number>();
+      missing.forEach((row) => {
+        const year = Number((cards.get(`${row.media_type}:${row.movie_id}`)?.release_date || '').slice(0, 4));
+        if (year > 0) years.set(`${row.media_type}:${row.movie_id}`, year);
+      });
+      if (years.size === 0) return;
+      setRows((prev) => prev.map((row) => (row.year === null && years.has(`${row.media_type}:${row.movie_id}`) ? { ...row, year: years.get(`${row.media_type}:${row.movie_id}`) as number } : row)));
+    });
+    return () => {
+      alive = false;
+    };
+    // só quando as linhas chegam (não a cada nota trocada)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows.length]);
 
   const storeRows = (update: (prev: LibraryRow[]) => LibraryRow[]) => {
     setRows((prev) => {
@@ -498,7 +521,7 @@ export default function Library() {
               anchorId="library-top100"
               entries={top100Entries}
               others={top100Others}
-              excluded={top100?.excluded}
+              saved={top100}
               editable
               onSave={handleSaveTop100}
             />
@@ -511,6 +534,8 @@ export default function Library() {
                 title={shelf.decade === null ? t('library.decadeUnknown') : t('library.decadeTitle', { decade: shelf.decade })}
                 badgeText={shelf.decade === null ? '?' : `'${String(shelf.decade).slice(2)}`}
                 items={shelf.items}
+                accentColor={decadeColor(shelf.decade)}
+                average={shelf.average}
                 rating={null}
                 onRate={handleRate}
                 onDelete={handleDelete}
