@@ -14,13 +14,21 @@ import WatchListDuelModal from '../components/WatchListDuelModal';
 import GlassLoader from '../components/GlassLoader';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 import { ShelfItem, TitleMediaType, asMediaType, loadTitleCards, peekTitleCard } from '../lib/titleCards';
+import {
+  RatedLayout, RatedTitle, Top100Saved, buildTop100, fetchRatedLayout, fetchTop100, groupByDecade, outsideTop100,
+  readLegacyLayout, saveRatedLayout, saveTop100,
+} from '../lib/libraryLayouts';
+import Top100List from '../components/Top100List';
 
 // Biblioteca — "a estante".
 //   1. Cabeçalho: título, números da coleção e atalhos (adicionar, listas,
 //      resenhas, ajustes). No celular os três últimos viram só ícone, na
 //      mesma linha do "Adicionar Filmes". O gráfico de notas mora no Perfil.
-//   2. Prateleiras: Watchlist (com filtros e duelo) e uma por nota, de 10
-//      a 0 — ou, no layout One Grid, uma de filmes e uma de séries.
+//   2. Prateleiras: Watchlist (com filtros e duelo) e os avaliados numa das
+//      4 organizações (Ajustes): Notas (uma prateleira por nota, de 10 a 0),
+//      One Grid (uma de filmes e uma de séries), Top 100 (lista com posição,
+//      que a pessoa organiza) e Por década. A escolha fica no perfil — o
+//      perfil na comunidade mostra a coleção do mesmo jeito.
 //
 // Sob demanda (10/10/2026): a página lê só as linhas da biblioteca (id,
 // tipo e nota — uma consulta), então cabeçalho, números e prateleiras
@@ -33,6 +41,8 @@ interface LibraryRow {
   movie_id: number;
   media_type: TitleMediaType;
   rating: number | null;
+  // ano de lançamento (organização por década)
+  year: number | null;
 }
 
 type LibraryItem = ShelfItem & { userRating: number | null };
@@ -55,13 +65,10 @@ export default function Library() {
   const [tvOrder, setTvOrder] = useState<'auto' | 'first' | 'last'>('auto');
   // Chroma Box é sempre ligada (não é mais uma opção).
   const chromaBoxEnabled = true;
-  const [ratedLayout, setRatedLayout] = useState<'notes' | 'onegrid'>(() => {
-    try {
-      return (localStorage.getItem('libraryRatedLayout') as 'notes' | 'onegrid') || 'notes';
-    } catch {
-      return 'notes';
-    }
-  });
+  // Começa pela escolha guardada no aparelho e confirma com a do perfil.
+  const [ratedLayout, setRatedLayout] = useState<RatedLayout>(() => readLegacyLayout() || 'notes');
+  // Top 100 guardado (null = nunca organizado: segue as notas).
+  const [top100, setTop100] = useState<Top100Saved | null>(null);
 
   // As linhas da biblioteca chegaram (as prateleiras já podem aparecer).
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -85,6 +92,17 @@ export default function Library() {
     if (session?.user?.id) {
       loadPreferences();
       fetchLibraryRows();
+      const userId = session.user.id;
+      fetchRatedLayout(userId).then((saved) => {
+        if (saved) {
+          setRatedLayout(saved);
+        } else {
+          // Quem tinha escolhido só neste aparelho leva a escolha pro perfil.
+          const legacy = readLegacyLayout();
+          if (legacy && legacy !== 'notes') saveRatedLayout(userId, legacy).catch(() => undefined);
+        }
+      });
+      fetchTop100(userId).then(setTop100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
@@ -115,18 +133,16 @@ export default function Library() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('user_movies')
-        .select('movie_id, media_type, rating')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      // Linhas com o ano (get_library_titles), na ordem em que entraram.
+      const { data, error } = await supabase.rpc('get_library_titles', { p_user_id: userId });
 
       if (error) throw error;
 
-      const libraryRows: LibraryRow[] = (data || []).map((row: { movie_id: number; media_type: string | null; rating: number | null }) => ({
+      const libraryRows: LibraryRow[] = ((data || []) as { movie_id: number; media_type: string | null; rating: number | null; release_year: number | null }[]).map((row) => ({
         movie_id: row.movie_id,
         media_type: asMediaType(row.media_type),
         rating: typeof row.rating === 'number' ? row.rating : null,
+        year: typeof row.release_year === 'number' ? row.release_year : null,
       }));
       setRows(libraryRows);
       cache.set(cacheKey, libraryRows, CACHE_TTL.USER_LIBRARY);
@@ -207,14 +223,34 @@ export default function Library() {
     }
   };
 
-  const handleRatedLayoutChange = (layout: 'notes' | 'onegrid') => {
+  const handleRatedLayoutChange = (layout: RatedLayout) => {
+    const previous = ratedLayout;
     setRatedLayout(layout);
-    try {
-      localStorage.setItem('libraryRatedLayout', layout);
-    } catch {
-      // sem armazenamento — a escolha vale só nesta visita
-    }
+    if (!session?.user?.id) return;
+    saveRatedLayout(session.user.id, layout).catch((error) => {
+      console.error('Error saving library layout:', error);
+      setRatedLayout(previous);
+      toast.error(t('common.error'));
+    });
   };
+
+  const handleSaveTop100 = async (next: Top100Saved) => {
+    if (!session?.user?.id) return;
+    await saveTop100(session.user.id, next);
+    setTop100(next);
+  };
+
+  // Avaliados com o ano, na ordem em que entraram (Top 100 e décadas).
+  const ratedTitles: RatedTitle[] = useMemo(
+    () =>
+      rows
+        .filter((row) => row.rating !== null)
+        .map((row) => ({ id: row.movie_id, media_type: row.media_type, userRating: row.rating as number, year: row.year })),
+    [rows]
+  );
+  const top100Entries = useMemo(() => buildTop100(ratedTitles, top100), [ratedTitles, top100]);
+  const top100Others = useMemo(() => outsideTop100(ratedTitles, top100Entries), [ratedTitles, top100Entries]);
+  const decadeShelves = useMemo(() => groupByDecade(ratedTitles), [ratedTitles]);
 
   // Apply TV order preference
   const sortByTvOrder = (list: LibraryItem[]) => {
@@ -457,7 +493,31 @@ export default function Library() {
             onDuelClick={moviesByRating.unrated.length >= 4 ? () => setShowWatchlistDuel(true) : undefined}
           />
 
-          {ratedLayout === 'onegrid' ? (() => {
+          {ratedLayout === 'top100' ? (
+            <Top100List
+              anchorId="library-top100"
+              entries={top100Entries}
+              others={top100Others}
+              excluded={top100?.excluded}
+              editable
+              onSave={handleSaveTop100}
+            />
+          ) : ratedLayout === 'decades' ? (
+            decadeShelves.map((shelf) => (
+              <RatingBox
+                key={shelf.decade ?? 'none'}
+                anchorId={`library-decade-${shelf.decade ?? 'none'}`}
+                fullBleed
+                title={shelf.decade === null ? t('library.decadeUnknown') : t('library.decadeTitle', { decade: shelf.decade })}
+                badgeText={shelf.decade === null ? '?' : `'${String(shelf.decade).slice(2)}`}
+                items={shelf.items}
+                rating={null}
+                onRate={handleRate}
+                onDelete={handleDelete}
+                chromaBoxEnabled={false}
+              />
+            ))
+          ) : ratedLayout === 'onegrid' ? (() => {
             const allRated: LibraryItem[] = [...Array(11)].reduce((acc: LibraryItem[], _, i) => {
               const r = 10 - i;
               return [...acc, ...(moviesByRating[r] || [])];

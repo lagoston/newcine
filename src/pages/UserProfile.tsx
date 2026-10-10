@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ListPlus, MessageSquare, UserCheck, UserPlus, Clock, Sparkles, Wand2, Loader2, Film, UserX, LogIn, User } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
@@ -6,6 +6,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { Movie } from '../lib/tmdb';
 import RatingBox from '../components/RatingBox';
+import Top100List from '../components/Top100List';
+import {
+  RatedLayout, RatedTitle, Top100Saved, buildTop100, fetchRatedLayout, fetchTop100, groupByDecade, mediaTypeOf, yearOf,
+} from '../lib/libraryLayouts';
 import FollowersModal from '../components/FollowersModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import UserPinsCard from '../components/UserPinsCard';
@@ -32,8 +36,9 @@ import { getBannerTone } from '../lib/banners';
 //   • amizade (adicionar, cancelar pedido, aceitar, desfazer)
 //   • Compatibilidade e Match Movie com você
 //   • listas e resenhas dela
-//   • a coleção (prateleiras por nota) e o Info (personalidade, notas e o
-//     retrato de gosto), em abas.
+//   • a coleção e o Info (personalidade, notas e o retrato de gosto), em
+//     abas. A coleção aparece do jeito que a pessoa organiza a própria
+//     Biblioteca (Notas, One Grid, Top 100 ou Por década — 10/10/2026).
 // Os blocos da página vestem o tom do banner da pessoa (--co-surface).
 
 interface Profile {
@@ -98,6 +103,39 @@ export default function UserProfile() {
     countryAvgRatings,
     refetch: refetchProfileData,
   } = useProfileData(profile?.id, i18n.language);
+
+  // Organização da Biblioteca da pessoa (e o Top 100 dela, se for o caso).
+  const [ownerLayout, setOwnerLayout] = useState<RatedLayout>('notes');
+  const [ownerTop100, setOwnerTop100] = useState<Top100Saved | null>(null);
+  useEffect(() => {
+    if (!profile?.id) return;
+    let alive = true;
+    setOwnerLayout('notes');
+    setOwnerTop100(null);
+    fetchRatedLayout(profile.id).then((layout) => {
+      if (!alive || !layout) return;
+      setOwnerLayout(layout);
+      if (layout === 'top100') fetchTop100(profile.id).then((saved) => alive && setOwnerTop100(saved));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [profile?.id]);
+
+  // Avaliados com o ano, na ordem em que entraram (Top 100 e décadas).
+  const ownerRated: RatedTitle[] = useMemo(
+    () =>
+      movies
+        .filter((movie) => typeof movie.userRating === 'number')
+        .map((movie) => ({
+          id: movie.id,
+          media_type: mediaTypeOf(movie.media_type),
+          userRating: movie.userRating as number,
+          year: yearOf(movie.release_date),
+          movie,
+        })),
+    [movies]
+  );
 
   const [countryMoviesModal, setCountryMoviesModal] = useState<{ isOpen: boolean; title: string; movies: MovieWithRating[] }>({
     isOpen: false,
@@ -523,7 +561,52 @@ export default function UserProfile() {
             ) : (
               <>
                 <div className="mt-2">
-                  {[...Array(11)].map((_, i) => {
+                  {ownerLayout === 'top100' ? (
+                    <Top100List
+                      anchorId="profile-top100"
+                      entries={buildTop100(ownerRated, ownerTop100)}
+                      isOtherUserProfile
+                      profileUserId={profile.id}
+                    />
+                  ) : ownerLayout === 'decades' ? (
+                    groupByDecade(ownerRated).map((shelf) => (
+                      <RatingBox
+                        key={shelf.decade ?? 'none'}
+                        anchorId={`profile-decade-${shelf.decade ?? 'none'}`}
+                        fullBleed
+                        title={shelf.decade === null ? t('library.decadeUnknown') : t('library.decadeTitle', { decade: shelf.decade })}
+                        badgeText={shelf.decade === null ? '?' : `'${String(shelf.decade).slice(2)}`}
+                        items={shelf.items}
+                        rating={null}
+                        isOtherUserProfile
+                        profileUserId={profile.id}
+                      />
+                    ))
+                  ) : ownerLayout === 'onegrid' ? (
+                    <>
+                      {(['movie', 'tv'] as const).map((type) => {
+                        const shelf = ownerRated
+                          .filter((title) => title.media_type === type)
+                          .sort((a, b) => b.userRating - a.userRating);
+                        if (shelf.length === 0) return null;
+                        return (
+                          <RatingBox
+                            key={type}
+                            anchorId={`profile-rated-${type}`}
+                            fullBleed
+                            title={t(type === 'tv' ? 'library.ratedSeriesTitle' : 'library.ratedMoviesTitle')}
+                            items={shelf}
+                            rating={null}
+                            isOtherUserProfile
+                            profileUserId={profile.id}
+                            chromaBoxEnabled={type === 'tv'}
+                            isOneGrid
+                            isOneGridTv={type === 'tv'}
+                          />
+                        );
+                      })}
+                    </>
+                  ) : [...Array(11)].map((_, i) => {
                     const rating = 10 - i;
                     const shelf = buckets[rating] || [];
                     if (shelf.length === 0) return null;

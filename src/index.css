@@ -743,3 +743,8 @@ img[loading="lazy"] {
     transition: opacity 0.2s linear;
   }
 }
+
+/* Linhas (Top 100): sem a marca do pôster por trás — a linha inteira sobe. */
+.reveal-tile.reveal-row::before {
+  content: none;
+}

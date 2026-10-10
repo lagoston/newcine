@@ -9,10 +9,12 @@ import { getMovieDetails } from '../lib/tmdb';
 import OracleSheet from './OracleSheet';
 import ConfirmationModal from './ConfirmationModal';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
+import type { RatedLayout } from '../lib/libraryLayouts';
 
-// Ajustes da Biblioteca: como os avaliados aparecem, ordem das séries,
-// exportar e zerar a coleção. Os nomes das prateleiras são sempre os
-// padrão (não dá pra renomear) e a Chroma Box é sempre ligada.
+// Ajustes da Biblioteca: como os avaliados aparecem (Notas, One Grid, Top 100
+// ou Por década — a escolha vale também para o perfil na comunidade), ordem
+// das séries, exportar e zerar a coleção. Os nomes das prateleiras são
+// sempre os padrão (não dá pra renomear) e a Chroma Box é sempre ligada.
 
 type TvOrder = 'auto' | 'first' | 'last';
 
@@ -20,8 +22,8 @@ interface LibraryEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onReset: () => void;
-  ratedLayout: 'notes' | 'onegrid';
-  onRatedLayoutChange: (layout: 'notes' | 'onegrid') => void;
+  ratedLayout: RatedLayout;
+  onRatedLayoutChange: (layout: RatedLayout) => void;
   // Opcionais: quando passados, a Biblioteca aplica a mudança na hora; sem
   // eles, a página recarrega pra aplicar (comportamento antigo).
   onTvOrderChange?: (order: TvOrder) => void;
@@ -241,6 +243,8 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
             {([
               { value: 'notes', label: t('library.ratedLayoutNotes') },
               { value: 'onegrid', label: t('library.ratedLayoutOneGrid') },
+              { value: 'top100', label: t('library.ratedLayoutTop100') },
+              { value: 'decades', label: t('library.ratedLayoutDecades') },
             ] as const).map((opt) => {
               const active = ratedLayout === opt.value;
               return (
@@ -260,6 +264,21 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
                           <span className="h-2 rounded-full bg-white/20" style={{ width: `${85 - i * 20}%` }} />
                         </span>
                       ))
+                    ) : opt.value === 'top100' ? (
+                      ['#F5C451', '#D5DCE6', '#D99A6C'].map((color, i) => (
+                        <span key={color} className="flex items-center gap-1.5">
+                          <span className="w-3 text-[10px] leading-none text-right" style={{ ...PIXEL, color }}>{i + 1}</span>
+                          <span className="w-2 h-3 rounded-[2px] bg-white/25" />
+                          <span className="h-2 rounded-full bg-white/20" style={{ width: `${75 - i * 12}%` }} />
+                        </span>
+                      ))
+                    ) : opt.value === 'decades' ? (
+                      ["'00", "'90", "'80"].map((label, i) => (
+                        <span key={label} className="flex items-center gap-1.5">
+                          <span className="w-5 text-[10px] leading-none" style={{ ...PIXEL, color: PAPER }}>{label}</span>
+                          <span className="h-2 rounded-full bg-white/20" style={{ width: `${80 - i * 18}%` }} />
+                        </span>
+                      ))
                     ) : (
                       <span className="grid grid-cols-5 gap-1">
                         {Array.from({ length: 10 }).map((_, i) => (
@@ -271,6 +290,9 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
                   <span className="flex items-center justify-between gap-2 text-sm font-semibold" style={{ color: PAPER }}>
                     {opt.label}
                     {active && <Check className="w-4 h-4 text-violet-300" aria-hidden />}
+                  </span>
+                  <span className="text-xs leading-snug" style={{ color: MIST }}>
+                    {t(`library.ratedLayoutHint.${opt.value}`)}
                   </span>
                 </button>
               );

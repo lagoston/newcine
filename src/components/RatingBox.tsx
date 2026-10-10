@@ -73,6 +73,8 @@ interface RatingBoxProps {
   onDuelClick?: () => void;
   // id da <section>, pra poder rolar até ela.
   anchorId?: string;
+  // Texto curto no selo do cabeçalho (ex.: "'90" nas prateleiras por década).
+  badgeText?: string;
 }
 
 type LibraryTile = Movie & { predictedRating?: number | null };
@@ -118,6 +120,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   fullBleed = false,
   onDuelClick,
   anchorId,
+  badgeText,
 }) => {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
@@ -291,7 +294,15 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const formatScore = (value: number) =>
     value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-  const headerIcon = isRatingShelf ? (
+  const headerIcon = badgeText ? (
+    <span
+      className="grid place-items-center w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl text-xl sm:text-2xl leading-none ring-1 ring-inset ring-violet-300/30"
+      style={{ ...PIXEL, background: VELVET, color: PAPER }}
+      aria-hidden
+    >
+      {badgeText}
+    </span>
+  ) : isRatingShelf ? (
     <span
       className="grid place-items-center w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl text-2xl sm:text-3xl leading-none"
       style={{ ...PIXEL, background: VELVET, color: tone!.color, boxShadow: `inset 0 0 0 1.5px ${tone!.ring}` }}
