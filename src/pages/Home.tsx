@@ -455,7 +455,7 @@ const Home = () => {
     if (requestedRef.current.has(key)) return;
     requestedRef.current.add(key);
     const set = mediaType === 'movie' ? setForYouMovies : setForYouSeries;
-    getForYouShelf(mediaType)
+    getForYouShelf(mediaType, 20)
       .then(set)
       .catch((error) => {
         console.error(`Home: for-you ${mediaType} error`, error);
@@ -539,6 +539,15 @@ const Home = () => {
   // A página abre com o topo pronto; as listas de baixo vêm conforme a
   // pessoa desce (cada uma com a própria faixa de esqueletos).
   const pageReady = panelsReady || readyTimeout;
+  // "Ver todos" de Filmes/Séries Para Você abre a Biblioteca dos Oráculos —
+  // é lá que estão todos os recomendados —, no oráculo que mais aparece na
+  // lista de hoje e já em Filmes ou em Séries.
+  const openOracleLibrary = (shelf: ForYouShelf | undefined, mediaType: 'movie' | 'tv') => {
+    const counts = new Map<string, number>();
+    Object.values(shelf?.info ?? {}).forEach((info) => counts.set(info.oracle, (counts.get(info.oracle) ?? 0) + 1));
+    const oracle = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'bogart';
+    navigate(`/oracle/libraries?oracle=${oracle}&type=${mediaType}`);
+  };
   const openAll = (title: string, movies: Movie[]) => setAllMoviesModal({ isOpen: true, title, movies });
 
   return (
@@ -598,7 +607,7 @@ const Home = () => {
           forYouInfo={forYouMovies?.info}
           friendActivity={friendActivity}
           onMovieClick={handleMovieClick}
-          onViewAll={() => openAll(t('home.forYouMovies'), forYouMovies?.movies ?? [])}
+          onViewAll={() => openOracleLibrary(forYouMovies, 'movie')}
         />
         <Shelf
           title={t('home.forYouSeries')}
@@ -609,7 +618,7 @@ const Home = () => {
           forYouInfo={forYouSeries?.info}
           friendActivity={friendActivity}
           onMovieClick={handleMovieClick}
-          onViewAll={() => openAll(t('home.forYouSeries'), forYouSeries?.movies ?? [])}
+          onViewAll={() => openOracleLibrary(forYouSeries, 'tv')}
         />
       </div>
 

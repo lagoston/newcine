@@ -7,7 +7,7 @@ import OracleSheet from './OracleSheet';
 import { titleKey } from '../lib/titleCards';
 import { EMPTY_TOP100, RatedTitle, TOP_LIMIT, Top100Saved } from '../lib/libraryLayouts';
 import { useTitleCards } from '../hooks/useLazyList';
-import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ratingTone } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ratingTone } from '../lib/oracleTheme';
 
 // Duelo do Top 100 (10/10/2026): a pessoa ordena o Top 100 em confrontos de
 // 1 contra 1, quantos quiser, e pode parar a qualquer hora.
@@ -346,7 +346,7 @@ const Top100Duel: React.FC<Top100DuelProps> = ({ entries, outside, saved, onSave
             {state.phase === 'challenge' ? t('library.duelQuestionChallenge') : t('library.duelQuestion')}
           </p>
 
-          <div className="relative mt-5 grid grid-cols-2 gap-3 sm:gap-5">
+          <div className="duel-arena mt-5">
             <AnimatePresence mode="popLayout" initial={false}>
               {pair.map((title, idx) => {
                 const card = cardOf(title);
@@ -402,12 +402,8 @@ const Top100Duel: React.FC<Top100DuelProps> = ({ entries, outside, saved, onSave
                 );
               })}
             </AnimatePresence>
-            <span
-              aria-hidden
-              className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 grid place-items-center w-11 h-11 rounded-full ring-2 ring-pink-400/50 text-sm pointer-events-none"
-              style={{ ...PIXEL, background: NIGHT, color: PAPER }}
-            >
-              vs
+            <span aria-hidden className="duel-vs" style={PIXEL}>
+              VS
             </span>
           </div>
 

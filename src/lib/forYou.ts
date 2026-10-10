@@ -3,7 +3,8 @@ import { Movie } from './tmdb';
 import { getTitleCardsInOrder } from './titleCards';
 import type { OracleId } from './oracleTheme';
 
-// "Filmes Para Você" e "Séries Para Você" (home): o top 10 de cada tipo,
+// "Filmes Para Você" e "Séries Para Você" (home): 20 de cada tipo (a mistura
+// do dia — ver a migração 20261010140000_for_you_twenty.sql),
 // tirado das 3 prateleiras favoritas do usuário nos 3 oráculos, na ordem
 // da nota prevista. O banco calcula e guarda o resultado
 // (get_for_you_titles — migrações 20261008110000_for_you_titles.sql e
@@ -35,7 +36,7 @@ interface ForYouRow {
 
 export const EMPTY_FOR_YOU: ForYouShelf = { movies: [], info: {} };
 
-export async function getForYouShelf(mediaType: 'movie' | 'tv', limit = 10): Promise<ForYouShelf> {
+export async function getForYouShelf(mediaType: 'movie' | 'tv', limit = 20): Promise<ForYouShelf> {
   const { data, error } = await supabase.rpc('get_for_you_titles', { p_media_type: mediaType, p_limit: limit });
   if (error) throw error;
   const rows = (data ?? []) as ForYouRow[];

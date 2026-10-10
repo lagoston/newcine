@@ -376,7 +376,7 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
                   {t('watchlistDuel.changeFriend')}
                 </button>
 
-                <div className="relative grid grid-cols-2 gap-3 sm:gap-5">
+                <div className="duel-arena">
                   <AnimatePresence mode="popLayout" initial={false}>
                     {currentPair.map((movie, idx) => (
                       <motion.div
@@ -432,12 +432,8 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
                       </motion.div>
                     ))}
                   </AnimatePresence>
-                  <span
-                    aria-hidden
-                    className="absolute left-1/2 top-[34%] -translate-x-1/2 -translate-y-1/2 grid place-items-center w-10 h-10 rounded-full ring-2 ring-pink-400/50 text-sm pointer-events-none"
-                    style={{ ...PIXEL, background: NIGHT, color: PAPER }}
-                  >
-                    vs
+                  <span aria-hidden className="duel-vs" style={PIXEL}>
+                    VS
                   </span>
                 </div>
               </div>

@@ -292,10 +292,13 @@ img[loading="lazy"] {
   min-height: 1px;
 }
 
-/* Hardware acceleration for smooth scrolling */
+/* Hardware acceleration for smooth scrolling.
+   Até 10/10/2026 valia também para [class*="grid"] — qualquer elemento com
+   "grid" na classe ganhava transform: translateZ(0), que apagava os
+   translate-x/-y do Tailwind (o "vs" dos duelos ficava deslocado para cima
+   do segundo pôster) e prendia elementos fixed dentro dessas grades. */
 .movie-grid,
-.swiper-wrapper,
-[class*="grid"] {
+.swiper-wrapper {
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   backface-visibility: hidden;
@@ -747,4 +750,52 @@ img[loading="lazy"] {
 /* Linhas (Top 100): sem a marca do pôster por trás — a linha inteira sobe. */
 .reveal-tile.reveal-row::before {
   content: none;
+}
+
+/* ── Duelos (Oráculo, Watchlist, Top 100) ────────────────────────────────
+   Os dois pôsteres lado a lado e o "VS" exatamente no meio deles: a altura
+   do pôster é 1,5× a largura da coluna, então o centro fica em
+   (largura − espaço) × 0,375 — medido pela própria arena (container query),
+   em qualquer tamanho de tela. */
+.duel-arena {
+  --duel-gap: 12px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--duel-gap);
+  container-type: inline-size;
+}
+@media (min-width: 640px) {
+  .duel-arena {
+    --duel-gap: 20px;
+  }
+}
+.duel-vs {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 37%;
+  top: calc((100cqw - var(--duel-gap)) * 0.375);
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  color: #F3EAD3;
+  background: radial-gradient(circle at 50% 30%, #2E2152, #120D22 72%);
+  box-shadow:
+    0 0 0 2px rgba(244, 114, 182, 0.8),
+    0 0 0 6px rgba(18, 13, 34, 0.92),
+    0 10px 28px -6px rgba(236, 72, 153, 0.6);
+  pointer-events: none;
+}
+@media (min-width: 640px) {
+  .duel-vs {
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: 1.05rem;
+  }
 }

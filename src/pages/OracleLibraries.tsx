@@ -417,7 +417,16 @@ export default function OracleLibraries() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [showStreamingFilter, setShowStreamingFilter] = useState(false);
   const [selectedProviderIds, setSelectedProviderIds] = useState<number[]>([]);
-  const [mediaType, setMediaType] = useState<ShelfMediaType>(readMediaType);
+  // ?type=movie|tv (ex.: "Ver todos" de Filmes/Séries Para Você, na home)
+  // abre direto em Filmes ou em Séries; sem ele, vale a última escolha.
+  const [mediaType, setMediaType] = useState<ShelfMediaType>(() => {
+    const typeParam = searchParams.get('type');
+    if (typeParam === 'movie' || typeParam === 'tv') {
+      saveMediaType(typeParam);
+      return typeParam;
+    }
+    return readMediaType();
+  });
   const [isPremium, setIsPremium] = useState(false);
   // Estilo de carta do Personalizar perfil. Começa null de propósito: a
   // carta só monta com a imagem certa, sem piscar a padrão antes.
