@@ -9,6 +9,9 @@ interface OptimizedPosterProps {
   priority?: boolean;
 }
 
+// Pôster com carregamento preguiçoso. Enquanto a imagem não chega, um brilho
+// passa devagar pelo lugar dela (poster-skeleton); quando chega, ela sai do
+// desfoque e acende (poster-bloom) — as duas classes estão em index.css.
 const OptimizedPoster: React.FC<OptimizedPosterProps> = ({
   src,
   alt,
@@ -39,25 +42,24 @@ const OptimizedPoster: React.FC<OptimizedPosterProps> = ({
   return (
     <>
       {!imageLoaded && (
-        <div className={`absolute inset-0 animate-pulse ${className}`} style={{ background: '#1C1433' }}>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Film className="w-10 h-10 text-[#BDB4D6]/30" aria-hidden />
-          </div>
-        </div>
+        <span className={`absolute inset-0 poster-skeleton ${className}`} aria-hidden>
+          <span className="absolute inset-0 flex items-center justify-center">
+            <Film className="w-9 h-9 text-[#BDB4D6]/25" />
+          </span>
+        </span>
       )}
       <img
         src={src}
         alt={alt}
         draggable={false}
-        className={`${className} ${!imageLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        className={`${className} poster-bloom`}
+        data-loaded={imageLoaded ? '1' : undefined}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
         onLoad={handleLoad}
         onError={handleError}
         onDragStart={(e) => e.preventDefault()}
         style={{
-          contentVisibility: 'auto',
-          willChange: imageLoaded ? 'auto' : 'opacity',
           userSelect: 'none',
           WebkitUserDrag: 'none',
         } as React.CSSProperties}

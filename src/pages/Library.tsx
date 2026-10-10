@@ -1,20 +1,19 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, ListPlus, MessageSquare, SlidersHorizontal, Library as LibraryIcon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
 import toast from 'react-hot-toast';
 import RatingBox from '../components/RatingBox';
 import StreamingFilterModal from '../components/StreamingFilterModal';
 import LibraryEditModal from '../components/LibraryEditModal';
 import UserReviewsModal from '../components/UserReviewsModal';
-import LinearProgressBar from '../components/LinearProgressBar';
 import { useAuth } from '../lib/auth';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS, CACHE_TTL } from '../lib/cache';
 import WatchListDuelModal from '../components/WatchListDuelModal';
 import GlassLoader from '../components/GlassLoader';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
+import { ShelfItem, TitleMediaType, asMediaType, loadTitleCards, peekTitleCard } from '../lib/titleCards';
 
 // Biblioteca — "a estante".
 //   1. Cabeçalho: título, números da coleção e atalhos (adicionar, listas,
@@ -22,23 +21,30 @@ import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 //      mesma linha do "Adicionar Filmes". O gráfico de notas mora no Perfil.
 //   2. Prateleiras: Watchlist (com filtros e duelo) e uma por nota, de 10
 //      a 0 — ou, no layout One Grid, uma de filmes e uma de séries.
+//
+// Sob demanda (10/10/2026): a página lê só as linhas da biblioteca (id,
+// tipo e nota — uma consulta), então cabeçalho, números e prateleiras
+// aparecem na hora. Os pôsteres de cada prateleira são buscados pela
+// própria prateleira quando ela chega perto da tela, em lotes conforme a
+// pessoa rola de lado (RatingBox + lib/titleCards). Antes eram duas
+// consultas por título, todas antes de mostrar a página.
 
-interface UserMovie {
-  id: string;
+interface LibraryRow {
   movie_id: number;
+  media_type: TitleMediaType;
   rating: number | null;
 }
 
-interface LibraryMovie extends Movie {
-  userRating?: number | null;
-  predictedRating?: number;
-}
+type LibraryItem = ShelfItem & { userRating: number | null };
+
+const sameTitle = (row: LibraryRow, movieId: number, mediaType?: TitleMediaType) =>
+  row.movie_id === movieId && (!mediaType || row.media_type === mediaType);
 
 export default function Library() {
   const { session } = useAuth();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const location = useLocation();
-  const [userMovies, setUserMovies] = useState<LibraryMovie[]>([]);
+  const [rows, setRows] = useState<LibraryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
@@ -57,23 +63,8 @@ export default function Library() {
     }
   });
 
-  // Progress tracking states
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [totalMovies, setTotalMovies] = useState(0);
-  const [processedMovies, setProcessedMovies] = useState(0);
-  const [loadingError, setLoadingError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  // Notas cruas da coleção inteira (só movie_id + rating), disponíveis logo
-  // na primeira consulta — os números do cabeçalho já saem certos enquanto
-  // os detalhes dos filmes ainda estão chegando.
-  const [ratingRows, setRatingRows] = useState<(number | null)[]>([]);
-
-  // Track if this is the initial load
+  // As linhas da biblioteca chegaram (as prateleiras já podem aparecer).
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-
-  // Track active requests to allow cleanup
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadPreferences = async () => {
@@ -93,18 +84,9 @@ export default function Library() {
 
     if (session?.user?.id) {
       loadPreferences();
-      fetchUserMovies();
+      fetchLibraryRows();
     }
-
-    // Cleanup on unmount or when user changes
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
 
   // Os nomes das prateleiras não são mais personalizáveis: some o que
@@ -117,174 +99,66 @@ export default function Library() {
     }
   }, []);
 
-  // Reload movies when language changes
-  useEffect(() => {
-    const handleLanguageChange = () => {
-      const cacheKey = CACHE_KEYS.USER_LIBRARY(session?.user?.id || '');
-      cache.delete(cacheKey);
-      // Detalhes dos filmes recarregam no idioma novo
-      cache.invalidatePattern('movie:');
-      if (session?.user?.id) {
-        fetchUserMovies();
-      }
-    };
+  // Só as linhas (id, tipo, nota), na ordem em que entraram. O tipo vem da
+  // própria biblioteca (user_movies.media_type), que é o certo quando um
+  // filme e uma série têm o mesmo número no TMDB.
+  const fetchLibraryRows = async () => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    const cacheKey = CACHE_KEYS.USER_LIBRARY(userId);
+    const cached = cache.get<LibraryRow[]>(cacheKey);
+    if (cached) {
+      setRows(cached);
+      setLoading(false);
+      setInitialLoadComplete(true);
+      return;
+    }
 
-    i18n.on('languageChanged', handleLanguageChange);
-
-    return () => {
-      i18n.off('languageChanged', handleLanguageChange);
-    };
-  }, [session?.user?.id, i18n]);
-
-  const fetchUserMovies = async () => {
     try {
-      // Clear any existing intervals
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-
-      // Create new AbortController for this fetch
-      abortControllerRef.current = new AbortController();
-
-      setLoadingError(false);
-      setLoadingProgress(0);
-      setProcessedMovies(0);
-      setLoading(true);
-
-      const cacheKey = CACHE_KEYS.USER_LIBRARY(session?.user?.id || '');
-      const cachedLibrary = cache.get<LibraryMovie[]>(cacheKey);
-
-      if (cachedLibrary) {
-        setUserMovies(cachedLibrary);
-        setRatingRows(cachedLibrary.map((m) => (typeof m.userRating === 'number' ? m.userRating : null)));
-        setTotalMovies(cachedLibrary.length);
-        setProcessedMovies(cachedLibrary.length);
-        setLoadingProgress(100);
-        setLoading(false);
-        setInitialLoadComplete(true);
-        return;
-      }
-
-      const { data: userMoviesData, error } = await supabase
+      const { data, error } = await supabase
         .from('user_movies')
-        .select('*')
-        .eq('user_id', session?.user?.id)
+        .select('movie_id, media_type, rating')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const total = (userMoviesData || []).length;
-      setTotalMovies(total);
-      setRatingRows((userMoviesData || []).map((row: UserMovie) => (typeof row.rating === 'number' ? row.rating : null)));
-
-      setLoading(false);
-
-      if (total === 0) {
-        setUserMovies([]);
-        setLoadingProgress(100);
-        setInitialLoadComplete(true);
-        return;
-      }
-
-      setLoadingProgress(5);
-
-      // Carregamento incremental: primeiro 20 filmes
-      const INITIAL_BATCH = 20;
-      const initialBatch = userMoviesData.slice(0, INITIAL_BATCH);
-      const remainingMovies = userMoviesData.slice(INITIAL_BATCH);
-
-      // Simular progresso baseado em tempo estimado
-      const estimatedDuration = 8000;
-      const startTime = Date.now();
-      progressIntervalRef.current = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const percentage = Math.min(95, 5 + (elapsed / estimatedDuration) * 90);
-        setLoadingProgress(percentage);
-      }, 100);
-
-      // Carregar primeiro lote (20 filmes)
-      const firstBatchDetails = await Promise.all(
-        initialBatch.map(async (userMovie: UserMovie) => {
-          try {
-            const details = await getMovieDetailsFromDB(userMovie.movie_id);
-            return {
-              ...details,
-              userRating: userMovie.rating,
-            };
-          } catch {
-            console.warn(`Failed to fetch movie ${userMovie.movie_id}`);
-            return null;
-          }
-        })
-      );
-
-      const firstBatchMovies = firstBatchDetails.filter((movie) => movie !== null) as LibraryMovie[];
-      setUserMovies(firstBatchMovies);
-      setProcessedMovies(firstBatchMovies.length);
-      setInitialLoadComplete(true);
-
-      // Carregar restante em background
-      if (remainingMovies.length > 0) {
-        const remainingDetails = await Promise.all(
-          remainingMovies.map(async (userMovie: UserMovie) => {
-            try {
-              const details = await getMovieDetailsFromDB(userMovie.movie_id);
-              return {
-                ...details,
-                userRating: userMovie.rating,
-              };
-            } catch {
-              console.warn(`Failed to fetch movie ${userMovie.movie_id}`);
-              return null;
-            }
-          })
-        );
-
-        const remainingBatchMovies = remainingDetails.filter((movie) => movie !== null) as LibraryMovie[];
-        const allMovies = [...firstBatchMovies, ...remainingBatchMovies];
-        setUserMovies(allMovies);
-        setProcessedMovies(allMovies.length);
-        cache.set(cacheKey, allMovies, CACHE_TTL.USER_LIBRARY);
-      } else {
-        cache.set(cacheKey, firstBatchMovies, CACHE_TTL.USER_LIBRARY);
-      }
-
-      // Clear interval and set progress to complete
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-      setLoadingProgress(100);
+      const libraryRows: LibraryRow[] = (data || []).map((row: { movie_id: number; media_type: string | null; rating: number | null }) => ({
+        movie_id: row.movie_id,
+        media_type: asMediaType(row.media_type),
+        rating: typeof row.rating === 'number' ? row.rating : null,
+      }));
+      setRows(libraryRows);
+      cache.set(cacheKey, libraryRows, CACHE_TTL.USER_LIBRARY);
     } catch (error) {
-      console.error('Error fetching user movies:', error);
-
-      // Clear interval on error
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-
-      setLoadingError(true);
-      setErrorMessage(t('common.error'));
+      console.error('Error fetching library:', error);
       toast.error(t('common.error'));
-      setLoadingProgress(100);
+    } finally {
       setLoading(false);
+      setInitialLoadComplete(true);
     }
   };
 
-  const handleRate = async (movieId: number, rating: number | null) => {
-    try {
-      // Encontrar o filme para obter os gêneros
-      const movie = userMovies.find((m) => m.id === movieId);
+  const storeRows = (update: (prev: LibraryRow[]) => LibraryRow[]) => {
+    setRows((prev) => {
+      const next = update(prev);
+      if (session?.user?.id) cache.set(CACHE_KEYS.USER_LIBRARY(session.user.id), next, CACHE_TTL.USER_LIBRARY);
+      return next;
+    });
+  };
 
-      // Cache dos gêneros para o Espectrograma Cinematográfico
-      if (movie?.genres && movie.genres.length > 0) {
+  const handleRate = async (movieId: number, rating: number | null, mediaType?: TitleMediaType) => {
+    try {
+      // Cache dos gêneros para o Espectrograma Cinematográfico (do cartão
+      // que a prateleira já carregou).
+      const row = rows.find((r) => sameTitle(r, movieId, mediaType));
+      const card = row ? peekTitleCard({ id: row.movie_id, media_type: row.media_type }) : undefined;
+      if (card?.genres && card.genres.length > 0) {
         try {
           await supabase
             .rpc('cache_movie_genres', {
               p_movie_id: movieId,
-              p_genres: movie.genres
+              p_genres: card.genres
             });
         } catch (cacheError) {
           console.warn('Failed to cache movie genres:', cacheError);
@@ -292,21 +166,17 @@ export default function Library() {
         }
       }
 
-      const { error } = await supabase
+      let query = supabase
         .from('user_movies')
         .update({ rating })
         .eq('movie_id', movieId)
         .eq('user_id', session?.user?.id);
+      if (mediaType) query = query.eq('media_type', mediaType);
+      const { error } = await query;
 
       if (error) throw error;
 
-      setUserMovies((movies) =>
-        movies.map((m) =>
-          m.id === movieId ? { ...m, userRating: rating } : m
-        )
-      );
-
-      cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
+      storeRows((prev) => prev.map((r) => (sameTitle(r, movieId, mediaType) ? { ...r, rating } : r)));
       cache.invalidatePattern('stats:');
       toast.success(rating === null ? t('library.ratingRemoved') : t('library.ratingUpdated'));
     } catch (error) {
@@ -315,23 +185,20 @@ export default function Library() {
     }
   };
 
-  const handleDelete = async (movieId: number) => {
+  const handleDelete = async (movieId: number, mediaType?: TitleMediaType) => {
     try {
       // Deletar o filme completamente da biblioteca
-      const { error } = await supabase
+      let query = supabase
         .from('user_movies')
         .delete()
         .eq('movie_id', movieId)
         .eq('user_id', session?.user?.id);
+      if (mediaType) query = query.eq('media_type', mediaType);
+      const { error } = await query;
 
       if (error) throw error;
 
-      // Remover localmente
-      setUserMovies((movies) =>
-        movies.filter((m) => m.id !== movieId)
-      );
-
-      cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
+      storeRows((prev) => prev.filter((r) => !sameTitle(r, movieId, mediaType)));
       cache.invalidatePattern('stats:');
       toast.success(t('library.movieDeleted'));
     } catch (error) {
@@ -349,21 +216,37 @@ export default function Library() {
     }
   };
 
-  const emptyBuckets: Record<string, LibraryMovie[]> = { unrated: [] };
-  for (let r = 0; r <= 10; r++) emptyBuckets[r] = [];
-  const moviesByRating = userMovies.reduce(
-    (acc, movie) => {
-      const rating = movie.userRating;
-      if (rating === null || rating === undefined) {
-        acc.unrated.push(movie);
-      } else {
-        acc[rating] = acc[rating] || [];
-        acc[rating].push(movie);
-      }
-      return acc;
-    },
-    emptyBuckets
-  );
+  // Apply TV order preference
+  const sortByTvOrder = (list: LibraryItem[]) => {
+    if (tvOrder === 'auto') {
+      return list; // Keep original order
+    }
+
+    const tvShows = list.filter((m) => m.media_type === 'tv');
+    const films = list.filter((m) => m.media_type !== 'tv');
+
+    if (tvOrder === 'first') {
+      return [...tvShows, ...films];
+    }
+    return [...films, ...tvShows];
+  };
+
+  // Uma lista por prateleira (Watchlist e notas de 0 a 10), já na ordem
+  // escolhida para as séries.
+  const moviesByRating = useMemo(() => {
+    const buckets: Record<string, LibraryItem[]> = { unrated: [] };
+    for (let r = 0; r <= 10; r++) buckets[r] = [];
+    rows.forEach((row) => {
+      const item: LibraryItem = { id: row.movie_id, media_type: row.media_type, userRating: row.rating };
+      if (row.rating === null) buckets.unrated.push(item);
+      else (buckets[row.rating] ||= []).push(item);
+    });
+    Object.keys(buckets).forEach((key) => {
+      buckets[key] = sortByTvOrder(buckets[key]);
+    });
+    return buckets;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, tvOrder]);
 
   // Filtro por streaming — só afeta a Watchlist. Seleção múltipla: um filme
   // passa se estiver em QUALQUER um dos serviços escolhidos ("o que posso
@@ -397,12 +280,33 @@ export default function Library() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [oracleFilterActive, session?.user?.id, moviesByRating.unrated.length]);
 
-  const filteredWatchlistMovies = useMemo(() => {
-    let list = moviesByRating.unrated;
+  // O filtro de streaming precisa dos streamings de TODA a Watchlist: só
+  // quando ele é ligado os cartões que faltam são buscados (em lote).
+  const [watchlistCardsVersion, setWatchlistCardsVersion] = useState(0);
+  const streamingFilterOn = selectedStreamingProviders.length > 0;
+  useEffect(() => {
+    if (!streamingFilterOn || moviesByRating.unrated.length === 0) return;
+    let alive = true;
+    loadTitleCards(moviesByRating.unrated).then(() => {
+      if (alive) setWatchlistCardsVersion((v) => v + 1);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [streamingFilterOn, moviesByRating.unrated]);
+  const watchlistFilterPending = useMemo(
+    () => streamingFilterOn && moviesByRating.unrated.some((item) => !peekTitleCard(item)),
+    // watchlistCardsVersion: os cartões chegaram
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [streamingFilterOn, moviesByRating.unrated, watchlistCardsVersion]
+  );
 
-    if (selectedStreamingProviders.length > 0) {
-      list = list.filter((movie) => {
-        const flatrate = movie.watchProviders?.flatrate;
+  const filteredWatchlistMovies = useMemo(() => {
+    let list: LibraryItem[] = moviesByRating.unrated;
+
+    if (streamingFilterOn) {
+      list = list.filter((item) => {
+        const flatrate = peekTitleCard(item)?.watchProviders?.flatrate;
         if (!flatrate || flatrate.length === 0) return false;
         return flatrate.some((p) => selectedStreamingProviders.includes(p.provider_id));
       });
@@ -425,7 +329,9 @@ export default function Library() {
     }
 
     return list;
-  }, [moviesByRating.unrated, selectedStreamingProviders, oracleFilterActive, predictedRatings]);
+    // watchlistCardsVersion: os streamings chegaram
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moviesByRating.unrated, selectedStreamingProviders, streamingFilterOn, oracleFilterActive, predictedRatings, watchlistCardsVersion]);
 
   const handleToggleStreamingProvider = (providerId: number) => {
     setSelectedStreamingProviders((prev) =>
@@ -435,9 +341,7 @@ export default function Library() {
 
   // Abre o Duelo de Watchlist automaticamente quando outra página manda o
   // usuário pra cá com esse propósito (ex.: Hub dos Oráculos). Só depois que
-  // os detalhes chegaram de verdade (initialLoadComplete, não loading — que
-  // vira false antes de moviesByRating estar populado) e só com os 4 filmes
-  // mínimos exigidos.
+  // as linhas da biblioteca chegaram e só com os 4 filmes mínimos exigidos.
   const autoOpenDuelRef = useRef(false);
   useEffect(() => {
     if (autoOpenDuelRef.current) return;
@@ -449,45 +353,21 @@ export default function Library() {
     }
   }, [initialLoadComplete, location.state, moviesByRating.unrated.length]);
 
-  // Apply TV order preference
-  const sortMoviesByTvOrder = (movies: LibraryMovie[]) => {
-    if (tvOrder === 'auto') {
-      return movies; // Keep original order
-    }
-
-    const tvShows = movies.filter((m) => m.media_type === 'tv');
-    const films = movies.filter((m) => m.media_type !== 'tv');
-
-    if (tvOrder === 'first') {
-      return [...tvShows, ...films];
-    }
-    return [...films, ...tvShows];
-  };
-
-  // Apply sorting to all rating categories
-  Object.keys(moviesByRating).forEach((key) => {
-    moviesByRating[key] = sortMoviesByTvOrder(moviesByRating[key]);
-  });
-
-  // Números do cabeçalho — da lista crua enquanto os detalhes carregam, da
-  // lista completa (que reflete notas trocadas e exclusões) depois disso.
+  // Números do cabeçalho.
   const stats = useMemo(() => {
-    const source = loadingProgress >= 100 || ratingRows.length === 0
-      ? userMovies.map((m) => (typeof m.userRating === 'number' ? m.userRating : null))
-      : ratingRows;
-    const rated = source.filter((r) => r !== null).length;
+    const rated = rows.filter((row) => row.rating !== null).length;
     return {
       rated,
-      watchlist: source.length - rated,
-      total: source.length,
+      watchlist: rows.length - rated,
+      total: rows.length,
     };
-  }, [loadingProgress, ratingRows, userMovies]);
+  }, [rows]);
 
   if (loading) {
     return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
   }
 
-  const isEmpty = initialLoadComplete && stats.total === 0 && userMovies.length === 0;
+  const isEmpty = initialLoadComplete && stats.total === 0;
   // No celular os atalhos secundários são só ícone (quadrados de 44px), pra
   // caberem na mesma linha do "Adicionar Filmes"; o nome volta a partir do sm.
   const ghostButton = `shrink-0 inline-flex items-center justify-center gap-2 w-11 sm:w-auto h-11 px-0 sm:px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`;
@@ -539,21 +419,6 @@ export default function Library() {
           </div>
         </div>
 
-        {loadingProgress > 0 && loadingProgress < 100 && (
-          <div className="mt-8 rounded-xl px-4 py-3 ring-1 ring-white/10" style={{ background: VELVET }} role="status">
-            <div className="flex items-center justify-between gap-3 mb-2 text-sm">
-              <span style={{ color: PAPER }}>{t('library.loadingMovies')}</span>
-              <span className="tabular-nums" style={{ color: MIST }}>{processedMovies} / {totalMovies}</span>
-            </div>
-            <LinearProgressBar
-              progress={loadingProgress}
-              total={totalMovies}
-              current={processedMovies}
-              isError={loadingError}
-              errorMessage={errorMessage}
-            />
-          </div>
-        )}
       </section>
 
       {isEmpty ? (
@@ -579,7 +444,8 @@ export default function Library() {
             anchorId="library-watchlist"
             fullBleed
             title={t('library.watchList')}
-            movies={filteredWatchlistMovies}
+            items={filteredWatchlistMovies}
+            pending={watchlistFilterPending}
             rating={null}
             onRate={handleRate}
             onDelete={handleDelete}
@@ -592,7 +458,7 @@ export default function Library() {
           />
 
           {ratedLayout === 'onegrid' ? (() => {
-            const allRated: LibraryMovie[] = [...Array(11)].reduce((acc: LibraryMovie[], _, i) => {
+            const allRated: LibraryItem[] = [...Array(11)].reduce((acc: LibraryItem[], _, i) => {
               const r = 10 - i;
               return [...acc, ...(moviesByRating[r] || [])];
             }, []);
@@ -605,7 +471,7 @@ export default function Library() {
                     anchorId="library-rated-movies"
                     fullBleed
                     title={t('library.ratedMoviesTitle')}
-                    movies={ratedMovies}
+                    items={ratedMovies}
                     rating={null}
                     onRate={handleRate}
                     onDelete={handleDelete}
@@ -618,7 +484,7 @@ export default function Library() {
                     anchorId="library-rated-series"
                     fullBleed
                     title={t('library.ratedSeriesTitle')}
-                    movies={ratedSeries}
+                    items={ratedSeries}
                     rating={null}
                     onRate={handleRate}
                     onDelete={handleDelete}
@@ -638,7 +504,7 @@ export default function Library() {
                   anchorId={`library-rating-${rating}`}
                   fullBleed
                   title={t('library.rating', { value: rating })}
-                  movies={moviesByRating[rating] || []}
+                  items={moviesByRating[rating] || []}
                   rating={rating}
                   onRate={handleRate}
                   onDelete={handleDelete}
@@ -664,9 +530,7 @@ export default function Library() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onReset={() => {
-          setUserMovies([]);
-          setRatingRows([]);
-          setTotalMovies(0);
+          setRows([]);
           cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
           cache.invalidatePattern('stats:');
         }}

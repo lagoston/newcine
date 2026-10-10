@@ -1,12 +1,14 @@
 import { supabase } from './supabase';
-import { Movie, getMoviesForPredictedSlice } from './tmdb';
+import { Movie } from './tmdb';
+import { getTitleCardsInOrder } from './titleCards';
 import type { OracleId } from './oracleTheme';
 
 // "Filmes Para Você" e "Séries Para Você" (home): o top 10 de cada tipo,
 // tirado das 3 prateleiras favoritas do usuário nos 3 oráculos, na ordem
 // da nota prevista. O banco calcula e guarda o resultado
 // (get_for_you_titles — migrações 20261008110000_for_you_titles.sql e
-// 20261008120000_for_you_cache.sql); aqui só juntamos os dados das obras.
+// 20261008120000_for_you_cache.sql); aqui só juntamos os cartões leves das
+// obras (lib/titleCards — sem as temporadas das séries, que só vêm ao abrir).
 
 export interface ForYouInfo {
   predicted: number | null;
@@ -39,7 +41,7 @@ export async function getForYouShelf(mediaType: 'movie' | 'tv', limit = 10): Pro
   const rows = (data ?? []) as ForYouRow[];
   if (rows.length === 0) return EMPTY_FOR_YOU;
 
-  const movies = await getMoviesForPredictedSlice(rows.map((row) => ({ movie_id: row.id, media_type: mediaType })));
+  const movies = await getTitleCardsInOrder(rows.map((row) => ({ id: row.id, media_type: mediaType })));
   const info: Record<string, ForYouInfo> = {};
   rows.forEach((row) => {
     info[`${mediaType}:${row.id}`] = {

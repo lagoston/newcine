@@ -1,18 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Star, Dices, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Movie, getMovieDetails, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } from '../lib/tmdb';
+import { Movie, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } from '../lib/tmdb';
+import { ShelfEntry, getFullTitle, prefetchFullTitle, titleKey, toShelfEntry } from '../lib/titleCards';
+import { useProgressiveCount, useReveal, useTitleCards } from '../hooks/useLazyList';
 import { useAuth } from '../lib/auth';
 import MovieDetailsModal from './MovieDetailsModal';
 import OptimizedPoster from './OptimizedPoster';
 import OracleSheet from './OracleSheet';
 import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE, ratingTone } from '../lib/oracleTheme';
 
+// "Ver todos" de uma prateleira: a grade inteira, montada em lotes conforme
+// a pessoa desce (sob demanda desde 10/10/2026). Aceita os títulos inteiros
+// (`movies`) ou só as referências (`items`, como a Biblioteca), e aí busca os
+// cartões leves e, ao abrir, os detalhes completos (lib/titleCards).
 interface AllMoviesModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  movies: Movie[];
+  movies?: Movie[];
+  items?: ShelfEntry[];
   rating: number | null;
   isOtherUserProfile?: boolean;
   profileUserId?: string;
@@ -22,11 +29,15 @@ interface AllMoviesModalProps {
   theme?: 'gold' | 'purple';
 }
 
+const FIRST_BATCH = 30;
+const NEXT_BATCH = 24;
+
 const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
   isOpen,
   onClose,
   title,
   movies,
+  items,
   rating,
   isOtherUserProfile = false,
   profileUserId,
@@ -35,11 +46,41 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-  const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [tvProgressData, setTvProgressData] = useState<Map<number, TvProgress>>(new Map());
 
+  const entries: ShelfEntry[] = useMemo(
+    () => (items !== undefined ? items : (movies || []).map((movie) => toShelfEntry(movie))),
+    [items, movies]
+  );
+  const lazy = items !== undefined && entries.some((entry) => !entry.movie);
+
+  // Grade em lotes: o próximo entra quando o fim se aproxima (rolagem da janela).
+  const { count, endRef, hasMore } = useProgressiveCount({
+    total: entries.length,
+    initial: FIRST_BATCH,
+    step: NEXT_BATCH,
+    enabled: isOpen,
+    axis: 'y',
+    margin: 900,
+    resetKey: isOpen ? 'open' : 'closed',
+  });
+  const cardOf = useTitleCards(lazy ? entries : [], count, { enabled: isOpen && lazy, ahead: 12 });
+  const reveal = useReveal();
+
+  const tileFor = (entry: ShelfEntry): Movie | undefined => {
+    const base = entry.movie ?? cardOf(entry);
+    if (!base) return undefined;
+    return { ...base, media_type: entry.media_type, userRating: entry.userRating ?? base.userRating ?? null };
+  };
+
+  const visibleTvKey = useMemo(
+    () => entries.slice(0, count).filter((entry) => entry.media_type === 'tv').map((entry) => entry.id).join(','),
+    [entries, count]
+  );
+
   const refetchTvProgress = useCallback(() => {
-    const tvIds = movies.filter((m) => m.media_type === 'tv').map((m) => m.id);
+    const tvIds = visibleTvKey ? visibleTvKey.split(',').map(Number) : [];
     if (tvIds.length === 0 || !session?.user?.id) {
       setTvProgressData(new Map());
       return;
@@ -48,7 +89,7 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
       ? getTvProgressBatchForProfile(session.user.id, profileUserId, tvIds)
       : getTvProgressBatch(session.user.id, tvIds);
     fetchFn.then(setTvProgressData);
-  }, [movies, session?.user?.id, isOtherUserProfile, profileUserId]);
+  }, [visibleTvKey, session?.user?.id, isOtherUserProfile, profileUserId]);
 
   useEffect(() => {
     if (isOpen) refetchTvProgress();
@@ -66,22 +107,24 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
     return { percent, color };
   };
 
-  const openMovie = async (movie: Movie) => {
-    if (loadingId !== null) return;
-    setLoadingId(movie.id);
+  const openEntry = async (entry: ShelfEntry) => {
+    if (loadingKey !== null) return;
+    const key = titleKey(entry);
+    setLoadingKey(key);
     try {
-      const details = await getMovieDetails(movie.id, movie.media_type || 'movie');
-      setSelectedMovie(details);
+      const details = await getFullTitle(entry);
+      setSelectedMovie({ ...details, userRating: entry.userRating ?? null });
     } catch {
-      setSelectedMovie(movie);
+      const fallback = tileFor(entry);
+      if (fallback) setSelectedMovie(fallback);
     } finally {
-      setLoadingId(null);
+      setLoadingKey(null);
     }
   };
 
   const openRandom = () => {
-    if (movies.length === 0) return;
-    openMovie(movies[Math.floor(Math.random() * movies.length)]);
+    if (entries.length === 0) return;
+    openEntry(entries[Math.floor(Math.random() * entries.length)]);
   };
 
   const formatScore = (value?: number) =>
@@ -105,16 +148,16 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
         open={isOpen}
         onClose={onClose}
         title={title}
-        subtitle={`${movies.length} ${movies.length === 1 ? t('community.film') : t('community.films')}`}
+        subtitle={`${entries.length} ${entries.length === 1 ? t('community.film') : t('community.films')}`}
         leading={leading}
         size="full"
         escapeEnabled={!selectedMovie}
         footer={
-          movies.length > 0 ? (
+          entries.length > 0 ? (
             <div className="flex justify-center">
               <button
                 onClick={openRandom}
-                disabled={loadingId !== null}
+                disabled={loadingKey !== null}
                 className="inline-flex items-center gap-2 px-6 h-12 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
               >
                 <Dices className="w-5 h-5" aria-hidden />
@@ -125,16 +168,28 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
         }
       >
         <ul className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-x-3 sm:gap-x-4 gap-y-6">
-          {movies.map((movie) => {
+          {entries.slice(0, count).map((entry) => {
+            const movie = tileFor(entry);
+            if (!movie) {
+              return (
+                <li key={`s:${titleKey(entry)}`} className="min-w-0" aria-hidden>
+                  <span className="block aspect-[2/3] rounded-xl poster-skeleton" />
+                  <span className="mt-2 block h-3.5 w-4/5 rounded poster-skeleton" />
+                  <span className="mt-1.5 block h-3 w-1/2 rounded poster-skeleton" />
+                </li>
+              );
+            }
             const isTv = movie.media_type === 'tv';
             const progress = isTv ? tvProgress(movie) : null;
             const score = formatScore(movie.vote_average);
             const year = movie.release_date?.slice(0, 4);
             const userRating = movie.userRating;
             return (
-              <li key={`${movie.media_type || 'movie'}:${movie.id}`} className="min-w-0">
+              <li key={`t:${titleKey(entry)}`} ref={reveal} className="reveal-tile min-w-0">
                 <button
-                  onClick={() => openMovie(movie)}
+                  onClick={() => openEntry(entry)}
+                  onPointerEnter={() => prefetchFullTitle(entry)}
+                  onPointerDown={() => prefetchFullTitle(entry)}
                   className="group block w-full text-left rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
                 >
                   <div
@@ -160,7 +215,7 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
                         {userRating}
                       </span>
                     )}
-                    {loadingId === movie.id && (
+                    {loadingKey === titleKey(entry) && (
                       <span className="absolute inset-0 grid place-items-center bg-black/55">
                         <Loader2 className="w-6 h-6 animate-spin text-white" aria-hidden />
                       </span>
@@ -180,6 +235,7 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
               </li>
             );
           })}
+          {hasMore && <li ref={endRef} aria-hidden className="col-span-full h-px" />}
         </ul>
       </OracleSheet>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ListPlus, Film } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Movie, getMovieDetails } from '../lib/tmdb';
+import { ShelfItem, resolveMediaTypes } from '../lib/titleCards';
 import { toast } from 'sonner';
 import RatingBox from './RatingBox';
 import OracleSheet from './OracleSheet';
@@ -20,11 +20,13 @@ interface List {
   id: string;
   name: string;
   created_at: string;
-  movies: Movie[];
+  items: ShelfItem[];
 }
 
 // Listas de outra pessoa (aberto do perfil dela). Cada lista vira uma
-// prateleira de pôsteres, a mesma da Biblioteca.
+// prateleira de pôsteres, a mesma da Biblioteca — sob demanda: aqui só se
+// buscam os números dos títulos (uma consulta para todas as listas) e cada
+// prateleira busca os pôsteres quando aparece (lib/titleCards).
 export default function UserListsModal({ isOpen, onClose, userId, username }: UserListsModalProps) {
   const [lists, setLists] = useState<List[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,30 +56,24 @@ export default function UserListsModal({ isOpen, onClose, userId, username }: Us
         return;
       }
 
-      // Pra cada lista, os títulos dela.
-      const listsWithMovies = await Promise.all(
-        (listsData as Omit<List, 'movies'>[]).map(async (list) => {
-          const { data: movieIds, error: moviesError } = await supabase.from('list_movies').select('movie_id').eq('list_id', list.id);
+      // Os títulos de todas as listas, numa consulta só.
+      const baseLists = listsData as Omit<List, 'items'>[];
+      const { data: listMovies, error: moviesError } = await supabase
+        .from('list_movies')
+        .select('list_id, movie_id')
+        .in('list_id', baseLists.map((list) => list.id));
+      if (moviesError) throw moviesError;
 
-          if (moviesError) throw moviesError;
-          if (!movieIds || movieIds.length === 0) return { ...list, movies: [] };
+      const rows = (listMovies || []) as { list_id: string; movie_id: number }[];
+      const types = await resolveMediaTypes(rows.map((row) => row.movie_id));
+      const byList = new Map<string, ShelfItem[]>();
+      rows.forEach((row) => {
+        const list = byList.get(row.list_id) || [];
+        list.push({ id: row.movie_id, media_type: types.get(row.movie_id) || 'movie' });
+        byList.set(row.list_id, list);
+      });
 
-          const movies = await Promise.all(
-            movieIds.map(async ({ movie_id }: { movie_id: number }) => {
-              try {
-                return await getMovieDetails(movie_id);
-              } catch (err) {
-                console.error(`Failed to fetch details for movie ${movie_id}:`, err);
-                return null;
-              }
-            }),
-          );
-
-          return { ...list, movies: movies.filter((m): m is Movie => m !== null) };
-        }),
-      );
-
-      setLists(listsWithMovies);
+      setLists(baseLists.map((list) => ({ ...list, items: byList.get(list.id) || [] })));
     } catch (err: unknown) {
       console.error('Error fetching user lists:', err);
       setError(err instanceof Error ? err.message : 'error');
@@ -137,7 +133,7 @@ export default function UserListsModal({ isOpen, onClose, userId, username }: Us
       ) : (
         <div className="space-y-2">
           {lists.map((list) =>
-            list.movies.length === 0 ? (
+            list.items.length === 0 ? (
               <section key={list.id} className="px-5 sm:px-7 py-6">
                 <h3 style={{ ...PIXEL, color: PAPER }} className="text-2xl leading-tight">
                   {list.name}
@@ -153,7 +149,7 @@ export default function UserListsModal({ isOpen, onClose, userId, username }: Us
                 </div>
               </section>
             ) : (
-              <RatingBox key={list.id} title={list.name} movies={list.movies} rating={null} isOtherUserProfile={true} chromaBoxEnabled={false} />
+              <RatingBox key={list.id} title={list.name} items={list.items} rating={null} isOtherUserProfile={true} chromaBoxEnabled={false} />
             ),
           )}
         </div>

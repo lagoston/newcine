@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Star, Wand2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
-import { Movie, getTrending, getMovieDetails, getComingSoon, getBestOfYear } from '../lib/tmdb';
+import { Movie, getTrending, getComingSoon, getBestOfYear } from '../lib/tmdb';
+import { asMediaType, getFullTitle, prefetchFullTitle } from '../lib/titleCards';
+import { tilesThatFit, useInViewOnce, useProgressiveCount, useReveal } from '../hooks/useLazyList';
 import { supabase } from '../lib/supabase';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
@@ -18,25 +20,16 @@ import { MOOD_BY_KEY } from '../lib/moods';
 import { EMPTY_FOR_YOU, ForYouInfo, ForYouShelf, getForYouShelf } from '../lib/forYou';
 
 // ---------------------------------------------------------------------------
-// Pré-carregamento dos detalhes (hover no pôster já adianta o modal)
+// Pré-carregamento dos detalhes (mouse em cima ou dedo encostando no pôster
+// já adianta o modal — lib/titleCards)
 // ---------------------------------------------------------------------------
 
-const detailsCache = new Map<string, Promise<Movie>>();
-
 function prefetchMovie(id: number, mediaType: 'movie' | 'tv' = 'movie') {
-  const key = `${mediaType}:${id}`;
-  if (!detailsCache.has(key)) {
-    detailsCache.set(key, getMovieDetails(id, mediaType));
-  }
+  prefetchFullTitle({ id, media_type: mediaType });
 }
 
-async function getOrFetchDetails(id: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<Movie> {
-  const key = `${mediaType}:${id}`;
-  const pending = detailsCache.get(key);
-  if (pending) return pending;
-  const promise = getMovieDetails(id, mediaType);
-  detailsCache.set(key, promise);
-  return promise;
+function getOrFetchDetails(id: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<Movie> {
+  return getFullTitle({ id, media_type: mediaType });
 }
 
 const movieKey = (movie: Pick<Movie, 'id' | 'media_type'>) => `${movie.media_type || 'movie'}:${movie.id}`;
@@ -51,13 +44,35 @@ function parseLocalDate(value?: string): Date | null {
 }
 
 // ---------------------------------------------------------------------------
-// Atividade dos amigos em lote: uma consulta para TODOS os pôsteres da
-// página, em vez de três consultas por pôster (antes eram ~240 requisições
-// ao abrir a home).
+// Atividade dos amigos em lote: uma consulta por LISTA que chega (as listas
+// da home agora carregam conforme a pessoa desce), em vez de três consultas
+// por pôster (antes eram ~240 requisições ao abrir a home). Os amigos são
+// buscados uma vez só.
 // ---------------------------------------------------------------------------
+
+type FriendEntry = { user_id: string; movie_id: number; media_type: string | null; rating: number | null };
+
+async function fetchFriendIds(userId: string): Promise<string[]> {
+  const { data: friendships } = await supabase
+    .from('friendships')
+    .select('requester_id, addressee_id')
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+  return (friendships ?? []).map((f: { requester_id: string; addressee_id: string }) =>
+    f.requester_id === userId ? f.addressee_id : f.requester_id
+  );
+}
 
 function useFriendActivity(userId: string | undefined, movies: Movie[]) {
   const [activity, setActivity] = useState<Record<string, FriendBubbleData[]>>({});
+  const friendIdsRef = useRef<Promise<string[]> | null>(null);
+  const askedRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    friendIdsRef.current = null;
+    askedRef.current = new Set();
+    setActivity({});
+  }, [userId]);
 
   const idsKey = useMemo(
     () => Array.from(new Set(movies.map((movie) => movie.id))).sort((a, b) => a - b).join(','),
@@ -66,35 +81,23 @@ function useFriendActivity(userId: string | undefined, movies: Movie[]) {
 
   useEffect(() => {
     if (!userId || !idsKey) return;
-    let cancelled = false;
+    const ids = idsKey.split(',').map(Number).filter((id) => !askedRef.current.has(id));
+    if (ids.length === 0) return;
+    ids.forEach((id) => askedRef.current.add(id));
 
     (async () => {
       try {
-        const { data: friendships } = await supabase
-          .from('friendships')
-          .select('requester_id, addressee_id')
-          .eq('status', 'accepted')
-          .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+        if (!friendIdsRef.current) friendIdsRef.current = fetchFriendIds(userId);
+        const friendIds = await friendIdsRef.current;
+        if (friendIds.length === 0) return;
 
-        const friendIds = (friendships ?? []).map((f: { requester_id: string; addressee_id: string }) =>
-          f.requester_id === userId ? f.addressee_id : f.requester_id
-        );
-        if (friendIds.length === 0) {
-          if (!cancelled) setActivity({});
-          return;
-        }
-
-        const ids = idsKey.split(',').map(Number);
         const { data: entries } = await supabase
           .from('user_movies')
           .select('user_id, movie_id, media_type, rating')
           .in('movie_id', ids)
           .in('user_id', friendIds);
 
-        if (!entries || entries.length === 0) {
-          if (!cancelled) setActivity({});
-          return;
-        }
+        if (!entries || entries.length === 0) return;
 
         const userIds = Array.from(new Set(entries.map((e: { user_id: string }) => e.user_id)));
         const { data: profiles } = await supabase
@@ -105,7 +108,7 @@ function useFriendActivity(userId: string | undefined, movies: Movie[]) {
         const byId = new Map((profiles ?? []).map((p: { id: string; username: string; avatar_url: string | null }) => [p.id, p]));
         const grouped: Record<string, FriendBubbleData[]> = {};
 
-        (entries as { user_id: string; movie_id: number; media_type: string | null; rating: number | null }[]).forEach((entry) => {
+        (entries as FriendEntry[]).forEach((entry) => {
           const profile = byId.get(entry.user_id);
           if (!profile) return;
           const key = `${entry.media_type || 'movie'}:${entry.movie_id}`;
@@ -123,13 +126,11 @@ function useFriendActivity(userId: string | undefined, movies: Movie[]) {
           list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1))
         );
 
-        if (!cancelled) setActivity(grouped);
+        setActivity((prev) => ({ ...prev, ...grouped }));
       } catch (error) {
         console.error('Home: friend activity error', error);
       }
     })();
-
-    return () => { cancelled = true; };
   }, [userId, idsKey]);
 
   return activity;
@@ -148,7 +149,10 @@ type ShelfMeta = 'rank' | 'release' | 'score' | 'year' | 'forYou';
 interface ShelfProps {
   title: string;
   subtitle?: string;
-  movies: Movie[];
+  // undefined = a lista ainda não foi buscada (só é buscada quando a
+  // prateleira chega perto da tela — onNearView).
+  movies: Movie[] | undefined;
+  onNearView?: () => void;
   meta: ShelfMeta;
   friendActivity: Record<string, FriendBubbleData[]>;
   onMovieClick: (movie: Movie) => void;
@@ -158,8 +162,30 @@ interface ShelfProps {
   forYouInfo?: Record<string, ForYouInfo>;
 }
 
-const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, meta, friendActivity, onMovieClick, onViewAll, emptyState, forYouInfo }) => {
+const TILE_WIDTH = 'w-[124px] sm:w-[148px]';
+const tileWidthPx = () => (typeof window !== 'undefined' && window.innerWidth >= 640 ? 148 : 124);
+
+const ShelfSkeletonTile: React.FC = () => (
+  <li className={`shrink-0 ${TILE_WIDTH}`} aria-hidden>
+    <span className="block aspect-[2/3] rounded-xl poster-skeleton" />
+    <span className="mt-2.5 block h-3.5 w-4/5 rounded poster-skeleton" />
+    <span className="mt-2 block h-3 w-1/2 rounded poster-skeleton" />
+  </li>
+);
+
+const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta, friendActivity, onMovieClick, onViewAll, emptyState, forYouInfo }) => {
   const { t, i18n } = useTranslation();
+  // Sob demanda (10/10/2026): a lista só é buscada quando a prateleira chega
+  // perto da tela; os pôsteres entram em lotes e acendem ao aparecer.
+  const [sectionRef, inView] = useInViewOnce<HTMLElement>(600);
+  useEffect(() => {
+    if (inView) onNearView?.();
+  }, [inView, onNearView]);
+  const loaded = movies !== undefined;
+  const list = movies ?? [];
+  const initialCount = useMemo(() => tilesThatFit(tileWidthPx()) + 2, []);
+  const { count, endRef, hasMore } = useProgressiveCount({ total: list.length, initial: initialCount, step: 10, enabled: inView && loaded });
+  const reveal = useReveal();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -186,7 +212,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, meta, friendActi
     if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
   };
 
-  if (movies.length === 0 && !emptyState) return null;
+  if (loaded && list.length === 0 && !emptyState) return null;
 
   // De qual oráculo veio o título (só nas listas Para Você).
   const forYouOracle = (movie: Movie) => {
@@ -212,13 +238,13 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, meta, friendActi
   };
 
   return (
-    <section className="border-t border-white/[0.07] pt-6 pb-4 sm:pt-8 sm:pb-6">
+    <section ref={sectionRef} className="border-t border-white/[0.07] pt-6 pb-4 sm:pt-8 sm:pb-6">
       <div className="mx-auto max-w-6xl px-5 sm:px-8 flex items-end justify-between gap-4">
         <div className="min-w-0">
           <h2 style={{ ...PIXEL, color: PAPER }} className="text-2xl sm:text-3xl leading-tight">{title}</h2>
           {subtitle && <p className="mt-1 text-sm leading-snug" style={{ color: MIST }}>{subtitle}</p>}
         </div>
-        {movies.length > 0 && (
+        {list.length > 0 && (
           <button
             onClick={onViewAll}
             className="shrink-0 px-4 py-2 rounded-lg text-sm font-medium border border-white/15 hover:border-white/35 hover:bg-white/5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
@@ -229,7 +255,13 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, meta, friendActi
         )}
       </div>
 
-      {movies.length === 0 ? (
+      {!loaded ? (
+        <div className="mt-1 pt-3 overflow-hidden" aria-busy="true">
+          <ol className="flex gap-4 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] pb-2">
+            {[...Array(initialCount)].map((_, i) => <ShelfSkeletonTile key={i} />)}
+          </ol>
+        </div>
+      ) : list.length === 0 ? (
         <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-6">{emptyState}</div>
       ) : (
         <div
@@ -246,11 +278,12 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, meta, friendActi
               container dá espaço pro pôster subir no hover/toque sem ser
               cortado (overflow-x:auto também recorta na vertical). */}
           <ol className="flex gap-4 px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))] pb-2">
-            {movies.map((movie, index) => (
-              <li key={movieKey(movie)} className="shrink-0 w-[124px] sm:w-[148px]">
+            {list.slice(0, count).map((movie, index) => (
+              <li key={movieKey(movie)} ref={reveal} className={`reveal-tile shrink-0 ${TILE_WIDTH}`}>
                 <button
                   onClick={() => { if (dragDistanceRef.current > 5) return; onMovieClick(movie); }}
-                  onMouseEnter={() => prefetchMovie(movie.id, movie.media_type || 'movie')}
+                  onPointerEnter={() => prefetchMovie(movie.id, asMediaType(movie.media_type))}
+                  onPointerDown={() => prefetchMovie(movie.id, asMediaType(movie.media_type))}
                   className="group block w-full text-left rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
                 >
                   <div
@@ -320,6 +353,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, meta, friendActi
                 </button>
               </li>
             ))}
+            {hasMore && <li ref={endRef} aria-hidden className="shrink-0 w-px" />}
           </ol>
         </div>
       )}
@@ -331,13 +365,19 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, meta, friendActi
 // Página
 // ---------------------------------------------------------------------------
 
+// Cada lista só existe depois de buscada (undefined = ainda não).
 interface ShelfData {
-  trending: Movie[];
-  comingSoon: Movie[];
-  bestOfYear: Movie[];
+  trending?: Movie[];
+  comingSoon?: Movie[];
+  bestOfYear?: Movie[];
 }
+type ShelfKey = keyof ShelfData;
 
-const EMPTY_SHELVES: ShelfData = { trending: [], comingSoon: [], bestOfYear: [] };
+const SHELF_FETCHERS: Record<ShelfKey, () => Promise<Movie[]>> = {
+  trending: getTrending,
+  comingSoon: getComingSoon,
+  bestOfYear: getBestOfYear,
+};
 
 const Home = () => {
   const { session } = useAuth();
@@ -345,8 +385,7 @@ const Home = () => {
   const navigate = useNavigate();
   const userId = session?.user?.id;
 
-  const [shelves, setShelves] = useState<ShelfData>(EMPTY_SHELVES);
-  const [shelvesLoading, setShelvesLoading] = useState(true);
+  const [shelves, setShelves] = useState<ShelfData>({});
   const [panelsReady, setPanelsReady] = useState(false);
   const [readyTimeout, setReadyTimeout] = useState(false);
   const [guestTrendingMovies, setGuestTrendingMovies] = useState<Movie[]>([]);
@@ -354,10 +393,10 @@ const Home = () => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [username, setUsername] = useState('');
   const [allMoviesModal, setAllMoviesModal] = useState<{ isOpen: boolean; title: string; movies: Movie[] }>({ isOpen: false, title: '', movies: [] });
-  // Filmes e Séries Para Você: chegam depois, sem segurar a página (o banco
+  // Filmes e Séries Para Você: buscadas quando chegam perto da tela (o banco
   // guarda o resultado; o primeiro cálculo do dia pode levar ~1s).
-  const [forYouMovies, setForYouMovies] = useState<ForYouShelf>(EMPTY_FOR_YOU);
-  const [forYouSeries, setForYouSeries] = useState<ForYouShelf>(EMPTY_FOR_YOU);
+  const [forYouMovies, setForYouMovies] = useState<ForYouShelf | undefined>(undefined);
+  const [forYouSeries, setForYouSeries] = useState<ForYouShelf | undefined>(undefined);
 
   // Rede de segurança: se o topo demorar demais, a página abre mesmo assim
   // (cada bloco tem o próprio esqueleto de carregamento).
@@ -394,53 +433,59 @@ const Home = () => {
     }
   };
 
-  const fetchShelves = async () => {
-    setShelvesLoading(true);
-    const [trending, comingSoon, bestOfYear] = await Promise.allSettled([
-      getTrending(),
-      getComingSoon(),
-      getBestOfYear(),
-    ]);
-    const value = (result: PromiseSettledResult<Movie[]>) => (result.status === 'fulfilled' ? result.value : []);
-    setShelves({
-      trending: value(trending),
-      comingSoon: value(comingSoon),
-      bestOfYear: value(bestOfYear),
-    });
-    setShelvesLoading(false);
-  };
+  // Uma lista da home é buscada uma vez, quando a prateleira dela chega
+  // perto da tela.
+  const requestedRef = useRef<Set<string>>(new Set());
+  const loadShelf = useCallback((key: ShelfKey) => {
+    if (requestedRef.current.has(key)) return;
+    requestedRef.current.add(key);
+    SHELF_FETCHERS[key]()
+      .then((movies) => setShelves((prev) => ({ ...prev, [key]: movies })))
+      .catch((error) => {
+        console.error(`Home: ${key} error`, error);
+        setShelves((prev) => ({ ...prev, [key]: [] }));
+      });
+  }, []);
+  const loadTrending = useCallback(() => loadShelf('trending'), [loadShelf]);
+  const loadComingSoon = useCallback(() => loadShelf('comingSoon'), [loadShelf]);
+  const loadBestOfYear = useCallback(() => loadShelf('bestOfYear'), [loadShelf]);
+
+  const loadForYou = useCallback((mediaType: 'movie' | 'tv') => {
+    const key = `forYou:${mediaType}`;
+    if (requestedRef.current.has(key)) return;
+    requestedRef.current.add(key);
+    const set = mediaType === 'movie' ? setForYouMovies : setForYouSeries;
+    getForYouShelf(mediaType)
+      .then(set)
+      .catch((error) => {
+        console.error(`Home: for-you ${mediaType} error`, error);
+        set(EMPTY_FOR_YOU);
+      });
+  }, []);
+  const loadForYouMovies = useCallback(() => loadForYou('movie'), [loadForYou]);
+  const loadForYouSeries = useCallback(() => loadForYou('tv'), [loadForYou]);
 
   useEffect(() => {
+    requestedRef.current = new Set();
+    setShelves({});
+    setForYouMovies(undefined);
+    setForYouSeries(undefined);
     if (userId) {
       fetchUsername(userId);
-      fetchShelves();
     } else {
       fetchGuestTrending();
     }
-  }, [userId]);
-
-  useEffect(() => {
-    if (!userId) {
-      setForYouMovies(EMPTY_FOR_YOU);
-      setForYouSeries(EMPTY_FOR_YOU);
-      return;
-    }
-    let cancelled = false;
-    const load = (mediaType: 'movie' | 'tv', set: (shelf: ForYouShelf) => void) =>
-      getForYouShelf(mediaType)
-        .then((shelf) => {
-          if (!cancelled) set(shelf);
-        })
-        .catch((error) => console.error(`Home: for-you ${mediaType} error`, error));
-    load('movie', setForYouMovies);
-    load('tv', setForYouSeries);
-    return () => {
-      cancelled = true;
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const allShelfMovies = useMemo(
-    () => [...forYouMovies.movies, ...forYouSeries.movies, ...shelves.trending, ...shelves.comingSoon, ...shelves.bestOfYear],
+    () => [
+      ...(forYouMovies?.movies ?? []),
+      ...(forYouSeries?.movies ?? []),
+      ...(shelves.trending ?? []),
+      ...(shelves.comingSoon ?? []),
+      ...(shelves.bestOfYear ?? []),
+    ],
     [shelves, forYouMovies, forYouSeries]
   );
   const friendActivity = useFriendActivity(userId, allShelfMovies);
@@ -491,15 +536,18 @@ const Home = () => {
     );
   }
 
-  const pageReady = !shelvesLoading && (panelsReady || readyTimeout);
+  // A página abre com o topo pronto; as listas de baixo vêm conforme a
+  // pessoa desce (cada uma com a própria faixa de esqueletos).
+  const pageReady = panelsReady || readyTimeout;
   const openAll = (title: string, movies: Movie[]) => setAllMoviesModal({ isOpen: true, title, movies });
 
   return (
     <>
       {!pageReady && <GlassLoader fullPage size="lg" label={t('common.loading')} />}
 
-      {/* O conteúdo já monta escondido pra buscar tudo em paralelo com o
-          carregador; aparece inteiro de uma vez quando o topo está pronto. */}
+      {/* O conteúdo já monta escondido pra buscar o topo em paralelo com o
+          carregador; as listas de baixo só são buscadas quando ficam
+          visíveis e chegam perto da tela. */}
       <div className={pageReady ? 'relative min-h-[calc(100vh-3.5rem)] overflow-x-hidden pb-6' : 'hidden'}>
         {userId && (
           <HomeUserPanels
@@ -514,26 +562,29 @@ const Home = () => {
         <Shelf
           title={t('home.popularNow')}
           movies={shelves.trending}
+          onNearView={loadTrending}
           meta="rank"
           friendActivity={friendActivity}
           onMovieClick={handleMovieClick}
-          onViewAll={() => openAll(t('home.popularNow'), shelves.trending)}
+          onViewAll={() => openAll(t('home.popularNow'), shelves.trending ?? [])}
         />
         <Shelf
           title={t('home.comingSoon')}
           movies={shelves.comingSoon}
+          onNearView={loadComingSoon}
           meta="release"
           friendActivity={friendActivity}
           onMovieClick={handleMovieClick}
-          onViewAll={() => openAll(t('home.comingSoon'), shelves.comingSoon)}
+          onViewAll={() => openAll(t('home.comingSoon'), shelves.comingSoon ?? [])}
         />
         <Shelf
           title={t('home.bestOfYear')}
           movies={shelves.bestOfYear}
+          onNearView={loadBestOfYear}
           meta="score"
           friendActivity={friendActivity}
           onMovieClick={handleMovieClick}
-          onViewAll={() => openAll(t('home.bestOfYear'), shelves.bestOfYear)}
+          onViewAll={() => openAll(t('home.bestOfYear'), shelves.bestOfYear ?? [])}
         />
         {/* Para você: some quando não há nada (ninguém avaliado ainda, ou
             tudo das prateleiras favoritas já está na biblioteca). A
@@ -541,22 +592,24 @@ const Home = () => {
         <Shelf
           title={t('home.forYouMovies')}
           subtitle={t('home.forYouSubtitle')}
-          movies={forYouMovies.movies}
+          movies={forYouMovies?.movies}
+          onNearView={loadForYouMovies}
           meta="forYou"
-          forYouInfo={forYouMovies.info}
+          forYouInfo={forYouMovies?.info}
           friendActivity={friendActivity}
           onMovieClick={handleMovieClick}
-          onViewAll={() => openAll(t('home.forYouMovies'), forYouMovies.movies)}
+          onViewAll={() => openAll(t('home.forYouMovies'), forYouMovies?.movies ?? [])}
         />
         <Shelf
           title={t('home.forYouSeries')}
-          subtitle={forYouMovies.movies.length === 0 ? t('home.forYouSubtitle') : undefined}
-          movies={forYouSeries.movies}
+          subtitle={forYouMovies && forYouMovies.movies.length === 0 ? t('home.forYouSubtitle') : undefined}
+          movies={forYouSeries?.movies}
+          onNearView={loadForYouSeries}
           meta="forYou"
-          forYouInfo={forYouSeries.info}
+          forYouInfo={forYouSeries?.info}
           friendActivity={friendActivity}
           onMovieClick={handleMovieClick}
-          onViewAll={() => openAll(t('home.forYouSeries'), forYouSeries.movies)}
+          onViewAll={() => openAll(t('home.forYouSeries'), forYouSeries?.movies ?? [])}
         />
       </div>
 

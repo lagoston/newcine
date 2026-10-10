@@ -640,3 +640,106 @@ img[loading="lazy"] {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(37, 99, 235, 0.05)) !important;
   border-color: rgba(59, 130, 246, 0.35) !important;
 }
+/* ── Listas sob demanda (10/10/2026) ──────────────────────────────────────
+   Cada pôster de prateleira (Biblioteca, Home, oráculos, perfis, Ver todos)
+   entra quando aparece na tela: sobe um pouco e acende, em sequência com os
+   vizinhos (useReveal em src/hooks/useLazyList.ts põe data-revealed e o
+   atraso). Até lá, o lugar do pôster fica marcado (::before), pra a faixa
+   nunca ficar vazia entre o esqueleto e o pôster. Enquanto a imagem não
+   chega, um brilho passa devagar; quando chega, ela "floresce" — sai do
+   desfoque. */
+.reveal-tile {
+  position: relative;
+}
+.reveal-tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  aspect-ratio: 2 / 3;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.055);
+  pointer-events: none;
+}
+.reveal-tile > * {
+  opacity: 0;
+}
+.reveal-tile[data-revealed]::before {
+  opacity: 0;
+  transition: opacity 0.4s ease-out calc(var(--reveal-delay, 0ms) + 0.25s);
+}
+/* Animação (e não transição) com preenchimento só "para trás": depois que
+   termina, os elementos voltam às próprias regras — o salto do pôster no
+   hover e as transições dele continuam como eram. */
+.reveal-tile[data-revealed] > * {
+  opacity: 1;
+  animation: reveal-rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0ms) backwards;
+}
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.96);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.poster-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.055);
+}
+.poster-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 25%, rgba(185, 166, 255, 0.11) 45%, rgba(255, 255, 255, 0.07) 52%, transparent 75%);
+  transform: translateX(-100%);
+  animation: poster-sheen 1.8s ease-in-out infinite;
+}
+@keyframes poster-sheen {
+  to { transform: translateX(100%); }
+}
+
+.poster-bloom {
+  opacity: 0;
+  transform: scale(1.07);
+  filter: blur(12px) saturate(0.5);
+}
+.poster-bloom[data-loaded] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition:
+    opacity 0.6s ease-out,
+    transform 1s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.75s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-tile > *,
+  .reveal-tile[data-revealed] > * {
+    opacity: 1;
+    animation: none;
+  }
+  .reveal-tile::before {
+    display: none;
+  }
+  .poster-skeleton::after {
+    animation: none;
+  }
+  .poster-bloom,
+  .poster-bloom[data-loaded] {
+    transform: none;
+    filter: none;
+  }
+  .poster-bloom[data-loaded] {
+    transition: opacity 0.2s linear;
+  }
+}

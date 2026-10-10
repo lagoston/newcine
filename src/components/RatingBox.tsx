@@ -1,9 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  MoreHorizontal, Trash2, Star, ListPlus, XCircle, ArrowUpDown, Film, Filter, Bookmark, Tv, Swords,
+  MoreHorizontal, Trash2, Star, ListPlus, XCircle, ArrowUpDown, Film, Filter, Bookmark, Tv, Swords, Loader2,
 } from 'lucide-react';
 import { Movie, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } from '../lib/tmdb';
+import { ShelfEntry, TitleMediaType, getFullTitle, prefetchFullTitle, titleKey, toShelfEntry } from '../lib/titleCards';
+import { tilesThatFit, useInViewOnce, useProgressiveCount, useReveal, useTitleCards } from '../hooks/useLazyList';
 import { useAuth } from '../lib/auth';
 import ConfirmationModal from './ConfirmationModal';
 import MovieDetailsModal from './MovieDetailsModal';
@@ -22,13 +24,24 @@ import {
 // Uma prateleira da estante — usada na Biblioteca (uma por nota, mais a
 // Watchlist), no perfil de outra pessoa e nas listas. Cabeçalho com o selo
 // da nota, o nome e a contagem; faixa de pôsteres que rola de lado.
+//
+// Sob demanda (10/10/2026): o cabeçalho e a contagem aparecem na hora, mas
+// os pôsteres só são montados quando a prateleira chega perto da tela — e
+// em lotes, conforme a pessoa rola de lado (hooks/useLazyList). Quem passa
+// `items` (só id, tipo e nota, como a Biblioteca) deixa a prateleira buscar
+// os cartões leves (lib/titleCards) e os detalhes completos só ao abrir o
+// título. Quem já tem os títulos inteiros passa `movies`.
 
 interface RatingBoxProps {
   title: string;
-  movies: Movie[];
+  movies?: Movie[];
+  items?: ShelfEntry[];
+  // A lista ainda está sendo montada (ex.: filtro de streaming esperando os
+  // cartões): mostra a faixa de esqueletos.
+  pending?: boolean;
   rating: number | null;
-  onRate?: (movieId: number, rating: number | null) => void;
-  onDelete?: (movieId: number) => void;
+  onRate?: (movieId: number, rating: number | null, mediaType?: TitleMediaType) => void;
+  onDelete?: (movieId: number, mediaType?: TitleMediaType) => void;
   onRemoveFromList?: (movieId: number) => void;
   isNotRated?: boolean;
   className?: string;
@@ -62,11 +75,28 @@ interface RatingBoxProps {
   anchorId?: string;
 }
 
-type LibraryTile = Movie & { predictedRating?: number };
+type LibraryTile = Movie & { predictedRating?: number | null };
+
+const TILE_WIDTH = 'w-[124px] sm:w-[148px]';
+const tileWidthPx = () => (typeof window !== 'undefined' && window.innerWidth >= 640 ? 148 : 124);
+const LOAD_STEP = 12;
+
+// Lugar de um pôster que ainda não chegou (mesmas medidas do pôster de
+// verdade, pra a faixa não pular).
+const SkeletonTile: React.FC<{ withAction?: boolean }> = ({ withAction }) => (
+  <li className={`shrink-0 ${TILE_WIDTH}`} aria-hidden>
+    <span className="block aspect-[2/3] rounded-xl poster-skeleton" />
+    <span className="mt-2.5 block h-3.5 w-4/5 rounded poster-skeleton" />
+    <span className="mt-2 block h-3 w-1/2 rounded poster-skeleton" />
+    {withAction && <span className="mt-2 block h-8 rounded-lg poster-skeleton" />}
+  </li>
+);
 
 const RatingBox: React.FC<RatingBoxProps> = ({
   title,
   movies,
+  items,
+  pending = false,
   rating,
   onRate,
   onDelete,
@@ -92,22 +122,63 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
-  const [deleteMovieId, setDeleteMovieId] = useState<number | null>(null);
+  const [deleteMovieId, setDeleteMovieId] = useState<{ id: number; mediaType: TitleMediaType } | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [rateMenuMovie, setRateMenuMovie] = useState<Movie | null>(null);
   const [showAllMovies, setShowAllMovies] = useState(false);
   const [showAddToList, setShowAddToList] = useState<{ movieId: number; title: string } | null>(null);
-  const [menuMovie, setMenuMovie] = useState<Movie | null>(null);
-  // tmdb_id -> { watchedCount, airedCount }. Buscado em lote (uma consulta
-  // pra todas as séries dessa prateleira) sempre que a lista mudar.
-  // airedCount (não o total de episódios) é o denominador certo do
-  // progresso — conta só o que já foi lançado.
+  const [menuMovie, setMenuMovie] = useState<LibraryTile | null>(null);
+  // Título sendo aberto (detalhes completos a caminho): mostra um giro no pôster.
+  const [openingKey, setOpeningKey] = useState<string | null>(null);
+
+  // Cada título da prateleira: id, tipo, nota da pessoa e, quando quem chama
+  // já tinha, o título inteiro.
+  const lazy = items !== undefined;
+  const entries: ShelfEntry[] = useMemo(
+    () => (items !== undefined ? items : (movies || []).map((movie) => toShelfEntry(movie as LibraryTile))),
+    [items, movies]
+  );
+
+  // A prateleira só monta os pôsteres quando chega perto da tela; depois,
+  // um lote a mais cada vez que o fim da faixa se aproxima.
+  const [sectionRef, inView] = useInViewOnce<HTMLElement>(700);
+  const initialCount = useMemo(() => tilesThatFit(tileWidthPx()) + 2, []);
+  const { count, endRef, hasMore } = useProgressiveCount({
+    total: entries.length,
+    initial: initialCount,
+    step: LOAD_STEP,
+    enabled: inView && !pending,
+    resetKey: `${activeFilterCount}:${showPredictedRating ? 1 : 0}`,
+  });
+  const cardOf = useTitleCards(lazy ? entries : [], count, { enabled: inView && lazy && !pending });
+  const reveal = useReveal();
+
+  // Título pronto pra desenhar (cartão + o que é da pessoa), ou undefined
+  // enquanto o cartão não chegou.
+  const tileFor = (entry: ShelfEntry): LibraryTile | undefined => {
+    const base = entry.movie ?? cardOf(entry);
+    if (!base) return undefined;
+    return {
+      ...base,
+      media_type: entry.media_type,
+      userRating: entry.userRating ?? base.userRating ?? null,
+      predictedRating: entry.predictedRating ?? (base as LibraryTile).predictedRating,
+    };
+  };
+
+  // tmdb_id -> { watchedCount, airedCount }, só das séries já na tela (uma
+  // consulta por lote). airedCount (não o total de episódios) é o
+  // denominador certo do progresso — conta só o que já foi lançado.
   const [tvProgressData, setTvProgressData] = useState<Map<number, TvProgress>>(new Map());
+  const visibleTvKey = useMemo(
+    () => entries.slice(0, count).filter((entry) => entry.media_type === 'tv').map((entry) => entry.id).join(','),
+    [entries, count]
+  );
 
   // Também chamada pelo onEpisodeToggle do modal de detalhes: marcar um
   // episódio lá atualiza a barra aqui na hora.
   const refetchTvProgress = useCallback(() => {
-    const tvIds = movies.filter((m) => m.media_type === 'tv').map((m) => m.id);
+    const tvIds = visibleTvKey ? visibleTvKey.split(',').map(Number) : [];
     if (tvIds.length === 0 || !session?.user?.id) {
       setTvProgressData(new Map());
       return;
@@ -119,11 +190,35 @@ const RatingBox: React.FC<RatingBoxProps> = ({
     fetchFn.then((data) => {
       setTvProgressData(data);
     });
-  }, [movies, session?.user?.id, isOtherUserProfile, profileUserId]);
+  }, [visibleTvKey, session?.user?.id, isOtherUserProfile, profileUserId]);
 
   useEffect(() => {
-    refetchTvProgress();
-  }, [refetchTvProgress]);
+    if (inView) refetchTvProgress();
+  }, [inView, refetchTvProgress]);
+
+  // Abre o menu do título. Quem passou o título inteiro abre na hora; com
+  // cartões leves, os detalhes completos são buscados (normalmente já
+  // adiantados quando o dedo/mouse encostou no pôster).
+  const openTitle = async (entry: ShelfEntry, tile: LibraryTile) => {
+    if (entry.movie) {
+      setSelectedMovie(entry.movie);
+      return;
+    }
+    const key = titleKey(entry);
+    if (openingKey) return;
+    setOpeningKey(key);
+    try {
+      const full = await getFullTitle(entry);
+      setSelectedMovie({ ...full, userRating: tile.userRating });
+    } catch {
+      setSelectedMovie(tile);
+    } finally {
+      setOpeningKey(null);
+    }
+  };
+  const prefetch = (entry: ShelfEntry) => {
+    if (!entry.movie) prefetchFullTitle(entry);
+  };
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -154,7 +249,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   // Prateleiras de nota somem quando vazias. A Watchlist não: ela pode
   // ficar vazia só por causa de um FILTRO, e sem o cabeçalho não haveria
   // como desfazer o filtro.
-  if (movies.length === 0 && !isNotRated) return null;
+  if (entries.length === 0 && !isNotRated && !pending) return null;
 
   // Progresso de episódios de uma série. Cores da Biblioteca: azul em
   // andamento, roxo quando em dia com uma série ainda no ar, rosa quando
@@ -221,13 +316,14 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   );
 
   const countLine = [
-    t('library.titleCount', { count: movies.length }),
+    t('library.titleCount', { count: entries.length }),
     isRatingShelf && displayName && ratingLabel ? ratingLabel : null,
   ].filter(Boolean).join(' · ');
 
   return (
     <>
       <section
+        ref={sectionRef}
         id={anchorId}
         className={`relative scroll-mt-20 border-t border-white/[0.07] py-10 sm:py-12 ${className}`}
         style={sectionStyle}
@@ -278,7 +374,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 {t('library.duel')}
               </button>
             )}
-            {movies.length > 0 && (
+            {entries.length > 0 && (
               <button
                 onClick={() => setShowAllMovies(true)}
                 className={`${ghostPill} border-white/15 hover:border-white/35 hover:bg-white/5`}
@@ -290,7 +386,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
           </div>
         </div>
 
-        {movies.length === 0 && isNotRated ? (
+        {entries.length === 0 && isNotRated && !pending ? (
           <div className={`${innerPad} mt-6`}>
             <div className="rounded-xl px-5 py-8 text-center ring-1 ring-white/10" style={{ background: VELVET }}>
               {activeFilterCount > 0 ? (
@@ -321,8 +417,12 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             {/* pt-3: espaço pro pôster subir no hover sem ser cortado
                 (overflow-x:auto também recorta na vertical). */}
             <ol className={`flex gap-4 pb-2 ${listPad}`}>
-              {movies.map((raw) => {
-                const movie = raw as LibraryTile;
+              {(!inView || pending) && [...Array(Math.max(1, Math.min(entries.length || initialCount, initialCount)))].map((_, i) => (
+                <SkeletonTile key={`wait:${i}`} withAction={isNotRated && !!onRate && canManage} />
+              ))}
+              {inView && !pending && entries.slice(0, count).map((entry) => {
+                const movie = tileFor(entry);
+                if (!movie) return <SkeletonTile key={`s:${titleKey(entry)}`} withAction={isNotRated && !!onRate && canManage} />;
                 const isTv = movie.media_type === 'tv';
                 const tv = isTv ? getTvProgress(movie) : null;
                 const year = (movie.release_date || movie.first_air_date || '').slice(0, 4);
@@ -332,9 +432,12 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 // o selo só aparece onde as notas se misturam (One Grid, listas).
                 const showOwnRating = ownRating !== null && !isNotRated && !isRatingShelf;
                 return (
-                  <li key={`${movie.media_type || 'movie'}:${movie.id}`} className="group relative shrink-0 w-[124px] sm:w-[148px]">
+                  <li key={`t:${titleKey(entry)}`} ref={reveal} className={`reveal-tile group relative shrink-0 ${TILE_WIDTH}`}>
                     <button
-                      onClick={() => { if (dragDistanceRef.current > 5) return; setSelectedMovie(movie); }}
+                      onClick={() => { if (dragDistanceRef.current > 5) return; openTitle(entry, movie); }}
+                      onPointerEnter={() => prefetch(entry)}
+                      onPointerDown={() => prefetch(entry)}
+                      onFocus={() => prefetch(entry)}
                       className={`block w-full text-left rounded-xl ${FOCUS_RING}`}
                     >
                       <span
@@ -367,6 +470,12 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                             {ownRating}
                           </span>
                         ) : null}
+
+                        {openingKey === titleKey(entry) && (
+                          <span className="absolute inset-0 grid place-items-center bg-black/55">
+                            <Loader2 className="w-6 h-6 animate-spin text-white" aria-hidden />
+                          </span>
+                        )}
 
                         {tv && (
                           <span
@@ -424,6 +533,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                   </li>
                 );
               })}
+              {inView && !pending && hasMore && <li ref={endRef} aria-hidden className="shrink-0 w-px" />}
             </ol>
           </div>
         )}
@@ -437,7 +547,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             onClose={() => setDeleteMovieId(null)}
             onConfirm={() => {
               if (deleteMovieId && onDelete) {
-                onDelete(deleteMovieId);
+                onDelete(deleteMovieId.id, deleteMovieId.mediaType);
               }
             }}
             title={t('common.delete')}
@@ -460,7 +570,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             isOpen={showAllMovies}
             onClose={() => setShowAllMovies(false)}
             title={isRatingShelf ? `${t('library.rating', { value: rating })} · ${heading}` : title}
-            movies={movies}
+            items={entries}
             rating={rating}
             isOtherUserProfile={isOtherUserProfile}
             profileUserId={profileUserId}
@@ -483,7 +593,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
               isOpen={true}
               onClose={() => setRateMenuMovie(null)}
               onRate={async (newRating) => {
-                onRate(rateMenuMovie.id, newRating);
+                onRate(rateMenuMovie.id, newRating, rateMenuMovie.media_type === 'tv' ? 'tv' : 'movie');
               }}
               showMoveToWatchlist={!isNotRated}
               currentRating={typeof rateMenuMovie.userRating === 'number' ? rateMenuMovie.userRating : undefined}
@@ -565,7 +675,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 {onDelete && (
                   <li>
                     <button
-                      onClick={() => { setDeleteMovieId(menuMovie.id); setMenuMovie(null); }}
+                      onClick={() => { setDeleteMovieId({ id: menuMovie.id, mediaType: menuMovie.media_type === 'tv' ? 'tv' : 'movie' }); setMenuMovie(null); }}
                       className={`w-full flex justify-start items-center gap-3.5 px-3 py-3 rounded-xl text-left text-red-300 hover:bg-red-500/10 transition ${FOCUS_RING}`}
                     >
                       <Trash2 className="w-5 h-5" aria-hidden />

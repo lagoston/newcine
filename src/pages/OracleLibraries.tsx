@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Filter, PartyPopper, Star, Wand2, Crown, Film, RefreshCw, Tv, Inbox } from 'lucide-react';
+import { ArrowLeft, Filter, PartyPopper, Star, Wand2, Crown, Film, RefreshCw, Tv, Inbox } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { getOraclePoolPredictions, getMoviesForPredictedSlice, Movie, getMovieDetails, type PredictedShelfMovie } from '../lib/tmdb';
+import { getOraclePoolPredictions, Movie, type PredictedShelfMovie } from '../lib/tmdb';
+import { ShelfItem, getFullTitle, prefetchFullTitle, titleKey } from '../lib/titleCards';
+import { tilesThatFit, useInViewOnce, useProgressiveCount, useReveal, useTitleCards } from '../hooks/useLazyList';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import StreamingFilterModal from '../components/StreamingFilterModal';
 import OptimizedPoster from '../components/OptimizedPoster';
@@ -75,34 +77,50 @@ const MEDIA_TYPE_OPTIONS: { value: ShelfMediaType; icon: typeof Film; labelKey: 
   { value: 'tv', icon: Tv, labelKey: 'oracle.libraries.showSeries' },
 ];
 
-// Carga inicial (grátis) é menor que o incremento premium.
-const INITIAL_PAGE_SIZE = 20;
-const LOAD_MORE_INCREMENT = 30;
+// Sem Premium, cada prateleira mostra os 20 primeiros títulos (os de nota
+// prevista mais alta); com Premium, a prateleira inteira.
+const FREE_LIMIT = 20;
+const LOAD_STEP = 15;
 
 const TILE_WIDTH = 'w-[124px] sm:w-[148px]';
+const tileWidthPx = () => (typeof window !== 'undefined' && window.innerWidth >= 640 ? 148 : 124);
 const SHELF_PAD = 'px-5 sm:px-8 xl:px-[max(2rem,calc((100vw-72rem)/2+2rem))]';
 
 interface ShelfState {
-  movies: Movie[];
-  totalCount: number;
+  // Títulos da prateleira que a pessoa ainda não tem, já na ordem da nota
+  // prevista (calculada uma vez pela Edge Function).
+  titles: PredictedShelfMovie[];
   // Quantos títulos do tipo a prateleira tem ao todo (com os que a pessoa
   // já tem). 0 = a prateleira ainda não tem esse tipo de título.
   poolCount: number;
   loading: boolean;
-  loadingMore: boolean;
   // Falha ao falar com o servidor — diferente de "prateleira vazia".
   error: boolean;
 }
 
-const INITIAL_SHELF: ShelfState = { movies: [], totalCount: 0, poolCount: 0, loading: true, loadingMore: false, error: false };
+const INITIAL_SHELF: ShelfState = { titles: [], poolCount: 0, loading: true, error: false };
 
 type PredictedMovie = Movie & { predictedRating?: number | null };
 
+const SkeletonTile: React.FC = () => (
+  <li className={`shrink-0 ${TILE_WIDTH}`} aria-hidden>
+    <span className="block aspect-[2/3] rounded-xl poster-skeleton" />
+    <span className="mt-2.5 block h-3.5 w-4/5 rounded poster-skeleton" />
+    <span className="mt-2 block h-3 w-1/2 rounded poster-skeleton" />
+  </li>
+);
+
 // Uma prateleira: o humor, e a fileira de pôsteres ordenada pela nota
-// prevista. O primeiro lote de 20 é grátis; carregar mais de 30 em 30 é
-// Premium (sem custo por uso) e some quando não há mais nada — ou quando
-// o filtro de streaming está ligado (carregar filmes "crus" que o filtro
-// esconderia não ajuda ninguém).
+// prevista.
+//
+// Sob demanda (10/10/2026): a prateleira só pede as notas previstas quando
+// chega perto da tela (antes as 9 pediam ao abrir a página). Os pôsteres
+// vêm em lotes, como cartões leves (lib/titleCards), conforme a pessoa rola
+// de lado — e acendem ao aparecer. Sem Premium, a fileira para nos 20
+// primeiros e termina no convite ao Premium; com Premium, segue carregando
+// sozinha até o fim (antes era um botão "+30" a cada vez). Com o filtro de
+// streaming ligado, a fileira continua buscando enquanto o fim estiver à
+// vista, até achar títulos que passem no filtro.
 //
 // Cada prateleira pertence a UM oráculo: a página monta uma prateleira nova
 // (key = oráculo + humor + filmes/séries) quando o oráculo — ou a chave
@@ -123,8 +141,6 @@ const Shelf: React.FC<{
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [state, setState] = useState<ShelfState>(INITIAL_SHELF);
-  const stateRef = useRef(state);
-  stateRef.current = state;
   const isFetchingRef = useRef(false);
   const aliveRef = useRef(true);
   useEffect(() => {
@@ -133,11 +149,6 @@ const Shelf: React.FC<{
       aliveRef.current = false;
     };
   }, []);
-  // Cache da lista completa de IDs já ordenados pela nota PREVISTA
-  // (calculada uma vez pela Edge Function) — "carregar mais" só fatia essa
-  // lista e busca os detalhes da fatia nova.
-  const predictedIdsRef = useRef<PredictedShelfMovie[]>([]);
-  const poolCountRef = useRef(0);
 
   // Arrastar com o mouse no desktop (a barra de rolagem fica escondida).
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -166,69 +177,70 @@ const Shelf: React.FC<{
     if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
   };
 
-  const loadMore = useCallback(async () => {
+  // As notas previstas da prateleira inteira, numa chamada só.
+  const loadPredictions = useCallback(async () => {
     if (isFetchingRef.current) return;
-    const current = stateRef.current;
-    const isFirstPage = current.movies.length === 0;
-    if (!isFirstPage && current.movies.length >= current.totalCount) return;
-
     isFetchingRef.current = true;
-    setState((s) => ({ ...s, error: false, loadingMore: !isFirstPage, loading: isFirstPage }));
+    setState((s) => ({ ...s, loading: true, error: false }));
     try {
-      // Primeira carga: previsões pro pool inteiro, numa chamada só.
-      if (isFirstPage) {
-        const { titles, poolCount } = await getOraclePoolPredictions(cardType, mood.key, mediaType);
-        predictedIdsRef.current = titles;
-        poolCountRef.current = poolCount;
-      }
-
-      const allPredicted = predictedIdsRef.current;
-      const pageSize = isFirstPage ? INITIAL_PAGE_SIZE : LOAD_MORE_INCREMENT;
-      const nextSlice = allPredicted.slice(current.movies.length, current.movies.length + pageSize);
-      const sliceMovies = await getMoviesForPredictedSlice(nextSlice);
-
-      const ratingByTitle = new Map(nextSlice.map((p) => [`${p.media_type}:${p.movie_id}`, p.predicted_rating]));
-      const enrichedMovies: PredictedMovie[] = sliceMovies.map((movie) => ({
-        ...movie,
-        predictedRating: ratingByTitle.get(`${movie.media_type === 'tv' ? 'tv' : 'movie'}:${movie.id}`) ?? null,
-      }));
-
+      const { titles, poolCount } = await getOraclePoolPredictions(cardType, mood.key, mediaType);
       if (!aliveRef.current) return;
-      setState((s) => ({
-        movies: isFirstPage ? enrichedMovies : [...s.movies, ...enrichedMovies],
-        totalCount: allPredicted.length,
-        poolCount: poolCountRef.current,
-        loading: false,
-        loadingMore: false,
-        error: false,
-      }));
+      setState({ titles, poolCount, loading: false, error: false });
     } catch (error) {
       console.error(`Error loading shelf ${cardType}/${mood.key}:`, error);
       if (!aliveRef.current) return;
-      setState((s) => ({ ...s, loading: false, loadingMore: false, error: s.movies.length === 0 }));
+      setState((s) => ({ ...s, loading: false, error: true }));
     } finally {
       isFetchingRef.current = false;
     }
   }, [cardType, mood.key, mediaType]);
 
+  // Só quando a prateleira chega perto da tela.
+  const [sectionRef, inView] = useInViewOnce<HTMLElement>(500);
   useEffect(() => {
-    loadMore();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (inView) loadPredictions();
+  }, [inView, loadPredictions]);
 
-  // Filtro de streaming — no cliente, sobre os filmes já carregados.
-  const visibleMovies: PredictedMovie[] =
-    selectedProviderIds.length === 0
-      ? state.movies
-      : state.movies.filter((movie) => {
-          const flatrate = movie.watchProviders?.flatrate;
-          if (!flatrate || flatrate.length === 0) return false;
-          return flatrate.some((p) => selectedProviderIds.includes(p.provider_id));
-        });
+  const refs: ShelfItem[] = useMemo(
+    () =>
+      state.titles.map((title) => ({
+        id: title.movie_id,
+        media_type: title.media_type,
+        predictedRating: title.predicted_rating,
+      })),
+    [state.titles]
+  );
+  const limit = isPremium ? refs.length : Math.min(FREE_LIMIT, refs.length);
+  const filterOn = selectedProviderIds.length > 0;
+  const initialCount = useMemo(() => tilesThatFit(tileWidthPx()) + 2, []);
+  const { count, endRef, hasMore } = useProgressiveCount({
+    total: limit,
+    initial: initialCount,
+    step: LOAD_STEP,
+    enabled: inView && !state.loading && !state.error,
+    resetKey: selectedProviderIds.join(','),
+  });
+  const cardOf = useTitleCards(refs, count, { enabled: inView && refs.length > 0 });
+  const reveal = useReveal();
 
-  const hasMore = state.movies.length < state.totalCount;
-  const showLoadMoreButton = hasMore && selectedProviderIds.length === 0;
-  const isFullyEmpty = !state.loading && !state.error && state.totalCount === 0;
+  // Filtro de streaming — no cliente, sobre os cartões já carregados.
+  const passesFilter = (movie: Movie) => {
+    if (!filterOn) return true;
+    const flatrate = movie.watchProviders?.flatrate;
+    if (!flatrate || flatrate.length === 0) return false;
+    return flatrate.some((p) => selectedProviderIds.includes(p.provider_id));
+  };
+
+  const shown = refs.slice(0, count).map((ref) => {
+    const card = cardOf(ref);
+    return { ref, movie: card ? ({ ...card, predictedRating: ref.predictedRating ?? null } as PredictedMovie) : undefined };
+  });
+  const visible = shown.filter((item) => !item.movie || passesFilter(item.movie));
+  const visibleTiles = visible.filter((item) => item.movie).length;
+  const lockedCount = refs.length - limit;
+  const showPremiumTile = !isPremium && lockedCount > 0 && count >= limit;
+
+  const isFullyEmpty = !state.loading && !state.error && refs.length === 0;
   // Prateleira sem nenhum título do tipo escolhido (ex.: ainda sem séries) —
   // diferente de "você já assistiu tudo".
   const hasNoTitlesOfType = isFullyEmpty && state.poolCount === 0;
@@ -238,6 +250,7 @@ const Shelf: React.FC<{
 
   return (
     <section
+      ref={sectionRef}
       className="border-t border-white/[0.07] py-8 sm:py-10"
       style={{ background: `linear-gradient(180deg, ${withAlpha(mood.color, 0.1)} 0%, ${withAlpha(mood.color, 0.03)} 55%, transparent 100%)` }}
       aria-label={label}
@@ -264,19 +277,18 @@ const Shelf: React.FC<{
 
       {state.loading ? (
         <div className={`mt-6 flex gap-4 overflow-hidden ${SHELF_PAD}`} aria-busy="true">
-          {[...Array(7)].map((_, i) => (
-            <div key={i} className={`${TILE_WIDTH} shrink-0`}>
-              <div className="aspect-[2/3] rounded-xl bg-white/[0.07] animate-pulse" />
-              <div className="mt-2.5 h-3.5 w-4/5 rounded bg-white/[0.07] animate-pulse" />
-            </div>
-          ))}
+          <ol className="contents">
+            {[...Array(initialCount)].map((_, i) => (
+              <SkeletonTile key={i} />
+            ))}
+          </ol>
         </div>
       ) : state.error ? (
         <div className="mx-auto max-w-6xl px-5 sm:px-8 mt-5">
           <div className="flex flex-wrap items-center gap-3 rounded-xl px-4 py-3 text-sm ring-1 ring-white/10" style={{ background: VELVET, color: MIST }}>
             <span className="flex-1 min-w-[12rem]">{t('oracle.libraries.shelfError')}</span>
             <button
-              onClick={() => loadMore()}
+              onClick={() => loadPredictions()}
               className={`gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
               style={{ color: PAPER }}
             >
@@ -303,96 +315,91 @@ const Shelf: React.FC<{
         </div>
       ) : (
         <>
-          {visibleMovies.length === 0 && (
+          {filterOn && !hasMore && visibleTiles === 0 && visible.length === 0 && (
             <p className="mx-auto max-w-6xl px-5 sm:px-8 mt-4 text-sm" style={{ color: MIST }}>
               {t('oracle.libraries.noMoviesForFilter')}
             </p>
           )}
 
-          {(visibleMovies.length > 0 || showLoadMoreButton) && (
-            <div
-              ref={scrollRef}
-              className="mt-3 pt-3 overflow-x-auto cursor-grab select-none"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
-            >
-              <ol className={`flex gap-4 pb-2 ${SHELF_PAD}`}>
-                {visibleMovies.map((movie) => {
-                  const year = (movie.release_date || '').slice(0, 4);
-                  const predicted = typeof movie.predictedRating === 'number' ? movie.predictedRating : null;
-                  return (
-                    <li key={`${movie.media_type || 'movie'}:${movie.id}`} className={`group relative shrink-0 ${TILE_WIDTH}`}>
-                      <button
-                        onClick={() => {
-                          if (dragDistanceRef.current > 5) return;
-                          onMovieClick(movie);
-                        }}
-                        className={`block w-full text-left rounded-xl ${FOCUS_RING}`}
-                      >
-                        <span
-                          className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
-                          style={{ background: VELVET }}
-                        >
-                          {movie.poster_path ? (
-                            <OptimizedPoster src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" />
-                          ) : (
-                            <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center" style={{ color: MIST }}>
-                              <Film className="w-7 h-7" aria-hidden />
-                              <span className="text-xs leading-snug line-clamp-3" style={{ color: PAPER }}>
-                                {movie.title}
-                              </span>
-                            </span>
-                          )}
-                          {predicted !== null && <PredictedBadge rating={predicted} />}
-                        </span>
-                        <span className={`mt-2.5 text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
-                          {movie.title}
-                        </span>
-                        <span className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: MIST }}>
-                          {year && <span>{year}</span>}
-                          {movie.vote_average > 0 && (
-                            <span className="inline-flex items-center gap-1">
-                              <Star className="w-3 h-3 fill-amber-300 text-amber-300" aria-hidden />
-                              {formatScore(movie.vote_average)}
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-
-                {showLoadMoreButton && (
-                  <li className={`shrink-0 ${TILE_WIDTH}`}>
+          <div
+            ref={scrollRef}
+            className="mt-3 pt-3 overflow-x-auto cursor-grab select-none"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+          >
+            <ol className={`flex gap-4 pb-2 ${SHELF_PAD}`}>
+              {visible.map(({ ref, movie }) => {
+                if (!movie) return <SkeletonTile key={`s:${titleKey(ref)}`} />;
+                const year = (movie.release_date || '').slice(0, 4);
+                const predicted = typeof movie.predictedRating === 'number' ? movie.predictedRating : null;
+                return (
+                  <li key={`t:${titleKey(ref)}`} ref={reveal} className={`reveal-tile group relative shrink-0 ${TILE_WIDTH}`}>
                     <button
-                      onClick={() => (isPremium ? loadMore() : navigate('/premium'))}
-                      disabled={state.loadingMore}
-                      className={`w-full aspect-[2/3] flex flex-col items-center justify-center gap-2 px-3 rounded-xl border-2 border-dashed text-center transition disabled:opacity-60 ${FOCUS_RING} ${
-                        isPremium ? 'border-violet-300/40 hover:border-violet-300/70 hover:bg-violet-500/10' : 'border-amber-300/40 hover:border-amber-300/70 hover:bg-amber-500/10'
-                      }`}
+                      onClick={() => {
+                        if (dragDistanceRef.current > 5) return;
+                        onMovieClick(movie);
+                      }}
+                      onPointerEnter={() => prefetchFullTitle(ref)}
+                      onPointerDown={() => prefetchFullTitle(ref)}
+                      className={`block w-full text-left rounded-xl ${FOCUS_RING}`}
                     >
-                      {state.loadingMore ? (
-                        <Loader2 className="w-6 h-6 animate-spin text-violet-300" aria-hidden />
-                      ) : (
-                        <>
-                          {isPremium ? <Wand2 className="w-6 h-6 text-violet-300" aria-hidden /> : <Crown className="w-6 h-6 text-amber-300" aria-hidden />}
-                          <span style={{ ...PIXEL, color: PAPER }} className="text-xl leading-none">
-                            {t('oracle.libraries.loadMore30')}
+                      <span
+                        className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
+                        style={{ background: VELVET }}
+                      >
+                        {movie.poster_path ? (
+                          <OptimizedPoster src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" />
+                        ) : (
+                          <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center" style={{ color: MIST }}>
+                            <Film className="w-7 h-7" aria-hidden />
+                            <span className="text-xs leading-snug line-clamp-3" style={{ color: PAPER }}>
+                              {movie.title}
+                            </span>
                           </span>
-                          <span className="text-xs leading-snug" style={{ color: MIST }}>
-                            {isPremium ? t('oracle.libraries.tapToLoad') : t('oracle.libraries.premiumRequired')}
+                        )}
+                        {predicted !== null && <PredictedBadge rating={predicted} />}
+                      </span>
+                      <span className={`mt-2.5 text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
+                        {movie.title}
+                      </span>
+                      <span className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: MIST }}>
+                        {year && <span>{year}</span>}
+                        {movie.vote_average > 0 && (
+                          <span className="inline-flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-amber-300 text-amber-300" aria-hidden />
+                            {formatScore(movie.vote_average)}
                           </span>
-                        </>
-                      )}
+                        )}
+                      </span>
                     </button>
                   </li>
-                )}
-              </ol>
-            </div>
-          )}
+                );
+              })}
+
+              {hasMore && <li ref={endRef} aria-hidden className="shrink-0 w-px" />}
+
+              {/* Sem Premium: a fileira termina no convite. */}
+              {showPremiumTile && (
+                <li className={`reveal-tile shrink-0 ${TILE_WIDTH}`} ref={reveal}>
+                  <button
+                    onClick={() => navigate('/premium')}
+                    className={`w-full aspect-[2/3] flex flex-col items-center justify-center gap-2 px-3 rounded-xl border-2 border-dashed text-center transition border-amber-300/40 hover:border-amber-300/70 hover:bg-amber-500/10 ${FOCUS_RING}`}
+                  >
+                    <Crown className="w-6 h-6 text-amber-300" aria-hidden />
+                    <span style={{ ...PIXEL, color: PAPER }} className="text-xl leading-none">
+                      {t('oracle.libraries.moreTitles', { count: lockedCount })}
+                    </span>
+                    <span className="text-xs leading-snug" style={{ color: MIST }}>
+                      {t('oracle.libraries.premiumRequired')}
+                    </span>
+                  </button>
+                </li>
+              )}
+            </ol>
+          </div>
         </>
       )}
     </section>
@@ -457,9 +464,11 @@ export default function OracleLibraries() {
     window.scrollTo({ top: 0 });
   }, [selectedOracle]);
 
+  // Os detalhes completos só vêm ao abrir (normalmente já adiantados quando
+  // o dedo/mouse encostou no pôster).
   const handleMovieClick = async (movie: Movie) => {
     try {
-      const details = await getMovieDetails(movie.id, movie.media_type || 'movie');
+      const details = await getFullTitle({ id: movie.id, media_type: movie.media_type === 'tv' ? 'tv' : 'movie' });
       setSelectedMovie(details);
     } catch {
       setSelectedMovie(movie);

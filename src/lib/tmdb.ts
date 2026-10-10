@@ -7,7 +7,7 @@ import i18n from '../i18n';
 const PROXY_URL = `${supabaseUrl}/functions/v1/tmdb-proxy`;
 
 // Get current language for TMDB requests
-function getCurrentLanguage(): string {
+export function getCurrentLanguage(): string {
   const lang = i18n.language || 'en';
   // TMDB expects language codes like 'pt-BR' or 'en-US'
   return lang === 'pt' ? 'pt-BR' : 'en-US';
@@ -753,16 +753,20 @@ export const getMoviesFromCacheByType = async (
   return map;
 };
 
-// Helper to get movie details with media_type from database
-export const getMovieDetailsFromDB = async (movieId: number): Promise<Movie> => {
-  // Fetch from movies table to get media_type
-  const { data: dbMovie } = await supabase
-    .from('movies')
-    .select('media_type')
-    .eq('id', movieId)
-    .maybeSingle();
-
-  const mediaType = dbMovie?.media_type || 'movie';
+// Helper to get movie details with media_type from database. Quem já sabe o
+// tipo (filme ou série) passa mediaType e evita a consulta à tabela movies —
+// que, por guardar um tipo só por id, erra quando um filme e uma série têm o
+// mesmo número no TMDB.
+export const getMovieDetailsFromDB = async (movieId: number, knownMediaType?: 'movie' | 'tv'): Promise<Movie> => {
+  let mediaType: 'movie' | 'tv' = knownMediaType || 'movie';
+  if (!knownMediaType) {
+    const { data: dbMovie } = await supabase
+      .from('movies')
+      .select('media_type')
+      .eq('id', movieId)
+      .maybeSingle();
+    mediaType = dbMovie?.media_type === 'tv' ? 'tv' : 'movie';
+  }
   const language = getCurrentLanguage();
   const cacheKey = `${CACHE_KEYS.MOVIE_DETAILS(movieId, mediaType)}:${language}`;
   const memCached = cache.get<Movie>(cacheKey);

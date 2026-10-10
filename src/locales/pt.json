@@ -556,6 +556,7 @@
       "notEnoughTickets": "Você não tem tickets suficientes.",
       "shelfFullyWatched": "Você já assistiu tudo dessa categoria — bom trabalho!",
       "loadMore30": "+30 títulos",
+      "moreTitles": "+{{count}} títulos",
       "predictedRatingLegend": "Mostrando a nota prevista para você — não é a nota pública do filme",
       "exploreShelves": "Explorar as prateleiras",
       "allOracles": "Oráculos",

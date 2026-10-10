@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ListPlus, Trash2, Film, ArrowLeft, Pencil, ArrowUpDown, ListMusic } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
-import { Movie, getMovieDetailsFromDB } from '../lib/tmdb';
+import { Movie } from '../lib/tmdb';
+import { TitleMediaType, asMediaType, getFullTitle, getTitleCardsInOrder, prefetchFullTitle, resolveMediaTypes } from '../lib/titleCards';
+import { useReveal } from '../hooks/useLazyList';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -11,6 +13,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import ListFormModal from '../components/ListFormModal';
 import ReorderListModal from '../components/ReorderListModal';
 import MovieDetailsModal from '../components/MovieDetailsModal';
+import OptimizedPoster from '../components/OptimizedPoster';
 import { useTranslation } from 'react-i18next';
 
 interface List {
@@ -21,8 +24,8 @@ interface List {
 }
 
 interface UserMovie {
-  id: string;
   movie_id: number;
+  media_type: string | null;
   rating: number | null;
 }
 
@@ -49,6 +52,18 @@ export default function PersonalLists() {
   const [deleteListId, setDeleteListId] = useState<string | null>(null);
   const [reorderListId, setReorderListId] = useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const reveal = useReveal();
+
+  // Os pôsteres são cartões leves (lib/titleCards); os detalhes completos só
+  // vêm ao abrir o título.
+  const openMovie = async (movie: Movie) => {
+    try {
+      const full = await getFullTitle({ id: movie.id, media_type: asMediaType(movie.media_type) });
+      setSelectedMovie({ ...full, userRating: movie.userRating });
+    } catch {
+      setSelectedMovie(movie);
+    }
+  };
 
   useEffect(() => {
     if (session?.user?.id) fetchLists();
@@ -78,44 +93,42 @@ export default function PersonalLists() {
 
       const { data: userMovies, error: ratingsError } = await supabase
         .from('user_movies')
-        .select('movie_id, rating')
+        .select('movie_id, media_type, rating')
         .eq('user_id', session.user.id);
 
       if (ratingsError) throw ratingsError;
 
-      const ratingsMap = new Map(
-        (userMovies || []).map((um: UserMovie) => [um.movie_id, um.rating])
-      );
+      const libraryRows = (userMovies || []) as UserMovie[];
+      const ratingsMap = new Map(libraryRows.map((um) => [um.movie_id, um.rating]));
+      // O tipo (filme/série) de quem está na biblioteca vem dela mesma.
+      const knownTypes = new Map<number, TitleMediaType>(libraryRows.map((um) => [um.movie_id, asMediaType(um.media_type)]));
 
-      const listsWithMovies = await Promise.all(
-        listsData.map(async (list) => {
-          const { data: movieIds, error: moviesError } = await supabase
-            .from('list_movies')
-            .select('movie_id')
-            .eq('list_id', list.id);
+      // Os títulos de todas as listas numa consulta, e os pôsteres de todos
+      // em lote (antes eram duas consultas por título).
+      const { data: listMovies, error: moviesError } = await supabase
+        .from('list_movies')
+        .select('list_id, movie_id')
+        .in('list_id', listsData.map((list) => list.id));
 
-          if (moviesError) throw moviesError;
+      if (moviesError) throw moviesError;
 
-          if (!movieIds || movieIds.length === 0) {
-            return { ...list, movies: [] };
-          }
+      const rows = (listMovies || []) as { list_id: string; movie_id: number }[];
+      const types = await resolveMediaTypes(rows.map((row) => row.movie_id), knownTypes);
+      const cards = await getTitleCardsInOrder(rows.map((row) => ({ id: row.movie_id, media_type: types.get(row.movie_id) || 'movie' })));
+      const cardByKey = new Map(cards.map((card) => [`${asMediaType(card.media_type)}:${card.id}`, card]));
 
-          const movies = await Promise.all(
-            movieIds.map(async ({ movie_id }) => {
-              try {
-                const movieDetails = await getMovieDetailsFromDB(movie_id);
-                const rating = ratingsMap.get(movie_id);
-                return { ...movieDetails, userRating: rating !== undefined ? rating : null };
-              } catch (error) {
-                console.error(`Failed to fetch details for movie ${movie_id}:`, error);
-                return null;
-              }
-            })
-          );
-
-          return { ...list, movies: movies.filter(Boolean) as Movie[] };
-        })
-      );
+      const listsWithMovies = listsData.map((list) => {
+        const movies: Movie[] = [];
+        rows
+          .filter((row) => row.list_id === list.id)
+          .forEach((row) => {
+            const card = cardByKey.get(`${types.get(row.movie_id) || 'movie'}:${row.movie_id}`);
+            if (!card) return;
+            const rating = ratingsMap.get(row.movie_id);
+            movies.push({ ...card, userRating: rating !== undefined ? rating : null });
+          });
+        return { ...list, movies };
+      });
 
       setLists(listsWithMovies);
     } catch (error) {
@@ -294,25 +307,33 @@ export default function PersonalLists() {
                   ) : (
                     <div className="relative z-10 flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                       {list.movies.map((movie) => (
-                        <motion.button
-                          key={`${movie.id}-${movie.media_type}`}
-                          onClick={() => setSelectedMovie(movie)}
-                          whileHover={{ scale: 1.05, y: -4 }}
-                          whileTap={{ scale: 0.97 }}
-                          className="relative w-[100px] sm:w-[120px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[2/3] shadow-lg"
-                        >
-                          <img
-                            src={movie.poster_path ? `https://image.tmdb.org/t/p/w300${movie.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image'}
-                            alt={movie.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                          {movie.userRating !== null && movie.userRating !== undefined && (
-                            <div className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                              ★ {movie.userRating}
-                            </div>
-                          )}
-                        </motion.button>
+                        <div key={`${movie.id}-${movie.media_type}`} ref={reveal} className="reveal-tile flex-shrink-0">
+                          <motion.button
+                            onClick={() => openMovie(movie)}
+                            onPointerEnter={() => prefetchFullTitle({ id: movie.id, media_type: asMediaType(movie.media_type) })}
+                            onPointerDown={() => prefetchFullTitle({ id: movie.id, media_type: asMediaType(movie.media_type) })}
+                            whileHover={{ scale: 1.05, y: -4 }}
+                            whileTap={{ scale: 0.97 }}
+                            className="relative block w-[100px] sm:w-[120px] rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[2/3] shadow-lg"
+                          >
+                            {movie.poster_path ? (
+                              <OptimizedPoster
+                                src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                                alt={movie.title}
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="absolute inset-0 grid place-items-center px-2 text-center text-xs text-gray-400">
+                                {movie.title}
+                              </span>
+                            )}
+                            {movie.userRating !== null && movie.userRating !== undefined && (
+                              <div className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                                ★ {movie.userRating}
+                              </div>
+                            )}
+                          </motion.button>
+                        </div>
                       ))}
                     </div>
                   )}
