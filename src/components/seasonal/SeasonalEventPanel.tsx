@@ -17,7 +17,13 @@ import {
   type SeasonalStep,
   type SeasonalTheme,
 } from '../../lib/seasonalEvents';
+import { MOOD_BY_KEY } from '../../lib/moods';
 import { PanelSeasonalScene } from './SeasonalDecor';
+
+// O atalho para a prateleira que também conta (ex.: Sombrio e Assustador no
+// Halloween) abre na Biblioteca do Bogart, que tem o maior acervo de cada
+// humor; os outros oráculos ficam a um toque, no topo da página.
+const BONUS_SHELF_ORACLE = 'bogart';
 
 // Painel do evento na home ("Recomendações de Halloween", "Recomendações de
 // Natal"): toma o lugar das Recomendações do Dia enquanto o evento está no
@@ -182,6 +188,8 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
   const kinds = new Set(steps.map((s) => s.kind));
   const counted = new Set<number>([...kinds].flatMap((kind) => event.actions[kind] ?? []));
   if (kinds.has('watchlist')) own.forEach((rating, id) => rating === null && counted.add(id));
+  // Prateleiras dos oráculos que também contam para o evento, além da lista.
+  const bonusMoods = (event.bonus_moods ?? []).map((key) => MOOD_BY_KEY[key]).filter(Boolean);
 
   const startLabel = formatDayMonth(new Date(event.starts_at), i18n.language);
   const endLabel = formatDayMonth(lastDayOf(event), i18n.language);
@@ -459,6 +467,28 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
                     {t('events.viewProfile')}
                     <ArrowRight className="w-4 h-4" aria-hidden />
                   </Link>
+                </div>
+              )}
+
+              {/* Prateleiras que também contam (Halloween: Sombrio e
+                  Assustador), numa linha própria para caber no celular. */}
+              {step && bonusMoods.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {bonusMoods.map((mood) => {
+                    const MoodIcon = mood.icon;
+                    return (
+                      <Link
+                        key={mood.key}
+                        to={`/oracle/libraries?oracle=${BONUS_SHELF_ORACLE}&type=movie&mood=${mood.key}`}
+                        className={`inline-flex items-center gap-2 min-h-[40px] pl-2.5 pr-3 rounded-xl text-sm font-semibold hover:bg-white/10 transition ${FOCUS_RING}`}
+                        style={{ background: 'rgba(0,0,0,0.28)', color: PAPER, boxShadow: `inset 0 0 0 1px ${withAlpha(mood.color, 0.4)}` }}
+                      >
+                        <MoodIcon className="w-4 h-4 shrink-0" style={{ color: mood.color }} aria-hidden />
+                        {t('events.bonusMoodLink', { mood: t(mood.labelKey) })}
+                        <ArrowRight className="w-4 h-4 shrink-0" style={{ color: theme.accentText }} aria-hidden />
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>

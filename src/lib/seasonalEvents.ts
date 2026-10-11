@@ -54,6 +54,9 @@ export interface SeasonalEventState {
   // filmes da lista que a pessoa já tinha avaliado antes do evento
   pre_rated: number;
   list_size: number;
+  // humores (prateleiras dos oráculos) que também contam, além da lista.
+  // Halloween: ['dark-and-scary'] desde 11/10/2026.
+  bonus_moods?: string[];
   decoration_tag: string | null;
   decoration_unlocked: boolean;
 }

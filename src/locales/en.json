@@ -1663,6 +1663,7 @@
     "locked": "Locked",
     "inProgress": "In progress",
     "counted": "Already counts for the event",
+    "bonusMoodLink": "See {{mood}}",
     "curatedBy": "Curated by {{name}}",
     "viewProfile": "View my profile",
     "loadError": "Couldn't load the selection right now. Please try again in a moment.",
@@ -1679,7 +1680,7 @@
       "tab": "Halloween",
       "eyebrow": "October event",
       "title": "Halloween Recommendations",
-      "subtitle": "The oracles' haunted selection: {{count}} films for October, with a few surprises hidden in the mix.",
+      "subtitle": "The oracles' haunted selection: {{count}} films for October, with a few surprises hidden in the mix. Films from Dark & Scary count for the ritual too.",
       "trackTitle": "Halloween Ritual",
       "summary": "{{done}} of {{total}} films rated in October",
       "doneTitle": "Ritual complete",
@@ -1687,19 +1688,19 @@
       "steps": {
         "scary-clown": {
           "label": "1st film",
-          "task": "Rate 1 film from the selection",
-          "hint": "Open a film below and give it your rating.",
+          "task": "Rate 1 film from the selection or Dark & Scary",
+          "hint": "Open a film below, or any film from the oracles' Dark & Scary shelf, and give it your rating.",
           "reward": "The clown knows where you live now. First ritual tag earned."
         },
         "deadly-sleeping": {
           "label": "2nd film",
-          "task": "Rate 2 films from the selection",
+          "task": "Rate 2 films from the selection or Dark & Scary",
           "hint": "One more film and the coffin opens.",
           "reward": "You slept in a coffin and woke up stronger. Just one to go."
         },
         "pumpkin-head": {
           "label": "3rd film · decorates your profile",
-          "task": "Rate 3 films from the selection",
+          "task": "Rate 3 films from the selection or Dark & Scary",
           "hint": "The last one summons the Headless Horseman and decorates your profile.",
           "reward": "The Headless Horseman rides with you: the ritual is complete."
         }

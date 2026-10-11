@@ -427,6 +427,13 @@ export default function OracleLibraries() {
     }
     return readMediaType();
   });
+  // ?mood=dark-and-scary (ex.: atalho do Halloween na home) põe essa
+  // prateleira no topo. Fica guardado aqui porque trocar de oráculo
+  // reescreve a URL.
+  const [pinnedMood] = useState<string | null>(() => {
+    const moodParam = searchParams.get('mood');
+    return moodParam && MOOD_CATEGORIES.some((m) => m.key === moodParam) ? moodParam : null;
+  });
   const [isPremium, setIsPremium] = useState(false);
   // Estilo de carta do Personalizar perfil. Começa null de propósito: a
   // carta só monta com a imagem certa, sem piscar a padrão antes.
@@ -498,6 +505,9 @@ export default function OracleLibraries() {
   if (!selectedOracle) return <Navigate to="/oracle" replace />;
 
   const current = ORACLE_BY_ID[selectedOracle];
+  const shelfMoods = pinnedMood
+    ? [...orderedMoods.filter((m) => m.key === pinnedMood), ...orderedMoods.filter((m) => m.key !== pinnedMood)]
+    : orderedMoods;
   const ghostButton = `gap-2 h-11 px-3 sm:px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium whitespace-nowrap transition ${FOCUS_RING}`;
 
   return (
@@ -607,7 +617,7 @@ export default function OracleLibraries() {
       </section>
 
       {session?.user?.id &&
-        orderedMoods.map((mood) => (
+        shelfMoods.map((mood) => (
           <Shelf
             key={`${current.id}:${mood.key}:${mediaType}`}
             cardType={current.id}
