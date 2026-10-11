@@ -587,7 +587,10 @@
       "switchOracle": "Trocar de oráculo",
       "tapToLoad": "Toque para carregar",
       "premiumRequired": "Exclusivo Premium",
-      "noMoviesForFilter": "Nenhum filme já carregado dessa prateleira está nos streamings escolhidos.",
+      "noMoviesForFilter": "Nenhum título desta prateleira está nos streamings escolhidos.",
+      "filterScanning": "Procurando nos streamings escolhidos…",
+      "filterMatches_one": "{{count}} de {{total}} títulos desta prateleira está nos streamings escolhidos.",
+      "filterMatches_other": "{{count}} de {{total}} títulos desta prateleira estão nos streamings escolhidos.",
       "shelfError": "Não deu pra abrir esta prateleira agora.",
       "showMovies": "Filmes",
       "showSeries": "Séries",
@@ -1440,7 +1443,10 @@
     "series": "Série",
     "film": "Filme",
     "clear": "Limpar busca",
-    "placeholderPeople": "Nome de usuário"
+    "placeholderPeople": "Nome de usuário",
+    "recentTitle": "Buscas recentes",
+    "recentClear": "Limpar",
+    "recentRemove": "Tirar {{title}} das buscas recentes"
   },
   "tagPins": {
     "myPins": "Minhas tags",

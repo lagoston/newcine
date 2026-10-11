@@ -118,9 +118,14 @@ const SkeletonTile: React.FC = () => (
 // vêm em lotes, como cartões leves (lib/titleCards), conforme a pessoa rola
 // de lado — e acendem ao aparecer. Sem Premium, a fileira para nos 20
 // primeiros e termina no convite ao Premium; com Premium, segue carregando
-// sozinha até o fim (antes era um botão "+30" a cada vez). Com o filtro de
-// streaming ligado, a fileira continua buscando enquanto o fim estiver à
-// vista, até achar títulos que passem no filtro.
+// sozinha até o fim (antes era um botão "+30" a cada vez).
+//
+// Filtro de streaming (11/10/2026): a prateleira busca de uma vez os cartões
+// de todos os seus títulos (até o limite do plano — cartões leves, em lote) e
+// mostra só os que estão nos streamings escolhidos, cada um com o logo do
+// serviço. Antes ela buscava aos poucos: cada lote aparecia como esqueleto e
+// sumia ao não passar no filtro, e o marcador do fim continuava à vista —
+// as prateleiras piscavam até o fim da lista.
 //
 // Cada prateleira pertence a UM oráculo: a página monta uma prateleira nova
 // (key = oráculo + humor + filmes/séries) quando o oráculo — ou a chave
@@ -212,33 +217,58 @@ const Shelf: React.FC<{
   );
   const limit = isPremium ? refs.length : Math.min(FREE_LIMIT, refs.length);
   const filterOn = selectedProviderIds.length > 0;
+  const filterKey = selectedProviderIds.join(',');
   const initialCount = useMemo(() => tilesThatFit(tileWidthPx()) + 2, []);
-  const { count, endRef, hasMore } = useProgressiveCount({
+  const ready = inView && !state.loading && !state.error;
+
+  // Sem filtro: a fileira cresce aos poucos, conforme a pessoa rola de lado.
+  const plain = useProgressiveCount({
     total: limit,
     initial: initialCount,
     step: LOAD_STEP,
-    enabled: inView && !state.loading && !state.error,
-    resetKey: selectedProviderIds.join(','),
+    enabled: ready && !filterOn,
+    resetKey: filterKey,
   });
-  const cardOf = useTitleCards(refs, count, { enabled: inView && refs.length > 0 });
+  // Com filtro: os cartões de todos os títulos do plano, de uma vez.
+  const cardOf = useTitleCards(refs, filterOn ? limit : plain.count, { enabled: inView && refs.length > 0, ahead: filterOn ? 0 : 6 });
   const reveal = useReveal();
 
-  // Filtro de streaming — no cliente, sobre os cartões já carregados.
-  const passesFilter = (movie: Movie) => {
-    if (!filterOn) return true;
-    const flatrate = movie.watchProviders?.flatrate;
-    if (!flatrate || flatrate.length === 0) return false;
-    return flatrate.some((p) => selectedProviderIds.includes(p.provider_id));
-  };
+  const withPrediction = (ref: ShelfItem, card: Movie) => ({ ...card, predictedRating: ref.predictedRating ?? null }) as PredictedMovie;
 
-  const shown = refs.slice(0, count).map((ref) => {
-    const card = cardOf(ref);
-    return { ref, movie: card ? ({ ...card, predictedRating: ref.predictedRating ?? null } as PredictedMovie) : undefined };
+  // O serviço escolhido em que o título está (no plano de assinatura).
+  const matchedProvider = (movie: Movie) =>
+    filterOn ? movie.watchProviders?.flatrate?.find((p) => selectedProviderIds.includes(p.provider_id)) : undefined;
+
+  const scanRefs = filterOn ? refs.slice(0, limit) : [];
+  const scanning = filterOn && scanRefs.some((ref) => !cardOf(ref));
+  const matches = filterOn
+    ? scanRefs.flatMap((ref) => {
+        const card = cardOf(ref);
+        return card && matchedProvider(card) ? [{ ref, movie: withPrediction(ref, card) }] : [];
+      })
+    : [];
+  // Com filtro: os que passaram também entram aos poucos ao rolar de lado.
+  const filtered = useProgressiveCount({
+    total: matches.length,
+    initial: initialCount,
+    step: LOAD_STEP,
+    enabled: ready && filterOn,
+    resetKey: filterKey,
   });
-  const visible = shown.filter((item) => !item.movie || passesFilter(item.movie));
-  const visibleTiles = visible.filter((item) => item.movie).length;
+
+  const visible: { ref: ShelfItem; movie?: PredictedMovie }[] = filterOn
+    ? matches.slice(0, filtered.count)
+    : refs.slice(0, plain.count).map((ref) => {
+        const card = cardOf(ref);
+        return { ref, movie: card ? withPrediction(ref, card) : undefined };
+      });
+  const { endRef, hasMore } = filterOn ? filtered : plain;
+  // Enquanto procura, esqueletos fixos no fim (as mesmas chaves sempre: nada
+  // aparece e some a cada lote).
+  const scanSkeletons = scanning ? Math.max(1, initialCount - visible.length) : 0;
   const lockedCount = refs.length - limit;
-  const showPremiumTile = !isPremium && lockedCount > 0 && count >= limit;
+  const showPremiumTile = !isPremium && lockedCount > 0 && (filterOn ? !scanning && !hasMore : plain.count >= limit);
+  const noMatches = filterOn && !scanning && matches.length === 0;
 
   const isFullyEmpty = !state.loading && !state.error && refs.length === 0;
   // Prateleira sem nenhum título do tipo escolhido (ex.: ainda sem séries) —
@@ -315,12 +345,17 @@ const Shelf: React.FC<{
         </div>
       ) : (
         <>
-          {filterOn && !hasMore && visibleTiles === 0 && visible.length === 0 && (
-            <p className="mx-auto max-w-6xl px-5 sm:px-8 mt-4 text-sm" style={{ color: MIST }}>
-              {t('oracle.libraries.noMoviesForFilter')}
+          {filterOn && (
+            <p className="mx-auto max-w-6xl px-5 sm:px-8 mt-4 text-sm" style={{ color: MIST }} aria-live="polite">
+              {scanning
+                ? t('oracle.libraries.filterScanning')
+                : noMatches
+                  ? t('oracle.libraries.noMoviesForFilter')
+                  : t('oracle.libraries.filterMatches', { count: matches.length, total: scanRefs.length })}
             </p>
           )}
 
+          {!noMatches && (
           <div
             ref={scrollRef}
             className="mt-3 pt-3 overflow-x-auto cursor-grab select-none"
@@ -335,6 +370,7 @@ const Shelf: React.FC<{
                 if (!movie) return <SkeletonTile key={`s:${titleKey(ref)}`} />;
                 const year = (movie.release_date || '').slice(0, 4);
                 const predicted = typeof movie.predictedRating === 'number' ? movie.predictedRating : null;
+                const provider = matchedProvider(movie);
                 return (
                   <li key={`t:${titleKey(ref)}`} ref={reveal} className={`reveal-tile group relative shrink-0 ${TILE_WIDTH}`}>
                     <button
@@ -361,6 +397,11 @@ const Shelf: React.FC<{
                           </span>
                         )}
                         {predicted !== null && <PredictedBadge rating={predicted} />}
+                        {provider && (
+                          <span className="absolute bottom-1.5 right-1.5 block w-7 h-7 rounded-lg overflow-hidden ring-1 ring-black/40 shadow-lg" title={provider.provider_name}>
+                            <img src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`} alt={provider.provider_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          </span>
+                        )}
                       </span>
                       <span className={`mt-2.5 text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
                         {movie.title}
@@ -378,6 +419,10 @@ const Shelf: React.FC<{
                   </li>
                 );
               })}
+
+              {[...Array(scanSkeletons)].map((_, i) => (
+                <SkeletonTile key={`scan:${i}`} />
+              ))}
 
               {hasMore && <li ref={endRef} aria-hidden className="shrink-0 w-px" />}
 
@@ -400,6 +445,7 @@ const Shelf: React.FC<{
               )}
             </ol>
           </div>
+          )}
         </>
       )}
     </section>

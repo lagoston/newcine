@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, Star, Film, Tv, Search, SlidersHorizontal, ChevronRight, AtSign } from 'lucide-react';
+import { X, Loader2, Star, Film, Tv, Search, SlidersHorizontal, ChevronRight, AtSign, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { searchMovies, getMovieDetails, ensureMovieCached, Movie } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
+import { useSearchHistory, type SearchHistoryItem } from '../lib/searchHistory';
+import OptimizedPoster from './OptimizedPoster';
 
 // Busca do celular e do tablet, aberta pelo botão redondo da barra de baixo
 // (MobileDock). Como no Instagram e no IMDb, o campo fica EMBAIXO, numa
@@ -16,6 +18,11 @@ import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES } from '../lib/o
 //
 // Filmes e séries por padrão; começando com @ (ou tocando em "Pessoas")
 // procura usuários.
+//
+// Desde 11/10/2026: as linhas entram subindo e acendendo, em sequência (o
+// mesmo movimento dos pôsteres das prateleiras), e, com o campo vazio,
+// aparecem as buscas recentes — os 10 últimos títulos abertos por aqui ou
+// pela busca do computador (lib/searchHistory).
 //
 // Teclado: a camada acompanha a área visível da tela (visualViewport) — no
 // iPhone o teclado não encolhe a página, então sem isso o campo ficaria
@@ -88,6 +95,7 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
   // Qual resultado está sendo aberto agora (spinner no pôster dele).
   const [openingKey, setOpeningKey] = useState<string | null>(null);
   const viewport = useVisibleViewport(open);
+  const history = useSearchHistory(session?.user?.id);
 
   const isUserSearch = query.trim().startsWith('@');
 
@@ -208,6 +216,15 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
     inputRef.current?.focus({ preventScroll: true });
   };
 
+  // Detalhes adiantados quando o dedo encosta (resultados já vêm adiantados).
+  const prefetch = (id: number, mediaType: 'movie' | 'tv') => {
+    const key = `${mediaType}:${id}`;
+    if (prefetchRef.current.has(key)) return;
+    const pending = getMovieDetails(id, mediaType);
+    pending.catch(() => {});
+    prefetchRef.current.set(key, pending);
+  };
+
   const handleMovieClick = async (movie: Movie) => {
     if (openingKey) return;
     const mediaType = movie.media_type || 'movie';
@@ -220,6 +237,7 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
       // resultados: fechar o filme volta para a busca. O teclado fecha.
       inputRef.current?.blur();
       onMovieSelect(details);
+      history.add({ ...details, id: movie.id, media_type: mediaType });
 
       ensureMovieCached(movie.id, mediaType).catch((err) => {
         console.error('Error caching movie on open:', err);
@@ -252,15 +270,57 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
     <ul className="pt-2 space-y-2" aria-hidden>
       {Array.from({ length: 5 }).map((_, i) => (
         <li key={i} className="flex items-center gap-3.5 py-2">
-          <span className="w-12 h-[72px] rounded-lg animate-pulse" style={{ background: VELVET }} />
+          <span className="w-12 h-[72px] rounded-lg poster-skeleton" />
           <span className="flex-1 space-y-2">
-            <span className="block h-4 w-3/4 rounded animate-pulse" style={{ background: VELVET }} />
-            <span className="block h-3 w-1/3 rounded animate-pulse" style={{ background: VELVET }} />
+            <span className="block h-4 w-3/4 rounded poster-skeleton" />
+            <span className="block h-3 w-1/3 rounded poster-skeleton" />
           </span>
         </li>
       ))}
     </ul>
   );
+
+  // Uma linha de título (resultado ou busca recente): pôster, nome, ano,
+  // filme/série e a nota do TMDB.
+  const titleRowBody = (item: { key: string; title: string; posterPath: string | null; year: string; isTV: boolean; vote: number }) => (
+    <>
+      <span className="relative w-12 h-[72px] shrink-0 rounded-lg overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
+        {item.posterPath ? (
+          <OptimizedPoster src={`https://image.tmdb.org/t/p/w92${item.posterPath}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
+            <Film className="w-4 h-4" aria-hidden />
+          </span>
+        )}
+        {openingKey === item.key && (
+          <span className="absolute inset-0 bg-black/55 grid place-items-center">
+            <Loader2 className="w-4 h-4 text-white animate-spin" aria-hidden />
+          </span>
+        )}
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="font-semibold leading-snug line-clamp-2" style={{ color: PAPER }}>
+          {item.title}
+        </span>
+        <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]" style={{ color: MIST }}>
+          {item.year && <span>{item.year}</span>}
+          <span className={`inline-flex items-center gap-1 h-5 px-1.5 rounded text-[11px] font-semibold ${item.isTV ? 'bg-cyan-400/15 text-cyan-200' : 'bg-white/[0.07]'}`}>
+            {item.isTV ? <Tv className="w-3 h-3" aria-hidden /> : <Film className="w-3 h-3" aria-hidden />}
+            {item.isTV ? t('mobileSearch.series') : t('mobileSearch.film')}
+          </span>
+          {item.vote > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Star className="w-3 h-3 fill-amber-300 text-amber-300" aria-hidden />
+              {formatScore(item.vote)}
+            </span>
+          )}
+        </span>
+      </span>
+    </>
+  );
+
+  const openHistoryItem = (item: SearchHistoryItem) =>
+    handleMovieClick({ id: item.id, media_type: item.media_type, title: item.title, poster_path: item.poster_path ?? undefined, vote_average: item.vote_average } as Movie);
 
   const emptyMessage = (text: string) => (
     <p className="py-12 text-center text-sm" style={{ color: MIST }}>
@@ -306,57 +366,24 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
     results = (
       <>
         <ul className="divide-y divide-white/[0.06]">
-          {movieResults.map((movie) => {
+          {movieResults.map((movie, index) => {
             const mediaType = movie.media_type || 'movie';
             const key = `${mediaType}:${movie.id}`;
-            const year = (movie.release_date || movie.first_air_date || '').slice(0, 4);
-            const isTV = mediaType === 'tv';
-            const title = movie.title || movie.name;
             return (
-              <li key={key}>
+              <li key={key} className="search-row" style={{ '--row-i': index } as React.CSSProperties}>
                 <button
                   onClick={() => handleMovieClick(movie)}
                   aria-busy={openingKey === key || undefined}
                   className={`w-full flex justify-start items-center gap-3.5 py-2.5 text-left rounded-xl active:bg-white/5 transition ${FOCUS_RING}`}
                 >
-                  <span className="relative w-12 h-[72px] shrink-0 rounded-lg overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
-                    {movie.poster_path ? (
-                      <img
-                        src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
-                        <Film className="w-4 h-4" aria-hidden />
-                      </span>
-                    )}
-                    {openingKey === key && (
-                      <span className="absolute inset-0 bg-black/55 grid place-items-center">
-                        <Loader2 className="w-4 h-4 text-white animate-spin" aria-hidden />
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="font-semibold leading-snug line-clamp-2" style={{ color: PAPER }}>
-                      {title}
-                    </span>
-                    <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]" style={{ color: MIST }}>
-                      {year && <span>{year}</span>}
-                      <span className={`inline-flex items-center gap-1 h-5 px-1.5 rounded text-[11px] font-semibold ${isTV ? 'bg-cyan-400/15 text-cyan-200' : 'bg-white/[0.07]'}`}>
-                        {isTV ? <Tv className="w-3 h-3" aria-hidden /> : <Film className="w-3 h-3" aria-hidden />}
-                        {isTV ? t('mobileSearch.series') : t('mobileSearch.film')}
-                      </span>
-                      {movie.vote_average > 0 && (
-                        <span className="inline-flex items-center gap-1">
-                          <Star className="w-3 h-3 fill-amber-300 text-amber-300" aria-hidden />
-                          {formatScore(movie.vote_average)}
-                        </span>
-                      )}
-                    </span>
-                  </span>
+                  {titleRowBody({
+                    key,
+                    title: movie.title || movie.name || '',
+                    posterPath: movie.poster_path || null,
+                    year: (movie.release_date || movie.first_air_date || '').slice(0, 4),
+                    isTV: mediaType === 'tv',
+                    vote: movie.vote_average || 0,
+                  })}
                   <ChevronRight className="w-4 h-4 shrink-0" style={{ color: MIST }} aria-hidden />
                 </button>
               </li>
@@ -366,7 +393,7 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
         <button
           type="button"
           onClick={handleGoToFullSearch}
-          className={`mt-3 w-full gap-2 h-12 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
+          className={`search-row mt-3 w-full gap-2 h-12 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
           style={{ color: PAPER }}
         >
           <SlidersHorizontal className="w-4 h-4 shrink-0 text-violet-300" aria-hidden />
@@ -378,6 +405,52 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
     results = skeletonRows;
   } else if (trimmed.length > 1) {
     results = emptyMessage(t('common.noResults'));
+  } else if (history.items.length > 0) {
+    // Vazio, com histórico: os últimos títulos abertos pela busca.
+    results = (
+      <section aria-labelledby="search-recent-title">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="search-recent-title" className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: PAPER }}>
+            <History className="w-4 h-4 text-violet-300" aria-hidden />
+            {t('mobileSearch.recentTitle')}
+          </h2>
+          <button
+            type="button"
+            onClick={history.clear}
+            className={`-mr-2 h-9 min-h-0 px-3 rounded-full text-sm font-medium hover:bg-white/10 transition ${FOCUS_RING}`}
+            style={{ color: MIST }}
+          >
+            {t('mobileSearch.recentClear')}
+          </button>
+        </div>
+        <ul className="mt-1 divide-y divide-white/[0.06]">
+          {history.items.map((item, index) => {
+            const key = `${item.media_type}:${item.id}`;
+            return (
+              <li key={key} className="search-row flex items-center gap-1" style={{ '--row-i': index } as React.CSSProperties}>
+                <button
+                  onClick={() => openHistoryItem(item)}
+                  onPointerDown={() => prefetch(item.id, item.media_type)}
+                  aria-busy={openingKey === key || undefined}
+                  className={`flex-1 min-w-0 flex justify-start items-center gap-3.5 py-2.5 text-left rounded-xl active:bg-white/5 transition ${FOCUS_RING}`}
+                >
+                  {titleRowBody({ key, title: item.title, posterPath: item.poster_path, year: item.year, isTV: item.media_type === 'tv', vote: item.vote_average })}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => history.remove(item)}
+                  aria-label={t('mobileSearch.recentRemove', { title: item.title })}
+                  className={`shrink-0 w-11 h-11 rounded-full hover:bg-white/10 transition ${FOCUS_RING}`}
+                  style={{ color: MIST }}
+                >
+                  <X className="w-4 h-4" aria-hidden />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    );
   } else {
     // Vazio: os três oráculos esperando, logo acima do campo.
     results = (

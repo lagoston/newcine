@@ -584,7 +584,10 @@
       "switchOracle": "Switch oracle",
       "tapToLoad": "Tap to load",
       "premiumRequired": "Premium only",
-      "noMoviesForFilter": "None of the films loaded on this shelf are on the streaming services you picked.",
+      "noMoviesForFilter": "None of this shelf's titles are on the services you picked.",
+      "filterScanning": "Searching the services you picked…",
+      "filterMatches_one": "{{count}} of {{total}} titles on this shelf is on the services you picked.",
+      "filterMatches_other": "{{count}} of {{total}} titles on this shelf are on the services you picked.",
       "shelfError": "Couldn't open this shelf right now.",
       "showMovies": "Movies",
       "showSeries": "Series",
@@ -1435,7 +1438,10 @@
     "series": "Show",
     "film": "Film",
     "clear": "Clear search",
-    "placeholderPeople": "Username"
+    "placeholderPeople": "Username",
+    "recentTitle": "Recent searches",
+    "recentClear": "Clear",
+    "recentRemove": "Remove {{title}} from recent searches"
   },
   "tagPins": {
     "myPins": "My tags",

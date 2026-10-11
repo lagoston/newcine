@@ -61,7 +61,7 @@ export interface StreamingProvider {
 }
 
 export interface WatchProviders {
-  link: string;
+  link?: string;
   flatrate?: StreamingProvider[];
   rent?: StreamingProvider[];
   buy?: StreamingProvider[];
@@ -292,16 +292,8 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
     movieDetails.media_type = 'movie';
   }
 
-  // Get providers for Brazil (BR) or fallback to US if not available
-  const countryData = providersData.results?.BR || providersData.results?.US;
-  if (countryData) {
-    movieDetails.watchProviders = {
-      link: countryData.link,
-      flatrate: countryData.flatrate,
-      rent: countryData.rent,
-      buy: countryData.buy
-    };
-  }
+  const providers = pickWatchProviders(providersData);
+  if (providers) movieDetails.watchProviders = providers;
 
   cache.set(cacheKey, movieDetails, CACHE_TTL.MOVIE_DETAILS);
   return movieDetails;
@@ -374,14 +366,32 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
   }
 }
 
+// Onde assistir: Brasil (BR) ou, sem dados de lá, Estados Unidos (US). null
+// quando o TMDB não respondeu (aí o cache guardado não é apagado); {} quando
+// respondeu e não há serviço em nenhum dos dois.
+export function pickWatchProviders(providersData: any): WatchProviders | null {
+  if (!providersData || typeof providersData !== 'object' || !providersData.results) return null;
+  const countryData = providersData.results.BR || providersData.results.US;
+  if (!countryData) return {};
+  const picked: WatchProviders = {};
+  if (countryData.link) picked.link = countryData.link;
+  if (countryData.flatrate) picked.flatrate = countryData.flatrate;
+  if (countryData.rent) picked.rent = countryData.rent;
+  if (countryData.buy) picked.buy = countryData.buy;
+  return picked;
+}
+
 // Called when adding a movie to library: inserts or updates the full movie_cache entry
 export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 'tv'): Promise<void> {
   try {
     const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
 
-    const [enData, ptData] = await Promise.all([
+    const [enData, ptData, providersData] = await Promise.all([
       tmdbFetch(`/${endpoint}/${movieId}?language=en-US&append_to_response=credits,keywords`),
-      tmdbFetch(`/${endpoint}/${movieId}?language=pt-BR&append_to_response=credits`)
+      tmdbFetch(`/${endpoint}/${movieId}?language=pt-BR&append_to_response=credits`),
+      // Onde assistir (filtro de streaming). Até 11/10/2026 não era gravado
+      // aqui, e quase 3 em cada 4 títulos ficavam sem — o filtro não os achava.
+      tmdbFetch(`/${endpoint}/${movieId}/watch/providers`).catch(() => null),
     ]);
 
     const enTitle = mediaType === 'tv' ? enData.name : enData.title;
@@ -456,6 +466,8 @@ export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 't
     if (seasonsData !== null) {
       cacheData.seasons_data = seasonsData;
     }
+    const providers = pickWatchProviders(providersData);
+    if (providers) cacheData.watch_providers = providers;
 
     const { error } = await supabase
       .from('movie_cache')
@@ -519,9 +531,10 @@ export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv
   try {
     const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
 
-    const [enData, ptData] = await Promise.all([
+    const [enData, ptData, providersData] = await Promise.all([
       tmdbFetch(`/${endpoint}/${movieId}?language=en-US&append_to_response=credits,keywords`),
-      tmdbFetch(`/${endpoint}/${movieId}?language=pt-BR&append_to_response=credits`)
+      tmdbFetch(`/${endpoint}/${movieId}?language=pt-BR&append_to_response=credits`),
+      tmdbFetch(`/${endpoint}/${movieId}/watch/providers`).catch(() => null),
     ]);
 
     const enTitle = mediaType === 'tv' ? enData.name : enData.title;
@@ -594,6 +607,9 @@ export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv
     if (seasonsData !== null) {
       updateData.seasons_data = seasonsData;
     }
+    // Onde assistir muda com o tempo: cada busca atualiza.
+    const providers = pickWatchProviders(providersData);
+    if (providers) updateData.watch_providers = providers;
 
     const { error, count } = await supabase
       .from('movie_cache')

@@ -799,3 +799,28 @@ img[loading="lazy"] {
     font-size: 1.05rem;
   }
 }
+
+/* ── Busca (11/10/2026) ──────────────────────────────────────────────────
+   Cada linha de resultado (e do histórico) entra subindo e acendendo, em
+   sequência (--row-i = posição na lista) — o mesmo movimento dos pôsteres
+   das prateleiras; o pôster pequeno floresce como os outros
+   (OptimizedPoster). Linhas que continuam de uma busca para a outra não
+   repetem a animação (mesma chave). */
+.search-row {
+  animation: search-row-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--row-i, 0) * 45ms) backwards;
+}
+@keyframes search-row-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .search-row {
+    animation: none;
+  }
+}

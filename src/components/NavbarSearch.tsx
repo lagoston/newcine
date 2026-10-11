@@ -1,8 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, Loader2, Star, Film, Tv, X } from 'lucide-react';
+import { Search, Loader2, Star, Film, Tv, X, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { searchMovies, getMovieDetails, ensureMovieCached, Movie } from '../lib/tmdb';
+import { useAuth } from '../lib/auth';
+import { useSearchHistory, type SearchHistoryItem } from '../lib/searchHistory';
+import OptimizedPoster from './OptimizedPoster';
+
+// Busca do topo (computador). Desde 11/10/2026: as linhas entram subindo e
+// acendendo, em sequência, e, com o campo vazio, a lista mostra as buscas
+// recentes — os 10 últimos títulos abertos por aqui ou pela busca do celular
+// (lib/searchHistory).
 
 interface NavbarSearchProps {
   onClose?: () => void;
@@ -13,6 +21,8 @@ interface NavbarSearchProps {
 export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect }: NavbarSearchProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { session } = useAuth();
+  const history = useSearchHistory(session?.user?.id);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,8 +34,8 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
 
   const search = useCallback(async (q: string) => {
     if (!q.trim()) {
+      // Campo vazio: a lista volta para as buscas recentes (se aberta).
       setResults([]);
-      setOpen(false);
       return;
     }
     setLoading(true);
@@ -73,6 +83,7 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
       const pending = prefetchRef.current.get(movie.id);
       const details = pending ? await pending : await getMovieDetails(movie.id, mediaType);
       onMovieSelect(details);
+      history.add({ ...details, id: movie.id, media_type: mediaType });
       if (onClose) onClose();
 
       ensureMovieCached(movie.id, mediaType).catch((err) => {
@@ -97,9 +108,50 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
   const clearQuery = () => {
     setQuery('');
     setResults([]);
-    setOpen(false);
     inputRef.current?.focus();
   };
+
+  const openHistoryItem = (item: SearchHistoryItem) =>
+    handleMovieClick({ id: item.id, media_type: item.media_type, title: item.title, poster_path: item.poster_path ?? undefined, vote_average: item.vote_average } as Movie);
+
+  const showHistory = !query.trim() && history.items.length > 0;
+
+  // Uma linha de título (resultado ou busca recente).
+  const rowBody = (title: string, posterPath: string | null | undefined, year: string, isTV: boolean, vote: number) => (
+    <>
+      <div className="relative w-9 h-[52px] flex-shrink-0 rounded-md overflow-hidden bg-slate-700">
+        {posterPath ? (
+          <OptimizedPoster src={`https://image.tmdb.org/t/p/w92${posterPath}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-600">
+            <Film className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-white truncate group-hover:text-blue-300 transition-colors">{title}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          {year && <span className="text-xs text-gray-400">{year}</span>}
+          {isTV ? (
+            <span className="flex items-center gap-0.5 text-xs text-cyan-400/80">
+              <Tv className="w-3 h-3" />
+              <span>TV</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-0.5 text-xs text-gray-500">
+              <Film className="w-3 h-3" />
+            </span>
+          )}
+          {vote > 0 && (
+            <span className="flex items-center gap-0.5 text-xs text-yellow-400/80">
+              <Star className="w-3 h-3 fill-current" />
+              <span>{vote.toFixed(1)}</span>
+            </span>
+          )}
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <div ref={containerRef} className={`relative ${fullWidth ? 'w-full' : 'w-36 xl:w-52 2xl:w-64'}`}>
@@ -109,7 +161,7 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => results.length > 0 && setOpen(true)}
+          onFocus={() => setOpen(true)}
           placeholder={t('nav.searchMovies')}
           className={`${fullWidth ? 'w-full' : 'w-full'} px-3 py-2 pl-9 pr-8 text-sm bg-white/5 border border-white/10 rounded-xl outline-none ring-0 ring-transparent focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-white placeholder-gray-400 transition-colors duration-150`}
           autoComplete="off"
@@ -129,63 +181,67 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
         )}
       </form>
 
-      {open && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-          {results.map((movie) => {
-            const year = (movie.release_date || movie.first_air_date || '').slice(0, 4);
-            const isTV = movie.media_type === 'tv';
-            return (
+      {open && showHistory && (
+        <div className="absolute top-full right-0 mt-2 w-72 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+          <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-300">
+              <History className="w-3.5 h-3.5 text-violet-300" aria-hidden />
+              {t('mobileSearch.recentTitle')}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                history.clear();
+                inputRef.current?.focus();
+              }}
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              {t('mobileSearch.recentClear')}
+            </button>
+          </div>
+          {history.items.map((item, index) => (
+            <div key={`${item.media_type}:${item.id}`} className="search-row flex items-center" style={{ '--row-i': index } as React.CSSProperties}>
               <button
-                key={movie.id}
                 type="button"
-                onClick={() => handleMovieClick(movie)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/10 transition-colors text-left group"
+                onClick={() => openHistoryItem(item)}
+                className="flex-1 min-w-0 flex items-center gap-3 pl-3 py-2 hover:bg-white/10 transition-colors text-left group"
               >
-                <div className="w-9 h-13 flex-shrink-0 rounded-md overflow-hidden bg-slate-700">
-                  {movie.poster_path ? (
-                    <img
-                      src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
-                      alt={movie.title}
-                      className="w-full h-full object-cover"
-                      style={{ minHeight: '52px' }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-600">
-                      <Film className="w-4 h-4" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate group-hover:text-blue-300 transition-colors">
-                    {movie.title || movie.name}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {year && <span className="text-xs text-gray-400">{year}</span>}
-                    {isTV ? (
-                      <span className="flex items-center gap-0.5 text-xs text-cyan-400/80">
-                        <Tv className="w-3 h-3" />
-                        <span>TV</span>
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-0.5 text-xs text-gray-500">
-                        <Film className="w-3 h-3" />
-                      </span>
-                    )}
-                    {movie.vote_average > 0 && (
-                      <span className="flex items-center gap-0.5 text-xs text-yellow-400/80">
-                        <Star className="w-3 h-3 fill-current" />
-                        <span>{movie.vote_average.toFixed(1)}</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
+                {rowBody(item.title, item.poster_path, item.year, item.media_type === 'tv', item.vote_average)}
               </button>
-            );
-          })}
+              <button
+                type="button"
+                onClick={() => {
+                  history.remove(item);
+                  inputRef.current?.focus();
+                }}
+                aria-label={t('mobileSearch.recentRemove', { title: item.title })}
+                className="shrink-0 w-9 h-9 grid place-items-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg mr-1 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" aria-hidden />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {open && !showHistory && results.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+          {results.map((movie, index) => (
+            <button
+              key={`${movie.media_type || 'movie'}:${movie.id}`}
+              type="button"
+              onClick={() => handleMovieClick(movie)}
+              className="search-row w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/10 transition-colors text-left group"
+              style={{ '--row-i': index } as React.CSSProperties}
+            >
+              {rowBody(movie.title || movie.name || '', movie.poster_path, (movie.release_date || movie.first_air_date || '').slice(0, 4), movie.media_type === 'tv', movie.vote_average || 0)}
+            </button>
+          ))}
           <button
             type="button"
             onClick={handleSubmit as any}
-            className="w-full px-3 py-2.5 text-xs text-blue-400 hover:text-blue-300 hover:bg-white/5 transition-colors border-t border-white/10 text-center"
+            className="search-row w-full px-3 py-2.5 text-xs text-blue-400 hover:text-blue-300 hover:bg-white/5 transition-colors border-t border-white/10 text-center"
+            style={{ '--row-i': results.length } as React.CSSProperties}
           >
             {t('nav.searchMovies')} &ldquo;{query}&rdquo; &rarr;
           </button>
