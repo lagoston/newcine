@@ -6,9 +6,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { Movie } from '../lib/tmdb';
 import RatingBox from '../components/RatingBox';
-import Top100List from '../components/Top100List';
 import {
-  RatedLayout, RatedTitle, Top100Saved, buildTop100, decadeColor, fetchRatedLayout, fetchTop100, groupByDecade, mediaTypeOf, yearOf,
+  DecadeOrders, RatedLayout, RatedTitle, decadeBadge, decadeColor, effectiveLayout, fetchDecadeOrders, fetchRatedLayout, groupByDecade, mediaTypeOf, yearOf,
 } from '../lib/libraryLayouts';
 import FollowersModal from '../components/FollowersModal';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -104,25 +103,26 @@ export default function UserProfile() {
     refetch: refetchProfileData,
   } = useProfileData(profile?.id, i18n.language);
 
-  // Organização da Biblioteca da pessoa (e o Top 100 dela, se for o caso).
+  // Organização da Biblioteca da pessoa (e, em Melhores da Década, a ordem
+  // que ela escolheu em cada década).
   const [ownerLayout, setOwnerLayout] = useState<RatedLayout>('notes');
-  const [ownerTop100, setOwnerTop100] = useState<Top100Saved | null>(null);
+  const [ownerOrders, setOwnerOrders] = useState<DecadeOrders>({});
   useEffect(() => {
     if (!profile?.id) return;
     let alive = true;
     setOwnerLayout('notes');
-    setOwnerTop100(null);
+    setOwnerOrders({});
     fetchRatedLayout(profile.id).then((layout) => {
       if (!alive || !layout) return;
       setOwnerLayout(layout);
-      if (layout === 'top100') fetchTop100(profile.id).then((saved) => alive && setOwnerTop100(saved));
+      if (layout === 'decades') fetchDecadeOrders(profile.id).then((orders) => alive && setOwnerOrders(orders));
     });
     return () => {
       alive = false;
     };
   }, [profile?.id]);
 
-  // Avaliados com o ano, na ordem em que entraram (Top 100 e décadas).
+  // Avaliados com o ano, na ordem em que entraram (Melhores da Década).
   const ownerRated: RatedTitle[] = useMemo(
     () =>
       movies
@@ -561,27 +561,23 @@ export default function UserProfile() {
             ) : (
               <>
                 <div className="mt-2">
-                  {ownerLayout === 'top100' ? (
-                    <Top100List
-                      anchorId="profile-top100"
-                      entries={buildTop100(ownerRated, ownerTop100)}
-                      isOtherUserProfile
-                      profileUserId={profile.id}
-                    />
-                  ) : ownerLayout === 'decades' ? (
-                    groupByDecade(ownerRated).map((shelf) => (
+                  {/* Melhores da Década só com a Cine Elite da dona (o banco
+                      já volta a organização para Notas quando ela perde). */}
+                  {effectiveLayout(ownerLayout, ownerRated.length) === 'decades' ? (
+                    groupByDecade(ownerRated, ownerOrders).map((shelf) => (
                       <RatingBox
                         key={shelf.decade ?? 'none'}
                         anchorId={`profile-decade-${shelf.decade ?? 'none'}`}
                         fullBleed
                         title={shelf.decade === null ? t('library.decadeUnknown') : t('library.decadeTitle', { decade: shelf.decade })}
-                        badgeText={shelf.decade === null ? '?' : `'${String(shelf.decade).slice(2)}`}
+                        badgeText={decadeBadge(shelf.decade)}
                         items={shelf.items}
                         accentColor={decadeColor(shelf.decade)}
                         average={shelf.average}
                         rating={null}
                         isOtherUserProfile
                         profileUserId={profile.id}
+                        ranked
                       />
                     ))
                   ) : ownerLayout === 'onegrid' ? (

@@ -17,6 +17,7 @@ import { RATING_LABELS } from './RatingSliderSheet';
 import { useTranslation } from 'react-i18next';
 import OptimizedPoster from './OptimizedPoster';
 import PredictedBadge from './PredictedBadge';
+import { RANK_MEDALS } from '../lib/libraryLayouts';
 import {
   NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ratingTone, ratingBarColor, withAlpha,
 } from '../lib/oracleTheme';
@@ -80,6 +81,10 @@ interface RatingBoxProps {
   accentColor?: string;
   // Nota média da pessoa na prateleira, num selo ao lado do título.
   average?: number | null;
+  // Melhores da Década: cada pôster mostra a posição (1, 2, 3 em ouro,
+  // prata e bronze) e o cabeçalho ganha "Organizar".
+  ranked?: boolean;
+  onOrganizeClick?: () => void;
 }
 
 type LibraryTile = Movie & { predictedRating?: number | null };
@@ -128,6 +133,8 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   badgeText,
   accentColor,
   average,
+  ranked = false,
+  onOrganizeClick,
 }) => {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
@@ -413,6 +420,16 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 {t('library.duel')}
               </button>
             )}
+            {onOrganizeClick && entries.length > 1 && (
+              <button
+                onClick={onOrganizeClick}
+                className={`${ghostPill} border-white/15 hover:border-white/35 hover:bg-white/5`}
+                style={{ color: PAPER }}
+              >
+                <ArrowUpDown className="w-4 h-4 text-violet-300" aria-hidden />
+                {t('library.bestOrganize')}
+              </button>
+            )}
             {entries.length > 0 && (
               <button
                 onClick={() => setShowAllMovies(true)}
@@ -459,7 +476,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
               {(!inView || pending) && [...Array(Math.max(1, Math.min(entries.length || initialCount, initialCount)))].map((_, i) => (
                 <SkeletonTile key={`wait:${i}`} withAction={isNotRated && !!onRate && canManage} />
               ))}
-              {inView && !pending && entries.slice(0, count).map((entry) => {
+              {inView && !pending && entries.slice(0, count).map((entry, index) => {
                 const movie = tileFor(entry);
                 if (!movie) return <SkeletonTile key={`s:${titleKey(entry)}`} withAction={isNotRated && !!onRate && canManage} />;
                 const isTv = movie.media_type === 'tv';
@@ -509,6 +526,21 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                             {ownRating}
                           </span>
                         ) : null}
+
+                        {ranked && (
+                          <span
+                            className={`absolute left-1.5 ${tv ? 'bottom-3' : 'bottom-1.5'} grid place-items-center min-w-[1.75rem] h-7 px-1.5 rounded-lg text-base leading-none tabular-nums shadow-lg`}
+                            style={
+                              index < 3
+                                ? { ...PIXEL, background: RANK_MEDALS[index], color: INK }
+                                : { ...PIXEL, background: 'rgba(18,13,34,0.82)', color: PAPER, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)' }
+                            }
+                            title={t('library.bestRank', { position: index + 1 })}
+                          >
+                            <span className="sr-only">{t('library.bestRank', { position: index + 1 })}</span>
+                            <span aria-hidden>{index + 1}</span>
+                          </span>
+                        )}
 
                         {openingKey === titleKey(entry) && (
                           <span className="absolute inset-0 grid place-items-center bg-black/55">

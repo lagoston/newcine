@@ -1,16 +1,43 @@
 import { supabase } from './supabase';
 import { ShelfEntry, TitleMediaType, titleKey } from './titleCards';
+import { PROGRESSION_TAGS } from './tags';
 
-// Organizações dos avaliados na Biblioteca (10/10/2026): Notas, One Grid,
-// Top 100 e Por década. A escolha fica no perfil (profiles.library_layout) —
-// o perfil da pessoa na comunidade mostra a coleção do mesmo jeito.
+// Organizações dos avaliados na Biblioteca. A escolha fica no perfil
+// (profiles.library_layout) — o perfil da pessoa na comunidade mostra a
+// coleção do mesmo jeito.
+//   • Notas: uma prateleira por nota, de 10 a 0.
+//   • One Grid: filmes numa prateleira, séries em outra.
+//   • Melhores da Década ('decades', desde 11/10/2026): uma prateleira por
+//     década, dos melhores para baixo, na ordem que a pessoa quiser. Exige a
+//     tag 🏆 Cine Elite (200 títulos avaliados); sem ela, volta para Notas.
+//     Substituiu o Top 100 e o Por década (10/10/2026), que saíram.
 
-export type RatedLayout = 'notes' | 'onegrid' | 'top100' | 'decades';
+export type RatedLayout = 'notes' | 'onegrid' | 'decades';
 
-export const RATED_LAYOUTS: RatedLayout[] = ['notes', 'onegrid', 'top100', 'decades'];
+export const RATED_LAYOUTS: RatedLayout[] = ['notes', 'onegrid', 'decades'];
 
+// 'top100' (o Top 100, que saiu) vira Melhores da Década.
 export const asRatedLayout = (value: unknown): RatedLayout =>
-  RATED_LAYOUTS.includes(value as RatedLayout) ? (value as RatedLayout) : 'notes';
+  value === 'top100' ? 'decades' : RATED_LAYOUTS.includes(value as RatedLayout) ? (value as RatedLayout) : 'notes';
+
+// ---------------------------------------------------------------------------
+// Cine Elite: a tag que libera Melhores da Década
+// ---------------------------------------------------------------------------
+
+const ELITE_TAG = PROGRESSION_TAGS.find((tag) => tag.name === 'Cine Elite');
+
+export const CINE_ELITE = {
+  name: 'Cine Elite',
+  emoji: ELITE_TAG?.emoji ?? '🏆',
+  // títulos avaliados (filmes e séries), a mesma conta da tag no app e no banco
+  min: ELITE_TAG?.minMovies ?? 200,
+} as const;
+
+export const hasCineElite = (ratedCount: number) => ratedCount >= CINE_ELITE.min;
+
+// A organização que vale de fato: Melhores da Década sem a tag vira Notas.
+export const effectiveLayout = (layout: RatedLayout, ratedCount: number): RatedLayout =>
+  layout === 'decades' && !hasCineElite(ratedCount) ? 'notes' : layout;
 
 // Escolha antiga, guardada só no aparelho (antes de ir para o perfil).
 const LEGACY_LAYOUT_KEY = 'libraryRatedLayout';
@@ -40,104 +67,14 @@ export async function fetchRatedLayout(userId: string): Promise<RatedLayout | nu
   return data.library_layout ? asRatedLayout(data.library_layout) : null;
 }
 
-// ---------------------------------------------------------------------------
-// Top 100
-// ---------------------------------------------------------------------------
-
-export const TOP_LIMIT = 100;
-
-// Desde 10/10/2026 o Top 100 tem filmes e séries, guardados por chave
-// ("movie:105" / "tv:105" — os números do TMDB se repetem entre os dois).
-export interface Top100Saved {
-  // títulos na ordem escolhida
-  items: string[];
-  // tirados do Top 100 pela pessoa: não voltam sozinhos
-  excluded: string[];
-  // Duelo: o começo da lista já confirmado em duelos (pra continuar de onde
-  // parou), os desafiantes de fora que perderam e quantos duelos já foram.
-  duelSorted: string[];
-  duelRejected: string[];
-  duelCount: number;
-}
-
-export const EMPTY_TOP100: Top100Saved = { items: [], excluded: [], duelSorted: [], duelRejected: [], duelCount: 0 };
-
-export async function fetchTop100(userId: string): Promise<Top100Saved | null> {
-  const { data, error } = await supabase
-    .from('library_top100')
-    .select('item_keys, excluded_keys, duel_sorted, duel_rejected, duel_count')
-    .eq('user_id', userId)
-    .maybeSingle();
-  if (error || !data) return null;
-  return {
-    items: (data.item_keys as string[]) || [],
-    excluded: (data.excluded_keys as string[]) || [],
-    duelSorted: (data.duel_sorted as string[]) || [],
-    duelRejected: (data.duel_rejected as string[]) || [],
-    duelCount: (data.duel_count as number) || 0,
-  };
-}
-
-export async function saveTop100(userId: string, saved: Top100Saved) {
-  const { error } = await supabase.from('library_top100').upsert(
-    {
-      user_id: userId,
-      item_keys: saved.items,
-      excluded_keys: saved.excluded,
-      duel_sorted: saved.duelSorted,
-      duel_rejected: saved.duelRejected,
-      duel_count: saved.duelCount,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'user_id' }
-  );
-  if (error) throw error;
-}
-
 // Um título avaliado (com a nota, o tipo e, quando se sabe, o ano).
 export interface RatedTitle extends ShelfEntry {
   userRating: number;
   year?: number | null;
 }
 
-// O Top 100 que aparece: primeiro os títulos na ordem guardada (os que
-// ainda estão avaliados); depois, até completar 100, os outros avaliados que
-// a pessoa não tirou, da maior nota para a menor (no empate, o mais recente —
-// `rated` vem na ordem em que entraram na biblioteca, do mais novo para o
-// mais antigo). Filmes e séries.
-export function buildTop100(rated: RatedTitle[], saved: Top100Saved | null): RatedTitle[] {
-  const byKey = new Map(rated.map((title) => [titleKey(title), title]));
-  const ordered: RatedTitle[] = [];
-  const used = new Set<string>();
-  (saved?.items || []).forEach((key) => {
-    const title = byKey.get(key);
-    if (title && !used.has(key)) {
-      ordered.push(title);
-      used.add(key);
-    }
-  });
-  const excluded = new Set(saved?.excluded || []);
-  const rest = rated
-    .map((title, index) => ({ title, index }))
-    .filter(({ title }) => !used.has(titleKey(title)) && !excluded.has(titleKey(title)))
-    .sort((a, b) => b.title.userRating - a.title.userRating || a.index - b.index)
-    .map(({ title }) => title);
-  return [...ordered, ...rest].slice(0, TOP_LIMIT);
-}
-
-// Os avaliados que estão fora do Top 100 (pra pôr de volta), da maior nota
-// para a menor.
-export function outsideTop100(rated: RatedTitle[], top: RatedTitle[]): RatedTitle[] {
-  const inTop = new Set(top.map(titleKey));
-  return rated
-    .map((title, index) => ({ title, index }))
-    .filter(({ title }) => !inTop.has(titleKey(title)))
-    .sort((a, b) => b.title.userRating - a.title.userRating || a.index - b.index)
-    .map(({ title }) => title);
-}
-
 // ---------------------------------------------------------------------------
-// Por década
+// Melhores da Década
 // ---------------------------------------------------------------------------
 
 export interface DecadeShelf<T> {
@@ -146,6 +83,64 @@ export interface DecadeShelf<T> {
   items: T[];
   // nota média da pessoa nos títulos da década
   average: number | null;
+  // a pessoa mudou a ordem desta década
+  customized: boolean;
+}
+
+// Ordem escolhida em cada década: chave da década (decadeKey) → chaves dos
+// títulos ("movie:105" / "tv:105"). Década sem ordem salva = pela nota.
+export type DecadeOrders = Record<string, string[]>;
+
+// No banco, a década sem data é 0.
+export const decadeKey = (decade: number | null) => String(decade ?? 0);
+
+export async function fetchDecadeOrders(userId: string): Promise<DecadeOrders> {
+  const { data, error } = await supabase.from('library_decade_order').select('decade, item_keys').eq('user_id', userId);
+  if (error || !data) return {};
+  const orders: DecadeOrders = {};
+  (data as { decade: number; item_keys: string[] | null }[]).forEach((row) => {
+    if (row.item_keys && row.item_keys.length > 0) orders[String(row.decade)] = row.item_keys;
+  });
+  return orders;
+}
+
+// keys vazio = volta para a ordem das notas.
+export async function saveDecadeOrder(userId: string, decade: number | null, keys: string[]) {
+  const { error } = await supabase.from('library_decade_order').upsert(
+    { user_id: userId, decade: decade ?? 0, item_keys: keys, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,decade' }
+  );
+  if (error) throw error;
+}
+
+type Rankable = { id: number; media_type?: string | null; userRating?: number | null };
+
+const ratingOf = (title: Rankable) => (typeof title.userRating === 'number' ? title.userRating : -1);
+
+// Aplica a ordem salva a uma década já ordenada pela nota: primeiro os
+// títulos na ordem da pessoa (os que continuam avaliados); os que não estão
+// nela (avaliados depois) entram pela nota, logo antes do primeiro da ordem
+// salva que tem nota menor — um 10 novo vai para junto dos outros 10.
+export function applyDecadeOrder<T extends Rankable>(byRating: T[], saved: string[] | undefined): T[] {
+  if (!saved || saved.length === 0) return byRating;
+  const byKey = new Map(byRating.map((title) => [titleKey(title), title]));
+  const ordered: T[] = [];
+  const used = new Set<string>();
+  saved.forEach((key) => {
+    const title = byKey.get(key);
+    if (title && !used.has(key)) {
+      ordered.push(title);
+      used.add(key);
+    }
+  });
+  byRating.forEach((title) => {
+    if (used.has(titleKey(title))) return;
+    const rating = ratingOf(title);
+    const at = ordered.findIndex((other) => ratingOf(other) < rating);
+    if (at === -1) ordered.push(title);
+    else ordered.splice(at, 0, title);
+  });
+  return ordered;
 }
 
 // Cores das eras — as mesmas do card "Década favorita" do Perfil
@@ -164,10 +159,16 @@ export const decadeEra = (decade: number): DecadeEra => (decade < 1980 ? 'grandp
 export const decadeColor = (decade: number | null): string | undefined =>
   decade === null ? undefined : DECADE_ERA_COLORS[decadeEra(decade)];
 
+// Ouro, prata e bronze para os 3 primeiros de cada década.
+export const RANK_MEDALS = ['#F5C451', '#D5DCE6', '#D99A6C'] as const;
+
+// Selo curto da década ("'90"; "?" sem data).
+export const decadeBadge = (decade: number | null) => (decade === null ? '?' : `'${String(decade).slice(2)}`);
+
 // Uma prateleira por década, da mais nova para a mais antiga (sem data no
-// fim). Dentro de cada uma, da maior nota para a menor; no empate, a ordem
-// em que entraram.
-export function groupByDecade<T extends { userRating?: number | null; year?: number | null }>(titles: T[]): DecadeShelf<T>[] {
+// fim). Dentro de cada uma, da maior nota para a menor (no empate, a ordem em
+// que entraram) e, se a pessoa organizou a década, na ordem dela.
+export function groupByDecade<T extends Rankable & { year?: number | null }>(titles: T[], orders: DecadeOrders = {}): DecadeShelf<T>[] {
   const groups = new Map<number | null, { title: T; index: number }[]>();
   titles.forEach((title, index) => {
     const decade = typeof title.year === 'number' && title.year > 0 ? Math.floor(title.year / 10) * 10 : null;
@@ -180,12 +181,15 @@ export function groupByDecade<T extends { userRating?: number | null; year?: num
     .map(([decade, list]) => {
       const rated = list.filter(({ title }) => typeof title.userRating === 'number');
       const average = rated.length > 0 ? rated.reduce((sum, { title }) => sum + (title.userRating as number), 0) / rated.length : null;
+      const byRating = list
+        .sort((x, y) => ratingOf(y.title) - ratingOf(x.title) || x.index - y.index)
+        .map(({ title }) => title);
+      const saved = orders[decadeKey(decade)];
       return {
         decade,
         average,
-        items: list
-          .sort((x, y) => (y.title.userRating ?? -1) - (x.title.userRating ?? -1) || x.index - y.index)
-          .map(({ title }) => title),
+        items: applyDecadeOrder(byRating, saved),
+        customized: !!saved && saved.length > 0,
       };
     });
 }

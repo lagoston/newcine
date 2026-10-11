@@ -11,7 +11,7 @@ const hasIO = () => typeof window !== 'undefined' && 'IntersectionObserver' in w
 
 // Sobe na árvore até achar quem rola no eixo pedido (a faixa de pôsteres, a
 // janela de "Ver todos"...). null = a própria página.
-function findScrollParent(el: Element | null, axis: 'x' | 'y'): Element | null {
+export function findScrollParent(el: Element | null, axis: 'x' | 'y'): Element | null {
   let node = el?.parentElement || null;
   while (node && node !== document.body && node !== document.documentElement) {
     const style = window.getComputedStyle(node);

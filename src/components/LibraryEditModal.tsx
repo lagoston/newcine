@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Loader2, Check, AlertTriangle } from 'lucide-react';
+import { Download, Loader2, Check, AlertTriangle, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -9,11 +9,11 @@ import { getMovieDetails } from '../lib/tmdb';
 import OracleSheet from './OracleSheet';
 import ConfirmationModal from './ConfirmationModal';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ratingTone } from '../lib/oracleTheme';
-import type { RatedLayout } from '../lib/libraryLayouts';
+import { CINE_ELITE, DECADE_ERA_COLORS, RANK_MEDALS, hasCineElite, type RatedLayout } from '../lib/libraryLayouts';
 
-// Ajustes da Biblioteca: como os avaliados aparecem (Notas, One Grid, Top 100
-// ou Por década — a escolha vale também para o perfil na comunidade), ordem
-// das séries, exportar e zerar a coleção. Os nomes das prateleiras são
+// Ajustes da Biblioteca: como os avaliados aparecem (Notas, One Grid ou
+// Melhores da Década, que pede a tag 🏆 Cine Elite — a escolha vale também
+// para o perfil na comunidade), ordem das séries, exportar e zerar a coleção. Os nomes das prateleiras são
 // sempre os padrão (não dá pra renomear) e a Chroma Box é sempre ligada.
 
 type TvOrder = 'auto' | 'first' | 'last';
@@ -24,6 +24,8 @@ interface LibraryEditModalProps {
   onReset: () => void;
   ratedLayout: RatedLayout;
   onRatedLayoutChange: (layout: RatedLayout) => void;
+  // Títulos avaliados (a Cine Elite, que libera Melhores da Década, pede 200).
+  ratedCount: number;
   // Opcionais: quando passados, a Biblioteca aplica a mudança na hora; sem
   // eles, a página recarrega pra aplicar (comportamento antigo).
   onTvOrderChange?: (order: TvOrder) => void;
@@ -35,6 +37,7 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
   onReset,
   ratedLayout,
   onRatedLayoutChange,
+  ratedCount,
   onTvOrderChange,
 }) => {
   const { session } = useAuth();
@@ -243,16 +246,19 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
             {([
               { value: 'notes', label: t('library.ratedLayoutNotes') },
               { value: 'onegrid', label: t('library.ratedLayoutOneGrid') },
-              { value: 'top100', label: t('library.ratedLayoutTop100') },
               { value: 'decades', label: t('library.ratedLayoutDecades') },
             ] as const).map((opt) => {
               const active = ratedLayout === opt.value;
+              // Melhores da Década: só com a Cine Elite.
+              const elite = opt.value === 'decades';
+              const locked = elite && !hasCineElite(ratedCount);
               return (
                 <button
                   key={opt.value}
-                  onClick={() => onRatedLayoutChange(opt.value)}
+                  onClick={() => !locked && onRatedLayoutChange(opt.value)}
                   aria-pressed={active}
-                  className={`${optionCard(active)} flex-col items-stretch justify-start gap-3`}
+                  aria-disabled={locked || undefined}
+                  className={`${optionCard(active)} flex-col items-stretch justify-start gap-3 ${elite ? 'col-span-2' : ''} ${locked ? 'cursor-not-allowed hover:ring-white/10' : ''}`}
                   style={{ background: active ? undefined : VELVET }}
                 >
                   {/* Miniatura do layout */}
@@ -264,19 +270,24 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
                           <span className="h-2 rounded-full bg-white/20" style={{ width: `${85 - i * 20}%` }} />
                         </span>
                       ))
-                    ) : opt.value === 'top100' ? (
-                      ['#F5C451', '#D5DCE6', '#D99A6C'].map((color, i) => (
-                        <span key={color} className="flex items-center gap-1.5">
-                          <span className="w-3 text-[10px] leading-none text-right" style={{ ...PIXEL, color }}>{i + 1}</span>
-                          <span className="w-2 h-3 rounded-[2px] bg-white/25" />
-                          <span className="h-2 rounded-full bg-white/20" style={{ width: `${75 - i * 12}%` }} />
-                        </span>
-                      ))
                     ) : opt.value === 'decades' ? (
-                      ["'00", "'90", "'80"].map((label, i) => (
-                        <span key={label} className="flex items-center gap-1.5">
-                          <span className="w-5 text-[10px] leading-none" style={{ ...PIXEL, color: PAPER }}>{label}</span>
-                          <span className="h-2 rounded-full bg-white/20" style={{ width: `${80 - i * 18}%` }} />
+                      // Uma fileira por década (na cor da era), os pôsteres
+                      // com a posição: ouro, prata e bronze.
+                      ([
+                        ["'10", DECADE_ERA_COLORS.modern],
+                        ["'90", DECADE_ERA_COLORS.nostalgic],
+                        ["'70", DECADE_ERA_COLORS.grandpa],
+                      ] as const).map(([label, color]) => (
+                        <span key={label} className={`flex items-center gap-1.5 ${locked ? 'opacity-45' : ''}`}>
+                          <span className="w-6 text-[10px] leading-none" style={{ ...PIXEL, color }}>{label}</span>
+                          {RANK_MEDALS.map((medal, i) => (
+                            <span key={medal} className="relative w-4 h-6 rounded-[3px] bg-white/20">
+                              <span className="absolute left-0.5 bottom-0.5 w-1.5 h-1.5 rounded-[1px]" style={{ background: medal }} />
+                              <span className="sr-only">{i + 1}</span>
+                            </span>
+                          ))}
+                          <span className="w-4 h-6 rounded-[3px] bg-white/10" />
+                          <span className="w-4 h-6 rounded-[3px] bg-white/10" />
                         </span>
                       ))
                     ) : (
@@ -288,12 +299,47 @@ const LibraryEditModal: React.FC<LibraryEditModalProps> = ({
                     )}
                   </span>
                   <span className="flex items-center justify-between gap-2 text-sm font-semibold" style={{ color: PAPER }}>
-                    {opt.label}
-                    {active && <Check className="w-4 h-4 text-violet-300" aria-hidden />}
+                    <span className="inline-flex items-center gap-2 min-w-0">
+                      {opt.label}
+                      {elite && (
+                        <span
+                          className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                          style={{ background: 'rgba(245,196,81,0.14)', color: '#F5C451', boxShadow: 'inset 0 0 0 1px rgba(245,196,81,0.4)' }}
+                        >
+                          <span aria-hidden>{CINE_ELITE.emoji}</span>
+                          {CINE_ELITE.name}
+                        </span>
+                      )}
+                    </span>
+                    {active ? (
+                      <Check className="w-4 h-4 text-violet-300" aria-hidden />
+                    ) : locked ? (
+                      <Lock className="w-4 h-4" style={{ color: MIST }} aria-hidden />
+                    ) : null}
                   </span>
                   <span className="text-xs leading-snug" style={{ color: MIST }}>
                     {t(`library.ratedLayoutHint.${opt.value}`)}
                   </span>
+                  {locked && (
+                    <span className="block">
+                      <span className="flex items-baseline justify-between gap-3 text-xs" style={{ color: PAPER }}>
+                        <span>{t('library.eliteLocked', { emoji: CINE_ELITE.emoji, tag: CINE_ELITE.name, min: CINE_ELITE.min })}</span>
+                        <span className="shrink-0 tabular-nums" style={{ color: MIST }}>
+                          {t('library.eliteProgress', { count: ratedCount, min: CINE_ELITE.min })}
+                        </span>
+                      </span>
+                      <span
+                        className="mt-1.5 block h-1.5 rounded-full bg-white/10 overflow-hidden"
+                        role="progressbar"
+                        aria-valuemin={0}
+                        aria-valuemax={CINE_ELITE.min}
+                        aria-valuenow={Math.min(ratedCount, CINE_ELITE.min)}
+                        aria-label={CINE_ELITE.name}
+                      >
+                        <span className="block h-full rounded-full" style={{ width: `${Math.min(100, (ratedCount / CINE_ELITE.min) * 100)}%`, background: '#F5C451' }} />
+                      </span>
+                    </span>
+                  )}
                 </button>
               );
             })}

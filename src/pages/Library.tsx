@@ -15,20 +15,21 @@ import GlassLoader from '../components/GlassLoader';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 import { ShelfItem, TitleMediaType, asMediaType, loadTitleCards, peekTitleCard } from '../lib/titleCards';
 import {
-  RatedLayout, RatedTitle, Top100Saved, buildTop100, decadeColor, fetchRatedLayout, fetchTop100, groupByDecade, outsideTop100,
-  readLegacyLayout, saveRatedLayout, saveTop100,
+  CINE_ELITE, DecadeOrders, DecadeShelf, RatedLayout, RatedTitle, decadeBadge, decadeColor, decadeKey, effectiveLayout, fetchDecadeOrders,
+  fetchRatedLayout, groupByDecade, hasCineElite, readLegacyLayout, saveDecadeOrder, saveRatedLayout,
 } from '../lib/libraryLayouts';
-import Top100List from '../components/Top100List';
+import DecadeOrganizer from '../components/DecadeOrganizer';
 
 // Biblioteca — "a estante".
 //   1. Cabeçalho: título, números da coleção e atalhos (adicionar, listas,
 //      resenhas, ajustes). No celular os três últimos viram só ícone, na
 //      mesma linha do "Adicionar Filmes". O gráfico de notas mora no Perfil.
 //   2. Prateleiras: Watchlist (com filtros e duelo) e os avaliados numa das
-//      4 organizações (Ajustes): Notas (uma prateleira por nota, de 10 a 0),
-//      One Grid (uma de filmes e uma de séries), Top 100 (lista com posição,
-//      que a pessoa organiza) e Por década. A escolha fica no perfil — o
-//      perfil na comunidade mostra a coleção do mesmo jeito.
+//      3 organizações (Ajustes): Notas (uma prateleira por nota, de 10 a 0),
+//      One Grid (uma de filmes e uma de séries) e Melhores da Década (uma
+//      prateleira por década, na ordem que a pessoa escolher — só com a tag
+//      🏆 Cine Elite). A escolha fica no perfil — o perfil na comunidade
+//      mostra a coleção do mesmo jeito.
 //
 // Sob demanda (10/10/2026): a página lê só as linhas da biblioteca (id,
 // tipo e nota — uma consulta), então cabeçalho, números e prateleiras
@@ -67,8 +68,10 @@ export default function Library() {
   const chromaBoxEnabled = true;
   // Começa pela escolha guardada no aparelho e confirma com a do perfil.
   const [ratedLayout, setRatedLayout] = useState<RatedLayout>(() => readLegacyLayout() || 'notes');
-  // Top 100 guardado (null = nunca organizado: segue as notas).
-  const [top100, setTop100] = useState<Top100Saved | null>(null);
+  // Melhores da Década: a ordem que a pessoa escolheu em cada década (vazio
+  // = pela nota) e a década sendo organizada agora.
+  const [decadeOrders, setDecadeOrders] = useState<DecadeOrders>({});
+  const [organizing, setOrganizing] = useState<DecadeShelf<RatedTitle> | null>(null);
 
   // As linhas da biblioteca chegaram (as prateleiras já podem aparecer).
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -102,7 +105,7 @@ export default function Library() {
           if (legacy && legacy !== 'notes') saveRatedLayout(userId, legacy).catch(() => undefined);
         }
       });
-      fetchTop100(userId).then(setTop100);
+      fetchDecadeOrders(userId).then(setDecadeOrders);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
@@ -247,6 +250,8 @@ export default function Library() {
   };
 
   const handleRatedLayoutChange = (layout: RatedLayout) => {
+    // Melhores da Década só com a Cine Elite (o modal já mostra trancado).
+    if (layout === 'decades' && !hasCineElite(stats.rated)) return;
     const previous = ratedLayout;
     setRatedLayout(layout);
     if (!session?.user?.id) return;
@@ -257,13 +262,19 @@ export default function Library() {
     });
   };
 
-  const handleSaveTop100 = async (next: Top100Saved) => {
+  // Grava a ordem de uma década (vazio = volta para a ordem das notas).
+  const handleSaveDecadeOrder = async (decade: number | null, keys: string[]) => {
     if (!session?.user?.id) return;
-    await saveTop100(session.user.id, next);
-    setTop100(next);
+    await saveDecadeOrder(session.user.id, decade, keys);
+    setDecadeOrders((prev) => {
+      const next = { ...prev };
+      if (keys.length > 0) next[decadeKey(decade)] = keys;
+      else delete next[decadeKey(decade)];
+      return next;
+    });
   };
 
-  // Avaliados com o ano, na ordem em que entraram (Top 100 e décadas).
+  // Avaliados com o ano, na ordem em que entraram (Melhores da Década).
   const ratedTitles: RatedTitle[] = useMemo(
     () =>
       rows
@@ -271,9 +282,7 @@ export default function Library() {
         .map((row) => ({ id: row.movie_id, media_type: row.media_type, userRating: row.rating as number, year: row.year })),
     [rows]
   );
-  const top100Entries = useMemo(() => buildTop100(ratedTitles, top100), [ratedTitles, top100]);
-  const top100Others = useMemo(() => outsideTop100(ratedTitles, top100Entries), [ratedTitles, top100Entries]);
-  const decadeShelves = useMemo(() => groupByDecade(ratedTitles), [ratedTitles]);
+  const decadeShelves = useMemo(() => groupByDecade(ratedTitles, decadeOrders), [ratedTitles, decadeOrders]);
 
   // Apply TV order preference
   const sortByTvOrder = (list: LibraryItem[]) => {
@@ -422,6 +431,22 @@ export default function Library() {
     };
   }, [rows]);
 
+  // Cine Elite (200 títulos avaliados) libera Melhores da Década. Se a
+  // pessoa cai abaixo disso (tirou notas), a organização volta para Notas —
+  // o banco faz o mesmo no perfil (reconcile_user_cosmetics).
+  const eliteUnlocked = hasCineElite(stats.rated);
+  const shownLayout = effectiveLayout(ratedLayout, stats.rated);
+  const hadEliteRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!initialLoadComplete) return;
+    const had = hadEliteRef.current;
+    hadEliteRef.current = eliteUnlocked;
+    if (eliteUnlocked || ratedLayout !== 'decades') return;
+    setRatedLayout('notes');
+    setOrganizing(null);
+    if (had === true) toast(t('library.eliteLost', { emoji: CINE_ELITE.emoji, tag: CINE_ELITE.name, min: CINE_ELITE.min }), { icon: CINE_ELITE.emoji });
+  }, [initialLoadComplete, eliteUnlocked, ratedLayout, t]);
+
   if (loading) {
     return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
   }
@@ -516,23 +541,14 @@ export default function Library() {
             onDuelClick={moviesByRating.unrated.length >= 4 ? () => setShowWatchlistDuel(true) : undefined}
           />
 
-          {ratedLayout === 'top100' ? (
-            <Top100List
-              anchorId="library-top100"
-              entries={top100Entries}
-              others={top100Others}
-              saved={top100}
-              editable
-              onSave={handleSaveTop100}
-            />
-          ) : ratedLayout === 'decades' ? (
+          {shownLayout === 'decades' ? (
             decadeShelves.map((shelf) => (
               <RatingBox
                 key={shelf.decade ?? 'none'}
                 anchorId={`library-decade-${shelf.decade ?? 'none'}`}
                 fullBleed
                 title={shelf.decade === null ? t('library.decadeUnknown') : t('library.decadeTitle', { decade: shelf.decade })}
-                badgeText={shelf.decade === null ? '?' : `'${String(shelf.decade).slice(2)}`}
+                badgeText={decadeBadge(shelf.decade)}
                 items={shelf.items}
                 accentColor={decadeColor(shelf.decade)}
                 average={shelf.average}
@@ -540,9 +556,11 @@ export default function Library() {
                 onRate={handleRate}
                 onDelete={handleDelete}
                 chromaBoxEnabled={false}
+                ranked
+                onOrganizeClick={() => setOrganizing(shelf)}
               />
             ))
-          ) : ratedLayout === 'onegrid' ? (() => {
+          ) : shownLayout === 'onegrid' ? (() => {
             const allRated: LibraryItem[] = [...Array(11)].reduce((acc: LibraryItem[], _, i) => {
               const r = 10 - i;
               return [...acc, ...(moviesByRating[r] || [])];
@@ -619,10 +637,21 @@ export default function Library() {
           cache.invalidate(CACHE_KEYS.USER_LIBRARY(session?.user?.id || ''));
           cache.invalidatePattern('stats:');
         }}
-        ratedLayout={ratedLayout}
+        ratedLayout={shownLayout}
         onRatedLayoutChange={handleRatedLayoutChange}
+        ratedCount={stats.rated}
         onTvOrderChange={setTvOrder}
       />
+
+      {organizing && (
+        <DecadeOrganizer
+          decade={organizing.decade}
+          entries={organizing.items}
+          customized={organizing.customized}
+          onSave={(keys) => handleSaveDecadeOrder(organizing.decade, keys)}
+          onClose={() => setOrganizing(null)}
+        />
+      )}
 
       {isReviewsModalOpen && session?.user?.id && (
         <UserReviewsModal
