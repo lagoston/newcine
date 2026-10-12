@@ -824,3 +824,33 @@ img[loading="lazy"] {
     animation: none;
   }
 }
+
+/* Observatório do perfil (12/10/2026): os temas da roda dos humores
+   flutuam devagar e uma varredura de radar gira atrás da roda. Sem nada
+   disso para quem pede menos movimento. */
+.taste-float {
+  animation: taste-float 6s ease-in-out infinite;
+}
+@keyframes taste-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -3px, 0);
+  }
+}
+.taste-sweep {
+  animation: taste-sweep 9s linear infinite;
+}
+@keyframes taste-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .taste-float,
+  .taste-sweep {
+    animation: none;
+  }
+}

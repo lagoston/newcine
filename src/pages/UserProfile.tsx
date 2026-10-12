@@ -19,7 +19,8 @@ import CompatibilityModal from '../components/CompatibilityModal';
 import MatchMovieModal from '../components/MatchMovieModal';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON, type ProfileActiveTag } from '../components/ProfileIdentityCard';
 import { useTagDecoration } from '../contexts/SeasonalEventContext';
-import { ProfileStatTiles, ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
+import { ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
+import TasteHud from '../components/profile/TasteHud';
 import { summarizeRatings } from '../lib/profileStats';
 import ProfileEssence from '../components/ProfileEssence';
 import { toast } from 'sonner';
@@ -90,11 +91,6 @@ export default function UserProfile() {
     ratedMoviesCount,
     ratingDistribution,
     totalWatchTime,
-    favoriteGenres,
-    favoriteKeywords,
-    favoriteDecade,
-    topDirectors,
-    leastKnownGem,
     friendsCount,
     persona,
     personaLoading,
@@ -367,6 +363,9 @@ export default function UserProfile() {
   const isOwnerPremium = profile.is_premium ?? profile.plan_type === 'premium';
   const isSelf = session?.user?.id === profile.id;
   const { counts: ratingCounts, average } = summarizeRatings(ratingDistribution);
+  const decadesCount = new Set(
+    movies.filter((m) => typeof m.userRating === 'number' && m.release_date).map((m) => (m.release_date || '').slice(0, 3))
+  ).size;
 
   // Prateleiras: uma por nota (10 → 0) e a Watchlist no fim.
   const buckets: Record<number, MovieWithRating[]> = {};
@@ -511,10 +510,13 @@ export default function UserProfile() {
 
       {/* ---------- Números ---------- */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 mt-4">
-        <ProfileStatTiles
+        <TasteHud
           ratedCount={ratedMoviesCount}
           watchMinutes={totalWatchTime}
-          label={t('profile.numbersOf', { username: profile.username })}
+          average={average}
+          countries={Object.keys(countryCounts).length}
+          decades={decadesCount}
+          ownerName={`@${profile.username}`}
         />
       </section>
 
@@ -678,15 +680,13 @@ export default function UserProfile() {
               <div className="mt-6">
                 {ratedMoviesCount > 0 ? (
                   <ProfileTasteGrid
+                    userId={profile.id}
+                    movies={movies}
+                    persona={persona}
+                    ownerName={`@${profile.username}`}
                     ratingCounts={ratingCounts}
-                    average={average}
                     ratingTitle={t('profile.stats.ratingDistribution')}
                     onJumpToRating={jumpFromInfo}
-                    favoriteGenres={favoriteGenres}
-                    favoriteKeywords={favoriteKeywords}
-                    favoriteDecade={favoriteDecade}
-                    topDirectors={topDirectors}
-                    leastKnownGem={leastKnownGem}
                     countryCounts={countryCounts}
                     countryAvgRatings={countryAvgRatings}
                     onViewCountryMovies={handleViewCountryMovies}

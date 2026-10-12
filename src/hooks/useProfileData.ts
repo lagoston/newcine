@@ -54,6 +54,7 @@ export interface LeastKnownGem {
   release_date: string;
   vote_average: number;
   userRating?: number;
+  poster_path?: string | null;
 }
 
 export interface ProfileData {
@@ -113,7 +114,7 @@ async function batchFetchFromCache(
   const { data, error } = await supabase
     .from('movie_cache')
     .select(
-      'tmdb_id, media_type, title_en, title_pt, overview_en, overview_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, number_of_episodes, status, in_production, genres_en, genres_pt, director, cast_members, seasons_data, origin_country, watch_providers, keywords'
+      'tmdb_id, media_type, title_en, title_pt, overview_en, overview_pt, poster_path, poster_path_pt, release_date, vote_average, vote_count, runtime, episode_run_time, number_of_seasons, number_of_episodes, status, in_production, genres_en, genres_pt, director, director_id, cast_members, seasons_data, origin_country, watch_providers, keywords'
     )
     .in('tmdb_id', ids);
 
@@ -142,7 +143,7 @@ async function batchFetchFromCache(
       genres: genres || [],
       credits: {
         cast: row.cast_members || [],
-        crew: row.director ? [{ id: 0, name: row.director, job: 'Director' }] : []
+        crew: row.director ? [{ id: row.director_id || 0, name: row.director, job: 'Director' }] : []
       },
       seasons: row.seasons_data,
       origin_country: row.origin_country || [],
@@ -406,9 +407,11 @@ export function useProfileData(userId: string | undefined, language: string): Pr
         setTopActors(Object.values(actorCounts).sort((a, b) => b.count - a.count).slice(0, 3));
         setTopDirectors(Object.values(directorCounts).sort((a, b) => b.count - a.count).slice(0, 3));
 
-        // --- Jóia escondida (menor vote_count entre os avaliados) ---
+        // --- Jóia escondida: o menos votado no TMDB entre os que a pessoa
+        // deu 7 ou mais (desde 12/10/2026 — antes valia qualquer nota, e a
+        // "joia" podia ser um filme que ela detestou) ---
         const withVoteCounts = ratedMovies
-          .filter((m) => m.userRating !== null && m.vote_count !== undefined && m.vote_count !== null)
+          .filter((m) => typeof m.userRating === 'number' && m.userRating >= 7 && typeof m.vote_count === 'number' && m.vote_count > 0)
           .sort((a, b) => (a.vote_count || 0) - (b.vote_count || 0));
 
         const gem =
@@ -419,7 +422,8 @@ export function useProfileData(userId: string | undefined, language: string): Pr
                 vote_count: withVoteCounts[0].vote_count || 0,
                 release_date: withVoteCounts[0].release_date,
                 vote_average: withVoteCounts[0].vote_average,
-                userRating: withVoteCounts[0].userRating ?? undefined
+                userRating: withVoteCounts[0].userRating ?? undefined,
+                poster_path: withVoteCounts[0].poster_path || null
               }
             : null;
         setLeastKnownGem(gem);

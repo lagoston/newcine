@@ -11,7 +11,8 @@ import AllMoviesModal from '../components/AllMoviesModal';
 import SettingsModal from '../components/SettingsModal';
 import TagPinsModal from '../components/TagPinsModal';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON } from '../components/ProfileIdentityCard';
-import { ProfileStatTiles, ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
+import { ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
+import TasteHud from '../components/profile/TasteHud';
 import { summarizeRatings } from '../lib/profileStats';
 import ProfileEssence from '../components/ProfileEssence';
 import { toast } from 'sonner';
@@ -140,11 +141,6 @@ export default function Profile() {
     ratedMoviesCount,
     ratingDistribution,
     totalWatchTime,
-    favoriteGenres,
-    favoriteKeywords,
-    favoriteDecade,
-    topDirectors,
-    leastKnownGem,
     friendsCount,
     persona,
     personaLoading,
@@ -545,6 +541,9 @@ export default function Profile() {
 
   // ---- Valores derivados ----
   const { counts: ratingCounts, average } = summarizeRatings(ratingDistribution);
+  const decadesCount = new Set(
+    movies.filter((m) => typeof m.userRating === 'number' && m.release_date).map((m) => (m.release_date || '').slice(0, 3))
+  ).size;
   // Os blocos da página (Números, Seu gosto, Essência…) vestem o tom do seu
   // banner — a mesma regra dos perfis da Comunidade (lib/banners.ts).
   const bannerTone = getBannerTone(profile?.banner, isPremium);
@@ -707,17 +706,20 @@ export default function Profile() {
           neles, as estatísticas (notas, gêneros, década, diretores, atlas…). */}
       <section className="relative isolate mx-auto max-w-6xl px-5 sm:px-8 mt-4">
         <ProfileGlassAmbient accent={bannerTone?.accent} />
-        <ProfileStatTiles ratedCount={ratedMoviesCount} watchMinutes={totalWatchTime} />
-        <div className="mt-4">
+        <TasteHud
+          ratedCount={ratedMoviesCount}
+          watchMinutes={totalWatchTime}
+          average={average}
+          countries={Object.keys(countryCounts).length}
+          decades={decadesCount}
+        />
+        <div className="mt-5">
           {ratedMoviesCount > 0 ? (
             <ProfileTasteGrid
+              userId={session?.user?.id}
+              movies={movies}
+              persona={persona}
               ratingCounts={ratingCounts}
-              average={average}
-              favoriteGenres={favoriteGenres}
-              favoriteKeywords={favoriteKeywords}
-              favoriteDecade={favoriteDecade}
-              topDirectors={topDirectors}
-              leastKnownGem={leastKnownGem}
               countryCounts={countryCounts}
               countryAvgRatings={countryAvgRatings}
               onViewCountryMovies={handleViewCountryMovies}

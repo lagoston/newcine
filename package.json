@@ -21,6 +21,7 @@
     "@capacitor/keyboard": "^8.0.6",
     "@capacitor/splash-screen": "^8.0.2",
     "@supabase/supabase-js": "^2.39.0",
+    "d3-geo": "^3.1.1",
     "framer-motion": "^11.0.8",
     "html2canvas": "^1.4.1",
     "i18next": "^23.10.1",
@@ -46,6 +47,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.5.3",
     "@eslint/js": "^9.9.1",
+    "@types/d3-geo": "^3.1.0",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.3",
