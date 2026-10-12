@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Movie, ensureMovieCached, getCurrentLanguage, getMovieDetails, getMovieDetailsFromDB } from './tmdb';
+import { Movie, cacheTitles, getCachedMovieDetails, getCurrentLanguage, getMovieDetails } from './tmdb';
 
 // Cartões de título — o mínimo que uma prateleira precisa pra desenhar um
 // pôster (título, pôster, ano, nota do público, gêneros, streamings e o
@@ -162,33 +162,28 @@ async function flush() {
   });
   await Promise.all(requests);
 
-  // O que não estava no movie_cache (raro: título adicionado por um caminho
-  // que não gravava o cache, como o menu do título antes de 10/10/2026) vem
-  // direto do TMDB e é gravado no cache em segundo plano — da próxima vez já
-  // vem no lote (e com o ano, para as décadas). Se nem o TMDB tem mais o
-  // título, fica um cartão vazio (sem título nem pôster): a prateleira mostra
+  // O que não estava no movie_cache (raro: título que entrou na biblioteca
+  // segundos antes, ou por um caminho antigo) é pedido à cache-title, num
+  // lote só: ela busca no TMDB, grava e devolve — da próxima vez já vem no
+  // lote (e com o ano, para as décadas). Se nem o TMDB tem mais o título,
+  // fica um cartão vazio (sem título nem pôster): a prateleira mostra
   // "Título indisponível" em vez de um esqueleto eterno.
-  await Promise.all(
-    Array.from(batch.values()).map(async ({ ref, resolve }) => {
-      const key = cacheKeyFor(ref, lang);
-      let card = cards.get(key) || null;
-      if (!card) {
-        try {
-          const full = await getMovieDetailsFromDB(ref.id, ref.media_type);
-          if (full?.title) {
-            cards.set(key, { ...full, media_type: ref.media_type });
-            ensureMovieCached(ref.id, ref.media_type).catch(() => undefined);
-          }
-        } catch {
-          // segue para o cartão vazio
-        }
-        if (!cards.has(key)) cards.set(key, unavailableCard(ref));
-        card = cards.get(key) || null;
-      }
-      pending.delete(key);
-      resolve(card);
-    })
-  );
+  const missing = Array.from(batch.values())
+    .map(({ ref }) => ref)
+    .filter((ref) => !cards.has(cacheKeyFor(ref, lang)));
+  if (missing.length > 0) {
+    const fetched = await cacheTitles(missing.map((ref) => ({ id: ref.id, media_type: ref.media_type })));
+    missing.forEach((ref) => {
+      const row = fetched.get(`${ref.media_type}:${ref.id}`);
+      if (row?.title_en || row?.title_pt) cards.set(cacheKeyFor(ref, lang), rowToCard(row as CardRow, pt));
+    });
+  }
+  Array.from(batch.values()).forEach(({ ref, resolve }) => {
+    const key = cacheKeyFor(ref, lang);
+    if (!cards.has(key)) cards.set(key, unavailableCard(ref));
+    pending.delete(key);
+    resolve(cards.get(key) || null);
+  });
 }
 
 function request(ref: TitleRef): Promise<Movie | null> {
@@ -293,7 +288,8 @@ export function getFullTitle(ref: TitleRef): Promise<Movie> {
   return promise;
 }
 
-// Adianta os detalhes completos (mouse em cima ou dedo encostando no pôster).
+// Adianta os detalhes completos (mouse em cima ou dedo encostando no pôster)
+// — só do banco: pôster que ninguém abre não é buscado no TMDB nem gravado.
 export function prefetchFullTitle(ref: TitleRef) {
-  getFullTitle(ref).catch(() => undefined);
+  getCachedMovieDetails(ref.id, ref.media_type).catch(() => undefined);
 }

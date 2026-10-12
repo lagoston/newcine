@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Search, Loader2, Star, Film, Tv, X, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { searchMovies, getMovieDetails, ensureMovieCached, Movie } from '../lib/tmdb';
+import { searchMovies, getMovieDetails, getCachedMovieDetails, Movie } from '../lib/tmdb';
 import { useAuth } from '../lib/auth';
 import { useSearchHistory, type SearchHistoryItem } from '../lib/searchHistory';
 import OptimizedPoster from './OptimizedPoster';
@@ -30,7 +30,8 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prefetchRef = useRef<Map<number, Promise<Movie>>>(new Map());
+  // Chave "tipo:id": filme e série podem ter o mesmo número no TMDB.
+  const prefetchRef = useRef<Map<string, Promise<Movie | null>>>(new Map());
 
   const search = useCallback(async (q: string) => {
     if (!q.trim()) {
@@ -46,8 +47,12 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
       setOpen(true);
       sliced.forEach((movie) => {
         const mediaType = movie.media_type || 'movie';
-        if (!prefetchRef.current.has(movie.id)) {
-          prefetchRef.current.set(movie.id, getMovieDetails(movie.id, mediaType));
+        if (!prefetchRef.current.has(`${mediaType}:${movie.id}`)) {
+          // Só o que já está no banco (resultado que ninguém abre não é
+          // buscado no TMDB nem gravado).
+          const pending = getCachedMovieDetails(movie.id, mediaType);
+          pending.catch(() => {});
+          prefetchRef.current.set(`${mediaType}:${movie.id}`, pending);
         }
       });
     } catch {
@@ -80,15 +85,11 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
     setLoading(true);
     try {
       const mediaType = movie.media_type || 'movie';
-      const pending = prefetchRef.current.get(movie.id);
-      const details = pending ? await pending : await getMovieDetails(movie.id, mediaType);
+      const pending = prefetchRef.current.get(`${mediaType}:${movie.id}`);
+      const details = (pending ? await pending.catch(() => null) : null) ?? (await getMovieDetails(movie.id, mediaType));
       onMovieSelect(details);
       history.add({ ...details, id: movie.id, media_type: mediaType });
       if (onClose) onClose();
-
-      ensureMovieCached(movie.id, mediaType).catch((err) => {
-        console.error('Error caching movie on open:', err);
-      });
     } catch {
       navigate(`/add-movies?search=${encodeURIComponent(query)}`);
     } finally {

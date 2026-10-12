@@ -4,7 +4,7 @@ import { Search, Star, FileUp, Loader2, Film, ArrowLeft, Plus, Check, X, Tv, Sea
 import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { Movie, searchMovies, getMovieDetails, updateMovieCache, ensureMovieCached } from '../lib/tmdb';
+import { Movie, searchMovies, getMovieDetails, ensureMovieCachedIfMissing } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { cache, CACHE_KEYS } from '../lib/cache';
@@ -95,10 +95,6 @@ export default function AddMovies() {
         const sliced = results.slice(0, MAX_RESULTS);
         setSearchResults(sliced);
         setSearchedFor(query);
-        // Atualiza o cache dos resultados em segundo plano.
-        sliced.forEach((movie) => {
-          updateMovieCache(movie.id, movie.media_type || 'movie').catch(() => {});
-        });
       })
       .catch((error) => {
         if (request !== searchRequest.current) return;
@@ -113,23 +109,9 @@ export default function AddMovies() {
 
   const addToLibrary = async (movie: Movie, rating?: number) => {
     const mediaType = movie.media_type || 'movie';
-    const movieDetails = await getMovieDetails(movie.id, mediaType);
-    const director = movieDetails.credits?.crew?.find((person) => person.job === 'Director')?.name;
-
-    ensureMovieCached(movie.id, mediaType).catch(() => {});
-
-    const { error: movieError } = await supabase
-      .from('movies')
-      .upsert({
-        id: movie.id,
-        title: movieDetails.title,
-        release_date: movieDetails.release_date,
-        genres: movieDetails.genres.map((g) => g.name),
-        director: director || null,
-        media_type: mediaType,
-        number_of_seasons: mediaType === 'tv' ? movieDetails.number_of_seasons : null,
-      }, { onConflict: 'id,media_type' });
-    if (movieError) throw movieError;
+    // O título entra no banco antes (cache-title); a linha em movies, que a
+    // biblioteca exige, o próprio banco cria ao inserir (desde 12/10/2026).
+    await ensureMovieCachedIfMissing(movie.id, mediaType);
 
     if (movie.genres && movie.genres.length > 0) {
       supabase.rpc('cache_movie_genres', { p_movie_id: movie.id, p_genres: movie.genres }).then(() => {}, () => {});
@@ -151,11 +133,10 @@ export default function AddMovies() {
     const key = itemKey(movie.id, mediaType);
     setOpeningId(key);
     try {
+      // Do banco; fora dele, a cache-title busca, grava e devolve. Vencido,
+      // atualiza em segundo plano (ver getMovieDetails).
       const details = await getMovieDetails(movie.id, mediaType);
       setSelectedMovie(details);
-      // Salva/atualiza o cache em segundo plano — só aqui na busca, nunca na
-      // Biblioteca (lá poderia sobrescrever dado bom com dado desatualizado).
-      ensureMovieCached(movie.id, mediaType).catch((err) => console.error('Error caching movie on open:', err));
     } catch (error) {
       console.error('Error loading movie details:', error);
       toast.error(t('common.error'));

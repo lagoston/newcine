@@ -13,9 +13,23 @@ export function getCurrentLanguage(): string {
   return lang === 'pt' ? 'pt-BR' : 'en-US';
 }
 
-// Helper function to call TMDB through secure proxy (with automatic language)
-async function tmdbFetch(endpoint: string): Promise<any> {
-  // Only add language if not already present in endpoint
+// Quem chama o tmdb-proxy se identifica com a sessão (o limite de pedidos
+// por hora é por conta); sem conta, com a chave pública (o limite é por IP).
+async function proxyAuthHeader(): Promise<string> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (token) return `Bearer ${token}`;
+  } catch {
+    // sem sessão legível: segue como visitante
+  }
+  return `Bearer ${supabaseAnonKey}`;
+}
+
+// Pedido ao TMDB pelo tmdb-proxy (o proxy só aceita listas, busca, trailers,
+// pessoas e o "find" do IMDb — e guarda as listas no banco). Põe o idioma
+// do site quando o endpoint não traz um.
+export async function tmdbFetch(endpoint: string): Promise<any> {
   const hasLanguage = endpoint.includes('language=');
   let finalEndpoint = endpoint;
 
@@ -29,7 +43,7 @@ async function tmdbFetch(endpoint: string): Promise<any> {
 
   const response = await fetch(url, {
     headers: {
-      'Authorization': `Bearer ${supabaseAnonKey}`,
+      Authorization: await proxyAuthHeader(),
     },
   });
 
@@ -38,6 +52,72 @@ async function tmdbFetch(endpoint: string): Promise<any> {
   }
 
   return response.json();
+}
+
+// ---------- Títulos no banco (cache-title) ----------
+//
+// Desde 12/10/2026 o site não grava mais no movie_cache: quem grava e
+// atualiza é a função cache-title, que recebe só o id e o tipo e busca no
+// TMDB ela mesma (ver o doc "Base de filmes" do Project).
+//   • título que falta: cacheTitles busca e devolve a linha nova;
+//   • título vencido (isTitleStale): a tela usa o que está no banco e pede
+//     a atualização em segundo plano (revalidateTitle).
+
+export type TitleType = 'movie' | 'tv';
+export interface TitleKey {
+  id: number;
+  media_type: TitleType;
+}
+
+const titleKey = (ref: TitleKey) => `${ref.media_type}:${ref.id}`;
+const CACHE_TITLE_BATCH = 25;
+
+// Linhas do movie_cache (todas as colunas), por "tipo:id". O que o TMDB não
+// tem, ou o que passou do limite de pedidos, simplesmente não vem.
+export async function cacheTitles(refs: TitleKey[], options: { fresh?: boolean } = {}): Promise<Map<string, any>> {
+  const rows = new Map<string, any>();
+  const unique = Array.from(new Map(refs.filter((r) => r && r.id > 0).map((r) => [titleKey(r), r])).values());
+  for (let i = 0; i < unique.length; i += CACHE_TITLE_BATCH) {
+    const chunk = unique.slice(i, i + CACHE_TITLE_BATCH);
+    try {
+      const { data, error } = await supabase.functions.invoke('cache-title', {
+        body: { titles: chunk.map((r) => ({ id: r.id, type: r.media_type })), fresh: options.fresh === true },
+      });
+      if (error) throw error;
+      ((data?.titles as any[]) || []).forEach((row) => {
+        rows.set(`${row.media_type}:${row.tmdb_id}`, row);
+        cache.invalidatePattern(CACHE_KEYS.MOVIE_DETAILS(row.tmdb_id, row.media_type));
+      });
+    } catch (error) {
+      console.error('cacheTitles error:', error);
+    }
+  }
+  return rows;
+}
+
+// Prazo de validade de um título no banco — o mesmo da cache-title e de
+// title_refresh_days (7 dias para lançamentos e séries no ar, 90 para o
+// resto; incompleto vence na hora).
+const ONGOING_TV = ['Returning Series', 'In Production', 'Planned', 'Pilot'];
+export function isTitleStale(row: any): boolean {
+  if (!row) return true;
+  if (row.media_type === 'movie' && row.budget === null) return true;
+  if (row.media_type === 'tv' && (row.number_of_seasons || 0) > 0 && !(Array.isArray(row.seasons_data) && row.seasons_data.length > 0)) return true;
+  let days = 90;
+  if (row.media_type === 'tv' && (row.in_production || ONGOING_TV.includes(row.status))) days = 7;
+  else if (row.media_type === 'movie' && !row.release_date) days = 30;
+  else if (row.media_type === 'movie' && new Date(`${row.release_date}T00:00:00Z`).getTime() > Date.now() - 120 * 86400000) days = 7;
+  const at = new Date(row.refreshed_at || row.updated_at || row.cached_at || 0).getTime();
+  return at + days * 86400000 <= Date.now();
+}
+
+// Pede a atualização de um título vencido sem esperar (uma vez por sessão).
+const revalidated = new Set<string>();
+export function revalidateTitle(ref: TitleKey) {
+  const key = titleKey(ref);
+  if (revalidated.has(key)) return;
+  revalidated.add(key);
+  cacheTitles([ref]).catch(() => undefined);
 }
 
 export interface Genre {
@@ -268,15 +348,27 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
     return memCached;
   }
 
-  // Try to get from database cache first (if enabled)
+  // 1) O banco. Vencido: mostra assim mesmo e pede a atualização por trás.
   if (useCache) {
-    const dbCached = await getCachedMovie(movieId, language, mediaType);
-    if (dbCached) {
+    const row = await getCachedRow(movieId, mediaType);
+    if (row) {
+      if (isTitleStale(row)) revalidateTitle({ id: movieId, media_type: mediaType });
+      const dbCached = rowToMovie(row, language);
       cache.set(cacheKey, dbCached, CACHE_TTL.MOVIE_DETAILS);
       return dbCached;
     }
+
+    // 2) Fora do banco: a cache-title busca no TMDB, grava e devolve.
+    const fetched = (await cacheTitles([{ id: movieId, media_type: mediaType }])).get(`${mediaType}:${movieId}`);
+    if (fetched) {
+      const movie = rowToMovie(fetched, language);
+      cache.set(cacheKey, movie, CACHE_TTL.MOVIE_DETAILS);
+      return movie;
+    }
   }
 
+  // 3) Último recurso (função fora do ar ou limite de pedidos): TMDB ao vivo,
+  // sem gravar.
   const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
   const [movieDetails, providersData] = await Promise.all([
     tmdbFetch(`/${endpoint}/${movieId}?append_to_response=credits`),
@@ -299,8 +391,23 @@ export const getMovieDetails = async (movieId: number, mediaType: 'movie' | 'tv'
   return movieDetails;
 };
 
-// Helper to get cached movie from database
-async function getCachedMovie(movieId: number, language: string, mediaType: 'movie' | 'tv' = 'movie'): Promise<Movie | null> {
+// Só o que já está no banco (ou na memória), sem buscar nada no TMDB — para
+// adiantar detalhes de uma lista (resultados da busca, pôster com o mouse em
+// cima) sem gravar título que a pessoa talvez nem abra.
+export async function getCachedMovieDetails(movieId: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<Movie | null> {
+  const language = getCurrentLanguage();
+  const cacheKey = `${CACHE_KEYS.MOVIE_DETAILS(movieId, mediaType)}:${language}`;
+  const memCached = cache.get<Movie>(cacheKey);
+  if (memCached) return memCached;
+  const row = await getCachedRow(movieId, mediaType);
+  if (!row) return null;
+  const movie = rowToMovie(row, language);
+  cache.set(cacheKey, movie, CACHE_TTL.MOVIE_DETAILS);
+  return movie;
+}
+
+// A linha do título no movie_cache (ou null).
+async function getCachedRow(movieId: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<any | null> {
   try {
     const { data, error } = await supabase
       .from('movie_cache')
@@ -308,62 +415,64 @@ async function getCachedMovie(movieId: number, language: string, mediaType: 'mov
       .eq('tmdb_id', movieId)
       .eq('media_type', mediaType)
       .maybeSingle();
-
     if (error || !data) return null;
-
-    // Convert cached data to Movie interface based on language
-    const isPortuguese = language.startsWith('pt');
-
-    // Parse genres to ensure correct format
-    const rawGenres = isPortuguese && data.genres_pt ? data.genres_pt : data.genres_en;
-    let parsedGenres: any[] = [];
-
-    if (rawGenres) {
-      // If genres is already an array of objects with id and name, use it
-      if (Array.isArray(rawGenres) && rawGenres.length > 0) {
-        if (typeof rawGenres[0] === 'object' && rawGenres[0].id && rawGenres[0].name) {
-          parsedGenres = rawGenres;
-        } else if (typeof rawGenres[0] === 'string') {
-          // If it's an array of strings, convert to objects
-          parsedGenres = rawGenres.map((name: string, index: number) => ({
-            id: index,
-            name: name
-          }));
-        }
-      }
-    }
-
-    return {
-      id: data.tmdb_id,
-      title: isPortuguese && data.title_pt ? data.title_pt : data.title_en,
-      poster_path: isPortuguese && data.poster_path_pt ? data.poster_path_pt : data.poster_path,
-      backdrop_path: data.backdrop_path,
-      overview: isPortuguese && data.overview_pt ? data.overview_pt : data.overview_en,
-      release_date: data.release_date,
-      vote_average: data.vote_average,
-      vote_count: data.vote_count,
-      runtime: data.runtime,
-      number_of_seasons: data.number_of_seasons,
-      number_of_episodes: data.number_of_episodes,
-      status: data.status,
-      in_production: data.in_production,
-      episode_run_time: data.episode_run_time,
-      origin_country: data.origin_country,
-      budget: data.budget,
-      media_type: data.media_type as 'movie' | 'tv',
-      genres: parsedGenres,
-      credits: {
-        cast: data.cast_members || [],
-        crew: data.director ? [{ id: 0, name: data.director, job: 'Director' }] : []
-      },
-      watchProviders: data.watch_providers,
-      seasons: data.seasons_data,
-      keywords: data.keywords || []
-    };
+    return data;
   } catch (error) {
     console.error('Error fetching from cache:', error);
     return null;
   }
+}
+
+// Linha do movie_cache → Movie, no idioma do site.
+export function rowToMovie(data: any, language: string = getCurrentLanguage()): Movie {
+  const isPortuguese = language.startsWith('pt');
+
+  // Parse genres to ensure correct format
+  const rawGenres = isPortuguese && data.genres_pt ? data.genres_pt : data.genres_en;
+  let parsedGenres: any[] = [];
+
+  if (rawGenres) {
+    // If genres is already an array of objects with id and name, use it
+    if (Array.isArray(rawGenres) && rawGenres.length > 0) {
+      if (typeof rawGenres[0] === 'object' && rawGenres[0].id && rawGenres[0].name) {
+        parsedGenres = rawGenres;
+      } else if (typeof rawGenres[0] === 'string') {
+        // If it's an array of strings, convert to objects
+        parsedGenres = rawGenres.map((name: string, index: number) => ({
+          id: index,
+          name: name
+        }));
+      }
+    }
+  }
+
+  return {
+    id: data.tmdb_id,
+    title: isPortuguese && data.title_pt ? data.title_pt : data.title_en,
+    poster_path: isPortuguese && data.poster_path_pt ? data.poster_path_pt : data.poster_path,
+    backdrop_path: data.backdrop_path,
+    overview: isPortuguese && data.overview_pt ? data.overview_pt : data.overview_en,
+    release_date: data.release_date,
+    vote_average: data.vote_average,
+    vote_count: data.vote_count,
+    runtime: data.runtime,
+    number_of_seasons: data.number_of_seasons,
+    number_of_episodes: data.number_of_episodes,
+    status: data.status,
+    in_production: data.in_production,
+    episode_run_time: data.episode_run_time,
+    origin_country: data.origin_country,
+    budget: data.budget,
+    media_type: data.media_type as 'movie' | 'tv',
+    genres: parsedGenres,
+    credits: {
+      cast: data.cast_members || [],
+      crew: data.director ? [{ id: data.director_id || 0, name: data.director, job: 'Director' }] : []
+    },
+    watchProviders: data.watch_providers,
+    seasons: data.seasons_data,
+    keywords: data.keywords || []
+  } as Movie;
 }
 
 // Onde assistir: Brasil (BR) ou, sem dados de lá, Estados Unidos (US). null
@@ -381,113 +490,14 @@ export function pickWatchProviders(providersData: any): WatchProviders | null {
   return picked;
 }
 
-// Called when adding a movie to library: inserts or updates the full movie_cache entry
+// Garante o título no movie_cache (buscado e gravado pela cache-title).
+// Já no banco e dentro do prazo: nada é buscado no TMDB.
 export async function ensureMovieCached(movieId: number, mediaType: 'movie' | 'tv'): Promise<void> {
-  try {
-    const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
-
-    const [enData, ptData, providersData] = await Promise.all([
-      tmdbFetch(`/${endpoint}/${movieId}?language=en-US&append_to_response=credits,keywords`),
-      tmdbFetch(`/${endpoint}/${movieId}?language=pt-BR&append_to_response=credits`),
-      // Onde assistir (filtro de streaming). Até 11/10/2026 não era gravado
-      // aqui, e quase 3 em cada 4 títulos ficavam sem — o filtro não os achava.
-      tmdbFetch(`/${endpoint}/${movieId}/watch/providers`).catch(() => null),
-    ]);
-
-    const enTitle = mediaType === 'tv' ? enData.name : enData.title;
-    const ptTitle = mediaType === 'tv' ? ptData.name : ptData.title;
-
-    let director: string | null = null;
-    if (mediaType === 'tv') {
-      director = enData.created_by?.[0]?.name ||
-        enData.credits?.crew?.find((p: any) => p.job === 'Executive Producer')?.name || null;
-    } else {
-      director = enData.credits?.crew?.find((p: any) => p.job === 'Director')?.name || null;
-    }
-
-    const castMembers = enData.credits?.cast?.slice(0, 10).map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      character: p.character
-    })) || [];
-
-    let totalRuntime = enData.runtime || 0;
-    let episodeRuntime: number | null = null;
-
-    if (mediaType === 'tv' && enData.episode_run_time?.length > 0) {
-      episodeRuntime = Math.round(
-        enData.episode_run_time.reduce((a: number, b: number) => a + b, 0) / enData.episode_run_time.length
-      );
-      totalRuntime = (enData.number_of_episodes || 0) * episodeRuntime;
-    }
-
-    let seasonsData: any[] | null = null;
-    if (mediaType === 'tv' && enData.number_of_seasons > 0) {
-      seasonsData = await fetchTVSeasonsData(movieId, enData.number_of_seasons);
-    }
-
-    // Extrai keywords/tags temáticas (ex: "time travel", "film noir") — formato do TMDB
-    // difere entre filme (keywords.keywords) e série (keywords.results).
-    // Reservado para uso futuro pelo Oráculo; não é lido por nenhuma feature ainda.
-    const keywordsRaw = mediaType === 'tv' ? enData.keywords?.results : enData.keywords?.keywords;
-    const keywords = (keywordsRaw || []).map((k: any) => ({ id: k.id, name: k.name }));
-
-    const cacheData: Record<string, any> = {
-      id: movieId,
-      tmdb_id: movieId,
-      media_type: mediaType,
-      release_date: mediaType === 'tv' ? enData.first_air_date : enData.release_date,
-      vote_average: enData.vote_average,
-      vote_count: enData.vote_count,
-      runtime: totalRuntime,
-      episode_run_time: episodeRuntime,
-      number_of_seasons: enData.number_of_seasons || null,
-      number_of_episodes: enData.number_of_episodes || null,
-      origin_country: enData.origin_country || enData.production_countries?.map((c: any) => c.iso_3166_1) || [],
-      poster_path: enData.poster_path,
-      poster_path_pt: ptData.poster_path,
-      backdrop_path: enData.backdrop_path,
-      title_en: enTitle,
-      overview_en: enData.overview,
-      genres_en: enData.genres,
-      title_pt: ptTitle,
-      overview_pt: ptData.overview,
-      genres_pt: ptData.genres,
-      director,
-      cast_members: castMembers,
-      keywords,
-      budget: mediaType === 'movie' ? (enData.budget ?? 0) : null,
-      status: mediaType === 'tv' ? enData.status : null,
-      in_production: mediaType === 'tv' ? (enData.in_production ?? false) : false,
-      last_air_date: mediaType === 'tv' ? enData.last_air_date : null,
-      updated_at: new Date().toISOString()
-    };
-
-    if (seasonsData !== null) {
-      cacheData.seasons_data = seasonsData;
-    }
-    const providers = pickWatchProviders(providersData);
-    if (providers) cacheData.watch_providers = providers;
-
-    const { error } = await supabase
-      .from('movie_cache')
-      .upsert(cacheData, { onConflict: 'tmdb_id,media_type' });
-
-    if (error) {
-      console.error('Error saving movie cache:', error);
-    } else {
-      cache.invalidate(CACHE_KEYS.MOVIE_DETAILS(movieId, mediaType));
-    }
-  } catch (error) {
-    console.error('Error in ensureMovieCached:', error);
-  }
+  await cacheTitles([{ id: movieId, media_type: mediaType }]);
 }
 
-// Grava no movie_cache só se o título ainda não estiver lá (adicionar à
-// biblioteca pelo menu do título, por exemplo). Sem isso, títulos vindos das
-// listas do TMDB (home, Top 10 do diretor, perfil de amigo) entravam na
-// biblioteca sem cache — e ficavam sem ano nas décadas, sem palavras-chave
-// na previsão etc.
+// Como ensureMovieCached, mas sem chamar a função quando o título já está no
+// banco (uma consulta rápida antes). Usado antes de pôr na biblioteca.
 export async function ensureMovieCachedIfMissing(movieId: number, mediaType: 'movie' | 'tv'): Promise<void> {
   const { data } = await supabase
     .from('movie_cache')
@@ -498,134 +508,11 @@ export async function ensureMovieCachedIfMissing(movieId: number, mediaType: 'mo
   if (!data) await ensureMovieCached(movieId, mediaType);
 }
 
-// Fetches all seasons with their episodes for a TV show from TMDB API
-export async function fetchTVSeasonsData(showId: number, numberOfSeasons: number): Promise<any[]> {
-  const seasonPromises = Array.from({ length: numberOfSeasons }, (_, i) =>
-    tmdbFetch(`/tv/${showId}/season/${i + 1}?language=en-US`).catch(() => null)
-  );
-
-  const seasonResults = await Promise.all(seasonPromises);
-
-  return seasonResults
-    .filter(Boolean)
-    .map((s: any) => ({
-      season_number: s.season_number,
-      name: s.name,
-      episode_count: s.episodes?.length || 0,
-      air_date: s.air_date || null,
-      overview: s.overview || null,
-      poster_path: s.poster_path || null,
-      episodes: (s.episodes || []).map((ep: any) => ({
-        episode_number: ep.episode_number,
-        name: ep.name,
-        air_date: ep.air_date || null,
-        runtime: ep.runtime || null,
-        overview: ep.overview || null,
-        vote_average: ep.vote_average || 0
-      }))
-    }));
-}
-
-// Called on every search in AddMovies: updates ONLY existing movie_cache entries with fresh TMDB data
-export async function updateMovieCache(movieId: number, mediaType: 'movie' | 'tv'): Promise<void> {
-  try {
-    const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
-
-    const [enData, ptData, providersData] = await Promise.all([
-      tmdbFetch(`/${endpoint}/${movieId}?language=en-US&append_to_response=credits,keywords`),
-      tmdbFetch(`/${endpoint}/${movieId}?language=pt-BR&append_to_response=credits`),
-      tmdbFetch(`/${endpoint}/${movieId}/watch/providers`).catch(() => null),
-    ]);
-
-    const enTitle = mediaType === 'tv' ? enData.name : enData.title;
-    const ptTitle = mediaType === 'tv' ? ptData.name : ptData.title;
-
-    let director: string | null = null;
-    if (mediaType === 'tv') {
-      director = enData.created_by?.[0]?.name ||
-        enData.credits?.crew?.find((p: any) => p.job === 'Executive Producer')?.name || null;
-    } else {
-      director = enData.credits?.crew?.find((p: any) => p.job === 'Director')?.name || null;
-    }
-
-    const castMembers = enData.credits?.cast?.slice(0, 10).map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      character: p.character
-    })) || [];
-
-    let totalRuntime = enData.runtime || 0;
-    let episodeRuntime: number | null = null;
-
-    if (mediaType === 'tv' && enData.episode_run_time?.length > 0) {
-      episodeRuntime = Math.round(
-        enData.episode_run_time.reduce((a: number, b: number) => a + b, 0) / enData.episode_run_time.length
-      );
-      totalRuntime = (enData.number_of_episodes || 0) * episodeRuntime;
-    }
-
-    let seasonsData: any[] | null = null;
-    if (mediaType === 'tv' && enData.number_of_seasons > 0) {
-      seasonsData = await fetchTVSeasonsData(movieId, enData.number_of_seasons);
-    }
-
-    const keywordsRaw = mediaType === 'tv' ? enData.keywords?.results : enData.keywords?.keywords;
-    const keywords = (keywordsRaw || []).map((k: any) => ({ id: k.id, name: k.name }));
-
-    const updateData: Record<string, any> = {
-      tmdb_id: movieId,
-      media_type: mediaType,
-      release_date: mediaType === 'tv' ? enData.first_air_date : enData.release_date,
-      vote_average: enData.vote_average,
-      vote_count: enData.vote_count,
-      runtime: totalRuntime,
-      episode_run_time: episodeRuntime,
-      number_of_seasons: enData.number_of_seasons || null,
-      number_of_episodes: enData.number_of_episodes || null,
-      status: mediaType === 'tv' ? enData.status : null,
-      in_production: mediaType === 'tv' ? (enData.in_production ?? false) : false,
-      origin_country: enData.origin_country || enData.production_countries?.map((c: any) => c.iso_3166_1) || [],
-      poster_path: enData.poster_path,
-      poster_path_pt: ptData.poster_path,
-      backdrop_path: enData.backdrop_path,
-      title_en: enTitle,
-      overview_en: enData.overview,
-      genres_en: enData.genres,
-      title_pt: ptTitle,
-      overview_pt: ptData.overview,
-      genres_pt: ptData.genres,
-      director,
-      cast_members: castMembers,
-      keywords,
-      budget: mediaType === 'movie' ? (enData.budget ?? 0) : null,
-      status: mediaType === 'tv' ? enData.status : null,
-      in_production: mediaType === 'tv' ? (enData.in_production ?? false) : false,
-      last_air_date: mediaType === 'tv' ? enData.last_air_date : null,
-      updated_at: new Date().toISOString()
-    };
-
-    if (seasonsData !== null) {
-      updateData.seasons_data = seasonsData;
-    }
-    // Onde assistir muda com o tempo: cada busca atualiza.
-    const providers = pickWatchProviders(providersData);
-    if (providers) updateData.watch_providers = providers;
-
-    const { error, count } = await supabase
-      .from('movie_cache')
-      .update(updateData)
-      .eq('tmdb_id', movieId)
-      .eq('media_type', mediaType)
-      .select('tmdb_id', { count: 'exact', head: true });
-
-    if (error) {
-      console.error('Error updating movie cache:', error);
-    } else if (count && count > 0) {
-      cache.invalidate(CACHE_KEYS.MOVIE_DETAILS(movieId, mediaType));
-    }
-  } catch (error) {
-    console.error('Error in updateMovieCache:', error);
-  }
+// Temporadas com episódios de uma série. Do banco; se a série estiver sem
+// elas, a cache-title busca e grava antes de responder.
+export async function getTVSeasons(showId: number): Promise<any[]> {
+  const row = (await cacheTitles([{ id: showId, media_type: 'tv' }], { fresh: true })).get(`tv:${showId}`);
+  return Array.isArray(row?.seasons_data) ? row.seasons_data : [];
 }
 
 // Helper to get multiple movies from cache efficiently
@@ -641,6 +528,19 @@ export interface MovieTrailer {
 // que é propositalmente obscuro/underground).
 export const getMovieTrailer = async (movieId: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<MovieTrailer | null> => {
   try {
+    // O trailer escolhido fica no movie_cache desde 12/10/2026 ({} = o título
+    // não tem). Título ainda sem essa informação: pergunta ao TMDB (o proxy
+    // guarda a resposta por 14 dias).
+    const { data: row } = await supabase
+      .from('movie_cache')
+      .select('trailer')
+      .eq('tmdb_id', movieId)
+      .eq('media_type', mediaType)
+      .maybeSingle();
+    if (row?.trailer && typeof row.trailer === 'object') {
+      return row.trailer.key ? { key: row.trailer.key, site: row.trailer.site || 'YouTube', name: row.trailer.name || '' } : null;
+    }
+
     const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
     const data = await tmdbFetch(`/${endpoint}/${movieId}/videos?language=en-US`);
     const videos = data.results || [];
@@ -698,7 +598,7 @@ export const getMoviesFromCache = async (movieIds: number[]): Promise<Map<number
           popularity: cached.popularity,
           credits: {
             cast: cached.cast_members || [],
-            crew: cached.director ? [{ id: 0, name: cached.director, job: 'Director' }] : []
+            crew: cached.director ? [{ id: cached.director_id || 0, name: cached.director, job: 'Director' }] : []
           },
           watchProviders: cached.watch_providers,
           content_ratings: cached.content_ratings,
@@ -766,7 +666,7 @@ export const getMoviesFromCacheByType = async (
         popularity: cached.popularity,
         credits: {
           cast: cached.cast_members || [],
-          crew: cached.director ? [{ id: 0, name: cached.director, job: 'Director' }] : []
+          crew: cached.director ? [{ id: cached.director_id || 0, name: cached.director, job: 'Director' }] : []
         },
         watchProviders: cached.watch_providers,
         content_ratings: cached.content_ratings,
@@ -798,21 +698,7 @@ export const getMovieDetailsFromDB = async (movieId: number, knownMediaType?: 'm
       .maybeSingle();
     mediaType = dbMovie?.media_type === 'tv' ? 'tv' : 'movie';
   }
-  const language = getCurrentLanguage();
-  const cacheKey = `${CACHE_KEYS.MOVIE_DETAILS(movieId, mediaType)}:${language}`;
-  const memCached = cache.get<Movie>(cacheKey);
-
-  if (memCached) {
-    return memCached;
-  }
-
-  const dbCached = await getCachedMovie(movieId, language, mediaType);
-  if (dbCached) {
-    cache.set(cacheKey, dbCached, CACHE_TTL.MOVIE_DETAILS);
-    return dbCached;
-  }
-
-  // Fallback: fetch from API
+  // Memória → banco (vencido: atualiza por trás) → cache-title.
   return getMovieDetails(movieId, mediaType);
 };
 
@@ -1030,19 +916,10 @@ export const getWatchedEpisodesForProfile = async (
 
   return set;
 };
-// Orçamento de um filme que veio do cache sem ele (cache antigo): busca no
-// TMDB uma vez e grava no movie_cache, pra próxima abertura já ter.
+// Orçamento de um filme que veio do cache sem ele (cache antigo): a
+// cache-title busca no TMDB e grava, e a próxima abertura já tem.
 // Devolve 0 quando o TMDB não tem (não divulgado) e null em caso de erro.
 export async function fetchAndStoreBudget(movieId: number): Promise<number | null> {
-  try {
-    const data = await tmdbFetch(`/movie/${movieId}?language=en-US`);
-    const budget = typeof data?.budget === 'number' ? data.budget : 0;
-    await supabase.from('movie_cache').update({ budget }).eq('tmdb_id', movieId).eq('media_type', 'movie');
-    // a chave em memória leva o idioma no fim: some com todas as variações
-    cache.invalidatePattern(CACHE_KEYS.MOVIE_DETAILS(movieId, 'movie'));
-    return budget;
-  } catch (error) {
-    console.error('Error fetching movie budget:', error);
-    return null;
-  }
+  const row = (await cacheTitles([{ id: movieId, media_type: 'movie' }], { fresh: true })).get(`movie:${movieId}`);
+  return typeof row?.budget === 'number' ? row.budget : null;
 }

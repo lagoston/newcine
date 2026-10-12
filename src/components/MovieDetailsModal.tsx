@@ -7,14 +7,14 @@ import {
   ChevronDown, AlertCircle, Wand2, Plus, Check, Eye, Layers, Sparkles,
 } from 'lucide-react';
 import { formatChance } from '../lib/prediction';
-import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget, ensureMovieCachedIfMissing } from '../lib/tmdb';
+import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget, ensureMovieCachedIfMissing, getTVSeasons, tmdbFetch } from '../lib/tmdb';
 import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
 import { getPersonPage, topMovies } from '../lib/people';
 import { getMovieCollections, collectionDisplayName, sortedParts, type MovieCollection } from '../lib/collections';
 import { budgetLevel, budgetOracle, adjustedBudget, BUDGET_LEVEL_EMOJI, BUDGET_LEVEL_LABEL, BUDGET_SAYINGS } from '../lib/budgetTiers';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
 import { useAuth } from '../lib/auth';
-import { supabase, supabaseUrl } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS } from '../lib/cache';
@@ -921,19 +921,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       const numberOfSeasons = cached?.number_of_seasons || movie.number_of_seasons || 0;
       if (numberOfSeasons <= 0) return;
 
-      const { fetchTVSeasonsData } = await import('../lib/tmdb');
-      const freshSeasons = await fetchTVSeasonsData(movie.id, numberOfSeasons);
-
+      // Série sem os episódios no banco: a cache-title busca e grava.
+      const freshSeasons = await getTVSeasons(movie.id);
       if (freshSeasons.length > 0) {
         setSeasons(freshSeasons);
         movie.seasons = freshSeasons;
-
-        supabase
-          .from('movie_cache')
-          .update({ seasons_data: freshSeasons, updated_at: new Date().toISOString() })
-          .eq('tmdb_id', movie.id)
-          .eq('media_type', 'tv')
-          .then(() => {});
       }
     } catch (error) {
       console.error('Error fetching seasons:', error);
@@ -1288,24 +1280,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     if (!session?.user?.id) return;
 
     const mediaType = movie.media_type || 'movie';
-    const isTv = mediaType === 'tv';
-    const director = movie.credits?.crew?.find(
-      p => p.job === 'Director' || (isTv && p.job === 'Creator')
-    )?.name;
 
-    const { error: movieError } = await supabase
-      .from('movies')
-      .upsert({
-        id: movie.id,
-        title: movie.title,
-        release_date: movie.release_date,
-        genres: movie.genres?.map(g => g.name),
-        director: director || null,
-        media_type: mediaType,
-        number_of_seasons: isTv ? (movie.number_of_seasons || null) : null
-      }, { onConflict: 'id,media_type' });
-
-    if (movieError) throw movieError;
+    // O título entra no banco antes (cache-title, só se faltar). A linha em
+    // movies, que a biblioteca exige, o próprio banco cria ao inserir
+    // (gatilho ensure_movies_row_for_library, 12/10/2026).
+    await ensureMovieCachedIfMissing(movie.id, mediaType === 'tv' ? 'tv' : 'movie');
 
     const insertData: Record<string, unknown> = {
       movie_id: movie.id,
@@ -1319,9 +1298,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       .insert(insertData);
 
     if (libraryError) throw libraryError;
-
-    // Garante o título no movie_cache (em segundo plano).
-    ensureMovieCachedIfMissing(movie.id, mediaType === 'tv' ? 'tv' : 'movie').catch(() => undefined);
 
     setIsInLibrary(true);
     setUserRating(rating !== undefined ? rating : null);
@@ -1449,7 +1425,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
     setDirectorTopTenLoading(true);
     const tmdbLang = i18n.language.startsWith('pt') ? 'pt-BR' : 'en-US';
-    const authHeader = { Authorization: `Bearer ${session?.access_token || ''}` };
 
     try {
       const embeddedDirector = movie.credits?.crew?.find(
@@ -1459,10 +1434,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       let directorPersonId: number | null = embeddedDirector?.id ?? null;
 
       if (!directorPersonId) {
-        const searchUrl = `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=${encodeURIComponent(`/search/person?query=${encodeURIComponent(director)}&language=${tmdbLang}`)}`;
-        const searchResponse = await fetch(searchUrl, { headers: authHeader });
-        if (!searchResponse.ok) throw new Error('search failed');
-        const searchJson = await searchResponse.json();
+        // Título guardado antes de 12/10/2026 ainda sem o id do diretor:
+        // procura pelo nome (o proxy guarda a resposta por 30 dias).
+        const searchJson = await tmdbFetch(`/search/person?query=${encodeURIComponent(director)}&language=${tmdbLang}`);
         const bestMatch = searchJson.results?.[0];
         if (!bestMatch?.id) {
           setDirectorTopTenError(t('movies.noDirectorMoviesFound'));
@@ -1486,10 +1460,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           vote_average: m.voteAverage,
         }));
       } else {
-        const creditsUrl = `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=${encodeURIComponent(`/person/${directorPersonId}/movie_credits?language=${tmdbLang}`)}`;
-        const creditsResponse = await fetch(creditsUrl, { headers: authHeader });
-        if (!creditsResponse.ok) throw new Error('credits fetch failed');
-        const creditsJson = await creditsResponse.json();
+        const creditsJson = await tmdbFetch(`/person/${directorPersonId}/movie_credits?language=${tmdbLang}`);
 
         const directedCredits = (creditsJson.crew || []).filter((c: any) => c.job === 'Director');
 
@@ -1524,11 +1495,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // erra quando um filme e uma série têm o mesmo número.
   //
   // Clona no interesse: o título aberto entra no movie_cache se ainda não
-  // estiver lá (em segundo plano). Só o que a pessoa abre — não os 10 da
-  // lista — e sem regravar o que já existe (atualizar é com o servidor).
+  // estiver lá (getMovieDetailsFromDB → cache-title). Só o que a pessoa
+  // abre — não os 10 da lista — e quem atualiza o que já existe é o
+  // servidor.
   const openNestedMovie = async (movieId: number) => {
     setLoadingNestedMovieId(movieId);
-    ensureMovieCachedIfMissing(movieId, 'movie').catch(() => undefined);
     try {
       const details = await getMovieDetailsFromDB(movieId, 'movie');
       if (isNested && onReplaceMovie) {

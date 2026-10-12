@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Star, Film, Tv, Search, SlidersHorizontal, ChevronRight, AtSign, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { searchMovies, getMovieDetails, ensureMovieCached, Movie } from '../lib/tmdb';
+import { searchMovies, getMovieDetails, getCachedMovieDetails, Movie } from '../lib/tmdb';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
@@ -91,7 +91,7 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
   const resultsScrollRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Chave "tipo:id" — filme e série podem ter o MESMO id no TMDB.
-  const prefetchRef = useRef<Map<string, Promise<Movie>>>(new Map());
+  const prefetchRef = useRef<Map<string, Promise<Movie | null>>>(new Map());
   // Qual resultado está sendo aberto agora (spinner no pôster dele).
   const [openingKey, setOpeningKey] = useState<string | null>(null);
   const viewport = useVisibleViewport(open);
@@ -133,7 +133,9 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
             const mediaType = movie.media_type || 'movie';
             const key = `${mediaType}:${movie.id}`;
             if (!prefetchRef.current.has(key)) {
-              const pending = getMovieDetails(movie.id, mediaType);
+              // Só o que já está no banco: resultado que ninguém abre não é
+              // buscado no TMDB nem gravado.
+              const pending = getCachedMovieDetails(movie.id, mediaType);
               // Evita "unhandled rejection" de uma pré-busca que ninguém abriu.
               pending.catch(() => {});
               prefetchRef.current.set(key, pending);
@@ -232,16 +234,12 @@ const MobileSearch: React.FC<MobileSearchProps> = ({ open, onClose, onMovieSelec
     setLoading(true);
     try {
       const pending = prefetchRef.current.get(`${mediaType}:${movie.id}`);
-      const details = pending ? await pending : await getMovieDetails(movie.id, mediaType);
+      const details = (pending ? await pending.catch(() => null) : null) ?? (await getMovieDetails(movie.id, mediaType));
       // O filme abre por cima e a busca fica aberta embaixo, com os mesmos
       // resultados: fechar o filme volta para a busca. O teclado fecha.
       inputRef.current?.blur();
       onMovieSelect(details);
       history.add({ ...details, id: movie.id, media_type: mediaType });
-
-      ensureMovieCached(movie.id, mediaType).catch((err) => {
-        console.error('Error caching movie on open:', err);
-      });
     } catch {
       navigate(`/add-movies?search=${encodeURIComponent(query)}`);
       handleClose();

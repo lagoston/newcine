@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { searchMovies, getMovieDetails, findByImdbId, ensureMovieCached } from '../lib/tmdb';
+import { searchMovies, findByImdbId } from '../lib/tmdb';
 import OracleSheet from './OracleSheet';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
 
@@ -226,19 +226,10 @@ const IMDbImportModal: React.FC<IMDbImportModalProps> = ({ isOpen, onClose, onSu
           }
           const { id: tmdbId, media_type } = resolved;
 
-          await ensureMovieCached(tmdbId, media_type);
-          const details = await getMovieDetails(tmdbId, media_type);
-
-          const { error: movieError } = await supabase.from('movies').upsert({
-            id: details.id,
-            title: details.title,
-            release_date: details.release_date,
-            genres: details.genres?.map((g) => g.name) || [],
-            director: details.credits?.crew?.find((p) => p.job === 'Director')?.name || null,
-            media_type,
-            number_of_seasons: media_type === 'tv' ? details.number_of_seasons : null,
-          }, { onConflict: 'id,media_type' });
-          if (movieError) throw movieError;
+          // Desde 12/10/2026 o banco cuida do resto: ao entrar na biblioteca,
+          // cria a linha em movies e pede à cache-title o que faltar no
+          // movie_cache (sem o limite por hora do site — importações grandes
+          // não ficam pela metade).
 
           const { data: existing, error: existingError } = await supabase
             .from('user_movies')
