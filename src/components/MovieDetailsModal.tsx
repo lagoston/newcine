@@ -9,6 +9,7 @@ import {
 import { formatChance } from '../lib/prediction';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget, ensureMovieCachedIfMissing } from '../lib/tmdb';
 import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
+import { getPersonPage, topMovies } from '../lib/people';
 import { getMovieCollections, collectionDisplayName, sortedParts, type MovieCollection } from '../lib/collections';
 import { budgetLevel, budgetOracle, adjustedBudget, BUDGET_LEVEL_EMOJI, BUDGET_LEVEL_LABEL, BUDGET_SAYINGS } from '../lib/budgetTiers';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
@@ -21,6 +22,7 @@ import RecommendModal from './RecommendModal';
 import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
 import ConfirmationModal from './ConfirmationModal';
+import PersonPageSheet, { type PersonSeed } from './PersonPageSheet';
 import {
   NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, ORACLE_BY_ID, OracleId, ratingTone, withAlpha,
 } from '../lib/oracleTheme';
@@ -231,8 +233,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const [directorTopTenLoading, setDirectorTopTenLoading] = useState(false);
   const [directorTopTenError, setDirectorTopTenError] = useState<string | null>(null);
   const [directorTopTenMovies, setDirectorTopTenMovies] = useState<any[]>([]);
-  const [directorNestedMovie, setDirectorNestedMovie] = useState<Movie | null>(null);
+  // Outro filme aberto por cima deste (Top 10 do diretor, saga, página da
+  // pessoa). Numa camada aninhada, troca o filme dela em vez de abrir outra.
+  const [nestedMovie, setNestedMovie] = useState<Movie | null>(null);
   const [loadingNestedMovieId, setLoadingNestedMovieId] = useState<number | null>(null);
+  // Página da pessoa (ator) aberta por cima deste menu — PersonPageSheet.
+  const [personSheet, setPersonSheet] = useState<PersonSeed | null>(null);
   const [oracleFlavorPhrases, setOracleFlavorPhrases] = useState<Record<string, string>>({});
   // Controla quais balões estão visíveis agora (não "dispensados" — o padrão
   // é começar ESCONDIDO e aparecer sozinho depois de um tempo, ver useEffect
@@ -277,7 +283,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     setDirectorTopTenLoading(false);
     setDirectorTopTenError(null);
     setDirectorTopTenMovies([]);
+    setPersonSheet(null);
   }, [movie.id]);
+
+  // Fechou o menu: a página da pessoa fecha junto.
+  useEffect(() => {
+    if (!isOpen) setPersonSheet(null);
+  }, [isOpen]);
 
   // Orçamento (só filmes). Vem do movie_cache; se o filme veio de um cache
   // antigo sem ele, busca no TMDB uma vez e grava (lib/tmdb.ts).
@@ -493,9 +505,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   }, [isOpen]);
 
   // Esc fecha a camada de cima: trailer → temporadas → o próprio modal.
-  // Com um modal filho aberto (resenhas, nota, indicar, confirmação ou
-  // outro filme aninhado), quem responde ao Esc é ele, não este.
-  const childModalOpen = showReviewsModal || showQuickAdd || showDeleteConfirmation || showRecommendModal || !!directorNestedMovie;
+  // Com um modal filho aberto (resenhas, nota, indicar, confirmação, página
+  // da pessoa ou outro filme aninhado), quem responde ao Esc é ele, não este.
+  const childModalOpen = showReviewsModal || showQuickAdd || showDeleteConfirmation || showRecommendModal || !!nestedMovie || !!personSheet;
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -1460,24 +1472,39 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         directorPersonId = bestMatch.id;
       }
 
-      const creditsUrl = `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=${encodeURIComponent(`/person/${directorPersonId}/movie_credits?language=${tmdbLang}`)}`;
-      const creditsResponse = await fetch(creditsUrl, { headers: authHeader });
-      if (!creditsResponse.ok) throw new Error('credits fetch failed');
-      const creditsJson = await creditsResponse.json();
+      // Os filmes do diretor vêm da página da pessoa (person_pages, no
+      // banco — o TMDB só é consultado na primeira vez e a cada 30 dias).
+      // Se a página não sair, vale a busca direta de sempre.
+      const personPage = await getPersonPage(directorPersonId as number);
+      let filtered: any[];
+      if (personPage) {
+        filtered = topMovies(personPage, 'director', i18n.language, { excludeId: movie.id }).map((m) => ({
+          id: m.id,
+          title: m.title,
+          poster_path: m.posterPath,
+          release_date: m.year,
+          vote_average: m.voteAverage,
+        }));
+      } else {
+        const creditsUrl = `${supabaseUrl}/functions/v1/tmdb-proxy?endpoint=${encodeURIComponent(`/person/${directorPersonId}/movie_credits?language=${tmdbLang}`)}`;
+        const creditsResponse = await fetch(creditsUrl, { headers: authHeader });
+        if (!creditsResponse.ok) throw new Error('credits fetch failed');
+        const creditsJson = await creditsResponse.json();
 
-      const directedCredits = (creditsJson.crew || []).filter((c: any) => c.job === 'Director');
+        const directedCredits = (creditsJson.crew || []).filter((c: any) => c.job === 'Director');
 
-      const seen = new Set<number>();
-      const deduped = directedCredits.filter((m: any) => {
-        if (seen.has(m.id)) return false;
-        seen.add(m.id);
-        return true;
-      });
+        const seen = new Set<number>();
+        const deduped = directedCredits.filter((m: any) => {
+          if (seen.has(m.id)) return false;
+          seen.add(m.id);
+          return true;
+        });
 
-      const filtered = deduped
-        .filter((m: any) => (m.vote_count || 0) >= 50 && m.id !== movie.id)
-        .sort((a: any, b: any) => (b.vote_average || 0) - (a.vote_average || 0))
-        .slice(0, 10);
+        filtered = deduped
+          .filter((m: any) => (m.vote_count || 0) >= 50 && m.id !== movie.id)
+          .sort((a: any, b: any) => (b.vote_average || 0) - (a.vote_average || 0))
+          .slice(0, 10);
+      }
 
       if (filtered.length === 0) {
         setDirectorTopTenError(t('movies.noDirectorMoviesFound'));
@@ -1491,16 +1518,26 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     }
   };
 
-  const handleOpenDirectorMovie = async (movieId: number) => {
+  // Abre outro filme por cima deste (Top 10 do diretor, saga, página da
+  // pessoa). São sempre filmes (as listas vêm dos créditos de filme do
+  // TMDB), então o tipo vai explícito — sem a consulta à tabela movies, que
+  // erra quando um filme e uma série têm o mesmo número.
+  //
+  // Clona no interesse: o título aberto entra no movie_cache se ainda não
+  // estiver lá (em segundo plano). Só o que a pessoa abre — não os 10 da
+  // lista — e sem regravar o que já existe (atualizar é com o servidor).
+  const openNestedMovie = async (movieId: number) => {
     setLoadingNestedMovieId(movieId);
+    ensureMovieCachedIfMissing(movieId, 'movie').catch(() => undefined);
     try {
-      const details = await getMovieDetailsFromDB(movieId);
+      const details = await getMovieDetailsFromDB(movieId, 'movie');
       if (isNested && onReplaceMovie) {
         // Já estamos numa camada aninhada — pede pro pai trocar o filme
-        // exibido aqui, em vez de abrir mais uma camada por baixo.
+        // exibido aqui, em vez de abrir mais uma camada por baixo (a página
+        // da pessoa, se aberta, fecha com a troca de filme).
         onReplaceMovie(details);
       } else {
-        setDirectorNestedMovie(details);
+        setNestedMovie(details);
       }
     } catch (err) {
       console.error('Error loading director movie:', err);
@@ -2200,7 +2237,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                   return (
                                     <li key={part.movie_id} className="min-w-0">
                                       <button
-                                        onClick={() => !isCurrent && handleOpenDirectorMovie(part.movie_id)}
+                                        onClick={() => !isCurrent && openNestedMovie(part.movie_id)}
                                         disabled={isCurrent}
                                         aria-current={isCurrent ? 'true' : undefined}
                                         aria-label={`${i + 1}. ${title}${year ? ` (${year})` : ''}${isCurrent ? ` — ${t('movieModal.collection.thisMovie')}` : ''}`}
@@ -2394,7 +2431,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                                       hover/leitor de tela, pra células nunca
                                       esticarem umas às outras. */}
                                   <button
-                                    onClick={() => handleOpenDirectorMovie(m.id)}
+                                    onClick={() => openNestedMovie(m.id)}
                                     aria-label={m.release_date ? `${m.title} (${m.release_date.slice(0, 4)})` : m.title}
                                     title={m.title}
                                     className={`group relative block w-full aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/10 hover:ring-white/35 transition ${FOCUS_RING}`}
@@ -2439,34 +2476,48 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     <section className={sectionClass}>
                       {sectionTitle(t('movies.cast'))}
                       {cast.length > 0 ? (
-                        <ul className="mt-4 grid sm:grid-cols-2 gap-x-6 gap-y-3">
+                        <ul className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-1">
                           {cast.map((actor) => {
                             const photo = failedCastPhotos.has(actor.id) ? null : castPhotos[actor.id] ?? actor.profile_path ?? null;
+                            // Tocar no nome abre a página da pessoa (por cima
+                            // deste menu), com o Top 10 de filmes dela.
+                            const canOpen = Number.isInteger(actor.id) && actor.id > 0;
                             return (
-                            <li key={actor.id} className="flex items-center gap-3 min-w-0">
-                              <span
-                                aria-hidden
-                                className="relative grid place-items-center w-11 h-11 shrink-0 rounded-full overflow-hidden ring-1 ring-white/10 text-sm font-semibold"
-                                style={{ background: VELVET, color: MIST }}
+                            <li key={actor.id} className="min-w-0">
+                              <button
+                                type="button"
+                                disabled={!canOpen}
+                                onClick={() => canOpen && setPersonSheet({ id: actor.id, name: actor.name, profilePath: photo })}
+                                aria-label={t('person.open', { name: actor.name })}
+                                className={`group flex w-[calc(100%+1rem)] -mx-2 items-center gap-3 min-w-0 px-2 py-1.5 rounded-xl text-left transition enabled:hover:bg-white/[0.06] ${FOCUS_RING}`}
                               >
-                                {actor.name.charAt(0)}
-                                {photo && (
-                                  <img
-                                    src={`${PROFILE_IMAGE_BASE}${photo}`}
-                                    alt=""
-                                    loading="lazy"
-                                    decoding="async"
-                                    className="absolute inset-0 w-full h-full object-cover"
-                                    onError={() => setFailedCastPhotos((prev) => new Set(prev).add(actor.id))}
-                                  />
+                                <span
+                                  aria-hidden
+                                  className="relative grid place-items-center w-11 h-11 shrink-0 rounded-full overflow-hidden ring-1 ring-white/10 group-hover:ring-white/30 transition text-sm font-semibold"
+                                  style={{ background: VELVET, color: MIST }}
+                                >
+                                  {actor.name.charAt(0)}
+                                  {photo && (
+                                    <img
+                                      src={`${PROFILE_IMAGE_BASE}${photo}`}
+                                      alt=""
+                                      loading="lazy"
+                                      decoding="async"
+                                      className="absolute inset-0 w-full h-full object-cover"
+                                      onError={() => setFailedCastPhotos((prev) => new Set(prev).add(actor.id))}
+                                    />
+                                  )}
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block font-medium truncate" style={{ color: PAPER }}>{actor.name}</span>
+                                  {actor.character && (
+                                    <span className="block text-sm truncate" style={{ color: MIST }}>{actor.character}</span>
+                                  )}
+                                </span>
+                                {canOpen && (
+                                  <ChevronRight className="w-4 h-4 shrink-0 opacity-40 group-hover:opacity-80 transition" style={{ color: MIST }} aria-hidden />
                                 )}
-                              </span>
-                              <span className="min-w-0">
-                                <span className="block font-medium truncate" style={{ color: PAPER }}>{actor.name}</span>
-                                {actor.character && (
-                                  <span className="block text-sm truncate" style={{ color: MIST }}>{actor.character}</span>
-                                )}
-                              </span>
+                              </button>
                             </li>
                             );
                           })}
@@ -2887,14 +2938,23 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         />
       )}
 
-      {directorNestedMovie && (
+      <PersonPageSheet
+        person={personSheet}
+        onClose={() => setPersonSheet(null)}
+        currentMovieId={movie.media_type === 'tv' ? undefined : movie.id}
+        onOpenMovie={openNestedMovie}
+        loadingMovieId={loadingNestedMovieId}
+        escapeEnabled={!nestedMovie}
+      />
+
+      {nestedMovie && (
         <MovieDetailsModal
-          movie={directorNestedMovie}
+          movie={nestedMovie}
           isOpen={true}
-          onClose={() => setDirectorNestedMovie(null)}
+          onClose={() => setNestedMovie(null)}
           zIndexClass={zIndexClass}
           isNested={true}
-          onReplaceMovie={setDirectorNestedMovie}
+          onReplaceMovie={setNestedMovie}
         />
       )}
     </div>,
