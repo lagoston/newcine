@@ -181,7 +181,7 @@ function cleanCharacter(character: string | null | undefined, isPt: boolean): st
 }
 
 // Quantos filmes a pessoa dirigiu que entrariam num Top 10 (a página mostra
-// a aba "Direção" a partir de 3).
+// a aba "Direção" a partir de 1).
 export const directedCount = (person: PersonPage) => topMovies(person, 'director', 'en', { limit: 50 }).length;
 
 export const personBiography = (person: PersonPage, lang: string) =>

@@ -173,11 +173,11 @@ const CategoryMovies = () => {
                       e.currentTarget.src = 'https://via.placeholder.com/500x750?text=No+Image';
                     }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end backdrop-blur-sm">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out flex flex-col justify-end">
                     <div className="p-5">
                       <h3 className="text-white font-bold mb-2 line-clamp-2 text-lg">{movie.title}</h3>
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center bg-yellow-500/20 backdrop-blur-sm px-2 py-1 rounded-lg">
+                        <div className="flex items-center bg-yellow-500/20 px-2 py-1 rounded-lg">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                           <span className="ml-1 text-white font-semibold text-sm">
                             {movie.vote_average.toFixed(1)}

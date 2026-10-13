@@ -179,7 +179,7 @@ export const SeasonalCountdown: React.FC<{ eventId: SeasonalEventId }> = ({ even
   const ring = halloween ? withAlpha(HALLOWEEN_ORANGE, 0.55) : 'rgba(229,72,77,0.6)';
   return (
     <p
-      className="relative inline-flex items-center gap-3 rounded-2xl pl-2 pr-4 py-2 backdrop-blur-[2px]"
+      className="relative inline-flex items-center gap-3 rounded-2xl pl-2 pr-4 py-2"
       style={{ background: 'rgba(0,0,0,0.42)', boxShadow: `inset 0 0 0 1px ${ring}, 0 12px 26px -16px ${accent}` }}
     >
       <span
@@ -248,7 +248,7 @@ export const SeasonalCountdownMini: React.FC<{ eventId: SeasonalEventId; classNa
   const ring = halloween ? withAlpha(HALLOWEEN_ORANGE, 0.6) : 'rgba(229,72,77,0.65)';
   return (
     <span
-      className={`pointer-events-none inline-flex items-center gap-1.5 h-7 pl-1.5 pr-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap backdrop-blur-[2px] ${className}`}
+      className={`pointer-events-none inline-flex items-center gap-1.5 h-7 pl-1.5 pr-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${className}`}
       style={{ background: 'rgba(0,0,0,0.58)', boxShadow: `inset 0 0 0 1px ${ring}`, color: PAPER, ...style }}
     >
       <span className="text-sm leading-none normal-case" aria-hidden>

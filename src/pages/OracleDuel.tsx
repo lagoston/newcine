@@ -511,7 +511,7 @@ export default function OracleDuel() {
       <AnimatePresence>
         {trailerMovie && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${t('duel.watchTrailer')} — ${trailerMovie.title}`}>
-            <motion.div className="absolute inset-0 bg-black/85 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setTrailerMovie(null)} />
+            <motion.div className="absolute inset-0 bg-black/85" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setTrailerMovie(null)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}

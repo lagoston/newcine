@@ -4,12 +4,12 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   X, Star, Loader2, Film, Instagram, Tv, Send, MessageSquare, Play, ChevronRight,
-  ChevronDown, AlertCircle, Wand2, Plus, Check, Eye, Layers, Sparkles,
+  ChevronDown, Wand2, Plus, Check, Eye, Layers, Sparkles,
 } from 'lucide-react';
 import { formatChance } from '../lib/prediction';
-import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget, ensureMovieCachedIfMissing, getTVSeasons, tmdbFetch } from '../lib/tmdb';
+import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget, ensureMovieCachedIfMissing, getTVSeasons } from '../lib/tmdb';
 import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
-import { getPersonPage, topMovies } from '../lib/people';
+import { getPeoplePhotos, getStoredPersonPhoto } from '../lib/peoplePhotos';
 import { getMovieCollections, collectionDisplayName, sortedParts, type MovieCollection } from '../lib/collections';
 import { budgetLevel, budgetOracle, adjustedBudget, BUDGET_LEVEL_EMOJI, BUDGET_LEVEL_LABEL, BUDGET_SAYINGS } from '../lib/budgetTiers';
 import { getRandomFlavorPhrase } from '../lib/oracleFlavorPhrases';
@@ -228,13 +228,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const titleId = useId();
   const seasonsTitleId = useId();
 
-  // Top 10 do diretor — busca sob demanda, só quando o usuário clica.
-  const [showDirectorTopTen, setShowDirectorTopTen] = useState(false);
-  const [directorTopTenLoading, setDirectorTopTenLoading] = useState(false);
-  const [directorTopTenError, setDirectorTopTenError] = useState<string | null>(null);
-  const [directorTopTenMovies, setDirectorTopTenMovies] = useState<any[]>([]);
-  // Outro filme aberto por cima deste (Top 10 do diretor, saga, página da
-  // pessoa). Numa camada aninhada, troca o filme dela em vez de abrir outra.
+  // Diretor: tocar abre a página da pessoa na aba Direção (13/10/2026 — o
+  // Top 10 que abria dentro deste menu foi aposentado). Sem o id no título,
+  // ele é procurado pelo nome no clique; a foto vem do banco quando há id.
+  const [directorPhoto, setDirectorPhoto] = useState<string | null>(null);
+  const [resolvingDirector, setResolvingDirector] = useState(false);
+  // Outro filme aberto por cima deste (saga, página da pessoa). Numa camada
+  // aninhada, troca o filme dela em vez de abrir outra.
   const [nestedMovie, setNestedMovie] = useState<Movie | null>(null);
   const [loadingNestedMovieId, setLoadingNestedMovieId] = useState<number | null>(null);
   // Página da pessoa (ator) aberta por cima deste menu — PersonPageSheet.
@@ -275,16 +275,25 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
   // Necessário desde que o aninhamento passou a REAPROVEITAR a mesma
   // instância do modal (troca de filme via onReplaceMovie) em vez de criar
-  // uma instância nova do zero a cada clique — sem isso, o painel do Top
-  // 10 continuaria mostrando os filmes do diretor ANTERIOR depois de trocar
-  // de filme pela própria lista.
+  // uma instância nova do zero a cada clique: a página da pessoa e o
+  // diretor do filme anterior não podem ficar para trás.
   useEffect(() => {
-    setShowDirectorTopTen(false);
-    setDirectorTopTenLoading(false);
-    setDirectorTopTenError(null);
-    setDirectorTopTenMovies([]);
     setPersonSheet(null);
+    setResolvingDirector(false);
   }, [movie.id]);
+
+  // Foto do diretor (só do banco, e só quando o título tem o id dele).
+  const directorCrew = movie.credits?.crew?.find((person) => person.job === 'Director' || person.job === 'Creator' || person.job === 'Executive Producer');
+  const directorCrewId = directorCrew && directorCrew.id > 0 ? directorCrew.id : null;
+  useEffect(() => {
+    setDirectorPhoto(null);
+    if (!directorCrewId) return;
+    let cancelled = false;
+    getStoredPersonPhoto(directorCrewId).then((photo) => !cancelled && setDirectorPhoto(photo));
+    return () => {
+      cancelled = true;
+    };
+  }, [directorCrewId]);
 
   // Fechou o menu: a página da pessoa fecha junto.
   useEffect(() => {
@@ -1384,113 +1393,30 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const isUpcomingRelease = !!releaseDateObj && !isNaN(releaseDateObj.getTime()) && releaseDateObj.getTime() > Date.now();
   const formattedReleaseDate = releaseDateObj?.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' });
 
-  // Top 10 do diretor — busca sob demanda, só quando o usuário clica.
-  //
-  // BUG ENCONTRADO na versão anterior: quando o filme vinha do cache do
-  // banco (getCachedMovie em lib/tmdb.ts), o crew do diretor era
-  // reconstruído com um ID FALSO fixo (id: 0), só pra preencher o formato
-  // esperado — nunca foi o ID real da pessoa no TMDB. A busca por
-  // "/person/0/movie_credits" retornava lixo ou vazio dependendo de qual
-  // filme aleatório tem ID 0 no TMDB, explicando todos os sintomas
-  // relatados: lista vazia mesmo pra diretores com filmes no banco,
-  // comportamento diferente dependendo de onde o filme foi aberto (cache
-  // do banco vs busca ao vivo do TMDB, que tem ID real), e a impressão de
-  // só "puxar o filme atual" quando a resposta vinha inesperada.
-  //
-  // Correção: NUNCA confiar em um director id vindo do objeto `movie` já
-  // carregado sem validar — só usa o id embutido se for maior que 0
-  // (sinal de que veio de busca ao vivo real, não do placeholder do
-  // cache), senão resolve por nome via /search/person, confiável
-  // independente de como o filme chegou até aqui.
-  const handleOpenDirectorTopTen = async () => {
-    // Retrátil: se já está aberto, o clique fecha, sem mexer nos dados já
-    // carregados (reabrir depois mostra a lista de novo sem nova busca).
-    if (showDirectorTopTen) {
-      setShowDirectorTopTen(false);
+  // Abre a página do diretor (aba Direção). O id vem do título quando ele
+  // já foi atualizado pelo servidor (director_id); senão é procurado pelo
+  // nome — preferindo quem é conhecido por dirigir (getPeoplePhotos guarda
+  // a resposta na sessão e o proxy por 30 dias).
+  const openDirectorPage = async () => {
+    if (!directorCrew || resolvingDirector) return;
+    if (directorCrewId) {
+      setPersonSheet({ id: directorCrewId, name: directorCrew.name, profilePath: directorPhoto, role: 'director' });
       return;
     }
-
-    setShowDirectorTopTen(true);
-
-    // Já tem resultado de uma busca anterior nesse mesmo filme aberto —
-    // não busca de novo à toa.
-    if (directorTopTenMovies.length > 0 || directorTopTenError) return;
-
-    setDirectorTopTenError(null);
-
-    if (!director || director === t('movies.unknown')) {
-      setDirectorTopTenError(t('movies.noDirectorMoviesFound'));
-      return;
-    }
-
-    setDirectorTopTenLoading(true);
-    const tmdbLang = i18n.language.startsWith('pt') ? 'pt-BR' : 'en-US';
-
+    setResolvingDirector(true);
     try {
-      const embeddedDirector = movie.credits?.crew?.find(
-        (person) => person.job === 'Director' && person.id > 0
-      );
-
-      let directorPersonId: number | null = embeddedDirector?.id ?? null;
-
-      if (!directorPersonId) {
-        // Título guardado antes de 12/10/2026 ainda sem o id do diretor:
-        // procura pelo nome (o proxy guarda a resposta por 30 dias).
-        const searchJson = await tmdbFetch(`/search/person?query=${encodeURIComponent(director)}&language=${tmdbLang}`);
-        const bestMatch = searchJson.results?.[0];
-        if (!bestMatch?.id) {
-          setDirectorTopTenError(t('movies.noDirectorMoviesFound'));
-          setDirectorTopTenLoading(false);
-          return;
-        }
-        directorPersonId = bestMatch.id;
-      }
-
-      // Os filmes do diretor vêm da página da pessoa (person_pages, no
-      // banco — o TMDB só é consultado na primeira vez e a cada 30 dias).
-      // Se a página não sair, vale a busca direta de sempre.
-      const personPage = await getPersonPage(directorPersonId as number);
-      let filtered: any[];
-      if (personPage) {
-        filtered = topMovies(personPage, 'director', i18n.language, { excludeId: movie.id }).map((m) => ({
-          id: m.id,
-          title: m.title,
-          poster_path: m.posterPath,
-          release_date: m.year,
-          vote_average: m.voteAverage,
-        }));
-      } else {
-        const creditsJson = await tmdbFetch(`/person/${directorPersonId}/movie_credits?language=${tmdbLang}`);
-
-        const directedCredits = (creditsJson.crew || []).filter((c: any) => c.job === 'Director');
-
-        const seen = new Set<number>();
-        const deduped = directedCredits.filter((m: any) => {
-          if (seen.has(m.id)) return false;
-          seen.add(m.id);
-          return true;
-        });
-
-        filtered = deduped
-          .filter((m: any) => (m.vote_count || 0) >= 50 && m.id !== movie.id)
-          .sort((a: any, b: any) => (b.vote_average || 0) - (a.vote_average || 0))
-          .slice(0, 10);
-      }
-
-      if (filtered.length === 0) {
-        setDirectorTopTenError(t('movies.noDirectorMoviesFound'));
-      }
-      setDirectorTopTenMovies(filtered);
-    } catch (err) {
-      console.error('Error fetching director top ten:', err);
-      setDirectorTopTenError(t('common.error'));
+      const key = `director:${directorCrew.name.toLowerCase()}`;
+      const found = (await getPeoplePhotos([{ key, id: null, name: directorCrew.name, role: 'director' }])).get(key);
+      if (found?.id) setPersonSheet({ id: found.id, name: directorCrew.name, profilePath: found.photo, role: 'director' });
+      else toast.error(t('movies.noDirectorMoviesFound'));
+    } catch {
+      toast.error(t('common.error'));
     } finally {
-      setDirectorTopTenLoading(false);
+      setResolvingDirector(false);
     }
   };
 
-  // Abre outro filme por cima deste (Top 10 do diretor, saga, página da
-  // pessoa). São sempre filmes (as listas vêm dos créditos de filme do
+  // Abre outro filme por cima deste (saga, página da pessoa). São sempre filmes (as listas vêm dos créditos de filme do
   // TMDB), então o tipo vai explícito — sem a consulta à tabela movies, que
   // erra quando um filme e uma série têm o mesmo número.
   //
@@ -1588,7 +1514,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     );
   }
 
-  const ghostPill = `inline-flex items-center gap-2 h-11 px-4 rounded-full border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;
   const sectionClass = 'pt-6 mt-6 border-t border-white/[0.07]';
   const sectionTitle = (text: string) => (
     <h3 style={{ ...PIXEL, color: PAPER }} className="text-xl leading-none">{text}</h3>
@@ -1735,7 +1660,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/75"
         onClick={onClose}
       />
       <div className="absolute inset-0 flex items-end sm:items-center justify-center sm:p-6 pointer-events-none">
@@ -1749,7 +1674,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
           <button
             onClick={onClose}
             aria-label={t('common.close')}
-            className={`absolute top-3 right-3 z-30 grid place-items-center w-11 h-11 rounded-full ring-1 ring-white/15 backdrop-blur-md hover:bg-white/10 transition ${FOCUS_RING}`}
+            className={`absolute top-3 right-3 z-30 grid place-items-center w-11 h-11 rounded-full ring-1 ring-white/15 bg-black/45 hover:bg-black/60 transition ${FOCUS_RING}`}
             style={{ background: 'rgba(18,13,34,0.6)', color: PAPER }}
           >
             <X className="w-5 h-5" />
@@ -1802,10 +1727,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       )}
                       {/* Convite discreto pro trailer — frase só no hover (desktop) */}
                       <span className="absolute top-2.5 right-2.5 flex items-center gap-2 pointer-events-none">
-                        <span className="hidden sm:inline text-[11px] font-medium text-white bg-black/55 backdrop-blur-sm px-2 py-1 rounded-full opacity-0 group-hover/poster:opacity-100 transition-opacity whitespace-nowrap">
+                        <span className="hidden sm:inline text-[11px] font-medium text-white bg-black/70 px-2 py-1 rounded-full opacity-0 group-hover/poster:opacity-100 transition-opacity whitespace-nowrap">
                           {t('movies.clickForTrailer')}
                         </span>
-                        <span className="grid place-items-center w-10 h-10 rounded-full bg-black/45 backdrop-blur-sm ring-1 ring-white/20 opacity-80 group-hover/poster:opacity-100 group-hover/poster:scale-105 transition">
+                        <span className="grid place-items-center w-10 h-10 rounded-full bg-black/45 ring-1 ring-white/20 opacity-80 group-hover/poster:opacity-100 group-hover/poster:scale-105 transition">
                           <Play className="w-4 h-4 fill-white text-white ml-0.5" aria-hidden />
                         </span>
                       </span>
@@ -2260,25 +2185,49 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                     <section className={`md:hidden ${sectionClass}`}>{whereToWatch}</section>
 
                     <section className={sectionClass}>
-                      {/* Linha 1: diretor | Ver Top 10. Linha 2: orçamento | selo do
-                          oráculo (só filmes com orçamento conhecido). */}
-                      <div className="flex items-start justify-between gap-3">
+                      {/* Linha 1: diretor (abre a página dele, aba Direção). Linha 2:
+                          orçamento | selo do oráculo (só filmes com orçamento
+                          conhecido). */}
+                      {director !== t('movies.unknown') && directorCrew ? (
+                        <button
+                          type="button"
+                          onClick={openDirectorPage}
+                          aria-label={t('person.openDirector', { name: director })}
+                          className={`group flex w-[calc(100%+1rem)] -mx-2 items-center justify-start gap-3 min-w-0 px-2 py-1.5 rounded-xl text-left transition hover:bg-white/[0.06] ${FOCUS_RING}`}
+                        >
+                          <span
+                            aria-hidden
+                            className="relative grid place-items-center w-11 h-11 shrink-0 rounded-full overflow-hidden ring-1 ring-white/10 group-hover:ring-white/30 transition text-sm font-semibold"
+                            style={{ background: VELVET, color: MIST }}
+                          >
+                            {director.charAt(0)}
+                            {directorPhoto && (
+                              <img
+                                src={`${PROFILE_IMAGE_BASE}${directorPhoto}`}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                className="absolute inset-0 w-full h-full object-cover"
+                                onError={() => setDirectorPhoto(null)}
+                              />
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm" style={{ color: MIST }}>{isTvShow ? t('movies.creator') : t('movies.director')}</span>
+                            <span className="block mt-0.5 text-lg font-semibold truncate group-hover:underline underline-offset-4" style={{ color: PAPER }}>{director}</span>
+                          </span>
+                          {resolvingDirector ? (
+                            <Loader2 className="w-4 h-4 shrink-0 animate-spin" style={{ color: MIST }} aria-hidden />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: MIST }} aria-hidden />
+                          )}
+                        </button>
+                      ) : (
                         <div className="min-w-0">
                           <p className="text-sm" style={{ color: MIST }}>{t('movies.director')}</p>
                           <p className="mt-0.5 text-lg font-semibold truncate" style={{ color: PAPER }}>{director}</p>
                         </div>
-                        {director !== t('movies.unknown') && (
-                          <button
-                            onClick={handleOpenDirectorTopTen}
-                            aria-expanded={showDirectorTopTen}
-                            className={`shrink-0 ${ghostPill}`}
-                            style={{ color: PAPER }}
-                          >
-                            {t('movies.viewTopTen')}
-                            <ChevronDown className={`w-4 h-4 transition-transform ${showDirectorTopTen ? 'rotate-180' : ''}`} aria-hidden />
-                          </button>
-                        )}
-                      </div>
+                      )}
 
                       {!isTvShow && budget !== null && (() => {
                         const isPtLang = i18n.language.startsWith('pt');
@@ -2375,73 +2324,6 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                         );
                       })()}
 
-                      {showDirectorTopTen && (
-                        <div className="mt-4">
-                          <p className="text-sm mb-3" style={{ color: MIST }}>{t('movies.directorTopTen', { director })}</p>
-
-                          {directorTopTenLoading && (
-                            <div className="grid grid-cols-5 gap-2" aria-busy="true">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <div key={i} className="aspect-[2/3] rounded-lg animate-pulse" style={{ background: VELVET }} />
-                              ))}
-                            </div>
-                          )}
-
-                          {!directorTopTenLoading && directorTopTenError && (
-                            <p className="flex items-center gap-2 text-sm" style={{ color: MIST }}>
-                              <AlertCircle className="w-4 h-4 shrink-0" aria-hidden />
-                              {directorTopTenError}
-                            </p>
-                          )}
-
-                          {!directorTopTenLoading && !directorTopTenError && directorTopTenMovies.length > 0 && (
-                            <ol className="grid grid-cols-5 gap-2">
-                              {directorTopTenMovies.map((m: any) => (
-                                <li key={m.id}>
-                                  {/* Só o pôster, proporção 2:3 fixa — título no
-                                      hover/leitor de tela, pra células nunca
-                                      esticarem umas às outras. */}
-                                  <button
-                                    onClick={() => openNestedMovie(m.id)}
-                                    aria-label={m.release_date ? `${m.title} (${m.release_date.slice(0, 4)})` : m.title}
-                                    title={m.title}
-                                    className={`group relative block w-full aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/10 hover:ring-white/35 transition ${FOCUS_RING}`}
-                                    style={{ background: VELVET, minWidth: 0 }}
-                                  >
-                                    {m.poster_path ? (
-                                      <img
-                                        src={`https://image.tmdb.org/t/p/w185${m.poster_path}`}
-                                        alt=""
-                                        loading="lazy"
-                                        decoding="async"
-                                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                      />
-                                    ) : (
-                                      <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
-                                        <Film className="w-5 h-5" aria-hidden />
-                                      </span>
-                                    )}
-                                    {loadingNestedMovieId === m.id && (
-                                      <span className="absolute inset-0 bg-black/55 grid place-items-center">
-                                        <Loader2 className="w-4 h-4 text-white animate-spin" aria-hidden />
-                                      </span>
-                                    )}
-                                    {m.vote_average > 0 && (
-                                      <span
-                                        className="absolute bottom-1 right-1 inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] leading-none"
-                                        style={{ background: 'rgba(18,13,34,0.86)', color: PAPER }}
-                                      >
-                                        <Star className="w-2.5 h-2.5 fill-amber-300 text-amber-300" aria-hidden />
-                                        {formatScore(m.vote_average)}
-                                      </span>
-                                    )}
-                                  </button>
-                                </li>
-                              ))}
-                            </ol>
-                          )}
-                        </div>
-                      )}
                     </section>
 
                     <section className={sectionClass}>
@@ -2571,7 +2453,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         {showTrailerModal && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${t('movieModal.trailer')} — ${movie.title}`}>
             <motion.div
-              className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/85"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -2627,7 +2509,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         {showSeasonsModal && (
           <div className="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-labelledby={seasonsTitleId}>
             <motion.div
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/75"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

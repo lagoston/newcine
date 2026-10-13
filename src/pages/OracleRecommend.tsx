@@ -280,7 +280,7 @@ export default function OracleRecommend() {
  <div className="flex items-center justify-between mb-8">
  <motion.button
  onClick={() => navigate(-1)}
- className="p-2.5 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl hover:bg-white/60 dark:hover:bg-gray-800/60 border border-white/60 dark:border-gray-700/60 rounded-full transition-colors"
+ className="p-2.5 bg-white/80 dark:bg-gray-800/75 hover:bg-white/90 dark:hover:bg-gray-700/80 border border-white/60 dark:border-gray-700/60 rounded-full transition-colors"
  whileHover={{ scale: 1.05 }}
  whileTap={{ scale: 0.95 }}
  >
@@ -288,7 +288,7 @@ export default function OracleRecommend() {
  </motion.button>
 
  {/* Alternador entre Recomendação Clássica (modo atual) e Duelo */}
- <div className="flex items-center bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 rounded-full p-1">
+ <div className="flex items-center bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 rounded-full p-1">
  <button
  onClick={() => navigate('/oracle/duel')}
  className="px-4 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-full transition-colors"
@@ -325,7 +325,7 @@ export default function OracleRecommend() {
  </p>
 
  <motion.div
- className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 p-4 mb-8 inline-flex flex-col sm:flex-row items-center gap-4 sm:gap-8"
+ className="relative rounded-2xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 p-4 mb-8 inline-flex flex-col sm:flex-row items-center gap-4 sm:gap-8"
  initial={{ opacity: 0, scale: 0.95 }}
  animate={{ opacity: 1, scale: 1 }}
  transition={{ delay: 0.2 }}
@@ -356,7 +356,7 @@ export default function OracleRecommend() {
  </motion.div>
 
  <motion.div
- className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8 mb-8"
+ className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8 mb-8"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: 0.2 }}
@@ -393,7 +393,7 @@ export default function OracleRecommend() {
  </motion.div>
 
  <motion.div
- className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8 mb-8"
+ className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8 mb-8"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: 0.3 }}
@@ -409,7 +409,7 @@ export default function OracleRecommend() {
  <motion.button
  key={mood}
  onClick={() => setSelectedMood(mood)}
- className={`px-3 py-3 rounded-xl transition-all text-center border backdrop-blur-sm ${moodStyle.bg} ${moodStyle.hover} ${moodStyle.text} ${
+ className={`px-3 py-3 rounded-xl transition-all text-center border ${moodStyle.bg} ${moodStyle.hover} ${moodStyle.text} ${
  isSelected ? `${moodStyle.border} ring-2 ring-offset-2 ring-offset-transparent shadow-lg` : 'border-transparent'
  }`}
  whileHover={{ scale: 1.03, y: -2 }}
@@ -451,7 +451,7 @@ export default function OracleRecommend() {
 
  {loading && (
  <motion.div
- className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-8 text-center"
+ className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl p-8 text-center"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  >
@@ -474,7 +474,7 @@ export default function OracleRecommend() {
 
  {infoMessage && !loading && (
  <motion.div
- className="relative rounded-3xl bg-amber-50/60 dark:bg-amber-900/20 backdrop-blur-xl border border-amber-300/50 dark:border-amber-500/30 shadow-2xl p-8"
+ className="relative rounded-3xl bg-amber-50/80 dark:bg-amber-900/30 border border-amber-300/50 dark:border-amber-500/30 shadow-2xl p-8"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  >
@@ -494,7 +494,7 @@ export default function OracleRecommend() {
 
  {recommendation && !loading && (
  <motion.div
- className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8"
+ className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  >
@@ -549,7 +549,7 @@ export default function OracleRecommend() {
 
  {!loading && !recommendation && !infoMessage && (
  <motion.div
- className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-8"
+ className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl p-8"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: 0.5 }}
@@ -603,14 +603,14 @@ export default function OracleRecommend() {
  <AnimatePresence>
  {showOracleInfoModal && (
  <motion.div
- className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+ className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4"
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
  onClick={() => setShowOracleInfoModal(false)}
  >
  <motion.div
- className="relative max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8"
+ className="relative max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl bg-white/95 dark:bg-gray-800/95 border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8"
  initial={{ scale: 0.9, y: 20 }}
  animate={{ scale: 1, y: 0 }}
  exit={{ scale: 0.9, y: 20 }}

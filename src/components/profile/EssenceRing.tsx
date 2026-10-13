@@ -344,9 +344,6 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
       <div className="mt-5 grid md:grid-cols-[minmax(0,440px)_minmax(0,1fr)] gap-6 md:gap-10 items-start">
         <div className="min-w-0">
           <MoodGrid slices={slices} codeKeys={codeKeys} selected={selected} onToggle={toggle} compact={compact} />
-          <p className="mt-3 text-[12px] leading-snug" style={{ color: MIST }}>
-            {isOwn ? t('profile.observatory.gridHint') : t('profile.observatory.gridHintOf', { name: ownerName })}
-          </p>
         </div>
 
         <div ref={panelRef} className="min-w-0 scroll-mt-24">

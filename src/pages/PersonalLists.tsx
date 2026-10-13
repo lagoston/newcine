@@ -206,7 +206,7 @@ export default function PersonalLists() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="p-2.5 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors shadow-lg"
+              className="p-2.5 rounded-xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors shadow-lg"
             >
               <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </button>
@@ -233,7 +233,7 @@ export default function PersonalLists() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden text-center py-16 px-6"
+            className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden text-center py-16 px-6"
           >
             <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-br from-blue-400/15 to-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="relative z-10">
@@ -258,7 +258,7 @@ export default function PersonalLists() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(listIndex * 0.05, 0.3) }}
-                  className={`relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border ${theme.border} shadow-2xl overflow-hidden p-5 sm:p-6`}
+                  className={`relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border ${theme.border} shadow-2xl overflow-hidden p-5 sm:p-6`}
                 >
                   <div className={`absolute top-0 right-0 w-48 h-48 bg-gradient-to-br ${theme.glow} rounded-full blur-3xl pointer-events-none`} />
 
@@ -328,7 +328,7 @@ export default function PersonalLists() {
                               </span>
                             )}
                             {movie.userRating !== null && movie.userRating !== undefined && (
-                              <div className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                              <div className="absolute top-1.5 right-1.5 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
                                 ★ {movie.userRating}
                               </div>
                             )}

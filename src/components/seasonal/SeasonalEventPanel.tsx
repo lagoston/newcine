@@ -369,7 +369,7 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
           {/* ---------- Trilha das tags ---------- */}
           <div className="px-5 sm:px-8">
             <div
-              className="mt-6 rounded-2xl p-4 sm:p-5 backdrop-blur-[2px]"
+              className="mt-6 rounded-2xl p-4 sm:p-5"
               style={{ background: 'rgba(0,0,0,0.32)', boxShadow: `inset 0 0 0 1px ${withAlpha(theme.accent, 0.25)}` }}
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

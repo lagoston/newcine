@@ -96,8 +96,6 @@ const MoodGrid: React.FC<MoodGridProps> = ({ slices, codeKeys, selected, onToggl
                 opacity: dim ? 0.5 : 1,
                 transform: isSel ? 'translateY(-2px)' : undefined,
                 transition: 'opacity 300ms ease, transform 300ms ease, box-shadow 300ms ease',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
               }}
             >
               {/* líquido */}

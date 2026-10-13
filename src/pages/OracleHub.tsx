@@ -390,8 +390,6 @@ export default function OracleHub() {
             'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015) 55%)',
             'rgba(28,20,51,0.55)',
           ].join(', '),
-          WebkitBackdropFilter: 'blur(18px) saturate(150%)',
-          backdropFilter: 'blur(18px) saturate(150%)',
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), inset 0 0 0 1px rgba(243,234,211,0.1), 0 24px 50px -30px rgba(0,0,0,0.8)',
         }}
       >
@@ -454,8 +452,6 @@ export default function OracleHub() {
             className={`group relative flex flex-col sm:flex-row items-start justify-start gap-2.5 sm:gap-4 text-left rounded-2xl p-3.5 sm:p-5 hover:brightness-110 transition ${FOCUS_RING}`}
             style={{
               background: `radial-gradient(90% 120% at 0% 0%, ${withAlpha(card.tint, 0.14)}, transparent 65%), rgba(28,20,51,0.55)`,
-              WebkitBackdropFilter: 'blur(16px) saturate(150%)',
-              backdropFilter: 'blur(16px) saturate(150%)',
               boxShadow: `inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 1px ${withAlpha(card.tint, 0.24)}`,
             }}
           >

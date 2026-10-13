@@ -61,7 +61,7 @@ const SeasonalCelebration: React.FC<Props> = ({ steps, event, theme, userId, onC
   return createPortal(
     <div className="fixed inset-0 z-[10050] grid place-items-center p-5" role="dialog" aria-modal="true" aria-labelledby="seasonal-celebration-title">
       <motion.div
-        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/80"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         onClick={onClose}

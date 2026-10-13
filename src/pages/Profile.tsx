@@ -569,7 +569,7 @@ export default function Profile() {
               onClick={() => setShowSettingsModal(true)}
               aria-label={t('settings.title')}
               title={t('settings.title')}
-              className={`grid place-items-center w-11 h-11 rounded-full ring-1 ring-white/15 bg-black/25 backdrop-blur-sm hover:bg-white/10 transition ${FOCUS_RING}`}
+              className={`grid place-items-center w-11 h-11 rounded-full ring-1 ring-white/15 bg-black/25 hover:bg-white/10 transition ${FOCUS_RING}`}
               style={{ color: PAPER }}
             >
               <Settings className="w-5 h-5" aria-hidden />

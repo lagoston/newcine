@@ -296,7 +296,7 @@ const WorldMapCard: React.FC<WorldMapCardProps> = ({ countryCounts, countryAvgRa
             </div>
 
             {/* Legenda da rampa */}
-            <div className="pointer-events-none absolute left-2.5 bottom-2.5 flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] bg-black/40 backdrop-blur-sm" style={{ color: MIST }} aria-hidden>
+            <div className="pointer-events-none absolute left-2.5 bottom-2.5 flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] bg-black/40" style={{ color: MIST }} aria-hidden>
               <span>{t('worldMap.less')}</span>
               <span className="flex gap-0.5">
                 {[0.05, 0.3, 0.6, 1].map((v) => (

@@ -205,7 +205,7 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
       {open && (
         <div className={`fixed inset-0 ${zIndexClass}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/75"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

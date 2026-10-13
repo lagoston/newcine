@@ -112,9 +112,17 @@ export const PROFILE_ACCENTS = {
 };
 
 // Painel de vidro dos blocos de estatística do perfil: a superfície do
-// perfil translúcida, com desfoque do que está atrás, um brilho fino no
-// alto e o reflexo da cor do próprio painel (accent) no canto de cima e no
-// contorno — cada bloco puxa a cor do que ele mostra.
+// perfil translúcida, um brilho fino no alto e o reflexo da cor do próprio
+// painel (accent) no canto de cima e no contorno — cada bloco puxa a cor do
+// que ele mostra.
+//
+// Sem backdrop-filter desde 13/10/2026: o desfoque do que está atrás
+// (blur 16px + saturate) obrigava o navegador a refazer o desfoque de cada
+// painel a cada quadro em que algo mexia na tela (um hover, a onda dos
+// frascos, o globo), e no desktop isso atrasava o hover em quase 1 s. Atrás
+// dos painéis só há manchas de luz já suaves (ProfileGlassAmbient), então a
+// diferença visual é mínima; medido no perfil, o trabalho da GPU caiu de ~7 s
+// para ~0,1 s a cada 2,5 s de tela parada.
 export const glassPanel = (accent?: string): React.CSSProperties => ({
   background: [
     accent ? `radial-gradient(120% 95% at 100% 0%, ${colorWithAlpha(accent, 0.22)}, transparent 62%)` : '',
@@ -124,8 +132,6 @@ export const glassPanel = (accent?: string): React.CSSProperties => ({
   ]
     .filter(Boolean)
     .join(', '),
-  WebkitBackdropFilter: 'blur(16px) saturate(150%)',
-  backdropFilter: 'blur(16px) saturate(150%)',
   boxShadow: [
     'inset 0 1px 0 rgba(255,255,255,0.09)',
     `inset 0 0 0 1px ${accent ? colorWithAlpha(accent, 0.3) : 'rgba(243,234,211,0.1)'}`,

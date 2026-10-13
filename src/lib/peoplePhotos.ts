@@ -69,3 +69,17 @@ export async function getPeoplePhotos(people: PersonRef[]): Promise<Map<string, 
   );
   return result;
 }
+
+// Só a foto guardada no banco (sem ir ao TMDB) de uma pessoa com id
+// conhecido — usada no diretor do menu do filme.
+const storedCache = new Map<number, string | null>();
+export async function getStoredPersonPhoto(id: number): Promise<string | null> {
+  if (storedCache.has(id)) return storedCache.get(id) ?? null;
+  const [peopleRes, pagesRes] = await Promise.all([
+    supabase.from('people').select('profile_path').eq('tmdb_id', id).maybeSingle(),
+    supabase.from('person_pages').select('profile_path').eq('tmdb_id', id).maybeSingle(),
+  ]);
+  const photo = (peopleRes.data as { profile_path: string | null } | null)?.profile_path || (pagesRes.data as { profile_path: string | null } | null)?.profile_path || null;
+  storedCache.set(id, photo);
+  return photo;
+}

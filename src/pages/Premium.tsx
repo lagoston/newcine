@@ -16,7 +16,7 @@ interface FeatureProps {
 }
 
 const Feature = ({ icon: Icon, title, description }: FeatureProps) => (
- <div className="flex items-start gap-4 p-5 rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-lg">
+ <div className="flex items-start gap-4 p-5 rounded-2xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-lg">
  <div className="shrink-0 p-3 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg">
  <Icon className="w-5 h-5 text-white" />
  </div>
@@ -101,7 +101,7 @@ export default function Premium() {
  <div className="flex items-center gap-4 mb-8">
  <button
  onClick={() => navigate(-1)}
- className="p-2.5 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-xl transition-colors border border-white/40 dark:border-gray-600/40"
+ className="p-2.5 bg-white/60 dark:bg-gray-800/60 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-xl transition-colors border border-white/40 dark:border-gray-600/40"
  >
  <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
  </button>
@@ -109,7 +109,7 @@ export default function Premium() {
 
  {isPremium ? (
  <motion.div
- className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-8 sm:p-12"
+ className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl p-8 sm:p-12"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  >
@@ -144,17 +144,17 @@ export default function Premium() {
  </div>
 
  <div className="grid sm:grid-cols-3 gap-4 mb-8">
- <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 p-5 text-center">
+ <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60 p-5 text-center">
  <Swords className="w-8 h-8 text-yellow-500 mx-auto mb-3" />
  <p className="text-2xl font-bold text-gray-900 dark:text-white">∞</p>
  <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.unlimitedDuelsShort')}</p>
  </div>
- <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 p-5 text-center">
+ <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60 p-5 text-center">
  <Palette className="w-8 h-8 text-blue-500 mx-auto mb-3" />
  <p className="text-2xl font-bold text-gray-900 dark:text-white">{t('premium.customization')}</p>
  <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.exclusiveFrames')}</p>
  </div>
- <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 p-5 text-center">
+ <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60 p-5 text-center">
  {isLifetimePremium ? (
  <>
  <Infinity className="w-8 h-8 text-emerald-500 mx-auto mb-3" />
@@ -226,7 +226,7 @@ export default function Premium() {
 
  <div className="flex justify-center mb-12">
  <motion.div
- className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border-2 border-yellow-400/60 dark:border-yellow-500/40 shadow-2xl overflow-hidden max-w-md w-full"
+ className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border-2 border-yellow-400/60 dark:border-yellow-500/40 shadow-2xl overflow-hidden max-w-md w-full"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  >

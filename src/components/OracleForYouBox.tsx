@@ -148,7 +148,7 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
                   <li key={movie.id} className="group relative shrink-0 w-[124px] sm:w-[148px]">
                     <button onClick={() => setSelectedMovie(movie)} className={`block w-full text-left rounded-xl ${FOCUS_RING}`}>
                       <span
-                        className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
+                        className="relative isolate block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
                         style={{ background: NIGHT }}
                       >
                         {movie.poster_path ? (

@@ -105,7 +105,7 @@ export default function PremiumSuccess() {
  animate={{ opacity: 1, scale: 1 }}
  transition={{ duration: 0.5 }}
  >
- <div className="rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden">
+ <div className="rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden">
  <div className="relative bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 p-8 sm:p-10 text-center overflow-hidden">
  <div className="absolute inset-0 overflow-hidden">
  {[...Array(15)].map((_, i) => (
@@ -177,24 +177,24 @@ export default function PremiumSuccess() {
  ) : (
  <>
  <div className="grid grid-cols-3 gap-3 mb-6">
- <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60">
+ <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60">
  <Swords className="w-7 h-7 text-yellow-500 mx-auto mb-2" />
  <p className="text-xl font-bold text-gray-900 dark:text-white">∞</p>
  <p className="text-xs text-gray-600 dark:text-gray-400">{t('premium.unlimitedDuelsShort')}</p>
  </div>
- <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60">
+ <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60">
  <Shield className="w-7 h-7 text-blue-500 mx-auto mb-2" />
  <p className="text-xl font-bold text-gray-900 dark:text-white">Pro</p>
  <p className="text-xs text-gray-600 dark:text-gray-400">{t('premium.featuresShort')}</p>
  </div>
- <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60">
+ <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60">
  <PartyPopper className="w-7 h-7 text-green-500 mx-auto mb-2" />
  <p className="text-xl font-bold text-gray-900 dark:text-white">VIP</p>
  <p className="text-xs text-gray-600 dark:text-gray-400">{t('premium.supportShort')}</p>
  </div>
  </div>
 
- <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm border border-white/60 dark:border-gray-600/60 p-5 mb-5">
+ <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60 p-5 mb-5">
  <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center">
  <Gift className="w-5 h-5 text-pink-500 mr-2" />
  Subscription Details

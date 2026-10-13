@@ -183,7 +183,7 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
       </form>
 
       {open && showHistory && (
-        <div className="absolute top-full right-0 mt-2 w-72 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+        <div className="absolute top-full right-0 mt-2 w-72 bg-slate-800/95 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
           <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1">
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-300">
               <History className="w-3.5 h-3.5 text-violet-300" aria-hidden />
@@ -226,7 +226,7 @@ export default function NavbarSearch({ onClose, fullWidth = false, onMovieSelect
       )}
 
       {open && !showHistory && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
           {results.map((movie, index) => (
             <button
               key={`${movie.media_type || 'movie'}:${movie.id}`}

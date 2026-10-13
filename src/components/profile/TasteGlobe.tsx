@@ -144,9 +144,19 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const projection = geoOrthographic().scale(size / 2 - 6).translate([size / 2, size / 2]).clipAngle(90).precision(0.6);
+    const projection = geoOrthographic().scale(size / 2 - 6).translate([size / 2, size / 2]).clipAngle(90).precision(1.2);
     const path = geoPath(projection, ctx);
     const graticule = geoGraticule10();
+    // Países agrupados pela cor: um preenchimento por cor (não um por país)
+    // e um contorno só para todos — o desenho de cada quadro cai bastante.
+    const groups = new Map<string, typeof features>();
+    for (const f of features) {
+      const count = countryCounts[f.id] || 0;
+      const color = f.id === selected ? SELECTED : f.id === hovered && count ? '#E9D5FF' : fillFor(count, maxCount);
+      const list = groups.get(color) || [];
+      list.push(f);
+      groups.set(color, list);
+    }
 
     const draw = () => {
       projection.rotate(rotation.current);
@@ -165,17 +175,18 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
       ctx.strokeStyle = 'rgba(243,234,211,0.06)';
       ctx.lineWidth = 0.6;
       ctx.stroke();
-      // países
-      for (const f of features) {
-        const count = countryCounts[f.id] || 0;
-        ctx.beginPath();
-        path(f as unknown as GeoPermissibleObjects);
-        ctx.fillStyle = f.id === selected ? SELECTED : f.id === hovered && count ? '#E9D5FF' : fillFor(count, maxCount);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(18,13,34,0.75)';
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
-      }
+      // países: cada cor num Path2D (projetado uma vez por quadro), que serve
+      // para o preenchimento e para a borda
+      ctx.strokeStyle = 'rgba(18,13,34,0.75)';
+      ctx.lineWidth = 0.5;
+      groups.forEach((list, color) => {
+        const shape = new Path2D();
+        const shapePath = geoPath(projection, shape as unknown as CanvasRenderingContext2D);
+        for (const f of list) shapePath(f as unknown as GeoPermissibleObjects);
+        ctx.fillStyle = color;
+        ctx.fill(shape);
+        ctx.stroke(shape);
+      });
       const sel = selected ? byCode.get(selected) : null;
       if (sel) {
         ctx.beginPath();
@@ -193,8 +204,13 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
     };
     drawRef.current = draw;
 
+    // O giro sozinho redesenha a ~30 quadros por segundo (não a cada quadro
+    // da tela): o globo continua girando liso e a página fica livre para
+    // responder ao mouse. Arrastar e o "trazer o país para a frente" seguem
+    // em todos os quadros.
     let frame = 0;
     let last = performance.now();
+    let lastAuto = 0;
     const loop = (now: number) => {
       const dt = Math.min(64, now - last);
       last = now;
@@ -206,9 +222,12 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
         rotation.current = [lon, lat];
         if (k >= 1) anim.current = null;
         draw();
-      } else if (!reduceMotion && visible.current && !gesture.current.dragging && !selected && now > idleUntil.current) {
+      } else if (!reduceMotion && visible.current && !document.hidden && !gesture.current.dragging && !selected && now > idleUntil.current) {
         rotation.current = [rotation.current[0] + AUTO_SPEED * dt, rotation.current[1]];
-        draw();
+        if (now - lastAuto >= 33) {
+          lastAuto = now;
+          draw();
+        }
       }
       frame = requestAnimationFrame(loop);
     };

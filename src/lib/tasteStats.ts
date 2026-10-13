@@ -72,7 +72,8 @@ function rank(tallies: Map<string, Tally>, prior: number, minCount: number, limi
 }
 
 // Palavras-chave do TMDB que são dado técnico, não tema.
-const NOISY_KEYWORDS = new Set(['based on novel or book', 'based on comic', 'duringcreditsstinger', 'aftercreditsstinger', 'woman director', 'remake', 'sequel']);
+// "romantic" sai porque repete um humor (Romântico), não diz um tema (13/10).
+const NOISY_KEYWORDS = new Set(['based on novel or book', 'based on comic', 'duringcreditsstinger', 'aftercreditsstinger', 'woman director', 'remake', 'sequel', 'romantic']);
 
 export function keywordAffinity(movies: MovieWithRating[], prior: number, options: { minCount?: number; limit?: number } = {}): Affinity[] {
   const { minCount = 3, limit = 10 } = options;

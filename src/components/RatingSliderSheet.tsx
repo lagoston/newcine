@@ -152,7 +152,7 @@ const RatingSliderSheet: React.FC<RatingSliderSheetProps> = ({
       `}</style>
 
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60]"
+        className="fixed inset-0 bg-black/75 z-[60]"
         onClick={onClose}
       />
 

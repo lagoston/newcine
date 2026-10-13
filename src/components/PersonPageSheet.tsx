@@ -34,6 +34,9 @@ export interface PersonSeed {
   id: number;
   name: string;
   profilePath?: string | null;
+  // Aba que abre primeiro: 'director' quando a pessoa foi aberta pelo
+  // diretor do menu do filme ou pelo pódio de Direção do perfil.
+  role?: PersonRole;
 }
 
 interface PersonPageSheetProps {
@@ -74,7 +77,7 @@ const PersonPageSheet: React.FC<PersonPageSheetProps> = ({ person: seed, onClose
     setPage(null);
     setStats(null);
     setMine({});
-    setRole('cast');
+    setRole(seed?.role ?? 'cast');
     setBioOpen(false);
     setPhotoFailed(false);
     if (!personId) return;
@@ -104,12 +107,22 @@ const PersonPageSheet: React.FC<PersonPageSheetProps> = ({ person: seed, onClose
     };
   }, [personId, userId, status]);
 
-  const canDirect = useMemo(() => (page ? directedCount(page) >= 3 : false), [page]);
-  const showRoleTabs = canDirect && (page?.movie_cast?.length || 0) > 0;
-  // Quem é conhecido por dirigir e mal atua abre direto na Direção.
+  // Aba Direção: para quem dirigiu ao menos 1 filme que entra num Top 10
+  // (até 13/10/2026 eram 3, e quem dirigiu 2 — como o Seth Rogen — ficava
+  // sem a aba). As duas abas só aparecem quando há filmes nas duas.
+  const directed = useMemo(() => (page ? directedCount(page) : 0), [page]);
+  const acted = useMemo(() => (page ? topMovies(page, 'cast', lang, { limit: 50 }).length : 0), [page, lang]);
+  const showRoleTabs = directed > 0 && acted > 0;
+  // Aba inicial: a pedida (diretor do filme → Direção), se tiver filmes;
+  // senão, quem é conhecido por dirigir e mal atua abre na Direção, e quem
+  // só tem uma das listas abre nela.
   useEffect(() => {
-    if (page && canDirect && page.known_for_department === 'Directing' && topMovies(page, 'cast', lang).length < 3) setRole('director');
-  }, [page, canDirect, lang]);
+    if (!page) return;
+    if (seed?.role === 'director' && directed > 0) setRole('director');
+    else if (seed?.role === 'director') setRole('cast');
+    else if (directed > 0 && (acted === 0 || (page.known_for_department === 'Directing' && acted < 3))) setRole('director');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, directed, acted]);
 
   const top = useMemo(() => (page ? topMovies(page, role, lang) : []), [page, role, lang]);
   const topKey = top.map((m) => m.id).join(',');

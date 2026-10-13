@@ -400,7 +400,7 @@ export default function OraclePrediction() {
  if (loading.generating) {
  return (
  <motion.div
- className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-8 text-center"
+ className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl p-8 text-center"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  >
@@ -442,7 +442,7 @@ export default function OraclePrediction() {
  if (result) {
  return (
  <motion.div
- className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8"
+ className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl p-6 sm:p-8"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  >
@@ -499,7 +499,7 @@ export default function OraclePrediction() {
 
  return (
  <motion.div
- className="relative rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-2xl p-8"
+ className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl p-8"
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: 0.5 }}
@@ -560,7 +560,7 @@ export default function OraclePrediction() {
  <div className="max-w-2xl mx-auto relative z-10">
  <motion.button
  onClick={() => navigate(-1)}
- className="p-2.5 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl hover:bg-white/60 dark:hover:bg-gray-800/60 border border-white/60 dark:border-gray-700/60 rounded-full transition-colors mb-8"
+ className="p-2.5 bg-white/80 dark:bg-gray-800/75 hover:bg-white/90 dark:hover:bg-gray-700/80 border border-white/60 dark:border-gray-700/60 rounded-full transition-colors mb-8"
  whileHover={{ scale: 1.05 }}
  whileTap={{ scale: 0.95 }}
  >
@@ -592,7 +592,7 @@ export default function OraclePrediction() {
  </p>
 
  <motion.div
- className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 p-4 mb-8 inline-flex flex-col sm:flex-row items-center gap-4 sm:gap-8"
+ className="relative rounded-2xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 p-4 mb-8 inline-flex flex-col sm:flex-row items-center gap-4 sm:gap-8"
  initial={{ opacity: 0, scale: 0.95 }}
  animate={{ opacity: 1, scale: 1 }}
  transition={{ delay: 0.2 }}
@@ -627,7 +627,7 @@ export default function OraclePrediction() {
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: 0.3 }}
  >
- <div className="relative rounded-2xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/60 dark:border-gray-700/60 shadow-lg overflow-hidden">
+ <div className="relative rounded-2xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-lg overflow-hidden">
  <div className="flex items-center p-4">
  <input
  type="text"
@@ -655,7 +655,7 @@ export default function OraclePrediction() {
  transition={{ duration: 0.2 }}
  className="absolute z-50 w-full mt-2"
  >
- <div className="rounded-2xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-xl border border-white/60 dark:border-gray-700/60 overflow-hidden">
+ <div className="rounded-2xl bg-white/95 dark:bg-gray-800/95 shadow-xl border border-white/60 dark:border-gray-700/60 overflow-hidden">
  {searchResults.map((movie) => (
  <motion.button
  key={movie.id}

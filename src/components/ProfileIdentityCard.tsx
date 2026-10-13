@@ -15,7 +15,7 @@ import { AvatarSeasonalAccessory, ProfileSeasonalScene, SeasonalCountdown } from
 // (botões abaixo) e o que fica no canto (configurações, por exemplo).
 
 // Botão "fantasma" padrão dos cartões de perfil.
-export const PROFILE_GHOST_BUTTON = `inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 bg-black/20 hover:bg-white/10 backdrop-blur-sm text-sm font-medium transition ${FOCUS_RING}`;
+export const PROFILE_GHOST_BUTTON = `inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 bg-black/25 hover:bg-white/10 text-sm font-medium transition ${FOCUS_RING}`;
 // Ação principal (gradiente da marca).
 export const PROFILE_PRIMARY_BUTTON = `inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-fuchsia-900/30 transition disabled:opacity-60 ${FOCUS_RING}`;
 

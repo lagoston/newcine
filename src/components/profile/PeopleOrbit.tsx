@@ -75,12 +75,12 @@ const PeopleOrbit: React.FC<PeopleOrbitProps> = ({ actors, directors, ownerName 
   const [loadingMovieId, setLoadingMovieId] = useState<number | null>(null);
   const [role, setRole] = useState<'cast' | 'director'>(actors.length === 0 && directors.length > 0 ? 'director' : 'cast');
 
-  const openPerson = (person: ObservatoryPerson) => {
+  const openPerson = (person: ObservatoryPerson, personRole: 'cast' | 'director') => {
     if (!person.id) {
       toast.error(t('profile.observatory.personUnavailable'));
       return;
     }
-    setSheet({ id: person.id, name: person.name, profilePath: person.photo });
+    setSheet({ id: person.id, name: person.name, profilePath: person.photo, role: personRole });
   };
 
   const openMovie = async (movieId: number) => {
@@ -124,7 +124,7 @@ const PeopleOrbit: React.FC<PeopleOrbitProps> = ({ actors, directors, ownerName 
                   >
                     <button
                       type="button"
-                      onClick={() => openPerson(person)}
+                      onClick={() => openPerson(person, groupRole)}
                       className={`group w-full flex flex-col items-center justify-end gap-1.5 rounded-2xl text-center ${FOCUS_RING}`}
                       aria-label={`${place + 1}. ${person.name}: ${summary(person)}`}
                       title={`${person.name}: ${summary(person)}`}
@@ -160,7 +160,7 @@ const PeopleOrbit: React.FC<PeopleOrbitProps> = ({ actors, directors, ownerName 
                   <li key={`${groupRole}:${person.key}`}>
                     <button
                       type="button"
-                      onClick={() => openPerson(person)}
+                      onClick={() => openPerson(person, groupRole)}
                       className={`group w-full flex items-center justify-start gap-3 rounded-xl px-2 py-1.5 text-left transition hover:bg-white/[0.04] ${FOCUS_RING}`}
                       aria-label={`${i + 4}. ${person.name}: ${summary(person)}`}
                     >

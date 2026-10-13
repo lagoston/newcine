@@ -129,11 +129,12 @@ const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, 
   ];
 
   return (
-    // z-40 — nas listas da Home, o badge de posição ("#1", "#2"...) já
-    // usa zIndex:30 explícito; com z-20 as bolhas ficavam ESCONDIDAS
-    // atrás desse badge. Subindo pra 40, ficam garantidamente na frente
-    // em qualquer contexto onde forem usadas.
-    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 40 }}>
+    // z 31 — nas listas da Home, o badge de posição ("#1", "#2"...) usa
+    // zIndex:30; as bolhas ficam logo na frente dele. Não pode ser 40: é o
+    // z da navbar fixa, e as bolhas (que vêm depois no HTML) passavam por
+    // cima dela ao rolar a página. Os pôsteres que usam as bolhas também
+    // são "isolate", para o z valer só dentro do pôster.
+    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 31 }}>
       {bubbles.map((friend, index) => {
         const position = positions[index] || positions[0];
         return (

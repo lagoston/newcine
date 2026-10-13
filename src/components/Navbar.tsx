@@ -35,7 +35,11 @@ import { NavbarSeasonalAccent } from './seasonal/SeasonalDecor';
 // sino, idioma e Sair.
 //
 // No topo da página a barra é transparente (fica sobre o fundo da página,
-// como nos apps); rolando, vira vidro com uma linha fina embaixo.
+// como nos apps); rolando, ganha o fundo noite com uma linha fina embaixo.
+// Sem backdrop-filter desde 13/10/2026: o desfoque da barra era refeito a
+// cada quadro em que qualquer coisa mexia na página (hover, animações), e
+// era a maior parte do trabalho da GPU no perfil — o atraso no hover do
+// desktop vinha daí. O fundo quase opaco dá o mesmo efeito.
 
 function useScrolled(threshold = 4) {
   const [scrolled, setScrolled] = useState(false);
@@ -97,9 +101,9 @@ function Navbar() {
   return (
     <>
     <nav
-      className={`fixed top-0 left-0 right-0 z-40 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 border-b ${
+      className={`fixed top-0 left-0 right-0 z-40 transition-[background-color,border-color,box-shadow] duration-300 border-b ${
         scrolled
-          ? 'bg-[#120D22]/80 backdrop-blur-2xl backdrop-saturate-150 border-white/[0.07] shadow-lg shadow-black/25'
+          ? 'bg-[#120D22]/95 border-white/[0.07] shadow-lg shadow-black/25'
           : 'bg-transparent border-transparent'
       }`}
     >

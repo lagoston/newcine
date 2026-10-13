@@ -596,7 +596,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                         aria-label={t('library.moreActions', { title: movie.title })}
                         className={`absolute top-0 right-0 w-11 h-11 grid place-items-center rounded-full transition-transform duration-200 group-hover:-translate-y-1 ${FOCUS_RING}`}
                       >
-                        <span className="grid place-items-center w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm ring-1 ring-white/15 text-white">
+                        <span className="grid place-items-center w-7 h-7 rounded-full bg-black/60 ring-1 ring-white/15 text-white">
                           <MoreHorizontal className="w-4 h-4" aria-hidden />
                         </span>
                       </button>

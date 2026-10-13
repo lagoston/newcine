@@ -287,7 +287,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
                   className="group block w-full text-left rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300"
                 >
                   <div
-                    className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
+                    className="relative isolate aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
                     style={{
                       background: VELVET,
                       boxShadow: forYouOracle(movie) ? `0 18px 30px -18px ${forYouOracle(movie)!.color}` : undefined,

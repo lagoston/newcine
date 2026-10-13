@@ -488,7 +488,7 @@ export default function WatchlistDuelModal({ isOpen, onClose }: WatchlistDuelMod
         {trailerMovie && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${t('duel.watchTrailer')} — ${trailerMovie.title}`}>
             <motion.div
-              className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/85"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

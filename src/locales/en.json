@@ -500,9 +500,7 @@
     "budgetBillion_one": "${{value}} billion",
     "budgetBillion_other": "${{value}} billion",
     "wantingToWatch": "Wanting to Watch...",
-    "directorTopTen": "{{director}}'s top rated films",
     "noDirectorMoviesFound": "No other films found for this director.",
-    "viewTopTen": "View Top 10",
     "noStreamingAvailable": "Not available for streaming",
     "upcomingRelease": "Releases on {{date}}",
     "noCastAvailable": "No cast information available",
@@ -531,7 +529,8 @@
     "progress": "Progress",
     "complete": "complete",
     "seasonsAndEpisodes": "Seasons & Episodes",
-    "upToDate": "up to date — waiting for new episodes"
+    "upToDate": "up to date — waiting for new episodes",
+    "creator": "Creator"
   },
   "oracle": {
     "title": "Oracles Hub",
@@ -892,7 +891,7 @@
       "showLess": "Show less",
       "personaProgress": "{{counted}} of {{threshold}} films on the shelves",
       "readRevelation": "Read the full revelation",
-      "codeRank": "No. {{rank}} shelf in the code",
+      "codeRank": "Favorite shelf No. {{rank}}",
       "backToPersona": "Back to the personality",
       "moodShareLabel": "of the films",
       "moodFilmsLabel": "films",
@@ -906,8 +905,6 @@
       "gemSeasons_one": "{{count}} season",
       "gemSeasons_other": "{{count}} seasons",
       "gridLabel": "The oracles' 9 shelves",
-      "gridHint": "Each flask fills up to the share of your films on that shelf. 1, 2 and 3 make up your code.",
-      "gridHintOf": "Each flask fills up to the share of {{name}}'s films on that shelf. 1, 2 and 3 make up the code.",
       "moodTop": "Your best-rated here",
       "moodTopOf": "{{name}}'s best-rated here",
       "keywordGroups": "Theme groups",
@@ -1549,7 +1546,8 @@
       "equal": "Same as your overall average",
       "watchlist_one": "+ {{count}} on your watchlist",
       "watchlist_other": "+ {{count}} on your watchlist"
-    }
+    },
+    "openDirector": "Open {{name}}'s page (directing)"
   },
   "mobileSearch": {
     "placeholderSite": "Search CineOracle",

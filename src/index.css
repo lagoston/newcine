@@ -845,7 +845,7 @@ img[loading="lazy"] {
 }
 /* Frascos das prateleiras (perfil): a superfície do líquido ondula. */
 .mood-wave {
-  animation: mood-wave 3.6s linear infinite;
+  animation: mood-wave 5s linear infinite;
 }
 @keyframes mood-wave {
   from {

@@ -503,9 +503,7 @@
     "budgetBillion_other": "US$ {{value}} bilhões",
     "wantingToWatch": "Querendo Assistir...",
     "openWatchlistDuel": "Iniciar Duelo",
-    "directorTopTen": "Melhores filmes de {{director}}",
     "noDirectorMoviesFound": "Nenhum outro filme encontrado para esse diretor.",
-    "viewTopTen": "Ver Top 10",
     "noStreamingAvailable": "Não disponível para streaming",
     "upcomingRelease": "Estreia em {{date}}",
     "noCastAvailable": "Nenhuma informação de elenco disponível",
@@ -534,7 +532,8 @@
     "progress": "Progresso",
     "complete": "completo",
     "seasonsAndEpisodes": "Temporadas e Episódios",
-    "upToDate": "em dia — aguardando novos episódios"
+    "upToDate": "em dia — aguardando novos episódios",
+    "creator": "Criação"
   },
   "oracle": {
     "title": "Central dos Oráculos",
@@ -895,7 +894,7 @@
       "showLess": "Mostrar menos",
       "personaProgress": "{{counted}} de {{threshold}} filmes nas prateleiras",
       "readRevelation": "Ler a revelação completa",
-      "codeRank": "{{rank}}ª prateleira do código",
+      "codeRank": "{{rank}}ª prateleira favorita",
       "backToPersona": "Voltar à personalidade",
       "moodShareLabel": "dos filmes",
       "moodFilmsLabel": "filmes",
@@ -909,8 +908,6 @@
       "gemSeasons_one": "{{count}} temporada",
       "gemSeasons_other": "{{count}} temporadas",
       "gridLabel": "As 9 prateleiras dos oráculos",
-      "gridHint": "O nível de cada frasco é a parte dos seus filmes naquela prateleira. 1, 2 e 3 formam o seu código.",
-      "gridHintOf": "O nível de cada frasco é a parte dos filmes de {{name}} naquela prateleira. 1, 2 e 3 formam o código.",
       "moodTop": "Seus mais bem avaliados aqui",
       "moodTopOf": "Os mais bem avaliados de {{name}} aqui",
       "keywordGroups": "Grupos de temas",
@@ -1554,7 +1551,8 @@
       "equal": "Igual à sua média geral",
       "watchlist_one": "+ {{count}} na watchlist",
       "watchlist_other": "+ {{count}} na watchlist"
-    }
+    },
+    "openDirector": "Abrir a página de {{name}} (direção)"
   },
   "mobileSearch": {
     "placeholderSite": "Pesquisar no CineOracle",
