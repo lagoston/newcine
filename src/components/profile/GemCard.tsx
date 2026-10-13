@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Gem, Film } from 'lucide-react';
+import { Film, Clapperboard } from 'lucide-react';
 import { toast } from 'sonner';
 import { PAPER, MIST, PIXEL, VELVET, FOCUS_RING, glassPanel, ratingTone } from '../../lib/oracleTheme';
 import { getMovieDetailsFromDB, type Movie } from '../../lib/tmdb';
@@ -10,9 +10,10 @@ import type { MovieWithRating } from '../../hooks/useProfileData';
 import MovieDetailsModal from '../MovieDetailsModal';
 import { ModuleTitle, Ring } from './observatoryKit';
 
-// A joia menos conhecida: o título com menos votos no TMDB entre os que a
-// pessoa deu 7 ou mais — um achado que ela ama e quase ninguém viu. Com a
-// capa, a nota dela no anel e, embaixo, as duas joias seguintes.
+// A joia menos conhecida: entre os títulos que a pessoa deu 7 ou mais, o que
+// menos gente conhece (o de menos votos no TMDB — o número em si não
+// aparece). Com a capa, ano, duração, gêneros, quem dirigiu, a nota dela no
+// anel e, embaixo, as duas joias seguintes.
 
 interface GemCardProps {
   gems: MovieWithRating[];
@@ -22,7 +23,7 @@ interface GemCardProps {
 const GEM = '#34D399';
 
 const GemCard: React.FC<GemCardProps> = ({ gems, ownerRatingLabel }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const [movie, setMovie] = useState<Movie | null>(null);
   const [opening, setOpening] = useState<number | null>(null);
@@ -39,7 +40,26 @@ const GemCard: React.FC<GemCardProps> = ({ gems, ownerRatingLabel }) => {
     }
   };
 
-  const votes = (item: MovieWithRating) => t('profile.observatory.gemVotes', { count: item.vote_count || 0, formatted: (item.vote_count || 0).toLocaleString(i18n.language) });
+  // "1998 · 2h 10min" (filme) ou "2019 · 3 temporadas" (série)
+  const facts = (item: MovieWithRating) => {
+    const parts: string[] = [];
+    const year = (item.release_date || '').slice(0, 4);
+    if (year) parts.push(year);
+    if (item.media_type === 'tv') {
+      if (item.number_of_seasons) parts.push(t('profile.observatory.gemSeasons', { count: item.number_of_seasons }));
+    } else if (item.runtime) {
+      const h = Math.floor(item.runtime / 60);
+      const m = item.runtime % 60;
+      parts.push(h > 0 ? `${h}h${m > 0 ? ` ${m}min` : ''}` : `${m}min`);
+    }
+    return parts.join(' · ');
+  };
+  const genresOf = (item: MovieWithRating) =>
+    ((item.genres || []) as unknown[])
+      .map((g) => (typeof g === 'string' ? g : (g as { name?: string })?.name || ''))
+      .filter(Boolean)
+      .slice(0, 2);
+  const directorOf = (item: MovieWithRating) => item.credits?.crew?.find((p) => p.job === 'Director' || p.job === 'Creator')?.name || null;
 
   return (
     <section className="h-full rounded-3xl p-5 sm:p-6 flex flex-col" style={glassPanel(GEM)}>
@@ -74,12 +94,25 @@ const GemCard: React.FC<GemCardProps> = ({ gems, ownerRatingLabel }) => {
                 {main.title}
               </span>
               <span className="mt-0.5 text-[13px]" style={{ color: MIST }}>
-                {(main.release_date || '').slice(0, 4)}
+                {facts(main)}
               </span>
-              <span className="mt-3 inline-flex items-center gap-1.5 text-[13px]" style={{ color: PAPER }}>
-                <Gem className="w-4 h-4 shrink-0" style={{ color: GEM }} aria-hidden />
-                {votes(main)}
-              </span>
+              {directorOf(main) && (
+                <span className="mt-2 inline-flex items-center gap-1.5 text-[13px]" style={{ color: PAPER }}>
+                  <Clapperboard className="w-4 h-4 shrink-0" style={{ color: GEM }} aria-hidden />
+                  <span className="min-w-0 truncate">
+                    {main.media_type === 'tv' ? t('profile.observatory.gemCreatedBy', { name: directorOf(main) }) : t('profile.observatory.gemDirectedBy', { name: directorOf(main) })}
+                  </span>
+                </span>
+              )}
+              {genresOf(main).length > 0 && (
+                <span className="mt-2 flex flex-wrap gap-1">
+                  {genresOf(main).map((genre) => (
+                    <span key={genre} className="px-2 py-0.5 rounded-full text-[11px]" style={{ color: PAPER, background: 'rgba(52,211,153,0.1)', boxShadow: 'inset 0 0 0 1px rgba(52,211,153,0.3)' }}>
+                      {genre}
+                    </span>
+                  ))}
+                </span>
+              )}
               {typeof main.userRating === 'number' && (
                 <span className="mt-auto pt-3 flex items-center gap-2.5">
                   <Ring size={40} stroke={3} fraction={main.userRating / 10} color={ratingTone(main.userRating).color}>
@@ -112,8 +145,8 @@ const GemCard: React.FC<GemCardProps> = ({ gems, ownerRatingLabel }) => {
                         <span className="block truncate text-[12px] font-medium group-hover:underline" style={{ color: PAPER }}>
                           {item.title}
                         </span>
-                        <span className="block text-[11px] tabular-nums" style={{ color: MIST }}>
-                          {votes(item)}
+                        <span className="block truncate text-[11px]" style={{ color: MIST }}>
+                          {[(item.release_date || '').slice(0, 4), genresOf(item)[0]].filter(Boolean).join(' · ')}
                         </span>
                       </span>
                     </button>

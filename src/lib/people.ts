@@ -67,26 +67,45 @@ export async function getPersonPage(personId: number): Promise<PersonPage | null
   return result;
 }
 
-// "Você e ela": títulos da biblioteca de quem está vendo com essa pessoa no
-// elenco (os 10 primeiros nomes de cada título), a média deles e a média
-// geral, para comparar (get_person_library_stats).
+// "Você e [pessoa]": quantos títulos da biblioteca de quem está vendo têm
+// a pessoa no elenco (os 10 primeiros nomes de cada título) OU na direção, a
+// média deles e a média geral, para comparar. As contagens de elenco e de
+// direção vêm separadas (get_person_library_overlap). Se a função nova
+// falhar, cai para a antiga, que só olha o elenco.
 export interface PersonLibraryStats {
   rated: number;
   watchlist: number;
   avgRating: number | null;
   overallAvg: number | null;
+  castRated: number;
+  directedRated: number;
 }
 
 export async function getPersonLibraryStats(personId: number): Promise<PersonLibraryStats | null> {
-  const { data, error } = await supabase.rpc('get_person_library_stats', { p_person_id: personId });
-  const row = Array.isArray(data) ? data[0] : data;
-  if (error || !row) return null;
   const num = (value: unknown) => (value === null || value === undefined ? null : Number(value));
+  const overlap = await supabase.rpc('get_person_library_overlap', { p_person_id: personId });
+  const row = Array.isArray(overlap.data) ? overlap.data[0] : overlap.data;
+  if (!overlap.error && row) {
+    return {
+      rated: Number(row.rated) || 0,
+      watchlist: Number(row.watchlist) || 0,
+      avgRating: num(row.avg_rating),
+      overallAvg: num(row.overall_avg),
+      castRated: Number(row.cast_rated) || 0,
+      directedRated: Number(row.directed_rated) || 0,
+    };
+  }
+  const legacy = await supabase.rpc('get_person_library_stats', { p_person_id: personId });
+  const old = Array.isArray(legacy.data) ? legacy.data[0] : legacy.data;
+  if (legacy.error || !old) return null;
+  const rated = Number(old.rated) || 0;
   return {
-    rated: Number(row.rated) || 0,
-    watchlist: Number(row.watchlist) || 0,
-    avgRating: num(row.avg_rating),
-    overallAvg: num(row.overall_avg),
+    rated,
+    watchlist: Number(old.watchlist) || 0,
+    avgRating: num(old.avg_rating),
+    overallAvg: num(old.overall_avg),
+    castRated: rated,
+    directedRated: 0,
   };
 }
 

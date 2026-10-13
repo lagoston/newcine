@@ -92,15 +92,17 @@ const PersonPageSheet: React.FC<PersonPageSheetProps> = ({ person: seed, onClose
     };
   }, [personId, attempt]);
 
-  // "Você e ela" — só com conta.
+  // "Você e ela" — só com conta. Espera a página da pessoa chegar: na
+  // primeira visita é ela que grava o nome e os filmes dirigidos, que a
+  // contagem de direção usa.
   useEffect(() => {
-    if (!personId || !userId) return;
+    if (!personId || !userId || status === 'loading') return;
     let cancelled = false;
     getPersonLibraryStats(personId).then((found) => !cancelled && setStats(found));
     return () => {
       cancelled = true;
     };
-  }, [personId, userId]);
+  }, [personId, userId, status]);
 
   const canDirect = useMemo(() => (page ? directedCount(page) >= 3 : false), [page]);
   const showRoleTabs = canDirect && (page?.movie_cast?.length || 0) > 0;
@@ -182,7 +184,8 @@ const PersonPageSheet: React.FC<PersonPageSheetProps> = ({ person: seed, onClose
               </div>
             )}
             <div className="min-w-0 text-sm leading-snug" style={{ color: PAPER }}>
-              {stats.rated > 0 && <p>{t('person.you.rated', { count: stats.rated, name })}</p>}
+              {stats.castRated > 0 && <p>{t('person.you.rated', { count: stats.castRated, name })}</p>}
+              {stats.directedRated > 0 && <p>{t('person.you.directed', { count: stats.directedRated, name })}</p>}
               {compare && <p style={{ color: MIST }}>{compare}</p>}
               {stats.watchlist > 0 && <p style={{ color: MIST }}>{t('person.you.watchlist', { count: stats.watchlist })}</p>}
             </div>

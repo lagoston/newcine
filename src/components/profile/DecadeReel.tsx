@@ -1,46 +1,58 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Star, Film, ListOrdered } from 'lucide-react';
+import { Star, Film, ListOrdered, ArrowDownUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { PAPER, MIST, PIXEL, VELVET, NIGHT, FOCUS_RING, POSTER_TITLE, glassPanel, ratingTone } from '../../lib/oracleTheme';
-import { DECADE_ERA_COLORS, RANK_MEDALS, decadeBadge, decadeEra } from '../../lib/libraryLayouts';
+import { PAPER, MIST, PIXEL, VELVET, NIGHT, FOCUS_RING, POSTER_TITLE, glassPanel, ratingTone, withAlpha } from '../../lib/oracleTheme';
+import { DECADE_ERA_COLORS, RANK_MEDALS, decadeBadge, decadeEra, type RatedTitle } from '../../lib/libraryLayouts';
+import { asMediaType } from '../../lib/titleCards';
 import { getMovieDetailsFromDB, type Movie } from '../../lib/tmdb';
 import type { DecadeBand } from '../../lib/tasteStats';
 import MovieDetailsModal from '../MovieDetailsModal';
-import { ModuleTitle, affinityColor, formatOne } from './observatoryKit';
+import DecadeOrganizer from '../DecadeOrganizer';
+import { ModuleTitle, formatOne } from './observatoryKit';
 
 // As décadas da pessoa numa linha do tempo: a altura de cada barra é
-// quantos títulos ela avaliou da década, a cor é a média que dá a eles. A
-// favorita (a mais vista) começa escolhida; tocar em outra troca a fileira
-// de baixo — os melhores títulos daquela década, na mesma ordem dos
-// Melhores da Década da Biblioteca (pela nota ou na ordem que a pessoa
-// arrumou).
+// quantos títulos ela avaliou da década, a cor é a era (âmbar até os anos
+// 70, azul dos 80 aos 2000, verde dos 2010 em diante — as cores dos
+// Melhores da Década). A favorita (a mais vista) começa escolhida; tocar em
+// outra troca a fileira de baixo — os melhores títulos daquela década, na
+// mesma ordem da Biblioteca (pela nota ou na ordem que a pessoa arrumou).
+// No seu perfil, "Organizar" abre o mesmo organizador da Biblioteca e grava
+// no mesmo lugar (library_decade_order): mudou aqui, muda lá, e vice-versa.
 
 interface DecadeReelProps {
   bands: DecadeBand[];
   favorite: DecadeBand | null;
   ownerName?: string;
+  // Só no seu perfil: grava a ordem de uma década (vazio = volta às notas).
+  onSaveOrder?: (decade: number, keys: string[]) => Promise<void>;
 }
 
 const BAR_AREA = 92;
 const REEL_SIZE = 12;
 
-const DecadeReel: React.FC<DecadeReelProps> = ({ bands, favorite, ownerName }) => {
+const DecadeReel: React.FC<DecadeReelProps> = ({ bands, favorite, ownerName, onSaveOrder }) => {
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
   const [selected, setSelected] = useState<number | null>(favorite?.decade ?? null);
   const [movie, setMovie] = useState<Movie | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
+  const [organizing, setOrganizing] = useState<DecadeBand | null>(null);
   const reelRef = useRef<HTMLOListElement>(null);
 
   useEffect(() => {
     setSelected((prev) => (prev !== null && bands.some((b) => b.decade === prev) ? prev : favorite?.decade ?? null));
   }, [bands, favorite]);
 
+  // Volta ao começo da fileira ao trocar de década ou de ordem.
+  const reelSignature = (bands.find((b) => b.decade === selected)?.items || [])
+    .slice(0, REEL_SIZE)
+    .map((item) => `${item.media_type}:${item.id}`)
+    .join(',');
   useEffect(() => {
     if (reelRef.current) reelRef.current.scrollLeft = 0;
-  }, [selected]);
+  }, [selected, reelSignature]);
 
   if (bands.length === 0 || !favorite) return null;
   const band = bands.find((b) => b.decade === selected) || favorite;
@@ -101,7 +113,7 @@ const DecadeReel: React.FC<DecadeReelProps> = ({ bands, favorite, ownerName }) =
         <ol className="flex items-end gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mb-1" aria-label={t('profile.observatory.decadesTitle')}>
           {bands.map((b, i) => {
             const height = Math.max(6, Math.round((b.count / maxCount) * BAR_AREA));
-            const color = affinityColor(b.avg);
+            const color = DECADE_ERA_COLORS[decadeEra(b.decade)];
             const isSel = b.decade === band.decade;
             const label = t('profile.observatory.decadeBar', {
               decade: b.decade,
@@ -154,15 +166,28 @@ const DecadeReel: React.FC<DecadeReelProps> = ({ bands, favorite, ownerName }) =
 
       {/* ---------- os melhores da década ---------- */}
       <div className="mt-6 pt-5 border-t border-white/[0.07]">
-        <p className="flex items-center gap-2 text-sm font-medium" style={{ color: PAPER }}>
-          {t('profile.observatory.bestOfDecade', { decade: `${band.decade}s` })}
-          {band.customized && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]" style={{ background: 'rgba(240,171,252,0.12)', color: '#F0ABFC' }}>
-              <ListOrdered className="w-3 h-3" aria-hidden />
-              {ownerName ? t('profile.observatory.orderOf', { name: ownerName }) : t('profile.observatory.yourOrder')}
-            </span>
+        <div className="flex items-center justify-between gap-3">
+          <p className="flex flex-wrap items-center gap-2 text-sm font-medium" style={{ color: PAPER }}>
+            {t('profile.observatory.bestOfDecade', { decade: `${band.decade}s` })}
+            {band.customized && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]" style={{ background: 'rgba(240,171,252,0.12)', color: '#F0ABFC' }}>
+                <ListOrdered className="w-3 h-3" aria-hidden />
+                {ownerName ? t('profile.observatory.orderOf', { name: ownerName }) : t('profile.observatory.yourOrder')}
+              </span>
+            )}
+          </p>
+          {onSaveOrder && band.items.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setOrganizing(band)}
+              className={`shrink-0 inline-flex items-center gap-1.5 h-9 min-h-[36px] px-3 rounded-full text-[13px] font-medium transition hover:brightness-125 ${FOCUS_RING}`}
+              style={{ color: eraColor, background: withAlpha(eraColor, 0.1), boxShadow: `inset 0 0 0 1px ${withAlpha(eraColor, 0.35)}` }}
+            >
+              <ArrowDownUp className="w-3.5 h-3.5" aria-hidden />
+              {t('library.bestOrganize')}
+            </button>
           )}
-        </p>
+        </div>
         <AnimatePresence mode="wait">
           <motion.ol
             key={band.decade}
@@ -229,6 +254,23 @@ const DecadeReel: React.FC<DecadeReelProps> = ({ bands, favorite, ownerName }) =
       </div>
 
       {movie && <MovieDetailsModal movie={movie} isOpen={true} onClose={() => setMovie(null)} />}
+      {organizing && onSaveOrder && (
+        <DecadeOrganizer
+          decade={organizing.decade}
+          entries={organizing.items.map(
+            (item): RatedTitle => ({
+              id: item.id,
+              media_type: asMediaType(item.media_type),
+              userRating: item.userRating as number,
+              year: Number((item.release_date || '').slice(0, 4)) || organizing.decade,
+              movie: item as Movie,
+            })
+          )}
+          customized={organizing.customized}
+          onSave={(keys) => onSaveOrder(organizing.decade, keys)}
+          onClose={() => setOrganizing(null)}
+        />
+      )}
     </section>
   );
 };

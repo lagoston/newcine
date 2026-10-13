@@ -8,7 +8,7 @@ import MoodBars from '../components/MoodBars';
 import PersonasModal from '../components/PersonasModal';
 import PersonaShareModal from '../components/PersonaShareModal';
 import PersonalityCompletionModal from '../components/PersonalityCompletionModal';
-import { PersonaRevelationSheet, PersonaHowItWorksSheet } from '../components/ProfileEssence';
+import { PersonaRevelationSheet, PersonaHowItWorksSheet } from '../components/PersonaSheets';
 import { PersonaCode, PersonaPoster, MoodChip } from '../components/PersonaBits';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';

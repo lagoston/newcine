@@ -291,10 +291,10 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
   const list = showAll ? ranking : ranking.slice(0, LIST_SIZE);
 
   return (
-    <section className="rounded-3xl p-5 sm:p-7" style={glassPanel('#2DD4BF')}>
+    <section className="h-full rounded-3xl p-5 sm:p-7" style={glassPanel('#2DD4BF')}>
       <ModuleTitle title={t('profile.observatory.atlasTitle')} hint={t('profile.observatory.atlasHint', { count: ranking.length })} />
-      <div className="mt-5 grid md:grid-cols-[minmax(0,420px)_minmax(0,1fr)] gap-6 md:gap-10 items-center">
-        <div ref={wrapRef} className="relative w-full max-w-[420px] mx-auto">
+      <div className="mt-5 grid md:grid-cols-[minmax(0,300px)_minmax(0,1fr)] gap-6 md:gap-7 items-center">
+        <div ref={wrapRef} className="relative w-full max-w-[300px] md:max-w-none mx-auto">
           <span
             aria-hidden
             className="absolute inset-[-8%] rounded-full pointer-events-none"
@@ -316,6 +316,9 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
             onPointerUp={onPointerUp}
             onPointerLeave={() => setHovered(null)}
           />
+          {/* Painel do país, centralizado por inset + margem automática: o
+              framer-motion escreve o próprio transform (o y da entrada) e
+              apagava o -translate-x-1/2, jogando o painel para fora do cartão. */}
           <AnimatePresence>
             {sel && (
               <motion.div
@@ -323,7 +326,7 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 8 }}
-                className="absolute left-1/2 -translate-x-1/2 bottom-1 w-[min(92%,300px)] rounded-2xl px-3.5 py-2.5 flex items-center gap-3"
+                className="absolute inset-x-0 mx-auto bottom-1 w-[min(92%,300px)] rounded-2xl px-3.5 py-2.5 flex items-center gap-3"
                 style={{ background: 'rgba(18,13,34,0.88)', boxShadow: '0 0 0 1px rgba(240,171,252,0.45), 0 12px 30px -10px rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
               >
                 <span className="text-2xl leading-none" aria-hidden>
@@ -369,7 +372,7 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
                     type="button"
                     onClick={() => (isSel ? setSelected(null) : focus(row.code))}
                     aria-pressed={isSel}
-                    className={`w-full grid grid-cols-[18px_24px_minmax(0,1fr)_minmax(0,44px)_32px_36px] sm:grid-cols-[18px_24px_minmax(0,1fr)_minmax(0,80px)_32px_36px] items-center gap-2 rounded-xl px-2 py-1.5 text-left transition hover:bg-white/[0.05] ${FOCUS_RING}`}
+                    className={`w-full grid grid-cols-[18px_24px_minmax(0,1fr)_minmax(0,44px)_32px_36px] sm:grid-cols-[18px_24px_minmax(0,1fr)_minmax(0,40px)_32px_36px] items-center gap-2 rounded-xl px-2 py-1.5 text-left transition hover:bg-white/[0.05] ${FOCUS_RING}`}
                     style={isSel ? { background: 'rgba(240,171,252,0.12)', boxShadow: 'inset 0 0 0 1px rgba(240,171,252,0.45)' } : undefined}
                   >
                     <span style={{ ...PIXEL, color: MIST }} className="text-[12px] text-right">

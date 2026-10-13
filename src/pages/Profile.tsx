@@ -11,15 +11,14 @@ import AllMoviesModal from '../components/AllMoviesModal';
 import SettingsModal from '../components/SettingsModal';
 import TagPinsModal from '../components/TagPinsModal';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON } from '../components/ProfileIdentityCard';
-import { ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
+import { ProfileTasteGrid, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
 import TasteHud from '../components/profile/TasteHud';
 import { summarizeRatings } from '../lib/profileStats';
-import ProfileEssence from '../components/ProfileEssence';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache } from '../lib/cache';
 import { useProfileData } from '../hooks/useProfileData';
-import { VELVET, SURFACE, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES, surfaceVars, glassPanel, PROFILE_ACCENTS } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, surfaceVars, glassPanel, PROFILE_ACCENTS } from '../lib/oracleTheme';
 import { getBannerTone } from '../lib/banners';
 import { useTagDecoration } from '../contexts/SeasonalEventContext';
 
@@ -540,10 +539,7 @@ export default function Profile() {
   }
 
   // ---- Valores derivados ----
-  const { counts: ratingCounts, average } = summarizeRatings(ratingDistribution);
-  const decadesCount = new Set(
-    movies.filter((m) => typeof m.userRating === 'number' && m.release_date).map((m) => (m.release_date || '').slice(0, 3))
-  ).size;
+  const { counts: ratingCounts } = summarizeRatings(ratingDistribution);
   // Os blocos da página (Números, Seu gosto, Essência…) vestem o tom do seu
   // banner — a mesma regra dos perfis da Comunidade (lib/banners.ts).
   const bannerTone = getBannerTone(profile?.banner, isPremium);
@@ -702,23 +698,20 @@ export default function Profile() {
       </section>
 
       {/* ---------- Números e retrato de gosto ----------
-          Um bloco só, logo abaixo do cartão: os dois números e, emendadas
-          neles, as estatísticas (notas, gêneros, década, diretores, atlas…). */}
+          Um bloco só, logo abaixo do cartão: os dois números e, emendado
+          neles, o observatório (personalidade e humores, notas, pessoas,
+          décadas, joia, atlas). */}
       <section className="relative isolate mx-auto max-w-6xl px-5 sm:px-8 mt-4">
         <ProfileGlassAmbient accent={bannerTone?.accent} />
-        <TasteHud
-          ratedCount={ratedMoviesCount}
-          watchMinutes={totalWatchTime}
-          average={average}
-          countries={Object.keys(countryCounts).length}
-          decades={decadesCount}
-        />
+        <TasteHud ratedCount={ratedMoviesCount} watchMinutes={totalWatchTime} />
         <div className="mt-5">
           {ratedMoviesCount > 0 ? (
             <ProfileTasteGrid
               userId={session?.user?.id}
               movies={movies}
               persona={persona}
+              personaLoading={personaLoading}
+              isOwn
               ratingCounts={ratingCounts}
               countryCounts={countryCounts}
               countryAvgRatings={countryAvgRatings}
@@ -742,49 +735,6 @@ export default function Profile() {
               </Link>
             </div>
           )}
-        </div>
-      </section>
-
-      {/* ---------- Essência cinematográfica ---------- */}
-      <section className="mt-12 border-t border-white/[0.07] pt-10">
-        <div className="relative isolate mx-auto max-w-6xl px-5 sm:px-8">
-          <ProfileGlassAmbient accent={bannerTone?.accent} />
-          <ProfileSectionHeading title={t('oracle.cinematicEssenceLabel')} />
-          <div className="mt-6">
-            <ProfileEssence
-              isOwn
-              loading={personaLoading}
-              persona={persona}
-              emptyState={
-                <div className={`${PROFILE_CARD} flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left`} style={glassPanel(PROFILE_ACCENTS.essence)}>
-                  <div className="flex shrink-0" aria-hidden>
-                    {ORACLES.map((oracle, i) => (
-                      <img
-                        key={oracle.id}
-                        src={oracle.avatar}
-                        alt=""
-                        width={44}
-                        height={44}
-                        className={`w-11 h-11 rounded-full object-cover ${i > 0 ? '-ml-2' : ''}`}
-                        style={{ boxShadow: `0 0 0 2px ${SURFACE}, 0 0 0 4px ${oracle.color}` }}
-                      />
-                    ))}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold" style={{ color: PAPER }}>
-                      {t('home.desk.essenceEmptyTitle')}
-                    </p>
-                    <p className="mt-1 text-sm" style={{ color: MIST }}>
-                      {t('home.desk.essenceEmptyDesc')}
-                    </p>
-                  </div>
-                  <Link to="/oracle" className={`shrink-0 ${PROFILE_PRIMARY_BUTTON}`}>
-                    {t('oracle.discoverYourEssence')}
-                  </Link>
-                </div>
-              }
-            />
-          </div>
         </div>
       </section>
 

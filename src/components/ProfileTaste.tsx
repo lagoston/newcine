@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import RatingSpectrum from './RatingSpectrum';
-import MoodWheel from './profile/MoodWheel';
+import EssenceRing from './profile/EssenceRing';
 import PeopleOrbit from './profile/PeopleOrbit';
 import DecadeReel from './profile/DecadeReel';
 import GemCard from './profile/GemCard';
@@ -13,8 +13,8 @@ import { PAPER, MIST, PIXEL, ratingTone, glassPanel, colorWithAlpha, PROFILE_ACC
 // Peças do "retrato de gosto" de um perfil — usadas no seu Perfil e no
 // perfil de outra pessoa, pra que os dois falem exatamente a mesma língua:
 //   • os números ficam no painel de leitura (profile/TasteHud)
-//   • ProfileTasteGrid: o observatório (roda dos humores, pessoas, notas,
-//     joia, décadas e globo)
+//   • ProfileTasteGrid: o observatório (personalidade + roda dos humores,
+//     notas, pessoas, décadas, joia e globo)
 //   • ProfileSectionHeading: título Pixelify + dica de cada seção
 
 // Os blocos de estatística são painéis de vidro (glassPanel em
@@ -63,19 +63,18 @@ export const ProfileSectionHeading: React.FC<{ title: string; hint?: string; act
 );
 
 // ---------------------------------------------------------------------------
-// Retrato de gosto — o observatório (12/10/2026)
+// Retrato de gosto — o observatório (12/10/2026, refeito em 13/10)
 // ---------------------------------------------------------------------------
 //
-// Os blocos se ligam pela mesma linguagem (ver profile/observatoryKit): o
-// tamanho é quanto a pessoa vê, a cor é a nota que ela dá. E cada coisa
-// leva ao que mostra: humor → prateleira, pessoa → página da pessoa,
-// década → filmes, país → filmes, joia → o filme.
-//   • Roda dos humores (com a personalidade no centro e os temas)
-//   • Pessoas (atores e diretores mais bem avaliados)
+// Cada coisa leva ao que mostra: humor → prateleira, pessoa → página da
+// pessoa, década → filmes, país → filmes, joia → o filme. A nota aparece
+// sempre como número, na cor da faixa dela.
+//   • Personalidade + roda dos humores (um anel com os 9 humores, os temas
+//     flutuando dentro e a personalidade ao lado) — no topo, largura toda
 //   • Notas (espectro)
-//   • Décadas (linha do tempo + os melhores da década) e a joia menos
-//     conhecida (nota 7 ou mais)
-//   • Globo (atlas)
+//   • Pessoas (pódio de atores e diretores) | Décadas (linha do tempo + os
+//     melhores da década, com "Organizar" no seu perfil)
+//   • Joia menos conhecida (nota 7 ou mais) | Globo (atlas)
 
 const TasteGlobe = lazy(() => import('./profile/TasteGlobe'));
 
@@ -83,6 +82,9 @@ interface ProfileTasteGridProps {
   userId?: string;
   movies: MovieWithRating[];
   persona: UserPersona | null;
+  personaLoading?: boolean;
+  // Seu próprio perfil (textos em "você", Organizar as décadas).
+  isOwn?: boolean;
   ratingCounts: number[];
   countryCounts: Record<string, number>;
   countryAvgRatings: Record<string, number>;
@@ -103,6 +105,8 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
   userId,
   movies,
   persona,
+  personaLoading = false,
+  isOwn = false,
   ratingCounts,
   countryCounts,
   countryAvgRatings,
@@ -119,39 +123,41 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="grid lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 min-w-0">
-          <MoodWheel
-            slices={observatory.moods}
-            counted={observatory.moodsCounted}
-            personaCode={persona?.code ?? null}
-            topKeywords={observatory.topKeywords}
-            ownerName={ownerName}
-          />
-        </div>
-        <div className="min-w-0">
-          <PeopleOrbit actors={observatory.actors} directors={observatory.directors} ownerName={ownerName} />
-        </div>
-      </div>
+      <EssenceRing
+        slices={observatory.moods}
+        counted={observatory.moodsCounted}
+        persona={persona}
+        personaLoading={personaLoading}
+        topKeywords={observatory.topKeywords}
+        isOwn={isOwn}
+        ownerName={ownerName}
+      />
 
       <div className={`${PROFILE_CARD} rounded-3xl`} style={glassPanel(observatory.prior ? ratingTone(Math.round(observatory.prior)).color : PROFILE_ACCENTS.rated)}>
         <RatingSpectrum counts={ratingCounts} average={null} onJump={onJumpToRating} title={ratingTitle ?? t('profile.stats.ratingDistribution')} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 min-w-0">
-          <DecadeReel bands={observatory.bands} favorite={observatory.favorite} ownerName={ownerName} />
+        <div className="min-w-0">
+          <PeopleOrbit actors={observatory.actors} directors={observatory.directors} ownerName={ownerName} />
         </div>
+        <div className="lg:col-span-2 min-w-0">
+          <DecadeReel bands={observatory.bands} favorite={observatory.favorite} ownerName={ownerName} onSaveOrder={isOwn ? observatory.saveDecadeOrder : undefined} />
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
         <div className="min-w-0">
           <GemCard gems={observatory.gems} ownerRatingLabel={ratingLabel} />
+        </div>
+        <div className="lg:col-span-2 min-w-0">
+          <Suspense fallback={<div className="h-[420px] rounded-3xl animate-pulse" style={glassPanel('#2DD4BF')} />}>
+            <TasteGlobe countryCounts={countryCounts} countryAvgRatings={countryAvgRatings} language={i18n.language} onViewMovies={onViewCountryMovies} />
+          </Suspense>
         </div>
       </div>
 
       {extra && <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">{extra}</div>}
-
-      <Suspense fallback={<div className="h-[420px] rounded-3xl animate-pulse" style={glassPanel('#2DD4BF')} />}>
-        <TasteGlobe countryCounts={countryCounts} countryAvgRatings={countryAvgRatings} language={i18n.language} onViewMovies={onViewCountryMovies} />
-      </Suspense>
     </div>
   );
 };

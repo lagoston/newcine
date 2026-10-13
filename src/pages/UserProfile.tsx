@@ -19,15 +19,14 @@ import CompatibilityModal from '../components/CompatibilityModal';
 import MatchMovieModal from '../components/MatchMovieModal';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON, type ProfileActiveTag } from '../components/ProfileIdentityCard';
 import { useTagDecoration } from '../contexts/SeasonalEventContext';
-import { ProfileTasteGrid, ProfileSectionHeading, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
+import { ProfileTasteGrid, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
 import TasteHud from '../components/profile/TasteHud';
 import { summarizeRatings } from '../lib/profileStats';
-import ProfileEssence from '../components/ProfileEssence';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { cache, CACHE_KEYS } from '../lib/cache';
 import { useProfileData, type MovieWithRating } from '../hooks/useProfileData';
-import { VELVET, SURFACE, PAPER, MIST, NIGHT, FOCUS_RING, ORACLES, surfaceVars, glassPanel, PROFILE_ACCENTS } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, NIGHT, FOCUS_RING, surfaceVars, glassPanel, PROFILE_ACCENTS } from '../lib/oracleTheme';
 import { getBannerTone } from '../lib/banners';
 
 // Perfil de outra pessoa (vindo da Comunidade, da atividade dos amigos,
@@ -362,10 +361,7 @@ export default function UserProfile() {
   // ---- Valores derivados ----
   const isOwnerPremium = profile.is_premium ?? profile.plan_type === 'premium';
   const isSelf = session?.user?.id === profile.id;
-  const { counts: ratingCounts, average } = summarizeRatings(ratingDistribution);
-  const decadesCount = new Set(
-    movies.filter((m) => typeof m.userRating === 'number' && m.release_date).map((m) => (m.release_date || '').slice(0, 3))
-  ).size;
+  const { counts: ratingCounts } = summarizeRatings(ratingDistribution);
 
   // Prateleiras: uma por nota (10 → 0) e a Watchlist no fim.
   const buckets: Record<number, MovieWithRating[]> = {};
@@ -510,14 +506,7 @@ export default function UserProfile() {
 
       {/* ---------- Números ---------- */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 mt-4">
-        <TasteHud
-          ratedCount={ratedMoviesCount}
-          watchMinutes={totalWatchTime}
-          average={average}
-          countries={Object.keys(countryCounts).length}
-          decades={decadesCount}
-          ownerName={`@${profile.username}`}
-        />
+        <TasteHud ratedCount={ratedMoviesCount} watchMinutes={totalWatchTime} />
       </section>
 
       {/* ---------- Coleção / Info ---------- */}
@@ -643,46 +632,15 @@ export default function UserProfile() {
         ) : (
           <div id="profile-panel-info" role="tabpanel" aria-labelledby="profile-tab-info" className="relative isolate mx-auto max-w-6xl px-5 sm:px-8 mt-8 space-y-12">
             <ProfileGlassAmbient accent={bannerTone?.accent} />
-            {/* Personalidade de @ */}
+            {/* Personalidade, notas e o retrato de gosto de @ */}
             <div>
-              <ProfileSectionHeading title={t('profile.essenceOf', { username: profile.username })} />
-              <div className="mt-6">
-                <ProfileEssence
-                  loading={personaLoading}
-                  persona={persona}
-                  emptyState={
-                    <div className={`${PROFILE_CARD} flex items-center gap-5`} style={glassPanel(PROFILE_ACCENTS.essence)}>
-                      <div className="flex shrink-0" aria-hidden>
-                        {ORACLES.map((oracle, i) => (
-                          <img
-                            key={oracle.id}
-                            src={oracle.avatar}
-                            alt=""
-                            width={40}
-                            height={40}
-                            className={`w-10 h-10 rounded-full object-cover opacity-70 ${i > 0 ? '-ml-2' : ''}`}
-                            style={{ boxShadow: `0 0 0 2px ${SURFACE}, 0 0 0 4px ${oracle.color}` }}
-                          />
-                        ))}
-                      </div>
-                      <p className="flex-1 min-w-0 text-sm" style={{ color: MIST }}>
-                        {t('profile.essenceEmptyOther', { username: profile.username })}
-                      </p>
-                    </div>
-                  }
-                />
-              </div>
-            </div>
-
-            {/* Notas de @ e o retrato de gosto */}
-            <div>
-              <ProfileSectionHeading title={t('profile.ratingsOf', { username: profile.username })} />
-              <div className="mt-6">
+              <div>
                 {ratedMoviesCount > 0 ? (
                   <ProfileTasteGrid
                     userId={profile.id}
                     movies={movies}
                     persona={persona}
+                    personaLoading={personaLoading}
                     ownerName={`@${profile.username}`}
                     ratingCounts={ratingCounts}
                     ratingTitle={t('profile.stats.ratingDistribution')}

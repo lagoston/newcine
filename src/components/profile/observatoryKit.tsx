@@ -2,11 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useReducedMotion, useInView } from 'framer-motion';
 import { PAPER, MIST, PIXEL, ratingTone } from '../../lib/oracleTheme';
 
-// Peças comuns do observatório do perfil (12/10/2026).
-//
-// A regra que liga todos os blocos: o TAMANHO mostra quanto a pessoa vê e a
-// COR mostra a nota que ela dá (as mesmas faixas de nota do site inteiro:
-// vermelho, amarelo, verde e rosa no 10). Ver lib/tasteStats.ts.
+// Peças comuns do observatório do perfil (12/10/2026, revisto em 13/10).
+// A nota aparece sempre como número, na cor da faixa dela (as mesmas faixas
+// do site inteiro: vermelho, amarelo, verde e rosa no 10). Ver
+// lib/tasteStats.ts.
 
 export const formatOne = (value: number, language: string) =>
   value.toLocaleString(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -91,5 +90,33 @@ export const ModuleTitle: React.FC<{ title: string; hint?: React.ReactNode; acti
   </div>
 );
 
-// Faixas de nota em ordem (para a legenda da cor).
-export const RATING_LEGEND_STOPS = [2, 5, 8, 10].map((r) => ratingTone(r).color);
+// Largura de um elemento, acompanhando o redimensionamento.
+export function useElementWidth<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setWidth(el.getBoundingClientRect().width);
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const next = entries[0]?.contentRect.width;
+      if (typeof next === 'number') setWidth(next);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return { ref, width };
+}
+
+// Largura de um texto na fonte do site (para arrumar palavras num círculo).
+let measureCanvas: HTMLCanvasElement | null = null;
+export function measureText(text: string, sizePx: number, weight = 500, family?: string): number {
+  if (typeof document === 'undefined') return text.length * sizePx * 0.56;
+  measureCanvas = measureCanvas || document.createElement('canvas');
+  const ctx = measureCanvas.getContext('2d');
+  if (!ctx) return text.length * sizePx * 0.56;
+  const font = family || getComputedStyle(document.body).fontFamily || 'sans-serif';
+  ctx.font = `${weight} ${sizePx}px ${font}`;
+  return ctx.measureText(text).width;
+}

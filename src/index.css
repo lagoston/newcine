@@ -836,9 +836,28 @@ img[loading="lazy"] {
   100% {
     transform: translate3d(0, 0, 0);
   }
-  50% {
-    transform: translate3d(0, -3px, 0);
+  33% {
+    transform: translate3d(1.5px, -3.5px, 0);
   }
+  66% {
+    transform: translate3d(-1.5px, -1.5px, 0);
+  }
+}
+/* Os arcos da roda dos humores acendem um pouco sob o dedo/mouse. */
+.essence-arc {
+  transition: opacity 250ms ease, filter 200ms ease;
+}
+.essence-arc:hover {
+  filter: brightness(1.18);
+}
+.essence-arc:focus {
+  outline: none;
+}
+.essence-focus {
+  opacity: 0;
+}
+.essence-arc:focus-visible .essence-focus {
+  opacity: 0.85;
 }
 .taste-sweep {
   animation: taste-sweep 9s linear infinite;

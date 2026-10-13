@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { fetchDecadeOrders, type DecadeOrders } from '../lib/libraryLayouts';
+import { decadeKey, fetchDecadeOrders, saveDecadeOrder as persistDecadeOrder, type DecadeOrders } from '../lib/libraryLayouts';
 import {
   averageRating,
   decadeBands,
@@ -47,11 +47,27 @@ export function useTasteObservatory(userId: string | undefined, movies: MovieWit
   const prior = useMemo(() => averageRating(movies) ?? 7, [movies]);
   const moods = useMemo(() => moodSlices(movies, moodByMovie, persona, prior), [movies, moodByMovie, persona, prior]);
   const topKeywords = useMemo(() => keywordAffinity(movies, prior, { minCount: 3, limit: 10 }), [movies, prior]);
-  const actors = useMemo(() => peopleAffinity(movies, prior, 'cast', 9), [movies, prior]);
+  const actors = useMemo(() => peopleAffinity(movies, prior, 'cast', 5), [movies, prior]);
   const directors = useMemo(() => peopleAffinity(movies, prior, 'director', 5), [movies, prior]);
   const bands = useMemo(() => decadeBands(movies, orders), [movies, orders]);
   const favorite = useMemo(() => favoriteBand(bands), [bands]);
   const gems = useMemo(() => hiddenGems(movies, 3), [movies]);
+
+  // Nova ordem de uma década (só no seu perfil): grava no mesmo lugar da
+  // Biblioteca e já reordena a fileira. Vazio = volta para a ordem das notas.
+  const saveDecadeOrder = useCallback(
+    async (decade: number, keys: string[]) => {
+      if (!userId) return;
+      await persistDecadeOrder(userId, decade, keys);
+      setOrders((prev) => {
+        const next = { ...prev };
+        if (keys.length > 0) next[decadeKey(decade)] = keys;
+        else delete next[decadeKey(decade)];
+        return next;
+      });
+    },
+    [userId]
+  );
 
   // Fotos das pessoas em destaque.
   const peopleKey = [...actors, ...directors].map((p) => p.key).join('|');
@@ -85,6 +101,7 @@ export function useTasteObservatory(userId: string | undefined, movies: MovieWit
     bands,
     favorite,
     gems,
+    saveDecadeOrder,
   };
 }
 
