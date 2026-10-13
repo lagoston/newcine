@@ -4,6 +4,8 @@ import {
   fetchConnection,
   fetchConnectionScores,
   invalidateConnections,
+  isConnectionSeen,
+  markConnectionSeen,
   peekConnectionScore,
   type ConnectionDetail,
   type ConnectionScore,
@@ -91,4 +93,28 @@ export function useConnectionScores(ids: (string | null | undefined)[]) {
   }, [key, myId, initial]);
 
   return scores;
+}
+
+// A esfera da faixa: brilha enquanto você não abriu esta conexão, e de novo
+// quando o número muda. `markSeen()` apaga (chame ao abrir a gaveta).
+export function useConnectionGlow(otherId: string | null | undefined, signature: string | null) {
+  const { session } = useAuth();
+  const viewerId = session?.user?.id ?? null;
+  const [glow, setGlow] = useState(false);
+
+  useEffect(() => {
+    if (!viewerId || !otherId || !signature) {
+      setGlow(false);
+      return;
+    }
+    setGlow(!isConnectionSeen(viewerId, otherId, signature));
+  }, [viewerId, otherId, signature]);
+
+  const markSeen = useCallback(() => {
+    if (!viewerId || !otherId || !signature) return;
+    markConnectionSeen(viewerId, otherId, signature);
+    setGlow(false);
+  }, [viewerId, otherId, signature]);
+
+  return { glow, markSeen };
 }

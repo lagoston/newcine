@@ -5,7 +5,7 @@ import { GhostRiderFrame } from './GhostRiderFrame';
 import { MIST, VELVET } from '../lib/oracleTheme';
 
 // Avatar de alguém com a moldura escolhida (13/10/2026). Antes cada tela
-// tinha a própria cópia deste código (FollowersModal, MatchMovieModal…).
+// tinha a própria cópia deste código (FollowersModal, o Match Movie antigo…).
 // Sem foto: o ícone de pessoa. A moldura "padrão" vira um aro discreto.
 
 export interface AvatarUser {

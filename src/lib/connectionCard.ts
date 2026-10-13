@@ -280,30 +280,19 @@ export async function drawConnectionStory(input: ConnectionCardInput): Promise<H
   ctx.fillText(copy.label, W / 2 + 1.5, panelY + 56);
   setLetterSpacing(ctx, 0);
 
-  // "~" (prévia) e "%" menores, em névoa; o número na cor da conexão.
+  // "%" menor, em névoa; o número na cor da conexão. (A prévia não leva
+  // mais "~" na frente — parecia sinal de menos; 13/10/2026.)
   const NUM = 220;
   const SMALL = Math.round(NUM * 0.42);
-  const TILDE = Math.round(NUM * 0.9);
   const numText = String(pct);
-  const prefix = detail.confidence === 'low' ? '~' : '';
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
   ctx.font = `${NUM}px ${PIXEL_FONT_STACK}`;
   const numW = ctx.measureText(numText).width;
   ctx.font = `${SMALL}px ${PIXEL_FONT_STACK}`;
   const pctW = ctx.measureText('%').width;
-  ctx.font = `${TILDE}px ${PIXEL_FONT_STACK}`;
-  const preW = prefix ? ctx.measureText(prefix).width + 6 : 0;
   const numBase = panelY + 258;
-  let nx = (W - (preW + numW + 10 + pctW)) / 2;
-  if (prefix) {
-    // O til fica na altura do meio dos algarismos.
-    ctx.fillStyle = MIST;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(prefix, nx, numBase - NUM * 0.32);
-    ctx.textBaseline = 'alphabetic';
-    nx += preW;
-  }
+  const nx = (W - (numW + 10 + pctW)) / 2;
   ctx.save();
   ctx.shadowColor = withAlpha(tone, 0.6);
   ctx.shadowBlur = 50;

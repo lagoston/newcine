@@ -59,7 +59,9 @@ const imgTag = (url: string): Promise<HTMLImageElement | null> =>
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
-    img.src = url;
+    // Endereço diferente do <img> da tela, para não pegar a cópia sem CORS
+    // do cache do navegador (ver loadCanvasImage).
+    img.src = url.startsWith('data:') || url.startsWith('blob:') ? url : `${url}${url.includes('?') ? '&' : '?'}canvas=1`;
   });
 
 // Baixa uma imagem para desenhar no canvas: fetch (CORS) → ImageBitmap
@@ -77,7 +79,12 @@ export async function loadCanvasImage(url: string | null | undefined, timeoutMs 
   });
   const attempt = (async (): Promise<CanvasImage | null> => {
     try {
-      const res = await fetch(url, { mode: 'cors', signal: ctrl?.signal });
+      // `no-store`: o pôster quase sempre já apareceu na tela num <img>
+      // comum, e o navegador guardou essa cópia SEM a permissão de CORS. Se
+      // o fetch reaproveitar a cópia, o CORS falha e entra a capa genérica
+      // (foi o que aconteceu no story da Conexão em 13/10/2026). Os outros
+      // stories que funcionam (Insights, story do filme) já pediam assim.
+      const res = await fetch(url, { mode: 'cors', cache: 'no-store', signal: ctrl?.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
       if (typeof createImageBitmap === 'function') {

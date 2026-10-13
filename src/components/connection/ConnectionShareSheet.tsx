@@ -152,7 +152,7 @@ const ConnectionShareSheet: React.FC<ConnectionShareSheetProps> = ({ open, onClo
   };
 
   const ready = story.status === 'ready';
-  const pctText = hasScore ? formatConnection(detail.pct as number, detail.confidence) : '';
+  const pctText = hasScore ? formatConnection(detail.pct as number) : '';
   const alt = hasScore
     ? t('connection.share.previewAlt', { me: me.username, other: other.username, pct: pctText, tier: t(tierLabelKey(detail.pct as number)) })
     : '';

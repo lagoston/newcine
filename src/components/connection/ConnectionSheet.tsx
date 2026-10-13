@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { Info, UserPlus, UserCheck, Clock, Loader2, Share2, Film } from 'lucide-react';
 import { toast } from 'sonner';
 import OracleSheet from '../OracleSheet';
-import MatchMovieModal from '../MatchMovieModal';
 import MovieDetailsModal from '../MovieDetailsModal';
 import ConnectionShareSheet from './ConnectionShareSheet';
 import DuoAvatars from './DuoAvatars';
@@ -81,11 +80,10 @@ const Section: React.FC<{ id: string; title: string; hint?: React.ReactNode; act
 );
 
 // O número grande (0 → 87) e a faixa, que aparece depois da contagem.
-const HeroNumber: React.FC<{ pct: number; low: boolean; color: string }> = ({ pct, low, color }) => {
+const HeroNumber: React.FC<{ pct: number; color: string }> = ({ pct, color }) => {
   const { ref, value } = useCountUp(pct, 900);
   return (
     <span ref={ref as React.RefObject<HTMLSpanElement>} style={{ ...PIXEL, color }} className="block text-[64px] leading-none tabular-nums" aria-hidden>
-      {low ? '~' : ''}
       {Math.round(value)}%
     </span>
   );
@@ -110,7 +108,6 @@ const ConnectionSheet: React.FC<ConnectionSheetProps> = ({
   const { persona: mePersona, loading: mePersonaLoading } = useMyPersona(open);
   const [showHow, setShowHow] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [adjustOpen, setAdjustOpen] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
   const [movie, setMovie] = useState<Movie | null>(null);
   // Títulos avaliados em "Afine" nesta abertura (o "+1 em comum").
@@ -199,10 +196,10 @@ const ConnectionSheet: React.FC<ConnectionSheetProps> = ({
         {hasNumber ? (
           <>
             <p className="sr-only">
-              {formatConnection(pct, confidence)} {t('connection.label')} · {t(tierLabelKey(pct))}
+              {formatConnection(pct)} {t('connection.label')} · {t(tierLabelKey(pct))}
             </p>
             <div className="mt-4">
-              <HeroNumber pct={pct} low={confidence === 'low'} color={tone} />
+              <HeroNumber pct={pct} color={tone} />
             </div>
             <motion.div
               initial={reduceMotion ? false : { opacity: 0 }}
@@ -332,7 +329,7 @@ const ConnectionSheet: React.FC<ConnectionSheetProps> = ({
         title={t('connection.title')}
         subtitle={t('connection.subtitle', { username: other.username })}
         leading={<DuoAvatars me={meSide} other={otherSide} size={34} />}
-        escapeEnabled={!shareOpen && !adjustOpen && !ratingOpen && !movie}
+        escapeEnabled={!shareOpen && !ratingOpen && !movie}
         footer={footer}
         bodyClassName="px-5 sm:px-7 pt-0 pb-8 space-y-9"
       >
@@ -391,7 +388,7 @@ const ConnectionSheet: React.FC<ConnectionSheetProps> = ({
               {mePersonaLoading ? (
                 <div className="h-52 rounded-2xl bg-white/[0.03] motion-safe:animate-pulse" aria-hidden />
               ) : (
-                <WatchTogether me={meSide} other={otherSide} defaultMoods={defaultMoods} onAdjust={() => setAdjustOpen(true)} onOpenTitle={openTitle} />
+                <WatchTogether me={meSide} other={otherSide} defaultMoods={defaultMoods} onOpenTitle={openTitle} />
               )}
             </Section>
 
@@ -411,7 +408,7 @@ const ConnectionSheet: React.FC<ConnectionSheetProps> = ({
                       </span>
                       {hasNumber && (
                         <span className="text-[12px]" style={{ color: MIST }}>
-                          {t('connection.calibrate.now', { value: formatConnection(pct, confidence) })}
+                          {t('connection.calibrate.now', { value: formatConnection(pct) })}
                         </span>
                       )}
                     </span>
@@ -440,10 +437,6 @@ const ConnectionSheet: React.FC<ConnectionSheetProps> = ({
 
       {shareOpen && detail && meSide && (
         <ConnectionShareSheet open={shareOpen} onClose={() => setShareOpen(false)} detail={detail} me={meSide} other={otherSide} />
-      )}
-
-      {adjustOpen && (
-        <MatchMovieModal isOpen={adjustOpen} onClose={() => setAdjustOpen(false)} otherUserId={other.id} otherUsername={other.username} />
       )}
 
       {/* Avaliar pelos detalhes também muda a conexão. */}

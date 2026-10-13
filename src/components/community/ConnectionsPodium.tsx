@@ -99,7 +99,7 @@ const ConnectionsPodium: React.FC<ConnectionsPodiumProps> = ({ items, onSeeAll }
               if (!person) return <li key={place} aria-hidden />;
               const medal = RANK_MEDALS[place];
               const tone = connectionTone(person.pct!);
-              const value = formatConnection(person.pct!, person.confidence);
+              const value = formatConnection(person.pct!);
               return (
                 <motion.li
                   key={person.user_id}
@@ -161,7 +161,7 @@ const ConnectionsPodium: React.FC<ConnectionsPodiumProps> = ({ items, onSeeAll }
                       className={`group w-full justify-start gap-3 rounded-xl px-2 py-1.5 text-left transition hover:bg-white/[0.05] ${FOCUS_RING}`}
                       aria-label={
                         numbered
-                          ? t('connection.ranking.itemAria', { place, username: person.username, value: formatConnection(person.pct!, person.confidence) })
+                          ? t('connection.ranking.itemAria', { place, username: person.username, value: formatConnection(person.pct!) })
                           : t('connection.ranking.itemNoDataAria', { username: person.username })
                       }
                     >

@@ -10,8 +10,8 @@ import { ratingTone } from './oracleTheme';
 // se ordenam os filmes igual, se amam/detestam os mesmos títulos e se as
 // notas ficam próximas. Com poucos títulos em comum, fica perto de 50%.
 //
-// Formato: "87%" com confiança média ou alta, "~72%" com confiança baixa
-// (5 a 14 títulos em comum) e nada quando ainda não dá (menos de 5).
+// Formato: "87%" (com confiança baixa — 5 a 14 títulos em comum — o texto
+// ao lado diz que é prévia) e nada quando ainda não dá (menos de 5).
 
 export type ConnectionConfidence = 'low' | 'medium' | 'high';
 export type ConnectionTier = 'seat' | 'session' | 'cinema' | 'neighbors' | 'reverse';
@@ -100,9 +100,10 @@ const NONE = 'none' as const;
 // Cor: a mesma faixa das notas (87% → nota 9 → verde; 95%+ → rosa).
 export const connectionTone = (pct: number) => ratingTone(Math.max(0, Math.min(10, Math.round(pct / 10))));
 
-// "87%" ou "~72%" (prévia).
-export const formatConnection = (pct: number, confidence: ConnectionConfidence | 'none' | null | undefined) =>
-  `${confidence === 'low' ? '~' : ''}${Math.round(pct)}%`;
+// "87%". A prévia (confiança baixa) não leva marca no número — um "~" na
+// frente parecia sinal de menos (pedido do Bruno, 13/10/2026); quem diz que
+// é prévia é o texto ao lado ("Prévia · só 6 títulos em comum").
+export const formatConnection = (pct: number) => `${Math.round(pct)}%`;
 
 // Faixas (validadas com os pares reais da comunidade; ver o doc "Conexão").
 export const connectionTier = (pct: number): ConnectionTier => {
@@ -223,4 +224,43 @@ export function invalidateConnections(otherId?: string) {
     cache.invalidatePattern('connection:detail:');
   }
   cache.invalidatePattern('connection:list:');
+}
+
+// ---------------------------------------------------------------------------
+// "Já viu esta conexão?" — a esfera da faixa (13/10/2026)
+// ---------------------------------------------------------------------------
+//
+// A esfera brilha enquanto você não abriu a conexão com a pessoa e volta a
+// brilhar quando o número muda. Guardado neste aparelho (por conta logada):
+// pessoa → o número que você viu ("none" quando ainda não havia número).
+
+const SEEN_PREFIX = 'co.connection.seen.';
+
+// O que conta como "a conexão mudou": o número (ou a falta dele).
+export const connectionSeenSignature = (detail: Pick<ConnectionDetail, 'pct' | 'confidence'> | null | undefined) =>
+  !detail ? null : detail.pct !== null && detail.confidence !== 'none' ? String(detail.pct) : 'none';
+
+function readSeen(viewerId: string): Record<string, string> {
+  try {
+    const raw = window.localStorage.getItem(`${SEEN_PREFIX}${viewerId}`);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function isConnectionSeen(viewerId: string, otherId: string, signature: string) {
+  return readSeen(viewerId)[otherId] === signature;
+}
+
+export function markConnectionSeen(viewerId: string, otherId: string, signature: string) {
+  try {
+    const seen = readSeen(viewerId);
+    if (seen[otherId] === signature) return;
+    seen[otherId] = signature;
+    window.localStorage.setItem(`${SEEN_PREFIX}${viewerId}`, JSON.stringify(seen));
+  } catch {
+    /* sem armazenamento: a esfera só apaga até recarregar a página */
+  }
 }

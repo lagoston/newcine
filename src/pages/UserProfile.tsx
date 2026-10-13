@@ -18,8 +18,8 @@ import UserReviewsModal from '../components/UserReviewsModal';
 import ConnectionStrip, { type ConnectionSection } from '../components/connection/ConnectionStrip';
 import ConnectionSheet from '../components/connection/ConnectionSheet';
 import { useConnectionMe } from '../components/connection/useConnectionMe';
-import { useConnection } from '../hooks/useConnection';
-import { invalidateConnections, type ConnectionSide } from '../lib/connection';
+import { useConnection, useConnectionGlow } from '../hooks/useConnection';
+import { invalidateConnections, connectionSeenSignature, type ConnectionSide } from '../lib/connection';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON, type ProfileActiveTag } from '../components/ProfileIdentityCard';
 import { useTagDecoration } from '../contexts/SeasonalEventContext';
 import { ProfileTasteGrid, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
@@ -109,6 +109,13 @@ export default function UserProfile() {
   // não pede nada nos outros casos).
   const connection = useConnection(profile?.id);
   const connectionMe = useConnectionMe();
+  // A esfera da faixa apaga quando a gaveta abre (e acende de novo se o
+  // número mudar depois).
+  const connectionGlow = useConnectionGlow(profile?.id, connection.status === 'ready' ? connectionSeenSignature(connection.detail) : null);
+  const markConnectionSeen = connectionGlow.markSeen;
+  useEffect(() => {
+    if (connectionSheet.open) markConnectionSeen();
+  }, [connectionSheet.open, markConnectionSeen]);
   const connectionParam = searchParams.get('conexao');
   useEffect(() => {
     if (!connectionParam || !profile?.id || !session?.user?.id || profile.id === session.user.id) return;
@@ -509,6 +516,7 @@ export default function UserProfile() {
       detail={connection.detail}
       status={connection.status}
       guest={!session}
+      glow={connectionGlow.glow}
       onOpen={(section) => setConnectionSheet({ open: true, section: section ?? null })}
     />
   );

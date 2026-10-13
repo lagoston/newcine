@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useInView } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Shuffle, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { Shuffle, SlidersHorizontal, RotateCcw, ChevronDown, EyeOff, Eye, Users2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { MOODS, MOOD_BY_KEY, withMoodAlpha, type MoodKey } from '../../lib/moods';
 import { PosterArt, ScoreBubble } from './connectionBits';
@@ -17,8 +17,11 @@ import { PROFILE_GHOST_BUTTON } from '../ProfileIdentityCard';
 // pelos humores das duas personalidades (os 3 de cada um; sem
 // personalidade, os 9). Os chips ligam/desligam humores (sempre fica pelo
 // menos um) e pedem de novo. "Outra sessão" sorteia de novo (o servidor
-// amostra ao acaso); "Ajustar" abre o Match Movie completo (modo, todos os
-// humores, mais amigos).
+// amostra ao acaso).
+//
+// "Ajustar" abre ali mesmo (antes abria o Match Movie antigo por cima, o que
+// ficava estranho): o tipo de sessão — nenhum viu, só um viu, os dois viram
+// — e os 9 humores. Cada mudança já pede a sessão de novo.
 //
 // "Nota da dupla" é a média harmônica das duas notas (o "Match" de antes):
 // a nota mais baixa pesa mais, então só sobe quando os dois gostariam.
@@ -39,11 +42,12 @@ export interface WatchMovie {
   matchScore: number;
 }
 
+type SessionMode = 'unseen' | 'one' | 'both';
+
 interface WatchTogetherProps {
   me: ConnectionSide | null;
   other: ConnectionSide;
   defaultMoods: MoodKey[];
-  onAdjust: () => void;
   onOpenTitle: (ref: { movie_id: number; media_type: 'movie' | 'tv' }) => void;
 }
 
@@ -56,7 +60,15 @@ const inOrder = (keys: Iterable<MoodKey>) => {
   return ALL_MOODS.filter((k) => set.has(k));
 };
 
-const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, onAdjust, onOpenTitle }) => {
+const MODES: { id: SessionMode; icon: React.ElementType }[] = [
+  { id: 'unseen', icon: EyeOff },
+  { id: 'one', icon: Eye },
+  { id: 'both', icon: Users2 },
+];
+
+const AMBER = '#FCD34D';
+
+const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, onOpenTitle }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -66,6 +78,8 @@ const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, 
   // Chips mostrados (os humores de vocês, ou os 9) e os ligados.
   const [pool, setPool] = useState<MoodKey[]>(initial);
   const [selected, setSelected] = useState<MoodKey[]>(initial);
+  const [mode, setMode] = useState<SessionMode>('unseen');
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>('idle');
   const [movies, setMovies] = useState<WatchMovie[]>([]);
   const [nonce, setNonce] = useState(0);
@@ -83,7 +97,7 @@ const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, 
     setPhase('loading');
     try {
       const { data, error } = await supabase.functions.invoke('match-movie', {
-        body: { friendIds: [other.id], mode: 'unseen', moods: moodsKey.split(',').filter(Boolean), language: lang },
+        body: { friendIds: [other.id], mode, moods: moodsKey.split(',').filter(Boolean), language: lang },
       });
       if (id !== request.current) return;
       if (error || (data && (data as { error?: string }).error)) throw error || new Error((data as { error: string }).error);
@@ -94,10 +108,10 @@ const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, 
       console.error('WatchTogether match-movie error:', err);
       setPhase('error');
     }
-  }, [other.id, moodsKey, lang]);
+  }, [other.id, mode, moodsKey, lang]);
 
-  // Roda sozinho quando a seção aparece, e de novo a cada mudança de humor
-  // ou "Outra sessão".
+  // Roda sozinho quando a seção aparece, e de novo a cada mudança de humor,
+  // de tipo de sessão ou "Outra sessão".
   useEffect(() => {
     if (!inView || !moodsKey) return;
     run();
@@ -112,6 +126,18 @@ const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, 
   const pickAllMoods = () => {
     setPool(ALL_MOODS);
     setSelected(ALL_MOODS);
+  };
+  const toggleAdjust = () => {
+    setAdjustOpen((open) => {
+      // Ajustando, aparecem os 9 humores (os de vocês continuam ligados).
+      if (!open) setPool(ALL_MOODS);
+      return !open;
+    });
+  };
+  const isDefault = mode === 'unseen' && moodsKey === initial.join(',');
+  const resetDefaults = () => {
+    setMode('unseen');
+    setSelected(initial);
   };
 
   const top = movies[0];
@@ -140,37 +166,112 @@ const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, 
     );
   };
 
+  const moodChip = (key: MoodKey) => {
+    const mood = MOOD_BY_KEY[key];
+    const on = selected.includes(key);
+    return (
+      <button
+        key={key}
+        type="button"
+        onClick={() => toggle(key)}
+        aria-pressed={on}
+        className={`shrink-0 h-10 min-h-0 gap-1.5 pl-2.5 pr-3 rounded-full text-[13px] font-medium transition ${FOCUS_RING}`}
+        style={{
+          background: on ? withMoodAlpha(mood, 0.16) : 'rgba(255,255,255,0.03)',
+          boxShadow: `inset 0 0 0 1px ${on ? withMoodAlpha(mood, 0.5) : 'rgba(255,255,255,0.1)'}`,
+          color: on ? PAPER : MIST,
+        }}
+      >
+        <span style={{ ...PIXEL, color: mood.color, opacity: on ? 1 : 0.5 }} className="text-[15px] leading-none" aria-hidden>
+          {mood.letter}
+        </span>
+        {t(mood.labelKey)}
+      </button>
+    );
+  };
+
   return (
     <div ref={wrapRef}>
-      {/* Humores */}
-      <p className="text-[12.5px]" style={{ color: MIST }}>
-        {t('connection.watch.moodsFrom')}
-      </p>
-      <div className="mt-2 -mx-5 sm:-mx-7 px-5 sm:px-7 flex gap-2 overflow-x-auto no-scrollbar pb-1" role="group" aria-label={t('connection.watch.moodsFrom')}>
-        {pool.map((key) => {
-          const mood = MOOD_BY_KEY[key];
-          const on = selected.includes(key);
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => toggle(key)}
-              aria-pressed={on}
-              className={`shrink-0 h-10 min-h-0 gap-1.5 pl-2.5 pr-3 rounded-full text-[13px] font-medium transition ${FOCUS_RING}`}
-              style={{
-                background: on ? withMoodAlpha(mood, 0.16) : 'rgba(255,255,255,0.03)',
-                boxShadow: `inset 0 0 0 1px ${on ? withMoodAlpha(mood, 0.5) : 'rgba(255,255,255,0.1)'}`,
-                color: on ? PAPER : MIST,
-              }}
-            >
-              <span style={{ ...PIXEL, color: mood.color, opacity: on ? 1 : 0.5 }} className="text-[15px] leading-none" aria-hidden>
-                {mood.letter}
-              </span>
-              {t(mood.labelKey)}
-            </button>
-          );
-        })}
+      {/* Humores (e o Ajustar, que abre aqui mesmo) */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[12.5px]" style={{ color: MIST }}>
+          {adjustOpen ? t('connection.watch.moodsTitle') : t('connection.watch.moodsFrom')}
+        </p>
+        <button
+          type="button"
+          onClick={toggleAdjust}
+          aria-expanded={adjustOpen}
+          aria-controls="watch-together-adjust"
+          className={`shrink-0 h-9 min-h-0 gap-1.5 px-3 rounded-full text-[13px] font-medium transition ${FOCUS_RING}`}
+          style={{
+            color: PAPER,
+            background: adjustOpen ? 'rgba(167,139,250,0.16)' : 'rgba(255,255,255,0.04)',
+            boxShadow: `inset 0 0 0 1px ${adjustOpen ? 'rgba(167,139,250,0.5)' : 'rgba(255,255,255,0.12)'}`,
+          }}
+        >
+          <SlidersHorizontal className="w-4 h-4 text-violet-300" aria-hidden />
+          {t('connection.watch.adjust')}
+          <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${adjustOpen ? 'rotate-180' : ''}`} style={{ color: MIST }} aria-hidden />
+        </button>
       </div>
+
+      {adjustOpen ? (
+        <div
+          id="watch-together-adjust"
+          className="mt-2.5 rounded-2xl p-3 sm:p-4"
+          style={{ background: 'rgba(255,255,255,0.03)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 0 1px rgba(167,139,250,0.22)' }}
+        >
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t('connection.watch.moodsTitle')}>
+            {pool.map(moodChip)}
+          </div>
+
+          <p className="mt-4 text-[12.5px]" style={{ color: MIST }} id="watch-together-mode">
+            {t('connection.watch.mode.title')}
+          </p>
+          <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="watch-together-mode">
+            {MODES.map(({ id, icon: Icon }) => {
+              const on = mode === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setMode(id)}
+                  className={`flex-col gap-1.5 h-auto min-h-[64px] px-2 py-2.5 rounded-xl text-[12.5px] font-medium leading-tight text-center transition ${FOCUS_RING}`}
+                  style={{
+                    color: on ? PAPER : MIST,
+                    background: on ? 'rgba(252,211,77,0.1)' : 'rgba(255,255,255,0.03)',
+                    boxShadow: `inset 0 0 0 1px ${on ? 'rgba(252,211,77,0.55)' : 'rgba(255,255,255,0.1)'}`,
+                  }}
+                >
+                  <Icon className="w-[18px] h-[18px]" style={{ color: on ? AMBER : MIST }} aria-hidden />
+                  {t(`connection.watch.mode.${id}`)}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-[12.5px] leading-snug" style={{ color: 'rgba(189,180,214,0.85)' }}>
+            {t(`connection.watch.modeHint.${mode}`)}
+          </p>
+
+          {!isDefault && (
+            <button
+              type="button"
+              onClick={resetDefaults}
+              className={`mt-3 h-9 min-h-0 gap-1.5 px-3 -ml-1 rounded-full text-[13px] font-medium hover:bg-white/[0.05] transition ${FOCUS_RING}`}
+              style={{ color: MIST }}
+            >
+              <RotateCcw className="w-3.5 h-3.5" aria-hidden />
+              {t('connection.watch.reset')}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="mt-2 -mx-5 sm:-mx-7 px-5 sm:px-7 flex gap-2 overflow-x-auto no-scrollbar pb-1" role="group" aria-label={t('connection.watch.moodsFrom')}>
+          {pool.map(moodChip)}
+        </div>
+      )}
 
       {/* Sessão */}
       <div className="mt-4" aria-live="polite" aria-busy={busy}>
@@ -223,8 +324,8 @@ const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, 
                 <PosterArt path={top.poster_path} size="w342" />
               </button>
               <div className="min-w-0 flex-1 pt-0.5">
-                <p style={{ ...PIXEL, color: '#FCD34D' }} className="text-[13px] leading-none">
-                  {t('connection.watch.tonight')}
+                <p style={{ ...PIXEL, color: AMBER }} className="text-[13px] leading-none">
+                  {mode === 'both' ? t('connection.watch.rewatch') : t('connection.watch.tonight')}
                 </p>
                 <h4 className="mt-1.5 text-[17px] font-semibold leading-snug line-clamp-2" style={{ color: PAPER }}>
                   {top.title}
@@ -271,20 +372,16 @@ const WatchTogether: React.FC<WatchTogetherProps> = ({ me, other, defaultMoods, 
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 sm:flex gap-2">
+      <div className="mt-4">
         <button
           type="button"
           onClick={() => setNonce((n) => n + 1)}
           disabled={busy}
-          className={`${PROFILE_GHOST_BUTTON} disabled:opacity-50`}
+          className={`w-full sm:w-auto ${PROFILE_GHOST_BUTTON} disabled:opacity-50`}
           style={{ color: PAPER }}
         >
           <Shuffle className="w-4 h-4 text-amber-200" aria-hidden />
           {t('connection.watch.another')}
-        </button>
-        <button type="button" onClick={onAdjust} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
-          <SlidersHorizontal className="w-4 h-4 text-violet-300" aria-hidden />
-          {t('connection.watch.adjust')}
         </button>
       </div>
     </div>

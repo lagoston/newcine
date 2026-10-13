@@ -1881,7 +1881,7 @@
     "how": {
       "title": "Como calculamos a conexão",
       "body": "Comparamos só os títulos que vocês dois avaliaram. Antes, ajustamos cada nota ao jeito de avaliar de cada um: um 8 de quem dá 9 para tudo pesa menos que um 8 de quem é exigente. Depois olhamos três coisas: se vocês ordenam os filmes do mesmo jeito, se amam e detestam os mesmos títulos, e se as notas ficam próximas. Com poucos filmes em comum, o resultado fica perto de 50% — um par típico da comunidade — e vai se firmando conforme vocês avaliam mais títulos em comum. Acima de 70%, a sintonia é rara.",
-      "confidence": "Com 5 a 14 títulos em comum, o número é uma prévia (~). De 15 a 39, a confiança é média; a partir de 40, alta."
+      "confidence": "Com 5 a 14 títulos em comum, o número é uma prévia. De 15 a 39, a confiança é média; a partir de 40, alta."
     },
     "ranking": {
       "title": "Suas conexões",
@@ -1948,7 +1948,9 @@
       "guest": "Descubra sua conexão com @{{username}}",
       "signIn": "Entrar",
       "watch": "Assistir juntos",
-      "openAria": "{{value}} de conexão com @{{username}}, {{confidence}}. Abrir a conexão"
+      "openAria": "{{value}} de conexão com @{{username}}, {{confidence}}. Abrir a conexão",
+      "orb": "Abrir a conexão com @{{username}}",
+      "orbNew": "Conexão nova com @{{username}} — abrir"
     },
     "hero": {
       "basis_one": "{{count}} título que vocês dois avaliaram",
@@ -1991,7 +1993,21 @@
       "useAll": "Usar todos os humores",
       "error": "Não deu para montar a sessão agora.",
       "retry": "Tentar de novo",
-      "loading": "Montando a sessão…"
+      "loading": "Montando a sessão…",
+      "moodsTitle": "Humores da sessão",
+      "reset": "Voltar ao padrão",
+      "rewatch": "Para rever juntos",
+      "mode": {
+        "title": "Quem já viu",
+        "unseen": "Nenhum viu",
+        "one": "Só um viu",
+        "both": "Os dois viram"
+      },
+      "modeHint": {
+        "unseen": "Títulos que nenhum dos dois avaliou, pela nota prevista de cada um.",
+        "one": "Um de vocês já viu: entra a nota real de quem viu e a prevista de quem não viu.",
+        "both": "Títulos que os dois já avaliaram, para rever: onde as notas mais bateram."
+      }
     },
     "calibrate": {
       "title": "Afine a conexão",

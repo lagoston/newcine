@@ -35,7 +35,7 @@ const ConnectionChip: React.FC<ConnectionChipProps> = ({ pct, confidence, size =
   const { t } = useTranslation();
   if (pct === null || pct === undefined || !confidence || confidence === 'none') return null;
   const tone = connectionTone(pct);
-  const text = formatConnection(pct, confidence);
+  const text = formatConnection(pct);
   const label = `${text} ${t('connection.label')} · ${t(confidenceKey(confidence))}`;
   return (
     <span className={`inline-flex items-center gap-1.5 ${className}`} aria-label={label} title={label}>

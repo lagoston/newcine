@@ -861,3 +861,34 @@ img[loading="lazy"] {
     animation: none;
   }
 }
+
+/* Esfera da Conexão (faixa no perfil de outra pessoa): enquanto a conexão é
+   nova (ou o número mudou), uma onda de luz sai dela. Só transform e
+   opacity, numa peça pequena — barato para a GPU. */
+.connection-orb-wave {
+  animation: connection-orb-wave 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+.connection-orb-wave-late {
+  animation-delay: 1.1s;
+}
+@keyframes connection-orb-wave {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  75%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .connection-orb-wave {
+    animation: none;
+    transform: scale(1.6);
+    opacity: 0.3;
+  }
+  .connection-orb-wave-late {
+    display: none;
+  }
+}

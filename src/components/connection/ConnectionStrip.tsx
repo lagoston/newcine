@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, Popcorn, LogIn } from 'lucide-react';
+import { ChevronRight, LogIn } from 'lucide-react';
 import DuoAvatars from './DuoAvatars';
 import { PosterArt } from './connectionBits';
 import { useCountUp } from '../profile/observatoryKit';
@@ -24,7 +24,9 @@ import type { AvatarUser } from '../UserAvatar';
 // embaixo do nome, na faixa do banner (e não no avatar, onde moldura e
 // gorro de época já disputam espaço): dois pôsteres que os dois amam, o
 // número na cor da faixa e uma frase do que os une. Tocar abre a gaveta
-// Conexão; a pipoca abre a gaveta direto em "Assistam juntos".
+// Conexão. À direita, uma esfera na cor da conexão: pulsa enquanto você
+// ainda não abriu esta conexão e volta a pulsar quando o número muda
+// (antes era uma pipoca que abria "Assistam juntos" e parecia um presente).
 //
 // Sem número ainda (menos de 5 títulos em comum): "Conexão em formação",
 // que abre a gaveta em "Afine a conexão". Sem login: um convite para
@@ -45,6 +47,8 @@ interface ConnectionStripProps {
   // Visitante sem login.
   guest: boolean;
   onOpen: (section?: ConnectionSection) => void;
+  // A esfera acesa: conexão ainda não aberta, ou número novo.
+  glow?: boolean;
   className?: string;
 }
 
@@ -83,33 +87,48 @@ const PosterFan: React.FC<{ paths: (string | null)[] }> = ({ paths }) => {
 };
 
 // O número subindo (0 → 87) quando a faixa aparece.
-const CountUpPct: React.FC<{ pct: number; low: boolean; color: string; className?: string }> = ({ pct, low, color, className = '' }) => {
+const CountUpPct: React.FC<{ pct: number; color: string; className?: string }> = ({ pct, color, className = '' }) => {
   const { ref, value } = useCountUp(pct, 900);
   return (
     <span ref={ref as React.RefObject<HTMLSpanElement>} style={{ ...PIXEL, color }} className={`tabular-nums leading-none ${className}`}>
-      {low ? '~' : ''}
       {Math.round(value)}%
     </span>
   );
 };
 
-const WatchButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick, label }) => (
+// Esfera de luz na cor da conexão. Acesa (nova ou número mudou): brilho
+// forte e duas ondas saindo dela. Apagada: só o vidro tingido.
+const ConnectionOrb: React.FC<{ onClick: () => void; color: string; glow: boolean; label: string }> = ({ onClick, color, glow, label }) => (
   <button
     type="button"
     onClick={onClick}
     aria-label={label}
     title={label}
-    className={`shrink-0 self-stretch min-w-[52px] px-3 sm:px-4 gap-2 text-[13px] font-medium hover:bg-white/[0.06] transition ${FOCUS_RING}`}
-    style={{ color: PAPER }}
+    className={`relative shrink-0 self-stretch w-[56px] sm:w-[64px] min-w-0 hover:bg-white/[0.06] transition ${FOCUS_RING}`}
   >
-    <Popcorn className="w-5 h-5 shrink-0 text-amber-200" aria-hidden />
-    <span className="hidden sm:inline whitespace-nowrap" aria-hidden>
-      {label}
+    <span className="relative grid place-items-center w-6 h-6" aria-hidden>
+      {glow && (
+        <>
+          <span className="connection-orb-wave absolute inset-0 rounded-full" style={{ background: withAlpha(color, 0.55) }} />
+          <span className="connection-orb-wave connection-orb-wave-late absolute inset-0 rounded-full" style={{ background: withAlpha(color, 0.55) }} />
+        </>
+      )}
+      <span
+        className="relative block w-6 h-6 rounded-full transition-[box-shadow,opacity] duration-500"
+        style={{
+          background: glow
+            ? `radial-gradient(circle at 34% 30%, #FFFFFF 0%, ${color} 38%, ${withAlpha(color, 0.7)} 72%, ${withAlpha(color, 0.35)} 100%)`
+            : `radial-gradient(circle at 34% 30%, rgba(255,255,255,0.45) 0%, ${withAlpha(color, 0.42)} 42%, ${withAlpha(color, 0.16)} 100%)`,
+          boxShadow: glow
+            ? `0 0 10px 2px ${withAlpha(color, 0.75)}, 0 0 26px 6px ${withAlpha(color, 0.35)}`
+            : `inset 0 0 0 1px ${withAlpha(color, 0.45)}`,
+        }}
+      />
     </span>
   </button>
 );
 
-const ConnectionStrip: React.FC<ConnectionStripProps> = ({ other, me, detail, status, guest, onOpen, className = '' }) => {
+const ConnectionStrip: React.FC<ConnectionStripProps> = ({ other, me, detail, status, guest, onOpen, glow = false, className = '' }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
 
@@ -143,7 +162,7 @@ const ConnectionStrip: React.FC<ConnectionStripProps> = ({ other, me, detail, st
 
   if (status !== 'ready' || !detail) return null;
 
-  const watchLabel = t('connection.strip.watch');
+  const orbLabel = t(glow ? 'connection.strip.orbNew' : 'connection.strip.orb', { username: other.username });
   const hasNumber = detail.pct !== null && detail.confidence !== 'none';
 
   if (!hasNumber) {
@@ -169,7 +188,7 @@ const ConnectionStrip: React.FC<ConnectionStripProps> = ({ other, me, detail, st
             <ChevronRight className="hidden sm:block w-4 h-4 shrink-0" style={{ color: MIST }} aria-hidden />
           </button>
           <span className="w-px my-3 bg-white/10 shrink-0" aria-hidden />
-          <WatchButton onClick={() => onOpen('watch')} label={watchLabel} />
+          <ConnectionOrb onClick={() => onOpen('calibrate')} color={NEUTRAL_TONE} glow={glow} label={orbLabel} />
         </div>
       </div>
     );
@@ -188,7 +207,7 @@ const ConnectionStrip: React.FC<ConnectionStripProps> = ({ other, me, detail, st
       : t('connection.strip.shared', { count: detail.shared_count });
   const posters = detail.loves.slice(0, 2).map((item) => connectionPoster(item, lang));
   const openLabel = t('connection.strip.openAria', {
-    value: formatConnection(pct, confidence),
+    value: formatConnection(pct),
     username: other.username,
     confidence: t(confidenceKey(confidence)),
   });
@@ -205,7 +224,7 @@ const ConnectionStrip: React.FC<ConnectionStripProps> = ({ other, me, detail, st
           {posters.length > 0 ? <PosterFan paths={posters} /> : <DuoAvatars me={me} other={other} size={26} />}
           <span className="min-w-0 flex-1 flex flex-col gap-1" aria-hidden>
             <span className="flex items-baseline gap-1.5 min-w-0">
-              <CountUpPct pct={pct} low={low} color={tone} className="text-[28px]" />
+              <CountUpPct pct={pct} color={tone} className="text-[28px]" />
               <span className="text-[13px] truncate" style={{ color: MIST }}>
                 {t('connection.label')}
               </span>
@@ -217,7 +236,7 @@ const ConnectionStrip: React.FC<ConnectionStripProps> = ({ other, me, detail, st
           <ChevronRight className="w-4 h-4 shrink-0" style={{ color: MIST }} aria-hidden />
         </button>
         <span className="w-px my-3 bg-white/10 shrink-0" aria-hidden />
-        <WatchButton onClick={() => onOpen('watch')} label={watchLabel} />
+        <ConnectionOrb onClick={() => onOpen()} color={tone} glow={glow} label={orbLabel} />
       </div>
     </div>
   );

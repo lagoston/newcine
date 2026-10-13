@@ -1876,7 +1876,7 @@
     "how": {
       "title": "How we calculate the connection",
       "body": "We only compare titles you both rated. First, each rating is adjusted to how each person rates: an 8 from someone who gives 9 to everything weighs less than an 8 from a tough critic. Then we look at three things: whether you rank films the same way, whether you love and hate the same titles, and whether your ratings are close. With few titles in common, the result stays near 50% — a typical pair in the community — and firms up as you rate more titles in common. Above 70%, the sync is rare.",
-      "confidence": "With 5 to 14 titles in common, the number is a preview (~). From 15 to 39, confidence is medium; from 40 on, high."
+      "confidence": "With 5 to 14 titles in common, the number is a preview. From 15 to 39, confidence is medium; from 40 on, high."
     },
     "ranking": {
       "title": "Your connections",
@@ -1943,7 +1943,9 @@
       "guest": "Find out your connection with @{{username}}",
       "signIn": "Sign in",
       "watch": "Watch together",
-      "openAria": "{{value}} connection with @{{username}}, {{confidence}}. Open the connection"
+      "openAria": "{{value}} connection with @{{username}}, {{confidence}}. Open the connection",
+      "orb": "Open your connection with @{{username}}",
+      "orbNew": "New connection with @{{username}} — open"
     },
     "hero": {
       "basis_one": "{{count}} title you both rated",
@@ -1986,7 +1988,21 @@
       "useAll": "Use all moods",
       "error": "Couldn't put a screening together right now.",
       "retry": "Try again",
-      "loading": "Setting up the screening…"
+      "loading": "Setting up the screening…",
+      "moodsTitle": "Session moods",
+      "reset": "Back to default",
+      "rewatch": "To rewatch together",
+      "mode": {
+        "title": "Who has seen it",
+        "unseen": "Neither",
+        "one": "Only one",
+        "both": "Both of you"
+      },
+      "modeHint": {
+        "unseen": "Titles neither of you has rated, by each one's predicted rating.",
+        "one": "One of you has seen it: the real rating of who saw it and the predicted one of who didn't.",
+        "both": "Titles you both rated, to rewatch: where your ratings matched best."
+      }
     },
     "calibrate": {
       "title": "Fine-tune the connection",
