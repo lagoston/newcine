@@ -118,17 +118,33 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: followRows } = await supabase
-      .from('follows')
-      .select('following_id')
-      .eq('follower_id', userId)
-      .in('following_id', uniqueFriendIds);
-
-    const followedIds = new Set((followRows || []).map((r: any) => r.following_id));
-    const notFollowed = uniqueFriendIds.filter((id) => !followedIds.has(id));
-    if (notFollowed.length > 0) {
+    // Quem pode entrar na sessão: amigos (amizade aceita) ou pessoas de
+    // perfil público. (Antes olhava a tabela antiga de "seguir", e quase
+    // todo amigo dava erro 403.)
+    const [{ data: friendRows, error: friendError }, { data: visibilityRows, error: visibilityError }] = await Promise.all([
+      supabase
+        .from('friendships')
+        .select('requester_id, addressee_id')
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
+      supabase.from('profiles').select('id, profile_visibility').in('id', uniqueFriendIds),
+    ]);
+    if (friendError || visibilityError) {
+      throw new Error(`Participants: ${(friendError || visibilityError)?.message}`);
+    }
+    const friendIdsSet = new Set(
+      (friendRows || []).map((r: any) => (r.requester_id === userId ? r.addressee_id : r.requester_id))
+    );
+    const visibilityById = new Map((visibilityRows || []).map((r: any) => [r.id, r.profile_visibility as string | null]));
+    const notAllowed = uniqueFriendIds.filter((id) => {
+      if (!visibilityById.has(id)) return true;
+      if (friendIdsSet.has(id)) return false;
+      const visibility = visibilityById.get(id);
+      return !(visibility === null || visibility === 'public');
+    });
+    if (notAllowed.length > 0) {
       return new Response(
-        JSON.stringify({ error: isPt ? 'Você precisa seguir todos os participantes escolhidos.' : 'You must follow all chosen participants.' }),
+        JSON.stringify({ error: isPt ? 'Só dá para incluir amigos ou perfis públicos.' : 'You can only include friends or public profiles.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
       );
     }

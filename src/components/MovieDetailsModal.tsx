@@ -17,6 +17,7 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { shareImageFile } from '../lib/shareImage';
 import { cache, CACHE_KEYS } from '../lib/cache';
 import RecommendModal from './RecommendModal';
 import ReviewsModal from './ReviewsModal';
@@ -1219,55 +1220,27 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       }
       ctx.fillText(line.trim(), canvas.width / 2, currentY);
 
-      // Converter canvas para blob
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          toast.error('Erro ao gerar imagem');
-          setIsSharing(false);
-          return;
-        }
-
-        // Criar arquivo
-        const file = new File([blob], 'cine-oracle-story.png', { type: 'image/png' });
-
-        // Verificar se pode compartilhar
-        if (navigator.share && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: `${movie.title} - Cine Oracle`,
-              text: `Assisti ${movie.title} e dei nota ${userRating}/10! 🎬`
-            });
-            toast.success('Compartilhado com sucesso!');
-          } catch (error) {
-            if ((error as Error).name !== 'AbortError') {
-              console.error('Erro ao compartilhar:', error);
-              // Fallback: baixar imagem
-              downloadImage(canvas);
-            }
-          } finally {
-            setIsSharing(false);
-          }
-        } else {
-          // Fallback: baixar imagem
-          downloadImage(canvas);
-          setIsSharing(false);
-        }
-      }, 'image/png');
-
+      // Compartilhar via lib/shareImage (13/10/2026): no app Android abre a
+      // folha de compartilhar do sistema (antes o download não fazia nada
+      // lá); no navegador, Web Share com o arquivo ou download.
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) {
+        toast.error('Erro ao gerar imagem');
+        return;
+      }
+      const route = await shareImageFile(blob, 'cine-oracle-story.png', {
+        title: `${movie.title} - Cine Oracle`,
+        text: userRating !== null ? `Assisti ${movie.title} e dei nota ${userRating}/10! 🎬` : `Assisti ${movie.title}! 🎬`,
+        dialogTitle: t('movieModal.shareStory'),
+      });
+      if (route === 'download') toast.success('Imagem baixada! Compartilhe no Instagram Stories.');
+      else if (route !== 'cancelled') toast.success('Compartilhado com sucesso!');
     } catch (error) {
       console.error('Error sharing to Instagram:', error);
       toast.error('Erro ao compartilhar. Tente novamente.');
+    } finally {
       setIsSharing(false);
     }
-  };
-
-  const downloadImage = (canvas: HTMLCanvasElement) => {
-    const link = document.createElement('a');
-    link.download = 'cine-oracle-story.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    toast.success('Imagem baixada! Compartilhe no Instagram Stories.');
   };
 
   const handleOpenTrailer = async () => {

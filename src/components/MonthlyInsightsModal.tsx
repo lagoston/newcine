@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import OptimizedPoster from './OptimizedPoster';
 import OracleSheet from './OracleSheet';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, POSTER_TITLE } from '../lib/oracleTheme';
+import { shareImageFile, downloadImageFile } from '../lib/shareImage';
 
 interface Props {
   isOpen: boolean;
@@ -515,42 +516,34 @@ const MonthlyInsightsModal: React.FC<Props> = ({ isOpen, onClose, userId }) => {
     }
   };
 
-  const downloadBlob = (blob: Blob) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
+  // Compartilhar/baixar via lib/shareImage (13/10/2026): no app Android
+  // abre a folha de compartilhar do sistema (antes o download não fazia
+  // nada lá); no navegador, Web Share com o arquivo ou download.
   const handleShare = async () => {
     if (!shareImageBlob) return;
     setSharing(true);
     try {
-      const file = new File([shareImageBlob], fileName, { type: 'image/png' });
-      if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title, text: t('insights.shareText', { month: monthName }) });
-      } else {
-        downloadBlob(shareImageBlob);
-        toast.success(t('insights.savedForStories'));
-      }
-      setDone(true);
+      const route = await shareImageFile(shareImageBlob, fileName, {
+        title,
+        text: t('insights.shareText', { month: monthName }),
+        dialogTitle: t('insights.shareTitle'),
+      });
+      if (route === 'download') toast.success(t('insights.savedForStories'));
+      if (route !== 'cancelled') setDone(true);
     } catch (err) {
-      if ((err as Error)?.name !== 'AbortError') toast.error(t('insights.shareError'));
+      console.error('Error sharing insights image:', err);
+      toast.error(t('insights.shareError'));
     } finally {
       setSharing(false);
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!shareImageBlob) return;
     try {
-      downloadBlob(shareImageBlob);
-      setDone(true);
-      toast.success(t('insights.downloaded'));
+      const route = await downloadImageFile(shareImageBlob, fileName, { dialogTitle: t('insights.shareTitle') });
+      if (route === 'download') toast.success(t('insights.downloaded'));
+      if (route !== 'cancelled') setDone(true);
     } catch {
       toast.error(t('insights.downloadError'));
     }

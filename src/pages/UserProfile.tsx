@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ListPlus, MessageSquare, UserCheck, UserPlus, Clock, Sparkles, Wand2, Loader2, Film, UserX, LogIn, User } from 'lucide-react';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { ArrowLeft, ListPlus, MessageSquare, UserCheck, UserPlus, Clock, Loader2, Film, UserX, LogIn, User } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -15,8 +15,11 @@ import UserPinsCard from '../components/UserPinsCard';
 import UserListsModal from '../components/UserListsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import UserReviewsModal from '../components/UserReviewsModal';
-import CompatibilityModal from '../components/CompatibilityModal';
-import MatchMovieModal from '../components/MatchMovieModal';
+import ConnectionStrip, { type ConnectionSection } from '../components/connection/ConnectionStrip';
+import ConnectionSheet from '../components/connection/ConnectionSheet';
+import { useConnectionMe } from '../components/connection/useConnectionMe';
+import { useConnection } from '../hooks/useConnection';
+import { invalidateConnections, type ConnectionSide } from '../lib/connection';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON, type ProfileActiveTag } from '../components/ProfileIdentityCard';
 import { useTagDecoration } from '../contexts/SeasonalEventContext';
 import { ProfileTasteGrid, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
@@ -33,7 +36,10 @@ import { getBannerTone } from '../lib/banners';
 // das resenhas...). Mesma "cara" do seu Perfil — cartão de identidade,
 // números, essência — com o que é próprio de visitar alguém:
 //   • amizade (adicionar, cancelar pedido, aceitar, desfazer)
-//   • Compatibilidade e Match Movie com você
+//   • a Conexão com você (13/10/2026): a faixa no cartão (número, o que
+//     une vocês, "Assistir juntos") e a gaveta Conexão. `?conexao=1` na URL
+//     abre a gaveta ao carregar (a Comunidade manda gente para cá assim);
+//     `?conexao=assistir` abre já em "Assistam juntos"
 //   • listas e resenhas dela
 //   • a coleção e o Info (personalidade, notas e o retrato de gosto), em
 //     abas. A coleção aparece do jeito que a pessoa organiza a própria
@@ -79,8 +85,9 @@ export default function UserProfile() {
   const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
   const [showUserListsModal, setShowUserListsModal] = useState(false);
   const [showUserReviewsModal, setShowUserReviewsModal] = useState(false);
-  const [showCompatibilityModal, setShowCompatibilityModal] = useState(false);
-  const [showMatchMovieModal, setShowMatchMovieModal] = useState(false);
+  // Gaveta Conexão (e a seção em que ela abre).
+  const [connectionSheet, setConnectionSheet] = useState<{ open: boolean; section: ConnectionSection | null }>({ open: false, section: null });
+  const [searchParams, setSearchParams] = useSearchParams();
   // A coleção abre primeiro (antes o retrato de gosto ficava recolhido
   // atrás de "Mostrar estatísticas").
   const [tab, setTab] = useState<Tab>('collection');
@@ -97,6 +104,24 @@ export default function UserProfile() {
     countryAvgRatings,
     refetch: refetchProfileData,
   } = useProfileData(profile?.id, i18n.language);
+
+  // Conexão com você (só com login e no perfil de outra pessoa; o gancho
+  // não pede nada nos outros casos).
+  const connection = useConnection(profile?.id);
+  const connectionMe = useConnectionMe();
+  const connectionParam = searchParams.get('conexao');
+  useEffect(() => {
+    if (!connectionParam || !profile?.id || !session?.user?.id || profile.id === session.user.id) return;
+    if (connection.status === 'loading' || connection.status === 'idle') return;
+    if (connection.status === 'ready' && connection.detail) {
+      setConnectionSheet({ open: true, section: connectionParam === 'assistir' ? 'watch' : null });
+    }
+    // Tira o parâmetro: fechar a gaveta e voltar não a reabre.
+    const next = new URLSearchParams(searchParams);
+    next.delete('conexao');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectionParam, profile?.id, session?.user?.id, connection.status, connection.detail]);
 
   // Organização da Biblioteca da pessoa (e, em Melhores da Década, a ordem
   // que ela escolheu em cada década).
@@ -146,6 +171,7 @@ export default function UserProfile() {
   useEffect(() => {
     if (username) {
       setTab('collection');
+      setConnectionSheet({ open: false, section: null });
       fetchProfileAndMovies();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -263,6 +289,7 @@ export default function UserProfile() {
         if (!data?.success) throw new Error(data?.error || 'request_failed');
 
         setFriendshipStatus('pending_sent');
+        invalidateConnections(profile.id);
         toast.success(t('profile.friendRequestSent', { username: profile.username }));
 
         // Um pedido de verdade, que aparece nos Sussurros com Aceitar/Recusar.
@@ -280,6 +307,7 @@ export default function UserProfile() {
 
         if (error) throw error;
         setFriendshipStatus('none');
+        invalidateConnections(profile.id);
         refetchProfileData();
         toast.success(t('profile.friendRequestCancelled'));
       } else if (friendshipStatus === 'pending_received') {
@@ -293,6 +321,7 @@ export default function UserProfile() {
         if (!data?.success) throw new Error(data?.error || 'accept_failed');
 
         setFriendshipStatus('friends');
+        invalidateConnections(profile.id);
         refetchProfileData();
         toast.success(t('profile.friendRequestAccepted', { username: profile.username }));
       } else {
@@ -303,6 +332,7 @@ export default function UserProfile() {
 
         if (error) throw error;
         setFriendshipStatus('none');
+        invalidateConnections(profile.id);
         refetchProfileData();
         toast.success(t('profile.friendRemoved', { username: profile.username }));
       }
@@ -430,8 +460,9 @@ export default function UserProfile() {
     }
   })();
 
-  // No celular: amizade numa linha inteira e os atalhos em grade 2×2; a
-  // partir do sm, tudo numa fileira só.
+  // No celular: amizade numa linha inteira e Listas | Resenhas embaixo; a
+  // partir do sm, tudo numa fileira só. (Compatibilidade e Match Movie
+  // viraram a faixa da Conexão, logo acima.)
   const actions = isSelf ? (
     <Link to="/profile" className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
       <User className="w-[18px] h-[18px] text-violet-300" aria-hidden />
@@ -450,18 +481,6 @@ export default function UserProfile() {
         )}
       </div>
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-        {session && (
-          <>
-            <button onClick={() => setShowCompatibilityModal(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
-              <Sparkles className="w-[18px] h-[18px] text-pink-300" aria-hidden />
-              {t('compatibility.buttonLabel')}
-            </button>
-            <button onClick={() => setShowMatchMovieModal(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
-              <Wand2 className="w-[18px] h-[18px] text-fuchsia-300" aria-hidden />
-              {t('matchMovie.buttonLabel')}
-            </button>
-          </>
-        )}
         <button onClick={() => setShowUserListsModal(true)} className={PROFILE_GHOST_BUTTON} style={{ color: PAPER }}>
           <ListPlus className="w-[18px] h-[18px] text-violet-300" aria-hidden />
           {t('profile.listsShort')}
@@ -472,6 +491,26 @@ export default function UserProfile() {
         </button>
       </div>
     </div>
+  );
+
+  // A outra pessoa na Conexão (avatares em dupla, story).
+  const otherSide: ConnectionSide = {
+    id: profile.id,
+    username: profile.username,
+    avatar_url: profile.avatar_url,
+    avatar_frame: profile.avatar_frame,
+    is_premium: isOwnerPremium,
+    persona_code: persona?.code ?? null,
+  };
+  const connectionStrip = isSelf ? undefined : (
+    <ConnectionStrip
+      other={otherSide}
+      me={connectionMe}
+      detail={connection.detail}
+      status={connection.status}
+      guest={!session}
+      onOpen={(section) => setConnectionSheet({ open: true, section: section ?? null })}
+    />
   );
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
@@ -499,6 +538,7 @@ export default function UserProfile() {
             joinedAt={profile.created_at}
             onFriendsClick={() => setShowFriendsModal(true)}
             actions={actions}
+            connection={connectionStrip}
             seasonalDecoration={seasonalDecoration}
           />
         </div>
@@ -688,22 +728,18 @@ export default function UserProfile() {
         <UserReviewsModal userId={profile.id} username={profile.username} onClose={() => setShowUserReviewsModal(false)} />
       )}
 
-      {showCompatibilityModal && profile.id && session?.user?.id && (
-        <CompatibilityModal
-          isOpen={showCompatibilityModal}
-          onClose={() => setShowCompatibilityModal(false)}
-          myUserId={session.user.id}
-          otherUserId={profile.id}
-          otherUsername={profile.username}
-        />
-      )}
-
-      {showMatchMovieModal && profile.id && session?.user?.id && (
-        <MatchMovieModal
-          isOpen={showMatchMovieModal}
-          onClose={() => setShowMatchMovieModal(false)}
-          otherUserId={profile.id}
-          otherUsername={profile.username}
+      {session?.user?.id && !isSelf && (
+        <ConnectionSheet
+          open={connectionSheet.open}
+          onClose={() => setConnectionSheet((prev) => ({ ...prev, open: false }))}
+          other={otherSide}
+          otherPersona={persona}
+          detail={connection.detail}
+          reload={connection.reload}
+          initialSection={connectionSheet.section}
+          friendship={friendshipStatus}
+          friendBusy={isToggling}
+          onFriendAction={handleFriendAction}
         />
       )}
 

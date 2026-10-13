@@ -8,6 +8,7 @@ import { useDebounce } from 'use-debounce';
 import { supabase, supabaseUrl } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { shareImageFile } from '../lib/shareImage';
 
 interface HypotheticalReview {
  review: string;
@@ -360,23 +361,14 @@ export default function OraclePrediction() {
  canvas.toBlob((blob) => resolve(blob!), 'image/png', 1.0);
  });
 
- if (navigator.share && navigator.canShare({ files: [new File([imageBlob], 'review.png', { type: 'image/png' })] })) {
- await navigator.share({
- files: [new File([imageBlob], 'review.png', { type: 'image/png' })],
+ // Compartilhar via lib/shareImage (13/10/2026): no app Android abre a
+ // folha de compartilhar do sistema; no navegador, Web Share ou download.
+ const route = await shareImageFile(imageBlob, `cineoracle-${selectedMovie.toLowerCase().replace(/\s+/g, '-')}.png`, {
  title: `CineOracle: ${selectedMovie}`,
- text: `Check out my hypothetical review from CineOracle!`
+ text: `Check out my hypothetical review from CineOracle!`,
+ dialogTitle: `CineOracle: ${selectedMovie}`,
  });
- } else {
- const url = URL.createObjectURL(imageBlob);
- const link = document.createElement('a');
- link.href = url;
- link.download = `cineoracle-${selectedMovie.toLowerCase().replace(/\s+/g, '-')}.png`;
- document.body.appendChild(link);
- link.click();
- document.body.removeChild(link);
- URL.revokeObjectURL(url);
- toast.success(t('common.imageDownloaded', 'Image downloaded successfully!'));
- }
+ if (route === 'download') toast.success(t('common.imageDownloaded', 'Image downloaded successfully!'));
  } catch (error) {
  console.error('Error sharing:', error);
  toast.error(t('common.error'));

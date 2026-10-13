@@ -78,7 +78,9 @@ const wrapLines = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number
   return lines;
 };
 
-export async function drawPersonaCard(input: PersonaCardInput, scale = 0.66): Promise<HTMLCanvasElement> {
+// Resolução cheia por padrão (13/10/2026): antes o padrão era 0.66 e o
+// arquivo saía com 713×1267 — pequeno demais para os stories.
+export async function drawPersonaCard(input: PersonaCardInput, scale = 1): Promise<HTMLCanvasElement> {
   // As fontes precisam estar prontas antes do primeiro fillText.
   try {
     // A amostra inclui L e Z: as letras do código vêm da fonte de glifos.

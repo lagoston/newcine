@@ -1215,7 +1215,10 @@
     "deleteAccountError": "Erro ao excluir conta",
     "confirmationRequired": "Por favor, digite EXCLUIR para confirmar",
     "friendsOnly": "Apenas amigos",
-    "friendsOnlyDescription": "Seu perfil é visível apenas para seus amigos"
+    "friendsOnlyDescription": "Seu perfil é visível apenas para seus amigos",
+    "discoverable": "Aparecer em Cinéfilos com o seu gosto",
+    "discoverableDescription": "Pessoas com gosto parecido podem ver você nas sugestões da Comunidade. Sua conexão com amigos continua aparecendo.",
+    "discoverableError": "Não foi possível salvar essa preferência"
   },
   "footer": {
     "madeWith": "Feito com ❤️ pela equipe CineOracle",
@@ -1851,5 +1854,156 @@
     },
     "giftedNote_one": "Você já tinha visto {{seen}} dos {{size}} filmes desta lista antes do evento, então {{count}} missão veio de presente.",
     "giftedNote_other": "Você já tinha visto {{seen}} dos {{size}} filmes desta lista antes do evento, então {{count}} missões vieram de presente."
+  },
+  "connection": {
+    "title": "Conexão",
+    "label": "conexão",
+    "subtitle": "Você e @{{username}}",
+    "confidence": {
+      "high": "confiança alta",
+      "medium": "confiança média",
+      "low": "prévia"
+    },
+    "tier": {
+      "seat": "Mesma Poltrona",
+      "session": "Mesma Sessão",
+      "cinema": "Mesmo Cinema",
+      "neighbors": "Salas Vizinhas",
+      "reverse": "Contraplano"
+    },
+    "tierLine": {
+      "seat": "Vocês veriam qualquer coisa juntos",
+      "session": "Gostos muito parecidos",
+      "cinema": "Boa sintonia, com divergências pontuais",
+      "neighbors": "Gostos diferentes, com pontes possíveis",
+      "reverse": "Visões opostas — ótimo para debates"
+    },
+    "how": {
+      "title": "Como calculamos a conexão",
+      "body": "Comparamos só os títulos que vocês dois avaliaram. Antes, ajustamos cada nota ao jeito de avaliar de cada um: um 8 de quem dá 9 para tudo pesa menos que um 8 de quem é exigente. Depois olhamos três coisas: se vocês ordenam os filmes do mesmo jeito, se amam e detestam os mesmos títulos, e se as notas ficam próximas. Com poucos filmes em comum, o resultado fica perto de 50% — um par típico da comunidade — e vai se firmando conforme vocês avaliam mais títulos em comum. Acima de 70%, a sintonia é rara.",
+      "confidence": "Com 5 a 14 títulos em comum, o número é uma prévia (~). De 15 a 39, a confiança é média; a partir de 40, alta."
+    },
+    "ranking": {
+      "title": "Suas conexões",
+      "hint": "Seus amigos, do gosto mais parecido ao mais distante",
+      "seeAll": "Ver todos os amigos",
+      "noData": "Ainda sem títulos em comum",
+      "itemAria": "{{place}}º: @{{username}}, {{value}} de conexão",
+      "itemNoDataAria": "@{{username}}: ainda sem títulos em comum"
+    },
+    "kindred": {
+      "title": "Cinéfilos com o seu gosto",
+      "hint": "Gente que ainda não é sua amiga e avalia os filmes parecido com você",
+      "notNow": "Agora não",
+      "notNowAria": "Agora não: esconder @{{username}} por 30 dias",
+      "shared_one": "{{count}} título em comum",
+      "shared_other": "{{count}} títulos em comum",
+      "openAria": "Ver a conexão com @{{username}}",
+      "previous": "Anteriores",
+      "next": "Próximos",
+      "lovedTogether": "Títulos que vocês dois amam"
+    },
+    "sort": {
+      "label": "Ordenar amigos",
+      "connection": "Conexão",
+      "az": "A–Z",
+      "hint": "A % é a sua conexão com cada um"
+    },
+    "share": {
+      "open": "Compartilhar nos stories",
+      "title": "Compartilhar conexão",
+      "subtitle": "Sua conexão com @{{username}}, pronta pros stories.",
+      "share": "Compartilhar",
+      "download": "Baixar imagem",
+      "generating": "Gerando a imagem…",
+      "error": "Não foi possível gerar a imagem.",
+      "retry": "Tentar de novo",
+      "shareError": "Não foi possível compartilhar a imagem.",
+      "downloaded": "Imagem baixada! Agora é só postar nos stories.",
+      "noScore": "Ainda não há uma conexão para compartilhar.",
+      "dialogTitle": "Compartilhar conexão",
+      "shareTitle": "Minha conexão no CineOracle",
+      "previewAlt": "Story da conexão: @{{me}} e @{{other}}, {{pct}}, {{tier}}"
+    },
+    "story": {
+      "shared_one": "{{count}} título em comum",
+      "shared_other": "{{count}} títulos em comum",
+      "loved": "Os dois amam",
+      "cta": "Qual é a sua conexão?"
+    },
+    "you": "Você",
+    "rated": {
+      "you": "Você deu {{rating}}",
+      "other": "@{{username}} deu {{rating}}"
+    },
+    "strip": {
+      "bond": "Os dois deram {{rating}} para {{title}}",
+      "shared_one": "{{count}} título em comum",
+      "shared_other": "{{count}} títulos em comum",
+      "preview_one": "Prévia · só {{count}} título em comum",
+      "preview_other": "Prévia · só {{count}} títulos em comum",
+      "forming": "Conexão em formação",
+      "formingHint_one": "Avaliem mais 1 título em comum para revelar",
+      "formingHint_other": "Avaliem mais {{count}} títulos em comum para revelar",
+      "guest": "Descubra sua conexão com @{{username}}",
+      "signIn": "Entrar",
+      "watch": "Assistir juntos",
+      "openAria": "{{value}} de conexão com @{{username}}, {{confidence}}. Abrir a conexão"
+    },
+    "hero": {
+      "basis_one": "{{count}} título que vocês dois avaliaram",
+      "basis_other": "{{count}} títulos que vocês dois avaliaram",
+      "basisNone": "Nenhum título avaliado pelos dois ainda",
+      "caption": "Ao fundo: {{title}}"
+    },
+    "loves": {
+      "title": "Os filmes que unem vocês",
+      "hint": "Os dois deram 8 ou mais"
+    },
+    "hates": {
+      "title": "E o que nenhum dos dois salva",
+      "hint": "Os dois deram 4 ou menos"
+    },
+    "debate": {
+      "title": "Onde o debate esquenta",
+      "hint": "As maiores diferenças de nota entre vocês",
+      "gap_one": "{{count}} ponto de diferença",
+      "gap_other": "{{count}} pontos de diferença"
+    },
+    "persona": {
+      "title": "Personalidades",
+      "shared_one": "{{count}} de 3 letras em comum",
+      "shared_other": "{{count}} de 3 letras em comum"
+    },
+    "moods": {
+      "title": "Humores lado a lado",
+      "hint": "Quanto de cada humor aparece nas avaliações de cada um"
+    },
+    "watch": {
+      "title": "Assistam juntos",
+      "moodsFrom": "Pelos humores de vocês",
+      "tonight": "Sessão da noite",
+      "duoScore": "Nota da dupla",
+      "duoHint": "A nota mais baixa pesa mais",
+      "another": "Outra sessão",
+      "adjust": "Ajustar",
+      "empty": "Nenhuma sessão com esses humores.",
+      "useAll": "Usar todos os humores",
+      "error": "Não deu para montar a sessão agora.",
+      "retry": "Tentar de novo",
+      "loading": "Montando a sessão…"
+    },
+    "calibrate": {
+      "title": "Afine a conexão",
+      "hint": "Viu algum destes? Cada título em comum deixa o número mais certeiro.",
+      "cta": "Avaliar",
+      "rate": "Avaliar {{title}}",
+      "added_one": "+{{count}} em comum",
+      "added_other": "+{{count}} em comum",
+      "now": "Agora: {{value}}"
+    },
+    "footer": {
+      "share": "Compartilhar nos stories"
+    }
   }
 }

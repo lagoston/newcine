@@ -7,11 +7,17 @@ import { MOOD_BY_KEY, MOOD_BY_LETTER } from '../lib/moods';
 import { personaText, posterUrl, topMoodKeys, type UserPersona } from '../lib/persona';
 import { drawPersonaCard } from '../lib/personaCard';
 import { NIGHT, PAPER, MIST, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
+import { canvasToBlob } from '../lib/storyCanvas';
+import { shareImageFile, downloadImageFile } from '../lib/shareImage';
 
 // Compartilhar personalidade: uma imagem 9:16 (pros stories) com o pôster
 // do personagem, o código de 3 letras, o título, as três prateleiras e o @.
 // A arte é desenhada num canvas (lib/personaCard) e a prévia mostra
 // exatamente a imagem que vai ser baixada/compartilhada.
+//
+// Compartilhar/baixar passam por lib/shareImage (13/10/2026): no app
+// Android abre a folha de compartilhar do sistema (antes nada acontecia);
+// no navegador, Web Share com o arquivo ou download.
 
 interface Props {
   isOpen: boolean;
@@ -22,7 +28,8 @@ interface Props {
 
 const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, username }) => {
   const { t, i18n } = useTranslation();
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // A imagem pronta (JPEG, resolução cheia) e a prévia (blob URL).
+  const blobRef = useRef<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
@@ -36,6 +43,7 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, username
     let cancelled = false;
     setDone(false);
     setPreview(null);
+    blobRef.current = null;
     const text = personaText(entry, i18n.language);
     const shelves = topMoodKeys(persona)
       .map((key) => MOOD_BY_KEY[key])
@@ -54,10 +62,11 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, username
       glow: MOOD_BY_LETTER[code.charAt(0)]?.color ?? '#8B5CF6',
       oracles: ORACLES.map((o) => ({ avatar: o.avatar, color: o.color })),
     })
-      .then((canvas) => {
+      .then((canvas) => canvasToBlob(canvas, 'image/jpeg', 0.92))
+      .then((blob) => {
         if (cancelled) return;
-        canvasRef.current = canvas;
-        setPreview(canvas.toDataURL('image/png'));
+        blobRef.current = blob;
+        setPreview(URL.createObjectURL(blob));
       })
       .catch((err) => {
         console.error('Error drawing persona card:', err);
@@ -69,63 +78,49 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, username
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, code, entry, i18n.language, username]);
 
+  // Libera a prévia anterior quando troca ou a gaveta some.
+  useEffect(
+    () => () => {
+      if (preview) URL.revokeObjectURL(preview);
+    },
+    [preview]
+  );
+
   if (!code || !entry) return null;
   const title = personaText(entry, i18n.language).title;
 
-  const getBlob = async (): Promise<Blob | null> => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-    return await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
-  };
-
-  const saveBlob = (blob: Blob) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `cineoracle-${code}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  const fileName = `cineoracle-${code}.jpg`;
 
   const handleShare = async () => {
+    const blob = blobRef.current;
+    if (!blob) return;
     setGenerating(true);
     try {
-      const blob = await getBlob();
-      if (!blob) throw new Error('no image');
-      const file = new File([blob], `cineoracle-${code}.png`, { type: 'image/png' });
-
-      if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `${code} — ${title}`,
-          text: t('oracle.share.shareText', { code, name: title }),
-        });
-        setDone(true);
-      } else {
-        saveBlob(blob);
-        setDone(true);
-        toast.success(t('oracle.share.downloadedStories'));
-      }
+      const route = await shareImageFile(blob, fileName, {
+        title: `${code} — ${title}`,
+        text: t('oracle.share.shareText', { code, name: title }),
+        dialogTitle: t('oracle.share.title'),
+      });
+      if (route !== 'cancelled') setDone(true);
+      if (route === 'download') toast.success(t('oracle.share.downloadedStories'));
     } catch (err: unknown) {
-      if ((err as { name?: string })?.name !== 'AbortError') {
-        toast.error(t('oracle.share.error'));
-      }
+      console.error('Error sharing persona card:', err);
+      toast.error(t('oracle.share.error'));
     } finally {
       setGenerating(false);
     }
   };
 
   const handleDownload = async () => {
+    const blob = blobRef.current;
+    if (!blob) return;
     setGenerating(true);
     try {
-      const blob = await getBlob();
-      if (!blob) throw new Error('no image');
-      saveBlob(blob);
-      setDone(true);
-      toast.success(t('oracle.share.downloaded'));
-    } catch {
+      const route = await downloadImageFile(blob, fileName, { dialogTitle: t('oracle.share.title') });
+      if (route !== 'cancelled') setDone(true);
+      if (route === 'download') toast.success(t('oracle.share.downloaded'));
+    } catch (err: unknown) {
+      console.error('Error saving persona card:', err);
       toast.error(t('oracle.share.error'));
     } finally {
       setGenerating(false);

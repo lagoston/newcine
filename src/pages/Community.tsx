@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, User, Users, Loader2, Crown, UserPlus, UserCheck, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Users, Loader2, Crown, UserPlus, UserCheck, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useDebounce } from 'use-debounce';
 import toast from 'react-hot-toast';
-import { getFrameClass, frameUsesComponent } from '../lib/frames';
-import { GhostRiderFrame } from '../components/GhostRiderFrame';
 import { getBannerClass, getBannerTone } from '../lib/banners';
 import { getTextEffectNameClass, getTextEffectSecondaryClass } from '../lib/textEffects';
 import { useTranslation } from 'react-i18next';
@@ -14,11 +12,24 @@ import { cache } from '../lib/cache';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, tagCategoryStyle } from '../lib/oracleTheme';
 import { useTagDecorations } from '../contexts/SeasonalEventContext';
 import { AvatarSeasonalAccessory, CardSeasonalScene, SeasonalCountdownMini } from '../components/seasonal/SeasonalDecor';
+import UserAvatar from '../components/UserAvatar';
+import FollowersModal from '../components/FollowersModal';
+import ConnectionChip from '../components/connection/ConnectionChip';
+import ConnectionsPodium from '../components/community/ConnectionsPodium';
+import KindredCarousel, { readKindredDismissed, writeKindredDismissed } from '../components/community/KindredCarousel';
+import { useConnectionScores } from '../hooks/useConnection';
+import { fetchMyConnections, invalidateConnections, type ConnectionPerson } from '../lib/connection';
 
 // Comunidade — "a praça".
 //   1. Cabeçalho: título e busca de membros.
-//   2. Membros: cartões com banner, moldura, efeito de texto e tag de cada
-//      pessoa, e o botão de amizade; paginados de 12 em 12.
+//   2. Suas conexões: seus amigos do gosto mais parecido ao mais distante
+//      (pódio + linhas; ver components/community/ConnectionsPodium).
+//   3. Cinéfilos com o seu gosto: quem ainda não é seu amigo e avalia
+//      parecido com você (carrossel; ver KindredCarousel).
+//   4. Membros: cartões com banner, moldura, efeito de texto e tag de cada
+//      pessoa, a sua conexão com ela e o botão de amizade; paginados de 12
+//      em 12.
+// As seções 2 e 3 somem durante uma busca (o resultado vem logo abaixo dela).
 // O que os amigos guardaram/avaliaram agora vive no Feed dos Amigos, na home.
 
 interface Profile {
@@ -44,6 +55,8 @@ interface Profile {
 type FriendshipStatus = 'none' | 'pending_sent' | 'pending_received' | 'friends';
 
 const USERS_PER_PAGE = 12;
+// Menos que isso, "Cinéfilos com o seu gosto" não aparece.
+const KINDRED_MIN = 2;
 
 export default function Community() {
   const { t, i18n } = useTranslation();
@@ -62,6 +75,13 @@ export default function Community() {
   const [totalMembers, setTotalMembers] = useState<number | null>(null);
   const [friendshipStatuses, setFriendshipStatuses] = useState<Record<string, FriendshipStatus>>({});
   const [togglingFriendId, setTogglingFriendId] = useState<string | null>(null);
+  // Conexão (13/10/2026): o ranking dos amigos e a descoberta.
+  const [friendConnections, setFriendConnections] = useState<ConnectionPerson[]>([]);
+  const [kindred, setKindred] = useState<ConnectionPerson[]>([]);
+  const [dismissed, setDismissed] = useState<Record<string, number>>(() => readKindredDismissed());
+  const [showFriends, setShowFriends] = useState(false);
+  const memberIds = useMemo(() => filteredProfiles.map((p) => p.id), [filteredProfiles]);
+  const memberScores = useConnectionScores(memberIds);
 
   const membersRef = useRef<HTMLElement>(null);
   const firstPageLoad = useRef(true);
@@ -105,6 +125,30 @@ export default function Community() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredProfiles]);
+
+  // Suas conexões (8 amigos) e Cinéfilos com o seu gosto (10 pessoas). Se
+  // falhar, as duas seções só não aparecem.
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    let cancelled = false;
+    fetchMyConnections('friends', 8)
+      .then((rows) => !cancelled && setFriendConnections(rows))
+      .catch(() => {});
+    fetchMyConnections('community', 10)
+      .then((rows) => !cancelled && setKindred(rows))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
+
+  const dismissKindred = (person: ConnectionPerson) => {
+    const next = { ...readKindredDismissed(), ...dismissed, [person.user_id]: Date.now() };
+    setDismissed(next);
+    writeKindredDismissed(next);
+  };
+
+  const visibleKindred = kindred.filter((p) => !dismissed[p.user_id]);
 
   const fetchProfiles = async () => {
     try {
@@ -202,6 +246,7 @@ export default function Community() {
         if (!data?.success) throw new Error(data?.error || 'request_failed');
 
         setFriendshipStatuses((prev) => ({ ...prev, [profileId]: 'pending_sent' }));
+        invalidateConnections(profileId);
         toast.success(t('profile.friendRequestSent', { username }));
 
         await supabase.from('friend_indications').insert({
@@ -217,6 +262,7 @@ export default function Community() {
         });
         if (error) throw error;
         setFriendshipStatuses((prev) => ({ ...prev, [profileId]: 'none' }));
+        invalidateConnections(profileId);
         toast.success(t('profile.friendRequestCancelled'));
       } else if (currentStatus === 'pending_received') {
         const { data, error } = await supabase.rpc('respond_to_friend_request', {
@@ -228,6 +274,7 @@ export default function Community() {
         if (!data?.success) throw new Error(data?.error || 'accept_failed');
 
         setFriendshipStatuses((prev) => ({ ...prev, [profileId]: 'friends' }));
+        invalidateConnections(profileId);
         toast.success(t('profile.friendRequestAccepted', { username }));
       }
     } catch (error) {
@@ -333,9 +380,8 @@ export default function Community() {
     const bannerClass = getBannerClass(profile.banner, premium);
     const nameClass = getTextEffectNameClass(profile.text_effect, premium, reviews);
     const secondaryClass = getTextEffectSecondaryClass(profile.text_effect, premium, reviews);
-    const rawFrame = getFrameClass(profile.avatar_frame, premium);
-    const frame = !rawFrame || rawFrame === 'ring-0' ? 'ring-2 ring-white/15' : rawFrame;
     const isMe = profile.id === session?.user?.id;
+    const score = memberScores.get(profile.id);
     // A parte de informações veste o tom do banner da pessoa (a cor do
     // contorno dele, escurecida até o limite que mantém o texto legível).
     const surface = getBannerTone(profile.banner, premium)?.surface ?? VELVET;
@@ -362,19 +408,7 @@ export default function Community() {
             {/* Sem anel em volta: a moldura da pessoa já é o contorno do
                 avatar (um anel na cor da info virava uma segunda borda). */}
             <span className="relative shrink-0 rounded-full">
-              {frameUsesComponent(profile.avatar_frame, premium) === 'GhostRiderFrame' && profile.avatar_url ? (
-                <GhostRiderFrame src={profile.avatar_url} alt="" size={72} />
-              ) : (
-                <span className={`block w-[72px] h-[72px] rounded-full overflow-hidden ${frame}`} style={{ background: NIGHT }}>
-                  {profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                  ) : (
-                    <span className="w-full h-full grid place-items-center" style={{ color: MIST }}>
-                      <User className="w-8 h-8" aria-hidden />
-                    </span>
-                  )}
-                </span>
-              )}
+              <UserAvatar user={{ ...profile, is_premium: premium }} size={72} />
               {decoration && <AvatarSeasonalAccessory eventId={decoration} size={72} />}
             </span>
             {session?.user?.id && <div className="mt-11">{friendButton(profile)}</div>}
@@ -408,6 +442,16 @@ export default function Community() {
           </p>
 
           <p className="mt-3 pt-3 border-t border-white/[0.07] flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" style={{ color: MIST }}>
+            {/* A sua conexão com a pessoa vem primeiro (some sem número e no
+                seu próprio cartão). Entra com um fade quando os números chegam. */}
+            {score && (
+              <span className="inline-flex items-center gap-2 animate-[fadeIn_0.35s_ease-out] motion-reduce:animate-none">
+                <ConnectionChip pct={score.pct} confidence={score.confidence} withLabel />
+                <span aria-hidden className="opacity-50">
+                  ·
+                </span>
+              </span>
+            )}
             <Users className="w-4 h-4 shrink-0" aria-hidden />
             <span>
               <span style={{ ...PIXEL, color: PAPER }} className="text-base">
@@ -478,6 +522,22 @@ export default function Community() {
           </label>
         </div>
       </section>
+
+      {/* ---------- Suas conexões e Cinéfilos com o seu gosto ---------- */}
+      {!isSearching && (
+        <>
+          <ConnectionsPodium items={friendConnections} onSeeAll={() => setShowFriends(true)} />
+          {visibleKindred.length >= KINDRED_MIN && (
+            <KindredCarousel
+              items={visibleKindred}
+              statuses={friendshipStatuses}
+              busyId={togglingFriendId}
+              onAddFriend={(person) => handleFriendAction(person.user_id, person.username)}
+              onDismiss={dismissKindred}
+            />
+          )}
+        </>
+      )}
 
       {/* ---------- Membros ---------- */}
       <section ref={membersRef} className="mt-12 border-t border-white/[0.07] pt-10 scroll-mt-20">
@@ -566,6 +626,9 @@ export default function Community() {
         </div>
       </section>
 
+      {showFriends && session?.user?.id && (
+        <FollowersModal isOpen={true} onClose={() => setShowFriends(false)} userId={session.user.id} initialSort="connection" />
+      )}
     </div>
   );
 }

@@ -13,6 +13,8 @@ import { AvatarSeasonalAccessory, ProfileSeasonalScene, SeasonalCountdown } from
 // de outra pessoa (Comunidade). Mostra banner, moldura, efeito de texto,
 // tag ativa, bio, amigos e data de entrada; quem usa decide as ações
 // (botões abaixo) e o que fica no canto (configurações, por exemplo).
+// No perfil de outra pessoa, a faixa da Conexão (13/10/2026) entra logo
+// abaixo de amigos/entrada, antes das ações (slot `connection`).
 
 // Botão "fantasma" padrão dos cartões de perfil.
 export const PROFILE_GHOST_BUTTON = `inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 bg-black/25 hover:bg-white/10 text-sm font-medium transition ${FOCUS_RING}`;
@@ -49,6 +51,8 @@ interface ProfileIdentityCardProps {
   // Quando presente, substitui nome/bio/amigos (formulário de edição).
   editor?: React.ReactNode;
   actions?: React.ReactNode;
+  // Faixa da Conexão com quem está vendo (só no perfil de outra pessoa).
+  connection?: React.ReactNode;
   // Perfil decorado de Halloween ou Natal (dono usando 🎃 Headless Horseman ou
   // 🎅 Ho Ho Ho). Quem calcula é useTagDecoration.
   seasonalDecoration?: SeasonalEventId | null;
@@ -72,6 +76,7 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
   avatarBadge,
   editor,
   actions,
+  connection,
   seasonalDecoration = null,
 }) => {
   const { t, i18n } = useTranslation();
@@ -173,6 +178,7 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
                     </span>
                   )}
                 </div>
+                {connection && <div className="mt-4">{connection}</div>}
                 {seasonalDecoration && (
                   <div className="mt-4 flex justify-center sm:justify-start">
                     <SeasonalCountdown eventId={seasonalDecoration} />

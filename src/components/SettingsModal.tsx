@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useId } from 'react';
-import { Crown, Send, AlertTriangle, Infinity as InfinityIcon, Settings, Globe2, Users, ChevronDown, Mail, Clock, LogOut } from 'lucide-react';
+import { Crown, Send, AlertTriangle, Infinity as InfinityIcon, Settings, Globe2, Users, ChevronDown, Mail, Clock, LogOut, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import toast from 'react-hot-toast';
@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import OracleSheet from './OracleSheet';
 import { LANGUAGES } from '../lib/languages';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
+import { invalidateConnections } from '../lib/connection';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -22,6 +23,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { t, i18n } = useTranslation();
   const currentLanguage = (LANGUAGES.find((l) => i18n.language?.startsWith(l.code)) || LANGUAGES[1]).code;
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends_only'>('public');
+  // Aparecer em "Cinéfilos com o seu gosto" (profiles.discoverable, padrão sim).
+  const [discoverable, setDiscoverable] = useState(true);
+  const [savingDiscoverable, setSavingDiscoverable] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -109,13 +113,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('profiles').select('profile_visibility').eq('id', session.user.id).single();
+      const { data, error } = await supabase.from('profiles').select('profile_visibility, discoverable').eq('id', session.user.id).single();
 
       if (error) throw error;
 
       if (data?.profile_visibility) {
         setProfileVisibility(data.profile_visibility);
       }
+      setDiscoverable(data?.discoverable !== false);
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
@@ -136,6 +141,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     } catch (error) {
       console.error('Error updating visibility:', error);
       toast.error(t('settings.visibilityError'));
+    }
+  };
+
+  // Muda na hora e volta atrás se não salvar. As listas da Conexão guardadas
+  // são esquecidas (quem aparece para quem mudou).
+  const handleDiscoverableToggle = async () => {
+    if (!session?.user?.id || savingDiscoverable) return;
+    const next = !discoverable;
+    setDiscoverable(next);
+    setSavingDiscoverable(true);
+    try {
+      const { error } = await supabase.from('profiles').update({ discoverable: next }).eq('id', session.user.id);
+      if (error) throw error;
+      invalidateConnections();
+    } catch (error) {
+      console.error('Error updating discoverable:', error);
+      setDiscoverable(!next);
+      toast.error(t('settings.discoverableError'));
+    } finally {
+      setSavingDiscoverable(false);
     }
   };
 
@@ -331,6 +356,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             );
           })}
         </div>
+
+        {/* Conexão (13/10/2026): aparecer ou não nas sugestões da Comunidade. */}
+        <button
+          type="button"
+          onClick={handleDiscoverableToggle}
+          role="switch"
+          aria-checked={discoverable}
+          disabled={loading}
+          className={`mt-2.5 w-full justify-start gap-3 p-3.5 rounded-xl text-left ring-1 transition disabled:opacity-60 ${FOCUS_RING} ${
+            discoverable ? 'ring-2 ring-violet-400/70 bg-violet-500/15' : 'ring-white/10 hover:ring-white/25'
+          }`}
+          style={{ background: discoverable ? undefined : VELVET }}
+        >
+          <span className={`grid place-items-center w-9 h-9 shrink-0 rounded-lg ${discoverable ? 'bg-violet-600 text-white' : 'bg-white/10 text-violet-300'}`}>
+            <Eye className="w-[18px] h-[18px]" aria-hidden />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-semibold" style={{ color: PAPER }}>
+              {t('settings.discoverable')}
+            </span>
+            <span className="block mt-0.5 text-xs leading-snug" style={{ color: MIST }}>
+              {t('settings.discoverableDescription')}
+            </span>
+          </span>
+          <span aria-hidden className={`relative block shrink-0 w-11 h-6 rounded-full transition-colors ${discoverable ? 'bg-violet-500' : 'bg-white/15'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${discoverable ? 'translate-x-5' : ''}`} />
+          </span>
+        </button>
       </section>
 
       {/* Idioma (saiu do topo do celular) */}

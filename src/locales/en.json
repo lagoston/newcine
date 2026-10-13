@@ -1212,7 +1212,10 @@
     "deleteAccountError": "Error deleting account",
     "confirmationRequired": "Please type DELETE to confirm",
     "friendsOnly": "Friends only",
-    "friendsOnlyDescription": "Your profile is only visible to your friends"
+    "friendsOnlyDescription": "Your profile is only visible to your friends",
+    "discoverable": "Show me in Film lovers with your taste",
+    "discoverableDescription": "People with similar taste can see you in the Community suggestions. Your connection with friends still shows.",
+    "discoverableError": "Couldn't save this preference"
   },
   "footer": {
     "madeWith": "Made with ❤️ by CineOracle team",
@@ -1846,5 +1849,156 @@
     },
     "giftedNote_one": "You had already seen {{seen}} of the {{size}} films on this list before the event, so {{count}} mission came as a gift.",
     "giftedNote_other": "You had already seen {{seen}} of the {{size}} films on this list before the event, so {{count}} missions came as a gift."
+  },
+  "connection": {
+    "title": "Connection",
+    "label": "connection",
+    "subtitle": "You and @{{username}}",
+    "confidence": {
+      "high": "high confidence",
+      "medium": "medium confidence",
+      "low": "preview"
+    },
+    "tier": {
+      "seat": "Same Seat",
+      "session": "Same Screening",
+      "cinema": "Same Cinema",
+      "neighbors": "Next-Door Screens",
+      "reverse": "Reverse Shot"
+    },
+    "tierLine": {
+      "seat": "You'd watch anything together",
+      "session": "Very similar taste",
+      "cinema": "Good sync, with a few disagreements",
+      "neighbors": "Different taste, with possible bridges",
+      "reverse": "Opposite views — great for debates"
+    },
+    "how": {
+      "title": "How we calculate the connection",
+      "body": "We only compare titles you both rated. First, each rating is adjusted to how each person rates: an 8 from someone who gives 9 to everything weighs less than an 8 from a tough critic. Then we look at three things: whether you rank films the same way, whether you love and hate the same titles, and whether your ratings are close. With few titles in common, the result stays near 50% — a typical pair in the community — and firms up as you rate more titles in common. Above 70%, the sync is rare.",
+      "confidence": "With 5 to 14 titles in common, the number is a preview (~). From 15 to 39, confidence is medium; from 40 on, high."
+    },
+    "ranking": {
+      "title": "Your connections",
+      "hint": "Your friends, from the closest taste to the most distant",
+      "seeAll": "See all friends",
+      "noData": "No titles in common yet",
+      "itemAria": "#{{place}}: @{{username}}, {{value}} connection",
+      "itemNoDataAria": "@{{username}}: no titles in common yet"
+    },
+    "kindred": {
+      "title": "Film lovers with your taste",
+      "hint": "People who aren't your friends yet and rate films the way you do",
+      "notNow": "Not now",
+      "notNowAria": "Not now: hide @{{username}} for 30 days",
+      "shared_one": "{{count}} title in common",
+      "shared_other": "{{count}} titles in common",
+      "openAria": "See your connection with @{{username}}",
+      "previous": "Previous",
+      "next": "Next",
+      "lovedTogether": "Titles you both love"
+    },
+    "sort": {
+      "label": "Sort friends",
+      "connection": "Connection",
+      "az": "A–Z",
+      "hint": "The % is your connection with each one"
+    },
+    "share": {
+      "open": "Share to stories",
+      "title": "Share connection",
+      "subtitle": "Your connection with @{{username}}, ready for stories.",
+      "share": "Share",
+      "download": "Download image",
+      "generating": "Creating the image…",
+      "error": "Couldn't create the image.",
+      "retry": "Try again",
+      "shareError": "Couldn't share the image.",
+      "downloaded": "Image downloaded! Now just post it to your stories.",
+      "noScore": "There's no connection to share yet.",
+      "dialogTitle": "Share connection",
+      "shareTitle": "My connection on CineOracle",
+      "previewAlt": "Connection story: @{{me}} and @{{other}}, {{pct}}, {{tier}}"
+    },
+    "story": {
+      "shared_one": "{{count}} title in common",
+      "shared_other": "{{count}} titles in common",
+      "loved": "Loved by both",
+      "cta": "What's your connection?"
+    },
+    "you": "You",
+    "rated": {
+      "you": "You gave it {{rating}}",
+      "other": "@{{username}} gave it {{rating}}"
+    },
+    "strip": {
+      "bond": "You both gave {{title}} a {{rating}}",
+      "shared_one": "{{count}} title in common",
+      "shared_other": "{{count}} titles in common",
+      "preview_one": "Preview · only {{count}} title in common",
+      "preview_other": "Preview · only {{count}} titles in common",
+      "forming": "Connection in the making",
+      "formingHint_one": "Rate 1 more title in common to reveal it",
+      "formingHint_other": "Rate {{count}} more titles in common to reveal it",
+      "guest": "Find out your connection with @{{username}}",
+      "signIn": "Sign in",
+      "watch": "Watch together",
+      "openAria": "{{value}} connection with @{{username}}, {{confidence}}. Open the connection"
+    },
+    "hero": {
+      "basis_one": "{{count}} title you both rated",
+      "basis_other": "{{count}} titles you both rated",
+      "basisNone": "No titles rated by both of you yet",
+      "caption": "In the background: {{title}}"
+    },
+    "loves": {
+      "title": "The films that bring you together",
+      "hint": "You both gave them 8 or more"
+    },
+    "hates": {
+      "title": "And what neither of you can save",
+      "hint": "You both gave them 4 or less"
+    },
+    "debate": {
+      "title": "Where the debate heats up",
+      "hint": "Your biggest rating gaps",
+      "gap_one": "{{count}}-point gap",
+      "gap_other": "{{count}}-point gap"
+    },
+    "persona": {
+      "title": "Personalities",
+      "shared_one": "{{count}} of 3 letters in common",
+      "shared_other": "{{count}} of 3 letters in common"
+    },
+    "moods": {
+      "title": "Moods side by side",
+      "hint": "How much of each mood shows up in each person's ratings"
+    },
+    "watch": {
+      "title": "Watch together",
+      "moodsFrom": "Based on your moods",
+      "tonight": "Tonight's screening",
+      "duoScore": "Duo score",
+      "duoHint": "The lower rating weighs more",
+      "another": "Another screening",
+      "adjust": "Adjust",
+      "empty": "No screening with these moods.",
+      "useAll": "Use all moods",
+      "error": "Couldn't put a screening together right now.",
+      "retry": "Try again",
+      "loading": "Setting up the screening…"
+    },
+    "calibrate": {
+      "title": "Fine-tune the connection",
+      "hint": "Seen any of these? Every title in common makes the number sharper.",
+      "cta": "Rate",
+      "rate": "Rate {{title}}",
+      "added_one": "+{{count}} in common",
+      "added_other": "+{{count}} in common",
+      "now": "Now: {{value}}"
+    },
+    "footer": {
+      "share": "Share to stories"
+    }
   }
 }

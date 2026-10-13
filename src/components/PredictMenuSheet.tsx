@@ -3,6 +3,7 @@ import { Star, Ticket, Timer, X, Instagram, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { shareImageFile } from '../lib/shareImage';
 import { supabase, supabaseUrl } from '../lib/supabase';
 
 interface PredictMenuSheetProps {
@@ -304,23 +305,14 @@ const PredictMenuSheet: React.FC<PredictMenuSheetProps> = ({ movieTitle, movieId
         canvas.toBlob((blob) => resolve(blob!), 'image/png', 1.0);
       });
 
-      if (navigator.share && navigator.canShare({ files: [new File([imageBlob], 'prediction.png', { type: 'image/png' })] })) {
-        await navigator.share({
-          files: [new File([imageBlob], 'prediction.png', { type: 'image/png' })],
-          title: `CineOracle: ${movieTitle}`,
-          text: `CineOracle prediction for ${movieTitle}`
-        });
-      } else {
-        const url = URL.createObjectURL(imageBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `cineoracle-${movieTitle.toLowerCase().replace(/\s+/g, '-')}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success(isPt ? 'Imagem salva!' : 'Image saved!');
-      }
+      // Compartilhar via lib/shareImage (13/10/2026): no app Android abre a
+      // folha de compartilhar do sistema; no navegador, Web Share ou download.
+      const route = await shareImageFile(imageBlob, `cineoracle-${movieTitle.toLowerCase().replace(/\s+/g, '-')}.png`, {
+        title: `CineOracle: ${movieTitle}`,
+        text: `CineOracle prediction for ${movieTitle}`,
+        dialogTitle: `CineOracle: ${movieTitle}`,
+      });
+      if (route === 'download') toast.success(isPt ? 'Imagem salva!' : 'Image saved!');
     } catch (error) {
       console.error('Error sharing prediction:', error);
       toast.error(isPt ? 'Erro ao compartilhar' : 'Failed to share');
