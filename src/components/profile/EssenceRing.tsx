@@ -1,30 +1,27 @@
-import React, { useId, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Info, Scroll, X } from 'lucide-react';
-import { MOODS, MOOD_BY_KEY, withMoodAlpha, type Mood } from '../../lib/moods';
+import { MOOD_BY_KEY, withMoodAlpha } from '../../lib/moods';
 import { personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../../lib/persona';
-import { PAPER, MIST, PIXEL, NIGHT, FOCUS_RING, glassPanel, ratingTone } from '../../lib/oracleTheme';
+import { PAPER, MIST, PIXEL, FOCUS_RING, glassPanel, ratingTone } from '../../lib/oracleTheme';
 import type { Affinity, MoodSlice } from '../../lib/tasteStats';
 import { PersonaCode, PersonaPoster, MoodChip } from '../PersonaBits';
 import { PersonaRevelationSheet, PersonaHowItWorksSheet } from '../PersonaSheets';
-import { ModuleTitle, formatOne, measureText, useElementWidth } from './observatoryKit';
+import MoodDial from './MoodDial';
+import { ModuleTitle, formatOne } from './observatoryKit';
 
 // Personalidade cinematográfica + roda dos humores, num bloco só (13/10/2026).
 //
-// A roda é um anel: o perímetro inteiro é dividido entre os 9 humores (as
-// prateleiras dos oráculos), cada um na sua cor e sempre no mesmo lugar, com
-// o tamanho do arco = a parte dos filmes da pessoa naquele humor. A letra e a
-// % vêm escritas no próprio arco. Os 3 humores do código da personalidade
-// ficam mais grossos, com o número da posição. Dentro do anel flutuam os
-// temas (palavras-chave do TMDB) mais bem avaliados.
-//
-// Ao lado, a personalidade: pôster, código, título e o começo da revelação
-// (tocar abre a Revelação completa), e as 3 prateleiras do código. Tocar
-// num humor — no anel ou numa das prateleiras — troca o painel pela leitura
-// daquele humor (o que ele diz, quantos filmes, a média, a prateleira) e os
-// temas do centro pelos temas dele. O "i" do canto abre o Como funciona.
+// À esquerda, o disco dos humores (MoodDial): um disco de vidro com o anel
+// dos 9 humores em volta e os temas mais bem avaliados no meio. À direita, a
+// personalidade: pôster, código, título e o começo da revelação (tocar abre
+// a Revelação completa), e as 3 prateleiras do código. Tocar num humor — no
+// anel ou numa das prateleiras — gira o anel até ele, troca o painel pela
+// leitura daquele humor (o que ele revela, quantos filmes, a média, a
+// prateleira) e os temas do meio pelos temas dele. O "i" do canto abre o
+// Como funciona.
 
 interface EssenceRingProps {
   slices: MoodSlice[];
@@ -37,111 +34,14 @@ interface EssenceRingProps {
   ownerName?: string;
 }
 
-// ---------- geometria do anel (unidades do viewBox) ----------
-const VIEW = 206;
-const R = 172; // centro do traço de um arco comum
-const W = 26; // espessura de um arco comum
-const INNER = R - W / 2; // borda de dentro, igual para todos os arcos
-const CODE_EXTRA = 8; // arcos do código: mais grossos para fora
-const SELECTED_EXTRA = 14;
-const DOTS_R = 150; // anel pontilhado por dentro
-const WORDS_R = 142; // raio onde as palavras cabem
-const GAP_DEG = 1.4;
-const MIN_ARC_DEG = 3.5;
-
-type ArcLayout = { mood: Mood; slice: MoodSlice | undefined; start: number; end: number };
-
-const toRad = (deg: number) => (deg * Math.PI) / 180;
-const polar = (deg: number, r: number) => ({ x: Math.cos(toRad(deg)) * r, y: Math.sin(toRad(deg)) * r });
-
-// Caminho de um arco (sentido horário). `reverse` desenha de trás pra frente —
-// usado no texto dos arcos de baixo, para as letras não ficarem de cabeça
-// pra baixo.
-function arcPath(r: number, from: number, to: number, reverse = false): string {
-  const a = polar(from, r);
-  const b = polar(to, r);
-  const large = to - from > 180 ? 1 : 0;
-  return reverse
-    ? `M ${b.x.toFixed(2)} ${b.y.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${a.x.toFixed(2)} ${a.y.toFixed(2)}`
-    : `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
-}
-
-// Divide a volta entre os humores pela parte de cada um; humor sem filme (ou
-// quase) fica com uma fatia mínima, só para marcar o lugar.
-function layoutArcs(bySlice: Map<string, MoodSlice>): ArcLayout[] {
-  const total = 360 - GAP_DEG * MOODS.length;
-  const raw = MOODS.map((mood) => (bySlice.get(mood.key)?.share ?? 0) * total);
-  const small = raw.map((deg) => deg < MIN_ARC_DEG);
-  const smallCount = small.filter(Boolean).length;
-  const bigSum = raw.reduce((sum, deg, i) => (small[i] ? sum : sum + deg), 0);
-  const free = total - smallCount * MIN_ARC_DEG;
-  const angles = raw.map((deg, i) => {
-    if (small[i]) return MIN_ARC_DEG;
-    return bigSum > 0 ? (deg / bigSum) * free : free / (MOODS.length - smallCount);
-  });
-  let cursor = -90 + GAP_DEG / 2;
-  return MOODS.map((mood, i) => {
-    const start = cursor;
-    const end = cursor + angles[i];
-    cursor = end + GAP_DEG;
-    return { mood, slice: bySlice.get(mood.key), start, end };
-  });
-}
-
-// ---------- palavras no centro ----------
-type WordBox = { item: Affinity; size: number; width: number };
-type WordRow = { y: number; words: WordBox[] };
-
-const WORD_GAP = 14;
-const WORD_GAP_COMPACT = 10;
-
-// Arruma as palavras em linhas dentro do círculo: as mais importantes nas
-// linhas do meio (as mais largas), as outras para fora. Usa o menor número
-// de linhas em que tudo cabe; se nada servir, deixa de fora as últimas.
-function packWords(words: WordBox[], radius: number, lineH: number, captionH: number, captionW: number, gap: number): { rows: WordRow[]; captionY: number } | null {
-  for (let count = words.length; count > 0; count--) {
-    const list = words.slice(0, count);
-    for (let k = 1; k <= 7; k++) {
-      const block = captionH + k * lineH;
-      const top = -block / 2;
-      const captionY = top + captionH / 2;
-      const ys = Array.from({ length: k }, (_, i) => top + captionH + lineH * i + lineH / 2);
-      const chord = (y: number, h: number) => {
-        const edge = Math.abs(y) + h / 2;
-        return edge >= radius ? 0 : 2 * Math.sqrt(radius * radius - edge * edge) * 0.94;
-      };
-      if (captionW > 0 && chord(captionY, captionH) < captionW) continue;
-      const widths = ys.map((y) => chord(y, lineH));
-      const order = ys.map((y, i) => ({ i, d: Math.abs(y) })).sort((a, b) => a.d - b.d).map((o) => o.i);
-      const rows: WordRow[] = ys.map((y) => ({ y, words: [] }));
-      const used = ys.map(() => 0);
-      let fits = true;
-      for (const word of list) {
-        const at = order.find((ri) => used[ri] + (rows[ri].words.length ? gap : 0) + word.width <= widths[ri]);
-        if (at === undefined) {
-          fits = false;
-          break;
-        }
-        used[at] += (rows[at].words.length ? gap : 0) + word.width;
-        rows[at].words.push(word);
-      }
-      if (fits) return { rows: rows.filter((row) => row.words.length > 0), captionY };
-    }
-  }
-  return null;
-}
-
 const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, personaLoading = false, topKeywords, isOwn, ownerName }) => {
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
-  const uid = useId().replace(/:/g, '');
   const [selected, setSelected] = useState<string | null>(null);
   const [showRevelation, setShowRevelation] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
-  const { ref: ringRef, width: ringPx } = useElementWidth<HTMLDivElement>();
 
   const bySlice = useMemo(() => new Map(slices.map((s) => [s.key, s])), [slices]);
-  const arcs = useMemo(() => layoutArcs(bySlice), [bySlice]);
   const codeKeys = useMemo(() => topMoodKeys(persona), [persona]);
   const hasPersona = Boolean(persona?.code && persona.persona);
   const text = hasPersona && persona?.persona ? personaText(persona.persona, i18n.language) : null;
@@ -154,26 +54,13 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
   const username = ownerName?.replace(/^@/, '');
   const toggle = (key: string) => setSelected((prev) => (prev === key ? null : key));
 
-  // ---------- palavras ----------
+  // ---------- palavras do disco ----------
   const words = selectedSlice ? selectedSlice.keywords : topKeywords;
   const caption = selectedMood
     ? t('profile.observatory.keywordsInMood', { mood: t(selectedMood.labelKey) })
     : ownerName
       ? t('profile.observatory.keywordsTitleOf', { name: ownerName })
       : t('profile.observatory.keywordsTitle');
-  const scale = ringPx > 0 ? ringPx / (VIEW * 2) : 0;
-  const compact = ringPx > 0 && ringPx < 380;
-  const packed = useMemo(() => {
-    if (!scale || words.length === 0) return null;
-    const sizes = compact ? [14, 12.5, 11.5] : [18, 15, 13];
-    const boxes: WordBox[] = words.map((item, i) => {
-      const size = i < 2 ? sizes[0] : i < 5 ? sizes[1] : sizes[2];
-      const width = measureText(item.name, size, 500) + 6 + measureText(formatOne(item.avg, i18n.language), compact ? 10 : 11, 500);
-      return { item, size, width };
-    });
-    const captionW = measureText(caption, 11, 400) + 8;
-    return packWords(boxes, WORDS_R * scale, compact ? 25 : 32, compact ? 18 : 22, captionW, compact ? WORD_GAP_COMPACT : WORD_GAP);
-  }, [words, scale, compact, caption, i18n.language]);
 
   if (counted === 0 && !hasPersona && !personaLoading) {
     return (
@@ -349,7 +236,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
     </div>
   ) : null;
 
-  // ---------- anel ----------
+  // ---------- bloco ----------
   return (
     <section className="relative h-full rounded-3xl p-5 sm:p-7 overflow-hidden" style={glassPanel(accent)}>
       <ModuleTitle
@@ -369,203 +256,15 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
       />
 
       <div className="mt-4 grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-6 md:gap-8 items-center">
-        <div ref={ringRef} className="relative mx-auto w-full max-w-[460px] aspect-square">
-          {!reduceMotion && (
-            <span
-              aria-hidden
-              className="absolute rounded-full taste-sweep"
-              style={{
-                inset: `${((VIEW - DOTS_R) / (VIEW * 2)) * 100}%`,
-                background: `conic-gradient(from 0deg, transparent 0deg, ${withMoodAlpha(selectedMood ?? MOOD_BY_KEY[codeKeys[0]] ?? MOODS[0], 0.13)} 30deg, transparent 62deg)`,
-              }}
-            />
-          )}
-
-          <svg viewBox={`${-VIEW} ${-VIEW} ${VIEW * 2} ${VIEW * 2}`} className="relative w-full h-full overflow-visible">
-            <defs>
-              <filter id={`${uid}-glow`} filterUnits="userSpaceOnUse" x={-VIEW} y={-VIEW} width={VIEW * 2} height={VIEW * 2}>
-                <feGaussianBlur stdDeviation="5" result="b" />
-                <feMerge>
-                  <feMergeNode in="b" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-              <radialGradient id={`${uid}-core`} cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor={accent} stopOpacity="0.16" />
-                <stop offset="70%" stopColor={NIGHT} stopOpacity="0.2" />
-                <stop offset="100%" stopColor={NIGHT} stopOpacity="0" />
-              </radialGradient>
-            </defs>
-
-            <circle r={INNER - 2} fill={`url(#${uid}-core)`} />
-            <circle r={DOTS_R} fill="none" stroke="rgba(243,234,211,0.16)" strokeWidth={1.2} strokeDasharray="1 6" strokeLinecap="round" />
-
-            {arcs.map(({ mood, slice, start, end }, i) => {
-              const share = slice?.share ?? 0;
-              const inCode = codeKeys.includes(mood.key);
-              const isSel = selected === mood.key;
-              const extra = isSel ? SELECTED_EXTRA : inCode ? CODE_EXTRA : 0;
-              const width = W + extra;
-              const rc = INNER + width / 2;
-              const mid = (start + end) / 2;
-              const midNorm = ((mid % 360) + 360) % 360;
-              const flip = midNorm > 0 && midNorm < 180;
-              const length = toRad(end - start) * rc;
-              const letterOnly = length < 64;
-              const showLabel = length >= 18;
-              const empty = share === 0;
-              const dim = selected !== null && !isSel;
-              const rank = codeKeys.indexOf(mood.key);
-              const badge = polar(mid, INNER + W + CODE_EXTRA + 2);
-              const label = t('profile.observatory.arcLabel', {
-                mood: t(mood.labelKey),
-                pct: pct(share),
-                count: slice?.films ?? 0,
-                avg: avgText(slice?.avg),
-              });
-              return (
-                <g
-                  key={mood.key}
-                  className="essence-arc"
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={isSel}
-                  aria-label={label}
-                  onClick={() => toggle(mood.key)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      toggle(mood.key);
-                    }
-                  }}
-                  style={{ cursor: 'pointer', opacity: dim ? 0.3 : 1 }}
-                >
-                  <title>{label}</title>
-                  {/* foco do teclado */}
-                  <path className="essence-focus" d={arcPath(rc, start, end)} fill="none" stroke={PAPER} strokeWidth={width + 6} />
-                  <motion.path
-                    d={arcPath(rc, start, end)}
-                    fill="none"
-                    stroke={mood.color}
-                    strokeOpacity={empty ? 0.28 : 1}
-                    strokeWidth={width}
-                    filter={isSel ? `url(#${uid}-glow)` : undefined}
-                    initial={reduceMotion ? false : { pathLength: 0 }}
-                    whileInView={{ pathLength: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.1 + i * 0.07, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                    style={{ transition: 'stroke-width 250ms ease' }}
-                  />
-                  {showLabel && (
-                    <>
-                      <path id={`${uid}-t-${mood.key}`} d={arcPath(rc, start, end, flip)} fill="none" stroke="none" />
-                      <motion.text
-                        initial={reduceMotion ? false : { opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: 0.5 + i * 0.07 }}
-                        fill={empty ? MIST : NIGHT}
-                        dominantBaseline="central"
-                        aria-hidden
-                      >
-                        <textPath href={`#${uid}-t-${mood.key}`} startOffset="50%" textAnchor="middle">
-                          <tspan fontSize={16} style={PIXEL}>
-                            {mood.letter}
-                          </tspan>
-                          {!letterOnly && (
-                            <tspan fontSize={12.5} fontWeight={700} dx={6}>
-                              {pct(share)}
-                            </tspan>
-                          )}
-                        </textPath>
-                      </motion.text>
-                    </>
-                  )}
-                  {rank >= 0 && (
-                    <g aria-hidden>
-                      <circle cx={badge.x} cy={badge.y} r={8.5} fill={NIGHT} stroke={mood.color} strokeWidth={1.5} />
-                      <text x={badge.x} y={badge.y} textAnchor="middle" dominantBaseline="central" fontSize={10.5} fill={mood.color} style={PIXEL}>
-                        {rank + 1}
-                      </text>
-                    </g>
-                  )}
-                  {/* área de toque maior que o arco */}
-                  <path d={arcPath(rc, start, end)} fill="none" stroke="transparent" strokeWidth={width + 18} />
-                </g>
-              );
-            })}
-          </svg>
-
-          {/* temas flutuando dentro do anel */}
-          <div className="absolute inset-0 pointer-events-none" aria-live="polite">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={selected ?? 'all'}
-                className="absolute inset-0"
-                initial={reduceMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {packed && ringPx > 0 ? (
-                  <>
-                    <p
-                      className="absolute left-0 right-0 text-center text-[11px] leading-none"
-                      style={{ top: ringPx / 2 + packed.captionY - 6, color: MIST }}
-                    >
-                      {caption}
-                    </p>
-                    {packed.rows.map((row, ri) => (
-                      <div
-                        key={ri}
-                        className="absolute left-0 right-0 flex items-center justify-center"
-                        style={{ top: ringPx / 2 + row.y - (compact ? 12.5 : 16), height: compact ? 25 : 32, columnGap: compact ? WORD_GAP_COMPACT : WORD_GAP }}
-                      >
-                        {row.words.map(({ item, size }, wi) => {
-                          const order = words.indexOf(item);
-                          return (
-                            <motion.span
-                              key={item.key}
-                              initial={reduceMotion ? false : { opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: 0.15 + order * 0.05, type: 'spring', stiffness: 320, damping: 22 }}
-                              className="inline-flex items-baseline gap-1.5 whitespace-nowrap"
-                              title={t('profile.observatory.keywordTitle', { name: item.name, count: item.count, avg: formatOne(item.avg, i18n.language) })}
-                            >
-                              <span
-                                className={reduceMotion ? 'inline-flex items-baseline gap-1.5' : 'taste-float inline-flex items-baseline gap-1.5'}
-                                style={{ animationDelay: `${((ri * 3 + wi) % 6) * 0.65}s`, animationDuration: `${5 + ((ri + wi) % 3)}s` }}
-                              >
-                                <span
-                                  className="capitalize font-medium leading-none"
-                                  style={{
-                                    fontSize: size,
-                                    color: PAPER,
-                                    opacity: order < 2 ? 1 : order < 5 ? 0.9 : 0.78,
-                                    textShadow: selectedMood ? `0 0 14px ${withMoodAlpha(selectedMood, 0.55)}` : '0 0 14px rgba(139,92,246,0.35)',
-                                  }}
-                                >
-                                  {item.name}
-                                </span>
-                                <span className="leading-none tabular-nums" style={{ ...PIXEL, fontSize: compact ? 10 : 11, color: ratingTone(Math.round(item.avg)).color }}>
-                                  {formatOne(item.avg, i18n.language)}
-                                </span>
-                              </span>
-                            </motion.span>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </>
-                ) : ringPx > 0 ? (
-                  <p className="absolute inset-[26%] grid place-items-center text-center text-[12px] leading-snug" style={{ color: MIST }}>
-                    {selectedMood ? t('profile.observatory.keywordsEmptyMood') : t('profile.observatory.keywordsEmpty')}
-                  </p>
-                ) : null}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
+        <MoodDial
+          slices={slices}
+          codeKeys={codeKeys}
+          selected={selected}
+          onToggle={toggle}
+          words={words}
+          caption={caption}
+          emptyText={selectedMood ? t('profile.observatory.keywordsEmptyMood') : t('profile.observatory.keywordsEmpty')}
+        />
 
         {/* painel: personalidade ou o humor escolhido */}
         <div className="min-w-0">
