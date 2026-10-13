@@ -843,37 +843,21 @@ img[loading="lazy"] {
     transform: translate3d(-1.5px, -1.5px, 0);
   }
 }
-/* Disco dos humores (perfil): o anel entra girando e o vidro aparece. */
-.essence-ring-in {
-  animation: essence-ring-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+/* Frascos das prateleiras (perfil): a superfície do líquido ondula. */
+.mood-wave {
+  animation: mood-wave 3.6s linear infinite;
 }
-@keyframes essence-ring-in {
+@keyframes mood-wave {
   from {
-    opacity: 0;
-    transform: rotate(-50deg) scale(0.94);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.essence-disc-in {
-  animation: essence-disc-in 0.9s ease-out both;
-}
-@keyframes essence-disc-in {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: none;
+    transform: translate3d(-50%, 0, 0);
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .taste-float,
-  .essence-ring-in,
-  .essence-disc-in {
+  .mood-wave {
     animation: none;
   }
 }

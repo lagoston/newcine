@@ -33,6 +33,8 @@ export interface MoodSlice {
   share: number;
   avg: number | null;
   keywords: Affinity[];
+  // os títulos mais bem avaliados da pessoa nesse humor (para os pôsteres)
+  top: MovieWithRating[];
 }
 
 export interface DecadeBand {
@@ -163,7 +165,7 @@ export function moodSlices(movies: MovieWithRating[], moodByMovie: Map<number, s
     if (usePersona) {
       const s = persona!.scores.find((score) => score.moodKey === mood.key);
       const films = s?.films ?? 0;
-      return { key: mood.key, films, share: total > 0 ? films / total : 0, avg: films > 0 ? (s!.score as number) / films : null, keywords: [] };
+      return { key: mood.key, films, share: total > 0 ? films / total : 0, avg: films > 0 ? (s!.score as number) / films : null, keywords: [], top: [] };
     }
     const list = byMood.get(mood.key) || [];
     const avg = list.length > 0 ? list.reduce((sum, m) => sum + (m.userRating as number), 0) / list.length : null;
@@ -173,6 +175,9 @@ export function moodSlices(movies: MovieWithRating[], moodByMovie: Map<number, s
       share: total > 0 ? list.length / total : 0,
       avg,
       keywords: keywordAffinity(list, avg ?? prior, { minCount: 2, limit: 6 }),
+      top: [...list]
+        .sort((a, b) => (b.userRating as number) - (a.userRating as number) || (b.vote_average || 0) - (a.vote_average || 0))
+        .slice(0, 4),
     };
   });
 }

@@ -1,27 +1,35 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Info, Scroll, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { ArrowUpRight, Film, Info, Scroll, X } from 'lucide-react';
 import { MOOD_BY_KEY, withMoodAlpha } from '../../lib/moods';
 import { personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../../lib/persona';
-import { PAPER, MIST, PIXEL, FOCUS_RING, glassPanel, ratingTone } from '../../lib/oracleTheme';
+import { PAPER, MIST, PIXEL, VELVET, FOCUS_RING, glassPanel, ratingTone } from '../../lib/oracleTheme';
+import { getMovieDetailsFromDB, type Movie } from '../../lib/tmdb';
 import type { Affinity, MoodSlice } from '../../lib/tasteStats';
-import { PersonaCode, PersonaPoster, MoodChip } from '../PersonaBits';
+import type { MovieWithRating } from '../../hooks/useProfileData';
+import { PersonaCode, PersonaPoster } from '../PersonaBits';
 import { PersonaRevelationSheet, PersonaHowItWorksSheet } from '../PersonaSheets';
-import MoodDial from './MoodDial';
+import MovieDetailsModal from '../MovieDetailsModal';
+import MoodGrid from './MoodGrid';
+import KeywordCloud from './KeywordCloud';
 import { ModuleTitle, formatOne } from './observatoryKit';
 
-// Personalidade cinematográfica + roda dos humores, num bloco só (13/10/2026).
+// Personalidade cinematográfica + as 9 prateleiras, num bloco só (13/10/2026,
+// terceira versão — sem círculo).
 //
-// À esquerda, o disco dos humores (MoodDial): um disco de vidro com o anel
-// dos 9 humores em volta e os temas mais bem avaliados no meio. À direita, a
-// personalidade: pôster, código, título e o começo da revelação (tocar abre
-// a Revelação completa), e as 3 prateleiras do código. Tocar num humor — no
-// anel ou numa das prateleiras — gira o anel até ele, troca o painel pela
-// leitura daquele humor (o que ele revela, quantos filmes, a média, a
-// prateleira) e os temas do meio pelos temas dele. O "i" do canto abre o
-// Como funciona.
+// À esquerda, a grade 3×3 de frascos (MoodGrid): cada humor com o líquido
+// no nível da parte dos filmes da pessoa nele; os 3 do código numerados.
+// À direita, a personalidade: pôster, código, título e o começo da revelação
+// (tocar abre a Revelação completa) e os temas que a pessoa mais ama
+// (KeywordCloud: tamanho = nota média, poucos de cada vez, alternando).
+//
+// Tocar num frasco troca o painel pela leitura daquele humor: a %, quantos
+// filmes, a média, o que ele revela, os títulos mais bem avaliados ali
+// (pôsteres que abrem o filme), os temas dele e a prateleira. O X volta
+// para a personalidade. O "i" do canto abre o Como funciona.
 
 interface EssenceRingProps {
   slices: MoodSlice[];
@@ -34,12 +42,30 @@ interface EssenceRingProps {
   ownerName?: string;
 }
 
+// Celular estreito: frascos mais baixos e menos palavras por vez.
+function useCompact() {
+  const query = '(max-width: 639px)';
+  const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const update = () => setCompact(media.matches);
+    update();
+    media.addEventListener?.('change', update);
+    return () => media.removeEventListener?.('change', update);
+  }, []);
+  return compact;
+}
+
 const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, personaLoading = false, topKeywords, isOwn, ownerName }) => {
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
+  const compact = useCompact();
+  const panelRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [showRevelation, setShowRevelation] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [movie, setMovie] = useState<Movie | null>(null);
+  const [opening, setOpening] = useState<number | null>(null);
 
   const bySlice = useMemo(() => new Map(slices.map((s) => [s.key, s])), [slices]);
   const codeKeys = useMemo(() => topMoodKeys(persona), [persona]);
@@ -52,15 +78,27 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
   const pct = (share: number) => `${Math.round(share * 100)}%`;
   const avgText = (avg: number | null | undefined) => (typeof avg === 'number' ? formatOne(avg, i18n.language) : '–');
   const username = ownerName?.replace(/^@/, '');
+
   const toggle = (key: string) => setSelected((prev) => (prev === key ? null : key));
 
-  // ---------- palavras do disco ----------
-  const words = selectedSlice ? selectedSlice.keywords : topKeywords;
-  const caption = selectedMood
-    ? t('profile.observatory.keywordsInMood', { mood: t(selectedMood.labelKey) })
-    : ownerName
-      ? t('profile.observatory.keywordsTitleOf', { name: ownerName })
-      : t('profile.observatory.keywordsTitle');
+  // No celular o painel fica embaixo da grade: ao escolher um humor, traz o
+  // painel para a tela se ele estiver escondido.
+  useEffect(() => {
+    if (!selected || !compact || !panelRef.current) return;
+    const rect = panelRef.current.getBoundingClientRect();
+    if (rect.top > window.innerHeight - 160) panelRef.current.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+  }, [selected, compact, reduceMotion]);
+
+  const openMovie = async (item: MovieWithRating) => {
+    setOpening(item.id);
+    try {
+      setMovie(await getMovieDetailsFromDB(item.id, item.media_type === 'tv' ? 'tv' : 'movie'));
+    } catch {
+      toast.error(t('common.error'));
+    } finally {
+      setOpening(null);
+    }
+  };
 
   if (counted === 0 && !hasPersona && !personaLoading) {
     return (
@@ -76,8 +114,23 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
     );
   }
 
-  // ---------- painel ao lado do anel ----------
+  const sectionLabel = (label: string) => (
+    <p className="text-[12px] font-medium" style={{ color: MIST }}>
+      {label}
+    </p>
+  );
+
+  // ---------- painel: personalidade ----------
   const personaPanel = (() => {
+    const themes = (
+      <div className="mt-5 pt-4 border-t border-white/[0.07]">
+        {sectionLabel(ownerName ? t('profile.observatory.keywordsTitleOf', { name: ownerName }) : t('profile.observatory.keywordsTitle'))}
+        <div className="mt-2">
+          <KeywordCloud words={topKeywords} perGroup={compact ? 4 : 5} accent={accent} emptyText={t('profile.observatory.keywordsEmpty')} compact={compact} />
+        </div>
+      </div>
+    );
+
     if (personaLoading) {
       return (
         <div className="flex gap-4" aria-busy="true">
@@ -110,6 +163,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
               <ArrowUpRight className="w-4 h-4" aria-hidden />
             </Link>
           )}
+          {themes}
         </div>
       );
     }
@@ -121,7 +175,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
           className={`group w-full flex items-start justify-start gap-4 text-left rounded-2xl p-2 -m-2 transition hover:bg-white/[0.04] ${FOCUS_RING}`}
           aria-label={`${t('oracle.revelation')}: ${text.title}`}
         >
-          <PersonaPoster path={persona.persona.posterPath} alt="" className="w-[76px] sm:w-[88px] shrink-0 rounded-lg" />
+          <PersonaPoster path={persona.persona.posterPath} alt="" className="w-[72px] sm:w-[84px] shrink-0 rounded-lg" />
           <span className="min-w-0 flex flex-col">
             <PersonaCode code={persona.code as string} className="text-4xl sm:text-[44px] leading-none" />
             <span className="mt-1.5 text-lg font-semibold leading-snug" style={{ color: PAPER }}>
@@ -146,27 +200,12 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
           <Scroll className="w-4 h-4" aria-hidden />
           {t('profile.observatory.readRevelation')}
         </button>
-
-        {codeKeys.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-white/[0.07]">
-            <p className="text-[12px]" style={{ color: MIST }}>
-              {isOwn ? t('profile.observatory.codeShelves') : t('profile.observatory.codeShelvesOf', { name: ownerName })}
-            </p>
-            <ul className="mt-2 flex flex-wrap gap-1.5">
-              {codeKeys.map((key, i) => (
-                <li key={key}>
-                  <button type="button" onClick={() => toggle(key)} className={`rounded-full transition hover:brightness-125 ${FOCUS_RING}`} aria-pressed={selected === key}>
-                    <MoodChip moodKey={key} rank={i + 1} size="sm" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {themes}
       </div>
     );
   })();
 
+  // ---------- painel: humor escolhido ----------
   const moodPanel = selectedMood ? (
     <div>
       <div className="flex items-start justify-between gap-3">
@@ -225,9 +264,56 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
         {t(selectedMood.readingKey)}
       </p>
 
+      {selectedSlice && selectedSlice.top.length > 0 && (
+        <div className="mt-4">
+          {sectionLabel(isOwn ? t('profile.observatory.moodTop') : t('profile.observatory.moodTopOf', { name: ownerName }))}
+          <ul className="mt-2 grid grid-cols-4 gap-2 max-w-[320px]">
+            {selectedSlice.top.map((item) => {
+              const tone = ratingTone(item.userRating);
+              return (
+                <li key={`${item.media_type}:${item.id}`} className="min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => openMovie(item)}
+                    className={`group relative block w-full aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/10 hover:ring-white/30 transition ${FOCUS_RING}`}
+                    style={{ background: VELVET }}
+                    aria-label={`${item.title}${typeof item.userRating === 'number' ? ` · ${item.userRating}` : ''}`}
+                    title={item.title}
+                  >
+                    {item.poster_path ? (
+                      <img src={`https://image.tmdb.org/t/p/w185${item.poster_path}`} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300" />
+                    ) : (
+                      <span className="absolute inset-0 grid place-items-center" style={{ color: MIST }}>
+                        <Film className="w-5 h-5" aria-hidden />
+                      </span>
+                    )}
+                    {typeof item.userRating === 'number' && (
+                      <span
+                        className="absolute bottom-1 right-1 h-5 min-w-[20px] px-1 grid place-items-center rounded-md text-[12px] leading-none"
+                        style={{ ...PIXEL, background: 'rgba(18,13,34,0.86)', color: tone.color, boxShadow: `inset 0 0 0 1px ${tone.ring}` }}
+                      >
+                        {item.userRating}
+                      </span>
+                    )}
+                    {opening === item.id && <span className="absolute inset-0 bg-black/50 animate-pulse" />}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-4">
+        {sectionLabel(t('profile.observatory.keywordsInMood', { mood: t(selectedMood.labelKey) }))}
+        <div className="mt-2">
+          <KeywordCloud words={selectedSlice?.keywords ?? []} perGroup={compact ? 4 : 5} accent={selectedMood.color} emptyText={t('profile.observatory.keywordsEmptyMood')} compact={compact} />
+        </div>
+      </div>
+
       <Link
         to={`/oracle/libraries?oracle=bogart&type=movie&mood=${selectedMood.key}`}
-        className={`mt-4 inline-flex items-center justify-start gap-1.5 text-sm font-medium rounded ${FOCUS_RING}`}
+        className={`mt-3 inline-flex items-center justify-start gap-1.5 text-sm font-medium rounded ${FOCUS_RING}`}
         style={{ color: selectedMood.color }}
       >
         {t('profile.observatory.openShelf')}
@@ -255,19 +341,15 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
         }
       />
 
-      <div className="mt-4 grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-6 md:gap-8 items-center">
-        <MoodDial
-          slices={slices}
-          codeKeys={codeKeys}
-          selected={selected}
-          onToggle={toggle}
-          words={words}
-          caption={caption}
-          emptyText={selectedMood ? t('profile.observatory.keywordsEmptyMood') : t('profile.observatory.keywordsEmpty')}
-        />
-
-        {/* painel: personalidade ou o humor escolhido */}
+      <div className="mt-5 grid md:grid-cols-[minmax(0,440px)_minmax(0,1fr)] gap-6 md:gap-10 items-start">
         <div className="min-w-0">
+          <MoodGrid slices={slices} codeKeys={codeKeys} selected={selected} onToggle={toggle} compact={compact} />
+          <p className="mt-3 text-[12px] leading-snug" style={{ color: MIST }}>
+            {isOwn ? t('profile.observatory.gridHint') : t('profile.observatory.gridHintOf', { name: ownerName })}
+          </p>
+        </div>
+
+        <div ref={panelRef} className="min-w-0 scroll-mt-24">
           <AnimatePresence mode="wait">
             <motion.div
               key={selected ?? 'persona'}
@@ -284,6 +366,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
 
       {hasPersona && persona && <PersonaRevelationSheet open={showRevelation} onClose={() => setShowRevelation(false)} persona={persona} isOwn={isOwn} />}
       <PersonaHowItWorksSheet open={showHowItWorks} onClose={() => setShowHowItWorks(false)} persona={persona} isOwn={isOwn} />
+      {movie && <MovieDetailsModal movie={movie} isOpen={true} onClose={() => setMovie(null)} />}
     </section>
   );
 };
