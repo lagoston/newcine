@@ -170,26 +170,29 @@ const frameAt = (t: number, orb: { x: number; y: number } | null): Frame => {
 const scrollMarks = (person: 'ex' | 'lucas'): { at: number; section: string | null }[] =>
   person === 'ex'
     ? [
-        { at: TL.exOpen, section: null },
+        { at: TL.exOpen, section: 'hero' },
         { at: TL.debates, section: 'debates' },
         { at: TL.personas, section: 'personas' },
         { at: TL.moods, section: 'moods' },
       ]
     : [
-        { at: TL.lucasOpen, section: null },
+        { at: TL.lucasOpen, section: 'hero' },
         { at: TL.watch, section: 'watch' },
       ];
 
 const sheetBody = () => document.querySelector<HTMLElement>('[role="dialog"] .overscroll-contain');
+// Quanto cada seção fica abaixo do topo da gaveta: a narradora cobre a metade
+// de baixo do quadro, então o que importa sobe.
+const OFFSETS: Record<string, number> = { hero: 46, debates: 6, personas: 58, moods: -14, watch: 150 };
 const sectionTop = (body: HTMLElement, section: string | null) => {
   if (!section) return 0;
+  if (section === 'hero') return Math.min(OFFSETS.hero, body.scrollHeight - body.clientHeight);
   const el =
     section === 'moods'
       ? document.querySelector<HTMLElement>('#connection-personas > div > div.mt-7') ?? document.getElementById('connection-personas')
       : document.getElementById(`connection-${section}`);
   if (!el) return body.scrollTop;
-  // Em "Assistam juntos" a câmera para no cartão da sessão (acima da narradora).
-  const offset = section === 'watch' ? 118 : -14;
+  const offset = OFFSETS[section] ?? -14;
   const top = el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop + offset;
   return Math.max(0, Math.min(top, body.scrollHeight - body.clientHeight));
 };
