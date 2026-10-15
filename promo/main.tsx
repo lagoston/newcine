@@ -89,16 +89,16 @@ const ProfileScreen: React.FC<{ other: ConnectionSide; detail: ConnectionDetail;
         <LogoWordmark className="h-3 w-auto" />
         <span className="w-[30px]" />
       </header>
-      <div className="px-4 pt-6 flex flex-col items-center text-center">
-        <UserAvatar user={other} size={92} />
-        <p style={{ ...PIXEL, color: PAPER }} className="mt-3 text-[26px] leading-none">
+      <div className="px-4 pt-4 flex flex-col items-center text-center">
+        <UserAvatar user={other} size={76} />
+        <p style={{ ...PIXEL, color: PAPER }} className="mt-2.5 text-[24px] leading-none">
           @{other.username}
         </p>
         <div className="mt-3">
           <PersonaPill code={persona.code ?? ''} title={persona.persona?.titlePt ?? ''} />
         </div>
       </div>
-      <div className="px-4 mt-6">
+      <div className="px-4 mt-4">
         <ConnectionStrip other={other} me={ME} detail={detail} status="ready" guest={false} onOpen={onOpen} glow={glow} />
       </div>
     </div>
@@ -111,7 +111,7 @@ const ProfileScreen: React.FC<{ other: ConnectionSide; detail: ConnectionDetail;
 const EndCard: React.FC<{ p: number }> = ({ p }) => (
   <div className="absolute inset-0 flex flex-col items-center pointer-events-none" style={{ background: withAlpha(NIGHT, 0.97 * clamp01(p * 1.6)) }}>
     <div
-      className="mt-[150px] flex flex-col items-center"
+      className="mt-[96px] flex flex-col items-center"
       style={{ opacity: clamp01((p - 0.15) * 2.2), transform: `translateY(${(1 - ease(clamp01((p - 0.15) * 2.2))) * 14}px) scale(${0.96 + 0.04 * ease(clamp01((p - 0.15) * 2.2))})` }}
     >
       <LogoLockup className="flex items-center gap-3" markClassName="h-[54px] w-auto" wordClassName="h-[24px] w-auto" />
@@ -188,7 +188,9 @@ const sectionTop = (body: HTMLElement, section: string | null) => {
       ? document.querySelector<HTMLElement>('#connection-personas > div > div.mt-7') ?? document.getElementById('connection-personas')
       : document.getElementById(`connection-${section}`);
   if (!el) return body.scrollTop;
-  const top = el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop - 14;
+  // Em "Assistam juntos" a câmera para no cartão da sessão (acima da narradora).
+  const offset = section === 'watch' ? 118 : -14;
+  const top = el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop + offset;
   return Math.max(0, Math.min(top, body.scrollHeight - body.clientHeight));
 };
 
