@@ -24,6 +24,7 @@ import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON, type
 import { useTagDecoration } from '../contexts/SeasonalEventContext';
 import { ProfileTasteGrid, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
 import TasteHud from '../components/profile/TasteHud';
+import SecretRoomPortal from '../components/secretRoom/SecretRoomPortal';
 import { summarizeRatings } from '../lib/profileStats';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -550,6 +551,11 @@ export default function UserProfile() {
             seasonalDecoration={seasonalDecoration}
           />
         </div>
+      </section>
+
+      {/* ---------- Portal de sala secreta (quem usa a tag dela) ---------- */}
+      <section className="mx-auto max-w-6xl px-5 sm:px-8 mt-4 empty:hidden">
+        <SecretRoomPortal userId={profile.id} username={profile.username} isSelf={isSelf} activeTagName={profile.active_tag?.name ?? null} />
       </section>
 
       {/* ---------- Números ---------- */}

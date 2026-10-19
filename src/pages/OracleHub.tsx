@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Scroll, Info, LayoutGrid, Share2, LibraryBig, Swords, Crown, ArrowRight, Plus, RefreshCw } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
+import SecretRoomDoor from '../components/secretRoom/SecretRoomDoor';
 import MoodBars from '../components/MoodBars';
 import PersonasModal from '../components/PersonasModal';
 import PersonaShareModal from '../components/PersonaShareModal';
@@ -499,6 +500,10 @@ export default function OracleHub() {
         </motion.section>
 
         {explore}
+        {/* Sala secreta do evento (Clube do Terror no Halloween). */}
+        <motion.section variants={rise} className="mx-auto max-w-6xl px-5 sm:px-8 mt-3 sm:mt-4 empty:hidden">
+          <SecretRoomDoor />
+        </motion.section>
         {hasPersona ? hero : intro}
       </motion.div>
 

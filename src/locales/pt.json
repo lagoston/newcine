@@ -2021,5 +2021,114 @@
     "footer": {
       "share": "Compartilhar nos stories"
     }
+  },
+  "secretRoom": {
+    "entranceSkip": "Toque para pular",
+    "loadError": "Não deu para abrir a sala agora.",
+    "inYourList": "Na sua lista",
+    "yourRating": "Sua nota: {{rating}}",
+    "viaPortal": "Você entrou pelo portal de @{{username}}.",
+    "terror": {
+      "name": "Clube do Terror",
+      "tagline": "Sombrio e Assustador dos três oráculos, dissecado: os filmes que mais aceleram o coração, os que foram proibidos, os monstros que existiram de verdade e as viradas que ninguém espera."
+    },
+    "meter": {
+      "none": "Você ainda não encarou nenhum dos {{total}} títulos sombrios dos oráculos.",
+      "faced_one": "Você já encarou {{count}} dos {{total}} títulos sombrios dos oráculos.",
+      "faced_other": "Você já encarou {{count}} dos {{total}} títulos sombrios dos oráculos.",
+      "average": "Sua média para eles: {{avg}}.",
+      "first": "Ninguém no clube encarou mais títulos que você.",
+      "ahead_one": "No clube, 1 pessoa encarou mais títulos que você.",
+      "ahead_other": "No clube, {{count}} pessoas encararam mais títulos que você.",
+      "aria": "Títulos sombrios que você já avaliou"
+    },
+    "midnight": {
+      "title": "Sessão da meia-noite",
+      "predicted": "Nota prevista para você: {{rating}}.",
+      "hint": "Todo dia o Oráculo escolhe um filme sombrio que você ainda não viu.",
+      "open": "Ver o filme",
+      "loading": "O Oráculo está escolhendo o filme de hoje…"
+    },
+    "haunt": {
+      "title": "Feitos para te assombrar",
+      "hint": "Os sombrios que o Oráculo prevê que você vai amar e ainda não viu."
+    },
+    "science": {
+      "rank": "{{rank}}º",
+      "rankAria": "{{rank}}º lugar no estudo",
+      "topLine": "{{title}} levou o coração de {{from}} para {{to}} batimentos por minuto, com pico de {{peak}}."
+    },
+    "banned": {
+      "stamp": "Proibido",
+      "where": "{{where}}"
+    },
+    "real": {
+      "photoAlt": "Foto de {{name}}",
+      "noPhoto": "Sem foto",
+      "neverIdentified": "Nunca identificado",
+      "portrayed": "Conta a história",
+      "inspired": "Inspirou",
+      "titlesAria": "Filmes e séries sobre {{name}}"
+    },
+    "twist": {
+      "starts": "Começa como {{genre}}",
+      "reveal": "Revelar a virada",
+      "becomes": "…e vira {{genre}}",
+      "ending": "A virada está no final. Sem spoiler."
+    },
+    "ritual": {
+      "title": "Ritual de Halloween {{edition}}",
+      "hintLive": "A seleção de outubro dos três oráculos. Cada filme avaliado conta para o ritual.",
+      "hintPast": "A seleção do último Halloween."
+    },
+    "members": {
+      "aria": "Quem tem a chave do clube",
+      "count_one": "{{count}} no clube",
+      "count_other": "{{count}} no clube",
+      "cryptOf": "A cripta de @{{username}}",
+      "hint": "Os sombrios que @{{username}} mais gostou.",
+      "hintVia": "Os sombrios favoritos de @{{username}}, o perfil que abriu o portal para você.",
+      "ownerRating": "Nota de @{{username}}: {{rating}}"
+    },
+    "rules": {
+      "title": "Como se entra",
+      "live": "Durante o Halloween, entra quem conquistou a {{tag}}: é a 2ª tag do ritual, que vem ao avaliar 2 filmes da seleção ou de Sombrio e Assustador.",
+      "after": "O Halloween acabou: agora só entra quem usa a {{tag}} no perfil.",
+      "portal": "Quem usa a {{tag}} no perfil abre um portal: quem visitar esse perfil pode entrar no clube por ele, mesmo sem a tag e mesmo depois do Halloween."
+    },
+    "door": {
+      "open": "A sala secreta do Oráculo: os mais assustadores segundo a ciência, os proibidos, os monstros reais e as viradas.",
+      "locked": "Uma sala secreta abriu no Oráculo. Só entra quem conquistou a {{tag}}.",
+      "enter": "Entrar",
+      "progress": "{{progress}} de {{count}} filmes",
+      "how": "Como entrar"
+    },
+    "portal": {
+      "title": "Portal para o Clube do Terror",
+      "selfLine": "Seu perfil está aberto: quem visita pode entrar no clube por ele.",
+      "otherLine": "Este perfil abre uma sala secreta do Oráculo.",
+      "nudge": "Use a {{tag}} no perfil e ele vira um portal para o Clube do Terror, até depois do Halloween.",
+      "chooseTag": "Escolher tag",
+      "sheetLead": "Uma sala secreta do Oráculo, só sobre Sombrio e Assustador: os filmes que mais aceleram o coração, os proibidos, os monstros reais, as viradas e as criptas de quem tem a chave.",
+      "sheetSelf": "Você usa a {{tag}}, então o seu perfil é um portal: quem visitar pode entrar. Copie o convite para levar alguém direto.",
+      "sheetOther": "@{{username}} usa a {{tag}}, e este perfil é a porta. Você entra como convidado.",
+      "enterVia": "Atravessar o portal",
+      "enterSelf": "Entrar no clube",
+      "copyInvite": "Copiar convite",
+      "copied": "Convite copiado.",
+      "copyFailed": "Não deu para copiar o convite."
+    },
+    "locked": {
+      "needTag": "O Clube do Terror é só para quem dormiu no caixão: conquiste a {{tag}}, a 2ª tag do ritual de Halloween, e a porta abre.",
+      "needTagInUse": "Você tem a {{tag}}, mas o Halloween acabou: use a tag no perfil para abrir a sala (e o seu perfil vira um portal).",
+      "portalClosed": "O portal de @{{username}} fechou: a tag não está mais em uso naquele perfil.",
+      "login": "Entre na sua conta para abrir a sala.",
+      "closed": "A sala fica fechada até o próximo Halloween. Até lá, só entra quem usa a {{tag}} no perfil, ou quem passa pelo portal de alguém que usa.",
+      "progress": "{{progress}} de {{count}} filmes avaliados",
+      "openDark": "Abrir Sombrio e Assustador",
+      "openProfile": "Ir para o meu perfil",
+      "signIn": "Entrar",
+      "home": "Ir para o início"
+    }
   }
 }

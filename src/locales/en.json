@@ -2016,5 +2016,114 @@
     "footer": {
       "share": "Share to stories"
     }
+  },
+  "secretRoom": {
+    "entranceSkip": "Tap to skip",
+    "loadError": "Couldn't open the room right now.",
+    "inYourList": "In your list",
+    "yourRating": "Your rating: {{rating}}",
+    "viaPortal": "You came in through @{{username}}'s portal.",
+    "terror": {
+      "name": "Terror Club",
+      "tagline": "The three oracles' Dark and Scary, dissected: the films that race your heart the most, the ones that got banned, the monsters who were real and the twists nobody sees coming."
+    },
+    "meter": {
+      "none": "You haven't faced any of the oracles' {{total}} dark titles yet.",
+      "faced_one": "You've faced {{count}} of the oracles' {{total}} dark titles.",
+      "faced_other": "You've faced {{count}} of the oracles' {{total}} dark titles.",
+      "average": "Your average for them: {{avg}}.",
+      "first": "Nobody in the club has faced more titles than you.",
+      "ahead_one": "In the club, 1 person has faced more titles than you.",
+      "ahead_other": "In the club, {{count}} people have faced more titles than you.",
+      "aria": "Dark titles you've rated"
+    },
+    "midnight": {
+      "title": "Midnight screening",
+      "predicted": "Predicted rating for you: {{rating}}.",
+      "hint": "Every day the Oracle picks a dark film you haven't seen yet.",
+      "open": "See the film",
+      "loading": "The Oracle is choosing today's film…"
+    },
+    "haunt": {
+      "title": "Made to haunt you",
+      "hint": "The dark titles the Oracle predicts you'll love and haven't seen yet."
+    },
+    "science": {
+      "rank": "#{{rank}}",
+      "rankAria": "Ranked #{{rank}} in the study",
+      "topLine": "{{title}} took hearts from {{from}} to {{to}} beats per minute, peaking at {{peak}}."
+    },
+    "banned": {
+      "stamp": "Banned",
+      "where": "{{where}}"
+    },
+    "real": {
+      "photoAlt": "Photo of {{name}}",
+      "noPhoto": "No photo",
+      "neverIdentified": "Never identified",
+      "portrayed": "Tells the story",
+      "inspired": "Inspired it",
+      "titlesAria": "Films and series about {{name}}"
+    },
+    "twist": {
+      "starts": "Starts as a {{genre}}",
+      "reveal": "Reveal the twist",
+      "becomes": "…and turns into {{genre}}",
+      "ending": "The twist is in the ending. No spoilers."
+    },
+    "ritual": {
+      "title": "Halloween ritual {{edition}}",
+      "hintLive": "The three oracles' October selection. Every film you rate counts toward the ritual.",
+      "hintPast": "Last Halloween's selection."
+    },
+    "members": {
+      "aria": "Who holds the club's key",
+      "count_one": "{{count}} in the club",
+      "count_other": "{{count}} in the club",
+      "cryptOf": "@{{username}}'s crypt",
+      "hint": "The dark titles @{{username}} liked most.",
+      "hintVia": "The favorite dark titles of @{{username}}, whose profile opened the portal for you.",
+      "ownerRating": "@{{username}}'s rating: {{rating}}"
+    },
+    "rules": {
+      "title": "How to get in",
+      "live": "During Halloween, anyone who earned {{tag}} gets in: it's the ritual's 2nd tag, earned by rating 2 films from the selection or from Dark and Scary.",
+      "after": "Halloween is over: now only people wearing {{tag}} on their profile get in.",
+      "portal": "Wearing {{tag}} on your profile opens a portal: anyone who visits that profile can enter the club through it, even without the tag and even after Halloween."
+    },
+    "door": {
+      "open": "The Oracle's secret room: the scariest films according to science, the banned, the real monsters and the twists.",
+      "locked": "A secret room opened in the Oracle. Only those who earned {{tag}} get in.",
+      "enter": "Enter",
+      "progress": "{{progress}} of {{count}} films",
+      "how": "How to get in"
+    },
+    "portal": {
+      "title": "Portal to the Terror Club",
+      "selfLine": "Your profile is open: visitors can enter the club through it.",
+      "otherLine": "This profile opens a secret room in the Oracle.",
+      "nudge": "Wear {{tag}} on your profile and it becomes a portal to the Terror Club, even after Halloween.",
+      "chooseTag": "Choose tag",
+      "sheetLead": "A secret room in the Oracle, all about Dark and Scary: the films that race your heart, the banned, the real monsters, the twists and the crypts of everyone who holds the key.",
+      "sheetSelf": "You're wearing {{tag}}, so your profile is a portal: anyone who visits can come in. Copy the invite to bring someone straight in.",
+      "sheetOther": "@{{username}} wears {{tag}}, and this profile is the door. You come in as a guest.",
+      "enterVia": "Step through the portal",
+      "enterSelf": "Enter the club",
+      "copyInvite": "Copy invite",
+      "copied": "Invite copied.",
+      "copyFailed": "Couldn't copy the invite."
+    },
+    "locked": {
+      "needTag": "The Terror Club is only for those who slept in the coffin: earn {{tag}}, the 2nd tag of the Halloween ritual, and the door opens.",
+      "needTagInUse": "You have {{tag}}, but Halloween is over: wear the tag on your profile to open the room (and your profile becomes a portal).",
+      "portalClosed": "@{{username}}'s portal closed: that profile isn't wearing the tag anymore.",
+      "login": "Sign in to open the room.",
+      "closed": "The room stays closed until next Halloween. Until then, only people wearing {{tag}} get in, or anyone who goes through the portal of someone who does.",
+      "progress": "{{progress}} of {{count}} films rated",
+      "openDark": "Open Dark and Scary",
+      "openProfile": "Go to my profile",
+      "signIn": "Sign in",
+      "home": "Go home"
+    }
   }
 }

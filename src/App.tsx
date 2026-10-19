@@ -30,6 +30,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const OracleHub = lazy(() => import('./pages/OracleHub'));
 const OracleLibraries = lazy(() => import('./pages/OracleLibraries'));
 const OracleDuel = lazy(() => import('./pages/OracleDuel'));
+const SecretRoom = lazy(() => import('./pages/SecretRoom'));
 const Premium = lazy(() => import('./pages/Premium'));
 const PremiumSuccess = lazy(() => import('./pages/PremiumSuccess'));
 const CategoryMovies = lazy(() => import('./pages/CategoryMovies'));
@@ -86,6 +87,8 @@ function App() {
                   <Route path="/oracle" element={<ProtectedRoute><OracleHub /></ProtectedRoute>} />
                   <Route path="/oracle/libraries" element={<ProtectedRoute><OracleLibraries /></ProtectedRoute>} />
                 <Route path="/oracle/duel" element={<ProtectedRoute><OracleDuel /></ProtectedRoute>} />
+                  {/* Salas secretas (Clube do Terror…): ver lib/secretRooms.ts */}
+                  <Route path="/sala/:roomKey" element={<ProtectedRoute><SecretRoom /></ProtectedRoute>} />
                   <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
                   <Route path="/premium/success" element={<ProtectedRoute><PremiumSuccess /></ProtectedRoute>} />
                   <Route path="*" element={<Navigate to="/" replace />} />

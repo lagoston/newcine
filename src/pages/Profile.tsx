@@ -13,6 +13,7 @@ import TagPinsModal from '../components/TagPinsModal';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON } from '../components/ProfileIdentityCard';
 import { ProfileTasteGrid, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
 import TasteHud from '../components/profile/TasteHud';
+import SecretRoomPortal from '../components/secretRoom/SecretRoomPortal';
 import { summarizeRatings } from '../lib/profileStats';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -696,6 +697,19 @@ export default function Profile() {
           }
         />
       </section>
+
+      {/* ---------- Portal de sala secreta (a tag em uso abre uma) ---------- */}
+      {session?.user?.id && profile?.username && (
+        <section className="mx-auto max-w-6xl px-5 sm:px-8 mt-4 empty:hidden">
+          <SecretRoomPortal
+            userId={session.user.id}
+            username={profile.username}
+            isSelf
+            activeTagName={profile.active_tag?.name ?? null}
+            onChooseTag={() => setShowTagPinsModal(true)}
+          />
+        </section>
+      )}
 
       {/* ---------- Números e retrato de gosto ----------
           Um bloco só, logo abaixo do cartão: os dois números e, emendado
