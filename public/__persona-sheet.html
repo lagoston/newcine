@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persona sheet</title>
+<style>
+  body { margin: 0; background: #111; color: #eee; font: 12px/1.25 system-ui, sans-serif; }
+  .lab { display: flex; gap: 6px; padding: 4px; font-weight: 600; }
+  .lab small { font-weight: 400; color: #aaa; }
+  .grid { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 4px; }
+  .t { position: relative; }
+  .t img { height: 96px; display: block; border-radius: 3px; }
+  .t b { position: absolute; left: 2px; top: 2px; background: #000c; color: #ff0; padding: 0 2px; font-size: 11px; border-radius: 3px; }
+  .crops { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px; }
+  .crop { aspect-ratio: 4 / 5; position: relative; overflow: hidden; border-radius: 8px; background: #222; }
+  .crop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .crop b { position: absolute; left: 3px; bottom: 3px; background: #000c; color: #ff0; padding: 1px 3px; font-size: 11px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="s">…</div>
+<script>
+// Ferramenta interna e temporária (21/10/2026): folha de contato das imagens
+// candidatas a foto de cada personagem das 84 personalidades. Some quando a
+// escolha terminar.
+(async () => {
+  const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhld2l4dmNhdG51cWZ0YWx6bXRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4MTY3NDMsImV4cCI6MjA2MDM5Mjc0M30.wK9jnuFFje_AtzqokWiuVYq2otYKW3rLPrIczw6ggFs';
+  const rpc = (name) => fetch('https://hewixvcatnuqftalzmtg.supabase.co/rest/v1/rpc/' + name, {
+    method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: '{}',
+  }).then((r) => r.json());
+  const q = new URLSearchParams(location.search);
+  const el = document.getElementById('s');
+  const img = (k, p) => 'https://image.tmdb.org/t/p/' + (k === 'p' ? 'w185' : 'w300') + p;
+  if (q.has('review')) {
+    // Recortes 4:5 das fotos escolhidas (com o ponto de foco), de 12 em 12.
+    const start = Number(q.get('review')) || 0;
+    const all = await rpc('get_personas_catalog');
+    el.innerHTML = '<div class="crops">' + all.slice(start, start + 12).map((p) =>
+      '<div class="crop">' + (p.character_image_path ? '<img src="https://image.tmdb.org/t/p/w500' + p.character_image_path + '" style="object-position:' + (p.character_image_focus || '50% 30%') + '">' : '') + '<b>' + p.code + '</b></div>').join('') + '</div>';
+    return;
+  }
+  const i = Number(q.get('i')) || 0;
+  const P = await rpc('tmp_persona_candidates');
+  const p = P[i];
+  el.innerHTML = '<div class="lab">' + i + ' ' + p.code + '<small>' + p.ch + ' — ' + p.film + '</small></div><div class="grid">' +
+    p.c.map((c, k) => '<div class="t"><img src="' + img(c.k, c.p) + '"><b>' + c.k + k + '</b></div>').join('') + '</div>';
+})();
+</script>
+</body>
+</html>
