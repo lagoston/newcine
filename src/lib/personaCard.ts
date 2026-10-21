@@ -21,6 +21,9 @@ export interface PersonaCardInput {
   username?: string | null;
   cta: string;
   posterUrl: string | null;
+  // Ponto da imagem que fica no centro do recorte ("50% 30%"); a foto do
+  // personagem costuma ser uma cena larga recortada em retrato.
+  posterFocus?: string | null;
   glow: string;
   oracles: { avatar: string; color: string }[];
 }
@@ -51,13 +54,14 @@ const roundRectPath = (ctx: CanvasRenderingContext2D, x: number, y: number, w: n
   ctx.closePath();
 };
 
-// Desenha a imagem cobrindo o retângulo (como object-fit: cover).
-const drawCover = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) => {
+// Desenha a imagem cobrindo o retângulo (como object-fit: cover), com o
+// ponto (fx, fy) da imagem no centro do recorte (object-position).
+const drawCover = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number, fx = 0.5, fy = 0.5) => {
   const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
   const sw = w / scale;
   const sh = h / scale;
-  const sx = (img.naturalWidth - sw) / 2;
-  const sy = (img.naturalHeight - sh) / 2;
+  const sx = (img.naturalWidth - sw) * fx;
+  const sy = (img.naturalHeight - sh) * fy;
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 };
 
@@ -148,7 +152,7 @@ export async function drawPersonaCard(input: PersonaCardInput, scale = 1): Promi
   ctx.fillText('CineOracle', bx, by + 4);
   ctx.textAlign = 'center';
 
-  // Pôster do filme do personagem.
+  // A foto do personagem (ou o pôster do filme, se ainda não tem foto).
   const px = 305;
   const py = 215;
   const pw = 470;
@@ -165,7 +169,17 @@ export async function drawPersonaCard(input: PersonaCardInput, scale = 1): Promi
     ctx.save();
     roundRectPath(ctx, px, py, pw, ph, 32);
     ctx.clip();
-    drawCover(ctx, poster, px, py, pw, ph);
+    const [fx, fy] = (input.posterFocus || '50% 50%').split(' ').map((v) => {
+      const n = parseFloat(v);
+      return Math.min(1, Math.max(0, (Number.isFinite(n) ? n : 50) / 100));
+    });
+    drawCover(ctx, poster, px, py, pw, ph, fx, fy ?? 0.5);
+    // O fio das três prateleiras, no pé da foto.
+    const stripe = 14;
+    input.codeColors.forEach((color, i) => {
+      ctx.fillStyle = color;
+      ctx.fillRect(px + (pw / input.codeColors.length) * i, py + ph - stripe, pw / input.codeColors.length + 1, stripe);
+    });
     ctx.restore();
   }
   roundRectPath(ctx, px + 2, py + 2, pw - 4, ph - 4, 30);

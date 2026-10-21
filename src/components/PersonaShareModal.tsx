@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import OracleSheet from './OracleSheet';
 import { MOOD_BY_KEY, MOOD_BY_LETTER } from '../lib/moods';
-import { personaText, posterUrl, topMoodKeys, type UserPersona } from '../lib/persona';
+import { personaPortrait, personaText, topMoodKeys, type UserPersona } from '../lib/persona';
 import { drawPersonaCard } from '../lib/personaCard';
 import { NIGHT, PAPER, MIST, FOCUS_RING, ORACLES } from '../lib/oracleTheme';
 import { canvasToBlob } from '../lib/storyCanvas';
@@ -58,7 +58,8 @@ const PersonaShareModal: React.FC<Props> = ({ isOpen, onClose, persona, username
       shelves,
       username,
       cta: t('oracle.share.cardCta'),
-      posterUrl: posterUrl(entry.posterPath, 'w500'),
+      posterUrl: personaPortrait(entry, true).src,
+      posterFocus: personaPortrait(entry, true).focus,
       glow: MOOD_BY_LETTER[code.charAt(0)]?.color ?? '#8B5CF6',
       oracles: ORACLES.map((o) => ({ avatar: o.avatar, color: o.color })),
     })

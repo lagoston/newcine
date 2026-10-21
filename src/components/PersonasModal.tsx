@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Users, Crown, Loader2, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import OracleSheet, { SheetFade } from './OracleSheet';
-import { PersonaCode, PersonaPoster, MoodChip } from './PersonaBits';
+import { PersonaCode, PersonaCard, MoodChip } from './PersonaBits';
+import PersonaWorks from './PersonaWorks';
 import { getFrameClass } from '../lib/frames';
 import { MOODS, MOOD_BY_KEY, withMoodAlpha } from '../lib/moods';
 import { mapPersonaEntry, personaText, type PersonaEntry } from '../lib/persona';
@@ -96,7 +97,7 @@ const PersonaGrid: React.FC<{
                 aria-label={`${p.code} — ${text.title} (${text.character}) · ${t('oracle.personas.peopleCount', { count: p.userCount })}${isMine ? ` · ${t('oracle.persona.yours')}` : ''}`}
               >
                 <span className="relative block transition-transform duration-200 group-hover:-translate-y-1">
-                  <PersonaPoster path={p.posterPath} className="rounded-xl shadow-xl" ring={isMine ? '#F0ABFC' : undefined} />
+                  <PersonaCard persona={p} compact className="shadow-xl" ring={isMine ? '#F0ABFC' : undefined} alt="" />
                   {p.userCount > 0 && (
                     <span
                       className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 h-6 px-1.5 rounded-full text-[11px] font-semibold tabular-nums"
@@ -150,7 +151,7 @@ const PersonaDetail: React.FC<{
   return (
     <div ref={topRef} className="space-y-6 scroll-mt-6">
       <div className="flex flex-col sm:flex-row gap-5">
-        <PersonaPoster path={persona.posterPath} alt={text.film} size="w500" className="w-[140px] sm:w-[180px] shrink-0 rounded-xl shadow-2xl self-start" eager />
+        <PersonaCard persona={persona} alt={text.character} large eager foot={false} className="w-[148px] sm:w-[188px] shrink-0 self-start" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <PersonaCode code={persona.code} className="text-5xl leading-none" />
@@ -190,6 +191,8 @@ const PersonaDetail: React.FC<{
           </dl>
         </div>
       </div>
+
+      <PersonaWorks persona={persona} />
 
       {/* As três prateleiras dessa personalidade */}
       <section>
@@ -288,11 +291,16 @@ const PersonasModal: React.FC<Props> = ({ isOpen, onClose, viewerId, viewerPerso
     }
     let cancelled = false;
     setLoading(true);
-    supabase.rpc('get_personas_global_stats').then(({ data, error }) => {
-      if (cancelled) return;
-      if (!error && Array.isArray(data)) {
-        setCatalog((data as Record<string, unknown>[]).map((row) => ({ ...mapPersonaEntry(row), userCount: Number(row.user_count) || 0 })));
+    // get_personas_catalog (21/10/2026) traz também a foto do personagem e as
+    // obras; a get_personas_global_stats fica de reserva.
+    supabase.rpc('get_personas_catalog').then(async ({ data, error }) => {
+      let rows = !error && Array.isArray(data) ? (data as Record<string, unknown>[]) : null;
+      if (!rows) {
+        const old = await supabase.rpc('get_personas_global_stats');
+        rows = !old.error && Array.isArray(old.data) ? (old.data as Record<string, unknown>[]) : null;
       }
+      if (cancelled) return;
+      if (rows) setCatalog(rows.map((row) => ({ ...mapPersonaEntry(row), userCount: Number(row.user_count) || 0 })));
       setLoading(false);
     });
     return () => {

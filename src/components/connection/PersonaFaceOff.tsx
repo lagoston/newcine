@@ -1,12 +1,12 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import UserAvatar, { type AvatarUser } from '../UserAvatar';
-import { PersonaPoster } from '../PersonaBits';
+import { PersonaCard, PersonaPoster } from '../PersonaBits';
 import { MOOD_BY_LETTER } from '../../lib/moods';
 import { personaText, type PersonaEntry } from '../../lib/persona';
 import { PAPER, MIST, PIXEL } from '../../lib/oracleTheme';
 
-// As duas personalidades lado a lado (13/10/2026): o pôster do personagem,
+// As duas personalidades lado a lado (13/10/2026): a foto do personagem (desde 21/10),
 // o código de 3 letras com as letras em comum acesas (as outras a 35%) e
 // quantas letras os dois dividem. Sem disputa: nada de "vs".
 
@@ -27,7 +27,11 @@ const Side: React.FC<{ side: FaceOffSide; shared: Set<string>; language: string 
           {side.name}
         </span>
       </span>
-      <PersonaPoster path={side.entry?.posterPath ?? null} alt="" size="w185" className="mt-2.5 w-16 rounded-lg" />
+      {side.entry ? (
+        <PersonaCard persona={side.entry} code={side.code} compact alt="" className="mt-2.5 w-[68px]" />
+      ) : (
+        <PersonaPoster path={null} alt="" size="w185" className="mt-2.5 w-16 rounded-lg" />
+      )}
       <span className="mt-2.5 text-[24px] leading-none tracking-wide" style={PIXEL} aria-label={side.code}>
         {side.code.split('').map((letter, i) => (
           <span

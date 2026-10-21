@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Scroll } from 'lucide-react';
 import OracleSheet from './OracleSheet';
 import MoodBars from './MoodBars';
-import { PersonaCode, PersonaPoster, MoodChip } from './PersonaBits';
+import { PersonaCode, PersonaCard, MoodChip } from './PersonaBits';
+import PersonaWorks from './PersonaWorks';
 import { MOODS, MOOD_BY_KEY, withMoodAlpha } from '../lib/moods';
 import { personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../lib/persona';
 import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
@@ -33,7 +34,7 @@ export const PersonaRevelationSheet: React.FC<{ open: boolean; onClose: () => vo
       bodyClassName="px-5 sm:px-7 py-6 space-y-6"
     >
       <div className="flex gap-4 sm:gap-5">
-        <PersonaPoster path={persona.persona.posterPath} alt={text.film} className="w-[92px] sm:w-[112px] shrink-0 rounded-lg self-start" eager />
+        <PersonaCard persona={persona.persona} code={persona.code} alt={text.character} foot={false} large eager className="w-[104px] sm:w-[132px] shrink-0 self-start" />
         <div className="min-w-0">
           <PersonaCode code={persona.code} className="text-4xl sm:text-5xl leading-none" />
           <p className="mt-2 text-lg sm:text-xl font-semibold leading-snug" style={{ color: PAPER }}>
@@ -47,6 +48,8 @@ export const PersonaRevelationSheet: React.FC<{ open: boolean; onClose: () => vo
           </p>
         </div>
       </div>
+
+      <PersonaWorks persona={persona.persona} seen={persona.worksSeen} />
 
       <section>
         <h3 className="font-semibold" style={{ color: PAPER }}>

@@ -25,6 +25,14 @@ export interface PersonaEntry {
   posterPath: string | null;
   blurbPt: string;
   blurbEn: string;
+  // Foto do personagem (21/10/2026): uma imagem do TMDB (cena ou cartaz sem
+  // texto) e o ponto da imagem que fica no centro do recorte ("50% 30%").
+  // Sem foto, vale o pôster do filme.
+  characterImagePath: string | null;
+  characterImageFocus: string | null;
+  actorName: string | null;
+  // As obras das prateleiras em que o personagem aparece (o filme dele primeiro).
+  works: { id: number; type: 'movie' | 'tv' }[];
 }
 
 export interface MoodScore {
@@ -42,6 +50,9 @@ export interface UserPersona {
   // Os 9 humores, do mais usado pro menos usado.
   scores: MoodScore[];
   persona: PersonaEntry | null;
+  // Das obras do personagem, as que QUEM ESTÁ OLHANDO já tem ("movie:123" →
+  // nota, ou null se está só na Watchlist).
+  worksSeen: Record<string, number | null>;
 }
 
 type Row = Record<string, unknown>;
@@ -64,6 +75,14 @@ export const mapPersonaEntry = (row: Row): PersonaEntry => ({
   posterPath: typeof row.poster_path === 'string' ? row.poster_path : null,
   blurbPt: str(row.blurb_pt),
   blurbEn: str(row.blurb_en),
+  characterImagePath: typeof row.character_image_path === 'string' && row.character_image_path ? row.character_image_path : null,
+  characterImageFocus: typeof row.character_image_focus === 'string' && row.character_image_focus ? row.character_image_focus : null,
+  actorName: typeof row.actor_name === 'string' && row.actor_name ? row.actor_name : null,
+  works: Array.isArray(row.works)
+    ? (row.works as Row[])
+        .map((w) => ({ id: num(w.id), type: (w.type === 'tv' ? 'tv' : 'movie') as 'movie' | 'tv' }))
+        .filter((w) => w.id > 0)
+    : [],
 });
 
 // Textos da persona no idioma atual. `sameAsFilm`: o personagem dá nome
@@ -85,6 +104,20 @@ export const personaText = (p: PersonaEntry, language: string) => {
 export const posterUrl = (path: string | null | undefined, size: 'w185' | 'w342' | 'w500' | 'w780' = 'w342'): string | null =>
   path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
 
+// A imagem do retrato: a foto do personagem (recortada no ponto `focus`) ou,
+// sem ela, o pôster do filme. `large` pede a versão grande (o recorte de uma
+// cena larga precisa de mais pixels na altura).
+export const personaPortrait = (p: PersonaEntry, large = false): { src: string | null; focus: string; isCharacter: boolean } => {
+  if (p.characterImagePath) {
+    return {
+      src: `https://image.tmdb.org/t/p/${large ? 'w1280' : 'w780'}${p.characterImagePath}`,
+      focus: p.characterImageFocus || '50% 30%',
+      isCharacter: true,
+    };
+  }
+  return { src: posterUrl(p.posterPath, large ? 'w500' : 'w342'), focus: '50% 20%', isCharacter: false };
+};
+
 // Personalidade de alguém (a sua, ou a de um perfil que você pode ver).
 export async function fetchUserPersona(userId: string): Promise<UserPersona | null> {
   const { data, error } = await supabase.rpc('get_user_persona', { p_user_id: userId });
@@ -100,6 +133,7 @@ export async function fetchUserPersona(userId: string): Promise<UserPersona | nu
     threshold: num(raw.threshold) || PERSONA_THRESHOLD,
     scores,
     persona: raw.persona ? mapPersonaEntry(raw.persona as Row) : null,
+    worksSeen: raw.works_seen && typeof raw.works_seen === 'object' ? (raw.works_seen as Record<string, number | null>) : {},
   };
 }
 

@@ -10,7 +10,8 @@ import { PAPER, MIST, PIXEL, VELVET, FOCUS_RING, glassPanel, ratingTone } from '
 import { getMovieDetailsFromDB, type Movie } from '../../lib/tmdb';
 import type { Affinity, MoodSlice } from '../../lib/tasteStats';
 import type { MovieWithRating } from '../../hooks/useProfileData';
-import { PersonaCode, PersonaPoster } from '../PersonaBits';
+import { PersonaCode, PersonaCard } from '../PersonaBits';
+import PersonaWorks from '../PersonaWorks';
 import { PersonaRevelationSheet, PersonaHowItWorksSheet } from '../PersonaSheets';
 import MovieDetailsModal from '../MovieDetailsModal';
 import MoodGrid from './MoodGrid';
@@ -134,7 +135,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
     if (personaLoading) {
       return (
         <div className="flex gap-4" aria-busy="true">
-          <span className="w-[84px] aspect-[2/3] rounded-lg bg-white/10 animate-pulse" />
+          <span className="w-[84px] sm:w-[100px] aspect-[4/5] rounded-[14px] bg-white/10 animate-pulse" />
           <span className="flex-1 space-y-3">
             <span className="block h-9 w-28 rounded-lg bg-white/10 animate-pulse" />
             <span className="block h-4 w-full rounded bg-white/10 animate-pulse" />
@@ -175,7 +176,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
           className={`group w-full flex items-start justify-start gap-4 text-left rounded-2xl p-2 -m-2 transition hover:bg-white/[0.04] ${FOCUS_RING}`}
           aria-label={`${t('oracle.revelation')}: ${text.title}`}
         >
-          <PersonaPoster path={persona.persona.posterPath} alt="" className="w-[72px] sm:w-[84px] shrink-0 rounded-lg" />
+          <PersonaCard persona={persona.persona} code={persona.code} foot={false} className="w-[84px] sm:w-[100px] shrink-0" />
           <span className="min-w-0 flex flex-col">
             <PersonaCode code={persona.code as string} className="text-4xl sm:text-[44px] leading-none" />
             <span className="mt-1.5 text-lg font-semibold leading-snug" style={{ color: PAPER }}>
@@ -200,6 +201,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
           <Scroll className="w-4 h-4" aria-hidden />
           {t('profile.observatory.readRevelation')}
         </button>
+        <PersonaWorks persona={persona.persona} seen={persona.worksSeen} size="sm" className="mt-4" />
         {themes}
       </div>
     );

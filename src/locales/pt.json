@@ -773,7 +773,16 @@
       "films_one": "{{count}} título",
       "films_other": "{{count}} títulos",
       "points_zero": "0 pontos",
-      "films_zero": "nenhum título"
+      "films_zero": "nenhum título",
+      "worksTitle": "Onde {{character}} aparece",
+      "worksCount_one": "{{count}} obra nas prateleiras",
+      "worksCount_other": "{{count}} obras nas prateleiras",
+      "worksSeen_one": "Você viu {{seen}} de {{count}}",
+      "worksSeen_other": "Você viu {{seen}} de {{count}}",
+      "inYourList": "Na sua lista",
+      "yourRating": "Sua nota: {{rating}}",
+      "worksPrev": "Obras anteriores",
+      "worksNext": "Mais obras"
     },
     "personas": {
       "title": "As 84 personalidades",

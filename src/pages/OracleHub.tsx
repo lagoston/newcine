@@ -10,7 +10,8 @@ import PersonasModal from '../components/PersonasModal';
 import PersonaShareModal from '../components/PersonaShareModal';
 import PersonalityCompletionModal from '../components/PersonalityCompletionModal';
 import { PersonaRevelationSheet, PersonaHowItWorksSheet } from '../components/PersonaSheets';
-import { PersonaCode, PersonaPoster, MoodChip } from '../components/PersonaBits';
+import { PersonaCode, PersonaCard, MoodChip } from '../components/PersonaBits';
+import PersonaWorks from '../components/PersonaWorks';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { MOOD_BY_LETTER, withMoodAlpha } from '../lib/moods';
@@ -296,12 +297,14 @@ export default function OracleHub() {
                 {t('oracle.cinematicEssence')}
               </p>
               <div className="mt-4 flex gap-4 sm:gap-6">
-                <PersonaPoster
-                  path={persona.persona.posterPath}
-                  alt={text.film}
-                  size="w500"
+                <PersonaCard
+                  persona={persona.persona}
+                  code={persona.code}
+                  alt={text.character}
+                  large
                   eager
-                  className="w-[112px] sm:w-[164px] shrink-0 rounded-xl shadow-2xl self-start"
+                  foot={false}
+                  className="w-[124px] sm:w-[188px] shrink-0 self-start"
                 />
                 <div className="min-w-0">
                   <PersonaCode code={persona.code} className="text-[3.4rem] sm:text-7xl leading-none" />
@@ -319,6 +322,8 @@ export default function OracleHub() {
               <p className="sm:hidden mt-4 text-[15px] leading-relaxed" style={{ color: 'rgba(243,234,211,0.86)' }}>
                 {text.blurb}
               </p>
+
+              <PersonaWorks persona={persona.persona} seen={persona.worksSeen} className="mt-6" />
 
               <ul className="mt-5 flex flex-wrap gap-2">
                 {topMoodKeys(persona).map((key, i) => (

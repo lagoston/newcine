@@ -770,7 +770,16 @@
       "films_one": "{{count}} title",
       "films_other": "{{count}} titles",
       "points_zero": "0 points",
-      "films_zero": "no titles"
+      "films_zero": "no titles",
+      "worksTitle": "Where {{character}} appears",
+      "worksCount_one": "{{count}} title on the shelves",
+      "worksCount_other": "{{count}} titles on the shelves",
+      "worksSeen_one": "You've seen {{seen}} of {{count}}",
+      "worksSeen_other": "You've seen {{seen}} of {{count}}",
+      "inYourList": "In your list",
+      "yourRating": "Your rating: {{rating}}",
+      "worksPrev": "Previous titles",
+      "worksNext": "More titles"
     },
     "personas": {
       "title": "The 84 personalities",

@@ -2,7 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Sparkles } from 'lucide-react';
 import OracleSheet from './OracleSheet';
-import { PersonaCode, PersonaPoster, MoodChip } from './PersonaBits';
+import { PersonaCode, PersonaCard, MoodChip } from './PersonaBits';
 import { MOOD_BY_LETTER, withMoodAlpha } from '../lib/moods';
 import { personaText, topMoodKeys, type UserPersona } from '../lib/persona';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
@@ -67,7 +67,7 @@ export default function PersonalityCompletionModal({ isOpen, onClose, persona, c
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 180, damping: 18, delay: reduceMotion ? 0 : 0.45 }}
       >
-        <PersonaPoster path={persona.persona.posterPath} alt={text.film} className="mx-auto w-[120px] rounded-xl shadow-2xl" eager />
+        <PersonaCard persona={persona.persona} code={persona.code} alt={text.character} foot={false} large eager className="mx-auto w-[150px]" />
         <PersonaCode code={persona.code} className="mt-5 block text-6xl leading-none" />
         <p className="mt-3 text-xl font-semibold leading-snug" style={{ color: PAPER }}>
           {text.title}
