@@ -760,7 +760,7 @@
       "play": "Jogar",
       "premiumChip": "Premium",
       "shelvesSoFar": "Suas prateleiras até agora",
-      "exploreHint": "Cada oráculo guarda nove prateleiras, com a nota que ele prevê pra você em cada filme. Escolha uma carta."
+      "exploreHint": "Cada oráculo guarda nove prateleiras e prevê a nota que você daria a cada título. Toque numa carta para entrar no corredor dele."
     },
     "persona": {
       "yours": "Sua personalidade",
@@ -852,6 +852,22 @@
     },
     "forYou": {
       "renewsIn": "Renova em"
+    },
+    "picks": {
+      "title": "Escolhidos a dedo",
+      "lead": "Os oráculos percorreram as suas três prateleiras favoritas e separaram o melhor de cada corredor pra você.",
+      "leadStarter": "Enquanto o Oráculo não descobre as suas prateleiras favoritas, cada oráculo separou o melhor destas três pra você.",
+      "shelvesLabel": "Prateleiras de onde vêm as escolhas",
+      "aisleLabel": "Escolhas de {{name}}",
+      "allShelves": "Todas as prateleiras",
+      "allShelvesOf": "Todas as prateleiras de {{name}}",
+      "error": "Não deu para buscar as escolhas agora.",
+      "empty": "Você já tem o melhor destas prateleiras. Entre no corredor para ver o resto.",
+      "series": "Série",
+      "predicted": "Nota prevista pra você: {{rating}}",
+      "browseAll": "Percorrer todas as prateleiras",
+      "browseAllHint": "{{shelves}} prateleiras e {{formatted}} títulos, cada um com a nota que o oráculo prevê pra você",
+      "browseAllHintShort": "As prateleiras dos três oráculos, com a nota que cada um prevê pra você"
     }
   },
   "profile": {

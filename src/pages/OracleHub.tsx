@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Scroll, Info, LayoutGrid, Share2, LibraryBig, Swords, Crown, ArrowRight, Plus, RefreshCw } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import SecretRoomDoor from '../components/secretRoom/SecretRoomDoor';
+import OraclePicks from '../components/oracleHub/OraclePicks';
 import MoodBars from '../components/MoodBars';
 import PersonasModal from '../components/PersonasModal';
 import PersonaShareModal from '../components/PersonaShareModal';
@@ -16,13 +17,14 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { MOOD_BY_LETTER, withMoodAlpha } from '../lib/moods';
 import { fetchUserPersona, personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../lib/persona';
-import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES, oracleCardImage, withAlpha } from '../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES, withAlpha } from '../lib/oracleTheme';
 
 // Central dos Oráculos — "a mesa do oráculo".
-//   1. A mesa dos oráculos: as três cartas num painel de vidro (cada uma
-//      abre direto as nove prateleiras daquele oráculo) com o botão "Ver as
-//      recomendações dos oráculos"; embaixo, o Duelo e o Duelo de Watchlist
-//      lado a lado.
+//   1. Escolhidos a dedo: as três cartas como corredores de uma locadora,
+//      cada uma com os melhores títulos dela nas três prateleiras favoritas
+//      da pessoa (a carta abre as nove prateleiras daquele oráculo) e o
+//      letreiro "Percorrer todas as prateleiras"; embaixo, o Duelo e o Duelo
+//      de Watchlist lado a lado.
 //   2. Sua personalidade cinematográfica:
 //      - sem personalidade ainda: o convite do Oráculo (cinco falas), o
 //        progresso até 10 filmes das prateleiras e as prateleiras até agora;
@@ -397,72 +399,13 @@ export default function OracleHub() {
     { key: 'watchlist', to: '/library', state: { openWatchlistDuel: true }, title: t('watchlistDuel.title'), description: t('watchlistDuel.description'), tint: '#38BDF8' },
   ];
 
-  // A mesa dos oráculos: um painel de vidro com as três cartas (cada uma
-  // abre as nove prateleiras daquele oráculo, com "Prateleiras →" escrito
-  // embaixo para ficar claro que dá pra tocar) e o botão principal "Ver as
-  // recomendações dos oráculos". Embaixo, os dois duelos lado a lado, em
-  // botões compactos.
+  // Escolhidos a dedo: as três cartas como corredores de locadora, cada uma
+  // com os melhores títulos dela nas três prateleiras favoritas da pessoa, e o
+  // letreiro "Percorrer todas as prateleiras" (components/oracleHub). Embaixo,
+  // os dois duelos lado a lado, em botões compactos.
   const explore = (
     <motion.section variants={rise} className="mx-auto max-w-6xl px-5 sm:px-8 mt-6 sm:mt-8">
-      <div
-        className="relative overflow-hidden rounded-3xl p-3 pb-4 sm:p-6"
-        style={{
-          background: [
-            ...ORACLES.map((oracle, i) => `radial-gradient(32% 55% at ${17 + i * 33}% 0%, ${withAlpha(oracle.color, 0.16)}, transparent 75%)`),
-            'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015) 55%)',
-            'rgba(28,20,51,0.55)',
-          ].join(', '),
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), inset 0 0 0 1px rgba(243,234,211,0.1), 0 24px 50px -30px rgba(0,0,0,0.8)',
-        }}
-      >
-        <ul className="grid grid-cols-3 gap-2.5 sm:gap-5">
-          {ORACLES.map((oracle) => (
-            <li key={oracle.id}>
-              <Link
-                to={`/oracle/libraries?oracle=${oracle.id}`}
-                aria-label={`${oracle.name} — ${t('oracle.libraries.exploreShelves')}`}
-                className={`group h-full flex flex-col items-stretch justify-start text-left rounded-2xl p-1.5 sm:p-2 hover:bg-white/[0.04] active:bg-white/[0.07] transition ${FOCUS_RING}`}
-              >
-                <span
-                  className="block overflow-hidden rounded-lg sm:rounded-xl transition-transform duration-300 group-hover:-translate-y-1 group-active:scale-[0.98]"
-                  style={{ boxShadow: `0 18px 36px -18px ${withAlpha(oracle.color, 0.8)}` }}
-                >
-                  <img
-                    src={oracleCardImage(oracle.id, cardStyle)}
-                    alt=""
-                    decoding="async"
-                    className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                </span>
-                <span className="mt-2.5 sm:mt-4 flex-1 flex flex-col min-w-0 px-0.5">
-                  <span style={{ ...PIXEL, color: oracle.color }} className="text-lg sm:text-3xl leading-none">
-                    {oracle.name}
-                  </span>
-                  <span className="mt-1 sm:mt-1.5 text-xs sm:text-sm leading-snug" style={{ color: MIST }}>
-                    {t(`oracle.cards.${oracle.id}`)}
-                    <span className="hidden sm:inline"> · {t(`oracle.cards.${oracle.id}Subtitle`)}</span>
-                  </span>
-                  <span className="hidden sm:block mt-2.5 text-[15px] leading-snug" style={{ color: PAPER }}>
-                    {t(`oracle.libraries.${oracle.id}FunctionDesc`)}
-                  </span>
-                  <span className="mt-auto pt-2 sm:pt-3 inline-flex items-center gap-1 text-xs sm:text-sm font-semibold" style={{ color: oracle.color }}>
-                    {t('oracle.hub.shelves')}
-                    <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition group-hover:translate-x-0.5" aria-hidden />
-                  </span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-
-        <Link
-          to="/oracle/libraries?oracle=bogart"
-          className={`mt-4 sm:mt-6 w-full flex items-center justify-center gap-2 min-h-[48px] px-4 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm sm:text-base font-semibold text-center leading-tight shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`}
-        >
-          <LibraryBig className="w-5 h-5 shrink-0" aria-hidden />
-          {t('oracle.hub.seeRecommendations')}
-        </Link>
-      </div>
+      <OraclePicks cardStyle={cardStyle} />
 
       {/* Os dois duelos, lado a lado */}
       <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-3 sm:gap-4">

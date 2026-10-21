@@ -757,7 +757,7 @@
       "play": "Play",
       "premiumChip": "Premium",
       "shelvesSoFar": "Your shelves so far",
-      "exploreHint": "Each oracle keeps nine shelves, with the rating it predicts for you on every film. Pick a card."
+      "exploreHint": "Each oracle keeps nine shelves and predicts the rating you would give each title. Tap a card to step into its aisle."
     },
     "persona": {
       "yours": "Your personality",
@@ -849,6 +849,22 @@
     },
     "forYou": {
       "renewsIn": "Renews in"
+    },
+    "picks": {
+      "title": "Hand-picked",
+      "lead": "The oracles walked your three favorite shelves and set aside the best of each aisle for you.",
+      "leadStarter": "Until the Oracle learns your favorite shelves, each oracle set aside the best of these three for you.",
+      "shelvesLabel": "Shelves the picks come from",
+      "aisleLabel": "{{name}}'s picks",
+      "allShelves": "All shelves",
+      "allShelvesOf": "All of {{name}}'s shelves",
+      "error": "Couldn't load the picks right now.",
+      "empty": "You already have the best of these shelves. Step into the aisle to see the rest.",
+      "series": "Series",
+      "predicted": "Your predicted rating: {{rating}}",
+      "browseAll": "Browse every shelf",
+      "browseAllHint": "{{shelves}} shelves and {{formatted}} titles, each with the rating the oracle predicts for you",
+      "browseAllHintShort": "All three oracles' shelves, with the rating each one predicts for you"
     }
   },
   "profile": {
