@@ -1,204 +1,80 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Film, RefreshCw } from 'lucide-react';
+import { ArrowRight, Film, RefreshCw, Star } from 'lucide-react';
 import type { Movie } from '../../lib/tmdb';
 import { getFullTitle, prefetchFullTitle, titleKey, type TitleRef } from '../../lib/titleCards';
-import { useTitleCards } from '../../hooks/useLazyList';
+import { tilesThatFit, useReveal, useTitleCards } from '../../hooks/useLazyList';
 import { fetchOracleHubPicks, mixPicks, drawSeriesShare, type OracleHubPicks, type OraclePick } from '../../lib/oraclePicks';
-import { MOOD_BY_KEY } from '../../lib/moods';
-import { VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, ORACLES, oracleCardImage, withAlpha, type OracleCard } from '../../lib/oracleTheme';
+import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, oracleCardImage, withAlpha, type OracleCard, type OracleId } from '../../lib/oracleTheme';
 import { MoodChip } from '../PersonaBits';
+import PredictedBadge from '../PredictedBadge';
 import MovieDetailsModal from '../MovieDetailsModal';
+import OracleProfileSheet from './OracleProfileSheet';
 
-// Escolhidos a dedo — o painel das três cartas do Oracle Hub como uma
-// locadora antiga: cada oráculo tem o seu corredor, com a carta dele na
-// cabeceira e, saindo dela, as fitas que ele separou na prateleira — os
-// melhores títulos (pela nota prevista) das três prateleiras favoritas da
-// pessoa. A cada abertura muda só a proporção de filmes e séries.
-//
-// A única animação orquestrada: quando os títulos chegam, eles saem de trás
-// da carta, um a um, e param na prateleira (sem movimento se a pessoa pediu
-// menos animação). Tocar na carta (ou em "Todas as prateleiras") abre as
-// nove prateleiras daquele oráculo; tocar numa fita abre o título.
+// Escolhidos a dedo — o painel das três cartas do Oracle Hub. Cada oráculo
+// tem a sua fileira: a carta dele na frente (tocar abre o perfil do oráculo)
+// e os melhores títulos (pela nota prevista) que ele guarda nas três
+// prateleiras favoritas da pessoa. A cada abertura muda só a proporção de
+// filmes e séries. As fileiras seguem o padrão das listas do site (o mesmo
+// pôster, o selo violeta da nota prevista, título, ano e nota do público).
+// Embaixo, o letreiro que abre todas as prateleiras.
 
-// Inclinação de cada fita na prateleira: ninguém deixa as caixas
-// perfeitamente alinhadas.
-const TILTS = [-1.6, 1.1, -0.6, 1.8, -1.2, 0.5, -1.9, 0.9, -0.3, 1.4, -0.8];
+// O mesmo tamanho dos pôsteres das listas da home e da Biblioteca.
+const TILE_WIDTH = 'w-[124px] sm:w-[148px]';
+const tileWidthPx = () => (typeof window !== 'undefined' && window.innerWidth >= 640 ? 148 : 124);
 
-// Medidas da prateleira (precisam bater com as classes abaixo).
-const TILE = { sm: 76, lg: 104 };
-const GAP = { sm: 10, lg: 14 };
-const PAD_TOP = 10; // espaço para o adesivo e para a fita "levantar" no hover
-const PLANK = 12;
-
-const useIsWide = () => {
-  const query = '(min-width: 640px)';
-  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const onChange = () => setWide(mq.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-  return wide;
-};
+const SkeletonTile: React.FC = () => (
+  <li className={`shrink-0 ${TILE_WIDTH}`} aria-hidden>
+    <span className="block aspect-[2/3] rounded-xl poster-skeleton" />
+    <span className="mt-2.5 block h-3.5 w-4/5 rounded poster-skeleton" />
+    <span className="mt-2 block h-3 w-1/2 rounded poster-skeleton" />
+  </li>
+);
 
 type Status = 'loading' | 'ready' | 'error';
 
-// Uma fita na prateleira: a capa em pé, o adesivo da nota prevista, a
-// etiqueta "Série" e, embaixo da prateleira, o título.
-const Tape: React.FC<{
-  pick: OraclePick;
-  index: number;
-  rowIndex: number;
-  tile: number;
-  gap: number;
-  posterHeight: number;
-  color: string;
-  movie: Movie | undefined;
-  reduceMotion: boolean;
-  onOpen: () => void;
-}> = ({ pick, index, rowIndex, tile, gap, posterHeight, color, movie, reduceMotion, onOpen }) => {
-  const { t } = useTranslation();
-  const ref: TitleRef = { id: pick.id, media_type: pick.type };
-  const title = movie?.title || '';
-  const year = (movie?.release_date || '').slice(0, 4);
-  const mood = MOOD_BY_KEY[pick.mood];
-  const tilt = TILTS[index % TILTS.length];
-  const ratingLabel = pick.rating !== null ? t('oracle.picks.predicted', { rating: pick.rating }) : '';
-
-  return (
-    <motion.li
-      className="shrink-0"
-      style={{ width: tile }}
-      // Sai de trás da carta (que está à esquerda da prateleira) e para no lugar.
-      initial={reduceMotion ? false : { x: -(index + 1) * (tile + gap), opacity: 0, rotate: -9 }}
-      animate={{ x: 0, opacity: 1, rotate: 0 }}
-      transition={{ type: 'spring', stiffness: 240, damping: 26, delay: rowIndex * 0.15 + index * 0.055 }}
-    >
-      <button
-        type="button"
-        onClick={onOpen}
-        onPointerEnter={() => prefetchFullTitle(ref)}
-        onPointerDown={() => prefetchFullTitle(ref)}
-        className={`group block w-full text-left rounded-md ${FOCUS_RING}`}
-        aria-label={[title, year, ratingLabel].filter(Boolean).join(', ')}
-      >
-        <span
-          className="relative block transition-transform duration-200 [transform:rotate(var(--tilt))] group-hover:[transform:translateY(-6px)_rotate(0deg)] group-focus-visible:[transform:translateY(-6px)_rotate(0deg)]"
-          style={{ height: posterHeight, ['--tilt' as string]: `${tilt}deg` } as React.CSSProperties}
-        >
-          <span className="absolute inset-0 overflow-hidden rounded-md ring-1 ring-black/40" style={{ background: VELVET, boxShadow: '0 10px 14px -10px rgba(0,0,0,0.9)' }}>
-            {movie?.poster_path ? (
-              <img
-                src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                draggable={false}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : movie ? (
-              <span className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-2 text-center" style={{ color: MIST }}>
-                <Film className="w-5 h-5" aria-hidden />
-                <span className="text-[10px] leading-tight line-clamp-3" style={{ color: PAPER }}>
-                  {title}
-                </span>
-              </span>
-            ) : (
-              <span className="absolute inset-0 poster-skeleton" />
-            )}
-            {pick.type === 'tv' && (
-              <span className="absolute bottom-1 left-1 px-1 py-px rounded-[3px] text-[9px] sm:text-[10px] font-semibold leading-tight shadow" style={{ background: PAPER, color: INK }}>
-                {t('oracle.picks.series')}
-              </span>
-            )}
-          </span>
-          {/* O adesivo da nota prevista, como a etiqueta de preço das fitas. */}
-          {pick.rating !== null && (
-            <span
-              className="absolute -top-1.5 -right-1.5 grid place-items-center w-6 h-6 sm:w-[30px] sm:h-[30px] rounded-full -rotate-12"
-              style={{ background: color, color: INK, boxShadow: '0 0 0 2px #140F26, inset 0 1px 0 rgba(255,255,255,0.45), 0 4px 8px -2px rgba(0,0,0,0.6)' }}
-              title={ratingLabel}
-              aria-hidden
-            >
-              <span style={PIXEL} className="text-[13px] sm:text-base leading-none">
-                {pick.rating}
-              </span>
-            </span>
-          )}
-        </span>
-        <span className="block mt-[calc(12px+8px)]">
-          <span className="block text-[11px] sm:text-xs font-medium leading-snug line-clamp-2 break-words" style={{ color: PAPER }} title={title}>
-            {title || ' '}
-          </span>
-          <span className="mt-0.5 flex items-center gap-1.5 text-[10px] sm:text-[11px]" style={{ color: MIST }}>
-            {mood && (
-              <span style={{ ...PIXEL, color: mood.color }} className="leading-none" title={t(mood.labelKey)}>
-                {mood.letter}
-              </span>
-            )}
-            {year}
-          </span>
-        </span>
-      </button>
-    </motion.li>
-  );
-};
-
-// Um corredor: a carta do oráculo na cabeceira e a prateleira com as fitas.
-const Aisle: React.FC<{
+// Uma fileira: a carta do oráculo e os títulos dele.
+const OracleRow: React.FC<{
   oracle: OracleCard;
   cardStyle: string;
-  rowIndex: number;
   status: Status;
   picks: OraclePick[];
   cardOf: (ref: TitleRef) => Movie | undefined;
   onOpen: (pick: OraclePick) => void;
-}> = ({ oracle, cardStyle, rowIndex, status, picks, cardOf, onOpen }) => {
-  const { t } = useTranslation();
-  const reduceMotion = useReducedMotion();
-  const wide = useIsWide();
-  const tile = wide ? TILE.lg : TILE.sm;
-  const gap = wide ? GAP.lg : GAP.sm;
-  const posterHeight = Math.round(tile * 1.5);
+  onOpenProfile: (id: OracleId) => void;
+}> = ({ oracle, cardStyle, status, picks, cardOf, onOpen, onOpenProfile }) => {
+  const { t, i18n } = useTranslation();
+  const reveal = useReveal();
+  const initialCount = useMemo(() => tilesThatFit(tileWidthPx()), []);
   const libraryLink = `/oracle/libraries?oracle=${oracle.id}`;
+  const formatScore = (value: number) => value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-  // A fileira é distribuída quando os cartões dela chegaram (ou depois de
-  // 4 s, com o que tiver — o resto aparece como esqueleto).
-  const loadedCount = picks.filter((pick) => cardOf({ id: pick.id, media_type: pick.type })).length;
-  const [timedOut, setTimedOut] = useState(false);
-  useEffect(() => {
-    if (status !== 'ready' || picks.length === 0) return;
-    const id = window.setTimeout(() => setTimedOut(true), 4000);
-    return () => window.clearTimeout(id);
-  }, [status, picks.length]);
-  const dealt = status === 'ready' && picks.length > 0 && (loadedCount === picks.length || timedOut);
-  const empty = status === 'ready' && picks.length === 0;
-
-  // Rolar com o mouse arrastando (como as prateleiras da Biblioteca).
+  // Arrastar com o mouse no desktop (como as outras listas).
   const scrollRef = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, startX: 0, scroll: 0, moved: 0 });
   const onMouseDown = (e: React.MouseEvent) => {
     if (!scrollRef.current) return;
     drag.current = { active: true, startX: e.pageX, scroll: scrollRef.current.scrollLeft, moved: 0 };
+    scrollRef.current.style.cursor = 'grabbing';
   };
   const onMouseMove = (e: React.MouseEvent) => {
     if (!drag.current.active || !scrollRef.current) return;
+    e.preventDefault();
     const dx = e.pageX - drag.current.startX;
     drag.current.moved = Math.max(drag.current.moved, Math.abs(dx));
-    scrollRef.current.scrollLeft = drag.current.scroll - dx;
+    scrollRef.current.scrollLeft = drag.current.scroll - dx * 2;
   };
   const endDrag = () => {
     drag.current.active = false;
+    if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
   };
+  const dragged = () => drag.current.moved > 5;
 
   return (
     <section aria-label={t('oracle.picks.aisleLabel', { name: oracle.name })}>
       <div className="flex items-baseline justify-between gap-3 px-1 sm:px-0">
-        <h3 style={{ ...PIXEL, color: oracle.color }} className="text-xl sm:text-[1.7rem] leading-none">
+        <h3 style={{ ...PIXEL, color: oracle.color }} className="text-2xl sm:text-3xl leading-tight">
           {oracle.name}
         </h3>
         <Link
@@ -212,107 +88,105 @@ const Aisle: React.FC<{
         </Link>
       </div>
 
-      <div className="relative mt-2 flex" style={{ gap }}>
-        {/* A prateleira, por baixo da carta e das fitas. */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute left-0 right-0 rounded-[3px]"
-          style={{
-            top: PAD_TOP + posterHeight,
-            height: PLANK,
-            background: `linear-gradient(180deg, rgba(243,234,211,0.22) 0, rgba(243,234,211,0.07) 3px, ${withAlpha(oracle.color, 0.6)} 3px, ${withAlpha(oracle.color, 0.6)} 5px, #0E0A1A 5px, #0E0A1A 100%)`,
-            boxShadow: '0 14px 18px -10px rgba(0,0,0,0.75)',
-          }}
-        />
-
-        {/* A carta na cabeceira do corredor. */}
-        <div className="relative z-10 shrink-0" style={{ width: tile, paddingTop: PAD_TOP }}>
-          <motion.div
-            animate={dealt && !reduceMotion ? { rotate: [0, -5, 0], x: [0, -2, 0] } : undefined}
-            transition={{ duration: 0.45, delay: rowIndex * 0.15, ease: 'easeOut' }}
-          >
-            <Link
-              to={libraryLink}
-              aria-label={`${oracle.name} — ${t('oracle.libraries.exploreShelves')}`}
-              className={`group block rounded-lg ${FOCUS_RING}`}
+      <div
+        ref={scrollRef}
+        className="-mx-3 sm:-mx-6 mt-1 pt-3 overflow-x-auto cursor-grab select-none"
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={endDrag}
+        onMouseLeave={endDrag}
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+      >
+        <ol className="flex gap-4 px-3 sm:px-6 pb-2">
+          {/* A carta do oráculo: abre o perfil dele. */}
+          <li className={`shrink-0 ${TILE_WIDTH}`}>
+            <button
+              type="button"
+              onClick={() => !dragged() && onOpenProfile(oracle.id)}
+              className={`group block w-full text-left rounded-xl ${FOCUS_RING}`}
+              aria-label={t('oracle.profile.open', { name: oracle.name })}
             >
               <span
-                className="block overflow-hidden rounded-lg transition-transform duration-300 group-hover:-translate-y-1"
-                style={{ height: posterHeight, boxShadow: `8px 0 18px -8px rgba(0,0,0,0.8), 0 16px 30px -18px ${withAlpha(oracle.color, 0.9)}` }}
+                className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 transition-transform duration-200 group-hover:-translate-y-1"
+                style={{ background: VELVET, boxShadow: `0 18px 30px -18px ${withAlpha(oracle.color, 0.9)}` }}
               >
-                <img src={oracleCardImage(oracle.id, cardStyle)} alt="" decoding="async" className="block w-full h-full object-cover" />
+                <img src={oracleCardImage(oracle.id, cardStyle)} alt="" decoding="async" draggable={false} className="absolute inset-0 w-full h-full object-cover" />
               </span>
-            </Link>
-          </motion.div>
-          <p className="mt-[calc(12px+8px)] text-[10px] sm:text-xs leading-snug" style={{ color: MIST }}>
-            {t(`oracle.cards.${oracle.id}Subtitle`)}
-          </p>
-        </div>
+              <span className={`mt-2.5 block text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }}>
+                {t(`oracle.cards.${oracle.id}`)}
+              </span>
+              <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold" style={{ color: oracle.color }}>
+                {t('oracle.profile.view')}
+                <ArrowRight className="w-3.5 h-3.5 transition group-hover:translate-x-0.5" aria-hidden />
+              </span>
+            </button>
+          </li>
 
-        <div
-          ref={scrollRef}
-          className="relative min-w-0 flex-1 overflow-x-auto select-none"
-          style={{ scrollbarWidth: 'none' } as React.CSSProperties}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={endDrag}
-          onMouseLeave={endDrag}
-        >
-          {status === 'error' ? (
-            <div aria-hidden style={{ height: PAD_TOP + posterHeight }} />
-          ) : empty ? (
-            <div className="flex items-center pl-1" style={{ height: PAD_TOP + posterHeight }}>
-              <p className="text-xs sm:text-sm max-w-xs" style={{ color: MIST }}>
+          {status === 'loading' && [...Array(initialCount)].map((_, i) => <SkeletonTile key={`s${i}`} />)}
+
+          {status === 'ready' && picks.length === 0 && (
+            <li className="shrink-0 w-56 sm:w-72 self-center">
+              <p className="text-sm leading-relaxed" style={{ color: MIST }}>
                 {t('oracle.picks.empty')}
               </p>
-            </div>
-          ) : (
-            <ol className="flex pr-2" style={{ gap, paddingTop: PAD_TOP }}>
-              {dealt
-                ? picks.map((pick, i) => (
-                    <Tape
-                      key={titleKey({ id: pick.id, media_type: pick.type })}
-                      pick={pick}
-                      index={i}
-                      rowIndex={rowIndex}
-                      tile={tile}
-                      gap={gap}
-                      posterHeight={posterHeight}
-                      color={oracle.color}
-                      movie={cardOf({ id: pick.id, media_type: pick.type })}
-                      reduceMotion={Boolean(reduceMotion)}
-                      onOpen={() => {
-                        if (drag.current.moved > 5) return;
-                        onOpen(pick);
-                      }}
-                    />
-                  ))
-                : [0, 1, 2, 3, 4, 5].map((i) => (
-                    <li key={i} className="shrink-0" style={{ width: tile }} aria-hidden>
-                      <span className="block rounded-md poster-skeleton opacity-60" style={{ height: posterHeight }} />
-                    </li>
-                  ))}
-              {dealt && (
-                <motion.li
-                  className="shrink-0"
-                  style={{ width: tile }}
-                  initial={reduceMotion ? false : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: rowIndex * 0.15 + picks.length * 0.055 + 0.2 }}
-                >
-                  <Link
-                    to={`/oracle/libraries?oracle=${oracle.id}`}
-                    className={`flex flex-col items-center justify-center gap-2 px-2 rounded-md border-2 border-dashed text-center transition hover:bg-white/[0.04] ${FOCUS_RING}`}
-                    style={{ height: posterHeight, borderColor: withAlpha(oracle.color, 0.45), color: oracle.color }}
-                  >
-                    <ArrowRight className="w-5 h-5" aria-hidden />
-                    <span className="text-[11px] sm:text-xs font-semibold leading-tight">{t('oracle.picks.allShelves')}</span>
-                  </Link>
-                </motion.li>
-              )}
-            </ol>
+            </li>
           )}
-        </div>
+
+          {status === 'ready' &&
+            picks.map((pick) => {
+              const ref: TitleRef = { id: pick.id, media_type: pick.type };
+              const movie = cardOf(ref);
+              if (!movie) return <SkeletonTile key={`s:${titleKey(ref)}`} />;
+              const year = (movie.release_date || '').slice(0, 4);
+              return (
+                <li key={`t:${titleKey(ref)}`} ref={reveal} className={`reveal-tile group relative shrink-0 ${TILE_WIDTH}`}>
+                  <button
+                    type="button"
+                    onClick={() => !dragged() && onOpen(pick)}
+                    onPointerEnter={() => prefetchFullTitle(ref)}
+                    onPointerDown={() => prefetchFullTitle(ref)}
+                    className={`block w-full text-left rounded-xl ${FOCUS_RING}`}
+                  >
+                    <span
+                      className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
+                      style={{ background: VELVET }}
+                    >
+                      {movie.poster_path ? (
+                        <img
+                          src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                          alt={movie.title}
+                          loading="lazy"
+                          decoding="async"
+                          draggable={false}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center" style={{ color: MIST }}>
+                          <Film className="w-7 h-7" aria-hidden />
+                          <span className="text-xs leading-snug line-clamp-3" style={{ color: PAPER }}>
+                            {movie.title}
+                          </span>
+                        </span>
+                      )}
+                      {pick.rating !== null && <PredictedBadge rating={pick.rating} />}
+                    </span>
+                    <span className={`mt-2.5 block text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
+                      {movie.title}
+                    </span>
+                    <span className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: MIST }}>
+                      {year && <span>{year}</span>}
+                      {movie.vote_average > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-amber-300 text-amber-300" aria-hidden />
+                          {formatScore(movie.vote_average)}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+        </ol>
       </div>
     </section>
   );
@@ -382,6 +256,7 @@ const OraclePicks: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
   const [status, setStatus] = useState<Status>('loading');
   const [data, setData] = useState<OracleHubPicks | null>(null);
   const [selected, setSelected] = useState<Movie | null>(null);
+  const [profileId, setProfileId] = useState<OracleId | null>(null);
   // A proporção de séries de cada oráculo, sorteada uma vez por abertura.
   const [shares] = useState(() => Object.fromEntries(ORACLES.map((o) => [o.id, drawSeriesShare()])) as Record<string, number>);
 
@@ -470,23 +345,24 @@ const OraclePicks: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
         )}
       </header>
 
-      <div className="mt-5 sm:mt-7 space-y-5 sm:space-y-7">
-        {rows.map(({ oracle, picks }, rowIndex) => (
-          <Aisle
+      <div className="mt-5 sm:mt-7 space-y-4 sm:space-y-6">
+        {rows.map(({ oracle, picks }) => (
+          <OracleRow
             key={oracle.id}
             oracle={oracle}
             cardStyle={cardStyle}
-            rowIndex={rowIndex}
             status={status}
             picks={picks}
             cardOf={cardOf}
             onOpen={open}
+            onOpenProfile={setProfileId}
           />
         ))}
       </div>
 
       <BrowseAllSign totalTitles={data?.totalTitles ?? 0} shelves={data?.shelves ?? 27} />
 
+      <OracleProfileSheet oracleId={profileId} cardStyle={cardStyle} onClose={() => setProfileId(null)} />
       {selected && <MovieDetailsModal movie={selected} isOpen onClose={() => setSelected(null)} isOtherUserProfile={false} />}
     </div>
   );
