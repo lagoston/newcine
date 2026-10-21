@@ -13,12 +13,15 @@ interface PersonalityCompletionModalProps {
   persona: UserPersona;
   // true quando a pessoa já tinha outra personalidade e ela mudou.
   changed?: boolean;
+  // true quando o código é o mesmo, mas o Oráculo trocou o personagem dele.
+  recast?: boolean;
 }
 
 // A revelação: aparece na Central dos Oráculos na primeira vez que a
 // personalidade surge (10 filmes das prateleiras avaliados) e toda vez que
-// ela muda. Única animação: o cartão da persona entrando depois das falas.
-export default function PersonalityCompletionModal({ isOpen, onClose, persona, changed = false }: PersonalityCompletionModalProps) {
+// ela muda (ou quando o personagem do código é trocado). Única animação: o
+// cartão da persona entrando depois das falas.
+export default function PersonalityCompletionModal({ isOpen, onClose, persona, changed = false, recast = false }: PersonalityCompletionModalProps) {
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
   if (!persona.code || !persona.persona) return null;
@@ -30,8 +33,8 @@ export default function PersonalityCompletionModal({ isOpen, onClose, persona, c
     <OracleSheet
       open={isOpen}
       onClose={onClose}
-      title={changed ? t('oracle.reveal.changedTitle') : t('oracle.reveal.title')}
-      subtitle={changed ? t('oracle.reveal.changedSubtitle') : t('oracle.cinematicEssence')}
+      title={changed || recast ? t('oracle.reveal.changedTitle') : t('oracle.reveal.title')}
+      subtitle={recast ? t('oracle.reveal.recastSubtitle') : changed ? t('oracle.reveal.changedSubtitle') : t('oracle.cinematicEssence')}
       leading={
         <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-fuchsia-500/15 ring-1 ring-fuchsia-400/30">
           <Sparkles className="w-5 h-5 text-fuchsia-300" aria-hidden />
@@ -49,9 +52,9 @@ export default function PersonalityCompletionModal({ isOpen, onClose, persona, c
       }
     >
       <p className="text-[17px] leading-relaxed italic" style={{ color: MIST }}>
-        {changed ? t('oracle.reveal.changedLine') : t('oracle.reveal.line1')}
+        {recast ? t('oracle.reveal.recastLine') : changed ? t('oracle.reveal.changedLine') : t('oracle.reveal.line1')}
       </p>
-      {!changed && (
+      {!changed && !recast && (
         <p className="mt-3 text-[17px] leading-relaxed italic" style={{ color: MIST }}>
           {t('oracle.reveal.line2')}
         </p>

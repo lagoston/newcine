@@ -38,26 +38,42 @@ const GHOST_BUTTON = `gap-2 h-11 px-4 rounded-xl border border-white/15 hover:bo
 const PRIMARY_BUTTON = `gap-2 h-12 px-6 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`;
 
 const seenKey = (userId: string) => `cineoracle:persona-seen:${userId}`;
-// Em 28/09 duas letras mudaram: Sombrio e Assustador D → X e Adrenalina
-// X → Z. Códigos guardados antes disso (texto puro, sem o prefixo "v2:")
-// são traduzidos, pra ninguém ver uma "Nova revelação" só por causa da
-// troca de letra.
-const readSeen = (userId: string): string | null => {
+// A marca da última revelação vista. Desde 21/10/2026 guarda o código e o
+// filme do personagem ("v3:MAL:607"): quando o Oráculo troca o personagem de
+// um código, quem tem esse código vê a revelação de novo. Marcas "v2:" (só o
+// código) valem como vistas, menos nos códigos que trocaram de personagem em
+// 21/10. Em 28/09 duas letras mudaram (Sombrio e Assustador D → X e
+// Adrenalina X → Z): códigos de antes disso (texto puro, sem prefixo) são
+// traduzidos, pra ninguém ver uma "Nova revelação" só por causa da letra.
+const RECAST_1021 = new Set(['MXA', 'MPF', 'MAL', 'MZL', 'MRL', 'XCR', 'XZF', 'PAL', 'MPR', 'XPF', 'PZF']);
+type SeenMark = { code: string; film: number | null };
+const readSeen = (userId: string): SeenMark | null => {
   try {
     const raw = window.localStorage.getItem(seenKey(userId));
     if (!raw) return null;
-    if (raw.startsWith('v2:')) return raw.slice(3);
-    return raw.replace(/[DX]/g, (letter) => (letter === 'D' ? 'X' : 'Z'));
+    if (raw.startsWith('v3:')) {
+      const [, code = '', film = ''] = raw.split(':');
+      return { code, film: Number(film) || null };
+    }
+    if (raw.startsWith('v2:')) return { code: raw.slice(3), film: null };
+    return { code: raw.replace(/[DX]/g, (letter) => (letter === 'D' ? 'X' : 'Z')), film: null };
   } catch {
     return null;
   }
 };
-const writeSeen = (userId: string, code: string) => {
+const writeSeen = (userId: string, code: string, film: number | null) => {
   try {
-    window.localStorage.setItem(seenKey(userId), `v2:${code}`);
+    window.localStorage.setItem(seenKey(userId), `v3:${code}:${film ?? ''}`);
   } catch {
     /* sem armazenamento local: a revelação só volta a aparecer */
   }
+};
+type RevealMode = 'first' | 'changed' | 'recast';
+const revealModeFor = (seen: SeenMark | null, code: string, film: number | null): RevealMode | null => {
+  if (!seen) return 'first';
+  if (seen.code !== code) return 'changed';
+  if (seen.film === null) return RECAST_1021.has(code) ? 'recast' : null;
+  return film !== null && seen.film !== film ? 'recast' : null;
 };
 
 export default function OracleHub() {
@@ -78,7 +94,7 @@ export default function OracleHub() {
   const [sheet, setSheet] = useState<HubSheet>(null);
   const [showPersonas, setShowPersonas] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [reveal, setReveal] = useState<{ changed: boolean } | null>(null);
+  const [reveal, setReveal] = useState<RevealMode | null>(null);
 
   const loadUserData = useCallback(async () => {
     if (!userId) return;
@@ -95,8 +111,8 @@ export default function OracleHub() {
       setIsPremium(Boolean(premiumResult.data));
 
       if (personaData?.code && personaData.persona) {
-        const seen = readSeen(userId);
-        if (seen !== personaData.code) setReveal({ changed: Boolean(seen) });
+        const mode = revealModeFor(readSeen(userId), personaData.code, personaData.persona.tmdbId);
+        if (mode) setReveal(mode);
       }
     } catch (error) {
       console.error('Error loading oracle hub:', error);
@@ -111,7 +127,7 @@ export default function OracleHub() {
   }, [loadUserData]);
 
   const closeReveal = () => {
-    if (userId && persona?.code) writeSeen(userId, persona.code);
+    if (userId && persona?.code) writeSeen(userId, persona.code, persona.persona?.tmdbId ?? null);
     setReveal(null);
   };
 
@@ -516,7 +532,7 @@ export default function OracleHub() {
       {hasPersona && persona && <PersonaRevelationSheet open={sheet === 'revelation'} onClose={() => setSheet(null)} persona={persona} isOwn />}
       <PersonaHowItWorksSheet open={sheet === 'howItWorks'} onClose={() => setSheet(null)} persona={persona} isOwn />
 
-      {reveal && persona && <PersonalityCompletionModal isOpen onClose={closeReveal} persona={persona} changed={reveal.changed} />}
+      {reveal && persona && <PersonalityCompletionModal isOpen onClose={closeReveal} persona={persona} changed={reveal === 'changed'} recast={reveal === 'recast'} />}
 
       {userId && (
         <PersonasModal

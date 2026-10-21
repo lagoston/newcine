@@ -843,7 +843,9 @@
       "dynamicNote": "It changes with you: every film or series you rate can reshuffle your shelves.",
       "closing": "Come back often — to learn who you've become.",
       "cta": "See my personality",
-      "changedSubtitle": "Your personality changed"
+      "changedSubtitle": "Your personality changed",
+      "recastLine": "Your shelves are the same, but the Oracle found a character that fits them better.",
+      "recastSubtitle": "Your character has changed"
     },
     "forYou": {
       "renewsIn": "Renews in"

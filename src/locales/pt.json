@@ -846,7 +846,9 @@
       "dynamicNote": "Ela muda com você: cada filme ou série que você avaliar pode mexer nas suas prateleiras.",
       "closing": "Volte sempre — pra saber quem você se tornou.",
       "cta": "Ver minha personalidade",
-      "changedSubtitle": "Sua personalidade mudou"
+      "changedSubtitle": "Sua personalidade mudou",
+      "recastLine": "Suas prateleiras continuam as mesmas, mas o Oráculo encontrou um personagem que combina mais com elas.",
+      "recastSubtitle": "Seu personagem mudou"
     },
     "forYou": {
       "renewsIn": "Renova em"
