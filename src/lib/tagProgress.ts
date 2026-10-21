@@ -13,10 +13,14 @@ import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MO
 //
 // Regras de contagem:
 //   • só entram títulos AVALIADOS (nota preenchida);
-//   • tags de humor (Bloody Mary, Punchliner, Cine Cupid) contam os FILMES
-//     avaliados que moram naquela prateleira da Biblioteca dos Oráculos
-//     (recommendation_pools, qualquer oráculo) — a mesma regra da
-//     personalidade e de is_progression_tag_unlocked() no banco;
+//   • tags de humor (Bloody Mary, Punchliner, Cine Cupid) contam os títulos
+//     avaliados — filmes E séries, desde 21/10/2026 — que moram naquela
+//     prateleira da Biblioteca dos Oráculos (recommendation_pools, qualquer
+//     oráculo) — a mesma regra da personalidade e de
+//     is_progression_tag_unlocked() no banco. As tags dos oráculos (50, 100 e
+//     200 da curadoria) também contam filmes e séries. Cada título é casado
+//     pelo tipo ("movie:123" / "tv:123"): um filme nunca vale por uma série
+//     de mesmo número;
 //   • CineHater conta notas de 0 a 3.
 
 export type TagCategoryId = 'basic' | 'theme' | 'community' | 'oracle' | 'special';
@@ -73,6 +77,7 @@ interface PoolRow {
   card_type: string;
   mood_key: string;
   movie_ids: number[] | null;
+  tv_ids: number[] | null;
 }
 
 // A lista de ids vai na URL (in.(…)): em lotes, pra bibliotecas grandes.
@@ -90,7 +95,7 @@ async function fetchCacheRows(ids: number[]): Promise<CacheRow[]> {
 export async function fetchTagProgress(userId: string): Promise<TagProgress> {
   const [moviesRes, poolsRes, friendsRes, realReviewsRes, aiReviewsRes, specialRes, userSpecialRes] = await Promise.all([
     supabase.from('user_movies').select('movie_id, rating, media_type').eq('user_id', userId).not('rating', 'is', null),
-    supabase.from('recommendation_pools').select('card_type, mood_key, movie_ids'),
+    supabase.from('recommendation_pools').select('card_type, mood_key, movie_ids, tv_ids'),
     supabase
       .from('friendships')
       .select('*', { count: 'exact', head: true })
@@ -105,6 +110,8 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
   const rated = (moviesRes.data as RatedRow[] | null) ?? [];
   const ratedIds = new Set(rated.map((m) => m.movie_id));
   const ratedMovieIds = new Set(rated.filter((m) => (m.media_type ?? 'movie') === 'movie').map((m) => m.movie_id));
+  // Filmes e séries avaliados, por tipo ("movie:123" / "tv:456").
+  const ratedKeys = new Set(rated.map((m) => `${m.media_type === 'tv' ? 'tv' : 'movie'}:${m.movie_id}`));
 
   // ---- Básicas ----
   const basic: Record<string, number> = {};
@@ -134,21 +141,21 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
 
   // Humores (prateleiras) e curadorias dos oráculos.
   const pools = (poolsRes.data as PoolRow[] | null) ?? [];
-  const moodIds: Record<string, Set<number>> = {};
-  const oracleIds: Record<string, Set<number>> = {};
+  const moodIds: Record<string, Set<string>> = {};
+  const oracleIds: Record<string, Set<string>> = {};
   pools.forEach((row) => {
-    const ids = row.movie_ids ?? [];
+    const keys = [...(row.movie_ids ?? []).map((id) => `movie:${id}`), ...(row.tv_ids ?? []).map((id) => `tv:${id}`)];
     if (row.mood_key !== 'random-surprise') {
       moodIds[row.mood_key] = moodIds[row.mood_key] ?? new Set();
-      ids.forEach((id) => moodIds[row.mood_key].add(id));
+      keys.forEach((key) => moodIds[row.mood_key].add(key));
     }
     oracleIds[row.card_type] = oracleIds[row.card_type] ?? new Set();
-    ids.forEach((id) => oracleIds[row.card_type].add(id));
+    keys.forEach((key) => oracleIds[row.card_type].add(key));
   });
   PROGRESSION_TAGS.forEach((tag) => {
     if (tag.condition?.type !== 'mood') return;
     const pool = moodIds[tag.condition.value as string];
-    basic[tag.name] = pool ? [...ratedMovieIds].filter((id) => pool.has(id)).length : 0;
+    basic[tag.name] = pool ? [...ratedKeys].filter((key) => pool.has(key)).length : 0;
   });
 
   // Resenhas.
@@ -182,7 +189,7 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
     if (tag.condition.type !== 'franchise') return;
     const value = tag.condition.value;
     const ids = Array.isArray(value) ? value : FRANCHISE_MOVIES[value as keyof typeof FRANCHISE_MOVIES];
-    if (ids) theme[tag.id] = ids.filter((id) => ratedIds.has(id)).length;
+    if (ids) theme[tag.id] = ids.filter((id) => ratedMovieIds.has(id)).length;
   });
 
   // ---- Oráculo ----
@@ -190,7 +197,7 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
   ORACLE_TAGS.forEach((tag) => {
     if (tag.condition.type === 'curated_pool' && tag.condition.value) {
       const pool = oracleIds[tag.condition.value];
-      oracle[tag.id] = pool ? [...ratedIds].filter((id) => pool.has(id)).length : 0;
+      oracle[tag.id] = pool ? [...ratedKeys].filter((key) => pool.has(key)).length : 0;
     } else if (tag.condition.type === 'ai_review_count') {
       oracle[tag.id] = aiReviews;
     }

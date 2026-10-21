@@ -1,9 +1,9 @@
 // Fonte única de verdade para as definições de tags/conquistas do site.
 // O progresso de cada uma é calculado em lib/tagProgress.ts (usado pelo
 // modal de Tags, pelo card de tags dos perfis e pelo Personalizar perfil).
-// Tags de humor (condition.type 'mood') contam os filmes avaliados que moram
-// naquela prateleira da Biblioteca dos Oráculos — as mesmas prateleiras da
-// personalidade (lib/moods.ts).
+// Tags de humor (condition.type 'mood') contam os títulos avaliados (filmes e
+// séries, desde 21/10/2026) que moram naquela prateleira da Biblioteca dos
+// Oráculos — as mesmas prateleiras da personalidade (lib/moods.ts).
 
 export interface ProgressionTag {
   name: string;
@@ -84,72 +84,72 @@ export const PROGRESSION_TAGS: ProgressionTag[] = [
     name: 'Enigmatic',
     emoji: '🧩',
     minMovies: 50,
-    description: '50 movies from the Mind-Blowing shelf',
-    descriptionPt: '50 filmes da prateleira Mind-Blowing',
+    description: '50 movies or series from the Mind-Blowing shelf',
+    descriptionPt: '50 filmes ou séries da prateleira Mind-Blowing',
     condition: { type: 'mood', value: 'mind-blowing' }
   },
   {
     name: 'Bloody Mary',
     emoji: '🩸',
     minMovies: 50,
-    description: '50 movies from the Dark & Scary shelf',
-    descriptionPt: '50 filmes da prateleira Sombrio e Assustador',
+    description: '50 movies or series from the Dark & Scary shelf',
+    descriptionPt: '50 filmes ou séries da prateleira Sombrio e Assustador',
     condition: { type: 'mood', value: 'dark-and-scary' }
   },
   {
     name: 'Dreamwalker',
     emoji: '🍭',
     minMovies: 50,
-    description: '50 movies from the Psychedelic shelf',
-    descriptionPt: '50 filmes da prateleira Psicodélico',
+    description: '50 movies or series from the Psychedelic shelf',
+    descriptionPt: '50 filmes ou séries da prateleira Psicodélico',
     condition: { type: 'mood', value: 'drug-trip' }
   },
   {
     name: 'Trailblazer',
     emoji: '🤿',
     minMovies: 50,
-    description: '50 movies from the Adventures shelf',
-    descriptionPt: '50 filmes da prateleira Aventuras',
+    description: '50 movies or series from the Adventures shelf',
+    descriptionPt: '50 filmes ou séries da prateleira Aventuras',
     condition: { type: 'mood', value: 'adventures' }
   },
   {
     name: 'Soul Collector',
     emoji: '☯️',
     minMovies: 50,
-    description: '50 movies from the Catharsis shelf',
-    descriptionPt: '50 filmes da prateleira Catarse',
+    description: '50 movies or series from the Catharsis shelf',
+    descriptionPt: '50 filmes ou séries da prateleira Catarse',
     condition: { type: 'mood', value: 'catharsis' }
   },
   {
     name: 'Daredevil',
     emoji: '🧨',
     minMovies: 50,
-    description: '50 movies from the Adrenaline shelf',
-    descriptionPt: '50 filmes da prateleira Adrenalina',
+    description: '50 movies or series from the Adrenaline shelf',
+    descriptionPt: '50 filmes ou séries da prateleira Adrenalina',
     condition: { type: 'mood', value: 'adrenaline' }
   },
   {
     name: 'Cine Cupid',
     emoji: '💕',
     minMovies: 50,
-    description: '50 movies from the Romantic shelf',
-    descriptionPt: '50 filmes da prateleira Romântico',
+    description: '50 movies or series from the Romantic shelf',
+    descriptionPt: '50 filmes ou séries da prateleira Romântico',
     condition: { type: 'mood', value: 'romantic' }
   },
   {
     name: 'Peter Pan',
     emoji: '🧚‍♂️',
     minMovies: 50,
-    description: '50 movies from the Family Time shelf',
-    descriptionPt: '50 filmes da prateleira Família',
+    description: '50 movies or series from the Family Time shelf',
+    descriptionPt: '50 filmes ou séries da prateleira Família',
     condition: { type: 'mood', value: 'family-time' }
   },
   {
     name: 'Punchliner',
     emoji: '😂',
     minMovies: 50,
-    description: '50 movies from the Laugh Out Loud shelf',
-    descriptionPt: '50 filmes da prateleira Muitas Risadas',
+    description: '50 movies or series from the Laugh Out Loud shelf',
+    descriptionPt: '50 filmes ou séries da prateleira Muitas Risadas',
     condition: { type: 'mood', value: 'laugh-out-loud' }
   },
   {
@@ -253,23 +253,23 @@ export const THEME_TAGS: ThemeTag[] = [
 // continua existindo (aba própria, cor rosa, tudo como antes), só o
 // CONTEÚDO trocou: as 3 curadorias que já sustentam o site (Biblioteca
 // dos Oráculos, Recomendações do Dia, selos nos menus de filme) e as
-// resenhas geradas pelo Oráculo. curated_pool soma os movie_ids de
-// TODOS os moods de um card_type (recommendation_pools) e conta quantos
-// desses o usuário já avaliou. ai_review_count conta reviews com
+// resenhas geradas pelo Oráculo. curated_pool soma os filmes e as séries
+// (movie_ids e tv_ids, desde 21/10/2026) de TODOS os moods de um card_type
+// (recommendation_pools) e conta quantos desses o usuário já avaliou. ai_review_count conta reviews com
 // is_ai_generated = true — postar (não só gerar) é o que conta, já que
 // só reviews publicadas existem na tabela reviews de fato.
 export const ORACLE_TAGS: OracleTag[] = [
-  { id: 'lagooner', name: 'Lagooner', emoji: '🚤', requirement: '50 movies from Sapo Bogart\'s curation', requirementPt: '50 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 50, value: 'bogart' } },
-  { id: 'fly-eater', name: 'Bug-eater', emoji: '🦟', requirement: '100 movies from Sapo Bogart\'s curation', requirementPt: '100 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 100, value: 'bogart' } },
-  { id: 'quick-tongue', name: 'Quick Tongue', emoji: '🐸', requirement: '200 movies from Sapo Bogart\'s curation', requirementPt: '200 filmes da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 200, value: 'bogart' } },
+  { id: 'lagooner', name: 'Lagooner', emoji: '🚤', requirement: '50 titles from Sapo Bogart\'s curation', requirementPt: '50 títulos da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 50, value: 'bogart' } },
+  { id: 'fly-eater', name: 'Bug-eater', emoji: '🦟', requirement: '100 titles from Sapo Bogart\'s curation', requirementPt: '100 títulos da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 100, value: 'bogart' } },
+  { id: 'quick-tongue', name: 'Quick Tongue', emoji: '🐸', requirement: '200 titles from Sapo Bogart\'s curation', requirementPt: '200 títulos da curadoria do Sapo Bogart', condition: { type: 'curated_pool', count: 200, value: 'bogart' } },
 
-  { id: 'tape-colector', name: 'Tape Colector', emoji: '📼', requirement: '50 movies from Raposo Fincher\'s curation', requirementPt: '50 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 50, value: 'fincher' } },
-  { id: 'cine-smoker', name: 'Cine Smoker', emoji: '🚬', requirement: '100 movies from Raposo Fincher\'s curation', requirementPt: '100 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 100, value: 'fincher' } },
-  { id: 'keen-sense', name: 'Keen Sense', emoji: '🦊', requirement: '200 movies from Raposo Fincher\'s curation', requirementPt: '200 filmes da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 200, value: 'fincher' } },
+  { id: 'tape-colector', name: 'Tape Colector', emoji: '📼', requirement: '50 titles from Raposo Fincher\'s curation', requirementPt: '50 títulos da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 50, value: 'fincher' } },
+  { id: 'cine-smoker', name: 'Cine Smoker', emoji: '🚬', requirement: '100 titles from Raposo Fincher\'s curation', requirementPt: '100 títulos da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 100, value: 'fincher' } },
+  { id: 'keen-sense', name: 'Keen Sense', emoji: '🦊', requirement: '200 titles from Raposo Fincher\'s curation', requirementPt: '200 títulos da curadoria do Raposo Fincher', condition: { type: 'curated_pool', count: 200, value: 'fincher' } },
 
-  { id: 'crawler', name: 'Crawler', emoji: '🚇', requirement: '50 movies from Cobra Cypher\'s curation', requirementPt: '50 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 50, value: 'cypher' } },
-  { id: 'poison-taster', name: 'Poison Taster', emoji: '🧪', requirement: '100 movies from Cobra Cypher\'s curation', requirementPt: '100 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 100, value: 'cypher' } },
-  { id: 'underworld-king', name: 'Underworld King', emoji: '🐍', requirement: '200 movies from Cobra Cypher\'s curation', requirementPt: '200 filmes da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 200, value: 'cypher' } },
+  { id: 'crawler', name: 'Crawler', emoji: '🚇', requirement: '50 titles from Cobra Cypher\'s curation', requirementPt: '50 títulos da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 50, value: 'cypher' } },
+  { id: 'poison-taster', name: 'Poison Taster', emoji: '🧪', requirement: '100 titles from Cobra Cypher\'s curation', requirementPt: '100 títulos da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 100, value: 'cypher' } },
+  { id: 'underworld-king', name: 'Underworld King', emoji: '🐍', requirement: '200 titles from Cobra Cypher\'s curation', requirementPt: '200 títulos da curadoria da Cobra Cypher', condition: { type: 'curated_pool', count: 200, value: 'cypher' } },
 
   { id: 'from-beyond', name: 'From Beyond', emoji: '✉️', requirement: 'Post 1 Oracle review', requirementPt: 'Poste 1 resenha do Oráculo', condition: { type: 'ai_review_count', count: 1 } },
   { id: 'non-reflective', name: 'Ghost Writer', emoji: '👻', requirement: 'Post 10 Oracle reviews', requirementPt: 'Poste 10 resenhas do Oráculo', condition: { type: 'ai_review_count', count: 10 } },

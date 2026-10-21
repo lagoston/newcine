@@ -14,6 +14,7 @@ import {
 } from '../lib/tasteStats';
 import { getPeoplePhotos, type PersonPhoto } from '../lib/peoplePhotos';
 import type { UserPersona } from '../lib/persona';
+import { titleKey } from '../lib/titleCards';
 import type { MovieWithRating } from './useProfileData';
 
 // Tudo o que o observatório do perfil mostra, a partir dos filmes que
@@ -22,7 +23,9 @@ import type { MovieWithRating } from './useProfileData';
 // Biblioteca e as fotos das pessoas destacadas.
 
 export function useTasteObservatory(userId: string | undefined, movies: MovieWithRating[], persona: UserPersona | null) {
-  const [moodByMovie, setMoodByMovie] = useState<Map<number, string> | null>(null);
+  // Prateleira de cada título avaliado, por "movie:123" / "tv:456" (filmes e
+  // séries; desde 21/10/2026 as séries das prateleiras também contam).
+  const [moodByMovie, setMoodByMovie] = useState<Map<string, string> | null>(null);
   const [orders, setOrders] = useState<DecadeOrders>({});
   const [photos, setPhotos] = useState<Map<string, PersonPhoto>>(new Map());
   const ratedCount = useMemo(() => ratedOnly(movies).length, [movies]);
@@ -30,13 +33,15 @@ export function useTasteObservatory(userId: string | undefined, movies: MovieWit
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    supabase.rpc('get_profile_mood_titles', { p_user_id: userId }).then(({ data, error }) => {
+    supabase.rpc('get_profile_mood_titles_v2', { p_user_id: userId }).then(({ data, error }) => {
       if (cancelled) return;
       if (error || !Array.isArray(data)) {
         setMoodByMovie(null);
         return;
       }
-      setMoodByMovie(new Map((data as { movie_id: number; mood_key: string }[]).map((row) => [row.movie_id, row.mood_key])));
+      setMoodByMovie(
+        new Map((data as { movie_id: number; media_type: string; mood_key: string }[]).map((row) => [titleKey({ id: row.movie_id, media_type: row.media_type }), row.mood_key]))
+      );
     });
     fetchDecadeOrders(userId).then((found) => !cancelled && setOrders(found));
     return () => {

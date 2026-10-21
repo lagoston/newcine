@@ -1,6 +1,7 @@
 import { MOODS, type MoodKey } from './moods';
 import { groupByDecade, type DecadeOrders } from './libraryLayouts';
 import type { UserPersona } from './persona';
+import { titleKey } from './titleCards';
 import type { MovieWithRating } from '../hooks/useProfileData';
 
 // Contas do "observatório" do perfil (12/10/2026). Todas respondem às mesmas
@@ -142,15 +143,17 @@ export function peopleAffinity(movies: MovieWithRating[], prior: number, role: '
   return rank(tallies, prior, role === 'cast' ? 3 : 2, limit) as PersonAffinity[];
 }
 
-// A roda dos 9 humores. moodByMovie vem de get_profile_mood_titles (em que
-// prateleira está cada filme avaliado). Sem ele (perfil fechado, erro), vale
-// o que a personalidade guarda (filmes e pontos por humor), sem os temas.
-export function moodSlices(movies: MovieWithRating[], moodByMovie: Map<number, string> | null, persona: UserPersona | null, prior: number): MoodSlice[] {
-  const rated = ratedOnly(movies).filter((m) => m.media_type !== 'tv');
+// A roda dos 9 humores. moodByMovie vem de get_profile_mood_titles_v2 (em que
+// prateleira está cada título avaliado, por "movie:123" / "tv:456"): filmes e
+// séries contam, como na personalidade (desde 21/10/2026). Sem ele (perfil
+// fechado, erro), vale o que a personalidade guarda (títulos e pontos por
+// humor), sem os temas.
+export function moodSlices(movies: MovieWithRating[], moodByMovie: Map<string, string> | null, persona: UserPersona | null, prior: number): MoodSlice[] {
+  const rated = ratedOnly(movies);
   const byMood = new Map<string, MovieWithRating[]>();
   if (moodByMovie && moodByMovie.size > 0) {
     rated.forEach((movie) => {
-      const key = moodByMovie.get(movie.id);
+      const key = moodByMovie.get(titleKey({ id: movie.id, media_type: movie.media_type }));
       if (!key) return;
       const list = byMood.get(key) || [];
       list.push(movie);
