@@ -565,6 +565,19 @@ export default function Profile() {
           onFriendsClick={() => setShowFriendsModal(true)}
           avatarBusy={isUploadingAvatar}
           seasonalDecoration={seasonalDecoration}
+          // Portal de sala secreta: usando a tag dela, a espiral do clube
+          // (tocar entra direto); com a tag sem usar, o portal fechado.
+          portal={
+            session?.user?.id && profile?.username ? (
+              <SecretRoomPortal
+                userId={session.user.id}
+                username={profile.username}
+                isSelf
+                activeTagName={profile.active_tag?.name ?? null}
+                onChooseTag={() => setShowTagPinsModal(true)}
+              />
+            ) : undefined
+          }
           topRight={
             <button
               onClick={() => setShowSettingsModal(true)}
@@ -697,19 +710,6 @@ export default function Profile() {
           }
         />
       </section>
-
-      {/* ---------- Portal de sala secreta (a tag em uso abre uma) ---------- */}
-      {session?.user?.id && profile?.username && (
-        <section className="mx-auto max-w-6xl px-5 sm:px-8 mt-4 empty:hidden">
-          <SecretRoomPortal
-            userId={session.user.id}
-            username={profile.username}
-            isSelf
-            activeTagName={profile.active_tag?.name ?? null}
-            onChooseTag={() => setShowTagPinsModal(true)}
-          />
-        </section>
-      )}
 
       {/* ---------- Números e retrato de gosto ----------
           Um bloco só, logo abaixo do cartão: os dois números e, emendado

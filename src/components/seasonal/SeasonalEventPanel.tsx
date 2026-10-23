@@ -18,7 +18,10 @@ import {
   type SeasonalTheme,
 } from '../../lib/seasonalEvents';
 import { MOOD_BY_KEY } from '../../lib/moods';
+import { EVENT_ROOMS, roomPath } from '../../lib/secretRooms';
 import { PanelSeasonalScene } from './SeasonalDecor';
+import { PortalSpiral } from '../secretRoom/TerrorPortal';
+import { BONE, CANDLE } from '../secretRoom/terrorTheme';
 
 // O atalho para a prateleira que também conta (ex.: Sombrio e Assustador no
 // Halloween) abre na Biblioteca do Bogart, que tem o maior acervo de cada
@@ -320,6 +323,10 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
   };
 
   const titleId = `seasonal-${event.id}-title`;
+  const subtitle = t(`events.${event.id}.subtitle`, { count: event.items.length, defaultValue: '' });
+  // A sala secreta do evento (Halloween: o Clube do Terror) ocupa o lugar do
+  // atalho para as prateleiras que também contam.
+  const room = EVENT_ROOMS[event.id];
 
   return (
     <div
@@ -361,9 +368,12 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
             >
               {t(`events.${event.id}.title`)}
             </h2>
-            <p className="mt-3 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: MIST }}>
-              {t(`events.${event.id}.subtitle`, { count: event.items.length })}
-            </p>
+            {/* Evento sem subtítulo (o Halloween, desde 23/10/2026): só o título. */}
+            {subtitle && (
+              <p className="mt-3 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: MIST }}>
+                {subtitle}
+              </p>
+            )}
           </div>
 
           {/* ---------- Trilha das tags ---------- */}
@@ -470,9 +480,30 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
                 </div>
               )}
 
-              {/* Prateleiras que também contam (Halloween: Sombrio e
-                  Assustador), numa linha própria para caber no celular. */}
-              {step && bonusMoods.length > 0 && (
+              {/* O evento com sala secreta leva a ela (Halloween: o Clube do
+                  Terror), num botão centralizado, durante e depois do ritual. */}
+              {room && (
+                <div className="mt-5 flex justify-center">
+                  <Link
+                    to={roomPath(room)}
+                    className={`group inline-flex items-center gap-3 h-14 pl-2.5 pr-5 rounded-2xl transition hover:brightness-110 ${FOCUS_RING}`}
+                    style={{
+                      background: `radial-gradient(80% 140% at 0% 50%, rgba(255,181,71,0.2), transparent 70%), linear-gradient(100deg, rgba(142,27,43,0.45), rgba(15,8,17,0.92) 80%)`,
+                      boxShadow: `inset 0 0 0 1px rgba(255,181,71,0.45), 0 14px 30px -18px rgba(142,27,43,0.9)`,
+                    }}
+                  >
+                    <PortalSpiral size={38} embers={false} className="transition-transform duration-500 group-hover:scale-110 motion-reduce:transition-none" />
+                    <span style={{ ...PIXEL, color: BONE }} className="text-xl leading-none whitespace-nowrap">
+                      {t('secretRoom.terror.name')}
+                    </span>
+                    <ArrowRight className="w-[18px] h-[18px] shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: CANDLE }} aria-hidden />
+                  </Link>
+                </div>
+              )}
+
+              {/* Prateleiras que também contam (Natal…), numa linha própria
+                  para caber no celular. */}
+              {!room && step && bonusMoods.length > 0 && (
                 <div className="mt-2.5 flex flex-wrap gap-2">
                   {bonusMoods.map((mood) => {
                     const MoodIcon = mood.icon;

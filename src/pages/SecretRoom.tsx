@@ -161,7 +161,6 @@ export default function SecretRoom() {
 
   const shelves = data.shelves ?? [];
   const members = data.members;
-  const me = data.me;
   const access = data.access;
   const midnight = predictions?.midnight ?? null;
   const haunt = predictions?.haunt ?? [];
@@ -263,8 +262,6 @@ export default function SecretRoom() {
             </p>
           </div>
         </div>
-
-        {me && <FearMeter me={me} isGuest={access.mode === 'portal'} />}
       </header>
 
       {/* ---------- Sessão da meia-noite ---------- */}
@@ -293,14 +290,20 @@ export default function SecretRoom() {
 
       {restShelves.map(renderShelf)}
 
-      {/* ---------- As criptas de quem tem a chave ---------- */}
+      {/* ---------- As criptas (a sua, quem abriu o portal, amigos, o resto; até 6) ---------- */}
       {(data.member_shelves ?? []).map(({ user, items }) => (
         <ShelfFrame
           key={user.id}
           id={`member-${user.id}`}
           leading={<MemberLeading user={user} />}
-          title={t('secretRoom.members.cryptOf', { username: user.username })}
-          hint={user.is_via ? t('secretRoom.members.hintVia', { username: user.username }) : t('secretRoom.members.hint', { username: user.username })}
+          title={user.is_me ? t('secretRoom.members.cryptMine') : t('secretRoom.members.cryptOf', { username: user.username })}
+          hint={
+            user.is_me
+              ? t('secretRoom.members.hintMine')
+              : user.is_via
+                ? t('secretRoom.members.hintVia', { username: user.username })
+                : t('secretRoom.members.hint', { username: user.username })
+          }
           accent={CANDLE}
         >
           {(wasDrag) =>
@@ -310,7 +313,9 @@ export default function SecretRoom() {
                 card={card}
                 ctx={ctx}
                 wasDrag={wasDrag}
-                overlay={typeof card.rating === 'number' ? <OwnerRating rating={card.rating} username={user.username} /> : null}
+                // Na sua cripta a nota no canto já é a sua: sem o selo de cima repetido.
+                hideBadge={user.is_me}
+                overlay={typeof card.rating === 'number' ? <OwnerRating rating={card.rating} username={user.username} mine={user.is_me} /> : null}
               />
             ))
           }
@@ -349,38 +354,6 @@ const MemberStack: React.FC<{ members: NonNullable<SecretRoomData['members']> }>
       <span className="text-sm whitespace-nowrap" style={{ color: ASH }}>
         {t('secretRoom.members.count', { count: members.count })}
       </span>
-    </div>
-  );
-};
-
-// O medômetro: quanto de Sombrio e Assustador a pessoa já encarou.
-const FearMeter: React.FC<{ me: NonNullable<SecretRoomData['me']>; isGuest: boolean }> = ({ me, isGuest }) => {
-  const { t, i18n } = useTranslation();
-  const share = me.x_total > 0 ? Math.min(1, me.x_rated / me.x_total) : 0;
-  const avg = typeof me.x_avg === 'number' ? Number(me.x_avg).toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : null;
-  const ahead = me.rank ? me.rank - 1 : null;
-  return (
-    <div className="mt-7 max-w-2xl">
-      <p className="text-[15px] leading-snug" style={{ color: BONE }}>
-        {me.x_rated === 0 ? t('secretRoom.meter.none', { total: me.x_total }) : t('secretRoom.meter.faced', { count: me.x_rated, total: me.x_total })}
-        {avg && me.x_rated > 0 ? ` ${t('secretRoom.meter.average', { avg })}` : ''}
-      </p>
-      <div
-        className="mt-2.5 h-2 rounded-full overflow-hidden"
-        style={{ background: 'rgba(142,27,43,0.35)' }}
-        role="meter"
-        aria-valuemin={0}
-        aria-valuemax={me.x_total}
-        aria-valuenow={me.x_rated}
-        aria-label={t('secretRoom.meter.aria')}
-      >
-        <span className="block h-full rounded-full" style={{ width: `${Math.max(share * 100, me.x_rated > 0 ? 1.5 : 0)}%`, background: `linear-gradient(90deg, ${OXBLOOD}, ${CANDLE})` }} />
-      </div>
-      {!isGuest && ahead !== null && me.x_rated > 0 && (
-        <p className="mt-2 text-sm" style={{ color: ASH }}>
-          {ahead === 0 ? t('secretRoom.meter.first') : t('secretRoom.meter.ahead', { count: ahead })}
-        </p>
-      )}
     </div>
   );
 };

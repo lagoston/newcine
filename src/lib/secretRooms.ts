@@ -95,8 +95,9 @@ export interface SecretRoomData {
   shelves?: RoomShelf[];
   ritual?: { edition: number; live: boolean; items: RoomCard[] } | null;
   members?: { count: number; people: RoomMember[] };
-  member_shelves?: { user: SecretRoomPerson & { is_via: boolean }; items: RoomCard[] }[];
-  me?: { x_total: number; x_rated: number; x_avg: number | null; rank: number | null };
+  // As criptas (até 6): a sua primeiro, depois quem abriu o portal, os
+  // amigos e o resto da comunidade.
+  member_shelves?: { user: SecretRoomPerson & { is_via: boolean; is_me?: boolean; is_friend?: boolean }; items: RoomCard[] }[];
 }
 
 export interface SecretRoomPredictions {
@@ -138,6 +139,9 @@ export async function fetchSecretRoomPortal(userId: string): Promise<SecretRoomP
 }
 
 export const roomPath = (room: string, via?: string | null) => `/sala/${room}${via ? `?via=${encodeURIComponent(via)}` : ''}`;
+
+// A sala de cada evento (o botão do painel do evento na home leva até ela).
+export const EVENT_ROOMS: Partial<Record<string, string>> = { halloween: TERROR_CLUB };
 
 // Campo na língua da tela (com a outra de reserva).
 export const pick = (pt: boolean, ptValue?: string | null, enValue?: string | null) => (pt ? ptValue || enValue : enValue || ptValue) || '';

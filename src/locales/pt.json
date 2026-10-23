@@ -249,11 +249,7 @@
       "essenceEmptyDesc": "Avalie 10 filmes ou séries das prateleiras dos oráculos e ela aparece sozinha — junto com as notas previstas para você.",
       "tagProgress": "{{current}} de {{target}}",
       "findFriendsHint": "Adicione amigos para ver as notas deles nos pôsteres e fazer match de filmes.",
-      "shortcutsLabel": "Atalhos",
-      "allTagsHint": "Você já tem todas as tags disponíveis.",
-      "navLibraryHint": "Avaliações, listas e watchlist",
-      "navOracleHint": "Previsões e sua essência",
-      "navProfileHint": "Tags, amigos e estatísticas"
+      "allTagsHint": "Você já tem todas as tags disponíveis."
     }
   },
   "compatibility": {
@@ -1861,7 +1857,6 @@
       "tab": "Halloween",
       "eyebrow": "Evento de outubro",
       "title": "Recomendações de Halloween",
-      "subtitle": "A seleção assombrada dos três oráculos: {{count}} filmes para outubro, com algumas surpresas escondidas no meio. Os filmes de Sombrio e Assustador também valem para o ritual.",
       "trackTitle": "Ritual de Halloween",
       "summary": "{{done}} de {{total}} filmes avaliados em outubro",
       "doneTitle": "Ritual completo",
@@ -2105,16 +2100,6 @@
       "name": "Clube do Terror",
       "tagline": "Sombrio e Assustador dos três oráculos, dissecado: os filmes que mais aceleram o coração, os que foram proibidos, os monstros que existiram de verdade e as viradas que ninguém espera."
     },
-    "meter": {
-      "none": "Você ainda não encarou nenhum dos {{total}} títulos sombrios dos oráculos.",
-      "faced_one": "Você já encarou {{count}} dos {{total}} títulos sombrios dos oráculos.",
-      "faced_other": "Você já encarou {{count}} dos {{total}} títulos sombrios dos oráculos.",
-      "average": "Sua média para eles: {{avg}}.",
-      "first": "Ninguém no clube encarou mais títulos que você.",
-      "ahead_one": "No clube, 1 pessoa encarou mais títulos que você.",
-      "ahead_other": "No clube, {{count}} pessoas encararam mais títulos que você.",
-      "aria": "Títulos sombrios que você já avaliou"
-    },
     "midnight": {
       "title": "Sessão da meia-noite",
       "predicted": "Nota prevista para você: {{rating}}.",
@@ -2158,7 +2143,9 @@
       "aria": "Quem tem a chave do clube",
       "count_one": "{{count}} no clube",
       "count_other": "{{count}} no clube",
+      "cryptMine": "A sua cripta",
       "cryptOf": "A cripta de @{{username}}",
+      "hintMine": "Os sombrios que você mais gostou.",
       "hint": "Os sombrios que @{{username}} mais gostou.",
       "hintVia": "Os sombrios favoritos de @{{username}}, o perfil que abriu o portal para você.",
       "ownerRating": "Nota de @{{username}}: {{rating}}"
@@ -2177,19 +2164,10 @@
       "how": "Como entrar"
     },
     "portal": {
-      "title": "Portal para o Clube do Terror",
-      "selfLine": "Seu perfil está aberto: quem visita pode entrar no clube por ele.",
-      "otherLine": "Este perfil abre uma sala secreta do Oráculo.",
-      "nudge": "Use a {{tag}} no perfil e ele vira um portal para o Clube do Terror, até depois do Halloween.",
-      "chooseTag": "Escolher tag",
-      "sheetLead": "Uma sala secreta do Oráculo, só sobre Sombrio e Assustador: os filmes que mais aceleram o coração, os proibidos, os monstros reais, as viradas e as criptas de quem tem a chave.",
-      "sheetSelf": "Você usa a {{tag}}, então o seu perfil é um portal: quem visitar pode entrar. Copie o convite para levar alguém direto.",
-      "sheetOther": "@{{username}} usa a {{tag}}, e este perfil é a porta. Você entra como convidado.",
-      "enterVia": "Atravessar o portal",
-      "enterSelf": "Entrar no clube",
-      "copyInvite": "Copiar convite",
-      "copied": "Convite copiado.",
-      "copyFailed": "Não deu para copiar o convite."
+      "enterAria": "Entrar no Clube do Terror",
+      "enterViaAria": "Atravessar o portal de @{{username}} para o Clube do Terror",
+      "closedHint": "Use a {{tag}} para abrir",
+      "closedAria": "O portal para o Clube do Terror está fechado. Use a {{tag}} no perfil para abrir: escolher tag"
     },
     "locked": {
       "needTag": "O Clube do Terror é só para quem dormiu no caixão: conquiste a {{tag}}, a 2ª tag do ritual de Halloween, e a porta abre.",

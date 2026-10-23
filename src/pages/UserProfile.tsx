@@ -549,13 +549,11 @@ export default function UserProfile() {
             actions={actions}
             connection={connectionStrip}
             seasonalDecoration={seasonalDecoration}
+            // Quem usa a tag de uma sala secreta vira um portal: a espiral
+            // leva direto para dentro, como convidado.
+            portal={<SecretRoomPortal userId={profile.id} username={profile.username} isSelf={isSelf} activeTagName={profile.active_tag?.name ?? null} />}
           />
         </div>
-      </section>
-
-      {/* ---------- Portal de sala secreta (quem usa a tag dela) ---------- */}
-      <section className="mx-auto max-w-6xl px-5 sm:px-8 mt-4 empty:hidden">
-        <SecretRoomPortal userId={profile.id} username={profile.username} isSelf={isSelf} activeTagName={profile.active_tag?.name ?? null} />
       </section>
 
       {/* ---------- Números ---------- */}

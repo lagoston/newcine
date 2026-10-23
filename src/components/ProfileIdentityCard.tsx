@@ -53,6 +53,9 @@ interface ProfileIdentityCardProps {
   actions?: React.ReactNode;
   // Faixa da Conexão com quem está vendo (só no perfil de outra pessoa).
   connection?: React.ReactNode;
+  // Portal de sala secreta (a espiral do Clube do Terror): à direita do
+  // nome no computador, embaixo dele no celular.
+  portal?: React.ReactNode;
   // Perfil decorado de Halloween ou Natal (dono usando 🎃 Headless Horseman ou
   // 🎅 Ho Ho Ho). Quem calcula é useTagDecoration.
   seasonalDecoration?: SeasonalEventId | null;
@@ -77,6 +80,7 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
   editor,
   actions,
   connection,
+  portal,
   seasonalDecoration = null,
 }) => {
   const { t, i18n } = useTranslation();
@@ -187,6 +191,13 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
               </>
             )}
           </div>
+
+          {/* O portal fica fora do modo de edição. Com algo no canto de cima
+              (a engrenagem), desce para não encostar nele. empty:hidden: sem
+              portal, a coluna some (e não sobra o espaço entre colunas). */}
+          {portal && !editor && (
+            <div className={`shrink-0 flex justify-center empty:hidden ${topRight ? 'sm:pt-12' : ''}`}>{portal}</div>
+          )}
         </div>
 
         {actions && <div className="mt-6 flex flex-wrap justify-center sm:justify-start gap-2">{actions}</div>}

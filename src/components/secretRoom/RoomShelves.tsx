@@ -77,9 +77,12 @@ export const ShelfFrame: React.FC<{
         </div>
         {decoration ?? <span aria-hidden className="mt-4 block h-px" style={{ background: `linear-gradient(90deg, ${accent}, transparent 70%)` }} />}
       </div>
+      {/* overflow-y-hidden: a faixa só rola de lado. Sem isso, qualquer
+          coisa um pouco mais alta que a faixa a deixava rolar para cima e para
+          baixo por conta própria, separada da página. */}
       <div
         ref={ref}
-        className="mt-4 pt-2 overflow-x-auto cursor-grab active:cursor-grabbing select-none"
+        className="mt-4 pt-2 overflow-x-auto overflow-y-hidden cursor-grab active:cursor-grabbing select-none"
         style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
         {...handlers}
       >
@@ -214,7 +217,9 @@ export const BannedCard: React.FC<{ card: RoomCard; ctx: TileContext; wasDrag: (
   const seen = ctx.seen(card);
   const predicted = ctx.predicted(card);
   return (
-    <li ref={reveal} className="reveal-tile shrink-0 w-[288px] sm:w-[320px]">
+    // reveal-card: o lugar marcado antes de aparecer tem o tamanho da ficha,
+    // e não o de um pôster 2:3 (que, numa ficha larga, passava da faixa).
+    <li ref={reveal} className="reveal-tile reveal-card shrink-0 w-[288px] sm:w-[320px]">
       <button
         type="button"
         onClick={() => !wasDrag() && ctx.onOpen(card)}
@@ -261,7 +266,7 @@ export const RealPersonCard: React.FC<{ person: RealPerson; titles: RoomCard[]; 
   const reveal = useReveal();
   const name = ctx.pt ? person.name : person.name_en || person.name;
   return (
-    <li ref={reveal} className="reveal-tile shrink-0 w-[300px] sm:w-[340px]">
+    <li ref={reveal} className="reveal-tile reveal-card shrink-0 w-[300px] sm:w-[340px]">
       <article className="h-full flex flex-col rounded-2xl p-3.5" style={{ background: CRYPT_RAISED, boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.1)' }}>
         <div className="flex gap-3.5">
           <span className="relative block w-[84px] shrink-0 aspect-[3/4] rounded-lg overflow-hidden" style={{ background: CRYPT }}>
@@ -370,17 +375,18 @@ export const RecMark: React.FC = () => (
   </span>
 );
 
-// A nota de quem é dono da estante.
-export const OwnerRating: React.FC<{ rating: number; username: string }> = ({ rating, username }) => {
+// A nota de quem é dono da estante (na sua cripta, a sua).
+export const OwnerRating: React.FC<{ rating: number; username: string; mine?: boolean }> = ({ rating, username, mine }) => {
   const { t } = useTranslation();
   const tone = ratingTone(rating);
+  const label = mine ? t('secretRoom.yourRating', { rating }) : t('secretRoom.members.ownerRating', { username, rating });
   return (
     <span
       className="absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-sm leading-none shadow-lg"
       style={{ ...PIXEL, color: tone.color, background: 'rgba(15,8,17,0.88)', boxShadow: `inset 0 0 0 1px ${tone.ring}` }}
-      title={t('secretRoom.members.ownerRating', { username, rating })}
+      title={label}
     >
-      <span className="sr-only">{t('secretRoom.members.ownerRating', { username, rating })}</span>
+      <span className="sr-only">{label}</span>
       <span aria-hidden>{rating}</span>
     </span>
   );

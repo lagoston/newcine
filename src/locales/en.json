@@ -247,11 +247,7 @@
       "essenceEmptyDesc": "Rate 10 films or series from the oracles' shelves and it appears on its own — along with your predicted ratings.",
       "tagProgress": "{{current}} of {{target}}",
       "findFriendsHint": "Add friends to see their ratings on posters and match on films.",
-      "shortcutsLabel": "Shortcuts",
-      "allTagsHint": "You already have every available tag.",
-      "navLibraryHint": "Ratings, lists and watchlist",
-      "navOracleHint": "Predictions and your essence",
-      "navProfileHint": "Tags, friends and stats"
+      "allTagsHint": "You already have every available tag."
     }
   },
   "compatibility": {
@@ -1856,7 +1852,6 @@
       "tab": "Halloween",
       "eyebrow": "October event",
       "title": "Halloween Recommendations",
-      "subtitle": "The oracles' haunted selection: {{count}} films for October, with a few surprises hidden in the mix. Films from Dark & Scary count for the ritual too.",
       "trackTitle": "Halloween Ritual",
       "summary": "{{done}} of {{total}} films rated in October",
       "doneTitle": "Ritual complete",
@@ -2100,16 +2095,6 @@
       "name": "Terror Club",
       "tagline": "The three oracles' Dark and Scary, dissected: the films that race your heart the most, the ones that got banned, the monsters who were real and the twists nobody sees coming."
     },
-    "meter": {
-      "none": "You haven't faced any of the oracles' {{total}} dark titles yet.",
-      "faced_one": "You've faced {{count}} of the oracles' {{total}} dark titles.",
-      "faced_other": "You've faced {{count}} of the oracles' {{total}} dark titles.",
-      "average": "Your average for them: {{avg}}.",
-      "first": "Nobody in the club has faced more titles than you.",
-      "ahead_one": "In the club, 1 person has faced more titles than you.",
-      "ahead_other": "In the club, {{count}} people have faced more titles than you.",
-      "aria": "Dark titles you've rated"
-    },
     "midnight": {
       "title": "Midnight screening",
       "predicted": "Predicted rating for you: {{rating}}.",
@@ -2153,7 +2138,9 @@
       "aria": "Who holds the club's key",
       "count_one": "{{count}} in the club",
       "count_other": "{{count}} in the club",
+      "cryptMine": "Your crypt",
       "cryptOf": "@{{username}}'s crypt",
+      "hintMine": "The dark titles you liked most.",
       "hint": "The dark titles @{{username}} liked most.",
       "hintVia": "The favorite dark titles of @{{username}}, whose profile opened the portal for you.",
       "ownerRating": "@{{username}}'s rating: {{rating}}"
@@ -2172,19 +2159,10 @@
       "how": "How to get in"
     },
     "portal": {
-      "title": "Portal to the Terror Club",
-      "selfLine": "Your profile is open: visitors can enter the club through it.",
-      "otherLine": "This profile opens a secret room in the Oracle.",
-      "nudge": "Wear {{tag}} on your profile and it becomes a portal to the Terror Club, even after Halloween.",
-      "chooseTag": "Choose tag",
-      "sheetLead": "A secret room in the Oracle, all about Dark and Scary: the films that race your heart, the banned, the real monsters, the twists and the crypts of everyone who holds the key.",
-      "sheetSelf": "You're wearing {{tag}}, so your profile is a portal: anyone who visits can come in. Copy the invite to bring someone straight in.",
-      "sheetOther": "@{{username}} wears {{tag}}, and this profile is the door. You come in as a guest.",
-      "enterVia": "Step through the portal",
-      "enterSelf": "Enter the club",
-      "copyInvite": "Copy invite",
-      "copied": "Invite copied.",
-      "copyFailed": "Couldn't copy the invite."
+      "enterAria": "Enter the Terror Club",
+      "enterViaAria": "Step through @{{username}}'s portal into the Terror Club",
+      "closedHint": "Wear {{tag}} to open it",
+      "closedAria": "The portal to the Terror Club is closed. Wear {{tag}} on your profile to open it: choose a tag"
     },
     "locked": {
       "needTag": "The Terror Club is only for those who slept in the coffin: earn {{tag}}, the 2nd tag of the Halloween ritual, and the door opens.",

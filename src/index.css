@@ -665,6 +665,67 @@ img[loading="lazy"] {
   background: rgba(255, 255, 255, 0.055);
   pointer-events: none;
 }
+/* ── O portal do Clube do Terror (23/10/2026) ─────────────────────────────
+   Os braços giram no sentido horário (parecem entrar no centro), o brilho
+   de baixo gira ao contrário, o halo respira e as brasas são puxadas para
+   dentro. Ver src/components/secretRoom/TerrorPortal.tsx. */
+.terror-portal {
+  box-shadow: 0 0 var(--pg1, 16px) 0 var(--portal-glow), 0 0 var(--pg2, 34px) var(--pg2s, 6px) var(--portal-blood);
+  animation: terror-portal-breathe 3.6s ease-in-out infinite;
+}
+.terror-portal-arms {
+  animation: terror-portal-spin 7s linear infinite;
+}
+.terror-portal-wisps {
+  animation: terror-portal-spin 12s linear infinite;
+}
+.terror-portal-shimmer {
+  animation: terror-portal-spin 9s linear infinite reverse;
+}
+.terror-portal-rim {
+  animation: terror-portal-rim 3.6s ease-in-out infinite;
+}
+.terror-portal-ember {
+  opacity: 0;
+  animation-name: terror-portal-ember;
+  animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.4);
+  animation-iteration-count: infinite;
+}
+.terror-portal.is-dormant,
+.terror-portal.is-dormant * {
+  animation: none;
+}
+@keyframes terror-portal-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes terror-portal-breathe {
+  50% {
+    box-shadow: 0 0 calc(var(--pg1, 16px) * 1.5) 0 var(--portal-glow), 0 0 calc(var(--pg2, 34px) * 1.45) calc(var(--pg2s, 6px) * 2) var(--portal-blood);
+  }
+}
+@keyframes terror-portal-rim {
+  50% { opacity: 0.95; }
+}
+@keyframes terror-portal-ember {
+  0% { opacity: 0; transform: rotate(0deg) translateX(var(--ember-from, 40px)) scale(1); }
+  18% { opacity: 1; }
+  80% { opacity: 0.9; }
+  100% { opacity: 0; transform: rotate(320deg) translateX(0) scale(0.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .terror-portal,
+  .terror-portal * {
+    animation: none !important;
+  }
+}
+
+/* Fichas largas (Proibidos, Monstros reais no Clube do Terror): o lugar
+   marcado ocupa a ficha inteira, não um pôster 2:3 que passaria da faixa. */
+.reveal-tile.reveal-card::before {
+  bottom: 0;
+  aspect-ratio: auto;
+  border-radius: 1rem;
+}
 .reveal-tile > * {
   opacity: 0;
 }

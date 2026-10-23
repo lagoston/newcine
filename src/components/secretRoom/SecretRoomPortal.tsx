@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Link2, Tag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import OracleSheet from '../OracleSheet';
 import { useAuth } from '../../lib/auth';
 import { PIXEL, FOCUS_RING } from '../../lib/oracleTheme';
 import { TERROR_CLUB, fetchSecretRoomAccess, fetchSecretRoomPortal, roomPath, type SecretRoomAccess, type SecretRoomPortal as PortalState } from '../../lib/secretRooms';
-import { ASH, BONE, CANDLE, CoffinMark, CRYPT, CRYPT_RAISED } from './terrorTheme';
+import { ASH, BONE } from './terrorTheme';
+import { PortalSpiral } from './TerrorPortal';
 
-// O portal no perfil: quem está usando a tag de uma sala secreta (a
-// Deadly Sleeping abre o Clube do Terror) leva quem visita o perfil para
-// dentro da sala, mesmo sem a tag e mesmo depois do evento. No próprio
-// perfil, o aviso de que o portal está aberto (e o convite para copiar);
-// se a pessoa tem a tag mas não está usando, a dica para usar.
+// O portal no perfil (23/10/2026): quem está usando a tag de uma sala
+// secreta (a Deadly Sleeping abre o Clube do Terror) ganha, no cartão do
+// perfil, uma espiral com o nome do clube. Tocar leva direto para dentro da
+// sala — no perfil de outra pessoa, como convidado dela (?via=), mesmo sem a
+// tag e mesmo depois do evento.
+// No próprio perfil, com a tag mas sem usar, o portal aparece fechado
+// (parado e apagado); tocar abre a escolha de tags.
 
-const BUTTON = `inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl text-sm font-semibold transition ${FOCUS_RING}`;
+const PORTAL_SIZE = 84;
+const LABEL_SHADOW = '0 1px 2px rgba(0,0,0,0.85), 0 0 14px rgba(255,181,71,0.5)';
 
 const SecretRoomPortal: React.FC<{
   userId: string;
@@ -31,7 +32,6 @@ const SecretRoomPortal: React.FC<{
   const viewerId = session?.user?.id;
   const [portal, setPortal] = useState<PortalState | null>(null);
   const [ownAccess, setOwnAccess] = useState<SecretRoomAccess | null>(null);
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!viewerId) return;
@@ -51,89 +51,38 @@ const SecretRoomPortal: React.FC<{
 
   if (!viewerId) return null;
 
-  // Tem a chave, mas o perfil ainda não é um portal.
+  const button = `group flex flex-col items-center gap-2 rounded-2xl px-2 pt-1 pb-1.5 ${FOCUS_RING}`;
+  const spiralMotion = 'transition-transform duration-500 ease-out group-hover:scale-[1.07] group-active:scale-95 motion-reduce:transition-none';
+
+  // Tem a chave, mas o perfil ainda não é um portal: o portal fechado.
   if (!portal) {
-    if (!isSelf || !ownAccess?.has_tag || ownAccess.tag_in_use) return null;
+    if (!isSelf || !ownAccess?.has_tag || ownAccess.tag_in_use || !onChooseTag) return null;
+    const tag = ownAccess.tag?.name ?? 'Deadly Sleeping';
     return (
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3" style={{ background: CRYPT_RAISED, boxShadow: 'inset 0 0 0 1px rgba(255,181,71,0.22)' }}>
-        <CoffinMark className="w-6 h-10 shrink-0" />
-        <p className="flex-1 min-w-[12rem] text-sm leading-snug" style={{ color: ASH }}>
-          {t('secretRoom.portal.nudge', { tag: ownAccess.tag?.name ?? 'Deadly Sleeping' })}
-        </p>
-        {onChooseTag && (
-          <button type="button" onClick={onChooseTag} className={BUTTON} style={{ color: BONE, boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.2)' }}>
-            <Tag className="w-4 h-4" style={{ color: CANDLE }} aria-hidden />
-            {t('secretRoom.portal.chooseTag')}
-          </button>
-        )}
-      </div>
+      <button type="button" onClick={onChooseTag} className={button} aria-label={t('secretRoom.portal.closedAria', { tag })}>
+        <PortalSpiral size={PORTAL_SIZE} dormant className={spiralMotion} />
+        <span style={{ ...PIXEL, color: ASH, textShadow: '0 1px 2px rgba(0,0,0,0.85)' }} className="text-[15px] leading-none whitespace-nowrap">
+          {t('secretRoom.terror.name')}
+        </span>
+        <span className="max-w-[10rem] text-center text-xs leading-snug" style={{ color: ASH }}>
+          {t('secretRoom.portal.closedHint', { tag })}
+        </span>
+      </button>
     );
   }
 
-  const enter = () => {
-    setOpen(false);
-    navigate(roomPath(portal.room, isSelf ? null : username));
-  };
-
-  const copyInvite = async () => {
-    const url = `${window.location.origin}${roomPath(portal.room, username)}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success(t('secretRoom.portal.copied'));
-    } catch {
-      toast.error(t('secretRoom.portal.copyFailed'));
-    }
-  };
-
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={`group w-full flex items-center gap-3.5 rounded-2xl px-4 py-3 text-left transition hover:brightness-110 ${FOCUS_RING}`}
-        style={{
-          background: `radial-gradient(60% 160% at 0% 50%, rgba(255,181,71,0.18), transparent 65%), linear-gradient(100deg, rgba(142,27,43,0.35), rgba(15,8,17,0.9) 75%), ${CRYPT}`,
-          boxShadow: 'inset 0 0 0 1px rgba(255,181,71,0.32)',
-        }}
-      >
-        <CoffinMark className="w-7 h-11 shrink-0 transition-transform duration-300 group-hover:-rotate-6" />
-        <span className="min-w-0 flex-1">
-          <span style={{ ...PIXEL, color: BONE }} className="block text-lg leading-tight">
-            {t('secretRoom.portal.title')}
-          </span>
-          <span className="mt-0.5 block text-sm leading-snug" style={{ color: ASH }}>
-            {isSelf ? t('secretRoom.portal.selfLine') : t('secretRoom.portal.otherLine', { username })}
-          </span>
-        </span>
-        <ArrowRight className="w-5 h-5 shrink-0 transition group-hover:translate-x-0.5" style={{ color: CANDLE }} aria-hidden />
-      </button>
-
-      <OracleSheet
-        open={open}
-        onClose={() => setOpen(false)}
-        size="md"
-        title={t('secretRoom.terror.name')}
-        leading={<CoffinMark className="w-6 h-10" />}
-        footer={
-          <div className="flex flex-wrap justify-end gap-2.5">
-            {isSelf && (
-              <button type="button" onClick={copyInvite} className={BUTTON} style={{ color: BONE, boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.2)' }}>
-                <Link2 className="w-4 h-4" style={{ color: CANDLE }} aria-hidden />
-                {t('secretRoom.portal.copyInvite')}
-              </button>
-            )}
-            <button type="button" onClick={enter} className={BUTTON} style={{ background: CANDLE, color: CRYPT }}>
-              {isSelf ? t('secretRoom.portal.enterSelf') : t('secretRoom.portal.enterVia')}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-3 text-[15px] leading-relaxed" style={{ color: ASH }}>
-          <p style={{ color: BONE }}>{t('secretRoom.portal.sheetLead')}</p>
-          <p>{isSelf ? t('secretRoom.portal.sheetSelf', { tag: portal.tag.name }) : t('secretRoom.portal.sheetOther', { username, tag: portal.tag.name })}</p>
-        </div>
-      </OracleSheet>
-    </>
+    <button
+      type="button"
+      onClick={() => navigate(roomPath(portal.room, isSelf ? null : username))}
+      className={button}
+      aria-label={isSelf ? t('secretRoom.portal.enterAria') : t('secretRoom.portal.enterViaAria', { username })}
+    >
+      <PortalSpiral size={PORTAL_SIZE} className={spiralMotion} />
+      <span style={{ ...PIXEL, color: BONE, textShadow: LABEL_SHADOW }} className="text-[15px] leading-none whitespace-nowrap">
+        {t('secretRoom.terror.name')}
+      </span>
+    </button>
   );
 };
 
