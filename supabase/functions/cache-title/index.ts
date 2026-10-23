@@ -38,9 +38,9 @@ const ANON_TITLES_PER_HOUR = 40;
 const SWEEP_MAX = 60;
 const FILL_MAX = 60;
 const CONCURRENCY = 4;
-// Episódios que estrearam desde a última atualização e há no máximo 14 dias
-// viram aviso de episódio novo (os antigos não, para não inundar ninguém).
-const NEW_EPISODE_WINDOW_DAYS = 14;
+// Avisos de episódio novo: desde 23/10/2026 saem do banco, numa rodada
+// diária (notify_aired_episodes, 01h10 de Brasília), a partir do que esta
+// função guarda. Ela não avisa mais nada.
 
 type MediaType = 'movie' | 'tv';
 type Ref = { id: number; type: MediaType };
@@ -220,37 +220,7 @@ async function buildSeasons(id: number, en: any, old: Row[] | null): Promise<Row
     .sort((a: Row, b: Row) => a.season_number - b.season_number);
 }
 
-// Episódios que estrearam depois da última atualização (no máximo 14 dias
-// atrás) → aviso para quem tem a série (notify_new_episode não repete).
-async function notifyNewEpisodes(supabase: SupabaseClient, old: Row, seasons: Row[] | null, title: string, poster: string | null) {
-  if (!seasons || !Array.isArray(old.seasons_data) || old.seasons_data.length === 0) return 0;
-  const today = new Date().toISOString().slice(0, 10);
-  const since = new Date(old.refreshed_at || old.updated_at || old.cached_at || Date.now()).toISOString().slice(0, 10);
-  const floor = new Date(Date.now() - NEW_EPISODE_WINDOW_DAYS * 86400000).toISOString().slice(0, 10);
-  const airedBefore = new Set<string>();
-  for (const s of old.seasons_data) {
-    for (const ep of s.episodes || []) if (ep.air_date && ep.air_date <= since) airedBefore.add(`${s.season_number}-${ep.episode_number}`);
-  }
-  let count = 0;
-  for (const s of seasons) {
-    for (const ep of s.episodes || []) {
-      const key = `${s.season_number}-${ep.episode_number}`;
-      if (!ep.air_date || ep.air_date > today || ep.air_date < floor || ep.air_date <= since || airedBefore.has(key)) continue;
-      const { data } = await supabase.rpc('notify_new_episode', {
-        p_tmdb_id: old.tmdb_id,
-        p_movie_title: title,
-        p_movie_poster: poster,
-        p_season_number: s.season_number,
-        p_episode_number: ep.episode_number,
-        p_episode_name: ep.name,
-      });
-      count += Number(data) || 0;
-    }
-  }
-  return count;
-}
-
-type Outcome = { ref: Ref; row: Row | null; notFound?: boolean; error?: string; notified?: number };
+type Outcome = { ref: Ref; row: Row | null; notFound?: boolean; error?: string };
 
 // Busca o título no TMDB e grava. existing = a linha atual (atualização) ou
 // null (título novo).
@@ -329,11 +299,9 @@ async function refreshTitle(supabase: SupabaseClient, ref: Ref, existing: Row | 
   const ratings = pickRatings(en, ref.type);
   if (ratings.length > 0 || !existing) row.content_ratings = ratings;
 
-  let notified = 0;
   if (isTv) {
     const seasons = await buildSeasons(ref.id, en, existing?.seasons_data || null);
     if (seasons) row.seasons_data = seasons;
-    if (existing) notified = await notifyNewEpisodes(supabase, existing, seasons, row.title_en, row.poster_path || null);
   }
 
   const { data: saved, error } = await supabase.from('movie_cache').upsert(row, { onConflict: 'tmdb_id,media_type' }).select('*').single();
@@ -354,7 +322,7 @@ async function refreshTitle(supabase: SupabaseClient, ref: Ref, existing: Row | 
     .eq('media_type', ref.type)
     .eq('title', '');
 
-  return { ref, row: saved, notified };
+  return { ref, row: saved };
 }
 
 async function loadRows(supabase: SupabaseClient, refs: Ref[]): Promise<Map<string, Row>> {
@@ -420,7 +388,6 @@ Deno.serve(async (req: Request) => {
           mode,
           refreshed: outcomes.filter((o) => o.row && !o.error && !o.notFound).length,
           gone: gone.length,
-          newEpisodeNotices: outcomes.reduce((n, o) => n + (o.notified || 0), 0),
           errors: outcomes.filter((o) => o.error).map((o) => `${refKey(o.ref)} ${o.error}`).slice(0, 10),
         });
       }
