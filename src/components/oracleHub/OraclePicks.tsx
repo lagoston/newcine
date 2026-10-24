@@ -7,7 +7,6 @@ import { getFullTitle, prefetchFullTitle, titleKey, type TitleRef } from '../../
 import { tilesThatFit, useReveal, useTitleCards } from '../../hooks/useLazyList';
 import { fetchOracleHubPicks, mixPicks, drawSeriesShare, type OracleHubPicks, type OraclePick } from '../../lib/oraclePicks';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, oracleCardImage, withAlpha, type OracleCard, type OracleId } from '../../lib/oracleTheme';
-import { MoodChip } from '../PersonaBits';
 import PredictedBadge from '../PredictedBadge';
 import MovieDetailsModal from '../MovieDetailsModal';
 import OracleProfileSheet from './OracleProfileSheet';
@@ -16,18 +15,21 @@ import OracleProfileSheet from './OracleProfileSheet';
 // tem a sua fileira: a carta dele na frente (tocar abre o perfil do oráculo)
 // e os melhores títulos (pela nota prevista) que ele guarda nas três
 // prateleiras favoritas da pessoa. A cada abertura muda só a proporção de
-// filmes e séries. As fileiras seguem o padrão das listas do site (o mesmo
-// pôster, o selo violeta da nota prevista, título, ano e nota do público).
+// filmes e séries. As fileiras seguem o padrão das listas do site (pôster, o
+// selo violeta da nota prevista, título, ano e nota do público).
 // Embaixo, o letreiro que abre todas as prateleiras.
+//
+// 24/10/2026: o painel é um aperitivo das prateleiras, então ficou enxuto —
+// sem a frase e as etiquetas das prateleiras no topo, fileiras mais juntas e
+// pôsteres menores que os das outras listas.
 
-// O mesmo tamanho dos pôsteres das listas da home e da Biblioteca.
-const TILE_WIDTH = 'w-[124px] sm:w-[148px]';
-const tileWidthPx = () => (typeof window !== 'undefined' && window.innerWidth >= 640 ? 148 : 124);
+const TILE_WIDTH = 'w-[100px] sm:w-[116px]';
+const tileWidthPx = () => (typeof window !== 'undefined' && window.innerWidth >= 640 ? 116 : 100);
 
 const SkeletonTile: React.FC = () => (
   <li className={`shrink-0 ${TILE_WIDTH}`} aria-hidden>
     <span className="block aspect-[2/3] rounded-xl poster-skeleton" />
-    <span className="mt-2.5 block h-3.5 w-4/5 rounded poster-skeleton" />
+    <span className="mt-2 block h-3.5 w-4/5 rounded poster-skeleton" />
     <span className="mt-2 block h-3 w-1/2 rounded poster-skeleton" />
   </li>
 );
@@ -74,7 +76,7 @@ const OracleRow: React.FC<{
   return (
     <section aria-label={t('oracle.picks.aisleLabel', { name: oracle.name })}>
       <div className="flex items-baseline justify-between gap-3 px-1 sm:px-0">
-        <h3 style={{ ...PIXEL, color: oracle.color }} className="text-2xl sm:text-3xl leading-tight">
+        <h3 style={{ ...PIXEL, color: oracle.color }} className="text-xl sm:text-2xl leading-tight">
           {oracle.name}
         </h3>
         <Link
@@ -90,14 +92,14 @@ const OracleRow: React.FC<{
 
       <div
         ref={scrollRef}
-        className="-mx-3 sm:-mx-6 mt-1 pt-3 overflow-x-auto cursor-grab select-none"
+        className="-mx-3 sm:-mx-6 pt-2 overflow-x-auto cursor-grab select-none"
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={endDrag}
         onMouseLeave={endDrag}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
-        <ol className="flex gap-4 px-3 sm:px-6 pb-2">
+        <ol className="flex gap-3 px-3 sm:px-6 pb-1">
           {/* A carta do oráculo: abre o perfil dele. */}
           <li className={`shrink-0 ${TILE_WIDTH}`}>
             <button
@@ -112,10 +114,10 @@ const OracleRow: React.FC<{
               >
                 <img src={oracleCardImage(oracle.id, cardStyle)} alt="" decoding="async" draggable={false} className="absolute inset-0 w-full h-full object-cover" />
               </span>
-              <span className={`mt-2.5 block text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }}>
+              <span className={`mt-2 block text-[13px] font-medium ${POSTER_TITLE}`} style={{ color: PAPER }}>
                 {t(`oracle.cards.${oracle.id}`)}
               </span>
-              <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold" style={{ color: oracle.color }}>
+              <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold" style={{ color: oracle.color }}>
                 {t('oracle.profile.view')}
                 <ArrowRight className="w-3.5 h-3.5 transition group-hover:translate-x-0.5" aria-hidden />
               </span>
@@ -170,10 +172,10 @@ const OracleRow: React.FC<{
                       )}
                       {pick.rating !== null && <PredictedBadge rating={pick.rating} />}
                     </span>
-                    <span className={`mt-2.5 block text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
+                    <span className={`mt-2 block text-[13px] font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
                       {movie.title}
                     </span>
-                    <span className="mt-0.5 flex items-center gap-2 text-xs" style={{ color: MIST }}>
+                    <span className="mt-0.5 flex items-center gap-2 text-[11px]" style={{ color: MIST }}>
                       {year && <span>{year}</span>}
                       {movie.vote_average > 0 && (
                         <span className="inline-flex items-center gap-1">
@@ -198,7 +200,7 @@ const BrowseAllSign: React.FC<{ totalTitles: number; shelves: number }> = ({ tot
   return (
     <Link
       to="/oracle/libraries?oracle=bogart"
-      className={`group relative mt-6 sm:mt-8 flex items-center gap-3 sm:gap-5 rounded-2xl px-3.5 sm:px-6 py-3.5 sm:py-4 overflow-hidden transition ${FOCUS_RING}`}
+      className={`group relative mt-4 sm:mt-5 flex items-center gap-3 sm:gap-5 rounded-2xl px-3.5 sm:px-6 py-3.5 sm:py-4 overflow-hidden transition ${FOCUS_RING}`}
       style={{
         background: 'radial-gradient(120% 140% at 50% 0%, rgba(240,171,252,0.10), transparent 60%), #0E0A1A',
         boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.12), 0 18px 40px -24px rgba(240,171,252,0.45)',
@@ -298,8 +300,6 @@ const OraclePicks: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
     }
   };
 
-  const lead = data && !data.personal ? t('oracle.picks.leadStarter') : t('oracle.picks.lead');
-
   return (
     <div
       className="relative overflow-hidden rounded-3xl px-3 pt-4 pb-3 sm:p-6"
@@ -313,20 +313,9 @@ const OraclePicks: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
       }}
     >
       <header className="px-1 sm:px-0">
-        <h2 style={{ ...PIXEL, color: PAPER }} className="text-[1.7rem] sm:text-4xl leading-none">
+        <h2 style={{ ...PIXEL, color: PAPER }} className="text-[1.6rem] sm:text-[2.1rem] leading-none">
           {t('oracle.picks.title')}
         </h2>
-        <p className="mt-2 max-w-2xl text-sm sm:text-[15px] leading-relaxed" style={{ color: MIST }}>
-          {lead}
-        </p>
-        <ul className="mt-3 flex flex-wrap gap-1.5" aria-label={t('oracle.picks.shelvesLabel')}>
-          {(data?.moods ?? []).map((key, i) => (
-            <li key={key}>
-              <MoodChip moodKey={key} rank={data?.personal ? i + 1 : undefined} size="sm" />
-            </li>
-          ))}
-          {!data && status === 'loading' && [0, 1, 2].map((i) => <li key={i} className="h-7 w-28 rounded-full poster-skeleton" aria-hidden />)}
-        </ul>
         {status === 'error' && (
           <div className="mt-3 flex flex-wrap items-center gap-3" role="status">
             <p className="text-sm" style={{ color: MIST }}>
@@ -345,7 +334,7 @@ const OraclePicks: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
         )}
       </header>
 
-      <div className="mt-5 sm:mt-7 space-y-4 sm:space-y-6">
+      <div className="mt-3 sm:mt-4 space-y-2.5 sm:space-y-3">
         {rows.map(({ oracle, picks }) => (
           <OracleRow
             key={oracle.id}

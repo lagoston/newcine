@@ -3,8 +3,13 @@ import type { OracleId } from './oracleTheme';
 
 // Perfil do oráculo (21/10/2026): os números das nove prateleiras dele, os
 // destaques, o Top 10 de filmes e de séries, os diretores que ele mais guarda
-// e "você e ele". Vem pronto de get_oracle_profile — ver a migração
-// 20261021233000_oracle_profile.sql.
+// e "você e ele". Vem pronto de get_oracle_profile — ver as migrações
+// 20261021233000_oracle_profile.sql e 20261024120000_oracle_profile_top_by_shelf.sql.
+//
+// Top 10 (desde 24/10/2026): o 1º é uma surpresa sorteada entre os 10 mais
+// bem avaliados do oráculo; os outros, o mais bem avaliado de cada uma das
+// nove prateleiras, na ordem das favoritas da pessoa (composeTop). Nada
+// lançado nos últimos 365 dias.
 
 export type HighlightKey = 'popular' | 'best' | 'newest' | 'oldest' | 'gem' | 'bomb' | 'obscure';
 
@@ -24,6 +29,18 @@ export interface OracleTitle {
   rating: number | null;
 }
 
+// Os candidatos do Top 10: os 10 melhores do oráculo (para a surpresa) e os
+// 3 melhores de cada prateleira, na ordem da pessoa.
+export interface OracleTopSet {
+  overall: OracleTitle[];
+  shelves: { mood: string; items: OracleTitle[] }[];
+}
+
+export interface OracleTopEntry {
+  title: OracleTitle;
+  surprise: boolean;
+}
+
 export interface OracleProfile {
   oracle: OracleId;
   movies: number;
@@ -34,11 +51,9 @@ export interface OracleProfile {
   topCountry: string | null;
   years: { min: number | null; max: number | null };
   decades: { decade: number; count: number }[];
-  genres: { id: number; pt: string; en: string; count: number }[];
   directors: { id: number | null; name: string; count: number; photo: string | null }[];
-  shelves: { mood: string; movies: number; series: number; rated: number }[];
   highlights: Partial<Record<HighlightKey, OracleTitle>>;
-  top: { movies: OracleTitle[]; series: OracleTitle[] };
+  top: { movies: OracleTopSet; series: OracleTopSet };
   you: { rated: number; avg: number | null; overall: number | null; watchlist: number; loved: number } | null;
 }
 
@@ -76,6 +91,35 @@ const toTitle = (row: unknown): OracleTitle | null => {
   };
 };
 const toTitles = (value: unknown) => (Array.isArray(value) ? value.map(toTitle).filter((t): t is OracleTitle => t !== null) : []);
+const toTopSet = (value: unknown): OracleTopSet => {
+  const raw = (value && typeof value === 'object' ? value : {}) as Row;
+  return {
+    overall: toTitles(raw.overall),
+    shelves: Array.isArray(raw.shelves)
+      ? (raw.shelves as Row[]).map((s) => ({ mood: str(s.mood) || '', items: toTitles(s.items) })).filter((s) => s.mood)
+      : [],
+  };
+};
+
+// Monta o Top 10: a surpresa (sorteada com `seed`, entre 0 e 1) e, depois, o
+// melhor de cada prateleira que ainda não apareceu.
+export function composeTop(set: OracleTopSet, seed: number): OracleTopEntry[] {
+  const out: OracleTopEntry[] = [];
+  const used = new Set<string>();
+  const keyOf = (title: OracleTitle) => `${title.type}:${title.id}`;
+  if (set.overall.length > 0) {
+    const pick = set.overall[Math.min(set.overall.length - 1, Math.floor(seed * set.overall.length))];
+    out.push({ title: pick, surprise: true });
+    used.add(keyOf(pick));
+  }
+  for (const shelf of set.shelves) {
+    const best = shelf.items.find((item) => !used.has(keyOf(item)));
+    if (!best) continue;
+    out.push({ title: best, surprise: false });
+    used.add(keyOf(best));
+  }
+  return out.slice(0, 10);
+}
 
 const cache = new Map<OracleId, OracleProfile>();
 
@@ -107,17 +151,11 @@ export async function getOracleProfile(id: OracleId): Promise<OracleProfile> {
     topCountry: str(raw.top_country),
     years: { min: num(years.min), max: num(years.max) },
     decades: Array.isArray(raw.decades) ? (raw.decades as Row[]).map((d) => ({ decade: Number(d.d), count: Number(d.n) || 0 })) : [],
-    genres: Array.isArray(raw.genres)
-      ? (raw.genres as Row[]).map((g) => ({ id: Number(g.id), pt: str(g.pt) || '', en: str(g.en) || str(g.pt) || '', count: Number(g.n) || 0 }))
-      : [],
     directors: Array.isArray(raw.directors)
       ? (raw.directors as Row[]).map((d) => ({ id: num(d.id), name: str(d.name) || '', count: Number(d.n) || 0, photo: str(d.photo) }))
       : [],
-    shelves: Array.isArray(raw.shelves)
-      ? (raw.shelves as Row[]).map((s) => ({ mood: str(s.mood) || '', movies: Number(s.movies) || 0, series: Number(s.series) || 0, rated: Number(s.rated) || 0 }))
-      : [],
     highlights,
-    top: { movies: toTitles(top.movies), series: toTitles(top.series) },
+    top: { movies: toTopSet(top.movies), series: toTopSet(top.series) },
     you: you
       ? {
           rated: Number(you.rated) || 0,

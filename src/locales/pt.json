@@ -851,9 +851,6 @@
     },
     "picks": {
       "title": "Escolhidos a dedo",
-      "lead": "Os oráculos percorreram as suas três prateleiras favoritas e separaram o melhor de cada corredor pra você.",
-      "leadStarter": "Enquanto o Oráculo não descobre as suas prateleiras favoritas, cada oráculo separou o melhor destas três pra você.",
-      "shelvesLabel": "Prateleiras de onde vêm as escolhas",
       "aisleLabel": "Escolhas de {{name}}",
       "allShelves": "Todas as prateleiras",
       "allShelvesOf": "Todas as prateleiras de {{name}}",
@@ -891,12 +888,9 @@
       "votesCount_one": "{{count}} voto no TMDB",
       "votesCount_other": "{{count}} votos no TMDB",
       "topTitle": "Top 10 de {{name}}",
-      "topHint": "Os títulos das prateleiras dele mais bem avaliados pelo público (TMDB).",
+      "topHint": "Uma surpresa e o melhor de cada prateleira, na ordem das suas favoritas.",
+      "topSurprise": "Surpresa",
       "topTabs": "Filmes ou séries",
-      "shelvesTitle": "As nove prateleiras",
-      "shelvesHint": "Toque numa prateleira para entrar nela.",
-      "shelfRated_one": "você avaliou {{count}}",
-      "shelfRated_other": "você avaliou {{count}}",
       "directorsTitle": "Diretores de cabeceira",
       "directorsHint": "Os diretores que {{name}} mais guarda nas prateleiras.",
       "directorFilms_one": "{{count}} filme",
@@ -907,9 +901,7 @@
       "countriesMost": "países, a maioria de {{country}}",
       "decadeLabel": "anos {{decade}}",
       "goldenDecade_one": "a década de ouro ({{decade}}), com {{count}} título",
-      "goldenDecade_other": "a década de ouro ({{decade}}), com {{count}} títulos",
-      "decadesTitle": "Por década",
-      "genresTitle": "Os gêneros que mais aparecem"
+      "goldenDecade_other": "a década de ouro ({{decade}}), com {{count}} títulos"
     }
   },
   "profile": {

@@ -848,9 +848,6 @@
     },
     "picks": {
       "title": "Hand-picked",
-      "lead": "The oracles walked your three favorite shelves and set aside the best of each aisle for you.",
-      "leadStarter": "Until the Oracle learns your favorite shelves, each oracle set aside the best of these three for you.",
-      "shelvesLabel": "Shelves the picks come from",
       "aisleLabel": "{{name}}'s picks",
       "allShelves": "All shelves",
       "allShelvesOf": "All of {{name}}'s shelves",
@@ -888,12 +885,9 @@
       "votesCount_one": "{{count}} vote on TMDB",
       "votesCount_other": "{{count}} votes on TMDB",
       "topTitle": "{{name}}'s Top 10",
-      "topHint": "The titles on these shelves the audience rates highest (TMDB).",
+      "topHint": "A surprise, then the best of each shelf, in your favorite order.",
+      "topSurprise": "Surprise",
       "topTabs": "Films or series",
-      "shelvesTitle": "The nine shelves",
-      "shelvesHint": "Tap a shelf to step into it.",
-      "shelfRated_one": "you've rated {{count}}",
-      "shelfRated_other": "you've rated {{count}}",
       "directorsTitle": "Go-to directors",
       "directorsHint": "The directors {{name}} keeps most on the shelves.",
       "directorFilms_one": "{{count}} film",
@@ -904,9 +898,7 @@
       "countriesMost": "countries, mostly {{country}}",
       "decadeLabel": "{{decade}}s",
       "goldenDecade_one": "the golden decade ({{decade}}), with {{count}} title",
-      "goldenDecade_other": "the golden decade ({{decade}}), with {{count}} titles",
-      "decadesTitle": "By decade",
-      "genresTitle": "The genres that show up most"
+      "goldenDecade_other": "the golden decade ({{decade}}), with {{count}} titles"
     }
   },
   "profile": {

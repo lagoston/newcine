@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, Bookmark, ChevronRight, Film, Loader2, RotateCcw, Star, User } from 'lucide-react';
+import { AlertCircle, Bookmark, ChevronRight, Film, Loader2, RotateCcw, Sparkles, Star, User } from 'lucide-react';
 import OracleSheet, { SheetFade } from '../OracleSheet';
 import OptimizedPoster from '../OptimizedPoster';
 import MovieDetailsModal from '../MovieDetailsModal';
@@ -9,6 +8,7 @@ import PersonPageSheet, { type PersonSeed } from '../PersonPageSheet';
 import type { Movie } from '../../lib/tmdb';
 import { getFullTitle, prefetchFullTitle } from '../../lib/titleCards';
 import {
+  composeTop,
   getOracleProfile,
   peekOracleProfile,
   oracleTitleName,
@@ -27,11 +27,15 @@ import { FOCUS_RING, MIST, PAPER, PIXEL, VELVET, ORACLE_BY_ID, oracleCardImage, 
 // da foto, a ficha (curadoria, acervo, época, nota média do público), a
 // lenda dele, "você e ele", os destaques do acervo (que mudam conforme o
 // jeito do oráculo: o Cypher mostra a maior bomba e o mais obscuro), o Top 10
-// de filmes e de séries, as nove prateleiras, os diretores que ele mais
-// guarda (que abrem a página da pessoa) e o acervo em números.
+// de filmes e de séries, os diretores que ele mais guarda (que abrem a página
+// da pessoa) e o acervo em números.
 //
-// Tocar num título abre o menu dele por cima; tocar numa prateleira leva à
-// Biblioteca dos Oráculos já nela.
+// Desde 24/10/2026 o Top 10 é de cada pessoa: uma surpresa entre os melhores
+// do oráculo e o melhor de cada prateleira, na ordem das favoritas dela, sem
+// lançamentos do último ano (ver composeTop em lib/oracleProfile). Saíram as
+// nove prateleiras, o gráfico por década e os gêneros.
+//
+// Tocar num título abre o menu dele por cima.
 
 type Tab = 'movies' | 'series';
 
@@ -39,7 +43,6 @@ const PERSON_PHOTO = 'https://image.tmdb.org/t/p/w185';
 
 const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: string; onClose: () => void }> = ({ oracleId, cardStyle, onClose }) => {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
   const lang = i18n.language;
   const oracle = oracleId ? ORACLE_BY_ID[oracleId] : null;
 
@@ -52,11 +55,14 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [person, setPerson] = useState<PersonSeed | null>(null);
   const [personMovieLoading, setPersonMovieLoading] = useState<number | null>(null);
+  // A surpresa do Top 10 é sorteada de novo a cada abertura.
+  const [seed, setSeed] = useState(() => Math.random());
 
   useEffect(() => {
     setTab('movies');
     setLoreOpen(false);
     setPerson(null);
+    setSeed(Math.random());
     if (!oracleId) return;
     const cached = peekOracleProfile(oracleId);
     setProfile(cached ?? null);
@@ -104,11 +110,15 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
     }
   };
 
-  const topList = profile ? (tab === 'movies' ? profile.top.movies : profile.top.series) : [];
-  const showTabs = Boolean(profile && profile.top.movies.length > 0 && profile.top.series.length > 0);
+  const tops = useMemo(
+    () => (profile ? { movies: composeTop(profile.top.movies, seed), series: composeTop(profile.top.series, (seed * 7.31) % 1) } : null),
+    [profile, seed]
+  );
+  const topList = tops ? (tab === 'movies' ? tops.movies : tops.series) : [];
+  const showTabs = Boolean(tops && tops.movies.length > 0 && tops.series.length > 0);
   useEffect(() => {
-    if (profile && profile.top.movies.length === 0 && profile.top.series.length > 0) setTab('series');
-  }, [profile]);
+    if (tops && tops.movies.length === 0 && tops.series.length > 0) setTab('series');
+  }, [tops]);
 
   const goldenDecade = useMemo(() => (profile?.decades.length ? [...profile.decades].sort((a, b) => b.count - a.count)[0] : null), [profile]);
   const countryName = useMemo(() => {
@@ -223,10 +233,6 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
     );
   };
 
-  const shelvesMax = profile ? Math.max(1, ...profile.shelves.map((s) => s.movies + s.series)) : 1;
-  const genresMax = profile ? Math.max(1, ...profile.genres.map((g) => g.count)) : 1;
-  const decadesMax = profile ? Math.max(1, ...profile.decades.map((d) => d.count)) : 1;
-
   return (
     <>
       <OracleSheet
@@ -239,8 +245,10 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
         contentKey={oracleId}
       >
         <div className="flex gap-4">
-          <span className="relative w-24 sm:w-28 shrink-0 aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10" style={{ background: VELVET, boxShadow: `0 18px 32px -18px ${withAlpha(color, 0.9)}` }}>
-            <img src={oracleCardImage(oracle.id, cardStyle)} alt="" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+          {/* self-start: sem ele a carta esticava até a altura da ficha e a
+              imagem era cortada dos lados. A proporção é a das cartas. */}
+          <span className="relative self-start w-24 sm:w-28 shrink-0 aspect-[1696/2528] rounded-xl overflow-hidden ring-1 ring-white/10" style={{ background: VELVET, boxShadow: `0 18px 32px -18px ${withAlpha(color, 0.9)}` }}>
+            <img src={oracleCardImage(oracle.id, cardStyle)} alt="" decoding="async" className="absolute inset-0 w-full h-full object-contain" />
           </span>
           <div className="min-w-0 flex-1">
             {status === 'loading' && (
@@ -390,7 +398,7 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
                   <p className="py-6 text-sm text-center" style={{ color: MIST }}>{t('person.empty')}</p>
                 ) : (
                   <ol className="space-y-1.5">
-                    {topList.map((title, i) => {
+                    {topList.map(({ title, surprise }, i) => {
                       const poster = oracleTitlePoster(title, lang);
                       const name = oracleTitleName(title, lang);
                       const mood = MOOD_BY_KEY[title.mood];
@@ -423,8 +431,20 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="block font-medium truncate" style={{ color: PAPER }}>{name}</span>
-                              <span className="block text-[13px] truncate" style={{ color: MIST }}>
-                                {[title.year, mood ? t(mood.labelKey) : null].filter(Boolean).join(' · ')}
+                              <span className="flex items-center gap-1.5 text-[13px] min-w-0" style={{ color: MIST }}>
+                                {surprise ? (
+                                  <span className="inline-flex items-center gap-1 shrink-0 font-medium" style={{ color }}>
+                                    <Sparkles className="w-3.5 h-3.5" aria-hidden />
+                                    {t('oracle.profile.topSurprise')}
+                                  </span>
+                                ) : (
+                                  mood && (
+                                    <span className="shrink-0 font-medium" style={{ color: mood.color }}>
+                                      {t(mood.labelKey)}
+                                    </span>
+                                  )
+                                )}
+                                {title.year && <span className="truncate">· {title.year}</span>}
                               </span>
                             </span>
                             <span className="shrink-0 flex flex-col items-end gap-1">
@@ -444,46 +464,6 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
                   </ol>
                 )}
               </SheetFade>
-            </section>
-
-            {/* As nove prateleiras */}
-            <section className="mt-7">
-              {sectionTitle(t('oracle.profile.shelvesTitle'), t('oracle.profile.shelvesHint', { name: oracle.name }))}
-              <ul className="mt-3 space-y-1">
-                {profile.shelves.map((shelf) => {
-                  const mood = MOOD_BY_KEY[shelf.mood];
-                  if (!mood) return null;
-                  const total = shelf.movies + shelf.series;
-                  return (
-                    <li key={shelf.mood}>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/oracle/libraries?oracle=${oracle.id}&mood=${shelf.mood}`)}
-                        className={`group w-full flex items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/[0.06] ${FOCUS_RING}`}
-                      >
-                        <span
-                          className="grid place-items-center w-9 h-9 shrink-0 rounded-lg text-xl leading-none"
-                          style={{ ...PIXEL, color: mood.color, background: VELVET, boxShadow: `inset 0 0 0 1.5px ${withAlpha(mood.color, 0.5)}` }}
-                          aria-hidden
-                        >
-                          {mood.letter}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium truncate" style={{ color: PAPER }}>{t(mood.labelKey)}</span>
-                          <span className="mt-1.5 block h-1.5 rounded-full bg-white/[0.07] overflow-hidden" aria-hidden>
-                            <span className="block h-full rounded-full" style={{ width: `${Math.max(3, (total / shelvesMax) * 100)}%`, background: withAlpha(mood.color, 0.75) }} />
-                          </span>
-                          <span className="mt-1 flex items-baseline justify-between gap-2 text-[11px] tabular-nums" style={{ color: MIST }}>
-                            <span className="truncate">{t('oracle.profile.collectionValue', { movies: formatInt(shelf.movies), series: formatInt(shelf.series) })}</span>
-                            {shelf.rated > 0 && <span className="shrink-0">{t('oracle.profile.shelfRated', { count: shelf.rated })}</span>}
-                          </span>
-                        </span>
-                        <ChevronRight className="w-4 h-4 shrink-0 opacity-40 group-hover:opacity-80 transition" style={{ color: MIST }} aria-hidden />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
             </section>
 
             {/* Diretores de cabeceira */}
@@ -542,38 +522,6 @@ const OracleProfileSheet: React.FC<{ oracleId: OracleId | null; cardStyle: strin
                     </li>
                   ))}
               </ul>
-
-              {profile.decades.length > 1 && (
-                <div className="mt-5">
-                  <p className="text-xs" style={{ color: MIST }}>{t('oracle.profile.decadesTitle')}</p>
-                  <ol className="mt-2 flex items-end gap-1.5 h-20" aria-label={t('oracle.profile.decadesTitle')}>
-                    {profile.decades.map((d) => (
-                      <li key={d.decade} className="flex-1 min-w-0 flex flex-col items-center justify-end h-full" title={`${t('oracle.profile.decadeLabel', { decade: d.decade })}: ${formatInt(d.count)}`}>
-                        <span className="w-full rounded-t-[4px]" style={{ height: `${Math.max(4, (d.count / decadesMax) * 100)}%`, background: d === goldenDecade ? color : withAlpha(color, 0.4) }} />
-                        <span className="mt-1 text-[10px] tabular-nums" style={{ color: MIST }}>{String(d.decade).slice(2)}</span>
-                        <span className="sr-only">{`${t('oracle.profile.decadeLabel', { decade: d.decade })}: ${formatInt(d.count)}`}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-
-              {profile.genres.length > 0 && (
-                <div className="mt-5">
-                  <p className="text-xs" style={{ color: MIST }}>{t('oracle.profile.genresTitle')}</p>
-                  <ul className="mt-2 space-y-1.5">
-                    {profile.genres.map((genre) => (
-                      <li key={genre.id} className="flex items-center gap-3">
-                        <span className="w-24 sm:w-28 shrink-0 text-sm truncate" style={{ color: PAPER }}>{lang.startsWith('pt') ? genre.pt : genre.en}</span>
-                        <span className="flex-1 h-2 rounded-full bg-white/[0.07] overflow-hidden" aria-hidden>
-                          <span className="block h-full rounded-full" style={{ width: `${(genre.count / genresMax) * 100}%`, background: withAlpha(color, 0.7) }} />
-                        </span>
-                        <span className="w-12 shrink-0 text-right text-xs tabular-nums" style={{ color: MIST }}>{formatInt(genre.count)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </section>
           </>
         )}
