@@ -11,12 +11,12 @@ import PersonasModal from '../components/PersonasModal';
 import PersonaShareModal from '../components/PersonaShareModal';
 import PersonalityCompletionModal from '../components/PersonalityCompletionModal';
 import { PersonaRevelationSheet, PersonaHowItWorksSheet } from '../components/PersonaSheets';
-import { PersonaCode, PersonaCard, MoodChip } from '../components/PersonaBits';
+import { PersonaCode, PersonaCard } from '../components/PersonaBits';
 import PersonaWorks from '../components/PersonaWorks';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { MOOD_BY_LETTER, withMoodAlpha } from '../lib/moods';
-import { fetchUserPersona, personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../lib/persona';
+import { fetchUserPersona, personaText, PERSONA_THRESHOLD, type UserPersona } from '../lib/persona';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES, withAlpha } from '../lib/oracleTheme';
 
 // Central dos Oráculos — "a mesa do oráculo".
@@ -343,14 +343,8 @@ export default function OracleHub() {
 
               <PersonaWorks persona={persona.persona} seen={persona.worksSeen} className="mt-6" />
 
-              <ul className="mt-5 flex flex-wrap gap-2">
-                {topMoodKeys(persona).map((key, i) => (
-                  <li key={key}>
-                    <MoodChip moodKey={key} rank={i + 1} />
-                  </li>
-                ))}
-              </ul>
-
+              {/* Logo depois das obras, os quatro botões (as etiquetas das três
+                  prateleiras do código saíram em 24/10/2026). */}
               <div className="mt-6 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                 {actions.map(({ key, icon: Icon, tint, label, onClick }) => (
                   <button key={key} onClick={onClick} className={`${GHOST_BUTTON} px-3 sm:px-4 whitespace-nowrap justify-center sm:justify-start`} style={{ color: PAPER }}>

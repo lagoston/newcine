@@ -11,7 +11,6 @@ import { getMovieDetailsFromDB, type Movie } from '../../lib/tmdb';
 import type { Affinity, MoodSlice } from '../../lib/tasteStats';
 import type { MovieWithRating } from '../../hooks/useProfileData';
 import { PersonaCode, PersonaCard } from '../PersonaBits';
-import PersonaWorks from '../PersonaWorks';
 import { PersonaRevelationSheet, PersonaHowItWorksSheet } from '../PersonaSheets';
 import MovieDetailsModal from '../MovieDetailsModal';
 import MoodGrid from './MoodGrid';
@@ -201,7 +200,8 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
           <Scroll className="w-4 h-4" aria-hidden />
           {t('profile.observatory.readRevelation')}
         </button>
-        <PersonaWorks persona={persona.persona} seen={persona.worksSeen} size="sm" className="mt-4" />
+        {/* As obras do personagem saíram daqui em 24/10/2026 (continuam no
+            Oracle Hub e na Revelação): logo depois da revelação, os temas. */}
         {themes}
       </div>
     );
