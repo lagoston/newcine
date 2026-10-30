@@ -1,120 +1,390 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Check, Crown, Gift, Loader2, Lock, RotateCw, Sparkles, Ticket, Trophy } from 'lucide-react';
+import { Check, Crown, Loader2, Lock, Sparkles, Ticket, Trophy, Volume2, VolumeX } from 'lucide-react';
 import OracleSheet, { SheetFade } from '../OracleSheet';
 import PosterArt, { EffectTag, RarityTag } from './PosterArt';
+import JackpotReel, { reelKey, type JackpotReelHandle, type ReelCard } from './JackpotReel';
 import { MOOD_BY_KEY } from '../../lib/moods';
-import { ORACLE_BY_ID, PAPER, MIST, PIXEL, FOCUS_RING, VELVET, type OracleId } from '../../lib/oracleTheme';
+import { ORACLE_BY_ID, PAPER, MIST, FOCUS_RING, VELVET, withAlpha, type OracleId } from '../../lib/oracleTheme';
 import {
-  RARITIES,
+  EFFECTS,
   RARITY_META,
   EFFECT_META,
-  FRAGMENTS_PER_TICKET,
   claimMission,
   equipPoster,
-  fetchJackpotState,
+  fetchJackpotCatalog,
+  loadJackpotFont,
   loadMyPosters,
   notifyPostersChanged,
+  pullErrorCode,
   pullJackpot,
   titleOf,
   unequipPoster,
+  type CatalogPoster,
   type JackpotMission,
   type JackpotState,
   type OwnedPoster,
+  type PosterEffect,
   type PosterRarity,
   type PullResult,
 } from '../../lib/posterJackpot';
+import { isJackpotMuted, playReveal, primeJackpotAudio, setJackpotMuted } from '../../lib/jackpotSound';
 import '../../styles/posterJackpot.css';
 
-// Poster Jackpot (30/10/2026): a máquina de cápsulas do Oracle Hub, inspirada
-// nas máquinas de cápsula dos jogos (gabinete laranja, cúpula de vidro com as
-// cápsulas, a barra do próximo prêmio, a manivela e a saída embaixo). Três
-// abas: a máquina, a coleção (equipar/desequipar) e as missões da semana.
+// Poster Jackpot: a roleta do Oracle Hub. Um palco de parque encantado
+// (céu estrelado, moldura dourada em arco, lâmpadas de letreiro correndo)
+// com a fita de pôsteres do estilo CS:GO, a revelação do prêmio com raios
+// na cor da raridade e faíscas, a coleção (só os pôsteres) e as missões.
 
 type Tab = 'machine' | 'collection' | 'missions';
 type TicketKind = 'normal' | 'special';
 
-// As cápsulas da cúpula: posição fixa (em %), tamanho e raridade. Mais
-// comuns que raras, como as chances.
-const CAPSULES: { x: number; y: number; s: number; r: PosterRarity; a: number }[] = (() => {
-  const rows = [
-    { y: 80, xs: [4, 18, 32, 46, 60, 74, 88] },
-    { y: 64, xs: [10, 24, 38, 53, 67, 81] },
-    { y: 49, xs: [3, 16, 30, 45, 59, 73, 87] },
-    { y: 35, xs: [12, 27, 42, 57, 72] },
-    { y: 22, xs: [22, 40, 58] },
-  ];
-  const pattern: PosterRarity[] = ['common', 'rare', 'common', 'epic', 'common', 'rare', 'common', 'legendary', 'common', 'rare', 'common', 'common', 'epic', 'rare'];
-  const out: { x: number; y: number; s: number; r: PosterRarity; a: number }[] = [];
-  let i = 0;
-  rows.forEach((row, ri) =>
-    row.xs.forEach((x) => {
-      out.push({ x: x + ((i * 7) % 5) - 2, y: row.y + ((i * 3) % 4) - 2, s: 15 + ((i * 5 + ri) % 4), r: pattern[i % pattern.length], a: (i * 47) % 360 });
-      i += 1;
-    })
-  );
-  return out;
+const RARITY_ASC: PosterRarity[] = ['common', 'rare', 'epic', 'legendary'];
+const SPARK_COLORS = ['#FFE8A3', '#F4C454', '#FF7AD9', '#8FE9FF', '#FFFFFF'];
+const ARCH_BULBS = 17;
+const BASE_BULBS = 13;
+
+const pick = <T,>(list: T[]): T => list[Math.floor(Math.random() * list.length)];
+const weighted = <T,>(list: T[], weight: (value: T) => number): T => {
+  const total = list.reduce((sum, value) => sum + weight(value), 0);
+  let roll = Math.random() * total;
+  for (const value of list) {
+    roll -= weight(value);
+    if (roll <= 0) return value;
+  }
+  return list[list.length - 1];
+};
+
+// Monta o sorteador da fita: só versões que ainda podem sair para a pessoa
+// (com este ticket), nas mesmas chances do banco.
+const makeFiller = (catalog: CatalogPoster[], owned: Set<string>, kind: TicketKind) => {
+  const versions: PosterEffect[] = kind === 'special' ? EFFECTS : ['none', ...EFFECTS];
+  const open = (item: CatalogPoster) => versions.filter((effect) => !owned.has(`${item.id}:${effect}`));
+  const obtainable = catalog.filter((item) => open(item).length > 0);
+  const pool = obtainable.length ? obtainable : catalog;
+  return (want?: PosterRarity): ReelCard | null => {
+    if (!pool.length) return null;
+    let rarity = want;
+    if (rarity && !pool.some((item) => item.rarity === rarity)) return null;
+    if (!rarity) {
+      const present = RARITY_ASC.filter((r) => pool.some((item) => item.rarity === r));
+      rarity = weighted(present, (r) => RARITY_META[r].odds);
+    }
+    const item = pick(pool.filter((p) => p.rarity === rarity));
+    const free = open(item);
+    const effects = (free.length ? free : versions).filter((effect) => effect !== 'none');
+    const plain = kind === 'normal' && (free.length ? free : versions).includes('none');
+    const effect: PosterEffect =
+      plain && (Math.random() > 0.05 || !effects.length)
+        ? 'none'
+        : effects.length
+          ? weighted(effects, (e) => EFFECT_META[e as Exclude<PosterEffect, 'none'>].odds)
+          : 'none';
+    return { key: reelKey(), item, effect };
+  };
+};
+
+// ---------------------------------------------------------------------------
+// Peças do palco
+// ---------------------------------------------------------------------------
+
+// Ângulos das lâmpadas do arco, espaçadas pelo comprimento do arco (e não
+// pelo ângulo, que juntaria lâmpadas nas pontas).
+const ARCH_ANGLES = (() => {
+  const a = 4;
+  const steps = 400;
+  const lengths = [0];
+  for (let k = 1; k <= steps; k++) {
+    const t0 = Math.PI - ((k - 1) / steps) * Math.PI;
+    const t1 = Math.PI - (k / steps) * Math.PI;
+    lengths.push(lengths[k - 1] + Math.hypot(a * (Math.cos(t1) - Math.cos(t0)), Math.sin(t1) - Math.sin(t0)));
+  }
+  const total = lengths[steps];
+  return Array.from({ length: ARCH_BULBS }, (_, i) => {
+    const target = (total * i) / (ARCH_BULBS - 1);
+    const k = lengths.findIndex((len) => len >= target - 1e-9);
+    return Math.PI - (Math.max(0, k) / steps) * Math.PI;
+  });
 })();
 
-const capsuleBackground = (rarity: PosterRarity) =>
-  `linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.6) 46%, rgba(255,255,255,0.25) 50%, ${RARITY_META[rarity].color} 54%, ${RARITY_META[rarity].color} 100%)`;
+// Lâmpadas correndo pelo arco da moldura e na base.
+const Marquee: React.FC<{ fast: boolean }> = ({ fast }) => (
+  <div aria-hidden className={`absolute inset-0 pointer-events-none ${fast ? 'pj-fast' : ''}`}>
+    {ARCH_ANGLES.map((angle, i) => {
+      return (
+        <span
+          key={`a${i}`}
+          className="pj-bulb absolute"
+          style={{ left: `calc(${50 + Math.cos(angle) * 45.5}% - 3.5px)`, top: `${10 + (1 - Math.sin(angle)) * 50}px`, ['--i' as string]: i }}
+        />
+      );
+    })}
+    <div className="absolute inset-x-6 bottom-2.5 flex justify-between">
+      {Array.from({ length: BASE_BULBS }, (_, i) => (
+        <span key={`b${i}`} className="pj-bulb" style={{ ['--i' as string]: ARCH_BULBS + i }} />
+      ))}
+    </div>
+  </div>
+);
 
-const Capsule: React.FC<{ rarity: PosterRarity; size: number; className?: string; style?: React.CSSProperties }> = ({ rarity, size, className = '', style }) => (
-  <span className={`pj-capsule ${className}`} style={{ width: size, height: size, background: capsuleBackground(rarity), ...style }} aria-hidden />
+const Twinkle: React.FC<{ className?: string; color?: string }> = ({ className = '', color = '#FFE8A3' }) => (
+  <svg viewBox="0 0 24 24" className={className} aria-hidden>
+    <path d="M12 0 C13 8 16 11 24 12 C16 13 13 16 12 24 C11 16 8 13 0 12 C8 11 11 8 12 0Z" fill={color} />
+  </svg>
 );
 
 // ---------------------------------------------------------------------------
-// A máquina
+// A revelação
+// ---------------------------------------------------------------------------
+
+const Reveal: React.FC<{
+  result: PullResult;
+  reduceMotion: boolean;
+  equipping: boolean;
+  equipped: boolean;
+  canSpinAgain: boolean;
+  onEquip: () => void;
+  onAgain: () => void;
+  onClose: () => void;
+}> = ({ result, reduceMotion, equipping, equipped, canSpinAgain, onEquip, onAgain, onClose }) => {
+  const { t, i18n } = useTranslation();
+  const isPt = i18n.language.startsWith('pt');
+  const meta = RARITY_META[result.item.rarity];
+  const title = titleOf(result.item, isPt);
+  const big = result.item.rarity === 'legendary' || result.item.rarity === 'epic';
+
+  const sparks = useMemo(() => {
+    const count = { common: 14, rare: 20, epic: 28, legendary: 40 }[result.item.rarity];
+    return Array.from({ length: count }, (_, i) => {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 90 + Math.random() * (big ? 170 : 110);
+      const second = result.item.rarity === 'legendary' && i % 2 === 1;
+      return {
+        dx: `${Math.cos(angle) * distance}px`,
+        dy: `${Math.sin(angle) * distance}px`,
+        s: `${6 + Math.random() * (big ? 12 : 8)}px`,
+        c: i % 4 === 0 ? meta.color : pick(SPARK_COLORS),
+        d: `${1.1 + Math.random() * 0.8}s`,
+        delay: `${(second ? 0.7 : 0.15) + Math.random() * 0.3}s`,
+      };
+    });
+  }, [result, big, meta.color]);
+
+  return (
+    <motion.div
+      key="reveal"
+      role="dialog"
+      aria-modal="false"
+      aria-label={t('jackpot.machine.revealAria', { rarity: t(`jackpot.rarity.${result.item.rarity}`), title })}
+      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="absolute inset-0 z-20 overflow-hidden rounded-[30px]"
+      style={{ background: `radial-gradient(70% 55% at 50% 40%, ${withAlpha(meta.color, 0.28)}, transparent 70%), linear-gradient(180deg, #0f1645, #0a0e2c 60%, #150a33)` }}
+    >
+      <span className="pj-stars" aria-hidden />
+      <span className="pj-rays" aria-hidden style={{ ['--pj-ray' as string]: withAlpha(meta.color, big ? 0.55 : 0.35) }} />
+      {!reduceMotion && <span className="pj-flash" aria-hidden />}
+      {!reduceMotion &&
+        sparks.map((spark, i) => (
+          <span
+            key={i}
+            aria-hidden
+            className="pj-spark"
+            style={{ ['--dx' as string]: spark.dx, ['--dy' as string]: spark.dy, ['--s' as string]: spark.s, ['--c' as string]: spark.c, ['--d' as string]: spark.d, ['--delay' as string]: spark.delay }}
+          />
+        ))}
+
+      <div className="relative h-full overflow-y-auto px-5 py-6 sm:py-7 flex flex-col items-center justify-center text-center">
+        <motion.div
+          initial={reduceMotion ? false : { rotateY: 100, scale: 0.6, y: 20 }}
+          animate={{ rotateY: 0, scale: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 170, damping: 15, delay: 0.08 }}
+          style={{ transformPerspective: 900 }}
+          className="w-[min(40vw,184px)] shrink-0"
+        >
+          <PosterArt
+            filePath={result.item.file_path}
+            effect={result.effect}
+            alt={title}
+            size="w500"
+            loading="eager"
+            className="aspect-[2/3] rounded-2xl shadow-[0_24px_50px_-18px_rgba(0,0,0,0.95)]"
+          />
+        </motion.div>
+
+        <motion.p
+          initial={reduceMotion ? false : { opacity: 0, y: 10, letterSpacing: '0.3em' }}
+          animate={{ opacity: 1, y: 0, letterSpacing: '0.04em' }}
+          transition={{ duration: 0.6, delay: 0.35, ease: 'easeOut' }}
+          className="pj-display mt-4 text-[26px] sm:text-[32px] font-black leading-none"
+          style={{ color: meta.color, textShadow: `0 0 18px ${meta.glow}, 0 2px 0 rgba(0,0,0,0.6)` }}
+        >
+          {t(`jackpot.rarity.${result.item.rarity}`)}
+        </motion.p>
+        <motion.div initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}>
+          <p className="mt-2 text-[15px] font-semibold leading-snug" style={{ color: PAPER }}>
+            {title}
+            {result.item.year ? <span className="font-normal" style={{ color: MIST }}> ({result.item.year})</span> : null}
+          </p>
+          {result.effect !== 'none' && <EffectTag effect={result.effect} className="mt-2" />}
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={onEquip}
+              disabled={equipping || equipped}
+              className={`pj-spin inline-flex items-center gap-1.5 h-11 px-5 rounded-full text-sm font-bold transition disabled:opacity-80 ${FOCUS_RING}`}
+            >
+              {equipping ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : equipped ? <Check className="w-4 h-4" aria-hidden /> : <Sparkles className="w-4 h-4" aria-hidden />}
+              {equipped ? t('jackpot.collection.equipped') : t('jackpot.collection.equip')}
+            </button>
+            <button
+              type="button"
+              onClick={canSpinAgain ? onAgain : onClose}
+              className={`inline-flex items-center gap-1.5 h-11 px-5 rounded-full text-sm font-semibold transition hover:bg-white/10 ${FOCUS_RING}`}
+              style={{ color: '#FFE8A3', boxShadow: 'inset 0 0 0 1.5px rgba(244,196,84,0.7)' }}
+            >
+              {canSpinAgain ? t('jackpot.machine.again') : t('jackpot.machine.back')}
+            </button>
+          </div>
+          <p className="mt-3 text-xs" style={{ color: MIST }}>
+            {equipped ? t('jackpot.collection.equipHint') : t('jackpot.machine.savedHint')}
+          </p>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// A roleta
 // ---------------------------------------------------------------------------
 
 const Machine: React.FC<{
   state: JackpotState;
+  owned: OwnedPoster[] | null;
   onState: (patch: Partial<JackpotState>) => void;
   onCollectionChanged: () => void;
-}> = ({ state, onState, onCollectionChanged }) => {
+}> = ({ state, owned, onState, onCollectionChanged }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = !!useReducedMotion();
+  const reelRef = useRef<JackpotReelHandle>(null);
+  const [catalog, setCatalog] = useState<CatalogPoster[] | null>(null);
   const [kind, setKind] = useState<TicketKind>(state.tickets > 0 || !state.specialAvailable ? 'normal' : 'special');
-  const [phase, setPhase] = useState<'idle' | 'spinning' | 'dropped' | 'revealed'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'spinning' | 'landed' | 'revealed'>('idle');
   const [result, setResult] = useState<PullResult | null>(null);
-  const [turns, setTurns] = useState(0);
+  const [winnerKey, setWinnerKey] = useState<string | null>(null);
   const [equipping, setEquipping] = useState(false);
   const [equipped, setEquipped] = useState(false);
+  const [muted, setMuted] = useState(isJackpotMuted);
+  const busyRef = useRef(false);
 
-  const canPull = kind === 'special' ? state.specialAvailable : state.tickets > 0;
+  useEffect(() => {
+    let alive = true;
+    fetchJackpotCatalog()
+      .then((list) => alive && setCatalog(list))
+      .catch((error) => {
+        console.error('Poster Jackpot catalog:', error);
+        if (alive) setCatalog([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
-  const pull = async () => {
-    if (phase === 'spinning') return;
-    if (!canPull) {
-      toast(kind === 'special' ? t('jackpot.machine.noSpecial') : t('jackpot.machine.noTickets'));
+  const ownedSet = useMemo(() => new Set((owned || []).map((p) => `${p.id}:${p.effect}`)), [owned]);
+  const filler = useMemo(() => makeFiller(catalog || [], ownedSet, kind), [catalog, ownedSet, kind]);
+
+  const left = kind === 'special' ? state.remainingSpecial : state.remaining;
+  const complete = state.remaining <= 0;
+  const hasTicket = kind === 'special' ? state.specialAvailable : state.tickets > 0;
+  const canSpin = hasTicket && left > 0;
+  const spinning = phase === 'spinning';
+
+  const spin = async () => {
+    if (busyRef.current || !catalog?.length) return;
+    if (complete) {
+      toast(t('jackpot.machine.complete'));
       return;
     }
-    setPhase('spinning');
-    setResult(null);
-    setEquipped(false);
-    setTurns((n) => n + 1);
-    try {
-      const [res] = await Promise.all([pullJackpot(kind), new Promise((r) => setTimeout(r, reduceMotion ? 200 : 1300))]);
-      setResult(res);
-      onState({
-        tickets: res.tickets,
-        fragments: res.fragments,
-        specialAvailable: kind === 'special' ? false : state.specialAvailable,
-        owned: state.owned + (res.duplicate ? 0 : 1),
-      });
-      onCollectionChanged();
-      setPhase('dropped');
-      if (kind === 'special') setKind('normal');
-    } catch (error) {
-      console.error('Poster Jackpot pull:', error);
-      toast.error(t('jackpot.machine.error'));
-      setPhase('idle');
+    if (!hasTicket) {
+      toast(kind === 'special' ? (state.premium ? t('jackpot.machine.noSpecial') : t('jackpot.machine.specialPremiumHint')) : t('jackpot.machine.noTickets'));
+      return;
     }
+    if (left <= 0) {
+      toast(t('jackpot.machine.specialComplete'));
+      return;
+    }
+    busyRef.current = true;
+    primeJackpotAudio();
+    setPhase('spinning');
+    setWinnerKey(null);
+    setEquipped(false);
+    reelRef.current?.windUp();
+    let res: PullResult;
+    try {
+      [res] = await Promise.all([pullJackpot(kind), new Promise((r) => setTimeout(r, reduceMotion ? 0 : 430))]);
+    } catch (error) {
+      const code = pullErrorCode(error);
+      console.error('Poster Jackpot pull:', error);
+      if (code === 'collection_complete') onState(kind === 'special' ? { remainingSpecial: 0 } : { remaining: 0, remainingSpecial: 0 });
+      if (code === 'no_tickets') onState({ tickets: 0 });
+      if (code === 'special_used') onState({ specialAvailable: false });
+      toast.error(
+        code === 'collection_complete'
+          ? t(kind === 'special' ? 'jackpot.machine.specialComplete' : 'jackpot.machine.complete')
+          : code === 'no_tickets'
+            ? t('jackpot.machine.noTickets')
+            : code === 'special_used'
+              ? t('jackpot.machine.noSpecial')
+              : t('jackpot.machine.error')
+      );
+      setPhase('idle');
+      busyRef.current = false;
+      return;
+    }
+    const prize: ReelCard = {
+      key: reelKey(),
+      item: { id: res.item.id, rarity: res.item.rarity, file_path: res.item.file_path, media_type: res.item.media_type, tmdb_id: res.item.tmdb_id },
+      effect: res.effect,
+    };
+    setResult(res);
+    onState({
+      tickets: res.tickets,
+      specialAvailable: kind === 'special' ? false : state.specialAvailable,
+      owned: state.owned + 1,
+      remaining: Math.max(0, state.remaining - 1),
+      remainingSpecial: Math.max(0, state.remainingSpecial - (res.effect !== 'none' ? 1 : 0)),
+    });
+    onCollectionChanged();
+    await (reelRef.current?.spinTo(prize, { reduceMotion }) ?? Promise.resolve());
+    setWinnerKey(prize.key);
+    setPhase('landed');
+    playReveal(res.item.rarity, res.effect !== 'none');
+    try {
+      if (res.item.rarity === 'legendary') navigator.vibrate?.([30, 40, 60]);
+      else if (res.item.rarity === 'epic') navigator.vibrate?.(40);
+    } catch {
+      // sem vibração
+    }
+    if (kind === 'special') setKind('normal');
+    window.setTimeout(
+      () => {
+        setPhase('revealed');
+        busyRef.current = false;
+      },
+      reduceMotion ? 200 : 950
+    );
   };
+
+  // "Girar de novo" chama o giro da renderização mais nova (estado em dia).
+  const spinRef = useRef(spin);
+  spinRef.current = spin;
 
   const equip = async () => {
     if (!result) return;
@@ -132,242 +402,156 @@ const Machine: React.FC<{
     }
   };
 
-  const fragmentPct = (state.fragments / FRAGMENTS_PER_TICKET) * 100;
-  const spinning = phase === 'spinning';
+  const toggleMute = () => {
+    const next = !muted;
+    setJackpotMuted(next);
+    setMuted(next);
+  };
 
-  if (phase === 'revealed' && result) {
-    const meta = RARITY_META[result.item.rarity];
-    return (
-      <motion.div
-        initial={reduceMotion ? false : { opacity: 0, scale: 0.92 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-        className="relative mx-auto max-w-sm text-center"
-      >
-        <span
-          aria-hidden
-          className="absolute inset-x-0 -top-6 mx-auto w-72 h-72 rounded-full pointer-events-none"
-          style={{ background: `radial-gradient(closest-side, ${meta.glow}, transparent 75%)` }}
-        />
-        <div className="relative mx-auto w-48 sm:w-56">
-          <PosterArt
-            filePath={result.item.file_path}
-            effect={result.effect}
-            rarity={result.item.rarity}
-            alt={titleOf(result.item, isPt)}
-            size="w500"
-            animated
-            frame
-            loading="eager"
-            className="aspect-[2/3] rounded-2xl"
-          />
-          {!result.duplicate && (
-            <span className="absolute -top-2 -right-2 rounded-full px-2.5 py-1 text-[12px] font-bold shadow-lg" style={{ background: PAPER, color: '#221B36' }}>
-              {t('jackpot.machine.new')}
-            </span>
-          )}
-        </div>
-        <div className="relative mt-4 flex flex-wrap items-center justify-center gap-1.5">
-          <RarityTag rarity={result.item.rarity} />
-          <EffectTag effect={result.effect} />
-        </div>
-        <p style={{ ...PIXEL, color: PAPER }} className="relative mt-3 text-xl leading-tight">
-          {titleOf(result.item, isPt)}
-        </p>
-        {result.item.year && <p className="relative text-sm" style={{ color: MIST }}>{result.item.year}</p>}
-        <p className="relative mt-3 text-sm leading-relaxed" style={{ color: MIST }}>
-          {result.duplicate
-            ? t('jackpot.machine.duplicate', { count: result.fragmentsGained })
-            : result.effect !== 'none'
-              ? t('jackpot.machine.newEffect')
-              : t('jackpot.machine.newPlain')}
-          {result.bonusTickets > 0 && (
-            <span className="block mt-1 font-semibold" style={{ color: '#FDE68A' }}>
-              {t('jackpot.machine.fragmentTicket', { count: result.bonusTickets })}
-            </span>
-          )}
-        </p>
-        <div className="relative mt-5 flex flex-wrap justify-center gap-2">
-          <button
-            type="button"
-            onClick={equip}
-            disabled={equipping || equipped}
-            className={`inline-flex items-center gap-1.5 h-11 px-4 rounded-xl text-sm font-semibold transition disabled:opacity-60 ${FOCUS_RING}`}
-            style={{ background: PAPER, color: '#221B36' }}
-          >
-            {equipping ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : equipped ? <Check className="w-4 h-4" aria-hidden /> : <Sparkles className="w-4 h-4" aria-hidden />}
-            {equipped ? t('jackpot.collection.equipped') : t('jackpot.collection.equip')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setPhase('idle')}
-            className={`inline-flex items-center gap-1.5 h-11 px-4 rounded-xl text-sm font-semibold ring-1 ring-white/20 hover:bg-white/5 transition ${FOCUS_RING}`}
-            style={{ color: PAPER }}
-          >
-            <RotateCw className="w-4 h-4" aria-hidden />
-            {t('jackpot.machine.again')}
-          </button>
-        </div>
-        {!equipped && <p className="relative mt-3 text-xs" style={{ color: MIST }}>{t('jackpot.collection.equipHint')}</p>}
-      </motion.div>
-    );
-  }
+  const status = complete
+    ? t('jackpot.machine.complete')
+    : kind === 'special'
+      ? state.remainingSpecial > 0
+        ? t('jackpot.machine.specialHint')
+        : t('jackpot.machine.specialComplete')
+      : t('jackpot.machine.remaining', { count: state.remaining });
+
+  const spinLabel = spinning ? t('jackpot.machine.skip') : complete ? t('jackpot.machine.completeShort') : t('jackpot.machine.spinShort');
 
   return (
-    <div className="mx-auto max-w-sm">
-      <div className="pj-cabinet rounded-[28px] p-3 sm:p-3.5">
-        {/* Letreiro com as chances */}
-        <div className="rounded-2xl px-3 pt-2.5 pb-2" style={{ background: 'linear-gradient(180deg, #2a1f45, #160f2a)', boxShadow: 'inset 0 0 0 2px rgba(124,45,18,0.55)' }}>
-          <p style={{ ...PIXEL, color: '#FDE68A', textShadow: '0 0 12px rgba(251,191,36,0.55)' }} className="text-center text-[1.65rem] leading-none tracking-wide">
-            Poster Jackpot
-          </p>
-          <ul className="mt-2 grid grid-cols-4 gap-1">
-            {[...RARITIES].reverse().map((rarity) => (
-              <li
-                key={rarity}
-                className="rounded-md py-1 text-center"
-                style={{ background: 'rgba(255,255,255,0.05)', boxShadow: `inset 0 -2px 0 ${RARITY_META[rarity].color}` }}
-              >
-                <span className="block text-[10px] font-semibold leading-tight" style={{ color: RARITY_META[rarity].color }}>
+    <div className="relative mx-auto max-w-xl">
+      <div className="pj-stage-frame" style={{ borderRadius: '50% 50% 30px 30px / 70px 70px 30px 30px' }}>
+        <div className="pj-stage px-3 sm:px-5 pt-[64px] sm:pt-[70px] pb-8" style={{ borderRadius: '50% 50% 27px 27px / 67px 67px 27px 27px' }}>
+          <span className="pj-stars" aria-hidden />
+          <Marquee fast={spinning} />
+
+          <div className="relative text-center">
+            <div className="flex items-center justify-center gap-2">
+              <Twinkle className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#FF7AD9" />
+              <h3 className="pj-display pj-gold-text text-[28px] sm:text-[38px] font-black leading-none">Poster Jackpot</h3>
+              <Twinkle className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#8FE9FF" />
+            </div>
+            <p className="mt-1.5 text-[12.5px] sm:text-[13px]" style={{ color: '#CFC6EC' }}>
+              {t('jackpot.machine.tagline')}
+            </p>
+            <ul className="mt-3 flex flex-wrap justify-center gap-x-2.5 sm:gap-x-3.5 gap-y-1">
+              {RARITY_ASC.map((rarity) => (
+                <li key={rarity} className="inline-flex items-center gap-1 sm:gap-1.5 text-[10.5px] sm:text-[12px]" style={{ color: '#D9D2F2' }}>
+                  <span aria-hidden className="w-2 h-2 rotate-45 rounded-[2px]" style={{ background: RARITY_META[rarity].color, boxShadow: `0 0 8px ${RARITY_META[rarity].glow}` }} />
                   {t(`jackpot.rarity.${rarity}`)}
-                </span>
-                <span style={PIXEL} className="block text-sm leading-none text-white/90">
-                  {RARITY_META[rarity].odds}%
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Barra dos fragmentos (o "próximo prêmio" da máquina) */}
-        <div className="mt-2.5 rounded-xl px-3 py-2" style={{ background: 'rgba(18,13,34,0.82)' }}>
-          <div className="flex items-center justify-between text-[12px]" style={{ color: MIST }}>
-            <span>{t('jackpot.machine.fragments')}</span>
-            <span style={PIXEL} className="text-sm text-amber-200">
-              {state.fragments}/{FRAGMENTS_PER_TICKET}
-            </span>
+                  <span className="font-semibold tabular-nums" style={{ color: '#FFF4D6' }}>{RARITY_META[rarity].odds}%</span>
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="mt-1.5 h-2 rounded-full bg-white/10 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={FRAGMENTS_PER_TICKET} aria-valuenow={state.fragments} aria-label={t('jackpot.machine.fragments')}>
-            <span className="block h-full rounded-full bg-gradient-to-r from-amber-300 to-orange-400 transition-[width] duration-500" style={{ width: `${fragmentPct}%` }} />
-          </div>
-        </div>
 
-        {/* A cúpula com as cápsulas */}
-        <div className={`pj-glass relative mt-2.5 h-48 sm:h-52 rounded-t-[22px] rounded-b-xl overflow-hidden ${spinning && !reduceMotion ? 'pj-shake' : ''}`}>
-          {CAPSULES.map((c, i) => (
-            <Capsule key={i} rarity={c.r} size={c.s * 2.6} style={{ left: `${c.x}%`, top: `${c.y}%`, transform: `rotate(${c.a}deg)` }} />
-          ))}
-          <span aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(100deg, rgba(255,255,255,0.18), transparent 30%)' }} />
-        </div>
-
-        {/* Painel: manivela, tickets e a saída */}
-        <div className="mt-3 grid grid-cols-[auto_1fr] gap-3 items-center">
-          <motion.button
-            type="button"
-            onClick={pull}
-            disabled={spinning}
-            aria-label={t('jackpot.machine.spin')}
-            className={`relative grid place-items-center w-[104px] h-[104px] rounded-full ${FOCUS_RING}`}
-            style={{ background: 'radial-gradient(circle at 35% 30%, #7dd3fc, #2563eb 60%, #1e3a8a)', boxShadow: 'inset 0 -6px 0 rgba(30,58,138,0.7), inset 0 3px 0 rgba(255,255,255,0.45), 0 10px 20px -8px rgba(0,0,0,0.7)' }}
-            whileTap={reduceMotion ? undefined : { scale: 0.95 }}
-          >
-            <motion.span
-              aria-hidden
-              className="absolute inset-3 rounded-full"
-              style={{ border: '3px solid rgba(255,255,255,0.55)', borderTopColor: 'transparent', borderBottomColor: 'transparent' }}
-              animate={{ rotate: turns * 360 }}
-              transition={reduceMotion ? { duration: 0 } : { duration: 1.1, ease: [0.3, 0.1, 0.2, 1] }}
-            />
-            <span style={PIXEL} className="relative text-lg leading-none text-white drop-shadow">
-              {spinning ? <Loader2 className="w-6 h-6 animate-spin" aria-hidden /> : t('jackpot.machine.spinShort')}
-            </span>
-          </motion.button>
-
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label={t('jackpot.machine.ticketKind')}>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={kind === 'normal'}
-                onClick={() => setKind('normal')}
-                className={`flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl text-[12px] font-semibold transition ${FOCUS_RING}`}
-                style={kind === 'normal' ? { background: '#2563eb', color: '#fff', boxShadow: 'inset 0 0 0 2px #fde68a' } : { background: 'rgba(124,45,18,0.35)', color: '#ffedd5' }}
-              >
-                <Ticket className="w-4 h-4" aria-hidden />
-                {t('jackpot.machine.tickets', { count: state.tickets })}
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={kind === 'special'}
-                onClick={() => setKind('special')}
-                className={`flex flex-col items-center justify-center gap-0.5 h-14 rounded-xl text-[12px] font-semibold transition ${FOCUS_RING}`}
-                style={kind === 'special' ? { background: 'linear-gradient(135deg, #a855f7, #f59e0b)', color: '#fff', boxShadow: 'inset 0 0 0 2px #fde68a' } : { background: 'rgba(124,45,18,0.35)', color: '#ffedd5', opacity: state.specialAvailable ? 1 : 0.7 }}
-              >
-                {state.premium ? <Crown className="w-4 h-4" aria-hidden /> : <Lock className="w-4 h-4" aria-hidden />}
-                {state.specialAvailable ? t('jackpot.machine.special') : state.premium ? t('jackpot.machine.specialUsed') : t('jackpot.machine.specialPremium')}
-              </button>
-            </div>
-            <div className="pj-chute relative h-16 rounded-2xl overflow-hidden grid place-items-center">
-              <AnimatePresence>
-                {phase === 'dropped' && result && (
-                  <motion.button
-                    type="button"
-                    key="capsule"
-                    onClick={() => setPhase('revealed')}
-                    initial={reduceMotion ? false : { y: -60, rotate: -40 }}
-                    animate={{ y: 0, rotate: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 380, damping: 14 }}
-                    className={`flex items-center gap-2 rounded-full pl-1 pr-3 py-1 ${FOCUS_RING}`}
-                    style={{ background: 'rgba(255,255,255,0.08)' }}
-                  >
-                    <Capsule rarity={result.item.rarity} size={40} style={{ position: 'relative', boxShadow: `0 0 18px ${RARITY_META[result.item.rarity].glow}` }} />
-                    <span className="text-[13px] font-semibold text-white">{t('jackpot.machine.open')}</span>
-                  </motion.button>
-                )}
-              </AnimatePresence>
-              {phase !== 'dropped' && (
-                <span className="text-[11px]" style={{ color: 'rgba(253,230,138,0.55)' }}>
-                  {spinning ? t('jackpot.machine.spinning') : t('jackpot.machine.chute')}
-                </span>
-              )}
-            </div>
+          <div className="relative mt-4">
+            {catalog === null ? (
+              <div className="pj-reel-window grid place-items-center h-[150px] sm:h-[200px]">
+                <Loader2 className="w-6 h-6 animate-spin text-amber-200" aria-hidden />
+              </div>
+            ) : (
+              <JackpotReel ref={reelRef} filler={filler} spinning={spinning} onSkipRequest={() => reelRef.current?.skip()} winnerKey={winnerKey} />
+            )}
+            {complete && phase === 'idle' && (
+              <div className="absolute inset-0 z-[5] grid place-items-center rounded-[18px] text-center px-6" style={{ background: 'rgba(10,14,44,0.82)' }}>
+                <div>
+                  <Trophy className="w-7 h-7 mx-auto text-amber-300" aria-hidden />
+                  <p className="pj-display pj-gold-text mt-2 text-xl font-black">{t('jackpot.machine.completeShort')}</p>
+                  <p className="mt-1 text-[13px]" style={{ color: '#CFC6EC' }}>{t('jackpot.machine.completeHint')}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <p className="mt-3 text-center text-[12px] leading-relaxed" style={{ color: MIST }}>
-        {kind === 'special' ? t('jackpot.machine.specialHint') : t('jackpot.machine.effectHint')}
+      {/* Controles: a ficha (ticket ou especial) e o botão */}
+      <div className="mt-4 flex gap-2">
+      <div className="grid flex-1 grid-cols-2 gap-2" role="radiogroup" aria-label={t('jackpot.machine.ticketKind')}>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={kind === 'normal'}
+          disabled={spinning}
+          onClick={() => setKind('normal')}
+          className={`pj-token pj-token-normal flex items-center justify-center gap-2 h-12 rounded-2xl text-[13px] font-semibold text-white disabled:cursor-default ${FOCUS_RING}`}
+          style={{ opacity: kind === 'normal' ? 1 : 0.6 }}
+        >
+          <Ticket className="w-4 h-4" aria-hidden />
+          {t('jackpot.machine.tickets', { count: state.tickets })}
+        </button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={kind === 'special'}
+          disabled={spinning}
+          onClick={() => setKind('special')}
+          className={`pj-token pj-token-special flex items-center justify-center gap-2 h-12 rounded-2xl text-[13px] font-semibold text-white disabled:cursor-default ${FOCUS_RING}`}
+          style={{ opacity: kind === 'special' ? 1 : state.specialAvailable ? 0.6 : 0.4 }}
+        >
+          {state.premium ? <Crown className="w-4 h-4" aria-hidden /> : <Lock className="w-4 h-4" aria-hidden />}
+          {state.specialAvailable ? t('jackpot.machine.special') : state.premium ? t('jackpot.machine.specialUsed') : t('jackpot.machine.specialPremium')}
+        </button>
+      </div>
+        <button
+          type="button"
+          onClick={toggleMute}
+          aria-pressed={muted}
+          aria-label={muted ? t('jackpot.machine.soundOn') : t('jackpot.machine.soundOff')}
+          className={`shrink-0 grid place-items-center w-12 h-12 rounded-2xl transition hover:bg-white/10 ${FOCUS_RING}`}
+          style={{ color: '#FFE8A3', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.35)' }}
+        >
+          {muted ? <VolumeX className="w-5 h-5" aria-hidden /> : <Volume2 className="w-5 h-5" aria-hidden />}
+        </button>
+      </div>
+
+      <motion.button
+        type="button"
+        onClick={spinning ? () => reelRef.current?.skip() : spin}
+        disabled={phase === 'landed' || (!spinning && (complete || !catalog?.length))}
+        aria-label={spinning ? t('jackpot.machine.skipAria') : t('jackpot.machine.spin')}
+        whileTap={reduceMotion ? undefined : { scale: 0.97 }}
+        className={`pj-spin ${canSpin && phase === 'idle' ? 'pj-ready' : ''} mt-3 w-full h-14 rounded-full pj-display text-[22px] font-black tracking-wide ${FOCUS_RING}`}
+      >
+        <span className="relative">{spinLabel}</span>
+      </motion.button>
+
+      <p className="mt-3 text-center text-[12.5px] leading-relaxed" style={{ color: MIST }} aria-live="polite">
+        {status}
       </p>
+
+      <AnimatePresence>
+        {phase === 'revealed' && result && (
+          <Reveal
+            result={result}
+            reduceMotion={reduceMotion}
+            equipping={equipping}
+            equipped={equipped}
+            canSpinAgain={(state.tickets > 0 && state.remaining > 0) || (state.specialAvailable && state.remainingSpecial > 0)}
+            onEquip={equip}
+            onAgain={() => {
+              setPhase('idle');
+              if (state.tickets <= 0 && state.specialAvailable) setKind('special');
+              window.setTimeout(() => void spinRef.current(), 260);
+            }}
+            onClose={() => setPhase('idle')}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
 // ---------------------------------------------------------------------------
-// A coleção
+// A coleção: só os pôsteres
 // ---------------------------------------------------------------------------
 
-const Collection: React.FC<{ state: JackpotState; version: number }> = ({ state, version }) => {
+const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void }> = ({ list, onChanged }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
-  const [list, setList] = useState<OwnedPoster[] | null>(null);
-  const [filter, setFilter] = useState<PosterRarity | 'all'>('all');
   const [open, setOpen] = useState<OwnedPoster | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(() => {
-    loadMyPosters()
-      .then(setList)
-      .catch(() => setList([]));
-  }, []);
-  useEffect(() => {
-    load();
-  }, [load, version]);
-
-  const total = state.catalog.total * 4;
-  const shown = (list || []).filter((p) => filter === 'all' || p.rarity === filter);
-  const countBy = (rarity: PosterRarity) => (list || []).filter((p) => p.rarity === rarity).length;
 
   const toggleEquip = async (poster: OwnedPoster) => {
     setBusy(true);
@@ -375,7 +559,7 @@ const Collection: React.FC<{ state: JackpotState; version: number }> = ({ state,
       if (poster.equipped) await unequipPoster(poster.media_type, poster.tmdb_id);
       else await equipPoster(poster.id, poster.effect);
       const fresh = await loadMyPosters();
-      setList(fresh);
+      onChanged();
       setOpen(fresh.find((p) => p.id === poster.id && p.effect === poster.effect) || null);
       toast.success(poster.equipped ? t('jackpot.collection.unequippedToast') : t('jackpot.collection.equippedToast', { title: titleOf(poster, isPt) }));
     } catch (error) {
@@ -389,35 +573,13 @@ const Collection: React.FC<{ state: JackpotState; version: number }> = ({ state,
   if (!list) {
     return (
       <div className="flex justify-center py-14">
-        <Loader2 className="w-6 h-6 animate-spin text-fuchsia-300" aria-hidden />
+        <Loader2 className="w-6 h-6 animate-spin text-amber-200" aria-hidden />
       </div>
     );
   }
 
   return (
     <div>
-      <p className="text-sm" style={{ color: MIST }}>
-        {t('jackpot.collection.progress', { owned: list.length, total })}
-      </p>
-      <div className="mt-3 -mx-1 px-1 flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-        {(['all', ...RARITIES] as const).map((key) => {
-          const active = filter === key;
-          const color = key === 'all' ? PAPER : RARITY_META[key].color;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFilter(key)}
-              aria-pressed={active}
-              className={`shrink-0 h-9 px-3 rounded-full text-[13px] font-medium transition ${FOCUS_RING}`}
-              style={{ color: active ? '#221B36' : color, background: active ? color : 'transparent', boxShadow: `inset 0 0 0 1px ${color}` }}
-            >
-              {key === 'all' ? t('jackpot.collection.all') : `${t(`jackpot.rarity.${key}`)} · ${countBy(key)}/${state.catalog[key] * 4}`}
-            </button>
-          );
-        })}
-      </div>
-
       {list.length === 0 ? (
         <div className="py-12 text-center">
           <Trophy className="w-8 h-8 mx-auto" style={{ color: MIST }} aria-hidden />
@@ -425,41 +587,27 @@ const Collection: React.FC<{ state: JackpotState; version: number }> = ({ state,
           <p className="mt-1 text-sm" style={{ color: MIST }}>{t('jackpot.collection.emptyHint')}</p>
         </div>
       ) : (
-        <ul className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-3">
-          {shown.map((poster) => (
+        <ul className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          {list.map((poster) => (
             <li key={`${poster.id}:${poster.effect}`}>
-              <button type="button" onClick={() => setOpen(poster)} className={`group block w-full text-left rounded-xl ${FOCUS_RING}`}>
-                <span className="relative block">
-                  <PosterArt
-                    filePath={poster.file_path}
-                    effect={poster.effect}
-                    rarity={poster.rarity}
-                    alt={titleOf(poster, isPt)}
-                    size="w185"
-                    frame
-                    className="aspect-[2/3] rounded-xl transition-transform duration-200 group-hover:-translate-y-1"
-                  />
-                  {poster.equipped && (
-                    <span className="absolute top-1.5 right-1.5 grid place-items-center w-6 h-6 rounded-full bg-emerald-500 text-white shadow-lg" title={t('jackpot.collection.equipped')}>
-                      <Check className="w-3.5 h-3.5" aria-hidden />
-                    </span>
-                  )}
-                  {poster.copies > 1 && (
-                    <span
-                      style={{ ...PIXEL, background: 'rgba(18,13,34,0.85)' }}
-                      className="absolute bottom-1.5 right-1.5 rounded-md px-1.5 py-0.5 text-xs text-white"
-                      title={t('jackpot.collection.copies', { count: poster.copies })}
-                    >
-                      ×{poster.copies}
-                    </span>
-                  )}
-                </span>
-                <span className="mt-1.5 block truncate text-[12px]" style={{ color: PAPER }}>
-                  {titleOf(poster, isPt)}
-                </span>
-                <span className="mt-0.5 flex flex-wrap gap-1">
-                  {poster.effect !== 'none' && <EffectTag effect={poster.effect} />}
-                </span>
+              <button
+                type="button"
+                onClick={() => setOpen(poster)}
+                aria-label={titleOf(poster, isPt)}
+                className={`group relative block w-full rounded-xl ${FOCUS_RING}`}
+              >
+                <PosterArt
+                  filePath={poster.file_path}
+                  effect={poster.effect}
+                  alt=""
+                  size="w342"
+                  className="aspect-[2/3] rounded-xl shadow-[0_14px_30px_-16px_rgba(0,0,0,0.9)] transition-transform duration-200 group-hover:-translate-y-1"
+                />
+                {poster.equipped && (
+                  <span className="absolute top-1.5 right-1.5 grid place-items-center w-6 h-6 rounded-full bg-emerald-500 text-white shadow-lg" title={t('jackpot.collection.equipped')}>
+                    <Check className="w-3.5 h-3.5" aria-hidden />
+                  </span>
+                )}
               </button>
             </li>
           ))}
@@ -477,15 +625,12 @@ const Collection: React.FC<{ state: JackpotState; version: number }> = ({ state,
         {open && (
           <div className="text-center">
             <div className="mx-auto w-44 sm:w-52">
-              <PosterArt filePath={open.file_path} effect={open.effect} rarity={open.rarity} alt={titleOf(open, isPt)} size="w500" animated frame loading="eager" className="aspect-[2/3] rounded-2xl" />
+              <PosterArt filePath={open.file_path} effect={open.effect} alt={titleOf(open, isPt)} size="w500" loading="eager" className="aspect-[2/3] rounded-2xl" />
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
               <RarityTag rarity={open.rarity} />
               <EffectTag effect={open.effect} />
             </div>
-            <p className="mt-2 text-sm" style={{ color: MIST }}>
-              {t('jackpot.collection.copies', { count: open.copies })}
-            </p>
             <button
               type="button"
               onClick={() => toggleEquip(open)}
@@ -527,7 +672,7 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
     setClaiming(mission.key);
     try {
       const res = await claimMission(mission.key);
-      onState({ tickets: res.tickets, fragments: res.fragments, missions: state.missions.map((m) => (m.key === mission.key ? { ...m, claimed: true } : m)) });
+      onState({ tickets: res.tickets, missions: state.missions.map((m) => (m.key === mission.key ? { ...m, claimed: true } : m)) });
       toast.success(t('jackpot.missions.claimed'));
     } catch (error) {
       console.error('Poster Jackpot claim:', error);
@@ -559,8 +704,8 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
                     <span className="h-1.5 flex-1 rounded-full bg-white/10 overflow-hidden">
                       <span className="block h-full rounded-full" style={{ width: `${(mission.progress / mission.target) * 100}%`, background: accent || '#F0ABFC' }} />
                     </span>
-                    <span style={PIXEL} className="text-sm tabular-nums" aria-label={t('jackpot.missions.progressAria', { progress: mission.progress, target: mission.target })}>
-                      <span style={{ color: PAPER }}>{mission.progress}/{mission.target}</span>
+                    <span className="text-sm tabular-nums" aria-label={t('jackpot.missions.progressAria', { progress: mission.progress, target: mission.target })} style={{ color: PAPER }}>
+                      {mission.progress}/{mission.target}
                     </span>
                   </div>
                 </div>
@@ -608,8 +753,8 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
 
       <div className="text-[13px] leading-relaxed space-y-1.5" style={{ color: MIST }}>
         <p className="flex items-start gap-2">
-          <Gift className="w-4 h-4 shrink-0 mt-0.5 text-amber-200" aria-hidden />
-          {t('jackpot.missions.fragmentsRule', { per: FRAGMENTS_PER_TICKET })}
+          <Twinkle className="w-4 h-4 shrink-0 mt-0.5" color="#FFE8A3" />
+          {t('jackpot.missions.noRepeatsRule')}
         </p>
         <p className="flex items-start gap-2">
           <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-cyan-200" aria-hidden />
@@ -637,14 +782,22 @@ const PosterJackpotSheet: React.FC<{
 }> = ({ open, onClose, state, onState, onReload }) => {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('machine');
-  const [version, setVersion] = useState(0);
+  const [owned, setOwned] = useState<OwnedPoster[] | null>(null);
+
+  const loadOwned = useCallback(() => {
+    loadMyPosters()
+      .then(setOwned)
+      .catch(() => setOwned([]));
+  }, []);
 
   useEffect(() => {
     if (open) {
+      loadJackpotFont();
       setTab('machine');
       onReload();
+      loadOwned();
     }
-  }, [open, onReload]);
+  }, [open, onReload, loadOwned]);
 
   const claimable = useMemo(() => (state?.missions || []).filter((m) => !m.claimed && m.progress >= m.target).length, [state?.missions]);
 
@@ -665,7 +818,7 @@ const PosterJackpotSheet: React.FC<{
     >
       {!state ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="w-7 h-7 animate-spin text-fuchsia-300" aria-hidden />
+          <Loader2 className="w-7 h-7 animate-spin text-amber-200" aria-hidden />
         </div>
       ) : (
         <>
@@ -696,16 +849,8 @@ const PosterJackpotSheet: React.FC<{
             })}
           </div>
           <SheetFade id={tab}>
-            {tab === 'machine' && (
-              <Machine
-                state={state}
-                onState={onState}
-                onCollectionChanged={() => {
-                  setVersion((v) => v + 1);
-                }}
-              />
-            )}
-            {tab === 'collection' && <Collection state={state} version={version} />}
+            {tab === 'machine' && <Machine state={state} owned={owned} onState={onState} onCollectionChanged={loadOwned} />}
+            {tab === 'collection' && <Collection list={owned} onChanged={loadOwned} />}
             {tab === 'missions' && <Missions state={state} onState={onState} />}
           </SheetFade>
         </>

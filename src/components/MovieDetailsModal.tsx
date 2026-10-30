@@ -24,6 +24,8 @@ import ReviewsModal from './ReviewsModal';
 import QuickAddMenu from './QuickAddMenu';
 import ConfirmationModal from './ConfirmationModal';
 import PersonPageSheet, { type PersonSeed } from './PersonPageSheet';
+import PosterArt from './posterJackpot/PosterArt';
+import { posterKey, useEquippedPosters } from '../lib/posterJackpot';
 import {
   NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, ORACLE_BY_ID, OracleId, ratingTone, withAlpha,
 } from '../lib/oracleTheme';
@@ -184,6 +186,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 }) => {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
+  // Poster Jackpot: o pôster da coleção que o dono da biblioteca equipou
+  // neste título substitui a capa aqui também.
+  const equippedPosters = useEquippedPosters(isOtherUserProfile && profileUserId ? profileUserId : session?.user?.id);
+  const equippedPoster = equippedPosters.get(posterKey(movie.media_type, movie.id));
   const [isInLibrary, setIsInLibrary] = useState(false);
   const navigate = useNavigate();
   const [friendRatings, setFriendRatings] = useState<FriendRating[]>([]);
@@ -1694,7 +1700,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       className={`group/poster relative block w-full aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/15 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.9)] ${FOCUS_RING}`}
                       style={{ background: VELVET }}
                     >
-                      {posterSrc ? (
+                      {equippedPoster ? (
+                        <PosterArt filePath={equippedPoster.file_path} effect={equippedPoster.effect} size="w500" loading="eager" className="absolute inset-0 w-full h-full" />
+                      ) : posterSrc ? (
                         <img
                           src={posterSrc}
                           alt=""

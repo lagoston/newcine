@@ -1,22 +1,29 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Crown, Ticket } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
-import { PAPER, MIST, PIXEL, FOCUS_RING } from '../../lib/oracleTheme';
-import { RARITY_META, fetchJackpotState, type JackpotState, type PosterRarity } from '../../lib/posterJackpot';
+import { FOCUS_RING } from '../../lib/oracleTheme';
+import { fetchJackpotCatalog, fetchJackpotState, loadJackpotFont, type CatalogPoster, type JackpotState, type PosterEffect } from '../../lib/posterJackpot';
+import PosterArt from './PosterArt';
 import PosterJackpotSheet from './PosterJackpotSheet';
 import '../../styles/posterJackpot.css';
 
-// A porta do Poster Jackpot no Oracle Hub: um letreiro de fliperama com as
-// cápsulas, os tickets e o aviso de missão pronta. Só aparece para quem a
-// máquina está liberada (poster_jackpot_settings).
-const DOOR_CAPSULES: PosterRarity[] = ['common', 'rare', 'legendary', 'epic', 'common'];
+// A porta do Poster Jackpot no Oracle Hub: o mesmo céu estrelado e o ouro da
+// roleta, com três pôsteres do catálogo em leque (o do meio holográfico,
+// para mostrar o efeito), os tickets e o aviso de missão pronta. Só aparece
+// para quem a roleta está liberada (poster_jackpot_settings).
+const FAN: { rotate: number; x: number; effect: PosterEffect; z: number }[] = [
+  { rotate: -11, x: -30, effect: 'none', z: 1 },
+  { rotate: 11, x: 30, effect: 'none', z: 1 },
+  { rotate: 0, x: 0, effect: 'holo', z: 2 },
+];
 
 const PosterJackpotDoor: React.FC = () => {
   const { t } = useTranslation();
   const { session } = useAuth();
   const userId = session?.user?.id;
   const [state, setState] = useState<JackpotState | null>(null);
+  const [catalog, setCatalog] = useState<CatalogPoster[]>([]);
   const [open, setOpen] = useState(false);
 
   const reload = useCallback(() => {
@@ -29,6 +36,22 @@ const PosterJackpotDoor: React.FC = () => {
     reload();
   }, [reload]);
 
+  const enabled = !!state?.enabled;
+  useEffect(() => {
+    if (!enabled) return;
+    loadJackpotFont();
+    fetchJackpotCatalog()
+      .then(setCatalog)
+      .catch(() => undefined);
+  }, [enabled]);
+
+  // Lendário no meio, épico e raro dos lados (o que houver).
+  const fan = useMemo(() => {
+    const by = (rarity: CatalogPoster['rarity']) => catalog.find((p) => p.rarity === rarity);
+    const picks = [by('epic'), by('rare'), by('legendary')].map((p, i) => p || catalog[i]).filter(Boolean) as CatalogPoster[];
+    return picks.length === 3 ? picks : [];
+  }, [catalog]);
+
   const patch = useCallback((value: Partial<JackpotState>) => setState((prev) => (prev ? { ...prev, ...value } : prev)), []);
 
   if (!state?.enabled) return null;
@@ -39,57 +62,59 @@ const PosterJackpotDoor: React.FC = () => {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`group relative w-full flex items-center gap-3.5 sm:gap-5 text-left rounded-2xl p-3.5 sm:p-5 overflow-hidden transition hover:brightness-110 ${FOCUS_RING}`}
+        className={`group relative w-full flex items-center gap-4 sm:gap-6 text-left rounded-2xl pl-3 pr-3.5 py-3.5 sm:pl-5 sm:pr-5 sm:py-4 overflow-hidden transition hover:brightness-110 ${FOCUS_RING}`}
         style={{
-          background: 'radial-gradient(90% 140% at 0% 0%, rgba(249,115,22,0.22), transparent 60%), rgba(28,20,51,0.6)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 1px rgba(251,146,60,0.35)',
+          background: 'radial-gradient(80% 120% at 12% 0%, rgba(80,96,220,0.4), transparent 65%), linear-gradient(135deg, #0f1645, #0a0e2c 55%, #1a0b3a)',
+          boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.5), 0 18px 40px -26px rgba(244,196,84,0.45)',
         }}
       >
-        {/* Mini máquina: a cúpula com cinco cápsulas */}
-        <span className="pj-cabinet relative shrink-0 w-[68px] h-[84px] sm:w-[78px] sm:h-[96px] rounded-2xl p-1.5" aria-hidden>
-          <span className="pj-glass relative block w-full h-[60%] rounded-t-xl rounded-b-md overflow-hidden">
-            {DOOR_CAPSULES.map((rarity, i) => (
+        <span className="pj-stars" aria-hidden />
+        {/* Leque de pôsteres */}
+        <span className="relative shrink-0 w-[104px] h-[92px] sm:w-[128px] sm:h-[108px]" aria-hidden>
+          {fan.length === 3 &&
+            fan.map((poster, i) => (
               <span
-                key={i}
-                className="pj-capsule"
+                key={poster.id}
+                className="absolute left-1/2 top-1/2 w-[52px] sm:w-[62px] transition-transform duration-300"
                 style={{
-                  width: 18,
-                  height: 18,
-                  left: `${[6, 38, 66, 22, 52][i]}%`,
-                  top: `${[56, 58, 52, 20, 22][i]}%`,
-                  background: `linear-gradient(180deg, rgba(255,255,255,0.85) 0 46%, ${RARITY_META[rarity].color} 54% 100%)`,
+                  transform: `translate(calc(-50% + ${FAN[i].x}px), -50%) rotate(${FAN[i].rotate}deg)`,
+                  zIndex: FAN[i].z,
                 }}
-              />
+              >
+                <PosterArt
+                  filePath={poster.file_path}
+                  effect={FAN[i].effect}
+                  size="w185"
+                  className="aspect-[2/3] rounded-lg shadow-[0_10px_20px_-8px_rgba(0,0,0,0.9)]"
+                />
+              </span>
             ))}
-          </span>
-          <span className="absolute left-1/2 bottom-1.5 -translate-x-1/2 w-6 h-6 rounded-full" style={{ background: 'radial-gradient(circle at 35% 30%, #7dd3fc, #2563eb 65%)' }} />
+          <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-0 h-0 z-[3]" style={{ borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '10px solid #F4C454', filter: 'drop-shadow(0 0 5px rgba(255,214,120,0.9))' }} />
         </span>
-        <span className="min-w-0 flex-1">
-          <span style={{ ...PIXEL, color: '#FDE68A', textShadow: '0 0 12px rgba(251,191,36,0.4)' }} className="block text-lg sm:text-2xl leading-tight">
-            Poster Jackpot
-          </span>
-          <span className="hidden sm:block mt-1 text-sm leading-snug" style={{ color: MIST }}>
+        <span className="relative min-w-0 flex-1">
+          <span className="pj-display pj-gold-text block text-[22px] sm:text-[28px] font-black leading-none">Poster Jackpot</span>
+          <span className="block mt-1.5 text-[13px] sm:text-sm leading-snug" style={{ color: '#CFC6EC' }}>
             {t('jackpot.door.hint')}
           </span>
-          <span className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(37,99,235,0.25)', color: '#BFDBFE' }}>
+          <span className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(94,168,255,0.18)', color: '#CFE3FF' }}>
               <Ticket className="w-3.5 h-3.5" aria-hidden />
               {t('jackpot.machine.tickets', { count: state.tickets })}
             </span>
             {state.specialAvailable && (
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(245,158,11,0.2)', color: '#FDE68A' }}>
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(255,122,217,0.18)', color: '#FFD3F1' }}>
                 <Crown className="w-3.5 h-3.5" aria-hidden />
                 {t('jackpot.machine.special')}
               </span>
             )}
             {claimable > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold" style={{ background: '#FDE68A', color: '#221B36' }}>
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold" style={{ background: '#F4C454', color: '#2A1A00' }}>
                 {t('jackpot.door.claimable', { count: claimable })}
               </span>
             )}
           </span>
         </span>
-        <span className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold" style={{ color: PAPER }}>
+        <span className="relative hidden sm:inline-flex items-center gap-1 text-sm font-semibold" style={{ color: '#FFE8A3' }}>
           {t('oracle.hub.play')}
           <ArrowRight className="w-4 h-4 transition group-hover:translate-x-0.5" aria-hidden />
         </span>

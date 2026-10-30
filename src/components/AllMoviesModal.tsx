@@ -8,7 +8,7 @@ import { useAuth } from '../lib/auth';
 import MovieDetailsModal from './MovieDetailsModal';
 import OptimizedPoster from './OptimizedPoster';
 import PosterArt from './posterJackpot/PosterArt';
-import { RARITY_META, posterKey, useEquippedPosters } from '../lib/posterJackpot';
+import { posterKey, useEquippedPosters } from '../lib/posterJackpot';
 import OracleSheet from './OracleSheet';
 import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE, ratingTone } from '../lib/oracleTheme';
 
@@ -205,8 +205,7 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
                         const equipped = equippedPosters.get(posterKey(movie.media_type, movie.id))!;
                         return (
                           <>
-                            <PosterArt filePath={equipped.file_path} effect={equipped.effect} rarity={equipped.rarity} alt={movie.title} className="absolute inset-0 w-full h-full" />
-                            <span aria-hidden className="absolute inset-0 rounded-xl pointer-events-none" style={{ boxShadow: `inset 0 0 0 2px ${RARITY_META[equipped.rarity].color}` }} />
+                            <PosterArt filePath={equipped.file_path} effect={equipped.effect} alt={movie.title} className="absolute inset-0 w-full h-full" />
                           </>
                         );
                       })()

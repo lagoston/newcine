@@ -17,8 +17,8 @@ import { RATING_LABELS } from './RatingSliderSheet';
 import { useTranslation } from 'react-i18next';
 import OptimizedPoster from './OptimizedPoster';
 import PredictedBadge from './PredictedBadge';
-import PosterArt, { EffectTag, RarityTag } from './posterJackpot/PosterArt';
-import { RARITY_META, equipPoster, posterKey, unequipPoster, useEquippedPosters, useMyPosters, type OwnedPoster } from '../lib/posterJackpot';
+import PosterArt from './posterJackpot/PosterArt';
+import { equipPoster, posterKey, unequipPoster, useEquippedPosters, useMyPosters, type OwnedPoster } from '../lib/posterJackpot';
 import { RANK_MEDALS } from '../lib/libraryLayouts';
 import {
   NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ratingTone, ratingBarColor, withAlpha,
@@ -513,10 +513,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                         style={{ background: VELVET }}
                       >
                         {equipped ? (
-                          <>
-                            <PosterArt filePath={equipped.file_path} effect={equipped.effect} rarity={equipped.rarity} alt={movie.title} className="absolute inset-0 w-full h-full" />
-                            <span aria-hidden className="absolute inset-0 rounded-xl pointer-events-none" style={{ boxShadow: `inset 0 0 0 2px ${RARITY_META[equipped.rarity].color}` }} />
-                          </>
+                          <PosterArt filePath={equipped.file_path} effect={equipped.effect} alt={movie.title} className="absolute inset-0 w-full h-full" />
                         ) : movie.poster_path ? (
                           <OptimizedPoster
                             src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
@@ -831,7 +828,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                     </span>
                   )}
                 </span>
-                <span className="mt-1.5 flex flex-wrap gap-1">{label}</span>
+                {label && <span className="mt-1.5 flex flex-wrap gap-1">{label}</span>}
               </button>
             </li>
           );
@@ -854,11 +851,8 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 cell(
                   !!current && current.item_id === poster.id && current.effect === poster.effect,
                   () => choose(poster),
-                  <PosterArt filePath={poster.file_path} effect={poster.effect} rarity={poster.rarity} size="w185" frame className="aspect-[2/3] rounded-xl" />,
-                  <>
-                    <RarityTag rarity={poster.rarity} />
-                    <EffectTag effect={poster.effect} />
-                  </>,
+                  <PosterArt filePath={poster.file_path} effect={poster.effect} alt={posterPicker.title} size="w185" className="aspect-[2/3] rounded-xl" />,
+                  null,
                   `${poster.id}:${poster.effect}`
                 )
               )}

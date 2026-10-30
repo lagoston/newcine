@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 
-// Poster Jackpot (30/10/2026): a máquina de cápsulas do Oracle Hub que
-// sorteia pôsteres alternativos (escolhidos à mão no TMDB) em 4 raridades e
-// 3 efeitos especiais. Todo sorteio, ticket e missão roda no banco
-// (migração 20261030300000_poster_jackpot.sql); aqui ficam os tipos, as
-// chamadas e o pôster equipado de cada pessoa (que troca a capa na
-// biblioteca dela).
+// Poster Jackpot (30/10/2026): a roleta do Oracle Hub que sorteia pôsteres
+// alternativos (escolhidos à mão no TMDB) em 4 raridades e 3 efeitos
+// especiais, sem nunca repetir um pôster. Todo sorteio, ticket e missão roda
+// no banco (migrações 20261030300000, 20261030400000 e 20261030410000); aqui
+// ficam os tipos, as chamadas e o pôster equipado de cada pessoa (que troca
+// a capa na biblioteca dela e no menu do título).
 
 export type PosterRarity = 'common' | 'rare' | 'epic' | 'legendary';
 export type PosterEffect = 'none' | 'holo' | 'negative' | 'ultra_red';
@@ -17,11 +17,11 @@ export const EFFECTS: PosterEffect[] = ['holo', 'negative', 'ultra_red'];
 
 // Cor de cada raridade (o cinza, o azul, o roxo e o dourado pedidos pelo
 // Bruno) e a chance num ticket (a mesma do banco).
-export const RARITY_META: Record<PosterRarity, { color: string; glow: string; odds: number; fragments: number }> = {
-  common: { color: '#A8A29E', glow: 'rgba(168,162,158,0.45)', odds: 55, fragments: 1 },
-  rare: { color: '#60A5FA', glow: 'rgba(96,165,250,0.55)', odds: 28, fragments: 2 },
-  epic: { color: '#C084FC', glow: 'rgba(192,132,252,0.6)', odds: 13, fragments: 3 },
-  legendary: { color: '#FBBF24', glow: 'rgba(251,191,36,0.65)', odds: 4, fragments: 5 },
+export const RARITY_META: Record<PosterRarity, { color: string; glow: string; odds: number }> = {
+  common: { color: '#B9B4AE', glow: 'rgba(185,180,174,0.5)', odds: 55 },
+  rare: { color: '#5EA8FF', glow: 'rgba(94,168,255,0.6)', odds: 28 },
+  epic: { color: '#C77DFF', glow: 'rgba(199,125,255,0.65)', odds: 13 },
+  legendary: { color: '#FFC83D', glow: 'rgba(255,200,61,0.7)', odds: 4 },
 };
 
 export const EFFECT_META: Record<Exclude<PosterEffect, 'none'>, { color: string; odds: number }> = {
@@ -29,8 +29,6 @@ export const EFFECT_META: Record<Exclude<PosterEffect, 'none'>, { color: string;
   negative: { color: '#E5E7EB', odds: 15 },
   ultra_red: { color: '#F87171', odds: 5 },
 };
-
-export const FRAGMENTS_PER_TICKET = 5;
 
 export const posterUrl = (filePath: string, size: 'w185' | 'w342' | 'w500' | 'w780' = 'w342') =>
   `https://image.tmdb.org/t/p/${size}${filePath}`;
@@ -48,7 +46,6 @@ export interface PosterItem {
 
 export interface OwnedPoster extends PosterItem {
   effect: PosterEffect;
-  copies: number;
   equipped: boolean;
   in_library: boolean;
   first_pulled_at: string;
@@ -66,25 +63,44 @@ export interface JackpotMission {
 export interface JackpotState {
   enabled: boolean;
   tickets: number;
-  fragments: number;
   premium: boolean;
   specialAvailable: boolean;
   weekEndsAt: string | null;
   missions: JackpotMission[];
   catalog: Record<PosterRarity | 'total', number>;
   owned: number;
+  // Versões novas que ainda podem sair (nunca sai repetido): em qualquer
+  // ticket / no especial (só as com efeito).
+  remaining: number;
+  remainingSpecial: number;
+}
+
+// Um pôster do catálogo (para a fita da roleta).
+export interface CatalogPoster {
+  id: number;
+  rarity: PosterRarity;
+  file_path: string;
+  media_type: TitleType;
+  tmdb_id: number;
 }
 
 export interface PullResult {
   item: PosterItem;
   effect: PosterEffect;
   kind: 'normal' | 'special';
-  duplicate: boolean;
-  copies: number;
-  fragmentsGained: number;
-  bonusTickets: number;
   tickets: number;
-  fragments: number;
+}
+
+// A fonte dos letreiros (Cinzel Decorative), carregada só quando a roleta
+// aparece.
+let fontRequested = false;
+export function loadJackpotFont() {
+  if (fontRequested || typeof document === 'undefined') return;
+  fontRequested = true;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&display=swap';
+  document.head.appendChild(link);
 }
 
 export const titleOf = (item: Pick<PosterItem, 'title_pt' | 'title_en'>, isPt: boolean) =>
@@ -101,7 +117,6 @@ export async function fetchJackpotState(): Promise<JackpotState> {
   return {
     enabled: raw.enabled === true,
     tickets: num(raw.tickets),
-    fragments: num(raw.fragments),
     premium: raw.premium === true,
     specialAvailable: raw.special_available === true,
     weekEndsAt: typeof raw.week_ends_at === 'string' ? raw.week_ends_at : null,
@@ -114,8 +129,31 @@ export async function fetchJackpotState(): Promise<JackpotState> {
       total: num(catalog.total),
     },
     owned: num(raw.owned),
+    remaining: num(raw.remaining),
+    remainingSpecial: num(raw.remaining_special),
   };
 }
+
+let catalogPromise: Promise<CatalogPoster[]> | null = null;
+export function fetchJackpotCatalog(): Promise<CatalogPoster[]> {
+  if (!catalogPromise) {
+    catalogPromise = (async () => {
+      const { data, error } = await supabase.rpc('get_jackpot_catalog');
+      if (error) throw error;
+      return (Array.isArray(data) ? data : []) as CatalogPoster[];
+    })().catch((error) => {
+      catalogPromise = null;
+      throw error;
+    });
+  }
+  return catalogPromise;
+}
+
+// O motivo de um giro recusado pelo banco (mensagem da exceção).
+export const pullErrorCode = (error: unknown): string => {
+  const message = (error as { message?: string })?.message || '';
+  return ['no_tickets', 'special_used', 'not_premium', 'collection_complete', 'jackpot_closed'].find((code) => message.includes(code)) || 'error';
+};
 
 export async function pullJackpot(kind: 'normal' | 'special'): Promise<PullResult> {
   const { data, error } = await supabase.rpc('jackpot_pull', { p_kind: kind });
@@ -126,20 +164,15 @@ export async function pullJackpot(kind: 'normal' | 'special'): Promise<PullResul
     item: raw.item as PosterItem,
     effect: raw.effect as PosterEffect,
     kind: raw.kind as 'normal' | 'special',
-    duplicate: raw.duplicate === true,
-    copies: num(raw.copies),
-    fragmentsGained: num(raw.fragments_gained),
-    bonusTickets: num(raw.bonus_tickets),
     tickets: num(raw.tickets),
-    fragments: num(raw.fragments),
   };
 }
 
-export async function claimMission(key: string): Promise<{ tickets: number; fragments: number }> {
+export async function claimMission(key: string): Promise<{ tickets: number }> {
   const { data, error } = await supabase.rpc('jackpot_claim_mission', { p_key: key });
   if (error) throw error;
   const raw = data as Row;
-  return { tickets: num(raw.tickets), fragments: num(raw.fragments) };
+  return { tickets: num(raw.tickets) };
 }
 
 // ---------------------------------------------------------------------------
