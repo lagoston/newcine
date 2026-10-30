@@ -33,17 +33,23 @@ export const WatchlistMark: React.FC = () => {
   );
 };
 
-// O canto de cima do pôster: a marca da Watchlist (quando o título está lá) e
-// o selo da nota prevista, lado a lado — um não tira o outro (30/10/2026).
-export const PosterTopBadges: React.FC<{ predicted: number | null; inWatchlist?: boolean }> = ({ predicted, inWatchlist }) => {
-  if (predicted === null && !inWatchlist) return null;
-  return (
-    <span className="absolute top-1.5 left-1.5 right-1.5 flex flex-wrap items-center gap-1 pointer-events-none">
-      {inWatchlist && <WatchlistMark />}
-      {predicted !== null && <PredictedPill rating={predicted} />}
-    </span>
-  );
-};
+// O alto do pôster: o selo da nota prevista no canto esquerdo (sempre no
+// mesmo lugar) e a marca da Watchlist no canto direito, quando o título está
+// lá — um não tira o outro (30/10/2026).
+export const PosterTopBadges: React.FC<{ predicted: number | null; inWatchlist?: boolean }> = ({ predicted, inWatchlist }) => (
+  <>
+    {predicted !== null && (
+      <span className="absolute top-1.5 left-1.5 pointer-events-none">
+        <PredictedPill rating={predicted} />
+      </span>
+    )}
+    {inWatchlist && (
+      <span className="absolute top-1.5 right-1.5 pointer-events-none">
+        <WatchlistMark />
+      </span>
+    )}
+  </>
+);
 
 // Selo da nota prevista no canto do pôster (prateleiras dos oráculos e
 // Watchlist).

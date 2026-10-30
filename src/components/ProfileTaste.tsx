@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import RatingSpectrum from './RatingSpectrum';
 import EssenceRing from './profile/EssenceRing';
@@ -6,6 +6,7 @@ import PeopleOrbit from './profile/PeopleOrbit';
 import DecadeReel from './profile/DecadeReel';
 import GemCard from './profile/GemCard';
 import { useTasteObservatory } from '../hooks/useTasteObservatory';
+import { averageRating } from '../lib/tasteStats';
 import type { MovieWithRating } from '../hooks/useProfileData';
 import type { UserPersona } from '../lib/persona';
 import { PAPER, MIST, PIXEL, ratingTone, glassPanel, colorWithAlpha, PROFILE_ACCENTS } from '../lib/oracleTheme';
@@ -119,6 +120,8 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const observatory = useTasteObservatory(userId, movies, persona);
+  // A média geral do dono do perfil: a régua de cada país no Atlas parte dela.
+  const overallAvg = useMemo(() => averageRating(movies), [movies]);
   const ratingLabel = ownerRatingLabel ?? t('home.desk.yourRating');
 
   return (
@@ -152,7 +155,13 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
         </div>
         <div className="lg:col-span-2 min-w-0">
           <Suspense fallback={<div className="h-[420px] rounded-3xl animate-pulse" style={glassPanel('#2DD4BF')} />}>
-            <TasteGlobe countryCounts={countryCounts} countryAvgRatings={countryAvgRatings} language={i18n.language} onViewMovies={onViewCountryMovies} />
+            <TasteGlobe
+              countryCounts={countryCounts}
+              countryAvgRatings={countryAvgRatings}
+              overallAvg={overallAvg}
+              language={i18n.language}
+              onViewMovies={onViewCountryMovies}
+            />
           </Suspense>
         </div>
       </div>

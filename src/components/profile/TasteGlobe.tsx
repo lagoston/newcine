@@ -12,10 +12,18 @@ import { ModuleTitle, affinityColor, formatOne } from './observatoryKit';
 // lista ao lado) o traz para a frente e mostra quantos títulos, a média da
 // pessoa e o atalho para ver os filmes. Sem animação para quem pede menos
 // movimento. Carregado só quando chega perto da tela (lazy).
+//
+// 30/10/2026 (pedido do Bruno): na lista, a barra de quantidade de títulos
+// saiu. Com os EUA quase sempre muito na frente, a primeira barra ficava
+// cheia e as outras quase vazias. No lugar dela, uma régua que mostra se a
+// média do país fica acima (verde-água) ou abaixo (rosa) da média geral da
+// pessoa, a partir do centro (1 ponto de diferença enche a metade).
 
 interface TasteGlobeProps {
   countryCounts: Record<string, number>;
   countryAvgRatings: Record<string, number>;
+  // Média geral das notas do dono do perfil (a régua de cada país parte dela).
+  overallAvg?: number | null;
   language: string;
   onViewMovies?: (countryCode: string, countryName: string) => void;
 }
@@ -36,10 +44,37 @@ const fillFor = (count: number, max: number) => {
   return `rgb(${r}, ${g}, ${b})`;
 };
 
+const LEAN_ABOVE = '#5EEAD4';
+const LEAN_BELOW = '#FDA4AF';
+// Diferença que enche a metade da régua.
+const LEAN_FULL = 1;
+
+// A régua da lista: o centro é a média geral; a barra vai para a direita
+// (acima) ou para a esquerda (abaixo).
+const LeanGauge: React.FC<{ diff: number | null }> = ({ diff }) => {
+  const shown = diff != null && Math.abs(diff) >= 0.05;
+  const half = shown ? Math.min(1, Math.abs(diff) / LEAN_FULL) * 50 : 0;
+  return (
+    <span className="relative block h-2 rounded-full bg-white/[0.06]" aria-hidden>
+      {shown && (
+        <span
+          className="absolute inset-y-0 rounded-full"
+          style={{
+            ...(diff! > 0 ? { left: '50%' } : { right: '50%' }),
+            width: `${half}%`,
+            background: diff! > 0 ? LEAN_ABOVE : LEAN_BELOW,
+          }}
+        />
+      )}
+      <span className="absolute -top-0.5 -bottom-0.5 left-1/2 w-px -translate-x-1/2 rounded-full" style={{ background: 'rgba(243,234,211,0.45)' }} />
+    </span>
+  );
+};
+
 const flagOf = (code: string) =>
   code.length === 2 ? String.fromCodePoint(...code.toUpperCase().split('').map((c) => 127397 + c.charCodeAt(0))) : '🌍';
 
-const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRatings, language, onViewMovies }) => {
+const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRatings, overallAvg = null, language, onViewMovies }) => {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -308,6 +343,13 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
 
   const sel = selected ? ranking.find((r) => r.code === selected) || null : null;
   const list = showAll ? ranking : ranking.slice(0, LIST_SIZE);
+  const leanOf = (avg: number | null) => (avg != null && overallAvg != null ? avg - overallAvg : null);
+  const leanText = (diff: number | null) => {
+    if (diff == null) return '';
+    if (Math.abs(diff) < 0.05) return t('profile.observatory.atlasEqual');
+    const value = formatOne(Math.abs(diff), language);
+    return diff > 0 ? t('profile.observatory.atlasAbove', { diff: value }) : t('profile.observatory.atlasBelow', { diff: value });
+  };
 
   return (
     <section className="h-full rounded-3xl p-5 sm:p-7" style={glassPanel('#2DD4BF')}>
@@ -385,13 +427,16 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
           <ol className="space-y-1" aria-label={t('profile.observatory.atlasTitle')}>
             {list.map((row, i) => {
               const isSel = selected === row.code;
+              const lean = leanOf(row.avg);
+              const leanLabel = leanText(lean);
               return (
                 <li key={row.code}>
                   <button
                     type="button"
                     onClick={() => (isSel ? setSelected(null) : focus(row.code))}
                     aria-pressed={isSel}
-                    className={`w-full grid grid-cols-[18px_24px_minmax(0,1fr)_minmax(0,44px)_32px_36px] sm:grid-cols-[18px_24px_minmax(0,1fr)_minmax(0,40px)_32px_36px] items-center gap-2 rounded-xl px-2 py-1.5 text-left transition hover:bg-white/[0.05] ${FOCUS_RING}`}
+                    title={leanLabel ? `${nameOf(row.code)}: ${leanLabel}` : undefined}
+                    className={`w-full grid grid-cols-[18px_24px_minmax(0,1fr)_44px_32px_36px] sm:grid-cols-[18px_24px_minmax(0,1fr)_64px_32px_36px] items-center gap-2 rounded-xl px-2 py-1.5 text-left transition hover:bg-white/[0.05] ${FOCUS_RING}`}
                     style={isSel ? { background: 'rgba(240,171,252,0.12)', boxShadow: 'inset 0 0 0 1px rgba(240,171,252,0.45)' } : undefined}
                   >
                     <span style={{ ...PIXEL, color: MIST }} className="text-[12px] text-right">
@@ -402,10 +447,9 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
                     </span>
                     <span className="truncate text-sm" style={{ color: PAPER }}>
                       {nameOf(row.code)}
+                      {leanLabel && <span className="sr-only">, {leanLabel}</span>}
                     </span>
-                    <span className="relative h-1.5 rounded-full bg-white/[0.06] overflow-hidden" aria-hidden>
-                      <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${(row.count / maxCount) * 100}%`, background: fillFor(row.count, maxCount) }} />
-                    </span>
+                    <LeanGauge diff={lean} />
                     <span className="text-[13px] tabular-nums text-right" style={{ color: PAPER }}>
                       {row.count}
                     </span>
@@ -422,6 +466,18 @@ const TasteGlobe: React.FC<TasteGlobeProps> = ({ countryCounts, countryAvgRating
               );
             })}
           </ol>
+          {overallAvg != null && ranking.some((row) => row.avg != null) && (
+            <p className="mt-2.5 ml-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: MIST }} aria-hidden>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-1.5 rounded-full" style={{ background: LEAN_ABOVE }} />
+                {t('profile.observatory.atlasLegendAbove')}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-1.5 rounded-full" style={{ background: LEAN_BELOW }} />
+                {t('profile.observatory.atlasLegendBelow')}
+              </span>
+            </p>
+          )}
           {ranking.length > LIST_SIZE && (
             <button
               type="button"
