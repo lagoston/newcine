@@ -2182,5 +2182,105 @@
       "signIn": "Sign in",
       "home": "Go home"
     }
+  },
+  "jackpot": {
+    "title": "Poster Jackpot",
+    "subtitle_one": "{{count}} ticket in hand",
+    "subtitle_other": "{{count}} tickets in hand",
+    "tabs": {
+      "machine": "Machine",
+      "collection": "Collection",
+      "missions": "Missions"
+    },
+    "rarity": {
+      "common": "Common",
+      "rare": "Rare",
+      "epic": "Epic",
+      "legendary": "Legendary"
+    },
+    "effect": {
+      "holo": "Holographic",
+      "negative": "Negative",
+      "ultra_red": "Ultra Red"
+    },
+    "door": {
+      "hint": "Spin the machine and collect alternate posters for your library.",
+      "claimable_one": "{{count}} mission ready",
+      "claimable_other": "{{count}} missions ready"
+    },
+    "machine": {
+      "spin": "Spin the machine",
+      "spinShort": "SPIN",
+      "spinning": "Spinning…",
+      "chute": "Your capsule drops here",
+      "open": "Open",
+      "fragments": "Fragments to the next ticket",
+      "ticketKind": "Which ticket to spin with",
+      "tickets_one": "{{count}} ticket",
+      "tickets_other": "{{count}} tickets",
+      "special": "Special",
+      "specialUsed": "Used this week",
+      "specialPremium": "Premium",
+      "noTickets": "No tickets. Finish this week's missions to earn some.",
+      "noSpecial": "The special ticket is a Premium perk, 1 per week.",
+      "error": "The machine jammed. Try again.",
+      "new": "New!",
+      "newPlain": "Added to your collection.",
+      "newEffect": "Added to your collection, with a special effect!",
+      "duplicate_one": "Duplicate: turned into {{count}} fragment.",
+      "duplicate_other": "Duplicate: turned into {{count}} fragments.",
+      "fragmentTicket_one": "Your fragments became {{count}} ticket!",
+      "fragmentTicket_other": "Your fragments became {{count}} tickets!",
+      "again": "Spin again",
+      "effectHint": "Each spin has a 5% chance of a special effect.",
+      "specialHint": "The special ticket always brings an effect: holographic, negative or ultra red."
+    },
+    "collection": {
+      "progress": "{{owned}} of {{total}} versions",
+      "all": "All",
+      "empty": "Your collection is empty",
+      "emptyHint": "Spin the machine to win your first poster.",
+      "copies_one": "{{count}} copy",
+      "copies_other": "{{count}} copies",
+      "equip": "Equip",
+      "equipped": "Equipped",
+      "unequip": "Unequip",
+      "equipHint": "The equipped poster replaces the cover in your library.",
+      "notInLibrary": "This title isn't in your library yet. Once equipped, the poster shows up when you add it.",
+      "equippedToast": "Poster equipped on {{title}}.",
+      "unequippedToast": "Back to the original cover.",
+      "equipError": "Couldn't change the poster right now."
+    },
+    "missions": {
+      "rate_oracle": "Rate a title from {{oracle}}",
+      "rate_mood": "Rate a title from the {{mood}} shelf",
+      "whisper": "Whisper a title to a friend",
+      "review": "Write a review",
+      "watchlist": "Save {{count}} titles to your Watchlist",
+      "rate_any": "Rate {{count}} titles",
+      "rate_series": "Rate a series",
+      "rate_classic": "Rate a film released before 1980",
+      "progressAria": "{{progress}} of {{target}}",
+      "claim": "Claim",
+      "done": "Claimed",
+      "claimed": "You got 1 ticket!",
+      "claimError": "Couldn't claim it right now.",
+      "resets_one": "New missions in {{count}} day, every Monday.",
+      "resets_other": "New missions in {{count}} days, every Monday.",
+      "resetsMonday": "New missions every Monday.",
+      "specialTitle": "Weekly special ticket",
+      "specialReady": "This week's is waiting in the machine. It doesn't stack: use it by Sunday.",
+      "specialUsedWeek": "You've used this week's. Another arrives on Monday.",
+      "specialPremiumOnly": "Premium members get 1 per week, always with a special effect.",
+      "seePremium": "See Premium",
+      "fragmentsRule": "Duplicate posters turn into fragments (common 1, rare 2, epic 3, legendary 5). Every {{per}} make 1 ticket.",
+      "effectsRule": "When an effect comes up: holographic {{holo}}%, negative {{negative}}%, ultra red {{ultra}}%."
+    },
+    "library": {
+      "menuItem": "Collection poster",
+      "pickerTitle": "Choose the poster",
+      "original": "Original cover",
+      "current": "In use"
+    }
   }
 }

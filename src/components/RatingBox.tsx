@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  MoreHorizontal, Trash2, Star, ListPlus, XCircle, ArrowUpDown, Film, Filter, Bookmark, Tv, Swords, Loader2,
+  MoreHorizontal, Trash2, Star, ListPlus, XCircle, ArrowUpDown, Film, Filter, Bookmark, Tv, Swords, Loader2, Sparkles, Check,
 } from 'lucide-react';
 import { Movie, getTvProgressBatch, getTvProgressBatchForProfile, TvProgress } from '../lib/tmdb';
 import { ShelfEntry, TitleMediaType, getFullTitle, prefetchFullTitle, titleKey, toShelfEntry } from '../lib/titleCards';
@@ -17,6 +17,8 @@ import { RATING_LABELS } from './RatingSliderSheet';
 import { useTranslation } from 'react-i18next';
 import OptimizedPoster from './OptimizedPoster';
 import PredictedBadge from './PredictedBadge';
+import PosterArt, { EffectTag, RarityTag } from './posterJackpot/PosterArt';
+import { RARITY_META, equipPoster, posterKey, unequipPoster, useEquippedPosters, useMyPosters, type OwnedPoster } from '../lib/posterJackpot';
 import { RANK_MEDALS } from '../lib/libraryLayouts';
 import {
   NIGHT, VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ratingTone, ratingBarColor, withAlpha,
@@ -145,6 +147,15 @@ const RatingBox: React.FC<RatingBoxProps> = ({
   const [showAllMovies, setShowAllMovies] = useState(false);
   const [showAddToList, setShowAddToList] = useState<{ movieId: number; title: string } | null>(null);
   const [menuMovie, setMenuMovie] = useState<LibraryTile | null>(null);
+  // Poster Jackpot: o pôster equipado de cada título troca a capa (de quem é
+  // a biblioteca na tela) e o menu "…" deixa escolher entre os da coleção.
+  const [posterPicker, setPosterPicker] = useState<LibraryTile | null>(null);
+  const [posterBusy, setPosterBusy] = useState(false);
+  const libraryOwnerId = isOtherUserProfile ? profileUserId : session?.user?.id;
+  const equippedPosters = useEquippedPosters(libraryOwnerId);
+  const myPosters = useMyPosters(!isOtherUserProfile && (!!menuMovie || !!posterPicker));
+  const ownedFor = (tile: LibraryTile | null): OwnedPoster[] =>
+    tile && myPosters ? myPosters.filter((p) => p.tmdb_id === tile.id && p.media_type === (tile.media_type === 'tv' ? 'tv' : 'movie')) : [];
   // Título sendo aberto (detalhes completos a caminho): mostra um giro no pôster.
   const [openingKey, setOpeningKey] = useState<string | null>(null);
 
@@ -487,6 +498,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 // Na prateleira de uma nota, todos os títulos têm a mesma nota —
                 // o selo só aparece onde as notas se misturam (One Grid, listas).
                 const showOwnRating = ownRating !== null && !isNotRated && !isRatingShelf;
+                const equipped = equippedPosters.get(posterKey(movie.media_type, movie.id));
                 return (
                   <li key={`t:${titleKey(entry)}`} ref={reveal} className={`reveal-tile group relative shrink-0 ${TILE_WIDTH}`}>
                     <button
@@ -500,7 +512,12 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                         className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
                         style={{ background: VELVET }}
                       >
-                        {movie.poster_path ? (
+                        {equipped ? (
+                          <>
+                            <PosterArt filePath={equipped.file_path} effect={equipped.effect} rarity={equipped.rarity} alt={movie.title} className="absolute inset-0 w-full h-full" />
+                            <span aria-hidden className="absolute inset-0 rounded-xl pointer-events-none" style={{ boxShadow: `inset 0 0 0 2px ${RARITY_META[equipped.rarity].color}` }} />
+                          </>
+                        ) : movie.poster_path ? (
                           <OptimizedPoster
                             src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
                             alt={movie.title}
@@ -730,6 +747,18 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                     </button>
                   </li>
                 )}
+                {ownedFor(menuMovie).length > 0 && (
+                  <li>
+                    <button
+                      onClick={() => { setPosterPicker(menuMovie); setMenuMovie(null); }}
+                      className={`w-full flex justify-start items-center gap-3.5 px-3 py-3 rounded-xl text-left hover:bg-white/5 transition ${FOCUS_RING}`}
+                      style={{ color: PAPER }}
+                    >
+                      <Sparkles className="w-5 h-5 text-amber-300" aria-hidden />
+                      <span className="font-medium">{t('jackpot.library.menuItem')}</span>
+                    </button>
+                  </li>
+                )}
                 <li>
                   <button
                     onClick={() => {
@@ -758,6 +787,84 @@ const RatingBox: React.FC<RatingBoxProps> = ({
             )}
           </ul>
         )}
+      </OracleSheet>
+
+      {/* Pôster da coleção (Poster Jackpot): a capa original ou um dos pôsteres que a pessoa tem do título */}
+      <OracleSheet
+        open={!!posterPicker}
+        onClose={() => setPosterPicker(null)}
+        size="md"
+        title={t('jackpot.library.pickerTitle')}
+        subtitle={posterPicker?.title}
+        bodyClassName="px-4 sm:px-6 py-4"
+      >
+        {posterPicker && (() => {
+          const key = posterKey(posterPicker.media_type, posterPicker.id);
+          const current = equippedPosters.get(key);
+          const options = ownedFor(posterPicker);
+          const choose = async (poster: OwnedPoster | null) => {
+            setPosterBusy(true);
+            try {
+              if (poster) await equipPoster(poster.id, poster.effect);
+              else await unequipPoster(posterPicker.media_type === 'tv' ? 'tv' : 'movie', posterPicker.id);
+              setPosterPicker(null);
+            } catch (error) {
+              console.error('Equip poster:', error);
+            } finally {
+              setPosterBusy(false);
+            }
+          };
+          const cell = (selected: boolean, onClick: () => void, art: React.ReactNode, label: React.ReactNode, keyId: string) => (
+            <li key={keyId}>
+              <button
+                type="button"
+                onClick={onClick}
+                disabled={posterBusy}
+                aria-pressed={selected}
+                className={`block w-full text-left rounded-xl disabled:opacity-60 ${FOCUS_RING}`}
+              >
+                <span className="relative block">
+                  {art}
+                  {selected && (
+                    <span className="absolute top-1.5 right-1.5 grid place-items-center w-6 h-6 rounded-full bg-emerald-500 text-white shadow-lg" title={t('jackpot.library.current')}>
+                      <Check className="w-3.5 h-3.5" aria-hidden />
+                    </span>
+                  )}
+                </span>
+                <span className="mt-1.5 flex flex-wrap gap-1">{label}</span>
+              </button>
+            </li>
+          );
+          return (
+            <ul className="grid grid-cols-3 gap-3">
+              {cell(
+                !current,
+                () => choose(null),
+                <span className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10" style={{ background: VELVET }}>
+                  {posterPicker.poster_path ? (
+                    <img src={`https://image.tmdb.org/t/p/w185${posterPicker.poster_path}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <Film className="absolute inset-0 m-auto w-6 h-6" style={{ color: MIST }} aria-hidden />
+                  )}
+                </span>,
+                <span className="text-[12px]" style={{ color: MIST }}>{t('jackpot.library.original')}</span>,
+                'original'
+              )}
+              {options.map((poster) =>
+                cell(
+                  !!current && current.item_id === poster.id && current.effect === poster.effect,
+                  () => choose(poster),
+                  <PosterArt filePath={poster.file_path} effect={poster.effect} rarity={poster.rarity} size="w185" frame className="aspect-[2/3] rounded-xl" />,
+                  <>
+                    <RarityTag rarity={poster.rarity} />
+                    <EffectTag effect={poster.effect} />
+                  </>,
+                  `${poster.id}:${poster.effect}`
+                )
+              )}
+            </ul>
+          );
+        })()}
       </OracleSheet>
     </>
   );

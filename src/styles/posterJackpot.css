@@ -1,0 +1,146 @@
+/* Poster Jackpot: os três efeitos especiais dos pôsteres e a máquina. */
+
+/* ---------- Efeitos ---------- */
+
+.pj-art {
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.pj-art > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Negativo: o filme revelado ao contrário. */
+.pj-negative > img {
+  filter: invert(1) contrast(1.06);
+}
+
+/* Ultra vermelho: monocromático, preto e vermelho, como câmera de calor. */
+.pj-ultra > img {
+  filter: grayscale(1) contrast(1.4) brightness(1.08);
+}
+.pj-ultra-tint {
+  position: absolute;
+  inset: 0;
+  background: #ff1e2d;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.pj-ultra-lift {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 30%, rgba(255, 96, 72, 0.28), rgba(60, 0, 8, 0.25) 70%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+/* Holográfico: o arco-íris que corre pela capa e um brilho branco. */
+.pj-holo-layer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 18%,
+    rgba(255, 0, 153, 0.5) 30%,
+    rgba(255, 230, 0, 0.45) 40%,
+    rgba(0, 255, 170, 0.45) 50%,
+    rgba(0, 170, 255, 0.5) 60%,
+    rgba(170, 0, 255, 0.45) 70%,
+    transparent 82%
+  );
+  background-size: 260% 260%;
+  background-position: 30% 30%;
+  mix-blend-mode: color-dodge;
+  opacity: 0.75;
+  pointer-events: none;
+}
+.pj-holo-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.5) 50%, transparent 58%);
+  background-size: 320% 320%;
+  background-position: 120% 120%;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.pj-animated .pj-holo-layer {
+  animation: pj-holo 4.5s ease-in-out infinite alternate;
+}
+.pj-animated .pj-holo-sheen {
+  animation: pj-sheen 3.4s linear infinite;
+}
+@keyframes pj-holo {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+@keyframes pj-sheen {
+  0% { background-position: 160% 160%; }
+  100% { background-position: -60% -60%; }
+}
+
+/* Texto do selo holográfico. */
+.pj-holo-text {
+  background: linear-gradient(90deg, #f0abfc, #fde68a, #86efac, #67e8f9, #c4b5fd);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- A máquina ---------- */
+
+.pj-cabinet {
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(255, 255, 255, 0.18), transparent 60%),
+    linear-gradient(180deg, #fb923c 0%, #f97316 38%, #ea580c 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -6px 0 rgba(124, 45, 18, 0.45),
+    0 30px 60px -30px rgba(0, 0, 0, 0.9);
+}
+
+.pj-glass {
+  background:
+    linear-gradient(100deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.02) 22%, transparent 60%, rgba(255, 255, 255, 0.07) 86%),
+    radial-gradient(90% 70% at 50% 40%, #1f1838 0%, #120d22 100%);
+  box-shadow:
+    inset 0 0 0 3px rgba(18, 13, 34, 0.85),
+    inset 0 0 0 5px rgba(255, 255, 255, 0.12),
+    inset 0 -20px 40px rgba(0, 0, 0, 0.45);
+}
+
+.pj-capsule {
+  position: absolute;
+  border-radius: 9999px;
+  box-shadow:
+    inset -3px -4px 6px rgba(0, 0, 0, 0.35),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.55),
+    0 3px 6px rgba(0, 0, 0, 0.35);
+}
+
+.pj-shake .pj-capsule {
+  animation: pj-shake 0.28s ease-in-out infinite alternate;
+}
+.pj-shake .pj-capsule:nth-child(3n) { animation-duration: 0.22s; }
+.pj-shake .pj-capsule:nth-child(3n + 1) { animation-duration: 0.31s; animation-direction: alternate-reverse; }
+@keyframes pj-shake {
+  0% { transform: translate(-2px, 1px) rotate(-8deg); }
+  100% { transform: translate(2px, -3px) rotate(9deg); }
+}
+
+.pj-chute {
+  background: radial-gradient(80% 90% at 50% 20%, #2a1f45, #0b0816 75%);
+  box-shadow: inset 0 8px 14px rgba(0, 0, 0, 0.75), inset 0 0 0 3px rgba(124, 45, 18, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pj-animated .pj-holo-layer,
+  .pj-animated .pj-holo-sheen,
+  .pj-shake .pj-capsule {
+    animation: none;
+  }
+}

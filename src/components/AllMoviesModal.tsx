@@ -7,6 +7,8 @@ import { useProgressiveCount, useReveal, useTitleCards } from '../hooks/useLazyL
 import { useAuth } from '../lib/auth';
 import MovieDetailsModal from './MovieDetailsModal';
 import OptimizedPoster from './OptimizedPoster';
+import PosterArt from './posterJackpot/PosterArt';
+import { RARITY_META, posterKey, useEquippedPosters } from '../lib/posterJackpot';
 import OracleSheet from './OracleSheet';
 import { VELVET, PAPER, MIST, PIXEL, POSTER_TITLE, ratingTone } from '../lib/oracleTheme';
 
@@ -45,6 +47,8 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
+  // Pôsteres equipados (Poster Jackpot) de quem é a biblioteca.
+  const equippedPosters = useEquippedPosters(isOpen ? (isOtherUserProfile ? profileUserId : session?.user?.id) : null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [tvProgressData, setTvProgressData] = useState<Map<number, TvProgress>>(new Map());
@@ -196,11 +200,23 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
                     className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-lg transition-transform duration-200 group-hover:-translate-y-1"
                     style={{ background: VELVET }}
                   >
-                    <OptimizedPoster
-                      src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
-                      alt={movie.title}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
+                    {equippedPosters.get(posterKey(movie.media_type, movie.id)) ? (
+                      (() => {
+                        const equipped = equippedPosters.get(posterKey(movie.media_type, movie.id))!;
+                        return (
+                          <>
+                            <PosterArt filePath={equipped.file_path} effect={equipped.effect} rarity={equipped.rarity} alt={movie.title} className="absolute inset-0 w-full h-full" />
+                            <span aria-hidden className="absolute inset-0 rounded-xl pointer-events-none" style={{ boxShadow: `inset 0 0 0 2px ${RARITY_META[equipped.rarity].color}` }} />
+                          </>
+                        );
+                      })()
+                    ) : (
+                      <OptimizedPoster
+                        src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                        alt={movie.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    )}
                     {progress && (
                       <span className="absolute inset-x-0 top-0 h-1 bg-black/40">
                         <span className="block h-full" style={{ width: `${progress.percent}%`, background: progress.color }} />

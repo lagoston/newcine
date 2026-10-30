@@ -6,6 +6,7 @@ import { Scroll, Info, LayoutGrid, Share2, LibraryBig, Swords, Crown, ArrowRight
 import GlassLoader from '../components/GlassLoader';
 import SecretRoomDoor from '../components/secretRoom/SecretRoomDoor';
 import OraclePicks from '../components/oracleHub/OraclePicks';
+import PosterJackpotDoor from '../components/posterJackpot/PosterJackpotDoor';
 import MoodBars from '../components/MoodBars';
 import PersonasModal from '../components/PersonasModal';
 import PersonaShareModal from '../components/PersonaShareModal';
@@ -435,6 +436,11 @@ export default function OracleHub() {
             {!isPremium && premiumBadge}
           </Link>
         ))}
+      </div>
+
+      {/* Poster Jackpot (só para quem a máquina está liberada). */}
+      <div className="mt-3 sm:mt-4 empty:hidden">
+        <PosterJackpotDoor />
       </div>
     </motion.section>
   );

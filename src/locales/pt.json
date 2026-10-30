@@ -2187,5 +2187,105 @@
       "signIn": "Entrar",
       "home": "Ir para o início"
     }
+  },
+  "jackpot": {
+    "title": "Poster Jackpot",
+    "subtitle_one": "{{count}} ticket na mão",
+    "subtitle_other": "{{count}} tickets na mão",
+    "tabs": {
+      "machine": "Máquina",
+      "collection": "Coleção",
+      "missions": "Missões"
+    },
+    "rarity": {
+      "common": "Comum",
+      "rare": "Raro",
+      "epic": "Épico",
+      "legendary": "Lendário"
+    },
+    "effect": {
+      "holo": "Holográfico",
+      "negative": "Negativo",
+      "ultra_red": "Ultra Vermelho"
+    },
+    "door": {
+      "hint": "Gire a máquina e colecione pôsteres alternativos para a sua biblioteca.",
+      "claimable_one": "{{count}} missão pronta",
+      "claimable_other": "{{count}} missões prontas"
+    },
+    "machine": {
+      "spin": "Girar a máquina",
+      "spinShort": "GIRAR",
+      "spinning": "Girando…",
+      "chute": "Sua cápsula cai aqui",
+      "open": "Abrir",
+      "fragments": "Fragmentos para o próximo ticket",
+      "ticketKind": "Com qual ticket girar",
+      "tickets_one": "{{count}} ticket",
+      "tickets_other": "{{count}} tickets",
+      "special": "Especial",
+      "specialUsed": "Usado na semana",
+      "specialPremium": "Premium",
+      "noTickets": "Sem tickets. Complete as missões da semana para ganhar.",
+      "noSpecial": "O ticket especial é do Premium e vem 1 por semana.",
+      "error": "A máquina travou. Tente de novo.",
+      "new": "Novo!",
+      "newPlain": "Entrou na sua coleção.",
+      "newEffect": "Entrou na sua coleção, com efeito especial!",
+      "duplicate_one": "Repetido: virou {{count}} fragmento.",
+      "duplicate_other": "Repetido: virou {{count}} fragmentos.",
+      "fragmentTicket_one": "Os fragmentos viraram {{count}} ticket!",
+      "fragmentTicket_other": "Os fragmentos viraram {{count}} tickets!",
+      "again": "Girar de novo",
+      "effectHint": "Cada giro tem 5% de chance de vir com efeito especial.",
+      "specialHint": "O ticket especial sempre vem com efeito: holográfico, negativo ou ultra vermelho."
+    },
+    "collection": {
+      "progress": "{{owned}} de {{total}} versões",
+      "all": "Todos",
+      "empty": "Sua coleção está vazia",
+      "emptyHint": "Gire a máquina para ganhar o primeiro pôster.",
+      "copies_one": "{{count}} cópia",
+      "copies_other": "{{count}} cópias",
+      "equip": "Equipar",
+      "equipped": "Equipado",
+      "unequip": "Desequipar",
+      "equipHint": "O pôster equipado aparece no lugar da capa na sua biblioteca.",
+      "notInLibrary": "Este título ainda não está na sua biblioteca. Equipado, o pôster aparece quando você adicionar o título.",
+      "equippedToast": "Pôster equipado em {{title}}.",
+      "unequippedToast": "Voltou a capa original.",
+      "equipError": "Não deu para trocar o pôster agora."
+    },
+    "missions": {
+      "rate_oracle": "Avalie um título do {{oracle}}",
+      "rate_mood": "Avalie um título da prateleira {{mood}}",
+      "whisper": "Sussurre um título para um amigo",
+      "review": "Escreva uma resenha",
+      "watchlist": "Guarde {{count}} títulos na Watchlist",
+      "rate_any": "Avalie {{count}} títulos",
+      "rate_series": "Avalie uma série",
+      "rate_classic": "Avalie um filme lançado antes de 1980",
+      "progressAria": "{{progress}} de {{target}}",
+      "claim": "Resgatar",
+      "done": "Resgatado",
+      "claimed": "Ganhou 1 ticket!",
+      "claimError": "Não deu para resgatar agora.",
+      "resets_one": "Missões novas em {{count}} dia, toda segunda.",
+      "resets_other": "Missões novas em {{count}} dias, toda segunda.",
+      "resetsMonday": "Missões novas toda segunda.",
+      "specialTitle": "Ticket especial semanal",
+      "specialReady": "O seu desta semana está pronto na máquina. Ele não acumula: use até domingo.",
+      "specialUsedWeek": "Você já usou o desta semana. Outro chega na segunda.",
+      "specialPremiumOnly": "Quem é Premium ganha 1 por semana, sempre com efeito especial.",
+      "seePremium": "Conhecer o Premium",
+      "fragmentsRule": "Pôster repetido vira fragmentos (comum 1, raro 2, épico 3, lendário 5). A cada {{per}}, 1 ticket.",
+      "effectsRule": "Quando sai efeito: holográfico {{holo}}%, negativo {{negative}}%, ultra vermelho {{ultra}}%."
+    },
+    "library": {
+      "menuItem": "Pôster da coleção",
+      "pickerTitle": "Escolha o pôster",
+      "original": "Capa original",
+      "current": "Em uso"
+    }
   }
 }
