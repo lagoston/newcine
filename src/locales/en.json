@@ -469,7 +469,16 @@
     "storyCommented": "commented on your activity",
     "storyReplied": "replied to your comment",
     "storyLikedDetail": "Liked your story",
-    "viewStory": "View story"
+    "viewStory": "View story",
+    "messageLabel": "Message",
+    "optional": "(optional)",
+    "like": "Like",
+    "liked": "Liked",
+    "likeAria": "Like {{username}}'s recommendation",
+    "unlikeAria": "Unlike {{username}}'s recommendation",
+    "likeError": "Couldn't like it right now.",
+    "whisperLiked": "liked your recommendation",
+    "whisperLikedDetail": "Liked what you recommended"
   },
   "whispers": {
     "title": "Whispers",

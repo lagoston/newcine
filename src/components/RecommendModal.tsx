@@ -100,10 +100,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
 
   const handleSendRecommendation = async () => {
     if (!selectedFollower || !session?.user?.id) return;
-    if (message.trim().length === 0) {
-      toast.error(t('indications.writeMessage'));
-      return;
-    }
+    // A mensagem é opcional (30/10/2026): sem ela, o sussurro vai só com o título.
 
     try {
       setSending(true);
@@ -148,7 +145,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
           movie_id: movieId,
           movie_title: movieTitle,
           movie_poster: moviePoster,
-          message: message.trim(),
+          message: message.trim() || null,
           read: false,
           type: 'movie',
           media_type: mediaType
@@ -201,7 +198,7 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
       footer={selectedFollower ? (
         <button
           onClick={handleSendRecommendation}
-          disabled={sending || message.trim().length === 0}
+          disabled={sending}
           className={`w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-fuchsia-900/30 transition disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`}
         >
           {sending ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden /> : <Send className="w-5 h-5" aria-hidden />}
@@ -284,14 +281,15 @@ const RecommendModal = ({ isOpen, onClose, movieId, movieTitle, moviePoster, med
           </div>
 
           <label className="block">
-            <span className="block text-sm font-medium mb-2" style={{ color: PAPER }}>{t('indications.writeMessage')}</span>
+            <span className="block text-sm font-medium mb-2" style={{ color: PAPER }}>
+              {t('indications.messageLabel')} <span className="font-normal" style={{ color: MIST }}>{t('indications.optional')}</span>
+            </span>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={t('indications.messagePlaceholder')}
               rows={4}
               maxLength={500}
-              autoFocus
               className="w-full px-4 py-3 rounded-xl ring-1 ring-white/10 focus:ring-2 focus:ring-fuchsia-300/70 outline-none resize-none text-[15px] leading-relaxed placeholder:text-[#BDB4D6]/70"
               style={{ background: VELVET, color: PAPER }}
             />

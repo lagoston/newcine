@@ -12,7 +12,9 @@ import StreamingFilterModal from '../components/StreamingFilterModal';
 import OptimizedPoster from '../components/OptimizedPoster';
 import { VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, ORACLE_BY_ID, OracleId, oracleCardImage, withAlpha } from '../lib/oracleTheme';
 import { MOODS, type Mood } from '../lib/moods';
-import PredictedBadge from '../components/PredictedBadge';
+import { PosterTopBadges } from '../components/PredictedBadge';
+import FloatingFriendBubbles from '../components/FloatingFriendBubbles';
+import { friendKey, useFriendActivity } from '../hooks/useFriendActivity';
 
 // Biblioteca dos Oráculos (/oracle/libraries?oracle=bogart): as 9
 // prateleiras temáticas de um oráculo, cada título com a nota PREVISTA pra
@@ -100,7 +102,8 @@ interface ShelfState {
 
 const INITIAL_SHELF: ShelfState = { titles: [], poolCount: 0, loading: true, error: false };
 
-type PredictedMovie = Movie & { predictedRating?: number | null };
+type PredictedMovie = Movie & { predictedRating?: number | null; inWatchlist?: boolean };
+type ShelfRef = ShelfItem & { inWatchlist?: boolean };
 
 const SkeletonTile: React.FC = () => (
   <li className={`shrink-0 ${TILE_WIDTH}`} aria-hidden>
@@ -145,6 +148,7 @@ const Shelf: React.FC<{
 }> = ({ cardType, mood, mediaType, selectedProviderIds, isPremium, onMovieClick }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { session } = useAuth();
   const [state, setState] = useState<ShelfState>(INITIAL_SHELF);
   const isFetchingRef = useRef(false);
   const aliveRef = useRef(true);
@@ -206,12 +210,13 @@ const Shelf: React.FC<{
     if (inView) loadPredictions();
   }, [inView, loadPredictions]);
 
-  const refs: ShelfItem[] = useMemo(
+  const refs: ShelfRef[] = useMemo(
     () =>
       state.titles.map((title) => ({
         id: title.movie_id,
         media_type: title.media_type,
         predictedRating: title.predicted_rating,
+        inWatchlist: title.in_watchlist === true,
       })),
     [state.titles]
   );
@@ -233,7 +238,8 @@ const Shelf: React.FC<{
   const cardOf = useTitleCards(refs, filterOn ? limit : plain.count, { enabled: inView && refs.length > 0, ahead: filterOn ? 0 : 6 });
   const reveal = useReveal();
 
-  const withPrediction = (ref: ShelfItem, card: Movie) => ({ ...card, predictedRating: ref.predictedRating ?? null }) as PredictedMovie;
+  const withPrediction = (ref: ShelfRef, card: Movie) =>
+    ({ ...card, predictedRating: ref.predictedRating ?? null, inWatchlist: ref.inWatchlist === true }) as PredictedMovie;
 
   // O serviço escolhido em que o título está (no plano de assinatura).
   const matchedProvider = (movie: Movie) =>
@@ -256,13 +262,18 @@ const Shelf: React.FC<{
     resetKey: filterKey,
   });
 
-  const visible: { ref: ShelfItem; movie?: PredictedMovie }[] = filterOn
+  const visible: { ref: ShelfRef; movie?: PredictedMovie }[] = filterOn
     ? matches.slice(0, filtered.count)
     : refs.slice(0, plain.count).map((ref) => {
         const card = cardOf(ref);
         return { ref, movie: card ? withPrediction(ref, card) : undefined };
       });
   const { endRef, hasMore } = filterOn ? filtered : plain;
+  // As bolhas dos amigos nas capas (como na home): uma consulta por leva que aparece.
+  const friendActivity = useFriendActivity(
+    session?.user?.id,
+    visible.filter((item) => item.movie).map((item) => item.ref)
+  );
   // Enquanto procura, esqueletos fixos no fim (as mesmas chaves sempre: nada
   // aparece e some a cada lote).
   const scanSkeletons = scanning ? Math.max(1, initialCount - visible.length) : 0;
@@ -383,7 +394,7 @@ const Shelf: React.FC<{
                       className={`block w-full text-left rounded-xl ${FOCUS_RING}`}
                     >
                       <span
-                        className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
+                        className="relative isolate block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
                         style={{ background: VELVET }}
                       >
                         {movie.poster_path ? (
@@ -396,7 +407,13 @@ const Shelf: React.FC<{
                             </span>
                           </span>
                         )}
-                        {predicted !== null && <PredictedBadge rating={predicted} />}
+                        <PosterTopBadges predicted={predicted} inWatchlist={movie.inWatchlist} />
+                        <FloatingFriendBubbles
+                          movieId={movie.id}
+                          mediaType={ref.media_type}
+                          friends={friendActivity[friendKey(ref)] ?? []}
+                          placement="belowBadges"
+                        />
                         {provider && (
                           <span className="absolute bottom-1.5 right-1.5 block w-7 h-7 rounded-lg overflow-hidden ring-1 ring-black/40 shadow-lg" title={provider.provider_name}>
                             <img src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`} alt={provider.provider_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />

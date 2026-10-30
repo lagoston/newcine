@@ -471,7 +471,16 @@
     "storyCommented": "comentou na sua atividade",
     "storyReplied": "respondeu ao seu comentário",
     "storyLikedDetail": "Curtiu seu story",
-    "viewStory": "Ver story"
+    "viewStory": "Ver story",
+    "messageLabel": "Mensagem",
+    "optional": "(opcional)",
+    "like": "Curtir",
+    "liked": "Curtido",
+    "likeAria": "Curtir a indicação de {{username}}",
+    "unlikeAria": "Descurtir a indicação de {{username}}",
+    "likeError": "Não deu para curtir agora.",
+    "whisperLiked": "curtiu a sua indicação",
+    "whisperLikedDetail": "Curtiu o que você indicou"
   },
   "whispers": {
     "title": "Sussurros",

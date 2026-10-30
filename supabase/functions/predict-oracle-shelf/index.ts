@@ -17,6 +17,12 @@ import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 // A fórmula (v4) mora no banco, na função predict_ratings_v4 — ver a
 // migração 20261003200000_prediction_v4.sql. Todas as previsões do site
 // usam a mesma função.
+//
+// includeWatchlist (30/10/2026, pedido do Bruno): os títulos que a pessoa
+// guardou na Watchlist (linha em user_movies sem nota) continuam na
+// prateleira, com in_watchlist: true (o site põe a marca da Watchlist na
+// capa). Só os já avaliados saem. Sem a chave (apps antigos), a Watchlist
+// sai também, como antes.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,6 +35,7 @@ interface RequestBody {
   moodKey: string;
   mediaType?: 'movie' | 'tv';
   includeSeries?: boolean;
+  includeWatchlist?: boolean;
 }
 
 interface PredictionRow {
@@ -61,7 +68,7 @@ Deno.serve(async (req) => {
     if (authError || !user) return json({ error: 'Unauthorized' }, 401);
     const userId = user.id;
 
-    const { cardType, moodKey, mediaType, includeSeries = false } = await req.json() as RequestBody;
+    const { cardType, moodKey, mediaType, includeSeries = false, includeWatchlist = false } = await req.json() as RequestBody;
     if (!cardType || !moodKey) return json({ error: 'cardType and moodKey are required' }, 400);
     if (mediaType !== undefined && mediaType !== 'movie' && mediaType !== 'tv') return json({ error: 'mediaType must be movie or tv' }, 400);
 
@@ -70,19 +77,23 @@ Deno.serve(async (req) => {
 
     const [poolRes, ratedRes] = await Promise.all([
       supabase.from('recommendation_pools').select('movie_ids, tv_ids').eq('card_type', cardType).eq('mood_key', moodKey).maybeSingle(),
-      supabase.from('user_movies').select('movie_id, media_type').eq('user_id', userId).limit(50000),
+      supabase.from('user_movies').select('movie_id, media_type, rating').eq('user_id', userId).limit(50000),
     ]);
 
     if (poolRes.error) throw new Error(`Pool: ${poolRes.error.message}`);
     if (ratedRes.error) throw new Error(`Library: ${ratedRes.error.message}`);
 
-    // Já avaliados (ou na biblioteca) saem — filme e série separados, pra
-    // um número repetido nas duas listas do TMDB não esconder o outro.
+    // Já avaliados saem (e, sem includeWatchlist, a Watchlist também) —
+    // filme e série separados, pra um número repetido nas duas listas do
+    // TMDB não esconder o outro.
     const ratedMovies = new Set<number>();
     const ratedSeries = new Set<number>();
-    (ratedRes.data || []).forEach((r: { movie_id: number; media_type: string | null }) => {
-      if (r.media_type === 'tv') ratedSeries.add(r.movie_id);
-      else ratedMovies.add(r.movie_id);
+    const watchMovies = new Set<number>();
+    const watchSeries = new Set<number>();
+    (ratedRes.data || []).forEach((r: { movie_id: number; media_type: string | null; rating: number | null }) => {
+      const onWatchlist = r.rating === null && includeWatchlist;
+      if (r.media_type === 'tv') (onWatchlist ? watchSeries : ratedSeries).add(r.movie_id);
+      else (onWatchlist ? watchMovies : ratedMovies).add(r.movie_id);
     });
 
     const poolMovieIds = wantMovies ? ((poolRes.data?.movie_ids as number[]) || []) : [];
@@ -108,6 +119,7 @@ Deno.serve(async (req) => {
       media_type: type,
       predicted_rating: row.predicted_rating,
       masterpiece_chance: row.chance_9plus === null ? null : Math.round(row.chance_9plus * 100) / 100,
+      ...(includeWatchlist ? { in_watchlist: (type === 'tv' ? watchSeries : watchMovies).has(row.id) } : {}),
       mu: row.mu,
     });
 

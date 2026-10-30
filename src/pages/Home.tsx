@@ -11,6 +11,7 @@ import MovieDetailsModal from '../components/MovieDetailsModal';
 import AllMoviesModal from '../components/AllMoviesModal';
 import OptimizedPoster from '../components/OptimizedPoster';
 import FloatingFriendBubbles, { FriendBubbleData } from '../components/FloatingFriendBubbles';
+import { useFriendActivity } from '../hooks/useFriendActivity';
 import HomeUserPanels from '../components/HomeUserPanels';
 import GlassLoader from '../components/GlassLoader';
 import GuestLanding from '../components/GuestLanding';
@@ -44,97 +45,10 @@ function parseLocalDate(value?: string): Date | null {
 }
 
 // ---------------------------------------------------------------------------
-// Atividade dos amigos em lote: uma consulta por LISTA que chega (as listas
-// da home agora carregam conforme a pessoa desce), em vez de três consultas
-// por pôster (antes eram ~240 requisições ao abrir a home). Os amigos são
+// Atividade dos amigos em lote (hooks/useFriendActivity): uma consulta por
+// LISTA que chega, em vez de três consultas por pôster. Os amigos são
 // buscados uma vez só.
 // ---------------------------------------------------------------------------
-
-type FriendEntry = { user_id: string; movie_id: number; media_type: string | null; rating: number | null };
-
-async function fetchFriendIds(userId: string): Promise<string[]> {
-  const { data: friendships } = await supabase
-    .from('friendships')
-    .select('requester_id, addressee_id')
-    .eq('status', 'accepted')
-    .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
-  return (friendships ?? []).map((f: { requester_id: string; addressee_id: string }) =>
-    f.requester_id === userId ? f.addressee_id : f.requester_id
-  );
-}
-
-function useFriendActivity(userId: string | undefined, movies: Movie[]) {
-  const [activity, setActivity] = useState<Record<string, FriendBubbleData[]>>({});
-  const friendIdsRef = useRef<Promise<string[]> | null>(null);
-  const askedRef = useRef<Set<number>>(new Set());
-
-  useEffect(() => {
-    friendIdsRef.current = null;
-    askedRef.current = new Set();
-    setActivity({});
-  }, [userId]);
-
-  const idsKey = useMemo(
-    () => Array.from(new Set(movies.map((movie) => movie.id))).sort((a, b) => a - b).join(','),
-    [movies]
-  );
-
-  useEffect(() => {
-    if (!userId || !idsKey) return;
-    const ids = idsKey.split(',').map(Number).filter((id) => !askedRef.current.has(id));
-    if (ids.length === 0) return;
-    ids.forEach((id) => askedRef.current.add(id));
-
-    (async () => {
-      try {
-        if (!friendIdsRef.current) friendIdsRef.current = fetchFriendIds(userId);
-        const friendIds = await friendIdsRef.current;
-        if (friendIds.length === 0) return;
-
-        const { data: entries } = await supabase
-          .from('user_movies')
-          .select('user_id, movie_id, media_type, rating')
-          .in('movie_id', ids)
-          .in('user_id', friendIds);
-
-        if (!entries || entries.length === 0) return;
-
-        const userIds = Array.from(new Set(entries.map((e: { user_id: string }) => e.user_id)));
-        const { data: profiles } = await supabase
-          .from('public_profiles')
-          .select('id, username, avatar_url')
-          .in('id', userIds);
-
-        const byId = new Map((profiles ?? []).map((p: { id: string; username: string; avatar_url: string | null }) => [p.id, p]));
-        const grouped: Record<string, FriendBubbleData[]> = {};
-
-        (entries as FriendEntry[]).forEach((entry) => {
-          const profile = byId.get(entry.user_id);
-          if (!profile) return;
-          const key = `${entry.media_type || 'movie'}:${entry.movie_id}`;
-          (grouped[key] ||= []).push({
-            user_id: entry.user_id,
-            username: profile.username,
-            avatar_url: profile.avatar_url,
-            rating: entry.rating,
-            is_watchlist_only: entry.rating === null,
-          });
-        });
-
-        // Quem avaliou vem antes de quem só guardou na watchlist; notas maiores primeiro.
-        Object.values(grouped).forEach((list) =>
-          list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1))
-        );
-
-        setActivity((prev) => ({ ...prev, ...grouped }));
-      } catch (error) {
-        console.error('Home: friend activity error', error);
-      }
-    })();
-  }, [userId, idsKey]);
-
-  return activity;
-}
 
 // ---------------------------------------------------------------------------
 // Prateleira horizontal

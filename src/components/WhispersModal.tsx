@@ -28,13 +28,16 @@ interface WhispersModalProps {
 interface Whisper {
   id: string;
   from_user_id: string | null;
-  // story_*: curtidas, comentários e respostas no Feed dos Amigos
-  type: 'movie' | 'friend_request' | 'new_episode' | 'tag_unlocked' | 'story_like' | 'story_comment' | 'story_reply';
+  // story_*: curtidas, comentários e respostas no Feed dos Amigos;
+  // whisper_like: alguém curtiu uma indicação sua
+  type: 'movie' | 'friend_request' | 'new_episode' | 'tag_unlocked' | 'story_like' | 'story_comment' | 'story_reply' | 'whisper_like';
   movie_id?: number;
   movie_title?: string;
   movie_poster?: string;
   message?: string;
   read: boolean;
+  // indicação recebida: quando a pessoa curtiu (null = não curtiu)
+  liked_at?: string | null;
   created_at: string;
   // 'achievement': curtida/comentário num story de conquista (tag ou evento)
   media_type?: 'movie' | 'tv' | 'achievement';
@@ -59,8 +62,10 @@ const FILTER_LABEL: Record<Filter, string> = {
 };
 
 const isStoryWhisper = (type: Whisper['type']) => type === 'story_like' || type === 'story_comment' || type === 'story_reply';
-// as três notificações do feed dividem um filtro só
-const filterOf = (type: Whisper['type']): Filter => (isStoryWhisper(type) ? 'story' : (type as Filter));
+// as três notificações do feed dividem um filtro só; a curtida numa
+// indicação fica junto das indicações
+const filterOf = (type: Whisper['type']): Filter =>
+  isStoryWhisper(type) ? 'story' : type === 'whisper_like' ? 'movie' : (type as Filter);
 
 const STORY_VERB: Record<'story_like' | 'story_comment' | 'story_reply', string> = {
   story_like: 'indications.storyLiked',
@@ -212,6 +217,29 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
     }
   };
 
+  // Curtir a indicação recebida (30/10/2026). Muda na hora; a primeira
+  // curtida avisa quem indicou (toggle_whisper_like).
+  const [likingId, setLikingId] = useState<string | null>(null);
+  const toggleLike = async (whisper: Whisper) => {
+    if (likingId) return;
+    const wasLiked = !!whisper.liked_at;
+    const setLiked = (liked: boolean) =>
+      setWhispers((prev) => prev.map((w) => (w.id === whisper.id ? { ...w, liked_at: liked ? new Date().toISOString() : null } : w)));
+    setLikingId(whisper.id);
+    setLiked(!wasLiked);
+    try {
+      const { data, error } = await supabase.rpc('toggle_whisper_like', { p_id: whisper.id });
+      if (error) throw error;
+      if (typeof data?.liked === 'boolean' && data.liked === wasLiked) setLiked(data.liked);
+    } catch (error) {
+      console.error('Error liking whisper:', error);
+      setLiked(wasLiked);
+      toast.error(t('indications.likeError'));
+    } finally {
+      setLikingId(null);
+    }
+  };
+
   const openMovie = async (whisper: Whisper, mediaType?: 'movie' | 'tv') => {
     if (!whisper.movie_id) return;
     setBusyId(whisper.id);
@@ -281,7 +309,9 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
         ? t(STORY_VERB[whisper.type as keyof typeof STORY_VERB])
         : whisper.type === 'friend_request'
           ? t('indications.sentFriendRequest')
-          : t('indications.recommended');
+          : whisper.type === 'whisper_like'
+            ? t('indications.whisperLiked')
+            : t('indications.recommended');
       return (
         <>
           <span className="font-semibold" style={{ color: PAPER }}>{whisper.from_user.username}</span> {verb}
@@ -360,6 +390,15 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
           <span className="mt-1 block text-sm" style={{ color: MIST }}>
             <span style={PIXEL} className="text-violet-200">S{whisper.season_number}E{whisper.episode_number}</span>
             {whisper.episode_name ? ` · ${whisper.episode_name}` : ''}
+          </span>
+        );
+      case 'whisper_like':
+        return posterBlock(
+          whisper,
+          whisper.media_type,
+          <span className="mt-1.5 flex items-center gap-1.5 text-sm" style={{ color: MIST }}>
+            <Heart className="w-4 h-4 text-rose-400" fill="currentColor" aria-hidden />
+            {t('indications.whisperLikedDetail')}
           </span>
         );
       case 'story_like':
@@ -457,11 +496,35 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
       );
     }
 
-    return (
+    const viewButton = (
       <button onClick={() => openMovie(whisper, whisper.type === 'new_episode' ? 'tv' : (whisper.media_type as 'movie' | 'tv' | undefined))} disabled={busy} className={ghostButton} style={{ color: PAPER }}>
         {whisper.type === 'new_episode' ? t('indications.viewEpisode') : t('indications.viewMovie')}
       </button>
     );
+
+    // Indicação de um amigo: dá para curtir.
+    if (whisper.type === 'movie' && whisper.from_user) {
+      const liked = !!whisper.liked_at;
+      const username = whisper.from_user.username;
+      return (
+        <>
+          {viewButton}
+          <button
+            onClick={() => toggleLike(whisper)}
+            disabled={likingId === whisper.id}
+            aria-pressed={liked}
+            aria-label={liked ? t('indications.unlikeAria', { username }) : t('indications.likeAria', { username })}
+            className={`${ghostButton} ${liked ? 'border-rose-300/50 hover:border-rose-300/70 bg-rose-500/10' : ''}`}
+            style={{ color: liked ? '#FDA4AF' : PAPER }}
+          >
+            <Heart className={`w-4 h-4 transition-transform ${liked ? 'scale-110' : ''}`} fill={liked ? 'currentColor' : 'none'} aria-hidden />
+            {liked ? t('indications.liked') : t('indications.like')}
+          </button>
+        </>
+      );
+    }
+
+    return viewButton;
   };
 
   const renderItem = (whisper: Whisper) => (

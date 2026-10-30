@@ -21,6 +21,10 @@ interface FloatingFriendBubblesProps {
   // dos amigos de TODOS os pôsteres numa consulta só). Quando vem
   // preenchido, o componente só desenha — não faz nenhuma consulta.
   friends?: FriendBubbleData[];
+  // 'belowBadges': as bolhas descem um pouco, para não cobrir os selos do
+  // alto do pôster (nota prevista e Watchlist) — prateleiras dos oráculos e
+  // "Escolhidos a dedo".
+  placement?: 'default' | 'belowBadges';
 }
 
 // Versão "fechada" das bolhas flutuantes que já existem no
@@ -28,11 +32,12 @@ interface FloatingFriendBubblesProps {
 // de watchlist), mas SEM balões de diálogo. Balões de review/"Querendo
 // Assistir..." exigem espaço e contexto que só fazem sentido no modal
 // aberto; num card de pôster pequeno dentro de um carrossel, eles
-// atrapalhariam mais do que ajudariam. Usada apenas em: "Amigos
-// planejando assistir" (Comunidade), "Popular Agora" e "Recomendações
-// do Oráculo" (Home) — nunca na Biblioteca, buscas de filme, ou perfis
-// da comunidade, onde as bolhas continuam desativadas.
-const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, mediaType = 'movie', maxBubbles = 3, friends }) => {
+// atrapalhariam mais do que ajudariam. Usada em: "Amigos planejando
+// assistir" (Comunidade), as listas da Home e, desde 30/10/2026, as
+// prateleiras dos oráculos e "Escolhidos a dedo" (Oracle Hub) — nunca na
+// Biblioteca, buscas de filme, ou perfis da comunidade, onde as bolhas
+// continuam desativadas.
+const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, mediaType = 'movie', maxBubbles = 3, friends, placement = 'default' }) => {
   const { session } = useAuth();
   const [fetchedBubbles, setBubbles] = useState<FriendBubbleData[]>([]);
   const [fetching, setLoading] = useState(!friends);
@@ -122,11 +127,19 @@ const FloatingFriendBubbles: React.FC<FloatingFriendBubblesProps> = ({ movieId, 
   // Mesmas primeiras posições usadas no modal expandido — reaproveita a
   // mesma disposição visual reconhecível, só com menos bolhas no total
   // (cards pequenos não comportam as 5 do modal grande).
-  const positions = [
-    { top: '10%', left: '8%' },
-    { top: '15%', right: '10%' },
-    { top: '45%', left: '6%' },
-  ];
+  const positions =
+    placement === 'belowBadges'
+      ? // os selos ocupam até ~30 px do alto e a bolha sobe 15 px ao flutuar
+        [
+          { top: '48px', left: '8%' },
+          { top: '58px', right: '8%' },
+          { top: 'calc(48px + 32%)', left: '6%' },
+        ]
+      : [
+          { top: '10%', left: '8%' },
+          { top: '15%', right: '10%' },
+          { top: '45%', left: '6%' },
+        ];
 
   return (
     // z 31 — nas listas da Home, o badge de posição ("#1", "#2"...) usa

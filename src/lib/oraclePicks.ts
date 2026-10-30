@@ -3,8 +3,10 @@ import type { OracleId } from './oracleTheme';
 
 // Escolhidos a dedo (Oracle Hub): os melhores títulos que cada oráculo tem nas
 // três prateleiras favoritas da pessoa, pela nota prevista. O servidor manda
-// filmes e séries separados (get_oracle_hub_picks, guardado por 6 horas);
+// filmes e séries separados (get_oracle_hub_picks_v2, guardado por 6 horas);
 // a tela sorteia, a cada abertura, quantos de cada tipo entram na fileira.
+// Desde 30/10/2026 os títulos da Watchlist da pessoa também entram, marcados
+// (inWatchlist) — só os já avaliados ficam de fora.
 
 export interface OraclePick {
   id: number;
@@ -15,6 +17,8 @@ export interface OraclePick {
   mu: number | null;
   // A prateleira (humor) de onde o título saiu.
   mood: string;
+  // Está na Watchlist da pessoa (a capa ganha a marca).
+  inWatchlist: boolean;
 }
 
 export interface OracleHubPicks {
@@ -38,6 +42,7 @@ const toPicks = (value: unknown, type: 'movie' | 'tv'): OraclePick[] =>
           rating: typeof row.r === 'number' ? row.r : null,
           mu: typeof row.mu === 'number' ? row.mu : null,
           mood: typeof row.mood === 'string' ? row.mood : '',
+          inWatchlist: row.w === true,
         }))
         .filter((pick) => Number.isFinite(pick.id) && pick.id > 0)
     : [];
@@ -45,7 +50,7 @@ const toPicks = (value: unknown, type: 'movie' | 'tv'): OraclePick[] =>
 const ORACLE_IDS: OracleId[] = ['bogart', 'fincher', 'cypher'];
 
 export async function fetchOracleHubPicks(): Promise<OracleHubPicks> {
-  const { data, error } = await supabase.rpc('get_oracle_hub_picks');
+  const { data, error } = await supabase.rpc('get_oracle_hub_picks_v2');
   if (error) throw error;
   const raw = (data || {}) as Row;
   const oracles = (raw.oracles || {}) as Record<string, Row>;

@@ -7,7 +7,10 @@ import { getFullTitle, prefetchFullTitle, titleKey, type TitleRef } from '../../
 import { tilesThatFit, useReveal, useTitleCards } from '../../hooks/useLazyList';
 import { fetchOracleHubPicks, mixPicks, drawSeriesShare, type OracleHubPicks, type OraclePick } from '../../lib/oraclePicks';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, oracleCardImage, withAlpha, type OracleCard, type OracleId } from '../../lib/oracleTheme';
-import PredictedBadge from '../PredictedBadge';
+import { PosterTopBadges } from '../PredictedBadge';
+import FloatingFriendBubbles from '../FloatingFriendBubbles';
+import { friendKey, useFriendActivity, type FriendActivity } from '../../hooks/useFriendActivity';
+import { useAuth } from '../../lib/auth';
 import MovieDetailsModal from '../MovieDetailsModal';
 import OracleProfileSheet from './OracleProfileSheet';
 
@@ -43,9 +46,10 @@ const OracleRow: React.FC<{
   status: Status;
   picks: OraclePick[];
   cardOf: (ref: TitleRef) => Movie | undefined;
+  friendActivity: FriendActivity;
   onOpen: (pick: OraclePick) => void;
   onOpenProfile: (id: OracleId) => void;
-}> = ({ oracle, cardStyle, status, picks, cardOf, onOpen, onOpenProfile }) => {
+}> = ({ oracle, cardStyle, status, picks, cardOf, friendActivity, onOpen, onOpenProfile }) => {
   const { t, i18n } = useTranslation();
   const reveal = useReveal();
   const initialCount = useMemo(() => tilesThatFit(tileWidthPx()), []);
@@ -150,7 +154,7 @@ const OracleRow: React.FC<{
                     className={`block w-full text-left rounded-xl ${FOCUS_RING}`}
                   >
                     <span
-                      className="relative block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
+                      className="relative isolate block aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/10 shadow-xl transition-transform duration-200 group-hover:-translate-y-1"
                       style={{ background: VELVET }}
                     >
                       {movie.poster_path ? (
@@ -170,7 +174,15 @@ const OracleRow: React.FC<{
                           </span>
                         </span>
                       )}
-                      {pick.rating !== null && <PredictedBadge rating={pick.rating} />}
+                      <PosterTopBadges predicted={pick.rating} inWatchlist={pick.inWatchlist} />
+                      {/* As bolhas dos amigos (como na home); duas no máximo, o pôster aqui é pequeno. */}
+                      <FloatingFriendBubbles
+                        movieId={pick.id}
+                        mediaType={pick.type}
+                        friends={friendActivity[friendKey(ref)] ?? []}
+                        maxBubbles={2}
+                        placement="belowBadges"
+                      />
                     </span>
                     <span className={`mt-2 block text-[13px] font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={movie.title}>
                       {movie.title}
@@ -255,6 +267,7 @@ const BrowseAllSign: React.FC<{ totalTitles: number; shelves: number }> = ({ tot
 
 const OraclePicks: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
   const { t } = useTranslation();
+  const { session } = useAuth();
   const [status, setStatus] = useState<Status>('loading');
   const [data, setData] = useState<OracleHubPicks | null>(null);
   const [selected, setSelected] = useState<Movie | null>(null);
@@ -289,6 +302,8 @@ const OraclePicks: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
 
   const refs: TitleRef[] = useMemo(() => rows.flatMap((row) => row.picks.map((pick) => ({ id: pick.id, media_type: pick.type }))), [rows]);
   const cardOf = useTitleCards(refs, refs.length, { enabled: refs.length > 0, ahead: 0 });
+  // Os amigos que viram ou guardaram cada título (as bolhas nas capas).
+  const friendActivity = useFriendActivity(session?.user?.id, refs);
 
   const open = async (pick: OraclePick) => {
     const ref: TitleRef = { id: pick.id, media_type: pick.type };
@@ -343,6 +358,7 @@ const OraclePicks: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
             status={status}
             picks={picks}
             cardOf={cardOf}
+            friendActivity={friendActivity}
             onOpen={open}
             onOpenProfile={setProfileId}
           />

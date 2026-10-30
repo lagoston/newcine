@@ -716,6 +716,9 @@ export interface PredictedShelfMovie {
   movie_id: number;
   media_type: 'movie' | 'tv';
   predicted_rating: number | null;
+  // Na Watchlist da pessoa (desde 30/10/2026 os da Watchlist ficam na
+  // prateleira, com a marca na capa).
+  in_watchlist?: boolean;
 }
 
 // Chama a Edge Function que calcula a nota PREVISTA pra esse usuário
@@ -741,12 +744,14 @@ export const getOraclePoolPredictions = async (
   // functions.invoke manda o token da sessão atual (renovado sozinho). Erro
   // agora é LANÇADO: antes virava lista vazia e a prateleira dizia "Você já
   // assistiu tudo dessa categoria" quando na verdade a busca tinha falhado.
-  const { data, error } = await supabase.functions.invoke('predict-oracle-shelf', { body: { cardType, moodKey, mediaType } });
+  // includeWatchlist: os da Watchlist ficam, marcados (só os avaliados saem).
+  const { data, error } = await supabase.functions.invoke('predict-oracle-shelf', { body: { cardType, moodKey, mediaType, includeWatchlist: true } });
   if (error) throw error;
   if (data?.error) throw new Error(String(data.error));
   const titles = ((data?.movies as PredictedShelfMovie[]) || []).map((item) => ({
     ...item,
     media_type: item.media_type === 'tv' ? ('tv' as const) : ('movie' as const),
+    in_watchlist: item.in_watchlist === true,
   }));
   // Função antiga (sem poolCount): considera a prateleira cheia.
   const poolCount = typeof data?.poolCount === 'number' ? data.poolCount : titles.length;
