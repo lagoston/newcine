@@ -434,10 +434,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
         setOracleFlavorPhrases(phrases);
 
         // Temporizador por selo: o primeiro balão aparece sozinho 2s depois
-        // de abrir o modal e fica 6s; os seguintes entram em fila, um de
-        // cada vez. Um toque a qualquer momento cancela esse ciclo (ver
+        // de abrir o modal e fica o tempo de ler o comentário (de 6s a 11s,
+        // conforme o tamanho); os seguintes entram em fila, um de cada vez.
+        // Um toque a qualquer momento cancela esse ciclo (ver
         // toggleOracleBubble).
-        sources.filter((source) => !!phrases[source]).forEach((source, order) => {
+        let startAt = 2000;
+        sources.filter((source) => !!phrases[source]).forEach((source) => {
+          const duration = Math.min(11000, Math.max(6000, 2000 + phrases[source].length * 50));
           const showTimer = setTimeout(() => {
             setVisibleOracleBubbles(new Set([source]));
             const hideTimer = setTimeout(() => {
@@ -446,10 +449,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                 next.delete(source);
                 return next;
               });
-            }, 6000);
+            }, duration);
             bubbleTimersRef.current[source] = { ...bubbleTimersRef.current[source], hideTimer };
-          }, 2000 + order * 6500);
+          }, startAt);
           bubbleTimersRef.current[source] = { showTimer };
+          startAt += duration + 500;
         });
       });
 
@@ -1717,7 +1721,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
 
                     {/* Selos dos oráculos cuja pool tem esse filme — cada um com
                         a sua frase, num balão que aparece sozinho 2s depois de
-                        abrir, some depois de 6s, e alterna a qualquer toque. */}
+                        abrir, fica o tempo de ler (6s a 11s) e alterna a qualquer toque. */}
                     {oracleSources.length > 0 && (
                       <div className="absolute bottom-0.5 left-0.5 z-20 flex items-end">
                         {oracleSources.map((source) => {
