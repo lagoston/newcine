@@ -145,11 +145,9 @@ const Reveal: React.FC<{
   reduceMotion: boolean;
   equipping: boolean;
   equipped: boolean;
-  canSpinAgain: boolean;
   onEquip: () => void;
-  onAgain: () => void;
   onClose: () => void;
-}> = ({ result, reduceMotion, equipping, equipped, canSpinAgain, onEquip, onAgain, onClose }) => {
+}> = ({ result, reduceMotion, equipping, equipped, onEquip, onClose }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
   const meta = RARITY_META[result.item.rarity];
@@ -244,11 +242,11 @@ const Reveal: React.FC<{
             </button>
             <button
               type="button"
-              onClick={canSpinAgain ? onAgain : onClose}
+              onClick={onClose}
               className={`inline-flex items-center gap-1.5 h-11 px-5 rounded-full text-sm font-semibold transition hover:bg-white/10 ${FOCUS_RING}`}
               style={{ color: '#FFE8A3', boxShadow: 'inset 0 0 0 1.5px rgba(244,196,84,0.7)' }}
             >
-              {canSpinAgain ? t('jackpot.machine.again') : t('jackpot.machine.back')}
+              {t('jackpot.machine.back')}
             </button>
           </div>
           <p className="mt-3 text-xs" style={{ color: MIST }}>
@@ -381,10 +379,6 @@ const Machine: React.FC<{
       reduceMotion ? 200 : 950
     );
   };
-
-  // "Girar de novo" chama o giro da renderização mais nova (estado em dia).
-  const spinRef = useRef(spin);
-  spinRef.current = spin;
 
   const equip = async () => {
     if (!result) return;
@@ -528,14 +522,11 @@ const Machine: React.FC<{
             reduceMotion={reduceMotion}
             equipping={equipping}
             equipped={equipped}
-            canSpinAgain={(state.tickets > 0 && state.remaining > 0) || (state.specialAvailable && state.remainingSpecial > 0)}
             onEquip={equip}
-            onAgain={() => {
+            onClose={() => {
               setPhase('idle');
-              if (state.tickets <= 0 && state.specialAvailable) setKind('special');
-              window.setTimeout(() => void spinRef.current(), 260);
+              if (state.tickets <= 0 && state.specialAvailable && state.remainingSpecial > 0) setKind('special');
             }}
-            onClose={() => setPhase('idle')}
           />
         )}
       </AnimatePresence>
