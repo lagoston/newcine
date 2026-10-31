@@ -2252,7 +2252,9 @@
       "notInLibrary": "This title isn't in your library yet. Once equipped, the poster shows up when you add it.",
       "equippedToast": "Poster equipped on {{title}}.",
       "unequippedToast": "Back to the original cover.",
-      "equipError": "Couldn't change the poster right now."
+      "equipError": "Couldn't change the poster right now.",
+      "openTitle": "Open {{title}}",
+      "openHint": "Tap the poster to open the title."
     },
     "missions": {
       "rate_oracle": "Rate a title from {{oracle}}",
@@ -2293,6 +2295,10 @@
       "gift_one": "You got {{count}} ticket to start.",
       "gift_other": "You got {{count}} tickets to start.",
       "play": "Play now"
+    },
+    "mark": {
+      "label": "{{rarity}} no. {{number}}",
+      "number": "No. {{number}}"
     }
   },
   "invite": {

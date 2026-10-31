@@ -42,7 +42,14 @@ const TradeSide: React.FC<{ poster: TradePoster; label: string }> = ({ poster, l
   return (
     <div className="min-w-0 flex-1 text-center">
       <p className="text-[11.5px] font-semibold" style={{ color: MIST }}>{label}</p>
-      <PosterArt filePath={poster.file_path} effect={poster.effect} alt={titleOf(poster, isPt)} size="w342" className="mt-1.5 mx-auto w-full max-w-[120px] aspect-[2/3] rounded-xl shadow-[0_14px_28px_-14px_rgba(0,0,0,0.9)]" />
+      <PosterArt
+        filePath={poster.file_path}
+        effect={poster.effect}
+        alt={titleOf(poster, isPt)}
+        size="w342"
+        className="mt-1.5 mx-auto w-full max-w-[120px] aspect-[2/3] rounded-xl shadow-[0_14px_28px_-14px_rgba(0,0,0,0.9)]"
+        mark={{ rarity: poster.rarity, serial: poster.serial, size: 'xs' }}
+      />
       <p className="mt-1.5 text-[12.5px] font-medium leading-snug line-clamp-2" style={{ color: PAPER }}>{titleOf(poster, isPt)}</p>
       <div className="mt-1 flex flex-wrap justify-center gap-1">
         <RarityTag rarity={poster.rarity} />
@@ -175,7 +182,15 @@ const PickGrid: React.FC<{
               className={`relative block w-full rounded-lg transition ${FOCUS_RING} ${blocked ? 'cursor-not-allowed' : 'hover:-translate-y-0.5'}`}
               style={{ boxShadow: active ? '0 0 0 2.5px #F4C454, 0 0 18px -2px rgba(244,196,84,0.8)' : undefined }}
             >
-              <PosterArt filePath={poster.file_path} effect={poster.effect} alt="" size="w185" animated={false} className={`aspect-[2/3] rounded-lg ${blocked ? 'opacity-30 grayscale' : ''}`} />
+              <PosterArt
+                filePath={poster.file_path}
+                effect={poster.effect}
+                alt=""
+                size="w185"
+                animated={false}
+                className={`aspect-[2/3] rounded-lg ${blocked ? 'opacity-30 grayscale' : ''}`}
+                mark={blocked ? null : { rarity: poster.rarity, serial: poster.serial, size: 'xs' }}
+              />
               {active && (
                 <span className="absolute top-1 right-1 grid place-items-center w-5 h-5 rounded-full" style={{ background: '#F4C454', color: '#2A1A00' }}>
                   <Check className="w-3 h-3" aria-hidden />

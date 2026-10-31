@@ -1,12 +1,16 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { RARITY_META, EFFECT_META, posterUrl, type PosterEffect, type PosterRarity } from '../../lib/posterJackpot';
+import CollectorMark, { RarityGem, type MarkSize } from './CollectorMark';
 import '../../styles/posterJackpot.css';
 
 // Um pôster do Poster Jackpot com o efeito especial por cima (holográfico,
 // negativo ou ultra vermelho). O brilho holográfico corre sozinho em todo
 // lugar (coleção, biblioteca, menu do título); `animated={false}` deixa
-// parado (a fita da roleta, com dezenas de capas passando).
+// parado (a fita da roleta, com dezenas de capas passando). `mark` põe a
+// marca de colecionador (cristal + número) no canto de baixo à direita.
+export type PosterMark = { rarity: PosterRarity; serial: number | null | undefined; size?: MarkSize; bottom?: string };
+
 const PosterArt: React.FC<{
   filePath: string;
   effect?: PosterEffect;
@@ -16,7 +20,8 @@ const PosterArt: React.FC<{
   className?: string;
   style?: React.CSSProperties;
   loading?: 'lazy' | 'eager';
-}> = ({ filePath, effect = 'none', alt = '', size = 'w342', animated = true, className = '', style, loading = 'lazy' }) => {
+  mark?: PosterMark | null;
+}> = ({ filePath, effect = 'none', alt = '', size = 'w342', animated = true, className = '', style, loading = 'lazy', mark }) => {
   const effectClass = effect === 'negative' ? 'pj-negative' : effect === 'ultra_red' ? 'pj-ultra' : effect === 'holo' ? 'pj-holo' : '';
   // Quem passa `absolute` posiciona; senão, o pôster é o próprio quadro.
   const position = /\babsolute\b/.test(className) ? '' : 'relative';
@@ -36,6 +41,7 @@ const PosterArt: React.FC<{
           <span aria-hidden className="pj-holo-sheen" />
         </>
       )}
+      {mark && <CollectorMark rarity={mark.rarity} serial={mark.serial} size={mark.size} bottom={mark.bottom} />}
     </span>
   );
 };
@@ -47,9 +53,9 @@ export const RarityTag: React.FC<{ rarity: PosterRarity; className?: string }> =
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none ${className}`}
-      style={{ color: meta.color, background: 'rgba(10,14,44,0.85)', boxShadow: `inset 0 0 0 1px ${meta.color}` }}
+      style={{ color: meta.color, background: 'rgba(10,14,44,0.85)', boxShadow: `inset 0 0 0 1px ${meta.color}`, ['--pj-gem-glow' as string]: meta.glow }}
     >
-      <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: meta.color }} />
+      <RarityGem rarity={rarity} className="w-3 h-3 -ml-0.5" />
       {t(`jackpot.rarity.${rarity}`)}
     </span>
   );

@@ -395,6 +395,97 @@
   100% { opacity: 0; }
 }
 
+/* ======================================================================
+   Marca de colecionador (31/10/2026): o cristal da raridade cravado numa
+   plaquinha de vidro escuro com filete dourado + o número do pôster
+   dentro da raridade. Tamanho todo em em: cada lugar só escolhe a escala.
+   ====================================================================== */
+
+.pj-mark {
+  position: absolute;
+  right: var(--pj-mark-r, 0.6em);
+  bottom: var(--pj-mark-b, 0.6em);
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  height: 1.95em;
+  padding: 0 0.62em 0 0.3em;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 46%),
+    linear-gradient(180deg, rgba(24, 30, 84, 0.92), rgba(8, 10, 32, 0.95));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 232, 163, 0.46),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 0.35em 0.8em -0.25em rgba(0, 0, 0, 0.85);
+  color: #fff4d6;
+  font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+.pj-mark--xs { font-size: 7.5px; }
+.pj-mark--sm { font-size: 9px; }
+.pj-mark--md { font-size: 10.5px; }
+.pj-mark--lg { font-size: 12.5px; }
+.pj-mark--xs .pj-mark-num { letter-spacing: 0.02em; }
+
+/* O cristal salta um pouco da plaquinha, com o brilho da raridade. */
+.pj-mark .pj-gem {
+  width: 1.5em;
+  height: 1.5em;
+  margin: -0.2em 0 -0.2em -0.12em;
+}
+.pj-gem {
+  flex: none;
+  overflow: visible;
+  filter: drop-shadow(0 0 0.22em var(--pj-gem-glow, rgba(255, 255, 255, 0.4))) drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55));
+}
+
+.pj-mark-num {
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  transform: translateY(0.04em);
+}
+.pj-mark-no {
+  font-size: 0.72em;
+  color: #f4c454;
+  letter-spacing: 0.02em;
+  margin-right: -0.05em;
+}
+
+/* O brilho do Lendário: uma estrelinha que acende de tempos em tempos. */
+.pj-gem-glint {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: pj-glint 4.2s ease-in-out infinite;
+}
+@keyframes pj-glint {
+  0%, 72% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  80% { opacity: 1; transform: scale(1.15) rotate(45deg); }
+  90%, 100% { opacity: 0; transform: scale(0.2) rotate(90deg); }
+}
+
+/* A linha "Lendário · Nº 007" sob o pôster revelado e no detalhe. */
+.pj-serial-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  font-weight: 700;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0.08em;
+}
+.pj-serial-line .pj-gem {
+  width: 1.25em;
+  height: 1.25em;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pj-animated .pj-holo-foil,
   .pj-animated .pj-holo-layer,
@@ -410,7 +501,8 @@
     animation: none;
   }
   .pj-spark,
-  .pj-flash {
+  .pj-flash,
+  .pj-gem-glint {
     display: none;
   }
 }

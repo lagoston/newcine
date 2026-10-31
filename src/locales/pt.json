@@ -2257,7 +2257,9 @@
       "notInLibrary": "Este título ainda não está na sua biblioteca. Equipado, o pôster aparece quando você adicionar o título.",
       "equippedToast": "Pôster equipado em {{title}}.",
       "unequippedToast": "Voltou a capa original.",
-      "equipError": "Não deu para trocar o pôster agora."
+      "equipError": "Não deu para trocar o pôster agora.",
+      "openTitle": "Abrir {{title}}",
+      "openHint": "Toque no pôster para abrir o título."
     },
     "missions": {
       "rate_oracle": "Avalie um título do {{oracle}}",
@@ -2298,6 +2300,10 @@
       "gift_one": "Você ganhou {{count}} ticket para começar.",
       "gift_other": "Você ganhou {{count}} tickets para começar.",
       "play": "Jogar agora"
+    },
+    "mark": {
+      "label": "{{rarity}} nº {{number}}",
+      "number": "Nº {{number}}"
     }
   },
   "invite": {

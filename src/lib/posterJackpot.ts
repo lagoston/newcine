@@ -38,6 +38,9 @@ export interface PosterItem {
   media_type: TitleType;
   tmdb_id: number;
   rarity: PosterRarity;
+  // Número de colecionador dentro da raridade (Lendário nº 7…): por ordem de
+  // entrada no catálogo e fixo para sempre (migração 20261031090000).
+  serial: number | null;
   file_path: string;
   title_pt: string | null;
   title_en: string | null;
@@ -84,6 +87,7 @@ export interface JackpotState {
 export interface CatalogPoster {
   id: number;
   rarity: PosterRarity;
+  serial: number | null;
   file_path: string;
   media_type: TitleType;
   tmdb_id: number;
@@ -201,7 +205,7 @@ const CHANGED_EVENT = 'cineoracle:posters-changed';
 let myPostersPromise: Promise<OwnedPoster[]> | null = null;
 const equippedCache = new Map<string, Promise<EquippedMap>>();
 
-export type EquippedPoster = { item_id: number; effect: PosterEffect; rarity: PosterRarity; file_path: string };
+export type EquippedPoster = { item_id: number; effect: PosterEffect; rarity: PosterRarity; serial: number | null; file_path: string };
 export type EquippedMap = Map<string, EquippedPoster>;
 export const posterKey = (mediaType: string | null | undefined, id: number) => `${mediaType === 'tv' ? 'tv' : 'movie'}:${id}`;
 
@@ -237,6 +241,7 @@ function loadEquipped(ownerId: string): Promise<EquippedMap> {
           item_id: num(row.item_id),
           effect: row.effect as PosterEffect,
           rarity: row.rarity as PosterRarity,
+          serial: row.serial == null ? null : num(row.serial),
           file_path: row.file_path as string,
         });
       });

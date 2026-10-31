@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, type AnimationPlaybackControls } from 'framer-motion';
 import PosterArt from './PosterArt';
+import CollectorMark from './CollectorMark';
 import { RARITY_META, type CatalogPoster, type PosterEffect, type PosterRarity } from '../../lib/posterJackpot';
 import { playTick } from '../../lib/jackpotSound';
 
@@ -218,6 +219,7 @@ const JackpotReel = forwardRef<
                 <PosterArt filePath={card.item.file_path} effect={card.effect} size="w185" animated={isWinner} loading="eager" className="absolute inset-0" />
                 <span aria-hidden className="pj-rarity-glow" style={{ background: `linear-gradient(0deg, ${meta.glow}, transparent)` }} />
                 <span aria-hidden className="pj-rarity-bar" style={{ background: meta.color }} />
+                <CollectorMark rarity={card.item.rarity} serial={card.item.serial} size="xs" bottom="calc(4px + 0.55em)" />
               </div>
             );
           })}

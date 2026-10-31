@@ -513,7 +513,13 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                         style={{ background: VELVET }}
                       >
                         {equipped ? (
-                          <PosterArt filePath={equipped.file_path} effect={equipped.effect} alt={movie.title} className="absolute inset-0 w-full h-full" />
+                          <PosterArt
+                            filePath={equipped.file_path}
+                            effect={equipped.effect}
+                            alt={movie.title}
+                            className="absolute inset-0 w-full h-full"
+                            mark={{ rarity: equipped.rarity, serial: equipped.serial, size: 'xs', bottom: tv ? 'calc(6px + 0.6em)' : undefined }}
+                          />
                         ) : movie.poster_path ? (
                           <OptimizedPoster
                             src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
@@ -851,7 +857,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                 cell(
                   !!current && current.item_id === poster.id && current.effect === poster.effect,
                   () => choose(poster),
-                  <PosterArt filePath={poster.file_path} effect={poster.effect} alt={posterPicker.title} size="w185" className="aspect-[2/3] rounded-xl" />,
+                  <PosterArt filePath={poster.file_path} effect={poster.effect} alt={posterPicker.title} size="w185" className="aspect-[2/3] rounded-xl" mark={{ rarity: poster.rarity, serial: poster.serial, size: 'xs' }} />,
                   null,
                   `${poster.id}:${poster.effect}`
                 )

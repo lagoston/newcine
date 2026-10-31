@@ -1701,7 +1701,14 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                       style={{ background: VELVET }}
                     >
                       {equippedPoster ? (
-                        <PosterArt filePath={equippedPoster.file_path} effect={equippedPoster.effect} size="w500" loading="eager" className="absolute inset-0 w-full h-full" />
+                        <PosterArt
+                          filePath={equippedPoster.file_path}
+                          effect={equippedPoster.effect}
+                          size="w500"
+                          loading="eager"
+                          className="absolute inset-0 w-full h-full"
+                          mark={{ rarity: equippedPoster.rarity, serial: equippedPoster.serial, size: 'md' }}
+                        />
                       ) : posterSrc ? (
                         <img
                           src={posterSrc}

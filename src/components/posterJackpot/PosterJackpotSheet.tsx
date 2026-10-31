@@ -1,11 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Check, Copy, Crown, Gift, Loader2, Share2, Sparkles, Ticket, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { Check, Copy, Crown, Gift, Loader2, Maximize2, Share2, Sparkles, Ticket, Trophy, Volume2, VolumeX } from 'lucide-react';
 import OracleSheet, { SheetFade } from '../OracleSheet';
 import PosterArt, { EffectTag, RarityTag } from './PosterArt';
+import { SerialLine } from './CollectorMark';
+import { getMovieDetails, type Movie } from '../../lib/tmdb';
 import JackpotReel, { reelKey, type JackpotReelHandle, type ReelCard } from './JackpotReel';
 import { MOOD_BY_KEY } from '../../lib/moods';
 import { ORACLE_BY_ID, PAPER, MIST, FOCUS_RING, VELVET, withAlpha, type OracleId } from '../../lib/oracleTheme';
@@ -37,6 +39,11 @@ import { INVITE_REWARD, copyInvite, getMyInvite, shareInvite, type MyInvite } fr
 import { getMyTrades, type PosterTrade } from '../../lib/posterTrades';
 import PosterTradesPanel from './PosterTradesPanel';
 import '../../styles/posterJackpot.css';
+
+// O menu expandido do título (aberto ao tocar no pôster no detalhe da
+// coleção). Carregado sob demanda: o MovieDetailsModal também mostra
+// pôsteres do Jackpot, e assim os dois módulos não se puxam na carga.
+const MovieDetailsModal = lazy(() => import('../MovieDetailsModal'));
 
 // Poster Jackpot: a roleta do Oracle Hub. Um palco de parque encantado
 // (céu estrelado, moldura dourada em arco, lâmpadas de letreiro correndo)
@@ -217,6 +224,7 @@ const Reveal: React.FC<{
             size="w500"
             loading="eager"
             className="aspect-[2/3] rounded-2xl shadow-[0_24px_50px_-18px_rgba(0,0,0,0.95)]"
+            mark={{ rarity: result.item.rarity, serial: result.item.serial, size: 'md' }}
           />
         </motion.div>
 
@@ -230,7 +238,8 @@ const Reveal: React.FC<{
           {t(`jackpot.rarity.${result.item.rarity}`)}
         </motion.p>
         <motion.div initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}>
-          <p className="mt-2 text-[15px] font-semibold leading-snug" style={{ color: PAPER }}>
+          <SerialLine rarity={result.item.rarity} serial={result.item.serial} className="mt-2 text-[12.5px]" />
+          <p className="mt-1.5 text-[15px] font-semibold leading-snug" style={{ color: PAPER }}>
             {title}
             {result.item.year ? <span className="font-normal" style={{ color: MIST }}> ({result.item.year})</span> : null}
           </p>
@@ -559,11 +568,33 @@ const Machine: React.FC<{
 // A coleção: só os pôsteres
 // ---------------------------------------------------------------------------
 
-const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void }> = ({ list, onChanged }) => {
+const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void; onLayer?: (open: boolean) => void }> = ({ list, onChanged, onLayer }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
   const [open, setOpen] = useState<OwnedPoster | null>(null);
   const [busy, setBusy] = useState(false);
+  // O menu expandido do título, aberto ao tocar no pôster do detalhe.
+  const [movie, setMovie] = useState<Movie | null>(null);
+  const [loadingMovie, setLoadingMovie] = useState(false);
+
+  // Com o detalhe aberto, o Esc fecha só ele (e não a roleta inteira).
+  useEffect(() => {
+    onLayer?.(!!open);
+  }, [open, onLayer]);
+  useEffect(() => () => onLayer?.(false), [onLayer]);
+
+  const openTitle = async (poster: OwnedPoster) => {
+    if (loadingMovie) return;
+    setLoadingMovie(true);
+    try {
+      setMovie(await getMovieDetails(poster.tmdb_id, poster.media_type));
+    } catch (error) {
+      console.error('Poster Jackpot open title:', error);
+      toast.error(t('common.error'));
+    } finally {
+      setLoadingMovie(false);
+    }
+  };
 
   const toggleEquip = async (poster: OwnedPoster) => {
     setBusy(true);
@@ -614,6 +645,7 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void }
                   alt=""
                   size="w342"
                   className="aspect-[2/3] rounded-xl shadow-[0_14px_30px_-16px_rgba(0,0,0,0.9)] transition-transform duration-200 group-hover:-translate-y-1"
+                  mark={{ rarity: poster.rarity, serial: poster.serial, size: 'xs' }}
                 />
                 {poster.equipped && (
                   <span className="absolute top-1.5 right-1.5 grid place-items-center w-6 h-6 rounded-full bg-emerald-500 text-white shadow-lg" title={t('jackpot.collection.equipped')}>
@@ -633,13 +665,36 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void }
         subtitle={open?.year ? String(open.year) : undefined}
         size="md"
         zIndexClass="z-[10005]"
+        escapeEnabled={!movie}
       >
         {open && (
           <div className="text-center">
-            <div className="mx-auto w-44 sm:w-52">
-              <PosterArt filePath={open.file_path} effect={open.effect} alt={titleOf(open, isPt)} size="w500" loading="eager" className="aspect-[2/3] rounded-2xl" />
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => openTitle(open)}
+              aria-label={t('jackpot.collection.openTitle', { title: titleOf(open, isPt) })}
+              className={`group relative mx-auto block w-44 sm:w-52 rounded-2xl transition-transform duration-200 hover:-translate-y-1 active:scale-[0.98] ${FOCUS_RING}`}
+            >
+              <PosterArt
+                filePath={open.file_path}
+                effect={open.effect}
+                alt=""
+                size="w500"
+                loading="eager"
+                className="aspect-[2/3] rounded-2xl shadow-[0_22px_44px_-20px_rgba(0,0,0,0.95)]"
+                mark={{ rarity: open.rarity, serial: open.serial, size: 'md' }}
+              />
+              <span
+                aria-hidden
+                className="absolute top-2 right-2 z-10 grid place-items-center w-8 h-8 rounded-full text-white transition-transform duration-200 group-hover:scale-110"
+                style={{ background: 'rgba(10,14,44,0.78)', boxShadow: 'inset 0 0 0 1px rgba(255,232,163,0.4), 0 6px 14px -6px rgba(0,0,0,0.8)' }}
+              >
+                {loadingMovie ? <Loader2 className="w-4 h-4 animate-spin" /> : <Maximize2 className="w-4 h-4" />}
+              </span>
+            </button>
+            <p className="mt-2 text-[11.5px]" style={{ color: MIST }}>{t('jackpot.collection.openHint')}</p>
+            <SerialLine rarity={open.rarity} serial={open.serial} gem={false} className="mt-3 text-[15px]" />
+            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
               <RarityTag rarity={open.rarity} />
               <EffectTag effect={open.effect} />
             </div>
@@ -659,6 +714,12 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void }
           </div>
         )}
       </OracleSheet>
+
+      {movie && (
+        <Suspense fallback={null}>
+          <MovieDetailsModal movie={movie} isOpen onClose={() => setMovie(null)} zIndexClass="z-[10010]" />
+        </Suspense>
+      )}
     </div>
   );
 };
@@ -908,6 +969,8 @@ const PosterJackpotSheet: React.FC<{
   const [tab, setTab] = useState<Tab>(initialTab);
   const [owned, setOwned] = useState<OwnedPoster[] | null>(null);
   const [trades, setTrades] = useState<PosterTrade[] | null>(null);
+  // Uma camada por cima (detalhe de um pôster): o Esc fecha só ela.
+  const [layerOpen, setLayerOpen] = useState(false);
 
   const loadOwned = useCallback(() => {
     loadMyPosters()
@@ -951,6 +1014,7 @@ const PosterJackpotSheet: React.FC<{
       subtitle={state ? t('jackpot.subtitle', { count: state.tickets }) : undefined}
       size="lg"
       contentKey={tab}
+      escapeEnabled={!layerOpen}
     >
       {!state ? (
         <div className="flex justify-center py-16">
@@ -986,7 +1050,7 @@ const PosterJackpotSheet: React.FC<{
           </div>
           <SheetFade id={tab}>
             {tab === 'machine' && <Machine state={state} owned={owned} onState={onState} onCollectionChanged={loadOwned} onInvite={() => setTab('missions')} />}
-            {tab === 'collection' && <Collection list={owned} onChanged={loadOwned} />}
+            {tab === 'collection' && <Collection list={owned} onChanged={loadOwned} onLayer={setLayerOpen} />}
             {tab === 'trades' && (
               <PosterTradesPanel
                 trades={trades}

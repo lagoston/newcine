@@ -205,7 +205,7 @@ const AllMoviesModal: React.FC<AllMoviesModalProps> = ({
                         const equipped = equippedPosters.get(posterKey(movie.media_type, movie.id))!;
                         return (
                           <>
-                            <PosterArt filePath={equipped.file_path} effect={equipped.effect} alt={movie.title} className="absolute inset-0 w-full h-full" />
+                            <PosterArt filePath={equipped.file_path} effect={equipped.effect} alt={movie.title} className="absolute inset-0 w-full h-full" mark={{ rarity: equipped.rarity, serial: equipped.serial, size: 'xs' }} />
                           </>
                         );
                       })()
