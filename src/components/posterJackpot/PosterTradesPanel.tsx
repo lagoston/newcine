@@ -10,12 +10,14 @@ import {
   cancelTrade,
   getTradeBoard,
   getTradeFriends,
+  getTradeLimits,
   proposeTrade,
   respondTrade,
   tradeErrorCode,
   tradeSides,
   type PosterTrade,
   type TradeFriend,
+  type TradeLimits,
   type TradePoster,
   type TradeStatus,
 } from '../../lib/posterTrades';
@@ -351,6 +353,21 @@ const PosterTradesPanel: React.FC<{
   const { t } = useTranslation();
   const [mode, setMode] = useState<'list' | 'propose'>('list');
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [limits, setLimits] = useState<TradeLimits | null>(null);
+
+  // O limite do dia vem junto com a lista de trocas (que muda a cada ação).
+  useEffect(() => {
+    let alive = true;
+    getTradeLimits()
+      .then((value) => alive && setLimits(value))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [trades]);
+  const tradesLeft = limits ? Math.max(0, limits.limit - limits.tradesToday) : null;
+  const proposalsLeft = limits ? Math.max(0, limits.limit - limits.proposalsToday) : null;
+  const canPropose = tradesLeft !== 0 && proposalsLeft !== 0;
 
   const incoming = useMemo(() => (trades || []).filter((tr) => tr.status === 'pending' && tr.incoming), [trades]);
   const outgoing = useMemo(() => (trades || []).filter((tr) => tr.status === 'pending' && !tr.incoming), [trades]);
@@ -366,7 +383,8 @@ const PosterTradesPanel: React.FC<{
       onChanged();
     } catch (error) {
       console.error('Respond trade:', error);
-      toast.error(t('trades.errors.error'));
+      const code = tradeErrorCode(error);
+      toast.error(t(`trades.errors.${code}`, { name: trade.friend.username, defaultValue: t('trades.errors.error') }));
     } finally {
       setBusyId(null);
     }
@@ -413,14 +431,22 @@ const PosterTradesPanel: React.FC<{
           <p className="mt-0.5 text-[13px] leading-relaxed" style={{ color: '#D9D2F2' }}>{t('trades.hint')}</p>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => setMode('propose')}
-        className={`pj-spin -mt-3 w-full inline-flex items-center justify-center gap-2 h-12 rounded-full text-[15px] font-bold ${FOCUS_RING}`}
-      >
-        <Users className="w-4 h-4" aria-hidden />
-        <span className="relative">{t('trades.propose')}</span>
-      </button>
+      <div className="-mt-3">
+        <button
+          type="button"
+          onClick={() => (canPropose ? setMode('propose') : toast(tradesLeft === 0 ? t('trades.errors.daily_trades') : t('trades.errors.daily_proposals')))}
+          aria-disabled={!canPropose}
+          className={`pj-spin w-full inline-flex items-center justify-center gap-2 h-12 rounded-full text-[15px] font-bold ${canPropose ? '' : 'opacity-60'} ${FOCUS_RING}`}
+        >
+          <Users className="w-4 h-4" aria-hidden />
+          <span className="relative">{t('trades.propose')}</span>
+        </button>
+        {limits && (
+          <p className="mt-2 text-center text-[12.5px]" style={{ color: MIST }}>
+            {t('trades.todayLeft', { trades: tradesLeft, proposals: proposalsLeft, limit: limits.limit })}
+          </p>
+        )}
+      </div>
 
       {!trades ? (
         <div className="flex justify-center py-8">

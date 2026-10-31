@@ -2325,7 +2325,7 @@
   },
   "trades": {
     "title": "Trocas com amigos",
-    "hint": "Ofereça um pôster seu por um de um amigo. Ninguém fica com repetido: só vale trocar o que o outro ainda não tem.",
+    "hint": "Ofereça um pôster seu por um de um amigo. Ninguém fica com repetido: só vale trocar o que o outro ainda não tem. Até 3 trocas por dia.",
     "propose": "Propor troca",
     "incoming_one": "Proposta para você",
     "incoming_other": "Propostas para você ({{count}})",
@@ -2385,7 +2385,11 @@
       "duplicate": "Você já mandou essa mesma proposta.",
       "too_many": "Você já tem 10 propostas abertas. Espere respostas ou cancele alguma.",
       "jackpot_closed": "O Poster Jackpot não está aberto para você.",
-      "error": "Não deu certo agora. Tente de novo."
-    }
+      "error": "Não deu certo agora. Tente de novo.",
+      "daily_proposals": "Você já mandou 3 propostas hoje. Amanhã libera de novo.",
+      "daily_trades": "Você já fez 3 trocas hoje. Amanhã libera de novo.",
+      "their_daily_trades": "{{name}} já fez 3 trocas hoje. A proposta continua aberta: aceite amanhã."
+    },
+    "todayLeft": "Hoje ainda dá: {{trades}} de {{limit}} trocas e {{proposals}} de {{limit}} propostas."
   }
 }

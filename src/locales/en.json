@@ -2320,7 +2320,7 @@
   },
   "trades": {
     "title": "Trade with friends",
-    "hint": "Offer one of your posters for one of a friend's. Nobody ends up with a duplicate: you can only trade what the other person doesn't have yet.",
+    "hint": "Offer one of your posters for one of a friend's. Nobody ends up with a duplicate: you can only trade what the other person doesn't have yet. Up to 3 trades a day.",
     "propose": "Propose a trade",
     "incoming_one": "Proposal for you",
     "incoming_other": "Proposals for you ({{count}})",
@@ -2380,7 +2380,11 @@
       "duplicate": "You've already sent this same proposal.",
       "too_many": "You already have 10 open proposals. Wait for answers or cancel one.",
       "jackpot_closed": "The Poster Jackpot isn't open for you.",
-      "error": "That didn't work. Try again."
-    }
+      "error": "That didn't work. Try again.",
+      "daily_proposals": "You've sent 3 proposals today. More tomorrow.",
+      "daily_trades": "You've made 3 trades today. More tomorrow.",
+      "their_daily_trades": "{{name}} has made 3 trades today. The proposal stays open: accept it tomorrow."
+    },
+    "todayLeft": "Left today: {{trades}} of {{limit}} trades and {{proposals}} of {{limit}} proposals."
   }
 }

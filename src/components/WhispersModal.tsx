@@ -15,7 +15,7 @@ import { fetchStory, markStoryViewed, storyPoster, storyTitle, type FeedStory } 
 import StoryViewer from './feed/StoryViewer';
 import JackpotInviteCard from './posterJackpot/JackpotInviteCard';
 import { StatusPill, TradeCard } from './posterJackpot/PosterTradesPanel';
-import { getMyTrades, respondTrade, type PosterTrade } from '../lib/posterTrades';
+import { getMyTrades, respondTrade, tradeErrorCode, type PosterTrade } from '../lib/posterTrades';
 
 interface WhispersModalProps {
   isOpen: boolean;
@@ -315,7 +315,8 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
       else toast.error(t('trades.voidToast'));
     } catch (error) {
       console.error('Error responding to trade:', error);
-      toast.error(t('trades.errors.error'));
+      const code = tradeErrorCode(error);
+      toast.error(t(`trades.errors.${code}`, { name: trade.friend.username, defaultValue: t('trades.errors.error') }));
     } finally {
       setBusyId(null);
     }

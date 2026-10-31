@@ -51,6 +51,21 @@ export async function getTradeBoard(friendId: string): Promise<{ mine: TradePost
   return { mine: raw.mine || [], theirs: raw.theirs || [] };
 }
 
+// Limite diário (31/10/2026): até 3 trocas feitas e 3 propostas enviadas
+// por dia (dia de Brasília).
+export interface TradeLimits {
+  limit: number;
+  tradesToday: number;
+  proposalsToday: number;
+}
+
+export async function getTradeLimits(): Promise<TradeLimits> {
+  const { data, error } = await supabase.rpc('get_trade_limits');
+  if (error) throw error;
+  const raw = (data || {}) as { limit?: number; trades_today?: number; proposals_today?: number };
+  return { limit: Number(raw.limit) || 3, tradesToday: Number(raw.trades_today) || 0, proposalsToday: Number(raw.proposals_today) || 0 };
+}
+
 export async function getMyTrades(ids?: number[]): Promise<PosterTrade[]> {
   const { data, error } = await supabase.rpc('get_my_poster_trades', ids ? { p_ids: ids } : {});
   if (error) throw error;
@@ -59,7 +74,11 @@ export async function getMyTrades(ids?: number[]): Promise<PosterTrade[]> {
 
 export const tradeErrorCode = (error: unknown): string => {
   const message = (error as { message?: string })?.message || '';
-  return ['not_friends', 'not_owned', 'they_have', 'not_theirs', 'you_have', 'duplicate', 'too_many', 'jackpot_closed'].find((code) => message.includes(code)) || 'error';
+  return (
+    ['their_daily_trades', 'daily_proposals', 'daily_trades', 'not_friends', 'not_owned', 'they_have', 'not_theirs', 'you_have', 'duplicate', 'too_many', 'jackpot_closed'].find((code) =>
+      message.includes(code)
+    ) || 'error'
+  );
 };
 
 export async function proposeTrade(friendId: string, give: TradePoster, get: TradePoster): Promise<number> {
