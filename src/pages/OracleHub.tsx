@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Scroll, Info, LayoutGrid, Share2, LibraryBig, Swords, Crown, ArrowRight, Plus, RefreshCw } from 'lucide-react';
 import GlassLoader from '../components/GlassLoader';
 import SecretRoomDoor from '../components/secretRoom/SecretRoomDoor';
-import OraclePicks from '../components/oracleHub/OraclePicks';
+import OracleLibraryDoor from '../components/oracleHub/OracleLibraryDoor';
 import PosterJackpotDoor from '../components/posterJackpot/PosterJackpotDoor';
 import MoodBars from '../components/MoodBars';
 import PersonasModal from '../components/PersonasModal';
@@ -21,11 +21,10 @@ import { fetchUserPersona, personaText, PERSONA_THRESHOLD, type UserPersona } fr
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, ORACLES, withAlpha } from '../lib/oracleTheme';
 
 // Central dos Oráculos — "a mesa do oráculo".
-//   1. Escolhidos a dedo: as três cartas como corredores de uma locadora,
-//      cada uma com os melhores títulos dela nas três prateleiras favoritas
-//      da pessoa (a carta abre as nove prateleiras daquele oráculo) e o
-//      letreiro "Percorrer todas as prateleiras"; embaixo, o Duelo e o Duelo
-//      de Watchlist lado a lado.
+//   1. Três portas, uma embaixo da outra (desde 31/10/2026): a Biblioteca
+//      dos Oráculos (as três cartas em leque, no lugar do antigo painel
+//      "Escolhidos a dedo"), o Poster Jackpot e o Duelo e o Duelo de
+//      Watchlist lado a lado.
 //   2. Sua personalidade cinematográfica:
 //      - sem personalidade ainda: o convite do Oráculo (cinco falas), o
 //        progresso até 10 filmes das prateleiras e as prateleiras até agora;
@@ -394,13 +393,17 @@ export default function OracleHub() {
     { key: 'watchlist', to: '/library', state: { openWatchlistDuel: true }, title: t('watchlistDuel.title'), description: t('watchlistDuel.description'), tint: '#38BDF8' },
   ];
 
-  // Escolhidos a dedo: as três cartas como corredores de locadora, cada uma
-  // com os melhores títulos dela nas três prateleiras favoritas da pessoa, e o
-  // letreiro "Percorrer todas as prateleiras" (components/oracleHub). Embaixo,
-  // os dois duelos lado a lado, em botões compactos.
+  // As portas do Hub: a Biblioteca dos Oráculos, o Poster Jackpot e os dois
+  // duelos lado a lado (31/10/2026: o painel "Escolhidos a dedo" virou a
+  // porta da Biblioteca, no mesmo porte da porta do Jackpot).
   const explore = (
     <motion.section variants={rise} className="mx-auto max-w-6xl px-5 sm:px-8 mt-6 sm:mt-8">
-      <OraclePicks cardStyle={cardStyle} />
+      <OracleLibraryDoor cardStyle={cardStyle} />
+
+      {/* Poster Jackpot */}
+      <div className="mt-3 sm:mt-4 empty:hidden">
+        <PosterJackpotDoor />
+      </div>
 
       {/* Os dois duelos, lado a lado */}
       <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-3 sm:gap-4">
@@ -436,11 +439,6 @@ export default function OracleHub() {
             {!isPremium && premiumBadge}
           </Link>
         ))}
-      </div>
-
-      {/* Poster Jackpot (só para quem a máquina está liberada). */}
-      <div className="mt-3 sm:mt-4 empty:hidden">
-        <PosterJackpotDoor />
       </div>
     </motion.section>
   );

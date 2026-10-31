@@ -480,7 +480,8 @@
     "unlikeAria": "Descurtir a indicação de {{username}}",
     "likeError": "Não deu para curtir agora.",
     "whisperLiked": "curtiu a sua indicação",
-    "whisperLikedDetail": "Curtiu o que você indicou"
+    "whisperLikedDetail": "Curtiu o que você indicou",
+    "filterJackpot": "Jackpot"
   },
   "whispers": {
     "title": "Sussurros",
@@ -600,7 +601,8 @@
       "showSeries": "Séries",
       "mediaTypeGroup": "Mostrar filmes ou séries",
       "shelfNoSeries": "Esta prateleira ainda não tem séries.",
-      "shelfNoMovies": "Esta prateleira ainda não tem filmes."
+      "shelfNoMovies": "Esta prateleira ainda não tem filmes.",
+      "viewProfile": "Ver perfil"
     },
     "selectMood": "Selecione Seu Humor",
     "ticketsLabel": "tickets",
@@ -911,6 +913,12 @@
       "decadeLabel": "anos {{decade}}",
       "goldenDecade_one": "a década de ouro ({{decade}}), com {{count}} título",
       "goldenDecade_other": "a década de ouro ({{decade}}), com {{count}} títulos"
+    },
+    "libraryDoor": {
+      "title": "Biblioteca dos Oráculos",
+      "hint": "{{shelves}} prateleiras e {{formatted}} títulos, cada um com a nota que o oráculo prevê pra você.",
+      "hintShort": "As prateleiras dos três oráculos, com a nota que cada um prevê pra você.",
+      "enter": "Entrar"
     }
   },
   "profile": {
@@ -2195,7 +2203,8 @@
     "tabs": {
       "machine": "Roleta",
       "collection": "Coleção",
-      "missions": "Missões"
+      "missions": "Missões",
+      "trades": "Trocas"
     },
     "rarity": {
       "common": "Comum",
@@ -2225,8 +2234,6 @@
       "noTickets": "Sem tickets. Complete as missões da semana para ganhar.",
       "noSpecial": "Sem tickets especiais. Convide amigos para ganhar (quem é Premium ganha 1 por semana).",
       "error": "A roleta travou. Tente de novo.",
-      "remaining_one": "Falta {{count}} pôster para completar a coleção.",
-      "remaining_other": "Faltam {{count}} pôsteres para completar a coleção.",
       "specialHint": "O ticket especial sempre traz efeito: holográfico, negativo ou ultra vermelho.",
       "specialComplete": "Você já tem todos os pôsteres com efeito. Use um ticket comum.",
       "complete": "Coleção completa! Você tem todos os pôsteres da roleta.",
@@ -2284,6 +2291,13 @@
       "pickerTitle": "Escolha o pôster",
       "original": "Capa original",
       "current": "Em uso"
+    },
+    "launch": {
+      "header": "Poster Jackpot chegou",
+      "body": "A roleta de pôsteres abriu para todo mundo. Gire, colecione pôsteres alternativos (alguns holográficos, negativos ou ultra vermelhos), troque com amigos e equipe na sua biblioteca.",
+      "gift_one": "Você ganhou {{count}} ticket para começar.",
+      "gift_other": "Você ganhou {{count}} tickets para começar.",
+      "play": "Jogar agora"
     }
   },
   "invite": {
@@ -2308,5 +2322,70 @@
     "signupBanner_other": "{{name}} te convidou. Crie sua conta e vocês dois ganham {{count}} tickets especiais no Poster Jackpot.",
     "redeemed_one": "Você entrou pelo convite de {{name}} e ganhou {{count}} ticket especial.",
     "redeemed_other": "Você entrou pelo convite de {{name}} e ganhou {{count}} tickets especiais."
+  },
+  "trades": {
+    "title": "Trocas com amigos",
+    "hint": "Ofereça um pôster seu por um de um amigo. Ninguém fica com repetido: só vale trocar o que o outro ainda não tem.",
+    "propose": "Propor troca",
+    "incoming_one": "Proposta para você",
+    "incoming_other": "Propostas para você ({{count}})",
+    "outgoing_one": "Proposta enviada",
+    "outgoing_other": "Propostas enviadas ({{count}})",
+    "history": "Últimas trocas",
+    "empty": "Nenhuma troca ainda. Que tal propor a primeira?",
+    "wantsToTrade": "quer trocar com você",
+    "proposalTo": "Proposta para",
+    "youGive": "Você dá",
+    "youGet": "Você recebe",
+    "accept": "Aceitar",
+    "decline": "Recusar",
+    "cancel": "Cancelar",
+    "waiting": "Esperando {{name}} responder.",
+    "back": "Voltar às trocas",
+    "changeFriend": "Trocar de amigo",
+    "pickFriend": "Com quem você quer trocar?",
+    "noFriends": "Você ainda não tem amigos no CineOracle. Convide alguém na aba Missões.",
+    "friendPosters_one": "{{count}} pôster",
+    "friendPosters_other": "{{count}} pôsteres",
+    "friendNoPosters": "Ainda sem pôsteres",
+    "tradeWith": "Troca com {{name}}",
+    "pickGive": "Escolha o pôster que você dá",
+    "pickGet": "Escolha o pôster de {{name}} que você quer",
+    "noMine": "Você ainda não tem pôsteres. Gire a roleta primeiro.",
+    "theyHave": "Já tem",
+    "youHave": "Você já tem",
+    "pickBoth": "Escolha os dois pôsteres",
+    "send": "Enviar proposta",
+    "sent": "Proposta enviada para {{name}}.",
+    "acceptedToast": "Troca feita! O pôster novo já está na sua coleção.",
+    "declinedToast": "Proposta recusada.",
+    "voidToast": "Essa troca não vale mais: um dos pôsteres mudou de dono.",
+    "cancelledToast": "Proposta cancelada.",
+    "loadError": "Não deu para abrir as trocas agora.",
+    "viewTrades": "Ver trocas",
+    "viewCollection": "Ver coleção",
+    "whisperProposed": "quer trocar pôsteres com você",
+    "whisperAccepted": "aceitou a sua troca",
+    "whisperDeclined": "recusou a sua troca",
+    "whisperAnswered": "respondeu a sua proposta de troca",
+    "whisperUnavailable": "Esta troca não está mais disponível.",
+    "status": {
+      "pending": "Aberta",
+      "accepted": "Trocado",
+      "declined": "Recusada",
+      "cancelled": "Cancelada",
+      "void": "Não vale mais"
+    },
+    "errors": {
+      "not_friends": "Só dá para trocar com amigos.",
+      "not_owned": "Esse pôster não está mais na sua coleção.",
+      "they_have": "Seu amigo já tem esse pôster.",
+      "not_theirs": "Esse pôster não está mais com seu amigo.",
+      "you_have": "Você já tem esse pôster.",
+      "duplicate": "Você já mandou essa mesma proposta.",
+      "too_many": "Você já tem 10 propostas abertas. Espere respostas ou cancele alguma.",
+      "jackpot_closed": "O Poster Jackpot não está aberto para você.",
+      "error": "Não deu certo agora. Tente de novo."
+    }
   }
 }

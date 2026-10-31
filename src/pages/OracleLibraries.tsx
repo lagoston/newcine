@@ -8,6 +8,7 @@ import { getOraclePoolPredictions, Movie, type PredictedShelfMovie } from '../li
 import { ShelfItem, getFullTitle, prefetchFullTitle, titleKey } from '../lib/titleCards';
 import { tilesThatFit, useInViewOnce, useProgressiveCount, useReveal, useTitleCards } from '../hooks/useLazyList';
 import MovieDetailsModal from '../components/MovieDetailsModal';
+import OracleProfileSheet from '../components/oracleHub/OracleProfileSheet';
 import StreamingFilterModal from '../components/StreamingFilterModal';
 import OptimizedPoster from '../components/OptimizedPoster';
 import { VELVET, PAPER, INK, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, ORACLE_BY_ID, OracleId, oracleCardImage, withAlpha } from '../lib/oracleTheme';
@@ -478,6 +479,9 @@ export default function OracleLibraries() {
   const selectedOracle: CardType | null = oracleParam && oracleParam in ORACLE_BY_ID ? (oracleParam as CardType) : null;
 
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  // Perfil do oráculo (a carta abre; antes ficava no painel "Escolhidos a
+  // dedo" do Hub, que virou a porta desta página em 31/10/2026).
+  const [profileOpen, setProfileOpen] = useState(false);
   const [showStreamingFilter, setShowStreamingFilter] = useState(false);
   const [selectedProviderIds, setSelectedProviderIds] = useState<number[]>([]);
   // ?type=movie|tv (ex.: "Ver todos" de Filmes/Séries Para Você, na home)
@@ -631,13 +635,23 @@ export default function OracleLibraries() {
 
         <div className="mt-5 flex items-center gap-4 sm:gap-5">
           {cardStyle ? (
-            <img
-              src={oracleCardImage(current.id, cardStyle)}
-              alt=""
-              decoding="async"
-              className="w-[72px] sm:w-[92px] h-auto shrink-0 rounded-lg"
-              style={{ boxShadow: `0 16px 32px -16px ${withAlpha(current.color, 0.8)}` }}
-            />
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              aria-label={t('oracle.profile.open', { name: current.name })}
+              className={`group shrink-0 rounded-lg transition-transform hover:-translate-y-0.5 ${FOCUS_RING}`}
+            >
+              <img
+                src={oracleCardImage(current.id, cardStyle)}
+                alt=""
+                decoding="async"
+                className="block w-[72px] sm:w-[92px] h-auto rounded-lg"
+                style={{ boxShadow: `0 16px 32px -16px ${withAlpha(current.color, 0.8)}` }}
+              />
+              <span className="mt-1.5 block text-center text-[11.5px] font-semibold" style={{ color: current.color }}>
+                {t('oracle.libraries.viewProfile')}
+              </span>
+            </button>
           ) : (
             <span className="w-[72px] sm:w-[92px] aspect-[3/5] shrink-0 rounded-lg bg-white/[0.06] animate-pulse" />
           )}
@@ -693,6 +707,7 @@ export default function OracleLibraries() {
         ))}
 
       {selectedMovie && <MovieDetailsModal movie={selectedMovie} isOpen={true} onClose={() => setSelectedMovie(null)} isOtherUserProfile={false} />}
+      <OracleProfileSheet oracleId={profileOpen ? current.id : null} cardStyle={cardStyle || 'default'} onClose={() => setProfileOpen(false)} />
 
       <StreamingFilterModal
         isOpen={showStreamingFilter}

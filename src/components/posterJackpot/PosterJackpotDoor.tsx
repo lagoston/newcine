@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Ticket } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { FOCUS_RING } from '../../lib/oracleTheme';
 import { fetchJackpotCatalog, fetchJackpotState, loadJackpotFont, type CatalogPoster, type JackpotState, type PosterEffect } from '../../lib/posterJackpot';
 import PosterArt from './PosterArt';
-import PosterJackpotSheet from './PosterJackpotSheet';
+import PosterJackpotSheet, { type JackpotTab } from './PosterJackpotSheet';
 import '../../styles/posterJackpot.css';
 
 // A porta do Poster Jackpot no Oracle Hub: o mesmo céu estrelado e o ouro da
@@ -25,6 +26,18 @@ const PosterJackpotDoor: React.FC = () => {
   const [state, setState] = useState<JackpotState | null>(null);
   const [catalog, setCatalog] = useState<CatalogPoster[]>([]);
   const [open, setOpen] = useState(false);
+  const [initialTab, setInitialTab] = useState<JackpotTab>('machine');
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Aberto de fora (sussurros: o convite do lançamento e as trocas):
+  // navigate('/oracle', { state: { openJackpot: 'trades' } }).
+  const requested = (location.state as { openJackpot?: JackpotTab } | null)?.openJackpot;
+  useEffect(() => {
+    if (!requested) return;
+    setInitialTab(requested);
+    setOpen(true);
+    navigate(location.pathname + location.search, { replace: true, state: null });
+  }, [requested, navigate, location.pathname, location.search]);
 
   const reload = useCallback(() => {
     if (!userId) return;
@@ -61,7 +74,10 @@ const PosterJackpotDoor: React.FC = () => {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setInitialTab('machine');
+          setOpen(true);
+        }}
         className={`group relative w-full flex items-center gap-4 sm:gap-6 text-left rounded-2xl pl-3 pr-3.5 py-3.5 sm:pl-5 sm:pr-5 sm:py-4 overflow-hidden transition hover:brightness-110 ${FOCUS_RING}`}
         style={{
           background: 'radial-gradient(80% 120% at 12% 0%, rgba(80,96,220,0.4), transparent 65%), linear-gradient(135deg, #0f1645, #0a0e2c 55%, #1a0b3a)',
@@ -119,7 +135,7 @@ const PosterJackpotDoor: React.FC = () => {
           <ArrowRight className="w-4 h-4 transition group-hover:translate-x-0.5" aria-hidden />
         </span>
       </button>
-      <PosterJackpotSheet open={open} onClose={() => setOpen(false)} state={state} onState={patch} onReload={reload} />
+      <PosterJackpotSheet open={open} onClose={() => setOpen(false)} state={state} onState={patch} onReload={reload} initialTab={initialTab} />
     </>
   );
 };

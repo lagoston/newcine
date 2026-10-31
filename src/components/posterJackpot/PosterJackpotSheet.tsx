@@ -34,6 +34,8 @@ import {
 } from '../../lib/posterJackpot';
 import { isJackpotMuted, playReveal, primeJackpotAudio, setJackpotMuted } from '../../lib/jackpotSound';
 import { INVITE_REWARD, copyInvite, getMyInvite, shareInvite, type MyInvite } from '../../lib/invite';
+import { getMyTrades, type PosterTrade } from '../../lib/posterTrades';
+import PosterTradesPanel from './PosterTradesPanel';
 import '../../styles/posterJackpot.css';
 
 // Poster Jackpot: a roleta do Oracle Hub. Um palco de parque encantado
@@ -41,7 +43,8 @@ import '../../styles/posterJackpot.css';
 // com a fita de pôsteres do estilo CS:GO, a revelação do prêmio com raios
 // na cor da raridade e faíscas, a coleção (só os pôsteres) e as missões.
 
-type Tab = 'machine' | 'collection' | 'missions';
+export type JackpotTab = 'machine' | 'collection' | 'trades' | 'missions';
+type Tab = JackpotTab;
 type TicketKind = 'normal' | 'special';
 
 const RARITY_ASC: PosterRarity[] = ['common', 'rare', 'epic', 'legendary'];
@@ -405,13 +408,14 @@ const Machine: React.FC<{
     setMuted(next);
   };
 
+  // Sem contagem de "faltam N pôsteres" (pedido do Bruno, 31/10).
   const status = complete
     ? t('jackpot.machine.complete')
     : kind === 'special'
       ? state.remainingSpecial > 0
         ? t('jackpot.machine.specialHint')
         : t('jackpot.machine.specialComplete')
-      : t('jackpot.machine.remaining', { count: state.remaining });
+      : '';
 
   const spinLabel = spinning ? t('jackpot.machine.skip') : complete ? t('jackpot.machine.completeShort') : t('jackpot.machine.spinShort');
 
@@ -514,9 +518,11 @@ const Machine: React.FC<{
         <span className="relative">{spinLabel}</span>
       </motion.button>
 
-      <p className="mt-3 text-center text-[12.5px] leading-relaxed" style={{ color: MIST }} aria-live="polite">
-        {status}
-      </p>
+      {status && (
+        <p className="mt-3 text-center text-[12.5px] leading-relaxed" style={{ color: MIST }} aria-live="polite">
+          {status}
+        </p>
+      )}
       <div className="mt-2 flex justify-center">
         <button
           type="button"
@@ -896,31 +902,44 @@ const PosterJackpotSheet: React.FC<{
   state: JackpotState | null;
   onState: (patch: Partial<JackpotState>) => void;
   onReload: () => void;
-}> = ({ open, onClose, state, onState, onReload }) => {
+  initialTab?: Tab;
+}> = ({ open, onClose, state, onState, onReload, initialTab = 'machine' }) => {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<Tab>('machine');
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [owned, setOwned] = useState<OwnedPoster[] | null>(null);
+  const [trades, setTrades] = useState<PosterTrade[] | null>(null);
 
   const loadOwned = useCallback(() => {
     loadMyPosters()
       .then(setOwned)
       .catch(() => setOwned([]));
   }, []);
+  const loadTrades = useCallback(() => {
+    getMyTrades()
+      .then(setTrades)
+      .catch((error) => {
+        console.error('Poster trades:', error);
+        setTrades([]);
+      });
+  }, []);
 
   useEffect(() => {
     if (open) {
       loadJackpotFont();
-      setTab('machine');
+      setTab(initialTab);
       onReload();
       loadOwned();
+      loadTrades();
     }
-  }, [open, onReload, loadOwned]);
+  }, [open, initialTab, onReload, loadOwned, loadTrades]);
 
   const claimable = useMemo(() => (state?.missions || []).filter((m) => !m.claimed && m.progress >= m.target).length, [state?.missions]);
+  const incomingTrades = useMemo(() => (trades || []).filter((tr) => tr.status === 'pending' && tr.incoming).length, [trades]);
 
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: 'machine', label: t('jackpot.tabs.machine') },
-    { key: 'collection', label: t('jackpot.tabs.collection'), badge: state?.owned || undefined },
+    { key: 'collection', label: t('jackpot.tabs.collection') },
+    { key: 'trades', label: t('jackpot.tabs.trades'), badge: incomingTrades || undefined },
     { key: 'missions', label: t('jackpot.tabs.missions'), badge: claimable || undefined },
   ];
 
@@ -939,7 +958,7 @@ const PosterJackpotSheet: React.FC<{
         </div>
       ) : (
         <>
-          <div className="mb-5 grid grid-cols-3 gap-1 rounded-xl p-1" style={{ background: VELVET }} role="tablist">
+          <div className="mb-5 grid grid-cols-4 gap-1 rounded-xl p-1" style={{ background: VELVET }} role="tablist">
             {tabs.map((item) => {
               const active = tab === item.key;
               return (
@@ -949,14 +968,14 @@ const PosterJackpotSheet: React.FC<{
                   role="tab"
                   aria-selected={active}
                   onClick={() => setTab(item.key)}
-                  className={`relative h-10 rounded-lg text-sm font-semibold transition ${FOCUS_RING}`}
+                  className={`relative h-10 rounded-lg text-[13px] sm:text-sm font-semibold transition ${FOCUS_RING}`}
                   style={active ? { background: PAPER, color: '#221B36' } : { color: MIST }}
                 >
                   {item.label}
                   {item.badge ? (
                     <span
-                      className="ml-1.5 inline-grid place-items-center min-w-[1.25rem] h-5 px-1 rounded-full text-[11px] tabular-nums"
-                      style={item.key === 'missions' ? { background: '#FDE68A', color: '#221B36' } : { background: active ? 'rgba(34,27,54,0.12)' : 'rgba(255,255,255,0.1)' }}
+                      className="ml-1 inline-grid place-items-center min-w-[1.1rem] h-[18px] px-1 rounded-full text-[10.5px] tabular-nums"
+                      style={{ background: '#FDE68A', color: '#221B36' }}
                     >
                       {item.badge}
                     </span>
@@ -968,6 +987,16 @@ const PosterJackpotSheet: React.FC<{
           <SheetFade id={tab}>
             {tab === 'machine' && <Machine state={state} owned={owned} onState={onState} onCollectionChanged={loadOwned} onInvite={() => setTab('missions')} />}
             {tab === 'collection' && <Collection list={owned} onChanged={loadOwned} />}
+            {tab === 'trades' && (
+              <PosterTradesPanel
+                trades={trades}
+                onChanged={() => {
+                  loadTrades();
+                  loadOwned();
+                  onReload();
+                }}
+              />
+            )}
             {tab === 'missions' && <Missions state={state} onState={onState} />}
           </SheetFade>
         </>

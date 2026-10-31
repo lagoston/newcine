@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Trash2, Tv, Trophy, MessageCircle, UserPlus, Heart, Play } from 'lucide-react';
+import { Loader2, Trash2, Tv, Trophy, MessageCircle, UserPlus, Heart, Play, Ticket, Repeat2, LayoutGrid } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -13,6 +13,9 @@ import OracleSheet, { SheetFade } from './OracleSheet';
 import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
 import { fetchStory, markStoryViewed, storyPoster, storyTitle, type FeedStory } from '../lib/friendsFeed';
 import StoryViewer from './feed/StoryViewer';
+import JackpotInviteCard from './posterJackpot/JackpotInviteCard';
+import { StatusPill, TradeCard } from './posterJackpot/PosterTradesPanel';
+import { getMyTrades, respondTrade, type PosterTrade } from '../lib/posterTrades';
 
 interface WhispersModalProps {
   isOpen: boolean;
@@ -30,7 +33,12 @@ interface Whisper {
   from_user_id: string | null;
   // story_*: curtidas, comentários e respostas no Feed dos Amigos;
   // whisper_like: alguém curtiu uma indicação sua
-  type: 'movie' | 'friend_request' | 'new_episode' | 'tag_unlocked' | 'story_like' | 'story_comment' | 'story_reply' | 'whisper_like';
+  // jackpot_invite: o convite do lançamento do Poster Jackpot (sistema);
+  // poster_trade / poster_trade_result: proposta de troca de pôsteres e a
+  // resposta a ela (trade_id aponta para poster_trades)
+  type: 'movie' | 'friend_request' | 'new_episode' | 'tag_unlocked' | 'story_like' | 'story_comment' | 'story_reply' | 'whisper_like'
+    | 'jackpot_invite' | 'poster_trade' | 'poster_trade_result';
+  trade_id?: number | null;
   movie_id?: number;
   movie_title?: string;
   movie_poster?: string;
@@ -50,7 +58,7 @@ interface Whisper {
   from_user: { username: string; avatar_url: string | null } | null;
 }
 
-type Filter = 'all' | 'friend_request' | 'movie' | 'new_episode' | 'tag_unlocked' | 'story';
+type Filter = 'all' | 'friend_request' | 'movie' | 'new_episode' | 'tag_unlocked' | 'story' | 'jackpot';
 
 const FILTER_LABEL: Record<Filter, string> = {
   all: 'indications.filterAll',
@@ -59,13 +67,15 @@ const FILTER_LABEL: Record<Filter, string> = {
   new_episode: 'indications.filterEpisodes',
   tag_unlocked: 'indications.filterTags',
   story: 'indications.filterFeed',
+  jackpot: 'indications.filterJackpot',
 };
 
 const isStoryWhisper = (type: Whisper['type']) => type === 'story_like' || type === 'story_comment' || type === 'story_reply';
 // as três notificações do feed dividem um filtro só; a curtida numa
 // indicação fica junto das indicações
+const isJackpotWhisper = (type: Whisper['type']) => type === 'jackpot_invite' || type === 'poster_trade' || type === 'poster_trade_result';
 const filterOf = (type: Whisper['type']): Filter =>
-  isStoryWhisper(type) ? 'story' : type === 'whisper_like' ? 'movie' : (type as Filter);
+  isStoryWhisper(type) ? 'story' : isJackpotWhisper(type) ? 'jackpot' : type === 'whisper_like' ? 'movie' : (type as Filter);
 
 const STORY_VERB: Record<'story_like' | 'story_comment' | 'story_reply', string> = {
   story_like: 'indications.storyLiked',
@@ -105,6 +115,8 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   // story aberto a partir de uma curtida/comentário
   const [openStory, setOpenStory] = useState<FeedStory | null>(null);
+  // As trocas de pôsteres citadas nos sussurros (por id).
+  const [trades, setTrades] = useState<Map<number, PosterTrade>>(new Map());
 
   // Guardados em ref: as funções do contexto/i18n podem mudar de identidade
   // a cada render e não devem disparar uma nova busca.
@@ -139,6 +151,15 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
 
         const list: Whisper[] = (data || []).map((row: Whisper) => ({ ...row, from_user: row.from_user || null }));
         const unread = list.filter((w) => !w.read).map((w) => w.id);
+        const tradeIds = Array.from(new Set(list.map((w) => w.trade_id).filter((id): id is number => typeof id === 'number')));
+        if (tradeIds.length > 0) {
+          try {
+            const found = await getMyTrades(tradeIds);
+            if (!cancelled) setTrades(new Map(found.map((trade) => [trade.id, trade])));
+          } catch (tradeError) {
+            console.error('Error fetching poster trades:', tradeError);
+          }
+        }
         setWhispers(list);
         // "Novos" = o que estava sem ler quando o modal abriu; continua
         // destacado durante esta visita mesmo depois de marcado como lido.
@@ -278,9 +299,26 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
     }
   };
 
-  const goTo = (path: string) => {
+  const goTo = (path: string, state?: unknown) => {
     onClose();
-    navigate(path);
+    navigate(path, state ? { state } : undefined);
+  };
+
+  // Responder a uma proposta de troca direto do sussurro.
+  const respondToTrade = async (whisper: Whisper, trade: PosterTrade, accept: boolean) => {
+    setBusyId(whisper.id);
+    try {
+      const status = await respondTrade(trade.id, accept);
+      setTrades((prev) => new Map(prev).set(trade.id, { ...trade, status }));
+      if (status === 'accepted') toast.success(t('trades.acceptedToast'));
+      else if (status === 'declined') toast(t('trades.declinedToast'));
+      else toast.error(t('trades.voidToast'));
+    } catch (error) {
+      console.error('Error responding to trade:', error);
+      toast.error(t('trades.errors.error'));
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const lang = i18n.language;
@@ -292,6 +330,13 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
       ) : (
         <span className="w-10 h-10 rounded-full grid place-items-center ring-1 ring-white/15 text-lg" style={{ ...PIXEL, background: VELVET, color: PAPER }}>
           {whisper.from_user.username.charAt(0).toUpperCase()}
+        </span>
+      );
+    }
+    if (whisper.type === 'jackpot_invite') {
+      return (
+        <span className="w-10 h-10 rounded-full grid place-items-center" style={{ background: 'linear-gradient(135deg, #4b1f7a, #a23ab5 45%, #ff7ad9 70%, #ffc83d)', color: '#fff' }}>
+          <Ticket className="w-[18px] h-[18px]" aria-hidden />
         </span>
       );
     }
@@ -311,7 +356,14 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
           ? t('indications.sentFriendRequest')
           : whisper.type === 'whisper_like'
             ? t('indications.whisperLiked')
-            : t('indications.recommended');
+            : whisper.type === 'poster_trade'
+              ? t('trades.whisperProposed')
+              : whisper.type === 'poster_trade_result'
+                ? (() => {
+                    const status = whisper.trade_id ? trades.get(whisper.trade_id)?.status : undefined;
+                    return status === 'declined' ? t('trades.whisperDeclined') : status === 'accepted' ? t('trades.whisperAccepted') : t('trades.whisperAnswered');
+                  })()
+                : t('indications.recommended');
       return (
         <>
           <span className="font-semibold" style={{ color: PAPER }}>{whisper.from_user.username}</span> {verb}
@@ -320,7 +372,11 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
     }
     return (
       <span className="font-semibold" style={{ color: PAPER }}>
-        {whisper.type === 'tag_unlocked' ? t('indications.tagUnlockedHeader') : t('indications.newEpisodeLabel')}
+        {whisper.type === 'jackpot_invite'
+          ? t('jackpot.launch.header')
+          : whisper.type === 'tag_unlocked'
+            ? t('indications.tagUnlockedHeader')
+            : t('indications.newEpisodeLabel')}
       </span>
     );
   };
@@ -419,6 +475,29 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
             <span className="mt-1.5 text-sm leading-relaxed line-clamp-3" style={{ color: MIST }}>“{whisper.message}”</span>
           ) : null
         );
+      case 'jackpot_invite':
+        return <JackpotInviteCard onPlay={() => goTo('/oracle', { openJackpot: 'machine' })} />;
+      case 'poster_trade':
+      case 'poster_trade_result': {
+        const trade = whisper.trade_id ? trades.get(whisper.trade_id) : undefined;
+        if (!trade) {
+          return (
+            <p className="mt-2 text-sm" style={{ color: MIST }}>
+              {t('trades.whisperUnavailable')}
+            </p>
+          );
+        }
+        return (
+          <div className="mt-3">
+            <TradeCard
+              trade={trade}
+              compact
+              busy={busyId === whisper.id}
+              onRespond={whisper.type === 'poster_trade' ? (tr, accept) => respondToTrade(whisper, tr, accept) : undefined}
+            />
+          </div>
+        );
+      }
       case 'tag_unlocked':
         return (
           <div className="mt-3 flex items-center gap-3.5">
@@ -483,6 +562,26 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
               {t('indications.viewMovie')}
             </button>
           )}
+        </>
+      );
+    }
+
+    if (whisper.type === 'jackpot_invite') return null;
+
+    if (whisper.type === 'poster_trade' || whisper.type === 'poster_trade_result') {
+      const trade = whisper.trade_id ? trades.get(whisper.trade_id) : undefined;
+      const accepted = trade?.status === 'accepted';
+      return (
+        <>
+          {trade && trade.status !== 'pending' && <StatusPill status={trade.status} />}
+          <button
+            onClick={() => goTo('/oracle', { openJackpot: accepted ? 'collection' : 'trades' })}
+            className={ghostButton}
+            style={{ color: PAPER }}
+          >
+            {accepted ? <LayoutGrid className="w-4 h-4 text-amber-200" aria-hidden /> : <Repeat2 className="w-4 h-4 text-amber-200" aria-hidden />}
+            {accepted ? t('trades.viewCollection') : t('trades.viewTrades')}
+          </button>
         </>
       );
     }
@@ -555,7 +654,10 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
           )}
         </div>
         {renderBody(whisper)}
-        <div className="mt-3.5 flex flex-wrap items-center gap-2">{renderActions(whisper)}</div>
+        {(() => {
+          const actions = renderActions(whisper);
+          return actions ? <div className="mt-3.5 flex flex-wrap items-center gap-2">{actions}</div> : null;
+        })()}
       </div>
     </li>
   );

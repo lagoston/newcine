@@ -478,7 +478,8 @@
     "unlikeAria": "Unlike {{username}}'s recommendation",
     "likeError": "Couldn't like it right now.",
     "whisperLiked": "liked your recommendation",
-    "whisperLikedDetail": "Liked what you recommended"
+    "whisperLikedDetail": "Liked what you recommended",
+    "filterJackpot": "Jackpot"
   },
   "whispers": {
     "title": "Whispers",
@@ -597,7 +598,8 @@
       "showSeries": "Series",
       "mediaTypeGroup": "Show movies or series",
       "shelfNoSeries": "This shelf doesn't have any series yet.",
-      "shelfNoMovies": "This shelf doesn't have any movies yet."
+      "shelfNoMovies": "This shelf doesn't have any movies yet.",
+      "viewProfile": "View profile"
     },
     "selectMood": "Select Your Mood",
     "ticketsLabel": "tickets",
@@ -908,6 +910,12 @@
       "decadeLabel": "{{decade}}s",
       "goldenDecade_one": "the golden decade ({{decade}}), with {{count}} title",
       "goldenDecade_other": "the golden decade ({{decade}}), with {{count}} titles"
+    },
+    "libraryDoor": {
+      "title": "Oracle Library",
+      "hint": "{{shelves}} shelves and {{formatted}} titles, each with the rating the oracle predicts for you.",
+      "hintShort": "The shelves of the three oracles, with the rating each one predicts for you.",
+      "enter": "Enter"
     }
   },
   "profile": {
@@ -2190,7 +2198,8 @@
     "tabs": {
       "machine": "Reel",
       "collection": "Collection",
-      "missions": "Missions"
+      "missions": "Missions",
+      "trades": "Trades"
     },
     "rarity": {
       "common": "Common",
@@ -2220,8 +2229,6 @@
       "noTickets": "No tickets. Finish this week's missions to earn some.",
       "noSpecial": "No special tickets. Invite friends to earn some (Premium members get 1 per week).",
       "error": "The reel jammed. Try again.",
-      "remaining_one": "{{count}} poster left to complete the collection.",
-      "remaining_other": "{{count}} posters left to complete the collection.",
       "specialHint": "The special ticket always brings an effect: holographic, negative or ultra red.",
       "specialComplete": "You already have every poster with an effect. Use a regular ticket.",
       "complete": "Collection complete! You have every poster on the reel.",
@@ -2279,6 +2286,13 @@
       "pickerTitle": "Choose the poster",
       "original": "Original cover",
       "current": "In use"
+    },
+    "launch": {
+      "header": "The Poster Jackpot is here",
+      "body": "The poster reel is open to everyone. Spin, collect alternate posters (some holographic, negative or ultra red), trade with friends and equip them in your library.",
+      "gift_one": "You got {{count}} ticket to start.",
+      "gift_other": "You got {{count}} tickets to start.",
+      "play": "Play now"
     }
   },
   "invite": {
@@ -2303,5 +2317,70 @@
     "signupBanner_other": "{{name}} invited you. Sign up and you both get {{count}} special tickets in the Poster Jackpot.",
     "redeemed_one": "You joined with {{name}}'s invite and got {{count}} special ticket.",
     "redeemed_other": "You joined with {{name}}'s invite and got {{count}} special tickets."
+  },
+  "trades": {
+    "title": "Trade with friends",
+    "hint": "Offer one of your posters for one of a friend's. Nobody ends up with a duplicate: you can only trade what the other person doesn't have yet.",
+    "propose": "Propose a trade",
+    "incoming_one": "Proposal for you",
+    "incoming_other": "Proposals for you ({{count}})",
+    "outgoing_one": "Proposal sent",
+    "outgoing_other": "Proposals sent ({{count}})",
+    "history": "Recent trades",
+    "empty": "No trades yet. How about proposing the first one?",
+    "wantsToTrade": "wants to trade with you",
+    "proposalTo": "Proposal to",
+    "youGive": "You give",
+    "youGet": "You get",
+    "accept": "Accept",
+    "decline": "Decline",
+    "cancel": "Cancel",
+    "waiting": "Waiting for {{name}} to answer.",
+    "back": "Back to trades",
+    "changeFriend": "Pick another friend",
+    "pickFriend": "Who do you want to trade with?",
+    "noFriends": "You don't have friends on CineOracle yet. Invite someone in the Missions tab.",
+    "friendPosters_one": "{{count}} poster",
+    "friendPosters_other": "{{count}} posters",
+    "friendNoPosters": "No posters yet",
+    "tradeWith": "Trade with {{name}}",
+    "pickGive": "Pick the poster you give",
+    "pickGet": "Pick the poster you want from {{name}}",
+    "noMine": "You don't have posters yet. Spin the reel first.",
+    "theyHave": "Has it",
+    "youHave": "You have it",
+    "pickBoth": "Pick both posters",
+    "send": "Send proposal",
+    "sent": "Proposal sent to {{name}}.",
+    "acceptedToast": "Trade done! The new poster is already in your collection.",
+    "declinedToast": "Proposal declined.",
+    "voidToast": "This trade is no longer valid: one of the posters changed hands.",
+    "cancelledToast": "Proposal cancelled.",
+    "loadError": "Couldn't open trades right now.",
+    "viewTrades": "View trades",
+    "viewCollection": "View collection",
+    "whisperProposed": "wants to trade posters with you",
+    "whisperAccepted": "accepted your trade",
+    "whisperDeclined": "declined your trade",
+    "whisperAnswered": "answered your trade proposal",
+    "whisperUnavailable": "This trade is no longer available.",
+    "status": {
+      "pending": "Open",
+      "accepted": "Traded",
+      "declined": "Declined",
+      "cancelled": "Cancelled",
+      "void": "No longer valid"
+    },
+    "errors": {
+      "not_friends": "You can only trade with friends.",
+      "not_owned": "That poster is no longer in your collection.",
+      "they_have": "Your friend already has that poster.",
+      "not_theirs": "Your friend doesn't have that poster anymore.",
+      "you_have": "You already have that poster.",
+      "duplicate": "You've already sent this same proposal.",
+      "too_many": "You already have 10 open proposals. Wait for answers or cancel one.",
+      "jackpot_closed": "The Poster Jackpot isn't open for you.",
+      "error": "That didn't work. Try again."
+    }
   }
 }
