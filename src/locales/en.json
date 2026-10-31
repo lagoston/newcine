@@ -2217,12 +2217,8 @@
       "ticketKind": "Which ticket to spin with",
       "tickets_one": "{{count}} ticket",
       "tickets_other": "{{count}} tickets",
-      "special": "Special",
-      "specialUsed": "Used this week",
-      "specialPremium": "Premium",
       "noTickets": "No tickets. Finish this week's missions to earn some.",
-      "noSpecial": "You've used this week's special ticket. Another arrives on Monday.",
-      "specialPremiumHint": "The special ticket is a Premium perk, 1 per week.",
+      "noSpecial": "No special tickets. Invite friends to earn some (Premium members get 1 per week).",
       "error": "The reel jammed. Try again.",
       "remaining_one": "{{count}} poster left to complete the collection.",
       "remaining_other": "{{count}} posters left to complete the collection.",
@@ -2235,7 +2231,9 @@
       "savedHint": "It's already in your collection.",
       "soundOn": "Turn sound on",
       "soundOff": "Turn sound off",
-      "revealAria": "You won: {{title}}, {{rarity}}"
+      "revealAria": "You won: {{title}}, {{rarity}}",
+      "specialCount_one": "{{count}} special",
+      "specialCount_other": "{{count}} specials"
     },
     "collection": {
       "empty": "Your collection is empty",
@@ -2266,13 +2264,15 @@
       "resets_one": "New missions in {{count}} day, every Monday.",
       "resets_other": "New missions in {{count}} days, every Monday.",
       "resetsMonday": "New missions every Monday.",
-      "specialTitle": "Weekly special ticket",
-      "specialReady": "This week's is waiting in the machine. It doesn't stack: use it by Sunday.",
-      "specialUsedWeek": "You've used this week's. Another arrives on Monday.",
+      "specialTitle": "Special tickets",
+      "specialReady": "Your weekly Premium one is ready. It doesn't stack: use it by Sunday.",
+      "specialUsedWeek": "You've used your weekly Premium one. Another arrives on Monday.",
       "specialPremiumOnly": "Premium members get 1 per week, always with a special effect.",
       "seePremium": "See Premium",
       "noRepeatsRule": "No poster ever repeats: every spin brings a version you don't have yet.",
-      "effectsRule": "When an effect comes up: holographic {{holo}}%, negative {{negative}}%, ultra red {{ultra}}%."
+      "effectsRule": "When an effect comes up: holographic {{holo}}%, negative {{negative}}%, ultra red {{ultra}}%.",
+      "specialSaved_one": "You also have {{count}} saved special, which never expires.",
+      "specialSaved_other": "You also have {{count}} saved specials, which never expire."
     },
     "library": {
       "menuItem": "Collection poster",
@@ -2280,5 +2280,28 @@
       "original": "Original cover",
       "current": "In use"
     }
+  },
+  "invite": {
+    "cta_one": "Invite a friend: you both get {{count}} special ticket",
+    "cta_other": "Invite a friend: you both get {{count}} special tickets",
+    "title": "Invite a friend to CineOracle",
+    "body_one": "Whoever signs up with your link gets {{count}} special ticket, and so do you.",
+    "body_other": "Whoever signs up with your link gets {{count}} special tickets, and so do you.",
+    "share": "Share invite",
+    "copy": "Copy",
+    "copiedShort": "Copied",
+    "copied": "Invite link copied.",
+    "copyError": "Couldn't copy. Press and hold the link to copy it.",
+    "loadError": "Couldn't load your invite right now.",
+    "howItWorks": "The tickets arrive when your friend confirms their email. You earn for up to 10 friends every 30 days.",
+    "joined_one": "{{count}} friend has joined with your invite.",
+    "joined_other": "{{count}} friends have joined with your invite.",
+    "shareText_one": "Join me on CineOracle! Sign up with my link and we both get {{count}} special ticket in the Poster Jackpot.",
+    "shareText_other": "Join me on CineOracle! Sign up with my link and we both get {{count}} special tickets in the Poster Jackpot.",
+    "shareDialog": "Invite to CineOracle",
+    "signupBanner_one": "{{name}} invited you. Sign up and you both get {{count}} special ticket in the Poster Jackpot.",
+    "signupBanner_other": "{{name}} invited you. Sign up and you both get {{count}} special tickets in the Poster Jackpot.",
+    "redeemed_one": "You joined with {{name}}'s invite and got {{count}} special ticket.",
+    "redeemed_other": "You joined with {{name}}'s invite and got {{count}} special tickets."
   }
 }

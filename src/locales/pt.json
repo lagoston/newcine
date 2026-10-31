@@ -2222,12 +2222,8 @@
       "ticketKind": "Com qual ticket girar",
       "tickets_one": "{{count}} ticket",
       "tickets_other": "{{count}} tickets",
-      "special": "Especial",
-      "specialUsed": "Usado na semana",
-      "specialPremium": "Premium",
       "noTickets": "Sem tickets. Complete as missões da semana para ganhar.",
-      "noSpecial": "Você já usou o ticket especial desta semana. Outro chega na segunda.",
-      "specialPremiumHint": "O ticket especial é do Premium e vem 1 por semana.",
+      "noSpecial": "Sem tickets especiais. Convide amigos para ganhar (quem é Premium ganha 1 por semana).",
       "error": "A roleta travou. Tente de novo.",
       "remaining_one": "Falta {{count}} pôster para completar a coleção.",
       "remaining_other": "Faltam {{count}} pôsteres para completar a coleção.",
@@ -2240,7 +2236,9 @@
       "savedHint": "Já está na sua coleção.",
       "soundOn": "Ligar o som",
       "soundOff": "Desligar o som",
-      "revealAria": "Você ganhou: {{title}}, {{rarity}}"
+      "revealAria": "Você ganhou: {{title}}, {{rarity}}",
+      "specialCount_one": "{{count}} especial",
+      "specialCount_other": "{{count}} especiais"
     },
     "collection": {
       "empty": "Sua coleção está vazia",
@@ -2271,13 +2269,15 @@
       "resets_one": "Missões novas em {{count}} dia, toda segunda.",
       "resets_other": "Missões novas em {{count}} dias, toda segunda.",
       "resetsMonday": "Missões novas toda segunda.",
-      "specialTitle": "Ticket especial semanal",
-      "specialReady": "O seu desta semana está pronto na máquina. Ele não acumula: use até domingo.",
-      "specialUsedWeek": "Você já usou o desta semana. Outro chega na segunda.",
+      "specialTitle": "Tickets especiais",
+      "specialReady": "O seu semanal do Premium está pronto. Ele não acumula: use até domingo.",
+      "specialUsedWeek": "Você já usou o semanal do Premium. Outro chega na segunda.",
       "specialPremiumOnly": "Quem é Premium ganha 1 por semana, sempre com efeito especial.",
       "seePremium": "Conhecer o Premium",
       "noRepeatsRule": "Nenhum pôster se repete: cada giro traz uma versão que você ainda não tem.",
-      "effectsRule": "Quando sai efeito: holográfico {{holo}}%, negativo {{negative}}%, ultra vermelho {{ultra}}%."
+      "effectsRule": "Quando sai efeito: holográfico {{holo}}%, negativo {{negative}}%, ultra vermelho {{ultra}}%.",
+      "specialSaved_one": "Você também tem {{count}} especial guardado, que não vence.",
+      "specialSaved_other": "Você também tem {{count}} especiais guardados, que não vencem."
     },
     "library": {
       "menuItem": "Pôster da coleção",
@@ -2285,5 +2285,28 @@
       "original": "Capa original",
       "current": "Em uso"
     }
+  },
+  "invite": {
+    "cta_one": "Convide um amigo: vocês dois ganham {{count}} ticket especial",
+    "cta_other": "Convide um amigo: vocês dois ganham {{count}} tickets especiais",
+    "title": "Convide um amigo para o CineOracle",
+    "body_one": "Quem criar a conta pelo seu link ganha {{count}} ticket especial, e você também.",
+    "body_other": "Quem criar a conta pelo seu link ganha {{count}} tickets especiais, e você também.",
+    "share": "Compartilhar convite",
+    "copy": "Copiar",
+    "copiedShort": "Copiado",
+    "copied": "Link do convite copiado.",
+    "copyError": "Não deu para copiar. Segure o link para copiar.",
+    "loadError": "Não deu para carregar o seu convite agora.",
+    "howItWorks": "Os tickets chegam quando o amigo confirmar o e-mail. Você ganha por até 10 amigos a cada 30 dias.",
+    "joined_one": "{{count}} amigo já entrou pelo seu convite.",
+    "joined_other": "{{count}} amigos já entraram pelo seu convite.",
+    "shareText_one": "Vem pro CineOracle! Criando a conta pelo meu link, a gente ganha {{count}} ticket especial no Poster Jackpot.",
+    "shareText_other": "Vem pro CineOracle! Criando a conta pelo meu link, a gente ganha {{count}} tickets especiais no Poster Jackpot.",
+    "shareDialog": "Convidar para o CineOracle",
+    "signupBanner_one": "{{name}} te convidou. Crie sua conta e vocês dois ganham {{count}} ticket especial no Poster Jackpot.",
+    "signupBanner_other": "{{name}} te convidou. Crie sua conta e vocês dois ganham {{count}} tickets especiais no Poster Jackpot.",
+    "redeemed_one": "Você entrou pelo convite de {{name}} e ganhou {{count}} ticket especial.",
+    "redeemed_other": "Você entrou pelo convite de {{name}} e ganhou {{count}} tickets especiais."
   }
 }

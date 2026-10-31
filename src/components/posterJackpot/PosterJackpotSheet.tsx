@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Check, Crown, Loader2, Lock, Sparkles, Ticket, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { Check, Copy, Crown, Gift, Loader2, Share2, Sparkles, Ticket, Trophy, Volume2, VolumeX } from 'lucide-react';
 import OracleSheet, { SheetFade } from '../OracleSheet';
 import PosterArt, { EffectTag, RarityTag } from './PosterArt';
 import JackpotReel, { reelKey, type JackpotReelHandle, type ReelCard } from './JackpotReel';
@@ -21,6 +21,7 @@ import {
   notifyPostersChanged,
   pullErrorCode,
   pullJackpot,
+  specialFields,
   titleOf,
   unequipPoster,
   type CatalogPoster,
@@ -32,6 +33,7 @@ import {
   type PullResult,
 } from '../../lib/posterJackpot';
 import { isJackpotMuted, playReveal, primeJackpotAudio, setJackpotMuted } from '../../lib/jackpotSound';
+import { INVITE_REWARD, copyInvite, getMyInvite, shareInvite, type MyInvite } from '../../lib/invite';
 import '../../styles/posterJackpot.css';
 
 // Poster Jackpot: a roleta do Oracle Hub. Um palco de parque encantado
@@ -267,7 +269,8 @@ const Machine: React.FC<{
   owned: OwnedPoster[] | null;
   onState: (patch: Partial<JackpotState>) => void;
   onCollectionChanged: () => void;
-}> = ({ state, owned, onState, onCollectionChanged }) => {
+  onInvite: () => void;
+}> = ({ state, owned, onState, onCollectionChanged, onInvite }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
   const reduceMotion = !!useReducedMotion();
@@ -311,7 +314,7 @@ const Machine: React.FC<{
       return;
     }
     if (!hasTicket) {
-      toast(kind === 'special' ? (state.premium ? t('jackpot.machine.noSpecial') : t('jackpot.machine.specialPremiumHint')) : t('jackpot.machine.noTickets'));
+      toast(kind === 'special' ? t('jackpot.machine.noSpecial') : t('jackpot.machine.noTickets'));
       return;
     }
     if (left <= 0) {
@@ -332,13 +335,13 @@ const Machine: React.FC<{
       console.error('Poster Jackpot pull:', error);
       if (code === 'collection_complete') onState(kind === 'special' ? { remainingSpecial: 0 } : { remaining: 0, remainingSpecial: 0 });
       if (code === 'no_tickets') onState({ tickets: 0 });
-      if (code === 'special_used') onState({ specialAvailable: false });
+      if (code === 'no_special') onState(specialFields(false, 0));
       toast.error(
         code === 'collection_complete'
           ? t(kind === 'special' ? 'jackpot.machine.specialComplete' : 'jackpot.machine.complete')
           : code === 'no_tickets'
             ? t('jackpot.machine.noTickets')
-            : code === 'special_used'
+            : code === 'no_special'
               ? t('jackpot.machine.noSpecial')
               : t('jackpot.machine.error')
       );
@@ -354,7 +357,7 @@ const Machine: React.FC<{
     setResult(res);
     onState({
       tickets: res.tickets,
-      specialAvailable: kind === 'special' ? false : state.specialAvailable,
+      ...specialFields(res.specialWeekly, res.specialTickets),
       owned: state.owned + 1,
       remaining: Math.max(0, state.remaining - 1),
       remainingSpecial: Math.max(0, state.remainingSpecial - (res.effect !== 'none' ? 1 : 0)),
@@ -370,7 +373,7 @@ const Machine: React.FC<{
     } catch {
       // sem vibração
     }
-    if (kind === 'special') setKind('normal');
+    if (kind === 'special' && !res.specialWeekly && res.specialTickets <= 0) setKind('normal');
     window.setTimeout(
       () => {
         setPhase('revealed');
@@ -484,8 +487,8 @@ const Machine: React.FC<{
           className={`pj-token pj-token-special flex items-center justify-center gap-2 h-12 rounded-2xl text-[13px] font-semibold text-white disabled:cursor-default ${FOCUS_RING}`}
           style={{ opacity: kind === 'special' ? 1 : state.specialAvailable ? 0.6 : 0.4 }}
         >
-          {state.premium ? <Crown className="w-4 h-4" aria-hidden /> : <Lock className="w-4 h-4" aria-hidden />}
-          {state.specialAvailable ? t('jackpot.machine.special') : state.premium ? t('jackpot.machine.specialUsed') : t('jackpot.machine.specialPremium')}
+          <Ticket className="w-4 h-4" aria-hidden />
+          {t('jackpot.machine.specialCount', { count: state.specialCount })}
         </button>
       </div>
         <button
@@ -514,6 +517,18 @@ const Machine: React.FC<{
       <p className="mt-3 text-center text-[12.5px] leading-relaxed" style={{ color: MIST }} aria-live="polite">
         {status}
       </p>
+      <div className="mt-2 flex justify-center">
+        <button
+          type="button"
+          onClick={onInvite}
+          disabled={spinning}
+          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition hover:bg-white/5 disabled:opacity-50 ${FOCUS_RING}`}
+          style={{ color: '#FFD3F1' }}
+        >
+          <Gift className="w-4 h-4" aria-hidden />
+          {t('invite.cta', { count: INVITE_REWARD })}
+        </button>
+      </div>
 
       <AnimatePresence>
         {phase === 'revealed' && result && (
@@ -643,6 +658,115 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void }
 };
 
 // ---------------------------------------------------------------------------
+// Convidar um amigo: os dois ganham 3 tickets especiais
+// ---------------------------------------------------------------------------
+
+const InviteCard: React.FC = () => {
+  const { t } = useTranslation();
+  const [invite, setInvite] = useState<MyInvite | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getMyInvite()
+      .then((value) => alive && setInvite(value))
+      .catch((error) => {
+        console.error('Invite:', error);
+        if (alive) setFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const share = async () => {
+    if (!invite) return;
+    const route = await shareInvite(invite.link);
+    if (route === 'copied') toast.success(t('invite.copied'));
+    if (route === 'failed') toast.error(t('invite.copyError'));
+  };
+
+  const copy = async () => {
+    if (!invite) return;
+    if (await copyInvite(invite.link)) {
+      setCopied(true);
+      toast.success(t('invite.copied'));
+      window.setTimeout(() => setCopied(false), 2000);
+    } else {
+      toast.error(t('invite.copyError'));
+    }
+  };
+
+  return (
+    <section
+      aria-labelledby="pj-invite-title"
+      className="relative overflow-hidden rounded-2xl p-4 sm:p-5"
+      style={{
+        background: 'radial-gradient(90% 120% at 100% 0%, rgba(255,122,217,0.22), transparent 60%), linear-gradient(135deg, #1c2a78, #0a0e2c 55%, #4b1f7a)',
+        boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.5)',
+      }}
+    >
+      <span className="pj-stars" aria-hidden />
+      <div className="relative flex items-start gap-3.5">
+        <span className="relative grid place-items-center w-12 h-12 shrink-0 rounded-2xl pj-token-special" aria-hidden>
+          <Ticket className="w-6 h-6 text-white" />
+          <span className="absolute -top-1.5 -right-1.5 grid place-items-center min-w-[1.5rem] h-6 px-1 rounded-full text-[12px] font-bold" style={{ background: '#F4C454', color: '#2A1A00' }}>
+            +{INVITE_REWARD}
+          </span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 id="pj-invite-title" className="text-[16px] font-semibold leading-snug" style={{ color: PAPER }}>
+            {t('invite.title')}
+          </h3>
+          <p className="mt-1 text-[13.5px] leading-relaxed" style={{ color: '#D9D2F2' }}>
+            {t('invite.body', { count: INVITE_REWARD })}
+          </p>
+        </div>
+      </div>
+
+      {failed ? (
+        <p className="relative mt-3 text-[13px]" style={{ color: MIST }}>{t('invite.loadError')}</p>
+      ) : (
+        <>
+          <div className="relative mt-3.5 flex items-center gap-2 rounded-xl px-3 h-11 text-[13px]" style={{ background: 'rgba(10,14,44,0.7)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)' }}>
+            {invite ? (
+              <span className="min-w-0 flex-1 truncate" style={{ color: '#FFE8A3' }}>{invite.link.replace(/^https:\/\//, '')}</span>
+            ) : (
+              <Loader2 className="w-4 h-4 animate-spin text-amber-200" aria-hidden />
+            )}
+          </div>
+          <div className="relative mt-2.5 grid grid-cols-[1fr_auto] gap-2">
+            <button
+              type="button"
+              onClick={share}
+              disabled={!invite}
+              className={`pj-spin inline-flex items-center justify-center gap-1.5 h-11 rounded-full text-sm font-bold disabled:opacity-60 ${FOCUS_RING}`}
+            >
+              <Share2 className="w-4 h-4" aria-hidden />
+              <span className="relative">{t('invite.share')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={copy}
+              disabled={!invite}
+              className={`inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-full text-sm font-semibold transition hover:bg-white/10 disabled:opacity-60 ${FOCUS_RING}`}
+              style={{ color: '#FFE8A3', boxShadow: 'inset 0 0 0 1.5px rgba(244,196,84,0.7)' }}
+            >
+              {copied ? <Check className="w-4 h-4" aria-hidden /> : <Copy className="w-4 h-4" aria-hidden />}
+              {copied ? t('invite.copiedShort') : t('invite.copy')}
+            </button>
+          </div>
+          <p className="relative mt-2.5 text-[12.5px] leading-relaxed" style={{ color: MIST }}>
+            {invite && invite.joined > 0 ? t('invite.joined', { count: invite.joined }) : t('invite.howItWorks')}
+          </p>
+        </>
+      )}
+    </section>
+  );
+};
+
+// ---------------------------------------------------------------------------
 // As missões
 // ---------------------------------------------------------------------------
 
@@ -678,6 +802,7 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
 
   return (
     <div className="space-y-5">
+      <InviteCard />
       <p className="text-sm" style={{ color: MIST }}>
         {daysLeft !== null ? t('jackpot.missions.resets', { count: daysLeft }) : t('jackpot.missions.resetsMonday')}
       </p>
@@ -729,10 +854,11 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
           <p className="font-medium" style={{ color: PAPER }}>{t('jackpot.missions.specialTitle')}</p>
           <p style={{ color: MIST }}>
             {state.premium
-              ? state.specialAvailable
+              ? state.specialWeekly
                 ? t('jackpot.missions.specialReady')
                 : t('jackpot.missions.specialUsedWeek')
               : t('jackpot.missions.specialPremiumOnly')}
+            {state.specialTickets > 0 && <> {t('jackpot.missions.specialSaved', { count: state.specialTickets })}</>}
           </p>
           {!state.premium && (
             <Link to="/premium" className={`mt-1.5 inline-flex items-center gap-1 rounded text-[13px] font-semibold text-amber-200 ${FOCUS_RING}`}>
@@ -840,7 +966,7 @@ const PosterJackpotSheet: React.FC<{
             })}
           </div>
           <SheetFade id={tab}>
-            {tab === 'machine' && <Machine state={state} owned={owned} onState={onState} onCollectionChanged={loadOwned} />}
+            {tab === 'machine' && <Machine state={state} owned={owned} onState={onState} onCollectionChanged={loadOwned} onInvite={() => setTab('missions')} />}
             {tab === 'collection' && <Collection list={owned} onChanged={loadOwned} />}
             {tab === 'missions' && <Missions state={state} onState={onState} />}
           </SheetFade>

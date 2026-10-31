@@ -64,7 +64,12 @@ export interface JackpotState {
   enabled: boolean;
   tickets: number;
   premium: boolean;
+  // Tickets especiais: o semanal do Premium (não acumula) + os guardados
+  // (convites e outros meios; acumulam). specialCount soma os dois.
+  specialWeekly: boolean;
+  specialTickets: number;
   specialAvailable: boolean;
+  specialCount: number;
   weekEndsAt: string | null;
   missions: JackpotMission[];
   catalog: Record<PosterRarity | 'total', number>;
@@ -89,7 +94,17 @@ export interface PullResult {
   effect: PosterEffect;
   kind: 'normal' | 'special';
   tickets: number;
+  specialTickets: number;
+  specialWeekly: boolean;
 }
+
+// Monta os campos do ticket especial a partir do semanal e dos guardados.
+export const specialFields = (weekly: boolean, bonus: number) => ({
+  specialWeekly: weekly,
+  specialTickets: bonus,
+  specialAvailable: weekly || bonus > 0,
+  specialCount: (weekly ? 1 : 0) + bonus,
+});
 
 // A fonte dos letreiros (Cinzel Decorative), carregada só quando a roleta
 // aparece.
@@ -118,7 +133,7 @@ export async function fetchJackpotState(): Promise<JackpotState> {
     enabled: raw.enabled === true,
     tickets: num(raw.tickets),
     premium: raw.premium === true,
-    specialAvailable: raw.special_available === true,
+    ...specialFields(raw.special_weekly === true, num(raw.special_tickets)),
     weekEndsAt: typeof raw.week_ends_at === 'string' ? raw.week_ends_at : null,
     missions: Array.isArray(raw.missions) ? (raw.missions as JackpotMission[]) : [],
     catalog: {
@@ -152,7 +167,7 @@ export function fetchJackpotCatalog(): Promise<CatalogPoster[]> {
 // O motivo de um giro recusado pelo banco (mensagem da exceção).
 export const pullErrorCode = (error: unknown): string => {
   const message = (error as { message?: string })?.message || '';
-  return ['no_tickets', 'special_used', 'not_premium', 'collection_complete', 'jackpot_closed'].find((code) => message.includes(code)) || 'error';
+  return ['no_tickets', 'no_special', 'collection_complete', 'jackpot_closed'].find((code) => message.includes(code)) || 'error';
 };
 
 export async function pullJackpot(kind: 'normal' | 'special'): Promise<PullResult> {
@@ -165,6 +180,8 @@ export async function pullJackpot(kind: 'normal' | 'special'): Promise<PullResul
     effect: raw.effect as PosterEffect,
     kind: raw.kind as 'normal' | 'special',
     tickets: num(raw.tickets),
+    specialTickets: num(raw.special_tickets),
+    specialWeekly: raw.special_weekly === true,
   };
 }
 

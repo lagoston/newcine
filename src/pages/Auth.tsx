@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { AuthShell, AuthHeading, AuthTabs, AuthField, AuthError, AuthSubmit, AuthTextButton } from '../components/AuthUI';
 import { VELVET, PAPER, MIST } from '../lib/oracleTheme';
 import { useTranslation } from 'react-i18next';
+import { getInvitePreview, getPendingInvite, INVITE_REWARD } from '../lib/invite';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -46,6 +47,17 @@ export default function Auth() {
 
   // Authentication flow states
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot-password'>('signin');
+  // Convite: quem chegou pelo link de alguém vê quem convidou no cadastro.
+  const [inviter, setInviter] = useState<{ username: string; avatar_url: string | null } | null>(null);
+  useEffect(() => {
+    const code = getPendingInvite();
+    if (!code) return;
+    let alive = true;
+    getInvitePreview(code).then((preview) => alive && setInviter(preview));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -398,6 +410,24 @@ export default function Auth() {
       <div className="mt-7">
         <AuthHeading title={title} subtitle={subtitle} />
       </div>
+
+      {mode === 'signup' && inviter && (
+        <div
+          className="mt-5 flex items-center gap-3 rounded-2xl px-3.5 py-3"
+          style={{ background: 'linear-gradient(135deg, rgba(75,31,122,0.55), rgba(28,42,120,0.55))', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.45)' }}
+        >
+          {inviter.avatar_url ? (
+            <img src={inviter.avatar_url} alt="" className="w-10 h-10 shrink-0 rounded-full object-cover ring-2 ring-amber-200/60" />
+          ) : (
+            <span className="grid place-items-center w-10 h-10 shrink-0 rounded-full text-sm font-bold" style={{ background: VELVET, color: PAPER }}>
+              {inviter.username.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <p className="text-sm leading-snug" style={{ color: PAPER }}>
+            {t('invite.signupBanner', { name: inviter.username, count: INVITE_REWARD })}
+          </p>
+        </div>
+      )}
 
       {/* noValidate: as mensagens de erro são as do app (traduzidas), não os
           balões nativos do navegador. */}

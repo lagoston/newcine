@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Crown, Ticket } from 'lucide-react';
+import { ArrowRight, Ticket } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { FOCUS_RING } from '../../lib/oracleTheme';
 import { fetchJackpotCatalog, fetchJackpotState, loadJackpotFont, type CatalogPoster, type JackpotState, type PosterEffect } from '../../lib/posterJackpot';
@@ -101,10 +101,10 @@ const PosterJackpotDoor: React.FC = () => {
               <Ticket className="w-3.5 h-3.5" aria-hidden />
               {t('jackpot.machine.tickets', { count: state.tickets })}
             </span>
-            {state.specialAvailable && (
+            {state.specialCount > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(255,122,217,0.18)', color: '#FFD3F1' }}>
-                <Crown className="w-3.5 h-3.5" aria-hidden />
-                {t('jackpot.machine.special')}
+                <Ticket className="w-3.5 h-3.5" aria-hidden />
+                {t('jackpot.machine.specialCount', { count: state.specialCount })}
               </span>
             )}
             {claimable > 0 && (

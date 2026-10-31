@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { getPendingInvite, redeemPendingInvite } from './invite';
 
 interface AuthContextType {
   session: Session | null;
@@ -84,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (event === 'SIGNED_IN') {
             checkPremiumStatus(currentSession.user.id);
+            void redeemPendingInvite();
           }
         }
         
@@ -229,7 +231,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
         options: {
           data: {
-            username: username
+            username: username,
+            // Convite (Poster Jackpot): o banco credita os dois quando o
+            // e-mail for confirmado.
+            ...(getPendingInvite() ? { invite_code: getPendingInvite() } : {})
           },
           emailRedirectTo: `${window.location.origin}/auth?verified=true`
         }
