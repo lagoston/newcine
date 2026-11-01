@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Trash2, Tv, Trophy, MessageCircle, UserPlus, Heart, Play, Ticket, Repeat2, LayoutGrid } from 'lucide-react';
+import { Loader2, Trash2, Tv, Trophy, MessageCircle, UserPlus, Heart, Play, Repeat2, LayoutGrid } from 'lucide-react';
+import { ChipFace } from './posterJackpot/Chips';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -336,8 +337,8 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
     }
     if (whisper.type === 'jackpot_invite') {
       return (
-        <span className="w-10 h-10 rounded-full grid place-items-center" style={{ background: 'linear-gradient(135deg, #4b1f7a, #a23ab5 45%, #ff7ad9 70%, #ffc83d)', color: '#fff' }}>
-          <Ticket className="w-[18px] h-[18px]" aria-hidden />
+        <span className="w-10 h-10 rounded-full grid place-items-center" style={{ background: 'radial-gradient(circle at 50% 35%, #263080, #0b0f36 70%)', boxShadow: 'inset 0 0 0 1.5px rgba(244,196,84,0.75)' }}>
+          <ChipFace className="w-7 h-7" />
         </span>
       );
     }

@@ -1,17 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Ticket } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { FOCUS_RING } from '../../lib/oracleTheme';
 import { fetchJackpotCatalog, fetchJackpotState, loadJackpotFont, type CatalogPoster, type JackpotState, type PosterEffect } from '../../lib/posterJackpot';
 import PosterArt from './PosterArt';
+import { ChipFace } from './Chips';
+import { RarityGem } from './CollectorMark';
 import PosterJackpotSheet, { type JackpotTab } from './PosterJackpotSheet';
 import '../../styles/posterJackpot.css';
 
 // A porta do Poster Jackpot no Oracle Hub: o mesmo céu estrelado e o ouro da
 // roleta, com três pôsteres do catálogo em leque (o do meio holográfico,
-// para mostrar o efeito), os tickets e o aviso de missão pronta. Só aparece
+// para mostrar o efeito), as fichas, o Giro da Sorte pronto e o aviso de
+// missão pronta. Só aparece
 // para quem a roleta está liberada (poster_jackpot_settings).
 const FAN: { rotate: number; x: number; effect: PosterEffect; z: number }[] = [
   { rotate: -11, x: -30, effect: 'none', z: 1 },
@@ -113,14 +116,20 @@ const PosterJackpotDoor: React.FC = () => {
             {t('jackpot.door.hint')}
           </span>
           <span className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(94,168,255,0.18)', color: '#CFE3FF' }}>
-              <Ticket className="w-3.5 h-3.5" aria-hidden />
-              {t('jackpot.machine.tickets', { count: state.tickets })}
+            <span className="inline-flex items-center gap-1 rounded-full pl-1 pr-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(94,168,255,0.18)', color: '#CFE3FF' }}>
+              <ChipFace className="w-4 h-4" />
+              {t('jackpot.chips.normalAria', { count: state.tickets })}
             </span>
             {state.specialCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(255,122,217,0.18)', color: '#FFD3F1' }}>
-                <Ticket className="w-3.5 h-3.5" aria-hidden />
-                {t('jackpot.machine.specialCount', { count: state.specialCount })}
+              <span className="inline-flex items-center gap-1 rounded-full pl-1 pr-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(255,122,217,0.18)', color: '#FFD3F1' }}>
+                <ChipFace kind="special" className="w-4 h-4" />
+                {t('jackpot.chips.specialAria', { count: state.specialCount })}
+              </span>
+            )}
+            {state.luckySpins > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(244,196,84,0.18)', color: '#FFE8A3', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.5)' }}>
+                <RarityGem rarity="legendary" glint className="w-3.5 h-3.5" />
+                {t('jackpot.lucky.doorReady', { count: state.luckySpins })}
               </span>
             )}
             {claimable > 0 && (

@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Check, Copy, Crown, Gift, Loader2, Maximize2, Share2, Sparkles, Ticket, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { Check, Copy, Crown, Gift, Loader2, Maximize2, Share2, Sparkles, Trophy, Volume2, VolumeX } from 'lucide-react';
 import OracleSheet, { SheetFade } from '../OracleSheet';
 import PosterArt, { EffectTag, RarityTag } from './PosterArt';
-import { SerialLine } from './CollectorMark';
+import { RarityGem, SerialLine } from './CollectorMark';
+import ChipRack, { ChipFace, type ChipKind } from './Chips';
+import LuckyMeter from './LuckyMeter';
 import { getMovieDetails, type Movie } from '../../lib/tmdb';
 import JackpotReel, { reelKey, type JackpotReelHandle, type ReelCard } from './JackpotReel';
 import { MOOD_BY_KEY } from '../../lib/moods';
@@ -15,6 +17,7 @@ import {
   EFFECTS,
   RARITY_META,
   EFFECT_META,
+  LUCKY_ODDS,
   claimMission,
   equipPoster,
   fetchJackpotCatalog,
@@ -32,6 +35,7 @@ import {
   type OwnedPoster,
   type PosterEffect,
   type PosterRarity,
+  type PullKind,
   type PullResult,
 } from '../../lib/posterJackpot';
 import { isJackpotMuted, playReveal, primeJackpotAudio, setJackpotMuted } from '../../lib/jackpotSound';
@@ -52,7 +56,6 @@ const MovieDetailsModal = lazy(() => import('../MovieDetailsModal'));
 
 export type JackpotTab = 'machine' | 'collection' | 'trades' | 'missions';
 type Tab = JackpotTab;
-type TicketKind = 'normal' | 'special';
 
 const RARITY_ASC: PosterRarity[] = ['common', 'rare', 'epic', 'legendary'];
 const SPARK_COLORS = ['#FFE8A3', '#F4C454', '#FF7AD9', '#8FE9FF', '#FFFFFF'];
@@ -71,24 +74,27 @@ const weighted = <T,>(list: T[], weight: (value: T) => number): T => {
 };
 
 // Monta o sorteador da fita: só versões que ainda podem sair para a pessoa
-// (com este ticket), nas mesmas chances do banco.
-const makeFiller = (catalog: CatalogPoster[], owned: Set<string>, kind: TicketKind) => {
+// (com esta ficha ou no Giro da Sorte), nas mesmas chances do banco. No Giro
+// da Sorte a fita só mostra épicos e lendários, meio a meio.
+const makeFiller = (catalog: CatalogPoster[], owned: Set<string>, kind: PullKind) => {
   const versions: PosterEffect[] = kind === 'special' ? EFFECTS : ['none', ...EFFECTS];
   const open = (item: CatalogPoster) => versions.filter((effect) => !owned.has(`${item.id}:${effect}`));
   const obtainable = catalog.filter((item) => open(item).length > 0);
-  const pool = obtainable.length ? obtainable : catalog;
+  const lucky = kind === 'lucky' ? obtainable.filter((item) => LUCKY_ODDS[item.rarity]) : [];
+  const pool = lucky.length ? lucky : obtainable.length ? obtainable : catalog;
+  const odds = (r: PosterRarity) => (kind === 'lucky' && LUCKY_ODDS[r]) || RARITY_META[r].odds;
   return (want?: PosterRarity): ReelCard | null => {
     if (!pool.length) return null;
     let rarity = want;
     if (rarity && !pool.some((item) => item.rarity === rarity)) return null;
     if (!rarity) {
       const present = RARITY_ASC.filter((r) => pool.some((item) => item.rarity === r));
-      rarity = weighted(present, (r) => RARITY_META[r].odds);
+      rarity = weighted(present, odds);
     }
     const item = pick(pool.filter((p) => p.rarity === rarity));
     const free = open(item);
     const effects = (free.length ? free : versions).filter((effect) => effect !== 'none');
-    const plain = kind === 'normal' && (free.length ? free : versions).includes('none');
+    const plain = kind !== 'special' && (free.length ? free : versions).includes('none');
     const effect: PosterEffect =
       plain && (Math.random() > 0.05 || !effects.length)
         ? 'none'
@@ -210,6 +216,18 @@ const Reveal: React.FC<{
         ))}
 
       <div className="relative h-full overflow-y-auto px-5 py-6 sm:py-7 flex flex-col items-center justify-center text-center">
+        {result.kind === 'lucky' && (
+          <motion.span
+            initial={reduceMotion ? false : { opacity: 0, y: -8, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="pj-lucky-ribbon mb-3 shrink-0"
+          >
+            <Twinkle className="w-3 h-3" color="#7A4A00" />
+            {t('jackpot.lucky.title')}
+            <Twinkle className="w-3 h-3" color="#7A4A00" />
+          </motion.span>
+        )}
         <motion.div
           initial={reduceMotion ? false : { rotateY: 100, scale: 0.6, y: 20 }}
           animate={{ rotateY: 0, scale: 1, y: 0 }}
@@ -244,6 +262,15 @@ const Reveal: React.FC<{
             {result.item.year ? <span className="font-normal" style={{ color: MIST }}> ({result.item.year})</span> : null}
           </p>
           {result.effect !== 'none' && <EffectTag effect={result.effect} className="mt-2" />}
+          {result.luckyEarned && (
+            <p
+              className="mt-3 mx-auto inline-flex items-center gap-2 rounded-full pl-2 pr-3 py-1.5 text-[12.5px] font-semibold leading-snug"
+              style={{ background: 'rgba(244,196,84,0.14)', color: '#FFE8A3', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.55)' }}
+            >
+              <RarityGem rarity="legendary" glint className="w-4 h-4" />
+              {t('jackpot.lucky.earned')}
+            </p>
+          )}
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <button
               type="button"
@@ -288,13 +315,18 @@ const Machine: React.FC<{
   const reduceMotion = !!useReducedMotion();
   const reelRef = useRef<JackpotReelHandle>(null);
   const [catalog, setCatalog] = useState<CatalogPoster[] | null>(null);
-  const [kind, setKind] = useState<TicketKind>(state.tickets > 0 || !state.specialAvailable ? 'normal' : 'special');
+  // A ficha escolhida no porta-fichas.
+  const [kind, setKind] = useState<ChipKind>(state.tickets > 0 || !state.specialAvailable ? 'normal' : 'special');
+  // Um Giro da Sorte em andamento (do toque na barra até fechar a revelação).
+  const [luckyRun, setLuckyRun] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'spinning' | 'landed' | 'revealed'>('idle');
   const [result, setResult] = useState<PullResult | null>(null);
   const [winnerKey, setWinnerKey] = useState<string | null>(null);
   const [equipping, setEquipping] = useState(false);
   const [equipped, setEquipped] = useState(false);
   const [muted, setMuted] = useState(isJackpotMuted);
+  // A casa da barra que acabou de acender.
+  const [freshCell, setFreshCell] = useState<number | null>(null);
   const busyRef = useRef(false);
 
   useEffect(() => {
@@ -310,66 +342,80 @@ const Machine: React.FC<{
     };
   }, []);
 
+  const reelMode: PullKind = luckyRun ? 'lucky' : kind;
   const ownedSet = useMemo(() => new Set((owned || []).map((p) => `${p.id}:${p.effect}`)), [owned]);
-  const filler = useMemo(() => makeFiller(catalog || [], ownedSet, kind), [catalog, ownedSet, kind]);
+  const filler = useMemo(() => makeFiller(catalog || [], ownedSet, reelMode), [catalog, ownedSet, reelMode]);
 
   const left = kind === 'special' ? state.remainingSpecial : state.remaining;
   const complete = state.remaining <= 0;
-  const hasTicket = kind === 'special' ? state.specialAvailable : state.tickets > 0;
-  const canSpin = hasTicket && left > 0;
+  const hasChip = kind === 'special' ? state.specialAvailable : state.tickets > 0;
+  const canSpin = hasChip && left > 0;
   const spinning = phase === 'spinning';
 
-  const spin = async () => {
+  const run = async (pullKind: PullKind) => {
     if (busyRef.current || !catalog?.length) return;
     if (complete) {
       toast(t('jackpot.machine.complete'));
       return;
     }
-    if (!hasTicket) {
-      toast(kind === 'special' ? t('jackpot.machine.noSpecial') : t('jackpot.machine.noTickets'));
-      return;
-    }
-    if (left <= 0) {
-      toast(t('jackpot.machine.specialComplete'));
-      return;
+    if (pullKind === 'lucky') {
+      if (state.luckySpins < 1) return;
+    } else {
+      if (!hasChip) {
+        toast(kind === 'special' ? t('jackpot.machine.noSpecial') : t('jackpot.machine.noTickets'));
+        return;
+      }
+      if (left <= 0) {
+        toast(t('jackpot.machine.specialComplete'));
+        return;
+      }
     }
     busyRef.current = true;
     primeJackpotAudio();
+    setLuckyRun(pullKind === 'lucky');
     setPhase('spinning');
     setWinnerKey(null);
     setEquipped(false);
+    setFreshCell(null);
     reelRef.current?.windUp();
     let res: PullResult;
     try {
-      [res] = await Promise.all([pullJackpot(kind), new Promise((r) => setTimeout(r, reduceMotion ? 0 : 430))]);
+      [res] = await Promise.all([pullJackpot(pullKind), new Promise((r) => setTimeout(r, reduceMotion ? 0 : 430))]);
     } catch (error) {
       const code = pullErrorCode(error);
       console.error('Poster Jackpot pull:', error);
-      if (code === 'collection_complete') onState(kind === 'special' ? { remainingSpecial: 0 } : { remaining: 0, remainingSpecial: 0 });
+      if (code === 'collection_complete') onState(pullKind === 'special' ? { remainingSpecial: 0 } : { remaining: 0, remainingSpecial: 0 });
       if (code === 'no_tickets') onState({ tickets: 0 });
       if (code === 'no_special') onState(specialFields(false, 0));
+      if (code === 'no_lucky') onState({ luckySpins: 0 });
       toast.error(
         code === 'collection_complete'
-          ? t(kind === 'special' ? 'jackpot.machine.specialComplete' : 'jackpot.machine.complete')
+          ? t(pullKind === 'special' ? 'jackpot.machine.specialComplete' : 'jackpot.machine.complete')
           : code === 'no_tickets'
             ? t('jackpot.machine.noTickets')
             : code === 'no_special'
               ? t('jackpot.machine.noSpecial')
-              : t('jackpot.machine.error')
+              : code === 'no_lucky'
+                ? t('jackpot.lucky.none')
+                : t('jackpot.machine.error')
       );
+      setLuckyRun(false);
       setPhase('idle');
       busyRef.current = false;
       return;
     }
     const prize: ReelCard = {
       key: reelKey(),
-      item: { id: res.item.id, rarity: res.item.rarity, file_path: res.item.file_path, media_type: res.item.media_type, tmdb_id: res.item.tmdb_id },
+      item: { id: res.item.id, rarity: res.item.rarity, serial: res.item.serial, file_path: res.item.file_path, media_type: res.item.media_type, tmdb_id: res.item.tmdb_id },
       effect: res.effect,
     };
     setResult(res);
+    // As fichas saem do porta-fichas na hora; a barra só anda quando a fita
+    // para (para não entregar o resultado antes).
     onState({
       tickets: res.tickets,
       ...specialFields(res.specialWeekly, res.specialTickets),
+      ...(pullKind === 'lucky' ? { luckySpins: res.luckySpins } : {}),
       owned: state.owned + 1,
       remaining: Math.max(0, state.remaining - 1),
       remainingSpecial: Math.max(0, state.remainingSpecial - (res.effect !== 'none' ? 1 : 0)),
@@ -379,13 +425,17 @@ const Machine: React.FC<{
     setWinnerKey(prize.key);
     setPhase('landed');
     playReveal(res.item.rarity, res.effect !== 'none');
+    if (pullKind !== 'lucky') {
+      onState({ luckyProgress: res.luckyProgress, luckySpins: res.luckySpins });
+      setFreshCell(res.luckyEarned ? null : res.luckyProgress - 1);
+    }
     try {
       if (res.item.rarity === 'legendary') navigator.vibrate?.([30, 40, 60]);
-      else if (res.item.rarity === 'epic') navigator.vibrate?.(40);
+      else if (res.item.rarity === 'epic' || res.luckyEarned) navigator.vibrate?.(40);
     } catch {
       // sem vibração
     }
-    if (kind === 'special' && !res.specialWeekly && res.specialTickets <= 0) setKind('normal');
+    if (pullKind === 'special' && !res.specialWeekly && res.specialTickets <= 0) setKind('normal');
     window.setTimeout(
       () => {
         setPhase('revealed');
@@ -420,19 +470,35 @@ const Machine: React.FC<{
   // Sem contagem de "faltam N pôsteres" (pedido do Bruno, 31/10).
   const status = complete
     ? t('jackpot.machine.complete')
-    : kind === 'special'
-      ? state.remainingSpecial > 0
-        ? t('jackpot.machine.specialHint')
-        : t('jackpot.machine.specialComplete')
-      : '';
+    : luckyRun
+      ? ''
+      : kind === 'special'
+        ? state.remainingSpecial > 0
+          ? t('jackpot.machine.specialHint')
+          : t('jackpot.machine.specialComplete')
+        : '';
 
-  const spinLabel = spinning ? t('jackpot.machine.skip') : complete ? t('jackpot.machine.completeShort') : t('jackpot.machine.spinShort');
+  // As chances no letreiro: as do giro com ficha ou as do Giro da Sorte.
+  const odds: { rarity: PosterRarity; odds: number }[] = luckyRun
+    ? (['epic', 'legendary'] as PosterRarity[]).map((rarity) => ({ rarity, odds: LUCKY_ODDS[rarity] || 0 }))
+    : RARITY_ASC.map((rarity) => ({ rarity, odds: RARITY_META[rarity].odds }));
 
   return (
     <div className="relative mx-auto max-w-xl">
+      <button
+        type="button"
+        onClick={toggleMute}
+        aria-pressed={muted}
+        aria-label={muted ? t('jackpot.machine.soundOn') : t('jackpot.machine.soundOff')}
+        className={`pj-sound ${FOCUS_RING}`}
+      >
+        {muted ? <VolumeX className="w-4 h-4" aria-hidden /> : <Volume2 className="w-4 h-4" aria-hidden />}
+      </button>
+
       <div className="pj-stage-frame" style={{ borderRadius: '50% 50% 30px 30px / 70px 70px 30px 30px' }}>
-        <div className="pj-stage px-3 sm:px-5 pt-[64px] sm:pt-[70px] pb-8" style={{ borderRadius: '50% 50% 27px 27px / 67px 67px 27px 27px' }}>
+        <div className={`pj-stage ${luckyRun ? 'pj-lucky' : ''} px-3 sm:px-5 pt-[64px] sm:pt-[66px] pb-8`} style={{ borderRadius: '50% 50% 27px 27px / 67px 67px 27px 27px' }}>
           <span className="pj-stars" aria-hidden />
+          {luckyRun && <span className="pj-lucky-wash" aria-hidden />}
           <Marquee fast={spinning} />
 
           <div className="relative text-center">
@@ -442,14 +508,14 @@ const Machine: React.FC<{
               <Twinkle className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#8FE9FF" />
             </div>
             <p className="mt-1.5 text-[12.5px] sm:text-[13px]" style={{ color: '#CFC6EC' }}>
-              {t('jackpot.machine.tagline')}
+              {luckyRun ? t('jackpot.lucky.tagline') : t('jackpot.machine.tagline')}
             </p>
-            <ul className="mt-3 flex flex-wrap justify-center gap-x-2.5 sm:gap-x-3.5 gap-y-1">
-              {RARITY_ASC.map((rarity) => (
-                <li key={rarity} className="inline-flex items-center gap-1 sm:gap-1.5 text-[10.5px] sm:text-[12px]" style={{ color: '#D9D2F2' }}>
-                  <span aria-hidden className="w-2 h-2 rotate-45 rounded-[2px]" style={{ background: RARITY_META[rarity].color, boxShadow: `0 0 8px ${RARITY_META[rarity].glow}` }} />
+            <ul className="mt-3 flex flex-wrap justify-center gap-x-2 sm:gap-x-3.5 gap-y-1">
+              {odds.map(({ rarity, odds: chance }) => (
+                <li key={rarity} className="inline-flex items-center gap-[3px] sm:gap-1.5 text-[10.5px] sm:text-[12px]" style={{ color: '#D9D2F2' }}>
+                  <RarityGem rarity={rarity} className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                   {t(`jackpot.rarity.${rarity}`)}
-                  <span className="font-semibold tabular-nums" style={{ color: '#FFF4D6' }}>{RARITY_META[rarity].odds}%</span>
+                  <span className="font-semibold tabular-nums" style={{ color: '#FFF4D6' }}>{chance}%</span>
                 </li>
               ))}
             </ul>
@@ -473,59 +539,44 @@ const Machine: React.FC<{
               </div>
             )}
           </div>
+
+          {/* A barra da sorte, presa na base da máquina */}
+          <LuckyMeter
+            progress={state.luckyProgress}
+            spins={state.luckySpins}
+            goal={state.luckyGoal}
+            fresh={freshCell}
+            active={luckyRun}
+            disabled={phase !== 'idle' || complete || !catalog?.length}
+            onUse={() => run('lucky')}
+          />
         </div>
       </div>
 
-      {/* Controles: a ficha (ticket ou especial) e o botão */}
-      <div className="mt-4 flex gap-2">
-      <div className="grid flex-1 grid-cols-2 gap-2" role="radiogroup" aria-label={t('jackpot.machine.ticketKind')}>
-        <button
-          type="button"
-          role="radio"
-          aria-checked={kind === 'normal'}
-          disabled={spinning}
-          onClick={() => setKind('normal')}
-          className={`pj-token pj-token-normal flex items-center justify-center gap-2 h-12 rounded-2xl text-[13px] font-semibold text-white disabled:cursor-default ${FOCUS_RING}`}
-          style={{ opacity: kind === 'normal' ? 1 : 0.6 }}
-        >
-          <Ticket className="w-4 h-4" aria-hidden />
-          {t('jackpot.machine.tickets', { count: state.tickets })}
-        </button>
-        <button
-          type="button"
-          role="radio"
-          aria-checked={kind === 'special'}
-          disabled={spinning}
-          onClick={() => setKind('special')}
-          className={`pj-token pj-token-special flex items-center justify-center gap-2 h-12 rounded-2xl text-[13px] font-semibold text-white disabled:cursor-default ${FOCUS_RING}`}
-          style={{ opacity: kind === 'special' ? 1 : state.specialAvailable ? 0.6 : 0.4 }}
-        >
-          <Ticket className="w-4 h-4" aria-hidden />
-          {t('jackpot.machine.specialCount', { count: state.specialCount })}
-        </button>
+      {/* O porta-fichas e o botão de girar */}
+      <div className="mt-3.5 flex items-center gap-2.5 sm:gap-3.5">
+        <ChipRack
+          className="flex-1"
+          normal={state.tickets}
+          special={state.specialCount}
+          specialAvailable={state.specialAvailable}
+          kind={kind}
+          onKind={setKind}
+          disabled={phase !== 'idle'}
+        />
+        <span className="pj-spin-collar">
+          <motion.button
+            type="button"
+            onClick={spinning ? () => reelRef.current?.skip() : () => run(kind)}
+            disabled={phase === 'landed' || (!spinning && (complete || !catalog?.length))}
+            aria-label={spinning ? t('jackpot.machine.skipAria') : complete ? t('jackpot.machine.completeShort') : t('jackpot.machine.spin')}
+            whileTap={reduceMotion ? undefined : { scale: 0.95 }}
+            className={`pj-spin pj-spin-round ${canSpin && phase === 'idle' && !complete ? 'pj-ready' : ''} grid place-items-center pj-display text-[17px] font-black tracking-wide ${FOCUS_RING}`}
+          >
+            {complete && !spinning ? <Trophy className="relative w-7 h-7" aria-hidden /> : <span className="relative">{spinning ? t('jackpot.machine.skip') : t('jackpot.machine.spinShort')}</span>}
+          </motion.button>
+        </span>
       </div>
-        <button
-          type="button"
-          onClick={toggleMute}
-          aria-pressed={muted}
-          aria-label={muted ? t('jackpot.machine.soundOn') : t('jackpot.machine.soundOff')}
-          className={`shrink-0 grid place-items-center w-12 h-12 rounded-2xl transition hover:bg-white/10 ${FOCUS_RING}`}
-          style={{ color: '#FFE8A3', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.35)' }}
-        >
-          {muted ? <VolumeX className="w-5 h-5" aria-hidden /> : <Volume2 className="w-5 h-5" aria-hidden />}
-        </button>
-      </div>
-
-      <motion.button
-        type="button"
-        onClick={spinning ? () => reelRef.current?.skip() : spin}
-        disabled={phase === 'landed' || (!spinning && (complete || !catalog?.length))}
-        aria-label={spinning ? t('jackpot.machine.skipAria') : t('jackpot.machine.spin')}
-        whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-        className={`pj-spin ${canSpin && phase === 'idle' ? 'pj-ready' : ''} mt-3 w-full h-14 rounded-full pj-display text-[22px] font-black tracking-wide ${FOCUS_RING}`}
-      >
-        <span className="relative">{spinLabel}</span>
-      </motion.button>
 
       {status && (
         <p className="mt-3 text-center text-[12.5px] leading-relaxed" style={{ color: MIST }} aria-live="polite">
@@ -555,6 +606,8 @@ const Machine: React.FC<{
             onEquip={equip}
             onClose={() => {
               setPhase('idle');
+              setLuckyRun(false);
+              setFreshCell(null);
               if (state.tickets <= 0 && state.specialAvailable && state.remainingSpecial > 0) setKind('special');
             }}
           />
@@ -725,7 +778,7 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void; 
 };
 
 // ---------------------------------------------------------------------------
-// Convidar um amigo: os dois ganham 3 tickets especiais
+// Convidar um amigo: os dois ganham 3 fichas especiais
 // ---------------------------------------------------------------------------
 
 const InviteCard: React.FC = () => {
@@ -776,8 +829,9 @@ const InviteCard: React.FC = () => {
     >
       <span className="pj-stars" aria-hidden />
       <div className="relative flex items-start gap-3.5">
-        <span className="relative grid place-items-center w-12 h-12 shrink-0 rounded-2xl pj-token-special" aria-hidden>
-          <Ticket className="w-6 h-6 text-white" />
+        <span className="relative w-12 h-12 shrink-0" aria-hidden>
+          <ChipFace kind="special" className="absolute left-0 bottom-0 w-9 h-9 -rotate-12" />
+          <ChipFace kind="special" className="absolute right-0 top-1 w-8 h-8 rotate-12" />
           <span className="absolute -top-1.5 -right-1.5 grid place-items-center min-w-[1.5rem] h-6 px-1 rounded-full text-[12px] font-bold" style={{ background: '#F4C454', color: '#2A1A00' }}>
             +{INVITE_REWARD}
           </span>
@@ -905,7 +959,7 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
                     className={`shrink-0 inline-flex items-center gap-1 h-9 px-3 rounded-lg text-[12px] font-semibold transition disabled:opacity-40 ${FOCUS_RING}`}
                     style={done ? { background: '#FDE68A', color: '#221B36' } : { color: PAPER, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)' }}
                   >
-                    {claiming === mission.key ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden /> : <Ticket className="w-3.5 h-3.5" aria-hidden />}
+                    {claiming === mission.key ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden /> : <ChipFace className="w-4 h-4" />}
                     {t('jackpot.missions.claim')}
                   </button>
                 )}
@@ -939,6 +993,10 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
         <p className="flex items-start gap-2">
           <Twinkle className="w-4 h-4 shrink-0 mt-0.5" color="#FFE8A3" />
           {t('jackpot.missions.noRepeatsRule')}
+        </p>
+        <p className="flex items-start gap-2">
+          <RarityGem rarity="legendary" className="w-4 h-4 shrink-0 mt-0.5" />
+          {t('jackpot.missions.luckyRule', { count: state.luckyGoal })}
         </p>
         <p className="flex items-start gap-2">
           <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-cyan-200" aria-hidden />

@@ -4,7 +4,7 @@ import { IS_NATIVE_APP } from './platform';
 import i18n from '../i18n';
 
 // Convites (31/10/2026): quem cria a conta pelo link de alguém ganha 3
-// tickets especiais do Poster Jackpot, e quem convidou também.
+// fichas especiais do Poster Jackpot, e quem convidou também.
 //
 // Caminho do código:
 //   1. o link é https://www.cineoracle.com/auth?signup=true&convite=<código>;

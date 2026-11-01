@@ -63,16 +63,25 @@ export interface JackpotMission {
   claimed: boolean;
 }
 
+// Fichas (01/11/2026): o que era "ticket" no Jackpot virou "ficha" na tela
+// (num porta-fichas de cassino). No banco e aqui os campos continuam com os
+// nomes antigos: tickets = fichas comuns; special* = fichas especiais.
 export interface JackpotState {
   enabled: boolean;
   tickets: number;
   premium: boolean;
-  // Tickets especiais: o semanal do Premium (não acumula) + os guardados
-  // (convites e outros meios; acumulam). specialCount soma os dois.
+  // Fichas especiais: a semanal do Premium (não acumula) + as guardadas
+  // (convites e outros meios; acumulam). specialCount soma as duas.
   specialWeekly: boolean;
   specialTickets: number;
   specialAvailable: boolean;
   specialCount: number;
+  // A barra da sorte: a cada LUCKY_GOAL giros pagos, um Giro da Sorte grátis
+  // (50% épico, 50% lendário). luckyProgress vai de 0 a 9; luckySpins são
+  // os Giros da Sorte guardados (acumulam).
+  luckyProgress: number;
+  luckySpins: number;
+  luckyGoal: number;
   weekEndsAt: string | null;
   missions: JackpotMission[];
   catalog: Record<PosterRarity | 'total', number>;
@@ -93,16 +102,28 @@ export interface CatalogPoster {
   tmdb_id: number;
 }
 
+// Com o que se gira: ficha comum, ficha especial ou o Giro da Sorte.
+export type PullKind = 'normal' | 'special' | 'lucky';
+
+export const LUCKY_GOAL = 10;
+// O Giro da Sorte: meio a meio entre épico e lendário (os efeitos seguem o
+// giro com ficha comum).
+export const LUCKY_ODDS: Partial<Record<PosterRarity, number>> = { epic: 50, legendary: 50 };
+
 export interface PullResult {
   item: PosterItem;
   effect: PosterEffect;
-  kind: 'normal' | 'special';
+  kind: PullKind;
   tickets: number;
   specialTickets: number;
   specialWeekly: boolean;
+  luckyProgress: number;
+  luckySpins: number;
+  // Este giro completou a barra (ganhou um Giro da Sorte).
+  luckyEarned: boolean;
 }
 
-// Monta os campos do ticket especial a partir do semanal e dos guardados.
+// Monta os campos da ficha especial a partir da semanal e das guardadas.
 export const specialFields = (weekly: boolean, bonus: number) => ({
   specialWeekly: weekly,
   specialTickets: bonus,
@@ -138,6 +159,9 @@ export async function fetchJackpotState(): Promise<JackpotState> {
     tickets: num(raw.tickets),
     premium: raw.premium === true,
     ...specialFields(raw.special_weekly === true, num(raw.special_tickets)),
+    luckyProgress: num(raw.lucky_progress),
+    luckySpins: num(raw.lucky_spins),
+    luckyGoal: num(raw.lucky_goal) || LUCKY_GOAL,
     weekEndsAt: typeof raw.week_ends_at === 'string' ? raw.week_ends_at : null,
     missions: Array.isArray(raw.missions) ? (raw.missions as JackpotMission[]) : [],
     catalog: {
@@ -171,10 +195,10 @@ export function fetchJackpotCatalog(): Promise<CatalogPoster[]> {
 // O motivo de um giro recusado pelo banco (mensagem da exceção).
 export const pullErrorCode = (error: unknown): string => {
   const message = (error as { message?: string })?.message || '';
-  return ['no_tickets', 'no_special', 'collection_complete', 'jackpot_closed'].find((code) => message.includes(code)) || 'error';
+  return ['no_tickets', 'no_special', 'no_lucky', 'collection_complete', 'jackpot_closed'].find((code) => message.includes(code)) || 'error';
 };
 
-export async function pullJackpot(kind: 'normal' | 'special'): Promise<PullResult> {
+export async function pullJackpot(kind: PullKind): Promise<PullResult> {
   const { data, error } = await supabase.rpc('jackpot_pull', { p_kind: kind });
   if (error) throw error;
   const raw = data as Row;
@@ -182,10 +206,13 @@ export async function pullJackpot(kind: 'normal' | 'special'): Promise<PullResul
   return {
     item: raw.item as PosterItem,
     effect: raw.effect as PosterEffect,
-    kind: raw.kind as 'normal' | 'special',
+    kind: raw.kind as PullKind,
     tickets: num(raw.tickets),
     specialTickets: num(raw.special_tickets),
     specialWeekly: raw.special_weekly === true,
+    luckyProgress: num(raw.lucky_progress),
+    luckySpins: num(raw.lucky_spins),
+    luckyEarned: raw.lucky_earned === true,
   };
 }
 
