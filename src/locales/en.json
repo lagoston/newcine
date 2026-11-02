@@ -1788,7 +1788,8 @@
       "watchlist": "wants to watch",
       "review": "wrote about",
       "tag": "unlocked a tag",
-      "event": "completed the missions"
+      "event": "completed the missions",
+      "jackpot": "pulled a legendary poster"
     },
     "onWatchlist": "On watchlist",
     "storyOf": "@{{username}}'s story",
@@ -1845,7 +1846,14 @@
       "halloween": "Halloween",
       "christmas": "Christmas"
     },
-    "viewProfile": "View profile"
+    "viewProfile": "View profile",
+    "jackpot": {
+      "label": "Legendary poster",
+      "play": "Play Poster Jackpot",
+      "collection": "See it in my collection",
+      "viewMovie": "View the movie",
+      "viewSeries": "View the series"
+    }
   },
   "events": {
     "switchLabel": "Choose recommendations",
@@ -2337,6 +2345,15 @@
       "none": "You don't have a Lucky Spin right now.",
       "doorReady_one": "Lucky Spin ready",
       "doorReady_other": "{{count}} Lucky Spins ready"
+    },
+    "ufo": {
+      "aria": "Flying chip! Tap to catch it",
+      "appeared": "A flying chip is crossing the screen. Tap it to catch it!",
+      "caughtTitle": "You caught a flying chip!",
+      "caughtBody": "+1 chip to spin in Poster Jackpot.",
+      "escaped": "Oh, it got away! Maybe next time.",
+      "slipped": "It slipped! Try again, quick!",
+      "demo": "(demo)"
     }
   },
   "invite": {

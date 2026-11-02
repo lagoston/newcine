@@ -1,0 +1,42 @@
+/* Story do Poster Jackpot (02/11/2026): o pôster se ajusta à altura livre
+   no meio do cartão do story, que muda com o que vem embaixo (comentários,
+   curtidas) e em cima (aviso de story oculto). O meio do cartão vira um
+   "container" de tamanho (StoryViewer) e o pôster fica com a altura dele
+   menos o resto do conteúdo (--co-jp-reserve, calculado no JackpotCard:
+   letreiro, faixa, "Lendário", número, título, efeito e botões), entre
+   130px e 300px. Navegador sem container query fica com uma altura fixa
+   pela tela. */
+
+.co-jackpot-poster {
+  --co-jp-h: min(30dvh, 260px);
+  height: var(--co-jp-h);
+  width: calc(var(--co-jp-h) * 2 / 3 + 6px);
+}
+
+/* a marca de colecionador acompanha o tamanho do pôster */
+.co-jackpot-poster .pj-mark {
+  font-size: clamp(8px, calc(var(--co-jp-h) * 0.035), 10.5px);
+}
+
+@supports (height: 1cqh) {
+  .co-jackpot-poster {
+    --co-jp-h: clamp(130px, calc(100cqh - var(--co-jp-reserve, 330px)), 300px);
+  }
+
+  /* Cartão baixo (celular pequeno com comentários embaixo): saem o
+     letreiro, o selo do efeito (o pôster já mostra o efeito) e o atalho da
+     obra, e o pôster ganha esse espaço. */
+  @container (max-height: 500px) {
+    .co-jp-eyebrow,
+    .co-jp-effect,
+    .co-jp-secondary {
+      display: none;
+    }
+    .co-jp-ribbon {
+      margin-top: 0;
+    }
+    .co-jackpot-poster {
+      --co-jp-h: clamp(130px, calc(100cqh - var(--co-jp-reserve, 330px) + var(--co-jp-compact, 0px)), 300px);
+    }
+  }
+}

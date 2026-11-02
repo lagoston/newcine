@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Bookmark, ChevronLeft, ChevronRight, Eye, EyeOff, Heart, Loader2, MessageCircle, Quote, Send, Star, Trash2, X } from 'lucide-react';
@@ -11,6 +11,8 @@ import {
   fetchStoryComments,
   firstUnseenIndex,
   isAchievement,
+  jackpotPrizeOf,
+  jackpotWorkStory,
   relativeTime,
   removeStoryComment,
   storyPoster,
@@ -24,11 +26,13 @@ import {
 } from '../../lib/friendsFeed';
 import StoryRing from './StoryRing';
 import { AchievementBackdrop, AchievementCard } from './AchievementStory';
+import { JackpotBackdrop, JackpotCard } from './JackpotStory';
 
 // "Stories automáticos" do Feed dos Amigos: ocupa a tela, monta um cartão
 // com a capa da obra, a nota do amigo e o começo da resenha. Embaixo, curtir
 // (vira sussurro para o amigo) e comentar. Avança sozinho; segurar pausa,
 // tocar à esquerda volta, à direita avança, arrastar para baixo fecha.
+// O pôster lendário do Poster Jackpot tem cartão próprio (JackpotStory).
 
 const BASE_MS = 6500;
 const MAX_MS = 14000;
@@ -44,19 +48,25 @@ interface StoryViewerProps {
   // o story apareceu na tela (marca como visto)
   onSeen?: (story: FeedStory) => void;
   onOpenMovie?: (story: FeedStory) => void;
+  // Sair do visualizador para outra página (perfil do dono, Poster
+  // Jackpot). Sem ela, fecha e navega; quem abre o story por cima de outra
+  // janela (os sussurros) passa a sua, para fechar a janela junto.
+  onNavigate?: (path: string, state?: unknown) => void;
 }
 
 const durationFor = (story: FeedStory) => {
-  if (story.kind === 'event') return 9000;
+  // conquista de evento e pôster lendário: um tempo a mais para ver a cena
+  if (story.kind === 'event' || story.kind === 'jackpot') return 9000;
   if (story.review) return Math.min(MAX_MS, BASE_MS + story.review.excerpt.length * 30);
   return BASE_MS;
 };
 
-const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start, viewerId, onClose, onStoryUpdate, onSeen, onOpenMovie }) => {
+const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start, viewerId, onClose, onStoryUpdate, onSeen, onOpenMovie, onNavigate }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const reduceMotion = useReducedMotion();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [groups, setGroups] = useState(initialGroups);
   const [pos, setPos] = useState(start);
@@ -317,20 +327,30 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
   const commentList = Array.isArray(storyComments) ? storyComments : [];
   const preview = commentList.slice(-2);
 
+  const prize = story ? jackpotPrizeOf(story) : null;
   const ambient = useMemo(() => {
     if (!story) return undefined;
+    // pôster lendário: a luz em volta é a do pôster sorteado
+    if (prize) return `https://image.tmdb.org/t/p/w342${prize.file_path}`;
     const image = story.backdrop_path ? `https://image.tmdb.org/t/p/w780${story.backdrop_path}` : poster ? `https://image.tmdb.org/t/p/w342${poster}` : null;
     return image;
-  }, [story, poster]);
+  }, [story, poster, prize]);
 
   if (!group || !story) return null;
 
   const kindLabel = t(`feed.kind.${story.kind}`);
   const achievement = isAchievement(story);
-  const openOwnerProfile = () => {
+  const go = (path: string, state?: unknown) => {
+    if (onNavigate) return onNavigate(path, state);
     onClose();
-    navigate(isOwn ? '/profile' : `/profile/${story.owner.username}`);
+    // já está na página (a home, no caso do Jackpot): não empilha outra igual
+    navigate(path, { state, replace: location.pathname === path });
   };
+  const openOwnerProfile = () => go(isOwn ? '/profile' : `/profile/${story.owner.username}`);
+  // O Poster Jackpot mora na home: a porta dela abre a roleta (ou, no story
+  // do próprio dono, a coleção) ao ler location.state.openJackpot.
+  const openJackpot = () => go('/', { openJackpot: isOwn ? 'collection' : 'machine' });
+  const workOfPrize = prize ? jackpotWorkStory(story) : null;
   const hasMany = groups.length > 1 || group.stories.length > 1;
   const spoilerHidden = Boolean(story.review?.has_spoilers && !revealed[story.id]);
 
@@ -454,8 +474,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
           className="relative w-full h-[100dvh] sm:h-[min(92vh,860px)] sm:w-[min(460px,92vw)] sm:rounded-[28px] overflow-hidden flex flex-col shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)] sm:ring-1 sm:ring-white/10"
           style={{ background: NIGHT }}
         >
-          {/* conquista: a cena dela; obra: a capa, grande e borrada */}
-          {achievement ? (
+          {/* pôster lendário: o céu da roleta; conquista: a cena dela; obra: a capa, grande e borrada */}
+          {prize ? (
+            <JackpotBackdrop key={story.id} story={story} />
+          ) : achievement ? (
             <AchievementBackdrop story={story} />
           ) : (
           <div aria-hidden className="absolute inset-0 overflow-hidden">
@@ -549,6 +571,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
             {/* a obra (toque à esquerda volta, à direita avança) */}
             <div
               className="relative flex-1 min-h-0 flex flex-col items-center justify-center px-6 pt-2 pb-3 select-none touch-none"
+              // pôster lendário: o pôster mede a altura que sobra aqui (jackpotStory.css)
+              style={prize ? { containerType: 'size' } : undefined}
               onPointerDown={onPointerDown}
               onPointerUp={onPointerUp}
               onPointerCancel={cancelPointer}
@@ -572,7 +596,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ groups: initialGroups, start,
                       {t('feed.hiddenNote')}
                     </p>
                   )}
-                  {achievement ? (
+                  {prize ? (
+                    <JackpotCard
+                      story={story}
+                      own={isOwn}
+                      onPlay={openJackpot}
+                      onOpenWork={onOpenMovie && workOfPrize ? () => onOpenMovie(workOfPrize) : undefined}
+                    />
+                  ) : achievement ? (
                     <>
                       <AchievementCard story={story} />
                       <button

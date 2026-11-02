@@ -33,6 +33,7 @@ const SecretRoom = lazy(() => import('./pages/SecretRoom'));
 const Premium = lazy(() => import('./pages/Premium'));
 const PremiumSuccess = lazy(() => import('./pages/PremiumSuccess'));
 const CategoryMovies = lazy(() => import('./pages/CategoryMovies'));
+const FlyingChip = lazy(() => import('./components/posterJackpot/FlyingChip'));
 
 // /oracle → home, levando junto o state do link (a Central dos Oráculos foi
 // extinta em 02/11/2026).
@@ -78,6 +79,11 @@ function App() {
             <SeasonalBackdrop />
             <Navbar />
             <WhispersNotificationPopup />
+            {/* Fichas voadoras (02/11/2026): a ficha do Poster Jackpot que às vezes
+                atravessa a tela — rara, no máximo uma por dia (o banco decide). */}
+            <Suspense fallback={null}>
+              <FlyingChip />
+            </Suspense>
             <main>
               <Suspense fallback={<GlassLoader fullPage size="lg" label={t('common.loading')} />}>
                 <Routes>

@@ -13,6 +13,8 @@ import {
   firstUnseenIndex,
   groupStories,
   isAchievement,
+  isJackpotStory,
+  jackpotPrizeOf,
   tagAchievementOf,
   markStoryViewed,
   storyPoster,
@@ -23,6 +25,7 @@ import {
 } from '../../lib/friendsFeed';
 import StoryRing from './StoryRing';
 import StoryViewer from './StoryViewer';
+import { RarityGem } from '../posterJackpot/CollectorMark';
 
 // Feed dos Amigos, no topo da home (só os avatares, sem título, como nos
 // stories do Instagram). Junta o que antes eram "Melhores dos amigos", "Na
@@ -30,6 +33,8 @@ import StoryViewer from './StoryViewer';
 // um gomo no anel para cada atividade recente dele (até 5 por amigo, 50 no
 // total, dos últimos 30 dias; os que o amigo ocultou não são repostos).
 // O primeiro é o seu ("Você"). Tocar abre os stories em tela cheia.
+// Pôster lendário do Poster Jackpot: gomo dourado no anel e o cristal do
+// lendário no selo de baixo.
 
 const AVATAR = 66;
 const REFRESH_AFTER_MS = 60_000;
@@ -165,6 +170,22 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
   };
 
   const kindBadge = (story: FeedStory, seen: boolean) => {
+    if (isJackpotStory(story)) {
+      return (
+        <span
+          className="absolute left-1/2 -bottom-1.5 -translate-x-1/2 inline-flex items-center justify-center h-[22px] w-[34px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle at 50% 30%, #263080, #0b0f36 72%)',
+            boxShadow: `inset 0 0 0 1.5px rgba(244,196,84,0.85), 0 0 0 2.5px ${NIGHT}, 0 0 12px -2px rgba(255,200,61,${seen ? 0.25 : 0.6})`,
+            opacity: seen ? 0.85 : 1,
+            ['--pj-gem-glow' as string]: 'rgba(255,200,61,0.7)',
+          }}
+          aria-hidden
+        >
+          <RarityGem rarity="legendary" glint={!seen} className="w-[15px] h-[15px]" />
+        </span>
+      );
+    }
     if (isAchievement(story)) {
       const tag = tagAchievementOf(story);
       const event = eventAchievementOf(story);
@@ -204,6 +225,7 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
   };
 
   const storyLabel = (story: FeedStory) => {
+    if (jackpotPrizeOf(story)) return `${t('feed.jackpot.label')}: ${storyTitle(story, i18n.language)}`;
     const tag = tagAchievementOf(story);
     if (tag) return `${t('feed.achievement.tagEyebrow')}: ${tag.name}`;
     const event = eventAchievementOf(story);
@@ -245,7 +267,7 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
                 >
                   <span className="relative transition-transform duration-200 group-hover:scale-105">
                     <span style={{ opacity: mineHidden === mine.length ? 0.55 : 1 }}>
-                      <StoryRing size={AVATAR} segments={mine.map(() => false)} avatarUrl={latestMine.owner.avatar_url} username={latestMine.owner.username} still />
+                      <StoryRing size={AVATAR} segments={mine.map(() => false)} gold={mine.map(isJackpotStory)} avatarUrl={latestMine.owner.avatar_url} username={latestMine.owner.username} still />
                     </span>
                     {kindBadge(latestMine, true)}
                     {mineHidden > 0 ? (
@@ -288,6 +310,7 @@ const FriendsFeed: React.FC<FriendsFeedProps> = ({ userId, onMovieClick }) => {
                       <StoryRing
                         size={AVATAR}
                         segments={group.stories.map((story) => !story.seen)}
+                        gold={group.stories.map(isJackpotStory)}
                         avatarUrl={group.owner.avatar_url}
                         username={group.owner.username}
                       />

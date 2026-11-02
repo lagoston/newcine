@@ -384,17 +384,27 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
   };
 
   // Story de conquista: o emoji no lugar da capa. Tag: o nome dela;
-  // evento: "Missões de Halloween 2026" (tag_name = evento, movie_title = edição).
+  // evento: "Missões de Halloween 2026" (tag_name = evento, movie_title = edição);
+  // pôster lendário do Poster Jackpot (tag_category 'jackpot', 02/11/2026):
+  // o pôster sorteado na moldura de ouro e "Pôster lendário · título".
   const achievementBlock = (whisper: Whisper, detail: React.ReactNode) => (
     <div className="mt-3 flex items-start gap-3.5">
-      <span className="w-14 h-14 shrink-0 rounded-xl grid place-items-center text-3xl ring-1 ring-white/10" style={{ background: VELVET }} aria-hidden>
-        {whisper.tag_emoji || '🏅'}
-      </span>
+      {whisper.tag_category === 'jackpot' && whisper.movie_poster ? (
+        <span className="relative shrink-0 w-14 aspect-[2/3] rounded-lg overflow-hidden" style={{ background: VELVET, boxShadow: 'inset 0 0 0 1.5px rgba(244,196,84,0.85), 0 0 14px -4px rgba(255,200,61,0.6)' }} aria-hidden>
+          <OptimizedPoster src={`https://image.tmdb.org/t/p/w185${whisper.movie_poster}`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        </span>
+      ) : (
+        <span className="w-14 h-14 shrink-0 rounded-xl grid place-items-center text-3xl ring-1 ring-white/10" style={{ background: VELVET }} aria-hidden>
+          {whisper.tag_emoji || '🏅'}
+        </span>
+      )}
       <span className="min-w-0 pt-0.5">
         <span className="block font-semibold leading-snug" style={{ color: PAPER }}>
           {whisper.tag_category === 'event'
             ? t('feed.achievement.eventEyebrow', { event: t(`feed.event.${whisper.tag_name}`, { defaultValue: whisper.tag_name }), edition: whisper.movie_title })
-            : whisper.tag_name || whisper.movie_title}
+            : whisper.tag_category === 'jackpot'
+              ? `${t('feed.jackpot.label')} · ${whisper.movie_title ?? ''}`
+              : whisper.tag_name || whisper.movie_title}
         </span>
         {detail}
       </span>
@@ -742,6 +752,10 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
           start={{ group: 0, story: 0 }}
           viewerId={session.user.id}
           onClose={() => setOpenStory(null)}
+          onNavigate={(path, state) => {
+            setOpenStory(null);
+            goTo(path, state);
+          }}
           onSeen={markStoryViewed}
           onOpenMovie={(story) => {
             setOpenStory(null);

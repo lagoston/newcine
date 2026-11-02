@@ -1,0 +1,372 @@
+/* Fichas voadoras (02/11/2026): a ficha do Poster Jackpot que atravessa a
+   tela de vez em quando (components/posterJackpot/FlyingChip.tsx). Mesmo
+   vocabulário da roleta: ouro (#F4C454 / #FFE8A3 / #C8901F), a noite azul e
+   as faíscas de quatro pontas, com os toques rosa e ciano de fada. */
+
+/* A camada cobre a tela inteira, por cima de tudo (modais usam ~10001 e os
+   avisos 99999), mas só a ficha recebe toque: o resto deixa passar. */
+.fc-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  overflow: hidden;
+  pointer-events: none;
+}
+.fc-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* A área de toque (84 px no celular, maior nas telas grandes, onde 64 px
+   de ficha se perdiam; a ficha em si ocupa 76% dela). A posição é escrita a
+   cada quadro pelo componente. */
+.fc-chip {
+  --fc-size: 84px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: var(--fc-size);
+  height: var(--fc-size);
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  will-change: transform;
+}
+@media (min-width: 640px) {
+  .fc-chip {
+    --fc-size: 96px;
+  }
+}
+@media (min-width: 1024px) {
+  .fc-chip {
+    --fc-size: 108px;
+  }
+}
+/* Tudo que enfeita a ficha (halo, raios, estrelinhas) fica fora do toque:
+   só o círculo do botão pega. */
+.fc-chip > * {
+  pointer-events: none;
+}
+
+/* O halo dourado que respira. */
+.fc-halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200%;
+  height: 200%;
+  margin: -100% 0 0 -100%;
+  border-radius: 9999px;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 244, 210, 0.62),
+    rgba(255, 214, 120, 0.34) 30%,
+    rgba(244, 196, 84, 0.13) 56%,
+    rgba(244, 196, 84, 0) 100%
+  );
+  animation: fc-halo 1.8s ease-in-out infinite;
+}
+@keyframes fc-halo {
+  0%, 100% { transform: scale(0.84); opacity: 0.75; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+
+/* Raios de luz girando devagar atrás da ficha (como na revelação). */
+.fc-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 240%;
+  height: 240%;
+  margin: -120% 0 0 -120%;
+  border-radius: 9999px;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 232, 163, 0.5) 0deg 4deg, rgba(255, 232, 163, 0) 4deg 22.5deg);
+  -webkit-mask-image: radial-gradient(closest-side, #000 26%, transparent 70%);
+  mask-image: radial-gradient(closest-side, #000 26%, transparent 70%);
+  opacity: 0.55;
+  animation: fc-rays 10s linear infinite;
+}
+@keyframes fc-rays {
+  to { transform: rotate(360deg); }
+}
+
+/* Inclinação na curva (escrita pelo componente) + a sombra e o brilho. O
+   filtro fica aqui, acima do 3D da moeda, para não achatá-la. */
+.fc-bank {
+  position: absolute;
+  left: 12%;
+  top: 12%;
+  width: 76%;
+  height: 76%;
+  filter: drop-shadow(0 7px 9px rgba(4, 6, 26, 0.6)) drop-shadow(0 0 10px rgba(255, 214, 120, 0.6));
+}
+.fc-grab {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.is-grabbing .fc-grab {
+  transform: scale(1.16);
+}
+.is-grabbing .fc-halo {
+  animation-duration: 0.45s;
+}
+
+/* A moeda em 3D: sete discos dão a espessura (a borda listrada de marfim
+   aparece quando ela vira), as duas faces por cima. */
+.fc-coin {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.fc-edge {
+  position: absolute;
+  inset: 3.4%;
+  border-radius: 9999px;
+  /* Os encaixes da borda nos mesmos ângulos da face (30°, 90°…), um tom
+     abaixo para parecer a lateral na sombra. */
+  background: repeating-conic-gradient(from 22deg, #d6c9a6 0deg 16deg, #1f3aa8 16deg 60deg);
+  transform: translateZ(var(--z));
+}
+.fc-face {
+  position: absolute;
+  inset: 0;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.fc-face--front {
+  transform: translateZ(3.5px);
+}
+.fc-face--back {
+  transform: rotateY(180deg) translateZ(3.5px);
+}
+.fc-face .pj-chip-face {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: none;
+}
+
+/* O reflexo que corre pela face de tempos em tempos. */
+.fc-glint {
+  position: absolute;
+  inset: 3.4%;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.fc-glint::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.78) 50%, transparent 62%);
+  transform: translateX(-130%);
+  animation: fc-glint 2.6s ease-in-out infinite;
+}
+@keyframes fc-glint {
+  0%, 52% { transform: translateX(-130%); }
+  82%, 100% { transform: translateX(130%); }
+}
+
+/* Estrelinhas que piscam em volta. */
+.fc-twinkle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #fff6d6;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  opacity: 0;
+  animation: fc-twinkle 2.2s ease-in-out infinite;
+}
+.fc-twinkle--a {
+  right: 0;
+  top: 2%;
+}
+.fc-twinkle--b {
+  left: 2%;
+  bottom: 6%;
+  width: 10px;
+  height: 10px;
+  background: #ffd3f1;
+  animation-delay: -1.1s;
+}
+@keyframes fc-twinkle {
+  0%, 52%, 100% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  68% { opacity: 1; transform: scale(1) rotate(45deg); }
+  84% { opacity: 0; transform: scale(0.3) rotate(90deg); }
+}
+
+/* ======================================================================
+   Partículas (criadas pelo componente na camada .fc-fx)
+   ====================================================================== */
+
+/* O rastro: faíscas de quatro pontas e pó dourado que caem e se apagam.
+   Cada faísca é um brilho redondo (::before) com a estrela nítida por cima
+   (::after): o recorte da estrela cortaria uma sombra, e um filtro na
+   camada inteira pesaria no celular. */
+.fc-trail {
+  position: absolute;
+  width: calc(var(--s, 8px) * 2.4);
+  height: calc(var(--s, 8px) * 2.4);
+  margin: calc(var(--s, 8px) * -1.2) 0 0 calc(var(--s, 8px) * -1.2);
+  animation: fc-trail var(--d, 1s) cubic-bezier(0.3, 0.6, 0.5, 1) forwards;
+}
+.fc-trail::before,
+.fc-trail::after {
+  content: '';
+  position: absolute;
+}
+.fc-trail::before {
+  inset: 0;
+  border-radius: 9999px;
+  background: radial-gradient(closest-side, var(--c, #ffe8a3), transparent);
+  opacity: 0.45;
+}
+.fc-trail::after {
+  inset: 29%;
+  background: var(--c, #ffe8a3);
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+}
+.fc-trail--dust {
+  width: var(--s, 4px);
+  height: var(--s, 4px);
+  margin: calc(var(--s, 4px) / -2) 0 0 calc(var(--s, 4px) / -2);
+  border-radius: 9999px;
+  background: var(--c, #ffe8a3);
+  box-shadow: 0 0 6px 2px var(--c, #ffe8a3);
+}
+.fc-trail--dust::before,
+.fc-trail--dust::after {
+  content: none;
+}
+@keyframes fc-trail {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6) rotate(0deg); }
+  12% { opacity: 1; transform: translate(0, 0) scale(1) rotate(15deg); }
+  55% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(var(--dx, 0), var(--dy, 16px)) scale(0.3) rotate(150deg); }
+}
+
+/* A pega: clarão, dois anéis (ouro e rosa), faíscas para todo lado e o +1. */
+.fc-flash {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  margin: -110px 0 0 -110px;
+  border-radius: 9999px;
+  background: radial-gradient(closest-side, rgba(255, 248, 222, 0.95), rgba(255, 206, 96, 0.55) 38%, rgba(244, 196, 84, 0));
+  animation: fc-flash 0.6s ease-out forwards;
+}
+@keyframes fc-flash {
+  0% { opacity: 1; transform: scale(0.3); }
+  100% { opacity: 0; transform: scale(1.2); }
+}
+
+.fc-ring {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 232, 163, 0.95);
+  box-shadow: 0 0 14px rgba(255, 214, 120, 0.8), inset 0 0 10px rgba(255, 214, 120, 0.6);
+  animation: fc-ring 0.75s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.fc-ring--late {
+  border-color: rgba(255, 122, 217, 0.85);
+  box-shadow: 0 0 14px rgba(255, 122, 217, 0.6);
+  animation-delay: 0.12s;
+}
+@keyframes fc-ring {
+  0% { opacity: 1; transform: scale(0.4); }
+  100% { opacity: 0; transform: scale(3.3); }
+}
+
+.fc-spark {
+  position: absolute;
+  width: var(--s, 10px);
+  height: var(--s, 10px);
+  margin: calc(var(--s, 10px) / -2) 0 0 calc(var(--s, 10px) / -2);
+  background: var(--c, #ffe8a3);
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  animation: fc-spark var(--d, 0.9s) cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
+@keyframes fc-spark {
+  0% { opacity: 1; transform: translate(0, 0) scale(0.3) rotate(0deg); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--r, 180deg)); }
+}
+
+/* O "+1" na letra do site, não na Cinzel: nela o 1 vira um I romano. */
+.fc-plus {
+  position: absolute;
+  font-weight: 900;
+  font-size: 34px;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  background: linear-gradient(180deg, #fffaf0 0%, #ffe8a3 34%, #f4c454 62%, #c8901f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(80, 40, 0, 0.8)) drop-shadow(0 0 14px rgba(244, 196, 84, 0.75));
+  animation: fc-plus 1.45s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+@keyframes fc-plus {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(0.5); }
+  18% { opacity: 1; transform: translate(-50%, -70%) scale(1.18); }
+  32% { transform: translate(-50%, -80%) scale(1); }
+  72% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -170%) scale(1); }
+}
+.fc-plus--still {
+  animation: fc-plus-still 1.4s ease-in-out forwards;
+}
+@keyframes fc-plus-still {
+  0% { opacity: 0; transform: translate(-50%, -50%); }
+  20%, 70% { opacity: 1; transform: translate(-50%, -50%); }
+  100% { opacity: 0; transform: translate(-50%, -50%); }
+}
+
+/* O aviso (react-hot-toast) com a ficha brilhando ao lado. */
+.fc-toast {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.3;
+}
+.fc-toast-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffe8a3;
+}
+.fc-toast-body {
+  font-size: 13px;
+  color: #cfc6ec;
+}
+.fc-toast-chip.pj-chip-face {
+  width: 30px;
+  height: 30px;
+  filter: drop-shadow(0 0 8px rgba(255, 214, 120, 0.7));
+}
+
+/* Menos movimento: a ficha passa reta e devagar, sem giro, rastro nem
+   estrelinhas; o halo fica parado. */
+@media (prefers-reduced-motion: reduce) {
+  .fc-halo,
+  .fc-glint::before {
+    animation: none !important;
+  }
+  .fc-rays,
+  .fc-twinkle {
+    display: none;
+  }
+  .fc-grab {
+    transition: none;
+  }
+}

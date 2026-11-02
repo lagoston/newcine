@@ -1793,7 +1793,8 @@
       "watchlist": "quer ver",
       "review": "escreveu sobre",
       "tag": "desbloqueou uma tag",
-      "event": "concluiu as missões"
+      "event": "concluiu as missões",
+      "jackpot": "tirou um pôster lendário"
     },
     "onWatchlist": "Na watchlist",
     "storyOf": "Story de @{{username}}",
@@ -1850,7 +1851,14 @@
       "halloween": "Halloween",
       "christmas": "Natal"
     },
-    "viewProfile": "Ver perfil"
+    "viewProfile": "Ver perfil",
+    "jackpot": {
+      "label": "Pôster lendário",
+      "play": "Jogar o Poster Jackpot",
+      "collection": "Ver na minha coleção",
+      "viewMovie": "Ver o filme",
+      "viewSeries": "Ver a série"
+    }
   },
   "events": {
     "switchLabel": "Escolher as recomendações",
@@ -2342,6 +2350,15 @@
       "none": "Você não tem Giro da Sorte agora.",
       "doorReady_one": "Giro da Sorte pronto",
       "doorReady_other": "{{count}} Giros da Sorte prontos"
+    },
+    "ufo": {
+      "aria": "Ficha voadora! Toque para pegar",
+      "appeared": "Uma ficha voadora está atravessando a tela. Toque nela para pegar!",
+      "caughtTitle": "Você pegou uma ficha voadora!",
+      "caughtBody": "+1 ficha para girar no Poster Jackpot.",
+      "escaped": "Ah, ela escapou! Quem sabe da próxima vez.",
+      "slipped": "Escorregou! Tente de novo, rápido!",
+      "demo": "(demonstração)"
     }
   },
   "invite": {

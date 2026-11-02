@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { PosterEffect, PosterRarity, PullKind, TitleType } from './posterJackpot';
 
 // Feed dos Amigos (home): stories feitos das interações dos amigos com as
 // obras — avaliou, guardou na watchlist, escreveu resenha. O banco
@@ -11,9 +12,17 @@ import { supabase } from './supabase';
 // Conquistas também viram stories (media_type 'achievement'): cada tag
 // desbloqueada (menos as especiais) e, no lugar das especiais, a conclusão
 // das missões de um evento (Halloween, Natal…).
+//
+// Pôster LENDÁRIO do Poster Jackpot (02/11/2026): também é uma conquista
+// (kind 'jackpot', 20261102010000_feed_jackpot_stories.sql), com o prêmio em
+// `jackpot`. O banco só manda esse tipo para quem pede (p_kinds): o app
+// antigo, que não sabe desenhá-lo, continua recebendo o feed de sempre.
 
-export type StoryKind = 'rate' | 'watchlist' | 'review' | 'tag' | 'event';
+export type StoryKind = 'rate' | 'watchlist' | 'review' | 'tag' | 'event' | 'jackpot';
 export type StoryMediaType = 'movie' | 'tv' | 'achievement';
+
+// Os tipos de story além dos de sempre que este site sabe desenhar.
+export const EXTRA_STORY_KINDS: StoryKind[] = ['jackpot'];
 
 export interface FeedTagAchievement {
   category: 'basic' | 'theme' | 'community' | 'oracle';
@@ -28,6 +37,25 @@ export interface FeedEventAchievement {
   level: number;
   emoji: string;
   tags: { tag: string; name: string; emoji: string }[];
+}
+
+// O prêmio de um story do Poster Jackpot: o pôster sorteado (file_path), o
+// número de colecionador, o efeito, com que ficha saiu (pull_kind 'lucky' =
+// Giro da Sorte) e a obra (media_type + tmdb_id, títulos e ano).
+export interface FeedJackpotPrize {
+  // id do pôster no catálogo (poster_items)
+  id: number;
+  pull_id: number;
+  media_type: TitleType;
+  tmdb_id: number;
+  rarity: PosterRarity;
+  serial: number | null;
+  file_path: string;
+  effect: PosterEffect;
+  pull_kind: PullKind;
+  title_pt: string | null;
+  title_en: string | null;
+  year: number | null;
 }
 
 export interface FeedOwner {
@@ -65,6 +93,9 @@ export interface FeedStory {
   review: FeedReview | null;
   // só nas conquistas (kind 'tag' ou 'event')
   achievement?: FeedTagAchievement | FeedEventAchievement | null;
+  // só no story do Poster Jackpot (kind 'jackpot'); os campos de obra acima
+  // (title*, poster_path*, backdrop_path, release_date) são os da obra
+  jackpot?: FeedJackpotPrize | null;
   activity_at: string;
   // o dono ocultou este story dos amigos (só o dono chega a ver um oculto)
   hidden?: boolean;
@@ -138,6 +169,27 @@ export const tagAchievementOf = (story: FeedStory): FeedTagAchievement | null =>
 export const eventAchievementOf = (story: FeedStory): FeedEventAchievement | null =>
   story.kind === 'event' && story.achievement ? (story.achievement as FeedEventAchievement) : null;
 
+export const jackpotPrizeOf = (story: Pick<FeedStory, 'kind' | 'jackpot'>): FeedJackpotPrize | null =>
+  story.kind === 'jackpot' && story.jackpot ? story.jackpot : null;
+
+export const isJackpotStory = (story: Pick<FeedStory, 'kind' | 'jackpot'>): boolean => jackpotPrizeOf(story) !== null;
+
+// O story do pôster visto como a obra dele, para o "Ver o filme" seguir o
+// mesmo caminho dos stories de obra (onOpenMovie do feed e dos sussurros).
+export const jackpotWorkStory = (story: FeedStory): FeedStory | null => {
+  const prize = jackpotPrizeOf(story);
+  if (!prize) return null;
+  return {
+    ...story,
+    movie_id: prize.tmdb_id,
+    media_type: prize.media_type,
+    title: story.title ?? prize.title_pt ?? prize.title_en,
+    title_pt: story.title_pt ?? prize.title_pt,
+    title_en: story.title_en ?? prize.title_en,
+    release_date: story.release_date ?? (prize.year ? `${prize.year}-01-01` : null),
+  };
+};
+
 const isPt = (language: string) => language.toLowerCase().startsWith('pt');
 
 export const storyTitle = (story: FeedStory, language: string): string =>
@@ -158,8 +210,14 @@ const storyArgs = (story: Pick<FeedStory, 'owner' | 'movie_id' | 'media_type'>) 
   p_media_type: story.media_type,
 });
 
+// Banco ainda sem a versão com p_kinds (o site novo pode subir antes da
+// migração): o PostgREST responde PGRST202 e o feed cai na chamada antiga.
+const isMissingFunction = (error: { code?: string; message?: string } | null) =>
+  !!error && (error.code === 'PGRST202' || /could not find the function/i.test(error.message ?? ''));
+
 export async function fetchFriendsFeed(): Promise<FriendsFeedData> {
-  const { data, error } = await supabase.rpc('get_friends_feed', { p_limit: FEED_LIMIT });
+  let { data, error } = await supabase.rpc('get_friends_feed', { p_limit: FEED_LIMIT, p_kinds: EXTRA_STORY_KINDS });
+  if (isMissingFunction(error)) ({ data, error } = await supabase.rpc('get_friends_feed', { p_limit: FEED_LIMIT }));
   if (error) throw error;
   const payload = (data ?? {}) as Partial<FriendsFeedData> & { me?: FeedStory | null };
   return {

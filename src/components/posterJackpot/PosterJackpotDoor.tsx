@@ -6,6 +6,7 @@ import { useAuth } from '../../lib/auth';
 import { FOCUS_RING } from '../../lib/oracleTheme';
 import { fetchJackpotCatalog, fetchJackpotState, loadJackpotFont, type CatalogPoster, type JackpotState, type PosterEffect } from '../../lib/posterJackpot';
 import PosterArt from './PosterArt';
+import { JACKPOT_CHIPS_EVENT } from '../../lib/flyingChip';
 import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
 import { ChipFace } from './Chips';
 import { RarityGem } from './CollectorMark';
@@ -53,6 +54,12 @@ const PosterJackpotDoor: React.FC = () => {
   }, [userId]);
   useEffect(() => {
     reload();
+  }, [reload]);
+  // Uma ficha voadora pega em qualquer lugar do site atualiza as fichas da
+  // porta (e da gaveta, se estiver aberta).
+  useEffect(() => {
+    window.addEventListener(JACKPOT_CHIPS_EVENT, reload);
+    return () => window.removeEventListener(JACKPOT_CHIPS_EVENT, reload);
   }, [reload]);
 
   const enabled = !!state?.enabled;

@@ -5,8 +5,13 @@ import { NIGHT, PAPER, PIXEL } from '../../lib/oracleTheme';
 // Instagram): os não vistos em degradê âmbar → coral → fúcsia → violeta,
 // girando devagar, com um halo que respira e dois grãos de pólen orbitando;
 // os vistos num traço fino e parado.
+//
+// Gomo dourado (02/11/2026): o story de um pôster lendário do Poster
+// Jackpot ganha o ouro da roleta no lugar do degradê — dá para ver de longe,
+// na fileira da home, que um amigo tirou um lendário.
 
 const GRADIENT = ['#FCD34D', '#FB923C', '#F472B6', '#C084FC'];
+const GOLD = ['#A8741A', '#F4C454', '#FFF1BF', '#F4C454', '#B8841F'];
 
 interface StoryRingProps {
   // diâmetro do avatar (o anel fica em volta)
@@ -19,12 +24,15 @@ interface StoryRingProps {
   gap?: number;
   // sem animação (ex.: o próprio story, ou cabeçalho do visualizador)
   still?: boolean;
+  // um item por story, na ordem: true = gomo dourado (pôster lendário)
+  gold?: boolean[];
 }
 
 const storyRingOuter =(size: number, ringWidth = 3, gap = 3) => size + (ringWidth + gap) * 2;
 
-const StoryRing: React.FC<StoryRingProps> = ({ size, segments, avatarUrl, username, ringWidth = 3, gap = 3, still = false }) => {
+const StoryRing: React.FC<StoryRingProps> = ({ size, segments, avatarUrl, username, ringWidth = 3, gap = 3, still = false, gold }) => {
   const gradientId = `story-ring-${useId().replace(/:/g, '')}`;
+  const goldId = `${gradientId}-gold`;
   const outer = storyRingOuter(size, ringWidth, gap);
   const anyUnseen = segments.some(Boolean);
   const animate = anyUnseen && !still;
@@ -65,6 +73,13 @@ const StoryRing: React.FC<StoryRingProps> = ({ size, segments, avatarUrl, userna
               <stop key={color} offset={`${(i / (GRADIENT.length - 1)) * 100}%`} stopColor={color} />
             ))}
           </linearGradient>
+          {gold?.some(Boolean) && (
+            <linearGradient id={goldId} x1="0" y1="1" x2="1" y2="0">
+              {GOLD.map((color, i) => (
+                <stop key={i} offset={`${(i / (GOLD.length - 1)) * 100}%`} stopColor={color} />
+              ))}
+            </linearGradient>
+          )}
         </defs>
         {(segments.length ? segments : [false]).map((unseen, i) => (
           <circle
@@ -73,7 +88,7 @@ const StoryRing: React.FC<StoryRingProps> = ({ size, segments, avatarUrl, userna
             cy={center}
             r={radius}
             fill="none"
-            stroke={unseen ? `url(#${gradientId})` : 'rgba(243,234,211,0.26)'}
+            stroke={unseen ? `url(#${gold?.[i] ? goldId : gradientId})` : gold?.[i] ? 'rgba(244,196,84,0.5)' : 'rgba(243,234,211,0.26)'}
             strokeWidth={unseen ? ringWidth : seenWidth}
             strokeLinecap={count > 1 ? 'round' : 'butt'}
             strokeDasharray={count > 1 ? `${Math.max(0.5, segmentLength)} ${circumference}` : undefined}
