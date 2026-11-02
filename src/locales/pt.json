@@ -2214,6 +2214,18 @@
     }
   },
   "jackpot": {
+    "daily": {
+      "balloonTitle": "Ficha grátis!",
+      "balloonHint": "Toque e pegue a de hoje",
+      "balloonAria": "Pegar a ficha grátis de hoje",
+      "rewardTitle": "Ficha do dia",
+      "rewardBody": "A ficha de hoje é sua. Amanhã tem outra.",
+      "rewardCount_one": "Agora você tem {{count}} ficha",
+      "rewardCount_other": "Agora são {{count}} fichas na mão",
+      "bridge": "Quer mais? Cada missão da semana vale 1 ficha",
+      "already": "A ficha de hoje já foi pega. Amanhã tem outra.",
+      "error": "Não deu para pegar a ficha agora. Tente de novo."
+    },
     "gift": {
       "friday13Title": "Sexta-feira 13 🤡",
       "friday13Body_one": "Sua Scary Clown deixou {{count}} ficha especial no seu porta-fichas.",

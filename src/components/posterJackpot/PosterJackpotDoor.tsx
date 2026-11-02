@@ -5,12 +5,14 @@ import { ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../lib/auth';
 import { FOCUS_RING } from '../../lib/oracleTheme';
-import { fetchJackpotCatalog, fetchJackpotState, loadJackpotFont, markJackpotGiftSeen, type CatalogPoster, type JackpotState, type PosterEffect } from '../../lib/posterJackpot';
+import { claimDailyChip, fetchJackpotCatalog, fetchJackpotState, loadJackpotFont, markJackpotGiftSeen, type CatalogPoster, type DailyReward, type JackpotState, type PosterEffect } from '../../lib/posterJackpot';
+import { primeJackpotAudio } from '../../lib/jackpotSound';
 import PosterArt from './PosterArt';
 import { JACKPOT_CHIPS_EVENT } from '../../lib/flyingChip';
 import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
 import { ChipFace } from './Chips';
 import { JACKPOT_TOAST_STYLE } from './jackpotToast';
+import { DailyChipBalloon } from './DailyChip';
 import { RarityGem } from './CollectorMark';
 import PosterJackpotSheet, { type JackpotTab } from './PosterJackpotSheet';
 import '../../styles/posterJackpot.css';
@@ -23,6 +25,10 @@ import '../../styles/flyingChip.css';
 // para mostrar o efeito), as fichas, o Giro da Sorte pronto e o aviso de
 // missão pronta. Só aparece
 // para quem a roleta está liberada (poster_jackpot_settings).
+// Desde 02/11/2026, enquanto a ficha grátis do dia não foi pega, um balão
+// sai da porta ("Ficha grátis!", DailyChip.tsx). Tocar nele pega a ficha e
+// abre a gaveta na aba Missões, com a recompensa no topo e as missões logo
+// embaixo.
 const FAN: { rotate: number; x: number; effect: PosterEffect; z: number }[] = [
   { rotate: -11, x: -30, effect: 'none', z: 1 },
   { rotate: 11, x: 30, effect: 'none', z: 1 },
@@ -102,6 +108,38 @@ const PosterJackpotDoor: React.FC = () => {
 
   const patch = useCallback((value: Partial<JackpotState>) => setState((prev) => (prev ? { ...prev, ...value } : prev)), []);
 
+  // A ficha do dia: o balão estoura (~0,4 s) enquanto o banco registra a
+  // ficha; depois a gaveta abre em Missões com a recompensa.
+  const [dailyReward, setDailyReward] = useState<DailyReward | null>(null);
+  const [claimingDaily, setClaimingDaily] = useState(false);
+  const claimDaily = useCallback(async () => {
+    if (claimingDaily) return;
+    setClaimingDaily(true);
+    primeJackpotAudio();
+    const started = Date.now();
+    try {
+      const res = await claimDailyChip();
+      await new Promise((resolve) => setTimeout(resolve, Math.max(0, 420 - (Date.now() - started))));
+      if (res.ok && res.tickets !== null) {
+        patch({ tickets: res.tickets, dailyChip: false });
+        setDailyReward({ tickets: res.tickets, at: Date.now() });
+        setInitialTab('missions');
+        setOpen(true);
+      } else {
+        // Já pega hoje (outro aparelho) ou o Jackpot fechou: o balão some.
+        patch(res.tickets !== null ? { tickets: res.tickets, dailyChip: false } : { dailyChip: false });
+        if (res.reason === 'already') {
+          toast(t('jackpot.daily.already'), { id: 'jackpot-daily', icon: <ChipFace className="fc-toast-chip" />, style: JACKPOT_TOAST_STYLE, duration: 3500 });
+        }
+      }
+    } catch (error) {
+      console.error('Poster Jackpot daily chip:', error);
+      toast.error(t('jackpot.daily.error'));
+    } finally {
+      setClaimingDaily(false);
+    }
+  }, [claimingDaily, patch, t]);
+
   // Carregando: o lugar da porta já fica reservado (as três portas não pulam).
   if (!state) {
     return <span className={`${DOOR_CLASS} pointer-events-none animate-pulse`} style={{ background: 'rgba(15,22,69,0.6)', minHeight: 120 }} aria-hidden />;
@@ -110,7 +148,9 @@ const PosterJackpotDoor: React.FC = () => {
   const claimable = state.missions.filter((m) => !m.claimed && m.progress >= m.target).length;
 
   return (
-    <>
+    // relative: o balão da ficha do dia sai por cima da porta (que recorta
+    // o que passa da borda).
+    <div className="relative h-full">
       <button
         type="button"
         onClick={() => {
@@ -182,8 +222,29 @@ const PosterJackpotDoor: React.FC = () => {
           <ArrowRight className="w-4 h-4 transition group-hover:translate-x-0.5" aria-hidden />
         </span>
       </button>
-      <PosterJackpotSheet open={open} onClose={() => setOpen(false)} state={state} onState={patch} onReload={reload} initialTab={initialTab} />
-    </>
+      {/* No canto de cima à direita, metade para fora da porta: no celular,
+          uma pílula montada na borda, quase toda acima dela (só o rabicho
+          entra, à direita do título — cabe até em 360 px); no
+          tablet, em cima do "Jogar"; no computador, ao lado do leque. */}
+      <DailyChipBalloon
+        show={state.dailyChip && !open}
+        claiming={claimingDaily}
+        onClaim={claimDaily}
+        className="right-2 -top-[25px] sm:right-4 sm:-top-6 lg:-top-7"
+      />
+      <PosterJackpotSheet
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setDailyReward(null);
+        }}
+        state={state}
+        onState={patch}
+        onReload={reload}
+        initialTab={initialTab}
+        dailyReward={dailyReward}
+      />
+    </div>
   );
 };
 

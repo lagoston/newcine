@@ -2209,6 +2209,18 @@
     }
   },
   "jackpot": {
+    "daily": {
+      "balloonTitle": "Free chip!",
+      "balloonHint": "Tap to grab today's",
+      "balloonAria": "Grab today's free chip",
+      "rewardTitle": "Daily chip",
+      "rewardBody": "Today's chip is yours. Another one tomorrow.",
+      "rewardCount_one": "You now have {{count}} chip",
+      "rewardCount_other": "You now have {{count}} chips",
+      "bridge": "Want more? Each mission this week is worth 1 chip",
+      "already": "Today's chip was already claimed. Another one tomorrow.",
+      "error": "Couldn't grab the chip right now. Try again."
+    },
     "gift": {
       "friday13Title": "Friday the 13th 🤡",
       "friday13Body_one": "Your Scary Clown left {{count}} special chip in your chip tray.",

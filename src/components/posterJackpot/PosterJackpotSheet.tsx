@@ -33,6 +33,7 @@ import {
   unequipPoster,
   type CatalogPoster,
   type JackpotMission,
+  type DailyReward,
   type JackpotState,
   type OwnedPoster,
   type PosterEffect,
@@ -44,6 +45,7 @@ import { isJackpotMuted, playReveal, primeJackpotAudio, setJackpotMuted } from '
 import { INVITE_REWARD, copyInvite, getMyInvite, shareInvite, type MyInvite } from '../../lib/invite';
 import { getMyTrades, type PosterTrade } from '../../lib/posterTrades';
 import PosterTradesPanel from './PosterTradesPanel';
+import { DailyChipReward } from './DailyChip';
 import '../../styles/posterJackpot.css';
 
 // O menu expandido do título (aberto ao tocar no pôster no detalhe da
@@ -907,7 +909,7 @@ const friday13Line = (t: TFunction, lang: string) => {
   return t('jackpot.missions.friday13Next', { date });
 };
 
-const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<JackpotState>) => void }> = ({ state, onState }) => {
+const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<JackpotState>) => void; dailyReward?: DailyReward | null }> = ({ state, onState, dailyReward = null }) => {
   const { t, i18n } = useTranslation();
   const [claiming, setClaiming] = useState<string | null>(null);
 
@@ -936,13 +938,19 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
 
   const endsAt = state.weekEndsAt ? new Date(state.weekEndsAt) : null;
   const daysLeft = endsAt ? Math.max(0, Math.ceil((endsAt.getTime() - Date.now()) / 86400000)) : null;
+  const resetsLine = (
+    <p className="text-sm" style={{ color: MIST }}>
+      {daysLeft !== null ? t('jackpot.missions.resets', { count: daysLeft }) : t('jackpot.missions.resetsMonday')}
+    </p>
+  );
 
   return (
     <div className="space-y-5">
-      <InviteCard />
-      <p className="text-sm" style={{ color: MIST }}>
-        {daysLeft !== null ? t('jackpot.missions.resets', { count: daysLeft }) : t('jackpot.missions.resetsMonday')}
-      </p>
+      {/* Vindo do balão da ficha do dia (02/11/2026): primeiro a recompensa,
+          logo embaixo as missões que dão mais fichas, e o convite depois
+          delas. Sem a recompensa, o convite abre a aba, como antes. */}
+      {dailyReward ? <DailyChipReward tickets={dailyReward.tickets} playKey={dailyReward.at} /> : <InviteCard />}
+      {!dailyReward && resetsLine}
       <ul className="space-y-2.5">
         {state.missions.map((mission) => {
           const done = mission.progress >= mission.target;
@@ -984,6 +992,13 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
           );
         })}
       </ul>
+
+      {dailyReward && (
+        <>
+          {resetsLine}
+          <InviteCard />
+        </>
+      )}
 
       <div className="rounded-2xl p-3.5 sm:p-4 flex items-start gap-3" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.16), rgba(245,158,11,0.12))', boxShadow: 'inset 0 0 0 1px rgba(253,230,138,0.25)' }}>
         <Crown className="w-5 h-5 shrink-0 mt-0.5 text-amber-300" aria-hidden />
@@ -1046,7 +1061,10 @@ const PosterJackpotSheet: React.FC<{
   onState: (patch: Partial<JackpotState>) => void;
   onReload: () => void;
   initialTab?: Tab;
-}> = ({ open, onClose, state, onState, onReload, initialTab = 'machine' }) => {
+  // A ficha do dia acabou de ser pega (balão da porta): a aba Missões abre
+  // com a recompensa no topo.
+  dailyReward?: DailyReward | null;
+}> = ({ open, onClose, state, onState, onReload, initialTab = 'machine', dailyReward = null }) => {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>(initialTab);
   const [owned, setOwned] = useState<OwnedPoster[] | null>(null);
@@ -1143,7 +1161,7 @@ const PosterJackpotSheet: React.FC<{
                 }}
               />
             )}
-            {tab === 'missions' && <Missions state={state} onState={onState} />}
+            {tab === 'missions' && <Missions state={state} onState={onState} dailyReward={dailyReward} />}
           </SheetFade>
         </>
       )}

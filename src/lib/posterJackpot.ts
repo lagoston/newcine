@@ -96,6 +96,15 @@ export interface JackpotState {
   gift: JackpotGift | null;
   // A pessoa tem a Scary Clown: a gaveta lembra a próxima sexta-feira 13.
   friday13Perk: boolean;
+  // A ficha grátis de hoje ainda está lá (02/11/2026): o balão da porta.
+  dailyChip: boolean;
+}
+
+// A ficha do dia acabou de ser pega: a aba Missões mostra a recompensa.
+// at = quando (chave para a ficha cair uma vez só).
+export interface DailyReward {
+  tickets: number;
+  at: number;
 }
 
 export interface JackpotGift {
@@ -188,6 +197,20 @@ export async function fetchJackpotState(): Promise<JackpotState> {
     remainingSpecial: num(raw.remaining_special),
     gift: parseGift(raw.gift),
     friday13Perk: raw.friday13_perk === true,
+    dailyChip: raw.daily_chip === true,
+  };
+}
+
+// Pega a ficha grátis de hoje (uma por dia, dia de Brasília).
+// reason: 'already' (já foi pega hoje) ou 'closed' (Jackpot fechado).
+export async function claimDailyChip(): Promise<{ ok: boolean; reason?: 'already' | 'closed'; tickets: number | null }> {
+  const { data, error } = await supabase.rpc('jackpot_claim_daily');
+  if (error) throw error;
+  const raw = (data || {}) as Row;
+  return {
+    ok: raw.ok === true,
+    reason: raw.reason === 'already' || raw.reason === 'closed' ? raw.reason : undefined,
+    tickets: typeof raw.tickets === 'number' ? raw.tickets : null,
   };
 }
 
