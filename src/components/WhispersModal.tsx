@@ -478,7 +478,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
           ) : null
         );
       case 'jackpot_invite':
-        return <JackpotInviteCard onPlay={() => goTo('/oracle', { openJackpot: 'machine' })} />;
+        return <JackpotInviteCard onPlay={() => goTo('/', { openJackpot: 'machine' })} />;
       case 'poster_trade':
       case 'poster_trade_result': {
         const trade = whisper.trade_id ? trades.get(whisper.trade_id) : undefined;
@@ -577,7 +577,7 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
         <>
           {trade && trade.status !== 'pending' && <StatusPill status={trade.status} />}
           <button
-            onClick={() => goTo('/oracle', { openJackpot: accepted ? 'collection' : 'trades' })}
+            onClick={() => goTo('/', { openJackpot: accepted ? 'collection' : 'trades' })}
             className={ghostButton}
             style={{ color: PAPER }}
           >

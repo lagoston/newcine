@@ -1,5 +1,5 @@
 import React, { useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Toaster } from 'react-hot-toast';
 import { Toaster as SonnerToaster } from 'sonner';
@@ -27,13 +27,20 @@ const UserProfile = lazy(() => import('./pages/UserProfile'));
 const Community = lazy(() => import('./pages/Community'));
 const Auth = lazy(() => import('./pages/Auth'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
-const OracleHub = lazy(() => import('./pages/OracleHub'));
 const OracleLibraries = lazy(() => import('./pages/OracleLibraries'));
 const OracleDuel = lazy(() => import('./pages/OracleDuel'));
 const SecretRoom = lazy(() => import('./pages/SecretRoom'));
 const Premium = lazy(() => import('./pages/Premium'));
 const PremiumSuccess = lazy(() => import('./pages/PremiumSuccess'));
 const CategoryMovies = lazy(() => import('./pages/CategoryMovies'));
+
+// /oracle → home, levando junto o state do link (a Central dos Oráculos foi
+// extinta em 02/11/2026).
+function OracleRedirect() {
+  const location = useLocation();
+  return <Navigate to="/" replace state={location.state} />;
+}
+
 
 
 function App() {
@@ -84,7 +91,11 @@ function App() {
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/profile/:username" element={<UserProfile />} />
                   <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
-                  <Route path="/oracle" element={<ProtectedRoute><OracleHub /></ProtectedRoute>} />
+                  {/* A Central dos Oráculos foi extinta em 02/11/2026: as portas dela
+                      (Biblioteca dos Oráculos, Poster Jackpot e Persona) moram na home.
+                      Links antigos para /oracle voltam para lá, com o state junto
+                      (ex.: { openJackpot: 'trades' }). */}
+                  <Route path="/oracle" element={<OracleRedirect />} />
                   <Route path="/oracle/libraries" element={<ProtectedRoute><OracleLibraries /></ProtectedRoute>} />
                 <Route path="/oracle/duel" element={<ProtectedRoute><OracleDuel /></ProtectedRoute>} />
                   {/* Salas secretas (Clube do Terror…): ver lib/secretRooms.ts */}

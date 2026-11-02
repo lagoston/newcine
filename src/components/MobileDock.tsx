@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Library as LibraryIcon, Eye, Users, User, Search } from 'lucide-react';
+import { Home, Library as LibraryIcon, Users, User, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -13,7 +13,11 @@ import MobileSearch, { DOCK_SEARCH_LAYOUT_ID } from './MobileSearch';
 // hambúrguer do topo e da lupa presa na borda esquerda: uma barra de vidro
 // flutuando na base da tela, como no Instagram e no IMDb.
 //
-//   [ Início  Biblioteca  Oráculo  Comunidade  Perfil ]  ( busca )
+//   [ Início  Biblioteca  Comunidade  Perfil ]  ( busca )
+//
+// (A aba Oráculo saiu em 02/11/2026: a Central dos Oráculos foi extinta e as
+// portas dela — Biblioteca dos Oráculos, Poster Jackpot e Persona — moram na
+// home. A Biblioteca dos Oráculos acende a aba Início.)
 //
 // • A aba da página atual fica dentro de uma "lente" violeta que desliza
 //   de uma aba para a outra. Tocar na aba em que você já está volta ao topo.
@@ -97,9 +101,8 @@ const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect, movieOpen = fals
   }, [path]);
 
   const tabs: { to: string; label: string; icon?: typeof Home; active: boolean }[] = [
-    { to: '/', label: t('nav.home'), icon: Home, active: path === '/' || path.startsWith('/category/') },
+    { to: '/', label: t('nav.home'), icon: Home, active: path === '/' || path.startsWith('/category/') || path.startsWith('/oracle/') || path.startsWith('/sala/') },
     { to: '/library', label: t('nav.library'), icon: LibraryIcon, active: path === '/library' || path === '/lists' || path === '/add-movies' },
-    { to: '/oracle', label: t('nav.oracle'), icon: Eye, active: path === '/oracle' || path.startsWith('/oracle/') },
     { to: '/community', label: t('nav.community'), icon: Users, active: path === '/community' || path.startsWith('/profile/') },
     { to: '/profile', label: t('nav.profile'), active: path === '/profile' || path.startsWith('/premium') },
   ];

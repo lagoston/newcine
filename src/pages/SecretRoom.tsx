@@ -129,7 +129,7 @@ export default function SecretRoom() {
     [pt, predictions]
   );
 
-  if (!ROOMS.has(roomKey)) return <Navigate to="/oracle" replace />;
+  if (!ROOMS.has(roomKey)) return <Navigate to="/" replace />;
 
   const label = t('secretRoom.terror.name');
 
@@ -233,13 +233,13 @@ export default function SecretRoom() {
         <div className="flex items-center justify-between gap-3">
           {/* No celular a volta fica só com a seta, pra caber os rostos. */}
           <Link
-            to="/oracle"
-            aria-label={t('oracle.title')}
+            to="/"
+            aria-label={t('nav.home')}
             className={`-ml-2 shrink-0 inline-flex items-center gap-1.5 h-11 px-2 rounded-xl hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
             style={{ color: ASH }}
           >
             <ArrowLeft className="w-[18px] h-[18px]" aria-hidden />
-            <span className="hidden sm:inline">{t('oracle.title')}</span>
+            <span className="hidden sm:inline">{t('nav.home')}</span>
           </Link>
           {members && members.count > 0 && <MemberStack members={members} />}
         </div>
@@ -465,12 +465,12 @@ const LockedRoom: React.FC<{ data: SecretRoomData; via: string | null }> = ({ da
     <RoomShell>
       <div className="mx-auto max-w-xl px-5 sm:px-8 pt-8 sm:pt-14">
         <Link
-          to="/oracle"
+          to="/"
           className={`-ml-2 inline-flex items-center gap-1.5 h-11 px-2 rounded-xl hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
           style={{ color: ASH }}
         >
           <ArrowLeft className="w-[18px] h-[18px]" aria-hidden />
-          {t('oracle.title')}
+          {t('nav.home')}
         </Link>
         <div className="mt-8 flex flex-col items-center text-center">
           <span className="relative">

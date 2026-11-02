@@ -250,6 +250,19 @@
       "tagProgress": "{{current}} de {{target}}",
       "findFriendsHint": "Adicione amigos para ver as notas deles nos pôsteres e fazer match de filmes.",
       "allTagsHint": "Você já tem todas as tags disponíveis."
+    },
+    "doors": {
+      "label": "Biblioteca dos Oráculos, Poster Jackpot e Sua Persona"
+    },
+    "persona": {
+      "title": "Sua Persona",
+      "subtitleEmpty": "Ainda escondida: o Oráculo precisa conhecer você",
+      "scalesHint": "Cada nota que você dá move as nove prateleiras; as três mais fortes formam o seu código.",
+      "doorAria": "Sua Persona: {{code}}, {{title}}",
+      "doorAriaEmpty": "Sua Persona: ainda não revelada",
+      "hintEmpty": "Avalie {{count}} títulos das prateleiras e o Oráculo revela quem você é como espectador.",
+      "open": "Abrir",
+      "discover": "Descobrir"
     }
   },
   "compatibility": {

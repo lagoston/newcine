@@ -1,0 +1,21 @@
+// As portas da home (02/11/2026): a Biblioteca dos Oráculos, o Poster Jackpot
+// e a Sua Persona. Cada uma tem o seu mundo (neon e cartas dos oráculos; céu
+// de cassino e ouro; as cores das prateleiras da pessoa), mas todas têm a
+// mesma geometria, guardada aqui:
+//   • celular e tablet: uma faixa — a arte à esquerda, o texto à direita;
+//   • computador (lg): um tríptico — três portas lado a lado, em pé, com a
+//     arte em cima (a mesma arte, só que maior), o texto centralizado e o
+//     convite ("Entrar", "Jogar"…) no pé.
+
+export const DOOR_CLASS =
+  'group relative w-full h-full flex items-center gap-4 sm:gap-6 lg:flex-col lg:items-center lg:gap-0 text-left lg:text-center rounded-2xl pl-3 pr-3.5 py-3.5 sm:pl-5 sm:pr-5 sm:py-4 lg:px-6 lg:pt-5 lg:pb-6 overflow-hidden transition hover:brightness-110';
+
+// A caixa da arte e, dentro dela, o leque (no lg o leque cresce sem mudar a
+// composição).
+export const DOOR_ART = 'relative shrink-0 w-[104px] h-[92px] sm:w-[128px] sm:h-[108px] lg:w-full lg:h-[164px] lg:grid lg:place-items-center';
+export const DOOR_FAN = 'relative block w-[104px] h-[92px] sm:w-[128px] sm:h-[108px] lg:scale-[1.38] lg:origin-center';
+
+export const DOOR_BODY = 'relative min-w-0 flex-1 lg:flex-none lg:w-full lg:flex lg:flex-col lg:items-center lg:mt-3';
+export const DOOR_HINT = 'block mt-1.5 text-[13px] sm:text-sm leading-snug lg:mt-2.5 lg:max-w-[30ch]';
+export const DOOR_CHIPS = 'mt-2.5 flex flex-wrap items-center gap-1.5 lg:mt-3.5 lg:justify-center';
+export const DOOR_CTA = 'relative hidden sm:inline-flex items-center gap-1 text-sm font-semibold lg:mt-auto lg:pt-5';

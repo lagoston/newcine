@@ -8,9 +8,9 @@ import { PIXEL, FOCUS_RING } from '../../lib/oracleTheme';
 import { TERROR_CLUB, fetchSecretRoomAccess, roomPath, type SecretRoomAccess } from '../../lib/secretRooms';
 import { ASH, BONE, CANDLE, CoffinMark, CRYPT, OXBLOOD } from './terrorTheme';
 
-// A porta do Clube do Terror na Central dos Oráculos. Durante o Halloween
-// aparece para todo mundo (trancada para quem ainda não tem a Deadly
-// Sleeping, com o quanto falta); fora dele, só para quem usa a tag.
+// A porta do Clube do Terror (na home desde 02/11/2026, com a Central dos
+// Oráculos extinta). Durante o Halloween a entrada fica dentro do painel do
+// evento; fora dele, a porta aparece para quem usa a tag.
 const SecretRoomDoor: React.FC = () => {
   const { t } = useTranslation();
   const { session } = useAuth();

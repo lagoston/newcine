@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { ArrowRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { PAPER, PIXEL, FOCUS_RING, ORACLES, oracleCardImage, withAlpha } from '../../lib/oracleTheme';
+import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
 
-// A porta da Biblioteca dos Oráculos no Oracle Hub (31/10/2026). Substitui o
-// painel "Escolhidos a dedo": um botão do mesmo porte da porta do Poster
-// Jackpot, mas no mundo dos oráculos — o tubo de neon nas três cores, as
-// três cartas em leque (abrem um pouco ao passar o mouse), o letreiro em
-// pixel com brilho e quantas prateleiras e títulos eles guardam.
+// A porta da Biblioteca dos Oráculos (31/10/2026; na home desde 02/11, com a
+// Central dos Oráculos extinta). Um botão do mesmo porte da porta do Poster
+// Jackpot e da Persona (geometria em home/doorLayout), no mundo dos
+// oráculos — o tubo de neon nas três cores, as três cartas em leque (abrem
+// um pouco ao passar o mouse), o letreiro em pixel com brilho e quantas
+// prateleiras e títulos eles guardam.
 
 let statsPromise: Promise<{ shelves: number; titles: number }> | null = null;
 const loadStats = () => {
@@ -51,7 +53,7 @@ const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
   return (
     <Link
       to="/oracle/libraries?oracle=bogart"
-      className={`group relative w-full flex items-center gap-4 sm:gap-6 text-left rounded-2xl pl-3 pr-3.5 py-3.5 sm:pl-5 sm:pr-5 sm:py-4 overflow-hidden transition hover:brightness-110 ${FOCUS_RING}`}
+      className={`${DOOR_CLASS} ${FOCUS_RING}`}
       style={{
         background: [
           ...ORACLES.map((oracle, i) => `radial-gradient(40% 90% at ${8 + i * 9}% 100%, ${withAlpha(oracle.color, 0.2)}, transparent 70%)`),
@@ -72,7 +74,8 @@ const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
       />
 
       {/* As três cartas em leque */}
-      <span className="relative shrink-0 w-[104px] h-[92px] sm:w-[128px] sm:h-[108px]" aria-hidden>
+      <span className={DOOR_ART} aria-hidden>
+        <span className={DOOR_FAN}>
         {FAN.map((card) => {
           const oracle = ORACLES.find((o) => o.id === card.id)!;
           return (
@@ -87,21 +90,22 @@ const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
             />
           );
         })}
+        </span>
       </span>
 
-      <span className="relative min-w-0 flex-1">
+      <span className={DOOR_BODY}>
         <span
           style={{ ...PIXEL, color: PAPER, textShadow: '0 0 14px rgba(240,171,252,0.55)' }}
           className="block text-[22px] sm:text-[30px] leading-none transition-[text-shadow] duration-300 group-hover:[text-shadow:0_0_18px_rgba(240,171,252,0.9)]"
         >
           {t('oracle.libraryDoor.title')}
         </span>
-        <span className="block mt-1.5 text-[13px] sm:text-sm leading-snug" style={{ color: '#CFC6EC' }}>
+        <span className={DOOR_HINT} style={{ color: '#CFC6EC' }}>
           {stats && stats.titles > 0
             ? t('oracle.libraryDoor.hint', { shelves: stats.shelves, formatted: stats.titles.toLocaleString(i18n.language) })
             : t('oracle.libraryDoor.hintShort')}
         </span>
-        <span className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        <span className={DOOR_CHIPS}>
           {ORACLES.map((oracle) => (
             <span
               key={oracle.id}
@@ -115,7 +119,7 @@ const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
         </span>
       </span>
 
-      <span className="relative hidden sm:inline-flex items-center gap-1 text-sm font-semibold" style={{ color: '#F0ABFC' }}>
+      <span className={DOOR_CTA} style={{ color: '#F0ABFC' }}>
         {t('oracle.libraryDoor.enter')}
         <ArrowRight className="w-4 h-4 transition group-hover:translate-x-0.5" aria-hidden />
       </span>

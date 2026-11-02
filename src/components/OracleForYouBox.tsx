@@ -119,7 +119,8 @@ const OracleForYouBox: React.FC<Props> = ({ userId, hasEssence }) => {
               {t('home.oracleForYouNoEssence')}
             </p>
             <Link
-              to="/oracle"
+              to="/"
+              state={{ openPersona: true }}
               className={`shrink-0 gap-2 h-11 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`}
             >
               <Sparkles className="w-[18px] h-[18px]" aria-hidden />

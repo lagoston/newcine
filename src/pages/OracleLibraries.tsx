@@ -568,8 +568,9 @@ export default function OracleLibraries() {
     setSelectedProviderIds((prev) => (prev.includes(providerId) ? prev.filter((id) => id !== providerId) : [...prev, providerId]));
   };
 
-  // Sem oráculo escolhido: as cartas moram na Central dos Oráculos.
-  if (!selectedOracle) return <Navigate to="/oracle" replace />;
+  // Sem oráculo escolhido: volta para a home (a porta da Biblioteca mora lá
+  // desde 02/11/2026, com a Central dos Oráculos extinta).
+  if (!selectedOracle) return <Navigate to="/" replace />;
 
   const current = ORACLE_BY_ID[selectedOracle];
   const shelfMoods = pinnedMood
@@ -583,13 +584,13 @@ export default function OracleLibraries() {
         <div className="flex items-center justify-between gap-3">
           {/* No celular a volta fica só com a seta, pra caber os dois botões. */}
           <Link
-            to="/oracle"
-            aria-label={t('oracle.title')}
+            to="/"
+            aria-label={t('nav.home')}
             className={`-ml-2 shrink-0 gap-1.5 h-11 px-2 rounded-xl hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`}
             style={{ color: MIST, justifyContent: 'flex-start', display: 'inline-flex' }}
           >
             <ArrowLeft className="w-[18px] h-[18px]" aria-hidden />
-            <span className="hidden sm:inline">{t('oracle.title')}</span>
+            <span className="hidden sm:inline">{t('nav.home')}</span>
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-2 min-w-0">
             {/* Filmes | Séries: uma lista OU a outra, nunca as duas juntas. */}

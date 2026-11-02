@@ -6,12 +6,15 @@ import { useAuth } from '../../lib/auth';
 import { FOCUS_RING } from '../../lib/oracleTheme';
 import { fetchJackpotCatalog, fetchJackpotState, loadJackpotFont, type CatalogPoster, type JackpotState, type PosterEffect } from '../../lib/posterJackpot';
 import PosterArt from './PosterArt';
+import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
 import { ChipFace } from './Chips';
 import { RarityGem } from './CollectorMark';
 import PosterJackpotSheet, { type JackpotTab } from './PosterJackpotSheet';
 import '../../styles/posterJackpot.css';
 
-// A porta do Poster Jackpot no Oracle Hub: o mesmo céu estrelado e o ouro da
+// A porta do Poster Jackpot (na home desde 02/11/2026, com a Central dos
+// Oráculos extinta; mesma geometria das outras portas, em home/doorLayout):
+// o mesmo céu estrelado e o ouro da
 // roleta, com três pôsteres do catálogo em leque (o do meio holográfico,
 // para mostrar o efeito), as fichas, o Giro da Sorte pronto e o aviso de
 // missão pronta. Só aparece
@@ -32,8 +35,8 @@ const PosterJackpotDoor: React.FC = () => {
   const [initialTab, setInitialTab] = useState<JackpotTab>('machine');
   const location = useLocation();
   const navigate = useNavigate();
-  // Aberto de fora (sussurros: o convite do lançamento e as trocas):
-  // navigate('/oracle', { state: { openJackpot: 'trades' } }).
+  // Aberto de fora (sussurros: o convite do lançamento e as trocas; stories):
+  // navigate('/', { state: { openJackpot: 'trades' } }).
   const requested = (location.state as { openJackpot?: JackpotTab } | null)?.openJackpot;
   useEffect(() => {
     if (!requested) return;
@@ -70,7 +73,11 @@ const PosterJackpotDoor: React.FC = () => {
 
   const patch = useCallback((value: Partial<JackpotState>) => setState((prev) => (prev ? { ...prev, ...value } : prev)), []);
 
-  if (!state?.enabled) return null;
+  // Carregando: o lugar da porta já fica reservado (as três portas não pulam).
+  if (!state) {
+    return <span className={`${DOOR_CLASS} pointer-events-none animate-pulse`} style={{ background: 'rgba(15,22,69,0.6)', minHeight: 120 }} aria-hidden />;
+  }
+  if (!state.enabled) return null;
   const claimable = state.missions.filter((m) => !m.claimed && m.progress >= m.target).length;
 
   return (
@@ -81,7 +88,7 @@ const PosterJackpotDoor: React.FC = () => {
           setInitialTab('machine');
           setOpen(true);
         }}
-        className={`group relative w-full flex items-center gap-4 sm:gap-6 text-left rounded-2xl pl-3 pr-3.5 py-3.5 sm:pl-5 sm:pr-5 sm:py-4 overflow-hidden transition hover:brightness-110 ${FOCUS_RING}`}
+        className={`${DOOR_CLASS} ${FOCUS_RING}`}
         style={{
           background: 'radial-gradient(80% 120% at 12% 0%, rgba(80,96,220,0.4), transparent 65%), linear-gradient(135deg, #0f1645, #0a0e2c 55%, #1a0b3a)',
           boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.5), 0 18px 40px -26px rgba(244,196,84,0.45)',
@@ -89,7 +96,8 @@ const PosterJackpotDoor: React.FC = () => {
       >
         <span className="pj-stars" aria-hidden />
         {/* Leque de pôsteres */}
-        <span className="relative shrink-0 w-[104px] h-[92px] sm:w-[128px] sm:h-[108px]" aria-hidden>
+        <span className={DOOR_ART} aria-hidden>
+          <span className={DOOR_FAN}>
           {fan.length === 3 &&
             fan.map((poster, i) => (
               <span
@@ -109,13 +117,14 @@ const PosterJackpotDoor: React.FC = () => {
               </span>
             ))}
           <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-0 h-0 z-[3]" style={{ borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '10px solid #F4C454', filter: 'drop-shadow(0 0 5px rgba(255,214,120,0.9))' }} />
+          </span>
         </span>
-        <span className="relative min-w-0 flex-1">
+        <span className={DOOR_BODY}>
           <span className="pj-display pj-gold-text block text-[22px] sm:text-[28px] font-black leading-none">Poster Jackpot</span>
-          <span className="block mt-1.5 text-[13px] sm:text-sm leading-snug" style={{ color: '#CFC6EC' }}>
+          <span className={DOOR_HINT} style={{ color: '#CFC6EC' }}>
             {t('jackpot.door.hint')}
           </span>
-          <span className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <span className={DOOR_CHIPS}>
             <span className="inline-flex items-center gap-1 rounded-full pl-1 pr-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(94,168,255,0.18)', color: '#CFE3FF' }}>
               <ChipFace className="w-4 h-4" />
               {t('jackpot.chips.normalAria', { count: state.tickets })}
@@ -139,7 +148,7 @@ const PosterJackpotDoor: React.FC = () => {
             )}
           </span>
         </span>
-        <span className="relative hidden sm:inline-flex items-center gap-1 text-sm font-semibold" style={{ color: '#FFE8A3' }}>
+        <span className={DOOR_CTA} style={{ color: '#FFE8A3' }}>
           {t('oracle.hub.play')}
           <ArrowRight className="w-4 h-4 transition group-hover:translate-x-0.5" aria-hidden />
         </span>

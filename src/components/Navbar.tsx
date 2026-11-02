@@ -1,7 +1,7 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Library as LibraryIcon, LogIn, LogOut, User, Eye, Home, Users } from 'lucide-react';
+import { Library as LibraryIcon, LogIn, LogOut, User, Home, Users } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { LogoLockup, LogoMark, LogoWordmark } from './Logo';
 import { useTranslation } from 'react-i18next';
@@ -79,7 +79,9 @@ function Navbar() {
     labelClassName?: string;
   }) => {
     // A Central dos Oráculos continua acesa na Biblioteca dos Oráculos e no Duelo.
-    const isActive = location.pathname === to || (to === '/oracle' && location.pathname.startsWith('/oracle/'));
+    // A Biblioteca dos Oráculos e as salas secretas moram atrás das portas da
+    // home (a Central dos Oráculos foi extinta em 02/11/2026).
+    const isActive = location.pathname === to || (to === '/' && (location.pathname.startsWith('/oracle/') || location.pathname.startsWith('/sala/')));
     return (
       <Link
         to={to}
@@ -184,7 +186,6 @@ function Navbar() {
             <div className="hidden lg:flex flex-1 items-center justify-center gap-1 min-w-0">
               <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
               <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
-              <NavLink to="/oracle" icon={Eye}>{t('nav.oracle')}</NavLink>
               <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
               <NavLink to="/profile" icon={User}>{t('nav.profile')}</NavLink>
             </div>

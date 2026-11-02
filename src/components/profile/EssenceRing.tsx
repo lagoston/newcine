@@ -105,7 +105,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
       <section className="h-full rounded-3xl p-5 sm:p-7" style={glassPanel('#8B5CF6')}>
         <ModuleTitle title={isOwn ? t('oracle.cinematicEssenceLabel') : t('profile.essenceOf', { username })} hint={isOwn ? t('home.desk.essenceEmptyDesc') : t('profile.essenceEmptyOther', { username })} />
         {isOwn && (
-          <Link to="/oracle" className={`mt-4 inline-flex items-center justify-start gap-1.5 text-sm font-medium rounded ${FOCUS_RING}`} style={{ color: '#F0ABFC' }}>
+          <Link to="/" state={{ openPersona: true }} className={`mt-4 inline-flex items-center justify-start gap-1.5 text-sm font-medium rounded ${FOCUS_RING}`} style={{ color: '#F0ABFC' }}>
             {t('oracle.discoverYourEssence')}
             <ArrowUpRight className="w-4 h-4" aria-hidden />
           </Link>
@@ -158,7 +158,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
             {t('profile.observatory.personaProgress', { counted: threshold - missing, threshold })}
           </p>
           {isOwn && (
-            <Link to="/oracle" className={`mt-4 inline-flex items-center justify-start gap-1.5 text-sm font-medium rounded ${FOCUS_RING}`} style={{ color: '#F0ABFC' }}>
+            <Link to="/" state={{ openPersona: true }} className={`mt-4 inline-flex items-center justify-start gap-1.5 text-sm font-medium rounded ${FOCUS_RING}`} style={{ color: '#F0ABFC' }}>
               {t('oracle.discoverYourEssence')}
               <ArrowUpRight className="w-4 h-4" aria-hidden />
             </Link>

@@ -248,6 +248,19 @@
       "tagProgress": "{{current}} of {{target}}",
       "findFriendsHint": "Add friends to see their ratings on posters and match on films.",
       "allTagsHint": "You already have every available tag."
+    },
+    "doors": {
+      "label": "Oracles' Library, Poster Jackpot and Your Persona"
+    },
+    "persona": {
+      "title": "Your Persona",
+      "subtitleEmpty": "Still hidden: the Oracle needs to know you first",
+      "scalesHint": "Every rating moves the nine shelves; the three strongest make up your code.",
+      "doorAria": "Your Persona: {{code}}, {{title}}",
+      "doorAriaEmpty": "Your Persona: not revealed yet",
+      "hintEmpty": "Rate {{count}} titles from the shelves and the Oracle reveals who you are as a viewer.",
+      "open": "Open",
+      "discover": "Discover"
     }
   },
   "compatibility": {

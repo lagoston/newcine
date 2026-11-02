@@ -274,9 +274,9 @@ export default function OracleDuel() {
     <div className="min-h-screen pb-16">
       {/* ---------- Cabeçalho ---------- */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-10">
-        <Link to="/oracle" className={`-ml-2 gap-1.5 h-11 px-2 rounded-xl hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`} style={{ color: MIST, justifyContent: 'flex-start', display: 'inline-flex' }}>
+        <Link to="/" className={`-ml-2 gap-1.5 h-11 px-2 rounded-xl hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`} style={{ color: MIST, justifyContent: 'flex-start', display: 'inline-flex' }}>
           <ArrowLeft className="w-[18px] h-[18px]" aria-hidden />
-          {t('oracle.title')}
+          {t('nav.home')}
         </Link>
         <h1 style={{ ...PIXEL, color: PAPER }} className="mt-3 text-[2.2rem] sm:text-5xl leading-none">
           {t('duel.title')}
