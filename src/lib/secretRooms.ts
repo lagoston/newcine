@@ -143,6 +143,20 @@ export const roomPath = (room: string, via?: string | null) => `/sala/${room}${v
 // A sala de cada evento (o botão do painel do evento na home leva até ela).
 export const EVENT_ROOMS: Partial<Record<string, string>> = { halloween: TERROR_CLUB };
 
+// A tag que abre cada sala, pelo nome que aparece no perfil (02/11/2026). O
+// mesmo critério do servidor (secret_room_tag_in_use): o nome, com ou sem o
+// algarismo romano da edição ("Deadly Sleeping", "Deadly Sleeping II"…).
+// Serve para o portal do perfil aparecer já no primeiro quadro, sem esperar
+// a consulta — o servidor confirma depois.
+const ROOM_TAG_NAMES: Record<string, string> = { [TERROR_CLUB]: 'Deadly Sleeping' };
+export function roomForTagName(name?: string | null): string | null {
+  if (!name) return null;
+  for (const [room, tag] of Object.entries(ROOM_TAG_NAMES)) {
+    if (new RegExp(`^${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}( [IVXLCDM]+)?$`).test(name)) return room;
+  }
+  return null;
+}
+
 // Campo na língua da tela (com a outra de reserva).
 export const pick = (pt: boolean, ptValue?: string | null, enValue?: string | null) => (pt ? ptValue || enValue : enValue || ptValue) || '';
 

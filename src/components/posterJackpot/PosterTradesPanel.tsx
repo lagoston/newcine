@@ -456,11 +456,9 @@ const PosterTradesPanel: React.FC<{
           <Users className="w-4 h-4" aria-hidden />
           <span className="relative">{t('trades.propose')}</span>
         </button>
-        {limits && (
-          <p className="mt-2 text-center text-[12.5px]" style={{ color: MIST }}>
-            {t('trades.todayLeft', { trades: tradesLeft, proposals: proposalsLeft, limit: limits.limit })}
-          </p>
-        )}
+        {/* 02/11/2026: saiu a linha "Hoje ainda dá: 3 de 3 trocas e 3 de 3
+            propostas". A regra continua (3 trocas e 3 propostas por dia, no
+            servidor): esgotado, o botão fica apagado e tocar explica o porquê. */}
       </div>
 
       {!trades ? (
@@ -491,7 +489,13 @@ const PosterTradesPanel: React.FC<{
           )}
           {history.length > 0 && (
             <motion.section key="hist" layout>
-              <h4 className="text-[14px] font-semibold" style={{ color: PAPER }}>{t('trades.history')}</h4>
+              {/* O histórico vale 30 dias, como os sussurros (02/11/2026): a
+                  troca some da lista 30 dias depois de concluída e o banco a
+                  apaga na limpeza diária (delete_expired_poster_trades). */}
+              <div className="flex items-baseline justify-between gap-3">
+                <h4 className="text-[14px] font-semibold" style={{ color: PAPER }}>{t('trades.history')}</h4>
+                <span className="text-[12px]" style={{ color: MIST }}>{t('trades.historyHint')}</span>
+              </div>
               <div className="mt-2.5 space-y-3">
                 {history.map((trade) => (
                   <TradeCard key={trade.id} trade={trade} />

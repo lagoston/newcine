@@ -90,6 +90,18 @@ export interface JackpotState {
   // ticket / no especial (só as com efeito).
   remaining: number;
   remainingSpecial: number;
+  // Presente ainda não avisado (02/11/2026): hoje só o da sexta-feira 13 da
+  // tag Scary Clown (3 fichas especiais). O aviso marca com
+  // markJackpotGiftSeen().
+  gift: JackpotGift | null;
+  // A pessoa tem a Scary Clown: a gaveta lembra a próxima sexta-feira 13.
+  friday13Perk: boolean;
+}
+
+export interface JackpotGift {
+  kind: 'friday13';
+  amount: number;
+  day: string;
 }
 
 // Um pôster do catálogo (para a fita da roleta).
@@ -174,7 +186,32 @@ export async function fetchJackpotState(): Promise<JackpotState> {
     owned: num(raw.owned),
     remaining: num(raw.remaining),
     remainingSpecial: num(raw.remaining_special),
+    gift: parseGift(raw.gift),
+    friday13Perk: raw.friday13_perk === true,
   };
+}
+
+const parseGift = (value: unknown): JackpotGift | null => {
+  const gift = value as Row | null;
+  if (!gift || gift.kind !== 'friday13') return null;
+  return { kind: 'friday13', amount: num(gift.amount) || 3, day: typeof gift.day === 'string' ? gift.day : '' };
+};
+
+// O aviso do presente foi mostrado (não aparece de novo).
+export async function markJackpotGiftSeen(): Promise<void> {
+  const { error } = await supabase.rpc('jackpot_gift_seen');
+  if (error) throw error;
+}
+
+// A próxima sexta-feira 13 a partir de hoje (incluindo hoje), no fuso de
+// quem está olhando — para a gaveta lembrar quem tem a Scary Clown.
+export function nextFriday13(from = new Date()): Date {
+  const day = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  for (let i = 0; i < 28; i += 1) {
+    const candidate = new Date(day.getFullYear(), day.getMonth() + i, 13);
+    if (candidate >= day && candidate.getDay() === 5) return candidate;
+  }
+  return day;
 }
 
 let catalogPromise: Promise<CatalogPoster[]> | null = null;

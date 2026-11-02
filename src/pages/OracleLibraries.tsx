@@ -649,9 +649,9 @@ export default function OracleLibraries() {
                 className="block w-[72px] sm:w-[92px] h-auto rounded-lg"
                 style={{ boxShadow: `0 16px 32px -16px ${withAlpha(current.color, 0.8)}` }}
               />
-              <span className="mt-1.5 block text-center text-[11.5px] font-semibold" style={{ color: current.color }}>
-                {t('oracle.libraries.viewProfile')}
-              </span>
+              {/* 02/11/2026: o rótulo "Ver perfil" embaixo da carta saiu — ficava
+                  desalinhado e repetia o que a própria carta já faz (tocar abre o
+                  perfil do oráculo; o aria-label continua dizendo isso). */}
             </button>
           ) : (
             <span className="w-[72px] sm:w-[92px] aspect-[3/5] shrink-0 rounded-lg bg-white/[0.06] animate-pulse" />

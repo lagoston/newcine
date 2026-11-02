@@ -614,8 +614,7 @@
       "showSeries": "Séries",
       "mediaTypeGroup": "Mostrar filmes ou séries",
       "shelfNoSeries": "Esta prateleira ainda não tem séries.",
-      "shelfNoMovies": "Esta prateleira ainda não tem filmes.",
-      "viewProfile": "Ver perfil"
+      "shelfNoMovies": "Esta prateleira ainda não tem filmes."
     },
     "selectMood": "Selecione Seu Humor",
     "ticketsLabel": "tickets",
@@ -929,8 +928,7 @@
     },
     "libraryDoor": {
       "title": "Biblioteca dos Oráculos",
-      "hint": "{{shelves}} prateleiras e {{formatted}} títulos, cada um com a nota que o oráculo prevê pra você.",
-      "hintShort": "As prateleiras dos três oráculos, com a nota que cada um prevê pra você.",
+      "hint": "Curadoria de filmes e séries personalizada para você.",
       "enter": "Entrar"
     }
   },
@@ -2200,9 +2198,7 @@
     },
     "portal": {
       "enterAria": "Entrar no Clube do Terror",
-      "enterViaAria": "Atravessar o portal de @{{username}} para o Clube do Terror",
-      "closedHint": "Use a {{tag}} para abrir",
-      "closedAria": "O portal para o Clube do Terror está fechado. Use a {{tag}} no perfil para abrir: escolher tag"
+      "enterViaAria": "Atravessar o portal de @{{username}} para o Clube do Terror"
     },
     "locked": {
       "needTag": "O Clube do Terror é só para quem dormiu no caixão: conquiste a {{tag}}, a 2ª tag do ritual de Halloween, e a porta abre.",
@@ -2218,6 +2214,11 @@
     }
   },
   "jackpot": {
+    "gift": {
+      "friday13Title": "Sexta-feira 13 🤡",
+      "friday13Body_one": "Sua Scary Clown deixou {{count}} ficha especial no seu porta-fichas.",
+      "friday13Body_other": "Sua Scary Clown deixou {{count}} fichas especiais no seu porta-fichas."
+    },
     "title": "Poster Jackpot",
     "subtitle_one": "{{count}} ficha na mão",
     "subtitle_other": "{{count}} fichas na mão",
@@ -2303,6 +2304,8 @@
       "effectsRule": "Quando sai efeito: holográfico {{holo}}%, negativo {{negative}}%, ultra vermelho {{ultra}}%.",
       "specialSaved_one": "Você também tem {{count}} ficha especial guardada, que não vence.",
       "specialSaved_other": "Você também tem {{count}} fichas especiais guardadas, que não vencem.",
+      "friday13Next": "Sua Scary Clown dá 3 fichas especiais em toda sexta-feira 13. A próxima é {{date}}.",
+      "friday13Today": "Hoje é sexta-feira 13: sua Scary Clown deixou 3 fichas especiais no porta-fichas.",
       "luckyRule": "A cada {{count}} giros com fichas, a barra da sorte libera um Giro da Sorte grátis: 50% épico, 50% lendário."
     },
     "library": {
@@ -2393,6 +2396,7 @@
     "outgoing_one": "Proposta enviada",
     "outgoing_other": "Propostas enviadas ({{count}})",
     "history": "Últimas trocas",
+    "historyHint": "Ficam aqui por 30 dias",
     "empty": "Nenhuma troca ainda. Que tal propor a primeira?",
     "wantsToTrade": "quer trocar com você",
     "proposalTo": "Proposta para",
@@ -2450,7 +2454,6 @@
       "daily_proposals": "Você já mandou 3 propostas hoje. Amanhã libera de novo.",
       "daily_trades": "Você já fez 3 trocas hoje. Amanhã libera de novo.",
       "their_daily_trades": "{{name}} já fez 3 trocas hoje. A proposta continua aberta: aceite amanhã."
-    },
-    "todayLeft": "Hoje ainda dá: {{trades}} de {{limit}} trocas e {{proposals}} de {{limit}} propostas."
+    }
   }
 }

@@ -20,6 +20,7 @@ import {
   type UfoRefusal,
 } from '../../lib/flyingChip';
 import { ChipFace } from './Chips';
+import { JACKPOT_TOAST_STYLE } from './jackpotToast';
 import '../../styles/flyingChip.css';
 
 // Fichas voadoras (02/11/2026): o "OVNI" do Howrse no CineOracle. Montado uma
@@ -418,15 +419,7 @@ const ChipFlight: React.FC<{
 // O agendador (montado uma vez no App)
 // ---------------------------------------------------------------------------
 
-const TOAST_STYLE: React.CSSProperties = {
-  background: 'linear-gradient(180deg, #1a2164, #0b0f36)',
-  color: '#FFF4D6',
-  border: '1px solid rgba(244, 196, 84, 0.65)',
-  borderRadius: 16,
-  boxShadow: '0 14px 34px -14px rgba(0, 0, 0, 0.9), 0 0 24px -8px rgba(244, 196, 84, 0.55)',
-  padding: '10px 14px',
-  maxWidth: 360,
-};
+const TOAST_STYLE = JACKPOT_TOAST_STYLE;
 
 const FlyingChip: React.FC = () => {
   const { t } = useTranslation();

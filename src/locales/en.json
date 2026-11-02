@@ -611,8 +611,7 @@
       "showSeries": "Series",
       "mediaTypeGroup": "Show movies or series",
       "shelfNoSeries": "This shelf doesn't have any series yet.",
-      "shelfNoMovies": "This shelf doesn't have any movies yet.",
-      "viewProfile": "View profile"
+      "shelfNoMovies": "This shelf doesn't have any movies yet."
     },
     "selectMood": "Select Your Mood",
     "ticketsLabel": "tickets",
@@ -926,8 +925,7 @@
     },
     "libraryDoor": {
       "title": "Oracle Library",
-      "hint": "{{shelves}} shelves and {{formatted}} titles, each with the rating the oracle predicts for you.",
-      "hintShort": "The shelves of the three oracles, with the rating each one predicts for you.",
+      "hint": "Film and series curation tailored to you.",
       "enter": "Enter"
     }
   },
@@ -2195,9 +2193,7 @@
     },
     "portal": {
       "enterAria": "Enter the Terror Club",
-      "enterViaAria": "Step through @{{username}}'s portal into the Terror Club",
-      "closedHint": "Wear {{tag}} to open it",
-      "closedAria": "The portal to the Terror Club is closed. Wear {{tag}} on your profile to open it: choose a tag"
+      "enterViaAria": "Step through @{{username}}'s portal into the Terror Club"
     },
     "locked": {
       "needTag": "The Terror Club is only for those who slept in the coffin: earn {{tag}}, the 2nd tag of the Halloween ritual, and the door opens.",
@@ -2213,6 +2209,11 @@
     }
   },
   "jackpot": {
+    "gift": {
+      "friday13Title": "Friday the 13th 🤡",
+      "friday13Body_one": "Your Scary Clown left {{count}} special chip in your chip tray.",
+      "friday13Body_other": "Your Scary Clown left {{count}} special chips in your chip tray."
+    },
     "title": "Poster Jackpot",
     "subtitle_one": "{{count}} chip in hand",
     "subtitle_other": "{{count}} chips in hand",
@@ -2298,6 +2299,8 @@
       "effectsRule": "When an effect comes up: holographic {{holo}}%, negative {{negative}}%, ultra red {{ultra}}%.",
       "specialSaved_one": "You also have {{count}} saved special chip, which never expires.",
       "specialSaved_other": "You also have {{count}} saved special chips, which never expire.",
+      "friday13Next": "Your Scary Clown gives you 3 special chips every Friday the 13th. The next one is {{date}}.",
+      "friday13Today": "It's Friday the 13th: your Scary Clown left 3 special chips in your chip tray.",
       "luckyRule": "Every {{count}} spins with chips, the luck meter unlocks a free Lucky Spin: 50% epic, 50% legendary."
     },
     "library": {
@@ -2388,6 +2391,7 @@
     "outgoing_one": "Proposal sent",
     "outgoing_other": "Proposals sent ({{count}})",
     "history": "Recent trades",
+    "historyHint": "They stay here for 30 days",
     "empty": "No trades yet. How about proposing the first one?",
     "wantsToTrade": "wants to trade with you",
     "proposalTo": "Proposal to",
@@ -2445,7 +2449,6 @@
       "daily_proposals": "You've sent 3 proposals today. More tomorrow.",
       "daily_trades": "You've made 3 trades today. More tomorrow.",
       "their_daily_trades": "{{name}} has made 3 trades today. The proposal stays open: accept it tomorrow."
-    },
-    "todayLeft": "Left today: {{trades}} of {{limit}} trades and {{proposals}} of {{limit}} proposals."
+    }
   }
 }

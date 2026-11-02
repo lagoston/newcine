@@ -1,17 +1,20 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../lib/auth';
 import { FOCUS_RING } from '../../lib/oracleTheme';
-import { fetchJackpotCatalog, fetchJackpotState, loadJackpotFont, type CatalogPoster, type JackpotState, type PosterEffect } from '../../lib/posterJackpot';
+import { fetchJackpotCatalog, fetchJackpotState, loadJackpotFont, markJackpotGiftSeen, type CatalogPoster, type JackpotState, type PosterEffect } from '../../lib/posterJackpot';
 import PosterArt from './PosterArt';
 import { JACKPOT_CHIPS_EVENT } from '../../lib/flyingChip';
 import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
 import { ChipFace } from './Chips';
+import { JACKPOT_TOAST_STYLE } from './jackpotToast';
 import { RarityGem } from './CollectorMark';
 import PosterJackpotSheet, { type JackpotTab } from './PosterJackpotSheet';
 import '../../styles/posterJackpot.css';
+import '../../styles/flyingChip.css';
 
 // A porta do Poster Jackpot (na home desde 02/11/2026, com a Central dos
 // Oráculos extinta; mesma geometria das outras portas, em home/doorLayout):
@@ -52,6 +55,25 @@ const PosterJackpotDoor: React.FC = () => {
       .then(setState)
       .catch((error) => console.error('Poster Jackpot state:', error));
   }, [userId]);
+
+  // O presente da sexta-feira 13 (02/11/2026): quem tem a Scary Clown ganha 3
+  // fichas especiais à meia-noite do dia; na primeira vez que a home abre
+  // depois disso, um aviso conta de onde vieram (uma vez só: o servidor marca
+  // como visto).
+  const giftShown = useRef(false);
+  const gift = state?.gift;
+  useEffect(() => {
+    if (!gift || giftShown.current) return;
+    giftShown.current = true;
+    toast(
+      <span className="fc-toast">
+        <span className="fc-toast-title">{t('jackpot.gift.friday13Title')}</span>
+        <span className="fc-toast-body">{t('jackpot.gift.friday13Body', { count: gift.amount })}</span>
+      </span>,
+      { id: 'jackpot-gift', icon: <ChipFace kind="special" className="fc-toast-chip" />, style: JACKPOT_TOAST_STYLE, duration: 7000 },
+    );
+    markJackpotGiftSeen().catch(() => undefined);
+  }, [gift, t]);
   useEffect(() => {
     reload();
   }, [reload]);

@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { PAPER, PIXEL, FOCUS_RING, ORACLES, oracleCardImage, withAlpha } from '../../lib/oracleTheme';
 import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
 
@@ -10,24 +9,12 @@ import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_FAN, DOOR_H
 // Central dos Oráculos extinta). Um botão do mesmo porte da porta do Poster
 // Jackpot e da Persona (geometria em home/doorLayout), no mundo dos
 // oráculos — o tubo de neon nas três cores, as três cartas em leque (abrem
-// um pouco ao passar o mouse), o letreiro em pixel com brilho e quantas
-// prateleiras e títulos eles guardam.
-
-let statsPromise: Promise<{ shelves: number; titles: number }> | null = null;
-const loadStats = () => {
-  if (!statsPromise) {
-    statsPromise = (async () => {
-      const { data, error } = await supabase.rpc('get_oracle_library_stats');
-      if (error) throw error;
-      const raw = (data || {}) as { shelves?: number; titles?: number };
-      return { shelves: Number(raw.shelves) || 27, titles: Number(raw.titles) || 0 };
-    })().catch((error) => {
-      statsPromise = null;
-      throw error;
-    });
-  }
-  return statsPromise;
-};
+// um pouco ao passar o mouse), o letreiro em pixel com brilho e a frase do
+// que ela é.
+// 02/11/2026: a frase deixou de contar prateleiras e títulos ("27 prateleiras
+// e 6489 filmes…", que dependia de get_oracle_library_stats e trocava de
+// texto quando a conta chegava) e passou a ser fixa: "Curadoria de filmes e
+// séries personalizada para você." A porta não faz mais consulta nenhuma.
 
 // Leque: Bogart à esquerda, Cypher à direita, Fincher no meio, na frente.
 const FAN = [
@@ -37,18 +24,7 @@ const FAN = [
 ] as const;
 
 const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
-  const { t, i18n } = useTranslation();
-  const [stats, setStats] = useState<{ shelves: number; titles: number } | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    loadStats()
-      .then((value) => alive && setStats(value))
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const { t } = useTranslation();
 
   return (
     <Link
@@ -101,9 +77,7 @@ const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
           {t('oracle.libraryDoor.title')}
         </span>
         <span className={DOOR_HINT} style={{ color: '#CFC6EC' }}>
-          {stats && stats.titles > 0
-            ? t('oracle.libraryDoor.hint', { shelves: stats.shelves, formatted: stats.titles.toLocaleString(i18n.language) })
-            : t('oracle.libraryDoor.hintShort')}
+          {t('oracle.libraryDoor.hint')}
         </span>
         <span className={DOOR_CHIPS}>
           {ORACLES.map((oracle) => (

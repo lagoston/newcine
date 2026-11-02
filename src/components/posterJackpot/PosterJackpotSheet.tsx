@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Check, Copy, Crown, Gift, Loader2, Maximize2, Share2, Sparkles, Trophy, Volume2, VolumeX } from 'lucide-react';
@@ -23,6 +24,7 @@ import {
   fetchJackpotCatalog,
   loadJackpotFont,
   loadMyPosters,
+  nextFriday13,
   notifyPostersChanged,
   pullErrorCode,
   pullJackpot,
@@ -891,8 +893,22 @@ const InviteCard: React.FC = () => {
 // As missões
 // ---------------------------------------------------------------------------
 
+// "A próxima é 13 de novembro" / "Hoje é sexta-feira 13…" (com o ano quando
+// a próxima cai em outro ano).
+const friday13Line = (t: TFunction, lang: string) => {
+  const today = new Date();
+  const next = nextFriday13(today);
+  if (next.toDateString() === today.toDateString()) return t('jackpot.missions.friday13Today');
+  const date = next.toLocaleDateString(lang, {
+    day: 'numeric',
+    month: 'long',
+    ...(next.getFullYear() !== today.getFullYear() ? { year: 'numeric' as const } : {}),
+  });
+  return t('jackpot.missions.friday13Next', { date });
+};
+
 const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<JackpotState>) => void }> = ({ state, onState }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [claiming, setClaiming] = useState<string | null>(null);
 
   const label = (mission: JackpotMission) => {
@@ -981,6 +997,14 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
               : t('jackpot.missions.specialPremiumOnly')}
             {state.specialTickets > 0 && <> {t('jackpot.missions.specialSaved', { count: state.specialTickets })}</>}
           </p>
+          {/* Quem tem a Scary Clown ganha 3 fichas especiais em toda
+              sexta-feira 13 (02/11/2026): a gaveta lembra quando é a próxima. */}
+          {state.friday13Perk && (
+            <p className="mt-1.5 flex items-start gap-1.5" style={{ color: '#FDE68A' }}>
+              <span aria-hidden>🤡</span>
+              <span>{friday13Line(t, i18n.language)}</span>
+            </p>
+          )}
           {!state.premium && (
             <Link to="/premium" className={`mt-1.5 inline-flex items-center gap-1 rounded text-[13px] font-semibold text-amber-200 ${FOCUS_RING}`}>
               {t('jackpot.missions.seePremium')}

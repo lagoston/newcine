@@ -565,17 +565,12 @@ export default function Profile() {
           onFriendsClick={() => setShowFriendsModal(true)}
           avatarBusy={isUploadingAvatar}
           seasonalDecoration={seasonalDecoration}
-          // Portal de sala secreta: usando a tag dela, a espiral do clube
-          // (tocar entra direto); com a tag sem usar, o portal fechado.
+          // Portal de sala secreta: só para quem está usando a tag dela (a
+          // espiral do clube; tocar entra direto). Desde 02/11/2026 não há
+          // mais o portal fechado para quem tem a tag e usa outra.
           portal={
             session?.user?.id && profile?.username ? (
-              <SecretRoomPortal
-                userId={session.user.id}
-                username={profile.username}
-                isSelf
-                activeTagName={profile.active_tag?.name ?? null}
-                onChooseTag={() => setShowTagPinsModal(true)}
-              />
+              <SecretRoomPortal userId={session.user.id} username={profile.username} isSelf activeTagName={profile.active_tag?.name ?? null} />
             ) : undefined
           }
           topRight={
