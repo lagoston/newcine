@@ -81,6 +81,11 @@ const TitleScreen: React.FC<{ home: PokerHome; offline: boolean }> = ({ home, of
     if (home.player?.age_gate_all && !home.player.age_confirmed) setAge(BLEFE_ROUTES.free);
     else navigate(BLEFE_ROUTES.free);
   };
+  // A mesa com amigos pede a idade do pôquer como o torneio (F3: age_required): a folha antes.
+  const goFriends = () => {
+    if (!home.player?.age_confirmed) setAge(BLEFE_ROUTES.friends);
+    else navigate(BLEFE_ROUTES.friends);
+  };
 
   return (
     <Stage>
@@ -166,6 +171,20 @@ const TitleScreen: React.FC<{ home: PokerHome; offline: boolean }> = ({ home, of
               <span className="min-w-0">
                 <h3 className="pp-font" style={{ color: '#F5EBD3' }}>{t('poker.game.casual')}</h3>
                 <p>{freeHand ? t('poker.lobby.continue', { hand: freeHand }) : t('poker.game.casualLine')}</p>
+              </span>
+            </button>
+            {/* Com amigos (fase 3): até 4 pessoas; cada lugar vazio fica com um oráculo. */}
+            <button type="button" className="pp-mode is-friends" onClick={goFriends} disabled={offline}>
+              <span className="pp-mode-art grid place-items-center" aria-hidden>
+                <span className="pf-mode-seats">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              </span>
+              <span className="min-w-0">
+                <h3 className="pp-font" style={{ color: '#F5EBD3' }}>{t('poker.friends.title')}</h3>
+                <p>{offline ? t('poker.game.tourneyOffline') : t('poker.friends.modeLine')}</p>
               </span>
             </button>
             <button type="button" className="pp-ticket" onClick={() => setPanel('menu')}>{t('poker.game.back')}</button>

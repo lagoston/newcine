@@ -99,24 +99,6 @@ export function extraCardsOf(st: MatchStateX): Card[] {
 // Criação e cronograma
 // ---------------------------------------------------------------------------
 
-/** Estado inicial do efeito do torneio (undefined fora do torneio). */
-export function initEffects(cfg: MatchConfig): FxState | undefined {
-  if (cfg.mode !== 'bounty' || !cfg.tournament) return undefined;
-  const effect = cfg.tournament.effect;
-  return newFx(effect, effectParams(cfg.settings, effect), `${cfg.seed}:effect`);
-}
-
-/** Pacote E3: efeitos da mesa de amigos (um estado por efeito distinto; undefined sem efeitos). */
-export function initEffectList(cfg: MatchConfig): FxState[] | undefined {
-  if (cfg.mode !== 'friends') return undefined;
-  const levels = effectLevels(cfg.effects);
-  if (levels.length === 0) return undefined;
-  return levels.map(({ effect, level }) => ({
-    ...newFx(effect, stackedParams(cfg.settings, effect, level), `${cfg.seed}:effect:${effect}`),
-    level, bonusBy: {}, paid: 0,
-  }));
-}
-
 function newFx(effect: PosterEffectId, params: FxState['params'], schedKey: string): FxState {
   const rng = createRng(schedKey);
   const schedule: number[] = [];
@@ -134,6 +116,24 @@ function newFx(effect: PosterEffectId, params: FxState['params'], schedKey: stri
     effect, params, schedule, castNo: 0, lastCastHand: null, active: null, activeFrom: 0, activeTo: -1,
     claimed: false, revealed: null, bonusWon: 0,
   };
+}
+
+/** Estado inicial do efeito do torneio (undefined fora do torneio). */
+export function initEffects(cfg: MatchConfig): FxState | undefined {
+  if (cfg.mode !== 'bounty' || !cfg.tournament) return undefined;
+  const effect = cfg.tournament.effect;
+  return newFx(effect, effectParams(cfg.settings, effect), `${cfg.seed}:effect`);
+}
+
+/** Pacote E3: efeitos da mesa de amigos (um estado por efeito distinto; undefined sem efeitos). */
+export function initEffectList(cfg: MatchConfig): FxState[] | undefined {
+  if (cfg.mode !== 'friends') return undefined;
+  const levels = effectLevels(cfg.effects);
+  if (levels.length === 0) return undefined;
+  return levels.map(({ effect, level }) => ({
+    ...newFx(effect, stackedParams(cfg.settings, effect, level), `${cfg.seed}:effect:${effect}`),
+    level, bonusBy: {}, paid: 0,
+  }));
 }
 
 /** Primeira mão em que a próxima lançada pode sair (FOREVER = acabaram). */
@@ -196,11 +196,6 @@ export function handFxFor(st: MatchStateX, n: number): HandFx | undefined {
   return out.extraCards || out.earlyFlop || out.riverCards ? out : undefined;
 }
 
-/** Logo depois do handStarted: efeitos de mão lançam aqui (vários, na ordem fixa). */
-export function onHandStarted(ctx: StepCtx, n: number): void {
-  for (const fx of fxList(ctx.st)) castAtHandStart(ctx, fx, n);
-}
-
 function castAtHandStart(ctx: StepCtx, fx: FxState, n: number): void {
   if (fx.revealed && fx.revealed.hand !== n) fx.revealed = null;
   if (!HAND_EFFECTS.has(fx.effect) || n < nextArm(fx)) return;
@@ -244,6 +239,11 @@ function castAtHandStart(ctx: StepCtx, fx: FxState, n: number): void {
     default:
       return;
   }
+}
+
+/** Logo depois do handStarted: efeitos de mão lançam aqui (vários, na ordem fixa). */
+export function onHandStarted(ctx: StepCtx, n: number): void {
+  for (const fx of fxList(ctx.st)) castAtHandStart(ctx, fx, n);
 }
 
 /** Depois das cartas fechadas: a leitura (reveal_one) vira uma carta de cada um. */
@@ -334,6 +334,14 @@ function revealedUnion(st: MatchStateX, n: number): EffectReveal[] {
     if (p && p.holeCards.length === 2) o.cards = p.holeCards.slice();
   }
   return out;
+}
+
+/** As cartas `c` já estão abertas para todos nesta mão? (mesa com vários efeitos). */
+function alreadyOpen(st: MatchStateX, n: number, c: EffectReveal): boolean {
+  const p = st.game.players.find((q) => q.id === c.playerId);
+  if (p && isRevealed(st, p)) return true;
+  const prev = revealedUnion(st, n).find((r) => r.playerId === c.playerId);
+  return !!prev && unionCards(prev.cards, c.cards).length === prev.cards.length;
 }
 
 /**
@@ -435,14 +443,6 @@ export function onHandEnd(ctx: StepCtx, result: HandResult): { bonus: Record<str
     }
   }
   return { bonus, potBonus };
-}
-
-/** As cartas `c` já estão abertas para todos nesta mão? (mesa com vários efeitos). */
-function alreadyOpen(st: MatchStateX, n: number, c: EffectReveal): boolean {
-  const p = st.game.players.find((q) => q.id === c.playerId);
-  if (p && isRevealed(st, p)) return true;
-  const prev = revealedUnion(st, n).find((r) => r.playerId === c.playerId);
-  return !!prev && unionCards(prev.cards, c.cards).length === prev.cards.length;
 }
 
 // ---------------------------------------------------------------------------

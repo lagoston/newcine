@@ -171,6 +171,53 @@ export function isoToMs(iso: string): number {
 
 const CORE_RIVALS = ['bogart', 'cypher', 'fincher'] as const;
 
+function durationOf(meta: { startedAt: string; endedAt: string }): number {
+  const start = isoToMs(meta.startedAt);
+  const end = isoToMs(meta.endedAt);
+  return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, Math.round((end - start) / 1000)) : 0;
+}
+
+function summarizeFriends(st: ReturnType<typeof x>, meta: { clientId: string; startedAt: string; endedAt: string }, who: PlayerId): MatchSummary {
+  const g = st.game;
+  const ps = st.people?.[who];
+  const tally = st.tallies?.[who];
+  if (!ps || !tally) throw new Error(`summarizeMatch: ${who} não é uma pessoa desta mesa`);
+  const alive = g.players.filter((p) => p.status !== 'eliminated').length;
+  const winnerId = (g.winnerId as PlayerId | null) ?? (st.status === 'finished' ? (Object.keys(st.places).find((k) => st.places[k] === 1) as PlayerId) ?? null : null);
+  const reason = ps.reason ?? (winnerId === who ? 'won' : st.places[who] !== undefined ? 'eliminated' : 'abandoned');
+  const place = (ps.place ?? st.places[who] ?? alive) as 1 | 2 | 3 | 4;
+  const { eliminations, oscarBluff, ...human } = tally;
+  return {
+    v: 1,
+    clientId: meta.clientId,
+    mode: 'friends',
+    startedAt: meta.startedAt,
+    endedAt: meta.endedAt,
+    durationS: durationOf(meta),
+    hands: g.handNumber,
+    place,
+    winnerId,
+    reason,
+    loan: false,
+    human: { ...human, bestHand: human.bestHand ? { ...human.bestHand, cards: human.bestHand.cards.slice() } : null },
+    eliminations: eliminations.map((e) => ({ ...e })),
+    comeback: reason === 'won' && tally.minStackBB < 5,
+    marks: {
+      firstWinCandidate: reason === 'won',
+      foxHunter: st.eliminatedBy.fincher === who,
+      cleanSweep: CORE_RIVALS.every((r) => st.eliminatedBy[r] === who),
+      oscarBluff,
+    },
+    prize: null,
+    engineHash: ENGINE_HASH_UNSET,
+    paramsVersion: { ...st.config.paramsVersion },
+    friends: {
+      playerId: who, people: st.config.people?.length ?? 1, effects: (st.config.effects ?? []).slice(),
+      winnerIsPerson: !!winnerId && (st.config.people ?? []).includes(winnerId), bonusWon: bonusOf(st, who), status: ps.status,
+    },
+  };
+}
+
 /**
  * Resumo da partida para o placar. Pacote E3: na mesa de amigos, o resumo é de UMA pessoa
  * (`viewer`, padrão p1): os números, a colocação e o motivo dela (`mode: 'friends'`).
@@ -220,52 +267,5 @@ export function summarizeMatch(s: MatchState, meta: { clientId: string; startedA
       },
     } : {}),
     ...(st.config.reclaim ? { reclaim: true } : {}),
-  };
-}
-
-function durationOf(meta: { startedAt: string; endedAt: string }): number {
-  const start = isoToMs(meta.startedAt);
-  const end = isoToMs(meta.endedAt);
-  return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, Math.round((end - start) / 1000)) : 0;
-}
-
-function summarizeFriends(st: ReturnType<typeof x>, meta: { clientId: string; startedAt: string; endedAt: string }, who: PlayerId): MatchSummary {
-  const g = st.game;
-  const ps = st.people?.[who];
-  const tally = st.tallies?.[who];
-  if (!ps || !tally) throw new Error(`summarizeMatch: ${who} não é uma pessoa desta mesa`);
-  const alive = g.players.filter((p) => p.status !== 'eliminated').length;
-  const winnerId = (g.winnerId as PlayerId | null) ?? (st.status === 'finished' ? (Object.keys(st.places).find((k) => st.places[k] === 1) as PlayerId) ?? null : null);
-  const reason = ps.reason ?? (winnerId === who ? 'won' : st.places[who] !== undefined ? 'eliminated' : 'abandoned');
-  const place = (ps.place ?? st.places[who] ?? alive) as 1 | 2 | 3 | 4;
-  const { eliminations, oscarBluff, ...human } = tally;
-  return {
-    v: 1,
-    clientId: meta.clientId,
-    mode: 'friends',
-    startedAt: meta.startedAt,
-    endedAt: meta.endedAt,
-    durationS: durationOf(meta),
-    hands: g.handNumber,
-    place,
-    winnerId,
-    reason,
-    loan: false,
-    human: { ...human, bestHand: human.bestHand ? { ...human.bestHand, cards: human.bestHand.cards.slice() } : null },
-    eliminations: eliminations.map((e) => ({ ...e })),
-    comeback: reason === 'won' && tally.minStackBB < 5,
-    marks: {
-      firstWinCandidate: reason === 'won',
-      foxHunter: st.eliminatedBy.fincher === who,
-      cleanSweep: CORE_RIVALS.every((r) => st.eliminatedBy[r] === who),
-      oscarBluff,
-    },
-    prize: null,
-    engineHash: ENGINE_HASH_UNSET,
-    paramsVersion: { ...st.config.paramsVersion },
-    friends: {
-      playerId: who, people: st.config.people?.length ?? 1, effects: (st.config.effects ?? []).slice(),
-      winnerIsPerson: !!winnerId && (st.config.people ?? []).includes(winnerId), bonusWon: bonusOf(st, who), status: ps.status,
-    },
   };
 }

@@ -371,7 +371,6 @@ export function useFriendsMatch(rig: Rig, roomId: string | null): FriendsCtl {
         setStatus('offline');
       })();
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [api, apply, roomId, sync],
   );
 

@@ -45,15 +45,6 @@ export function createMatch(cfg: MatchConfig): MatchStep {
   return { state: ctx.st, events: ctx.ev };
 }
 
-/**
- * Valida com getLegalActions (PokerRuleError → 'illegal'), aplica, roda os bots, fecha
- * mãos e para na próxima vez da pessoa ou no fim. `show` = a pessoa tocou em "Mostrar"
- * depois de levar o pote anterior sem showdown: sai `cardsShown` antes da ação.
- */
-export function applyHumanAction(s: MatchState, a: PlayerAction, opts?: { show?: boolean }): MatchStep {
-  return applyPersonAction(s, HUMAN, a, opts);
-}
-
 /** A pessoa `id` está na mesa e ainda joga? (erro com o código certo se não estiver). */
 function assertPlaying(sx: MatchStateX, id: string): void {
   if (sx.status !== 'running') throw new PokerRuleError('game_over', 'A partida acabou para a pessoa.');
@@ -97,6 +88,15 @@ export function applyPersonAction(s: MatchState, id: PlayerId, a: PlayerAction, 
   applyAndProcess(ctx, id, a, null);
   runUntilHuman(ctx);
   return { state: ctx.st, events: ctx.ev };
+}
+
+/**
+ * Valida com getLegalActions (PokerRuleError → 'illegal'), aplica, roda os bots, fecha
+ * mãos e para na próxima vez da pessoa ou no fim. `show` = a pessoa tocou em "Mostrar"
+ * depois de levar o pote anterior sem showdown: sai `cardsShown` antes da ação.
+ */
+export function applyHumanAction(s: MatchState, a: PlayerAction, opts?: { show?: boolean }): MatchStep {
+  return applyPersonAction(s, HUMAN, a, opts);
 }
 
 /**
@@ -281,6 +281,8 @@ const OUTCOME: Record<EndReason, 'won' | 'lost' | 'forfeit' | 'abandoned'> = {
 export function outcomeOf(prev: MatchState, next: MatchState): MatchOutcome {
   const out: MatchOutcome = {};
   const nx = x(next);
+  // Mesa de amigos: não há "a pessoa" — o desfecho de cada uma está em friendsResult.
+  if (nx.people) return out;
   if (prev.capturedHand === null && next.capturedHand !== null && next.config.prize) {
     out.captured = { hand: next.capturedHand, prizeId: next.config.prize.prizeId };
   }

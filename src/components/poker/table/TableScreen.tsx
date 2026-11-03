@@ -18,6 +18,8 @@ import type { StakeShow, TourneyPoster } from '../tournament/TableTourney';
 import PosterInfoSheet from '../tournament/PosterInfoSheet';
 import { useTraining, type TrainingCtl } from '../../../lib/poker/client/useTraining';
 import { useFriendsMatch, type FriendsCtl } from '../../../lib/poker/client/useFriendsMatch';
+import { useReclaimMatch } from '../../../lib/poker/client/useReclaimMatch';
+import { casualApi, type CasualBegin } from '../../../lib/poker/client/friends';
 import { isPersonId } from '../../../lib/poker/client/people';
 import EffectsSheet from '../tournament/EffectsSheet';
 import { primePokerAudio } from '../../../lib/poker/client/sound';
@@ -48,11 +50,13 @@ interface ScreenProps {
   tourney?: TourneyInfo | null;
   /** Fase 3: a mesa com amigos (pessoas, relógio, ausente, efeitos de todos). */
   friends?: FriendsCtl | null;
+  /** Fase 3: a casual de devolução (o portador na mesa, sem anúncio de prêmio). */
+  reclaim?: boolean;
 }
 
 const FAREWELL_MS = 4000;
 
-const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, training, tourney, friends }) => {
+const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, training, tourney, friends, reclaim = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { table: tb, dir, settings, reduced, lang, mode, client } = rig;
@@ -74,6 +78,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
   const me = seatOf(table, 'human');
   const prizeInfo = prize ? { rarity: prize.rarity as Rarity, name: lang === 'pt' ? prize.name_pt : prize.name_en, the: prizeWithArticle(prize, lang) } : null;
   const thermoOn = settings.thermo ?? !!home?.player?.tutorial_done;
+  const isFriends = !!friends;
 
   useEffect(() => {
     loadJackpotFont();
@@ -86,10 +91,10 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
     const start = Date.now();
     const id = window.setInterval(() => {
       // Na mesa com amigos o relógio de 30 s já está na tela: sem o "tempo parado" do Diretor.
-      if (!friends && document.visibilityState === 'visible' && !menu && !quipOpen) dir.director.onIdleTick(Date.now() - start);
+      if (!isFriends && document.visibilityState === 'visible' && !menu && !quipOpen) dir.director.onIdleTick(Date.now() - start);
     }, 1000);
     return () => window.clearInterval(id);
-  }, [tb.phase, dir.director, menu, quipOpen]);
+  }, [tb.phase, dir.director, menu, quipOpen, isFriends]);
   useEffect(() => {
     dir.director.onDrawer(!!menu || quipOpen);
   }, [menu, quipOpen, dir.director]);
@@ -431,7 +436,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
         />
       )}
       {ctl.recap && stage === 'table' && !ctl.credits && (
-        <RecapCard table={table} tail={ctl.recap} prizeName={prizeInfo?.the ?? null} line={recapLine} lang={lang} reduced={reduced} onClose={ctl.closeRecap} />
+        <RecapCard table={table} tail={ctl.recap} prizeName={reclaim ? null : prizeInfo?.the ?? null} line={recapLine} lang={lang} reduced={reduced} onClose={ctl.closeRecap} />
       )}
 
       {/* Despedida: a sala escurece e quem eliminou fica sob a luz. */}
@@ -579,10 +584,48 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
 // Os três modos
 // ---------------------------------------------------------------------------
 
-export const FreeTable: React.FC<{ home: PokerHome | null; cardStyle: string }> = ({ home, cardStyle }) => {
+// A casual (fase 3, item 5): antes de cada partida nova o servidor diz se esta é a de
+// devolução (`casual.begin`). Sem resposta em 2,5 s, ou sem o servidor novo, a casual
+// de sempre no aparelho (ela abre offline).
+type ServerBegin = Extract<CasualBegin, { mode: 'server' }>;
+const beginCasual = async (): Promise<ServerBegin | null> => {
+  const api = casualApi();
+  if (!api) return null;
+  try {
+    const b = await Promise.race([api.begin(), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
+    return b && b.enabled && b.mode === 'server' ? (b as ServerBegin) : null;
+  } catch {
+    return null;
+  }
+};
+
+const DeviceCasual: React.FC<{ home: PokerHome | null; cardStyle: string; onServer: (b: ServerBegin) => void }> = ({ home, cardStyle, onServer }) => {
   const rig = useRig('free', home);
-  const ctl = useFreeMatch(rig, home);
+  const onServerRef = useRef(onServer);
+  onServerRef.current = onServer;
+  const gate = useCallback(async () => {
+    const b = await beginCasual();
+    if (b) {
+      onServerRef.current(b);
+      return false;
+    }
+    return true;
+  }, []);
+  const ctl = useFreeMatch(rig, home, gate);
   return <TableScreen rig={rig} ctl={ctl} cardStyle={cardStyle} home={home} prize={null} />;
+};
+
+const ReclaimCasual: React.FC<{ home: PokerHome | null; cardStyle: string; begin: ServerBegin; onGone: () => void }> = ({ home, cardStyle, begin, onGone }) => {
+  const rig = useRig('free', home);
+  const ctl = useReclaimMatch(rig, begin, onGone);
+  return <TableScreen rig={rig} ctl={ctl} cardStyle={cardStyle} home={home} prize={ctl.prize} reclaim />;
+};
+
+export const FreeTable: React.FC<{ home: PokerHome | null; cardStyle: string }> = ({ home, cardStyle }) => {
+  const [server, setServer] = useState<ServerBegin | null>(null);
+  const [gone, setGone] = useState(0);
+  if (server) return <ReclaimCasual home={home} cardStyle={cardStyle} begin={server} onGone={() => { setServer(null); setGone((g) => g + 1); }} />;
+  return <DeviceCasual key={gone} home={home} cardStyle={cardStyle} onServer={setServer} />;
 };
 
 /** Mesa com amigos (fase 3): `?sala=<id>`; a partida roda no servidor (useFriendsMatch). */

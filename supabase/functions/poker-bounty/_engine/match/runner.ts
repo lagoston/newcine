@@ -207,6 +207,65 @@ export function emitMatchEnded(ctx: StepCtx, reason: EndReason, humanPlace: numb
   });
 }
 
+// ---------------------------------------------------------------------------
+// Mesa de amigos (pacote E3, 03/11/2026): situação das pessoas e saída da mesa
+// ---------------------------------------------------------------------------
+
+function setOut(ps: PersonState, place: number, reason: EndReason): void {
+  ps.status = ps.leaving ? 'left' : 'out';
+  ps.place = place;
+  ps.reason = ps.leaving ?? reason;
+  ps.away = false;
+}
+
+/** Alguma pessoa joga e está presente (não ausente, não saindo)? */
+function someonePresent(st: MatchStateX): boolean {
+  return Object.values(st.people ?? {}).some((p) => p.status === 'playing' && !p.away && !p.leaving);
+}
+
+/** Alguma pessoa ainda joga (mesmo ausente)? Quem está saindo não conta. */
+function anyPlaying(st: MatchStateX): boolean {
+  return Object.values(st.people ?? {}).some((p) => p.status === 'playing' && !p.leaving);
+}
+
+/**
+ * Tira da mesa quem saiu: cacife zerado (as fichas saem com a pessoa), colocação = vivos
+ * agora (contando ela), `eliminated{ byId: null }`. Se sobrar um só, a partida acaba.
+ */
+export function removeLeaver(ctx: StepCtx, id: string, hand: number, elims?: { victimId: PlayerId; byId: PlayerId | null; hand: number }[]): void {
+  const st = ctx.st;
+  const g = st.game;
+  const p = playerOf(g, id);
+  const ps = st.people![id];
+  if (p.status === 'eliminated') {
+    setOut(ps, st.places[id] ?? g.players.filter(isAlive).length + 1, ps.leaving ?? 'forfeit');
+    return;
+  }
+  // Saiu estando all-in e a mão (já decidida pelas cartas) o deixou como o único vivo: vence.
+  if (g.phase === 'gameOver' && g.winnerId === id) {
+    ps.status = 'left';
+    ps.place = 1;
+    ps.reason = 'won';
+    return;
+  }
+  const place = g.players.filter(isAlive).length;
+  const stackLeft = p.stack;
+  p.stack = 0;
+  p.status = 'eliminated';
+  st.places[id] = place;
+  st.eliminatedBy[id] = null;
+  setOut(ps, place, ps.leaving ?? 'forfeit');
+  elims?.push({ victimId: id, byId: null, hand });
+  emit(ctx, { type: 'eliminated', playerId: id, place, byId: null, handNumber: hand, stackLeft });
+  // `g` já é a cópia desta chamada (closeHand vem do motor; leavePerson copia antes).
+  const alive = g.players.filter((q) => isAlive(q) && q.stack > 0);
+  if (alive.length <= 1 && g.phase !== 'betting') {
+    g.phase = 'gameOver';
+    g.winnerId = alive[0]?.id ?? null;
+    if (alive[0]) st.places[alive[0].id] = 1;
+  }
+}
+
 function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; hands: { playerId: string; cards: Card[] }[] } | null): void {
   const st = ctx.st;
   const g = st.game;
@@ -342,7 +401,8 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
   if (st.people) {
     if (ctx.completing) return;
     if (g.phase === 'gameOver' || !anyPlaying(st)) {
-      finishFriends(ctx);
+      // Quem termina a mesa é o laço (runUntilHuman): os oráculos ainda podem ter de jogar sozinhos.
+      ctx.finishPending = true;
       return;
     }
     const aliveNow = g.players.filter(isAlive);
@@ -477,41 +537,8 @@ export function botAct(ctx: StepCtx, botId: string): void {
   }
 }
 
-/**
- * Roda até a vez de uma pessoa presente, o fim da partida para ela, ou o fim do treino.
- * Mesa de amigos: quem saiu desiste na hora; quem está ausente passa/desiste na hora, a
- * menos que todas as pessoas que ainda jogam estejam ausentes (aí a mesa espera o relógio).
- */
-export function runUntilHuman(ctx: StepCtx): void {
-  for (;;) {
-    const st = ctx.st;
-    const g = st.game;
-    if (st.status !== 'running' || g.phase === 'gameOver') return;
-    if (g.phase !== 'betting') {
-      startNextHand(ctx);
-      continue;
-    }
-    const to = g.hand!.toActId;
-    if (!to) return;
-    if (!isPerson(st, to)) {
-      botAct(ctx, to);
-      continue;
-    }
-    const ps = st.people?.[to];
-    if (ps?.leaving) {
-      autoAct(ctx, to, 'left');
-      continue;
-    }
-    if (ps?.away && someonePresent(st)) {
-      autoAct(ctx, to, 'away');
-      continue;
-    }
-    return;
-  }
-}
-
 // ---------------------------------------------------------------------------
-// Mesa de amigos (pacote E3, 03/11/2026)
+// Mesa de amigos (pacote E3, 03/11/2026): ação automática e fim da mesa
 // ---------------------------------------------------------------------------
 
 /** Ação automática pela pessoa: passa se puder, senão desiste (quem saiu sempre desiste). */
@@ -520,61 +547,6 @@ export function autoAct(ctx: StepCtx, id: string, auto: AutoActionKind): void {
   const a = auto === 'left' ? { type: 'fold' as const } : timeoutAction(g, id);
   if (!a) throw new PokerRuleError('not_your_turn', `Não é a vez de ${id}.`);
   applyAndProcess(ctx, id, a, null, auto);
-}
-
-function setOut(ps: PersonState, place: number, reason: EndReason): void {
-  ps.status = ps.leaving ? 'left' : 'out';
-  ps.place = place;
-  ps.reason = ps.leaving ?? reason;
-  ps.away = false;
-}
-
-/** Alguma pessoa joga e está presente (não ausente, não saindo)? */
-function someonePresent(st: MatchStateX): boolean {
-  return Object.values(st.people ?? {}).some((p) => p.status === 'playing' && !p.away && !p.leaving);
-}
-
-/** Alguma pessoa ainda joga (mesmo ausente)? Quem está saindo não conta. */
-function anyPlaying(st: MatchStateX): boolean {
-  return Object.values(st.people ?? {}).some((p) => p.status === 'playing' && !p.leaving);
-}
-
-/**
- * Tira da mesa quem saiu: cacife zerado (as fichas saem com a pessoa), colocação = vivos
- * agora (contando ela), `eliminated{ byId: null }`. Se sobrar um só, a partida acaba.
- */
-export function removeLeaver(ctx: StepCtx, id: string, hand: number, elims?: { victimId: PlayerId; byId: PlayerId | null; hand: number }[]): void {
-  const st = ctx.st;
-  const g = st.game;
-  const p = playerOf(g, id);
-  const ps = st.people![id];
-  if (p.status === 'eliminated') {
-    setOut(ps, st.places[id] ?? g.players.filter(isAlive).length + 1, ps.leaving ?? 'forfeit');
-    return;
-  }
-  // Saiu estando all-in e a mão (já decidida pelas cartas) o deixou como o único vivo: vence.
-  if (g.phase === 'gameOver' && g.winnerId === id) {
-    ps.status = 'left';
-    ps.place = 1;
-    ps.reason = 'won';
-    return;
-  }
-  const place = g.players.filter(isAlive).length;
-  const stackLeft = p.stack;
-  p.stack = 0;
-  p.status = 'eliminated';
-  st.places[id] = place;
-  st.eliminatedBy[id] = null;
-  setOut(ps, place, ps.leaving ?? 'forfeit');
-  elims?.push({ victimId: id, byId: null, hand });
-  emit(ctx, { type: 'eliminated', playerId: id, place, byId: null, handNumber: hand, stackLeft });
-  // `g` já é a cópia desta chamada (closeHand vem do motor; leavePerson copia antes).
-  const alive = g.players.filter((q) => isAlive(q) && q.stack > 0);
-  if (alive.length <= 1 && g.phase !== 'betting') {
-    g.phase = 'gameOver';
-    g.winnerId = alive[0]?.id ?? null;
-    if (alive[0]) st.places[alive[0].id] = 1;
-  }
 }
 
 /** Sem pessoa jogando: os oráculos terminam a partida sozinhos (sem eventos), até 300 mãos. */
@@ -641,4 +613,42 @@ export function finishFriends(ctx: StepCtx): void {
     type: 'matchEnded', places: { ...st.places } as Record<PlayerId, number>, winnerId, humanPlace: 0,
     reason: winnerIsPerson ? 'won' : 'eliminated', prizeCaptured: false, people: people as Record<PlayerId, { place: number; reason: EndReasonPublic }>,
   });
+}
+
+/**
+ * Roda até a vez de uma pessoa presente, o fim da partida para ela, ou o fim do treino.
+ * Mesa de amigos: quem saiu desiste na hora; quem está ausente passa/desiste na hora, a
+ * menos que todas as pessoas que ainda jogam estejam ausentes (aí a mesa espera o relógio).
+ */
+export function runUntilHuman(ctx: StepCtx): void {
+  for (;;) {
+    const st = ctx.st;
+    if (ctx.finishPending) {
+      ctx.finishPending = false;
+      finishFriends(ctx);
+      return;
+    }
+    const g = st.game;
+    if (st.status !== 'running' || g.phase === 'gameOver') return;
+    if (g.phase !== 'betting') {
+      startNextHand(ctx);
+      continue;
+    }
+    const to = g.hand!.toActId;
+    if (!to) return;
+    if (!isPerson(st, to)) {
+      botAct(ctx, to);
+      continue;
+    }
+    const ps = st.people?.[to];
+    if (ps?.leaving) {
+      autoAct(ctx, to, 'left');
+      continue;
+    }
+    if (ps?.away && someonePresent(st)) {
+      autoAct(ctx, to, 'away');
+      continue;
+    }
+    return;
+  }
 }

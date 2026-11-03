@@ -9,7 +9,8 @@ import { weekPrizeOf, type TournamentStake } from '../lib/poker/client/tournamen
 import { fetchProfileBits } from '../components/poker/jackpot/entryApi';
 import { PP_BASE } from '../components/poker/jackpot/pokerMeta';
 import ComingSoon from '../components/poker/lobby/ComingSoon';
-import { BountyTable, FreeTable, TrainingTable } from '../components/poker/table/TableScreen';
+import { BountyTable, FreeTable, FriendsTable, TrainingTable } from '../components/poker/table/TableScreen';
+import FriendsScreen from '../components/poker/friends/FriendsScreen';
 import Scoreboard from '../components/poker/scoreboard/Scoreboard';
 import PosterPokerIntro from '../components/poker/game/PosterPokerIntro';
 import TitleScreen from '../components/poker/game/TitleScreen';
@@ -26,6 +27,8 @@ import CollectionScreen from '../components/poker/game/CollectionScreen';
 //   /poster-poker/colecao          os 9 pôsteres e a vitrine da Cobra
 //   /poster-poker/placar           placar
 //   /poster-poker/treino           as 3 mãos de treino (Como jogar)
+//   /poster-poker/amigos           Com amigos (fase 3): convites, criar sala, código, a sala
+//   /poster-poker/amigos/mesa      a mesa com amigos (?sala=<id>)
 // O /blefe/* antigo redireciona. Só abre quando o servidor diz que o pôquer está
 // liberado para a conta (get_poker_home(): enabled e open); senão, "Em breve".
 
@@ -109,7 +112,7 @@ const PosterPoker: React.FC = () => {
   if (redirect) return <Navigate to={redirect} replace />;
 
   // A abertura só fora das mesas (na mesa já há o "Estrelando…").
-  const atTable = /\/(casual|treino|torneio\/mesa)\/?$/.test(location.pathname);
+  const atTable = /\/(casual|treino|torneio\/mesa|amigos\/mesa)\/?$/.test(location.pathname);
   const intro = !atTable && <PosterPokerIntro filePath={weekPrizeOf(home).file_path} ready={!loading} />;
 
   if (loading && !home)
@@ -132,6 +135,8 @@ const PosterPoker: React.FC = () => {
         <Route path="colecao" element={<CollectionScreen home={home} />} />
         <Route path="placar" element={<Scoreboard />} />
         <Route path="treino" element={<TrainingTable key={location.key} home={home} cardStyle={cardStyle} />} />
+        <Route path="amigos" element={offline ? <ComingSoon /> : <FriendsScreen key={location.key} home={home} />} />
+        <Route path="amigos/mesa" element={offline ? <ComingSoon /> : <FriendsTable key={location.search} home={home} cardStyle={cardStyle} />} />
         <Route path="*" element={<Navigate to={PP_BASE} replace />} />
       </Routes>
     </>

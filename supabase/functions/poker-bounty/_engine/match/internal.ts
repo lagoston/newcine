@@ -114,6 +114,8 @@ export interface StepCtx {
   maxDecisions: number;
   /** Pacote E3: os oráculos terminam a mesa de amigos sozinhos (closeHand não fecha a partida). */
   completing?: boolean;
+  /** Pacote E3: closeHand viu o fim da mesa de amigos; runUntilHuman termina (finishFriends). */
+  finishPending?: boolean;
 }
 
 export function emit(ctx: StepCtx, e: PokerEvent | MatchOnlyEvent | HandStartedX): void {

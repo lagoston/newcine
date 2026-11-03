@@ -116,7 +116,15 @@ const Credits: React.FC<{
       </p>,
     );
   if (data.reason === 'forfeit') lines.push(<p key="ff" className="pk-credit-line">{t('poker.credits.forfeit')}</p>);
-  if (data.mode === 'free' && !win)
+  // Mesa com amigos (fase 3): quem venceu a mesa.
+  const fr = data.friends ?? null;
+  if (fr && !fr.winner.me)
+    lines.push(
+      <p key="fw" className="pk-credit-line">
+        {fr.winner.oracle ? t('poker.credits.tableWinner', { oracle: theName(t, fr.winner.oracle, 'The') }) : t('poker.friends.credits.winner', { name: fr.winner.name })}
+      </p>,
+    );
+  if (data.mode === 'free' && !win && !data.recovered)
     lines.push(
       <p key="tw" className="pk-credit-line">
         {data.tableWinner === undefined ? '…' : data.tableWinner ? t('poker.credits.tableWinner', { oracle: theName(t, data.tableWinner, 'The') }) : ''}
@@ -275,6 +283,73 @@ const Credits: React.FC<{
         )}
         {cobraSeen && <p className="pp-cobra-line text-center my-2">{t('poker.tourney.cobraHad', { item: itemName(cobraSeen) })}</p>}
 
+        {/* Casual de devolução: o pôster voltou (sem anúncio antes; só aqui). */}
+        {data.recovered && (
+          <motion.div
+            className="mx-auto my-3 max-w-[280px] grid justify-items-center gap-2"
+            initial={reduced ? false : { opacity: 0, y: 18, rotate: -4 }}
+            animate={{ opacity: 1, y: 0, rotate: 0 }}
+            transition={{ duration: 0.6, delay: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
+          >
+            <PosterArt
+              filePath={data.recovered.filePath}
+              effect={data.recovered.effect as never}
+              size="w342"
+              animated={!reduced}
+              loading="eager"
+              className="w-[min(120px,18vh)] aspect-[2/3] rounded-[9px] pp-credit-poster"
+            />
+            <p className="pp-font pp-gold-letters text-[24px] leading-none mt-1.5">{t('poker.friends.credits.backTitle')}</p>
+            <p className="text-[14px] text-center" style={{ color: '#F5EBD3' }}>
+              {t('poker.friends.credits.back', { title: (lang === 'en' && data.recovered.titleEn) || data.recovered.title })}
+            </p>
+          </motion.div>
+        )}
+
+        {/* Mesa com amigos: os pôsteres apostados e para onde foi cada um. */}
+        {fr && fr.stakes.length > 0 && (
+          <motion.div
+            className="mx-auto my-3 w-full max-w-[320px]"
+            initial={reduced ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.55 }}
+          >
+            <p className="pk-credit-label text-center mb-2">{t('poker.friends.credits.stakes')}</p>
+            <ul className="pf-credit-stakes">
+              {fr.stakes.map((st, i) => {
+                const title = (lang === 'en' && st.titleEn) || st.title;
+                const line =
+                  st.outcome === 'returned'
+                    ? st.mine
+                      ? t('poker.friends.credits.mineBack')
+                      : t('poker.friends.credits.theirsBack', { name: st.owner })
+                    : st.outcome === 'lost'
+                      ? st.mine
+                        ? t('poker.friends.credits.mineLost', { oracle: theName(t, st.oracle, 'by') })
+                        : t('poker.friends.credits.theirsLost', { name: st.owner, oracle: theName(t, st.oracle, 'by') })
+                      : st.toMe
+                        ? t('poker.friends.credits.toMe', { name: st.owner })
+                        : st.mine
+                          ? t('poker.friends.credits.mineTo', { name: st.to ?? '' })
+                          : t('poker.friends.credits.theirsTo', { name: st.owner, to: st.to ?? '' });
+                const good = st.toMe || (st.mine && st.outcome === 'returned');
+                const bad = st.mine && st.outcome !== 'returned';
+                return (
+                  <li key={`${st.title}-${i}`} className={`${good ? 'is-good' : ''} ${bad ? 'is-bad' : ''}`}>
+                    <span className="pf-credit-stake-art">
+                      <PosterArt filePath={st.filePath} effect={st.effect as never} size="w185" animated={false} className="absolute inset-0 rounded-[5px]" />
+                    </span>
+                    <span className="min-w-0 text-left">
+                      <b className="block text-[13.5px] leading-tight truncate">{title}</b>
+                      <span className="block text-[12.5px] leading-snug">{line}</span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </motion.div>
+        )}
+
         <motion.div
           className="grid gap-2 pt-2"
           initial={reduced ? false : { y: 160, opacity: 0 }}
@@ -298,7 +373,7 @@ const Credits: React.FC<{
           </button>
         )}
         <button type="button" className={data.captured && use ? 'pk-cta-paper' : 'pk-cta-gold'} onClick={onRematch} autoFocus>
-          {data.mode === 'bounty' ? t('poker.credits.casualRematch') : t('poker.credits.rematch')}
+          {data.mode === 'friends' ? t('poker.friends.credits.again') : data.mode === 'bounty' ? t('poker.credits.casualRematch') : t('poker.credits.rematch')}
         </button>
         <div className="grid grid-cols-2 gap-2">
           <button type="button" className="pk-cta-ghost" onClick={onScoreboard}>{t('poker.credits.scoreboard')}</button>

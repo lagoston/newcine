@@ -63,7 +63,13 @@ export async function flushPendingReports(): Promise<{ wins: number; title: Titl
   return last;
 }
 
-export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
+/**
+ * `gate` (fase 3, item 5): chamado antes de cada casual nova. Devolve false quando o
+ * servidor disse que esta casual é a de devolução (a mesa troca para a do servidor).
+ */
+export function useFreeMatch(rig: Rig, home: PokerHome | null, gate?: () => Promise<boolean>): MatchCtl {
+  const gateRef = useRef(gate);
+  gateRef.current = gate;
   const { table, client, dir } = rig;
   const [status, setStatus] = useState<FreeStatus>('loading');
   const [errorCode, setErrorCode] = useState<string | null>(null);
@@ -173,6 +179,8 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
   // Partida nova: Diretor novo, memória do Raposo e, menos na Revanche, o "Estrelando…".
   const create = useCallback(
     async (o: { intro?: boolean; afterInterval?: boolean } = {}) => {
+      // Toda casual nova passa pelo servidor (o contador da devolução, F3).
+      if (gateRef.current && !(await gateRef.current())) return;
       const intro = o.intro ?? true;
       if (intro) setCredits(null);
       setRecap(null);

@@ -1428,3 +1428,854 @@ main.pe-score h1.pe-cinzel {
   font-family: 'Limelight', 'Cinzel Decorative', Georgia, serif;
   font-weight: 400;
 }
+
+/* ======================================================================
+   Com amigos (03/11/2026, fase 3 — G3). A sala é um camarote: o código num
+   ingresso de papel (o momento forte da tela), uma fileira de 4 poltronas de
+   veludo (lugar vazio = um oráculo senta ali), os pôsteres de efeito de cada
+   um e a aposta. Mesmo palco, mesmas cores; Limelight só nos títulos.
+   ====================================================================== */
+
+/* A barra de vidro do celular fica por cima do fim da página: folga embaixo. */
+.pf-stage .pp-stage-inner {
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+@media (min-width: 1024px) {
+  .pf-stage .pp-stage-inner {
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+}
+
+/* O modo no seletor: veludo azul-noite (camarote), três poltronas. */
+.pp-mode.is-friends {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(214, 228, 255, 0.14), transparent 60%),
+    linear-gradient(160deg, #2b2a5e, #1b1840 60%, #100d26);
+  box-shadow: inset 0 0 0 1.5px rgba(232, 181, 74, 0.45), 0 18px 36px -22px #000;
+}
+.pp-mode:disabled {
+  opacity: 0.55;
+  filter: none;
+}
+.pf-mode-seats {
+  position: relative;
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
+}
+.pf-mode-seats i {
+  display: block;
+  width: 18px;
+  height: 26px;
+  border-radius: 8px 8px 3px 3px;
+  background: linear-gradient(180deg, #8a1c30, #4a0c18);
+  box-shadow: inset 0 0 0 1.5px rgba(232, 181, 74, 0.75);
+}
+.pf-mode-seats i:nth-child(2) {
+  height: 32px;
+}
+
+.pf-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 99px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--pp-gold-hi);
+  box-shadow: inset 0 0 0 1px rgba(232, 181, 74, 0.45);
+  max-width: 64%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* O rosto de uma pessoa (foto ou inicial). */
+.pf-avatar {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--pc, #f5ebd3) 18%, #2a0812);
+  box-shadow: 0 0 0 1.5px rgba(255, 231, 161, 0.55);
+}
+.pf-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pf-avatar-initial {
+  font-weight: 800;
+  line-height: 1;
+  color: var(--pc, #f5ebd3);
+}
+
+.pf-section {
+  margin-top: 24px;
+}
+.pf-h2 {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--pp-ivory);
+}
+.pf-h3 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #e9d9c4;
+}
+.pf-muted {
+  margin-top: 3px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #c9b3ae;
+}
+.pf-empty {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: #e9d9c4;
+  box-shadow: inset 0 0 0 1px rgba(232, 181, 74, 0.3);
+  background: rgba(36, 6, 13, 0.55);
+}
+.pf-foot {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #c9b3ae;
+}
+.pf-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--pp-gold-hi);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.pf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pp-ivory);
+  box-shadow: inset 0 0 0 1.5px rgba(232, 181, 74, 0.45);
+  background: rgba(36, 6, 13, 0.6);
+  white-space: nowrap;
+}
+.pf-btn.is-gold {
+  color: #2a1200;
+  background: linear-gradient(180deg, #fff1bf, #e8b54a 62%, #c58a24);
+  box-shadow: 0 0 0 1px #2a0610;
+}
+.pf-btn.is-wide {
+  width: 100%;
+  margin-top: 12px;
+}
+.pf-btn:disabled {
+  opacity: 0.5;
+}
+
+/* Convites recebidos. */
+.pf-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: linear-gradient(120deg, rgba(91, 15, 30, 0.9), rgba(36, 6, 13, 0.9));
+  box-shadow: inset 0 0 0 1px rgba(232, 181, 74, 0.5);
+}
+.pf-invite-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Entrar com código. */
+.pf-join {
+  margin-top: 16px;
+}
+.pf-join-label {
+  display: block;
+  font-size: 13px;
+  color: #e9d9c4;
+}
+.pf-join-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.pf-code-input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--pp-ivory);
+  background: rgba(20, 4, 10, 0.75);
+  box-shadow: inset 0 0 0 1.5px rgba(232, 181, 74, 0.45);
+  outline: none;
+}
+.pf-code-input::placeholder {
+  color: rgba(245, 235, 211, 0.28);
+}
+.pf-code-input:focus-visible {
+  box-shadow: inset 0 0 0 2px #f0abfc;
+}
+.pf-join-row .pf-btn {
+  min-height: 48px;
+}
+
+/* Placar entre amigos. */
+.pf-board {
+  margin-top: 10px;
+  display: grid;
+  gap: 2px;
+}
+.pf-board li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 6px;
+  border-bottom: 1px solid rgba(232, 181, 74, 0.14);
+  font-size: 14px;
+}
+.pf-board-pos {
+  width: 18px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--pp-gold-hi);
+}
+.pf-board-n {
+  font-size: 12.5px;
+  color: #e9d9c4;
+}
+
+/* O ingresso com o código (papel marfim, recortes nas laterais, picote). */
+.pf-ticket {
+  --notch: 10px;
+  position: relative;
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 12px;
+  padding: 12px 16px 12px 20px;
+  border-radius: 8px;
+  color: var(--pp-ink);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 5px, rgba(42, 15, 20, 0.04) 5px 6px),
+    linear-gradient(180deg, #fbf3df, #efe1c0);
+  -webkit-mask: radial-gradient(circle var(--notch) at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle var(--notch) at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+}
+.pf-ticket-label {
+  grid-column: 1;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b3a30;
+}
+.pf-ticket-code {
+  grid-column: 1;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.16em;
+  color: #2a0f14;
+}
+.pf-ticket-actions {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  display: flex;
+  gap: 6px;
+  padding-left: 12px;
+  border-left: 2px dashed rgba(42, 15, 20, 0.28);
+}
+.pf-ticket-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--pp-ivory);
+  background: #3a0914;
+}
+@media (max-width: 370px) {
+  .pf-ticket-code {
+    font-size: 27px;
+    letter-spacing: 0.12em;
+  }
+}
+
+.pf-stake-line {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  font-size: 13.5px;
+  color: #ecdccf;
+}
+
+/* As 4 poltronas. */
+.pf-seats {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.pf-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  text-align: center;
+}
+.pf-seat-back {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1 / 1.08;
+  border-radius: 20px 20px 8px 8px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 7px, rgba(0, 0, 0, 0.12) 7px 9px),
+    linear-gradient(180deg, #8a1c30, #5b0f1e 60%, #3b0812);
+  box-shadow: inset 0 0 0 1.5px rgba(232, 181, 74, 0.55), 0 10px 18px -12px #000;
+}
+.pf-seat.is-ready .pf-avatar {
+  box-shadow: 0 0 0 2.5px var(--pp-gold-hi), 0 0 16px rgba(232, 181, 74, 0.5);
+}
+.pf-seat.is-invited .pf-seat-back .pf-avatar {
+  opacity: 0.55;
+}
+.pf-seat.is-invited .pf-seat-back {
+  box-shadow: inset 0 0 0 1.5px rgba(232, 181, 74, 0.3);
+}
+.pf-seat.is-oracle .pf-seat-back {
+  background: linear-gradient(180deg, #3b1420, #24060d);
+  box-shadow: inset 0 0 0 1px rgba(232, 181, 74, 0.25);
+}
+.pf-seat-card {
+  width: 30px;
+  height: 42px;
+  border-radius: 5px;
+  background:
+    repeating-linear-gradient(45deg, #1c2a66 0 4px, #24357d 4px 8px);
+  box-shadow: 0 0 0 2px #f5ebd3, 0 6px 10px -4px #000;
+  transform: rotate(-6deg);
+}
+.pf-seat-host {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #2a1200;
+  background: linear-gradient(180deg, #fff1bf, #e8b54a);
+  box-shadow: 0 0 0 1.5px #2a0610;
+}
+.pf-seat-name {
+  margin-top: 6px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--pp-ivory);
+}
+.pf-seat-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  color: #c9b3ae;
+}
+.pf-seat.is-ready .pf-seat-state {
+  color: var(--pp-gold-hi);
+}
+.pf-seat-fx {
+  display: flex;
+  gap: 3px;
+  margin-top: 4px;
+}
+.pf-seat-fx i {
+  width: 9px;
+  height: 13px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fff1bf, #e8b54a);
+  box-shadow: 0 0 6px rgba(232, 181, 74, 0.6);
+}
+
+/* Os meus pôsteres de efeito (a regra de cada um à vista). */
+.pf-fx-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+.pf-fx {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px 10px 10px;
+  border-radius: 12px;
+  background: rgba(36, 6, 13, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(232, 181, 74, 0.25);
+  transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+.pf-fx.is-on {
+  background: linear-gradient(120deg, rgba(110, 22, 40, 0.92), rgba(58, 9, 20, 0.92));
+  box-shadow: inset 0 0 0 1.5px var(--pp-gold), 0 0 18px -8px rgba(232, 181, 74, 0.6);
+}
+.pf-fx-art {
+  position: relative;
+  flex: none;
+  width: 40px;
+  aspect-ratio: 2 / 3;
+}
+.pf-fx-name {
+  display: block;
+  font-size: 15px;
+  line-height: 1.15;
+  color: var(--pp-gold-hi);
+}
+.pf-fx-rule {
+  display: -webkit-box;
+  margin-top: 3px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #e9d9c4;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pf-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #2a1200;
+  box-shadow: inset 0 0 0 1.5px rgba(232, 181, 74, 0.6);
+}
+.pf-check.is-on {
+  background: linear-gradient(180deg, #fff1bf, #e8b54a);
+  box-shadow: none;
+}
+.pf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 99px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pp-ivory);
+  background: rgba(232, 181, 74, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(232, 181, 74, 0.4);
+}
+.pf-chip b,
+.pf-chip-level {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--pp-gold-hi);
+}
+
+/* A aposta. */
+.pf-warn {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #ffd4cc;
+  background: rgba(209, 26, 42, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 122, 110, 0.45);
+}
+.pf-warn svg {
+  margin-top: 1px;
+  color: #ff7a6e;
+}
+.pf-stakes {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 10px;
+}
+.pf-stake {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+.pf-stake-art {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  box-shadow: 0 10px 18px -12px #000;
+}
+.pf-stake.is-on .pf-stake-art {
+  box-shadow: 0 0 0 2.5px var(--pp-gold-hi), 0 0 22px -6px rgba(232, 181, 74, 0.7);
+}
+.pf-stake-on {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: #2a1200;
+  background: linear-gradient(180deg, #fff1bf, #e8b54a);
+  box-shadow: 0 0 0 1.5px #2a0610;
+}
+.pf-stake-title {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.25;
+  color: #ecdccf;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-problem {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ff9a8f;
+}
+
+/* Pronto / começar. */
+.pf-go {
+  display: grid;
+  gap: 10px;
+}
+.pf-wait {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #e9d9c4;
+  text-align: center;
+}
+
+/* Folhas: criar sala (modo), convidar. */
+.pf-mode {
+  display: grid;
+  gap: 8px;
+}
+.pf-mode-opt {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  text-align: left;
+  color: var(--pp-ivory);
+  background: rgba(20, 4, 10, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(232, 181, 74, 0.3);
+}
+.pf-mode-opt b {
+  font-size: 14.5px;
+}
+.pf-mode-opt span {
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #c9b3ae;
+}
+.pf-mode-opt[aria-checked='true'] {
+  background: rgba(110, 22, 40, 0.75);
+  box-shadow: inset 0 0 0 1.5px var(--pp-gold);
+}
+.pf-friend-list {
+  display: grid;
+}
+.pf-friend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 4px;
+  border-bottom: 1px solid rgba(232, 181, 74, 0.14);
+  font-size: 14.5px;
+  color: var(--pp-ivory);
+}
+.pf-friend:disabled {
+  opacity: 0.5;
+}
+
+/* ---- Na mesa ---- */
+
+/* O lugar de uma pessoa: a foto no recorte do retrato. */
+.pk-portrait.is-person {
+  background: radial-gradient(circle at 50% 35%, #4a1424, #24060d 75%);
+}
+.pk-portrait.is-person .pf-face {
+  transform: none;
+  object-position: 50% 40%;
+}
+.pf-face-initial {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--pw) * 0.5);
+  font-weight: 800;
+  line-height: 1;
+}
+.pk-seat.is-folded .pk-portrait.is-person .pf-face-initial {
+  opacity: 0.55;
+}
+.pf-plate-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  max-width: 9ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* O relógio de 30 s em volta do retrato de quem está na vez. */
+.pf-clock {
+  position: absolute;
+  inset: -6px;
+  pointer-events: none;
+  z-index: 2;
+}
+.pf-clock svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.pf-clock rect {
+  fill: none;
+  stroke-width: 3.5;
+  vector-effect: non-scaling-stroke;
+}
+.pf-clock-track {
+  stroke: rgba(255, 255, 255, 0.16);
+}
+.pf-clock-fill {
+  stroke: var(--pp-gold-hi);
+  stroke-dasharray: 100;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 250ms linear, stroke 300ms ease;
+  filter: drop-shadow(0 0 4px rgba(255, 220, 140, 0.6));
+}
+.pf-clock.is-still .pf-clock-fill {
+  transition: none;
+}
+.pf-clock.is-late .pf-clock-fill {
+  stroke: #ff7a6e;
+  filter: drop-shadow(0 0 4px rgba(255, 122, 110, 0.7));
+}
+.pf-clock-num {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 5px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--pp-gold-hi);
+  background: #1c050b;
+  box-shadow: 0 0 0 1.5px var(--pp-gold);
+}
+.pf-clock.is-late .pf-clock-num {
+  color: #ffd4cc;
+  box-shadow: 0 0 0 1.5px #ff7a6e;
+}
+.pf-away-tag {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 1px 7px 2px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--pp-ivory);
+  background: rgba(10, 4, 8, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(245, 235, 211, 0.4);
+}
+
+/* O meu relógio (na minha vez): os segundos e uma barra que esvazia. */
+.pf-myclock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pf-myclock span {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--pp-gold-hi);
+  white-space: nowrap;
+}
+.pf-myclock i {
+  position: relative;
+  display: block;
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+.pf-myclock b {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  background: var(--pp-gold-hi);
+  transform-origin: left center;
+}
+.pf-myclock.is-late span {
+  color: #ff9a8f;
+}
+.pf-myclock.is-late b {
+  background: #ff7a6e;
+}
+.pf-away-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+/* A pilha de pôsteres de efeito: a mesma vaga do pôster mágico, em leque. */
+.pp-magic-slot.pf-stack {
+  width: calc(var(--mp-h) / 1.5 + 14px);
+}
+.pp-magic-slot.pf-stack[data-n='1'] {
+  width: calc(var(--mp-h) / 1.5);
+}
+.pf-stack .pf-stack-card {
+  inset: auto;
+  top: 0;
+  left: calc(var(--i) * 7px);
+  width: calc(var(--mp-h) / 1.5);
+  height: var(--mp-h);
+}
+.pf-stack .pf-stack-card:not(:first-child) {
+  filter: brightness(0.92);
+}
+.pf-stack-level {
+  position: absolute;
+  left: -5px;
+  top: -6px;
+  z-index: 3;
+  padding: 0 4px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 16px;
+  color: #3a1c00;
+  background: linear-gradient(180deg, #fff1bf, #e8b54a);
+  box-shadow: 0 0 0 1.5px #2a0610;
+}
+.pf-stack-more {
+  position: absolute;
+  right: -8px;
+  top: -6px;
+  z-index: 4;
+  padding: 0 5px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 900;
+  line-height: 18px;
+  color: var(--pp-ivory);
+  background: #3a0914;
+  box-shadow: 0 0 0 1.5px var(--pp-gold);
+}
+.pf-fanned .pp-ribbon {
+  margin-left: calc(var(--mp-h) / 1.5 + 24px);
+}
+
+/* Créditos: os pôsteres apostados e para onde foi cada um. */
+.pf-credit-stakes {
+  display: grid;
+  gap: 8px;
+}
+.pf-credit-stakes li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #f3ead3;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.pf-credit-stakes li.is-good {
+  box-shadow: inset 0 0 0 1.5px var(--pp-gold);
+}
+.pf-credit-stakes li.is-bad {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 122, 110, 0.6);
+}
+.pf-credit-stake-art {
+  position: relative;
+  flex: none;
+  width: 34px;
+  aspect-ratio: 2 / 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-fx,
+  .pf-clock-fill {
+    transition: none;
+  }
+}

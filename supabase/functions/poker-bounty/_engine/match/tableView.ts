@@ -10,6 +10,14 @@ import type { MatchState, PlayerId, TableView } from '../types.ts';
 import { HUMAN, isInHand, isRevealed, x } from './internal.ts';
 import { effectsView, tournamentView } from './effects.ts';
 
+function peopleView(st: ReturnType<typeof x>): NonNullable<TableView['people']> {
+  const out: Record<string, NonNullable<TableView['people']>[PlayerId]> = {};
+  for (const [id, ps] of Object.entries(st.people ?? {})) {
+    out[id] = { status: ps.leaving && ps.status === 'playing' ? 'left' : ps.status, away: ps.away, streak: ps.streak, place: ps.place ?? null };
+  }
+  return out as NonNullable<TableView['people']>;
+}
+
 /**
  * `viewer` = a pessoa que vê (pacote E3: qualquer id de pessoa da mesa de amigos; as cartas
  * fechadas são só as dela). Para tratar "eu" como 'human' no aparelho, passe por povView.
@@ -54,12 +62,4 @@ export function tableView(s: MatchState, viewer: PlayerId = HUMAN): TableView {
     tournament: tournamentView(st),
     ...(st.people ? { people: peopleView(st), effects: effectsView(st) } : {}),
   };
-}
-
-function peopleView(st: ReturnType<typeof x>): NonNullable<TableView['people']> {
-  const out: Record<string, NonNullable<TableView['people']>[PlayerId]> = {};
-  for (const [id, ps] of Object.entries(st.people ?? {})) {
-    out[id] = { status: ps.leaving && ps.status === 'playing' ? 'left' : ps.status, away: ps.away, streak: ps.streak, place: ps.place ?? null };
-  }
-  return out as NonNullable<TableView['people']>;
 }
