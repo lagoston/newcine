@@ -148,6 +148,11 @@ export function useFriendsMatch(rig: Rig, roomId: string | null): FriendsCtl {
       tomorrow: null,
       friends: {
         winner: res.winner.kind === 'person' ? { name: nameOf(res.winner.userId), me: res.winner.userId === meUser, oracle: null } : { name: '', me: false, oracle: res.winner.oracle },
+        oracles: mt.seats.filter((s) => s.kind === 'oracle' && s.oracle).map((s) => s.oracle as RivalId),
+        people: mt.seats
+          .filter((s) => s.kind === 'person')
+          .sort((a, b) => a.seat - b.seat)
+          .map((s, i) => ({ name: nameOf(s.userId), color: personColor(i), me: s.userId === meUser })),
         stakes: res.stakes.map((s) => ({
           title: s.title ?? '',
           titleEn: s.titleEn ?? s.title ?? '',

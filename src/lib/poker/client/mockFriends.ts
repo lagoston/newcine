@@ -505,7 +505,7 @@ export function makeMockFriends(bridge: MockBridge): { friends: FriendsApi; casu
 
   const ensureInvite = (db: MDb) => {
     if (knob('invite') === '1' && !db.invites.some((i) => i.state === 'open') && !db.room) {
-      db.invites.push({ roomId: uuid(), code: 'K7M2QX', hostId: FRIENDS[0].userId, stakeRarity: 'common', at: Date.now() - 60_000, state: 'open' });
+      db.invites.push({ roomId: '00000000-0000-4000-8000-0000000c0de1', code: 'K7M2QX', hostId: FRIENDS[0].userId, stakeRarity: 'common', at: Date.now() - 60_000, state: 'open' });
     }
   };
 

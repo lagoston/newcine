@@ -23,7 +23,8 @@ import {
   applyPersonAction, friendsConfig, friendsPayload, friendsResult, friendsSeating, leavePerson, personBack, personLegal, povEvents,
   povView, rescueConfig, timeoutPerson, waitingFor,
 } from '../../src/lib/poker/index.ts';
-import type { MatchStateX } from '../../src/lib/poker/match/internal.ts';
+import type { MatchStateX, StepCtx } from '../../src/lib/poker/match/internal.ts';
+import { emitMatchStarted, initialState, runUntilHuman, startNextHand } from '../../src/lib/poker/match/runner.ts';
 import { checkFriends, emptyFriendsStats, playFriends } from './lib/friends.ts';
 import { SAMPLE_TUTORIAL, suggested } from './lib/tutorialSample.ts';
 
@@ -615,6 +616,83 @@ section('mesa de amigos: ausente e Voltar');
       if (ps.status === 'playing') check(ps.streak < 3 || ps.away, `3 estouros seguidos = ausente (${id}: ${JSON.stringify(ps)})`);
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+section('mesa de amigos: ausente nunca prende a mesa (all-in, saiu, só oráculos)');
+{
+  /** Mesa de amigos começada na mão 1 com só `alive` vivos (os outros já caíram) e quem está ausente. */
+  const sceneAway = (people: number, alive: string[], away: string[], seed: string): MatchState => {
+    const cfg = friendsConfig({ seed, people, effects: [] });
+    const ctx: StepCtx = { st: initialState(cfg), ev: [], record: true, decisions: 0, maxDecisions: 200 };
+    emitMatchStarted(ctx);
+    const st = ctx.st;
+    let place = Object.keys(cfg.seats).length;
+    for (const p of st.game.players) {
+      if (alive.includes(p.id)) continue;
+      Object.assign(p, { stack: 0, status: 'eliminated' });
+      st.places[p.id] = place--;
+      if (st.people![p.id]) st.people![p.id] = { status: 'out', streak: 0, away: false, place: st.places[p.id], reason: 'eliminated' };
+    }
+    for (const id of away) Object.assign(st.people![id], { away: true, streak: 3 });
+    startNextHand(ctx);
+    runUntilHuman(ctx);
+    return ctx.st;
+  };
+  // 1) Só duas pessoas vivas: p1 ausente, p2 presente vai all-in → a vez de p1 é jogada na hora.
+  for (let k = 0; k < 20; k++) {
+    let s = sceneAway(2, ['p1', 'p2'], ['p1'], `aw-hu-${k}`);
+    for (let g = 0; g < 200 && s.status === 'running'; g++) {
+      const w = waitingFor(s)!;
+      eq(w, 'p2', 'heads-up com p1 ausente: a mesa só espera p2');
+      const L = personLegal(s, 'p2')!;
+      const step = applyPersonAction(s, 'p2', L.allIn ? { type: 'allIn' } : L.canCheck ? { type: 'check' } : { type: 'call' });
+      for (const e of step.events) if (e.type === 'actionMeta' && e.playerId === 'p1') eq(e.auto, 'away', 'p1 ausente jogado na hora');
+      s = step.state;
+    }
+    eq(s.status, 'finished', 'heads-up termina sem esperar o relógio do ausente');
+  }
+  // 2) p1 ausente e p2 sai (com oráculos vivos): ninguém presente → a mesa termina na hora.
+  for (let k = 0; k < 20; k++) {
+    let s = sceneAway(2, ['p1', 'p2', 'bogart', 'cypher', 'fincher'], ['p1'], `aw-left-${k}`);
+    for (let g = 0; g < 5 && s.status === 'running' && waitingFor(s) === 'p2'; g++) {
+      if (g < 2) s = applyPersonAction(s, 'p2', personLegal(s, 'p2')!.canCheck ? { type: 'check' } : { type: 'fold' }).state;
+    }
+    if (s.status !== 'running') continue;
+    const st = leavePerson(s, 'p2', 'forfeit');
+    eq(st.state.status, 'finished', 'ausente + quem saiu: a mesa termina na hora (ninguém presente)');
+    check(st.events.some((e) => e.type === 'matchEnded'), 'matchEnded na mesma chamada');
+    const r = friendsResult(st.state);
+    eq(r.people.p2.reason, 'forfeit', 'quem saiu: desistência');
+    check(r.people.p1.place !== null && r.winnerId !== null, 'o ausente termina com colocação; há vencedor');
+  }
+  // 3) Só uma pessoa (ausente) com os oráculos: a mesa termina na hora, sem esperar relógio nenhum.
+  for (let k = 0; k < 10; k++) {
+    const s = sceneAway(2, ['p1', 'bogart', 'cypher', 'fincher'], ['p1'], `aw-orc-${k}`);
+    eq(s.status, 'finished', 'ausente só com oráculos: termina sem esperar');
+    eq(waitingFor(s), null, 'ninguém a esperar');
+    check(friendsResult(s).done, 'friendsResult.done');
+  }
+  // 4) Com alguém presente, quem está ausente nunca é esperado (mesas inteiras).
+  let checked = 0;
+  for (let m = 0; m < 40; m++) {
+    const cfg = friendsConfig({ seed: `aw-p-${m}`, people: 2 + (m % 3), effects: m % 2 ? ['tell', 'opal'] : [] });
+    let s = createMatch(cfg).state;
+    const rng = createRng(`aw-p-h-${m}`);
+    for (let g = 0; g < 2000 && s.status === 'running'; g++) {
+      const w = waitingFor(s)!;
+      check(!(s as MatchStateX).people![w].away, 'nunca espera quem está ausente');
+      checked++;
+      // p1 sempre estoura (fica ausente); os outros jogam, com all-in frequente
+      if (w === 'p1') s = timeoutPerson(s, 'p1').state;
+      else {
+        const L = personLegal(s, w)!;
+        s = applyPersonAction(s, w, L.allIn && rng.nextFloat() < 0.3 ? { type: 'allIn' } : randomHumanAction(L, rng)).state;
+      }
+    }
+    eq(s.status, 'finished', 'mesa termina');
+  }
+  check(checked > 1000, `vezes conferidas (${checked})`);
 }
 
 // ---------------------------------------------------------------------------

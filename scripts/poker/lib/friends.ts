@@ -188,6 +188,9 @@ export function checkFriends(p: FriendsPlay, label: string, stats?: FriendsStats
     if (st.status === 'running') eq(paid, bonus, `${label}: bônus dos eventos = pago pela casa (passo ${k})`);
     eq(totalChips(st.game), start + paid - left, `${label}: fichas no passo ${k}`);
     if (!deep) continue;
+    // a mesa nunca espera por quem está ausente nem por quem saiu (03/11/2026)
+    const w = st.status === 'running' ? waitingFor(st) : null;
+    if (w) check(!st.people?.[w]?.away && !st.people?.[w]?.leaving, `${label}: a mesa espera ${w}, que está ausente/saiu (passo ${k})`);
     // vazamento por pessoa
     for (const viewer of people) {
       const pub = toPublicEvents(evs, viewer);

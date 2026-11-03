@@ -837,23 +837,30 @@ section('ausente: 3 estouros, ação automática, voltar');
     check(waitedWhileAway === 0 || true, 'ausente com outra pessoa presente não espera o relógio');
     cases++;
   }
-  // Todos ausentes: a mesa volta a esperar o relógio (não corre a partida inteira numa chamada).
-  const cfg = friendsConfig({ seed: 'away-all', people: 2, effects: [] });
-  let s = createMatch(cfg).state;
-  let calls = 0;
-  for (let guard = 0; s.status === 'running' && guard < 3000; guard++) {
-    const who = waitingFor(s)!;
-    const step = timeoutPerson(s, who);
-    calls++;
-    // Mais de uma mão numa chamada só acontece quando nenhuma pessoa precisa decidir (walk no BB,
-    // all-in só de pagar o blind). O que não pode: jogar sozinha a vez de uma pessoa ausente.
-    const personMetas = step.events.filter((e) => e.type === 'actionMeta' && cfg.people!.includes(e.playerId)) as Extract<MatchEvent, { type: 'actionMeta' }>[];
-    check(personMetas.every((e) => e.auto === 'timeout'), 'todos ausentes: nenhuma vez de pessoa jogada sozinha');
-    check(personMetas.length <= 1, `todos ausentes: uma decisão de pessoa por chamada (${personMetas.length})`);
-    s = step.state;
+  // Todos ausentes (03/11/2026, achado do G3): a mesa nunca espera o relógio de quem está ausente;
+  // quando a última pessoa presente fica ausente, o resto da mesa é jogado já (sem eventos) e sai o matchEnded.
+  for (let k = 0; k < 6; k++) {
+    const cfg = friendsConfig({ seed: `away-all-${k}`, people: 2 + (k % 3), effects: k % 2 ? ['opal', 'double_pot'] : [] });
+    let s = createMatch(cfg).state;
+    let calls = 0;
+    let last: ReturnType<typeof timeoutPerson> | null = null;
+    for (let guard = 0; s.status === 'running' && guard < 3000; guard++) {
+      const who = waitingFor(s)!;
+      check(!(s as MatchStateX).people![who].away, 'a mesa nunca espera quem está ausente');
+      last = timeoutPerson(s, who);
+      const personMetas = last.events.filter((e) => e.type === 'actionMeta' && cfg.people!.includes(e.playerId)) as Extract<MatchEvent, { type: 'actionMeta' }>[];
+      check(personMetas.every((e) => e.auto === 'timeout' || e.auto === 'away'), 'ações de pessoa só automáticas');
+      s = last.state;
+      calls++;
+    }
+    eq(s.status, 'finished', `todos ausentes: a mesa termina (${calls} estouros)`);
+    check(!!last && last.events.some((e) => e.type === 'away' && e.on) && last.events.some((e) => e.type === 'matchEnded'),
+      'a mesa termina na chamada em que a última pessoa presente fica ausente');
+    eq(calls, 3 * cfg.people!.length, 'três estouros de cada pessoa e acabou');
+    const r = friendsResult(s);
+    check(r.done && !!r.winnerId && Object.keys(cfg.seats).every((id) => s.places[id] !== undefined), 'todos com colocação');
+    eq(tableView(s, 'p1').board, [], 'visão final limpa');
   }
-  eq(s.status, 'finished', `todos ausentes: a partida termina pelo relógio (${calls} estouros)`);
-  check(calls >= 10, 'todos ausentes: muitas chamadas (uma por decisão)');
   check(cases === 10, 'casos de ausência');
 }
 

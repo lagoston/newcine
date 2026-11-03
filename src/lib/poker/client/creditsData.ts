@@ -43,6 +43,9 @@ export interface CreditsData {
    */
   friends?: {
     winner: { name: string; me: boolean; oracle: RivalId | null };
+    /** Quem estava à mesa (o elenco dos créditos): os oráculos sentados e as pessoas. */
+    oracles: RivalId[];
+    people: { name: string; color: string; me: boolean }[];
     stakes: {
       title: string;
       titleEn: string;

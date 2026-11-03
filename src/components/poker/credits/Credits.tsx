@@ -102,6 +102,8 @@ const Credits: React.FC<{
     }
   };
 
+  // Mesa com amigos: o elenco é quem estava sentado (os oráculos da mesa e as pessoas).
+  const cast: RivalId[] = data.friends ? data.friends.oracles : RIVALS;
   const lines: React.ReactNode[] = [];
   lines.push(
     // Cinzel nunca em números (o "1" vira "I"): a colocação vai em sans.
@@ -189,7 +191,7 @@ const Credits: React.FC<{
         {/* O letreiro, ou as luzes e os três aplaudindo. */}
         {win ? (
           <div className="flex justify-center gap-2 pt-2 pb-3" aria-hidden>
-            {RIVALS.map((id, i) => (
+            {cast.map((id, i) => (
               <motion.img
                 key={id}
                 src={cardArt(id, cardStyle)}
@@ -359,7 +361,12 @@ const Credits: React.FC<{
           {lines}
           <div className="pk-credit-gap" />
           <p className="pk-credit-label">{t('poker.credits.cast')}</p>
-          {RIVALS.map((id) => (
+          {data.friends?.people.map((pp) => (
+            <p key={`p-${pp.name}`} className="pk-credit-line" style={{ color: pp.color, fontWeight: 700 }}>
+              {pp.me ? `${pp.name} (${t('poker.friends.room.you').toLowerCase()})` : pp.name}
+            </p>
+          ))}
+          {cast.map((id) => (
             <p key={id} className="pk-credit-line" style={{ ...PIXEL, color: ORACLE_COLOR[id] }}>
               {t(`poker.oracles.${id}.credit`)}
             </p>

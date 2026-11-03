@@ -549,7 +549,10 @@ export function autoAct(ctx: StepCtx, id: string, auto: AutoActionKind): void {
   applyAndProcess(ctx, id, a, null, auto);
 }
 
-/** Sem pessoa jogando: os oráculos terminam a partida sozinhos (sem eventos), até 300 mãos. */
+/**
+ * Sem pessoa jogando (ou sem nenhuma presente): a mesa termina sozinha, sem eventos, até 300
+ * mãos — oráculos decidem; pessoa ausente passa/desiste; quem saiu desiste.
+ */
 function completeWithBots(ctx: StepCtx): void {
   const st = ctx.st;
   const rec = ctx.record;
@@ -567,7 +570,7 @@ function completeWithBots(ctx: StepCtx): void {
       }
       const to = g.hand!.toActId;
       if (!to) break;
-      if (isPerson(st, to)) autoAct(ctx, to, 'left');
+      if (isPerson(st, to)) autoAct(ctx, to, st.people?.[to]?.leaving ? 'left' : 'away');
       else botAct(ctx, to);
     }
   } finally {
@@ -617,8 +620,8 @@ export function finishFriends(ctx: StepCtx): void {
 
 /**
  * Roda até a vez de uma pessoa presente, o fim da partida para ela, ou o fim do treino.
- * Mesa de amigos: quem saiu desiste na hora; quem está ausente passa/desiste na hora, a
- * menos que todas as pessoas que ainda jogam estejam ausentes (aí a mesa espera o relógio).
+ * Mesa de amigos: quem saiu desiste na hora; quem está ausente passa/desiste na hora (com
+ * outra pessoa presente, com eventos; sem ninguém presente, a mesa termina sem eventos).
  */
 export function runUntilHuman(ctx: StepCtx): void {
   for (;;) {
@@ -645,8 +648,15 @@ export function runUntilHuman(ctx: StepCtx): void {
       autoAct(ctx, to, 'left');
       continue;
     }
-    if (ps?.away && someonePresent(st)) {
-      autoAct(ctx, to, 'away');
+    if (ps?.away) {
+      if (someonePresent(st)) {
+        autoAct(ctx, to, 'away');
+        continue;
+      }
+      // 03/11/2026 (achado do G3): ausente age sozinha na hora, sempre (BRIEF3). Sem nenhuma
+      // pessoa presente, o resto da mesa é jogado já, sem eventos (como quando não sobra pessoa
+      // jogando): quem está ausente passa/desiste a cada vez, e sai o matchEnded.
+      ctx.finishPending = true;
       continue;
     }
     return;
