@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Loader2, WifiOff } from 'lucide-react';
 import type { PlayerAction } from '../../../lib/poker/engine';
@@ -17,6 +17,9 @@ import { posterTitle, type TournamentStake } from '../../../lib/poker/client/tou
 import type { StakeShow, TourneyPoster } from '../tournament/TableTourney';
 import PosterInfoSheet from '../tournament/PosterInfoSheet';
 import { useTraining, type TrainingCtl } from '../../../lib/poker/client/useTraining';
+import { useFriendsMatch, type FriendsCtl } from '../../../lib/poker/client/useFriendsMatch';
+import { isPersonId } from '../../../lib/poker/client/people';
+import EffectsSheet from '../tournament/EffectsSheet';
 import { primePokerAudio } from '../../../lib/poker/client/sound';
 import { loadJackpotFont } from '../../../lib/posterJackpot';
 import AgeGate from '../age/AgeGate';
@@ -43,11 +46,13 @@ interface ScreenProps {
   training?: TrainingCtl | null;
   /** Pôster Poker: o torneio da semana (o pôster mágico e a entrada). */
   tourney?: TourneyInfo | null;
+  /** Fase 3: a mesa com amigos (pessoas, relógio, ausente, efeitos de todos). */
+  friends?: FriendsCtl | null;
 }
 
 const FAREWELL_MS = 4000;
 
-const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, training, tourney }) => {
+const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, training, tourney, friends }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { table: tb, dir, settings, reduced, lang, mode, client } = rig;
@@ -80,7 +85,8 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
     if (tb.phase !== 'human') return;
     const start = Date.now();
     const id = window.setInterval(() => {
-      if (document.visibilityState === 'visible' && !menu && !quipOpen) dir.director.onIdleTick(Date.now() - start);
+      // Na mesa com amigos o relógio de 30 s já está na tela: sem o "tempo parado" do Diretor.
+      if (!friends && document.visibilityState === 'visible' && !menu && !quipOpen) dir.director.onIdleTick(Date.now() - start);
     }, 1000);
     return () => window.clearInterval(id);
   }, [tb.phase, dir.director, menu, quipOpen]);
@@ -185,9 +191,13 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
   }, [stage]);
 
   const leave = useCallback(() => {
+    if (friends) {
+      friends.leave();
+      return;
+    }
     dir.director.onMoment?.({ t: 'playerLeaves' });
     navigate(BLEFE_ROUTES.lobby);
-  }, [dir.director, navigate]);
+  }, [dir.director, navigate, friends]);
 
   const act = useCallback(
     (a: PlayerAction) => {
@@ -248,13 +258,24 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
   }, [confirm, menu, quipOpen, portrait, posterInfo, stage, settings.shortcuts, tb, t, lang, table]);
 
   const thinkingName = table.thinkingId ? whoName(t, table.thinkingId) : null;
+  // Mesa com amigos: a vez de outra pessoa (o relógio dela está no lugar dela).
+  const waitingName = friends?.clock && friends.clock.playerId !== 'human' && tb.phase !== 'playing' ? whoName(t, friends.clock.playerId) : null;
   const statusText: React.ReactNode =
-    ctl.status === 'reconnecting' ? (
+    friends?.away ? (
+      <span className="pf-away-line">
+        <span className="truncate">{t('poker.friends.table.youAway')}</span>
+        <button type="button" className="pk-mini-btn is-gold" onClick={friends.back}>{t('poker.friends.table.back')}</button>
+      </span>
+    ) : friends?.watching && tb.phase !== 'ended' ? (
+      <span className="truncate">{t('poker.friends.table.watching')}</span>
+    ) : ctl.status === 'reconnecting' ? (
       <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('poker.net.reconnecting')}</span>
     ) : notice ? (
       <span>{notice}</span>
     ) : thinkingName ? (
       <span>{t('poker.table.isThinking', { who: thinkingName })}</span>
+    ) : waitingName ? (
+      <span className="truncate">{t('poker.friends.table.waiting', { who: waitingName })}</span>
     ) : training && dir.speech && !training.waitingTap && tb.phase !== 'human' ? (
       <span>{t('poker.table.tapBalloon')}</span>
     ) : tb.phase === 'ended' ? (
@@ -269,7 +290,8 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
   const prevIdx = tb.log.length - (thinkingName || notice || tb.phase === 'ended' || me?.status === 'folded' ? 1 : 2);
   const prevText = prevIdx >= 0 && tb.log[prevIdx] ? <span className="truncate">{tb.log[prevIdx].text}</span> : null;
 
-  const alive = table.seats.filter((s) => s.id !== 'human' && s.status !== 'eliminated').map((s) => s.id);
+  // Réplicas: só para oráculos sentados (nunca para uma pessoa da mesa com amigos).
+  const alive = table.seats.filter((s) => s.id !== 'human' && s.status !== 'eliminated' && !isPersonId(s.id)).map((s) => s.id);
   const quipReady = !training && !table.thinkingId && quipHand !== table.handNumber && me?.status !== 'eliminated' && tb.phase !== 'ended';
   const recapLine = useMemo(() => {
     if (!ctl.recap) return null;
@@ -296,6 +318,16 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
     };
   }, [tourney, lang]);
   const eliminator = ctl.credits?.eliminatedBy ?? null;
+  // As pessoas nos lugares (mesa com amigos), como o desenho precisa.
+  const seatPeople = useMemo(() => {
+    if (!friends) return null;
+    const out: Record<string, { name: string; avatarUrl: string | null; color: string; away: boolean; left: boolean }> = {};
+    friends.people.forEach((pp) => {
+      const info = friends.seatInfo[pp.playerId];
+      out[pp.playerId] = { name: pp.name, avatarUrl: pp.avatarUrl, color: pp.color, away: !!info?.away, left: info?.status === 'left' };
+    });
+    return out;
+  }, [friends]);
 
   return (
     <TableStage
@@ -347,6 +379,9 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
       tourney={stageTourney}
       cast={tb.cast}
       onPosterInfo={() => setPosterInfo(true)}
+      people={seatPeople}
+      clock={friends?.clock ?? null}
+      fx={friends ? friends.effects : null}
     >
       <p id="pk-read" className="sr-only-pk" aria-live="polite" />
 
@@ -427,7 +462,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
           onScoreboard={() => navigate(BLEFE_ROUTES.scoreboard)}
           // Tentar de novo: volta à tela do torneio, para escolher a entrada outra vez.
           onRetry={ctl.credits.retry && ctl.credits.tournament ? () => navigate(BLEFE_ROUTES.tournament) : null}
-          onLobby={() => navigate(BLEFE_ROUTES.lobby)}
+          onLobby={() => navigate(friends ? BLEFE_ROUTES.title : BLEFE_ROUTES.lobby)}
         />
       )}
 
@@ -443,6 +478,9 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
 
       {posterInfo && tourney && stageTourney && (
         <PosterInfoSheet prize={tourney.prize} table={table} lang={lang} reduced={reduced} onClose={() => setPosterInfo(false)} />
+      )}
+      {posterInfo && friends && friends.effects.length > 0 && (
+        <EffectsSheet effects={friends.effects} table={table} lang={lang} reduced={reduced} onClose={() => setPosterInfo(false)} />
       )}
       {portrait && <CardViewer id={portrait} cardStyle={cardStyle} onClose={() => setPortrait(null)} />}
       {quipOpen && (
@@ -482,7 +520,17 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
       )}
       {leaveAsk && (
         <Sheet title={training ? t('poker.leave.titleTraining') : t('poker.leave.title')} onClose={() => setLeaveAsk(false)} reduced={reduced}>
-          <p className="text-[14.5px] mb-4" style={{ color: '#D9D2EA' }}>{training ? t('poker.leave.bodyTraining') : t('poker.leave.body')}</p>
+          <p className="text-[14.5px] mb-4" style={{ color: '#D9D2EA' }}>
+            {training
+              ? t('poker.leave.bodyTraining')
+              : friends
+                ? friends.watching || stage !== 'table'
+                  ? t('poker.friends.table.leaveWatching')
+                  : friends.room?.stakeRarity
+                    ? t('poker.friends.table.leaveStake')
+                    : t('poker.friends.table.leaveBody')
+                : t('poker.leave.body')}
+          </p>
           <div className="grid grid-cols-2 gap-2">
             <button type="button" className="pk-cta-ghost" onClick={() => setLeaveAsk(false)} autoFocus>{t('poker.leave.stay')}</button>
             <button type="button" className="pk-cta-paper" onClick={leave}>{t('poker.leave.confirm')}</button>
@@ -491,7 +539,9 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
       )}
       {forfeitAsk && ctl.forfeit && (
         <Sheet title={t('poker.forfeit.title')} onClose={() => setForfeitAsk(false)} reduced={reduced}>
-          <p className="text-[14.5px] mb-4" style={{ color: '#D9D2EA' }}>{t('poker.forfeit.body')}</p>
+          <p className="text-[14.5px] mb-4" style={{ color: '#D9D2EA' }}>
+            {friends ? (friends.room?.stakeRarity ? t('poker.friends.table.leaveStake') : t('poker.friends.table.leaveBody')) : t('poker.forfeit.body')}
+          </p>
           <div className="grid grid-cols-2 gap-2">
             <button type="button" className="pk-cta-ghost" onClick={() => setForfeitAsk(false)} autoFocus>{t('poker.leave.stay')}</button>
             <button
@@ -533,6 +583,14 @@ export const FreeTable: React.FC<{ home: PokerHome | null; cardStyle: string }> 
   const rig = useRig('free', home);
   const ctl = useFreeMatch(rig, home);
   return <TableScreen rig={rig} ctl={ctl} cardStyle={cardStyle} home={home} prize={null} />;
+};
+
+/** Mesa com amigos (fase 3): `?sala=<id>`; a partida roda no servidor (useFriendsMatch). */
+export const FriendsTable: React.FC<{ home: PokerHome | null; cardStyle: string }> = ({ home, cardStyle }) => {
+  const [params] = useSearchParams();
+  const rig = useRig('friends', home);
+  const ctl = useFriendsMatch(rig, params.get('sala'));
+  return <TableScreen rig={rig} ctl={ctl} cardStyle={cardStyle} home={home} prize={null} friends={ctl} />;
 };
 
 export const BountyTable: React.FC<{
