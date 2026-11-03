@@ -106,16 +106,25 @@ function betOrCheck(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, b: Hand
     return [betFrac(v, cbetSize(P, f, v, ctx)), CHECK];
   }
   if (b === 'air' && v.street === 'river' && r() < riverBluffProb(P, f, ctx)) return [betFrac(v, P.sizings.riverPolar), CHECK];
+  // Sondagem: a mesa passou e ninguém mostrou força; quem é agressivo aposta sem mão
+  // (A3: o AF da Cobra e do Raposo estava abaixo da meta).
+  if ((b === 'air' || b === 'weak') && v.street !== 'river' && !f.wasAggressor && r() < (STAB[P.id] ?? 0) * bluffScale(ctx, f)) {
+    return [betFrac(v, cbetSize(P, f, v, ctx)), CHECK];
+  }
   return [CHECK, small];
 }
+
+/** Chance de sondar (apostar sem mão quando passam para ele, sem ter sido o agressor). */
+const STAB: Partial<Record<string, number>> = { cypher: 0.3, fincher: 0.25 };
 
 /** Quanto uma aposta daquele oponente informa: AF alto (com amostra) = aposta vale menos. */
 function aggrWeightOf(ctx: BotCtx, id: string): number {
   const c = ctx.model?.counters(id);
   if (!ctx.model || !c || c.raw.hands < 2) return 1;
-  // AF alto ou aumento demais antes do flop (este sobe já nas primeiras mãos): aposta vale menos.
+  // AF alto ou aumento demais antes do flop (este sobe já nas primeiras mãos): aposta vale
+  // menos. AF baixo (quem só paga e, quando aposta, tem mão): vale mais, até 2× (A3).
   const r = ctx.model.quick(id);
-  return Math.max(0.15, Math.min(1, 1.5 / Math.max(0.1, r.af), 0.22 / Math.max(0.01, r.pfr)));
+  return Math.max(0.15, Math.min(2, 1.5 / Math.max(0.1, r.af), 0.22 / Math.max(0.01, r.pfr)));
 }
 
 function marginAdj(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): number {
@@ -141,8 +150,9 @@ function marginAdj(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): number 
   return m;
 }
 
-/** Cobra: chance de aumentar quando pagaria (flop e turn). */
-const COBRA_RAISE_INSTEAD = 0.35;
+/** Chance de aumentar quando pagaria (flop e turn): a Cobra com qualquer mão, o Raposo
+ *  só com mão média ou forte (proteção e valor). */
+const RAISE_INSTEAD: Partial<Record<string, number>> = { cypher: 0.3, fincher: 0.3 };
 
 /** Folga de equidade a partir da qual pagar é óbvio (sem segunda opção para o ε). */
 const CLEAR_CALL = 0.08;
@@ -164,9 +174,10 @@ function facingBet(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, eq: numb
   if (f.canCheckRaise && (b === 'draw' || b === 'air') && r() < P.post.checkRaise * (b === 'air' ? bluffScale(ctx, f) : 1)) return [raise, FOLD];
   if (P.id === 'fincher' && v.street === 'river' && f.facingRaise && (b === 'strong' || b === 'medium')
       && !(ctx.model?.has(f.aggressorId, 'blefador') ?? false) && r() < 0.70) return [FOLD, CALL];   // falha planejada
-  // Cobra: aumenta-ou-larga. Parte das vezes em que pagaria, aumenta (A3: o AF dela estava
-  // em 1,6 com meta 3,5–4,5; e o aumento leve é o vazamento que quem tem mão pune).
-  if (P.id === 'cypher' && eq >= need && v.street !== 'river' && r() < COBRA_RAISE_INSTEAD) return [raise, CALL];
+  // Aumenta-ou-larga: parte das vezes em que pagaria, aumenta (A3: AF da Cobra 1,6 e do
+  // Raposo 1,4, metas 3,5–4,5 e 2,5–3; o aumento leve é vazamento que quem tem mão pune).
+  if (eq >= need && v.street !== 'river' && (P.id === 'cypher' || b === 'medium' || b === 'strong')
+      && r() < (RAISE_INSTEAD[P.id] ?? 0)) return [raise, CALL];
   if (eq >= need) {
     if (P.id === 'bogart' && pairPlus) ctx.mem.committed = true;   // "já investi": dor = 0, margem −8
     // Pagar com folga não tem "erro plausível" de largar (A3): o ε vira pagamento curioso

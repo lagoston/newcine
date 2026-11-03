@@ -307,12 +307,27 @@ const bom: Hero = (L, rng, s, pub) => {
     const sapo = g.players.find((p) => p.id === 'bogart')!;
     const sapoInBlinds = sapo.status !== 'eliminated' && [h.smallBlindSeat, h.bigBlindSeat].includes(sapo.seat);
     const shover = sp.aggressorId ?? 'cypher';
+    const nAlive = g.players.filter((p) => p.status !== 'eliminated').length;
     const shoveEq = (): number => {
-      const top = { cypher: 55, fincher: 40, bogart: 15 }[shover as 'cypher'] ?? 40;
+      // Quanto cada oráculo empurra (mais largo com menos gente na mesa).
+      const tops = nAlive === 2 ? { cypher: 70, fincher: 60, bogart: 25 } : nAlive === 3 ? { cypher: 60, fincher: 50, bogart: 18 } : { cypher: 55, fincher: 40, bogart: 15 };
+      const top = tops[shover as 'cypher'] ?? 45;
       const w = topWeights(top);
       const ranges = sp.opps.map((o) => (o === shover ? { combos: ALL_COMBOS, weights: Array.from(w) } : null));
       return estimateEquity({ hole: sp.hole, board: [], opponents: Math.max(1, sp.opps.length), iterations: 400, rng, ranges }).equity;
     };
+    const aliveN = g.players.filter((p) => p.status !== 'eliminated').length;
+    // Heads-up curto: empurra ou larga pela profundidade efetiva (um pouco mais fechado
+    // que Nash, porque os oráculos pagam all-in largo) e paga pela equidade.
+    const effBB = Math.min(sp.stackBB, ...sp.opps.map((o) => {
+      const q = g.players.find((p) => p.id === o)!;
+      return (q.stack + q.streetBet) / bb;
+    }));
+    if (aliveN === 2 && effBB <= 16) {
+      const shoveTop = effBB <= 4 ? 75 : effBB <= 6 ? 60 : effBB <= 8 ? 50 : effBB <= 10 ? 44 : effBB <= 13 ? 38 : 33;
+      if (raises === 0 && L.toCall <= bb) return pct <= shoveTop * (sp.pos === 'BB' ? 0.75 : 1) || (pct <= 25 && L.canCheck) ? { type: 'allIn' } : passive(L);
+      return shoveEq() >= sp.odds ? (L.allIn && L.allIn.kind !== 'call' && L.toCall < L.stack ? { type: 'allIn' } : { type: 'call' }) : passive(L);
+    }
     if (sp.stackBB <= 12 || (L.toCall >= 0.4 * (L.stack + L.toCall))) {
       return tagPreflop(L, sp, 0, { shoveEq, shoveWide: 1.2 });
     }
@@ -343,6 +358,11 @@ const bom: Hero = (L, rng, s, pub) => {
     }
     const iOpened = pre.find((a) => a.type === 'raise' || a.type === 'bet')?.playerId === 'human';
     if (raises === 2) {
+      // Heads-up: quem abre 85% não pode largar todo 3-bet; com até 35 BB, all-in no topo.
+      if (nAlive === 2 && iOpened) {
+        if (pct <= 25 && sp.stackBB <= 35) return { type: 'allIn' };
+        if (pct <= 40) return { type: 'call' };
+      }
       // 4-bet nos 3-bets da Cobra (ela larga 70% para 4-bet).
       if (iOpened && sp.aggressorId === 'cypher' && pct <= B().cobra4bet) return raiseTo(L, level * 2.3);
       if (pct <= 3) return raiseTo(L, level * 2.3);

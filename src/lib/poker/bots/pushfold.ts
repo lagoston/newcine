@@ -93,7 +93,7 @@ function shoverPct(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): number 
   const w = ctx.difficulty.adaptDelay / 3;
   const seen = Math.min(100, (120 * c.pfShoves) / c.hands);
   const est = (seen * c.hands + prior * w) / (c.hands + w);
-  return Math.max(0.75 * prior, Math.min(100, est));
+  return Math.max(0.4 * prior, Math.min(100, est));
 }
 
 /**

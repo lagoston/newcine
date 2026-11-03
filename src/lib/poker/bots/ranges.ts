@@ -175,7 +175,8 @@ export interface RangeCtx {
   /** Taxas do modelo do Raposo para este oponente (frações). */
   rates?: { vpip: number; pfr: number };
   labels?: ReadonlySet<StyleLabel>;
-  /** 1 = aposta informa normalmente; perto de 0 = aposta não informa (quem aposta tudo). */
+  /** 1 = aposta informa normalmente; perto de 0 = não informa (quem aposta tudo); até 2
+   *  contra quem quase nunca aposta (a aposta dele vale o L cheio do §3.5). */
   aggrWeight?: number;
 }
 
@@ -237,9 +238,11 @@ export function rangeFor(oppId: PlayerId, v: BotView, model: RangeModel, ctx: Ra
     } else {
       const L = aggr ? L_AGGR.slice() : a.type === 'call' ? L_CALL.slice() : L_CHECK;
       if (aggr && ctx.labels?.has('blefador')) L[5] = 0.70;
-      if (aggr) for (let i = 0; i < L.length; i++) L[i] = 1 - (1 - L[i]) * BAYES_BET_WEIGHT;
-      if (aggr && ctx.aggrWeight !== undefined && ctx.aggrWeight < 1) {
-        const k = ctx.aggrWeight;
+      if (aggr) {
+        // Peso da aposta: metade do L[aposta] do §3.5, vezes a leitura do modelo (até 2×
+        // contra quem quase não agride — aí vale o L cheio; bem menos contra quem agride
+        // demais). Sem modelo, só a metade.
+        const k = Math.min(1, BAYES_BET_WEIGHT * (ctx.aggrWeight ?? 1));
         for (let i = 0; i < L.length; i++) L[i] = 1 - (1 - L[i]) * k;
       }
       if (a.type === 'call' && ctx.labels?.has('pagaTudo')) L[3] = 0.9;

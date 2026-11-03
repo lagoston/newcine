@@ -22,6 +22,8 @@ function limpAllowed(P: EffProfile, f: Features, ctx: BotCtx, v: BotView): boole
  * outro estilo; o médio e o bom quase nunca limpam.
  */
 const ISO_SHARE = 0.5;
+/** "O Raposo isola o Sapo" (§3.5): contra o limp do Sapo, mais largo que o normal. */
+const ISO_VS_SAPO = 1.3;
 
 /** Distância (pp de "top %") além da faixa de entrada a partir da qual a mão é lixo. */
 const TRASH_GAP = 15;
@@ -29,8 +31,11 @@ const TRASH_GAP = 15;
 function isoRange(P: EffProfile, ctx: BotCtx, v: BotView, entry: number): number {
   if (P.preflop.raiseOnlyTopPct !== null) return P.preflop.raiseOnlyTopPct;
   const limpers = v.actions.filter((a) => a.street === 'preflop' && a.type === 'call').map((a) => a.playerId);
-  const soft = ctx.model && limpers.some((id) => ctx.model!.has(id, 'solto'));
-  return entry * (soft ? 0.8 : 0.6) * ISO_SHARE;
+  // Raposo: limp de quem entra em quase tudo (rótulo `solto`, ou VPIP lido > 50%) se isola largo.
+  const soft = ctx.model && limpers.some((id) => ctx.model!.has(id, 'solto') || ctx.model!.quick(id).vpip > 0.5);
+  // Contra o Sapo (só bots limparam) isola mais; contra a pessoa, metade (ver ISO_SHARE).
+  const share = limpers.every((id) => id === 'bogart') ? ISO_VS_SAPO : ISO_SHARE;
+  return entry * (soft ? 0.8 : 0.6) * share;
 }
 
 function currentLevel(v: BotView): number {
@@ -48,6 +53,16 @@ function bluffBandFreq(P: EffProfile, tb: number, valueTop: number, entry: numbe
   const base = Math.min(1, (tb * P.preflop.threeBetBluffShare) / width);
   const suitedAce = v.hole[0][1] === v.hole[1][1] && (v.hole[0][0] === 'A' || v.hole[1][0] === 'A');
   return Math.min(1, base * (suitedAce ? 2.5 : 0.8));
+}
+
+/** Raposo: até 1,4× a faixa de abrir quando os que faltam falar entram pouco (VPIP < 30%). */
+function stealWiden(v: BotView, f: Features, ctx: BotCtx): number {
+  const me = v.players.find((p) => p.id === v.selfId)!;
+  const left = v.players.filter((p) => p.hasCards && p.id !== v.selfId && p.streetBet <= v.blinds.bigBlind
+    && !v.actions.some((a) => a.playerId === p.id && a.street === 'preflop'));
+  if (left.length === 0 || left.length > 2 || me.status !== 'active') return 1;
+  const vpip = Math.max(...left.map((p) => ctx.model!.quick(p.id).vpip));
+  return vpip < 0.3 ? 1 + Math.min(0.4, (0.3 - vpip) * 2.5) : 1;
 }
 
 /** Raposo: quanto alargar contra um re-aumento de quem aumenta demais (1 = nada). */
@@ -71,7 +86,7 @@ function commit(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, ranked: Pla
 export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ranked {
   if (f.facingAllIn) return callAllInRanked(v, f, P, ctx);
   const pct = preflopPct(v.hole) - P.mods.vpipDelta;
-  const entry = entryFor(P, f);
+  let entry = entryFor(P, f);
   const bb = f.bb;
   const LIMP: PlayerAction = CALL;
   const R = (xBB: number): PlayerAction => raiseTo(xBB * bb);
@@ -79,6 +94,8 @@ export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ra
   let ranked: PlayerAction[];
   switch (f.facing) {
     case 'unopened': {
+      // Raposo: rouba mais quando quem falta falar é apertado (VPIP lido baixo; A3).
+      if (ctx.model && (f.pos === 'BTN' || f.pos === 'SB')) entry = Math.min(100, entry * stealWiden(v, f, ctx));
       if (pct > entry) {
         // Lixo (bem fora da faixa) não tem "erro plausível" de limp (A3): com ε alto o
         // limp de lixo inflava o VPIP do Sapo e da Cobra acima das metas.
@@ -93,7 +110,9 @@ export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ra
       // Quem quase nunca limpa (Cobra 3%; Raposo só no SB contra BB passivo). Veneno: aumenta mais.
       const limp = P.preflop.raiseOnlyTopPct === null && limpAllowed(P, f, ctx, v)
         && r() < Math.max(0, P.preflop.limpShare - P.mods.pfrDelta / 100);
-      ranked = limp ? [LIMP, R(open)] : [R(open), LIMP];
+      // Quem não limpa nunca (Cobra) não tem o limp como "erro plausível" (A3: o ε dela
+      // virava ~1/4 das aberturas em limp e o PFR ficava abaixo da meta).
+      ranked = limp ? [LIMP, R(open)] : P.preflop.limpShare <= 0 ? [R(open)] : [R(open), LIMP];
       break;
     }
     case 'limped': {
@@ -105,7 +124,7 @@ export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ra
     }
     case 'opened': {
       // Raposo: contra quem abre demais (PFR alto no modelo), 3-bet e defesa mais largos.
-      const widen = ctx.model && f.openerId ? Math.max(1, Math.min(2.5, ctx.model.quick(f.openerId).pfr / 0.22)) : 1;
+      const widen = ctx.model && f.openerId ? Math.max(1, Math.min(3.5, ctx.model.quick(f.openerId).pfr / 0.22)) : 1;
       const tb = (P.preflop.threeBetPct + P.mods.pfrDelta * 0.5) * widen;
       const valueTop = tb * (1 - P.preflop.threeBetBluffShare);
       if (pct <= valueTop) {
