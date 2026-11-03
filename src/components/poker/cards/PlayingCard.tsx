@@ -82,6 +82,8 @@ interface PlayingCardProps {
   /** Entra virando (distribuir/flop). */
   deal?: boolean;
   delay?: number;
+  /** Inclinação em graus (a mão "segurada"); vai pelo framer, que é dono do transform. */
+  rotate?: number;
   className?: string;
   style?: React.CSSProperties;
   decorative?: boolean;
@@ -97,6 +99,7 @@ const PlayingCard: React.FC<PlayingCardProps> = ({
   dimmed,
   deal,
   delay = 0,
+  rotate = 0,
   className = '',
   style,
   decorative,
@@ -105,10 +108,12 @@ const PlayingCard: React.FC<PlayingCardProps> = ({
   const reduce = useReducedMotion();
   const sizeStyle = { '--cw': SIZE_VAR[size], ...style } as React.CSSProperties;
   const anim = deal && !reduce
-    ? { initial: { opacity: 0, y: -14, rotateY: 90 }, animate: { opacity: 1, y: 0, rotateY: 0 }, transition: { duration: 0.26, delay } }
+    ? { initial: { opacity: 0, y: -14, rotateY: 90, rotate }, animate: { opacity: 1, y: 0, rotateY: 0, rotate }, transition: { duration: 0.26, delay } }
     : deal
-      ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.2, delay } }
-      : {};
+      ? { initial: { opacity: 0, rotate }, animate: { opacity: 1, rotate }, transition: { duration: 0.2, delay } }
+      : rotate
+        ? { initial: false as const, animate: { rotate } }
+        : {};
 
   if (faceDown || !card) {
     const look = deckLook(deckId);

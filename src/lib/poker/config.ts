@@ -23,7 +23,13 @@ export const DEFAULT_SETTINGS: PokerSettings = {
   startStack: 2000,
   handsPerLevel: 5,
   // Veredito Q1 (03/11/2026): degraus de ~×1,4; ante = BB/4 a partir do nível 3 (soma = 1 BB com 4 vivos).
+  // Calibração A3 (03/11/2026): dois níveis iniciais mais fundos (10/20 e 20/40) antes de
+  // 25/50; o resto da tabela não mudou. Com 40 BB de saída, quem empurra toda mão vivia de roubar
+  // 1,5 BB e vencia 18% (meta < 15%), e a partida durava 23 mãos (meta 30–40). Mudou
+  // aqui, muda em poker_settings.levels.
   levels: [
+    [10, 20, 0],
+    [20, 40, 0],
     [25, 50, 0],
     [35, 70, 0],
     [50, 100, 25],

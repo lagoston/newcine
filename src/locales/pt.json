@@ -2895,7 +2895,9 @@
       "handOver": "A mão acabou.",
       "youFolded": "Você desistiu desta mão.",
       "scriptEmpty": "Nada aconteceu ainda.",
-      "backToLobby": "Voltar ao salão"
+      "backToLobby": "Voltar ao salão",
+      "tapBalloon": "Toque no balão para adiantar",
+      "out_ordinal_other": "Fora · {{place}}º"
     },
     "tells": {
       "bogart": {
@@ -2983,7 +2985,8 @@
       "retry": "Tentar de novo",
       "update": "Atualize o app para jogar valendo prêmio.",
       "error": "Algo deu errado na mesa. Sua partida está salva.",
-      "soon": "A mesa abre em breve."
+      "soon": "A mesa abre em breve.",
+      "bountySoon": "A mesa do prêmio abre em breve."
     },
     "recap": {
       "title": "Anteriormente em O Grande Blefe…",
@@ -3027,7 +3030,8 @@
       "lobby": "Salão",
       "prizeYours": "{{prize}} é seu!",
       "withLoan": "com empréstimo do Sapo",
-      "cast": "Elenco"
+      "cast": "Elenco",
+      "place_ordinal_other": "{{place}}º lugar"
     },
     "titles": {
       "figurante": "Figurante",

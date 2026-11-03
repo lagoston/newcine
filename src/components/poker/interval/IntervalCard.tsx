@@ -10,6 +10,7 @@ import { cache, CACHE_KEYS } from '../../../lib/cache';
 import { ensureMovieCachedIfMissing } from '../../../lib/tmdb';
 import { loadTitleCards, titleKey } from '../../../lib/titleCards';
 import type { IntervalPick } from '../../../lib/poker/client/apiTypes';
+import type { SpeechItem } from '../../../lib/poker/client/useDirector';
 import { cardArt, ORACLE_COLOR } from '../../../lib/poker/client/cosmetics';
 import { langOf } from '../../../lib/poker/client/format';
 import RateMenuSheet from '../../RateMenuSheet';
@@ -20,19 +21,25 @@ import RateMenuSheet from '../../RateMenuSheet';
 // mesmo caminho do CalibrateRow (título no banco → gêneros → user_movies), então
 // conta para as missões que já existem. [Continuar jogando] sempre visível.
 
+const RIVALS = ['bogart', 'cypher', 'fincher'] as const;
+const isRival = (id: unknown): id is (typeof RIVALS)[number] => RIVALS.includes(id as 'bogart');
+
 const IntervalCard: React.FC<{
   pick: IntervalPick;
+  /** O convite na voz de um oráculo (cardLine 'intervalInvite' do Diretor). */
+  line?: SpeechItem | null;
   cardStyle: string;
   reduced: boolean;
   onRated: () => void;
   onContinue: () => void;
-}> = ({ pick, cardStyle, reduced, onRated, onContinue }) => {
+}> = ({ pick, line = null, cardStyle, reduced, onRated, onContinue }) => {
   const { t, i18n } = useTranslation();
   const lang = langOf(i18n.language);
   const { session } = useAuth();
   const [rating, setRating] = useState(false);
-  const title = (lang === 'pt' ? pick.title_pt || pick.title : pick.title) || pick.title;
-  const oracle = (['bogart', 'cypher', 'fincher'] as const).includes(pick.oracle as 'bogart') ? pick.oracle : 'fincher';
+  const title = (lang === 'pt' ? pick.title_pt || pick.title : pick.title_en || pick.title) || pick.title;
+  // Quem convida apresenta o título (a fala do Diretor escolhe o oráculo).
+  const oracle = isRival(line?.speaker) ? line!.speaker : isRival(pick.oracle) ? pick.oracle : 'fincher';
 
   const save = async (value: number | null) => {
     const uid = session?.user?.id;
@@ -77,6 +84,12 @@ const IntervalCard: React.FC<{
       >
         <h2 className="pk-display text-[22px] font-bold" style={{ color: '#FFE8A3' }}>{t('poker.interval.title')}</h2>
         <p className="mt-2 text-[14.5px] leading-snug" style={{ color: '#F3EAD3' }}>{t('poker.interval.body')}</p>
+        {line && (
+          <figure className="pk-interval-quote mt-3" style={{ '--c': ORACLE_COLOR[oracle] } as React.CSSProperties}>
+            <blockquote className="text-[13.5px] leading-snug">{line.text}</blockquote>
+            <figcaption className="mt-1 text-[11.5px]" style={{ ...PIXEL, color: ORACLE_COLOR[oracle] }}>{t(`poker.oracles.${oracle}.short`)}</figcaption>
+          </figure>
+        )}
         <div className="mt-4 flex items-center gap-3 text-left rounded-[14px] p-3" style={{ background: 'rgba(0,0,0,0.3)' }}>
           {pick.poster_path ? (
             <img src={`https://image.tmdb.org/t/p/w185${pick.poster_path}`} alt="" className="w-[56px] h-[84px] rounded-[6px] object-cover flex-none" />

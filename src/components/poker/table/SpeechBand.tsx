@@ -49,7 +49,7 @@ const SpeechBand: React.FC<{ speech: SpeechItem | null; onSkip: () => void; redu
   const color = who ? ORACLE_COLOR[who] ?? '#F3EAD3' : '#F3EAD3';
   const name = who === 'human' ? t('poker.table.you') : who ? t(`poker.oracles.${who}.short`, { defaultValue: who }) : '';
   return (
-    <div className="pk-speech">
+    <div className="pk-speech" data-who={who ?? undefined}>
       <AnimatePresence mode="wait">
         {speech ? (
           <motion.div

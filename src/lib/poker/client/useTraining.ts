@@ -77,9 +77,16 @@ export function useTraining(rig: Rig): TrainingCtl {
       dir.director.onTutorialBeat(b.lineIds);
       setHighlight(b.highlight ?? null);
       if (b.waitTap) {
+        // O "Continuar" só aparece depois dos balões do beat (um toque no balão
+        // adianta); o último fica na faixa até o toque. Assim cada beat custa um
+        // toque só, como o roteiro conta (≤ 6 por mão).
+        dir.hold(true);
+        await dir.waitQuiet();
         setWaitingTap(true);
         await new Promise<void>((res) => (tapResolve.current = res));
         setWaitingTap(false);
+        dir.hold(false);
+        setHighlight(null);
       } else {
         await dir.waitQuiet();
       }
@@ -172,6 +179,9 @@ export function useTraining(rig: Rig): TrainingCtl {
         return;
       }
       script.current = s;
+      // O Diretor real (modo treino) antes do primeiro beat.
+      await rig.newMatch();
+      if (!alive) return;
       setStatus('playing');
       await startHand(0);
     })();
@@ -190,6 +200,7 @@ export function useTraining(rig: Rig): TrainingCtl {
       return;
     }
     setStatus('done');
+    rig.flushStory();
     // Quem fez o treino ganha o termômetro ligado (§7.3).
     if (getPokerSettings().thermo === null) setPokerSettings({ thermo: true });
     void pokerApi.claimTutorialChip().then(
@@ -199,6 +210,7 @@ export function useTraining(rig: Rig): TrainingCtl {
       },
       () => setGranted(false),
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, table.phase, startHand]);
 
   const step: HumanStep | null = script.current && table.phase === 'human' ? script.current.hands[hand]?.human[stepIdx] ?? null : null;
@@ -211,9 +223,12 @@ export function useTraining(rig: Rig): TrainingCtl {
   const blocked = useCallback(
     (type: PlayerAction['type']) => {
       const id = correctionFn.current?.(handRef.current as 0 | 1 | 2, stepIdx, type) ?? null;
-      if (id) dir.director.onTutorialBeat([id]);
+      if (!id) return;
+      // A "tomada dois" entra na hora, no lugar da dica que estiver na faixa.
+      dir.skip();
+      dir.director.onTutorialBeat([id]);
     },
-    [dir.director, stepIdx],
+    [dir, stepIdx],
   );
 
   const act = useCallback(

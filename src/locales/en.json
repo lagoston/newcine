@@ -2890,7 +2890,12 @@
       "handOver": "The hand is over.",
       "youFolded": "You folded this hand.",
       "scriptEmpty": "Nothing has happened yet.",
-      "backToLobby": "Back to the room"
+      "backToLobby": "Back to the room",
+      "tapBalloon": "Tap the balloon to move on",
+      "out_ordinal_one": "Out · {{place}}st",
+      "out_ordinal_two": "Out · {{place}}nd",
+      "out_ordinal_few": "Out · {{place}}rd",
+      "out_ordinal_other": "Out · {{place}}th"
     },
     "tells": {
       "bogart": {
@@ -2978,7 +2983,8 @@
       "retry": "Try again",
       "update": "Update the app to play for prizes.",
       "error": "Something went wrong at the table. Your game is saved.",
-      "soon": "The table opens soon."
+      "soon": "The table opens soon.",
+      "bountySoon": "The prize table opens soon."
     },
     "recap": {
       "title": "Previously on The Big Bluff…",
@@ -3022,7 +3028,11 @@
       "lobby": "Room",
       "prizeYours": "{{prize}} is yours!",
       "withLoan": "with the Frog's loan",
-      "cast": "Cast"
+      "cast": "Cast",
+      "place_ordinal_one": "{{place}}st place",
+      "place_ordinal_two": "{{place}}nd place",
+      "place_ordinal_few": "{{place}}rd place",
+      "place_ordinal_other": "{{place}}th place"
     },
     "titles": {
       "figurante": "Extra",

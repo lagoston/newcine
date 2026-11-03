@@ -127,6 +127,11 @@ export function saveHomeCache(home: PokerHome) {
   writeJson(HOME_KEY, home);
 }
 
+/** Salão fechado para a conta: a cópia local não pode reabrir a mesa sem rede. */
+export function clearHomeCache() {
+  remove(HOME_KEY);
+}
+
 /** Id curto e único para relatos (idempotência) e para o `idem` do prêmio. */
 export function uuid(): string {
   try {

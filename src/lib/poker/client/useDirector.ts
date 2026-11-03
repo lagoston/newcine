@@ -1,10 +1,12 @@
 /**
  * O Diretor de falas na mesa (SPEC §6 e §8, pacote B).
  *
- * 03/11/2026: o `createDirector` do pacote B ainda não existe. Até ele chegar, a
- * mesa usa um Diretor nulo com a mesma interface (só devolve o balão "Você: …"
- * das Réplicas). O real entra sozinho: `import.meta.glob` procura
- * `dialogue/director.ts` e, achando `createDirector`, troca o nulo por ele.
+ * 03/11/2026: o `createDirector` do pacote B vem por import dinâmico (o banco de
+ * falas não pesa na abertura do app). O Diretor do B é um por partida (abertura,
+ * orçamento e créditos valem uma vez), então cada controlador chama `reset()`
+ * antes de dar as cartas: ele espera o módulo carregar e monta um Diretor novo.
+ * Se o módulo falhar, fica um Diretor nulo com a mesma interface (só o balão
+ * "Você: …" das Réplicas).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MatchMode, PrizeKind, PublicEvent, Rarity, RivalId, TableView, TitleId } from '../types.ts';
@@ -43,21 +45,6 @@ export interface TableContext {
   reducedMotion: boolean;
 }
 
-export interface Director {
-  onEvent(e: PublicEvent, ctx: TableContext): void;
-  onHumanTurn(open: boolean): void;
-  onIdleTick(msParada: number): void;
-  onDrawer(open: boolean): void;
-  onQuip(quipId: string, target: RivalId): void;
-  onTutorialBeat(lineIds: string[]): void;
-  next(nowMs: number): SpeechItem | null;
-  skip(): void;
-  storyTouched(): string[];
-  /** Acréscimos do pacote B (opcionais): momentos fora dos eventos e falas de cartão. */
-  onMoment?(m: DirectorMoment): void;
-  cardLine?(kind: 'recap' | 'intervalInvite', ctx: TableContext, info?: RecapInfo): SpeechItem | null;
-}
-
 export type DirectorMoment =
   | { t: 'rankUp'; title: TitleId }
   | { t: 'tableWinner'; winnerId: string }
@@ -71,6 +58,21 @@ export interface RecapInfo {
   stacks: Partial<Record<string, number>>;
   holderId?: string | null;
   someoneOut?: boolean;
+}
+
+export interface Director {
+  onEvent(e: PublicEvent, ctx: TableContext): void;
+  onHumanTurn(open: boolean): void;
+  onIdleTick(msParada: number): void;
+  onDrawer(open: boolean): void;
+  onQuip(quipId: string, target: RivalId): void;
+  onTutorialBeat(lineIds: string[]): void;
+  next(nowMs: number): SpeechItem | null;
+  skip(): void;
+  storyTouched(): string[];
+  /** Acréscimos do pacote B (opcionais): momentos fora dos eventos e falas de cartão. */
+  onMoment?(m: DirectorMoment): void;
+  cardLine?(kind: 'recap' | 'intervalInvite', ctx: TableContext, info?: RecapInfo): SpeechItem | null;
 }
 
 export interface DirectorOptions {
@@ -163,6 +165,14 @@ export interface UseDirector {
   spoken: string | null;
   /** Resolve quando a faixa de fala esvazia (os balões de um beat do treino acabaram). */
   waitQuiet: (maxMs?: number) => Promise<void>;
+  /** Resolve quando um balão entra na faixa (ou no tempo máximo). */
+  waitSpeech: (maxMs?: number) => Promise<boolean>;
+  /** Diretor novo para a próxima partida, com as opções atualizadas (espera o módulo do B). */
+  reset: (patch?: Partial<DirectorOptions>) => Promise<void>;
+  /** Treino: o último balão fica na faixa depois do tempo dele (até o "Continuar"). */
+  hold: (on: boolean) => void;
+  /** Segura a fila enquanto um cartão cobre a faixa (a fala não se perde por baixo dele). */
+  pause: (on: boolean) => void;
 }
 
 /**
@@ -170,15 +180,18 @@ export interface UseDirector {
  * que o Diretor manda. `paused` segura a fila (ex.: cartas de all-in virando).
  */
 export function useDirector(opts: DirectorOptions & { paused?: boolean; onSpeech?: (s: SpeechItem) => void }): UseDirector {
-  const make = (): Director => {
+  const optsRef = useRef<DirectorOptions>(opts);
+  const make = (o: DirectorOptions): Director => {
     try {
-      return realFactory ? realFactory(opts) : createNullDirector(opts);
+      return realFactory ? realFactory(o) : createNullDirector(o);
     } catch {
-      return createNullDirector(opts);
+      return createNullDirector(o);
     }
   };
   const ref = useRef<Director | null>(null);
-  if (!ref.current) ref.current = make();
+  if (!ref.current) ref.current = make(opts);
+  const shownAt = useRef(0);
+  const holdRef = useRef(false);
   const [speech, setSpeech] = useState<SpeechItem | null>(null);
   const [spoken, setSpoken] = useState<string | null>(null);
   const untilRef = useRef(0);
@@ -186,26 +199,18 @@ export function useDirector(opts: DirectorOptions & { paused?: boolean; onSpeech
   // Último tique em que a fila estava vazia e nada na faixa.
   const quietRef = useRef(true);
   const pausedRef = useRef(!!opts.paused);
-  pausedRef.current = !!opts.paused;
+  // Pausa pedida pela mesa (cartões por cima da faixa: "Estrelando…", Intervalo, recap).
+  const manualPause = useRef(false);
+  pausedRef.current = !!opts.paused || manualPause.current;
   const onSpeechRef = useRef(opts.onSpeech);
   onSpeechRef.current = opts.onSpeech;
 
-  // Troca o nulo pelo real assim que o módulo do pacote B carregar.
-  useEffect(() => {
-    let alive = true;
-    loadRealDirector().then((f) => {
-      if (!alive || !f) return;
-      try {
-        ref.current = f(opts);
-      } catch {
-        // fica o nulo
-      }
-    });
-    return () => {
-      alive = false;
-    };
-    // Um Diretor por partida: as opções iniciais bastam.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Um Diretor por partida (03/11/2026): o do B guarda abertura, orçamento e
+  // créditos. A faixa mantém o balão que estiver na tela (ex.: a fala da Revanche).
+  const reset = useCallback(async (patch: Partial<DirectorOptions> = {}) => {
+    optsRef.current = { ...optsRef.current, ...patch };
+    await loadRealDirector();
+    ref.current = make(optsRef.current);
   }, []);
 
   useEffect(() => {
@@ -214,9 +219,9 @@ export function useDirector(opts: DirectorOptions & { paused?: boolean; onSpeech
       if (untilRef.current && now < untilRef.current) return;
       if (untilRef.current) {
         untilRef.current = 0;
-        setSpeech(null);
+        if (!holdRef.current) setSpeech(null);
       }
-      if (pausedRef.current) return;
+      if (pausedRef.current || manualPause.current) return;
       const item = ref.current?.next(Date.now()) ?? null;
       if (!item) {
         quietRef.current = true;
@@ -224,6 +229,7 @@ export function useDirector(opts: DirectorOptions & { paused?: boolean; onSpeech
       }
       quietRef.current = false;
       untilRef.current = now + Math.max(1200, item.durationMs);
+      shownAt.current = now;
       setSpeech(item);
       onSpeechRef.current?.(item);
       playVoice(item.speaker, item.text.length);
@@ -255,6 +261,30 @@ export function useDirector(opts: DirectorOptions & { paused?: boolean; onSpeech
     });
   }, []);
 
+  const hold = useCallback((on: boolean) => {
+    holdRef.current = on;
+    if (!on && !untilRef.current) setSpeech(null);
+  }, []);
+
+  const pause = useCallback((on: boolean) => {
+    manualPause.current = on;
+  }, []);
+
+  const waitSpeech = useCallback((maxMs = 1500) => {
+    const start = performance.now();
+    return new Promise<boolean>((resolve) => {
+      const id = window.setInterval(() => {
+        if (shownAt.current >= start) {
+          window.clearInterval(id);
+          resolve(true);
+        } else if (performance.now() - start > maxMs) {
+          window.clearInterval(id);
+          resolve(false);
+        }
+      }, 60);
+    });
+  }, []);
+
   // Fachada estável: quem guardou o Diretor continua falando com o atual (o real
   // pode chegar depois do primeiro desenho).
   const director = useMemo<Director>(
@@ -274,5 +304,5 @@ export function useDirector(opts: DirectorOptions & { paused?: boolean; onSpeech
     [],
   );
 
-  return { director, speech, skip, spoken, waitQuiet };
+  return { director, speech, skip, spoken, waitQuiet, waitSpeech, reset, hold, pause };
 }

@@ -23,4 +23,6 @@ export interface CreditsData {
   loan: boolean;
   retry: { n: number; max: number } | null;
   tomorrow: { rarity: Rarity; carrier: RivalId } | null;
+  /** Partida que já tinha terminado ao abrir a mesa: direto aos créditos, sem despedida. */
+  instant?: boolean;
 }

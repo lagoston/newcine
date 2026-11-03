@@ -25,6 +25,8 @@ import {
 import { intervalDue, markIntervalShown, recordMatchEnd, touchSession } from './session.ts';
 import type { Rig } from './useRig.ts';
 import type { CreditsData } from './creditsData.ts';
+import type { SpeechItem } from './useDirector.ts';
+import { memoryFlags } from './matchConfig.ts';
 
 export type FreeStatus = 'loading' | 'interval' | 'intro' | 'playing' | 'unavailable' | 'error';
 
@@ -32,6 +34,8 @@ export interface MatchCtl {
   status: FreeStatus | 'reconnecting' | 'offline' | 'updateRequired';
   errorCode: string | null;
   interval: IntervalPick | null;
+  /** O convite do Intervalo na voz de um oráculo (fala de cartão do Diretor). */
+  intervalLine?: SpeechItem | null;
   recap: PublicEvent[] | null;
   credits: CreditsData | null;
   act: (a: PlayerAction) => void;
@@ -64,6 +68,7 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
   const [status, setStatus] = useState<FreeStatus>('loading');
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [interval, setIntervalPick] = useState<IntervalPick | null>(null);
+  const [intervalLine, setIntervalLine] = useState<SpeechItem | null>(null);
   const [recap, setRecap] = useState<PublicEvent[] | null>(null);
   const [credits, setCredits] = useState<CreditsData | null>(null);
   const meta = useRef<{ clientId: string; startedAt: string; tail: PublicEvent[]; state: MatchState | null }>({
@@ -119,11 +124,15 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
         tomorrow: null,
       };
       setCredits(base);
+      // Os momentos dos créditos só depois que a mesa projetou o matchEnded: antes
+      // disso o Diretor ainda nem abriu os créditos e descartaria a fala.
+      const projected = tableRef.current.whenIdle();
       // Quem levou a mesa: os bots jogam o resto no Worker, sem desenhar (§2.3.4).
       if (summary.place > 1) {
-        void client.call({ op: 'simulateRest' }).then((r) => {
+        void client.call({ op: 'simulateRest' }).then(async (r) => {
           const winnerId = r.kind === 'rest' ? r.winnerId : null;
           setCredits((c) => (c ? { ...c, tableWinner: winnerId } : c));
+          await projected;
           if (winnerId) dir.director.onMoment?.({ t: 'tableWinner', winnerId });
         });
       }
@@ -134,6 +143,7 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
         if (r.ok) {
           const rankUp = !!before && before !== r.title;
           setCredits((c) => (c ? { ...c, title: { id: r.title, rankUp } } : c));
+          await projected;
           if (rankUp) dir.director.onMoment?.({ t: 'rankUp', title: r.title });
         }
       } catch {
@@ -157,25 +167,33 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
       if (r.state.status !== 'running') void finish(r.state, r.events);
       return true;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [finish],
   );
 
-  const create = useCallback(async () => {
-    setCredits(null);
-    setRecap(null);
-    setStatus('loading');
-    meta.current = { clientId: uuid(), startedAt: new Date().toISOString(), tail: [], state: null };
-    const cfg = buildConfig({ mode: 'free', seed: randomSeed(), home: homeRef.current, memory: loadFoxMemory() });
-    const r = await client.call({ op: 'create', cfg });
-    if (r.kind === 'error') {
-      setErrorCode(r.code);
-      setStatus(r.code === 'not_implemented' ? 'unavailable' : 'error');
-      return;
-    }
-    setStatus('intro');
-    handleReply(r, true);
-  }, [client, handleReply]);
+  // Partida nova: Diretor novo, memória do Raposo e, menos na Revanche, o "Estrelando…".
+  const create = useCallback(
+    async (o: { intro?: boolean; afterInterval?: boolean } = {}) => {
+      const intro = o.intro ?? true;
+      if (intro) setCredits(null);
+      setRecap(null);
+      const fox = loadFoxMemory();
+      rig.extras.current.returning = false;
+      rig.extras.current.memory = memoryFlags(fox);
+      await rig.newMatch({ afterInterval: !!o.afterInterval });
+      meta.current = { clientId: uuid(), startedAt: new Date().toISOString(), tail: [], state: null };
+      const cfg = buildConfig({ mode: 'free', seed: randomSeed(), home: homeRef.current, memory: fox });
+      const r = await client.call({ op: 'create', cfg });
+      setCredits(null);
+      if (r.kind === 'error') {
+        setErrorCode(r.code);
+        setStatus(r.code === 'not_implemented' ? 'unavailable' : 'error');
+        return;
+      }
+      setStatus(intro ? 'intro' : 'playing');
+      handleReply(r, intro);
+    },
+    [client, handleReply, rig],
+  );
 
   // Abertura: relatos pendentes, retomada (ou abandono depois de 24 h), Intervalo.
   useEffect(() => {
@@ -192,6 +210,9 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
           return;
         }
         meta.current = { clientId: saved.clientId, startedAt: saved.startedAt, tail: saved.tail, state: saved.state };
+        rig.extras.current.returning = true;
+        await rig.newMatch();
+        if (!alive) return;
         if (Date.now() - saved.savedAt > FREE_TTL_MS) {
           // Passou de 24 h sem ação: relatada como abandonada, e a mesa recomeça.
           const ab = await client.call({ op: 'abandon' });
@@ -216,6 +237,10 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
           const pick = await pokerApi.intervalPick();
           if (!alive) return;
           if (pick) {
+            // O convite sai na voz de um oráculo (fala de cartão, fora do orçamento).
+            await rig.newMatch();
+            if (!alive) return;
+            setIntervalLine(rig.cardLine('intervalInvite'));
             setIntervalPick(pick);
             setStatus('interval');
             return;
@@ -267,15 +292,24 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
     })();
   }, [client, handleReply]);
 
+  // Revanche: a fala de quem topa aparece ainda nos créditos e a mesa nova já dá as
+  // cartas, sem o "Estrelando…" (o elenco é o mesmo).
   const rematch = useCallback(() => {
+    if (busy.current) return;
+    busy.current = true;
     dir.director.onMoment?.({ t: 'rematch' });
-    void create();
-  }, [create, dir.director]);
+    void (async () => {
+      await dir.waitSpeech(1200);
+      busy.current = false;
+      await create({ intro: false });
+    })();
+  }, [create, dir]);
 
   return {
     status,
     errorCode,
     interval,
+    intervalLine,
     recap,
     credits,
     act,
@@ -286,8 +320,9 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
     continueAfterInterval: (rated) => {
       markIntervalShown();
       setIntervalPick(null);
-      if (rated) dir.director.onMoment?.({ t: 'intervalReturn' });
-      void create();
+      setIntervalLine(null);
+      // Depois da nota, a abertura da partida vira a volta do Intervalo (intervalReturn).
+      void create({ afterInterval: rated });
     },
     introDone: () => {
       introResolve.current?.();

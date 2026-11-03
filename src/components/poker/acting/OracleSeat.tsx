@@ -143,9 +143,9 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
       return (
         <span className="pk-pill is-allin">
           <span className="pk-display" style={{ fontSize: 11, fontWeight: 900, color: '#FFE8A3' }}>
-            {yugi ? `ALL-IN · ATK ${fmt(seat.last.to, lang)}` : 'ALL-IN'}
+            {yugi ? 'ALL-IN · ATK' : 'ALL-IN'}
           </span>
-          {!yugi && <span className="pk-num">{fmt(seat.bet || seat.last.to, lang)}</span>}
+          <span className="pk-num">{fmt(yugi ? seat.last.to : seat.bet || seat.last.to, lang)}</span>
         </span>
       );
     if (seat.bet > 0)
@@ -177,7 +177,7 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
             aria-label={t('poker.table.seatAria', {
               name,
               stack: fmt(seat.stack, lang),
-              status: out ? t('poker.table.out', { place: seat.place ?? '' }) : folded ? t('poker.table.folded') : thinking ? t('poker.table.thinking') : '',
+              status: out ? t('poker.table.out', seat.place ? { place: seat.place, count: seat.place, ordinal: true } : { place: '' }) : folded ? t('poker.table.folded') : thinking ? t('poker.table.thinking') : '',
             })}
           >
             <span className="pk-portrait">
@@ -211,8 +211,8 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
         )}
         {showCards && (
           <span className="pk-shown">
-            {seat.cards.map((c) => (
-              <PlayingCard key={c} card={c} size="seat" fourColor={fourColor} best={!!seat.best5?.includes(c) && winner} deal={!reduced} />
+            {seat.cards.map((c, i) => (
+              <PlayingCard key={c} card={c} size="seat" fourColor={fourColor} best={!!seat.best5?.includes(c) && winner} deal={!reduced} rotate={i === 0 ? -6 : 5} />
             ))}
           </span>
         )}
@@ -235,7 +235,7 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
       <div className="pk-plate">
         <span className="pk-plate-name" style={{ ...PIXEL, color }}>{name}</span>
         {out ? (
-          <span className="pk-plate-note">{t('poker.table.out', { place: seat.place ?? '' })}</span>
+          <span className="pk-plate-note">{t('poker.table.out', seat.place ? { place: seat.place, count: seat.place, ordinal: true } : { place: '' })}</span>
         ) : (
           <span className="pk-plate-stack pk-num">{fmt(seat.stack, lang)}</span>
         )}

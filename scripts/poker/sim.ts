@@ -13,12 +13,12 @@ import { Worker, isMainThread, parentPort, workerData } from 'node:worker_thread
 import os from 'node:os';
 import {
   DEFAULT_DIFFICULTY, DEFAULT_PROFILES, DEFAULT_SETTINGS, applyHumanAction, createMatch, createRng, createTable,
-  humanLegal, mergeProfile, simulateRest,
+  humanLegal, levelFor, mergeProfile, simulateRest, toPublicEvents,
 } from '../../src/lib/poker/index.ts';
 import type { BotMemory, BotProfile, MatchConfig, MatchEvent, MatchState, Rarity } from '../../src/lib/poker/index.ts';
 import { emptyTally } from '../../src/lib/poker/match/summary.ts';
 import { emptyCounters } from '../../src/lib/poker/bots/model.ts';
-import { HEROES } from './surrogates.ts';
+import { HEROES, handFeed } from './surrogates.ts';
 import type { HeroName } from './surrogates.ts';
 
 type Rival = 'bogart' | 'cypher' | 'fincher';
@@ -124,10 +124,14 @@ function runMatch(sc: Scenario, i: number, profiles: Record<Rival, BotProfile>, 
   const rng = createRng(`${seed}:hero`);
   let step = createMatch(config(sc, seed, profiles));
   const events: MatchEvent[] = sc.botStats ? [...step.events] : [];
+  // O substituto vê o que a pessoa veria na mesa: os eventos públicos da mão.
+  const feed = handFeed();
+  feed.push(toPublicEvents(step.events, 'human'));
   let s: MatchState = step.state;
   while (s.status === 'running') {
     const L = humanLegal(s)!;
-    step = applyHumanAction(s, hero(L, rng, s));
+    step = applyHumanAction(s, hero(L, rng, s, feed.events));
+    feed.push(toPublicEvents(step.events, 'human'));
     if (sc.botStats) events.push(...step.events);
     s = step.state;
   }
@@ -156,7 +160,8 @@ function runHU(sc: Scenario, i: number, profiles: Record<Rival, BotProfile>, t: 
   const [a, b] = sc.pair!;
   const seed = `simhu:${sc.key}:${i}`;
   const cfg = config({ ...sc, mode: 'free' }, seed, profiles);
-  const game = createTable({ smallBlind: 25, bigBlind: 50, ante: 0, historyLimit: 3 }, [{ id: a, seat: 1, stack: 2000 }, { id: b, seat: 2, stack: 2000 }], seed);
+  const l1 = levelFor(1, DEFAULT_SETTINGS);
+  const game = createTable({ smallBlind: l1.sb, bigBlind: l1.bb, ante: l1.ante, historyLimit: 3 }, [{ id: a, seat: 1, stack: DEFAULT_SETTINGS.startStack }, { id: b, seat: 2, stack: DEFAULT_SETTINGS.startStack }], seed);
   const mem = (id: Rival): BotMemory => {
     const m: BotMemory = { committed: false, facedFirstBet: false, tilt: null, labelsAnnounced: [] };
     if (profiles[id].model.enabled) m.model = { [id === a ? b : a]: emptyCounters() } as BotMemory['model'];

@@ -6,6 +6,7 @@ import type { Card } from '../cards.ts';
 import { rankOf, suitOf } from '../cards.ts';
 import type { HandKind } from '../evaluator.ts';
 import { evaluateHand } from '../evaluator.ts';
+import { describeHand as describeB } from '../dialogue/handNames.ts';
 
 export type Lang = 'pt' | 'en';
 
@@ -94,32 +95,15 @@ export function describeHandFallback(kind: HandKind, best5: Card[], lang: Lang, 
   }
 }
 
-type DescribeHand = (kind: HandKind, best5: Card[], lang: Lang) => string;
-let describeImpl: DescribeHand | null = null;
-
-// O `describeHand` do pacote B entra sozinho quando o arquivo existir (03/11/2026):
-// import.meta.glob devolve {} enquanto ele não existe, sem quebrar o build.
-const handNameModules = import.meta.glob('../dialogue/handNames.ts');
-const handNamesLoader = Object.values(handNameModules)[0];
-if (handNamesLoader) {
-  handNamesLoader().then(
-    (mod) => {
-      const fn = (mod as { describeHand?: unknown }).describeHand;
-      if (typeof fn === 'function') describeImpl = fn as DescribeHand;
-    },
-    () => {},
-  );
-}
-
+// O nome da mão vem do pacote B (dialogue/handNames.ts, o mesmo das falas), com o
+// plano B local se ele falhar. 03/11/2026: import estático, o módulo é pequeno e
+// assim a primeira mão já sai com o nome certo.
 export function describeHand(kind: HandKind, best5: Card[], lang: Lang, royal = false): string {
-  if (describeImpl && !royal) {
-    try {
-      return describeImpl(kind, best5, lang);
-    } catch {
-      // cai no plano B
-    }
+  try {
+    return describeB(kind, best5, lang, royal);
+  } catch {
+    return describeHandFallback(kind, best5, lang, royal);
   }
-  return describeHandFallback(kind, best5, lang, royal);
 }
 
 /** "Você tem: …": a melhor mão com o board aberto; antes do flop, o par ou as duas cartas. */
@@ -152,3 +136,12 @@ export function timeLeft(endsAt: string, now: number, lang: Lang): string {
   if (h <= 0) return lang === 'pt' ? `${m} min` : `${m} min`;
   return lang === 'pt' ? `${h} h ${m} min` : `${h} h ${m} min`;
 }
+
+/** "o Baralho Noir" / "the Noir Deck": o nome do prêmio com artigo, no meio da frase. */
+export function prizeWithArticle(p: { name_pt: string; name_en: string; article_pt?: string | null }, lang: Lang): string {
+  if (lang === 'en') return `the ${p.name_en}`;
+  return p.article_pt ? `${p.article_pt} ${p.name_pt}` : p.name_pt;
+}
+
+/** Cinzel só em letreiro sem número (o "1" dela vira "I", §7.12); com dígito, sans. */
+export const displayFont = (text: string): string => (/\d/.test(text) ? 'pk-sans font-extrabold tracking-wide uppercase' : 'pk-display');

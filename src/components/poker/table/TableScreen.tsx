@@ -7,6 +7,7 @@ import type { Rarity, RivalId } from '../../../lib/poker/types';
 import type { PokerHome, PokerPrize } from '../../../lib/poker/client/apiTypes';
 import { inHandIds, seatOf } from '../../../lib/poker/client/display';
 import { readTable, theName, whoName } from '../../../lib/poker/client/narrate';
+import { prizeWithArticle } from '../../../lib/poker/client/format';
 import { setPokerSettings, SPEEDS } from '../../../lib/poker/client/settings';
 import { useRig, type Rig } from '../../../lib/poker/client/useRig';
 import { useFreeMatch, type MatchCtl } from '../../../lib/poker/client/useFreeMatch';
@@ -59,7 +60,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
   const [stage, setStage] = useState<'table' | 'farewell' | 'credits'>('table');
   const [notice, setNotice] = useState<string | null>(null);
   const me = seatOf(table, 'human');
-  const prizeInfo = prize ? { rarity: prize.rarity as Rarity, name: lang === 'pt' ? prize.name_pt : prize.name_en } : null;
+  const prizeInfo = prize ? { rarity: prize.rarity as Rarity, name: lang === 'pt' ? prize.name_pt : prize.name_en, the: prizeWithArticle(prize, lang) } : null;
   const thermoOn = settings.thermo ?? !!home?.player?.tutorial_done;
 
   useEffect(() => {
@@ -79,6 +80,11 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
   useEffect(() => {
     dir.director.onDrawer(!!menu || quipOpen);
   }, [menu, quipOpen, dir.director]);
+  // Cartão por cima da faixa de fala: a fila espera (a abertura sai depois do "Estrelando…").
+  const covered = ctl.status === 'intro' || !!ctl.interval || (!!ctl.recap && stage === 'table' && !ctl.credits);
+  useEffect(() => {
+    dir.pause(covered);
+  }, [covered, dir]);
 
   // Pré-ações: valem quando a vez chega; "Pagar X" cai se o preço mudou.
   useEffect(() => {
@@ -135,24 +141,41 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table.winners, table.showdown]);
 
-  // Fim: despedida (quem eliminou fala, até 4 s, pulável) e créditos.
+  // Fim: despedida (quem eliminou fala, até 4 s, pulável) e créditos. Roda uma vez
+  // por fim de partida: os créditos ainda mudam depois (quem levou a mesa, título),
+  // e isso não pode reabrir a despedida.
+  const ended = tb.phase === 'ended' && !!ctl.credits && mode !== 'tutorial';
+  const creditsRef = useRef(ctl.credits);
+  creditsRef.current = ctl.credits;
   useEffect(() => {
-    if (tb.phase !== 'ended' || !ctl.credits || stage !== 'table' || mode === 'tutorial') return;
-    if (ctl.credits.reason === 'eliminated') {
+    const c = creditsRef.current;
+    if (!ended || !c) return;
+    let alive = true;
+    if (c.instant) {
+      setStage('credits');
+      return;
+    }
+    if (c.reason === 'eliminated') {
       setStage('farewell');
-      let alive = true;
       const min = new Promise((r) => setTimeout(r, reduced ? 1500 : FAREWELL_MS));
       void Promise.all([min, dir.waitQuiet(6000)]).then(() => alive && setStage((s) => (s === 'farewell' ? 'credits' : s)));
       return () => {
         alive = false;
       };
     }
-    const id = window.setTimeout(() => setStage('credits'), ctl.credits.place === 1 ? 1400 : 300);
+    const id = window.setTimeout(() => setStage('credits'), c.place === 1 ? 1400 : 300);
     return () => window.clearTimeout(id);
-  }, [tb.phase, ctl.credits, stage, mode, reduced]);
+    // Só quando a partida termina (ver acima).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ended]);
   useEffect(() => {
     if (!ctl.credits) setStage('table');
   }, [ctl.credits]);
+  // Créditos na tela: as chaves de história tocadas na partida vão ao servidor.
+  useEffect(() => {
+    if (stage === 'credits') rig.flushStory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
 
   const leave = useCallback(() => {
     dir.director.onMoment?.({ t: 'playerLeaves' });
@@ -224,6 +247,8 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
       <span>{notice}</span>
     ) : thinkingName ? (
       <span>{t('poker.table.isThinking', { who: thinkingName })}</span>
+    ) : training && dir.speech && !training.waitingTap && tb.phase !== 'human' ? (
+      <span>{t('poker.table.tapBalloon')}</span>
     ) : tb.phase === 'ended' ? (
       <span>{t('poker.table.handOver')}</span>
     ) : me?.status === 'folded' ? (
@@ -240,27 +265,14 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
   const quipReady = !training && !table.thinkingId && quipHand !== table.handNumber && me?.status !== 'eliminated' && tb.phase !== 'ended';
   const recapLine = useMemo(() => {
     if (!ctl.recap) return null;
-    const view = tb.getView();
-    if (!view || !dir.director.cardLine) return null;
-    try {
-      return dir.director.cardLine(
-        'recap',
-        {
-          mode, lang, title: home?.title?.id ?? 'figurante', lifetimeMatches: home?.player?.lifetime_matches ?? 0, matchInSession: 1,
-          returning: true, localHour: new Date().getHours(), story: home?.player?.story ?? {}, speed: settings.speed, talk: settings.talk,
-          view, reducedMotion: reduced,
-        },
-        {
-          handNumber: table.handNumber,
-          bb: table.level.bb,
-          stacks: Object.fromEntries(table.seats.filter((s) => s.status !== 'eliminated').map((s) => [s.id, s.stack])),
-          holderId: table.prize?.holderId ?? null,
-          someoneOut: table.seats.some((s) => s.status === 'eliminated'),
-        },
-      );
-    } catch {
-      return null;
-    }
+    return rig.cardLine('recap', {
+      handNumber: table.handNumber,
+      bb: table.level.bb,
+      stacks: Object.fromEntries(table.seats.filter((s) => s.status !== 'eliminated').map((s) => [s.id, s.stack])),
+      holderId: table.prize && !table.prize.captured ? table.prize.holderId : null,
+      someoneOut: table.seats.some((s) => s.status === 'eliminated'),
+    });
+    // Uma fala por cartão: só quando o cartão abre.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctl.recap]);
 
@@ -320,7 +332,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
       {/* Rede (prêmio). */}
       {ctl.status === 'offline' && (
         <div className="pk-overlay" role="alertdialog" aria-modal="true" aria-label={t('poker.net.offline')}>
-          <div className="text-center max-w-[300px] grid gap-3 justify-items-center">
+          <div className="pk-farewell-card w-full">
             <WifiOff className="w-8 h-8" style={{ color: '#FFE8A3' }} />
             <p className="text-[15px]">{t('poker.net.offline')}</p>
             {ctl.retry && <button type="button" className="pk-cta-gold" onClick={ctl.retry}>{t('poker.net.retry')}</button>}
@@ -330,10 +342,16 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
       )}
       {(ctl.status === 'updateRequired' || ctl.status === 'error' || ctl.status === 'unavailable') && (
         <div className="pk-overlay" role="alertdialog" aria-modal="true">
-          <div className="text-center max-w-[300px] grid gap-3 justify-items-center">
+          <div className="pk-farewell-card w-full">
             <p className="pk-display text-[18px]" style={{ color: '#FFE8A3' }}>{t('poker.name')}</p>
             <p className="text-[15px]">
-              {ctl.status === 'updateRequired' ? t('poker.net.update') : ctl.status === 'unavailable' ? t('poker.net.soon') : t('poker.net.error')}
+              {ctl.status === 'updateRequired'
+                ? t('poker.net.update')
+                : ctl.status === 'unavailable'
+                  ? mode === 'bounty'
+                    ? t('poker.net.bountySoon')
+                    : t('poker.net.soon')
+                  : t('poker.net.error')}
             </p>
             <button type="button" className="pk-cta-gold" onClick={() => navigate(BLEFE_ROUTES.lobby)}>{t('poker.table.backToLobby')}</button>
           </div>
@@ -347,10 +365,17 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
 
       {ctl.status === 'intro' && <Starring cardStyle={cardStyle} onDone={ctl.introDone} reduced={reduced} />}
       {ctl.interval && (
-        <IntervalCard pick={ctl.interval} cardStyle={cardStyle} reduced={reduced} onRated={() => ctl.continueAfterInterval(true)} onContinue={() => ctl.continueAfterInterval(false)} />
+        <IntervalCard
+          pick={ctl.interval}
+          line={ctl.intervalLine ?? null}
+          cardStyle={cardStyle}
+          reduced={reduced}
+          onRated={() => ctl.continueAfterInterval(true)}
+          onContinue={() => ctl.continueAfterInterval(false)}
+        />
       )}
       {ctl.recap && stage === 'table' && !ctl.credits && (
-        <RecapCard table={table} tail={ctl.recap} prizeName={prizeInfo?.name ?? null} line={recapLine} lang={lang} reduced={reduced} onClose={ctl.closeRecap} />
+        <RecapCard table={table} tail={ctl.recap} prizeName={prizeInfo?.the ?? null} line={recapLine} lang={lang} reduced={reduced} onClose={ctl.closeRecap} />
       )}
 
       {/* Despedida: a sala escurece e quem eliminou fica sob a luz. */}
@@ -362,7 +387,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
             setStage('credits');
           }}
         >
-          <div className="text-center grid gap-3 justify-items-center">
+          <div className="pk-farewell-card">
             {eliminator && eliminator !== 'human' && (
               <p className="text-[15px]" style={{ color: '#F3EAD3' }}>{t('poker.credits.eliminatedBy', { by: theName(t, eliminator, 'by'), hand: ctl.credits?.eliminatedHand ?? '' })}</p>
             )}
@@ -375,10 +400,9 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
           data={ctl.credits}
           cardStyle={cardStyle}
           reduced={reduced}
-          onRematch={() => {
-            setStage('table');
-            ctl.rematch();
-          }}
+          speech={dir.speech}
+          onSkipSpeech={dir.skip}
+          onRematch={ctl.rematch}
           onScoreboard={() => navigate(BLEFE_ROUTES.scoreboard)}
           onRetry={
             ctl.credits.retry && home?.bounty?.prize
@@ -402,6 +426,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
       {portrait && <CardViewer id={portrait} cardStyle={cardStyle} onClose={() => setPortrait(null)} />}
       {quipOpen && (
         <QuipPicker
+          pack={home?.loadout?.quips}
           alive={alive}
           reduced={reduced}
           onClose={() => setQuipOpen(false)}
@@ -483,9 +508,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
 // ---------------------------------------------------------------------------
 
 export const FreeTable: React.FC<{ home: PokerHome | null; cardStyle: string }> = ({ home, cardStyle }) => {
-  const rig = useRig('free', { story: home?.player?.story, lifetimeMatches: home?.player?.lifetime_matches });
-  rig.extras.current.title = home?.title?.id;
-  rig.extras.current.story = home?.player?.story;
+  const rig = useRig('free', home);
   const ctl = useFreeMatch(rig, home);
   return <TableScreen rig={rig} ctl={ctl} cardStyle={cardStyle} home={home} prize={null} />;
 };
@@ -497,9 +520,7 @@ export const BountyTable: React.FC<{ home: PokerHome | null; cardStyle: string; 
   day,
   prizeId,
 }) => {
-  const rig = useRig('bounty', { story: home?.player?.story, lifetimeMatches: home?.player?.lifetime_matches });
-  rig.extras.current.title = home?.title?.id;
-  rig.extras.current.story = home?.player?.story;
+  const rig = useRig('bounty', home);
   const ctl = useBountyMatch(rig, home, { start, day, prizeId });
   return (
     <>
@@ -526,7 +547,7 @@ const NOOP_CTL: MatchCtl = {
 };
 
 export const TrainingTable: React.FC<{ home: PokerHome | null; cardStyle: string }> = ({ home, cardStyle }) => {
-  const rig = useRig('tutorial', { story: home?.player?.story, lifetimeMatches: home?.player?.lifetime_matches });
+  const rig = useRig('tutorial', home);
   const training = useTraining(rig);
   return <TableScreen rig={rig} ctl={NOOP_CTL} cardStyle={cardStyle} home={home} prize={null} training={training} />;
 };

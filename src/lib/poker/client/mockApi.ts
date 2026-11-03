@@ -112,6 +112,16 @@ function save(db: MockDb) {
 
 const latency = () => new Promise((r) => setTimeout(r, 120 + Math.random() * 220));
 
+// Só na prévia: `poker.mock.edge404 = 1` imita a Edge Function ainda não publicada
+// (404 fora do protocolo), para ver a mesa do prêmio "abrir em breve".
+function edgeMissing(): boolean {
+  try {
+    return window.localStorage.getItem('poker.mock.edge404') === '1';
+  } catch {
+    return false;
+  }
+}
+
 function titleFor(wins: number): TitleId {
   if (wins >= 150) return 'lenda';
   if (wins >= 60) return 'estrela';
@@ -148,12 +158,14 @@ export const mockApi: PokerApiLike = {
     const db = load();
     const day = today();
     const p = prizeOf(day);
-    const owned = db.owned.includes(p.id) && !p.repeatable;
+    // Como o servidor: depois da captura, o lobby mostra o prêmio que a pessoa levou hoje.
+    const owned = db.owned.includes(p.id) && !p.repeatable && !db.wonDay[day];
     const prize = owned ? PRIZES[2] : p;
     const tomorrow = prizeOf(new Date(Date.now() + 86_400_000 - 3 * 3_600_000).toISOString().slice(0, 10));
     const wins = db.free.wins + db.bounty.wins;
     return {
       enabled: POKER_PREVIEW,
+      open: POKER_PREVIEW,
       proto_min: 1,
       bounty: {
         day, ends_at: endsAt(day), prize, is_reserve: false, is_fallback: owned, carrier: owned ? PRIZES[2].carrier : p.carrier,
@@ -231,6 +243,7 @@ export const mockApi: PokerApiLike = {
   bounty: {
     async start(day: string, prizeId: string): Promise<BountyStart> {
       await latency();
+      if (edgeMissing()) throw new PokerClientError(404, 'http_404');
       const db = load();
       if (day !== today()) throw new PokerClientError(409, 'stale_day');
       const p = prizeOf(day);
@@ -313,6 +326,7 @@ export const mockApi: PokerApiLike = {
 
     async resume(matchId?: string): Promise<BountyResume> {
       await latency();
+      if (edgeMissing()) throw new PokerClientError(404, 'http_404');
       const db = load();
       const m = db.active;
       if (!m || (matchId && m.id !== matchId)) throw new PokerClientError(404, 'none');

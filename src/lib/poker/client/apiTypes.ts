@@ -47,6 +47,8 @@ export interface PokerModeStats {
 
 export interface PokerHome {
   enabled: boolean;
+  /** Liberado para esta conta (is_open ou tester); fechado, o salão mostra "Em breve". */
+  open?: boolean;
   proto_min?: number;
   settings?: Partial<{
     start_stack: number;
@@ -129,6 +131,7 @@ export interface IntervalPick {
   media_type: 'movie' | 'tv';
   title: string;
   title_pt?: string | null;
+  title_en?: string | null;
   poster_path: string | null;
   oracle: RivalId;
 }

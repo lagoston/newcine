@@ -265,8 +265,9 @@ const ActionBar = forwardRef<ActionBarHandle, ActionBarProps>(function ActionBar
   if (!legal) {
     const inHand = !!me && me.hasCards && me.status === 'active' && table.handNumber > 0 && phase !== 'ended' && !table.showdown;
     const toCall = humanToCall(table);
+    // "Passar/Desistir" quebra na barra quando não cabe (360 px).
     const pres: { p: PreAction; label: React.ReactNode }[] = [
-      { p: { kind: 'checkFold' }, label: t('poker.actions.preCheckFold') },
+      { p: { kind: 'checkFold' }, label: t('poker.actions.preCheckFold').replace('/', '/\u200b') },
       toCall > 0
         ? { p: { kind: 'call', amount: toCall }, label: t('poker.actions.preCall', { amount: n(toCall) }) }
         : { p: { kind: 'call', amount: 0 }, label: t('poker.actions.check') },
@@ -291,7 +292,7 @@ const ActionBar = forwardRef<ActionBarHandle, ActionBarProps>(function ActionBar
               onClick={() => setPre(same(pre, p) ? null : p)}
             >
               <span className="pk-check" aria-hidden>{same(pre, p) && <Check className="w-3 h-3" strokeWidth={3} />}</span>
-              <span>{label}</span>
+              <span className="pk-pre-label">{label}</span>
             </button>
           ))}
         </div>

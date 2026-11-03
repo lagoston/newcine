@@ -68,7 +68,7 @@ const RecapCard: React.FC<{
                 <span className="block h-full rounded-full" style={{ width: `${(s.stack / max) * 100}%`, background: s.status === 'eliminated' ? '#6b6680' : ORACLE_COLOR[s.id] }} />
               </span>
               <span className="pk-num text-[12.5px] text-right" style={{ color: '#F3EAD3' }}>
-                {s.status === 'eliminated' ? t('poker.table.out', { place: s.place ?? '' }) : fmt(s.stack, lang)}
+                {s.status === 'eliminated' ? t('poker.table.out', s.place ? { place: s.place, count: s.place, ordinal: true } : { place: '' }) : fmt(s.stack, lang)}
               </span>
             </li>
           ))}

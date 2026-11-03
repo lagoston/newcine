@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { ChipFace } from '../../posterJackpot/Chips';
 import { BLEFE_ROUTES } from '../jackpot/pokerMeta';
+import { displayFont } from '../../../lib/poker/client/format';
 
 // Fim do treino (§7.8): "Pronto. +1 ficha." e o caminho direto para o prêmio de
 // hoje. A ficha é dada uma vez por pessoa (o servidor decide; refazer não dá outra).
@@ -27,7 +28,8 @@ const TrainingDone: React.FC<{ granted: boolean | null }> = ({ granted }) => {
             <ChipFace className="w-16 h-16" />
           </motion.span>
         )}
-        <p className="pk-display text-[22px] font-bold" style={{ color: '#FFE8A3' }}>
+        {/* "+1 ficha" tem número: nada de Cinzel (§7.12). */}
+        <p className={`${displayFont(granted === false ? t('poker.tutorial.doneNoChip') : t('poker.tutorial.done'))} text-[22px] font-bold`} style={{ color: '#FFE8A3' }}>
           {granted === false ? t('poker.tutorial.doneNoChip') : t('poker.tutorial.done')}
         </p>
         <button type="button" className="pk-cta-gold" onClick={() => navigate(BLEFE_ROUTES.lobby)} autoFocus>

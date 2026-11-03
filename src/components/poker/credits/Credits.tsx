@@ -10,19 +10,23 @@ import { playReveal } from '../../../lib/jackpotSound';
 import type { RivalId } from '../../../lib/poker/types';
 import type { CreditsData } from '../../../lib/poker/client/creditsData';
 import { cardArt, ORACLE_COLOR } from '../../../lib/poker/client/cosmetics';
-import { describeHand, fmt, langOf } from '../../../lib/poker/client/format';
+import { describeHand, displayFont, fmt, langOf } from '../../../lib/poker/client/format';
 import { theName } from '../../../lib/poker/client/narrate';
 import PlayingCard from '../cards/PlayingCard';
 import PrizeArt from '../jackpot/PrizeArt';
 import { MARKS } from '../jackpot/pokerMeta';
 import { equipPokerMark } from '../jackpot/entryApi';
 import { prizeAction } from '../prizes/registry';
+import type { SpeechItem } from '../../../lib/poker/client/useDirector';
+import SpeechBand from '../table/SpeechBand';
 
 // Os créditos (SPEC §7.6). Derrota: corte de película queimada e o letreiro FIM.
 // Vitória: as luzes acendem e os três aplaudem em preto e branco. As linhas sobem
 // por 6 s e ficam paradas (com "reduzir movimento", já paradas). Botões presos
 // embaixo. Com o prêmio capturado, a cerimônia: a arte, "{{prize}} é seu!" e
-// [Usar agora], com o carrilhão do Jackpot.
+// [Usar agora], com o carrilhão do Jackpot. Os oráculos continuam falando por
+// cima (quem levou a mesa, o título novo, a Revanche): a faixa de fala desce
+// para baixo do letreiro.
 
 export type { CreditsData };
 
@@ -36,7 +40,9 @@ const Credits: React.FC<{
   onScoreboard: () => void;
   onRetry: (() => void) | null;
   onLobby: () => void;
-}> = ({ data, cardStyle, reduced, onRematch, onScoreboard, onRetry, onLobby }) => {
+  speech?: SpeechItem | null;
+  onSkipSpeech?: () => void;
+}> = ({ data, cardStyle, reduced, onRematch, onScoreboard, onRetry, onLobby, speech = null, onSkipSpeech }) => {
   const { t, i18n } = useTranslation();
   const lang = langOf(i18n.language);
   const navigate = useNavigate();
@@ -71,8 +77,9 @@ const Credits: React.FC<{
 
   const lines: React.ReactNode[] = [];
   lines.push(
-    <p key="place" className="pk-display text-[26px] font-bold" style={{ color: win ? '#FFE8A3' : '#F3EAD3' }}>
-      {t('poker.credits.place', { place: data.place })}
+    // Cinzel nunca em números (o "1" vira "I"): a colocação vai em sans.
+    <p key="place" className="pk-credit-place" style={{ color: win ? '#FFE8A3' : '#F3EAD3' }}>
+      {t('poker.credits.place', { place: data.place, count: data.place, ordinal: true })}
     </p>,
   );
   if (data.reason === 'eliminated' && data.eliminatedBy)
@@ -156,7 +163,7 @@ const Credits: React.FC<{
                 key={id}
                 src={cardArt(id, cardStyle)}
                 alt=""
-                className="w-[64px] rounded-[6px]"
+                className="pk-clap rounded-[6px]"
                 style={{ filter: 'grayscale(1) contrast(1.1)', boxShadow: '0 0 0 1px rgba(255,255,255,0.25)' }}
                 animate={reduced ? undefined : { y: [0, -5, 0, -5, 0], rotate: [0, -2, 0, 2, 0] }}
                 transition={{ duration: 1.2, delay: 0.4 + i * 0.15, repeat: 2 }}
@@ -174,20 +181,25 @@ const Credits: React.FC<{
           </motion.p>
         )}
 
+        {/* A faixa de fala dos créditos (reservada: o texto que sobe não pula). */}
+        <div className="pk-credits-speech">
+          <SpeechBand speech={speech} onSkip={onSkipSpeech ?? (() => {})} reduced={reduced} />
+        </div>
+
         {/* Cerimônia do prêmio. */}
         {data.captured && data.prize && (
           <motion.div
-            className="mx-auto my-4 max-w-[260px] grid justify-items-center gap-3"
+            className="mx-auto my-3 max-w-[260px] grid justify-items-center gap-2.5"
             initial={reduced ? false : { opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.5 }}
           >
             <PrizeArt
               prize={{ kind: data.prize.kind, image: data.prize.image ?? null, payload: data.prize.payload ?? {}, rarity: data.prize.rarity }}
-              className="w-[150px]"
+              className="pk-ceremony-art"
               animated={!reduced}
             />
-            <p className="pk-display text-[20px] font-bold" style={{ color: '#FFE8A3' }}>{t('poker.credits.prizeYours', { prize: prizeName })}</p>
+            <p className={`${displayFont(prizeName)} text-[20px] font-bold`} style={{ color: '#FFE8A3' }}>{t('poker.credits.prizeYours', { prize: prizeName })}</p>
             <p className="text-[12.5px]" style={{ color: '#c9c2e0' }}>{t(`poker.rarity.${data.prize.rarity}`)}</p>
             {use && (
               <button type="button" className="pk-cta-gold" disabled={busy === 'use' || done.use} onClick={() => run('use', use)}>

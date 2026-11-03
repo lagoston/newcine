@@ -9,7 +9,7 @@ import { seatOf } from '../../../lib/poker/client/display';
 import type { Banner, TablePhase } from '../../../lib/poker/client/useTable';
 import type { SpeechItem } from '../../../lib/poker/client/useDirector';
 import type { PokerSettingsLocal } from '../../../lib/poker/client/settings';
-import { fmt, whatYouHave, type Lang } from '../../../lib/poker/client/format';
+import { displayFont, fmt, whatYouHave, type Lang } from '../../../lib/poker/client/format';
 import { blindsText } from '../../../lib/poker/client/narrate';
 import { pokerCosmetics } from '../cosmetics/looks';
 import OracleSeat from '../acting/OracleSeat';
@@ -279,6 +279,7 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
                     fourColor={settings.fourColor}
                     deal={!reduced}
                     delay={i * 0.09}
+                    rotate={i === 0 ? -4 : 4}
                     best={showdownDim && best!.includes(c)}
                     dimmed={showdownDim && !best!.includes(c)}
                   />
@@ -347,6 +348,8 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
             <motion.div
               key={p.banner.id}
               className="pk-banner"
+              // O centramento vai pelo framer (x/y), senão o scale apaga o translate do CSS.
+              style={{ x: '-50%', y: '-50%' }}
               initial={{ opacity: 0, scale: reduced ? 1 : 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
@@ -365,7 +368,7 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
               )}
               {p.banner.kind === 'prize' && (
                 <>
-                  <div className="pk-banner-title pk-display" style={{ fontSize: 19 }}>{t('poker.credits.prizeYours', { prize: p.prize?.name ?? '' })}</div>
+                  <div className={`pk-banner-title ${displayFont(p.prize?.name ?? '')}`} style={{ fontSize: 19 }}>{t('poker.credits.prizeYours', { prize: p.prize?.name ?? '' })}</div>
                   <div className="pk-banner-sub">{t('poker.table.prizeKept')}</div>
                 </>
               )}

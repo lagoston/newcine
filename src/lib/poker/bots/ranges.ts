@@ -156,6 +156,16 @@ export function boardInfo(board: readonly Card[]): BoardInfo {
 // Faixas por oponente
 // ---------------------------------------------------------------------------
 
+/**
+ * Quanto uma aposta/aumento estreita a faixa (calibração A3, 03/11/2026). O §3.5 manda
+ * cortar 40% (estática) e usar L[aposta] cheio (bayes); com isso os bots largavam demais
+ * para quem aposta sempre (o maniac vencia 23%) e quase nunca pagavam o valor de quem
+ * joga direito (o médio perdia fichas). Os bots agora acreditam pouco em aposta: pagam
+ * demais — o vazamento que o TAG explora apostando valor e que é o certo contra o maniac.
+ */
+const STATIC_BET_CUT = 0.15;
+const BAYES_BET_WEIGHT = 0.5;
+
 /** L[ação][bucket] do §3.5 (ordem de BUCKETS). */
 const L_AGGR = [1.0, 0.9, 0.5, 0.25, 0.6, 0.35];
 const L_CALL = [0.6, 0.9, 1.0, 0.6, 0.9, 0.15];
@@ -218,7 +228,7 @@ export function rangeFor(oppId: PlayerId, v: BotView, model: RangeModel, ctx: Ra
       let mass = 0;
       for (let k = 0; k < N_COMBOS; k++) if (w[k] > 0 && info.score[k] >= 0) { live.push(k); mass += w[k]; }
       live.sort((x, y) => info.score[x] - info.score[y]);
-      let cut = 0.4 * mass;
+      let cut = STATIC_BET_CUT * mass;
       for (const k of live) {
         if (cut <= 0) break;
         cut -= w[k];
@@ -227,6 +237,7 @@ export function rangeFor(oppId: PlayerId, v: BotView, model: RangeModel, ctx: Ra
     } else {
       const L = aggr ? L_AGGR.slice() : a.type === 'call' ? L_CALL.slice() : L_CHECK;
       if (aggr && ctx.labels?.has('blefador')) L[5] = 0.70;
+      if (aggr) for (let i = 0; i < L.length; i++) L[i] = 1 - (1 - L[i]) * BAYES_BET_WEIGHT;
       if (aggr && ctx.aggrWeight !== undefined && ctx.aggrWeight < 1) {
         const k = ctx.aggrWeight;
         for (let i = 0; i < L.length; i++) L[i] = 1 - (1 - L[i]) * k;

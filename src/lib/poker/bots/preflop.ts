@@ -40,6 +40,24 @@ function bluffBandFreq(P: EffProfile, tb: number, valueTop: number, entry: numbe
   return Math.min(1, base * (suitedAce ? 2.5 : 0.8));
 }
 
+/** Raposo: quanto alargar contra um re-aumento de quem aumenta demais (1 = nada). */
+function reraiseWiden(ctx: BotCtx, f: Features): number {
+  if (!ctx.model || !f.aggressorId) return 1;
+  return Math.max(1, Math.min(4, ctx.model.quick(f.aggressorId).pfr / 0.2));
+}
+
+/**
+ * Diante de 3-bet/4-bet que já compromete o cacife (pagar deixaria menos de um pote
+ * atrás), a decisão vira a de um all-in: equidade contra a faixa de quem re-aumentou.
+ * Pagar e largar no flop seria o pior dos dois mundos (A3, 03/11/2026).
+ */
+function commit(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, ranked: PlayerAction[]): PlayerAction[] {
+  const behind = v.stack - v.toCall;
+  if (behind > v.pot + v.toCall || ranked[0] !== FOLD || !v.legal.allIn) return ranked;
+  const r = callAllInRanked(v, { ...f, facingAllIn: true }, P, ctx, false);
+  return r.ranked[0] === CALL ? [ALLIN, FOLD] : ranked;
+}
+
 export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ranked {
   if (f.facingAllIn) return callAllInRanked(v, f, P, ctx);
   const pct = preflopPct(v.hole) - P.mods.vpipDelta;
@@ -75,7 +93,7 @@ export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ra
     }
     case 'opened': {
       // Raposo: contra quem abre demais (PFR alto no modelo), 3-bet e defesa mais largos.
-      const widen = ctx.model && f.openerId ? Math.max(1, Math.min(2.5, ctx.model.rates(f.openerId).pfr / 0.22)) : 1;
+      const widen = ctx.model && f.openerId ? Math.max(1, Math.min(2.5, ctx.model.quick(f.openerId).pfr / 0.22)) : 1;
       const tb = (P.preflop.threeBetPct + P.mods.pfrDelta * 0.5) * widen;
       const valueTop = tb * (1 - P.preflop.threeBetBluffShare);
       if (pct <= valueTop) {
@@ -91,7 +109,7 @@ export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ra
         let fold = P.preflop.foldBBvsSteal;
         if (ctx.model && f.openerId) {
           // Raposo: defende mais contra quem rouba muito, menos contra quem só abre forte (±0,10).
-          const pfr = ctx.model.rates(f.openerId).pfr;
+          const pfr = ctx.model.quick(f.openerId).pfr;
           const adj = Math.max(-P.model.foldBBvsSteal, Math.min(P.model.foldBBvsSteal, (0.18 - pfr) * 0.5));
           fold += adj;
         }
@@ -102,14 +120,19 @@ export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ra
     }
     case 'threeBet': {
       const mine = f.iOpened ? entry : P.preflop.callOpenPct;
-      if (pct <= 4) ranked = [P.id === 'bogart' ? CALL : raiseTo(currentLevel(v) * 2.3), CALL];
-      else ranked = pct <= mine * (1 - P.preflop.foldTo3bet) ? [CALL, FOLD] : [FOLD, CALL];
+      // Raposo: contra quem re-aumenta demais (PFR alto no modelo), continua mais largo (A3).
+      const w3 = reraiseWiden(ctx, f);
+      if (pct <= 4 * w3) ranked = [P.id === 'bogart' ? CALL : raiseTo(currentLevel(v) * 2.3), CALL];
+      else ranked = pct <= mine * (1 - P.preflop.foldTo3bet) * w3 ? [CALL, FOLD] : [FOLD, CALL];
+      ranked = commit(v, f, P, ctx, ranked);
       break;
     }
     default: {
       const mine = f.iOpened ? entry : P.preflop.callOpenPct;
-      if (pct <= 2.5) ranked = [ALLIN, CALL];
-      else ranked = pct <= mine * (1 - P.preflop.foldTo4bet) ? [CALL, FOLD] : [FOLD, CALL];
+      const w4 = reraiseWiden(ctx, f);
+      if (pct <= 2.5 * w4) ranked = [ALLIN, CALL];
+      else ranked = pct <= mine * (1 - P.preflop.foldTo4bet) * w4 ? [CALL, FOLD] : [FOLD, CALL];
+      ranked = commit(v, f, P, ctx, ranked);
     }
   }
   return { ranked, eq: null };

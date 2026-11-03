@@ -59,3 +59,19 @@ export function buildConfig(opts: {
     memory: opts.memory ?? null,
   };
 }
+
+/**
+ * O que o Raposo lembra da pessoa (memória da livre), em três traços que o Diretor
+ * usa na abertura (variante `memoria`). Só com amostra mínima, para não "ler" quem
+ * jogou duas mãos. 03/11/2026: limiares do pacote D1, conservadores.
+ */
+export function memoryFlags(model: Record<PlayerId, OppCounters> | null | undefined): { riverBluffHigh?: boolean; foldsMuch?: boolean; callsMuch?: boolean } | undefined {
+  const h = model?.human;
+  if (!h || !h.raw) return undefined;
+  const out: { riverBluffHigh?: boolean; foldsMuch?: boolean; callsMuch?: boolean } = {};
+  if (h.raw.riverBetsShown >= 3 && h.riverBetsShown > 0 && h.riverBluffsShown / h.riverBetsShown >= 0.4) out.riverBluffHigh = true;
+  if (h.raw.cbetFaced >= 5 && h.nCbetFaced > 0 && h.foldToCbet / h.nCbetFaced >= 0.65) out.foldsMuch = true;
+  const post = h.postBets + h.postCalls;
+  if (h.raw.hands >= 20 && post > 0 && h.postCalls / post >= 0.65 && h.hands > 0 && h.vpip / h.hands >= 0.45) out.callsMuch = true;
+  return Object.keys(out).length ? out : undefined;
+}

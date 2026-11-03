@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, HelpCircle, Loader2 } from 'lucide-react';
 import { ChipFace } from '../../posterJackpot/Chips';
 import { loadJackpotFont, type PokerTeaserPrize } from '../../../lib/posterJackpot';
 import type { PokerHome, PokerPrize } from '../../../lib/poker/client/apiTypes';
-import { pokerApi, usingMockApi } from '../../../lib/poker/client/api';
+import { pokerApi } from '../../../lib/poker/client/api';
 import { cardArt } from '../../../lib/poker/client/cosmetics';
 import { savedFreeHand } from '../../../lib/poker/client/freeStore';
 import { fmt, langOf, timeLeft } from '../../../lib/poker/client/format';
@@ -18,6 +18,8 @@ import { BLEFE_ROUTES } from '../jackpot/pokerMeta';
 import { CardBack, FeltSwatch } from '../cosmetics/CosmeticPreviews';
 import { Sheet } from '../table/Overlays';
 import HandRanking from '../cards/HandRanking';
+import { prizeAction } from '../prizes/registry';
+import { useAuth } from '../../../lib/auth';
 import '../../../styles/posterJackpot.css';
 import '../../../styles/poker.css';
 
@@ -49,10 +51,13 @@ const Lobby: React.FC<{ home: PokerHome; cardStyle: string; offline: boolean }> 
   const location = useLocation();
   const reduce = useReducedMotion();
   const [now, setNow] = useState(() => Date.now());
-  const [age, setAge] = useState(false);
+  // A folha 18+ e para onde ela leva depois de confirmar.
+  const [age, setAge] = useState<string | null>(null);
   const [sheet, setSheet] = useState<null | 'deck' | 'table' | 'how'>(null);
   const [loadout, setLoadout] = useState(home.loadout ?? { deck: 'deck-classico', table: 'table-feltro-verde', quips: 'quips-padrao' });
   const [equipping, setEquipping] = useState<string | null>(null);
+  const { session } = useAuth();
+  const [using, setUsing] = useState<'idle' | 'busy' | 'done'>('idle');
   const b = home.bounty ?? null;
   const freeHand = savedFreeHand();
   const firstVisit = !home.player?.tutorial_done && (home.player?.lifetime_matches ?? 0) === 0;
@@ -81,15 +86,16 @@ const Lobby: React.FC<{ home: PokerHome; cardStyle: string; offline: boolean }> 
       return;
     }
     if (!home.player?.age_confirmed) {
-      // Sem o pokerApi (prévia), a confirmação vai para o mock; com ele, a folha 18+ do D2.
-      if (usingMockApi) {
-        void pokerApi.confirmAge().then(() => navigate(BLEFE_ROUTES.bounty(b.day, b.prize.id)));
-        return;
-      }
-      setAge(true);
+      setAge(BLEFE_ROUTES.bounty(b.day, b.prize.id));
       return;
     }
     navigate(BLEFE_ROUTES.bounty(b.day, b.prize.id));
+  };
+
+  // Com casino_age_gate ligado no servidor, a folha vem antes de qualquer partida (§7.8).
+  const goFree = () => {
+    if (home.player?.age_gate_all && !home.player.age_confirmed) setAge(BLEFE_ROUTES.free);
+    else navigate(BLEFE_ROUTES.free);
   };
 
   const equip = async (slot: 'deck' | 'table', id: string) => {
@@ -119,10 +125,33 @@ const Lobby: React.FC<{ home: PokerHome; cardStyle: string; offline: boolean }> 
     let cta: React.ReactNode;
     let foot: React.ReactNode = null;
     if (b.won_today) {
+      // "É seu!" + [Usar agora] (§7.2); sem ação para o tipo, o placar com os prêmios.
+      const use = prizeAction(b.prize, { userId: session?.user?.id ?? null, navigate });
       cta = (
         <div className="grid gap-2">
           <p className="pk-display text-[20px] font-bold text-center" style={{ color: '#FFE8A3' }}>{t('poker.lobby.won')}</p>
-          <button type="button" className="pk-cta-gold" onClick={() => navigate(BLEFE_ROUTES.scoreboard)}>{t('poker.lobby.seeTrophies')}</button>
+          {use && (
+            <button
+              type="button"
+              className="pk-cta-gold"
+              disabled={using !== 'idle'}
+              onClick={async () => {
+                setUsing('busy');
+                try {
+                  await use();
+                  setUsing('done');
+                  toast.success(t('poker.credits.equipped'));
+                  invalidatePokerHome();
+                } catch {
+                  setUsing('idle');
+                  toast.error(t('poker.credits.equipFailed'));
+                }
+              }}
+            >
+              {using === 'busy' ? <Loader2 className="w-5 h-5 animate-spin" /> : using === 'done' ? t('poker.credits.equippedShort') : t('poker.lobby.useNow')}
+            </button>
+          )}
+          <button type="button" className={use ? 'pk-cta-ghost' : 'pk-cta-gold'} onClick={() => navigate(BLEFE_ROUTES.scoreboard)}>{t('poker.lobby.seeTrophies')}</button>
         </div>
       );
       foot = tomorrow;
@@ -163,7 +192,7 @@ const Lobby: React.FC<{ home: PokerHome; cardStyle: string; offline: boolean }> 
     }
     return (
       <PrizeCard prize={toTeaserPrize(b.prize)} carrier={b.carrier} stars={b.stars} status={status} headingId="pk-prize-h">
-        {(b.is_reserve || b.is_fallback) && <p className="text-[12.5px] mb-2" style={{ color: '#F6DCE2' }}>{t('poker.lobby.reserve')}</p>}
+        {(b.is_reserve || b.is_fallback) && !b.won_today && <p className="text-[12.5px] mb-2" style={{ color: '#F6DCE2' }}>{t('poker.lobby.reserve')}</p>}
         {b.loan_next && !b.won_today && <p className="text-[12.5px] mb-2" style={{ color: '#C8F0B0' }}>{t('poker.lobby.loanNext')}</p>}
         {cta}
         {foot && <p className="mt-2 text-center text-[12.5px]" style={{ color: '#F6DCE2' }}>{foot}</p>}
@@ -211,14 +240,14 @@ const Lobby: React.FC<{ home: PokerHome; cardStyle: string; offline: boolean }> 
             />
           ))}
         </div>
-        <p className="text-center mt-3 text-[13px]" style={{ color: '#D4CBE8' }}>
+        <p className="text-center mt-6 text-[13px]" style={{ color: '#D4CBE8' }}>
           {t('poker.lobby.yourTitle')} <b style={{ color: '#FFE8A3' }}>{t(`poker.titles.${home.title?.id ?? 'figurante'}`)}</b>
         </p>
 
         {firstVisit && (
           <div className="grid grid-cols-2 gap-2 mt-4">
             <button type="button" className="pk-cta-paper" onClick={() => navigate('/blefe/treino')}>{t('poker.lobby.teachMe')}</button>
-            <button type="button" className="pk-cta-ghost" style={{ minHeight: 48 }} onClick={() => navigate(BLEFE_ROUTES.free)}>{t('poker.lobby.iKnow')}</button>
+            <button type="button" className="pk-cta-ghost" style={{ minHeight: 48 }} onClick={goFree}>{t('poker.lobby.iKnow')}</button>
           </div>
         )}
 
@@ -229,7 +258,7 @@ const Lobby: React.FC<{ home: PokerHome; cardStyle: string; offline: boolean }> 
           <section className="pk-felt-panel" aria-labelledby="pk-free-h">
             <h2 id="pk-free-h" className="text-[17px] font-bold" style={{ color: '#F3EAD3' }}>{t('poker.lobby.freeTitle')}</h2>
             <p className="text-[13.5px] mt-0.5 mb-3" style={{ color: '#D9F2E4' }}>{t('poker.lobby.freeBody')}</p>
-            <button type="button" className="pk-cta-paper" onClick={() => navigate(BLEFE_ROUTES.free)}>
+            <button type="button" className="pk-cta-paper" onClick={goFree}>
               {freeHand ? t('poker.lobby.continue', { hand: freeHand }) : t('poker.lobby.playFree')}
             </button>
           </section>
@@ -302,12 +331,13 @@ const Lobby: React.FC<{ home: PokerHome; cardStyle: string; offline: boolean }> 
         </div>
       )}
       <AgeGate
-        open={age}
-        onClose={() => setAge(false)}
+        open={!!age}
+        onClose={() => setAge(null)}
         onConfirmed={() => {
-          setAge(false);
+          const to = age;
+          setAge(null);
           invalidatePokerHome();
-          if (b) navigate(BLEFE_ROUTES.bounty(b.day, b.prize.id));
+          if (to) navigate(to);
         }}
       />
     </main>

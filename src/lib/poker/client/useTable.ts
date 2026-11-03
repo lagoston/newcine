@@ -106,6 +106,8 @@ export interface UseTable {
   getTable: () => TableShow;
   /** Algo ainda na fila ou sendo projetado. */
   busy: () => boolean;
+  /** Resolve quando a fila esvazia e a mesa terminou de projetar o último lote. */
+  whenIdle: () => Promise<void>;
 }
 
 export function useTable(opts: UseTableOptions): UseTable {
@@ -126,6 +128,7 @@ export function useTable(opts: UseTableOptions): UseTable {
   const logNo = useRef(0);
   const optsRef = useRef(opts);
   optsRef.current = opts;
+  const idleWaiters = useRef<(() => void)[]>([]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -353,7 +356,8 @@ export function useTable(opts: UseTableOptions): UseTable {
       }
       settle();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const waiters = idleWaiters.current.splice(0);
+    waiters.forEach((w) => w());
   }, [commit, playEvent, settle]);
 
   const enqueue = useCallback(
@@ -456,5 +460,9 @@ export function useTable(opts: UseTableOptions): UseTable {
     getView: () => lastViewRef.current,
     getTable: () => tableRef.current,
     busy: () => runningRef.current || queueRef.current.length > 0,
+    whenIdle: () =>
+      runningRef.current || queueRef.current.length > 0
+        ? new Promise<void>((resolve) => idleWaiters.current.push(resolve))
+        : Promise.resolve(),
   };
 }

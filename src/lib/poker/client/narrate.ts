@@ -19,6 +19,12 @@ export function theName(t: TFunction, id: PlayerId | null | undefined, form: 'th
   return t(`poker.oracles.${id}.${form}`, { defaultValue: whoName(t, id) });
 }
 
+export function blindsText(t: TFunction, lang: Lang, sb: number, bb: number, ante: number): string {
+  return ante > 0
+    ? t('poker.table.blindsAnte', { sb: fmt(sb, lang), bb: fmt(bb, lang), ante: fmt(ante, lang) })
+    : t('poker.table.blinds', { sb: fmt(sb, lang), bb: fmt(bb, lang) });
+}
+
 /** Frase de um evento, ou null quando ele não merece ser lido. */
 export function narrate(t: TFunction, lang: Lang, e: PublicEvent, table: TableShow): string | null {
   const n = (x: number) => fmt(x, lang);
@@ -64,11 +70,6 @@ export function narrate(t: TFunction, lang: Lang, e: PublicEvent, table: TableSh
   }
 }
 
-export function blindsText(t: TFunction, lang: Lang, sb: number, bb: number, ante: number): string {
-  return ante > 0
-    ? t('poker.table.blindsAnte', { sb: fmt(sb, lang), bb: fmt(bb, lang), ante: fmt(ante, lang) })
-    : t('poker.table.blinds', { sb: fmt(sb, lang), bb: fmt(bb, lang) });
-}
 
 /** A mesa inteira em uma frase (tecla T, §7.10). */
 export function readTable(t: TFunction, lang: Lang, table: TableShow): string {

@@ -91,9 +91,9 @@ function betOrCheck(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, b: Hand
 /** Quanto uma aposta daquele oponente informa: AF alto (com amostra) = aposta vale menos. */
 function aggrWeightOf(ctx: BotCtx, id: string): number {
   const c = ctx.model?.counters(id);
-  if (!ctx.model || !c || c.raw.hands < 3) return 1;
+  if (!ctx.model || !c || c.raw.hands < 2) return 1;
   // AF alto ou aumento demais antes do flop (este sobe já nas primeiras mãos): aposta vale menos.
-  const r = ctx.model.rates(id);
+  const r = ctx.model.quick(id);
   return Math.max(0.15, Math.min(1, 1.5 / Math.max(0.1, r.af), 0.22 / Math.max(0.01, r.pfr)));
 }
 
@@ -105,8 +105,8 @@ function marginAdj(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): number 
     const c = ctx.model.counters(f.aggressorId);
     if (v.street === 'river' && c && c.raw.riverBetsShown >= 3 && ctx.model.rates(f.aggressorId).riverBluff < 0.15) adj += 0.10;
     // Contra quem agride muito (AF > 2,5 com amostra), paga mais leve em qualquer rua.
-    if (c && c.raw.hands >= 3) {
-      const r = ctx.model.rates(f.aggressorId);
+    if (c && c.raw.hands >= 2) {
+      const r = ctx.model.quick(f.aggressorId);
       if (r.af > 2.5) adj -= Math.min(0.10, 0.04 * (r.af - 1.5));
       if (r.pfr > 0.3) adj -= Math.min(0.08, 0.2 * (r.pfr - 0.3));
     }
@@ -119,6 +119,9 @@ function marginAdj(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): number 
   if (ctx.isCarrier && f.facingAllIn) m += P.bounty.carrier.allInMarginPP / 100;
   return m;
 }
+
+/** Folga de equidade a partir da qual pagar é óbvio (sem segunda opção para o ε). */
+const CLEAR_CALL = 0.08;
 
 function facingBet(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, eq: number, b: HandBucket, pairPlus: boolean): PlayerAction[] {
   const odds = v.toCall / (v.pot + v.toCall);
@@ -139,14 +142,16 @@ function facingBet(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, eq: numb
       && !(ctx.model?.has(f.aggressorId, 'blefador') ?? false) && r() < 0.70) return [FOLD, CALL];   // falha planejada
   if (eq >= need) {
     if (P.id === 'bogart' && pairPlus) ctx.mem.committed = true;   // "já investi": dor = 0, margem −8
-    return [CALL, FOLD];
+    // Pagar com folga não tem "erro plausível" de largar (A3): o ε vira pagamento curioso
+    // e valor perdido, nunca largar a mão boa — largar era o que o maniac explorava.
+    return eq >= need + CLEAR_CALL ? [CALL] : [CALL, FOLD];
   }
   return [FOLD, CALL];
 }
 
 export function postflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, b: HandBucket, monster: boolean, pairPlus: boolean): Ranked {
   const ranges: (WeightedRange | null)[] = f.opponents.map((o) => rangeFor(o, v, P.rangeModel, ctx.model
-    ? { rates: ctx.model.rates(o), labels: ctx.model.labels(o), aggrWeight: aggrWeightOf(ctx, o) }
+    ? { rates: ctx.model.quick(o), labels: ctx.model.labels(o), aggrWeight: aggrWeightOf(ctx, o) }
     : {}));
   const iters = P.iters[v.street === 'preflop' ? 'flop' : v.street];
   const opponents = Math.max(1, f.opponents.length);

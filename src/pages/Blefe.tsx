@@ -18,7 +18,8 @@ import Scoreboard from '../components/poker/scoreboard/Scoreboard';
 //   /blefe/treino   as 3 mãos de treino
 //   /blefe/placar   placar (pacote D2)
 // Só abre quando o servidor diz que o poker está liberado para a conta
-// (get_poker_home().enabled); senão, "Em breve".
+// (get_poker_home(): enabled e open); senão, "Em breve". 03/11/2026: fechado
+// para todos menos os testers.
 
 function useCardStyle(): string {
   const { session } = useAuth();
@@ -72,7 +73,7 @@ const Blefe: React.FC = () => {
   }, [location.pathname, refresh]);
 
   if (loading && !home) return <GlassLoader fullPage size="lg" label={t('common.loading')} />;
-  if (!home || !home.enabled) return <ComingSoon />;
+  if (!home || !home.enabled || home.open === false) return <ComingSoon />;
 
   return (
     <Routes>

@@ -17,6 +17,8 @@ import { PokerClientError } from './apiTypes.ts';
 import { pokerApi } from './api.ts';
 import type { CreditsData } from './creditsData.ts';
 import { uuid } from './freeStore.ts';
+// O Diretor recebe o nome do prêmio já com artigo ("o Baralho Noir" / "the Noir Deck").
+import { prizeWithArticle } from './format.ts';
 import { invalidatePokerHome } from './usePokerHome.ts';
 import { recordMatchEnd, touchSession } from './session.ts';
 import type { Rig } from './useRig.ts';
@@ -32,11 +34,24 @@ export interface BountyCtl extends MatchCtl {
 
 const BACKOFF = [500, 1000, 2000];
 
-/** "o Baralho Noir" / "the Noir Deck": o Diretor recebe o nome já com artigo. */
-function prizeWithArticle(p: PokerPrize, lang: 'pt' | 'en'): string {
-  if (lang === 'en') return `the ${p.name_en}`;
-  return p.article_pt ? `${p.article_pt} ${p.name_pt}` : p.name_pt;
+// 404 que não é do protocolo (a Edge Function ainda não foi publicada): a mesa
+// do prêmio "abre em breve", sem quebrar. O protocolo usa 404 só com 'none' e
+// 'not_found' (§4.7).
+const PROTOCOL_404 = ['none', 'not_found'];
+const edgeMissing = (err: PokerClientError | undefined) => err?.status === 404 && !PROTOCOL_404.includes(err.code);
+
+// Falha de rede ao abrir a mesa: se o banco responde, quem não responde é a
+// Edge (sem CORS quando a função não existe) e a mesa do prêmio fica para depois.
+async function edgeDown(): Promise<boolean> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+  try {
+    await pokerApi.getHome();
+    return true;
+  } catch {
+    return false;
+  }
 }
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface Tracker {
@@ -79,9 +94,11 @@ export function useBountyMatch(rig: Rig, home: PokerHome | null, params: { start
   const homeRef = useRef(home);
   homeRef.current = home;
   const prizeRef = useRef<PokerPrize | null>(null);
+  // O que [Tentar de novo] refaz: a jogada pendente, ou abrir/retomar a mesa.
+  const retryRef = useRef<(() => void) | null>(null);
 
   const lastEvents = useRef<PublicEvent[]>([]);
-  const toCredits = useCallback((result: BountyResult) => {
+  const toCredits = useCallback((result: BountyResult, o: { instant?: boolean } = {}) => {
     invalidatePokerHome();
     recordMatchEnd((Date.now() - m.current.startedAt) / 60000);
     const t = tableRef.current.getTable();
@@ -106,13 +123,22 @@ export function useBountyMatch(rig: Rig, home: PokerHome | null, params: { start
       loan: m.current.loan > 0,
       retry: !result.prizeCaptured && used < max ? { n: used + 1, max } : null,
       tomorrow: b?.tomorrow ?? null,
+      instant: o.instant,
     });
     if (result.title?.rankUp) dir.director.onMoment?.({ t: 'rankUp', title: result.title.id });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dir.director]);
 
-  const resume = useCallback(async () => {
+  // `fresh`: a mesa abrindo agora (Diretor novo e "Anteriormente em…"); sem ele, só
+  // ressincroniza com o servidor no meio da partida (409 sem view).
+  const resume = useCallback(async (o: { fresh?: boolean } = {}) => {
+    const fresh = o.fresh !== false;
+    if (fresh) setStatus('loading');
     try {
+      if (fresh) {
+        await rig.newMatch();
+        rig.extras.current.returning = true;
+      }
       const r = await pokerApi.bounty.resume();
       m.current = { id: r.matchId, seq: r.seq, loan: r.loan, startedAt: Date.now() };
       setPrize(r.prize);
@@ -120,27 +146,42 @@ export function useBountyMatch(rig: Rig, home: PokerHome | null, params: { start
       rig.extras.current.prize = { name: prizeWithArticle(r.prize, rig.lang), kind: r.prize.kind as never, rarity: r.prize.rarity };
       tableRef.current.load(r.view);
       track(tr.current, r.recent);
+      // Quem eliminou a pessoa sai da cauda do servidor (a mesa retomada não projetou nada).
+      lastEvents.current = r.recent;
       if (r.result) {
-        toCredits(r.result);
+        toCredits(r.result, { instant: true });
         setStatus('playing');
         return;
       }
-      setRecap(r.recent);
+      if (fresh) setRecap(r.recent);
       setStatus('playing');
     } catch (e) {
       const err = e as PokerClientError;
+      if (edgeMissing(err)) {
+        setStatus('unavailable');
+        return;
+      }
       if (err?.status === 404) {
         navigate('/blefe', { replace: true });
+        return;
+      }
+      if (err?.status === 0 || err?.code === 'network') {
+        retryRef.current = () => void resume();
+        setStatus((await edgeDown()) ? 'unavailable' : 'offline');
         return;
       }
       setErrorCode(err?.code ?? 'error');
       setStatus(err?.status === 426 ? 'updateRequired' : 'error');
     }
-  }, [navigate, rig.extras, toCredits]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, toCredits]);
 
   const start = useCallback(async () => {
     if (!params.day || !params.prizeId) return resume();
+    setStatus('loading');
     try {
+      await rig.newMatch();
+      rig.extras.current.returning = false;
       const r = await pokerApi.bounty.start(params.day, params.prizeId);
       // Daqui em diante, recarregar retoma (e nunca cobra outra ficha). Só a barra de
       // endereço muda: trocar a rota remontaria a mesa no meio da abertura.
@@ -174,14 +215,26 @@ export function useBountyMatch(rig: Rig, home: PokerHome | null, params: { start
         setStatus('updateRequired');
         return;
       }
+      if (edgeMissing(err)) {
+        setStatus('unavailable');
+        return;
+      }
+      if (err?.status === 0 || code === 'network') {
+        // Sem resposta: tentar de novo é seguro (uma partida ativa por pessoa; a
+        // repetição cai em active_exists e retoma, sem outro débito).
+        retryRef.current = () => void start();
+        setStatus((await edgeDown()) ? 'unavailable' : 'offline');
+        return;
+      }
       // stale_day, prize_changed, limit, won_today, no_chips, closed: volta ao lobby, que mostra o estado certo.
       invalidatePokerHome();
       navigate('/blefe', { replace: true, state: { pokerError: code } });
     }
-  }, [navigate, params.day, params.prizeId, resume, rig.extras]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, params.day, params.prizeId, resume]);
 
   useEffect(() => {
-    void (params.start ? start() : resume());
+    void (params.start ? start() : resume({ fresh: true }));
     // Só na abertura.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -196,7 +249,7 @@ export function useBountyMatch(rig: Rig, home: PokerHome | null, params: { start
         m.current.seq = r.seq;
         setStatus('playing');
         track(tr.current, r.events);
-        lastEvents.current = r.events;
+        lastEvents.current = [...lastEvents.current, ...r.events].slice(-60);
         tableRef.current.enqueue({ events: r.events, view: r.view });
         if (r.result) toCredits(r.result);
         return;
@@ -208,7 +261,7 @@ export function useBountyMatch(rig: Rig, home: PokerHome | null, params: { start
           const data = (err.data ?? {}) as { seq?: number; view?: TableView };
           if (typeof data.seq === 'number') m.current.seq = data.seq;
           if (data.view) tableRef.current.load(data.view);
-          else await resume();
+          else await resume({ fresh: false });
           setStatus('playing');
           return;
         }
@@ -229,6 +282,7 @@ export function useBountyMatch(rig: Rig, home: PokerHome | null, params: { start
         }
       }
     }
+    retryRef.current = () => void send();
     setStatus('offline');
   }, [resume, toCredits]);
 
@@ -283,7 +337,7 @@ export function useBountyMatch(rig: Rig, home: PokerHome | null, params: { start
     forfeit,
     // "Revanche grátis": no prêmio, abre uma mesa livre (§7.6).
     rematch: () => navigate('/blefe/mesa'),
-    retry: status === 'offline' ? () => void send() : null,
+    retry: status === 'offline' ? () => retryRef.current?.() : null,
     closeRecap: () => setRecap(null),
     continueAfterInterval: () => {},
     introDone: () => {

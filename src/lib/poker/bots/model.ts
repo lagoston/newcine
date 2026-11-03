@@ -50,6 +50,13 @@ export function labelsOf(c: OppCounters, w: number): StyleLabel[] {
 
 export interface ModelView {
   rates(id: PlayerId): Rates;
+  /**
+   * Leitura rápida (A3, 03/11/2026): as mesmas taxas com o prior pesando um terço.
+   * Só para sinais "altos" — quanto alguém aumenta antes do flop e o AF —, que mudam a
+   * decisão já nas primeiras mãos (quem aumenta 60% das mãos se vê em 5 mãos). Os
+   * rótulos (e as falas) continuam com o atraso normal.
+   */
+  quick(id: PlayerId): Rates;
   counters(id: PlayerId): OppCounters | undefined;
   has(id: PlayerId | null | undefined, label: StyleLabel): boolean;
   labels(id: PlayerId): Set<StyleLabel>;
@@ -60,6 +67,7 @@ export function modelView(model: Record<string, OppCounters> | undefined, w: num
   const get = (id: PlayerId): OppCounters => model[id] ?? emptyCounters();
   return {
     rates: (id) => ratesOf(get(id), w),
+    quick: (id) => ratesOf(get(id), w / 3),
     counters: (id) => model[id],
     has: (id, label) => !!id && labelsOf(get(id), w).includes(label),
     labels: (id) => new Set(labelsOf(get(id), w)),

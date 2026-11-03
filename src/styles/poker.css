@@ -136,6 +136,27 @@
     --seat-card-w: 34px;
   }
 }
+/* Celulares altos (03/11/2026): a sobra vai para os oráculos, que são o elenco,
+   em vez de virar feltro vazio entre o arco e o pote. */
+@media (min-height: 830px) and (min-width: 375px) {
+  .pk-col {
+    --pw: 88px;
+    --arc-h: 204px;
+    --board-w: 64px;
+    --hand-w: 80px;
+    --hero-h: 124px;
+    --seat-card-w: 36px;
+  }
+}
+@media (min-height: 900px) and (min-width: 400px) {
+  .pk-col {
+    --pw: 96px;
+    --arc-h: 220px;
+    --board-w: 66px;
+    --hand-w: 84px;
+    --hero-h: 130px;
+  }
+}
 .pk-big-cards .pk-card {
   --idx: 1.2;
 }
@@ -566,8 +587,8 @@
 /* Selo em pixel (emote) e o selo de texto do tell com "reduzir movimento". */
 .pk-emote {
   position: absolute;
-  right: -8px;
-  top: -10px;
+  right: -10px;
+  top: -6px;
   width: 22px;
   height: 22px;
   image-rendering: pixelated;
@@ -577,13 +598,17 @@
 .pk-tell-badge {
   position: absolute;
   left: 50%;
-  top: -8px;
-  transform: translate(-50%, -100%);
+  /* Dentro do retrato, embaixo: em cima ele invadia a barra da mesa. */
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(var(--pw) + 18px);
+  text-align: center;
+  line-height: 1.15;
   padding: 1px 6px;
   border-radius: 6px;
   font-size: 10.5px;
   font-weight: 700;
-  white-space: nowrap;
   color: var(--pk-ink);
   background: var(--pk-paper);
   box-shadow: 0 0 0 1.5px var(--c);
@@ -634,13 +659,9 @@
   top: 0;
   left: 0;
 }
-.pk-shown .pk-card:first-child {
-  transform: rotate(-6deg);
-}
 .pk-shown .pk-card + .pk-card {
   left: calc(var(--seat-card-w) * 0.42);
   top: 7px;
-  transform: rotate(5deg);
 }
 
 /* A placa: nome em Pixelify e o cacife em sans tabular. */
@@ -968,12 +989,6 @@
   position: relative;
   display: flex;
   gap: 4px;
-}
-.pk-hero-cards .pk-card:first-child {
-  transform: rotate(-4deg) translateY(2px);
-}
-.pk-hero-cards .pk-card:last-child {
-  transform: rotate(4deg) translateY(2px);
 }
 .pk-hero-cards.is-folded {
   opacity: 0.45;
@@ -1361,6 +1376,11 @@
   background: rgba(255, 255, 255, 0.04);
   box-shadow: inset 0 0 0 1px rgba(243, 234, 211, 0.22);
 }
+.pk-pre-label {
+  min-width: 0;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
 .pk-pre[aria-pressed='true'] {
   background: rgba(244, 196, 84, 0.16);
   box-shadow: inset 0 0 0 1.5px var(--pk-gold);
@@ -1400,7 +1420,7 @@
   position: absolute;
   left: 50%;
   top: 44%;
-  transform: translate(-50%, -50%);
+  max-width: calc(100% - 24px);
   z-index: 30;
   padding: 10px 22px 12px;
   border-radius: 14px;
@@ -1531,14 +1551,31 @@
 /* Despedida: a mesa escurece da faixa de fala para baixo; quem eliminou fica sob a luz. */
 .pk-farewell {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Começa logo abaixo da faixa de fala: o arco e o balão de quem eliminou ficam claros. */
+  top: calc(44px + env(safe-area-inset-top) + var(--arc-h) + var(--speech-h));
   z-index: 38;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  padding: 0 16px calc(28% + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, transparent 0, transparent calc(44px + var(--arc-h) + var(--speech-h)), rgba(2, 3, 14, 0.82) calc(44px + var(--arc-h) + var(--speech-h) + 60px));
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(2, 3, 14, 0) 0, rgba(2, 3, 14, 0.84) 56px);
   cursor: pointer;
+}
+
+/* O letreiro da despedida: vidro sobre a mesa escura, legível por cima das cartas. */
+.pk-farewell-card {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+  max-width: 320px;
+  padding: 14px 18px 16px;
+  border-radius: 16px;
+  background: rgba(5, 8, 30, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(244, 196, 84, 0.35), 0 24px 50px -24px #000;
 }
 
 /* O "Estrelando…": as três cartas entram como créditos de abertura. */
@@ -1597,8 +1634,18 @@
 .pk-credits-foot {
   display: grid;
   gap: 8px;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
   padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
   background: linear-gradient(180deg, transparent, rgba(4, 4, 10, 0.95) 30%);
+}
+/* A cerimônia do prêmio e o elenco aplaudindo cabem na tela baixa com o [Usar agora] à vista. */
+.pk-ceremony-art {
+  width: clamp(96px, 17vh, 150px);
+}
+.pk-clap {
+  width: clamp(48px, 9vh, 64px);
 }
 .pk-burn {
   position: absolute;
@@ -1620,6 +1667,13 @@
   letter-spacing: 0.12em;
   text-shadow: 0 2px 0 #000, 0 0 30px rgba(243, 234, 211, 0.25);
 }
+.pk-credit-place {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
 .pk-credit-line {
   font-size: 15px;
   line-height: 1.5;
@@ -1631,6 +1685,28 @@
 }
 .pk-credit-gap {
   height: 16px;
+}
+/* A fala nos créditos: a mesma faixa, sem rabicho (não há lugar para apontar). */
+.pk-credits-speech {
+  --speech-h: 60px;
+  max-width: 420px;
+  min-height: 62px;
+  margin: 2px auto 6px;
+  text-align: left;
+}
+.pk-credits-speech .pk-speech {
+  padding: 4px 0 0;
+}
+.pk-credits-speech .pk-balloon-tail {
+  display: none;
+}
+/* O convite do Intervalo: a voz de quem apresenta, com o aro na cor dele. */
+.pk-interval-quote {
+  padding: 8px 12px 9px;
+  border-radius: 12px;
+  background: var(--pk-glass);
+  box-shadow: 0 0 0 1.5px var(--c);
+  color: var(--pk-paper);
 }
 
 /* ======================================================================
@@ -1864,10 +1940,29 @@
   .pk-felt {
     border-radius: 50% 50% 0 0 / 82px 82px 0 0;
   }
+  /* No palco largo o balão sai para o lado de quem fala (os lugares laterais
+     ficam a 280 px do centro), e o rabicho aponta reto para cima. */
   .pk-speech {
     width: 100%;
-    max-width: 640px;
-    justify-self: center;
+    display: flex;
+    justify-content: center;
+  }
+  .pk-speech .pk-balloon {
+    width: 560px;
+    flex: none;
+  }
+  .pk-speech[data-who='bogart'] .pk-balloon {
+    left: -280px;
+  }
+  .pk-speech[data-who='cypher'] .pk-balloon {
+    left: 280px;
+  }
+  .pk-speech .pk-balloon-tail {
+    left: 50% !important;
+  }
+  .pk-credits-speech .pk-speech .pk-balloon {
+    width: 100%;
+    left: 0;
   }
   .pk-hero {
     grid-template-columns: auto auto auto;
@@ -1891,15 +1986,35 @@
   .pk-have {
     display: none;
   }
+  /* As ações num console de vidro: a borda do feltro passa por trás sem cortar nada. */
   .pk-actions {
     min-height: 0;
-    background: transparent;
-    box-shadow: none;
-    padding: 6px 16px 14px 0;
+    margin: 10px 14px 14px 6px;
+    padding: 10px 12px;
+    gap: 7px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(9, 12, 40, 0.92), rgba(7, 10, 36, 0.96));
+    box-shadow: inset 0 0 0 1px rgba(244, 196, 84, 0.3), 0 20px 40px -20px #000;
     justify-content: flex-end;
+  }
+  .pk-actions .pk-status {
+    height: 30px;
+  }
+  .pk-actions .pk-act,
+  .pk-actions .pk-pre {
+    height: 52px;
   }
   .pk-log {
     display: block;
+  }
+  .pk-farewell {
+    top: calc(48px + 262px + 56px);
+  }
+  /* Folhas no palco largo: uma coluna de leitura no meio, não a largura toda. */
+  .pk-sheet {
+    max-width: 480px;
+    margin: 0 auto;
+    max-height: calc(100% - 3rem);
   }
 }
 /* ======================================================================
