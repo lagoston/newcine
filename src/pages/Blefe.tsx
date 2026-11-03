@@ -60,7 +60,7 @@ function oldToNew(pathname: string, search: string): string | null {
 function stakeFrom(params: URLSearchParams): TournamentStake | null {
   if (params.get('stake') === 'poster') {
     const itemId = Number(params.get('item'));
-    const effect = params.get('effect') || 'none';
+    const effect = (params.get('effect') || 'none') as Extract<TournamentStake, { kind: 'poster' }>['effect'];
     return Number.isFinite(itemId) && itemId > 0 ? { kind: 'poster', itemId, effect } : null;
   }
   return { kind: 'chips' };

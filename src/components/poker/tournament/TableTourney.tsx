@@ -11,6 +11,7 @@ import type { CastShow } from '../../../lib/poker/client/useTable';
 import { cardsName, fmt, type Lang } from '../../../lib/poker/client/format';
 import { castRule } from '../../../lib/poker/client/narrate';
 import PosterArt from '../../posterJackpot/PosterArt';
+import { loadPosterPokerFont } from '../game/font';
 import '../../../styles/posterJackpot.css';
 import '../../../styles/posterPoker.css';
 
@@ -45,6 +46,10 @@ export const MagicPoster: React.FC<{
   onOpen: () => void;
 }> = ({ poster, casts, casting, reduced, onOpen }) => {
   const { t } = useTranslation();
+  // A mesa pode abrir direto (retomada): a letra do CATCHAW vem com o pôster.
+  useEffect(() => {
+    loadPosterPokerFont();
+  }, []);
   return (
     <button
       type="button"

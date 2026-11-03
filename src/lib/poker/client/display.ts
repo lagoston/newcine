@@ -379,6 +379,12 @@ export function applyEvent(t0: TableShow, e: PublicEvent): TableShow {
       return { ...t, showdown: true };
     }
     case 'cardsShown':
+      // 03/11/2026: o "Mostrar" da pessoa vai junto com a jogada seguinte, que pode já ser
+      // da mão nova — o motor mostra as cartas da mão que ela levou. As cartas dela na
+      // mesa nunca são trocadas por essas (ela vê as próprias); só marca que mostrou.
+      if (e.playerId === 'human') {
+        return mapSeat(t, e.playerId, (s) => ({ ...s, shownAfterFold: s.cards.join() === e.cards.join() ? e.afterFold || s.shownAfterFold : s.shownAfterFold }));
+      }
       return mapSeat(t, e.playerId, (s) => ({ ...s, cards: e.cards, shownAfterFold: e.afterFold }));
     case 'potAwarded': {
       const win = new Map(e.winners.map((w) => [w.playerId, w.amount]));

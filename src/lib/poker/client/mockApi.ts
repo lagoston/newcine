@@ -97,7 +97,7 @@ const SAMPLE_POSTERS: MockPoster[] = [
 ];
 
 // O item secreto que a Cobra traz quando a prévia pede (o catálogo de verdade está vazio).
-const COBRA_SAMPLE: CobraItem = { id: 'deck-noir', name: 'Baralho Noir', kind: 'deck' };
+const COBRA_SAMPLE: CobraItem = { id: 'deck-noir', name: 'Baralho Noir', nameEn: 'Noir Deck', kind: 'deck' };
 
 function today(): string {
   // Dia de Brasília (UTC−3), como o servidor (§2.6).
@@ -125,6 +125,9 @@ function weekPrize(week: string): TournamentPrize {
     year: def.year,
     file_path: def.filePath,
     effect_id: def.effect,
+    effect: 'gold',
+    blurb_pt: null,
+    blurb_en: null,
   };
 }
 
@@ -205,11 +208,14 @@ function finish(db: MockDb, m: MockMatch, status: BountyResult['status'], place:
   const won = status === 'won' && place === 1;
   if (won) db.bounty.wins += 1;
   db.lossStreak = won ? 0 : db.lossStreak + 1;
-  const rewards: TournamentRewards = {};
+  const rewards: TournamentRewards = { poster: null, cobraItem: null, cobraRevealed: null, stake: null };
   if (won) {
     if (!db.ppOwned.includes(m.prize.effect_id)) db.ppOwned.push(m.prize.effect_id);
     db.wonWeek[m.week] = true;
-    rewards.poster = { prizeId: m.prize.id, itemId: m.prize.item_id, title: m.prize.title, filePath: m.prize.file_path, serial: m.prize.serial, rarity: m.prize.rarity };
+    rewards.poster = {
+      prizeId: m.prize.id, itemId: m.prize.item_id, title: m.prize.title, titleEn: m.prize.title_en, filePath: m.prize.file_path,
+      serial: m.prize.serial, rarity: m.prize.rarity, effect: 'gold', effectId: m.prize.effect_id,
+    };
     rewards.cobraItem = m.cobra;
     rewards.cobraRevealed = null;
   } else {
@@ -221,7 +227,10 @@ function finish(db: MockDb, m: MockMatch, status: BountyResult['status'], place:
     const st = m.stake;
     const p = db.posters.find((x) => x.item_id === st.itemId && x.effect === st.effect);
     if (p && !won) p.lost = true;
-    rewards.stake = { kind: 'poster', itemId: st.itemId, effect: st.effect, title: p?.title ?? '', filePath: p?.file_path ?? '', lost: !won };
+    rewards.stake = {
+      kind: 'poster', itemId: st.itemId, effect: st.effect, title: p?.title ?? null, titleEn: p?.title_en ?? null, filePath: p?.file_path ?? '',
+      serial: p?.serial ?? null, rarity: m.prize.rarity, lost: !won,
+    };
   }
   const wins = db.free.wins + db.bounty.wins;
   const marks: string[] = [];
@@ -258,6 +267,11 @@ export const mockApi: PokerApiLike = {
               stake: active.stake.kind === 'chips' ? { kind: 'chips', amount: ENTRY_CHIPS[active.prize.rarity] } : { kind: 'poster', item_id: active.stake.itemId, effect: active.stake.effect } }
           : null,
         stake_options: stakeOptions(db, prize.rarity), cobra_pool: 0, stars: STARS[prize.rarity], loan_next: db.lossStreak >= 3,
+        next: (() => {
+          const nw = new Date(new Date(`${week}T00:00:00Z`).getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
+          const nd = posterDef(CYCLE[cycleIndex(nw)])!;
+          return { week: nw, prize_id: nd.id, rarity: nd.rarity };
+        })(),
       },
       collection: POSTER_POKER.map((p, i) => ({
         id: p.id, item_id: 100 + i, rarity: p.rarity, serial: p.serial, title: p.titlePt, title_en: p.titleEn, year: p.year, file_path: p.filePath,

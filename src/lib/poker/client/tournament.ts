@@ -1,91 +1,26 @@
 /**
  * Pôster Poker (03/11/2026, tarde): o torneio da semana, a coleção dos 9 pôsteres e a
- * entrada (fichas ou um pôster apostado), do jeito que a interface recebe do servidor.
+ * entrada (fichas ou um pôster apostado). Os tipos são os do pacote F (apiTypes.ts); a
+ * interface lê `home.tournament` e `home.collection` por estes acessores, que aguentam
+ * servidor antigo (sem os campos).
  *
- * Os tipos espelham o `get_poker_home()` e a Edge `proto: 2` do BRIEF2. O pacote F
- * escreve os dele em `apiTypes.ts`/`pokerApi.ts`; até lá a interface lê `home.tournament`
- * e `home.collection` por estes acessores (TROCAR pelos tipos do F quando chegarem).
- *
- * O catálogo abaixo é só para mostrar (título em inglês, nome e regra do efeito, ordem
- * do ciclo); quem diz o que vale é o servidor.
+ * O catálogo abaixo é só para mostrar (título em inglês, ordem do ciclo, plano B sem
+ * rede); quem diz o que vale é o servidor.
  */
 import type { PosterEffectId, Rarity } from '../types.ts';
+import type { TournamentCollectionEntry, TournamentHome, TournamentPrize } from './apiTypes.ts';
 
-export interface TournamentPrize {
-  id: string;
-  item_id: number;
-  rarity: Rarity;
-  serial: number;
-  title: string;
-  title_en?: string | null;
-  year: number | null;
-  file_path: string;
-  effect_id: PosterEffectId;
-}
-
-/** Um pôster da coleção da pessoa que pode ir para a mesa como entrada. */
-export interface StakeOption {
-  item_id: number;
-  effect: string;
-  title: string;
-  title_en?: string | null;
-  year: number | null;
-  file_path: string;
-  serial: number | null;
-  rarity: Rarity;
-}
-
-export type TournamentStake = { kind: 'chips' } | { kind: 'poster'; itemId: number; effect: string };
-
-export interface TournamentHome {
-  /** Quinta-feira que abriu a semana (AAAA-MM-DD, Brasília). */
-  week: string;
-  /** Próxima quinta 00h00 de Brasília (ISO). */
-  ends_at: string;
-  prize: TournamentPrize;
-  /** Fichas da entrada: 1 (comum, raro), 2 (épico), 3 (lendário). */
-  entry_chips: number;
-  /** Saldo de fichas do Jackpot. */
-  chips: number;
-  attempts_used: number;
-  max_attempts: number;
-  /** Já tem este pôster (de um ciclo anterior): o torneio fecha ("Já é seu"). */
-  owned: boolean;
-  won_this_week: boolean;
-  active_match: { match_id: string; stake: { kind: 'chips' | 'poster'; item_id?: number; effect?: string } } | null;
-  stake_options: StakeOption[];
-  cobra_pool: number;
-  stars: number;
-}
-
-export interface CollectionEntry {
-  id: string;
-  item_id: number;
-  rarity: Rarity;
-  serial: number;
-  title: string;
-  title_en?: string | null;
-  year: number | null;
-  file_path: string;
-  effect_id: PosterEffectId;
-  owned: boolean;
-  /** Próxima quinta em que volta ao torneio (AAAA-MM-DD). */
-  next_week: string | null;
-}
-
-export interface CobraItem {
-  id: string;
-  name: string;
-  kind: string;
-}
-
-/** O que a resposta final da Edge (`matchEnded`) traz no torneio. */
-export interface TournamentRewards {
-  poster?: { prizeId: string; itemId: number; title: string; filePath: string; serial: number; rarity: Rarity } | null;
-  cobraItem?: CobraItem | null;
-  cobraRevealed?: CobraItem | null;
-  stake?: { kind: 'chips'; amount: number } | { kind: 'poster'; itemId: number; effect: string; title: string; filePath: string; lost: boolean } | null;
-}
+// Os tipos são os do pacote F (apiTypes.ts, 03/11/2026); aqui ficam só os nomes curtos
+// que a interface usa.
+export type {
+  TournamentPrize,
+  TournamentStake,
+  TournamentHome,
+  TournamentRewards,
+  CobraItemReward as CobraItem,
+  TournamentStakeOption as StakeOption,
+  TournamentCollectionEntry as CollectionEntry,
+} from './apiTypes.ts';
 
 // ---------------------------------------------------------------------------
 // Os 9 pôsteres (BRIEF2): números de 5 em 5, um efeito cada, ciclo de 9 semanas
@@ -123,10 +58,10 @@ export const posterDef = (effect: PosterEffectId | string | null | undefined): P
   POSTER_POKER.find((p) => p.effect === effect);
 
 /** Título do pôster no idioma da pessoa (o servidor manda o título em português). */
-export function posterTitle(p: { title: string; title_en?: string | null; effect_id?: string } | null | undefined, lang: 'pt' | 'en'): string {
+export function posterTitle(p: { title: string | null; title_en?: string | null; effect_id?: string } | null | undefined, lang: 'pt' | 'en'): string {
   if (!p) return '';
-  if (lang === 'pt') return p.title;
-  return p.title_en || posterDef(p.effect_id)?.titleEn || p.title;
+  if (lang === 'pt') return p.title || p.title_en || '';
+  return p.title_en || posterDef(p.effect_id)?.titleEn || p.title || '';
 }
 
 /** Fichas da entrada por raridade (comum e raro 1; épico 2; lendário 3). */
@@ -155,9 +90,9 @@ export function tournamentOf(home: unknown): TournamentHome | null {
   };
 }
 
-export function collectionOf(home: unknown): CollectionEntry[] {
+export function collectionOf(home: unknown): TournamentCollectionEntry[] {
   if (!isRow(home) || !Array.isArray(home.collection)) return [];
-  return (home.collection as unknown[]).filter((c): c is CollectionEntry => isRow(c) && typeof c.effect_id === 'string');
+  return (home.collection as unknown[]).filter((c): c is TournamentCollectionEntry => isRow(c) && typeof c.effect_id === 'string');
 }
 
 // ---------------------------------------------------------------------------
@@ -213,5 +148,8 @@ export function weekPrizeOf(home: unknown, now = Date.now()): TournamentPrize {
     year: def.year,
     file_path: def.filePath,
     effect_id: def.effect,
+    effect: 'gold',
+    blurb_pt: null,
+    blurb_en: null,
   };
 }

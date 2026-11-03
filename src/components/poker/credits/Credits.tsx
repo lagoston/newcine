@@ -69,7 +69,11 @@ const Credits: React.FC<{
   const cobraSeen = !tour?.won ? tour?.rewards?.cobraRevealed ?? null : null;
   const rs = tour?.rewards?.stake;
   const stakeLost = !!tour && !tour.won && tour.stake?.kind === 'poster' && (rs ? rs.kind === 'poster' && rs.lost : true);
-  const stakeArt = rs && rs.kind === 'poster' ? { title: rs.title || tour?.stake?.title || '', filePath: rs.filePath || tour?.stake?.filePath || '', effect: rs.effect } : tour?.stake;
+  const stakeArt =
+    rs && rs.kind === 'poster'
+      ? { title: (lang === 'en' && rs.titleEn) || rs.title || tour?.stake?.title || '', filePath: rs.filePath || tour?.stake?.filePath || '', effect: rs.effect }
+      : tour?.stake;
+  const itemName = (it: { name: string; nameEn?: string | null }) => (lang === 'en' && it.nameEn) || it.name;
   useEffect(() => {
     if (tour) loadPosterPokerFont();
     if (tour?.won && tourPoster) {
@@ -256,7 +260,7 @@ const Credits: React.FC<{
             <SerialLine rarity={tourPoster.rarity} serial={tourPoster.serial} />
             <p className="text-[12.5px]" style={{ color: '#c9c2e0' }}>{t('poker.tourney.yoursNote')}</p>
             {cobraGot && (
-              <p className="pp-cobra-line mt-1">{t('poker.tourney.cobraGot', { item: cobraGot.name })}</p>
+              <p className="pp-cobra-line mt-1">{t('poker.tourney.cobraGot', { item: itemName(cobraGot) })}</p>
             )}
           </motion.div>
         )}
@@ -276,7 +280,7 @@ const Credits: React.FC<{
             </p>
           </motion.div>
         )}
-        {cobraSeen && <p className="pp-cobra-line text-center my-2">{t('poker.tourney.cobraHad', { item: cobraSeen.name })}</p>}
+        {cobraSeen && <p className="pp-cobra-line text-center my-2">{t('poker.tourney.cobraHad', { item: itemName(cobraSeen) })}</p>}
 
         <motion.div
           className="grid gap-2 pt-2"
@@ -297,7 +301,7 @@ const Credits: React.FC<{
       <div className="pk-credits-foot">
         {onRetry && data.retry && !data.captured && (
           <button type="button" className="pk-cta-paper" onClick={onRetry}>
-            {t('poker.lobby.retry', { n: data.retry.n, max: data.retry.max })}
+            {data.tournament ? t('poker.tourney.retry', { n: data.retry.n, max: data.retry.max }) : t('poker.lobby.retry', { n: data.retry.n, max: data.retry.max })}
           </button>
         )}
         <button type="button" className={data.captured && use ? 'pk-cta-paper' : 'pk-cta-gold'} onClick={onRematch} autoFocus>

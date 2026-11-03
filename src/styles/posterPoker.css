@@ -796,7 +796,7 @@
 .pp-cast-dim {
   position: absolute;
   inset: 0;
-  background: radial-gradient(70% 55% at 50% 58%, rgba(40, 6, 14, 0.8), rgba(6, 1, 4, 0.96));
+  background: radial-gradient(70% 55% at 50% 52%, rgba(40, 6, 14, 0.88), rgba(6, 1, 4, 0.97));
 }
 .pk-casting .pk-speech {
   z-index: 34;
@@ -1359,4 +1359,19 @@
 }
 .pp-newtag-btn:disabled {
   opacity: 0.75;
+}
+
+/* O placar dentro do Pôster Poker ganha o vinho do palco (antes era a noite azul do salão). */
+main.pe-score {
+  --pe-surface: #2a0812;
+  background:
+    radial-gradient(60% 34% at 50% 0%, var(--pp-spot), transparent 70%),
+    linear-gradient(180deg, #3a0914 0%, var(--pp-wine) 50%, #14040a 100%);
+}
+main.pe-score .pe-panel {
+  background: rgba(36, 6, 13, 0.82);
+}
+main.pe-score h1.pe-cinzel {
+  font-family: 'Limelight', 'Cinzel Decorative', Georgia, serif;
+  font-weight: 400;
 }

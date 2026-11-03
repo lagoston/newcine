@@ -1,5 +1,5 @@
 import type { PokerTeaser, PokerTeaserPrize, PosterEffect, PosterRarity } from '../../../lib/posterJackpot';
-import * as theme from '../../../lib/oracleTheme';
+import { TAG_GAMES_RED, TAG_GAMES_RED_TEXT } from '../../../lib/oracleTheme';
 
 type Row = Record<string, unknown>;
 const RARITIES: PosterRarity[] = ['common', 'rare', 'epic', 'legendary'];
@@ -102,11 +102,9 @@ export const MARKS: { tagId: string; key: MarkKey; emoji: string; name: string }
   { tagId: 'poker-card-shark', key: 'cardShark', emoji: '🦈', name: 'Card Shark' },
 ];
 
-// O vermelho da categoria Jogos: o do pacote T (TAG_GAMES_RED em oracleTheme), com
-// o provisório dele (#FF4D63) enquanto a constante não chega.
-export const GAMES_RED: string =
-  ((theme as Record<string, unknown>).TAG_GAMES_RED as string | undefined) ?? '#FF4D63';
-export const GAMES_RED_TEXT = '#FFC7CE';
+// O vermelho da categoria Jogos (pacote T, oracleTheme): o acento e o texto claro.
+export const GAMES_RED = TAG_GAMES_RED;
+export const GAMES_RED_TEXT = TAG_GAMES_RED_TEXT;
 
 // Brilho da raridade no cartão do prêmio (as cores do Jackpot).
 export const RARITY_GLOW: Record<PosterRarity, string> = {

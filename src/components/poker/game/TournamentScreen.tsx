@@ -100,6 +100,7 @@ const TournamentScreen: React.FC<{ home: PokerHome }> = ({ home }) => {
       <div className="pp-state">
         <h3 className="pp-font pp-gold-letters">{t('poker.tourney.ownedTitle')}</h3>
         <p>{t('poker.tourney.ownedBody')}</p>
+        {tour.next && <p className="!mt-1 text-[13px]" style={{ color: '#c9b3ae' }}>{t('poker.tourney.nextWeek', { rarity: t(`poker.rarity.${tour.next.rarity}`).toLowerCase() })}</p>}
         <button type="button" className="pp-ticket mt-4" onClick={() => navigate(BLEFE_ROUTES.free)}>{t('poker.tourney.playCasual')}</button>
       </div>
     );
@@ -108,6 +109,7 @@ const TournamentScreen: React.FC<{ home: PokerHome }> = ({ home }) => {
       <div className="pp-state">
         <h3 className="pp-font pp-gold-letters">{t('poker.tourney.wonTitle')}</h3>
         <p>{t('poker.tourney.wonBody')}</p>
+        {tour.next && <p className="!mt-1 text-[13px]" style={{ color: '#c9b3ae' }}>{t('poker.tourney.nextWeek', { rarity: t(`poker.rarity.${tour.next.rarity}`).toLowerCase() })}</p>}
         <button type="button" className="pp-ticket mt-4" onClick={() => navigate(BLEFE_ROUTES.collection)}>{t('poker.tourney.seeCollection')}</button>
       </div>
     );

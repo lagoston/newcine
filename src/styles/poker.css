@@ -654,6 +654,24 @@
   left: auto;
   right: calc(100% - 10px);
 }
+/* 03/11/2026 (Pôster Poker): nos lugares das pontas as cartas saíam da tela quando o
+   retrato cresce (390 px+). Ficam presas a 2 px da borda, cobrindo um pouco mais o
+   retrato (só no retrato em pé; o palco do computador tem espaço). */
+@media (max-width: 1023px), (max-height: 599px) {
+  .pk-seat[data-pos='left'] .pk-shown {
+    right: auto;
+    left: max(calc(10px - var(--seat-card-w) * 1.42), calc((var(--pw) - min(100vw, 430px) * 0.33) / 2 + 2px));
+    top: 40%;
+  }
+  .pk-seat[data-pos='right'] .pk-shown {
+    left: auto;
+    right: max(calc(10px - var(--seat-card-w) * 1.42), calc((var(--pw) - min(100vw, 430px) * 0.33) / 2 + 2px));
+    top: 40%;
+  }
+  .pk-seat[data-pos='right'] .pk-shown .pk-card + .pk-card {
+    left: calc(var(--seat-card-w) * 0.42);
+  }
+}
 .pk-shown .pk-card {
   position: absolute;
   top: 0;

@@ -3250,7 +3250,9 @@
       "cobraGot": "And the Snake's secret item: {{item}}",
       "cobraHad": "The Snake was carrying: {{item}}",
       "stakeLost": "{{title}} stayed on the table, with the Snake.",
-      "yourPoster": "Your poster"
+      "yourPoster": "Your poster",
+      "nextWeek": "On Thursday, a {{rarity}} poster comes in.",
+      "retry": "Try again (entry {{n}} of {{max}})"
     },
     "collection": {
       "count": "{{have}} of {{total}}",
@@ -3295,7 +3297,7 @@
       "eight_aces": {
         "name": "Ace's aces",
         "rule": "The deck gets 8 extra aces (2 of each suit) for the whole match. Repeated cards count, and five of a kind exists, above a straight flush.",
-        "cast": "8 extra aces in the deck. Five of a kind is now possible.",
+        "cast": "8 extra aces in the deck: five of a kind now counts.",
         "ribbon": "Ace's aces: 8 extra aces in the deck."
       },
       "reveal_one": {

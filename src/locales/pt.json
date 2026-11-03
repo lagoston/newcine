@@ -3249,7 +3249,9 @@
       "cobraGot": "E o item secreto da Cobra: {{item}}",
       "cobraHad": "A Cobra trazia: {{item}}",
       "stakeLost": "{{title}} ficou na mesa, com a Cobra.",
-      "yourPoster": "O seu pôster"
+      "yourPoster": "O seu pôster",
+      "nextWeek": "Na quinta entra um pôster {{rarity}}.",
+      "retry": "Tentar de novo (entrada {{n}} de {{max}})"
     },
     "collection": {
       "count": "{{have}} de {{total}}",
@@ -3294,7 +3296,7 @@
       "eight_aces": {
         "name": "Os ases do Ace",
         "rule": "O baralho ganha 8 ases a mais (2 de cada naipe) a partida inteira. Cartas repetidas valem, e existe cinco iguais, acima do straight flush.",
-        "cast": "8 ases a mais no baralho. Agora existe cinco iguais.",
+        "cast": "8 ases a mais no baralho: agora vale até cinco iguais.",
         "ribbon": "Os ases do Ace: 8 ases a mais no baralho."
       },
       "reveal_one": {

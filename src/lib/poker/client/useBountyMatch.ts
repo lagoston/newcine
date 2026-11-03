@@ -111,7 +111,7 @@ function prizeFromResponse(r: unknown, fallback: TournamentPrize | null): Tourna
 function rewardsOf(...sources: unknown[]): TournamentRewards | null {
   for (const s of sources) {
     const r = rowOf(rowOf(s)?.rewards);
-    if (r) return r as TournamentRewards;
+    if (r) return r as unknown as TournamentRewards;
   }
   return null;
 }

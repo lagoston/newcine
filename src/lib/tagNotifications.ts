@@ -14,6 +14,11 @@ import { UnlockedPin } from '../hooks/useUnlockedTagPins';
  * "vencer a corrida" de registrar uma tag específica primeiro é que
  * efetivamente dispara o whisper dela.
  *
+ * Tags de Jogos (category 'games', 03/11/2026): o banco já registra e avisa
+ * na hora da concessão (gatilho em user_special_tags); aqui elas chegam como
+ * "já vistas". O banco só aceita uma tag de Jogos da lista se a pessoa tem a
+ * tag (normalize_synced_tags) — o aviso nunca depende só do aparelho.
+ *
  * Nunca deve ser chamada com o userId de OUTRA pessoa — só faz sentido
  * pro próprio usuário logado vendo o cálculo das próprias tags
  * (chamar isso ao visitar o perfil de um amigo geraria notificações

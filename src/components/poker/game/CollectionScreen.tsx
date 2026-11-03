@@ -32,8 +32,12 @@ function fallbackList(): CollectionEntry[] {
     year: p.year,
     file_path: p.filePath,
     effect_id: p.effect,
+    effect: 'gold' as const,
+    blurb_pt: null,
+    blurb_en: null,
     owned: false,
     next_week: nextWeekOf(p.effect, week),
+    this_week: false,
   }));
 }
 
@@ -52,7 +56,7 @@ const CollectionScreen: React.FC<{ home: PokerHome }> = ({ home }) => {
     const d = new Date(`${iso}T12:00:00Z`);
     return d.toLocaleDateString(lang === 'pt' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
   };
-  const thisWeek = (x: CollectionEntry) => (x as CollectionEntry & { this_week?: boolean }).this_week ?? x.next_week === week;
+  const thisWeek = (x: CollectionEntry) => x.this_week ?? x.next_week === week;
 
   return (
     <Stage>
