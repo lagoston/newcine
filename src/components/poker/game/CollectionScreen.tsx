@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Lock } from 'lucide-react';
 import PosterArt, { RarityTag } from '../../posterJackpot/PosterArt';
 import { SerialLine, formatSerial } from '../../posterJackpot/CollectorMark';
-import { RARITY_META } from '../../../lib/posterJackpot';
 import type { PokerHome } from '../../../lib/poker/client/apiTypes';
 import { langOf } from '../../../lib/poker/client/format';
 import { collectionOf, nextWeekOf, POSTER_POKER, posterTitle, tournamentOf, weekOf, type CollectionEntry } from '../../../lib/poker/client/tournament';
@@ -84,7 +83,7 @@ const CollectionScreen: React.FC<{ home: PokerHome }> = ({ home }) => {
                     <PosterArt filePath={x.file_path} effect="gold" size="w185" animated={!reduce} className="absolute inset-0" mark={{ rarity: x.rarity, serial: x.serial, size: 'xs' }} />
                   </span>
                 ) : (
-                  <span className="pp-slot-art is-locked" style={now ? { boxShadow: `inset 0 0 0 1.5px ${RARITY_META[x.rarity].color}` } : undefined}>
+                  <span className="pp-slot-art is-locked" style={now ? { boxShadow: 'inset 0 0 0 1.5px #E8B54A, 0 0 22px -6px rgba(232,181,74,0.6)' } : undefined}>
                     <img src={`https://image.tmdb.org/t/p/w185${x.file_path}`} alt="" loading="lazy" decoding="async" draggable={false} />
                     <span className="pp-lock">
                       <b className="pk-num">{formatSerial(x.serial)}</b>

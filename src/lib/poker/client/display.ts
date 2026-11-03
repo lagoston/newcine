@@ -69,7 +69,7 @@ export interface TourneyShow {
   /** A conta do Raymond: a jogada-alvo até alguém fechar. */
   bounty: { target: string; amount: number; claimed: boolean } | null;
   /** A opala negra: a carta marcada até alguém levar o pote com ela. */
-  opal: { card: Card; amount: number; claimed: boolean } | null;
+  opal: { card: Card; amount: number; claimed: boolean; claimedHand?: number } | null;
   /** O tique de Le Chiffre vale até esta mão (inclusive). */
   tellUntil: number | null;
   /** 8 ases a mais no baralho. */
@@ -441,7 +441,7 @@ export function applyEvent(t0: TableShow, e: PublicEvent): TableShow {
       if (!t.tournament) return t;
       const tt = { ...t.tournament, lastBonus: { key: (t.tournament.lastBonus?.key ?? 0) + 1, playerId: e.playerId, amount: e.amount, effect: e.effect } };
       if (e.effect === 'hand_bounty' && tt.bounty) tt.bounty = { ...tt.bounty, claimed: true };
-      if (e.effect === 'opal' && tt.opal) tt.opal = { ...tt.opal, claimed: true };
+      if (e.effect === 'opal' && tt.opal) tt.opal = { ...tt.opal, claimed: true, claimedHand: e.handNumber };
       return { ...t, tournament: tt };
     }
     case 'tellMark':

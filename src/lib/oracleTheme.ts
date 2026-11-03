@@ -141,10 +141,19 @@ export const glassPanel = (accent?: string): React.CSSProperties => ({
 
 // Cores das categorias de tag (pin ativo no perfil, abas e cartões do Tag
 // Pins): básico = verde, tema = âmbar, comunidade = azul-céu, oráculo =
-// rosa, especial = preto com contorno claro.
-export type TagCategory = 'basic' | 'theme' | 'community' | 'oracle' | 'special';
+// rosa, jogos = vermelho, especial = preto com contorno claro.
+export type TagCategory = 'basic' | 'theme' | 'community' | 'oracle' | 'games' | 'special';
+// Jogos (03/11/2026, Poster Jackpot e Pôster Poker): o "vermelho-carta" dos
+// naipes de copas e ouros (matiz 353°). 5,9:1 sobre NIGHT e 5,4:1 sobre
+// VELVET; mais saturado e mais frio que o vermelho de erro do site (red-400/
+// 500, matiz 0°, coral) e longe do rosa dos Oráculos. O texto claro sobre o
+// tingido é TAG_GAMES_RED_TEXT (10:1). Os créditos do pôquer usam os dois.
+export const TAG_GAMES_RED = '#FF4D63';
+export const TAG_GAMES_RED_TEXT = '#FFC7CE';
 export const tagCategoryStyle = (category: string): { pill: string; accent: string } => {
   switch (category) {
+    case 'games':
+      return { pill: 'bg-[#FF4D63]/15 text-[#FFC7CE] ring-1 ring-[#FF4D63]/30', accent: TAG_GAMES_RED };
     case 'basic':
       return { pill: 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/30', accent: '#34D399' };
     case 'theme':

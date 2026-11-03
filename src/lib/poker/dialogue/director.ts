@@ -210,6 +210,12 @@ class DialogueDirector implements Director {
       case 'prizeCaptured':
         this.dropQueued((q) => q.trigger === 'eliminated' && q.parts[0]?.speaker === this.tracker.lastHolderBeforeCapture);
         break;
+      case 'eliminated':
+        // 03/11/2026 (pacote H): a pessoa caiu, a mesa acabou para ela (veredito Q4). O que ainda
+        // esperava na fila da mesa (dicas, eliminações de oráculos na mesma mão) sai; ficam a
+        // despedida e os créditos, sem a pilha atrasar os créditos.
+        if (e.playerId === 'human') this.dropQueued((q) => q.scene === 'table');
+        break;
       case 'matchEnded':
         this.handleSignals(signals);
         this.credits(e, ctx);
@@ -641,6 +647,7 @@ class DialogueDirector implements Director {
   /** Tenta virar um momento não-P1 (orçamento, fila, papel e baralho). */
   private tryEnqueue(sig: Signal): boolean {
     if (!this.modeAllows(sig.priority)) return false;
+    if (this.tracker.isOut('human') && sig.phase !== 'credits') return false;
     if ((sig.trigger === 'deal' || sig.trigger === 'flop') && !this.prevHandSilent(sig.hand)) return false;
     const needShort = this.humanTurnOpen || !!sig.short;
     // troca?
@@ -721,6 +728,7 @@ class DialogueDirector implements Director {
   /** P1: fura o orçamento e substitui o que estiver esperando (não-P1). */
   private enqueueP1(sig: Signal, scene: NonNullable<SpeechItem['scene']>): boolean {
     if (this.ctx.talk === 'none') return false;
+    if (scene === 'table' && this.tracker.isOut('human')) return false;   // a pessoa já caiu: só despedida e créditos
     this.dropQueued((q) => q.priority !== 1);
     const s: Signal = { ...sig, scene: scene === 'farewell' ? 'farewell' : sig.scene };
     const exChance = EXCHANGE_CHANCE[sig.trigger] ?? 0.5;
@@ -834,7 +842,7 @@ class DialogueDirector implements Director {
    * Pôster Poker (03/11/2026): a abertura do torneio da semana. Até 2 balões: a apresentação
    * do pôster (por raridade ou pelo filme; quem apresenta é o antigo portador da raridade) e
    * mais um — o pôster que a pessoa apostou, a caixinha da Cobra, o empréstimo, a volta do
-   * Intervalo ou, metade das vezes, uma saudação. O lendário ganha cerimônia (troca de 3
+   * Intervalo ou, uma vez em cinco, uma saudação. O lendário ganha cerimônia (troca de 3
    * balões, sozinha) sempre que houver uma que a pessoa não ouviu em 48 h. Com o Cassino na
    * 1ª vez da vida, a explicação dos 8 ases (que chega logo depois) toma o lugar do 2º balão.
    */
@@ -856,7 +864,8 @@ class DialogueDirector implements Director {
       else if (t.cobraItem) after = { ...base, trigger: 'cobraItem', actorId: 'cypher', variant: ['abertura'] };
       else if (this.opts.afterInterval) before = { ...base, trigger: 'intervalReturn', variant: tags };
       else if (e.loan > 0) before = { ...base, trigger: 'sapoLoan', variant: tags, actorId: 'bogart' };
-      else if (this.rng() < 0.5) before = { ...base, trigger: 'matchStart', variant: tags };
+      // a apresentação do pôster já cumprimenta; a saudação extra é rara (orçamento, 03/11/2026)
+      else if (this.rng() < 0.2) before = { ...base, trigger: 'matchStart', variant: tags };
     }
     if (before) this.openLine({ ...before, noExchange: true });
     this.openLine({ ...intro, noExchange: true });

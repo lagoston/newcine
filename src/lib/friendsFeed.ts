@@ -11,7 +11,9 @@ import type { PosterEffect, PosterRarity, PullKind, TitleType } from './posterJa
 //
 // Conquistas também viram stories (media_type 'achievement'): cada tag
 // desbloqueada (menos as especiais) e, no lugar das especiais, a conclusão
-// das missões de um evento (Halloween, Natal…).
+// das missões de um evento (Halloween, Natal…). As tags da categoria Jogos
+// (03/11/2026) também viram story; o banco só as manda para quem pede
+// 'games' em p_kinds (o app antigo não conhece a categoria).
 //
 // Pôster LENDÁRIO do Poster Jackpot (02/11/2026): também é uma conquista
 // (kind 'jackpot', 20261102010000_feed_jackpot_stories.sql), com o prêmio em
@@ -21,11 +23,13 @@ import type { PosterEffect, PosterRarity, PullKind, TitleType } from './posterJa
 export type StoryKind = 'rate' | 'watchlist' | 'review' | 'tag' | 'event' | 'jackpot';
 export type StoryMediaType = 'movie' | 'tv' | 'achievement';
 
-// Os tipos de story além dos de sempre que este site sabe desenhar.
-export const EXTRA_STORY_KINDS: StoryKind[] = ['jackpot'];
+// O que este site sabe desenhar além dos stories de sempre (p_kinds de
+// get_friends_feed): o story do lendário ('jackpot') e os stories de tag da
+// categoria Jogos ('games', que no banco continuam kind 'tag').
+export const EXTRA_STORY_KINDS: string[] = ['jackpot', 'games'];
 
 export interface FeedTagAchievement {
-  category: 'basic' | 'theme' | 'community' | 'oracle';
+  category: 'basic' | 'theme' | 'community' | 'oracle' | 'games';
   name: string;
   emoji: string;
 }

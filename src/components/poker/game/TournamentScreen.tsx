@@ -6,9 +6,8 @@ import toast from 'react-hot-toast';
 import { ChevronLeft, Star } from 'lucide-react';
 import { ChipFace } from '../../posterJackpot/Chips';
 import PosterArt, { EffectTag, RarityTag } from '../../posterJackpot/PosterArt';
-import { SerialLine } from '../../posterJackpot/CollectorMark';
 import type { PokerHome } from '../../../lib/poker/client/apiTypes';
-import { fmt, langOf, timeLeft } from '../../../lib/poker/client/format';
+import { langOf, timeLeft } from '../../../lib/poker/client/format';
 import { invalidatePokerHome } from '../../../lib/poker/client/usePokerHome';
 import { ENTRY_CHIPS, posterTitle, STARS, tournamentOf, type StakeOption } from '../../../lib/poker/client/tournament';
 import AgeGate from '../age/AgeGate';
@@ -222,7 +221,6 @@ const TournamentScreen: React.FC<{ home: PokerHome }> = ({ home }) => {
         <div className="pp-meta">
           <RarityTag rarity={prize.rarity} />
           <EffectTag effect="gold" />
-          <SerialLine rarity={prize.rarity} serial={prize.serial} />
         </div>
         <div className="pp-meta" aria-label={t('poker.tourney.starsAria', { count: stars })}>
           <span>{t('poker.tourney.difficulty')}</span>
@@ -243,9 +241,6 @@ const TournamentScreen: React.FC<{ home: PokerHome }> = ({ home }) => {
 
       {body}
 
-      {!tour.active_match && !tour.owned && !tour.won_this_week && tour.attempts_used < tour.max_attempts && (
-        <p className="pp-foot">{t('poker.tourney.todayLeft', { count: tour.max_attempts - tour.attempts_used, chips: fmt(tour.chips, lang) })}</p>
-      )}
       <p className="pp-foot">{t('poker.noRealMoney')}</p>
 
       <AgeGate

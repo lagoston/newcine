@@ -117,7 +117,8 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
   const tt = table.tournament;
   const castNow = !!tt && tt.castHand === table.handNumber ? tt.active : null;
   const six = table.board.length > 5 || castNow?.effect === 'sixth_card';
-  const opal = tt?.opal?.card ?? null;
+  // A opala acende onde aparecer até ser levada (e ainda na mão em que foi levada).
+  const opal = tt?.opal && (!tt.opal.claimed || tt.opal.claimedHand === table.handNumber) ? tt.opal.card : null;
   const doubled = castNow?.effect === 'double_pot';
   const bjBest = blackjackLeaders(table);
   const bjOf = (s: { id: string; revealed: string[] }) =>

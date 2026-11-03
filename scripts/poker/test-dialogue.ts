@@ -1444,6 +1444,8 @@ function verifyPoster(tag: string, events: PublicEvent[], emitted: Emitted[], st
   return st;
 }
 
+const T_STATS = new Map<string, number>();
+
 function fuzzTournament(n: number, label: string): void {
   const tot = { matches: 0, hands: 0, balloons: 0, p1: 0, silent: 0, real: 0, b35: [] as number[], b35vet: [] as number[] };
   const ps: PosterStats = { castLines: 0, casts: 0, explains: 0, bonusLines: 0, bonuses: 0, tellLines: 0, revealLines: 0 };
@@ -1510,6 +1512,16 @@ function fuzzTournament(n: number, label: string): void {
     player.lifetime++;
     player.clock.t += 60_000;
     const tag = `torneio-${label}-${k}(${effect}${real ? '' : ', injetado'})`;
+    for (const o of stage.out) {
+      if (o.item.scene === 'quip' || o.item.scene === 'card') continue;
+      const key = `P${o.item.priority} ${o.item.debug?.trigger ?? '?'}`;
+      T_STATS.set(key, (T_STATS.get(key) ?? 0) + 1);
+    }
+    if (args.includes('--dump') && Number(args[args.indexOf('--dump') + 1]) === k) {
+      const ends = all.filter((e) => e.t === 'matchEnded' || e.t === 'eliminated');
+      console.log(`  [dump ${tag}] fim: ${JSON.stringify(ends)}`);
+      for (const o of stage.out.slice(-8)) console.log(`    ${o.t} ${o.item.scene} P${o.item.priority} ${o.item.debug?.trigger} ${o.item.lineId}: ${o.item.text}`);
+    }
     const st = verify(tag, all, stage.out, privateMeta(run!.priv));
     const p = verifyPoster(tag, all, stage.out, stake);
     for (const o of stage.out) {
@@ -1549,6 +1561,8 @@ function fuzzTournament(n: number, label: string): void {
   console.log(`  lançadas: ${ps.casts}, com fala ${ps.castLines} (${ps.explains} explicações); bônus: ${ps.bonuses}, com fala ${ps.bonusLines}; ` +
     `tique com fala: ${ps.tellLines}; carta aberta comentada: ${ps.revealLines}`);
   if (args.includes('--stats')) {
+    const rows = [...T_STATS].sort((a, b) => b[1] - a[1]).slice(0, 30).map(([key, v]) => `${key}: ${(v / tot.matches).toFixed(2)}`);
+    console.log('  balões por partida de torneio, por gatilho:\n    ' + rows.join('\n    '));
     for (const [fx, r] of byEffect) {
       console.log(`    ${fx}: ${r.matches} partidas, lançadas ${r.casts} (fala ${r.castLines}), bônus ${r.bonuses} (fala ${r.bonusLines}), tique ${r.tellLines}`);
     }

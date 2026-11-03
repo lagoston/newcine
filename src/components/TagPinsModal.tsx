@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Loader2, Tag, Palette, Users, BrainCircuit, Lock, Check, Clock, X } from 'lucide-react';
+import { Sparkles, Loader2, Tag, Palette, Users, BrainCircuit, Dices, Lock, Check, Clock, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { syncUnlockedTagsAndNotify } from '../lib/tagNotifications';
 import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS } from '../lib/tags';
-import { fetchTagProgress, unlockedPinsFrom, type UnlockedPin, type SpecialTagStatus } from '../lib/tagProgress';
+import {
+  fetchTagProgress,
+  fetchGameTagProgress,
+  gameTagGoal,
+  unlockedPinsFrom,
+  type UnlockedPin,
+  type SpecialTagStatus,
+  type TagCategoryId,
+} from '../lib/tagProgress';
+import type { GameId } from '../lib/tags';
 import OracleSheet, { SheetFade } from './OracleSheet';
 import { NIGHT, VELVET, PAPER, MIST, FOCUS_RING, tagCategoryStyle, withAlpha } from '../lib/oracleTheme';
 
@@ -17,7 +26,6 @@ interface TagPinsModalProps {
   onSave?: () => void;
 }
 
-type TagCategoryId = 'basic' | 'theme' | 'community' | 'oracle' | 'special';
 type ViewMode = 'pins' | TagCategoryId;
 
 interface ActiveTag {
@@ -39,7 +47,12 @@ interface TagRow {
   isUnlocked: boolean;
   category: TagCategoryId;
   note?: { icon: 'clock' | 'sparkles'; text: string };
+  // Jogos: de qual jogo é a tag (a aba agrupa por jogo)
+  game?: GameId | null;
 }
+
+// Os jogos da aba Jogos, na ordem em que aparecem.
+const GAME_SECTIONS: GameId[] = ['jackpot', 'poker'];
 
 // Modal "Tags": as tags desbloqueadas (e qual está no perfil agora) e o
 // progresso de cada categoria. O cálculo do progresso mora em
@@ -59,6 +72,9 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
   const [themeTagProgress, setThemeTagProgress] = useState<Record<string, number>>({});
   const [oracleTagProgress, setOracleTagProgress] = useState<Record<string, number>>({});
   const [specialTags, setSpecialTags] = useState<SpecialTagStatus[]>([]);
+  const [gameTags, setGameTags] = useState<SpecialTagStatus[]>([]);
+  // Progresso das tags de Jogos pela métrica (só da própria pessoa).
+  const [gameProgress, setGameProgress] = useState<Record<string, number>>({});
   const [activeTag, setActiveTag] = useState<ActiveTag | null>(null);
   const [pins, setPins] = useState<UnlockedPin[]>([]);
 
@@ -78,9 +94,12 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
   const fetchAllData = async () => {
     try {
       setLoading(true);
-      const [progress, { data: profileData }] = await Promise.all([
+      const isSelf = userId === session?.user?.id;
+      const [progress, { data: profileData }, games] = await Promise.all([
         fetchTagProgress(userId),
         supabase.from('profiles').select('active_tag').eq('id', userId).single(),
+        // o banco só devolve o progresso de quem está logado
+        isSelf ? fetchGameTagProgress() : Promise.resolve({} as Record<string, number>),
       ]);
 
       setRatedMoviesCount(progress.ratedCount);
@@ -89,12 +108,14 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       setThemeTagProgress(progress.theme);
       setOracleTagProgress(progress.oracle);
       setSpecialTags(progress.specialTags);
+      setGameTags(progress.gameTags);
+      setGameProgress(games);
       setActiveTag((profileData?.active_tag as ActiveTag | null) ?? null);
 
       const unlocked = unlockedPinsFrom(progress);
       setPins(unlocked);
       // Notifica tag nova só pro próprio usuário logado.
-      if (userId === session?.user?.id) syncUnlockedTagsAndNotify(userId, unlocked);
+      if (isSelf) syncUnlockedTagsAndNotify(userId, unlocked);
     } catch (error) {
       console.error('Error fetching tag pins data:', error);
     } finally {
@@ -193,6 +214,28 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
             category,
           };
         });
+      case 'games':
+        // Jogos: a regra na linha de cima e, depois de conquistada, a frase
+        // da tag (escrita no passado: "Dez giros na roleta…"). Progresso pela
+        // métrica do banco; conquistada = barra cheia (a tag é para sempre,
+        // mesmo que a contagem de hoje tenha caído, ex.: pôster trocado).
+        return gameTags.map((tag) => {
+          const { metric, goal, game } = gameTagGoal(tag);
+          const count = metric ? gameProgress[metric] : undefined;
+          const hasCounter = goal !== null && (tag.is_unlocked || count !== undefined);
+          return {
+            key: tag.id,
+            emoji: tag.emoji,
+            name: tag.name,
+            description: (isPt && tag.requirement_description_pt) || tag.requirement_description,
+            detail: tag.is_unlocked ? (isPt && tag.description_pt) || tag.description : undefined,
+            progress: hasCounter ? (tag.is_unlocked ? Math.max(count ?? 0, goal as number) : count ?? 0) : null,
+            goal: hasCounter ? goal : null,
+            isUnlocked: tag.is_unlocked,
+            category,
+            game,
+          };
+        });
       case 'special':
         return specialTags.map((tag) => ({
           key: tag.id,
@@ -220,6 +263,7 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
     { id: 'theme', label: t('customize.categories.theme'), icon: Palette },
     { id: 'community', label: t('customize.categories.community'), icon: Users },
     { id: 'oracle', label: t('customize.categories.oracle'), icon: BrainCircuit },
+    { id: 'games', label: t('customize.categories.games'), icon: Dices },
     { id: 'special', label: t('customize.categories.special'), icon: Sparkles },
   ];
 
@@ -436,7 +480,9 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
           ? t('customize.progress.followers', { count: followersCount })
           : category === 'special'
             ? t('customize.tags.limitedTime')
-            : null;
+            : category === 'games'
+              ? t('customize.tags.gamesIntro')
+              : null;
     return (
       <div>
         {intro && (
@@ -450,6 +496,18 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
             <p className="mt-3 text-sm" style={{ color: MIST }}>
               {t('customize.tags.noSpecialTags')}
             </p>
+          </div>
+        ) : category === 'games' ? (
+          // Uma seção por jogo, na ordem da lista (Jackpot primeiro).
+          <div className="space-y-5">
+            {GAME_SECTIONS.filter((game) => rows.some((row) => (row.game ?? 'jackpot') === game)).map((game) => (
+              <section key={game} aria-labelledby={`tags-game-${game}`}>
+                <h3 id={`tags-game-${game}`} className="mb-2.5 text-xs font-semibold uppercase tracking-wider" style={{ color: tagCategoryStyle('games').accent }}>
+                  {t(`customize.tags.game.${game}`)}
+                </h3>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">{rows.filter((row) => (row.game ?? 'jackpot') === game).map(renderTagRow)}</ul>
+              </section>
+            ))}
           </div>
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">{rows.map(renderTagRow)}</ul>

@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { getContinent } from './continents';
-import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES } from './tags';
+import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MOVIES, GAME_TAGS, type GameId } from './tags';
 
 // Cálculo do progresso de TODAS as tags de um usuário, num lugar só. Antes o
 // mesmo cálculo estava copiado no modal de Tags, no hook de tags
@@ -22,8 +22,13 @@ import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MO
 //     pelo tipo ("movie:123" / "tv:123"): um filme nunca vale por uma série
 //     de mesmo número;
 //   • CineHater conta notas de 0 a 3.
+//   • Jogos (03/11/2026): quem concede é o banco (special_tags com category
+//     'games', posse em user_special_tags). Aqui só se lê quem tem; o
+//     progresso de cada uma vem de fetchGameTagProgress() (só da própria
+//     pessoa, então fica fora do fetchTagProgress, que também serve aos
+//     perfis dos outros).
 
-export type TagCategoryId = 'basic' | 'theme' | 'community' | 'oracle' | 'special';
+export type TagCategoryId = 'basic' | 'theme' | 'community' | 'oracle' | 'games' | 'special';
 
 export interface UnlockedPin {
   emoji: string;
@@ -42,6 +47,10 @@ export interface SpecialTagStatus {
   requirement_description_pt: string | null;
   starts_at: string | null;
   ends_at: string | null;
+  // 'special' (eventos, beta) ou 'games' (Jogos); banco antigo sem a coluna = 'special'
+  category: 'special' | 'games';
+  // Jogos: { source: 'jackpot' | 'poker', metric?, goal? }
+  requirement_data: { source?: string; metric?: string; goal?: number } | null;
   is_unlocked: boolean;
   unlocked_at?: string;
   is_currently_active: boolean;
@@ -58,6 +67,8 @@ export interface TagProgress {
   oracle: Record<string, number>;
   // Especiais ainda ativas ou já conquistadas.
   specialTags: SpecialTagStatus[];
+  // Jogos já no ar ou já conquistadas, na ordem de GAME_TAGS.
+  gameTags: SpecialTagStatus[];
 }
 
 interface RatedRow {
@@ -208,7 +219,7 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
     ((userSpecialRes.data as { tag_id: string; unlocked_at: string }[] | null) ?? []).map((ut) => [ut.tag_id, ut]),
   );
   const now = Date.now();
-  const specialTags: SpecialTagStatus[] = ((specialRes.data as Omit<SpecialTagStatus, 'is_unlocked' | 'unlocked_at' | 'is_currently_active'>[] | null) ?? [])
+  const visibleTags: SpecialTagStatus[] = ((specialRes.data as Omit<SpecialTagStatus, 'is_unlocked' | 'unlocked_at' | 'is_currently_active'>[] | null) ?? [])
     .map((tag) => {
       const mine = userSpecial.get(tag.id);
       return {
@@ -221,15 +232,26 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
         requirement_description_pt: tag.requirement_description_pt ?? null,
         starts_at: tag.starts_at,
         ends_at: tag.ends_at,
+        category: tag.category === 'games' ? ('games' as const) : ('special' as const),
+        requirement_data: tag.requirement_data ?? null,
         is_unlocked: Boolean(mine),
         unlocked_at: mine?.unlocked_at,
         // no ar agora: já começou e ainda não acabou (as do Natal só
-        // aparecem em dezembro para quem ainda não tem)
+        // aparecem em dezembro para quem ainda não tem; as do Pôster Poker,
+        // só no lançamento)
         is_currently_active:
           (!tag.starts_at || new Date(tag.starts_at).getTime() <= now) && (!tag.ends_at || new Date(tag.ends_at).getTime() > now),
       };
     })
     .filter((tag) => tag.is_unlocked || tag.is_currently_active);
+
+  const specialTags = visibleTags.filter((tag) => tag.category === 'special');
+  // Ordem de GAME_TAGS; uma tag de Jogos nova no banco que a lista ainda não
+  // conhece vai para o fim (aparece do mesmo jeito).
+  const gameOrder = new Map(GAME_TAGS.map((tag, index) => [tag.id, index]));
+  const gameTags = visibleTags
+    .filter((tag) => tag.category === 'games')
+    .sort((a, b) => (gameOrder.get(a.id) ?? GAME_TAGS.length) - (gameOrder.get(b.id) ?? GAME_TAGS.length));
 
   return {
     ratedCount: rated.length,
@@ -238,8 +260,38 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
     theme,
     oracle,
     specialTags,
+    gameTags,
   };
 }
+
+// Progresso das tags de Jogos da pessoa logada, pela métrica de cada uma
+// ({ spins: 12, posters: 13, … }; get_my_game_tag_progress no banco, que lê
+// tabelas fechadas para o site). Sem a função (banco antigo) ou com erro: {}.
+export async function fetchGameTagProgress(): Promise<Record<string, number>> {
+  try {
+    const { data, error } = await supabase.rpc('get_my_game_tag_progress');
+    if (error) throw error;
+    const out: Record<string, number> = {};
+    Object.entries((data as Record<string, unknown> | null) ?? {}).forEach(([key, value]) => {
+      if (typeof value === 'number' && Number.isFinite(value)) out[key] = value;
+    });
+    return out;
+  } catch (error) {
+    console.error('Error fetching game tag progress:', error);
+    return {};
+  }
+}
+
+// Meta e jogo de uma tag de Jogos: o banco (requirement_data) manda; a lista
+// GAME_TAGS cobre o banco antigo.
+export const gameTagGoal = (tag: SpecialTagStatus): { metric: string | null; goal: number | null; game: GameId | null } => {
+  const local = GAME_TAGS.find((item) => item.id === tag.id);
+  const data = tag.requirement_data ?? {};
+  const metric = typeof data.metric === 'string' ? data.metric : local?.metric ?? null;
+  const goal = typeof data.goal === 'number' ? data.goal : local?.goal ?? null;
+  const source = data.source === 'jackpot' || data.source === 'poker' ? data.source : local?.game ?? null;
+  return { metric, goal: metric ? goal : null, game: source };
+};
 
 // Progresso de uma tag básica: as sem condição contam títulos avaliados.
 export const basicTagProgress = (progress: TagProgress, tagName: string): number => {
@@ -261,6 +313,9 @@ export function unlockedPinsFrom(progress: TagProgress): UnlockedPin[] {
   });
   ORACLE_TAGS.forEach((tag) => {
     if ((progress.oracle[tag.id] || 0) >= tag.condition.count) pins.push({ emoji: tag.emoji, name: tag.name, category: 'oracle' });
+  });
+  progress.gameTags.forEach((tag) => {
+    if (tag.is_unlocked) pins.push({ emoji: tag.emoji, name: tag.name, category: 'games' });
   });
   progress.specialTags.forEach((tag) => {
     if (tag.is_unlocked) pins.push({ emoji: tag.emoji, name: tag.name, category: 'special' });
