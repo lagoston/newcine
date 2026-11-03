@@ -8,11 +8,13 @@
  */
 export const BUDGET = {
   balloonsMax: 22,             // balões não-P1 por partida
-  tokensStart: 2, tokensMax: 3, refillPerHand: 0.55,   // P2 e P3 custam 1; uma troca custa 2
+  // 03/11/2026: o §6.3 dava refill 0,55; medido no fuzz, isso dava ~29 balões em 35 mãos.
+  // 0,28 põe a média na meta de 18–22 (P1 incluído).
+  tokensStart: 2, tokensMax: 3, refillPerHand: 0.28,   // P2 e P3 custam 1; uma troca custa 2
   momentsPerHand: 1,           // uma fala ou uma troca (≤ 3 balões); um P1 substitui o que estiver na fila
   silentShareMin: 0.40,        // momento não-P1 na mão h só se (mãosComMomento + 1) ≤ 0,6·h + 1
   globalGapMs: 3500, speakerGapMs: 9000,               // entre inícios de balões; trocas livres do gap por personagem
-  halfFromConsecutiveMatch: 3, // da 3ª partida seguida em diante: refill × 0,5; só P1 e trocas inéditas furam
+  halfFromConsecutiveMatch: 3, // da 3ª partida seguida em diante: refill e fichas iniciais × 0,5; só P1 e trocas inéditas furam
   queueMax: 2,                 // itens não-P1 esperando
   waitMs: 4000,                // um balão não-P1 que espera mais que isso cai
   waitP1Ms: 20000,             // P1 espera mais (abertura, eliminações enquanto a próxima mão é dada)
@@ -28,6 +30,8 @@ export class Budget {
 
   constructor(half: boolean) {
     this.half = half;
+    // meia-carga também começa com metade das fichas, senão partidas curtas nem sentem
+    if (half) this.tokens = BUDGET.tokensStart * 0.5;
   }
 
   get halfMode(): boolean {

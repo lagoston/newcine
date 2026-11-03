@@ -9,7 +9,7 @@ import { seatOf } from '../../../lib/poker/client/display';
 import type { Banner, TablePhase } from '../../../lib/poker/client/useTable';
 import type { SpeechItem } from '../../../lib/poker/client/useDirector';
 import type { PokerSettingsLocal } from '../../../lib/poker/client/settings';
-import { describeHand, fmt, whatYouHave, type Lang } from '../../../lib/poker/client/format';
+import { fmt, whatYouHave, type Lang } from '../../../lib/poker/client/format';
 import { blindsText } from '../../../lib/poker/client/narrate';
 import { pokerCosmetics } from '../cosmetics/looks';
 import OracleSeat from '../acting/OracleSeat';
@@ -56,6 +56,7 @@ export interface TableStageProps {
   quipReady: boolean;
   onQuip: (() => void) | null;
   statusText: React.ReactNode;
+  prevText?: React.ReactNode;
   live: string;
   alert: string;
   log: { id: number; text: string; speaker?: string }[];
@@ -66,6 +67,9 @@ export interface TableStageProps {
   hint?: React.ReactNode;
   /** Vinheta do all-in do Raposo: escurece só a sala. */
   vignette?: boolean;
+  /** Treino: [Pular] sempre visível no lugar da velocidade. */
+  onSkipTraining?: (() => void) | null;
+  onBlocked?: (type: PlayerAction['type']) => void;
   children?: React.ReactNode;
 }
 
@@ -81,10 +85,14 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
   const hl = (k: string) => (p.highlight === k ? { outline: '3px solid #FFE8A3', outlineOffset: 4, borderRadius: 12 } : undefined);
   const best = table.winningHand?.best5 ?? null;
   const showdownDim = table.showdown && !!best;
-  const have = me && me.cards.length === 2 ? whatYouHave(me.cards, table.board, lang) : null;
+  // "Você tem" só para quem ainda está na mão.
+  const have = me && me.cards.length === 2 && me.status !== 'folded' && me.status !== 'eliminated' ? whatYouHave(me.cards, table.board, lang) : null;
   const rivals = table.seats.filter((s) => s.id !== 'human');
   const holder = table.prize?.holderId ?? null;
-  const pots = table.pots.length > 1 ? table.pots : null;
+  // Pote paralelo só existe com alguém all-in; o excesso de uma aposta ainda não
+  // paga (um só elegível) não é pote, é devolução.
+  const realPots = table.pots.filter((x) => x.eligibleIds.length >= 2);
+  const pots = realPots.length > 1 && table.seats.some((x) => x.status === 'allIn') ? realPots : null;
   const level = table.level;
   const modeLabel = p.mode === 'bounty' ? t('poker.table.bounty') : p.mode === 'tutorial' ? t('poker.table.training') : t('poker.table.free');
 
@@ -136,12 +144,18 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
               {level.next && level.handsLeft > 0 && p.mode !== 'tutorial' ? ` · ${t('poker.table.nextLevel', { count: level.handsLeft })}` : ''}
             </span>
           </div>
-          <button type="button" className="pk-icon-btn" onClick={p.onSpeed} aria-label={t('poker.settings.speed') + ': ' + t(`poker.settings.${settings.speed}`)}>
-            <span className="flex flex-col items-center leading-none">
-              <FastForward className="w-5 h-5" />
-              <span className="pk-speed">{settings.speed === 'normal' ? '1×' : settings.speed === 'fast' ? '2×' : '5×'}</span>
-            </span>
-          </button>
+          {p.onSkipTraining ? (
+            <button type="button" className="pk-mini-btn" onClick={p.onSkipTraining}>
+              {t('poker.table.skip')}
+            </button>
+          ) : (
+            <button type="button" className="pk-icon-btn" onClick={p.onSpeed} aria-label={t('poker.settings.speed') + ': ' + t(`poker.settings.${settings.speed}`)}>
+              <span className="flex flex-col items-center leading-none">
+                <FastForward className="w-5 h-5" />
+                <span className="pk-speed">{settings.speed === 'normal' ? '1×' : settings.speed === 'fast' ? '2×' : '5×'}</span>
+              </span>
+            </button>
+          )}
           <button type="button" className="pk-icon-btn" onClick={p.onMenu} aria-label={t('poker.table.menu')}>
             <Menu className="w-6 h-6" />
           </button>
@@ -182,7 +196,21 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
         {/* Pote e mesa. */}
         <section className="pk-board" aria-label={t('poker.table.boardAria')} onClick={p.onSkipAnim}>
           <div className="pk-potrow" style={hl('pot')}>
-            {table.potTotal > 0 && (
+            <AnimatePresence>
+              {p.banner?.kind === 'showdown' && table.winningHand && (
+                <motion.span
+                  key={p.banner.id}
+                  initial={{ opacity: 0, y: reduced ? 0 : 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="pk-hand-banner pk-display"
+                  role="status"
+                >
+                  {table.winningHand.royal ? t('poker.hands.royal') : t(`poker.hands.${table.winningHand.kind}`)}
+                </motion.span>
+              )}
+            </AnimatePresence>
+            {table.potTotal > 0 && !(p.banner?.kind === 'showdown' && table.winningHand) && (
               <span className="pk-pot pk-sans">
                 <TableChip amount={table.potTotal} size={20} />
                 {pots ? (
@@ -216,19 +244,6 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
               );
             })}
           </div>
-          <AnimatePresence>
-            {p.banner?.kind === 'showdown' && table.winningHand && (
-              <motion.span
-                key={p.banner.id}
-                initial={{ opacity: 0, scale: reduced ? 1 : 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                className="pk-hand-banner pk-display"
-              >
-                {describeHand(table.winningHand.kind, table.winningHand.best5, lang, table.winningHand.royal)}
-              </motion.span>
-            )}
-          </AnimatePresence>
         </section>
 
         <div className="pk-have" style={hl('handName')} aria-live="off">
@@ -319,9 +334,11 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
           pre={p.pre}
           setPre={p.setPre}
           statusText={p.statusText}
+          prevText={p.prevText}
           tutorial={p.tutorial}
           onContinue={p.onContinue}
           onConfirmDialog={p.onConfirmDialog}
+          onBlocked={p.onBlocked}
         />
 
         {/* Letreiros: Corte Final, prêmio capturado, blinds subindo. */}

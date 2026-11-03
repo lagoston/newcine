@@ -25,18 +25,32 @@ export const SuitIcon: React.FC<{ suit: Suit; className?: string; style?: React.
   </svg>
 );
 
-// Emblemas 8×8 em pixel: J = claquete, Q = rolo de filme, K = cadeira de diretor.
+// Emblemas 10×10 em pixel: J = claquete, Q = rolo de filme, K = cadeira de diretor.
+const reel = (): string[] =>
+  Array.from({ length: 10 }, (_, y) =>
+    Array.from({ length: 10 }, (_, x) => {
+      const dx = x - 4.5;
+      const dy = y - 4.5;
+      const r = Math.hypot(dx, dy);
+      if (r > 4.9) return '.';
+      // Furos do rolo (4) e o eixo no meio.
+      const holes = [[-2.2, -2.2], [2.2, -2.2], [-2.2, 2.2], [2.2, 2.2]];
+      if (holes.some(([hx, hy]) => Math.hypot(dx - hx, dy - hy) < 1.15)) return '.';
+      if (r < 0.9) return '.';
+      return '#';
+    }).join(''),
+  );
 const EMBLEMS: Record<number, string[]> = {
-  11: ['#.#.#.#.', '########', '........', '########', '#......#', '#.####.#', '#......#', '########'],
-  12: ['..####..', '.#....#.', '#.##.#.#', '#.#..#.#', '#..##..#', '#.#..#.#', '.#....#.', '..####..'],
-  13: ['#......#', '########', '#......#', '########', '..#..#..', '.#.##.#.', '#......#', '#......#'],
+  11: ['##..##..##', '.##..##..#', '##########', '#........#', '#.######.#', '#........#', '#.####...#', '#........#', '##########', '..........'],
+  12: reel(),
+  13: ['#........#', '##########', '##########', '#........#', '##########', '#.#....#.#', '#..#..#..#', '#...##...#', '#..#..#..#', '#.#....#.#'],
 };
 
 const Emblem: React.FC<{ rank: number }> = ({ rank }) => {
   const rows = EMBLEMS[rank];
   if (!rows) return null;
   return (
-    <svg viewBox="0 0 8 8" className="pk-card-emblem" aria-hidden focusable="false" shapeRendering="crispEdges">
+    <svg viewBox="0 0 10 10" className="pk-card-emblem" aria-hidden focusable="false" shapeRendering="crispEdges">
       {rows.flatMap((row, y) =>
         row.split('').map((ch, x) => (ch === '#' ? <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="currentColor" /> : null)),
       )}

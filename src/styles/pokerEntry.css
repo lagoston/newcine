@@ -133,15 +133,6 @@
 .pe-strip:hover {
   filter: brightness(1.08);
 }
-/* O friso de couro na borda esquerda, como a borda da mesa vista de cima. */
-.pe-strip::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 5px;
-  background: linear-gradient(180deg, #3a2618, #2a1a12);
-  box-shadow: 1px 0 0 rgba(244, 196, 84, 0.55);
-}
 .pe-strip-arrow {
   display: grid;
   place-items: center;
@@ -185,11 +176,7 @@
   background:
     radial-gradient(80% 40% at 50% 0%, rgba(80, 96, 220, 0.32), transparent 70%),
     radial-gradient(60% 40% at 100% 100%, rgba(150, 50, 200, 0.22), transparent 75%),
-    linear-gradient(180deg, #0f1645 0%, #0a0e2c 55%, #150a33 100%);
-  background-attachment: fixed;
-}
-.pe-score .pj-stars {
-  position: fixed;
+    linear-gradient(180deg, #0f1645 0%, #0a0e2c 40%, #0a0e2c 75%, #150a33 100%);
 }
 
 /* O painel padrão: vidro azul-noite com fio de cabelo. */
@@ -281,8 +268,13 @@
   height: 28px;
 }
 .pe-segbar > button {
+  /* Fora da regra global de 44 px (index.css): a barra alta tem 28 px; os
+     valores também estão na legenda, então o toque é só um extra. */
+  display: block;
+  height: 28px;
+  min-height: 0 !important;
   position: relative;
-  min-width: 0;
+  min-width: 0 !important;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 700;
@@ -338,7 +330,7 @@
   top: 0;
   bottom: 0;
   border-radius: 999px;
-  background: rgba(244, 196, 84, 0.26);
+  background: rgba(244, 196, 84, 0.4);
 }
 .pe-range-dot {
   position: absolute;

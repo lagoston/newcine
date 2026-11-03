@@ -21,16 +21,37 @@ function shoverRange(v: BotView, f: Features, ctx: BotCtx): WeightedRange | null
   const p = v.players.find((q) => q.id === id);
   const bb = f.bb;
   const depth = p ? (p.stack + p.streetBet) / bb : 20;
-  let pct = depth <= 10 ? 40 : depth <= 20 ? 22 : 12;
+  const base = depth <= 10 ? 40 : depth <= 20 ? 22 : 12;
+  let pct = base;
   const c = ctx.model?.counters(id);
-  if (c && c.hands > 0 && c.pfShoves / c.hands > 0.2) pct *= 1.5;   // quem empurra demais abre a faixa de call
-  const w = topWeights(Math.min(100, pct));
+  if (c) {
+    // Frequência de all-in antes do flop daquele oponente, com prior = a faixa-base:
+    // quem empurra demais abre a faixa de call (§3.5, leitura do Raposo).
+    // all-in é fácil de ler: o prior pesa um terço do atraso normal de adaptação.
+    const w = ctx.difficulty.adaptDelay / 3;
+    const rate = (c.pfShoves + (base / 100) * w) / (c.hands + w);
+    pct = Math.max(base, Math.min(100, 120 * rate));
+  }
+  const w = topWeights(pct);
   return { combos: ALL_COMBOS, weights: Array.from(w) };
 }
 
+/**
+ * Quem disputa o all-in: o agressor e quem já pagou depois dele. Quem ainda vai agir
+ * quase sempre larga; contar essas mãos como adversárias subestimaria a equidade.
+ */
+function involved(v: BotView, f: Features): string[] {
+  if (!f.aggressorId) return f.opponents;
+  const street = v.actions.filter((a) => a.street === v.street);
+  const k = street.map((a) => a.playerId).lastIndexOf(f.aggressorId);
+  const callers = street.slice(k + 1).filter((a) => a.type === 'call').map((a) => a.playerId);
+  return f.opponents.filter((o) => o === f.aggressorId || callers.includes(o));
+}
+
 function equityVs(v: BotView, f: Features, ctx: BotCtx, P: EffProfile, vsAggressor: boolean): number {
-  const opps = Math.max(1, f.opponents.length);
-  const ranges: (WeightedRange | null)[] = f.opponents.map((o) => {
+  const vs = v.street === 'preflop' ? involved(v, f) : f.opponents;
+  const opps = Math.max(1, vs.length);
+  const ranges: (WeightedRange | null)[] = vs.map((o) => {
     if (!vsAggressor || o !== f.aggressorId) return null;
     return v.street === 'preflop' ? shoverRange(v, f, ctx) : rangeFor(o, v, P.rangeModel === 'random' ? 'static' : P.rangeModel);
   });

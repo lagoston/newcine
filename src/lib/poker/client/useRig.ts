@@ -7,7 +7,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import type { MatchMode } from '../types.ts';
+import type { MatchMode, PublicEvent } from '../types.ts';
+import type { TableShow } from './display.ts';
 import { langOf, type Lang } from './format.ts';
 import { MatchClient } from './matchClient.ts';
 import { getPokerSettings, usePokerSettings, type PokerSettingsLocal } from './settings.ts';
@@ -28,6 +29,9 @@ export interface Rig {
   client: MatchClient;
   /** Completa o contexto do Diretor (título, história, prêmio…), lido a cada evento. */
   extras: React.MutableRefObject<CtxExtras>;
+  /** Gancho depois de cada evento projetado (o treino espera "Continuar" aqui). */
+  afterEvent: React.MutableRefObject<((e: PublicEvent, t: TableShow) => void | Promise<void>) | null>;
+  beforeTurn: React.MutableRefObject<((t: TableShow) => void | Promise<void>) | null>;
 }
 
 export function useRig(mode: MatchMode, opts: { story?: Record<string, string>; lifetimeMatches?: number } = {}): Rig {
@@ -36,6 +40,8 @@ export function useRig(mode: MatchMode, opts: { story?: Record<string, string>; 
   const settings = usePokerSettings();
   const reduced = !!useReducedMotion();
   const extras = useRef<CtxExtras>({});
+  const afterEvent = useRef<((e: PublicEvent, t: TableShow) => void | Promise<void>) | null>(null);
+  const beforeTurn = useRef<((t: TableShow) => void | Promise<void>) | null>(null);
   const [client] = useState(() => new MatchClient());
   useEffect(() => () => client.dispose(), [client]);
 
@@ -58,6 +64,8 @@ export function useRig(mode: MatchMode, opts: { story?: Record<string, string>; 
     compute: client,
     t,
     lang,
+    afterEvent: (e, tb) => afterEvent.current?.(e, tb),
+    beforeTurn: (tb) => beforeTurn.current?.(tb),
     ctx: () => {
       const view = tableRef.current?.getView();
       if (!view) return null;
@@ -85,5 +93,5 @@ export function useRig(mode: MatchMode, opts: { story?: Record<string, string>; 
   });
   tableRef.current = table;
 
-  return { mode, lang, t, settings, reduced, dir, table, client, extras };
+  return { mode, lang, t, settings, reduced, dir, table, client, extras, afterEvent, beforeTurn };
 }

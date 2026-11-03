@@ -53,6 +53,8 @@
   display: flex;
   justify-content: center;
   overflow: hidden;
+  /* clip (e não só hidden): o foco num botão não pode rolar a sala de lado. */
+  overflow: clip;
   color: var(--pk-paper);
   background:
     radial-gradient(70% 38% at 50% 0%, rgba(80, 96, 220, 0.32), transparent 72%),
@@ -93,7 +95,7 @@
 
 .pk-col {
   --pw: 64px;
-  --arc-h: 150px;
+  --arc-h: 158px;
   --speech-h: 52px;
   --have-h: 24px;
   --hero-h: 98px;
@@ -113,7 +115,7 @@
 @media (max-height: 679px) {
   .pk-col {
     --pw: 56px;
-    --arc-h: 136px;
+    --arc-h: 142px;
     --speech-h: 46px;
     --have-h: 22px;
     --hero-h: 88px;
@@ -125,7 +127,7 @@
 @media (min-height: 800px) {
   .pk-col {
     --pw: 76px;
-    --arc-h: 176px;
+    --arc-h: 180px;
     --speech-h: 60px;
     --have-h: 28px;
     --hero-h: 118px;
@@ -259,7 +261,7 @@
 .pk-seat {
   --ph: calc(var(--pw) * 1.25);
   position: absolute;
-  top: 6px;
+  top: 0;
   width: 33%;
   display: flex;
   flex-direction: column;
@@ -268,14 +270,14 @@
 }
 .pk-seat[data-pos='left'] {
   left: 0;
-  top: 22px;
+  top: 16px;
 }
 .pk-seat[data-pos='center'] {
   left: 33.5%;
 }
 .pk-seat[data-pos='right'] {
   right: 0;
-  top: 22px;
+  top: 16px;
 }
 .pk-seat.is-dim {
   opacity: 0.85;
@@ -382,18 +384,25 @@
   box-shadow: 0 0 0 2.5px var(--pk-gold-hi), 0 0 22px 2px rgba(244, 196, 84, 0.55), 0 14px 26px -12px rgba(0, 0, 0, 0.9);
 }
 
-/* Anel da vez: 3 px de ouro girando em volta de quem pensa. */
+/* Anel da vez: 3 px de ouro girando em volta de quem pensa. O anel fica parado
+   (máscara) e só o gradiente gira por dentro dele. */
 .pk-ring {
   position: absolute;
   inset: -5px;
   border-radius: 13px;
   padding: 3px;
-  background: conic-gradient(from 0deg, var(--pk-gold-hi), var(--pk-gold) 25%, transparent 45%, transparent 55%, var(--pk-gold) 80%, var(--pk-gold-hi));
+  overflow: hidden;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: pk-spin 1.4s linear infinite;
   pointer-events: none;
+}
+.pk-ring::before {
+  content: '';
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(from 0deg, var(--pk-gold-hi), var(--pk-gold) 22%, rgba(244, 196, 84, 0.08) 42%, rgba(244, 196, 84, 0.08) 58%, var(--pk-gold) 80%, var(--pk-gold-hi));
+  animation: pk-spin 1.4s linear infinite;
 }
 @keyframes pk-spin {
   to { transform: rotate(360deg); }
@@ -606,21 +615,38 @@
 .pk-minis .pk-card:first-child {
   transform: rotate(-4deg);
 }
-/* Cartas abertas do bot (showdown, all-in, mostrou). */
+/* Cartas abertas do bot (showdown, all-in, mostrou): seguradas na mão, ao lado do
+   retrato (para fora nas laterais; à direita no centro), sem cobrir o rosto nem a placa. */
 .pk-shown {
   position: absolute;
-  left: 50%;
-  bottom: -14px;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 2px;
+  top: 30%;
+  left: calc(100% - 10px);
+  width: calc(var(--seat-card-w) * 1.42);
+  height: calc(var(--seat-card-w) * 1.393 + 8px);
   z-index: 3;
+}
+.pk-seat[data-pos='left'] .pk-shown {
+  left: auto;
+  right: calc(100% - 10px);
+}
+.pk-shown .pk-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.pk-shown .pk-card:first-child {
+  transform: rotate(-6deg);
+}
+.pk-shown .pk-card + .pk-card {
+  left: calc(var(--seat-card-w) * 0.42);
+  top: 7px;
+  transform: rotate(5deg);
 }
 
 /* A placa: nome em Pixelify e o cacife em sans tabular. */
 .pk-plate {
   position: relative;
-  margin-top: 8px;
+  margin-top: 7px;
   display: flex;
   align-items: baseline;
   gap: 6px;
@@ -874,10 +900,6 @@
   box-shadow: inset 0 0 0 1.5px rgba(246, 220, 226, 0.18);
 }
 .pk-hand-banner {
-  position: absolute;
-  left: 50%;
-  bottom: 2px;
-  transform: translateX(-50%);
   padding: 3px 14px 4px;
   border-radius: 6px;
   font-size: 15px;
@@ -1088,7 +1110,7 @@
   box-shadow: 0 0 0 2px var(--pk-gold-hi), 0 0 14px 1px rgba(244, 196, 84, 0.6);
 }
 .pk-card.is-dimmed {
-  opacity: 0.45;
+  filter: brightness(0.42) saturate(0.5);
 }
 /* Verso: azul-noite, art déco dourado e a lua dos oráculos no centro. */
 .pk-back {
@@ -1320,6 +1342,10 @@
 .pk-status b {
   color: var(--pk-paper);
 }
+.pk-status.is-muted {
+  color: #8f88ad;
+  font-size: 12.5px;
+}
 .pk-pre {
   height: 56px;
   border-radius: 14px;
@@ -1500,6 +1526,19 @@
 }
 .pk-switch[aria-checked='true']::after {
   transform: translateX(20px);
+}
+
+/* Despedida: a mesa escurece da faixa de fala para baixo; quem eliminou fica sob a luz. */
+.pk-farewell {
+  position: absolute;
+  inset: 0;
+  z-index: 38;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 16px calc(28% + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent 0, transparent calc(44px + var(--arc-h) + var(--speech-h)), rgba(2, 3, 14, 0.82) calc(44px + var(--arc-h) + var(--speech-h) + 60px));
+  cursor: pointer;
 }
 
 /* O "Estrelando…": as três cartas entram como créditos de abertura. */
@@ -1726,6 +1765,7 @@
     min-height: 640px;
   }
   .pk-room {
+    overflow-x: clip;
     overflow-y: auto;
     align-items: flex-start;
   }
@@ -1743,91 +1783,6 @@
   }
 }
 
-/* ======================================================================
-   Computador (≥ 1024 px): palco 16:9 de até 1280×720, cartas inteiras
-   ====================================================================== */
-
-@media (min-width: 1024px) and (min-height: 600px) {
-  .pk-room {
-    align-items: center;
-  }
-  .pk-col {
-    --pw: 120px;
-    --board-w: 80px;
-    --hand-w: 96px;
-    --seat-card-w: 42px;
-    max-width: none;
-    width: min(100vw, calc(100vh * 16 / 9), 1280px);
-    height: min(100vh, calc(100vw * 9 / 16), 720px);
-    grid-template-columns: 300px minmax(0, 1fr) 400px;
-    grid-template-rows: 52px 250px 58px minmax(0, 1fr) 210px;
-    grid-template-areas:
-      'bar bar bar'
-      'seats seats seats'
-      'speech speech speech'
-      'board board board'
-      'log hero actions';
-    border-radius: 18px;
-    box-shadow: 0 0 0 1px rgba(244, 196, 84, 0.25), 0 40px 120px -40px #000;
-    overflow: hidden;
-  }
-  .pk-seat {
-    --ph: calc(var(--pw) * 1.49);
-    width: 240px;
-  }
-  .pk-seat[data-pos='left'] {
-    left: calc(50% - 400px);
-    top: 30px;
-  }
-  .pk-seat[data-pos='center'] {
-    left: calc(50% - 120px);
-    top: 8px;
-  }
-  .pk-seat[data-pos='right'] {
-    right: calc(50% - 400px);
-    top: 30px;
-  }
-  .pk-portrait img {
-    transform: none;
-    object-position: 50% 50%;
-  }
-  .pk-rail {
-    grid-row: 3 / 6;
-    grid-column: 1 / -1;
-    margin: -30px 6% 0;
-    border-radius: 50% 50% 0 0 / 90px 90px 0 0;
-  }
-  .pk-felt {
-    border-radius: 50% 50% 0 0 / 82px 82px 0 0;
-  }
-  .pk-speech {
-    width: 100%;
-    max-width: 640px;
-    justify-self: center;
-  }
-  .pk-hero {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    align-content: center;
-    gap: 8px;
-  }
-  .pk-hero .pk-have-inline {
-    display: flex;
-  }
-  .pk-have {
-    display: none;
-  }
-  .pk-actions {
-    min-height: 0;
-    background: transparent;
-    box-shadow: none;
-    padding: 6px 16px 14px 0;
-    justify-content: flex-end;
-  }
-  .pk-log {
-    display: block;
-  }
-}
 .pk-have-inline {
   display: none;
   align-items: center;
@@ -1851,6 +1806,102 @@
   color: var(--pk-mint);
 }
 
+
+/* ======================================================================
+   Computador (≥ 1024 px): palco 16:9 de até 1280×720, cartas inteiras
+   ====================================================================== */
+
+@media (min-width: 1024px) and (min-height: 600px) {
+  .pk-room {
+    align-items: center;
+  }
+  .pk-col {
+    --pw: 120px;
+    --board-w: 80px;
+    --hand-w: 96px;
+    --seat-card-w: 42px;
+    max-width: none;
+    width: min(100vw, calc(100vh * 16 / 9), 1280px);
+    height: min(100vh, calc(100vw * 9 / 16), 720px);
+    grid-template-columns: 300px minmax(0, 1fr) 400px;
+    grid-template-rows: 48px 262px 56px minmax(0, 1fr) 200px;
+    grid-template-areas:
+      'bar bar bar'
+      'seats seats seats'
+      'speech speech speech'
+      'board board board'
+      'log hero actions';
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(244, 196, 84, 0.25), 0 40px 120px -40px #000;
+    overflow: hidden;
+  }
+  .pk-seat {
+    --ph: calc(var(--pw) * 1.49);
+    width: 240px;
+  }
+  .pk-seat[data-pos='left'] {
+    left: calc(50% - 400px);
+    top: 20px;
+  }
+  .pk-seat[data-pos='center'] {
+    left: calc(50% - 120px);
+    top: 0;
+  }
+  .pk-seat[data-pos='right'] {
+    right: calc(50% - 400px);
+    top: 20px;
+  }
+  .pk-portrait img {
+    transform: none;
+    object-position: 50% 50%;
+  }
+  .pk-rail {
+    grid-row: 3 / 6;
+    grid-column: 1 / -1;
+    margin: -30px 6% 0;
+    border-radius: 50% 50% 0 0 / 90px 90px 0 0;
+  }
+  .pk-felt {
+    border-radius: 50% 50% 0 0 / 82px 82px 0 0;
+  }
+  .pk-speech {
+    width: 100%;
+    max-width: 640px;
+    justify-self: center;
+  }
+  .pk-hero {
+    grid-template-columns: auto auto auto;
+    grid-template-rows: auto auto;
+    justify-content: center;
+    align-content: center;
+    column-gap: 22px;
+    row-gap: 10px;
+  }
+  .pk-hero .pk-have-inline {
+    display: flex;
+    grid-row: 1;
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+  .pk-hero-me,
+  .pk-hero-cards,
+  .pk-hero-side {
+    grid-row: 2;
+  }
+  .pk-have {
+    display: none;
+  }
+  .pk-actions {
+    min-height: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 6px 16px 14px 0;
+    justify-content: flex-end;
+  }
+  .pk-log {
+    display: block;
+  }
+}
 /* ======================================================================
    Reduzir movimento: voos e viradas viram fades; sem respiração, fumaça,
    feixe ou faíscas; o anel da vez para.
@@ -1865,7 +1916,7 @@
   .pk-cue-tail,
   .pk-cue-puff,
   .pk-jump,
-  .pk-ring,
+  .pk-ring::before,
   .pk-grain,
   .pk-bulbrow i,
   .pk-burn {
@@ -1882,7 +1933,7 @@
   }
 }
 .pk-reduced .pk-breathe,
-.pk-reduced .pk-ring,
+.pk-reduced .pk-ring::before,
 .pk-reduced [class*='pk-cue-'] {
   animation: none !important;
 }

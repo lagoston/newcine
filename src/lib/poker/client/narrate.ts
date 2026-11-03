@@ -13,6 +13,12 @@ export function whoName(t: TFunction, id: PlayerId | null | undefined): string {
   return t(`poker.oracles.${id}.short`, { defaultValue: id });
 }
 
+/** Com artigo: "a Cobra", "O Raposo", "pelo Sapo" (pt) / "the Snake" (en). */
+export function theName(t: TFunction, id: PlayerId | null | undefined, form: 'the' | 'The' | 'by' = 'the'): string {
+  if (!id) return '';
+  return t(`poker.oracles.${id}.${form}`, { defaultValue: whoName(t, id) });
+}
+
 /** Frase de um evento, ou null quando ele não merece ser lido. */
 export function narrate(t: TFunction, lang: Lang, e: PublicEvent, table: TableShow): string | null {
   const n = (x: number) => fmt(x, lang);

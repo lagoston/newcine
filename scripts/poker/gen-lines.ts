@@ -661,7 +661,7 @@ function countsMd(lang: 'pt' | 'en'): string {
   const nm = NAMES[lang];
   const whos = ['bogart', 'cypher', 'fincher', 'visita'];
   const short = (t: string): boolean => measure(t, lang) <= SHORT_CHARS;
-  const all = [...entries.values()].filter((e) => e.ev !== 'MILESTONE');
+  const all = [...entries.values()];   // como no gen_falas.py: os textos dos marcos também contam
   const head = lang === 'pt'
     ? '| Quem | Falas soltas | Em trocas | Total | Curtas (≤44) |\n|---|---|---|---|---|\n'
     : '| Who | Single lines | In exchanges | Total | Short (≤44) |\n|---|---|---|---|---|\n';

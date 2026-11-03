@@ -76,6 +76,8 @@ export interface UseTableOptions {
   lang: Lang;
   /** Chamado depois de cada evento projetado; se devolver uma promessa, a projeção espera (beats do treino). */
   afterEvent?: (e: PublicEvent, table: TableShow) => void | Promise<void>;
+  /** Antes de abrir a vez da pessoa (o treino toca o beat da rua aqui). */
+  beforeTurn?: (table: TableShow) => void | Promise<void>;
 }
 
 export interface UseTable {
@@ -340,8 +342,18 @@ export function useTable(opts: UseTableOptions): UseTable {
         commit(fromView(batch.view, tableRef.current));
       }
     }
+    const t = tableRef.current;
+    if (aliveRef.current && optsRef.current.beforeTurn && t.toActId === 'human' && t.legal && !t.ended) await optsRef.current.beforeTurn(t);
     runningRef.current = false;
-    if (aliveRef.current) settle();
+    if (aliveRef.current) {
+      // Chegou lote novo enquanto esperava: continua projetando.
+      if (queueRef.current.length > 0) {
+        void run();
+        return;
+      }
+      settle();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commit, playEvent, settle]);
 
   const enqueue = useCallback(

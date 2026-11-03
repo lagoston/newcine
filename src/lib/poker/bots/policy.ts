@@ -73,7 +73,8 @@ export function clamp01(x: number): number {
 export function entryFor(P: EffProfile, f: Features): number {
   const e = P.preflop.entry;
   if (f.pos === 'BB') return e.SB;
-  if (f.headsUp) return Math.max(e.BTN, e.SB);
+  // Heads-up: o botão abre bem mais largo, na medida do uso de posição (Sapo não muda).
+  if (f.headsUp) return Math.min(100, Math.max(e.BTN, e.SB) * (1 + 0.7 * P.positionUse));
   return e[f.pos];
 }
 

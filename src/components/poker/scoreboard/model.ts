@@ -5,6 +5,10 @@ import { MARKS, toPrizeView } from '../jackpot/pokerMeta';
 // get_poker_scoreboard (migração 20261103062000) e as contas que a tela
 // mostra. Campo faltando vira zero; nada aqui lança erro.
 
+// Número no formato do idioma (1.240 / 1,240), com casas decimais fixas.
+export const fmt = (value: number, lang: string, digits = 0) =>
+  value.toLocaleString(lang, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
 type Row = Record<string, unknown>;
 const asRow = (value: unknown): Row => (value && typeof value === 'object' && !Array.isArray(value) ? (value as Row) : {});
 const n = (value: unknown) => {

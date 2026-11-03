@@ -259,7 +259,6 @@ export function pickLine(env: SelectEnv, sig: Signal, opts: { needShort?: boolea
 export function eligibleExchanges(env: SelectEnv, sig: Signal, filter?: (x: Exchange) => boolean): PickedExchange[] {
   const { ctx, tracker } = env;
   const tags = new Set(sig.variant);
-  if (ctx.nemesis) tags.add(`nemesis.${ctx.nemesis}`);
   const out: PickedExchange[] = [];
   for (const ex of env.bank.exchanges) {
     if (ex.on !== sig.trigger) continue;

@@ -34,6 +34,8 @@ const Premium = lazy(() => import('./pages/Premium'));
 const PremiumSuccess = lazy(() => import('./pages/PremiumSuccess'));
 const CategoryMovies = lazy(() => import('./pages/CategoryMovies'));
 const FlyingChip = lazy(() => import('./components/posterJackpot/FlyingChip'));
+// O Grande Blefe (03/11/2026): o pôquer do cassino, carregado só em /blefe.
+const Blefe = lazy(() => import('./pages/Blefe'));
 
 // /oracle → home, levando junto o state do link (a Central dos Oráculos foi
 // extinta em 02/11/2026).
@@ -106,6 +108,7 @@ function App() {
                 <Route path="/oracle/duel" element={<ProtectedRoute><OracleDuel /></ProtectedRoute>} />
                   {/* Salas secretas (Clube do Terror…): ver lib/secretRooms.ts */}
                   <Route path="/sala/:roomKey" element={<ProtectedRoute><SecretRoom /></ProtectedRoute>} />
+                  <Route path="/blefe/*" element={<ProtectedRoute><Blefe /></ProtectedRoute>} />
                   <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
                   <Route path="/premium/success" element={<ProtectedRoute><PremiumSuccess /></ProtectedRoute>} />
                   <Route path="*" element={<Navigate to="/" replace />} />

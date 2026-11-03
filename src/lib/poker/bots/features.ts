@@ -76,7 +76,7 @@ export function isScareCard(board: readonly Card[]): boolean {
   const suits: Record<string, number> = {};
   for (const c of board) suits[suitOf(c)] = (suits[suitOf(c)] ?? 0) + 1;
   if (suits[suitOf(river)] === 4) return true;
-  const ranks = new Set(board.map(rankOf));
+  const ranks = new Set<number>(board.map(rankOf));
   if (ranks.has(14)) ranks.add(1);
   for (let lo = 1; lo <= 10; lo++) {
     let n = 0;

@@ -86,13 +86,27 @@ export interface DirectorOptions {
   afterInterval?: boolean;
 }
 
-/** As Réplicas padrão (§6.5, pacote `quips-padrao`), até o `quips.ts` do B chegar. */
+/** As Réplicas padrão (pacote `quips-padrao`, ids do banco do B), se o `quips.ts` não carregar. */
 export const FALLBACK_QUIPS: { id: string; pt: string; en: string }[] = [
-  { id: 'Q1', pt: 'Sorte de principiante?', en: "Beginner's luck?" },
-  { id: 'Q2', pt: 'Pede pra sair!', en: 'Tap out!' },
-  { id: 'Q3', pt: 'Já vi esse filme.', en: "I've seen this movie." },
-  { id: 'Q4', pt: 'Croac.', en: 'Croak.' },
+  { id: 'R1', pt: 'Pede pra sair?', en: 'Feeling lucky?' },
+  { id: 'R2', pt: 'Já vi esse filme.', en: "I've seen this movie." },
+  { id: 'R3', pt: 'Spoiler: eu ganho.', en: 'Spoiler: I win.' },
+  { id: 'R4', pt: 'Bela atuação.', en: 'Nice acting.' },
 ];
+
+type QuipDef = { id: string; pt: string; en: string };
+const quipModules = import.meta.glob('../dialogue/quips.ts');
+/** O pacote de Réplicas equipado (`dialogue/quips.ts` do B), com o padrão como plano B. */
+export async function loadQuips(packId = 'quips-padrao'): Promise<QuipDef[]> {
+  const loader = Object.values(quipModules)[0];
+  if (!loader) return FALLBACK_QUIPS;
+  try {
+    const mod = (await loader()) as { QUIP_PACKS?: Record<string, { quips: QuipDef[] }> };
+    return mod.QUIP_PACKS?.[packId]?.quips ?? mod.QUIP_PACKS?.['quips-padrao']?.quips ?? FALLBACK_QUIPS;
+  } catch {
+    return FALLBACK_QUIPS;
+  }
+}
 
 /** Diretor nulo: não fala nada sozinho; só mostra a Réplica da pessoa. */
 export function createNullDirector(opts: DirectorOptions): Director {
@@ -147,6 +161,8 @@ export interface UseDirector {
   skip: () => void;
   /** Mensagens P1/P2 para o leitor de tela (limitadas). */
   spoken: string | null;
+  /** Resolve quando a faixa de fala esvazia (os balões de um beat do treino acabaram). */
+  waitQuiet: (maxMs?: number) => Promise<void>;
 }
 
 /**
@@ -167,6 +183,8 @@ export function useDirector(opts: DirectorOptions & { paused?: boolean; onSpeech
   const [spoken, setSpoken] = useState<string | null>(null);
   const untilRef = useRef(0);
   const lastSpokenRef = useRef(0);
+  // Último tique em que a fila estava vazia e nada na faixa.
+  const quietRef = useRef(true);
   const pausedRef = useRef(!!opts.paused);
   pausedRef.current = !!opts.paused;
   const onSpeechRef = useRef(opts.onSpeech);
@@ -200,7 +218,11 @@ export function useDirector(opts: DirectorOptions & { paused?: boolean; onSpeech
       }
       if (pausedRef.current) return;
       const item = ref.current?.next(Date.now()) ?? null;
-      if (!item) return;
+      if (!item) {
+        quietRef.current = true;
+        return;
+      }
+      quietRef.current = false;
       untilRef.current = now + Math.max(1200, item.durationMs);
       setSpeech(item);
       onSpeechRef.current?.(item);
@@ -217,6 +239,20 @@ export function useDirector(opts: DirectorOptions & { paused?: boolean; onSpeech
     ref.current?.skip();
     untilRef.current = 0;
     setSpeech(null);
+  }, []);
+
+  const waitQuiet = useCallback((maxMs = 20000) => {
+    quietRef.current = false;
+    const start = performance.now();
+    return new Promise<void>((resolve) => {
+      const id = window.setInterval(() => {
+        // Dá um tique para o Diretor pôr na fila o que acabou de receber.
+        if ((performance.now() - start > 300 && quietRef.current && !untilRef.current) || performance.now() - start > maxMs) {
+          window.clearInterval(id);
+          resolve();
+        }
+      }, 120);
+    });
   }, []);
 
   // Fachada estável: quem guardou o Diretor continua falando com o atual (o real
@@ -238,5 +274,5 @@ export function useDirector(opts: DirectorOptions & { paused?: boolean; onSpeech
     [],
   );
 
-  return { director, speech, skip, spoken };
+  return { director, speech, skip, spoken, waitQuiet };
 }

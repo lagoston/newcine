@@ -68,6 +68,38 @@ export interface JackpotMission {
   claimed: boolean;
 }
 
+// O resumo do pôquer dentro do estado do Jackpot (poker_teaser no banco).
+export interface PokerTeaserPrize {
+  id: string;
+  kind: string;
+  rarity: PosterRarity;
+  namePt: string;
+  nameEn: string;
+  articlePt: string | null;
+  image: string | null;
+  payload: Record<string, unknown>;
+}
+
+export interface PokerTeaser {
+  day: string;
+  // Prêmio de hoje (null num dia sem prêmio gravado).
+  prize: PokerTeaserPrize | null;
+  // Quem carrega o prêmio na mesa ('bogart' | 'cypher' | 'fincher' | rival novo).
+  carrier: string | null;
+  stars: number;
+  attemptsUsed: number;
+  maxAttempts: number;
+  wonToday: boolean;
+  // Há uma partida com prêmio em andamento.
+  active: boolean;
+  // A faixa de feltro da home (regra do veredito Q5, decidida no servidor).
+  homeStrip: boolean;
+  wins: number;
+  matches: number;
+  // Confirmação 18+ (null enquanto o servidor não mandar o campo).
+  ageConfirmed: boolean | null;
+}
+
 // Fichas (01/11/2026): o que era "ticket" no Jackpot virou "ficha" na tela
 // (num porta-fichas de cassino). No banco e aqui os campos continuam com os
 // nomes antigos: tickets = fichas comuns; special* = fichas especiais.
@@ -107,38 +139,6 @@ export interface JackpotState {
   // traz. null = fechado para esta conta, servidor antigo ou campo torto —
   // nesse caso nada do pôquer aparece (aba, linha, faixa da home).
   poker: PokerTeaser | null;
-}
-
-// O resumo do pôquer dentro do estado do Jackpot (poker_teaser no banco).
-export interface PokerTeaserPrize {
-  id: string;
-  kind: string;
-  rarity: PosterRarity;
-  namePt: string;
-  nameEn: string;
-  articlePt: string | null;
-  image: string | null;
-  payload: Record<string, unknown>;
-}
-
-export interface PokerTeaser {
-  day: string;
-  // Prêmio de hoje (null num dia sem prêmio gravado).
-  prize: PokerTeaserPrize | null;
-  // Quem carrega o prêmio na mesa ('bogart' | 'cypher' | 'fincher' | rival novo).
-  carrier: string | null;
-  stars: number;
-  attemptsUsed: number;
-  maxAttempts: number;
-  wonToday: boolean;
-  // Há uma partida com prêmio em andamento.
-  active: boolean;
-  // A faixa de feltro da home (regra do veredito Q5, decidida no servidor).
-  homeStrip: boolean;
-  wins: number;
-  matches: number;
-  // Confirmação 18+ (null enquanto o servidor não mandar o campo).
-  ageConfirmed: boolean | null;
 }
 
 // A ficha do dia acabou de ser pega: a aba Missões mostra a recompensa.

@@ -41,10 +41,14 @@ interface ActionBarProps {
   pre: PreAction | null;
   setPre: (p: PreAction | null) => void;
   statusText: React.ReactNode;
+  /** A jogada anterior, mais apagada, acima do status (fora da vez). */
+  prevText?: React.ReactNode;
   tutorial?: TutorialGate | null;
   /** Treino: um "Continuar" no lugar dos botões (conta como toque). */
   onContinue?: (() => void) | null;
   onConfirmDialog: (text: string, run: () => void) => void;
+  /** Treino: toque num botão apagado. */
+  onBlocked?: (type: PlayerAction['type']) => void;
 }
 
 const HOLD_MS = 600;
@@ -101,7 +105,7 @@ const HoldButton: React.FC<{
 };
 
 const ActionBar = forwardRef<ActionBarHandle, ActionBarProps>(function ActionBar(
-  { table, phase, mode, lang, leftHanded, onAct, pre, setPre, statusText, tutorial, onContinue, onConfirmDialog },
+  { table, phase, mode, lang, leftHanded, onAct, pre, setPre, statusText, prevText, tutorial, onContinue, onConfirmDialog, onBlocked },
   ref,
 ) {
   const { t } = useTranslation();
@@ -141,6 +145,12 @@ const ActionBar = forwardRef<ActionBarHandle, ActionBarProps>(function ActionBar
   }, [legal]);
 
   const allowed = (type: PlayerAction['type']) => !tutorial || tutorial.allowed.includes(type);
+  // No treino, tocar no que está apagado chama a "tomada dois" do Raposo.
+  const gate = (type: PlayerAction['type']) => {
+    if (allowed(type)) return true;
+    onBlocked?.(type);
+    return false;
+  };
   const sug = tutorial?.suggested ?? null;
   const isSug = (types: PlayerAction['type'][]) => !!sug && types.includes(sug.type);
 
@@ -151,7 +161,7 @@ const ActionBar = forwardRef<ActionBarHandle, ActionBarProps>(function ActionBar
 
   const atMax = !!range && amount >= range.max;
   const doFold = () => {
-    if (!legal || locked || !allowed('fold')) return;
+    if (!legal || locked || !gate('fold')) return;
     if (legal.canCheck && !foldAsk) {
       setFoldAsk(true);
       return;
@@ -161,10 +171,10 @@ const ActionBar = forwardRef<ActionBarHandle, ActionBarProps>(function ActionBar
   const doCheckCall = () => {
     if (!legal || locked) return;
     if (legal.canCheck) {
-      if (allowed('check')) onAct({ type: 'check' });
+      if (gate('check')) onAct({ type: 'check' });
       return;
     }
-    if (!legal.call || !allowed('call')) return;
+    if (!legal.call || !gate('call')) return;
     if (legal.call.allIn) {
       // Pagar com todo o cacife: dois gestos (no prêmio, o segundo é segurar).
       if (bounty) return;
@@ -178,7 +188,7 @@ const ActionBar = forwardRef<ActionBarHandle, ActionBarProps>(function ActionBar
   const doRaise = () => {
     if (!legal || locked) return;
     if (shortAllIn(legal)) {
-      if (!allowed('allIn')) return;
+      if (!gate('allIn')) return;
       if (armed !== 'raise') {
         setArmed('raise');
         setArmedTap(true);
@@ -189,7 +199,10 @@ const ActionBar = forwardRef<ActionBarHandle, ActionBarProps>(function ActionBar
     }
     if (!range) return;
     const a = actionFor(amount, range);
-    if (!allowed(a.type) && !(a.type === 'allIn' && allowed('raise'))) return;
+    if (!allowed(a.type) && !(a.type === 'allIn' && allowed('raise'))) {
+      onBlocked?.(a.type === 'allIn' ? 'allIn' : range.kind);
+      return;
+    }
     if (a.type === 'allIn') {
       if (armed !== 'raise') {
         setArmed('raise');
@@ -262,9 +275,9 @@ const ActionBar = forwardRef<ActionBarHandle, ActionBarProps>(function ActionBar
     const same = (a: PreAction | null, b: PreAction) => !!a && a.kind === b.kind && (a.kind !== 'call' || (b.kind === 'call' && a.amount === b.amount));
     return (
       <div className="pk-actions" aria-label={t('poker.actions.region')}>
-        <div className="pk-status" aria-live="off">{statusText}</div>
-        <div style={{ height: 44 }} className="pk-status">
-          {pre?.kind === 'call' && pre.amount > 0 && toCall !== pre.amount && inHand ? <span>{t('poker.actions.preDropped')}</span> : null}
+        <div className="pk-status is-muted" aria-hidden>{prevText}</div>
+        <div className="pk-status" aria-live="off">
+          {pre?.kind === 'call' && pre.amount > 0 && toCall !== pre.amount && inHand ? <span>{t('poker.actions.preDropped')}</span> : statusText}
         </div>
         <div className={`pk-btnrow ${leftHanded ? 'is-lefty' : ''}`}>
           {pres.map(({ p, label }) => (
@@ -332,7 +345,9 @@ const ActionBar = forwardRef<ActionBarHandle, ActionBarProps>(function ActionBar
         ? t('poker.actions.bet', { amount: n(amount) })
         : t('poker.actions.raiseTo', { amount: n(amount) })
       : t('poker.actions.raiseVerb');
+  // No treino o botão apagado continua tocável (a "tomada dois"); fora dele, desliga.
   const raiseDisabled = locked || (!range && !short) || (!!tutorial && !allowed('raise') && !allowed('bet') && !allowed('allIn'));
+  const raiseClickable = !locked && (!!range || short);
   const needHoldRaise = bounty && raiseIsAllIn && armed === 'raise';
   const needHoldCall = bounty && !legal.canCheck && !!legal.call?.allIn;
   const fill = range && range.max > range.min ? ((amount - range.min) / (range.max - range.min)) * 100 : 0;
@@ -469,7 +484,7 @@ const ActionBar = forwardRef<ActionBarHandle, ActionBarProps>(function ActionBar
             aria-disabled={raiseDisabled || undefined}
             aria-label={raiseAria}
             aria-keyshortcuts="R"
-            onClick={doRaise}
+            onClick={() => raiseClickable && doRaise()}
           >
             {raiseLabel}
           </button>

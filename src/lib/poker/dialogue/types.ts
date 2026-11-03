@@ -135,6 +135,18 @@ export interface RecapInfo {
   someoneOut?: boolean;                        // algum oráculo já caiu
 }
 
+/** LRU e "uma vez por sessão", guardados em `poker.dialogue.v1` (storage.ts). */
+export interface DialogueMemory {
+  v: 1;
+  lru: [id: string, at: number][];      // mais recente no fim; até 300
+  session: { at: number; ids: string[] };
+}
+export interface DialogueStorage {
+  load(): DialogueMemory;
+  save(m: DialogueMemory): void;
+  now(): number;
+}
+
 export interface DirectorOptions {
   mode: MatchMode;
   lang: 'pt' | 'en';
@@ -166,16 +178,4 @@ export interface Director {
   onMoment(m: DirectorMoment): void;
   /** Fala para um cartão (fora do orçamento): a recapitulação do Raposo ou o convite do Intervalo. */
   cardLine(kind: 'recap' | 'intervalInvite', ctx: TableContext, info?: RecapInfo): SpeechItem | null;
-}
-
-/** LRU e "uma vez por sessão", guardados em `poker.dialogue.v1` (storage.ts). */
-export interface DialogueStorage {
-  load(): DialogueMemory;
-  save(m: DialogueMemory): void;
-  now(): number;
-}
-export interface DialogueMemory {
-  v: 1;
-  lru: [id: string, at: number][];      // mais recente no fim; até 300
-  session: { at: number; ids: string[] };
 }

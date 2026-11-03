@@ -16,7 +16,7 @@ function limpAllowed(P: EffProfile, f: Features, ctx: BotCtx, v: BotView): boole
   return ctx.model.rates(v.bbId).pfr < 0.15;   // BB passivo
 }
 
-function isoRange(P: EffProfile, f: Features, ctx: BotCtx, v: BotView, entry: number): number {
+function isoRange(P: EffProfile, ctx: BotCtx, v: BotView, entry: number): number {
   if (P.preflop.raiseOnlyTopPct !== null) return P.preflop.raiseOnlyTopPct;
   const limpers = v.actions.filter((a) => a.street === 'preflop' && a.type === 'call').map((a) => a.playerId);
   const soft = ctx.model && limpers.some((id) => ctx.model!.has(id, 'solto'));
@@ -68,13 +68,15 @@ export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ra
     }
     case 'limped': {
       const extra = Math.max(0, f.limpers - 1);
-      if (pct <= isoRange(P, f, ctx, v, entry)) ranked = [R(P.preflop.iso + extra * P.preflop.isoPerExtraLimper), checkOrCall(v)];
+      if (pct <= isoRange(P, ctx, v, entry)) ranked = [R(P.preflop.iso + extra * P.preflop.isoPerExtraLimper), checkOrCall(v)];
       else if (pct <= entry || f.pos === 'BB') ranked = [checkOrCall(v), FOLD];
       else ranked = [FOLD, checkOrCall(v)];
       break;
     }
     case 'opened': {
-      const tb = P.preflop.threeBetPct + P.mods.pfrDelta * 0.5;
+      // Raposo: contra quem abre demais (PFR alto no modelo), 3-bet e defesa mais largos.
+      const widen = ctx.model && f.openerId ? Math.max(1, Math.min(2.5, ctx.model.rates(f.openerId).pfr / 0.22)) : 1;
+      const tb = (P.preflop.threeBetPct + P.mods.pfrDelta * 0.5) * widen;
       const valueTop = tb * (1 - P.preflop.threeBetBluffShare);
       if (pct <= valueTop) {
         ranked = [raiseTo(threeBetTo(v, f)), CALL];
@@ -95,7 +97,7 @@ export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ra
         }
         defend = 100 * (1 - fold);
       }
-      ranked = pct <= defend ? [CALL, FOLD] : [FOLD, CALL];
+      ranked = pct <= defend * widen ? [CALL, FOLD] : [FOLD, CALL];
       break;
     }
     case 'threeBet': {

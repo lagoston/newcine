@@ -165,6 +165,8 @@ export interface RangeCtx {
   /** Taxas do modelo do Raposo para este oponente (frações). */
   rates?: { vpip: number; pfr: number };
   labels?: ReadonlySet<StyleLabel>;
+  /** 1 = aposta informa normalmente; perto de 0 = aposta não informa (quem aposta tudo). */
+  aggrWeight?: number;
 }
 
 function boardAt(v: BotView, street: ActionRecord['street']): Card[] {
@@ -225,6 +227,10 @@ export function rangeFor(oppId: PlayerId, v: BotView, model: RangeModel, ctx: Ra
     } else {
       const L = aggr ? L_AGGR.slice() : a.type === 'call' ? L_CALL.slice() : L_CHECK;
       if (aggr && ctx.labels?.has('blefador')) L[5] = 0.70;
+      if (aggr && ctx.aggrWeight !== undefined && ctx.aggrWeight < 1) {
+        const k = ctx.aggrWeight;
+        for (let i = 0; i < L.length; i++) L[i] = 1 - (1 - L[i]) * k;
+      }
       if (a.type === 'call' && ctx.labels?.has('pagaTudo')) L[3] = 0.9;
       for (let k = 0; k < N_COMBOS; k++) {
         const b = info.bucket[k];

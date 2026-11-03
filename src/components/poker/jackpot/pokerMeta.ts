@@ -1,4 +1,4 @@
-import type { PokerTeaserPrize, PosterEffect, PosterRarity } from '../../../lib/posterJackpot';
+import type { PokerTeaser, PokerTeaserPrize, PosterEffect, PosterRarity } from '../../../lib/posterJackpot';
 
 type Row = Record<string, unknown>;
 const RARITIES: PosterRarity[] = ['common', 'rare', 'epic', 'legendary'];
@@ -112,3 +112,8 @@ export const BLEFE_ROUTES = {
     `/blefe/premio?start=1&day=${encodeURIComponent(day)}&prize=${encodeURIComponent(prizeId)}`,
   resume: '/blefe/premio',
 };
+
+// A linha "Hoje na mesa…" só aparece com prêmio, sem captura hoje e com
+// tentativa sobrando (ou a partida de hoje em andamento).
+export const shouldShowTodayLine = (teaser: PokerTeaser | null | undefined): teaser is PokerTeaser =>
+  !!teaser && !!teaser.prize && !teaser.wonToday && (teaser.active || teaser.attemptsUsed < teaser.maxAttempts);

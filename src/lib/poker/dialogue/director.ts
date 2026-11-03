@@ -13,12 +13,12 @@
  * O banco vem junto (lines.pt/lines.en/quips): este módulo já é carregado sob demanda pela
  * interface (import dinâmico), então o banco não pesa na abertura do app.
  */
-import type { Cue, PlayerId, PublicEvent, RivalId } from '../types.ts';
+import type { PlayerId, PublicEvent, RivalId } from '../types.ts';
 import { Budget, BUDGET } from './budget.ts';
 import { EXCHANGES, LINES } from './lines.pt.ts';
 import { EN } from './lines.en.ts';
 import { QUIP_LINES, QUIP_PACKS } from './quips.ts';
-import { balloonMs, measure, renderText, SHORT_CHARS } from './render.ts';
+import { balloonMs, renderText, SHORT_CHARS } from './render.ts';
 import type { Picked, PickedExchange, SelectEnv } from './select.ts';
 import { drawFromDeck, eligibleLines, exchangeIsNew, pickExchange, pickLine, textOf, varsFor } from './select.ts';
 import type { Signal } from './signals.ts';
@@ -43,6 +43,9 @@ const EXCHANGE_CHANCE: Partial<Record<Trigger, number>> = {
   eliminatesPlayer: 1, firstVisit: 1, matchStart: 0.35, sapoLoan: 0.35, bountyIntro: 0.35,
 };
 
+/** Quanto um balão de troca espera a vez da pessoa fechar antes de a troca cair. */
+const HOLD_MAX_MS = 20000;
+
 interface Part { speaker: RivalId | 'human'; text: string; lineId: string; emote?: Emote }
 
 interface QItem {
@@ -65,11 +68,9 @@ interface QItem {
   signal?: Signal;
   role: NonNullable<SpeechItem['debug']>['role'];
   farewell?: boolean;
-  /** P1 que fica na fila mesmo quando outro P1 chega (abertura, despedida, treino). */
-  sticky?: boolean;
 }
 
-interface Active { item: QItem; index: number; nextAt: number }
+interface Active { item: QItem; index: number; nextAt: number; heldSince: number | null }
 
 function emptyCtx(o: DirectorOptions): TableContext {
   return {
@@ -104,7 +105,8 @@ class DialogueDirector implements Director {
   private spokeInHand = new Set<number>();
   private lastBanterHand = 0;
   private banterDue: number;
-  private tipHand = -1;
+  private tipHand = -10;
+  private tipPartA = new Map<string, number>();
   private pendingTableWinner = false;
   private creditsDone = false;
   private opened = false;
@@ -263,7 +265,7 @@ class DialogueDirector implements Director {
         if (texts.some((t) => t === null)) continue;
         this.queue.push(this.makeItem({
           kind: 'exchange', priority: 1, exchangeId: ex.id, between: 'any', scene: 'tutorial', scope: 'keep', trigger: 'tutorial',
-          role: 'tutorial', ids: [ex.id], hand: this.tracker.handNumber, sticky: true,
+          role: 'tutorial', ids: [ex.id], hand: this.tracker.handNumber,
           parts: ex.parts.map((p, i) => ({ speaker: p.speaker, text: this.render(texts[i]!, p.speaker) ?? texts[i]!, lineId: `${ex.id}.${i + 1}` })),
         }));
         continue;
@@ -277,7 +279,7 @@ class DialogueDirector implements Director {
       this.queue.push(this.makeItem({
         kind: 'line', priority: 1, parts: [{ speaker: line.speaker, text, lineId: line.id, emote: line.emote }],
         scene: 'tutorial', scope: 'keep', trigger: 'tutorial', role: 'tutorial', ids: [line.id], story: line.story,
-        hand: this.tracker.handNumber, sticky: true,
+        hand: this.tracker.handNumber,
       }));
     }
   }
@@ -330,21 +332,23 @@ class DialogueDirector implements Director {
       }
       if (mine > 0 && mine <= 10 * bb) variant.push('curto');
     }
-    const sig: Signal = { trigger: kind, priority: 1, chance: 1, variant, hand: info?.handNumber ?? 0, eventI: 0, phase: 'post' };
-    let best: Picked | null = null;
     // a variante mais específica que tiver fala vence; senão a geral
     const order = kind === 'recap' ? ['valendo', 'caiu', 'lider', 'curto', 'oraculoLider'] : [];
+    let best: { line: Line; speaker: RivalId; text: string } | null = null;
     for (const v of [...order.filter((o) => variant.includes(o)), null]) {
-      const pool = this.bank.lines.filter((l) => l.on === kind && (v === null ? !l.variant?.length : l.variant?.includes(v)));
-      const options: Picked[] = [];
-      for (const s of RIVALS) {
-        for (const c of eligibleLines(this.env, sig, s, false, pool)) {
-          const text = this.render(textOf(this.bank, c.line.id, c.line.pt, ctx.lang) ?? '', c.speaker, extra);
-          if (text) options.push({ ...c, text });
-        }
+      const options: { line: Line; speaker: RivalId; text: string }[] = [];
+      for (const line of this.bank.lines) {
+        if (line.on !== kind) continue;
+        if (v === null ? (line.variant?.length ?? 0) > 0 : !line.variant?.includes(v)) continue;
+        if (line.requires?.storyNot && this.hasStory(line.requires.storyNot)) continue;
+        const raw = textOf(this.bank, line.id, line.pt, ctx.lang);
+        const text = raw === null ? null : this.render(raw, line.speaker, extra);
+        if (text) options.push({ line, speaker: line.speaker, text });
       }
-      if (options.length) {
-        best = options[Math.floor(this.rng() * options.length)];
+      const freshOnes = options.filter((o) => !this.env.lru.has(o.line.id) || this.now - (this.env.lru.get(o.line.id) ?? 0) > 48 * 3600 * 1000);
+      const pool = freshOnes.length ? freshOnes : options;
+      if (pool.length) {
+        best = pool[Math.floor(this.rng() * pool.length)];
         break;
       }
     }
@@ -365,6 +369,17 @@ class DialogueDirector implements Director {
     if (this.active) {
       const a = this.active;
       if (nowMs < a.nextAt) return null;
+      // Troca começada entre mãos que alcança a vez da pessoa: balão longo espera a vez
+      // fechar (continua atômica: nada entra no meio); parada demais, o resto cai.
+      const part = a.item.parts[a.index];
+      const free = a.item.scene === 'tutorial' || a.item.scene === 'farewell' || a.item.scene === 'quip';
+      // O mesmo vale para o Sapo que deu `calado` na mão que começou no meio da troca.
+      const sapoHeld = part.speaker === 'bogart' && this.tracker.sapoSilent && a.item.scene !== 'tutorial';
+      if ((this.humanTurnOpen && !free && part.text.length > SHORT_CHARS) || sapoHeld) {
+        if (a.heldSince === null) a.heldSince = nowMs;
+        if (nowMs - a.heldSince > HOLD_MAX_MS) this.active = null;
+        return null;
+      }
       return this.emitPart(a.item, a.index);
     }
     this.expire(nowMs);
@@ -406,8 +421,9 @@ class DialogueDirector implements Director {
     this.queue = keep;
   }
 
+  /** 'inHand': a mão acabou (cai tudo que era dela); 'post': a próxima mão começou (P1 continua). */
   private dropScope(scope: QItem['scope']): void {
-    this.dropQueued((q) => q.scope === scope);
+    this.dropQueued((q) => q.scope === scope && (scope === 'inHand' || q.priority !== 1));
   }
 
   private dropSpeaker(s: RivalId): void {
@@ -425,8 +441,9 @@ class DialogueDirector implements Director {
   private canStart(q: QItem, now: number): boolean {
     const t = this.tracker;
     const first = q.parts[0];
-    if (this.humanTurnOpen) {
-      // na vez da pessoa: só fala curta, de um oráculo só, nunca troca
+    if (this.humanTurnOpen && q.scene !== 'tutorial') {
+      // na vez da pessoa: só fala curta, de um oráculo só, nunca troca. (No treino não há
+      // relógio: a interface só abre a vez depois dos beats, e a dica já é curta.)
       if (q.kind === 'exchange') return false;
       if (first.text.length > SHORT_CHARS && q.scene !== 'quip') return false;
     }
@@ -435,7 +452,8 @@ class DialogueDirector implements Director {
       if (b === 'hands' && t.phase === 'inHand') return false;
       if (b === 'afterHumanFold' && t.phase === 'inHand' && !t.humanFolded) return false;
     }
-    if (first.speaker === 'bogart' && t.sapoSilent && q.scope === 'inHand') return false;
+    // Sapo de `calado`: nenhum balão dele até a mão acabar (só o selo "…" da Réplica)
+    if (t.sapoSilent && q.scene !== 'tutorial' && q.parts.some((p) => p.speaker === 'bogart' && p.lineId !== 'quip.silent')) return false;
     if (q.priority !== 1) {
       if (now - this.lastStartAt < BUDGET.globalGapMs) return false;
       if (q.kind === 'line' && now - (this.lastStartBy.get(String(first.speaker)) ?? -Infinity) < BUDGET.speakerGapMs) return false;
@@ -444,13 +462,12 @@ class DialogueDirector implements Director {
   }
 
   private pickStartable(now: number): QItem | null {
-    for (const prio of [1, 2, 3]) {
-      for (const q of this.queue) {
-        if (q.priority !== prio) continue;
-        if (this.canStart(q, now)) return q;
-        // P1 sai em ordem: o segundo balão da abertura espera o primeiro
-        if (prio === 1 && (q.scene === 'opening' || q.scene === 'tutorial' || q.scene === 'farewell')) break;
-      }
+    // P1 sai primeiro e em ordem (o segundo balão da abertura espera o primeiro); enquanto
+    // houver P1 esperando, nada de prioridade menor passa na frente.
+    const p1 = this.queue.find((q) => q.priority === 1);
+    if (p1) return this.canStart(p1, now) ? p1 : null;
+    for (const prio of [2, 3]) {
+      for (const q of this.queue) if (q.priority === prio && this.canStart(q, now)) return q;
     }
     return null;
   }
@@ -469,7 +486,7 @@ class DialogueDirector implements Director {
     if (q.kind === 'line') this.lastStartBy.set(String(part.speaker), now);
     const durationMs = balloonMs(part.text, { farewell: q.farewell, speed: this.ctx.speed });
     this.busyUntil = now + durationMs;
-    if (index + 1 < q.parts.length) this.active = { item: q, index: index + 1, nextAt: now + durationMs };
+    if (index + 1 < q.parts.length) this.active = { item: q, index: index + 1, nextAt: now + durationMs, heldSince: null };
     else this.active = null;
     const item: SpeechItem = {
       lineId: part.lineId, speaker: part.speaker, text: part.text, priority: q.priority, durationMs,
@@ -539,7 +556,6 @@ class DialogueDirector implements Director {
   private tryEnqueue(sig: Signal): boolean {
     if (!this.modeAllows(sig.priority)) return false;
     if ((sig.trigger === 'deal' || sig.trigger === 'flop') && !this.prevHandSilent(sig.hand)) return false;
-    const h = sig.hand;
     const needShort = this.humanTurnOpen || !!sig.short;
     // troca?
     if (!sig.noExchange && !needShort && sig.phase !== 'inHand') {
@@ -557,7 +573,6 @@ class DialogueDirector implements Director {
     }
     const pick = pickLine(this.env, sig, { needShort });
     if (!pick) return false;
-    void h;
     return this.enqueueLine(pick, sig, needShort);
   }
 
@@ -609,7 +624,7 @@ class DialogueDirector implements Director {
       this.queue.push(this.makeItem({
         kind: 'exchange', priority: 1, exchangeId: ex.id, between: ex.between, scene: sig.scene ?? 'table',
         scope: 'post', trigger: sig.trigger, signal: sig, role: 'exchange', ids: [ex.id], story: ex.story, hand: h,
-        farewell: ex.farewell, sticky: ex.farewell,
+        farewell: ex.farewell,
         parts: ex.parts.map((p, i) => ({ speaker: p.speaker, text: x.texts[i], lineId: `${ex.id}.${i + 1}` })),
       }));
     }
@@ -652,9 +667,10 @@ class DialogueDirector implements Director {
     const key = `tip.${tip.kind}`;
     const partB = tip.part === 'b';
     if (!partB) {
-      if (this.hasStory(key) || this.tipHand === sig.hand) return;
-    } else if (!this.env.touched.has(key)) {
-      return;   // a parte (a) não tocou nesta mão: a (b) não faz sentido sozinha
+      // uma dica por vez, com pelo menos uma mão de folga entre elas
+      if (this.hasStory(key) || sig.hand - this.tipHand < 2) return;
+    } else if (this.tipPartA.get(tip.kind) !== sig.hand) {
+      return;   // a parte (a) não entrou nesta mão: a (b) não faz sentido sozinha
     }
     if (this.ctx.talk === 'none') return;
     const want = tip.part ? [tip.kind, tip.part] : [tip.kind];
@@ -670,12 +686,15 @@ class DialogueDirector implements Director {
       queue.push(this.makeItem({
         kind: 'line', priority: 1, parts: [{ speaker: line.speaker, text, lineId: line.id, emote: line.emote }],
         scene: 'table', scope: sig.phase === 'inHand' ? 'inHand' : 'post', trigger: 'contextTip', signal: sig,
-        role: line.role, ids: [line.id], story: key, hand: sig.hand, sticky: true,
+        role: line.role, ids: [line.id], story: key, hand: sig.hand,
       }));
     }
     if (!queue.length) return;
-    this.tipHand = sig.hand;
-    if (!partB) this.env.touched.add(key);   // marca já: a parte (b) depende disso
+    if (!partB) {
+      this.tipHand = sig.hand;
+      this.env.touched.add(key);   // marca já: vale para a partida inteira
+      if (tip.part === 'a') this.tipPartA.set(tip.kind, sig.hand);
+    }
     this.queue.push(...queue);
   }
 
@@ -726,7 +745,7 @@ class DialogueDirector implements Director {
     if (!x) return false;
     this.queue.push(this.makeItem({
       kind: 'exchange', priority: 1, exchangeId: x.ex.id, between: 'any', scene: 'opening', scope: 'keep',
-      trigger: sig.trigger, signal: sig, role: 'exchange', ids: [x.ex.id], story: x.ex.story, hand: 0, sticky: true,
+      trigger: sig.trigger, signal: sig, role: 'exchange', ids: [x.ex.id], story: x.ex.story, hand: 0,
       parts: x.ex.parts.map((p, i) => ({ speaker: p.speaker, text: x.texts[i], lineId: `${x.ex.id}.${i + 1}` })),
     }));
     if (x.ex.once) this.env.playedMatch.add(x.ex.id);
@@ -739,7 +758,7 @@ class DialogueDirector implements Director {
     this.queue.push(this.makeItem({
       kind: 'line', priority: 1, parts: [{ speaker: pick.speaker, text: pick.text, lineId: pick.line.id, emote: pick.line.emote }],
       scene: 'opening', scope: 'keep', trigger: sig.trigger, signal: sig, role: pick.line.role, ids: [pick.line.id],
-      story: pick.line.story, hand: 0, sticky: true,
+      story: pick.line.story, hand: 0,
     }));
     return true;
   }
@@ -797,4 +816,3 @@ export function createDirector(opts: DirectorOptions): Director {
 // Reexports úteis para a interface (cartões, Réplicas, "Você tem: …").
 export { describeHand, handPhrase } from './handNames.ts';
 export { QUIP_PACKS } from './quips.ts';
-export type { Cue };

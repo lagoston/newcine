@@ -6,7 +6,7 @@ import type { PublicEvent } from '../../../lib/poker/types';
 import type { TableShow } from '../../../lib/poker/client/display';
 import { ORACLE_COLOR } from '../../../lib/poker/client/cosmetics';
 import { fmt, type Lang } from '../../../lib/poker/client/format';
-import { blindsText, whoName } from '../../../lib/poker/client/narrate';
+import { blindsText, theName, whoName } from '../../../lib/poker/client/narrate';
 import type { SpeechItem } from '../../../lib/poker/client/useDirector';
 
 // "Anteriormente em O Grande Blefe…" (05 rodada 2; SPEC §7.8): ao retomar, um
@@ -36,8 +36,8 @@ const RecapCard: React.FC<{
     for (let i = tail.length - 1; i >= 0 && out.length < 2; i--) {
       const e = tail[i];
       if (e.t === 'eliminated' && e.byId)
-        out.push(t('poker.recap.eliminated', { hand: e.handNumber, who: whoName(t, e.byId), victim: whoName(t, e.playerId) }));
-      else if (e.t === 'prizeMoved') out.push(t('poker.recap.prizeMoved', { hand: e.handNumber, who: whoName(t, e.toId), prize: prizeName ?? '' }));
+        out.push(t('poker.recap.eliminated', { hand: e.handNumber, who: theName(t, e.byId), victim: theName(t, e.playerId) }));
+      else if (e.t === 'prizeMoved') out.push(t('poker.recap.prizeMoved', { hand: e.handNumber, who: theName(t, e.toId), prize: prizeName ?? '' }));
       else if (e.t === 'prizeCaptured') out.push(t('poker.recap.captured', { hand: e.handNumber, prize: prizeName ?? '' }));
     }
     return out;
@@ -78,7 +78,7 @@ const RecapCard: React.FC<{
         </p>
         {holder && prizeName && (
           <p className="text-[13px] text-center mt-1" style={{ color: '#D9D2EA' }}>
-            {t('poker.recap.holder', { who: whoName(t, holder), prize: prizeName })}
+            {t('poker.recap.holder', { who: theName(t, holder, 'The'), prize: prizeName })}
           </p>
         )}
         {facts.length > 0 && (
@@ -89,10 +89,10 @@ const RecapCard: React.FC<{
           </ul>
         )}
         {line && (
-          <p className="mt-3 text-center text-[13.5px] italic" style={{ color: '#FFE8A3' }}>
-            <span style={{ ...PIXEL, color: ORACLE_COLOR.fincher, fontStyle: 'normal' }}>{whoName(t, 'fincher')} </span>
-            {line.text}
-          </p>
+          <figure className="mt-3 text-center">
+            <blockquote className="text-[13.5px] italic leading-snug" style={{ color: '#FFE8A3' }}>{line.text}</blockquote>
+            <figcaption className="mt-1 text-[11.5px]" style={{ ...PIXEL, color: ORACLE_COLOR.fincher }}>{whoName(t, 'fincher')}</figcaption>
+          </figure>
         )}
         <p className="mt-3 text-center text-[11.5px]" style={{ color: '#9b94b5' }}>{t('poker.table.tapToSkip')}</p>
       </motion.div>

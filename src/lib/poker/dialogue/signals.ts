@@ -147,6 +147,8 @@ export class SignalTracker {
   prizeCaptured = false;
   phase: 'opening' | 'dealing' | 'inHand' | 'between' | 'ended' = 'opening';
   hand: HandTrack = emptyHand();
+  /** A última mão terminada (o "Mostrar" da pessoa chega depois dela). */
+  lastHand: HandTrack | null = null;
   humanStreak = 0;
   label: StyleLabel | null = null;
   anteSeen = false;
@@ -410,7 +412,7 @@ export class SignalTracker {
           }
         } else if (e.sizeClass === 'big' || e.sizeClass === 'overbet') {
           h.bigBetFaced = true;
-          if (!ctx.story['tip.bigbet'] && !h.tipsThisHand.has('bigbet') && !h.tipsThisHand.has('allin')) {
+          if (!ctx.story['tip.bigbet'] && !h.tipsThisHand.has('bigbet')) {
             h.tipsThisHand.add('bigbet');
             out.push(this.sig({ trigger: 'contextTip', priority: 1, chance: 1, variant: ['bigbet', 'a'], speakers: ['fincher'],
               tip: { kind: 'bigbet', part: 'a' }, short: true, phase: 'inHand' }));
@@ -472,11 +474,16 @@ export class SignalTracker {
 
   private onCardsShown(e: Extract<PublicEvent, { t: 'cardsShown' }>, ctx: TableContext): Signal[] {
     const h = this.hand;
-    // Depois do fim da mão (a pessoa tocou em "Mostrar"): blefe exposto da visita.
+    // A pessoa tocou em "Mostrar": vale para a última mão ganha sem showdown, que pode já ter
+    // acabado (no prêmio o cardsShown vem junto da ação seguinte). Usa o board e os
+    // oponentes daquela mão.
     if (e.playerId === HUMAN) {
-      if (!e.afterFold && isAir(e.cards, h.board) && ctx.mode !== 'tutorial') {
-        return [this.sig({ trigger: 'playerBluffShown', priority: 2, chance: 0.6, actorId: HUMAN,
-          victimIds: this.foldersTo(HUMAN), phase: 'post' })];
+      const last = this.lastHand ?? h;
+      if (!e.afterFold && isAir(e.cards, last.board) && ctx.mode !== 'tutorial') {
+        const victims = last.lastAggressor === HUMAN ? [...last.folded].filter((p) => RIVALS.includes(p)) : [];
+        const s = this.sig({ trigger: 'playerBluffShown', priority: 2, chance: 0.6, actorId: HUMAN, victimIds: victims, phase: 'post' });
+        s.hand = last.n;
+        return [s];
       }
       return [];
     }
@@ -493,6 +500,7 @@ export class SignalTracker {
 
   private onHandComplete(e: Extract<PublicEvent, { t: 'handComplete' }>, ctx: TableContext): Signal[] {
     const h = this.hand;
+    this.lastHand = h;
     this.phase = 'between';
     this.runoutSilence = false;
     if (ctx.mode === 'tutorial') return [];
@@ -610,10 +618,11 @@ export class SignalTracker {
     }
 
     // dicas: parte (b) do all-in / aposta grande; pote paralelo
-    if (h.tipsThisHand.has('allin')) {
-      out.push(this.sig({ trigger: 'contextTip', priority: 1, chance: 1, variant: ['allin', 'b'], speakers: ['fincher'], tip: { kind: 'allin', part: 'b' }, phase: post }));
-    } else if (h.tipsThisHand.has('bigbet')) {
-      out.push(this.sig({ trigger: 'contextTip', priority: 1, chance: 1, variant: ['bigbet', 'b'], speakers: ['fincher'], tip: { kind: 'bigbet', part: 'b' }, phase: post }));
+    // (o Diretor só deixa sair a (b) da dica cuja (a) entrou nesta mão)
+    for (const kind of ['allin', 'bigbet']) {
+      if (h.tipsThisHand.has(kind)) {
+        out.push(this.sig({ trigger: 'contextTip', priority: 1, chance: 1, variant: [kind, 'b'], speakers: ['fincher'], tip: { kind, part: 'b' }, phase: post }));
+      }
     }
     if (h.sidePotWithHuman && !ctx.story['tip.sidepot'] && !this.out.has(HUMAN)) {
       out.push(this.sig({ trigger: 'contextTip', priority: 1, chance: 1, variant: ['sidepot'], speakers: ['fincher'], tip: { kind: 'sidepot' }, phase: post }));
@@ -632,9 +641,14 @@ export class SignalTracker {
       }
       return out;
     }
-    out.push(this.sig({ trigger: 'eliminated', priority: 1, chance: 1, actorId: by ?? undefined, victimIds: [victim],
-      speakers: [victim], phase: 'post' }));
-    if (by && RIVALS.includes(by)) {
+    // Caiu o portador do prêmio: logo depois vem prizeCaptured (fala o portador) ou prizeMoved
+    // (fala quem herdou). Para não dobrar os balões, a fala do prêmio substitui a da eliminação.
+    const carrierOut = this.mode === 'bounty' && !this.prizeCaptured && this.holderId === victim;
+    if (!(carrierOut && by === HUMAN)) {
+      out.push(this.sig({ trigger: 'eliminated', priority: 1, chance: 1, actorId: by ?? undefined, victimIds: [victim],
+        speakers: [victim], phase: 'post' }));
+    }
+    if (by && RIVALS.includes(by) && !carrierOut) {
       out.push(this.sig({ trigger: 'eliminatesOracle', priority: 1, chance: 1, actorId: by, victimIds: [victim], speakers: [by], phase: 'post' }));
     }
     out.push(this.sig({ trigger: 'oracleOut', priority: 3, chance: 0.3, actorId: by ?? undefined, victimIds: [victim],

@@ -47,7 +47,8 @@ import { getMyTrades, type PosterTrade } from '../../lib/posterTrades';
 import PosterTradesPanel from './PosterTradesPanel';
 import { DailyChipReward } from './DailyChip';
 import PokerTab from '../poker/jackpot/PokerTab';
-import TodayAtTableLine, { shouldShowTodayLine } from '../poker/jackpot/TodayAtTableLine';
+import TodayAtTableLine from '../poker/jackpot/TodayAtTableLine';
+import { shouldShowTodayLine } from '../poker/jackpot/pokerMeta';
 import TablePrizeSeal from '../poker/jackpot/TablePrizeSeal';
 import '../../styles/posterJackpot.css';
 
@@ -965,9 +966,6 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
           logo embaixo as missões que dão mais fichas, e o convite depois
           delas. Sem a recompensa, o convite abre a aba, como antes. */}
       {dailyReward ? <DailyChipReward tickets={dailyReward.tickets} playKey={dailyReward.at} /> : <InviteCard />}
-      {/* "Hoje na mesa…" (03/11/2026): logo depois da ficha do dia, o prêmio
-          do Grande Blefe e quem o carrega — a ficha já tem onde cair. */}
-      {dailyReward && shouldShowTodayLine(state.poker) && <TodayAtTableLine teaser={state.poker} className="-mt-1" />}
       {!dailyReward && resetsLine}
       <ul className="space-y-2.5">
         {state.missions.map((mission) => {
@@ -1017,6 +1015,12 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
           );
         })}
       </ul>
+
+      {/* "Hoje na mesa…" (03/11/2026): depois da ficha do dia, o prêmio do
+          Grande Blefe e quem o carrega — a ficha já tem onde cair. Fica logo
+          depois das missões para não cortar a ponte "Quer mais? ⌄" da ficha
+          do dia, que aponta para elas. */}
+      {dailyReward && shouldShowTodayLine(state.poker) && <TodayAtTableLine teaser={state.poker} />}
 
       {dailyReward && (
         <>

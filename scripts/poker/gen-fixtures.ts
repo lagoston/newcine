@@ -133,4 +133,4 @@ privates.forEach((p, k) => {
   index.push({ file, kind: 'private', mode: p.cfg.mode, events: p.priv.length });
   console.log(`  ${file}: ${p.priv.length} eventos privados`);
 });
-writeFileSync(new URL('index.json', DIR), `${JSON.stringify({ v: 1, generatedBy: 'scripts/poker/gen-fixtures.ts', bots: 'A1 (aleatórios legais)', files: index }, null, 1)}\n`);
+writeFileSync(new URL('index.json', DIR), `${JSON.stringify({ v: 1, generatedBy: 'scripts/poker/gen-fixtures.ts', bots: 'A2 (bots reais, perfis padrão do §3.2)', files: index }, null, 1)}\n`);

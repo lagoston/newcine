@@ -11,7 +11,7 @@ import type { RivalId } from '../../../lib/poker/types';
 import type { CreditsData } from '../../../lib/poker/client/creditsData';
 import { cardArt, ORACLE_COLOR } from '../../../lib/poker/client/cosmetics';
 import { describeHand, fmt, langOf } from '../../../lib/poker/client/format';
-import { whoName } from '../../../lib/poker/client/narrate';
+import { theName } from '../../../lib/poker/client/narrate';
 import PlayingCard from '../cards/PlayingCard';
 import PrizeArt from '../jackpot/PrizeArt';
 import { MARKS } from '../jackpot/pokerMeta';
@@ -78,14 +78,14 @@ const Credits: React.FC<{
   if (data.reason === 'eliminated' && data.eliminatedBy)
     lines.push(
       <p key="by" className="pk-credit-line">
-        {t('poker.credits.eliminatedBy', { oracle: whoName(t, data.eliminatedBy), hand: data.eliminatedHand ?? '' })}
+        {t('poker.credits.eliminatedBy', { by: theName(t, data.eliminatedBy, 'by'), hand: data.eliminatedHand ?? '' })}
       </p>,
     );
   if (data.reason === 'forfeit') lines.push(<p key="ff" className="pk-credit-line">{t('poker.credits.forfeit')}</p>);
   if (data.mode === 'free' && !win)
     lines.push(
       <p key="tw" className="pk-credit-line">
-        {data.tableWinner === undefined ? '…' : data.tableWinner ? t('poker.credits.tableWinner', { oracle: whoName(t, data.tableWinner) }) : ''}
+        {data.tableWinner === undefined ? '…' : data.tableWinner ? t('poker.credits.tableWinner', { oracle: theName(t, data.tableWinner, 'The') }) : ''}
       </p>,
     );
   if (data.loan) lines.push(<p key="loan" className="pk-credit-label">{t('poker.credits.withLoan')}</p>);
@@ -199,9 +199,9 @@ const Credits: React.FC<{
 
         <motion.div
           className="grid gap-2 pt-2"
-          initial={reduced ? false : { y: 140, opacity: 0 }}
+          initial={reduced ? false : { y: 160, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: reduced ? 0 : 6, ease: 'linear', delay: 0.4 }}
+          transition={{ y: { duration: reduced ? 0 : 6, ease: 'linear', delay: 0.3 }, opacity: { duration: reduced ? 0 : 0.8, delay: 0.3 } }}
         >
           {lines}
           <div className="pk-credit-gap" />
@@ -219,7 +219,7 @@ const Credits: React.FC<{
             {t('poker.lobby.retry', { n: data.retry.n, max: data.retry.max })}
           </button>
         )}
-        <button type="button" className="pk-cta-gold" onClick={onRematch} autoFocus>
+        <button type="button" className={data.captured && use ? 'pk-cta-paper' : 'pk-cta-gold'} onClick={onRematch} autoFocus>
           {data.mode === 'bounty' ? t('poker.credits.freeRematch') : t('poker.credits.rematch')}
         </button>
         <div className="grid grid-cols-2 gap-2">

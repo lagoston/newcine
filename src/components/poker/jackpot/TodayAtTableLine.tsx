@@ -5,16 +5,15 @@ import type { PokerTeaser } from '../../../lib/posterJackpot';
 import { ChipFace } from '../../posterJackpot/Chips';
 import CarrierFace from './CarrierFace';
 import { useBountyLaunch } from './useBountyLaunch';
-import { isPokerOracle, prizeNameOf } from './pokerMeta';
+import { isPokerOracle, prizeNameOf, shouldShowTodayLine } from './pokerMeta';
 import '../../../styles/pokerEntry.css';
 
 // "Hoje na mesa: Baralho Noir, com a Cobra." (veredito Q5; SPEC §7.1 item 2)
-// Na aba Missões, logo depois da ficha do dia: a ficha que acabou de cair já
-// tem para onde ir. O rosto é o de quem carrega o prêmio. [Usar a ficha] vai
-// direto à mesa valendo. Some se a pessoa já levou o prêmio, se as
-// tentativas de hoje acabaram ou se não há prêmio.
-export const shouldShowTodayLine = (teaser: PokerTeaser | null | undefined): teaser is PokerTeaser =>
-  !!teaser && !!teaser.prize && !teaser.wonToday && (teaser.active || teaser.attemptsUsed < teaser.maxAttempts);
+// Na aba Missões, quando a ficha do dia acabou de cair: a ficha já tem para
+// onde ir. Fica logo depois das missões (03/11/2026) para não cortar a ponte
+// "Quer mais? ⌄" da ficha do dia. O rosto é o de quem carrega o prêmio;
+// [Usar a ficha] vai direto à mesa valendo. Some se a pessoa já levou o
+// prêmio, se as tentativas de hoje acabaram ou se não há prêmio.
 
 const TodayAtTableLine: React.FC<{ teaser: PokerTeaser; className?: string }> = ({ teaser, className = '' }) => {
   const { t, i18n } = useTranslation();
@@ -22,13 +21,21 @@ const TodayAtTableLine: React.FC<{ teaser: PokerTeaser; className?: string }> = 
   if (!shouldShowTodayLine(teaser)) return null;
   const isPt = i18n.language.startsWith('pt');
   const carrierKey = isPokerOracle(teaser.carrier) ? teaser.carrier : 'other';
-  const line = t('pokerEntry.today', { prize: prizeNameOf(teaser.prize, isPt), carrier: t(`pokerEntry.oracles.${carrierKey}.with`) });
+  const prize = prizeNameOf(teaser.prize, isPt);
+  const carrier = t(`pokerEntry.oracles.${carrierKey}.with`);
 
   return (
     <div className={`pe-velvet relative flex items-center gap-3 rounded-2xl pl-3 pr-2.5 py-2.5 ${className}`}>
       <CarrierFace id={teaser.carrier} size={40} wanted />
-      <p className="min-w-0 flex-1 text-[13.5px] leading-snug" style={{ color: PAPER }}>
-        {line}
+      {/* Duas linhas curtas em vez de uma frase que quebraria em três. */}
+      <p className="min-w-0 flex-1 leading-snug">
+        <span className="sr-only">{t('pokerEntry.today', { prize, carrier })}</span>
+        <span className="block text-[12px] font-semibold" style={{ color: '#FFE8A3' }} aria-hidden>
+          {t('pokerEntry.todayLabel')}
+        </span>
+        <span className="block text-[13.5px] line-clamp-2" style={{ color: PAPER }} aria-hidden>
+          {t('pokerEntry.todayWhat', { prize, carrier })}
+        </span>
       </p>
       <button
         type="button"

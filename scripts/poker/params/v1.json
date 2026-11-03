@@ -1,0 +1,20 @@
+{
+ "bogart": {
+  "epsilon": 0.18, "epsilonFloor": 0.15, "noise": 0.13, "stinginess": 1.0,
+  "preflop": { "entry": { "CO": 10, "BTN": 15, "SB": 20 }, "limpShare": 0.8, "callOpenPct": 10, "foldBBvsSteal": 0.85 },
+  "post": { "cbetHU": 0.2, "barrelTurn": 0.12, "riverAfterTwo": 0.2, "raiseValueFreq": 0.06, "callMarginPP": { "pairPlus": -2, "committed": -12, "draw": 10, "air": 5 } }
+ },
+ "cypher": {
+  "epsilon": 0.12, "epsilonFloor": 0.1, "noise": 0.06,
+  "preflop": { "threeBetPct": 16, "callOpenPct": 24, "limpShare": 0 },
+  "post": { "barrelTurn": 0.7, "riverAfterTwo": 0.75, "semibluffFreq": 0.8, "raiseValueFreq": 0.8, "checkRaise": 0.2, "callMarginPP": { "pairPlus": 4, "committed": 4, "draw": 4, "air": 6 } },
+  "callAllIn": { "topPct": 28 },
+  "tells": { "bluffBet": { "nervoso": 0.55, "confiante": 0.1, "calado": 0, "neutro": 0.35 }, "valueBet": { "nervoso": 0.3, "confiante": 0.45, "calado": 0, "neutro": 0.25 } }
+ },
+ "fincher": {
+  "epsilon": 0.05, "epsilonFloor": 0.04, "noise": 0.02,
+  "preflop": { "entry": { "CO": 25, "BTN": 42, "SB": 36 }, "callOpenPct": 12 },
+  "post": { "cbetHU": 0.75, "barrelTurn": 0.6, "riverAfterTwo": 0.55, "semibluffFreq": 0.5, "raiseValueFreq": 0.6, "checkRaise": 0.12, "callMarginPP": { "pairPlus": 4, "committed": 4, "draw": 4, "air": 6 } },
+  "tells": { "rest": { "confiante": 0.0002, "nervoso": 0.25, "neutro": 0.7498, "calado": 0 } }
+ }
+}

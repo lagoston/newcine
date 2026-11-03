@@ -10,8 +10,8 @@ import { OracleTrio } from '../jackpot/CarrierFace';
 import PrizeArt from '../jackpot/PrizeArt';
 import { equipPokerMark, fetchPokerScoreboard, fetchProfileBits } from '../jackpot/entryApi';
 import { BLEFE_ROUTES, prizeNameOf, titleProgress } from '../jackpot/pokerMeta';
-import { currentStreak, mergeStats, parseScoreboard, placements, playerNumbers, type ScoreboardData } from './model';
-import { HandCards, LuckBullet, MarkRow, ModeSplit, NumberRow, PlacementBar, RecentRow, RivalRows, TitleReel, fmt } from './parts';
+import { currentStreak, fmt, mergeStats, parseScoreboard, placements, playerNumbers, type ScoreboardData } from './model';
+import { HandCards, LuckBullet, MarkRow, ModeSplit, NumberRow, PlacementBar, RecentRow, RivalRows, TitleReel } from './parts';
 import '../../../styles/posterJackpot.css';
 import '../../../styles/pokerEntry.css';
 
@@ -306,6 +306,9 @@ const Scoreboard: React.FC = () => {
                     <dd className="mt-1 text-[20px] font-bold leading-none" style={{ color: PAPER }}>
                       {fmt(stats.comebackWins, lang)}
                     </dd>
+                    <dd className="mt-1 text-[11.5px] leading-snug" style={{ color: MIST }}>
+                      {t('pokerEntry.score.comebacksHelp')}
+                    </dd>
                   </div>
                 </dl>
               </div>
@@ -326,7 +329,8 @@ const Scoreboard: React.FC = () => {
                       </strong>
                     </p>
                     <p className="mt-0.5 text-[12.5px]" style={{ color: MIST }}>
-                      {luckDelta > 0.05 ? t('pokerEntry.score.luckUp') : luckDelta < -0.05 ? t('pokerEntry.score.luckDown') : t('pokerEntry.score.luckEven')}
+                      {/* Menos de 1 all-in de diferença é ruído: "no meio do esperado". */}
+                      {luckDelta >= 1 ? t('pokerEntry.score.luckUp') : luckDelta <= -1 ? t('pokerEntry.score.luckDown') : t('pokerEntry.score.luckEven')}
                     </p>
                     <div className="mt-3">
                       <LuckBullet won={stats.allinWon} total={stats.allinCount} expected={stats.allinExpectedMilli / 1000} />

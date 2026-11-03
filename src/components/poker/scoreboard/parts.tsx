@@ -3,15 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { Check, Loader2 } from 'lucide-react';
 import { FOCUS_RING, MIST, PAPER, PIXEL, oracleCardImage } from '../../../lib/oracleTheme';
 import { POKER_ORACLES, SEAT_ORDER, TITLE_STEPS, titleProgress, type PokerOracleId } from '../jackpot/pokerMeta';
-import type { BestHand, MarkView, PlayerNumber, RecentMatch, Stats } from './model';
+import { fmt, type BestHand, type MarkView, type PlayerNumber, type RecentMatch, type Stats } from './model';
 
 // Peças do placar. Os gráficos seguem o método do skill de dataviz:
 // marcas finas, 2 px de vão entre blocos, legenda sempre que há duas
 // séries, texto nunca na cor do dado, e todo valor também escrito (o balão
 // de hover/foco só reforça, nunca é o único caminho).
-
-export const fmt = (value: number, lang: string, digits = 0) =>
-  value.toLocaleString(lang, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
 // ---------------------------------------------------------------------------
 // A carreira: o título atual e a película com os 6 títulos

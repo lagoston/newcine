@@ -6,7 +6,7 @@ import { PIXEL } from '../../../lib/oracleTheme';
 import type { RivalId } from '../../../lib/poker/types';
 import { cardArt, ORACLE_COLOR } from '../../../lib/poker/client/cosmetics';
 import { setPokerSettings, SPEEDS, type PokerSettingsLocal } from '../../../lib/poker/client/settings';
-import { FALLBACK_QUIPS } from '../../../lib/poker/client/useDirector';
+import { FALLBACK_QUIPS, loadQuips } from '../../../lib/poker/client/useDirector';
 import { langOf } from '../../../lib/poker/client/format';
 import HandRanking from '../cards/HandRanking';
 
@@ -121,11 +121,19 @@ export const QuipPicker: React.FC<{
   onClose: () => void;
   alive: RivalId[];
   reduced: boolean;
-  quips?: { id: string; pt: string; en: string }[];
-}> = ({ onPick, onClose, alive, reduced, quips = FALLBACK_QUIPS }) => {
+  pack?: string;
+}> = ({ onPick, onClose, alive, reduced, pack }) => {
   const { t, i18n } = useTranslation();
   const lang = langOf(i18n.language);
   const [q, setQ] = React.useState<string | null>(null);
+  const [quips, setQuips] = React.useState(FALLBACK_QUIPS);
+  useEffect(() => {
+    let ok = true;
+    void loadQuips(pack).then((list) => ok && setQuips(list));
+    return () => {
+      ok = false;
+    };
+  }, [pack]);
   return (
     <Sheet title={q ? t('poker.quips.target') : t('poker.quips.pick')} onClose={onClose} reduced={reduced}>
       {!q ? (

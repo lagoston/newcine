@@ -88,7 +88,7 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
   // Fim da partida: relato na fila no mesmo passo em que o "em andamento" some
   // (recarregar no meio dos créditos nunca relata duas vezes).
   const finish = useCallback(
-    async (state: MatchState) => {
+    async (state: MatchState, events: PublicEvent[] = []) => {
       const endedAt = new Date().toISOString();
       const sum = await client.call({ op: 'summarize', meta: { clientId: meta.current.clientId, startedAt: meta.current.startedAt, endedAt } });
       if (sum.kind !== 'summary') return;
@@ -96,13 +96,17 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
       finishFreeMatch(summary);
       saveFoxMemory(state.bots?.fincher?.model);
       recordMatchEnd(summary.durationS / 60);
+      // Quem eliminou sai dos eventos do lote (a mesa ainda nem projetou o fim).
       const t = tableRef.current.getTable();
+      const out = [...meta.current.tail, ...events].reverse().find((e) => e.t === 'eliminated' && e.playerId === 'human') as
+        | Extract<PublicEvent, { t: 'eliminated' }>
+        | undefined;
       const base: CreditsData = {
         mode: 'free',
         place: summary.place,
         reason: summary.reason,
-        eliminatedBy: t.eliminatedBy.human ?? null,
-        eliminatedHand: t.eliminatedHand.human ?? null,
+        eliminatedBy: out?.byId ?? t.eliminatedBy.human ?? null,
+        eliminatedHand: out?.handNumber ?? t.eliminatedHand.human ?? null,
         tableWinner: summary.place === 1 ? 'human' : undefined,
         bestHand: summary.human.bestHand ? { cards: summary.human.bestHand.cards, kind: summary.human.bestHand.kind } : null,
         biggestPot: summary.human.biggestPot,
@@ -150,7 +154,7 @@ export function useFreeMatch(rig: Rig, home: PokerHome | null): MatchCtl {
       } else {
         tableRef.current.enqueue({ events: r.events, view: r.view });
       }
-      if (r.state.status !== 'running') void finish(r.state);
+      if (r.state.status !== 'running') void finish(r.state, r.events);
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

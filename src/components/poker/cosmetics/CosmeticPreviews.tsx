@@ -17,8 +17,9 @@ export const CardBack: React.FC<{ deckId?: string | null; className?: string; st
 };
 
 // Duas cartas em leque (a mão de quem está na mesa).
+// Quem passa `absolute` posiciona; senão, o leque é o próprio quadro.
 export const DeckFan: React.FC<{ deckId?: string | null; className?: string }> = ({ deckId, className = '' }) => (
-  <span aria-hidden className={`relative block ${className}`}>
+  <span aria-hidden className={`${/\babsolute\b/.test(className) ? '' : 'relative'} block ${className}`}>
     <CardBack deckId={deckId} className="absolute left-[14%] top-[6%] w-[58%] -rotate-[9deg] origin-bottom" />
     <CardBack deckId={deckId} className="absolute right-[14%] top-[6%] w-[58%] rotate-[7deg] origin-bottom" />
   </span>

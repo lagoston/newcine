@@ -77,6 +77,7 @@ export interface TableShow {
   actionNo: number;
 }
 
+const DEFAULT_SEATS: Record<string, number> = { human: 0, bogart: 1, fincher: 2, cypher: 3 };
 const DEFAULT_LEVEL: LevelInfo = { index: 0, sb: 25, bb: 50, ante: 0, handsLeft: 5, next: { sb: 35, bb: 70, ante: 0 } };
 
 function seatBlank(id: PlayerId, seat: number, stack: number): SeatShow {
@@ -159,6 +160,14 @@ export function applyEvent(t0: TableShow, e: PublicEvent): TableShow {
     case 'levelUp':
       return { ...t, level: e.level };
     case 'handStarted':
+      // Mesa sem matchStarted (treino): os lugares nascem dos cacifes da mão.
+      if (Object.keys(e.stacks).some((id) => !t.seats.some((s) => s.id === id))) {
+        const have = new Set(t.seats.map((s) => s.id));
+        const extra = Object.entries(e.stacks)
+          .filter(([id]) => !have.has(id))
+          .map(([id, stack]) => seatBlank(id, DEFAULT_SEATS[id] ?? t.seats.length, stack ?? 0));
+        t = { ...t, seats: [...t.seats, ...extra].sort((a, b) => a.seat - b.seat) };
+      }
       t = {
         ...t,
         handNumber: e.handNumber,

@@ -108,7 +108,7 @@ const PokerCosmeticsSection: React.FC<{ open: boolean }> = ({ open }) => {
                   aria-pressed={selected}
                   aria-busy={saving === item.id || undefined}
                   aria-label={[name, selected ? t('customize.inUse') : null, locked ? t('pokerEntry.cosmetics.locked') : null].filter(Boolean).join(' — ')}
-                  className={`relative w-full h-full flex flex-col gap-2.5 rounded-2xl p-2 pb-3 text-left ring-1 transition ${FOCUS_RING} ${
+                  className={`relative w-full h-full flex flex-col items-stretch justify-start gap-2.5 rounded-2xl p-2 pb-3 text-left ring-1 transition ${FOCUS_RING} ${
                     selected && !locked ? 'ring-2 ring-violet-400/80 bg-violet-500/15' : locked ? 'ring-white/[0.07] cursor-not-allowed' : 'ring-white/10 hover:ring-white/30'
                   }`}
                   style={selected && !locked ? undefined : { background: VELVET }}

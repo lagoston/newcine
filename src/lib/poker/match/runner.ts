@@ -15,7 +15,7 @@ import type { BotMemory, MatchConfig, OppCounters, PlayerId, RivalId } from '../
 import type { BotChoice } from '../bots/driver.ts';
 import { defaultBotChoice } from '../bots/driver.ts';
 import { bucketOf, isAirShown } from '../bots/buckets.ts';
-import { emptyCounters } from '../bots/model.ts';
+import { emptyCounters, labelsOf, updateModel } from '../bots/model.ts';
 import { tellsFor } from '../bots/tells.ts';
 import { endOfHandTilt } from '../bots/tilt.ts';
 import { computeFlags } from './flags.ts';
@@ -216,7 +216,25 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
   if (g.phase === 'gameOver' && g.winnerId === HUMAN) capturePrize(ctx, n);
   // 7) tilt
   if (!tutorial) for (const t of endOfHandTilt(st, result, flags, potTotal, bb)) emit(ctx, { type: 'tilt', ...t });
-  // 8) números da pessoa (enquanto ela joga)
+  // 8) modelo do Raposo (só dados públicos) e leituras novas sobre a pessoa
+  if (!tutorial) {
+    const shown: Record<string, Card[]> = {};
+    for (const sh of result.shown) shown[sh.playerId] = sh.cards;
+    for (const sh of shownAfter) shown[sh.playerId] = sh.cards;
+    for (const [id, mem] of Object.entries(st.bots)) {
+      const alive = g.players.some((p) => p.id === id && p.status !== 'eliminated');
+      if (!mem.model || !cfg.profiles[id]?.model.enabled || !alive) continue;
+      updateModel(mem.model, result, shown);
+      const human = mem.model.human;
+      if (st.status !== 'running' || !human) continue;
+      for (const label of labelsOf(human, cfg.difficulty.adaptDelay)) {
+        if (mem.labelsAnnounced.includes(label)) continue;
+        mem.labelsAnnounced.push(label);
+        emit(ctx, { type: 'styleRead', by: id, targetId: 'human', label });
+      }
+    }
+  }
+  // 9) números da pessoa (enquanto ela joga)
   if (st.status === 'running' && !tutorial) {
     updateTally(st.tally, { result, bb, holes, flags, potTotal, odds, humanStackAfter: playerOf(g, HUMAN).stack, eliminations: elims });
   }

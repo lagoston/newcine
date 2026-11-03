@@ -7,7 +7,7 @@ import type { LegalActions, PlayerAction } from '../engine.ts';
 import { getLegalActions } from '../engine.ts';
 import type { RivalId, ScriptedAction } from '../types.ts';
 import type { BotChoice } from '../bots/driver.ts';
-import { handInfo } from '../bots/driver.ts';
+import { handInfo } from '../bots/buckets.ts';
 import type { MatchStateX } from './internal.ts';
 import { playerOf } from './internal.ts';
 
