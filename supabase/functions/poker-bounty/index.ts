@@ -10,8 +10,11 @@ import { handle } from './handler.ts';
 // papel. A lógica mora em handler.ts; o motor, em _engine/ (cópia gerada por
 // scripts/sync-poker-engine.mjs).
 //
-// Publicar (MCP deploy_edge_function, verify_jwt: true) com a lista explícita:
-// index.ts, handler.ts e todos os _engine/**/*.ts.
+// Publicar (MCP deploy_edge_function, verify_jwt: true), desde 03/11/2026:
+//   node scripts/sync-poker-engine.mjs && node scripts/poker/bundle-edge.mjs
+// e enviar 2 arquivos: este index.ts e dist/handler.ts publicado com o nome
+// handler.ts (handler + _engine empacotados pelo esbuild, ~160 KB em vez de
+// ~290 KB de fontes com comentários). O pacote leva o mesmo ENGINE_HASH.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

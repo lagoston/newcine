@@ -128,6 +128,13 @@ export function isMonster(hole: readonly Card[], board: readonly Card[], bucket:
   return bucket === 'strong' && categoryOf([...hole, ...board]) >= 3;
 }
 
+/** Grupo, monstro e "par ou melhor" da mão (para a decisão, os tells e os logs). */
+export function handInfo(hole: readonly Card[], board: readonly Card[]): { bucket: HandBucket; monster: boolean; pairPlus: boolean } {
+  const bucket = bucketOf(hole, board);
+  const pairPlus = board.length === 0 ? rankOf(hole[0]) === rankOf(hole[1]) : categoryOf([...hole, ...board]) >= 1;
+  return { bucket, monster: isMonster(hole, board, bucket), pairPlus };
+}
+
 /** "Ar ao mostrar" (falas de blefe, §3.5): carta alta, ou par formado só com cartas do board. */
 export function isAirShown(hole: readonly Card[], board: readonly Card[]): boolean {
   if (board.length === 0) return rankOf(hole[0]) !== rankOf(hole[1]) && preflopPct(hole) > 50;

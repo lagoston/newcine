@@ -11,20 +11,29 @@ import type { DifficultyRow, LevelInfo, PokerSettings, Rarity } from './types.ts
 /**
  * Dificuldade pública por raridade (§3.4). Só mexe em ε e no atraso de adaptação do
  * Raposo; as iterações nunca mudam. `stars` 0 = sem estrelas (mesa livre).
+ * Calibração A3 (03/11/2026): multiplicadores mais abertos (eram 1,3 / 1,15 / 1,0 / 0,85
+ * e 16 / 14 / 12 / 9 mãos) e pisos de ε mais baixos nos perfis: com a tabela antiga a
+ * captura do médio dava ~35% em todas as raridades (meta 45–50 → 25–30).
  */
 export const DEFAULT_DIFFICULTY: Record<Rarity | 'free', DifficultyRow> = {
   free: { stars: 0, epsilonMul: 1.0, adaptDelay: 12 },
-  common: { stars: 1, epsilonMul: 1.3, adaptDelay: 16 },
-  rare: { stars: 2, epsilonMul: 1.15, adaptDelay: 14 },
+  common: { stars: 1, epsilonMul: 2.4, adaptDelay: 18 },
+  rare: { stars: 2, epsilonMul: 1.7, adaptDelay: 15 },
   epic: { stars: 3, epsilonMul: 1.0, adaptDelay: 12 },
-  legendary: { stars: 4, epsilonMul: 0.85, adaptDelay: 9 },
+  legendary: { stars: 4, epsilonMul: 0.3, adaptDelay: 6 },
 };
 
 export const DEFAULT_SETTINGS: PokerSettings = {
   startStack: 2000,
   handsPerLevel: 5,
   // Veredito Q1 (03/11/2026): degraus de ~×1,4; ante = BB/4 a partir do nível 3 (soma = 1 BB com 4 vivos).
+  // Calibração A3 (03/11/2026): dois níveis iniciais mais fundos (10/20 e 20/40) antes de
+  // 25/50; o resto da tabela não mudou. Com 40 BB de saída, quem empurra toda mão vivia de roubar
+  // 1,5 BB e vencia 18% (meta < 15%), e a partida durava 23 mãos (meta 30–40). Mudou
+  // aqui, muda em poker_settings.levels.
   levels: [
+    [10, 20, 0],
+    [20, 40, 0],
     [25, 50, 0],
     [35, 70, 0],
     [50, 100, 25],

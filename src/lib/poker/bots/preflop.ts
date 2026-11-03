@@ -56,7 +56,7 @@ function bluffBandFreq(P: EffProfile, tb: number, valueTop: number, entry: numbe
 }
 
 /** Raposo: até 1,4× a faixa de abrir quando os que faltam falar entram pouco (VPIP < 30%). */
-function stealWiden(v: BotView, f: Features, ctx: BotCtx): number {
+function stealWiden(v: BotView, ctx: BotCtx): number {
   const me = v.players.find((p) => p.id === v.selfId)!;
   const left = v.players.filter((p) => p.hasCards && p.id !== v.selfId && p.streetBet <= v.blinds.bigBlind
     && !v.actions.some((a) => a.playerId === p.id && a.street === 'preflop'));
@@ -95,7 +95,7 @@ export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ra
   switch (f.facing) {
     case 'unopened': {
       // Raposo: rouba mais quando quem falta falar é apertado (VPIP lido baixo; A3).
-      if (ctx.model && (f.pos === 'BTN' || f.pos === 'SB')) entry = Math.min(100, entry * stealWiden(v, f, ctx));
+      if (ctx.model && (f.pos === 'BTN' || f.pos === 'SB')) entry = Math.min(100, entry * stealWiden(v, ctx));
       if (pct > entry) {
         // Lixo (bem fora da faixa) não tem "erro plausível" de limp (A3): com ε alto o
         // limp de lixo inflava o VPIP do Sapo e da Cobra acima das metas.

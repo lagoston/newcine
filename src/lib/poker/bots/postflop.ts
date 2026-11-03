@@ -85,6 +85,9 @@ function riverBluffProb(P: EffProfile, f: Features, ctx: BotCtx): number {
   return clamp01((share + P.mods.bluffPP / 100) * bluffScale(ctx, f));
 }
 
+/** Chance de sondar (apostar sem mão quando passam para ele, sem ter sido o agressor). */
+const STAB: Partial<Record<string, number>> = { cypher: 0.3, fincher: 0.25 };
+
 function betOrCheck(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, b: HandBucket, monster: boolean, pairPlus: boolean): PlayerAction[] {
   const r = (): number => ctx.rng.nextFloat();
   const small = betFrac(v, 0.33);
@@ -114,9 +117,6 @@ function betOrCheck(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, b: Hand
   return [CHECK, small];
 }
 
-/** Chance de sondar (apostar sem mão quando passam para ele, sem ter sido o agressor). */
-const STAB: Partial<Record<string, number>> = { cypher: 0.3, fincher: 0.25 };
-
 /** Quanto uma aposta daquele oponente informa: AF alto (com amostra) = aposta vale menos. */
 function aggrWeightOf(ctx: BotCtx, id: string): number {
   const c = ctx.model?.counters(id);
@@ -138,7 +138,7 @@ function marginAdj(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): number 
     if (c && c.raw.hands >= 2) {
       const r = ctx.model.quick(f.aggressorId);
       if (r.af > 2.5) adj -= Math.min(0.10, 0.04 * (r.af - 1.5));
-      if (r.pfr > 0.3) adj -= Math.min(0.08, 0.2 * (r.pfr - 0.3));
+      if (r.pfr > 0.3) adj -= Math.min(0.12, 0.4 * (r.pfr - 0.3));
     }
     const lim = P.model.callMarginPP / 100;
     m += Math.max(-lim, Math.min(lim, adj));

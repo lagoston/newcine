@@ -17,9 +17,9 @@ import type { DifficultyRow, LevelInfo, PokerSettings, Rarity } from './types.ts
 export const DEFAULT_DIFFICULTY: Record<Rarity | 'free', DifficultyRow> = {
   free: { stars: 0, epsilonMul: 1.0, adaptDelay: 12 },
   common: { stars: 1, epsilonMul: 2.4, adaptDelay: 18 },
-  rare: { stars: 2, epsilonMul: 1.5, adaptDelay: 15 },
+  rare: { stars: 2, epsilonMul: 1.7, adaptDelay: 15 },
   epic: { stars: 3, epsilonMul: 1.0, adaptDelay: 12 },
-  legendary: { stars: 4, epsilonMul: 0.4, adaptDelay: 8 },
+  legendary: { stars: 4, epsilonMul: 0.3, adaptDelay: 6 },
 };
 
 export const DEFAULT_SETTINGS: PokerSettings = {

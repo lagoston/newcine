@@ -12,6 +12,7 @@ import type { BotProfile, DifficultyRow } from '../types.ts';
 import { BOGART_PROFILE } from './profiles/bogart.ts';
 import { CYPHER_PROFILE } from './profiles/cypher.ts';
 import { FINCHER_PROFILE } from './profiles/fincher.ts';
+import { CALIBRATED_PARAMS } from './calibrated.ts';
 
 export type { BotProfile } from '../types.ts';
 
@@ -222,10 +223,13 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
+// 03/11/2026: o padrão embutido já leva a calibração do simulador (v1.json, via
+// calibrated.ts). Antes, sem os parâmetros do banco em cache, o bot jogava com os
+// números do SPEC, que nunca passaram pelo simulador. O banco continua por cima.
 export const DEFAULT_PROFILES: Record<'bogart' | 'cypher' | 'fincher', BotProfile> = deepFreeze({
-  bogart: BOGART_PROFILE,
-  cypher: CYPHER_PROFILE,
-  fincher: FINCHER_PROFILE,
+  bogart: mergeProfile(BOGART_PROFILE, CALIBRATED_PARAMS.bogart),
+  cypher: mergeProfile(CYPHER_PROFILE, CALIBRATED_PARAMS.cypher),
+  fincher: mergeProfile(FINCHER_PROFILE, CALIBRATED_PARAMS.fincher),
 });
 
 deepFreeze(LIMITS);

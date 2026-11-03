@@ -89,12 +89,14 @@ for (let m = 0; m < N; m++) {
           const lvl = levelFor(e.handNumber);
           eq([e.blinds.smallBlind, e.blinds.bigBlind, e.blinds.ante], [lvl.sb, lvl.bb, lvl.ante], `blinds da mão ${e.handNumber}`);
           eq(lvl.index, lastLevel, `nível corrente na mão ${e.handNumber}`);
-          check(lvl.index < 2 ? lvl.ante === 0 : lvl.ante === lvl.bb / 4, 'ante = BB/4 a partir do nível 3');
+          // A3 (03/11/2026): dois níveis iniciais mais fundos entraram antes de 25/50; o ante
+          // continua começando em 50/100 (BB ≥ 100), sempre BB/4.
+          check(lvl.bb < 100 ? lvl.ante === 0 : lvl.ante === lvl.bb / 4, 'ante = BB/4 a partir de 50/100');
           break;
         }
         case 'blindsPosted': {
           const lvl = levelFor(curHand);
-          if (lvl.ante === 0) eq(e.antes.length, 0, 'sem ante nos níveis 1 e 2');
+          if (lvl.ante === 0) eq(e.antes.length, 0, 'sem ante antes de 50/100');
           else check(e.antes.every((a) => a.amount <= lvl.ante && a.amount > 0), 'ante cobrado de cada vivo');
           break;
         }

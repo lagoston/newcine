@@ -9,6 +9,9 @@ import { PokerRuleError, getLegalActions } from '../engine.ts';
 import { levelFor } from '../config.ts';
 import type { LevelInfo, MatchConfig, MatchOutcome, MatchState, MatchStep, PlayerId } from '../types.ts';
 import { tiltOnHumanShow } from '../bots/tilt.ts';
+import { modelOnShow } from '../bots/model.ts';
+
+export { raposoMemory } from '../bots/model.ts';
 import type { EndReason } from './internal.ts';
 import { HUMAN, emit, isAlive, newCtx, x } from './internal.ts';
 import { applyAndProcess, botAct, emitMatchEnded, emitMatchStarted, initialState, runUntilHuman, startNextHand } from './runner.ts';
@@ -21,6 +24,7 @@ export { summarizeMatch } from './summary.ts';
 export { runoutOdds } from './odds.ts';
 export { startTutorialHand } from './tutorialRunner.ts';
 export { eliminatorOf } from './eliminator.ts';
+export { logHash } from './logHash.ts';
 
 /** Emite matchStarted e roda até a vez da pessoa. */
 export function createMatch(cfg: MatchConfig): MatchStep {
@@ -48,7 +52,10 @@ export function applyHumanAction(s: MatchState, a: PlayerAction, opts?: { show?:
     lu.shown = true;
     emit(ctx, { type: 'cardsShown', playerId: HUMAN, cards: [lu.cards[0], lu.cards[1]], afterFold: false });
     const res = st.game.history.find((h) => h.handNumber === lu.hand);
-    if (res) for (const t of tiltOnHumanShow(st, res, lu.cards)) emit(ctx, { type: 'tilt', ...t });
+    if (res) {
+      for (const t of tiltOnHumanShow(st, res, lu.cards)) emit(ctx, { type: 'tilt', ...t });
+      for (const mem of Object.values(st.bots)) if (mem.model) modelOnShow(mem.model, res, HUMAN, lu.cards);
+    }
   }
   applyAndProcess(ctx, HUMAN, a, null);
   runUntilHuman(ctx);

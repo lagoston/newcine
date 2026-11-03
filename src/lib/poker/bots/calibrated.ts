@@ -1,0 +1,148 @@
+// GERADO por scripts/poker/gen-calibrated.mjs a partir de scripts/poker/params/v1.json — não edite.
+// Ajustes da calibração (simulador) aplicados por cima dos perfis do SPEC em DEFAULT_PROFILES.
+export const CALIBRATED_PARAMS = {
+  "bogart": {
+    "epsilon": 0.36,
+    "epsilonFloor": 0.1,
+    "noise": 0.15,
+    "stinginess": 0.9,
+    "preflop": {
+      "entry": {
+        "CO": 10,
+        "BTN": 15,
+        "SB": 20
+      },
+      "limpShare": 0.8,
+      "callOpenPct": 10,
+      "foldBBvsSteal": 0.95
+    },
+    "post": {
+      "cbetHU": 0.2,
+      "barrelTurn": 0.12,
+      "riverAfterTwo": 0.2,
+      "raiseValueFreq": 0.06,
+      "callMarginPP": {
+        "pairPlus": -16,
+        "committed": -20,
+        "draw": 0,
+        "air": 2
+      }
+    },
+    "bounty": {
+      "carrier": {
+        "vpipDelta": 6,
+        "allInMarginPP": -4
+      },
+      "hunterMarginPP": 5
+    }
+  },
+  "cypher": {
+    "epsilon": 0.24,
+    "epsilonFloor": 0.07,
+    "noise": 0.09,
+    "preflop": {
+      "threeBetPct": 22,
+      "callOpenPct": 24,
+      "limpShare": 0
+    },
+    "post": {
+      "barrelTurn": 0.75,
+      "riverAfterTwo": 0.75,
+      "semibluffFreq": 0.9,
+      "raiseValueFreq": 0.8,
+      "checkRaise": 0.2,
+      "callMarginPP": {
+        "pairPlus": -12,
+        "committed": -12,
+        "draw": -10,
+        "air": -5
+      },
+      "cbetHU": 0.95,
+      "riverBluffShare": 0.5
+    },
+    "callAllIn": {
+      "topPct": 22
+    },
+    "tells": {
+      "bluffBet": {
+        "nervoso": 0.5,
+        "confiante": 0.1,
+        "calado": 0,
+        "neutro": 0.4
+      },
+      "valueBet": {
+        "nervoso": 0.4,
+        "confiante": 0.4,
+        "calado": 0,
+        "neutro": 0.2
+      }
+    },
+    "bounty": {
+      "hunterMarginPP": 3
+    },
+    "sizings": {
+      "riverThin": 0.66,
+      "riverPolar": 1
+    }
+  },
+  "fincher": {
+    "epsilon": 0.13,
+    "epsilonFloor": 0.03,
+    "noise": 0.04,
+    "preflop": {
+      "entry": {
+        "CO": 25,
+        "BTN": 42,
+        "SB": 36
+      },
+      "callOpenPct": 12
+    },
+    "post": {
+      "cbetHU": 0.85,
+      "barrelTurn": 0.7,
+      "riverAfterTwo": 0.65,
+      "semibluffFreq": 0.5,
+      "raiseValueFreq": 0.7,
+      "checkRaise": 0.15,
+      "callMarginPP": {
+        "pairPlus": -8,
+        "committed": -8,
+        "draw": -5,
+        "air": -2
+      }
+    },
+    "tells": {
+      "rest": {
+        "confiante": 0.00015,
+        "nervoso": 0.25,
+        "neutro": 0.74985,
+        "calado": 0
+      },
+      "riverNuts": {
+        "confiante": 0.4,
+        "nervoso": 0.2,
+        "neutro": 0.4,
+        "calado": 0
+      }
+    },
+    "bounty": {
+      "carrier": {
+        "vpipDelta": -6,
+        "allInMarginPP": 12
+      },
+      "hunterMarginPP": 3
+    },
+    "sizings": {
+      "flopWet": 0.5,
+      "turn": 0.5,
+      "riverPolar": 0.75
+    },
+    "model": {
+      "cbet": {
+        "min": 0.5,
+        "max": 0.95
+      },
+      "callMarginPP": 15
+    }
+  }
+} as const;

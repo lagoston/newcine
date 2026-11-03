@@ -472,9 +472,14 @@ section('2. Cenários');
     const { dir, stage } = newDirector({ seed: 'tip', story: { first_visit: 'x' } });
     const ctx = makeCtx({ story: { first_visit: 'x' } });
     const evs: PublicEvent[] = [start(1), hand(2, 1), act(3, 'cypher', 'raise', { allIn: true, to: 2000, amount: 2000, sizeClass: 'overbet', cue: 'nervoso' })];
+    // 03/11/2026: a abertura termina antes da mão (15 s depois do matchStarted), e a vez da
+    // pessoa abre logo depois do all-in da Cobra (como na mesa). Antes eram 500 ms fixos
+    // depois de cada evento: o resultado dependia de a abertura sorteada (troca ou fala
+    // única, conforme a semente) ainda estar no ar, e a dica saía antes ou depois da vez
+    // abrir por acaso. O que se testa aqui é a dica na vez, não a disputa com a abertura.
     for (const e of evs) {
       dir.onEvent(e, ctx);
-      stage.pump(500);
+      if (e.t !== 'action') stage.pump(e.t === 'matchStarted' ? 15000 : eventMs(e));
     }
     stage.turnOpen = true;
     dir.onHumanTurn(true);
