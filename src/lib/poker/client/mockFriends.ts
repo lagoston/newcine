@@ -358,6 +358,8 @@ export function makeMockFriends(bridge: MockBridge): { friends: FriendsApi; casu
     const l = personLegal(state, pid as PlayerId);
     const roll = hash01(`${key}:move`);
     if (!l) return { type: 'fold' };
+    // Prévia rápida: os amigos empurram tudo com frequência (a mesa acaba logo).
+    if (knob('fast') === '1' && l.allIn && roll > 0.45) return { type: 'allIn' };
     if (l.canCheck) {
       if (l.bet && roll > 0.82) return { type: 'bet', amount: l.bet.min };
       return { type: 'check' };

@@ -496,7 +496,25 @@ async function main(): Promise<void> {
         const leaver = r.members.find((m) => m.player_id && m.user_id !== host && m.status === 'joined')!;
         const lv = await call(h, leaver.user_id, { op: 'leave', roomId: r.id });
         check(lv.status === 200 && leaver.status === 'left', `sair no meio (${lv.status} ${lv.body.code})`);
+        // Quem saiu não joga mais (código claro, sem 500) e a mesa segue para os outros.
+        const seqBefore = r.seq;
+        const la = await call(h, leaver.user_id, { op: 'act', roomId: r.id, seq: r.seq, idem: randomUUID(), action: { type: 'fold' } });
+        check(la.status === 409 && la.body.code === 'not_playing', `quem saiu e tenta jogar → not_playing (${la.status} ${la.body.code})`);
+        const lb = await call(h, leaver.user_id, { op: 'back', roomId: r.id });
+        check(lb.status === 409 && lb.body.code === 'not_playing', `quem saiu e pede voltar → not_playing (${lb.status} ${lb.body.code})`);
+        const ll = await call(h, leaver.user_id, { op: 'leave', roomId: r.id });
+        check(ll.status === 200, `sair de novo → ok (${ll.status} ${ll.body.code})`);
+        check(r.seq === seqBefore && r.status === 'playing', 'nada disso mexe na mesa');
         continue;
+      }
+      // Quem já caiu (eliminado, ainda na sala assistindo) não joga: not_playing.
+      const busted = r.members.find((m) => m.player_id && m.status === 'joined'
+        && ((r.state as { people?: Record<string, { status: string }> }).people ?? {})[m.player_id]?.status === 'out');
+      if (busted && k % 5 === 0) {
+        const ba = await call(h, busted.user_id, { op: 'act', roomId: r.id, seq: r.seq, idem: randomUUID(), action: { type: 'check' } });
+        check(ba.status === 409 && ba.body.code === 'not_playing', `quem caiu e tenta jogar → not_playing (${ba.status} ${ba.body.code})`);
+        const bb = await call(h, busted.user_id, { op: 'back', roomId: r.id });
+        check(bb.status === 409 && bb.body.code === 'not_playing', `quem caiu e pede voltar → not_playing (${bb.status} ${bb.body.code})`);
       }
       if (allLeave && k === 30) {
         for (const m of r.members.filter((x) => x.player_id && x.status === 'joined')) {
@@ -556,6 +574,65 @@ async function main(): Promise<void> {
       check(late.status === 410, 'jogada depois do fim → 410');
     }
   }
+
+  // E3 final: quem saiu estando all-in num heads-up e ganhou a mão é o VENCEDOR. A entrega das
+  // apostas e o resultado aceitam (procura o caso em várias mesas de 4: p3 e p4 saem, p2 vai
+  // all-in e sai, p1 paga).
+  let leaverWins = 0;
+  for (let tries = 0; tries < 60 && leaverWins < 2; tries += 1) {
+    const r = newRoom(4);
+    const s0 = await call(h, USERS[0], { op: 'start', roomId: r.id });
+    if (s0.status !== 200) {
+      check(false, `start (saída que vence) ${s0.status}`);
+      break;
+    }
+    for (const u of [USERS[2], USERS[3]]) await call(h, u, { op: 'leave', roomId: r.id });
+    const p1 = r.members[0].player_id!;
+    const p2 = r.members[1].player_id!;
+    let pushed = false;
+    let k = 0;
+    while (r.status === 'playing' && k < 600) {
+      k += 1;
+      const pid = r.to_act;
+      if (!pid) {
+        clock += 31_000;
+        await call(h, null, { op: 'sweep' }, true);
+        continue;
+      }
+      const uid = userOf(r, pid);
+      const sy = await call(h, uid, { op: 'sync', roomId: r.id });
+      const legal = ((sy.body.match as Row).view as { legal: Row | null }).legal as { canCheck?: boolean; canCall?: boolean } | null;
+      const ppl = (r.state as { people: Record<string, { status: string }> }).people;
+      const headsUp = Object.values(ppl).filter((p) => p.status === 'playing').length === 2;
+      let action: Row = legal?.canCheck ? { type: 'check' } : legal?.canCall ? { type: 'call' } : { type: 'fold' };
+      if (headsUp && !pushed && pid === p2) action = { type: 'allIn' };
+      if (pushed && pid === p1) action = legal?.canCall ? { type: 'call' } : { type: 'check' };
+      const a = await call(h, uid, { op: 'act', roomId: r.id, seq: r.seq, idem: randomUUID(), action });
+      if (a.status !== 200) {
+        await call(h, uid, { op: 'act', roomId: r.id, seq: r.seq, idem: randomUUID(), action: { type: 'fold' } });
+        continue;
+      }
+      if (action.type === 'allIn' && pid === p2 && r.status === 'playing') {
+        pushed = true;
+        const lv = await call(h, USERS[1], { op: 'leave', roomId: r.id });
+        check(lv.status === 200, `p2 sai all-in (${lv.status} ${lv.body.code})`);
+      }
+    }
+    const res = r.result as Row | null;
+    if (r.status === 'finished' && (res?.winner as Row)?.userId === USERS[1]) {
+      leaverWins += 1;
+      const p2m = r.members[1];
+      check(p2m.status === 'left', 'o vencedor tinha saído');
+      const stakes = (res!.stakes ?? []) as Row[];
+      check(stakes.find((s) => s.ownerId === USERS[1])?.outcome === 'returned', 'o pôster de quem saiu e venceu volta para ele');
+      check(stakes.filter((s) => s.ownerId !== USERS[1]).every((s) => s.outcome === 'transferred'), 'quem saiu e venceu leva os outros');
+      const fin = await call(h, USERS[1], { op: 'sync', roomId: r.id });
+      check(fin.status === 200 && ((fin.body.match as Row)?.result as Row)?.winner, 'quem saiu e venceu vê o resultado');
+      check(((r.state as { people?: Record<string, { status: string }> }).people ?? {})[p2]?.status === 'left', 'motor: vencedor com status left');
+    }
+  }
+  check(leaverWins > 0, `achou mesa em que quem saiu venceu (${leaverWins})`);
+  console.log(`saída que vence: ${leaverWins} mesa(s)`);
 
   // Varredura agendada com prazo vencido.
   const rs = newRoom(2);
