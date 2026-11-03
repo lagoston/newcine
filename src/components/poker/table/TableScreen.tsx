@@ -461,6 +461,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
         <TableMenu
           settings={settings}
           initial={menu}
+          fiveKind={!!table.tournament?.aces}
           log={tb.log}
           reduced={reduced}
           onClose={() => setMenu(null)}

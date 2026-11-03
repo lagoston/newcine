@@ -815,6 +815,7 @@ class DialogueDirector implements Director {
     const tags = this.contextTags(ctx);
     const base = { priority: 1 as const, chance: 1, hand: 0, eventI: e.i, phase: 'opening' as const, scene: 'opening' as const };
     if (e.tournament) {
+      this.budget.scaleRefill(BUDGET.tournamentRefill);
       this.openTournament(e, e.tournament, ctx, tags);
       return;
     }

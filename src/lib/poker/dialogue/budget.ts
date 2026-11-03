@@ -15,6 +15,7 @@ export const BUDGET = {
   silentShareMin: 0.40,        // momento não-P1 na mão h só se (mãosComMomento + 1) ≤ 0,6·h + 1
   globalGapMs: 3500, speakerGapMs: 9000,               // entre inícios de balões; trocas livres do gap por personagem
   halfFromConsecutiveMatch: 3, // da 3ª partida seguida em diante: refill e fichas iniciais × 0,5; só P1 e trocas inéditas furam
+  tournamentRefill: 0.9,       // Pôster Poker: no torneio a recarga fica em 90% (os efeitos têm falas P1 próprias)
   queueMax: 2,                 // itens não-P1 esperando
   waitMs: 4000,                // um balão não-P1 que espera mais que isso cai
   waitP1Ms: 20000,             // P1 espera mais (abertura, eliminações enquanto a próxima mão é dada)
@@ -27,6 +28,7 @@ export class Budget {
   private nonP1Hands = new Set<number>();
   private half: boolean;
   private lastRefillHand = 0;
+  private refillMul = 1;
 
   constructor(half: boolean) {
     this.half = half;
@@ -38,12 +40,21 @@ export class Budget {
     return this.half;
   }
 
+  /**
+   * Pôster Poker (03/11/2026): no torneio os efeitos têm falas próprias (pagamentos P1, a
+   * apresentação do pôster, o pôster apostado); a conversa genérica cede um pouco para o
+   * total ficar na meta de 18–22 balões. Medido no fuzz de torneio do test-dialogue.
+   */
+  scaleRefill(mul: number): void {
+    this.refillMul = mul;
+  }
+
   /** Começo da mão h: repõe as fichas do orçamento. */
   onHand(h: number): void {
     if (h <= this.lastRefillHand) return;
     const hands = this.lastRefillHand === 0 ? Math.max(0, h - 1) : h - this.lastRefillHand;
     this.lastRefillHand = h;
-    const refill = BUDGET.refillPerHand * (this.half ? 0.5 : 1);
+    const refill = BUDGET.refillPerHand * (this.half ? 0.5 : 1) * this.refillMul;
     this.tokens = Math.min(BUDGET.tokensMax, this.tokens + refill * hands);
   }
 

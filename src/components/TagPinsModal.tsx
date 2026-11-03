@@ -79,13 +79,6 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
   const [pins, setPins] = useState<UnlockedPin[]>([]);
 
   useEffect(() => {
-    if (isOpen && userId) {
-      fetchAllData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, userId]);
-
-  useEffect(() => {
     if (!isOpen) {
       setViewMode('pins');
     }
@@ -122,6 +115,13 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && userId) {
+      fetchAllData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, userId]);
 
     // Toca de novo na tag em uso = tira do perfil.
   const handleUseTag = async (tag: { name: string; emoji: string }, category: string) => {

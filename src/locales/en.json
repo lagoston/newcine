@@ -1377,7 +1377,8 @@
       "theme": "Theme",
       "community": "Community",
       "oracle": "Oracle",
-      "special": "Special"
+      "special": "Special",
+      "games": "Games"
     },
     "progress": {
       "moviesRated": "Progress: {{count}} movies rated",
@@ -1392,7 +1393,12 @@
       "limitedTime": "Limited-time and seasonal tags",
       "noSpecialTags": "No special tags available at the moment",
       "currentlyActive": "Currently active",
-      "remove": "Remove"
+      "remove": "Remove",
+      "gamesIntro": "Tags you earn by playing on CineOracle",
+      "game": {
+        "jackpot": "Poster Jackpot",
+        "poker": "Pôster Poker"
+      }
     },
     "cards": {
       "oracleCards": "Oracle Recommendation Cards"
@@ -1837,7 +1843,8 @@
         "basic": "Basic tag",
         "theme": "Theme tag",
         "community": "Community tag",
-        "oracle": "Oracle tag"
+        "oracle": "Oracle tag",
+        "games": "Game tag"
       }
     },
     "event": {
@@ -2473,7 +2480,7 @@
     "today": "At the table today: {{prize}}, {{carrier}}.",
     "todayStrip": "At the table today: {{prize}}",
     "useChip": "Use a chip",
-    "stripAria": "The Big Bluff. At the table today: {{prize}}, {{carrier}}. Open the lounge.",
+    "stripAria": "Pôster Poker. Open the game.",
     "oracles": {
       "bogart": {
         "short": "Frog",

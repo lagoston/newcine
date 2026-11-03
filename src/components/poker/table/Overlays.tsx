@@ -166,7 +166,9 @@ export const TableMenu: React.FC<{
   log: { id: number; text: string; speaker?: string }[];
   reduced: boolean;
   initial?: 'menu' | 'script' | 'ranking';
-}> = ({ settings, onClose, onLeave, onForfeit, log, reduced, initial = 'menu' }) => {
+  /** Pôster Poker: com os 8 ases do Cassino, o ranking ganha o cinco iguais. */
+  fiveKind?: boolean;
+}> = ({ settings, onClose, onLeave, onForfeit, log, reduced, initial = 'menu', fiveKind = false }) => {
   const { t } = useTranslation();
   const [view, setView] = React.useState<'menu' | 'script' | 'ranking'>(initial);
   const sw = (key: keyof PokerSettingsLocal, label: string) => (
@@ -196,7 +198,7 @@ export const TableMenu: React.FC<{
   if (view === 'ranking')
     return (
       <Sheet title={t('poker.settings.ranking')} onClose={() => setView('menu')} reduced={reduced}>
-        <HandRanking />
+        <HandRanking fiveKind={fiveKind} />
       </Sheet>
     );
   return (
