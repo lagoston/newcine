@@ -29,6 +29,7 @@ import {
   toPublicEvents,
   waitingFor,
 } from '../match/match.ts';
+import { DEFAULT_SETTINGS } from '../config.ts';
 import { PokerClientError, type BountyResult } from './apiTypes.ts';
 import { randomSeed, uuid } from './freeStore.ts';
 import { POSTER_POKER, posterDef } from './tournament.ts';
@@ -340,7 +341,9 @@ export function makeMockFriends(bridge: MockBridge): { friends: FriendsApi; casu
     // Quem criou é o p1 (lugar 0); os outros na ordem de entrada.
     joined.sort((a, b) => Number(b.isHost) - Number(a.isHost));
     const effects = joined.flatMap((m) => effectCardsOf(m).map((c) => c.effectId!));
-    const cfg = friendsConfig({ seed: randomSeed(), people: joined.length, effects });
+    // `poker.mock.fast = 1` (prévia): cacifes curtos, para a mesa chegar ao fim em poucas mãos.
+    const settings = knob('fast') === '1' ? { ...DEFAULT_SETTINGS, startStack: 400 } : undefined;
+    const cfg = friendsConfig({ seed: randomSeed(), people: joined.length, effects, settings });
     const ids: Record<string, string> = {};
     joined.forEach((m, i) => (ids[m.userId] = cfg.people![i] as string));
     const step = createMatch(cfg);
