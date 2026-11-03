@@ -1023,7 +1023,7 @@ export function applyAction(state: GameState, playerId: string, action: PlayerAc
   const p = s.players[idx];
   const events: PokerEvent[] = [];
   const toCallBefore = legal.toCall;
-  let recorded: RecordedActionType;
+  let recorded: RecordedActionType = 'fold';
   let added = 0;
   let shortAllIn = false;
 
@@ -1081,7 +1081,7 @@ export function applyAction(state: GameState, playerId: string, action: PlayerAc
       const amount = action.amount;
       if (!Number.isInteger(amount)) throw new PokerRuleError('invalid_amount', `Valor inválido: ${amount}`);
       const range = legal.bet ?? legal.raise;
-      if (legal.allIn && legal.allIn.kind !== 'call' && amount === legal.allIn.to) {
+      if (legal.allIn && amount === legal.allIn.to) {
         doAllIn();
       } else if (!range) {
         throw new PokerRuleError('illegal_action', 'Aumentar não é permitido agora.');
@@ -1102,7 +1102,7 @@ export function applyAction(state: GameState, playerId: string, action: PlayerAc
   const record: ActionRecord = {
     street: hand.street,
     playerId,
-    type: recorded!,
+    type: recorded,
     amount: added,
     to: p.streetBet,
     toCall: toCallBefore,
