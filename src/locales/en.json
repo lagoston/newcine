@@ -2247,9 +2247,11 @@
       "ultra_red": "Ultra Red"
     },
     "door": {
-      "hint": "Spin the reel and collect alternate posters for your library.",
+      "hint": "Spin and collect alternate posters.",
       "claimable_one": "{{count}} mission ready",
-      "claimable_other": "{{count}} missions ready"
+      "claimable_other": "{{count}} missions ready",
+      "waitingAria_one": "{{count}} thing waiting for you: a mission ready or a Lucky Spin.",
+      "waitingAria_other": "{{count}} things waiting for you: missions ready or Lucky Spins."
     },
     "machine": {
       "spin": "Spin the reel",

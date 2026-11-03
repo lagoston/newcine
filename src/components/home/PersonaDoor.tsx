@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight } from 'lucide-react';
 import PersonalityCompletionModal from '../PersonalityCompletionModal';
 import { PersonaCard, PersonaCode } from '../PersonaBits';
 import PersonaSheet from './PersonaSheet';
-import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_FAN, DOOR_HINT } from './doorLayout';
+import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_CTA_LABEL, DOOR_FAN, DOOR_HINT } from './doorLayout';
+import DoorArrow from './DoorArrow';
 import { MOOD_BY_KEY, MOOD_BY_LETTER, type Mood } from '../../lib/moods';
-import { fetchUserPersona, personaText, PERSONA_THRESHOLD, topMoodKeys, type UserPersona } from '../../lib/persona';
+import { fetchUserPersona, personaText, PERSONA_THRESHOLD, type UserPersona } from '../../lib/persona';
 import { markRevealSeen, revealModeFor, type RevealMode } from '../../lib/personaReveal';
 import { FOCUS_RING, ORACLES, PAPER, PIXEL, withAlpha } from '../../lib/oracleTheme';
 
@@ -18,7 +18,10 @@ import { FOCUS_RING, ORACLES, PAPER, PIXEL, withAlpha } from '../../lib/oracleTh
 // com a própria personalidade:
 //   • com personalidade — a carta do personagem na frente, duas cartas nas
 //     cores das prateleiras atrás, "Sua Persona" em degradê dessas cores, o
-//     código e o título, e as três prateleiras como etiquetas;
+//     código e o título, e as três prateleiras empilhadas, cada uma com a
+//     sua barra de força (as mesmas linhas de "Suas nove prateleiras" e do
+//     "Como funciona": a soma das notas, relativa à mais forte) — desde
+//     02/11/2026 (noite); antes eram etiquetas;
 //   • sem personalidade — três cartas viradas (a da frente com "?") e o
 //     progresso até a revelação.
 // A revelação (o modal grande) aparece aqui, uma vez por personalidade
@@ -77,7 +80,10 @@ const PersonaDoor: React.FC<{ userId: string; username: string | null }> = ({ us
   const text = hasPersona && persona?.persona ? personaText(persona.persona, i18n.language) : null;
   const threshold = persona?.threshold || PERSONA_THRESHOLD;
   const counted = Math.min(persona?.counted ?? 0, threshold);
-  const chipKeys = hasPersona ? topMoodKeys(persona) : [];
+  // As três prateleiras do código, com a força de cada uma (a mais forte =
+  // barra cheia), como em MoodBars.
+  const topScores = hasPersona && persona ? persona.scores.filter((s) => s.films > 0).slice(0, 3) : [];
+  const topMax = Math.max(1, ...topScores.map((s) => s.score));
 
   if (!loaded) {
     return <span className={`${DOOR_CLASS} pointer-events-none animate-pulse`} style={{ background: 'rgba(28,20,51,0.55)', minHeight: 120 }} aria-hidden />;
@@ -175,20 +181,27 @@ const PersonaDoor: React.FC<{ userId: string; username: string | null }> = ({ us
           )}
 
           {hasPersona ? (
-            <span className={DOOR_CHIPS}>
-              {chipKeys.map((key) => {
-                const mood = MOOD_BY_KEY[key];
+            <span className="mt-2.5 flex flex-col gap-[7px] w-full max-w-[230px] lg:mt-3.5 lg:mx-auto text-left">
+              {topScores.map((row) => {
+                const mood = MOOD_BY_KEY[row.moodKey];
                 if (!mood) return null;
+                const width = Math.max(4, (row.score / topMax) * 100);
                 return (
-                  <span
-                    key={key}
-                    className="inline-flex items-center gap-1.5 rounded-full pl-1 pr-2 py-0.5 text-[12px] font-semibold"
-                    style={{ background: withAlpha(mood.color, 0.14), color: mood.color }}
-                  >
-                    <span className="grid place-items-center w-[18px] h-[18px] rounded-full text-[11px] leading-none" style={{ ...PIXEL, background: withAlpha(mood.color, 0.22) }}>
+                  <span key={row.moodKey} className="flex items-center gap-2">
+                    <span
+                      className="grid place-items-center w-[18px] h-[18px] shrink-0 rounded-md text-[11px] leading-none"
+                      style={{ ...PIXEL, color: mood.color, background: withAlpha(mood.color, 0.18), boxShadow: `inset 0 0 0 1px ${withAlpha(mood.color, 0.45)}` }}
+                    >
                       {mood.letter}
                     </span>
-                    {t(mood.labelKey)}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[11px] font-semibold leading-none" style={{ color: mood.color }}>
+                        {t(mood.labelKey)}
+                      </span>
+                      <span className="mt-[4px] block h-[3px] rounded-full bg-white/[0.08] overflow-hidden">
+                        <span className="block h-full rounded-full" style={{ width: `${width}%`, background: mood.color, boxShadow: `0 0 6px ${withAlpha(mood.color, 0.6)}` }} />
+                      </span>
+                    </span>
                   </span>
                 );
               })}
@@ -206,8 +219,8 @@ const PersonaDoor: React.FC<{ userId: string; username: string | null }> = ({ us
         </span>
 
         <span className={DOOR_CTA} style={{ color: tints[1] === DEFAULT_TINTS[1] ? '#F0ABFC' : PAPER }}>
-          {hasPersona ? t('home.persona.open') : t('home.persona.discover')}
-          <ArrowRight className="w-4 h-4 transition group-hover:translate-x-0.5" aria-hidden />
+          <span className={DOOR_CTA_LABEL}>{hasPersona ? t('home.persona.open') : t('home.persona.discover')}</span>
+          <DoorArrow colors={tints} />
         </span>
       </button>
 

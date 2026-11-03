@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight } from 'lucide-react';
 import { PAPER, PIXEL, FOCUS_RING, ORACLES, oracleCardImage, withAlpha } from '../../lib/oracleTheme';
-import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
+import { DOOR_ART, DOOR_BODY, DOOR_CLASS, DOOR_CTA, DOOR_CTA_LABEL, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
+import DoorArrow from '../home/DoorArrow';
 
 // A porta da Biblioteca dos Oráculos (31/10/2026; na home desde 02/11, com a
 // Central dos Oráculos extinta). Um botão do mesmo porte da porta do Poster
@@ -15,6 +15,8 @@ import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_FAN, DOOR_H
 // e 6489 filmes…", que dependia de get_oracle_library_stats e trocava de
 // texto quando a conta chegava) e passou a ser fixa: "Curadoria de filmes e
 // séries personalizada para você." A porta não faz mais consulta nenhuma.
+// 02/11/2026 (noite): mais minimalista — saíram as etiquetas dos três
+// oráculos embaixo da frase; à direita, a seta de neon nas cores deles.
 
 // Leque: Bogart à esquerda, Cypher à direita, Fincher no meio, na frente.
 const FAN = [
@@ -79,23 +81,11 @@ const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
         <span className={DOOR_HINT} style={{ color: '#CFC6EC' }}>
           {t('oracle.libraryDoor.hint')}
         </span>
-        <span className={DOOR_CHIPS}>
-          {ORACLES.map((oracle) => (
-            <span
-              key={oracle.id}
-              className="inline-flex items-center gap-1.5 rounded-full pl-0.5 pr-2 py-0.5 text-[12px] font-semibold"
-              style={{ background: withAlpha(oracle.color, 0.14), color: oracle.color }}
-            >
-              <img src={oracle.avatar} alt="" width={18} height={18} className="w-[18px] h-[18px] rounded-full object-cover" />
-              {oracle.name}
-            </span>
-          ))}
-        </span>
       </span>
 
       <span className={DOOR_CTA} style={{ color: '#F0ABFC' }}>
-        {t('oracle.libraryDoor.enter')}
-        <ArrowRight className="w-4 h-4 transition group-hover:translate-x-0.5" aria-hidden />
+        <span className={DOOR_CTA_LABEL}>{t('oracle.libraryDoor.enter')}</span>
+        <DoorArrow colors={ORACLES.map((oracle) => oracle.color)} />
       </span>
     </Link>
   );

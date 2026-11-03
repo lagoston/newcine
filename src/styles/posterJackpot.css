@@ -997,6 +997,18 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
+/* Sem o mínimo de 44 px dos botões (a pílula do celular tem 36 px, para
+   caber acima do título da porta); a área de toque continua generosa pela
+   borda invisível em volta. */
+.pj-daily {
+  min-height: 0;
+}
+.pj-daily::after {
+  content: '';
+  position: absolute;
+  inset: -6px -4px;
+  border-radius: inherit;
+}
 .pj-daily:hover {
   transform: translateY(-2px) scale(1.03);
   box-shadow:
@@ -1225,5 +1237,37 @@
   }
   .pj-daily-twinkle {
     display: none;
+  }
+}
+
+/* ======================================================================
+   A seta da porta do Jackpot (02/11/2026): três setas de letreiro que
+   acendem em sequência dentro de um medalhão de ouro (JackpotArrow).
+   ====================================================================== */
+.pj-arrow {
+  filter: drop-shadow(0 0 8px rgba(244, 196, 84, 0.35));
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+.group:hover .pj-arrow {
+  transform: translateX(2px);
+  filter: drop-shadow(0 0 12px rgba(255, 214, 120, 0.6));
+}
+.pj-arrow-chev {
+  stroke: #ffe8a3;
+  opacity: 0.42;
+  animation: pj-arrow-chase 1.5s ease-in-out infinite;
+}
+.group:hover .pj-arrow-chev {
+  animation-duration: 0.8s;
+}
+@keyframes pj-arrow-chase {
+  0%, 100% { opacity: 0.42; filter: none; }
+  30% { opacity: 1; filter: drop-shadow(0 0 2.5px #ffd678); }
+  60% { opacity: 0.42; filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pj-arrow-chev {
+    animation: none !important;
+    opacity: 1;
   }
 }

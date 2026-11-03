@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../lib/auth';
 import { FOCUS_RING } from '../../lib/oracleTheme';
@@ -9,11 +8,11 @@ import { claimDailyChip, fetchJackpotCatalog, fetchJackpotState, loadJackpotFont
 import { primeJackpotAudio } from '../../lib/jackpotSound';
 import PosterArt from './PosterArt';
 import { JACKPOT_CHIPS_EVENT } from '../../lib/flyingChip';
-import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
+import { DOOR_ART, DOOR_BODY, DOOR_CLASS, DOOR_CTA, DOOR_CTA_LABEL, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
+import JackpotArrow from './JackpotArrow';
 import { ChipFace } from './Chips';
 import { JACKPOT_TOAST_STYLE } from './jackpotToast';
 import { DailyChipBalloon } from './DailyChip';
-import { RarityGem } from './CollectorMark';
 import PosterJackpotSheet, { type JackpotTab } from './PosterJackpotSheet';
 import '../../styles/posterJackpot.css';
 import '../../styles/flyingChip.css';
@@ -22,8 +21,11 @@ import '../../styles/flyingChip.css';
 // Oráculos extinta; mesma geometria das outras portas, em home/doorLayout):
 // o mesmo céu estrelado e o ouro da
 // roleta, com três pôsteres do catálogo em leque (o do meio holográfico,
-// para mostrar o efeito), as fichas, o Giro da Sorte pronto e o aviso de
-// missão pronta. Só aparece
+// para mostrar o efeito), o título e a frase. Desde 02/11/2026 (noite) está
+// mais limpa: o saldo de fichas e as etiquetas de "Giro da Sorte pronto" e
+// "missão pronta" saíram; à direita, a seta de letreiro (JackpotArrow), com
+// o número do que está esperando a pessoa (missões prontas + Giros da Sorte).
+// Só aparece
 // para quem a roleta está liberada (poster_jackpot_settings).
 // Desde 02/11/2026, enquanto a ficha grátis do dia não foi pega, um balão
 // sai da porta ("Ficha grátis!", DailyChip.tsx). Tocar nele pega a ficha e
@@ -146,6 +148,8 @@ const PosterJackpotDoor: React.FC = () => {
   }
   if (!state.enabled) return null;
   const claimable = state.missions.filter((m) => !m.claimed && m.progress >= m.target).length;
+  // O número no canto da seta: missões prontas para resgatar + Giros da Sorte.
+  const waiting = claimable + state.luckySpins;
 
   return (
     // relative: o balão da ficha do dia sai por cima da porta (que recorta
@@ -193,33 +197,13 @@ const PosterJackpotDoor: React.FC = () => {
           <span className={DOOR_HINT} style={{ color: '#CFC6EC' }}>
             {t('jackpot.door.hint')}
           </span>
-          <span className={DOOR_CHIPS}>
-            <span className="inline-flex items-center gap-1 rounded-full pl-1 pr-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(94,168,255,0.18)', color: '#CFE3FF' }}>
-              <ChipFace className="w-4 h-4" />
-              {t('jackpot.chips.normalAria', { count: state.tickets })}
-            </span>
-            {state.specialCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full pl-1 pr-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(255,122,217,0.18)', color: '#FFD3F1' }}>
-                <ChipFace kind="special" className="w-4 h-4" />
-                {t('jackpot.chips.specialAria', { count: state.specialCount })}
-              </span>
-            )}
-            {state.luckySpins > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 text-[12px] font-semibold" style={{ background: 'rgba(244,196,84,0.18)', color: '#FFE8A3', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.5)' }}>
-                <RarityGem rarity="legendary" glint className="w-3.5 h-3.5" />
-                {t('jackpot.lucky.doorReady', { count: state.luckySpins })}
-              </span>
-            )}
-            {claimable > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold" style={{ background: '#F4C454', color: '#2A1A00' }}>
-                {t('jackpot.door.claimable', { count: claimable })}
-              </span>
-            )}
-          </span>
+          {/* O que está esperando a pessoa, para quem lê a tela (o número
+              aparece no canto da seta). */}
+          {waiting > 0 && <span className="sr-only">{t('jackpot.door.waitingAria', { count: waiting })}</span>}
         </span>
         <span className={DOOR_CTA} style={{ color: '#FFE8A3' }}>
-          {t('oracle.hub.play')}
-          <ArrowRight className="w-4 h-4 transition group-hover:translate-x-0.5" aria-hidden />
+          <span className={DOOR_CTA_LABEL}>{t('oracle.hub.play')}</span>
+          <JackpotArrow badge={waiting} />
         </span>
       </button>
       {/* No canto de cima à direita, metade para fora da porta: no celular,

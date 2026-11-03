@@ -2252,9 +2252,11 @@
       "ultra_red": "Ultra Vermelho"
     },
     "door": {
-      "hint": "Gire a roleta e colecione pôsteres alternativos para a sua biblioteca.",
+      "hint": "Gire e colecione pôsteres alternativos.",
       "claimable_one": "{{count}} missão pronta",
-      "claimable_other": "{{count}} missões prontas"
+      "claimable_other": "{{count}} missões prontas",
+      "waitingAria_one": "{{count}} coisa esperando por você: missão pronta ou Giro da Sorte.",
+      "waitingAria_other": "{{count}} coisas esperando por você: missões prontas ou Giros da Sorte."
     },
     "machine": {
       "spin": "Girar a roleta",
