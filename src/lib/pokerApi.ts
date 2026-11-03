@@ -462,8 +462,8 @@ export interface PokerApi {
    * Fase 3: mesa com amigos (Edge poker-friends). Erros (PokerApiError): 403 closed | bot |
    * age_required | not_host | not_friend | not_seated · 404 no_room | not_invited · 409 full |
    * started | room_closed | in_room {roomId} | not_started | stale {seq, match} | not_yet
-   * {deadline, serverNow} | not_your_turn {match} | start_blocked {blockers} | state_changed |
-   * busy · 400 bad_request | stake_invalid {reason} | effects_invalid {reason} · 422 illegal
+   * {deadline, serverNow} | not_your_turn {match} | not_playing {match} (quem já caiu ou saiu) |
+   * start_blocked {blockers} | state_changed | busy · 400 bad_request | stake_invalid {reason} | effects_invalid {reason} · 422 illegal
    * {match} · 410 finished {match} · 429 too_many.
    */
   friends: FriendsApi;

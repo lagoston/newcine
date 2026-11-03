@@ -356,7 +356,6 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
               )}
               <span className="text-[12.5px] font-bold" style={{ color: '#F3EAD3' }}>{t('poker.table.you')}</span>
               {p.tourney?.stake && <StakeThumb stake={p.tourney.stake} />}
-              {p.clock?.playerId === 'human' && <MyClock clock={p.clock} reduced={reduced} />}
               {holder === 'human' && p.prize && (
                 <motion.span layoutId="pk-wanted" className="relative inline-block" transition={{ duration: reduced ? 0 : 0.7 }}>
                   <WantedPoster rarity={p.prize.rarity} size={20} />
@@ -364,6 +363,8 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
               )}
             </span>
             <span className="pk-num text-[15px]" style={{ color: '#FFE8A3' }}>{n(me?.stack ?? 0)}</span>
+            {/* Mesa com amigos: o meu relógio de 30 s, numa linha só dele (as cartas ficam ao lado). */}
+            {p.clock?.playerId === 'human' && <MyClock clock={p.clock} reduced={reduced} />}
             {table.loan > 0 && <span className="pk-loan">{t('poker.table.loan')}</span>}
             {me?.bonus != null && me.bonus > 0 && <span className="pp-house self-start">{t('poker.tourney.house', { amount: n(me.bonus) })}</span>}
           </div>

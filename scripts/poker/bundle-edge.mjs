@@ -41,6 +41,10 @@ const res = await build({
   // que o MCP já publicou bem. O código-fonte de verdade continua no repositório.
   minifyIdentifiers: true,
   minifySyntax: true,
+  // 03/11/2026 (noite): espaço também minificado, mas em linhas de até 160 colunas (lineLimit),
+  // para o pacote caber com folga numa chamada do MCP (~135 KB) e continuar legível linha a linha.
+  minifyWhitespace: true,
+  lineLimit: 160,
   logLevel: 'error',
 });
 const code = res.outputFiles[0].text;

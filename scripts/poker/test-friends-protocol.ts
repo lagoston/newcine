@@ -375,11 +375,12 @@ function checkPrivacy(r: FRoom, viewer: string, match: Row, label: string): void
 function pickAction(match: Row, k: number): Row {
   const legal = (match.view as { legal: Row | null }).legal;
   if (!legal) return { type: 'check' };
-  const l = legal as { canCheck?: boolean; canCall?: boolean; callAmount?: number; canFold?: boolean; canRaise?: boolean };
+  // LegalActions do motor: canCheck, call ({amount, allIn} | null), canFold.
+  const l = legal as { canCheck?: boolean; call?: Row | null; canFold?: boolean };
   if (k % 11 === 7 && l.canFold) return { type: 'fold' };
   if (k % 17 === 5) return { type: 'allIn' };
   if (l.canCheck) return { type: 'check' };
-  if (l.canCall) return { type: 'call' };
+  if (l.call) return { type: 'call' };
   return { type: 'fold' };
 }
 
@@ -601,12 +602,14 @@ async function main(): Promise<void> {
       }
       const uid = userOf(r, pid);
       const sy = await call(h, uid, { op: 'sync', roomId: r.id });
-      const legal = ((sy.body.match as Row).view as { legal: Row | null }).legal as { canCheck?: boolean; canCall?: boolean } | null;
+      const legal = ((sy.body.match as Row).view as { legal: Row | null }).legal as { canCheck?: boolean; call?: Row | null } | null;
       const ppl = (r.state as { people: Record<string, { status: string }> }).people;
       const headsUp = Object.values(ppl).filter((p) => p.status === 'playing').length === 2;
-      let action: Row = legal?.canCheck ? { type: 'check' } : legal?.canCall ? { type: 'call' } : { type: 'fold' };
-      if (headsUp && !pushed && pid === p2) action = { type: 'allIn' };
-      if (pushed && pid === p1) action = legal?.canCall ? { type: 'call' } : { type: 'check' };
+      let action: Row = legal?.canCheck ? { type: 'check' } : legal?.call ? { type: 'call' } : { type: 'fold' };
+      const stacks = Object.fromEntries((r.state as { game: { players: { id: string; stack: number }[] } }).game.players.map((p) => [p.id, p.stack]));
+      // Só empurra quando o all-in de p2 cobre p1 (senão p1 sobrevive e vence de qualquer jeito).
+      if (headsUp && !pushed && pid === p2 && stacks[p2] >= stacks[p1]) action = { type: 'allIn' };
+      if (pushed && pid === p1) action = legal?.call ? { type: 'call' } : { type: 'check' };
       const a = await call(h, uid, { op: 'act', roomId: r.id, seq: r.seq, idem: randomUUID(), action });
       if (a.status !== 200) {
         await call(h, uid, { op: 'act', roomId: r.id, seq: r.seq, idem: randomUUID(), action: { type: 'fold' } });
