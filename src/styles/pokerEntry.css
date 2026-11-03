@@ -1,0 +1,400 @@
+/* ======================================================================
+   O Grande Blefe — as entradas (03/11/2026, pacote D2)
+   A aba Pôquer da gaveta do Jackpot, a faixa de feltro da home, a folha
+   18+ e o placar (/blefe/placar). A mesa tem o próprio CSS (poker.css).
+   Paleta: o céu do cassino (#0f1645 → #0a0e2c, roxo #1a0b3a), o ouro
+   (#F4C454 / #FFE8A3 / #A8741A), o feltro verde da mesa livre e o veludo
+   vinho da mesa do prêmio (SPEC §7.12).
+   ====================================================================== */
+
+.pe-cinzel {
+  font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  letter-spacing: 0.03em;
+}
+
+/* Grão fino de pano (o mesmo de cosmetics/looks.ts). */
+.pe-velvet,
+.pe-felt,
+.pe-strip {
+  --pe-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Veludo vinho: o cartão do prêmio (a mesa valendo). */
+.pe-velvet {
+  background-color: #5a1626;
+  background-image:
+    var(--pe-grain),
+    linear-gradient(115deg, rgba(255, 255, 255, 0.07), transparent 36%),
+    radial-gradient(120% 100% at 30% 0%, #7a2133 0%, #5a1626 50%, #2e0b14 100%);
+  box-shadow: inset 0 0 0 1px rgba(244, 196, 84, 0.62), inset 0 0 0 4px rgba(46, 11, 20, 0.55), 0 18px 40px -26px rgba(0, 0, 0, 0.95);
+}
+
+/* Feltro verde: a mesa livre. */
+.pe-felt {
+  background-color: #12513a;
+  background-image: var(--pe-grain), radial-gradient(130% 120% at 20% 0%, #1b6b4a 0%, #12513a 50%, #0a3326 100%);
+  box-shadow: inset 0 0 0 1px rgba(244, 196, 84, 0.45), inset 0 0 0 4px rgba(42, 26, 18, 0.5);
+}
+
+/* Botão de papel (Jogar grátis), o mesmo papel dos botões de Pagar da mesa. */
+.pe-paper {
+  background: #f3ead3;
+  color: #221b36;
+  box-shadow: inset 0 -3px 0 rgba(34, 27, 54, 0.18), 0 8px 18px -10px rgba(0, 0, 0, 0.8);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.pe-paper:hover {
+  filter: brightness(1.04);
+}
+.pe-paper:active {
+  transform: translateY(1px);
+}
+
+/* Botão de contorno dourado (Abrir o salão, Agora não). */
+.pe-ghost {
+  color: #ffe8a3;
+  box-shadow: inset 0 0 0 1.5px rgba(244, 196, 84, 0.7);
+  transition: background-color 0.15s ease;
+}
+.pe-ghost:hover {
+  background-color: rgba(244, 196, 84, 0.1);
+}
+
+/* Os três oráculos sentados em arco (Sapo à esquerda, Raposo no alto, Cobra à
+   direita: a mesma ordem dos lugares da mesa). */
+.pe-trio {
+  position: relative;
+  display: inline-block;
+  flex: none;
+}
+.pe-trio > span {
+  position: absolute;
+}
+
+/* ----------------------------------------------------------------------
+   Abas da gaveta com o Pôquer (5 abas). Abaixo de 400 px: ícone em cima,
+   rótulo de 11,5 px e o número vira um ponto (veredito, item 12).
+   ---------------------------------------------------------------------- */
+.pe-tab-icon,
+.pe-tab-dot {
+  display: none;
+}
+@media (max-width: 399.98px) {
+  .pe-tab {
+    height: 52px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 0 2px;
+    font-size: 11.5px !important;
+    line-height: 1.1;
+  }
+  .pe-tab-icon {
+    position: relative;
+    display: block;
+  }
+  .pe-tab-badge {
+    display: none !important;
+  }
+  .pe-tab-dot {
+    display: block;
+    position: absolute;
+    top: -2px;
+    right: -5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #fde68a;
+    box-shadow: 0 0 0 2px #1c1433;
+  }
+}
+
+/* ----------------------------------------------------------------------
+   A faixa de feltro da home (64 px): fina, sem competir com as portas.
+   ---------------------------------------------------------------------- */
+.pe-strip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  padding: 0 12px 0 14px;
+  border-radius: 16px;
+  overflow: hidden;
+  background-color: #0e4330;
+  background-image:
+    var(--pe-grain),
+    radial-gradient(90% 180% at 0% 50%, rgba(27, 107, 74, 0.95) 0%, rgba(18, 81, 58, 0.9) 45%, rgba(10, 51, 38, 0.95) 100%);
+  box-shadow: inset 0 0 0 1px rgba(244, 196, 84, 0.5), 0 14px 30px -26px rgba(0, 0, 0, 0.9);
+  transition: filter 0.2s ease;
+}
+.pe-strip:hover {
+  filter: brightness(1.08);
+}
+/* O friso de couro na borda esquerda, como a borda da mesa vista de cima. */
+.pe-strip::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, #3a2618, #2a1a12);
+  box-shadow: 1px 0 0 rgba(244, 196, 84, 0.55);
+}
+.pe-strip-arrow {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 999px;
+  color: #ffe8a3;
+  box-shadow: inset 0 0 0 1px rgba(244, 196, 84, 0.6);
+  transition: transform 0.25s ease;
+}
+.pe-strip:hover .pe-strip-arrow {
+  transform: translateX(2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pe-strip,
+  .pe-strip-arrow {
+    transition: none;
+  }
+}
+
+/* ----------------------------------------------------------------------
+   O placar (/blefe/placar)
+   Superfície dos gráficos: #0E1440 (painel sobre o céu). Cores dos dados
+   validadas com o validate_palette do skill de dataviz (03/11/2026):
+   colocações = rampa ordinal de ouro #FFE39A → #E3B04B → #AF8434 → #7C5E27;
+   rivalidade = #B8892E (você eliminou) × #7480E6 (te eliminou).
+   ---------------------------------------------------------------------- */
+.pe-score {
+  --pe-surface: #0e1440;
+  --pe-hair: rgba(255, 255, 255, 0.09);
+  --pe-p1: #ffe39a;
+  --pe-p2: #e3b04b;
+  --pe-p3: #af8434;
+  --pe-p4: #7c5e27;
+  --pe-you: #b8892e;
+  --pe-them: #7480e6;
+  position: relative;
+  min-height: 100dvh;
+  color: #f3ead3;
+  background:
+    radial-gradient(80% 40% at 50% 0%, rgba(80, 96, 220, 0.32), transparent 70%),
+    radial-gradient(60% 40% at 100% 100%, rgba(150, 50, 200, 0.22), transparent 75%),
+    linear-gradient(180deg, #0f1645 0%, #0a0e2c 55%, #150a33 100%);
+  background-attachment: fixed;
+}
+.pe-score .pj-stars {
+  position: fixed;
+}
+
+/* O painel padrão: vidro azul-noite com fio de cabelo. */
+.pe-panel {
+  border-radius: 18px;
+  background: rgba(14, 20, 64, 0.78);
+  box-shadow: inset 0 0 0 1px var(--pe-hair);
+}
+
+/* O letreiro do título: moldura de ouro como a do palco da roleta. */
+.pe-marquee {
+  padding: 2px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #fff1bf, #f4c454 22%, #a8741a 48%, #ffe8a3 66%, #b8841f 100%);
+  box-shadow: 0 24px 60px -34px rgba(0, 0, 0, 0.95), 0 0 50px -24px rgba(244, 196, 84, 0.4);
+}
+.pe-marquee-inner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background:
+    radial-gradient(90% 70% at 50% 0%, rgba(80, 96, 220, 0.4), transparent 70%),
+    linear-gradient(180deg, #121a52 0%, #0a0e2c 70%, #150a33 100%);
+}
+
+/* A carreira em película: 6 fotogramas, um por título. */
+.pe-reel {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 3px;
+  padding: 7px 5px;
+  border-radius: 6px;
+  background-color: #08091c;
+  /* Os furos da película, em cima e embaixo. */
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(243, 234, 211, 0.22) 1.6px, transparent 2px),
+    radial-gradient(circle at 50% 50%, rgba(243, 234, 211, 0.22) 1.6px, transparent 2px);
+  background-size: 10px 7px, 10px 7px;
+  background-position: 0 0, 0 100%;
+  background-repeat: repeat-x;
+}
+.pe-frame {
+  position: relative;
+  height: 26px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+.pe-frame.is-done {
+  background: linear-gradient(180deg, #ffe8a3, #f4c454 55%, #c8901f);
+}
+.pe-frame.is-current {
+  box-shadow: 0 0 0 1.5px #fffaf0, 0 0 12px rgba(255, 214, 120, 0.8);
+}
+.pe-frame-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(180deg, rgba(255, 232, 163, 0.75), rgba(244, 196, 84, 0.55));
+}
+
+/* Filtro Geral × Valendo. */
+.pe-seg {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(14, 20, 64, 0.9);
+  box-shadow: inset 0 0 0 1px var(--pe-hair);
+}
+.pe-seg button {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #bdb4d6;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.pe-seg button[aria-pressed='true'] {
+  background: #f3ead3;
+  color: #221b36;
+}
+
+/* Barra segmentada das colocações (alta: 28 px, blocos com 2 px de vão). */
+.pe-segbar {
+  display: flex;
+  gap: 2px;
+  height: 28px;
+}
+.pe-segbar > button {
+  position: relative;
+  min-width: 0;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  padding: 0 7px;
+  transition: filter 0.15s ease;
+}
+.pe-segbar > button:hover,
+.pe-segbar > button:focus-visible {
+  filter: brightness(1.12);
+}
+.pe-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+.pe-key {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  flex: none;
+}
+
+/* O balão de leitura dos gráficos (hover e foco). */
+.pe-tip {
+  position: absolute;
+  z-index: 5;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  border-radius: 10px;
+  padding: 6px 9px;
+  font-size: 12px;
+  line-height: 1.25;
+  background: #f3ead3;
+  color: #221b36;
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+/* Trilho dos números de jogador: faixa normal + marcador. */
+.pe-range {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.pe-range-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: rgba(244, 196, 84, 0.26);
+}
+.pe-range-dot {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #f4c454;
+  box-shadow: 0 0 0 2px var(--pe-surface);
+  transform: translate(-50%, -50%);
+}
+
+/* As cartas da melhor mão (face creme, naipes com forma e cor). */
+.pe-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  width: 44px;
+  height: 62px;
+  padding: 4px 5px;
+  border-radius: 6px;
+  background: #fbf7ec;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 10px 18px -10px rgba(0, 0, 0, 0.9);
+  font-weight: 800;
+  line-height: 1;
+}
+.pe-card.is-red {
+  color: #c8102e;
+}
+.pe-card.is-black {
+  color: #16121f;
+}
+@media (min-width: 640px) {
+  .pe-card {
+    width: 52px;
+    height: 72px;
+  }
+}
+
+/* Recolher/abrir os números de jogador. */
+.pe-details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.pe-details > summary::-webkit-details-marker {
+  display: none;
+}
+.pe-details[open] .pe-chev {
+  transform: rotate(90deg);
+}
+.pe-chev {
+  transition: transform 0.2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pe-chev,
+  .pe-seg button,
+  .pe-segbar > button {
+    transition: none;
+  }
+}

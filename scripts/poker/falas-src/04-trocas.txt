@@ -1,0 +1,205 @@
+# 4. Trocas atômicas || 4. Atomic exchanges
+% Todas são atômicas: a chance decide se a troca começa; se começou, toca até o fim, livre do cooldown por personagem, e conta como um momento. Só tocam entre mãos, na abertura, nos créditos ou depois que você desistiu da mão (veredito, Q11). Oráculo eliminado continua sentado e participa como plateia. || All are atomic: chance decides whether the exchange starts; once started, it plays to the end, free of per-character cooldown, and counts as one moment. They only play between hands, at the opening, in the credits or after you folded the hand (verdict, Q11). An eliminated oracle stays seated and joins in as audience.
+
+## Conversas de mesa (entre mãos) || Table talk (between hands)
+=T01 | FIRST_VISIT | primeira partida da vida | P1 | once=life | Apresentação | Introductions
+> fincher | Uma visita. Sente-se, {estreante}. Aqui o ingresso se paga com orgulho. | A guest. Sit down, {estreante}. Here you pay admission in pride.
+> cypher | Eu sou a Cypher. Ele é o Bogart. Não pergunte das 37 fichas. | I'm Cypher. He's Bogart. Don't ask about the 37 chips.
+> bogart | Que 37 fichas? Não existem 37 fichas. Distribui logo! | What 37 chips? There are no 37 chips. Just deal!
+
+=T02 | BANTER | entre mãos | P3 | once=life,story=dívida-1 | A dívida, cap. 1 | The debt, ch. 1
+> fincher | Crítico. As 37 fichas. Já faz vinte anos. | Critic. The 37 chips. It's been twenty years.
+> bogart | Eu era outro sapo naquela época. Passei por um reboot. Não conta. | I was a different frog back then. I've been rebooted. Doesn't count.
+> cypher | Conta. Eu estava lá. Você dormiu no segundo filme da maratona. | It counts. I was there. You slept through the marathon's second film.
+
+=T03 | BANTER | entre mãos; requires=dívida-1 | P3 | once=life,story=dívida-2 | A dívida, cap. 2 | The debt, ch. 2
+> bogart | Sobre as 37 fichas: eu paguei. Em pipoca. | About the 37 chips: I paid. In popcorn.
+> fincher | Você me deu um saco de pipoca. Murcha. | You gave me one bag of popcorn. Stale.
+> cypher | Murcha e comida pela metade. Eu vi. | Stale and half-eaten. I saw it.
+
+=T04 | BANTER | entre mãos; requires=dívida-2, ≥20 partidas | P3 | once=life,story=dívida-3 | A dívida, cap. 3 | The debt, ch. 3
+> fincher | Crítico, esquece as 37 fichas. | Critic, forget the 37 chips.
+> bogart | Sério?! Perdoou?! | Really?! You forgive me?!
+> fincher | Não. Agora são 38. Juros. | No. It's 38 now. Interest.
+
+=T05 | BANTER | entre mãos | P3 | once=session | Cadeia alimentar | Food chain
+> cypher | Bogart, por que você senta sempre tão longe de mim? | Bogart, why do you always sit so far from me?
+> bogart | Por nada. Hábito. Instinto. Documentário de natureza. Escolhe um. | No reason. Habit. Instinct. Nature documentary. Pick one.
+> fincher | Ela não come na mesa de jogo, Crítico. Só depois. | She doesn't eat at the card table, Critic. Only after.
+
+=T06 | BANTER | entre mãos | P3 | once=session | Clássicos vaiados | Booed classics
+> cypher | Metade dos seus clássicos foi vaiada na estreia, Raposo. Eu só chego antes. | Half your classics were booed on opening night, Fox. I just get there first.
+> fincher | A diferença, minha cara, é que os meus acordaram. | The difference, my dear, is that mine woke up.
+> cypher | E os meus nunca dormiram. | And mine never slept.
+
+=T07 | BANTER | entre mãos | P3 | once=session | A citação errada | The wrong quote
+> bogart | Como diria o grande herói de capa: eu voltarei! | As the great caped hero said: I'll be back!
+> fincher | Isso é de um robô de 1984, Crítico. | That's a robot from 1984, Critic.
+> cypher | Deixa. Errar com convicção também é arte. | Let him. Being wrong with conviction is an art too.
+
+=T08 | BANTER | entre mãos | P3 | once=session | A pipoca | The popcorn
+> fincher | Bogart. A pipoca. | Bogart. The popcorn.
+> bogart | Que que tem a pipoca? | What about the popcorn?
+> fincher | O barulho. Já expulsaram gente de sessão por menos. | The noise. People got thrown out of screenings for less.
+
+=T09 | BANTER | entre mãos | P3 | once=life,story=torneio-1 | O torneio que muda, cap. 1 | The shifting tournament, ch. 1
+> fincher | Uma vez, em Monte Carlo, ganhei a final com um par de dois. | Once, in Monte Carlo, I won the final with a pair of deuces.
+> cypher | Semana passada era Las Vegas. E um par de três. | Last week it was Las Vegas. And a pair of threes.
+> fincher | Boa história merece remontagem, minha cara. | A good story deserves a re-edit, my dear.
+
+=T10 | BANTER | entre mãos; requires=torneio-1 | P3 | once=life,story=torneio-2 | O torneio que muda, cap. 2 | The shifting tournament, ch. 2
+> fincher | Já contei da final em Havana? | Did I ever tell you about the final in Havana?
+> cypher | Havana é nova. Semana que vem é na Lua. | Havana's new. Next week it'll be on the Moon.
+> bogart | Na Lua eu assistia! Tem em 3D? | The Moon one I'd watch! Is it in 3D?
+
+=T11 | BANTER | entre mãos | P3 | once=session | O passado do crítico | The critic's past
+> cypher | Bogart, é verdade que você deu nota zero pra um filme sem ver o final? | Bogart, is it true you gave a film a zero without seeing the ending?
+> bogart | Tinha três horas! Eu tinha uma vida! | It was three hours long! I had a life!
+> fincher | Tinha. Agora tem um brejo. | Had. Now you have a swamp.
+
+=T12 | BANTER | entre mãos | P3 | once=session | Nota pra tudo | Rating everything
+> bogart | A mão passada eu dou nota 8. Fotografia linda, cartas bem iluminadas. | Last hand gets an 8. Gorgeous cinematography, well-lit cards.
+> fincher | Você dá nota pra carta? | You rate cards?
+> bogart | Eu dou nota pra tudo. Já dei nota pra fila do banheiro. Sete. | I rate everything. I once rated the bathroom line. Seven.
+
+=T13 | BANTER | entre mãos | P3 | once=session | O nome da Cobra | The Snake's name
+> cypher | Sabia que existe um Cypher que traiu todo mundo por um bife que nem existia? | Did you know a Cypher once betrayed everyone for a steak that didn't exist?
+> bogart | Parente seu? | A relative of yours?
+> cypher | Inspiração. | Inspiration.
+
+## Abertura e madrugada || Opening and late night
+=T14 | MATCH_START | mesa livre | P1 | once=session | Começo de piada | Start of a joke
+> fincher | Três oráculos e uma visita. Parece começo de piada. | Three oracles and a guest. Sounds like the start of a joke.
+> cypher | Ou de filme de terror de orçamento baixo. | Or a low-budget horror movie.
+> bogart | Ou de comédia de domingo à tarde! Voto nessa. | Or a Sunday-afternoon comedy! I vote for that.
+
+=T15 | MATCH_START | madrugada | P1 | once=session | Meia-noite | Midnight
+> bogart | Gente, passou da meia-noite. Hora de sapo dormir. | Folks, it's past midnight. Frog bedtime.
+> cypher | Hora de cobra acordar. | Snake wake-up time.
+> fincher | Hora de raposa ganhar. Distribui. | Fox winning time. Deal.
+
+## Depois de uma mão || After a hand
+=T16 | HAND_END | você ganhou um pote grande apostando alto | P3 | once=session | A aliança | The alliance
+> bogart | A visita apostou alto e levou! O que a gente faz? | Our guest bet big and took it! What do we do?
+> cypher | O de sempre. Fingir medo. | The usual. Pretend to be scared.
+> fincher | E depois cobrar o ingresso. | Then collect the admission.
+
+=T17 | HAND_END | seu all-in pago pelo Raposo; o Raposo venceu | P2 | once=session | Quem pagou | Who called
+> cypher | A criatura foi com tudo. Que cheiro bom de catástrofe. | The creature went all in. What a lovely smell of disaster.
+> bogart | Eu não paguei! Eu não pago nem estacionamento de shopping! | I didn't call! I don't even pay for mall parking!
+> fincher | Eu paguei. Alguém precisava educar a visita. | I did. Someone had to educate our guest.
+
+=T18 | HAND_END | seu all-in pago pelo Raposo; você venceu | P2 | once=session | O baralho discordou | The deck disagreed
+> cypher | Tudo no meio, o velho pagou. E perdeu. Que noite. | Everything in, the old man called. And lost. What a night.
+> fincher | Paguei certo. O baralho discordou. | I called right. The deck disagreed.
+> bogart | O baralho tem bom gosto! Nota 9 pro baralho! | The deck has good taste! A 9 for the deck!
+
+=T19 | WIN_STREAK | você ganhou 3 seguidas | P2 | once=session | Preocupação | Worry
+> cypher | A visita ganhou três seguidas. Alguém preocupado? | Our guest won three straight. Anyone worried?
+> bogart | Eu não! …Eu sim. | Not me! …Me.
+> fincher | Calma. Todo protagonista tem um segundo ato ruim. | Relax. Every lead has a bad second act.
+
+=T20 | BAD_BEAT | vítima = Raposo | P2 | once=session | A data | The date
+> bogart | O Raposo perdeu no river! Alguém anota a data! | The Fox lost on the river! Somebody write down the date!
+> fincher | Anote também a data em que vou cobrar as 37 fichas. | Also write down the date I collect the 37 chips.
+> bogart | …Ninguém anota nada. | …Nobody writes anything.
+
+=T21 | TILT_START | Veneno da Cobra, perdeu para o Sapo | P1 | once=session | O Veneno | The Venom
+> cypher | Três ruas pagas com {mao}, sapinho. Sério? | Three streets called with {mao}, froggy. Really?
+> bogart | Eu não largo mão boa. É princípio. | I don't fold a good hand. It's a principle.
+> fincher | Parabéns, Crítico. Você acordou a víbora. Agora todos pagamos. | Congratulations, Critic. You woke the viper. Now we all pay.
+
+=T22 | HUMAN_BLUFF_SHOWN | contra o Raposo | P2 | once=session | O Raposo piscou | The Fox blinked
+> cypher | A visita te blefou, Raposo. Na sua cara. | Our guest bluffed you, Fox. To your face.
+> fincher | Sim. E vou lembrar disso por muitos rolos de filme. | Yes. And I'll remember it for many reels.
+> bogart | Nunca vi o Raposo piscar. Ele piscou! Eu vi! | Never seen the Fox blink. He blinked! I saw it!
+
+=T23 | POT_WON | Cobra, pote ≥ 30 BB | P3 | once=session | Temporada | Season
+> cypher | Pote pra mim. Vaiada, roubada, gloriosa. | Pot's mine. Booed, robbed, glorious.
+> fincher | Até a vaia tem temporada, minha cara. | Even booing has a season, my dear.
+> cypher | Então assino a renovação. | Then I'm signing the renewal.
+
+=T24 | ELIMINATION | o Sapo caiu | P1 | once=session | Saudade | Missed
+> bogart | Fui eliminado… alguém vai sentir minha falta? | I'm eliminated… will anyone miss me?
+> cypher | Do barulho da pipoca? Não. | The popcorn noise? No.
+> fincher | Eu vou. Agora não tenho de quem cobrar. | I will. Now I have nobody to collect from.
+
+## Prêmio e títulos || Prize and titles
+=T25 | PRIZE_INTRO | portadora = Cobra | P1 | once=session | A toca | The den
+> cypher | Prêmio do dia na minha toca: {premio}. | Today's prize is in my den: {premio}.
+> bogart | Ninguém vai entrar na toca da Cobra pra buscar nada, né? | Nobody's going into the Snake's den for anything, right?
+> fincher | Alguém sempre entra. Por isso existem filmes de terror. | Someone always does. That's why horror movies exist.
+
+=T26 | PRIZE_MOVED | o Raposo tirou o Sapo | P1 | once=session | Guardando | Keeping it safe
+> fincher | O prêmio é meu agora. Obrigado pela entrega, Crítico. | The prize is mine now. Thanks for the delivery, Critic.
+> bogart | Eu só tava guardando pra você! Mentira. Tava guardando pra mim. | I was just keeping it for you! Lie. I was keeping it for me.
+
+=T27 | RANK_UP | Protagonista | P1 | once=life,story=colega | Colega | Partner
+> fincher | Colega. | Partner.
+> bogart | Colega?! Ele nunca me chamou de colega! Trinta anos de mesa! | Partner?! He never called me partner! Thirty years at this table!
+> cypher | Em trinta anos você nunca ganhou dele, sapinho. | In thirty years you never beat him, froggy.
+
+=T28 | SECRET_TELL | ≥50 partidas; pagou um all-in com anel e perdeu | P1 | once=life,story=fumaça | A fumaça | The smoke
+> fincher | Você reparou na fumaça, não reparou? | You noticed the smoke, didn't you?
+> cypher | Ele finge que não tem tell há quarenta anos. Tem um. Só um. | He's pretended to have no tell for forty years. He has one. Just one.
+> bogart | Que fumaça? Eu achava que era o charuto! | What smoke? I thought it was the cigar!
+
+# 5. Leitura do estilo || 5. Style read
+% O Raposo lê com o mesmo modelo com que decide (amostra mínima do veredito); a Cobra só reage; o Sapo erra de propósito (B80, B81). Uma leitura por partida, entre mãos. Se a Cobra não puder falar, o Raposo usa a fala solta (F76–F79). || The Fox reads with the same model he decides with (the verdict's minimum sample); the Snake only reacts; the Frog is wrong on purpose (B80, B81). One read per match, between hands. If the Snake can't speak, the Fox uses the single line (F76–F79).
+
+=TR1 | STYLE_READ | pedra | P2 | once=match | Pedra | Rock
+> fincher | @F76
+> cypher | Tão previsível. Tão… filme de aeroporto. | So predictable. So… airport movie.
+> bogart | Eu acho que é mistério. Tipo thriller. Nota 7. | I think it's a mystery. Thriller vibes. A 7.
+
+=TR2 | STYLE_READ | solto | P2 | once=match | Solto | Loose
+> fincher | @F77
+> cypher | Qualquer duas cartas? Finalmente alguém que fala minha língua. | Any two cards? Finally someone who speaks my language.
+
+=TR3 | STYLE_READ | paga-tudo | P2 | once=match | Paga-tudo | Calling station
+> fincher | @F78
+> cypher | A plateia perfeita: assiste até o fim, mesmo sofrendo. | The perfect audience: stays till the end, even suffering.
+> bogart | Eu também sou assim! Somos família! Dos filmes de carro! | I'm like that too! We're family! Car-movie family!
+
+=TR4 | STYLE_READ | blefador | P2 | once=match | Blefador | Bluffer
+> fincher | A visita blefa mais que trailer de filme de verão. | Our guest bluffs more than a summer blockbuster trailer.
+> bogart | Trailer bom vende o filme todo! Eu caio em todos. | A good trailer sells the whole movie! I fall for every one.
+> cypher | A gente sabe, sapinho. A gente sabe. | We know, froggy. We know.
+
+# 6. Despedida do eliminado || 6. Farewell when you're out
+% Quem te eliminou fala primeiro. Até 3 balões, todos curtos (no máximo ~30 caracteres), para caber nos 4 s do veredito; pulável. Depois vêm os créditos. Ritmo próprio: 0,8 s + 40 ms por caractere por balão. || Whoever knocked you out speaks first. Up to 3 balloons, all short (about 30 characters max) to fit the verdict's 4 s; skippable. Then the credits. Own pacing: 0.8 s + 40 ms per character per balloon.
+
+=D01 | HUMAN_OUT | eliminado pelo Sapo | P1 | - | Sapo, 1 | Frog, 1
+> bogart | Eu? Eliminei alguém? O SAPO? | Me? I knocked someone out? THE FROG?
+> cypher | Até o sapo. Que fim. | Even the frog. What an ending.
+
+=D02 | HUMAN_OUT | eliminado pelo Sapo | P1 | - | Sapo, 2 | Frog, 2
+> bogart | Fim de sessão, girino! Croac! | Show's over, tadpole! Ribbit!
+> fincher | Fica pros créditos. Tem extra. | Stay for the credits. There's more.
+
+=D03 | HUMAN_OUT | eliminado pelo Sapo | P1 | solo | Sapo, 3 | Frog, 3
+> bogart | Alguém tira print! Ninguém vai crer! | Somebody screenshot this! Nobody'll buy it!
+
+=D04 | HUMAN_OUT | eliminado pela Cobra | P1 | - | Cobra, 1 | Snake, 1
+> cypher | Shhh… acabou. | Shhh… it's over.
+> bogart | Ela é assim com todo mundo. | She's like that with everyone.
+
+=D05 | HUMAN_OUT | eliminado pela Cobra | P1 | - | Cobra, 2 | Snake, 2
+> cypher | Créditos rolando. Eu fico pra ver. | Credits rolling. I'm staying.
+> fincher | Ela sempre fica. | She always stays.
+
+=D06 | HUMAN_OUT | eliminado pela Cobra | P1 | solo | Cobra, 3 | Snake, 3
+> cypher | Que queda linda. Vaiada e perfeita. | Gorgeous fall. Booed and perfect.
+
+=D07 | HUMAN_OUT | eliminado pelo Raposo | P1 | - | Raposo, 1 | Fox, 1
+> fincher | Fim. Sem cena extra. | The end. No bonus scene.
+> cypher | Ele nunca deixa cena extra. | He never leaves a bonus scene.
+> bogart | Eu deixaria! Duas! | I would! Two!
+
+=D08 | HUMAN_OUT | eliminado pelo Raposo | P1 | - | Raposo, 2 | Fox, 2
+> fincher | E a visita sai da mesa. | And our guest leaves the table.
+> cypher | Com estilo. Péssimo, mas estilo. | With style. Awful, but style.
+> bogart | Volta amanhã! Traz fichas! | Come back tomorrow! Bring chips!
+
+=D09 | HUMAN_OUT | eliminado pelo Raposo | P1 | solo | Raposo, 3 | Fox, 3
+> fincher | Preto e branco, como todo final honesto. | Black and white, like every honest ending.

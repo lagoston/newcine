@@ -1,0 +1,121 @@
+# 1. Bogart, o Sapo || 1. Bogart, the Frog
+% Honesto: com o Sapo, a fala é o tell. Com `calado` (monstro), ele não fala até a mão acabar. O all-in dele só tem fala no `curto` (≤10 BB), porque o all-in fundo é sempre monstro. || Honest: with the Frog, the line is the tell. On `calado` (monster) he says nothing until the hand ends. His all-in only has lines when `curto` (≤10 BB), because a deep all-in is always a monster.
+
+## Abertura || Opening
+B01 | bogart | MATCH_START | - | - | P1 | - | Senta aí, girino. Meu cacife tá contadinho. Não encosta. | Pull up a lily pad, tadpole. My stack is counted to the chip. Hands off.
+B02 | bogart | MATCH_START | - | - | P1 | - | Trouxe pipoca, refri e zero intenção de gastar. Pode distribuir. | Brought popcorn, a soda and zero intention of spending. Deal.
+B03 | bogart | MATCH_START | - | - | P1 | - | Começou a sessão! Celular no silencioso. O seu não: vai precisar da calculadora. | Showtime! Phones on silent. Not yours, tadpole: you'll need the calculator.
+B04 | bogart | MATCH_START | volta | - | P1 | - | Voltou! Eu sabia. Ninguém resiste a uma continuação. | You're back! Knew it. Nobody can resist a sequel.
+B05 | bogart | MATCH_START | freguês | - | P1 | - | Tá escrito "Freguês" do lado do meu nome no seu placar? Exijo direito de resposta. | My name says "Easy Mark" on your scoreboard? I demand a retraction.
+B06 | bogart | MATCH_START | madrugada | - | P1 | - | Meia-noite e eu aqui apostando. Minha mãe girino ficaria orgulhosa. Ou preocupada. | Past midnight and I'm gambling. Mother Tadpole would be proud. Or worried.
+B07 | bogart | MATCH_START | série | - | P1 | - | Terceira seguida? Nem maratona de trilogia estendida dura tanto. | Third in a row? Even an extended-trilogy marathon ends eventually.
+B08 | bogart | MATCH_START | nêmesis | - | P1 | - | Eu sou seu nêmesis? EU? Alguém emoldura esse placar, por favor. | I'm your nemesis? ME? Somebody frame that scoreboard, please.
+
+## Prêmio do dia (genérico; tipos na seção 7) || Today's prize (generic; kinds in section 7)
+B09 | bogart | PRIZE_INTRO | qualquer tipo | - | P1 | - | Hoje o prêmio tá comigo: {premio}. Não empresto nem guarda-chuva. | Today's prize sits with me: {premio}. I don't even lend umbrellas.
+B10 | bogart | PRIZE_INTRO | qualquer tipo | - | P1 | - | No meu colo: {premio}. Quer? Me tira da mesa. Boa sorte. Muita. | In my lap: {premio}. Want it? Knock me out. Good luck. Lots.
+B11 | bogart | PRIZE_INTRO | comum | - | P1 | - | É comum? É. Mas é MEU. Vou cuidar como edição de colecionador. | Common? Sure. But it's MINE. I'll guard it like a collector's edition.
+B12 | bogart | PRIZE_AT_RISK | portador ≤10 BB | * | P3 | - | Calma… o prêmio é só um detalhe. Um detalhe que eu amo. Não olha pra ele. | Easy… the prize is a detail. A detail I love. Don't look at it.
+B13 | bogart | PRIZE_AT_RISK | portador ≤10 BB | * | P3 | - | Meu precioso… digo, meu prêmio. Ninguém toca. Ninguém respira perto. | My precious… I mean, my prize. Nobody touches. Nobody breathes near it.
+B14 | bogart | PRIZE_CAPTURED | você tirou o portador | - | P1 | - | Leva. Leva logo antes que eu me arrependa. Pronto, me arrependi. Leva. | Take it. Quick, before I regret it. There, I regret it. Take it anyway.
+B15 | bogart | PRIZE_KEPT | você caiu sem o prêmio | - | P1 | - | Fica mais um dia comigo, prêmio lindo. O girino só pagou o ingresso. | Stay another day, gorgeous prize. The tadpole only paid for the ticket.
+B16 | bogart | PRIZE_MOVED | o Sapo tirou o portador | - | P1 | - | Ué, veio pra mim? Isso agora é meu! Primeira vez que algo vem pra mim. | Wait, it came to me? It's mine now! First time anything came my way.
+B17 | bogart | PRIZE_TAUNT | portador = Raposo | - | P3 | - | O Vovô tá com o prêmio. Vai levar três horas pra entregar. Em preto e branco. | Gramps has the prize. He'll take three hours to hand it over. In black and white.
+B18 | bogart | PRIZE_TAUNT | portador = Cobra | - | P3 | - | O prêmio tá com a Cobra. Eu é que não chego perto. Cadeia alimentar, girino. | The Snake has the prize. I'm not getting close. Food chain, tadpole.
+
+## Apostas (fala sobre a própria mão) || Bets (lines about his own hand)
+B19 | bogart | CALL | - | nervoso | P3 | - | Pago. Mas fica registrado: com dor. Cacife é que nem ingresso de IMAX. | I'll call. For the record: it hurts. My stack costs like IMAX tickets.
+B20 | bogart | CALL | - | nervoso | P3 | - | Vou pagar só pra ver. Só pra ver, hein. Não é compromisso. | Calling just to see. Just to see, okay? No commitment.
+B21 | bogart | CALL | - | nervoso | P3 | - | Dá pra parcelar esse call em três vezes sem juros? | Can I pay this call in three installments? Interest-free?
+B22 | bogart | CALL | - | nervoso | P3 | - | Pago meia. Tenho carteirinha. Não? Tá. Pago inteira. Que absurdo. | Student discount? I have the card. No? Fine. Full price. Outrageous.
+B23 | bogart | CALL | comprometido | confiante | P3 | - | Já tô dentro, né? Agora vou até o fim. Igual maratona de franquia. | I'm already in, right? Might as well go all the way. Like a franchise marathon.
+B24 | bogart | LIMP | - | nervoso,neutro,confiante | P3 | - | Entro pagando o mínimo. Pra que gastar mais? A sessão nem começou. | I'll just pay the minimum. Why spend more? The movie hasn't even started.
+B25 | bogart | BET | aposta ≤ ½ pote | confiante | P3 | - | Aposto um tiquinho. Um trailer. Se gostarem, solto o filme inteiro. | A tiny bet. Just a trailer. If you like it, I'll release the whole film.
+B26 | bogart | BIG_BET | sem monstro | nervoso | P3 | - | Aposto alto. Por quê? Porque sim. Não tô nervoso. Por que tá todo mundo olhando? | Big bet. Why? Because. I'm not nervous. Why is everyone staring?
+B27 | bogart | VALUE_SHOWN | depois de `calado` | - | P2 | - | Fiquei quietinho e ninguém estranhou? Croac. {mao}, girino. | I went quiet and nobody noticed? Ribbit. {mao}, tadpole.
+B28 | bogart | CATCH_BLUFF | - | - | P2 | - | EU SABIA! Quer dizer… desconfiava. Tá, paguei sem saber. Mas acertei! | I KNEW IT! Well… I suspected. Fine, I called blind. But I was right!
+B29 | bogart | CATCH_BLUFF | - | - | P2 | - | Blefe em cima do sapo? Comigo não! Eu pago tudo! É meu único talento! | Bluff the frog? Not me! I call everything! It's my only talent!
+
+## Largando || Folding
+B30 | bogart | FOLD | - | - | P3 | - | Fora. Esse eu espero sair no streaming. | I'm out. I'll wait for this one to hit streaming.
+B31 | bogart | FOLD | - | - | P3 | - | Larguei. Não é medo, é economia. Parecidos, mas diferentes. | Folded. Not fear: thrift. Similar. Not the same.
+B32 | bogart | FOLD | do blind | - | P3 | - | Pode levar meu blind. Era pipoca velha mesmo. | Take my blind. It was stale popcorn anyway.
+B33 | bogart | FOLD_TO_HUMAN | - | - | P3 | - | Pode levar. Eu tava só testando seu roteiro. Fraquinho, inclusive. | Take it. I was just testing your script. Weak script, by the way.
+B34 | bogart | FOLD_TO_HUMAN | - | - | P3 | - | Tá bom, o pote é seu. Mas na versão do diretor eu ganhava. | Fine, the pot's yours. In the director's cut, I win.
+
+## All-in (só curto) || All-in (short stack only)
+B35 | bogart | ALL_IN | curto | nervoso,confiante | P2 | - | TUDO! Isso é Esparta! …Ou era Troia? Um desses com escudo. TUDO! | ALL OF IT! This is Sparta! …Or Troy? One of the shield ones. ALL OF IT!
+B36 | bogart | ALL_IN | curto | nervoso,confiante | P2 | - | All-in. Se eu perder, tem cena pós-créditos. Eu volto. Sempre volto. | All-in. If I lose, there's a post-credits scene. I always come back.
+B37 | bogart | ALL_IN | curto | nervoso | P2 | - | Tô com pouquinho. Ou vai ou racha. Racha não, por favor. Vai. | I'm nearly out. Make or break. Not break. Please. Make.
+B38 | bogart | ALL_IN | curto | nervoso | P2 | - | Vou com tudo. Se eu afundar, Wilson, cuida da minha pilha. | Going all in. If I sink, Wilson, look after my stack.
+B39 | bogart | ALL_IN | curto | confiante | P2 | - | Ao infinito e ao all-in! Ninguém riu? Tá. Tá bom. | To infinity and all-in! Nobody laughed? Fine. Fine.
+
+## Reagindo a você || Reacting to you
+% No meio da mão, o Sapo só reage com medo (`nervoso`) ou depois de largar (`fora`). || Mid-hand, the Frog only reacts with fear (`nervoso`) or after folding (`fora`).
+B40 | bogart | HUMAN_BIG_BET | - | nervoso,fora | P3 | - | Aumentou?! Calma! Quem você pensa que é, o diretor? | You raised?! Easy! Who do you think you are, the director?
+B41 | bogart | HUMAN_BIG_BET | - | nervoso,fora | P3 | - | Tá apostando comigo? Comigo? Sou o mais fraco da mesa, isso é covardia! | Betting at me? Me? I'm the weakest at the table, that's just mean!
+B42 | bogart | HUMAN_BIG_BET | leitura = pedra | fora | P3 | - | A visita apostou. A visita NUNCA aposta. Larga tudo, gente! LARGA! | Our guest bet. Our guest NEVER bets. Everybody fold! FOLD!
+B43 | bogart | HUMAN_ALL_IN | - | nervoso,fora | P2 | - | All-in?! Isso é final de trilogia, girino, não primeiro filme! | All-in?! That's a trilogy finale, tadpole, not a first movie!
+B44 | bogart | HUMAN_ALL_IN | - | nervoso,fora | P2 | - | Tudo de uma vez? Nem estúdio de super-herói lança tanto num dia só. | All at once? Not even a superhero studio releases that much in a day.
+B45 | bogart | HUMAN_ALL_IN | - | nervoso,fora | P2 | - | Mau pressentimento, gente. Daqueles de nave em campo de asteroides. | Bad feeling about this. The ship-in-an-asteroid-field kind.
+B46 | bogart | HUMAN_FOLD | você largou para ele | - | P3 | - | Pede pra sair! Saiu! Adoro quando funciona. | Tapping out? Out you go. Love it when that works.
+B47 | bogart | HUMAN_FOLD | você largou para ele | - | P3 | - | Correu? Nota 4. Fugiu bem, mas faltou emoção no terceiro ato. | Ran away? 4 out of 10. Nice escape, but the third act had no emotion.
+
+## Potes || Pots
+B48 | bogart | POT_WON | - | - | P3 | - | Croac! Pote pro sapo! Nota dez com louvor e pipoca grátis! | Ribbit! Pot for the frog! Ten out of ten, with free popcorn!
+B49 | bogart | POT_WON | - | - | P3 | - | Ganhei! Alguém filmou? Quero isso em 4K, com making-of. | I won! Did anyone film that? I want it in 4K, with a making-of.
+B50 | bogart | POT_WON | pequeno | - | P3 | - | Pequeno, mas é meu. Que nem filme barato que vira franquia. | Small, but mine. Like a cheap movie that becomes a franchise.
+B51 | bogart | POT_WON | grande | - | P3 | - | Grandes potes, grandes responsabilidades. A minha é não gastar nada. | With great pots comes great responsibility. Mine is spending none of it.
+B52 | bogart | POT_WON | sorte (era azarão) | - | P3 | - | Como eu ganhei? Não sei explicar. Foi assim, igual história do Chicó. | How did I win? Can't explain it. Some stories you just don't question.
+B53 | bogart | POT_WON | contra o Raposo | - | P3 | - | Por que tão sério, Vovô? Sorri! O sapo ganhou um pote! | Why so serious, Gramps? Smile! The frog won a pot!
+B54 | bogart | POT_LOST | para você | - | P3 | - | Não acredito. Plot twist barato. Crítica: 12% de aprovação. | Unbelievable. Cheap plot twist. Critics' score: 12%.
+B55 | bogart | POT_LOST | para você | - | P3 | - | Meu cacife… ele tinha família. Que nem nos filmes de carro. | My stack… it had family. Like in the car movies.
+B56 | bogart | HUMAN_BLUFF_SHOWN | - | - | P2 | - | Você tinha ISSO? Eu larguei uma mão boa pra ISSO? Spoiler: larguei. | You had THAT? I folded a good hand to THAT? Spoiler: I did.
+B57 | bogart | HUMAN_BLUFF_SHOWN | - | - | P2 | - | Isso foi blefe? Vou rever no replay e escrever uma crítica furiosa. | That was a bluff? I'm rewatching and writing a furious review.
+B58 | bogart | BLUFF_CAUGHT | - | - | P3 | - | Blefe pego! Até eu vi, e eu não vejo nem final de novela chegando. | Bluff caught! Even I saw it, and I never see the soap twist coming.
+B59 | bogart | RATE_MOVE | nota baixa | - | P3 | - | Nota 3 pra essa jogada. A fotografia até que era bonita. | That play gets a 3. Lovely cinematography, though.
+B60 | bogart | RATE_MOVE | nota alta | - | P3 | - | Nota 9! Cena de ação impecável! Quero sequência! | A 9! Flawless action scene! I want a sequel!
+
+## Sorte e azar || Luck
+B61 | bogart | BAD_BEAT | vítima | - | P2 | - | Eu tinha o pote! Eu TINHA! Isso é cancelar a série no último episódio. | I had the pot! I HAD it! That's cancelling the show in the finale.
+B62 | bogart | BAD_BEAT | vítima | - | P2 | - | Essa última carta foi refilmagem. Exijo a versão original. | That last card was a reshoot. I demand the original version.
+B63 | bogart | BAD_BEAT | vítima | - | P2 | - | A Tristeza assumiu o painel de controle. Ninguém fala comigo. | Sadness has taken over the control panel. Nobody talk to me.
+B64 | bogart | BAD_BEAT | vencedor | - | P2 | - | Milagre! A cavalaria chegou no último minuto! Eu ADORO esse clichê! | Miracle! The cavalry arrived at the last minute! I LOVE that cliché!
+B65 | bogart | BAD_BEAT | você foi a vítima | - | P2 | - | Ih, que azar. Sério, fiquei com pena. Durou dois segundos, mas fiquei. | Ouch, bad luck. Honestly, I felt sorry. For two seconds, but I did.
+
+## Emburrado (tilt do Sapo) || Sulking (the Frog's tilt)
+B66 | bogart | TILT_START | emburrado | - | P1 | - | Perdi o pote grande. Tô emburrado. Não falo com ninguém. A partir de… agora. | Lost the big pot. I'm sulking. Not talking to anyone. Starting… now.
+B67 | bogart | TILT_START | emburrado | - | P1 | - | Ninguém me consola? Nem um mosquito? Tá. Vou jogar emburrado. | Nobody's going to comfort me? Not even a mosquito? Fine. Sulk mode.
+B68 | bogart | TILT_END | emburrado | - | P2 | - | Pronto, passou. Comi um mosquito e fiquei bem. Onde a gente tava? | Okay, I'm over it. Ate a mosquito, feeling better. Where were we?
+
+## Eliminações || Eliminations
+B69 | bogart | ELIMINATION | ele caiu | - | P1 | - | Eliminado… Avisa que eu volto no próximo. Reboot garantido. | Eliminated… Tell them I'm back next time. Reboot guaranteed.
+B70 | bogart | ELIMINATION | ele caiu | - | P1 | - | Tô fora. Vou pro meu pântano. Ninguém me segue. Sério, ninguém. | I'm out. Off to my swamp. Nobody follow me. Seriously, nobody.
+B71 | bogart | ELIMINATION | ele tirou a Cobra | - | P1 | - | Eu tirei a Cobra? EU? Vou sentar bem longe dela no próximo jogo. | I knocked out the Snake? ME? I'll sit very far away next game.
+B72 | bogart | ELIMINATION | ele tirou o Raposo | - | P1 | - | Eliminei o Vovô! Isso vale nota 11! Não existe 11? Agora existe! | I knocked out Gramps! That's an 11 out of 10! No 11? There is now!
+B73 | bogart | ORACLE_OUT | caiu a Cobra | - | P3 | - | A Cobra caiu! Ninguém comemora alto. Ela escuta. E volta. | The Snake is out! Nobody cheer too loud. She hears. And she comes back.
+B74 | bogart | ORACLE_OUT | caiu o Raposo | - | P3 | - | O Vovô caiu! Alguém anota a data! Sério, cadê uma caneta? | Gramps is out! Somebody write down the date! Seriously, where's a pen?
+
+## Ritmo da mesa || Table rhythm
+B75 | bogart | HUMAN_SLOW | 25 s | - | P3 | vez | Tá pensando ou tá baixando o filme? | Thinking, or still downloading the movie?
+B76 | bogart | HUMAN_SLOW | 25 s | - | P3 | vez | Nem eu demoro tanto. E eu sou um sapo. | Even I'm not this slow. And I'm a frog.
+B77 | bogart | HUMAN_SLOW | 60 s | - | P3 | vez | Vou ali pegar um mosquito. Já volto. | Off to catch a mosquito. Back soon.
+B78 | bogart | HUMAN_SLOW | 60 s | - | P3 | vez | Uma hora sua são sete anos aqui fora. | One hour of yours is seven years out here.
+B79 | bogart | WIN_STREAK | você ganhou 3 seguidas | - | P2 | - | Três potes seguidos? Calma, isso aqui não é sua franquia pessoal. | Three pots in a row? Easy, this isn't your personal franchise.
+B80 | bogart | STYLE_READ | leitura errada (sempre) | - | P2 | once=match | Já saquei seu jogo, girino. Você é do tipo que… joga. Isso. Te desvendei. | I've figured you out, tadpole. You're the type who… plays. Yes. Decoded.
+B81 | bogart | STYLE_READ | leitura errada (sempre) | - | P2 | once=match | Te li inteirinho: você gosta de cartas. Acertei? Acertei. Sou um gênio. | Read you like a book: you like cards. Right? Right. I'm a genius.
+B82 | bogart | BLINDS_UP | - | - | P3 | - | Os blinds subiram?! Igual ingresso de cinema. Ninguém avisa, só sobe. | Blinds went up?! Like movie tickets. Nobody warns you, they just go up.
+B83 | bogart | BLINDS_UP | primeiro ante | - | P2 | once=match | Agora tem ante? Até quem não joga paga ingresso? Que país é esse? | There's an ante now? Even people sitting out pay admission? What is this, a tax?
+B84 | bogart | HEADS_UP | Corte Final | - | P2 | - | Corte Final! Só eu e você. Dupla policial. Eu sou o engraçado. E o que ganha. | Final Cut! Just us two. Buddy cop movie. I'm the funny one. And the winner.
+B85 | bogart | DEAL | - | - | P3 | - | Duas cartas e um sonho. Tipo trailer: promete tudo, entrega metade. | Two cards and a dream. Like a trailer: promises it all, delivers half.
+B86 | bogart | FLOP | - | fora | P3 | - | Flop! Cadê o ás? Prometeram um ás no trailer! | The flop! Where's the ace? The trailer promised an ace!
+
+## Fim de partida e títulos || Match end and titles
+B87 | bogart | MATCH_END | você venceu | - | P1 | - | Ganhou? Tá. Mas não ganha a continuação. Continuação é sempre pior. | You won? Fine. You won't win the sequel. Sequels are always worse.
+B88 | bogart | CREDITS | o Sapo levou a mesa (livre) | - | P1 | - | O sapo levou a mesa! Quero meu nome em letra grande nos créditos! | The frog took the table! I want my name in big letters in the credits!
+B89 | bogart | CREDITS | o Sapo levou a mesa (livre) | - | P1 | - | Ganhei a mesa inteira. Ninguém acredita. Nem eu. Croac. | I won the whole table. Nobody believes it. Not even me. Ribbit.
+B90 | bogart | CREDITS | você perdeu | - | P1 | - | Mais uma pro brejo! Volta amanhã, girino. O pântano nunca fecha. | Another one for the swamp! Back tomorrow, tadpole. The swamp never closes.
+B91 | bogart | REMATCH | - | - | P2 | - | Revanche? Adoro! Mesma história, orçamento maior. | Rematch? Love it! Same story, bigger budget.
+B92 | bogart | HUMAN_LEAVES | - | - | P2 | - | Saindo no meio do filme? Nem eu. Só quando tem mais de três horas. | Leaving mid-movie? Not even I do that. Only when it's over three hours.
+B93 | bogart | RANK_UP | Dublê | - | P1 | once=life | Dublê! Agora você leva os tombos pelos outros. Parabéns, eu acho. | Stunt Double! Now you take the falls for everyone. Congrats, I think.
+B94 | bogart | RANK_UP | Estrela | - | P1 | once=life | Estrela?! Vou ter que te chamar de outra coisa. Girino-estrela. Pronto. | Star?! I'll need a new name for you. Star-tadpole. There.

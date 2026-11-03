@@ -1,0 +1,102 @@
+# 2. Cypher, a Cobra || 2. Cypher, the Snake
+% Teatro: as palavras da Cobra nunca dizem a força da mão, por isso o cue é `*` (qualquer). Quem conta é o corpo: língua (`nervoso`, blefe ~70%), cauda (`confiante`) e o Veneno. Ela não tem modelo de leitura; só reage à leitura do Raposo (seção 5). || Theater: the Snake's words never state her hand strength, so the cue is `*` (any). Her body tells: tongue (`nervoso`, bluff ~70%), tail (`confiante`) and Venom. She has no read model; she only reacts to the Fox's read (section 5).
+
+## Abertura || Opening
+C01 | cypher | MATCH_START | - | - | P1 | - | Shhh… senta, criatura. A sessão de hoje é proibida para menores de juízo. | Shhh… sit, creature. Tonight's show is rated R for Reckless.
+C02 | cypher | MATCH_START | - | - | P1 | - | Mesa nova, baralho novo, erros novos. Os seus, de preferência. | New table, new deck, new mistakes. Yours, ideally.
+C03 | cypher | MATCH_START | - | - | P1 | - | Esse jogo sempre termina com alguém chorando. Torço por você. | This game always ends with someone crying. I'm rooting for you.
+C04 | cypher | MATCH_START | volta | - | P1 | - | Voltou pra toca. Eu sabia. Quem prova o veneno sempre volta. | Back to the den. I knew it. Whoever tastes the venom comes back.
+C05 | cypher | MATCH_START | nêmesis | - | P1 | - | O placar diz que sou seu nêmesis. Que título lindo. Vou bordar. | The scoreboard says I'm your nemesis. Lovely title. I'll embroider it.
+C06 | cypher | MATCH_START | madrugada | - | P1 | - | À meia-noite eu levo o seu cacife. O Zé do Caixão que me perdoe. | At midnight I'll take your stack. Coffin Joe, forgive me.
+C07 | cypher | MATCH_START | madrugada | - | P1 | - | Passou da meia-noite. Hora dos filmes que a TV não passa. | Past midnight. Time for the films TV won't show.
+C08 | cypher | MATCH_START | série | - | P1 | - | Terceira seguida. Isso já é vício de cinéfilo. Eu aprovo. | Third in a row. That's a cinephile's habit. I approve.
+C09 | cypher | MATCH_START | freguês | - | P1 | - | Freguesa? Eu? Seu placar precisa de revisão. E de veneno. | Easy Mark? Me? Your scoreboard needs an edit. And venom.
+
+## Prêmio do dia (genérico) || Today's prize (generic)
+C10 | cypher | PRIZE_INTRO | qualquer tipo | - | P1 | - | Enrolado no meu rabo: {premio}. Vem buscar, se tiver coragem. | Coiled in my tail: {premio}. Come get it, if you dare.
+C11 | cypher | PRIZE_INTRO | qualquer tipo | - | P1 | - | Hoje é meu: {premio}. Mais raro que filme banido em cópia boa. | Mine tonight: {premio}. Rarer than a banned film in a clean print.
+C12 | cypher | PRIZE_AT_RISK | portador ≤10 BB | * | P3 | - | Pouco cacife, prêmio na mesa… meu cenário favorito. Caos alto. | Short stack, prize on the table… my favorite setting. High chaos.
+C13 | cypher | PRIZE_CAPTURED | você tirou a portadora | - | P1 | - | Leve. Você ganhou com um estilo torto. O tipo que eu respeito. | Take it. You won with a crooked style. The kind I respect.
+C14 | cypher | PRIZE_KEPT | você caiu sem o prêmio | - | P1 | - | O prêmio fica na toca. Volte com outra ficha… e outro plano. | The prize stays in the den. Come back with another chip… and a plan.
+C15 | cypher | PRIZE_MOVED | ela tirou o Sapo | - | P1 | - | Isso agora é meu, sapinho. Obrigada pelo aperitivo. | Mine now, froggy. Thanks for the appetizer.
+C16 | cypher | PRIZE_MOVED | ela tirou o Raposo | - | P1 | - | Do velho pra mim. A história é de quem rasteja melhor. | From the old man to me. History belongs to whoever crawls best.
+C17 | cypher | PRIZE_TAUNT | portador = Sapo | - | P3 | - | O sapo com prêmio no colo. É dar carro de corrida pra quem só anda de ré. | The frog with a prize in his lap. A race car for someone who only reverses.
+C18 | cypher | PRIZE_TAUNT | portador = Raposo | - | P3 | - | O Raposo carrega o prêmio. Boa sorte. Ele não larga nada, nem o charuto. | The Fox has the prize. Good luck. He lets go of nothing, not even the cigar.
+
+## Apostas || Bets
+C19 | cypher | BIG_BET | - | * | P3 | - | Aumento. Matemática é a forma mais elegante de crueldade. | Raise. Math is the most elegant form of cruelty.
+C20 | cypher | BIG_BET | - | * | P3 | - | Ponho isso. Se for pagar, pague como quem assina com o diabo. | There. If you call, call like you're signing with the devil.
+C21 | cypher | CHECK_RAISE | - | * | P3 | - | Check-raise. Achou que eu dormia? Cobra não dorme. Espera. | Check-raise. Thought I was asleep? Snakes don't sleep. They wait.
+C22 | cypher | OVERBET | - | * | P3 | - | Overbet. Mais que o pote. Gosto de aposta com cara de erro de continuidade. | Overbet. More than the pot. I like bets that look like continuity errors.
+C23 | cypher | RAISE_3BET | - | * | P3 | - | Três-bet. Não leve pro pessoal. Leve pro matemático. Dói igual. | Three-bet. Don't take it personally. Take it mathematically. Hurts the same.
+C24 | cypher | ALL_IN | - | * | P2 | - | Tudo. Gosto do cheiro de tudo dando errado ao mesmo tempo. | All of it. I love the smell of everything going wrong at once.
+C25 | cypher | ALL_IN | - | * | P2 | - | All-in, criatura. Escolha a pílula: pagar ou fugir. As duas doem. | All-in, creature. Pick a pill: call or run. Both hurt.
+C26 | cypher | ALL_IN | - | * | P2 | - | Tudo no meio. Se perder, viro lenda trágica. Se ganhar, lenda. | Everything in. Lose, I'm a tragic legend. Win, I'm a legend.
+C27 | cypher | FOLD | contra 4-bet do Raposo | - | P3 | - | Hoje não, velho. Guardo o veneno pra mão que valer a pena. | Not today, old man. I'll save the venom for a hand worth it.
+C28 | cypher | FOLD | - | - | P3 | - | Largo. Até o caos precisa de intervalo. | Folding. Even chaos needs an intermission.
+
+## Reagindo a você || Reacting to you
+C29 | cypher | HUMAN_BIG_BET | - | * | P3 | - | Aposta grande. Ou tem mão, ou tem fé. As duas me divertem. | Big bet. Either a hand or faith. Both amuse me.
+C30 | cypher | HUMAN_BIG_BET | leitura do Raposo = blefador | * | P3 | - | Outra aposta enorme? Já vi essa história. Final previsível. | Another huge bet? I've seen this story. Predictable ending.
+C31 | cypher | HUMAN_ALL_IN | - | * | P2 | - | Tudo? Ousadia. Burrice? Talvez. As duas? Meu gênero favorito. | All of it? Bold. Dumb? Maybe. Both? My favorite genre.
+C32 | cypher | HUMAN_ALL_IN | - | * | P2 | - | Hmm… cheiro de desespero ou de trinca? De perto, cheiram igual. | Hmm… smells like despair or a set? Up close, they smell the same.
+C33 | cypher | HUMAN_FOLD | você largou para ela | - | P3 | - | Shhh… pode correr. A cobra adora a parte da perseguição. | Shhh… run along. The snake loves the chase scene.
+C34 | cypher | HUMAN_FOLD | você largou para ela | - | P3 | - | Desistiu? Até filme de terror ruim tem mais coragem no final. | Folded? Even bad horror movies have more nerve at the end.
+C35 | cypher | FOLD_TO_HUMAN | - | - | P3 | - | Fique com ele. Eu volto pelo pote que você nem sabe que vai perder. | Keep it. I'll be back for the pot you don't know you'll lose yet.
+C36 | cypher | FOLD_TO_HUMAN | - | - | P3 | - | Larguei. Guarde esse momento. É raro como cópia de filme banido. | I folded. Cherish it. Rare as a print of a banned film.
+
+## Potes || Pots
+C37 | cypher | POT_WON | - | - | P3 | - | Mmm. Pote quente. Mordo devagar pra durar. | Mmm. Hot pot. I bite slowly to make it last.
+C38 | cypher | POT_WON | - | - | P3 | - | Mais um pro acervo. Vaiado, roubado, glorioso. | Another for the archive. Booed, stolen, glorious.
+C39 | cypher | POT_LOST | para você | - | P3 | - | Você me mordeu. Que audácia. Gostei. Não se acostume. | You bit me. The nerve. I liked it. Don't get used to it.
+C40 | cypher | POT_LOST | para você | - | P3 | - | Perdi. Anote: a cobra também erra. Por isso é interessante. | Lost. Note it: the snake makes mistakes too. That's what makes her interesting.
+C41 | cypher | BLUFF_SHOWN | - | - | P2 | - | Nada na mão. Vocês fugiram de um disco voador de papelão. | Nothing. You all ran from a cardboard flying saucer.
+C42 | cypher | BLUFF_SHOWN | - | - | P2 | - | Eu tinha lixo. Lixo bem filmado. É o que eu faço. | I had trash. Beautifully shot trash. It's what I do.
+C43 | cypher | HUMAN_BLUFF_SHOWN | - | - | P2 | - | Ahhh, que erro lindo. Blefou com lixo e venceu. Tem futuro no subsolo. | Ahhh, gorgeous mistake. Bluffed with trash and won. You have a future underground.
+C44 | cypher | HUMAN_BLUFF_SHOWN | - | - | P2 | - | Isso foi heresia pura. Vou mandar emoldurar. | That was pure heresy. I'm having it framed.
+C45 | cypher | BLUFF_CAUGHT | - | - | P3 | - | Pego no flagra. Blefe sem convicção é terror pedindo desculpa. | Caught red-handed. A bluff without conviction is horror that apologizes.
+C46 | cypher | BLUFF_CAUGHT | - | - | P3 | - | Você blefou com a cara mais honesta do mundo. O problema é esse. | You bluffed with the most honest face on earth. That's the problem.
+C47 | cypher | BLUFF_CAUGHT | - | - | P3 | - | Esse blefe foi o musical dos gatos digitais: caro, ousado, ninguém comprou. | That bluff was the digital-cats musical: pricey, bold, nobody bought it.
+C48 | cypher | BEAUTIFUL_ERROR | - | - | P3 | - | Pagar isso com essa mão? Que erro lindo. Guardem pra minha retrospectiva. | Calling that with that? Gorgeous mistake. Save it for my retrospective.
+C49 | cypher | BEAUTIFUL_ERROR | - | - | P3 | - | Nem o Ed Wood montaria jogada tão linda de tão errada. Aplaudo. | Not even Ed Wood could stage a play so beautifully wrong. Bravo.
+
+## Veneno (tilt da Cobra) || Venom (the Snake's tilt)
+C50 | cypher | TILT_START | perdeu para o Sapo | - | P1 | - | Pagou três ruas com {mao}. Agora é pessoal, sapinho. | Called three streets with {mao}. Now it's personal, froggy.
+C51 | cypher | TILT_START | perdeu ≥35% do cacife | - | P1 | - | Veneno ligado. Agora eu jogo do jeito que a censura proibiu. | Venom on. Now I play the way the censors banned.
+C52 | cypher | TILT_START | blefe dela exposto | - | P1 | - | Me pegaram no blefe. Ótimo. Agora o filme fica sem classificação. | Caught bluffing. Great. Now this film goes unrated.
+C53 | cypher | TILT_END | - | - | P2 | - | Pronto. Troquei de pele. Pode voltar a ter medo de mim do jeito certo. | There. Shed my skin. You may fear me properly again.
+
+## Sorte e azar || Luck
+C54 | cypher | BAD_BEAT | vítima | - | P2 | - | Uma carta. Uma. O roteirista do universo me odeia. Respeito o trabalho. | One card. One. The universe's screenwriter hates me. I respect the work.
+C55 | cypher | BAD_BEAT | vítima | - | P2 | - | River cruel. Igual estúdio: cortou meu final e enfiou um feliz. | Cruel river. Like a studio: cut my ending and slapped on a happy one.
+C56 | cypher | BAD_BEAT | vencedora | - | P2 | - | Eu estava morta. Agora não estou. Clássico de zumbi barato. Adoro. | I was dead. Now I'm not. Cheap zombie classic. Love it.
+C57 | cypher | BAD_BEAT | você foi a vítima | - | P2 | - | Que derrota linda. Vaiada hoje, cultuada daqui a vinte anos. | What a beautiful loss. Booed today, cult classic in twenty years.
+
+## Eliminações || Eliminations
+C58 | cypher | ELIMINATION | ela caiu | - | P1 | - | Fim pra mim. Me enterrem com uma fita VHS e legenda amarela. | That's me done. Bury me with a VHS tape and burned-in subtitles.
+C59 | cypher | ELIMINATION | ela caiu | - | P1 | - | Saio de cena. Os melhores vilões sempre voltam na fita pirata. | Exit, stage left. The best villains always return on bootleg tape.
+C60 | cypher | ELIMINATION | ela tirou o Sapo | - | P1 | - | Sapinho eliminado. Desculpa. Mentira. Instinto. | Froggy's out. Sorry. Not sorry. Instinct.
+C61 | cypher | ELIMINATION | ela tirou o Raposo | - | P1 | - | Tirei o velho da mesa. Alguém avise a cinemateca. | Took the old man out. Someone call the film archive.
+C62 | cypher | ORACLE_OUT | caiu o Sapo | - | P3 | - | Caiu o sapo. Lá vai ele pro brejo, chorando em som surround. | The frog is out. Off to the swamp, crying in surround sound.
+C63 | cypher | ORACLE_OUT | caiu o Raposo | - | P3 | - | O velho caiu. Guardem o chapéu. Isso vira peça de acervo. | The old man is out. Keep the hat. That's a museum piece now.
+
+## Ritmo da mesa || Table rhythm
+C64 | cypher | HUMAN_SLOW | 25 s | - | P3 | vez | Pense devagar. Adoro ver a presa calcular. | Think slowly. I like watching prey do math.
+C65 | cypher | HUMAN_SLOW | 25 s | - | P3 | vez | Silêncio de filme experimental. Gostei. | Experimental-film silence. I like it.
+C66 | cypher | HUMAN_SLOW | 60 s | - | P3 | vez | Tic, tac. Até cobra perde a paciência. | Tick, tock. Even snakes lose patience.
+C67 | cypher | WIN_STREAK | você ganhou 3 seguidas | - | P2 | - | Três seguidas. Começo a ter medo de você. Quase. | Three in a row. I'm starting to fear you. Almost.
+C68 | cypher | BLINDS_UP | - | - | P3 | - | Blinds subindo. Agora fica divertido: menos espaço, mais desespero. | Blinds rising. Now it's fun: less room, more despair.
+C69 | cypher | BLINDS_UP | primeiro ante | - | P2 | once=match | Ante na mesa. Agora até ficar parado custa. Que delícia. | Antes now. Even sitting still costs. Delicious.
+C70 | cypher | HEADS_UP | Corte Final | - | P2 | - | Corte Final. Só eu e você, criatura: presa e cobra. Clássico de pântano. | Final Cut. Just us, creature: prey and snake. A swamp classic.
+C71 | cypher | FLOP | três do mesmo naipe | * | P3 | - | Três do mesmo naipe no flop. Que perfume de tragédia. | Three of a suit on the flop. The perfume of tragedy.
+C72 | cypher | BANTER | entre mãos | - | P3 | once=session | Meu nome é de um traidor de um filme de 99. Pense nisso antes de confiar no meu check. | I'm named after a traitor from a '99 movie. Remember that before trusting my check.
+
+## Fim de partida e títulos || Match end and titles
+C73 | cypher | MATCH_END | você venceu | - | P1 | - | Ganhou. Saboreie. Amanhã eu troco de pele e volto pior. | You won. Savor it. Tomorrow I shed my skin and come back worse.
+C74 | cypher | CREDITS | a Cobra levou a mesa (livre) | - | P1 | - | A mesa é minha. Vaiada, roubada, gloriosa. Rolem os créditos. | The table is mine. Booed, stolen, glorious. Roll credits.
+C75 | cypher | CREDITS | a Cobra levou a mesa (livre) | - | P1 | - | Venci. O caos tem final feliz, sim. Só não é o seu. | I won. Chaos does get a happy ending. Just not yours.
+C76 | cypher | CREDITS | você perdeu | - | P1 | - | Perdeu bonito. Pena que bonito não paga ingresso. | You lost beautifully. Too bad beauty doesn't buy tickets.
+C77 | cypher | REMATCH | - | - | P2 | - | Revanche? Continuação feita às pressas. Meu tipo favorito de desastre. | Rematch? A rushed sequel. My favorite kind of disaster.
+C78 | cypher | HUMAN_LEAVES | - | - | P2 | - | Saindo no meio da sessão? Só faço isso quando o filme é bom de verdade. | Walking out mid-show? I only do that when the film is truly good.
+C79 | cypher | RANK_UP | Coadjuvante | - | P1 | once=life | Coadjuvante. Agora você tem fala. Uma. Não desperdice. | Supporting Role. You get a line now. One. Don't waste it.
+C80 | cypher | RANK_UP | Lenda da Sessão | - | P1 | once=life | Lenda da Sessão. Vão te vaiar em Cannes. É o maior elogio que conheço. | Midnight Legend. Cannes will boo you. Highest praise I know.

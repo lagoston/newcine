@@ -52,11 +52,16 @@ export interface OwnedPoster extends PosterItem {
   equipped: boolean;
   in_library: boolean;
   first_pulled_at: string;
+  // 03/11/2026 (pôquer): false = prêmio da mesa do Grande Blefe, que não entra
+  // em trocas. Ausente nos servidores antigos (vale como true).
+  tradeable?: boolean;
 }
 
 export interface JackpotMission {
   key: string;
-  kind: 'rate_oracle' | 'rate_mood' | 'whisper' | 'review' | 'watchlist' | 'rate_any' | 'rate_series' | 'rate_classic';
+  // 'poker_play' (03/11/2026): partidas de pôquer até o fim, só a partir da
+  // semana em que o servidor ligar a missão.
+  kind: 'rate_oracle' | 'rate_mood' | 'whisper' | 'review' | 'watchlist' | 'rate_any' | 'rate_series' | 'rate_classic' | 'poker_play';
   param: string | null;
   target: number;
   progress: number;
@@ -98,6 +103,42 @@ export interface JackpotState {
   friday13Perk: boolean;
   // A ficha grátis de hoje ainda está lá (02/11/2026): o balão da porta.
   dailyChip: boolean;
+  // O Grande Blefe (03/11/2026): o resumo do pôquer que o get_jackpot_state
+  // traz. null = fechado para esta conta, servidor antigo ou campo torto —
+  // nesse caso nada do pôquer aparece (aba, linha, faixa da home).
+  poker: PokerTeaser | null;
+}
+
+// O resumo do pôquer dentro do estado do Jackpot (poker_teaser no banco).
+export interface PokerTeaserPrize {
+  id: string;
+  kind: string;
+  rarity: PosterRarity;
+  namePt: string;
+  nameEn: string;
+  articlePt: string | null;
+  image: string | null;
+  payload: Record<string, unknown>;
+}
+
+export interface PokerTeaser {
+  day: string;
+  // Prêmio de hoje (null num dia sem prêmio gravado).
+  prize: PokerTeaserPrize | null;
+  // Quem carrega o prêmio na mesa ('bogart' | 'cypher' | 'fincher' | rival novo).
+  carrier: string | null;
+  stars: number;
+  attemptsUsed: number;
+  maxAttempts: number;
+  wonToday: boolean;
+  // Há uma partida com prêmio em andamento.
+  active: boolean;
+  // A faixa de feltro da home (regra do veredito Q5, decidida no servidor).
+  homeStrip: boolean;
+  wins: number;
+  matches: number;
+  // Confirmação 18+ (null enquanto o servidor não mandar o campo).
+  ageConfirmed: boolean | null;
 }
 
 // A ficha do dia acabou de ser pega: a aba Missões mostra a recompensa.
@@ -170,6 +211,44 @@ export const titleOf = (item: Pick<PosterItem, 'title_pt' | 'title_en'>, isPt: b
 type Row = Record<string, unknown>;
 const num = (value: unknown) => (typeof value === 'number' ? value : Number(value) || 0);
 
+const RARITY_SET = new Set<PosterRarity>(['common', 'rare', 'epic', 'legendary']);
+
+// Lê o campo "poker" com desconfiança: qualquer coisa fora do formato vira
+// null (o Jackpot nunca cai por causa do pôquer). Só "enabled: true" abre.
+export function parsePokerTeaser(value: unknown): PokerTeaser | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Row;
+  if (raw.enabled !== true) return null;
+  const p = raw.prize && typeof raw.prize === 'object' ? (raw.prize as Row) : null;
+  const prize: PokerTeaserPrize | null =
+    p && typeof p.id === 'string'
+      ? {
+          id: p.id,
+          kind: typeof p.kind === 'string' ? p.kind : 'unknown',
+          rarity: RARITY_SET.has(p.rarity as PosterRarity) ? (p.rarity as PosterRarity) : 'common',
+          namePt: typeof p.name_pt === 'string' ? p.name_pt : typeof p.name_en === 'string' ? p.name_en : p.id,
+          nameEn: typeof p.name_en === 'string' ? p.name_en : typeof p.name_pt === 'string' ? p.name_pt : p.id,
+          articlePt: typeof p.article_pt === 'string' ? p.article_pt : null,
+          image: typeof p.image === 'string' ? p.image : null,
+          payload: p.payload && typeof p.payload === 'object' ? (p.payload as Record<string, unknown>) : {},
+        }
+      : null;
+  return {
+    day: typeof raw.day === 'string' ? raw.day : '',
+    prize,
+    carrier: typeof raw.carrier === 'string' ? raw.carrier : null,
+    stars: Math.max(0, Math.min(4, num(raw.stars))),
+    attemptsUsed: num(raw.attempts_used),
+    maxAttempts: num(raw.max_attempts) || 3,
+    wonToday: raw.won_today === true,
+    active: raw.active === true,
+    homeStrip: raw.home_strip === true,
+    wins: num(raw.wins),
+    matches: num(raw.matches),
+    ageConfirmed: typeof raw.age_confirmed === 'boolean' ? raw.age_confirmed : null,
+  };
+}
+
 export async function fetchJackpotState(): Promise<JackpotState> {
   const { data, error } = await supabase.rpc('get_jackpot_state');
   if (error) throw error;
@@ -198,6 +277,7 @@ export async function fetchJackpotState(): Promise<JackpotState> {
     gift: parseGift(raw.gift),
     friday13Perk: raw.friday13_perk === true,
     dailyChip: raw.daily_chip === true,
+    poker: parsePokerTeaser(raw.poker),
   };
 }
 

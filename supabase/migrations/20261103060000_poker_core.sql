@@ -450,7 +450,7 @@ begin
 
   select coalesce(jsonb_object_agg(k, to_jsonb(poker_today()::text)), '{}'::jsonb) into v_new
     from (select distinct k
-            from unnest(coalesce(p_keys, '{}')[1:60]) k
+            from unnest((coalesce(p_keys, '{}'::text[]))[1:60]) k
            where k ~ '^[a-z0-9_.:-]{1,40}$' and not (r.story ? k)
            order by k
            limit v_room) x;

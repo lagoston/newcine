@@ -1,0 +1,65 @@
+# 14. Tutorial (roteiro completo em tutorial.md) || 14. Tutorial (full script in tutorial.md)
+% Falas marcadas `vez` aparecem na vez da pessoa e são curtas. As falas `TUx-Cn` só aparecem se a pessoa tocar num botão diferente do esperado: a ação não acontece e a decisão se repete ("Corta. Tomada dois."). || Lines marked `vez` show on your turn and are short. `TUx-Cn` lines only show if you tap a button other than the expected one: the action doesn't happen and the decision repeats ("Cut. Take two.").
+
+## Mão 1 · Pagar e passar || Hand 1 · Calling and checking
+TU1-01 | fincher | TUTORIAL | mão 1, abertura | - | P1 | - | Treino: três mãos, nada vale. Cada um recebe duas cartas; cinco vêm pra mesa. | Practice: three hands, nothing at stake. Two cards each; five go on the table.
+TU1-02 | fincher | TUTORIAL | mão 1, abertura | - | P1 | - | Vence a melhor mão de cinco cartas. As suas estão aí embaixo. | Best five-card hand wins. Yours are down below.
+TU1-03 | cypher | TUTORIAL | mão 1, Cobra desiste | - | P1 | - | Largo. Vai explicar o óbvio até os créditos, Raposo? | I fold. Going to explain the obvious till the credits, Fox?
+TU1-04 | fincher | TUTORIAL | mão 1, sua vez (pagar 50) | - | P1 | vez | Par de noves. Pague os 50. | A pair of nines. Call the 50.
+TU1-C1 | fincher | TUTORIAL | mão 1, se desistir | - | P1 | vez | Corta. Noves não se largam. De novo. | Cut. You don't fold nines. Again.
+TU1-C2 | fincher | TUTORIAL | mão 1, se aumentar | - | P1 | vez | Também dá. Hoje a aula é pagar. | That works too. Today's lesson: calling.
+TU1-05 | bogart | TUTORIAL | mão 1, Sapo completa | - | P1 | - | Pago o resto. Pra que gastar mais? | I'll pay the rest. Why spend more?
+TU1-06 | fincher | TUTORIAL | mão 1, Raposo passa | - | P1 | - | Passo. Passar é não apostar e seguir na mão. De graça. | Check. Checking means no bet, and you stay in. Free.
+TU1-07 | fincher | TUTORIAL | mão 1, flop | - | P1 | - | O flop: três cartas de todos. Você fez trinca, três noves. | The flop: three shared cards. You made a set: three nines.
+TU1-08 | fincher | TUTORIAL | mão 1, Raposo aposta 75 | - | P1 | - | Aposto 75. Quem quiser continuar, paga. | I bet 75. Anyone who wants to stay, calls.
+TU1-09 | fincher | TUTORIAL | mão 1, sua vez (pagar 75) | - | P1 | vez | Trinca é forte. Pague os 75. | A set is strong. Call the 75.
+TU1-C3 | fincher | TUTORIAL | mão 1, se desistir | - | P1 | vez | Corta. Trinca não se larga. De novo. | Cut. You never fold a set. Again.
+TU1-C4 | fincher | TUTORIAL | mão 1, se aumentar | - | P1 | vez | Bom instinto. Mas hoje: pagar. | Good instinct. But today: call.
+TU1-10 | bogart | TUTORIAL | mão 1, Sapo paga (o erro) | - | P1 | - | Pago! Tenho flush! Olha: duas copas! | I call! I've got a flush! Look: two hearts!
+TU1-11 | cypher | TUTORIAL | mão 1, Cobra corrige | - | P1 | - | Flush são cinco do mesmo naipe, sapinho. Você tem duas. E boca grande. | A flush is five of one suit, froggy. You have two. And a big mouth.
+TU1-12 | fincher | TUTORIAL | mão 1, turn | - | P1 | - | Todos passaram. Você também pode passar: não custa nada. | Everyone checked. You can check too: it costs nothing.
+TU1-13 | fincher | TUTORIAL | mão 1, sua vez (passar) | - | P1 | vez | Passe. É de graça. | Check. It's free.
+TU1-C5 | fincher | TUTORIAL | mão 1, se apostar | - | P1 | vez | Pode, mas hoje a aula é passar. | You could. Today's lesson: checking.
+TU1-C6 | fincher | TUTORIAL | mão 1, se desistir | - | P1 | vez | Corta. Desistir de graça? Passe. | Cut. Fold for free? Check.
+TU1-14 | bogart | TUTORIAL | mão 1, river, Sapo aposta 125 | - | P1 | - | Um sete! Par de setes! Aposto 125! | A seven! Pair of sevens! I bet 125!
+TU1-15 | fincher | TUTORIAL | mão 1, Raposo paga | - | P1 | - | Pago. E ele contou a mão de novo. | Call. And he told us his hand again.
+TU1-16 | fincher | TUTORIAL | mão 1, sua vez (pagar 125) | - | P1 | vez | Trinca vence par. Pague. | A set beats a pair. Call.
+TU1-C7 | fincher | TUTORIAL | mão 1, se aumentar | - | P1 | vez | Valeria. A aula de aumentar é já já. | Fair. The raising lesson is coming up.
+TU1-C8 | fincher | TUTORIAL | mão 1, se desistir | - | P1 | vez | Corta. Com trinca? Pague. | Cut. With a set? Call.
+TU1-17 | cypher | TUTORIAL | mão 1, showdown | - | P1 | - | Trinca de noves. O sapo jurava ter flush. Ganhou quem sabia contar. | Three nines. The frog swore he had a flush. The one who could count won.
+TU1-18 | bogart | TUTORIAL | mão 1, showdown | - | P1 | - | Eu sabia… quer dizer, não sabia. Nota 10 pra você. Nota 2 pra mim. | I knew it… well, I didn't. A 10 for you. A 2 for me.
+TU1-19 | fincher | TUTORIAL | mão 1, fecho | - | P1 | - | Pagar: entrar no preço. Passar: seguir de graça. Próxima mão. | Calling: matching the price. Checking: staying for free. Next hand.
+
+## Mão 2 · Desistir (e ver um blefe funcionar) || Hand 2 · Folding (and watching a bluff work)
+TU2-01 | fincher | TUTORIAL | mão 2, abertura | - | P1 | - | Mão dois. Você fala primeiro. Quem fala primeiro precisa de mão boa. | Hand two. You act first. Acting first takes a good hand.
+TU2-02 | fincher | TUTORIAL | mão 2, sua vez (desistir) | - | P1 | vez | Oito e três. Desista. Custa zero. | Eight-three. Fold. It costs nothing.
+TU2-C1 | fincher | TUTORIAL | mão 2, se pagar | - | P1 | vez | Corta. Oito e três? Desista. | Cut. Eight-three? Fold.
+TU2-C2 | fincher | TUTORIAL | mão 2, se aumentar | - | P1 | vez | Corta. Seria um blefe caro. Desista. | Cut. That's a pricey bluff. Fold.
+TU2-03 | bogart | TUTORIAL | mão 2, Sapo paga 50 | - | P1 | - | Entro pagando o mínimo. A sessão nem começou. | I'm in for the minimum. The movie hasn't started.
+TU2-04 | fincher | TUTORIAL | mão 2, Raposo desiste | - | P1 | - | Largo. Agora assista. A melhor aula é a mão dos outros. | I fold. Now watch. The best lesson is someone else's hand.
+TU2-05 | cypher | TUTORIAL | mão 2, Cobra aumenta | - | P1 | - | Aumento para 250. | Raise to 250.
+TU2-06 | bogart | TUTORIAL | mão 2, Sapo desiste (o erro) | - | P1 | - | Caro demais. Larguei. Tinha ás e valete, mas… caro demais. | Too pricey. Folded. Had ace-jack, but… too pricey.
+TU2-07 | cypher | TUTORIAL | mão 2, Cobra mostra | - | P1 | - | Sete e dois. A pior mão do baralho. Você largou um ás pra ela, sapinho. | Seven-deuce. Worst hand in the deck. You folded an ace to it, froggy.
+TU2-08 | fincher | TUTORIAL | mão 2, lição | - | P1 | - | Isso é blefe: apostar alto pra fazer a mão melhor desistir. | That's a bluff: betting big so the better hand folds.
+TU2-09 | fincher | TUTORIAL | mão 2, fecho | - | P1 | - | Você desistiu certo. Ele desistiu errado. A diferença era a mão. | You folded right. He folded wrong. The difference was the hand.
+
+## Mão 3 · Aumentar e blefar || Hand 3 · Raising and bluffing
+TU3-01 | bogart | TUTORIAL | mão 3, Sapo desiste | - | P1 | - | Fora. Esse eu espero sair no streaming. | I'm out. I'll wait for this one to hit streaming.
+TU3-02 | fincher | TUTORIAL | mão 3, Raposo desiste | - | P1 | - | Largo. Última aula: aumentar. E blefar. | I fold. Final lesson: raising. And bluffing.
+TU3-03 | cypher | TUTORIAL | mão 3, Cobra aumenta | - | P1 | - | Aumento para 150. Vem, criatura. | Raise to 150. Come on, creature.
+TU3-04 | fincher | TUTORIAL | mão 3, sua vez (pagar 100) | - | P1 | vez | Seis e cinco de ouros. Pague 100. | Suited six-five. Call 100.
+TU3-C1 | fincher | TUTORIAL | mão 3, se desistir | - | P1 | vez | Corta. No big blind, essa mão paga. | Cut. In the big blind, this hand calls.
+TU3-C2 | fincher | TUTORIAL | mão 3, se aumentar | - | P1 | vez | Calma. Primeiro, pague. | Easy. First, call.
+TU3-05 | fincher | TUTORIAL | mão 3, flop | - | P1 | - | Você não tem par. Mas um 2 ou um 7 fecha uma sequência. | You have no pair. But a 2 or a 7 makes a straight.
+TU3-06 | cypher | TUTORIAL | mão 3, Cobra aposta 100 | - | P1 | - | Aposto 100. Tenho o rei. Ou não. | I bet 100. I have the king. Or not.
+TU3-07 | bogart | TUTORIAL | mão 3, Sapo erra | - | P1 | - | Ela tem o rei. A Cobra SEMPRE tem o rei. Larga! | She has the king. The Snake ALWAYS has the king. Fold!
+TU3-08 | fincher | TUTORIAL | mão 3, lição | - | P1 | - | Ela aposta quase todo flop. Um aumento a faz pensar. | She bets almost every flop. A raise makes her think.
+TU3-09 | fincher | TUTORIAL | mão 3, sua vez (aumentar para 350) | - | P1 | vez | Aumente para 350. | Raise to 350.
+TU3-C3 | fincher | TUTORIAL | mão 3, se pagar | - | P1 | vez | Pode. Mas hoje a aula é aumentar. | You could. Today's lesson: raising.
+TU3-C4 | fincher | TUTORIAL | mão 3, se desistir | - | P1 | vez | Corta. Hoje a gente aumenta. | Cut. Today we raise.
+TU3-10 | cypher | TUTORIAL | mão 3, Cobra desiste | - | P1 | - | Hmm. Largo. Não gosto de ser lida. | Hmm. I fold. I don't like being read.
+TU3-11 | cypher | TUTORIAL | mão 3, cartas reveladas | - | P1 | - | Dama alta. Eu não tinha nada, sapinho. E a visita tinha menos ainda. | Queen-high. I had nothing, froggy. And our guest had even less.
+TU3-12 | bogart | TUTORIAL | mão 3, Sapo | - | P1 | - | Ela não tinha o rei?! Eu teria largado! Eu largo tudo! | She didn't have the king?! I'd have folded! I fold everything!
+TU3-13 | fincher | TUTORIAL | mão 3, lição | - | P1 | - | Seu primeiro blefe. Com saída: se pagassem, um 2 ou um 7 ainda salvava. | Your first bluff. With outs: if called, a 2 or a 7 could still save you.
+TU3-14 | fincher | TUTORIAL | fim do treino | - | P1 | - | Fim do treino. Agora é pra valer. Bem… quase. | End of practice. Now it's for real. Well… almost.
+TU3-15 | bogart | TUTORIAL | ficha do tutorial (RPC) | - | P1 | once=life | Toma uma ficha de presente. De verdade. Dói, mas toma. | Here's a chip, as a gift. A real one. It hurts, but take it.

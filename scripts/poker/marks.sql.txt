@@ -1,0 +1,41 @@
+-- GERADO por scripts/poker/gen-lines.ts (fontes: scripts/poker/falas-src/05-novo.txt, seção 13).
+-- As 5 tags dos marcos do poker (SPEC §2.9 e §5.5, item 5). Pacote B escreve; o pacote C aplica
+-- dentro da migração dele. `description` (en) e `description_pt` estão na voz do oráculo do marco;
+-- `requirement_description*` é a regra em texto simples. starts_at fica com o padrão da tabela.
+-- Idempotente: on conflict (id) do nothing (não sobrescreve um texto já ajustado à mão).
+
+insert into public.special_tags
+  (id, name, emoji, description, description_pt, requirement_description, requirement_description_pt,
+   ends_at, requirement_type, requirement_data)
+values
+  ('poker-first-win', 'Opening Night', '🃏',
+   'First place with a prize on the line. I gave it a 10. Don''t tell anyone.',
+   'Primeiro lugar valendo prêmio. Dei nota 10. Não conta pra ninguém.',
+   'Finish 1st in a prize match for the first time',
+   'Fique em 1º lugar numa partida valendo prêmio pela primeira vez',
+   null, 'custom', '{"source":"poker","mark":"first_win"}'::jsonb),
+  ('poker-fox-hunter', 'Fox Hunter', '🦊',
+   'Took me off the table with a prize on the line. Few can say that. Say it.',
+   'Me tirou da mesa numa partida valendo. Poucos podem dizer isso. Diga.',
+   'Knock out the Fox in a prize match',
+   'Elimine o Raposo numa partida valendo prêmio',
+   null, 'custom', '{"source":"poker","mark":"fox_hunter"}'::jsonb),
+  ('poker-clean-sweep', 'Clean Sweep', '🧹',
+   'Knocked out all three in one match. A gorgeous massacre. I''m jealous.',
+   'Eliminou os três na mesma partida. Que massacre lindo. Fiquei com inveja.',
+   'Knock out all three oracles in the same prize match',
+   'Elimine os três oráculos na mesma partida valendo prêmio',
+   null, 'custom', '{"source":"poker","mark":"clean_sweep"}'::jsonb),
+  ('poker-oscar-bluff', 'Oscar Bluff', '🏆',
+   'Took a big pot with the worse hand, and nobody saw. I did. Bravo.',
+   'Levou um pote grande com a pior mão, e ninguém viu. Eu vi. Aplaudo.',
+   'Win a pot of 20+ big blinds without showdown while someone who folded had the better hand',
+   'Leve um pote de 20 BB ou mais sem showdown, com alguém que desistiu tendo mão melhor',
+   null, 'custom', '{"source":"poker","mark":"oscar_bluff"}'::jsonb),
+  ('poker-seven-nights', 'Seven Nights', '🌙',
+   'Seven straight days at the prize table. I don''t watch that many films a week.',
+   'Sete dias seguidos na mesa valendo. Nem eu vejo tanto filme numa semana.',
+   'Finish a prize match on 7 days in a row',
+   'Termine uma partida valendo prêmio em 7 dias seguidos',
+   null, 'custom', '{"source":"poker","mark":"seven_nights"}'::jsonb)
+on conflict (id) do nothing;

@@ -12,6 +12,8 @@ import { textEffects, TextEffectId, meetsTextEffectRequirement, getTextEffectNam
 import { useTranslation } from 'react-i18next';
 import OracleSheet, { SheetFade } from './OracleSheet';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING } from '../lib/oracleTheme';
+import { fetchMyCosmeticUnlocks } from './poker/jackpot/entryApi';
+import PokerCosmeticsSection from './poker/cosmetics/PokerCosmeticsSection';
 
 interface CustomizeModalProps {
   isOpen: boolean;
@@ -134,10 +136,15 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   const [username, setUsername] = useState<string>('');
   // Item sendo gravado agora — evita clique duplo e mostra o estado no cartão.
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  // Molduras e banners ganhos como prêmio da mesa do Grande Blefe
+  // (03/11/2026): "frame:id" / "banner:id" contam como desbloqueados, mesmo
+  // sem Premium e sem a tag. Vazio quando o servidor não tem a função.
+  const [grants, setGrants] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (session?.user?.id && isOpen) {
       setLoading(true);
+      fetchMyCosmeticUnlocks().then(setGrants);
       Promise.all([fetchProfile(), fetchThemeTagProgress(), fetchRealReviewCount()])
         .catch((err) => console.error('[CustomizeModal] erro ao carregar dados', err))
         .finally(() => setLoading(false));
@@ -272,8 +279,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     }
   };
 
-  // Estado de desbloqueio comum a molduras, banners e cartas.
-  const lockState = (item: { isPremium: boolean; requiredTag?: string | null }) => {
+  // Estado de desbloqueio comum a molduras, banners e cartas. `grantKey`
+  // ("frame:id") libera o item ganho como prêmio da mesa.
+  const lockState = (item: { isPremium: boolean; requiredTag?: string | null }, grantKey?: string) => {
+    if (grantKey && grants.has(grantKey)) {
+      return { isPremiumLocked: false, unlockInfo: null, progress: 0, required: 0, tagMet: true, isLocked: false };
+    }
     const isPremiumLocked = item.isPremium && !isPremium;
     const unlockInfo = getUnlockTagInfo(item.requiredTag);
     const progress = item.requiredTag ? themeTagProgress[item.requiredTag] || 0 : 0;
@@ -364,7 +375,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
         </p>
         <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {ordered.map((frame) => {
-            const state = lockState(frame);
+            const state = lockState(frame, `frame:${frame.id}`);
             const selected = selectedFrame === frame.id;
             const busy = savingKey === `frame:${frame.id}`;
             const isLockedNow = state.isLocked;
@@ -417,7 +428,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     return (
       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {ordered.map((banner) => {
-          const state = lockState(banner);
+          const state = lockState(banner, `banner:${banner.id}`);
           const selected = selectedBanner === banner.id;
           const busy = savingKey === `banner:${banner.id}`;
           const isLockedNow = state.isLocked;
@@ -504,6 +515,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           );
         })}
       </ul>
+      {/* O Grande Blefe (03/11/2026): verso do baralho e feltro da mesa.
+          Só aparece com o pôquer aberto para a conta. */}
+      <PokerCosmeticsSection open={isOpen} />
     </>
   );
 
@@ -571,8 +585,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   // Prévia viva: o cartão do perfil com a moldura, o banner e o efeito de
   // texto escolhidos agora — pra ver as três peças juntas.
   const livePreview = () => {
-    const bannerClass = getBannerClass(selectedBanner, isPremium);
-    const rawFrame = getFrameClass(selectedFrame, isPremium);
+    // Prêmio da mesa vale como Premium só para o item ganho.
+    const bannerClass = getBannerClass(selectedBanner, isPremium || grants.has(`banner:${selectedBanner}`));
+    const rawFrame = getFrameClass(selectedFrame, isPremium || grants.has(`frame:${selectedFrame}`));
     const frameClass = !rawFrame || rawFrame === 'ring-0' ? 'ring-2 ring-white/15' : rawFrame;
     const nameClass = getTextEffectNameClass(selectedTextEffect, isPremium, realReviewCount);
     return (

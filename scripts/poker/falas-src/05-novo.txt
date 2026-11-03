@@ -1,0 +1,152 @@
+# 7. O prêmio do dia por tipo || 7. Today's prize by kind
+% O portador segue a raridade (veredito, Q2): comum e raro com o Sapo, épico com a Cobra, lendário com o Raposo. Cada tipo do catálogo tem uma apresentação por portador, porque o calendário pode abrir exceções. Tipo desconhecido usa as falas genéricas (B09–B11, C10–C11, F13–F15). A apresentação abre a partida valendo, depois de uma fala de `MATCH_START` no máximo. || The carrier follows rarity (verdict, Q2): common and rare with the Frog, epic with the Snake, legendary with the Fox. Each catalog kind has one presentation per carrier, because the calendar can make exceptions. Unknown kinds use the generic lines (B09–B11, C10–C11, F13–F15). The presentation opens the prize match, after at most one `MATCH_START` line.
+
+## Sapo (comum e raro) || Frog (common and rare)
+PB01 | bogart | PRIZE_INTRO | tickets | - | P1 | - | Hoje o prêmio é ficha. FICHA. Vou proteger isso com a vida, girino. | Tonight's prize is chips. CHIPS. I'll guard them with my life, tadpole.
+PB02 | bogart | PRIZE_INTRO | special_tickets | - | P1 | - | Ficha especial! A orquídea! Nem eu gastaria essa. Nem você vai. | A special chip! The orchid one! Even I wouldn't spend it. Neither will you.
+PB03 | bogart | PRIZE_INTRO | poster | - | P1 | - | Pôster com efeito pendurado no brejo. Brilha mais que meu futuro aqui. | A poster with effects, hung in my swamp. Shinier than my future here.
+PB04 | bogart | PRIZE_INTRO | avatar_frame | - | P1 | - | Moldura de avatar. Fica linda em mim. Em você, só se me tirar. | An avatar frame. Looks great on me. On you, only if you knock me out.
+PB05 | bogart | PRIZE_INTRO | banner | - | P1 | - | Um banner pro perfil. Eu ia pendurar na poltrona. Vem tirar. | A profile banner. I was going to hang it on my armchair. Come take it.
+PB06 | bogart | PRIZE_INTRO | tag | - | P1 | - | Uma tag nova. Tipo selo de crítico: "Aprovado pelo Sapo". | A new tag. Like a critic's seal: "Frog-approved."
+PB07 | bogart | PRIZE_INTRO | deck | - | P1 | - | Um baralho novo. Ainda tem cheiro de estreia. Não encosta. | A new deck. Still smells like opening night. Hands off.
+PB08 | bogart | PRIZE_INTRO | table | - | P1 | - | Uma mesa nova! Feltro macio. Ótima pra cochilar depois de perder. | A new table! Soft felt. Perfect for a nap after losing.
+PB09 | bogart | PRIZE_INTRO | rival | - | P1 | - | Trouxe companhia. Se você me derrubar, senta com a gente amanhã. | I brought company. Knock me out and they join us tomorrow.
+PB10 | bogart | PRIZE_INTRO | poker_quip | - | P1 | - | Um pacote de réplicas. Frases novas pra me provocar. Não entrego. | A comeback pack. New lines to taunt me with. Not handing it over.
+
+## Cobra (épico) || Snake (epic)
+PC01 | cypher | PRIZE_INTRO | tickets | - | P1 | - | Fichas. Ouro de tolo pra quem guarda. Pra mim, munição. | Chips. Fool's gold for savers. For me, ammunition.
+PC02 | cypher | PRIZE_INTRO | special_tickets | - | P1 | - | Ficha especial. Orquídea e ouro. Combina com veneno. | A special chip. Orchid and gold. Pairs well with venom.
+PC03 | cypher | PRIZE_INTRO | poster | - | P1 | - | Um pôster épico. Arte de um filme que ninguém viu. Os melhores. | An epic poster. Art from a film nobody saw. The best kind.
+PC04 | cypher | PRIZE_INTRO | avatar_frame | - | P1 | - | Uma moldura épica. Pra enquadrar o seu erro mais bonito. | An epic frame. To frame your most beautiful mistake.
+PC05 | cypher | PRIZE_INTRO | banner | - | P1 | - | Banner épico. Tão chamativo que parece cartaz de filme proibido. | An epic banner. So loud it looks like a banned film's poster.
+PC06 | cypher | PRIZE_INTRO | tag | - | P1 | - | Uma tag épica. Prova no seu perfil de que sobreviveu a mim. | An epic tag. Proof on your profile that you survived me.
+PC07 | cypher | PRIZE_INTRO | deck | - | P1 | - | Baralho novo. Cheiro de fita VHS recém-desembalada. Quero ver tentar. | A new deck. Smells like a freshly unwrapped VHS. Let's see you try.
+PC08 | cypher | PRIZE_INTRO | table | - | P1 | - | Uma mesa épica. Já imaginei você perdendo nela. Várias vezes. | An epic table. I've pictured you losing on it. Many times.
+PC09 | cypher | PRIZE_INTRO | rival | - | P1 | - | Tem alguém rastejando na porta. Só entra se você passar por mim. | Something's crawling at the door. It only gets in if you get past me.
+PC10 | cypher | PRIZE_INTRO | poker_quip | - | P1 | - | Réplicas novas. Palavras afiadas pra usar contra mim. Que ousadia. | New comebacks. Sharp words to use against me. The audacity.
+
+## Raposo (lendário) || Fox (legendary)
+PF01 | fincher | PRIZE_INTRO | tickets | - | P1 | - | Fichas. Muitas. Na minha época, isso pagava uma noite inteira. | Chips. Plenty. In my day, that paid for a whole night.
+PF02 | fincher | PRIZE_INTRO | special_tickets | - | P1 | - | Fichas especiais. Lendárias. Até o meu chapéu se endireitou. | Special chips. Legendary. Even my hat sat up straight.
+PF03 | fincher | PRIZE_INTRO | poster | - | P1 | - | Um pôster lendário. Daqueles que se pendura em cinema de rua. | A legendary poster. The kind that hangs in an old movie palace.
+PF04 | fincher | PRIZE_INTRO | avatar_frame | - | P1 | - | Uma moldura lendária. Molduras são para obras-primas. Prove que é. | A legendary frame. Frames are for masterpieces. Prove you're one.
+PF05 | fincher | PRIZE_INTRO | banner | - | P1 | - | Um banner lendário. Letreiro de estreia com seu nome. Se merecer. | A legendary banner. A premiere marquee with your name. If you earn it.
+PF06 | fincher | PRIZE_INTRO | tag | - | P1 | - | Uma tag lendária. Pouca gente tem. Menos gente ainda tirou de mim. | A legendary tag. Few have it. Fewer took it from me.
+PF07 | fincher | PRIZE_INTRO | deck | - | P1 | - | Um baralho lendário. Essas cartas já viram mesas melhores que esta. | A legendary deck. These cards have seen better tables than this.
+PF08 | fincher | PRIZE_INTRO | table | - | P1 | - | Uma mesa lendária. Joguei em muitas. Esta tem cheiro de primeira fila. | A legendary table. I've played many. This one smells like front row.
+PF09 | fincher | PRIZE_INTRO | rival | - | P1 | - | Tem alguém esperando na porta. Só entra se você me tirar da mesa. | Someone's waiting at the door. They only get in if you take me out.
+PF10 | fincher | PRIZE_INTRO | poker_quip | - | P1 | - | Réplicas lendárias. Boas falas são raras. Raras e caras. | Legendary comebacks. Good lines are rare. Rare and expensive.
+
+# 8. Empréstimo do Sapo || 8. The Frog's Loan
+% Regra do 01 (o servidor decide): depois de 3 tentativas perdidas seguidas, a próxima partida valendo começa com +500 da banca, com a pílula "+500 do Sapo". As falas abrem a partida (no lugar do `MATCH_START`) e voltam nos créditos. || Rule from 01 (the server decides): after 3 lost attempts in a row, the next prize match starts with +500 from the house, with the "+500 from the Frog" pill. The lines open the match (instead of `MATCH_START`) and return in the credits.
+L01 | bogart | LOAN | abertura | - | P1 | - | Toma 500 de cacife emprestado. Juros? Imagina. Só uns 300%. | Here's 500 on loan. Interest? Please. Just 300%-ish.
+L02 | bogart | LOAN | abertura | - | P1 | - | Empréstimo do Sapo liberado. Não conta que eu tenho coração. | Frog Loan approved. Don't tell anyone I have a heart.
+L03 | bogart | LOAN | abertura | - | P1 | - | Três derrotas seguidas? Dói até em mim. Toma, 500. Não acostuma. | Three losses in a row? Hurts even me. Here, 500. Don't get used to it.
+L04 | cypher | LOAN | testemunha | - | P3 | - | O sapo emprestando? Alguém confere se ele está com febre. | The frog lending? Someone check him for a fever.
+L05 | fincher | LOAN | testemunha | - | P3 | - | Empréstimo do Crítico. Leia as letras miúdas, {estreante}. | A loan from the Critic. Read the fine print, {estreante}.
+L06 | bogart | LOAN | você levou o prêmio | - | P1 | - | Ganhou com o MEU cacife! Quero 10% do prêmio. Em pipoca. | You won with MY stack! I want 10% of the prize. In popcorn.
+L07 | bogart | LOAN | você levou o prêmio | - | P1 | - | Tá vendo? Investimento do Sapo! Nota 10 pra mim como banco. | See? Frog investment! I rate myself 10 as a bank.
+L08 | bogart | LOAN | você perdeu | - | P1 | - | Perdeu os 500? Tudo bem. Anoto na mesma folha das 37 fichas. | Lost the 500? It's fine. I'll write it on the 37-chip page.
+
+=T29 | LOAN | abertura | P1 | once=session | Juros de amigo | Friend's rate
+> bogart | Empréstimo liberado: 500 de cacife. Juros de amigo. | Loan approved: 500 in stack. Friend's rate.
+> cypher | Quanto é juro de amigo, sapinho? | How much is a friend's rate, froggy?
+> bogart | Depende. Quanto você gosta de mim? | Depends. How much do you like me?
+
+# 9. Réplicas da visita (pacote padrão) || 9. Guest comebacks (default pack)
+% Você toca numa réplica e num oráculo; ele responde. Uma por mão, só entre ações e nunca durante a decisão de um bot. Todas as respostas são curtas, porque podem cair na sua vez. Na mão, o Sapo segue o próprio tell: com `calado` responde só com o selo "…", e as respostas marcadas `nervoso` ou `confiante` só saem com esse cue (ou com ele fora da mão). O Raposo não responde enquanto mostra o anel. || You tap a comeback and an oracle; they answer. One per hand, only between actions, never during a bot's decision. All answers are short, because they can land on your turn. In a hand the Frog follows his tell: on `calado` he answers only with the "…" badge, and answers marked `nervoso` or `confiante` only fire with that cue (or when he's out of the hand). The Fox doesn't answer while showing the ring.
+
+## As 4 réplicas || The 4 comebacks
+R1 | visita | QUIP | - | - | - | vez | Pede pra sair? | Feeling lucky?
+R2 | visita | QUIP | - | - | - | vez | Já vi esse filme. | I've seen this movie.
+R3 | visita | QUIP | - | - | - | vez | Spoiler: eu ganho. | Spoiler: I win.
+R4 | visita | QUIP | - | - | - | vez | Bela atuação. | Nice acting.
+
+## Respostas a R1 · "Pede pra sair?" || Answers to R1 · "Feeling lucky?"
+QB1a | bogart | QUIP_REPLY | R1 | * | P1 | vez | Sair? Eu já paguei o ingresso! | Lucky? I paid for my ticket, that's luck!
+QB1b | bogart | QUIP_REPLY | R1 | nervoso,fora | P1 | vez | Peço. Posso? Não? Tá, eu fico. | Lucky? Me? Is that a trick question?
+QB1c | bogart | QUIP_REPLY | R1 | * | P1 | vez | Sapo não pede pra sair. Pede pipoca. | Frogs don't feel lucky. They feel hungry.
+QC1a | cypher | QUIP_REPLY | R1 | * | P1 | vez | Eu só saio daqui arrastada. | Luck is for people without venom.
+QC1b | cypher | QUIP_REPLY | R1 | * | P1 | vez | Sair? Eu rastejo pra dentro. | Lucky? I make my own. Badly.
+QC1c | cypher | QUIP_REPLY | R1 | * | P1 | vez | Fofo. Repete mais devagar. | Cute. Say it slower.
+QF1a | fincher | QUIP_REPLY | R1 | nervoso,neutro,fora | P1 | vez | Saio quando a fita acabar. | I don't need luck. I need the river.
+QF1b | fincher | QUIP_REPLY | R1 | nervoso,neutro,fora | P1 | vez | Sento aqui desde o cinema mudo. | Well, do I? Ask me again in ten hands.
+QF1c | fincher | QUIP_REPLY | R1 | nervoso,neutro,fora | P1 | vez | Pergunte de novo daqui a dez mãos. | Luck is what amateurs call results.
+
+## Respostas a R2 · "Já vi esse filme." || Answers to R2 · "I've seen this movie."
+QB2a | bogart | QUIP_REPLY | R2 | * | P1 | vez | Viu? E gostou? Dá nota! | You saw it? Did you like it? Rate it!
+QB2b | bogart | QUIP_REPLY | R2 | * | P1 | vez | Spoiler não! Eu tô no meio ainda! | No spoilers! I'm still halfway through!
+QB2c | bogart | QUIP_REPLY | R2 | * | P1 | vez | Eu também vi. Dormi no meio. | I saw it too. Fell asleep halfway.
+QC2a | cypher | QUIP_REPLY | R2 | * | P1 | vez | Viu a versão com cortes. Eu sou a sem. | You saw the edited cut. I'm the uncut.
+QC2b | cypher | QUIP_REPLY | R2 | * | P1 | vez | Então sabe que acaba mal. Pra você. | Then you know it ends badly. For you.
+QC2c | cypher | QUIP_REPLY | R2 | * | P1 | vez | Ninguém viu esse. Foi banido. | Nobody saw this one. It was banned.
+QF2a | fincher | QUIP_REPLY | R2 | nervoso,neutro,fora | P1 | vez | Viu. Mas não entendeu o final. | You saw it. You didn't get the ending.
+QF2b | fincher | QUIP_REPLY | R2 | nervoso,neutro,fora | P1 | vez | Eu dirigi esse filme. | I directed this picture.
+QF2c | fincher | QUIP_REPLY | R2 | nervoso,neutro,fora | P1 | vez | Todo mundo viu. Poucos lembram. | Everyone's seen it. Few remember it.
+
+## Respostas a R3 · "Spoiler: eu ganho." || Answers to R3 · "Spoiler: I win."
+QB3a | bogart | QUIP_REPLY | R3 | * | P1 | vez | SPOILER?! Tampa os ouvidos, gente! | SPOILER?! Cover your ears, folks!
+QB3b | bogart | QUIP_REPLY | R3 | * | P1 | vez | Spoiler é crime. Eu sei. Fui crítico. | Spoilers are a crime. I was a critic.
+QB3c | bogart | QUIP_REPLY | R3 | * | P1 | vez | Ganha nada. Li o roteiro. Mentira. | You won't. I read the script. Lie.
+QC3a | cypher | QUIP_REPLY | R3 | * | P1 | vez | Spoiler falso. Adoro. É meu gênero. | Fake spoiler. Love it. My genre.
+QC3b | cypher | QUIP_REPLY | R3 | * | P1 | vez | O roteiro mudou. Eu reescrevi. | The script changed. I rewrote it.
+QC3c | cypher | QUIP_REPLY | R3 | * | P1 | vez | Ganha. Na versão que ninguém vai ver. | You win. In the cut nobody will see.
+QF3a | fincher | QUIP_REPLY | R3 | nervoso,neutro,fora | P1 | vez | Final anunciado é final ruim. | An announced ending is a bad ending.
+QF3b | fincher | QUIP_REPLY | R3 | nervoso,neutro,fora | P1 | vez | Já ouvi isso. Em 1961. Ele perdeu. | Heard that before. In 1961. He lost.
+QF3c | fincher | QUIP_REPLY | R3 | nervoso,neutro,fora | P1 | vez | Veremos na última cena. | We'll see in the last scene.
+
+## Respostas a R4 · "Bela atuação." || Answers to R4 · "Nice acting."
+QB4a | bogart | QUIP_REPLY | R4 | * | P1 | vez | Obrigado! Treino no espelho do brejo. | Thanks! I practice in the swamp mirror.
+QB4b | bogart | QUIP_REPLY | R4 | nervoso,fora | P1 | vez | Atuação? Isso é nervoso de verdade! | Acting? These are real nerves!
+QB4c | bogart | QUIP_REPLY | R4 | confiante,fora | P1 | vez | Nota 10 pra mim. Concordo. | A 10 for me. Agreed.
+QC4a | cypher | QUIP_REPLY | R4 | * | P1 | vez | Atuação? Eu nem comecei. | Acting? I haven't even started.
+QC4b | cypher | QUIP_REPLY | R4 | * | P1 | vez | Guarde os aplausos pro final. | Save the applause for the end.
+QC4c | cypher | QUIP_REPLY | R4 | * | P1 | vez | Eu atuo. Você assiste. Funciona. | I act. You watch. It works.
+QF4a | fincher | QUIP_REPLY | R4 | nervoso,neutro,fora | P1 | vez | Quarenta anos de ensaio. | Forty years of rehearsal.
+QF4b | fincher | QUIP_REPLY | R4 | nervoso,neutro,fora | P1 | vez | Ninguém atua. Todos mentem. | Nobody acts. Everybody lies.
+QF4c | fincher | QUIP_REPLY | R4 | nervoso,neutro,fora | P1 | vez | Obrigado. A sua precisa de ensaio. | Thank you. Yours needs rehearsal.
+
+# 10. Intervalo || 10. Intermission
+% O cartão do Intervalo aparece depois de 5 partidas seguidas ou 45 minutos e pede a nota de um filme, sem travar. Um oráculo convida (sorteado) e outro recebe na volta. || The Intermission card appears after 5 straight matches or 45 minutes and asks you to rate a film, without blocking. One oracle invites (random) and another welcomes you back.
+IB1 | bogart | INTERVAL_INVITE | - | - | P1 | - | Intervalo! Avalia um filme aí enquanto eu conto meu cacife. | Intermission! Rate a movie while I count my stack.
+IB2 | bogart | INTERVAL_INVITE | - | - | P1 | - | Pausa pra pipoca. E pra nota: qual foi o último filme que você viu? | Popcorn break. And a rating: what's the last movie you saw?
+IB3 | bogart | INTERVAL_RETURN | - | - | P1 | - | Voltou! Deu nota pra quê? Se foi menos que 8, mentiu. | You're back! What did you rate? Under 8? You lied.
+IB4 | bogart | INTERVAL_RETURN | - | - | P1 | - | Bem na hora. O segundo ato tá começando. | Right on time. Act two is starting.
+IC1 | cypher | INTERVAL_INVITE | - | - | P1 | - | Intervalo. Dê nota a um filme. De preferência um que todo mundo odeia. | Intermission. Rate a film. Ideally one everyone hates.
+IC2 | cypher | INTERVAL_INVITE | - | - | P1 | - | Até o caos tem intervalo. Avalie algo estranho e volte. | Even chaos takes an intermission. Rate something strange and come back.
+IC3 | cypher | INTERVAL_RETURN | - | - | P1 | - | Voltou. Deu zero pra algum clássico? Diga que sim. | Back. Did you give a classic a zero? Say yes.
+IC4 | cypher | INTERVAL_RETURN | - | - | P1 | - | Senti falta da presa. Pode sentar. | I missed my prey. Sit down.
+IF1 | fincher | INTERVAL_INVITE | - | - | P1 | - | Intervalo. Vá dar nota a um filme. As cartas não fogem. | Intermission. Go rate a film. The cards won't run.
+IF2 | fincher | INTERVAL_INVITE | - | - | P1 | - | Na minha época tinha intervalo e lanterninha. Avalie um filme. Eu espero. | In my day there was an intermission and an usher. Rate a film. I'll wait.
+IF3 | fincher | INTERVAL_RETURN | - | - | P1 | - | De volta. Espero que tenha avaliado algo anterior a 1970. | Back. I hope you rated something from before 1970.
+IF4 | fincher | INTERVAL_RETURN | - | - | P1 | - | A sala escureceu de novo. Seu lugar estava guardado. | The lights are down again. Your seat was saved.
+
+# 11. "Anteriormente em O Grande Blefe…" || 11. "Previously on The Big Bluff…"
+% Voz em off do Raposo na recapitulação de 3 s ao retomar uma partida. O cartão-título é da interface; a fala é uma só, escolhida pelo contexto mais específico. || The Fox's voice-over in the 3-second recap when resuming a match. The title card is UI; there's one line, picked by the most specific context.
+AN1 | fincher | RECAP | geral | - | P1 | - | Mão {mao_n}. O pote esfriou, mas ninguém esqueceu. | Hand {mao_n}. The pot went cold, but nobody forgot.
+AN2 | fincher | RECAP | você liderava | - | P1 | - | Você liderava com {cacife}. A mesa inteira afiava as garras. | You led with {cacife}. The whole table was sharpening its claws.
+AN3 | fincher | RECAP | você estava curto | - | P1 | - | Você tinha {cacife} e pouca esperança. Às vezes basta. | You had {cacife} and little hope. Sometimes that's enough.
+AN4 | fincher | RECAP | um oráculo liderava | - | P1 | - | {lider} tinha a maior pilha. E o sorriso mais irritante. | {lider} had the biggest stack. And the most annoying grin.
+AN5 | fincher | RECAP | partida valendo | - | P1 | - | O prêmio estava com {portador}. Ainda está. Por enquanto. | The prize was with {portador}. Still is. For now.
+AN6 | fincher | RECAP | um oráculo já caiu | - | P1 | - | Um oráculo já tinha caído. Os outros fingiam não ligar. | One oracle had already fallen. The others pretended not to care.
+
+# 12. Dicas de contexto do Raposo || 12. The Fox's context tips
+% Uma vez na vida cada, nunca no tutorial. Quando a dica cai na sua vez, a parte (a) é curta e a parte (b) vem depois da mão. || Once per lifetime each, never in the tutorial. When a tip lands on your turn, part (a) is short and part (b) comes after the hand.
+DT1a | fincher | TIP | primeiro all-in contra você (a, na sua vez) | - | P1 | once=life,vez | All-in contra você. Pague só com mão forte. | All-in against you. Call only with strength.
+DT1b | fincher | TIP | primeiro all-in contra você (b, depois da mão) | - | P1 | once=life | Pagar um all-in arrisca o cacife inteiro. Às vezes desistir é a jogada. | Calling an all-in risks your whole stack. Sometimes folding is the play.
+DT2a | fincher | TIP | primeiro pote paralelo (a) | - | P1 | once=life | Pote paralelo: quem tinha menos só disputa o que conseguiu cobrir. | Side pot: a short stack can only win what it could match.
+DT2b | fincher | TIP | primeiro pote paralelo (b) | - | P1 | once=life | O resto vai pra outro pote, disputado só por quem tinha mais. | The rest goes to another pot, contested only by the bigger stacks.
+DT3a | fincher | TIP | primeira subida de blind | - | P1 | once=life | Os blinds subiram. Cada volta custa mais. Esperar demais encolhe o cacife. | Blinds went up. Each orbit costs more. Waiting too long shrinks your stack.
+DT3b | fincher | TIP | primeiro ante (nível 3) | - | P1 | once=life | O ante: todos pagam um pouco antes de cada mão. Mais motivo pra jogar. | The ante: everyone pays a little before each hand. More reason to play.
+DT4a | fincher | TIP | primeira aposta grande contra você (a, na sua vez) | - | P1 | once=life,vez | Aposta grande. Compare o preço com o pote. | Big bet. Compare the price to the pot.
+DT4b | fincher | TIP | primeira aposta grande contra você (b, depois da mão) | - | P1 | once=life | Se pagar custa um terço do pote, você precisa vencer 1 vez em 4. | If calling costs a third of the pot, you need to win 1 time in 4.
+// Pacote B (03/11/2026): o §2.9 da especificação pede a dica do primeiro heads-up (`tip.headsup`).
+DT5 | fincher | TIP | primeiro corte final | - | P1 | once=life | Corte Final: só dois na mesa. Quase toda mão vale jogar. E pressionar. | Final Cut: just two left. Nearly every hand is worth playing. And pushing.
+
+# 13. Marcos que viram tag || 13. Milestones that become tags
+% Só apurados pelo servidor nas partidas valendo (veredito, Q9). A regra é dado de jogo; o texto abaixo é a descrição da tag, na voz de um oráculo. || Only awarded by the server in prize matches (verdict, Q9). The rule is game data; the text below is the tag description, in an oracle's voice.
+M1 | bogart | MILESTONE | Primeira Vitória · 1º lugar numa partida valendo | - | - | once=life | Primeiro lugar valendo prêmio. Dei nota 10. Não conta pra ninguém. | First place with a prize on the line. I gave it a 10. Don't tell anyone.
+M2 | fincher | MILESTONE | Derrubou o Raposo · eliminou o Raposo numa partida valendo | - | - | once=life | Me tirou da mesa numa partida valendo. Poucos podem dizer isso. Diga. | Took me off the table with a prize on the line. Few can say that. Say it.
+M3 | cypher | MILESTONE | Limpa-Mesa · eliminou os três na mesma partida valendo | - | - | once=life | Eliminou os três na mesma partida. Que massacre lindo. Fiquei com inveja. | Knocked out all three in one match. A gorgeous massacre. I'm jealous.
+M4 | cypher | MILESTONE | Blefe de Oscar · pote ≥20 BB sem showdown, com mão pior que a de quem desistiu | - | - | once=life | Levou um pote grande com a pior mão, e ninguém viu. Eu vi. Aplaudo. | Took a big pot with the worse hand, and nobody saw. I did. Bravo.
+M5 | bogart | MILESTONE | Uma Semana na Mesa · jogou valendo 7 dias seguidos | - | - | once=life | Sete dias seguidos na mesa valendo. Nem eu vejo tanto filme numa semana. | Seven straight days at the prize table. I don't watch that many films a week.

@@ -1,0 +1,448 @@
+/**
+ * O projetor da mesa (03/11/2026): recebe os lotes de eventos públicos da partida
+ * (Worker na livre, servidor no prêmio) e os "projeta" um a um, com o tempo de
+ * pensar de cada bot, as viradas de carta e as pausas de fim de mão. Quando o lote
+ * acaba, a `TableView` corrige qualquer diferença e, se for a vez da pessoa, a mesa
+ * abre os botões.
+ *
+ * Tocar no feltro (`skipAnim`) termina na hora a espera em curso (§7.9).
+ */
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { TFunction } from 'i18next';
+import type { PlayerAction } from '../engine.ts';
+import type { MatchMode, PublicEvent, TableView } from '../types.ts';
+import { applyEvent, emptyTable, fromView, seatOf, type TableShow } from './display.ts';
+import type { Director, TableContext } from './useDirector.ts';
+import type { MatchClient } from './matchClient.ts';
+import { getPokerSettings, speedFactor } from './settings.ts';
+import { narrate } from './narrate.ts';
+import type { Lang } from './format.ts';
+import {
+  playBet,
+  playCheck,
+  playCutFinal,
+  playDeal,
+  playElimination,
+  playFlop,
+  playRumble,
+  playShowdown,
+  playSweep,
+  playVictory,
+  playYourTurn,
+  vibrate,
+} from './sound.ts';
+
+export type TablePhase = 'idle' | 'playing' | 'human' | 'submitting' | 'ended';
+export interface Batch {
+  events: PublicEvent[];
+  view: TableView | null;
+}
+export interface Banner {
+  id: number;
+  kind: 'level' | 'cutFinal' | 'prize' | 'showdown';
+  text?: string;
+}
+
+/** Durações no ritmo Normal, em ms (§7.11 e 05 §3). Rápido e Turbo multiplicam. */
+export const DUR = {
+  handStarted: 380,
+  blinds: 420,
+  deal: 900,
+  action: 520,
+  human: 240,
+  uncalled: 380,
+  runout: 900,
+  flop: 950,
+  turn: 760,
+  river: 760,
+  riverRunout: 1100,
+  showdown: 1600,
+  cardsShown: 1000,
+  potAwarded: 820,
+  handComplete: 950,
+  eliminated: 1150,
+  prizeMoved: 950,
+  prizeCaptured: 1700,
+  levelUp: 1300,
+  headsUp: 1750,
+};
+
+export interface UseTableOptions {
+  mode: MatchMode;
+  director: Director;
+  ctx: () => TableContext | null;
+  compute: MatchClient | null;
+  t: TFunction;
+  lang: Lang;
+  /** Chamado depois de cada evento projetado; se devolver uma promessa, a projeção espera (beats do treino). */
+  afterEvent?: (e: PublicEvent, table: TableShow) => void | Promise<void>;
+}
+
+export interface UseTable {
+  table: TableShow;
+  phase: TablePhase;
+  banner: Banner | null;
+  /** Texto para o `aria-live="polite"`. */
+  live: string;
+  /** Texto para o `aria-live="assertive"` (a vez da pessoa). */
+  alert: string;
+  /** Roteiro da mesa: as últimas jogadas em texto. */
+  log: { id: number; text: string; speaker?: string }[];
+  addLog: (text: string, speaker?: string) => void;
+  /** Mesa direto de uma `view` (retomada), sem projetar nada. */
+  load: (view: TableView) => void;
+  enqueue: (batch: Batch) => void;
+  /** Mostra a própria ação na hora, antes da resposta (§4.7, ~400 ms). */
+  optimistic: (action: PlayerAction) => void;
+  /** Volta a mesa para "sua vez" depois de um erro de envio. */
+  reopen: () => void;
+  skipAnim: () => void;
+  /** Segura a projeção até a promessa resolver (o "Estrelando…"). */
+  hold: (p: Promise<void>) => void;
+  lastView: TableView | null;
+  getView: () => TableView | null;
+  getTable: () => TableShow;
+  /** Algo ainda na fila ou sendo projetado. */
+  busy: () => boolean;
+}
+
+export function useTable(opts: UseTableOptions): UseTable {
+  const [table, setTable] = useState<TableShow>(() => emptyTable(opts.mode));
+  const [phase, setPhase] = useState<TablePhase>('idle');
+  const [banner, setBanner] = useState<Banner | null>(null);
+  const [live, setLive] = useState('');
+  const [alert, setAlert] = useState('');
+  const [log, setLog] = useState<{ id: number; text: string; speaker?: string }[]>([]);
+  const tableRef = useRef<TableShow>(table);
+  const queueRef = useRef<Batch[]>([]);
+  const runningRef = useRef(false);
+  const skipRef = useRef<(() => void) | null>(null);
+  const holdRef = useRef<Promise<void> | null>(null);
+  const aliveRef = useRef(true);
+  const lastViewRef = useRef<TableView | null>(null);
+  const bannerNo = useRef(0);
+  const logNo = useRef(0);
+  const optsRef = useRef(opts);
+  optsRef.current = opts;
+
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      skipRef.current?.();
+    };
+  }, []);
+
+  const commit = useCallback((t: TableShow) => {
+    tableRef.current = t;
+    setTable(t);
+  }, []);
+
+  const addLog = useCallback((text: string, speaker?: string) => {
+    logNo.current += 1;
+    const id = logNo.current;
+    setLog((l) => [...l.slice(-79), { id, text, speaker }]);
+  }, []);
+
+  const wait = useCallback((ms: number) => {
+    return new Promise<void>((resolve) => {
+      if (ms <= 0 || !aliveRef.current) {
+        resolve();
+        return;
+      }
+      let timer = 0;
+      const done = () => {
+        window.clearTimeout(timer);
+        if (skipRef.current === done) skipRef.current = null;
+        resolve();
+      };
+      timer = window.setTimeout(done, ms);
+      skipRef.current = done;
+    });
+  }, []);
+
+  const showBanner = useCallback((b: Omit<Banner, 'id'>, ms: number) => {
+    bannerNo.current += 1;
+    const id = bannerNo.current;
+    setBanner({ ...b, id });
+    window.setTimeout(() => setBanner((cur) => (cur && cur.id === id ? null : cur)), ms);
+  }, []);
+
+  // % de chance no all-in, a partir das cartas abertas (§2.3.2). Assíncrono: só
+  // aplica se a mesa ainda estiver na mesma mão.
+  const refreshOdds = useCallback((t: TableShow) => {
+    const client = optsRef.current.compute;
+    if (!client || t.board.length >= 5) return;
+    const hands = t.seats
+      .filter((s) => s.cards.length === 2 && (s.status === 'allIn' || s.status === 'active') && s.hasCards)
+      .map((s) => ({ playerId: s.id, cards: s.cards }));
+    if (hands.length < 2) return;
+    const hand = t.handNumber;
+    const boardLen = t.board.length;
+    void client.call({ op: 'odds', hands, board: t.board }).then((r) => {
+      if (r.kind !== 'odds' || !aliveRef.current) return;
+      const cur = tableRef.current;
+      if (cur.handNumber !== hand || cur.board.length !== boardLen || cur.showdown) return;
+      commit({ ...cur, seats: cur.seats.map((s) => (s.id in r.odds ? { ...s, odds: r.odds[s.id] } : s)) });
+    });
+  }, [commit]);
+
+  const playEvent = useCallback(
+    async (e: PublicEvent) => {
+      const { t, lang, director, ctx } = optsRef.current;
+      const sp = speedFactor(getPokerSettings().speed);
+      const A = (ms: number) => ms * sp.anim;
+      const before = tableRef.current;
+
+      // O bot pensa antes de agir: o tempo é um tell (§3.6), e Rápido/Turbo mantêm a proporção.
+      if (e.t === 'action' && e.playerId !== 'human' && typeof e.thinkMs === 'number') {
+        commit({ ...before, thinkingId: e.playerId, toActId: e.playerId });
+        await wait(e.thinkMs * sp.think);
+      }
+
+      const after = applyEvent(tableRef.current, e);
+      commit(after);
+
+      const c = ctx();
+      if (c) {
+        try {
+          director.onEvent(e, c);
+        } catch {
+          // o Diretor nunca derruba a mesa
+        }
+      }
+      const text = narrate(t, lang, e, after);
+      if (text) {
+        setLive(text);
+        addLog(text);
+      }
+
+      let ms = 0;
+      switch (e.t) {
+        case 'handStarted':
+          ms = DUR.handStarted;
+          break;
+        case 'blindsPosted':
+          playBet(2);
+          ms = DUR.blinds;
+          break;
+        case 'holeCards':
+          playDeal(after.seats.filter((s) => s.hasCards).length * 2);
+          ms = DUR.deal;
+          break;
+        case 'action':
+          if (e.action === 'check') playCheck();
+          else if (e.action !== 'fold') playBet(e.allIn ? 5 : e.sizeClass === 'big' || e.sizeClass === 'overbet' ? 3 : 1);
+          if (e.allIn) vibrate(30);
+          ms = e.playerId === 'human' ? DUR.human : DUR.action;
+          break;
+        case 'uncalledReturned':
+          ms = DUR.uncalled;
+          break;
+        case 'runout':
+          refreshOdds(after);
+          ms = DUR.runout;
+          break;
+        case 'street':
+          if (before.seats.some((s) => s.bet > 0)) playSweep();
+          if (after.runout && e.street === 'river') playRumble();
+          else playFlop(e.cards.length);
+          if (after.runout) refreshOdds(after);
+          ms = e.street === 'flop' ? DUR.flop : after.runout && e.street === 'river' ? DUR.riverRunout : DUR.turn;
+          break;
+        case 'showdown':
+          playShowdown(false);
+          ms = DUR.showdown;
+          break;
+        case 'cardsShown':
+          ms = DUR.cardsShown;
+          break;
+        case 'potAwarded':
+          if (e.winners.some((w) => w.playerId === 'human')) vibrate([20, 40, 40]);
+          if (after.winningHand && e.potIndex === 0) showBanner({ kind: 'showdown' }, A(1600));
+          ms = DUR.potAwarded;
+          break;
+        case 'handComplete':
+          ms = DUR.handComplete;
+          break;
+        case 'eliminated':
+          playElimination();
+          if (e.playerId === 'human') vibrate(80);
+          ms = DUR.eliminated;
+          break;
+        case 'prizeMoved':
+          ms = DUR.prizeMoved;
+          break;
+        case 'prizeCaptured':
+          showBanner({ kind: 'prize' }, A(DUR.prizeCaptured) + 300);
+          ms = DUR.prizeCaptured;
+          break;
+        case 'levelUp':
+          showBanner({ kind: 'level' }, A(DUR.levelUp) + 400);
+          ms = DUR.levelUp;
+          break;
+        case 'headsUp':
+          playCutFinal();
+          showBanner({ kind: 'cutFinal' }, A(DUR.headsUp) + 300);
+          ms = DUR.headsUp;
+          break;
+        case 'matchEnded':
+          if (e.humanPlace === 1) {
+            playVictory();
+            vibrate([30, 40, 60, 40, 90]);
+          }
+          break;
+        default:
+          break;
+      }
+      // A ação da própria pessoa já apareceu na hora (otimista): passa rápido.
+      if (ms) await wait(A(ms));
+      if (optsRef.current.afterEvent) await optsRef.current.afterEvent(e, tableRef.current);
+    },
+    [addLog, commit, refreshOdds, showBanner, wait],
+  );
+
+  const settle = useCallback(() => {
+    const t = tableRef.current;
+    if (t.ended || t.status !== 'running') {
+      setPhase('ended');
+      return;
+    }
+    if (t.toActId === 'human' && t.legal) {
+      setPhase('human');
+      const { tt, lang } = { tt: optsRef.current.t, lang: optsRef.current.lang };
+      const me = seatOf(t, 'human');
+      const f = new Intl.NumberFormat(lang === 'pt' ? 'pt-BR' : 'en-US');
+      setAlert(tt('poker.actions.yourTurnAria', { pot: f.format(t.legal.pot), toCall: f.format(t.legal.toCall), stack: f.format(me?.stack ?? 0) }));
+      playYourTurn();
+      vibrate(12);
+      return;
+    }
+    setPhase('idle');
+  }, []);
+
+  const run = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
+    setPhase('playing');
+    while (queueRef.current.length > 0 && aliveRef.current) {
+      const batch = queueRef.current.shift()!;
+      for (const e of batch.events) {
+        if (!aliveRef.current) break;
+        if (holdRef.current) {
+          await holdRef.current;
+          holdRef.current = null;
+        }
+        await playEvent(e);
+      }
+      if (batch.view) {
+        lastViewRef.current = batch.view;
+        commit(fromView(batch.view, tableRef.current));
+      }
+    }
+    runningRef.current = false;
+    if (aliveRef.current) settle();
+  }, [commit, playEvent, settle]);
+
+  const enqueue = useCallback(
+    (batch: Batch) => {
+      // O Diretor lê a view do fim do lote desde o primeiro evento (contexto da mesa).
+      if (batch.view) lastViewRef.current = batch.view;
+      queueRef.current.push(batch);
+      void run();
+    },
+    [run],
+  );
+
+  const load = useCallback(
+    (view: TableView) => {
+      lastViewRef.current = view;
+      commit(fromView(view, null));
+      settle();
+    },
+    [commit, settle],
+  );
+
+  const optimistic = useCallback(
+    (action: PlayerAction) => {
+      const t = tableRef.current;
+      const legal = t.legal;
+      const me = seatOf(t, 'human');
+      setPhase('submitting');
+      setAlert('');
+      if (!legal || !me) return;
+      let to = me.bet;
+      let amount = 0;
+      let kind: 'fold' | 'check' | 'call' | 'bet' | 'raise' = 'check';
+      if (action.type === 'fold') kind = 'fold';
+      else if (action.type === 'call' && legal.call) {
+        kind = 'call';
+        amount = legal.call.amount;
+        to = me.bet + amount;
+      } else if (action.type === 'bet' || action.type === 'raise') {
+        kind = action.type;
+        to = action.amount;
+        amount = to - me.bet;
+      } else if (action.type === 'allIn' && legal.allIn) {
+        kind = legal.allIn.kind;
+        to = legal.allIn.to;
+        amount = legal.allIn.amount;
+      }
+      const allIn = amount >= me.stack && amount > 0;
+      if (kind === 'check') playCheck();
+      else if (kind !== 'fold') playBet(allIn ? 5 : 1);
+      commit({
+        ...t,
+        toActId: null,
+        legal: null,
+        potTotal: t.potTotal + amount,
+        seats: t.seats.map((s) =>
+          s.id === 'human'
+            ? {
+                ...s,
+                stack: s.stack - amount,
+                bet: to,
+                status: kind === 'fold' ? 'folded' : allIn ? 'allIn' : s.status,
+                last: { kind, amount, to, allIn },
+              }
+            : s,
+        ),
+      });
+    },
+    [commit],
+  );
+
+  const reopen = useCallback(() => {
+    const v = lastViewRef.current;
+    if (v) commit(fromView(v, tableRef.current));
+    settle();
+  }, [commit, settle]);
+
+  const skipAnim = useCallback(() => {
+    skipRef.current?.();
+  }, []);
+
+  const hold = useCallback((p: Promise<void>) => {
+    holdRef.current = p;
+  }, []);
+
+  return {
+    table,
+    phase,
+    banner,
+    live,
+    alert,
+    log,
+    addLog,
+    load,
+    enqueue,
+    optimistic,
+    reopen,
+    skipAnim,
+    hold,
+    lastView: lastViewRef.current,
+    getView: () => lastViewRef.current,
+    getTable: () => tableRef.current,
+    busy: () => runningRef.current || queueRef.current.length > 0,
+  };
+}

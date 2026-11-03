@@ -2469,5 +2469,283 @@
       "daily_trades": "Você já fez 3 trocas hoje. Amanhã libera de novo.",
       "their_daily_trades": "{{name}} já fez 3 trocas hoje. A proposta continua aberta: aceite amanhã."
     }
+  },
+  "pokerEntry": {
+    "name": "O Grande Blefe",
+    "tab": "Pôquer",
+    "noRealMoney": "Sem dinheiro real. Fichas não valem dinheiro nem saem do app.",
+    "today": "Hoje na mesa: {{prize}}, {{carrier}}.",
+    "todayStrip": "Hoje na mesa: {{prize}}",
+    "useChip": "Usar a ficha",
+    "stripAria": "O Grande Blefe. Hoje na mesa: {{prize}}, {{carrier}}. Abrir o salão.",
+    "oracles": {
+      "bogart": {
+        "short": "Sapo",
+        "with": "com o Sapo"
+      },
+      "cypher": {
+        "short": "Cobra",
+        "with": "com a Cobra"
+      },
+      "fincher": {
+        "short": "Raposo",
+        "with": "com o Raposo"
+      },
+      "other": {
+        "short": "Rival",
+        "with": "com um rival"
+      }
+    },
+    "panel": {
+      "prizeTitle": "O prêmio de hoje",
+      "difficulty": "Dificuldade",
+      "difficultyAria": "Dificuldade {{count}} de 4",
+      "playBounty": "Valendo o prêmio",
+      "entryAria": "Jogar valendo o prêmio por 1 ficha",
+      "retry": "Tentar de novo",
+      "continue": "Continuar a partida",
+      "attempt": "Tentativa {{n}} de {{max}}",
+      "activeBody": "Sua partida de hoje está esperando.",
+      "won": "É seu!",
+      "wonBody": "Você levou o prêmio de hoje.",
+      "limit": "Amanhã tem outro.",
+      "limitBody": "Você usou as {{max}} tentativas de hoje.",
+      "noChips": "Sem fichas agora. Ganhe nas Missões.",
+      "seeMissions": "Ver as missões",
+      "youHave_zero": "Você está sem fichas",
+      "youHave_one": "Você tem {{count}} ficha",
+      "youHave_other": "Você tem {{count}} fichas",
+      "noPrize": "O prêmio de hoje ainda está sendo escolhido. A mesa livre está aberta.",
+      "freeTitle": "Mesa livre",
+      "freeBody": "Grátis, quantas vezes quiser.",
+      "playFree": "Jogar grátis",
+      "openSalon": "Abrir o salão",
+      "yourTitle": "Seu título: {{title}}",
+      "wins": "vitórias",
+      "matches": "partidas",
+      "winRate": "de vitórias",
+      "scoreAria": "Placar: {{wins}} vitórias em {{matches}} partidas, {{pct}}% de vitórias. Abrir o placar."
+    },
+    "titles": {
+      "figurante": "Figurante",
+      "duble": "Dublê",
+      "coadjuvante": "Coadjuvante",
+      "protagonista": "Protagonista",
+      "estrela": "Estrela",
+      "lenda": "Lenda da Sessão"
+    },
+    "age": {
+      "title": "Só para maiores de 18",
+      "body": "A partida valendo prêmio é para quem tem 18 anos ou mais.",
+      "note": "Sem dinheiro real: fichas não valem dinheiro nem saem do app.",
+      "confirm": "Tenho 18 ou mais",
+      "decline": "Agora não",
+      "error": "Não deu para confirmar agora. Tente de novo."
+    },
+    "missions": {
+      "pokerPlay_one": "Jogue {{count}} partida de pôquer até o fim",
+      "pokerPlay_other": "Jogue {{count}} partidas de pôquer até o fim"
+    },
+    "trades": {
+      "untradeable": "Prêmios da mesa não entram em trocas.",
+      "seal": "Prêmio da mesa",
+      "sealHint": "Ganho no Grande Blefe. Não entra em trocas."
+    },
+    "cosmetics": {
+      "hint": "O verso das cartas e o pano da mesa. Os outros saem como prêmio da mesa.",
+      "deck": "Verso do baralho",
+      "table": "Mesa",
+      "tableHint": "Vale na mesa livre. A mesa valendo prêmio é sempre de veludo.",
+      "locked": "Prêmio da mesa",
+      "deckUpdated": "Baralho trocado.",
+      "tableUpdated": "Mesa trocada.",
+      "equipError": "Não deu para equipar agora."
+    },
+    "marks": {
+      "firstWin": {
+        "name": "Primeira Vitória",
+        "rule": "Vença uma partida valendo prêmio."
+      },
+      "foxHunter": {
+        "name": "Derrubou o Raposo",
+        "rule": "Elimine o Raposo numa partida valendo prêmio."
+      },
+      "cleanSweep": {
+        "name": "Limpa-Mesa",
+        "rule": "Elimine os três oráculos na mesma partida valendo prêmio."
+      },
+      "oscarBluff": {
+        "name": "Blefe de Oscar",
+        "rule": "Leve um pote de 20 BB ou mais sem mostrar as cartas, com alguém largando mão melhor."
+      },
+      "sevenNights": {
+        "name": "Uma Semana na Mesa",
+        "rule": "Termine partidas valendo prêmio em 7 dias seguidos."
+      }
+    },
+    "hands": {
+      "high_card": "Carta alta",
+      "pair": "Par",
+      "two_pair": "Dois pares",
+      "trips": "Trinca",
+      "straight": "Sequência",
+      "flush": "Flush",
+      "full_house": "Full house",
+      "quads": "Quadra",
+      "straight_flush": "Straight flush",
+      "royal": "Royal flush"
+    },
+    "ranks": {
+      "2": "dois",
+      "3": "três",
+      "4": "quatro",
+      "5": "cinco",
+      "6": "seis",
+      "7": "sete",
+      "8": "oito",
+      "9": "nove",
+      "T": "dez",
+      "J": "valete",
+      "Q": "dama",
+      "K": "rei",
+      "A": "ás"
+    },
+    "suits": {
+      "spades": "espadas",
+      "hearts": "copas",
+      "diamonds": "ouros",
+      "clubs": "paus"
+    },
+    "score": {
+      "title": "Placar",
+      "back": "Voltar ao salão",
+      "loading": "Carregando o placar",
+      "closed": "O salão está fechado agora.",
+      "error": "Não deu para abrir o placar.",
+      "retry": "Tentar de novo",
+      "home": "Voltar para o início",
+      "yourTitle": "Seu título",
+      "reelAria_one": "Título {{title}}, o {{n}}º de 6. Falta {{count}} vitória para {{next}}.",
+      "reelAria_other": "Título {{title}}, o {{n}}º de 6. Faltam {{count}} vitórias para {{next}}.",
+      "reelTopAria": "Título {{title}}, o mais alto.",
+      "toNext_one": "Falta {{count}} vitória para {{title}}.",
+      "toNext_other": "Faltam {{count}} vitórias para {{title}}.",
+      "topTitle": "Você chegou ao topo do cartaz.",
+      "filterAria": "Quais partidas contar",
+      "general": "Geral",
+      "verified": "Valendo",
+      "unverified": "Partidas livres não são verificadas.",
+      "verifiedNote": "Só as partidas valendo prêmio, conferidas pelo servidor.",
+      "emptyTitle": "A mesa está esperando.",
+      "emptyBounty": "Nenhuma partida valendo ainda.",
+      "emptyBody": "Sua primeira partida entra aqui, com colocação, melhor mão e a rivalidade com cada oráculo.",
+      "seePrize": "Ver o prêmio de hoje",
+      "header_zero": "vitórias em {{matches}} partidas",
+      "header_one": "vitória em {{matches}} partidas",
+      "header_other": "vitórias em {{matches}} partidas",
+      "losses": "Derrotas",
+      "winRate": "Aproveitamento",
+      "streak": "Sequência atual",
+      "bestStreak": "Melhor sequência",
+      "places": "Colocações",
+      "placesHint_zero": "Nenhum pódio ainda (1º ou 2º lugar).",
+      "placesHint_one": "{{count}} pódio (1º ou 2º lugar).",
+      "placesHint_other": "{{count}} pódios (1º ou 2º lugar).",
+      "placesAria": "Colocações, do 1º ao 4º lugar",
+      "placeShort": "{{place}}º",
+      "placeLong": "{{place}}º lugar",
+      "modes": "Livre × valendo",
+      "modeFree": "Mesa livre",
+      "modeBounty": "Valendo prêmio",
+      "modeLine": "{{wins}} de {{matches}} · {{pct}}%",
+      "prizes": "Prêmios da mesa",
+      "noPrizes": "Nenhum ainda. Quem elimina o oráculo que carrega o prêmio, ou vence a mesa, leva.",
+      "rivals": "Você contra cada oráculo",
+      "youElim": "Você eliminou",
+      "theyElim": "Te eliminou",
+      "elimLine_m": "Você o eliminou {{a}}× · ele te eliminou {{b}}×",
+      "elimLine_f": "Você a eliminou {{a}}× · ela te eliminou {{b}}×",
+      "nemesis": "Nêmesis",
+      "customer": "Freguês",
+      "moments": "Momentos",
+      "bestHand": "Melhor mão",
+      "noBestHand": "Sua melhor mão aparece aqui depois do primeiro showdown.",
+      "cardSpoken": "{{rank}} de {{suit}}",
+      "biggestPot": "Maior pote",
+      "comebacks": "Viradas (venceu com menos de 5 BB)",
+      "luck": "Sorte nos all-ins",
+      "luckLine": "Você ganhou {{won}} de {{total}} all-ins; a matemática esperava {{expected}}.",
+      "luckIndex": "Sorte: {{delta}}.",
+      "luckUp": "As cartas têm ajudado.",
+      "luckDown": "As cartas têm sido duras com você.",
+      "luckEven": "Bem no meio do que se esperava.",
+      "luckWon_zero": "Ganhou nenhum",
+      "luckWon_one": "Ganhou {{count}}",
+      "luckWon_other": "Ganhou {{count}}",
+      "luckExpected": "Esperado: {{value}}",
+      "noAllins": "Nenhum all-in disputado até o fim ainda.",
+      "badBeatsSuffered": "Bad beats sofridos",
+      "badBeatsDealt": "Bad beats aplicados",
+      "bluffs": "Blefes que funcionaram",
+      "marks": "Marcos",
+      "marksHint": "Só nas partidas valendo prêmio. Cada marco vira uma tag do perfil.",
+      "markEarned": "Tag {{tag}} · em {{date}}",
+      "equip": "Equipar",
+      "inUse": "Em uso",
+      "equipped": "Tag {{name}} equipada.",
+      "equipError": "Não deu para equipar a tag agora.",
+      "numbersTitle": "Números de jogador",
+      "numbersHint": "Para quem gosta de estudar o próprio jogo. A faixa dourada é o normal numa mesa de 4.",
+      "numbers": {
+        "fewHands": "Poucas mãos ainda para dizer.",
+        "normal": "Normal: {{from}} a {{to}}",
+        "vpip": {
+          "label": "VPIP",
+          "help": "Em quantas mãos você pôs fichas por vontade própria antes do flop."
+        },
+        "pfr": {
+          "label": "PFR",
+          "help": "Em quantas mãos você aumentou antes do flop."
+        },
+        "af": {
+          "label": "Agressão",
+          "help": "Apostas e aumentos para cada vez que você só pagou, depois do flop."
+        },
+        "cbet": {
+          "label": "C-bet",
+          "help": "Quando aumentou antes do flop, quantas vezes apostou de novo no flop."
+        },
+        "wtsd": {
+          "label": "Ida ao showdown",
+          "help": "Em quantas mãos você foi até o fim e mostrou as cartas."
+        },
+        "wsd": {
+          "label": "Vitória no showdown",
+          "help": "Das vezes que mostrou as cartas, quantas ganhou."
+        },
+        "place": {
+          "label": "Colocação média",
+          "help": "Quanto menor, melhor. Numa mesa de 4, o meio é 2,5."
+        }
+      },
+      "recent": "Últimas partidas",
+      "win": "V",
+      "loss": "D",
+      "winLong": "Vitória",
+      "lossLong": "Derrota",
+      "inProgress": "Em andamento",
+      "modeFreeShort": "Livre",
+      "modeBountyShort": "Valendo prêmio",
+      "withLoan": "com empréstimo",
+      "forfeit": "desistiu",
+      "abandoned": "abandonada",
+      "tookPrize": "levou {{prize}}",
+      "hands_one": "{{count}} mão",
+      "hands_other": "{{count}} mãos",
+      "friendsToday_one": "Prêmio de hoje: 1 amigo levou",
+      "friendsToday_other": "Prêmio de hoje: {{count}} amigos levaram",
+      "placeTip_one": "{{place}}º lugar: {{count}} partida, {{pct}}%",
+      "placeTip_other": "{{place}}º lugar: {{count}} partidas, {{pct}}%"
+    }
   }
 }

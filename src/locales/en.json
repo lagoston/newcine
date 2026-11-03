@@ -2464,5 +2464,283 @@
       "daily_trades": "You've made 3 trades today. More tomorrow.",
       "their_daily_trades": "{{name}} has made 3 trades today. The proposal stays open: accept it tomorrow."
     }
+  },
+  "pokerEntry": {
+    "name": "The Big Bluff",
+    "tab": "Poker",
+    "noRealMoney": "No real money. Chips have no cash value and never leave the app.",
+    "today": "At the table today: {{prize}}, {{carrier}}.",
+    "todayStrip": "At the table today: {{prize}}",
+    "useChip": "Use a chip",
+    "stripAria": "The Big Bluff. At the table today: {{prize}}, {{carrier}}. Open the lounge.",
+    "oracles": {
+      "bogart": {
+        "short": "Frog",
+        "with": "held by the Frog"
+      },
+      "cypher": {
+        "short": "Snake",
+        "with": "held by the Snake"
+      },
+      "fincher": {
+        "short": "Fox",
+        "with": "held by the Fox"
+      },
+      "other": {
+        "short": "Rival",
+        "with": "held by a rival"
+      }
+    },
+    "panel": {
+      "prizeTitle": "Today's prize",
+      "difficulty": "Difficulty",
+      "difficultyAria": "Difficulty {{count}} of 4",
+      "playBounty": "Play for the prize",
+      "entryAria": "Play for the prize for 1 chip",
+      "retry": "Try again",
+      "continue": "Resume the match",
+      "attempt": "Attempt {{n}} of {{max}}",
+      "activeBody": "Today's match is waiting for you.",
+      "won": "It's yours!",
+      "wonBody": "You took today's prize.",
+      "limit": "Another one tomorrow.",
+      "limitBody": "You've used all {{max}} attempts today.",
+      "noChips": "No chips right now. Earn some in Missions.",
+      "seeMissions": "See missions",
+      "youHave_zero": "You're out of chips",
+      "youHave_one": "You have {{count}} chip",
+      "youHave_other": "You have {{count}} chips",
+      "noPrize": "Today's prize is still being picked. The free table is open.",
+      "freeTitle": "Free table",
+      "freeBody": "Free, as often as you like.",
+      "playFree": "Play free",
+      "openSalon": "Open the lounge",
+      "yourTitle": "Your title: {{title}}",
+      "wins": "wins",
+      "matches": "matches",
+      "winRate": "win rate",
+      "scoreAria": "Scoreboard: {{wins}} wins in {{matches}} matches, {{pct}}% win rate. Open the scoreboard."
+    },
+    "titles": {
+      "figurante": "Extra",
+      "duble": "Stunt Double",
+      "coadjuvante": "Supporting Role",
+      "protagonista": "Lead",
+      "estrela": "Star",
+      "lenda": "Legend of the Session"
+    },
+    "age": {
+      "title": "18+ only",
+      "body": "Playing for a prize is for people 18 or older.",
+      "note": "No real money: chips have no cash value and never leave the app.",
+      "confirm": "I'm 18 or older",
+      "decline": "Not now",
+      "error": "Couldn't confirm right now. Try again."
+    },
+    "missions": {
+      "pokerPlay_one": "Finish {{count}} poker match",
+      "pokerPlay_other": "Finish {{count}} poker matches"
+    },
+    "trades": {
+      "untradeable": "Table prizes can't be traded.",
+      "seal": "Table prize",
+      "sealHint": "Won at The Big Bluff. Can't be traded."
+    },
+    "cosmetics": {
+      "hint": "Your card backs and table cloth. More come as table prizes.",
+      "deck": "Card back",
+      "table": "Table",
+      "tableHint": "Used at the free table. The prize table is always velvet.",
+      "locked": "Table prize",
+      "deckUpdated": "Deck changed.",
+      "tableUpdated": "Table changed.",
+      "equipError": "Couldn't equip it right now."
+    },
+    "marks": {
+      "firstWin": {
+        "name": "First Win",
+        "rule": "Win a match played for the prize."
+      },
+      "foxHunter": {
+        "name": "Took Down the Fox",
+        "rule": "Knock out the Fox in a prize match."
+      },
+      "cleanSweep": {
+        "name": "Clean Sweep",
+        "rule": "Knock out all three oracles in the same prize match."
+      },
+      "oscarBluff": {
+        "name": "Oscar Bluff",
+        "rule": "Win a pot of 20 BB or more without a showdown while someone folds a better hand."
+      },
+      "sevenNights": {
+        "name": "Seven Nights",
+        "rule": "Finish prize matches on 7 days in a row."
+      }
+    },
+    "hands": {
+      "high_card": "High card",
+      "pair": "Pair",
+      "two_pair": "Two pair",
+      "trips": "Three of a kind",
+      "straight": "Straight",
+      "flush": "Flush",
+      "full_house": "Full house",
+      "quads": "Four of a kind",
+      "straight_flush": "Straight flush",
+      "royal": "Royal flush"
+    },
+    "ranks": {
+      "2": "two",
+      "3": "three",
+      "4": "four",
+      "5": "five",
+      "6": "six",
+      "7": "seven",
+      "8": "eight",
+      "9": "nine",
+      "T": "ten",
+      "J": "jack",
+      "Q": "queen",
+      "K": "king",
+      "A": "ace"
+    },
+    "suits": {
+      "spades": "spades",
+      "hearts": "hearts",
+      "diamonds": "diamonds",
+      "clubs": "clubs"
+    },
+    "score": {
+      "title": "Scoreboard",
+      "back": "Back to the lounge",
+      "loading": "Loading the scoreboard",
+      "closed": "The lounge is closed right now.",
+      "error": "Couldn't open the scoreboard.",
+      "retry": "Try again",
+      "home": "Back to home",
+      "yourTitle": "Your title",
+      "reelAria_one": "Title {{title}}, number {{n}} of 6. {{count}} win to {{next}}.",
+      "reelAria_other": "Title {{title}}, number {{n}} of 6. {{count}} wins to {{next}}.",
+      "reelTopAria": "Title {{title}}, the highest.",
+      "toNext_one": "{{count}} more win to {{title}}.",
+      "toNext_other": "{{count}} more wins to {{title}}.",
+      "topTitle": "You're at the top of the bill.",
+      "filterAria": "Which matches to count",
+      "general": "All",
+      "verified": "Prize",
+      "unverified": "Free matches aren't verified.",
+      "verifiedNote": "Prize matches only, checked by the server.",
+      "emptyTitle": "The table is waiting.",
+      "emptyBounty": "No prize matches yet.",
+      "emptyBody": "Your first match lands here, with your finish, best hand and the rivalry with each oracle.",
+      "seePrize": "See today's prize",
+      "header_zero": "wins in {{matches}} matches",
+      "header_one": "win in {{matches}} matches",
+      "header_other": "wins in {{matches}} matches",
+      "losses": "Losses",
+      "winRate": "Win rate",
+      "streak": "Current streak",
+      "bestStreak": "Best streak",
+      "places": "Finishes",
+      "placesHint_zero": "No podiums yet (1st or 2nd).",
+      "placesHint_one": "{{count}} podium (1st or 2nd).",
+      "placesHint_other": "{{count}} podiums (1st or 2nd).",
+      "placesAria": "Finishes, 1st to 4th",
+      "placeShort": "#{{place}}",
+      "placeLong": "Finished #{{place}}",
+      "modes": "Free vs. prize",
+      "modeFree": "Free table",
+      "modeBounty": "Prize table",
+      "modeLine": "{{wins}} of {{matches}} · {{pct}}%",
+      "prizes": "Table prizes",
+      "noPrizes": "None yet. Knock out the oracle holding the prize, or win the table, to take it.",
+      "rivals": "You vs. each oracle",
+      "youElim": "You knocked out",
+      "theyElim": "Knocked you out",
+      "elimLine_m": "You knocked him out {{a}}× · he knocked you out {{b}}×",
+      "elimLine_f": "You knocked her out {{a}}× · she knocked you out {{b}}×",
+      "nemesis": "Nemesis",
+      "customer": "Regular",
+      "moments": "Moments",
+      "bestHand": "Best hand",
+      "noBestHand": "Your best hand shows up here after your first showdown.",
+      "cardSpoken": "{{rank}} of {{suit}}",
+      "biggestPot": "Biggest pot",
+      "comebacks": "Comebacks (won from under 5 BB)",
+      "luck": "All-in luck",
+      "luckLine": "You won {{won}} of {{total}} all-ins; the math expected {{expected}}.",
+      "luckIndex": "Luck: {{delta}}.",
+      "luckUp": "The cards have been kind.",
+      "luckDown": "The cards have been rough on you.",
+      "luckEven": "Right where the math put you.",
+      "luckWon_zero": "Won none",
+      "luckWon_one": "Won {{count}}",
+      "luckWon_other": "Won {{count}}",
+      "luckExpected": "Expected: {{value}}",
+      "noAllins": "No all-ins run to the end yet.",
+      "badBeatsSuffered": "Bad beats taken",
+      "badBeatsDealt": "Bad beats dealt",
+      "bluffs": "Bluffs that worked",
+      "marks": "Milestones",
+      "marksHint": "Prize matches only. Each one becomes a profile tag.",
+      "markEarned": "Tag {{tag}} · on {{date}}",
+      "equip": "Equip",
+      "inUse": "In use",
+      "equipped": "{{name}} tag equipped.",
+      "equipError": "Couldn't equip the tag right now.",
+      "numbersTitle": "Player stats",
+      "numbersHint": "For those who like to study their game. The gold band is normal at a 4-seat table.",
+      "numbers": {
+        "fewHands": "Not enough hands yet.",
+        "normal": "Normal: {{from}} to {{to}}",
+        "vpip": {
+          "label": "VPIP",
+          "help": "How often you put chips in voluntarily before the flop."
+        },
+        "pfr": {
+          "label": "PFR",
+          "help": "How often you raised before the flop."
+        },
+        "af": {
+          "label": "Aggression",
+          "help": "Bets and raises for every call, after the flop."
+        },
+        "cbet": {
+          "label": "C-bet",
+          "help": "After raising preflop, how often you bet again on the flop."
+        },
+        "wtsd": {
+          "label": "Went to showdown",
+          "help": "How often you went all the way and showed your cards."
+        },
+        "wsd": {
+          "label": "Won at showdown",
+          "help": "Of the times you showed your cards, how often you won."
+        },
+        "place": {
+          "label": "Average finish",
+          "help": "Lower is better. At a 4-seat table, the middle is 2.5."
+        }
+      },
+      "recent": "Recent matches",
+      "win": "W",
+      "loss": "L",
+      "winLong": "Win",
+      "lossLong": "Loss",
+      "inProgress": "In progress",
+      "modeFreeShort": "Free",
+      "modeBountyShort": "For the prize",
+      "withLoan": "with a loan",
+      "forfeit": "forfeited",
+      "abandoned": "abandoned",
+      "tookPrize": "took {{prize}}",
+      "hands_one": "{{count}} hand",
+      "hands_other": "{{count}} hands",
+      "friendsToday_one": "Today's prize: 1 friend took it",
+      "friendsToday_other": "Today's prize: {{count}} friends took it",
+      "placeTip_one": "#{{place}}: {{count}} match, {{pct}}%",
+      "placeTip_other": "#{{place}}: {{count}} matches, {{pct}}%"
+    }
   }
 }

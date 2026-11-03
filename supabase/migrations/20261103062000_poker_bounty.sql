@@ -114,20 +114,25 @@ $$;
 -- qualquer dia) acabaram todas sem captura. Uma captura zera a sequência.
 create or replace function public.poker_loan_due(p_uid uuid)
 returns boolean
-language sql
+language plpgsql
 stable
 security definer
 set search_path = public
 as $$
-  select count(*) >= s.loan_after_losses and coalesce(bool_and(x.captured_hand is null), false)
-    from poker_settings s
-    left join lateral (
-      select m.captured_hand
-        from poker_bounty_matches m
-       where m.user_id = p_uid and m.status in ('won', 'lost', 'forfeit', 'abandoned')
-       order by m.finished_at desc nulls last, m.created_at desc
-       limit s.loan_after_losses) x on true
-   group by s.loan_after_losses;
+declare
+  v_k int;
+  v_n int;
+  v_caps int;
+begin
+  select loan_after_losses into v_k from poker_settings;
+  select count(*), count(x.captured_hand) into v_n, v_caps
+    from (select m.captured_hand
+            from poker_bounty_matches m
+           where m.user_id = p_uid and m.status in ('won', 'lost', 'forfeit', 'abandoned')
+           order by m.finished_at desc nulls last, m.created_at desc
+           limit greatest(coalesce(v_k, 0), 0)) x;
+  return coalesce(v_k, 0) > 0 and v_n >= v_k and v_caps = 0;
+end;
 $$;
 
 -- Os números da mesa (o mesmo formato para a Edge e para o lobby).
@@ -617,7 +622,9 @@ grant execute on function public.poker_bounty_step(uuid, uuid, int, jsonb, jsonb
 -- ---------------------------------------------------------------------------
 
 -- O campo "poker" de get_jackpot_state (§5.5). Leve: o dia já está gravado
--- (cron das 00:01), então são só leituras.
+-- (cron das 00:01), então são só leituras. "open" = liberado para esta conta
+-- (is_open ou tester); fechado, o campo é só {open:false}, sem o prêmio do dia
+-- (pedido do coordenador, 03/11/2026: nada vaza antes da abertura).
 create or replace function public.poker_teaser(p_uid uuid)
 returns jsonb
 language plpgsql
@@ -638,12 +645,12 @@ declare
   v_rarity text;
 begin
   if not poker_enabled(p_uid) or poker_is_bot(p_uid) then
-    return jsonb_build_object('enabled', false);
+    return jsonb_build_object('open', false);
   end if;
   select * into cfg from poker_settings;
   d := poker_bounty_for_day(v_day);
   if d.day is null then
-    return jsonb_build_object('enabled', true, 'day', v_day, 'prize', null, 'home_strip', false);
+    return jsonb_build_object('open', true, 'enabled', true, 'day', v_day, 'prize', null, 'home_strip', false);
   end if;
   eff := poker_effective_prize(p_uid, v_day);
   v_rarity := eff ->> 'rarity';
@@ -662,6 +669,7 @@ begin
                   or now() < cfg.launched_at + make_interval(days => cfg.home_strip_launch_days)
                   or v_last > now() - make_interval(days => cfg.home_strip_recent_days));
   return jsonb_build_object(
+    'open', true,
     'enabled', true,
     'day', v_day,
     'prize', (select jsonb_build_object('id', j ->> 'id', 'kind', j ->> 'kind', 'rarity', j ->> 'rarity',
@@ -683,6 +691,8 @@ $$;
 revoke all on function public.poker_teaser(uuid) from public, anon, authenticated;
 
 -- O lobby inteiro numa chamada (§5.3). Volátil: pode gravar o dia sorteado.
+-- "open" = liberado para esta conta (is_open ou tester); fechado → só
+-- {enabled:false, open:false}.
 create or replace function public.get_poker_home()
 returns jsonb
 language plpgsql
@@ -707,7 +717,7 @@ declare
   v_tickets int;
 begin
   if not poker_enabled(v_uid) then
-    return jsonb_build_object('enabled', false);
+    return jsonb_build_object('enabled', false, 'open', false);
   end if;
   select * into cfg from poker_settings;
   pl := poker_player_row(v_uid);
@@ -754,6 +764,7 @@ begin
   v_wins := poker_wins_total(v_uid);
   return jsonb_build_object(
     'enabled', true,
+    'open', true,
     'proto_min', cfg.min_proto,
     'settings', poker_settings_json(),
     'bot_params', poker_bot_params_json(),
@@ -796,11 +807,12 @@ declare
   v_wins int;
 begin
   if not poker_enabled(v_uid) then
-    return jsonb_build_object('enabled', false);
+    return jsonb_build_object('enabled', false, 'open', false);
   end if;
   v_wins := poker_wins_total(v_uid);
   return jsonb_build_object(
     'enabled', true,
+    'open', true,
     'stats', jsonb_build_object('free', poker_stats_json(v_uid, 'free'), 'bounty', poker_stats_json(v_uid, 'bounty')),
     'title', jsonb_build_object('wins', v_wins, 'id', poker_title(v_wins)),
     'recent_free', coalesce((

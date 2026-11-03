@@ -26,6 +26,12 @@ import {
 // as enviadas (cancelar), o histórico e o "Propor troca" (escolher o amigo,
 // o seu pôster e o dele).
 
+// 03/11/2026 (pôquer): pôster ganho no Grande Blefe não entra em trocas; a
+// trava é do banco (gatilho poker_trade_guard → exceção 'untradeable'). Aqui
+// só a mensagem certa, lida antes do tradeErrorCode (que não conhece o código).
+const isUntradeable = (error: unknown) => ((error as { message?: string })?.message || '').includes('untradeable');
+const isTablePrize = (poster: TradePoster) => (poster as TradePoster & { tradeable?: boolean }).tradeable === false;
+
 const Avatar: React.FC<{ user: { username: string; avatar_url: string | null }; size?: number }> = ({ user, size = 36 }) =>
   user.avatar_url ? (
     <img src={user.avatar_url} alt="" className="shrink-0 rounded-full object-cover ring-1 ring-white/15" style={{ width: size, height: size }} />
@@ -164,13 +170,15 @@ const PickGrid: React.FC<{
   onSelect: (poster: TradePoster) => void;
   blockedLabel: string;
 }> = ({ posters, selected, onSelect, blockedLabel }) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
   return (
     <ul className="grid grid-cols-4 sm:grid-cols-5 gap-2">
       {posters.map((poster) => {
         const active = !!selected && selected.id === poster.id && selected.effect === poster.effect;
-        const blocked = !!poster.other_has;
+        // Prêmio da mesa: o servidor já tira da lista; se vier, fica travado.
+        const tablePrize = isTablePrize(poster);
+        const blocked = !!poster.other_has || tablePrize;
         return (
           <li key={`${poster.id}:${poster.effect}`}>
             <button
@@ -198,7 +206,7 @@ const PickGrid: React.FC<{
               )}
               {blocked && (
                 <span className="absolute inset-x-1 bottom-1 rounded-md px-1 py-0.5 text-[10px] font-semibold leading-tight text-center" style={{ background: 'rgba(10,14,44,0.85)', color: PAPER }}>
-                  {blockedLabel}
+                  {tablePrize ? t('pokerEntry.trades.seal') : blockedLabel}
                 </span>
               )}
             </button>
@@ -252,7 +260,7 @@ const ProposeFlow: React.FC<{ onDone: () => void; onBack: () => void }> = ({ onD
     } catch (error) {
       const code = tradeErrorCode(error);
       console.error('Propose trade:', error);
-      toast.error(t(`trades.errors.${code}`, { defaultValue: t('trades.errors.error') }));
+      toast.error(isUntradeable(error) ? t('pokerEntry.trades.untradeable') : t(`trades.errors.${code}`, { defaultValue: t('trades.errors.error') }));
     } finally {
       setSending(false);
     }
@@ -399,7 +407,11 @@ const PosterTradesPanel: React.FC<{
     } catch (error) {
       console.error('Respond trade:', error);
       const code = tradeErrorCode(error);
-      toast.error(t(`trades.errors.${code}`, { name: trade.friend.username, defaultValue: t('trades.errors.error') }));
+      toast.error(
+        isUntradeable(error)
+          ? t('pokerEntry.trades.untradeable')
+          : t(`trades.errors.${code}`, { name: trade.friend.username, defaultValue: t('trades.errors.error') })
+      );
     } finally {
       setBusyId(null);
     }

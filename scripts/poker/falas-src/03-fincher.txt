@@ -1,0 +1,114 @@
+# 3. Fincher, o Raposo || 3. Fincher, the Fox
+% Vitrine: os suspiros e o chapéu (`nervoso`) são falsos; o único tell verdadeiro é o anel de fumaça perfeito (`confiante`). Quando o anel aparece, o Raposo não fala: o anel fala sozinho. Por isso as falas dele sobre a própria mão aceitam só `nervoso,neutro`, e nenhuma delas menciona fumaça. `{estreante}` vira "colega" quando você chega a Protagonista. || Showcase: his sighs and hat (`nervoso`) are fake; the only true tell is the perfect smoke ring (`confiante`). When the ring appears, the Fox says nothing: the ring speaks for itself. So his lines about his own hand only accept `nervoso,neutro`, and none mentions smoke. `{estreante}` becomes "partner" once you reach Lead.
+
+## Abertura || Opening
+F01 | fincher | MATCH_START | - | - | P1 | - | Boa noite. Sente-se. O projetor está quente e as cartas, frias. | Evening. Sit down. The projector's warm and the cards are cold.
+F02 | fincher | MATCH_START | - | - | P1 | - | Mais uma sessão. Já vi esse filme. O final, {estreante}, depende de você. | Another show. I've seen this picture. The ending, {estreante}, is up to you.
+F03 | fincher | MATCH_START | mesa livre | - | P1 | - | Feltro verde, fumaça e três feras. Bons filmes começaram com menos. | Green felt, smoke and three beasts. Good pictures started with less.
+F04 | fincher | MATCH_START | volta | - | P1 | - | Você de novo. Bom. Quem volta pra mesa já entendeu metade do jogo. | You again. Good. Coming back is half the game.
+F05 | fincher | MATCH_START | memória: blefador | - | P1 | - | Da última vez você blefou demais no river. Eu lembro. Eu sempre lembro. | Last time you bluffed the river too often. I remember. I always do.
+F06 | fincher | MATCH_START | memória: pedra | - | P1 | - | Da última vez você largou quase tudo. Hoje eu aposto mais. Só aviso. | Last time you folded nearly everything. Tonight I bet more. Fair warning.
+F07 | fincher | MATCH_START | memória: paga-tudo | - | P1 | - | Da última vez você pagou tudo. Hoje eu não blefo. Nem uma vez. | Last time you called everything. Tonight I won't bluff. Not once.
+F08 | fincher | MATCH_START | nêmesis | - | P1 | - | Seu nêmesis, diz o placar. Prefiro "professor". Mas aceito. | Your nemesis, says the scoreboard. I prefer "teacher." But I'll take it.
+F09 | fincher | MATCH_START | madrugada | - | P1 | - | Depois da meia-noite, o cinema passa os filmes que teriam vergonha de dia. | After midnight, theaters show the films that would blush by day.
+F10 | fincher | MATCH_START | série | - | P1 | - | Terceira seguida. Até os grandes faziam intervalo, {estreante}. | Third in a row. Even the greats took an intermission, {estreante}.
+F11 | fincher | MATCH_START | mesa valendo | - | P1 | - | Veludo vinho, fumaça e três feras. Hoje a sessão é de gala. | Wine velvet, smoke and three beasts. Tonight is a gala screening.
+F12 | fincher | BANTER | entre mãos | - | P3 | once=session | Primeira regra da mesa do Raposo: ninguém comenta a mão do Raposo. | First rule of the Fox's table: nobody talks about the Fox's hand.
+
+## Prêmio do dia (genérico) || Today's prize (generic)
+F13 | fincher | PRIZE_INTRO | qualquer tipo | - | P1 | - | Hoje está comigo: {premio}. Ninguém me tira nada há quarenta anos. | Mine tonight: {premio}. Nobody's taken a thing off me in 40 years.
+F14 | fincher | PRIZE_INTRO | qualquer tipo | - | P1 | - | Hoje eu guardo {premio}. Já ganhei coisa melhor em mesa pior. | Tonight I'm holding {premio}. I've won better at worse tables.
+F15 | fincher | PRIZE_INTRO | lendário | - | P1 | - | Lendário. Como eu. A diferença é que este pode mudar de dono. | Legendary. Like me. Difference is, this one can change hands.
+F16 | fincher | PRIZE_AT_RISK | portador ≤10 BB | nervoso,neutro | P3 | - | Pouco cacife. Já estive pior. Uma vez tive só um charuto e um blefe. Bastou. | Short stack. Been worse. Once I had a cigar and a bluff. It was enough.
+F17 | fincher | PRIZE_CAPTURED | você tirou o portador | - | P1 | - | É seu. Mereceu. Raramente digo isso. Guarde as duas coisas. | It's yours. You earned it. I rarely say that. Keep both.
+F18 | fincher | PRIZE_KEPT | você caiu sem o prêmio | - | P1 | - | O prêmio fica. Não leve a mal, {estreante}. Perdi muito até aprender. | The prize stays. No hard feelings, {estreante}. I lost plenty before I learned.
+F19 | fincher | PRIZE_MOVED | ele tirou o Sapo | - | P1 | - | Obrigado pela entrega, Crítico. Fica melhor deste lado da mesa. | Thanks for the delivery, Critic. Looks better on this side of the table.
+F20 | fincher | PRIZE_MOVED | ele tirou a Cobra | - | P1 | - | Com licença, minha cara. Isto pertence a quem sabe esperar. | Pardon me, my dear. This belongs to whoever knows how to wait.
+F21 | fincher | PRIZE_TAUNT | portador = Cobra | - | P3 | - | A víbora está com o prêmio. Cuidado: ela morde mesmo quando perde. | The viper has the prize. Careful: she bites even when she's losing.
+F22 | fincher | PRIZE_TAUNT | portador = Sapo | - | P3 | - | O Crítico está com o prêmio. Primeira vez que ele carrega algo de valor. | The Critic has the prize. First time he's carried anything of value.
+
+## Apostas (nunca no anel) || Bets (never on the ring)
+F23 | fincher | BIG_BET | - | nervoso,neutro | P3 | - | Aposta. Sem pressa e sem desculpa. | A bet. No rush, no apology.
+F24 | fincher | BIG_BET | - | nervoso,neutro | P3 | - | Uma oferta irrecusável. Ou quase. Depende da sua coragem. | An offer you can't refuse. Almost. Depends on your nerve.
+F25 | fincher | BIG_BET | - | nervoso,neutro | P3 | - | Aumento. Não olhe pra mim, olhe o pote. Ele mente menos que eu. | Raise. Don't look at me, look at the pot. It lies less than I do.
+F26 | fincher | ISOLATE | aumento sobre o limp do Sapo | nervoso,neutro | P3 | - | O Crítico entrou de mansinho. Eu aumento. Mesa boa tem crítico pagando. | The Critic limped in. I raise. A good table has a critic paying.
+F27 | fincher | ALL_IN | - | nervoso,neutro | P2 | - | Todas. Que o roteiro decida. | All of it. Let the script decide.
+F28 | fincher | ALL_IN | - | nervoso,neutro | P2 | - | All-in. Apertem os cintos. | All-in. Fasten your seatbelts.
+F29 | fincher | ALL_IN | - | nervoso,neutro | P2 | - | Tudo no meio. Isto aqui não é o Kansas, {estreante}. | Everything in. This isn't Kansas, {estreante}.
+F30 | fincher | ALL_IN | - | nervoso,neutro | P2 | - | Pronto para o close-up. | Ready for my close-up.
+F31 | fincher | HERO_FOLD_SHOWN | - | - | P2 | - | Eu tinha mão. Larguei e mostro. Saber sair de cena também é atuação. | I had a hand. I folded, and I'll show you. Knowing when to exit is acting too.
+F32 | fincher | HERO_FOLD_SHOWN | - | - | P2 | - | Larguei {mao}. Doeu? Não. E você, sabe largar o orgulho? | I folded {mao}. Did it hurt? No. Can you fold your pride?
+
+## Reagindo a você || Reacting to you
+F33 | fincher | HUMAN_BIG_BET | - | nervoso,neutro,fora | P3 | - | Aposta grande. Vejamos se o roteiro sustenta. | Big bet. Let's see if the script holds up.
+F34 | fincher | HUMAN_BIG_BET | leitura = blefador | nervoso,neutro,fora | P3 | - | Terceira aposta grande seguida. A plateia já sacou o truque. | Third big bet in a row. The audience has spotted the trick.
+F35 | fincher | HUMAN_ALL_IN | - | nervoso,neutro,fora | P2 | - | Tudo? Coragem é linda no cinema. Na mesa, custa caro. | All in? Courage looks great on screen. At the table it's expensive.
+F36 | fincher | HUMAN_ALL_IN | - | nervoso,neutro,fora | P2 | - | Já vi esse movimento. Num trem, nos anos 30. O apostador desceu sem relógio. | Seen that move. On a train, in the '30s. The gambler got off without his watch.
+F37 | fincher | HUMAN_ALL_IN | pote ≥ 30 BB | nervoso,neutro,fora | P2 | - | Vamos precisar de um pote maior. | We're gonna need a bigger pot.
+F38 | fincher | HUMAN_FOLD | você largou para ele | - | P3 | - | Prudência. Ou medo. De fora, os dois têm a mesma cara. | Prudence. Or fear. From outside they look the same.
+F39 | fincher | HUMAN_FOLD | você largou para ele | - | P3 | - | Corta. Próxima cena. | Cut. Next scene.
+F40 | fincher | FOLD | - | - | P3 | - | Passo. Paciência também é uma forma de aposta. | I'm out. Patience is a kind of bet too.
+F41 | fincher | FOLD_TO_HUMAN | - | - | P3 | - | Fique com ele. Paciência é um charuto que se fuma devagar. | Keep it. Patience is a cigar you smoke slowly.
+F42 | fincher | FOLD_TO_HUMAN | - | - | P3 | - | Largo. Anote: o Raposo largou. Não acontece com qualquer um. | I fold. Write it down: the Fox folded. Doesn't happen for just anyone.
+
+## Potes || Pots
+F43 | fincher | POT_WON | - | - | P3 | - | Heh. Como nos velhos tempos. | Heh. Like old times.
+F44 | fincher | POT_WON | - | - | P3 | - | Pote do Raposo. Fade out. | The Fox's pot. Fade out.
+F45 | fincher | POT_WON | - | - | P3 | - | Era uma noite fria. O pote estava quente. E o Raposo estava lá. | It was a cold night. The pot was hot. And the Fox was there.
+F46 | fincher | POT_LOST | para você | - | P3 | - | Bem jogado. Não se anime. Bom diretor também erra o primeiro corte. | Well played. Don't get excited. Good directors botch the first cut too.
+F47 | fincher | POT_LOST | para você | - | P3 | - | Hm. Esse é seu. O próximo, nem tanto. | Hm. That one's yours. The next one, less so.
+F48 | fincher | SHOWDOWN | você mostra primeiro | - | P3 | - | E na caixa, o que tem? Mostre. | What's in the box? Show me.
+F49 | fincher | BLUFF_SHOWN | - | - | P2 | - | Nada na mão. O maior truque é a mesa crer que o Raposo não existe. | Nothing. The greatest trick is convincing the table the Fox doesn't exist.
+F50 | fincher | BLUFF_SHOWN | - | - | P2 | - | Sim, era blefe. Mágica é isso: você olha pra mão errada. | Yes, a bluff. That's magic: you watch the wrong hand.
+F51 | fincher | HUMAN_BLUFF_SHOWN | contra o Raposo | - | P2 | - | Blefou em mim. Muitos tentaram. Pouquíssimos conseguiram. Anote a data. | You bluffed me. Many tried. Very few managed. Mark the date.
+F52 | fincher | HUMAN_BLUFF_SHOWN | contra o Raposo | - | P2 | - | Heh. Toque de classe. Tiro o chapéu. Uma vez. Não espere a segunda. | Heh. A touch of class. I tip my hat. Once. Don't expect a second.
+F53 | fincher | PRIDE | Orgulho (blefe exposto contra ele) | - | P2 | - | Vou lembrar disso. Não por rancor. Por método. | I'll remember that. Not out of spite. Out of method.
+F54 | fincher | PRIDE | Orgulho (blefe exposto contra ele) | - | P2 | - | Anotado no caderninho. Página da frente. | Noted in the little book. Front page.
+F55 | fincher | BLUFF_CAUGHT | - | - | P3 | - | Blefe bom conta uma história. O seu tinha furo no roteiro. | A good bluff tells a story. Yours had a plot hole.
+
+## Lições disfarçadas (no máximo 1 por partida) || Hidden lessons (max 1 per match)
+F56 | fincher | LESSON | blefe | - | P2 | once=match | Blefe precisa combinar com as apostas de antes. O seu mudou de gênero. | A bluff must match your earlier bets. Yours switched genres midway.
+F57 | fincher | LESSON | preço do call | - | P2 | once=match | Pague para ver só quando o pote paga a passagem. O resto é romance. | Only call when the pot pays for the ticket. The rest is romance.
+F58 | fincher | LESSON | posição | - | P2 | once=match | Falar por último é privilégio de narrador. Use quando tiver. | Speaking last is the narrator's privilege. Use it when you have it.
+F59 | fincher | LESSON | cacife curto | - | P2 | once=match | Cacife curto não espera mão perfeita. Espera a primeira boa. E empurra. | A short stack doesn't wait for perfect. It waits for good. Then shoves.
+
+## Sorte e azar || Luck
+F60 | fincher | BAD_BEAT | vítima | - | P2 | - | O river é o roteirista mais cruel que existe. Já trabalhei com ele. | The river is the cruelest screenwriter alive. I've worked with him.
+F61 | fincher | BAD_BEAT | vítima | - | P2 | - | Eu tinha a mão. O garoto de Cincinnati também tinha. Termina igual. | I had the hand. So did the Cincinnati Kid. Ends the same way.
+F62 | fincher | BAD_BEAT | vencedor | - | P2 | - | Sorte. Eu também uso, quando o talento tira folga. | Luck. I use it too, when talent takes the night off.
+F63 | fincher | BAD_BEAT | você foi a vítima | - | P2 | - | Esquece, {estreante}. É o river. | Forget it, {estreante}. It's the river.
+F64 | fincher | BAD_BEAT | você foi a vítima | - | P2 | - | Jogou certo e perdeu. O cinema está cheio de obras-primas que ninguém viu. | You played it right and lost. Cinema is full of masterpieces nobody saw.
+
+## Eliminações || Eliminations
+F65 | fincher | ELIMINATION | ele caiu | - | P1 | - | Fim do rolo. Bom trabalho. Não conte a ninguém que eu disse isso. | End of reel. Good work. Don't tell anyone I said that.
+F66 | fincher | ELIMINATION | ele caiu | - | P1 | - | Saio da mesa. A fumaça fica. Ela sempre fica. | I leave the table. The smoke stays. It always does.
+F67 | fincher | ELIMINATION | ele caiu | - | P1 | - | Rosebud… Ninguém nunca entende. Tudo bem. | Rosebud… Nobody ever gets it. That's fine.
+F68 | fincher | ELIMINATION | ele tirou a Cobra | - | P1 | - | Boa partida, minha cara. Até a vaia precisa de intervalo. | Good game, my dear. Even booing needs an intermission.
+F69 | fincher | ELIMINATION | ele tirou o Sapo | - | P1 | - | Fim de sessão, Crítico. Dê três estrelas à sua própria atuação. | Show's over, Critic. Give your own performance three stars.
+F70 | fincher | ORACLE_OUT | caiu o Sapo | - | P3 | - | O Crítico saiu. A mesa ficou mais silenciosa. E mais cara. | The Critic is out. The table got quieter. And pricier.
+F71 | fincher | ORACLE_OUT | caiu a Cobra | - | P3 | - | A víbora caiu. Não comemorem. Ela volta na reprise. | The viper fell. Don't celebrate. She'll be back in reruns.
+
+## Ritmo da mesa || Table rhythm
+F72 | fincher | HUMAN_SLOW | 25 s | nervoso,neutro,fora | P3 | vez | Tempo é o cacife que ninguém conta. | Time is the stack nobody counts.
+F73 | fincher | HUMAN_SLOW | 25 s | nervoso,neutro,fora | P3 | vez | Pode pensar. O suspense mora na espera. | Take your time. Suspense lives in waiting.
+F74 | fincher | HUMAN_SLOW | 60 s | nervoso,neutro,fora | P3 | vez | Eu espero. Esperei o cinema falar. | I'll wait. I waited for the talkies.
+F75 | fincher | WIN_STREAK | você ganhou 3 seguidas | - | P2 | - | Três potes. Agora a mesa toda olha pra você. Isso tem preço. | Three pots. Now the whole table is watching you. That has a price.
+F76 | fincher | STYLE_READ | pedra (VPIP < 22% após 15 mãos) | - | P2 | once=match | Você só entra com mão boa. Correto. Por isso ninguém paga você. | You only play good hands. Correct. That's why nobody pays you off.
+F77 | fincher | STYLE_READ | solto | - | P2 | once=match | Joga todas. Coragem ou pressa. A conta chega no fim do filme. | You play them all. Courage or hurry. The bill comes at the end.
+F78 | fincher | STYLE_READ | paga-tudo | - | P2 | once=match | Você paga pra ver tudo. Ótima plateia. Péssima estratégia. | You call to see everything. Great audience. Terrible strategy.
+F79 | fincher | STYLE_READ | blefador (≥3 rivers vistos, ≥40% blefe) | - | P2 | once=match | Blefou no river vezes demais. Na próxima eu pago. Por estatística. | Too many river bluffs. Next time I call. Out of statistics.
+F80 | fincher | BLINDS_UP | - | - | P3 | - | Os blinds sobem. É o relógio do filme. Quem não age vira figurante. | Blinds go up. The film's clock. Whoever doesn't act becomes an extra.
+F81 | fincher | BLINDS_UP | primeiro ante | - | P2 | once=match | Agora há ante. Todos pagam a sessão, jogando ou não. | Antes now. Everyone pays for the show, playing or not.
+F82 | fincher | HEADS_UP | Corte Final | - | P2 | - | Corte Final. Como em bom faroeste: uma rua, o sol na cara e ninguém pisca. | Final Cut. Like any good western: one street, sun in the eyes, nobody blinks.
+F83 | fincher | FLOP | - | nervoso,neutro,fora | P3 | - | O flop. Primeiro ato. Ninguém sabe ainda quem é o vilão. | The flop. Act one. Nobody knows who the villain is yet.
+
+## Fim de partida e títulos || Match end and titles
+F84 | fincher | MATCH_END | você venceu | - | P1 | - | Venceu. Seu nome sobe nos créditos. Uma linha acima. | You won. Your name moves up the credits. One line higher.
+F85 | fincher | MATCH_END | você venceu | - | P1 | - | Isso pode ser o começo de uma bela inimizade, {estreante}. | This could be the start of a beautiful rivalry, {estreante}.
+F86 | fincher | CREDITS | o Raposo levou a mesa (livre) | - | P1 | - | O Raposo levou a mesa. Sem surpresa. Com estilo. | The Fox took the table. No surprise. Some style.
+F87 | fincher | CREDITS | o Raposo levou a mesa (livre) | - | P1 | - | Mesa encerrada. Eu fico com o cacife e com a última fala. | Table's closed. I keep the stack and the last word.
+F88 | fincher | CREDITS | você perdeu | - | P1 | - | Hoje não. Mas você melhorou. Eu notei. Eu noto tudo. | Not tonight. But you've improved. I noticed. I notice everything.
+F89 | fincher | RANK_UP | Protagonista | - | P1 | once=life,story=colega | Colega. Acho que agora posso te chamar assim. Não se acostume. | Partner. I think I can call you that now. Don't get used to it.
+F90 | fincher | SECRET_TELL | ≥50 partidas; pagou um all-in com anel e perdeu | - | P1 | once=life,story=fumaça | Você reparou na fumaça, não reparou? Heh. Não sou tão invisível. | You noticed the smoke, didn't you? Heh. I'm not as invisible as I thought.
+F91 | fincher | REMATCH | - | - | P2 | - | Revanche. Toda boa história merece uma segunda tomada. | Rematch. Every good story deserves a second take.
+F92 | fincher | HUMAN_LEAVES | - | - | P2 | - | Saindo antes do fim. Tudo bem. Mas a última cena é a que importa. | Leaving before the end. Fine. But the last scene is the one that counts.
