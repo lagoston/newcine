@@ -7,7 +7,8 @@
  * Tudo em `poker.mock.friends.v1`, com horários absolutos (recarregar continua).
  *
  * Alavancas (localStorage): `poker.mock.invite = 1` (um convite do Tonico esperando),
- * `poker.mock.reclaim = 1` (a próxima casual é a de devolução), `poker.mock.myName`.
+ * `poker.mock.reclaim = 1` (a próxima casual é a de devolução), `poker.mock.fast = 1`
+ * (amigos pensam pouco), `poker.mock.myName`.
  */
 import type { PlayerAction } from '../engine.ts';
 import type { MatchState, PlayerId, PosterEffectId, PublicEvent, Rarity, RivalId } from '../types.ts';
@@ -413,8 +414,9 @@ export function makeMockFriends(bridge: MockBridge): { friends: FriendsApi; casu
       if (!mm.plan || mm.plan.key !== key) {
         const uid = Object.entries(mm.ids).find(([, p]) => p === w)?.[0];
         const f = uid ? friendOf(uid) : null;
-        const sleepNow = !!f?.sleepy && !mm.sleptOnce && mm.state.game.handNumber >= 2;
-        const think = (f?.sleepy ? 3500 : 1600) + hash01(key) * 3800;
+        const sleepNow = !!f?.sleepy && !mm.sleptOnce && mm.state.game.handNumber >= 2 && knob('fast') !== '1';
+        // `poker.mock.fast = 1` (prévia): amigos pensam pouco (para chegar ao fim da mesa).
+        const think = knob('fast') === '1' ? 250 + hash01(key) * 400 : (f?.sleepy ? 3500 : 1600) + hash01(key) * 3800;
         mm.plan = sleepNow ? { id: w, at: deadline, key, kind: 'timeout' } : { id: w, at: mm.turnAt + think, key, kind: 'act' };
         if (sleepNow) mm.sleptOnce = true;
       }

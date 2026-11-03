@@ -388,8 +388,22 @@ async function opSync(body: Row, uid: string, deps: Deps): Promise<Reply> {
 function ruleFail(e: PokerRuleError, L: RoomLoaded, pid: string): Reply {
   const match = L.state ? matchPayload(L, L.state, L.events_tail ?? [], pid, null) : null;
   if (e.code === 'not_your_turn') return fail(409, 'not_your_turn', { match });
-  if (e.code === 'game_over') return fail(410, 'finished', { match });
+  // 03/11/2026 (E3 final): quem já caiu ou saiu recebe game_over do motor. A mesa das
+  // outras pessoas segue: código claro, nada gravado (nunca 500, nunca trava a sala).
+  if (e.code === 'game_over') {
+    return L.status === 'playing' ? fail(409, 'not_playing', { match }) : fail(410, 'finished', { match });
+  }
   return fail(422, 'illegal', { match });
+}
+
+/**
+ * De quem o relógio estourou: a pessoa que o MOTOR espera agora (o to_act do banco é o
+ * mesmo; se um dia divergirem, vale o estado, para a sala nunca ficar presa num lugar que
+ * não decide mais).
+ */
+function clockOwner(L: RoomLoaded): PlayerId | null {
+  if (!L.state) return null;
+  return waitingFor(L.state) ?? null;
 }
 
 /** Partida em andamento e a pessoa sentada nela (com lugar). null = segue. */
@@ -417,7 +431,8 @@ async function opAct(body: Row, uid: string, deps: Deps): Promise<Reply> {
   if (L!.me!.last_idem === idem) {
     return ok({ duplicate: true, room: L!.room ?? null, match: matchPayload(L!, L!.state!, L!.events_tail ?? [], pid, since) });
   }
-  if (L!.me!.status !== 'joined') return fail(403, 'not_seated');
+  // Saiu da sala (desistiu): não joga mais; a mesa segue para os outros.
+  if (L!.me!.status !== 'joined') return fail(409, 'not_playing', { match: matchPayload(L!, L!.state!, L!.events_tail ?? [], pid, since) });
   if (seq !== L!.seq) return fail(409, 'stale', { seq: L!.seq, match: matchPayload(L!, L!.state!, L!.events_tail ?? [], pid, since) });
   let step: MatchStep;
   try {
@@ -441,12 +456,13 @@ async function opTick(body: Row, uid: string, deps: Deps): Promise<Reply> {
   if (bad) return bad;
   const pid = L!.me!.player_id!;
   if (seq !== L!.seq) return fail(409, 'stale', { seq: L!.seq, match: matchPayload(L!, L!.state!, L!.events_tail ?? [], pid, since) });
-  if (!L!.deadline_passed || !L!.to_act) {
+  const owner = clockOwner(L!);
+  if (!L!.deadline_passed || !owner) {
     return fail(409, 'not_yet', { deadline: L!.deadline_at, serverNow: L!.server_now });
   }
   let step: MatchStep;
   try {
-    step = timeoutPerson(L!.state!, L!.to_act as PlayerId);
+    step = timeoutPerson(L!.state!, owner);
   } catch (e) {
     if (e instanceof PokerRuleError) return ruleFail(e, L!, pid);
     throw e;
@@ -585,11 +601,12 @@ async function opSweep(deps: Deps): Promise<Reply> {
     if (!isUuid(id)) continue;
     try {
       const L = await loadRoom(deps, null, id);
-      if (!L || L.status !== 'playing' || !L.state || !L.deadline_passed || !L.to_act) {
+      const owner = L ? clockOwner(L) : null;
+      if (!L || L.status !== 'playing' || !L.state || !L.deadline_passed || !owner) {
         skipped += 1;
         continue;
       }
-      const step = timeoutPerson(L.state, L.to_act as PlayerId);
+      const step = timeoutPerson(L.state, owner);
       const s = await saveRoomStep(deps, L, step, 'timeout', null, null);
       if (s.reply) skipped += 1;
       else processed += 1;
