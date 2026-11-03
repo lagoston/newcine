@@ -79,7 +79,8 @@
   width: min(120vw, 680px);
   height: 74%;
   transform: translateX(-50%);
-  background: conic-gradient(from 180deg at 50% 0%, transparent 152deg, rgba(214, 228, 255, 0.13) 168deg, rgba(255, 240, 210, 0.16) 180deg, rgba(214, 228, 255, 0.13) 192deg, transparent 208deg);
+  /* 0deg aponta para cima: a faixa em torno de 180deg é o cone que desce. */
+  background: conic-gradient(from 0deg at 50% 0%, transparent 156deg, rgba(214, 228, 255, 0.1) 168deg, rgba(255, 240, 210, 0.13) 180deg, rgba(214, 228, 255, 0.1) 192deg, transparent 204deg);
   filter: blur(6px);
   pointer-events: none;
   z-index: 0;
@@ -577,7 +578,7 @@
   width: 160vmax;
   height: 120%;
   transform: translateX(-50%);
-  background: conic-gradient(from 180deg at 50% 0%, transparent 160deg, rgba(255, 236, 200, 0.16) 172deg, rgba(255, 246, 225, 0.22) 180deg, rgba(255, 236, 200, 0.16) 188deg, transparent 200deg);
+  background: conic-gradient(from 0deg at 50% 0%, transparent 162deg, rgba(255, 236, 200, 0.14) 172deg, rgba(255, 246, 225, 0.2) 180deg, rgba(255, 236, 200, 0.14) 188deg, transparent 198deg);
   transform-origin: 50% 0;
   pointer-events: none;
 }
@@ -808,7 +809,7 @@
 .pp-cast-dim {
   position: absolute;
   inset: 0;
-  background: radial-gradient(70% 55% at 50% 52%, rgba(40, 6, 14, 0.88), rgba(6, 1, 4, 0.97));
+  background: radial-gradient(70% 55% at 50% 52%, rgba(40, 6, 14, 0.94), rgba(6, 1, 4, 0.985));
 }
 .pk-casting .pk-speech {
   z-index: 34;

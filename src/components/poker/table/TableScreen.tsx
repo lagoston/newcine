@@ -204,16 +204,17 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (confirm) setConfirm(null);
-        else if (menu || quipOpen || portrait) {
+        else if (menu || quipOpen || portrait || posterInfo) {
           setMenu(null);
           setQuipOpen(false);
           setPortrait(null);
+          setPosterInfo(false);
         } else if (stage === 'table') setLeaveAsk((x) => !x);
         e.preventDefault();
         return;
       }
       const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || menu || confirm || stage !== 'table') return;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || menu || confirm || posterInfo || stage !== 'table') return;
       if (e.key === ' ') {
         tb.skipAnim();
         e.preventDefault();
@@ -244,7 +245,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [confirm, menu, quipOpen, portrait, stage, settings.shortcuts, tb, t, lang, table]);
+  }, [confirm, menu, quipOpen, portrait, posterInfo, stage, settings.shortcuts, tb, t, lang, table]);
 
   const thinkingName = table.thinkingId ? whoName(t, table.thinkingId) : null;
   const statusText: React.ReactNode =
