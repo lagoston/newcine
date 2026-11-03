@@ -188,7 +188,8 @@ export function useTable(opts: UseTableOptions): UseTable {
       if (r.kind !== 'odds' || !aliveRef.current) return;
       const cur = tableRef.current;
       if (cur.handNumber !== hand || cur.board.length !== boardLen || cur.showdown) return;
-      commit({ ...cur, seats: cur.seats.map((s) => (s.id in r.odds ? { ...s, odds: r.odds[s.id] } : s)) });
+      const shown = roundOddsTo100(r.odds);
+      commit({ ...cur, seats: cur.seats.map((s) => (s.id in shown ? { ...s, odds: shown[s.id] } : s)) });
     });
   }, [commit]);
 
@@ -465,4 +466,21 @@ export function useTable(opts: UseTableOptions): UseTable {
         ? new Promise<void>((resolve) => idleWaiters.current.push(resolve))
         : Promise.resolve(),
   };
+}
+
+// 03/11/2026: as % do all-in são arredondadas pelo maior resto, para a soma na
+// mesa dar 100 (87% contra 14% parecia conta errada). Empates divididos já vêm
+// do motor; aqui só muda o arredondamento do que se mostra.
+function roundOddsTo100(odds: Record<string, number>): Record<string, number> {
+  const ids = Object.keys(odds);
+  const total = Math.round(ids.reduce((a, id) => a + odds[id] * 100, 0));
+  const base = ids.map((id) => ({ id, raw: odds[id] * 100, int: Math.floor(odds[id] * 100) }));
+  let left = total - base.reduce((a, b) => a + b.int, 0);
+  [...base].sort((a, b) => b.raw - b.int - (a.raw - a.int)).forEach((b) => {
+    if (left > 0) {
+      b.int += 1;
+      left -= 1;
+    }
+  });
+  return Object.fromEntries(base.map((b) => [b.id, b.int / 100]));
 }

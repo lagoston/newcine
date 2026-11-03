@@ -776,12 +776,16 @@
 }
 .pk-balloon-tail {
   position: absolute;
-  top: -7px;
-  width: 14px;
-  height: 14px;
+  top: -6px;
+  width: 12px;
+  height: 12px;
   transform: translateX(-50%) rotate(45deg);
   background: var(--pk-glass);
   box-shadow: -1.5px -1.5px 0 0 var(--c);
+  /* 03/11/2026: só a metade de fora do balão (mais 3 px para cobrir a borda).
+     Inteiro, o quadrado girado entrava no texto em 360×640 ("antes ao flop") e
+     no intertítulo do Raposo cortava a moldura de dentro. */
+  clip-path: polygon(-4px -4px, calc(100% + 4px) -4px, calc(100% + 4px) 0px, 0px calc(100% + 4px), -4px calc(100% + 4px));
 }
 .pk-balloon-text {
   font-size: 14px;
@@ -861,7 +865,8 @@
 }
 .pk-balloon.is-human .pk-balloon-tail {
   top: auto;
-  bottom: -7px;
+  bottom: -6px;
+  clip-path: polygon(calc(100% + 4px) calc(100% + 4px), -4px calc(100% + 4px), -4px 100%, 100% -4px, calc(100% + 4px) -4px);
   background: var(--pk-paper);
   box-shadow: 1.5px 1.5px 0 0 var(--pk-gold);
 }
