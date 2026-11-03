@@ -2244,7 +2244,8 @@
     "effect": {
       "holo": "Holographic",
       "negative": "Negative",
-      "ultra_red": "Ultra Red"
+      "ultra_red": "Ultra Red",
+      "gold": "Gold shine"
     },
     "door": {
       "hint": "Spin and collect alternate posters.",
@@ -2466,7 +2467,7 @@
     }
   },
   "pokerEntry": {
-    "name": "The Big Bluff",
+    "name": "Pôster Poker",
     "tab": "Poker",
     "noRealMoney": "No real money. Chips have no cash value and never leave the app.",
     "today": "At the table today: {{prize}}, {{carrier}}.",
@@ -2531,7 +2532,7 @@
     },
     "age": {
       "title": "18+ only",
-      "body": "Playing for a prize is for people 18 or older.",
+      "body": "The Pôster Poker tournament is for people 18 or older.",
       "note": "No real money: chips have no cash value and never leave the app.",
       "confirm": "I'm 18 or older",
       "decline": "Not now",
@@ -2542,9 +2543,9 @@
       "pokerPlay_other": "Finish {{count}} poker matches"
     },
     "trades": {
-      "untradeable": "Table prizes can't be traded.",
-      "seal": "Table prize",
-      "sealHint": "Won at The Big Bluff. Can't be traded."
+      "untradeable": "Pôster Poker posters can't be traded.",
+      "seal": "Pôster Poker",
+      "sealHint": "Won at Pôster Poker. Can't be traded."
     },
     "cosmetics": {
       "hint": "Your card backs and table cloth. More come as table prizes.",
@@ -2558,24 +2559,40 @@
     },
     "marks": {
       "firstWin": {
-        "name": "First Win",
-        "rule": "Win a match played for the prize."
+        "name": "All-in",
+        "rule": "Win your first Pôster Poker tournament."
       },
       "foxHunter": {
-        "name": "Took Down the Fox",
-        "rule": "Knock out the Fox in a prize match."
+        "name": "Outfoxed",
+        "rule": "Knock out the Fox in a tournament."
       },
       "cleanSweep": {
         "name": "Clean Sweep",
-        "rule": "Knock out all three oracles in the same prize match."
+        "rule": "Knock out all three oracles in the same tournament."
       },
       "oscarBluff": {
-        "name": "Oscar Bluff",
-        "rule": "Win a pot of 20 BB or more without a showdown while someone folds a better hand."
+        "name": "Poker Face",
+        "rule": "Win a pot of 20 BB or more without a showdown when an opponent who folded had the better hand."
       },
       "sevenNights": {
         "name": "Seven Nights",
-        "rule": "Finish prize matches on 7 days in a row."
+        "rule": "Play the tournament 7 days in a row."
+      },
+      "highStakes": {
+        "name": "High Stakes",
+        "rule": "Win a tournament betting a poster from your collection."
+      },
+      "royalFlush": {
+        "name": "Royal Flush",
+        "rule": "Win a legendary tournament."
+      },
+      "fullHouse": {
+        "name": "Full House",
+        "rule": "Own all 9 Pôster Poker posters."
+      },
+      "cardShark": {
+        "name": "Card Shark",
+        "rule": "Win 10 tournaments."
       }
     },
     "hands": {
@@ -2613,9 +2630,9 @@
     },
     "score": {
       "title": "Scoreboard",
-      "back": "Back to the lounge",
+      "back": "Back to the menu",
       "loading": "Loading the scoreboard",
-      "closed": "The lounge is closed right now.",
+      "closed": "Pôster Poker is closed right now.",
       "error": "Couldn't open the scoreboard.",
       "retry": "Try again",
       "home": "Back to home",
@@ -2629,8 +2646,8 @@
       "filterAria": "Which matches to count",
       "general": "All",
       "verified": "Prize",
-      "unverified": "Free matches aren't verified.",
-      "verifiedNote": "Prize matches only, checked by the server.",
+      "unverified": "Casual matches aren't verified.",
+      "verifiedNote": "Tournaments only, checked by the server.",
       "emptyTitle": "The table is waiting.",
       "emptyBounty": "No prize matches yet.",
       "emptyBody": "Your first match lands here, with your finish, best hand and the rivalry with each oracle.",
@@ -2650,11 +2667,11 @@
       "placeShort": "#{{place}}",
       "placeLong": "Finished #{{place}}",
       "modes": "Free vs. prize",
-      "modeFree": "Free table",
-      "modeBounty": "Prize table",
+      "modeFree": "Casual",
+      "modeBounty": "Tournament",
       "modeLine": "{{wins}} of {{matches}} · {{pct}}%",
-      "prizes": "Table prizes",
-      "noPrizes": "None yet. Knock out the oracle holding the prize, or win the table, to take it.",
+      "prizes": "Posters won",
+      "noPrizes": "None yet. Whoever finishes the weekly tournament 1st takes the poster.",
       "rivals": "You vs. each oracle",
       "youElim": "You knocked out",
       "theyElim": "Knocked you out",
@@ -2682,8 +2699,8 @@
       "badBeatsSuffered": "Bad beats taken",
       "badBeatsDealt": "Bad beats dealt",
       "bluffs": "Bluffs that worked",
-      "marks": "Milestones",
-      "marksHint": "Prize matches only. Each one becomes a profile tag.",
+      "marks": "Pôster Poker tags",
+      "marksHint": "In the Games category. Each one becomes a profile tag.",
       "markEarned": "Tag {{tag}} · on {{date}}",
       "equip": "Equip",
       "inUse": "In use",
@@ -2730,7 +2747,7 @@
       "lossLong": "Loss",
       "inProgress": "In progress",
       "modeFreeShort": "Free",
-      "modeBountyShort": "For the prize",
+      "modeBountyShort": "Tournament",
       "withLoan": "with a loan",
       "forfeit": "forfeited",
       "abandoned": "abandoned",
@@ -2744,12 +2761,14 @@
       "comebacksHelp": "wins after dropping under 5 BB"
     },
     "todayLabel": "At the table today",
-    "todayWhat": "{{prize}}, {{carrier}}"
+    "todayWhat": "{{prize}}, {{carrier}}",
+    "doorAria": "Pôster Poker. In this week's tournament: {{title}}. Open the game.",
+    "doorHint": "In this week's tournament:"
   },
   "poker": {
-    "name": "The Big Bluff",
-    "subtitle": "Midnight Session",
-    "soon": "The room opens soon. The oracles are shuffling.",
+    "name": "Pôster Poker",
+    "subtitle": "The weekly tournament and the casual table",
+    "soon": "Pôster Poker opens soon. The oracles are shuffling.",
     "noRealMoney": "No real money. Chips have no cash value and never leave the app.",
     "oracles": {
       "bogart": {
@@ -2832,18 +2851,23 @@
       "tableNote": "Your felt is used at the free table. The prize table is always velvet."
     },
     "errors": {
-      "stale_day": "The day changed and so did the prize. Take a look.",
-      "prize_changed": "Today's prize changed. Check it before you play.",
-      "limit": "You've used all 3 attempts today.",
-      "won_today": "You already won today's prize.",
-      "no_chips": "No chips right now. Earn some in Missions.",
-      "closed": "The prize table is closed right now.",
-      "bot": "This account can't play for prizes.",
-      "age_required": "Confirm your age to play for a prize."
+      "stale_day": "A new week started and the tournament poster changed. Take a look.",
+      "prize_changed": "The tournament poster changed. Check it before you play.",
+      "limit": "You've used today's 3 entries.",
+      "won_today": "You already won this week's tournament.",
+      "no_chips": "Not enough chips for the entry. Earn some in Missions.",
+      "closed": "The tournament is closed right now.",
+      "bot": "This account can't play the tournament.",
+      "age_required": "Confirm your age to play the tournament.",
+      "stale_week": "A new week started and the tournament poster changed. Take a look.",
+      "attempts": "You've used today's 3 entries.",
+      "owned": "You already have this poster.",
+      "won_this_week": "You already won this week's tournament.",
+      "stake_invalid": "That poster can't go on the table. Pick another one."
     },
     "table": {
       "aria": "Poker table",
-      "free": "Free table",
+      "free": "Casual",
       "bounty": "Playing for a prize",
       "training": "Practice",
       "trainingStep": "Practice · hand {{n}} of 3",
@@ -2890,12 +2914,13 @@
       "handOver": "The hand is over.",
       "youFolded": "You folded this hand.",
       "scriptEmpty": "Nothing has happened yet.",
-      "backToLobby": "Back to the room",
+      "backToLobby": "Back to the menu",
       "tapBalloon": "Tap the balloon to move on",
       "out_ordinal_one": "Out · {{place}}st",
       "out_ordinal_two": "Out · {{place}}nd",
       "out_ordinal_few": "Out · {{place}}rd",
-      "out_ordinal_other": "Out · {{place}}th"
+      "out_ordinal_other": "Out · {{place}}th",
+      "tourney": "Tournament"
     },
     "tells": {
       "bogart": {
@@ -2981,13 +3006,13 @@
       "reconnecting": "Reconnecting to the table…",
       "offline": "No connection. Your game is saved for 24 h.",
       "retry": "Try again",
-      "update": "Update the app to play for prizes.",
+      "update": "Update the app to play the tournament.",
       "error": "Something went wrong at the table. Your game is saved.",
       "soon": "The table opens soon.",
-      "bountySoon": "The prize table opens soon."
+      "bountySoon": "The tournament opens soon."
     },
     "recap": {
-      "title": "Previously on The Big Bluff…",
+      "title": "Previously on Pôster Poker…",
       "eliminated": "Hand {{hand}}: {{who}} knocked out {{victim}}",
       "prizeMoved": "Hand {{hand}}: {{who}} took {{prize}}",
       "captured": "Hand {{hand}}: {{prize}} became yours",
@@ -3025,14 +3050,16 @@
       "rematch": "Rematch",
       "freeRematch": "Free rematch",
       "scoreboard": "Scoreboard",
-      "lobby": "Room",
+      "lobby": "Menu",
       "prizeYours": "{{prize}} is yours!",
       "withLoan": "with the Frog's loan",
       "cast": "Cast",
       "place_ordinal_one": "{{place}}st place",
       "place_ordinal_two": "{{place}}nd place",
       "place_ordinal_few": "{{place}}rd place",
-      "place_ordinal_other": "{{place}}th place"
+      "place_ordinal_other": "{{place}}th place",
+      "newTag": "New tag",
+      "casualRematch": "Play Casual"
     },
     "titles": {
       "figurante": "Extra",
@@ -3043,11 +3070,15 @@
       "lenda": "Legend of the Session"
     },
     "marks": {
-      "firstWin": "Opening Night",
-      "foxHunter": "Fox Hunter",
+      "firstWin": "All-in",
+      "foxHunter": "Outfoxed",
       "cleanSweep": "Clean Sweep",
-      "oscarBluff": "Oscar Bluff",
-      "sevenNights": "Seven Nights"
+      "oscarBluff": "Poker Face",
+      "sevenNights": "Seven Nights",
+      "highStakes": "High Stakes",
+      "royalFlush": "Royal Flush",
+      "fullHouse": "Full House",
+      "cardShark": "Card Shark"
     },
     "settings": {
       "talk": "Lines",
@@ -3067,7 +3098,8 @@
       "leftHanded": "Left-handed",
       "shortcuts": "Keyboard shortcuts",
       "script": "Table log",
-      "ranking": "Hand rankings"
+      "ranking": "Hand rankings",
+      "slow": "Calm"
     },
     "hands": {
       "high_card": "High card",
@@ -3079,7 +3111,9 @@
       "full_house": "Full house",
       "quads": "Four of a kind",
       "straight_flush": "Straight flush",
-      "royal": "Royal flush"
+      "royal": "Royal flush",
+      "five_kind": "Five of a kind",
+      "five_of_a_kind": "Five of a kind"
     },
     "narrate": {
       "hand": "Hand {{n}}. Button: {{who}}.",
@@ -3106,13 +3140,183 @@
       "board": "On the board: {{cards}}.",
       "potIs": "Pot {{amount}}.",
       "seat": "{{who}}: stack {{stack}}, bet {{bet}}.",
-      "seatOut": "{{who}}: out, place {{place}}."
+      "seatOut": "{{who}}: out, place {{place}}.",
+      "cast": "The poster casts {{name}}. {{rule}}",
+      "revealed": "{{who}} shows {{cards}}.",
+      "bonus": "{{who}} gets {{amount}} from the house.",
+      "tell_blefe": "Le Chiffre's tell: {{who}} is bluffing.",
+      "tell_valor": "Le Chiffre's tell: {{who}} has a hand.",
+      "earlyFlop": "The wire: the flop turns before any betting: {{cards}}."
     },
     "tutorial": {
       "done": "Done. +1 chip.",
       "doneNoChip": "Done. Practice complete.",
       "seePrize": "See today's prize",
       "soon": "Practice arrives with the next update. Until then, the free table costs nothing."
+    },
+    "game": {
+      "play": "Play",
+      "collection": "Collection",
+      "scoreboard": "Scoreboard",
+      "settings": "Settings",
+      "howTo": "How to play",
+      "exit": "Leave Pôster Poker",
+      "back": "Back",
+      "menuAria": "Game menu",
+      "pickMode": "Pick a mode",
+      "tourney": "Tournament",
+      "casual": "Casual",
+      "casualLine": "Poker with the oracles, free, as often as you like.",
+      "tourneyEntry_one": "This week's poster. Entry: {{count}} chip or a {{rarity}} poster.",
+      "tourneyEntry_other": "This week's poster. Entry: {{count}} chips or a {{rarity}} poster.",
+      "tourneyActive": "Match in progress",
+      "tourneySoon": "The tournament opens soon.",
+      "tourneyOffline": "Offline: the tournament comes back with the network.",
+      "weekCaption": "In this week's tournament:",
+      "weekPosterAria": "This week's poster: {{title}}",
+      "firstVisit": "First time? How to play has 3 practice hands.",
+      "sounds": "Sounds",
+      "settingsNote": "Settings apply to this device.",
+      "speedHint": {
+        "slow": "The slowest: time to read every move.",
+        "normal": "The default pace, no rush.",
+        "fast": "The oracles think less.",
+        "turbo": "Almost no waiting."
+      },
+      "howToBody": "Texas Hold'em against the three oracles: everyone gets two cards, the table opens up to five, and the best five-card hand wins, or whoever makes the others fold.",
+      "howToModes": "In the weekly Tournament, whoever finishes 1st takes the gold poster, and the magic poster casts effects during the match. Casual is just the table, free."
+    },
+    "tourney": {
+      "logoTop": "Pôster",
+      "logoBottom": "Poker",
+      "heading": "This week's tournament",
+      "changesIn": "Changes on Thursday, in {{time}}",
+      "difficulty": "Difficulty",
+      "starsAria_one": "Difficulty: {{count}} star out of 4",
+      "starsAria_other": "Difficulty: {{count}} stars out of 4",
+      "howWin": "Whoever finishes 1st takes the poster, with the gold shine. It can't be traded.",
+      "entryOf": "Entry {{n}} of {{max}} today",
+      "entryAria": "How to enter the tournament",
+      "payChips_one": "Pay {{count}} chip",
+      "payChips_other": "Pay {{count}} chips",
+      "betPosterShort": "Poster",
+      "betPoster": "Bet a {{rarity}} poster",
+      "noStake": "No {{rarity}} poster in your collection",
+      "pickPoster": "Pick the poster for the table",
+      "stakeWarn": "If you don't finish 1st, {{title}} stays on the table with the Snake. Win and it goes back to your collection.",
+      "stakeWarnAny": "Pick the poster. If you don't finish 1st, it stays on the table.",
+      "enter": "Enter the tournament",
+      "chipsNote_one": "You have {{count}} chip.",
+      "chipsNote_other": "You have {{count}} chips.",
+      "posterNote": "The poster is locked during the match (no trades).",
+      "todayLeft_one": "{{count}} entry left today.",
+      "todayLeft_other": "{{count}} entries left today.",
+      "activeBody": "You have an open match. It picks up where it stopped.",
+      "continue": "Continue the match",
+      "ownedTitle": "Already yours",
+      "ownedBody": "You already have this poster. A new one joins the tournament on Thursday; until then, there's Casual.",
+      "playCasual": "Play Casual",
+      "wonTitle": "You won this week",
+      "wonBody": "The poster is yours. The next tournament opens on Thursday.",
+      "seeCollection": "See it in the collection",
+      "limitTitle": "That's it for today",
+      "limitBody": "You used today's {{max}} entries. More tomorrow.",
+      "noChipsTitle": "Out of chips",
+      "noChipsBody_one": "The entry costs {{count}} chip and you have {{have}}. You could also bet a {{rarity}} poster, but there's none in your collection.",
+      "noChipsBody_other": "The entry costs {{count}} chips and you have {{have}}. You could also bet a {{rarity}} poster, but there's none in your collection.",
+      "getChips": "Earn chips in Missions",
+      "posterAria": "The magic poster, {{title}}. See the effect.",
+      "catchaw": "CATCHAW!",
+      "cobraBox": "The Snake brought a secret item",
+      "stakeAria": "Your poster on the table: {{title}}",
+      "tell": {
+        "blefe": "bluff",
+        "valor": "value"
+      },
+      "house": "+{{amount}} from the house",
+      "openForAll": "Card open for everyone",
+      "castsSoFar_one": "Cast {{count}} time this match.",
+      "castsSoFar_other": "Cast {{count}} times this match.",
+      "notCastYet": "Hasn't cast yet this match.",
+      "yours": "It's yours!",
+      "yoursNote": "With the gold shine. It's already in your collection.",
+      "cobraGot": "And the Snake's secret item: {{item}}",
+      "cobraHad": "The Snake was carrying: {{item}}",
+      "stakeLost": "{{title}} stayed on the table, with the Snake.",
+      "yourPoster": "Your poster"
+    },
+    "collection": {
+      "count": "{{have}} of {{total}}",
+      "intro": "The 9 Pôster Poker posters. Every Thursday, one of them is up in the tournament.",
+      "ownedAria": "{{title}}, no. {{n}}. Yours.",
+      "lockedAria": "A poster you don't have yet. Back in the tournament on {{date}}.",
+      "thisWeek": "This week",
+      "returns": "Back on {{date}}",
+      "unknown": "Secret poster",
+      "cobraTitle": "The Snake's items",
+      "cobraSoon": "Coming soon: card backs, tables and other pieces the Snake brings to some tournaments.",
+      "ownedNote": "Yours, with the gold shine. It can't be traded.",
+      "thisWeekNote": "Up in this week's tournament.",
+      "returnsNote": "Back in the tournament on Thursday, {{date}}.",
+      "goTourney": "Go to the tournament"
+    },
+    "effects": {
+      "early_flop": {
+        "name": "The wire",
+        "rule": "In a drawn hand, the flop turns right after the hole cards, before any betting. Then it goes straight to the turn.",
+        "cast": "The flop turns before any betting.",
+        "ribbon": "The wire: the flop opened before the betting."
+      },
+      "double_pot": {
+        "name": "Double money",
+        "rule": "In a drawn hand, the house doubles the pot: the winner takes the pot plus the same amount.",
+        "cast": "This hand, the house doubles the pot.",
+        "ribbon": "Double money: the house doubles this pot."
+      },
+      "blackjack": {
+        "name": "21",
+        "rule": "In a drawn hand, at the end, everyone's cards turn over and whoever is closest to 21 gets 500 from the house. Aces count 11 or 1; face cards and tens count 10.",
+        "cast": "At the end of this hand the cards turn: closest to 21 takes {{amount}}.",
+        "ribbon": "21: at the end of the hand, closest to 21 takes {{amount}}."
+      },
+      "hand_bounty": {
+        "name": "Raymond's count",
+        "rule": "The poster draws a hand (two pair, three of a kind, straight or flush). The first to finish a hand with it, or better, gets 800 from the house.",
+        "cast": "The first to make {{hand}} or better gets {{amount}}.",
+        "ribbon": "Raymond's count: the first to make {{hand}} or better takes {{amount}}."
+      },
+      "eight_aces": {
+        "name": "Ace's aces",
+        "rule": "The deck gets 8 extra aces (2 of each suit) for the whole match. Repeated cards count, and five of a kind exists, above a straight flush.",
+        "cast": "8 extra aces in the deck. Five of a kind is now possible.",
+        "ribbon": "Ace's aces: 8 extra aces in the deck."
+      },
+      "reveal_one": {
+        "name": "The read",
+        "rule": "In a drawn hand, one card from each player turns face up for everyone, including one of yours.",
+        "cast": "One card from each player turns face up.",
+        "ribbon": "The read: one card from each player is open."
+      },
+      "sixth_card": {
+        "name": "One more in the crew",
+        "rule": "In the first hand to reach the river after the cast, the river brings two cards: the table has six and everyone uses their best 5.",
+        "cast": "The river brings two cards.",
+        "ribbon": "One more in the crew: the river brings two cards."
+      },
+      "opal": {
+        "name": "The black opal",
+        "rule": "One card becomes the opal. Whoever wins a pot holding it gets 1,000 from the house. Once only.",
+        "cast": "This match's opal: {{card}}. Win a pot holding it and get {{amount}}.",
+        "ribbon": "The black opal: {{card}}. Win a pot with it and get {{amount}}."
+      },
+      "tell": {
+        "name": "Le Chiffre's tell",
+        "rule": "For 3 hands, every oracle bet or raise gives away the tell: bluff when the hand is weak, value when it's good.",
+        "cast_one": "For {{count}} hand, the oracles' bets give away the tell.",
+        "cast_other": "For {{count}} hands, the oracles' bets give away the tell.",
+        "ribbon_one": "Le Chiffre's tell: {{count}} hand left.",
+        "ribbon_other": "Le Chiffre's tell: {{count}} hands left."
+      }
     }
   }
 }

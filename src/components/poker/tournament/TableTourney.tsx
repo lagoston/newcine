@@ -9,6 +9,7 @@ import type { TableShow } from '../../../lib/poker/client/display';
 import { HAND_EFFECTS } from '../../../lib/poker/client/display';
 import type { CastShow } from '../../../lib/poker/client/useTable';
 import { cardsName, fmt, type Lang } from '../../../lib/poker/client/format';
+import { castRule } from '../../../lib/poker/client/narrate';
 import PosterArt from '../../posterJackpot/PosterArt';
 import '../../../styles/posterJackpot.css';
 import '../../../styles/posterPoker.css';
@@ -106,14 +107,7 @@ export const CastOverlay: React.FC<{
   }, [reduced]);
 
   const name = t(`poker.effects.${cast.effect}.name`);
-  const rule = (() => {
-    const d = cast.data;
-    if (d.effect === 'hand_bounty') return t('poker.effects.hand_bounty.cast', { hand: t(`poker.hands.${d.target}`).toLowerCase(), amount: fmt(d.amount, lang) });
-    if (d.effect === 'opal') return t('poker.effects.opal.cast', { card: cardsName([d.card], lang), amount: fmt(d.amount, lang) });
-    if (d.effect === 'blackjack') return t('poker.effects.blackjack.cast', { amount: fmt(d.amount, lang) });
-    if (d.effect === 'tell') return t('poker.effects.tell.cast', { count: d.hands });
-    return t(`poker.effects.${cast.effect}.cast`);
-  })();
+  const rule = castRule(t, cast.data, lang);
   const impact = reduced ? 0 : 0.46;
   const still = reduced || !from;
 

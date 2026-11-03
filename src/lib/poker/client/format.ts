@@ -138,6 +138,8 @@ export function timeLeft(endsAt: string, now: number, lang: Lang): string {
   const ms = Math.max(0, new Date(endsAt).getTime() - now);
   const h = Math.floor(ms / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
+  // 03/11/2026 (torneio semanal): com mais de um dia, dias e horas ("2 d 5 h").
+  if (h >= 24) return `${Math.floor(h / 24)} d ${h % 24} h`;
   if (h <= 0) return lang === 'pt' ? `${m} min` : `${m} min`;
   return lang === 'pt' ? `${h} h ${m} min` : `${h} h ${m} min`;
 }

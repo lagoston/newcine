@@ -3,7 +3,7 @@
  * "Sapo paga 40.", "Flop: ás de copas, sete de paus, sete de ouros.".
  */
 import type { TFunction } from 'i18next';
-import type { PlayerId, PublicEvent } from '../types.ts';
+import type { EffectCastData, PlayerId, PublicEvent } from '../types.ts';
 import type { TableShow } from './display.ts';
 import { cardsName, describeHand, fmt, type Lang } from './format.ts';
 
@@ -23,6 +23,16 @@ export function blindsText(t: TFunction, lang: Lang, sb: number, bb: number, ant
   return ante > 0
     ? t('poker.table.blindsAnte', { sb: fmt(sb, lang), bb: fmt(bb, lang), ante: fmt(ante, lang) })
     : t('poker.table.blinds', { sb: fmt(sb, lang), bb: fmt(bb, lang) });
+}
+
+/** O que a lançada faz, numa frase (CATCHAW na tela e o leitor de tela). */
+export function castRule(t: TFunction, data: EffectCastData, lang: Lang): string {
+  const n = (x: number) => fmt(x, lang);
+  if (data.effect === 'hand_bounty') return t('poker.effects.hand_bounty.cast', { hand: t(`poker.hands.${data.target}`).toLowerCase(), amount: n(data.amount) });
+  if (data.effect === 'opal') return t('poker.effects.opal.cast', { card: cardsName([data.card], lang), amount: n(data.amount) });
+  if (data.effect === 'blackjack') return t('poker.effects.blackjack.cast', { amount: n(data.amount) });
+  if (data.effect === 'tell') return t('poker.effects.tell.cast', { count: data.hands });
+  return t(`poker.effects.${data.effect}.cast`);
 }
 
 /** Frase de um evento, ou null quando ele não merece ser lido. */
@@ -64,13 +74,8 @@ export function narrate(t: TFunction, lang: Lang, e: PublicEvent, table: TableSh
     case 'levelUp':
       return t('poker.narrate.levelUp', { blinds: blindsText(t, lang, e.level.sb, e.level.bb, e.level.ante) });
     // Pôster Poker (03/11/2026): o pôster lança, as cartas que o efeito vira, a casa paga, o tique.
-    case 'effectCast': {
-      const name = t(`poker.effects.${e.effect}.name`);
-      if (e.data.effect === 'hand_bounty')
-        return t('poker.narrate.castBounty', { name, hand: t(`poker.hands.${e.data.target}`).toLowerCase(), amount: n(e.data.amount) });
-      if (e.data.effect === 'opal') return t('poker.narrate.castOpal', { name, card: cardsName([e.data.card], lang), amount: n(e.data.amount) });
-      return t('poker.narrate.cast', { name, rule: t(`poker.effects.${e.effect}.short`) });
-    }
+    case 'effectCast':
+      return t('poker.narrate.cast', { name: t(`poker.effects.${e.effect}.name`), rule: castRule(t, e.data, lang) });
     case 'effectReveal':
       return e.cards
         .filter((c) => c.cards.length > 0)

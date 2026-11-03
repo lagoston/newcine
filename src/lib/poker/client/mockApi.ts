@@ -443,3 +443,8 @@ export const mockApi: PokerApiLike = {
     },
   },
 };
+
+/** Só para a prévia: começa o banco falso de um jeito conhecido (`patch` por cima do vazio). */
+export function seedMockDb(patch: Record<string, unknown>) {
+  save({ ...blankDb(), ...(patch as Partial<MockDb>) });
+}

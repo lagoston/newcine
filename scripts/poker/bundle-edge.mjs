@@ -8,7 +8,7 @@
  *
  * 03/11/2026: o MCP (deploy_edge_function) recebe o conteúdo de cada arquivo inline. As 43
  * fontes somam ~290 KB, quase tudo comentário; o pacote do esbuild (sem comentários, só o que
- * o handler usa, nomes preservados) tem ~165 KB. Publica-se então 2 arquivos: o index.ts do
+ * o handler usa, nomes internos encurtados) tem ~160 KB. Publica-se então 2 arquivos: o index.ts do
  * repositório, sem mudança, e este pacote com o nome handler.ts (o index importa
  * './handler.ts'; JS puro é TS válido para o Deno, que não confere tipos ao publicar).
  * O pacote sai do mesmo código da cópia em _engine/ (mesmo ENGINE_HASH); a pasta dist/
@@ -36,6 +36,11 @@ const res = await build({
   target: 'es2022',
   write: false,
   legalComments: 'none',
+  // 03/11/2026: nomes internos encurtados e sintaxe compacta, mas com as quebras de
+  // linha (sem minificar o espaço): o pacote passou de ~200 KB para ~160 KB, o tamanho
+  // que o MCP já publicou bem. O código-fonte de verdade continua no repositório.
+  minifyIdentifiers: true,
+  minifySyntax: true,
   logLevel: 'error',
 });
 const code = res.outputFiles[0].text;

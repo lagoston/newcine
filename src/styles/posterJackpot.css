@@ -125,14 +125,14 @@
    velho, um fio escovado fininho, a lâmina de luz que atravessa o pôster na
    diagonal (uma passada a cada ~4 s, com pausa) e um friso de ouro na borda. */
 .pj-gold > img {
-  filter: sepia(0.32) saturate(1.22) contrast(1.07) brightness(1.04);
+  filter: sepia(0.18) saturate(1.15) contrast(1.06) brightness(1.03);
 }
 .pj-gold-wash {
   position: absolute;
   inset: 0;
   background: linear-gradient(140deg, #8c5a12 0%, #ffe7a1 30%, #e8b54a 52%, #fff3c4 70%, #6e430b 100%);
   mix-blend-mode: soft-light;
-  opacity: 0.7;
+  opacity: 0.42;
   pointer-events: none;
 }
 .pj-gold-grain {

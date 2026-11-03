@@ -3,7 +3,8 @@
  *
  *   node scripts/poker/test-dialogue.ts                 estático + cenários + fixtures + fuzz (5.000 partidas)
  *   node scripts/poker/test-dialogue.ts --n 500         fuzz menor
- *   node scripts/poker/test-dialogue.ts --quick         sem o fuzz
+ *   node scripts/poker/test-dialogue.ts --quick         sem o fuzz (o de torneio roda com 45 partidas)
+ *   node scripts/poker/test-dialogue.ts --tn 450        tamanho do fuzz de torneio
  *
  * 1. Estático: ≤ 88 caracteres ({premio} conta 30), `curta` ⇔ ≤ 44, ator em ação de bot com
  *    cue, Sapo ator nunca com `calado`, aposta grande do Sapo só `nervoso`, all-in do Sapo só
@@ -1135,6 +1136,8 @@ if (!existsSync(FIX)) {
       }
       if (threw) continue;
       const st = verify(`${f}[${lang}]`, all, stage.out, null);
+      // fixtures de torneio do E (Pôster Poker): também as regras do pôster
+      if (all.some((e) => e.t === 'matchStarted' && e.tournament)) verifyPoster(`${f}[${lang}]`, all, stage.out, 'chips');
       check(stage.out.some((o) => o.item.scene === 'opening'), `${f} [${lang}]: tem abertura`);
       const ended = all.find((e) => e.t === 'matchEnded') as Extract<PublicEvent, { t: 'matchEnded' }> | undefined;
       if (ended && ended.reason !== 'eliminated') check(stage.out.some((o) => o.item.scene === 'credits'), `${f} [${lang}]: tem fala de créditos`);
@@ -1442,7 +1445,7 @@ function verifyPoster(tag: string, events: PublicEvent[], emitted: Emitted[], st
 }
 
 function fuzzTournament(n: number, label: string): void {
-  const tot = { matches: 0, hands: 0, balloons: 0, p1: 0, silent: 0, real: 0, b35: [] as number[] };
+  const tot = { matches: 0, hands: 0, balloons: 0, p1: 0, silent: 0, real: 0, b35: [] as number[], b35vet: [] as number[] };
   const ps: PosterStats = { castLines: 0, casts: 0, explains: 0, bonusLines: 0, bonuses: 0, tellLines: 0, revealLines: 0 };
   const explainedBy = new Map<string, number>();
   const byEffect = new Map<PosterEffectId, { matches: number; casts: number; castLines: number; bonuses: number; bonusLines: number; tellLines: number }>();
@@ -1530,14 +1533,19 @@ function fuzzTournament(n: number, label: string): void {
     tot.balloons += st.balloons;
     tot.p1 += st.byPriority[1];
     tot.silent += st.silentHands;
-    if (st.hands >= 28 && st.hands <= 42) tot.b35.push(st.balloons);
+    if (st.hands >= 28 && st.hands <= 42) {
+      tot.b35.push(st.balloons);
+      if (p.explains === 0) tot.b35vet.push(st.balloons);
+    }
   }
   for (const [key, c] of explainedBy) check(c === 1, `fuzz de torneio: explicação ${key} tocou ${c} vezes para a mesma pessoa`);
   const per35 = tot.b35.length ? tot.b35.reduce((a, b) => a + b, 0) / tot.b35.length : NaN;
   const silentShare = tot.silent / Math.max(1, tot.hands);
   console.log(`  ${tot.matches} partidas (${tot.real} com o motor do E, ${tot.matches - tot.real} com efeitos injetados), ` +
     `${(tot.hands / tot.matches).toFixed(1)} mãos, ${(tot.balloons / tot.matches).toFixed(1)} balões por partida (${(tot.p1 / tot.matches).toFixed(1)} P1)`);
-  console.log(`  partidas de 28–42 mãos: ${tot.b35.length}, ${per35.toFixed(1)} balões em média; ${(silentShare * 100).toFixed(1)}% das mãos em silêncio`);
+  const per35vet = tot.b35vet.length ? tot.b35vet.reduce((a, b) => a + b, 0) / tot.b35vet.length : NaN;
+  console.log(`  partidas de 28–42 mãos: ${tot.b35.length}, ${per35.toFixed(1)} balões em média (${per35vet.toFixed(1)} nas ${tot.b35vet.length} sem explicação); ` +
+    `${(silentShare * 100).toFixed(1)}% das mãos em silêncio`);
   console.log(`  lançadas: ${ps.casts}, com fala ${ps.castLines} (${ps.explains} explicações); bônus: ${ps.bonuses}, com fala ${ps.bonusLines}; ` +
     `tique com fala: ${ps.tellLines}; carta aberta comentada: ${ps.revealLines}`);
   if (args.includes('--stats')) {
@@ -1547,14 +1555,17 @@ function fuzzTournament(n: number, label: string): void {
   }
   check(silentShare >= 0.4, `torneio: ${(silentShare * 100).toFixed(1)}% das mãos em silêncio (meta ≥ 40%)`);
   if (tot.b35.length >= 20) check(per35 <= 24, `torneio: ${per35.toFixed(1)} balões por partida de ~35 mãos (teto 24 com as explicações)`);
+  if (tot.b35vet.length >= 20) check(per35vet >= 18 && per35vet <= 22, `torneio sem explicações: ${per35vet.toFixed(1)} balões por partida de ~35 mãos (meta 18–22)`);
   check(ps.castLines < ps.casts, 'nem toda lançada tem fala');
   check(ps.explains > 0, 'o fuzz de torneio ouviu explicações');
 }
 
-section(`4b. Fuzz de torneio (${quick ? 45 : 900} partidas)`);
+// --tn N: tamanho do fuzz de torneio (padrão 45 no --quick, 900 no completo)
+const tN = args.includes('--tn') ? Number(args[args.indexOf('--tn') + 1]) : quick ? 45 : 900;
+section(`4b. Fuzz de torneio (${tN} partidas)`);
 {
   const t0 = Date.now();
-  fuzzTournament(quick ? 45 : 900, quick ? 'q' : 'full');
+  fuzzTournament(tN, quick ? 'q' : 'full');
   console.log(`  ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }
 

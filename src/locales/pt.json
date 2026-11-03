@@ -2249,7 +2249,8 @@
     "effect": {
       "holo": "Holográfico",
       "negative": "Negativo",
-      "ultra_red": "Ultra Vermelho"
+      "ultra_red": "Ultra Vermelho",
+      "gold": "Brilho dourado"
     },
     "door": {
       "hint": "Gire e colecione pôsteres alternativos.",
@@ -2471,7 +2472,7 @@
     }
   },
   "pokerEntry": {
-    "name": "O Grande Blefe",
+    "name": "Pôster Poker",
     "tab": "Pôquer",
     "noRealMoney": "Sem dinheiro real. Fichas não valem dinheiro nem saem do app.",
     "today": "Hoje na mesa: {{prize}}, {{carrier}}.",
@@ -2536,7 +2537,7 @@
     },
     "age": {
       "title": "Maiores de 18",
-      "body": "A partida valendo prêmio é para quem tem 18 anos ou mais.",
+      "body": "O torneio do Pôster Poker é para quem tem 18 anos ou mais.",
       "note": "Sem dinheiro real: fichas não valem dinheiro nem saem do app.",
       "confirm": "Tenho 18 ou mais",
       "decline": "Agora não",
@@ -2547,9 +2548,9 @@
       "pokerPlay_other": "Jogue {{count}} partidas de pôquer até o fim"
     },
     "trades": {
-      "untradeable": "Prêmios da mesa não entram em trocas.",
-      "seal": "Prêmio da mesa",
-      "sealHint": "Ganho no Grande Blefe. Não entra em trocas."
+      "untradeable": "Pôsteres do Pôster Poker não entram em trocas.",
+      "seal": "Pôster Poker",
+      "sealHint": "Ganho no Pôster Poker. Não entra em trocas."
     },
     "cosmetics": {
       "hint": "O verso das cartas e o pano da mesa. Os outros saem como prêmio da mesa.",
@@ -2563,24 +2564,40 @@
     },
     "marks": {
       "firstWin": {
-        "name": "Primeira Vitória",
-        "rule": "Vença uma partida valendo prêmio."
+        "name": "All-in",
+        "rule": "Vença o seu primeiro torneio do Pôster Poker."
       },
       "foxHunter": {
-        "name": "Derrubou o Raposo",
-        "rule": "Elimine o Raposo numa partida valendo prêmio."
+        "name": "Outfoxed",
+        "rule": "Elimine o Raposo num torneio."
       },
       "cleanSweep": {
-        "name": "Limpa-Mesa",
-        "rule": "Elimine os três oráculos na mesma partida valendo prêmio."
+        "name": "Clean Sweep",
+        "rule": "Elimine os três oráculos no mesmo torneio."
       },
       "oscarBluff": {
-        "name": "Blefe de Oscar",
-        "rule": "Leve um pote de 20 BB ou mais sem mostrar as cartas, com alguém largando mão melhor."
+        "name": "Poker Face",
+        "rule": "Leve um pote de 20 BB ou mais sem showdown quando um oponente que desistiu tinha mão melhor."
       },
       "sevenNights": {
-        "name": "Uma Semana na Mesa",
-        "rule": "Termine partidas valendo prêmio em 7 dias seguidos."
+        "name": "Seven Nights",
+        "rule": "Jogue torneio 7 dias seguidos."
+      },
+      "highStakes": {
+        "name": "High Stakes",
+        "rule": "Vença um torneio apostando um pôster da sua coleção."
+      },
+      "royalFlush": {
+        "name": "Royal Flush",
+        "rule": "Vença um torneio lendário."
+      },
+      "fullHouse": {
+        "name": "Full House",
+        "rule": "Tenha os 9 pôsteres do Pôster Poker."
+      },
+      "cardShark": {
+        "name": "Card Shark",
+        "rule": "Vença 10 torneios."
       }
     },
     "hands": {
@@ -2618,9 +2635,9 @@
     },
     "score": {
       "title": "Placar",
-      "back": "Voltar ao salão",
+      "back": "Voltar ao menu",
       "loading": "Carregando o placar",
-      "closed": "O salão está fechado agora.",
+      "closed": "O Pôster Poker está fechado agora.",
       "error": "Não deu para abrir o placar.",
       "retry": "Tentar de novo",
       "home": "Voltar para o início",
@@ -2634,8 +2651,8 @@
       "filterAria": "Quais partidas contar",
       "general": "Geral",
       "verified": "Valendo",
-      "unverified": "Partidas livres não são verificadas.",
-      "verifiedNote": "Só as partidas valendo prêmio, conferidas pelo servidor.",
+      "unverified": "Partidas do Casual não são verificadas.",
+      "verifiedNote": "Só os torneios, conferidos pelo servidor.",
       "emptyTitle": "A mesa está esperando.",
       "emptyBounty": "Nenhuma partida valendo ainda.",
       "emptyBody": "Sua primeira partida entra aqui, com colocação, melhor mão e a rivalidade com cada oráculo.",
@@ -2655,11 +2672,11 @@
       "placeShort": "{{place}}º",
       "placeLong": "{{place}}º lugar",
       "modes": "Livre × valendo",
-      "modeFree": "Mesa livre",
-      "modeBounty": "Valendo prêmio",
+      "modeFree": "Casual",
+      "modeBounty": "Torneio",
       "modeLine": "{{wins}} de {{matches}} · {{pct}}%",
-      "prizes": "Prêmios da mesa",
-      "noPrizes": "Nenhum ainda. Quem elimina o oráculo que carrega o prêmio, ou vence a mesa, leva.",
+      "prizes": "Pôsteres ganhos",
+      "noPrizes": "Nenhum ainda. Quem termina o torneio da semana em 1º leva o pôster.",
       "rivals": "Você contra cada oráculo",
       "youElim": "Você eliminou",
       "theyElim": "Te eliminou",
@@ -2687,8 +2704,8 @@
       "badBeatsSuffered": "Bad beats sofridos",
       "badBeatsDealt": "Bad beats aplicados",
       "bluffs": "Blefes que funcionaram",
-      "marks": "Marcos",
-      "marksHint": "Só nas partidas valendo prêmio. Cada marco vira uma tag do perfil.",
+      "marks": "Tags do Pôster Poker",
+      "marksHint": "Da categoria Jogos. Cada uma vira uma tag do seu perfil.",
       "markEarned": "Tag {{tag}} · em {{date}}",
       "equip": "Equipar",
       "inUse": "Em uso",
@@ -2735,7 +2752,7 @@
       "lossLong": "Derrota",
       "inProgress": "Em andamento",
       "modeFreeShort": "Livre",
-      "modeBountyShort": "Valendo prêmio",
+      "modeBountyShort": "Torneio",
       "withLoan": "com empréstimo",
       "forfeit": "desistiu",
       "abandoned": "abandonada",
@@ -2749,12 +2766,14 @@
       "comebacksHelp": "vitórias depois de ficar com menos de 5 BB"
     },
     "todayLabel": "Hoje na mesa",
-    "todayWhat": "{{prize}}, {{carrier}}"
+    "todayWhat": "{{prize}}, {{carrier}}",
+    "doorAria": "Pôster Poker. No torneio desta semana: {{title}}. Abrir o jogo.",
+    "doorHint": "No torneio desta semana:"
   },
   "poker": {
-    "name": "O Grande Blefe",
-    "subtitle": "Sessão da Meia-Noite",
-    "soon": "O salão abre em breve. Os oráculos estão embaralhando.",
+    "name": "Pôster Poker",
+    "subtitle": "O torneio da semana e a mesa casual",
+    "soon": "O Pôster Poker abre em breve. Os oráculos estão embaralhando.",
     "noRealMoney": "Sem dinheiro real. Fichas não valem dinheiro nem saem do app.",
     "oracles": {
       "bogart": {
@@ -2837,18 +2856,23 @@
       "tableNote": "O feltro escolhido vale na mesa livre. A mesa do prêmio é sempre de veludo."
     },
     "errors": {
-      "stale_day": "O dia virou e o prêmio mudou. Veja o novo.",
-      "prize_changed": "O prêmio de hoje mudou. Confira antes de jogar.",
-      "limit": "Você já usou as 3 tentativas de hoje.",
-      "won_today": "Você já levou o prêmio de hoje.",
-      "no_chips": "Sem fichas agora. Ganhe nas Missões.",
-      "closed": "A mesa do prêmio está fechada agora.",
-      "bot": "Esta conta não joga valendo prêmio.",
-      "age_required": "Confirme a idade para jogar valendo prêmio."
+      "stale_day": "A semana virou e o torneio trocou de pôster. Veja o novo.",
+      "prize_changed": "O pôster do torneio mudou. Confira antes de jogar.",
+      "limit": "Você já usou as 3 entradas de hoje.",
+      "won_today": "Você já venceu o torneio desta semana.",
+      "no_chips": "Faltam fichas para a entrada. Ganhe nas Missões.",
+      "closed": "O torneio está fechado agora.",
+      "bot": "Esta conta não joga o torneio.",
+      "age_required": "Confirme a idade para jogar o torneio.",
+      "stale_week": "A semana virou e o torneio trocou de pôster. Veja o novo.",
+      "attempts": "Você já usou as 3 entradas de hoje.",
+      "owned": "Você já tem este pôster.",
+      "won_this_week": "Você já venceu o torneio desta semana.",
+      "stake_invalid": "Esse pôster não pode entrar na mesa. Escolha outro."
     },
     "table": {
       "aria": "Mesa de pôquer",
-      "free": "Mesa livre",
+      "free": "Casual",
       "bounty": "Valendo prêmio",
       "training": "Treino",
       "trainingStep": "Treino · mão {{n}} de 3",
@@ -2895,9 +2919,10 @@
       "handOver": "A mão acabou.",
       "youFolded": "Você desistiu desta mão.",
       "scriptEmpty": "Nada aconteceu ainda.",
-      "backToLobby": "Voltar ao salão",
+      "backToLobby": "Voltar ao menu",
       "tapBalloon": "Toque no balão para adiantar",
-      "out_ordinal_other": "Fora · {{place}}º"
+      "out_ordinal_other": "Fora · {{place}}º",
+      "tourney": "Torneio"
     },
     "tells": {
       "bogart": {
@@ -2983,13 +3008,13 @@
       "reconnecting": "Reconectando à mesa…",
       "offline": "Sem conexão. A partida fica salva por 24 h.",
       "retry": "Tentar de novo",
-      "update": "Atualize o app para jogar valendo prêmio.",
+      "update": "Atualize o app para jogar o torneio.",
       "error": "Algo deu errado na mesa. Sua partida está salva.",
       "soon": "A mesa abre em breve.",
-      "bountySoon": "A mesa do prêmio abre em breve."
+      "bountySoon": "O torneio abre em breve."
     },
     "recap": {
-      "title": "Anteriormente em O Grande Blefe…",
+      "title": "Anteriormente no Pôster Poker…",
       "eliminated": "Mão {{hand}}: {{who}} eliminou {{victim}}",
       "prizeMoved": "Mão {{hand}}: {{who}} ficou com {{prize}}",
       "captured": "Mão {{hand}}: {{prize}} ficou com você",
@@ -3027,11 +3052,13 @@
       "rematch": "Revanche",
       "freeRematch": "Revanche grátis",
       "scoreboard": "Placar",
-      "lobby": "Salão",
+      "lobby": "Menu",
       "prizeYours": "{{prize}} é seu!",
       "withLoan": "com empréstimo do Sapo",
       "cast": "Elenco",
-      "place_ordinal_other": "{{place}}º lugar"
+      "place_ordinal_other": "{{place}}º lugar",
+      "newTag": "Tag nova",
+      "casualRematch": "Jogar o Casual"
     },
     "titles": {
       "figurante": "Figurante",
@@ -3042,11 +3069,15 @@
       "lenda": "Lenda da Sessão"
     },
     "marks": {
-      "firstWin": "Primeira Vitória",
-      "foxHunter": "Derrubou o Raposo",
-      "cleanSweep": "Limpa-Mesa",
-      "oscarBluff": "Blefe de Oscar",
-      "sevenNights": "Uma Semana na Mesa"
+      "firstWin": "All-in",
+      "foxHunter": "Outfoxed",
+      "cleanSweep": "Clean Sweep",
+      "oscarBluff": "Poker Face",
+      "sevenNights": "Seven Nights",
+      "highStakes": "High Stakes",
+      "royalFlush": "Royal Flush",
+      "fullHouse": "Full House",
+      "cardShark": "Card Shark"
     },
     "settings": {
       "talk": "Falas",
@@ -3055,7 +3086,7 @@
       "talkNone": "Nenhuma",
       "speed": "Velocidade",
       "normal": "Normal",
-      "fast": "Rápido",
+      "fast": "Rápida",
       "turbo": "Turbo",
       "effects": "Efeitos",
       "voices": "Vozes",
@@ -3066,7 +3097,8 @@
       "leftHanded": "Canhoto",
       "shortcuts": "Atalhos de teclado",
       "script": "Roteiro da mesa",
-      "ranking": "Ranking das mãos"
+      "ranking": "Ranking das mãos",
+      "slow": "Calma"
     },
     "hands": {
       "high_card": "Carta alta",
@@ -3078,7 +3110,9 @@
       "full_house": "Full house",
       "quads": "Quadra",
       "straight_flush": "Straight flush",
-      "royal": "Royal flush"
+      "royal": "Royal flush",
+      "five_kind": "Cinco iguais",
+      "five_of_a_kind": "Cinco iguais"
     },
     "narrate": {
       "hand": "Mão {{n}}. Botão: {{who}}.",
@@ -3105,13 +3139,183 @@
       "board": "Na mesa: {{cards}}.",
       "potIs": "Pote {{amount}}.",
       "seat": "{{who}}: cacife {{stack}}, aposta {{bet}}.",
-      "seatOut": "{{who}}: fora, {{place}}º lugar."
+      "seatOut": "{{who}}: fora, {{place}}º lugar.",
+      "cast": "O pôster lança {{name}}. {{rule}}",
+      "revealed": "{{who}} mostra {{cards}}.",
+      "bonus": "{{who}} ganha {{amount}} da casa.",
+      "tell_blefe": "O tique de Le Chiffre: {{who}} está blefando.",
+      "tell_valor": "O tique de Le Chiffre: {{who}} tem mão.",
+      "earlyFlop": "O telegrama: o flop vira antes das apostas: {{cards}}."
     },
     "tutorial": {
       "done": "Pronto. +1 ficha.",
       "doneNoChip": "Pronto. Treino concluído.",
       "seePrize": "Ver o prêmio de hoje",
       "soon": "O treino chega com a próxima atualização. Por enquanto, a mesa livre é de graça."
+    },
+    "game": {
+      "play": "Jogar",
+      "collection": "Coleção",
+      "scoreboard": "Placar",
+      "settings": "Configurações",
+      "howTo": "Como jogar",
+      "exit": "Sair do Pôster Poker",
+      "back": "Voltar",
+      "menuAria": "Menu do jogo",
+      "pickMode": "Escolha o modo",
+      "tourney": "Torneio",
+      "casual": "Casual",
+      "casualLine": "Pôquer com os oráculos, grátis, quantas vezes quiser.",
+      "tourneyEntry_one": "O pôster da semana. Entrada: {{count}} ficha ou um pôster {{rarity}}.",
+      "tourneyEntry_other": "O pôster da semana. Entrada: {{count}} fichas ou um pôster {{rarity}}.",
+      "tourneyActive": "Partida em andamento",
+      "tourneySoon": "O torneio abre em breve.",
+      "tourneyOffline": "Sem conexão: o torneio volta com a rede.",
+      "weekCaption": "No torneio desta semana:",
+      "weekPosterAria": "O pôster da semana: {{title}}",
+      "firstVisit": "Primeira vez? Em Como jogar tem 3 mãos de treino.",
+      "sounds": "Sons",
+      "settingsNote": "Os ajustes valem para este aparelho.",
+      "speedHint": {
+        "slow": "A mais lenta: tempo para ler cada jogada.",
+        "normal": "O ritmo padrão, sem pressa.",
+        "fast": "Os oráculos pensam menos.",
+        "turbo": "Quase sem espera."
+      },
+      "howToBody": "Pôquer Texas Hold'em contra os três oráculos: cada um recebe duas cartas, a mesa abre até cinco e vence a melhor mão de cinco cartas, ou quem fizer os outros desistirem.",
+      "howToModes": "No Torneio da semana, quem termina em 1º leva o pôster dourado; o pôster mágico lança efeitos durante a partida. No Casual, é só a mesa, grátis."
+    },
+    "tourney": {
+      "logoTop": "Pôster",
+      "logoBottom": "Poker",
+      "heading": "Torneio da semana",
+      "changesIn": "Troca na quinta, em {{time}}",
+      "difficulty": "Dificuldade",
+      "starsAria_one": "Dificuldade: {{count}} estrela de 4",
+      "starsAria_other": "Dificuldade: {{count}} estrelas de 4",
+      "howWin": "Quem terminar em 1º lugar leva o pôster, com o brilho dourado. Ele não entra em trocas.",
+      "entryOf": "Entrada {{n}} de {{max}} hoje",
+      "entryAria": "Como entrar no torneio",
+      "payChips_one": "Pagar {{count}} ficha",
+      "payChips_other": "Pagar {{count}} fichas",
+      "betPosterShort": "Pôster",
+      "betPoster": "Apostar um pôster {{rarity}}",
+      "noStake": "Nenhum pôster {{rarity}} na coleção",
+      "pickPoster": "Escolha o pôster para a mesa",
+      "stakeWarn": "Se você não terminar em 1º, {{title}} fica na mesa, com a Cobra. Vencendo, ele volta para a sua coleção.",
+      "stakeWarnAny": "Escolha o pôster. Se você não terminar em 1º, ele fica na mesa.",
+      "enter": "Entrar no torneio",
+      "chipsNote_one": "Você tem {{count}} ficha.",
+      "chipsNote_other": "Você tem {{count}} fichas.",
+      "posterNote": "O pôster fica travado durante a partida (sem trocas).",
+      "todayLeft_one": "Resta {{count}} entrada hoje.",
+      "todayLeft_other": "Restam {{count}} entradas hoje.",
+      "activeBody": "Você tem uma partida aberta. Ela continua de onde parou.",
+      "continue": "Continuar a partida",
+      "ownedTitle": "Já é seu",
+      "ownedBody": "Você já tem este pôster. Na quinta entra outro no torneio; até lá, tem o Casual.",
+      "playCasual": "Jogar o Casual",
+      "wonTitle": "Você venceu esta semana",
+      "wonBody": "O pôster é seu. O próximo torneio abre na quinta.",
+      "seeCollection": "Ver na coleção",
+      "limitTitle": "Limite de hoje",
+      "limitBody": "Você usou as {{max}} entradas de hoje. Amanhã tem mais.",
+      "noChipsTitle": "Sem fichas",
+      "noChipsBody_one": "A entrada custa {{count}} ficha e você tem {{have}}. Também dá para apostar um pôster {{rarity}}, mas não há nenhum na sua coleção.",
+      "noChipsBody_other": "A entrada custa {{count}} fichas e você tem {{have}}. Também dá para apostar um pôster {{rarity}}, mas não há nenhum na sua coleção.",
+      "getChips": "Ganhar fichas nas Missões",
+      "posterAria": "O pôster mágico, {{title}}. Ver o efeito.",
+      "catchaw": "CATCHAW!",
+      "cobraBox": "A Cobra trouxe um item secreto",
+      "stakeAria": "O seu pôster na mesa: {{title}}",
+      "tell": {
+        "blefe": "blefe",
+        "valor": "valor"
+      },
+      "house": "+{{amount}} da casa",
+      "openForAll": "Carta aberta para todos",
+      "castsSoFar_one": "Lançou {{count}} vez nesta partida.",
+      "castsSoFar_other": "Lançou {{count}} vezes nesta partida.",
+      "notCastYet": "Ainda não lançou nesta partida.",
+      "yours": "É seu!",
+      "yoursNote": "Com o brilho dourado. Já está na sua coleção.",
+      "cobraGot": "E o item secreto da Cobra: {{item}}",
+      "cobraHad": "A Cobra trazia: {{item}}",
+      "stakeLost": "{{title}} ficou na mesa, com a Cobra.",
+      "yourPoster": "O seu pôster"
+    },
+    "collection": {
+      "count": "{{have}} de {{total}}",
+      "intro": "Os 9 pôsteres do Pôster Poker. A cada quinta, um deles vale no torneio.",
+      "ownedAria": "{{title}}, nº {{n}}. É seu.",
+      "lockedAria": "Pôster que você ainda não tem. Volta ao torneio em {{date}}.",
+      "thisWeek": "Nesta semana",
+      "returns": "Volta em {{date}}",
+      "unknown": "Pôster secreto",
+      "cobraTitle": "Itens da Cobra",
+      "cobraSoon": "Em breve: versos de baralho, mesas e outras peças que a Cobra traz para alguns torneios.",
+      "ownedNote": "É seu, com o brilho dourado. Não entra em trocas.",
+      "thisWeekNote": "Vale no torneio desta semana.",
+      "returnsNote": "Volta ao torneio na quinta, {{date}}.",
+      "goTourney": "Ir para o torneio"
+    },
+    "effects": {
+      "early_flop": {
+        "name": "O telegrama",
+        "rule": "Numa mão sorteada, o flop vira logo depois das cartas fechadas, antes das apostas. Depois vem direto o turn.",
+        "cast": "O flop vira antes das apostas.",
+        "ribbon": "O telegrama: o flop abriu antes das apostas."
+      },
+      "double_pot": {
+        "name": "Dinheiro dobrado",
+        "rule": "Numa mão sorteada, a casa dobra o pote: quem ganhar leva o pote e mais o mesmo valor.",
+        "cast": "Nesta mão, a casa dobra o pote.",
+        "ribbon": "Dinheiro dobrado: a casa dobra o pote desta mão."
+      },
+      "blackjack": {
+        "name": "21",
+        "rule": "Numa mão sorteada, no fim, as cartas de todos viram e quem chegar mais perto de 21 ganha 500 da casa. Ás vale 11 ou 1; figuras e 10 valem 10.",
+        "cast": "No fim desta mão as cartas viram: mais perto de 21 leva {{amount}}.",
+        "ribbon": "21: no fim da mão, mais perto de 21 leva {{amount}}."
+      },
+      "hand_bounty": {
+        "name": "A conta do Raymond",
+        "rule": "O pôster sorteia uma jogada (dois pares, trinca, sequência ou flush). O primeiro a fechar uma mão com ela, ou melhor, ganha 800 da casa.",
+        "cast": "O primeiro a fazer {{hand}} ou melhor ganha {{amount}}.",
+        "ribbon": "A conta do Raymond: o primeiro a fazer {{hand}} ou melhor leva {{amount}}."
+      },
+      "eight_aces": {
+        "name": "Os ases do Ace",
+        "rule": "O baralho ganha 8 ases a mais (2 de cada naipe) a partida inteira. Cartas repetidas valem, e existe cinco iguais, acima do straight flush.",
+        "cast": "8 ases a mais no baralho. Agora existe cinco iguais.",
+        "ribbon": "Os ases do Ace: 8 ases a mais no baralho."
+      },
+      "reveal_one": {
+        "name": "A leitura",
+        "rule": "Numa mão sorteada, uma carta de cada jogador vira para todos, inclusive uma das suas.",
+        "cast": "Uma carta de cada um vira para todos.",
+        "ribbon": "A leitura: uma carta de cada um está aberta."
+      },
+      "sixth_card": {
+        "name": "Um a mais no plano",
+        "rule": "Na primeira mão que chegar ao river depois da lançada, o river vem com duas cartas: a mesa fica com seis e cada um usa as 5 melhores.",
+        "cast": "O river vem com duas cartas.",
+        "ribbon": "Um a mais no plano: o river vem com duas cartas."
+      },
+      "opal": {
+        "name": "A opala negra",
+        "rule": "Uma carta vira a opala. Quem levar um pote com ela na mão ganha 1.000 da casa. Vale uma vez.",
+        "cast": "A opala desta partida: {{card}}. Leve um pote com ela na mão e ganhe {{amount}}.",
+        "ribbon": "A opala negra: {{card}}. Leve um pote com ela e ganhe {{amount}}."
+      },
+      "tell": {
+        "name": "O tique de Le Chiffre",
+        "rule": "Por 3 mãos, cada aposta ou aumento dos oráculos entrega o tique: blefe se a mão é fraca, valor se é boa.",
+        "cast_one": "Por {{count}} mão, as apostas dos oráculos entregam o tique.",
+        "cast_other": "Por {{count}} mãos, as apostas dos oráculos entregam o tique.",
+        "ribbon_one": "O tique de Le Chiffre: falta {{count}} mão.",
+        "ribbon_other": "O tique de Le Chiffre: faltam {{count}} mãos."
+      }
     }
   }
 }
