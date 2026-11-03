@@ -320,100 +320,6 @@ export class PokerRuleError extends Error {
 }
 
 // ---------------------------------------------------------------------------
-// Criação da mesa
-// ---------------------------------------------------------------------------
-
-function isNonNegInt(n: unknown): n is number {
-  return typeof n === 'number' && Number.isInteger(n) && n >= 0;
-}
-
-function validateBlinds(level: BlindLevel): void {
-  if (!isNonNegInt(level.bigBlind) || level.bigBlind < 1) {
-    throw new PokerRuleError('invalid_config', 'bigBlind precisa ser um inteiro >= 1.');
-  }
-  if (!isNonNegInt(level.smallBlind) || level.smallBlind > level.bigBlind) {
-    throw new PokerRuleError('invalid_config', 'smallBlind precisa ser um inteiro entre 0 e o bigBlind.');
-  }
-  if (!isNonNegInt(level.ante)) throw new PokerRuleError('invalid_config', 'ante precisa ser um inteiro >= 0.');
-}
-
-/** Cria a mesa. A semente define todos os baralhos e o botão inicial (se não informado). */
-export function createTable(config: TableConfig, players: PlayerSetup[], seed: string): GameState {
-  const resolved: ResolvedTableConfig = {
-    smallBlind: config.smallBlind,
-    bigBlind: config.bigBlind,
-    ante: config.ante ?? 0,
-    buttonSeat: config.buttonSeat ?? null,
-    historyLimit: config.historyLimit ?? DEFAULT_HISTORY_LIMIT,
-  };
-  validateBlinds(resolved);
-  if (!isNonNegInt(resolved.historyLimit)) {
-    throw new PokerRuleError('invalid_config', 'historyLimit precisa ser um inteiro >= 0.');
-  }
-  if (resolved.buttonSeat !== null && (!isNonNegInt(resolved.buttonSeat) || resolved.buttonSeat >= MAX_SEATS)) {
-    throw new PokerRuleError('invalid_config', `buttonSeat precisa estar entre 0 e ${MAX_SEATS - 1}.`);
-  }
-  if (players.length < MIN_PLAYERS || players.length > MAX_SEATS) {
-    throw new PokerRuleError('invalid_config', `A mesa aceita de ${MIN_PLAYERS} a ${MAX_SEATS} jogadores.`);
-  }
-  const ids = new Set<string>();
-  const seats = new Set<number>();
-  for (const p of players) {
-    if (typeof p.id !== 'string' || p.id === '') throw new PokerRuleError('invalid_config', 'Jogador sem id.');
-    if (ids.has(p.id)) throw new PokerRuleError('invalid_config', `id repetido: ${p.id}`);
-    if (!isNonNegInt(p.seat) || p.seat >= MAX_SEATS) {
-      throw new PokerRuleError('invalid_config', `Assento inválido para ${p.id}: ${p.seat}`);
-    }
-    if (seats.has(p.seat)) throw new PokerRuleError('invalid_config', `Assento repetido: ${p.seat}`);
-    if (!isNonNegInt(p.stack) || p.stack < 1) {
-      throw new PokerRuleError('invalid_config', `Stack inválido para ${p.id}: ${p.stack}`);
-    }
-    ids.add(p.id);
-    seats.add(p.seat);
-  }
-  return {
-    version: 1,
-    config: resolved,
-    players: players
-      .slice()
-      .sort((a, b) => a.seat - b.seat)
-      .map((p) => ({
-        id: p.id,
-        seat: p.seat,
-        stack: p.stack,
-        status: 'active',
-        holeCards: [],
-        streetBet: 0,
-        totalBet: 0,
-        hasActed: false,
-        actedAtBet: 0,
-        showCards: false,
-        handStartStack: p.stack,
-      })),
-    phase: 'waiting',
-    handNumber: 0,
-    buttonSeat: null,
-    hand: null,
-    rng: seedToRngState(seed),
-    history: [],
-    winnerId: null,
-  };
-}
-
-/** Muda blinds/ante (níveis de torneio). Vale a partir da próxima mão. */
-export function setBlinds(state: GameState, level: Partial<BlindLevel>): GameState {
-  const s = cloneState(state);
-  const next: BlindLevel = {
-    smallBlind: level.smallBlind ?? s.config.smallBlind,
-    bigBlind: level.bigBlind ?? s.config.bigBlind,
-    ante: level.ante ?? s.config.ante,
-  };
-  validateBlinds(next);
-  s.config = { ...s.config, ...next };
-  return s;
-}
-
-// ---------------------------------------------------------------------------
 // Utilidades internas
 // ---------------------------------------------------------------------------
 
@@ -511,6 +417,100 @@ function nextToAct(state: GameState, fromIdx: number): string {
   const idx = nextIndex(state.players, fromIdx, (p) => needsToAct(state, p));
   if (idx < 0) throw new PokerRuleError('internal', 'Rodada de apostas aberta sem ninguém para agir.');
   return state.players[idx].id;
+}
+
+// ---------------------------------------------------------------------------
+// Criação da mesa
+// ---------------------------------------------------------------------------
+
+function isNonNegInt(n: unknown): n is number {
+  return typeof n === 'number' && Number.isInteger(n) && n >= 0;
+}
+
+function validateBlinds(level: BlindLevel): void {
+  if (!isNonNegInt(level.bigBlind) || level.bigBlind < 1) {
+    throw new PokerRuleError('invalid_config', 'bigBlind precisa ser um inteiro >= 1.');
+  }
+  if (!isNonNegInt(level.smallBlind) || level.smallBlind > level.bigBlind) {
+    throw new PokerRuleError('invalid_config', 'smallBlind precisa ser um inteiro entre 0 e o bigBlind.');
+  }
+  if (!isNonNegInt(level.ante)) throw new PokerRuleError('invalid_config', 'ante precisa ser um inteiro >= 0.');
+}
+
+/** Cria a mesa. A semente define todos os baralhos e o botão inicial (se não informado). */
+export function createTable(config: TableConfig, players: PlayerSetup[], seed: string): GameState {
+  const resolved: ResolvedTableConfig = {
+    smallBlind: config.smallBlind,
+    bigBlind: config.bigBlind,
+    ante: config.ante ?? 0,
+    buttonSeat: config.buttonSeat ?? null,
+    historyLimit: config.historyLimit ?? DEFAULT_HISTORY_LIMIT,
+  };
+  validateBlinds(resolved);
+  if (!isNonNegInt(resolved.historyLimit)) {
+    throw new PokerRuleError('invalid_config', 'historyLimit precisa ser um inteiro >= 0.');
+  }
+  if (resolved.buttonSeat !== null && (!isNonNegInt(resolved.buttonSeat) || resolved.buttonSeat >= MAX_SEATS)) {
+    throw new PokerRuleError('invalid_config', `buttonSeat precisa estar entre 0 e ${MAX_SEATS - 1}.`);
+  }
+  if (players.length < MIN_PLAYERS || players.length > MAX_SEATS) {
+    throw new PokerRuleError('invalid_config', `A mesa aceita de ${MIN_PLAYERS} a ${MAX_SEATS} jogadores.`);
+  }
+  const ids = new Set<string>();
+  const seats = new Set<number>();
+  for (const p of players) {
+    if (typeof p.id !== 'string' || p.id === '') throw new PokerRuleError('invalid_config', 'Jogador sem id.');
+    if (ids.has(p.id)) throw new PokerRuleError('invalid_config', `id repetido: ${p.id}`);
+    if (!isNonNegInt(p.seat) || p.seat >= MAX_SEATS) {
+      throw new PokerRuleError('invalid_config', `Assento inválido para ${p.id}: ${p.seat}`);
+    }
+    if (seats.has(p.seat)) throw new PokerRuleError('invalid_config', `Assento repetido: ${p.seat}`);
+    if (!isNonNegInt(p.stack) || p.stack < 1) {
+      throw new PokerRuleError('invalid_config', `Stack inválido para ${p.id}: ${p.stack}`);
+    }
+    ids.add(p.id);
+    seats.add(p.seat);
+  }
+  return {
+    version: 1,
+    config: resolved,
+    players: players
+      .slice()
+      .sort((a, b) => a.seat - b.seat)
+      .map((p) => ({
+        id: p.id,
+        seat: p.seat,
+        stack: p.stack,
+        status: 'active',
+        holeCards: [],
+        streetBet: 0,
+        totalBet: 0,
+        hasActed: false,
+        actedAtBet: 0,
+        showCards: false,
+        handStartStack: p.stack,
+      })),
+    phase: 'waiting',
+    handNumber: 0,
+    buttonSeat: null,
+    hand: null,
+    rng: seedToRngState(seed),
+    history: [],
+    winnerId: null,
+  };
+}
+
+/** Muda blinds/ante (níveis de torneio). Vale a partir da próxima mão. */
+export function setBlinds(state: GameState, level: Partial<BlindLevel>): GameState {
+  const s = cloneState(state);
+  const next: BlindLevel = {
+    smallBlind: level.smallBlind ?? s.config.smallBlind,
+    bigBlind: level.bigBlind ?? s.config.bigBlind,
+    ante: level.ante ?? s.config.ante,
+  };
+  validateBlinds(next);
+  s.config = { ...s.config, ...next };
+  return s;
 }
 
 // ---------------------------------------------------------------------------
@@ -649,80 +649,6 @@ function resetStreetBets(s: GameState): void {
   s.hand!.currentBet = 0;
 }
 
-/** Fecha a rua e segue: próxima rua com apostas, board corrido ou showdown. */
-function closeBettingRound(s: GameState, events: PokerEvent[]): void {
-  const hand = s.hand!;
-  for (;;) {
-    returnUncalled(s, events);
-    resetStreetBets(s);
-    if (hand.street === 'river') {
-      showdown(s, events);
-      return;
-    }
-    const actors = s.players.filter(canAct).length;
-    if (actors < 2 && !hand.runout) {
-      // Ninguém mais pode apostar: as cartas são abertas antes de correr o board
-      // (como nas transmissões e nos sites), o que dá o suspense na interface.
-      hand.runout = true;
-      const hands: { playerId: string; cards: Card[] }[] = [];
-      for (const p of playersFromLeftOfButton(s)) {
-        if (!isInHand(p)) continue;
-        p.showCards = true;
-        hands.push({ playerId: p.id, cards: p.holeCards.slice() });
-      }
-      events.push({ type: 'allInRunout', hands });
-    }
-    dealStreet(s, events);
-    if (actors >= 2) {
-      hand.toActId = nextToAct(s, indexOfSeat(s.players, hand.buttonSeat));
-      return;
-    }
-  }
-}
-
-function playersFromLeftOfButton(s: GameState): PlayerState[] {
-  const btn = indexOfSeat(s.players, s.hand!.buttonSeat);
-  const n = s.players.length;
-  const out: PlayerState[] = [];
-  for (let i = 1; i <= n; i++) out.push(s.players[(btn + i) % n]);
-  return out;
-}
-
-function showdown(s: GameState, events: PokerEvent[]): void {
-  const hand = s.hand!;
-  const shownList: ShownHand[] = [];
-  const shownById: Record<string, ShownHand> = {};
-  // Decisão de produto: no showdown todas as mãos que chegaram ao fim são
-  // mostradas (sem "muck"), como em Poker Night — é o que alimenta as falas.
-  for (const p of playersFromLeftOfButton(s)) {
-    if (!isInHand(p)) continue;
-    const v = evaluateHand([...p.holeCards, ...hand.board]);
-    const sh: ShownHand = {
-      playerId: p.id,
-      cards: p.holeCards.slice(),
-      category: v.category,
-      kind: v.kind,
-      score: v.score,
-      best5: v.best5,
-      royal: v.royal,
-    };
-    p.showCards = true;
-    shownList.push(sh);
-    shownById[p.id] = sh;
-  }
-  events.push({ type: 'showdown', hands: shownList });
-  hand.toActId = null;
-  const pots = awardPots(s, events, shownById);
-  finishHand(s, events, pots, shownList, true);
-}
-
-function winWithoutShowdown(s: GameState, events: PokerEvent[]): void {
-  returnUncalled(s, events);
-  s.hand!.toActId = null;
-  const pots = awardPots(s, events, null);
-  finishHand(s, events, pots, [], false);
-}
-
 function finishHand(s: GameState, events: PokerEvent[], pots: PotResult[], shown: ShownHand[], wentToShowdown: boolean): void {
   const hand = s.hand!;
   const net: Record<string, number> = {};
@@ -776,6 +702,80 @@ function finishHand(s: GameState, events: PokerEvent[], pots: PotResult[], shown
   }
 }
 
+function playersFromLeftOfButton(s: GameState): PlayerState[] {
+  const btn = indexOfSeat(s.players, s.hand!.buttonSeat);
+  const n = s.players.length;
+  const out: PlayerState[] = [];
+  for (let i = 1; i <= n; i++) out.push(s.players[(btn + i) % n]);
+  return out;
+}
+
+function showdown(s: GameState, events: PokerEvent[]): void {
+  const hand = s.hand!;
+  const shownList: ShownHand[] = [];
+  const shownById: Record<string, ShownHand> = {};
+  // Decisão de produto: no showdown todas as mãos que chegaram ao fim são
+  // mostradas (sem "muck"), como em Poker Night — é o que alimenta as falas.
+  for (const p of playersFromLeftOfButton(s)) {
+    if (!isInHand(p)) continue;
+    const v = evaluateHand([...p.holeCards, ...hand.board]);
+    const sh: ShownHand = {
+      playerId: p.id,
+      cards: p.holeCards.slice(),
+      category: v.category,
+      kind: v.kind,
+      score: v.score,
+      best5: v.best5,
+      royal: v.royal,
+    };
+    p.showCards = true;
+    shownList.push(sh);
+    shownById[p.id] = sh;
+  }
+  events.push({ type: 'showdown', hands: shownList });
+  hand.toActId = null;
+  const pots = awardPots(s, events, shownById);
+  finishHand(s, events, pots, shownList, true);
+}
+
+function winWithoutShowdown(s: GameState, events: PokerEvent[]): void {
+  returnUncalled(s, events);
+  s.hand!.toActId = null;
+  const pots = awardPots(s, events, null);
+  finishHand(s, events, pots, [], false);
+}
+
+/** Fecha a rua e segue: próxima rua com apostas, board corrido ou showdown. */
+function closeBettingRound(s: GameState, events: PokerEvent[]): void {
+  const hand = s.hand!;
+  for (;;) {
+    returnUncalled(s, events);
+    resetStreetBets(s);
+    if (hand.street === 'river') {
+      showdown(s, events);
+      return;
+    }
+    const actors = s.players.filter(canAct).length;
+    if (actors < 2 && !hand.runout) {
+      // Ninguém mais pode apostar: as cartas são abertas antes de correr o board
+      // (como nas transmissões e nos sites), o que dá o suspense na interface.
+      hand.runout = true;
+      const hands: { playerId: string; cards: Card[] }[] = [];
+      for (const p of playersFromLeftOfButton(s)) {
+        if (!isInHand(p)) continue;
+        p.showCards = true;
+        hands.push({ playerId: p.id, cards: p.holeCards.slice() });
+      }
+      events.push({ type: 'allInRunout', hands });
+    }
+    dealStreet(s, events);
+    if (actors >= 2) {
+      hand.toActId = nextToAct(s, indexOfSeat(s.players, hand.buttonSeat));
+      return;
+    }
+  }
+}
+
 /** Depois de qualquer ação (ou dos blinds): decide quem age, ou fecha a rua/mão. */
 function proceed(s: GameState, events: PokerEvent[], fromIdx: number): void {
   if (s.players.filter(isInHand).length === 1) {
@@ -790,6 +790,24 @@ function proceed(s: GameState, events: PokerEvent[], fromIdx: number): void {
 // ---------------------------------------------------------------------------
 // API: iniciar mão
 // ---------------------------------------------------------------------------
+
+function validatePreset(s: GameState, holes: Record<string, Card[]>, board: Card[]): Set<Card> {
+  const reserved = new Set<Card>();
+  const add = (c: Card): void => {
+    if (!isCard(c)) throw new PokerRuleError('invalid_preset', `Carta inválida no preset: ${String(c)}`);
+    if (reserved.has(c)) throw new PokerRuleError('invalid_preset', `Carta repetida no preset: ${c}`);
+    reserved.add(c);
+  };
+  for (const [id, cards] of Object.entries(holes)) {
+    const p = s.players.find((x) => x.id === id);
+    if (!p || !isInHand(p)) throw new PokerRuleError('invalid_preset', `Jogador do preset não está na mão: ${id}`);
+    if (cards.length !== 2) throw new PokerRuleError('invalid_preset', `Preset de ${id} precisa de 2 cartas.`);
+    cards.forEach(add);
+  }
+  if (board.length > 5) throw new PokerRuleError('invalid_preset', 'Board do preset tem mais de 5 cartas.');
+  board.forEach(add);
+  return reserved;
+}
 
 /**
  * Começa a próxima mão: gira o botão, posta antes e blinds, embaralha e distribui.
@@ -927,24 +945,6 @@ export function startHand(state: GameState, options: StartHandOptions = {}): Eng
   s.phase = 'betting';
   proceed(s, events, bbIdx);
   return { state: s, events };
-}
-
-function validatePreset(s: GameState, holes: Record<string, Card[]>, board: Card[]): Set<Card> {
-  const reserved = new Set<Card>();
-  const add = (c: Card): void => {
-    if (!isCard(c)) throw new PokerRuleError('invalid_preset', `Carta inválida no preset: ${String(c)}`);
-    if (reserved.has(c)) throw new PokerRuleError('invalid_preset', `Carta repetida no preset: ${c}`);
-    reserved.add(c);
-  };
-  for (const [id, cards] of Object.entries(holes)) {
-    const p = s.players.find((x) => x.id === id);
-    if (!p || !isInHand(p)) throw new PokerRuleError('invalid_preset', `Jogador do preset não está na mão: ${id}`);
-    if (cards.length !== 2) throw new PokerRuleError('invalid_preset', `Preset de ${id} precisa de 2 cartas.`);
-    cards.forEach(add);
-  }
-  if (board.length > 5) throw new PokerRuleError('invalid_preset', 'Board do preset tem mais de 5 cartas.');
-  board.forEach(add);
-  return reserved;
 }
 
 // ---------------------------------------------------------------------------
@@ -1179,11 +1179,12 @@ export function publicView(state: GameState, viewerId: string | null): PublicGam
     history: state.history.slice(),
     viewerId,
     players: players.map((p) => {
+      // Cartas abertas no showdown continuam visíveis mesmo se o dono acabou eliminado na mão.
       const visible = p.id === viewerId || p.showCards;
       const holding = p.holeCards.length > 0 && isInHand(p);
       return {
         ...p,
-        holeCards: visible && (holding || p.id === viewerId) ? p.holeCards.slice() : [],
+        holeCards: visible ? p.holeCards.slice() : [],
         hasHiddenCards: holding && !visible,
       };
     }),

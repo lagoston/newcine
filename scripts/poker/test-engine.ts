@@ -386,8 +386,9 @@ section('Engine — heads-up');
 
   // BB curto all-in: ninguém precisa agir, o excesso do SB volta.
   const s = new Driver(makeTable([1000, 30], {}, [0, 1]));
-  s.start();
+  s.start({ holeCards: { p0: c('7c 2d'), p1: c('Ah Ac') }, board: c('Kd 8s 4h 3c Jd') });
   eq(s.state.phase, 'handComplete', 'BB all-in com 30: mão corre sozinha');
+  eq([s.stack('p0'), s.stack('p1')], [970, 60], 'BB curto dobra (30 x 30)');
   eq(s.ofType('uncalledBetReturned').map((e) => [e.playerId, e.amount]), [['p0', 20]], 'SB recebe 20 de volta');
   eq(s.ofType('potAwarded').reduce((t, e) => t + e.amount, 0), 60, 'pote de 60');
   check(s.ofType('allInRunout').length === 1 && s.ofType('streetDealt').length === 3, 'board corrido com cartas abertas');
@@ -493,7 +494,11 @@ section('Engine — side pots com três all-ins');
     'pote principal p0, side 1 p1, side 2 p2',
   );
   eq(['p0', 'p1', 'p2', 'p3'].map((id) => d.stack(id)), [800, 900, 1000, 1000], 'stacks finais');
-  eq(d.ofType('showdown')[0].hands.map((h) => h.kind), ['pair', 'pair', 'pair', 'high_card'], 'mãos no showdown');
+  eq(
+    d.ofType('showdown')[0].hands.map((h) => [h.playerId, h.kind]),
+    [['p1', 'pair'], ['p2', 'pair'], ['p3', 'high_card'], ['p0', 'pair']],
+    'mãos no showdown, a partir da esquerda do botão',
+  );
   eq(d.state.hand!.result!.net, { p0: 600, p1: 400, p2: 0, p3: -1000 }, 'ganho líquido');
 
   // Mesmo cenário, mas o maior stack vence tudo: três eliminados de uma vez.
@@ -708,8 +713,22 @@ section('Engine — 20.000 mãos aleatórias com ações legais aleatórias');
     let handsHere = 0;
     while (st.phase !== 'gameOver' && hands < TARGET && handsHere < 150) {
       if (handsHere > 0 && handsHere % 25 === 0) st = setBlinds(st, { smallBlind: sb * 2, bigBlind: bb * 2 });
+      const prevButton = st.buttonSeat;
+      // Vivos ANTES da mão (se a mão acabar dentro do startHand, já haverá eliminados).
+      const aliveBefore = st.players.filter((x) => x.status !== 'eliminated');
       let r = startHand(st);
       st = r.state;
+      {
+        // Botão no próximo vivo; heads-up: botão = SB; senão SB e BB são os dois vivos seguintes.
+        const nextAliveSeat = (seat: number): number => {
+          const after = aliveBefore.find((x) => x.seat > seat);
+          return (after ?? aliveBefore[0]).seat;
+        };
+        const h = st.hand!;
+        if (prevButton !== null && h.buttonSeat !== nextAliveSeat(prevButton)) problem('botão não foi para o próximo vivo');
+        const expSb = aliveBefore.length === 2 ? h.buttonSeat : nextAliveSeat(h.buttonSeat);
+        if (h.smallBlindSeat !== expSb || h.bigBlindSeat !== nextAliveSeat(expSb)) problem('posição dos blinds errada');
+      }
       hands++;
       handsHere++;
       let evs = r.events.slice();
@@ -878,7 +897,7 @@ section('Benchmarks');
     ['Th 9h', 'Jh 8c 2h', 2],
   ] as [string, string, number][]) {
     const opts = { hole: c(hole), board: board ? c(board) : [], opponents: opps, iterations: 1000, rng };
-    for (let i = 0; i < 5; i++) estimateEquity(opts); // aquecimento
+    for (let i = 0; i < 30; i++) estimateEquity(opts); // aquecimento (JIT)
     t0 = performance.now();
     for (let i = 0; i < runs; i++) sink ^= estimateEquity(opts).win;
     const ms = (performance.now() - t0) / runs;
