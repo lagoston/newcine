@@ -69,7 +69,13 @@ function stakeFrom(params: URLSearchParams): TournamentStake | null {
 const TourneyRoute: React.FC<{ home: ReturnType<typeof usePokerHome>['home']; cardStyle: string }> = ({ home, cardStyle }) => {
   const [params] = useSearchParams();
   const location = useLocation();
-  const start = params.get('start') === '1';
+  // 03/11/2026 (revisão de segurança): só começa uma partida paga quem veio do botão da
+  // tela do torneio, que põe `ppStart` no state da navegação. Um link de fora com
+  // ?start=1 não consegue pôr state: vira uma retomada (não cobra nada). E uma aposta de
+  // pôster torta não cai mais em "pagar com fichas": não começa.
+  const fromButton = (location.state as { ppStart?: boolean } | null)?.ppStart === true;
+  const stake = stakeFrom(params);
+  const start = params.get('start') === '1' && fromButton && stake !== null;
   return (
     <BountyTable
       // Uma mesa nova a cada entrada (ex.: "Tentar de novo" a partir dos créditos).
@@ -79,7 +85,7 @@ const TourneyRoute: React.FC<{ home: ReturnType<typeof usePokerHome>['home']; ca
       start={start}
       week={params.get('week')}
       prizeId={params.get('prize')}
-      stake={start ? stakeFrom(params) : null}
+      stake={start ? stake : null}
     />
   );
 };

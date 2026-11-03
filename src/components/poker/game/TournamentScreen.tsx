@@ -80,7 +80,7 @@ const TournamentScreen: React.FC<{ home: PokerHome }> = ({ home }) => {
     const to = BLEFE_ROUTES.tourneyStart(tour.week, prize.id, stake);
     // 18+ antes da primeira partida valendo (§7.8).
     if (!home.player?.age_confirmed) setAge(to);
-    else navigate(to);
+    else navigate(to, { state: { ppStart: true } });
   };
 
   // O estado de hoje: só um aparece; sem nenhum, a escolha da entrada.
@@ -252,7 +252,7 @@ const TournamentScreen: React.FC<{ home: PokerHome }> = ({ home }) => {
           const to = age;
           setAge(null);
           invalidatePokerHome();
-          if (to) navigate(to);
+          if (to) navigate(to, { state: { ppStart: true } });
         }}
       />
     </Stage>
