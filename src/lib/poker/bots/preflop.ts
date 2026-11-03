@@ -20,7 +20,7 @@ function isoRange(P: EffProfile, ctx: BotCtx, v: BotView, entry: number): number
   if (P.preflop.raiseOnlyTopPct !== null) return P.preflop.raiseOnlyTopPct;
   const limpers = v.actions.filter((a) => a.street === 'preflop' && a.type === 'call').map((a) => a.playerId);
   const soft = ctx.model && limpers.some((id) => ctx.model!.has(id, 'solto'));
-  return entry * (soft ? 0.8 : 0.6);
+  return entry * (soft ? 0.8 : 0.6) * ((globalThis as any).A3ISO ?? 1);
 }
 
 function currentLevel(v: BotView): number {
