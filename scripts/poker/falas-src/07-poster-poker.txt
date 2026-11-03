@@ -225,7 +225,7 @@ PPF48 | fincher | EFFECT_REVEAL | reveal_one | - | P3 | vez | Sua carta está na
 PPC57 | cypher | EFFECT_REVEAL | reveal_one | - | P3 | vez | Agora eu vejo metade de você. Basta. | Now I see half of you. That's enough.
 
 ## Fichas da casa (bônus) || House chips (bonus)
-% Quem ganhou fala (`ganhou`); os outros oráculos invejam (`outro`); quando é a pessoa, os três reclamam ou cumprimentam (`você`). A opala achada e o alvo do Raymond batido valem uma vez por partida e quase sempre têm fala (P2, 80%); o 21, P2 com 50%; o pote dobrado, P3 com 35%. Um momento por mão: a fala do bônus passa na frente da fala do pote. || The winner speaks (`ganhou`); other oracles envy (`outro`); when it's you, all three grumble or congratulate (`você`). The found opal and Raymond's target hit happen once per match and almost always get a line (P2, 80%); 21, P2 at 50%; the doubled pot, P3 at 35%. One moment per hand: the bonus line goes ahead of the pot line.
+% Quem ganhou fala (`ganhou`); os outros oráculos invejam (`outro`); quando é a pessoa, os três reclamam ou cumprimentam (`você`). A opala achada e o alvo do Raymond batido valem uma vez por partida e sempre têm fala (P1, como a captura do antigo prêmio do dia); o 21, P2 com 70%; o pote dobrado, P3 com 35%. Um momento por mão: a fala do bônus passa na frente da fala do pote. || The winner speaks (`ganhou`); other oracles envy (`outro`); when it's you, all three grumble or congratulate (`você`). The found opal and Raymond's target hit happen once per match and always get a line (P1, like the old daily prize capture); 21, P2 at 70%; the doubled pot, P3 at 35%. One moment per hand: the bonus line goes ahead of the pot line.
 PPB47 | bogart | EFFECT_BONUS | qualquer; ganhou | - | P2 | emote=star | Fichas da casa! De graça! Meu tipo de dinheiro! | House chips! Free! My kind of money!
 PPB48 | bogart | EFFECT_BONUS | qualquer; ganhou | - | P2 | - | Ganhei bônus! Vai pra debaixo da vitória-régia. | I got a bonus! It's going under the lily pad.
 PPC58 | cypher | EFFECT_BONUS | qualquer; ganhou | - | P2 | - | A casa me pagou. Pena. Eu preferia ter roubado. | The house paid me. Shame. I'd rather have stolen it.
@@ -250,25 +250,25 @@ PPC64 | cypher | EFFECT_BONUS | double_pot; ganhou | - | P3 | - | Dobrou. Gosto 
 PPF56 | fincher | EFFECT_BONUS | double_pot; você | - | P3 | - | Pote dobrado. Belo taco, {estreante}. | A doubled pot. Nice cue work, {estreante}.
 PPC65 | cypher | EFFECT_BONUS | double_pot; você | - | P3 | - | A casa dobrou o seu. Eu dobro a raiva. | The house doubled yours. I'm doubling my spite.
 PPB54 | bogart | EFFECT_BONUS | double_pot; você | - | P3 | - | Dobrou pra visita! Eu pagava pra não ver isso. | Doubled for our guest! I'd pay not to see that.
-PPB55 | bogart | EFFECT_BONUS | hand_bounty; ganhou | - | P2 | emote=star | Bati a conta do Raymond! {fichas}! Contei certinho! | I hit Raymond's count! {fichas}! Counted it right!
-PPC66 | cypher | EFFECT_BONUS | hand_bounty; ganhou | - | P2 | - | {alvo}. A conta fechou pra mim. | {alvo}. The count closed in my favor.
-PPF57 | fincher | EFFECT_BONUS | hand_bounty; ganhou | - | P2 | - | A conta do Raymond. Números não mentem. | Raymond's count. Numbers don't lie.
-PPB56 | bogart | EFFECT_BONUS | hand_bounty; você | - | P2 | - | A visita bateu a conta! Eu nem tinha terminado de contar! | Our guest hit the count! I hadn't even finished counting!
-PPC67 | cypher | EFFECT_BONUS | hand_bounty; você | - | P2 | - | Você fechou a conta. O Raymond aprovaria. Eu, não. | You closed the count. Raymond would approve. I don't.
-PPF58 | fincher | EFFECT_BONUS | hand_bounty; você | - | P2 | - | Conta batida, {estreante}. {fichas} na pilha. | Count hit, {estreante}. {fichas} on your stack.
-PPC68 | cypher | EFFECT_BONUS | opal; ganhou | - | P2 | - | A opala é minha. Brilha melhor enrolada no meu rabo. | The opal is mine. It shines better in my coils.
-PPB57 | bogart | EFFECT_BONUS | opal; ganhou | - | P2 | emote=star | A opala veio pra mim! Primeira joia da minha vida! | The opal came to me! First jewel of my life!
-PPF59 | fincher | EFFECT_BONUS | opal; ganhou | - | P2 | - | A opala. Vai pro bolso do colete, como nos velhos tempos. | The opal. Into the vest pocket, like old times.
-PPC69 | cypher | EFFECT_BONUS | opal; você | - | P2 | - | Você achou a opala. Agora começa a parte em que tudo dá errado. | You found the opal. Now comes the part where everything goes wrong.
-PPB58 | bogart | EFFECT_BONUS | opal; você | - | P2 | - | A opala foi pra visita?! Eu tava olhando pra ela! | The opal went to our guest?! I was staring right at it!
-PPF60 | fincher | EFFECT_BONUS | opal; você | - | P2 | - | A opala é sua, {estreante}. Não aposte tudo nela. | The opal is yours, {estreante}. Don't bet it all on it.
+PPB55 | bogart | EFFECT_BONUS | hand_bounty; ganhou | - | P1 | emote=star | Bati a conta do Raymond! {fichas}! Contei certinho! | I hit Raymond's count! {fichas}! Counted it right!
+PPC66 | cypher | EFFECT_BONUS | hand_bounty; ganhou | - | P1 | - | {alvo}. A conta fechou pra mim. | {alvo}. The count closed in my favor.
+PPF57 | fincher | EFFECT_BONUS | hand_bounty; ganhou | - | P1 | - | A conta do Raymond. Números não mentem. | Raymond's count. Numbers don't lie.
+PPB56 | bogart | EFFECT_BONUS | hand_bounty; você | - | P1 | - | A visita bateu a conta! Eu nem tinha terminado de contar! | Our guest hit the count! I hadn't even finished counting!
+PPC67 | cypher | EFFECT_BONUS | hand_bounty; você | - | P1 | - | Você fechou a conta. O Raymond aprovaria. Eu, não. | You closed the count. Raymond would approve. I don't.
+PPF58 | fincher | EFFECT_BONUS | hand_bounty; você | - | P1 | - | Conta batida, {estreante}. {fichas} na pilha. | Count hit, {estreante}. {fichas} on your stack.
+PPC68 | cypher | EFFECT_BONUS | opal; ganhou | - | P1 | - | A opala é minha. Brilha melhor enrolada no meu rabo. | The opal is mine. It shines better in my coils.
+PPB57 | bogart | EFFECT_BONUS | opal; ganhou | - | P1 | emote=star | A opala veio pra mim! Primeira joia da minha vida! | The opal came to me! First jewel of my life!
+PPF59 | fincher | EFFECT_BONUS | opal; ganhou | - | P1 | - | A opala. Vai pro bolso do colete, como nos velhos tempos. | The opal. Into the vest pocket, like old times.
+PPC69 | cypher | EFFECT_BONUS | opal; você | - | P1 | - | Você achou a opala. Agora começa a parte em que tudo dá errado. | You found the opal. Now comes the part where everything goes wrong.
+PPB58 | bogart | EFFECT_BONUS | opal; você | - | P1 | - | A opala foi pra visita?! Eu tava olhando pra ela! | The opal went to our guest?! I was staring right at it!
+PPF60 | fincher | EFFECT_BONUS | opal; você | - | P1 | - | A opala é sua, {estreante}. Não aposte tudo nela. | The opal is yours, {estreante}. Don't bet it all on it.
 
-=PPT07 | EFFECT_BONUS | opal; você | P2 | - | A pedra | The stone
+=PPT07 | EFFECT_BONUS | opal; você | P1 | - | A pedra | The stone
 > cypher | A opala foi pra visita. Que comece o desastre. | The opal went to our guest. Let the disaster begin.
 > bogart | Desastre? A visita ganhou {fichas} fichas! | Disaster? Our guest won {fichas} chips!
 > fincher | No filme também começou assim, Crítico. | That's how the movie started too, Critic.
 
-=PPT08 | EFFECT_BONUS | hand_bounty; você | P2 | - | A conta | The count
+=PPT08 | EFFECT_BONUS | hand_bounty; você | P1 | - | A conta | The count
 > bogart | Alguém conferiu a conta da visita? | Did anyone check our guest's count?
 > fincher | Conferi. Bateu. | I checked. It's right.
 > cypher | O Raymond nunca erra. Já o Sapo… | Raymond never misses. The Frog, though…

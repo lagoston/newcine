@@ -24,7 +24,7 @@ const RANK: Record<string, number> = { common: 0, rare: 1, epic: 2, legendary: 3
 function fallbackList(): CollectionEntry[] {
   const week = weekOf();
   return POSTER_POKER.map((p) => ({
-    id: `pp-${p.effect}`,
+    id: p.id,
     item_id: 0,
     rarity: p.rarity,
     serial: p.serial,

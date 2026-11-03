@@ -235,15 +235,17 @@ export function parseScoreboard(value: unknown): ScoreboardData | null {
   const stats = asRow(raw.stats);
   const title = asRow(raw.title);
   const markRows = (Array.isArray(raw.marks) ? raw.marks : []).map(asRow);
-  // Os 5 marcos sempre aparecem (silhueta quando faltam); o banco completa
-  // nome, descrição e data.
+  // As 9 tags do Pôster Poker sempre aparecem (silhueta quando faltam); o banco
+  // completa a descrição e a data.
   const marks: MarkView[] = MARKS.map((mark) => {
     const row = markRows.find((r) => r.tag_id === mark.tagId) ?? {};
     return {
       tagId: mark.tagId,
       key: mark.key,
-      name: typeof row.name === 'string' ? row.name : mark.name,
-      emoji: typeof row.emoji === 'string' ? row.emoji : mark.emoji,
+      // Adendo de 03/11/2026: nome e emoji são os da tabela nova (tags da categoria
+      // Jogos), mesmo que o banco ainda tenha os antigos.
+      name: mark.name,
+      emoji: mark.emoji,
       description: typeof row.description_pt === 'string' ? row.description_pt : null,
       requirement: typeof row.requirement_pt === 'string' ? row.requirement_pt : null,
       unlockedAt: typeof row.unlocked_at === 'string' ? row.unlocked_at : null,

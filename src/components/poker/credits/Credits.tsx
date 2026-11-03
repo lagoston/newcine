@@ -14,7 +14,7 @@ import { describeHand, displayFont, fmt, langOf } from '../../../lib/poker/clien
 import { theName } from '../../../lib/poker/client/narrate';
 import PlayingCard from '../cards/PlayingCard';
 import PrizeArt from '../jackpot/PrizeArt';
-import { MARKS } from '../jackpot/pokerMeta';
+import { GAMES_RED, GAMES_RED_TEXT, MARKS } from '../jackpot/pokerMeta';
 import { equipPokerMark } from '../jackpot/entryApi';
 import { prizeAction } from '../prizes/registry';
 import type { SpeechItem } from '../../../lib/poker/client/useDirector';
@@ -146,18 +146,20 @@ const Credits: React.FC<{
           : t('poker.credits.titleNow', { title: t(`poker.titles.${data.title.id}`) })}
       </p>,
     );
+  // Tags novas (adendo de 03/11/2026): da categoria Jogos, em vermelho, com [Equipar].
   data.marks.forEach((tagId) => {
     const m = MARKS.find((x) => x.tagId === tagId);
     if (!m) return;
     lines.push(
-      <div key={tagId} className="flex items-center justify-center gap-3">
-        <span className="pk-credit-line">
-          {m.emoji} {t('poker.credits.newMark', { name: t(`poker.marks.${m.key}`) })}
+      <div key={tagId} className="pp-newtag" style={{ '--games': GAMES_RED } as React.CSSProperties}>
+        <span className="pp-newtag-label">{t('poker.credits.newTag')}</span>
+        <span className="pp-newtag-chip" style={{ color: GAMES_RED_TEXT }}>
+          <span aria-hidden>{m.emoji}</span> {m.name}
         </span>
         {userId && (
           <button
             type="button"
-            className="pk-cta-ghost"
+            className="pp-newtag-btn"
             disabled={busy === tagId || done[tagId]}
             onClick={() => run(tagId, () => equipPokerMark(userId, { name: m.name, emoji: m.emoji }))}
           >
@@ -167,6 +169,7 @@ const Credits: React.FC<{
       </div>,
     );
   });
+
   if (data.retry && !data.captured && data.tomorrow)
     lines.push(
       <p key="tm" className="pk-credit-label">

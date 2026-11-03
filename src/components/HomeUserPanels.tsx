@@ -11,7 +11,7 @@ import OracleLibraryDoor from './oracleHub/OracleLibraryDoor';
 import PosterJackpotDoor from './posterJackpot/PosterJackpotDoor';
 import PersonaDoor from './home/PersonaDoor';
 import SecretRoomDoor from './secretRoom/SecretRoomDoor';
-import PokerHomeStrip from './poker/jackpot/PokerHomeStrip';
+import PosterPokerButton from './poker/game/PosterPokerButton';
 import { useSeasonalEvent } from '../contexts/SeasonalEventContext';
 import { NIGHT, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
 
@@ -177,11 +177,11 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
         </motion.ul>
       </section>
 
-      {/* ---------- O Grande Blefe: a faixa de feltro (03/11/2026) ----------
-          64 px, só quando o servidor manda (regra do veredito Q5); sem ela, a
-          seção fica vazia e some (empty:hidden). */}
+      {/* ---------- Pôster Poker: o botão do jogo (03/11/2026, tarde) ----------
+          No lugar da faixa de feltro. Só para quem tem o pôquer liberado; sem
+          ele, a seção fica vazia e some (empty:hidden). */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-3 sm:pt-4 empty:hidden">
-        <PokerHomeStrip />
+        <PosterPokerButton />
       </section>
 
       {/* ---------- O evento sazonal e o Clube do Terror ---------- */}

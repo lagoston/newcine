@@ -12,7 +12,7 @@ import type { Card } from '../cards.ts';
 import { cardFromIndex, cardIndex } from '../cards.ts';
 import type { ActionRecord } from '../engine.ts';
 import type { WeightedRange } from '../equity.ts';
-import { scoreMasks } from '../evaluator.ts';
+import { scoreIndicesAny, scoreMasks } from '../evaluator.ts';
 import type { BotView, HandBucket, PlayerId, RangeModel, StyleLabel } from '../types.ts';
 import { handClass } from './buckets.ts';
 import { PREFLOP_RANK } from './preflopTable.ts';
@@ -102,28 +102,58 @@ function flushOrOpenDraw(bs: Int32Array, a: number, b: number): boolean {
   return false;
 }
 
-export function boardInfo(board: readonly Card[]): BoardInfo {
-  const key = board.join('');
+/**
+ * Pôster Poker (Cassino): cópias que sobram de cada carta no baralho de 60, tirando as
+ * conhecidas. null sem cartas a mais (baralho normal).
+ */
+export function copiesLeft(known: readonly Card[], extra: readonly Card[] | undefined): Uint8Array | null {
+  if (!extra || extra.length === 0) return null;
+  const cnt = new Uint8Array(52).fill(1);
+  for (const c of extra) cnt[cardIndex(c)]++;
+  for (const c of known) {
+    const i = cardIndex(c);
+    if (cnt[i] > 0) cnt[i]--;
+  }
+  return cnt;
+}
+
+export function boardInfo(board: readonly Card[], extra?: readonly Card[]): BoardInfo {
+  const multi = !!extra && extra.length > 0;
+  const key = board.join('') + (multi ? `+${extra!.length}` : '');
   const hit = cache.get(key);
   if (hit) return hit;
   const bs = new Int32Array(4);
   const used = new Uint8Array(52);
+  // Board com carta repetida (Cassino): as máscaras perderiam a cópia; avalia por contagem.
+  // Com o baralho de 60, o oponente pode ter uma cópia de carta que está no board.
+  let repeated = multi;
   for (const c of board) {
     const i = cardIndex(c);
+    if (used[i]) repeated = true;
     used[i] = 1;
     bs[i & 3] |= 1 << (i >> 2);
   }
+  const left = copiesLeft(board, extra);
+  if (left) for (let i = 0; i < 52; i++) used[i] = left[i] === 0 ? 1 : 0;
+  const buf = new Uint8Array(board.length + 2);
+  board.forEach((c, k) => { buf[k] = cardIndex(c); });
   const score = new Int32Array(N_COMBOS).fill(-1);
   const order: number[] = [];
   for (let k = 0; k < N_COMBOS; k++) {
     const a = IDX_A[k];
     const b = IDX_B[k];
     if (used[a] || used[b]) continue;
-    const m0 = bs[0], m1 = bs[1], m2 = bs[2], m3 = bs[3];
-    const ma = [m0, m1, m2, m3];
-    ma[a & 3] |= 1 << (a >> 2);
-    ma[b & 3] |= 1 << (b >> 2);
-    score[k] = scoreMasks(ma[0], ma[1], ma[2], ma[3]);
+    if (repeated) {
+      buf[board.length] = a;
+      buf[board.length + 1] = b;
+      score[k] = scoreIndicesAny(buf, board.length + 2);
+    } else {
+      const m0 = bs[0], m1 = bs[1], m2 = bs[2], m3 = bs[3];
+      const ma = [m0, m1, m2, m3];
+      ma[a & 3] |= 1 << (a >> 2);
+      ma[b & 3] |= 1 << (b >> 2);
+      score[k] = scoreMasks(ma[0], ma[1], ma[2], ma[3]);
+    }
     order.push(k);
   }
   order.sort((x, y) => score[y] - score[x]);
@@ -182,7 +212,10 @@ export interface RangeCtx {
 }
 
 function boardAt(v: BotView, street: ActionRecord['street']): Card[] {
-  const n = street === 'flop' ? 3 : street === 'turn' ? 4 : 5;
+  // Pôster Poker: no river vale o board inteiro (6 cartas no Onze Homens). Com o flop
+  // antecipado (Golpe de Mestre) não há ação de 'flop'; o turn já tem 4 cartas.
+  if (street === 'river') return v.board.slice();
+  const n = street === 'flop' ? 3 : 4;
   return v.board.slice(0, n);
 }
 
@@ -214,14 +247,17 @@ export function rangeFor(oppId: PlayerId, v: BotView, model: RangeModel, ctx: Ra
       for (let i = 0; i < N_COMBOS; i++) w[i] = Math.max(0.05 * top[i], top[i] - cut[i]);
     } else w.fill(1);
   }
-  // Cartas que quem decide conhece (a própria mão e o board) não podem estar com o oponente.
+  // Cartas que quem decide conhece (a própria mão e o board) não podem estar com o oponente
+  // — no baralho do Cassino, só quando não sobra cópia delas.
   const dead = new Uint8Array(52);
-  for (const c of [...v.hole, ...v.board]) dead[cardIndex(c)] = 1;
+  const left = copiesLeft([...v.hole, ...v.board], v.extraCards);
+  if (left) for (let i = 0; i < 52; i++) dead[i] = left[i] === 0 ? 1 : 0;
+  else for (const c of [...v.hole, ...v.board]) dead[cardIndex(c)] = 1;
   for (let k = 0; k < N_COMBOS; k++) if (dead[IDX_A[k]] || dead[IDX_B[k]]) w[k] = 0;
 
   for (const a of acts) {
     if (a.street === 'preflop' || a.type === 'fold') continue;
-    const info = boardInfo(boardAt(v, a.street));
+    const info = boardInfo(boardAt(v, a.street), v.extraCards);
     const aggr = a.type === 'bet' || a.type === 'raise';
     if (model === 'static') {
       if (!aggr) continue;
@@ -257,4 +293,31 @@ export function rangeFor(oppId: PlayerId, v: BotView, model: RangeModel, ctx: Ra
   for (let k = 0; k < N_COMBOS; k++) total += w[k];
   if (total < 1) return null;   // faixa vazia ou quase: trata como aleatória
   return { combos: ALL_COMBOS, weights: Array.from(w) };
+}
+
+/**
+ * Pôster Poker (03/11/2026, Cartas na Mesa): o oponente tem cartas viradas (1 ou 2). A faixa
+ * fica só com as combinações que contêm essas cartas (mantendo os pesos da leitura; se a
+ * leitura zerou todas, vale qualquer uma que as contenha). Sem carta conhecida, a faixa
+ * volta como veio (null = aleatória).
+ */
+export function withKnown(range: WeightedRange | null, known: readonly Card[] | undefined, deadCards: readonly Card[]): WeightedRange | null {
+  if (!known || known.length === 0) return range;
+  const dead = new Set<string>(deadCards);
+  const fits = (combo: readonly [Card, Card]): boolean => {
+    if (dead.has(combo[0]) && !known.includes(combo[0])) return false;
+    if (dead.has(combo[1]) && !known.includes(combo[1])) return false;
+    return known.length === 1 ? combo[0] === known[0] || combo[1] === known[0]
+      : (combo[0] === known[0] && combo[1] === known[1]) || (combo[0] === known[1] && combo[1] === known[0]);
+  };
+  if (known.length >= 2) return { combos: [[known[0], known[1]]] };
+  const w = new Array<number>(N_COMBOS).fill(0);
+  let total = 0;
+  ALL_COMBOS.forEach((combo, i) => {
+    if (!fits(combo)) return;
+    w[i] = range && range.combos === ALL_COMBOS ? range.weights?.[i] ?? 1 : 1;
+    total += w[i];
+  });
+  if (total <= 0) ALL_COMBOS.forEach((combo, i) => { w[i] = fits(combo) ? 1 : 0; });
+  return { combos: ALL_COMBOS, weights: w };
 }

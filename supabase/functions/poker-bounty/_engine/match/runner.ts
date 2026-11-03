@@ -6,6 +6,11 @@
  * Ordem ao fechar uma mão (SPEC §4.4, ajustada para as marcas usarem o que os bots
  * mostraram): bots que mostram → marcas → resumo da mão → eliminações → prêmio → tilt
  * → tally → fim de partida / heads-up.
+ *
+ * Pôster Poker (03/11/2026): os efeitos do pôster (effects.ts) entram por ganchos — depois
+ * do matchStarted, do handStarted, das cartas fechadas e de cada aposta de bot, antes do
+ * river, e no fim da mão logo depois dos bots que mostram (viradas e bônus da casa, que já
+ * entram no `net` do resumo).
  */
 import type { Card } from '../cards.ts';
 import type { HandResult, PlayerAction, PokerEvent } from '../engine.ts';
@@ -25,6 +30,10 @@ import { emptyTally, updateTally } from './summary.ts';
 import { scriptedChoice } from './scripted.ts';
 import type { EndReason, MatchStateX, StepCtx } from './internal.ts';
 import { HUMAN, emit, isAlive, isRevealed, markRevealed, playerOf, sizeClassOf } from './internal.ts';
+import {
+  beforeRiver, extraCardsOf, handFxFor, initEffects, onBotAggression, onHandEnd, onHandStarted, onHoleCards, onMatchStarted,
+  revealedNow,
+} from './effects.ts';
 
 /** Nos testes, ação ilegal de bot estoura em vez de virar check/fold. */
 let strictBots = false;
@@ -66,7 +75,9 @@ export function initialState(cfg: MatchConfig, buttonSeat?: number): MatchStateX
     bots[id] = mem;
   }
   const humanStack = s.startStack + cfg.loan;
+  const fx = initEffects(cfg);
   return {
+    ...(fx ? { fx } : {}),
     v: 1,
     config: cfg,
     game,
@@ -94,7 +105,9 @@ export function emitMatchStarted(ctx: StepCtx): void {
     loan: cfg.loan,
     prize: cfg.prize ? { prizeId: cfg.prize.prizeId, holderId: cfg.prize.carrierId } : null,
     level: levelFor(1, cfg.settings),
+    ...(cfg.mode === 'bounty' && cfg.tournament ? { tournament: { ...cfg.tournament } } : {}),
   });
+  onMatchStarted(ctx);
 }
 
 // ---------------------------------------------------------------------------
@@ -185,8 +198,11 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
     markRevealed(st, s.playerId);
     emit(ctx, { type: 'cardsShown', playerId: s.playerId, cards: s.cards, afterFold: s.afterFold });
   }
+  // 1b) Pôster Poker: viradas e bônus do efeito (já somados ao cacife)
+  const fxEnd = onHandEnd(ctx, result);
+  const extraCards = extraCardsOf(st);
   // 2) marcas (só dados públicos)
-  const { flags, potTotal, odds } = computeFlags({ result, bb, runout, shownAfter });
+  const { flags, potTotal, odds } = computeFlags({ result, bb, runout, shownAfter, extraCards });
   // 3) treino: todas as cartas viram no fim
   if (tutorial) {
     for (const p of g.players) {
@@ -197,7 +213,7 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
   }
   // 4) resumo público da mão
   const net: Record<string, number> = {};
-  for (const p of g.players) net[p.id] = result.net[p.id] ?? 0;
+  for (const p of g.players) net[p.id] = (result.net[p.id] ?? 0) + (fxEnd.bonus[p.id] ?? 0);
   emit(ctx, {
     type: 'handSummary', handNumber: n, net: net as Record<PlayerId, number>, winnerIds: result.winnerIds.slice(),
     wentToShowdown: result.wentToShowdown, potBB: Math.round((potTotal / bb) * 10) / 10, flags,
@@ -222,6 +238,7 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
     const shown: Record<string, Card[]> = {};
     for (const sh of result.shown) shown[sh.playerId] = sh.cards;
     for (const sh of shownAfter) shown[sh.playerId] = sh.cards;
+    for (const [id, cards] of Object.entries(revealedNow(st))) if (cards.length === 2) shown[id] = cards;
     for (const [id, mem] of Object.entries(st.bots)) {
       const alive = g.players.some((p) => p.id === id && p.status !== 'eliminated');
       if (!mem.model || !cfg.profiles[id]?.model.enabled || !alive) continue;
@@ -237,14 +254,17 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
   }
   // 9) números da pessoa (enquanto ela joga)
   if (st.status === 'running' && !tutorial) {
-    updateTally(st.tally, { result, bb, holes, flags, potTotal, odds, humanStackAfter: playerOf(g, HUMAN).stack, eliminations: elims });
+    updateTally(st.tally, {
+      result, bb, holes, flags, potTotal, odds, humanStackAfter: playerOf(g, HUMAN).stack, eliminations: elims,
+      potBonus: fxEnd.potBonus[HUMAN] ?? 0, repeats: extraCards.length > 0,
+    });
   }
   // 9) último pote sem showdown (para o "Mostrar")
   if (!result.wentToShowdown && result.winnerIds.length === 1) {
     const w = result.winnerIds[0];
     const mine = w === HUMAN ? holes[HUMAN] : undefined;
     st.lastUncontested = {
-      hand: n, playerId: w, shown: shownAfter.some((s) => s.playerId === w),
+      hand: n, playerId: w, shown: shownAfter.some((s) => s.playerId === w) || isRevealed(st, playerOf(g, w)),
       ...(mine ? { cards: [mine[0], mine[1]] as [Card, Card] } : {}),
     };
   } else {
@@ -274,14 +294,19 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
   }
 }
 
-function processEngine(ctx: StepCtx, events: PokerEvent[], boardBefore: Card[]): void {
+function processEngine(ctx: StepCtx, events: PokerEvent[], boardBefore: Card[], afterAction?: () => void): void {
   const st = ctx.st;
   let board = boardBefore.slice();
   let runout: { board: Card[]; hands: { playerId: string; cards: Card[] }[] } | null = null;
   let result: HandResult | null = null;
+  const n = st.game.handNumber;
   for (const e of events) {
+    if (e.type === 'streetDealt' && e.street === 'river') beforeRiver(ctx, n, e.cards.length);
     if (e.type === 'handStarted') emit(ctx, { ...e, level: levelFor(e.handNumber, st.config.settings) });
     else emit(ctx, e);
+    if (e.type === 'handStarted') onHandStarted(ctx, e.handNumber);
+    else if (e.type === 'holeCardsDealt') onHoleCards(ctx, n, e.hands);
+    else if (e.type === 'actionTaken') afterAction?.();
     if (e.type === 'streetDealt') board = e.board.slice();
     else if (e.type === 'allInRunout') runout = { board: board.slice(), hands: e.hands.map((h) => ({ playerId: h.playerId, cards: h.cards.slice() })) };
     else if (e.type === 'handComplete') result = e.result;
@@ -309,7 +334,11 @@ export function startNextHand(ctx: StepCtx): void {
   const preset = cfg.mode === 'tutorial' && cfg.tutorial && st.tutorialHand !== undefined
     ? cfg.tutorial.hands[st.tutorialHand]?.preset
     : undefined;
-  const r = startHand(g, preset ? { preset: { holeCards: preset.holeCards, board: preset.board } } : {});
+  const fx = handFxFor(st, n);
+  const r = startHand(g, {
+    ...(preset ? { preset: { holeCards: preset.holeCards, board: preset.board } } : {}),
+    ...(fx ? { fx } : {}),
+  });
   st.game = r.state;
   processEngine(ctx, r.events, []);
 }
@@ -345,7 +374,9 @@ export function applyAndProcess(ctx: StepCtx, id: string, action: PlayerAction, 
   st.actionNo += 1;
   emit(ctx, { type: 'actionMeta', playerId: id, handNumber, stackBefore, sizeClass, ...(botMeta ? { bot: botMeta } : {}) });
   st.game = r.state;
-  processEngine(ctx, r.events, boardBefore);
+  // O tique (efeito tell) sai logo depois da aposta/aumento do oráculo.
+  const aggr = bot && (rec.type === 'bet' || rec.type === 'raise');
+  processEngine(ctx, r.events, boardBefore, aggr ? () => onBotAggression(ctx, handNumber, id, bot!.bucket, bot!.monster) : undefined);
 }
 
 // ---------------------------------------------------------------------------

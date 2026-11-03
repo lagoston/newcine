@@ -52,8 +52,16 @@ const EXCHANGE_CHANCE: Partial<Record<Trigger, number>> = {
  * a 2ª é P3 (menos ainda): o "CATCHAW" já é o momento. Na 1ª vez da vida, P1 com a explicação.
  */
 const CAST_REPEAT = { firstChance: 0.5, laterChance: 0.3 };
-/** No 21 e no pote dobrado o bônus sai no fim da MESMA mão: a lançada fala menos para ele caber. */
-const CAST_REPEAT_PAYOFF = { firstChance: 0.3, laterChance: 0.2 };
+/**
+ * No 21 e no pote dobrado o bônus sai no fim da MESMA mão: a lançada fala menos para ele
+ * caber. No 21 a 1ª lançada já conhecida passa em silêncio: o 1º pagamento dele é P1. No
+ * tique, as marcas nas apostas é que merecem a fala.
+ */
+const CAST_REPEAT_PAYOFF: Partial<Record<string, { firstChance: number; laterChance: number }>> = {
+  blackjack: { firstChance: 0, laterChance: 0.2 }, double_pot: { firstChance: 0.3, laterChance: 0.2 },
+  // no Cassino Royale a graça é o tique nas apostas: a lançada fala pouco para ele ter vez
+  tell: { firstChance: 0.25, laterChance: 0.15 },
+};
 
 /** Quanto um balão de troca espera a vez da pessoa fechar antes de a troca cair. */
 const HOLD_MAX_MS = 20000;
@@ -558,7 +566,11 @@ class DialogueDirector implements Director {
     const p1 = signals.filter((s) => s.priority === 1);
     for (const s of p1) {
       if (s.tip) this.enqueueTip(s);
-      else this.enqueueP1(s, s.scene === 'farewell' ? 'farewell' : s.scene === 'opening' ? 'opening' : 'table');
+      else if (this.enqueueP1(s, s.scene === 'farewell' ? 'farewell' : s.scene === 'opening' ? 'opening' : 'table')
+        && s.trigger === 'effectBonus' && s.hand > 0 && !this.budget.hadNonP1(s.hand)) {
+        // Pôster Poker: a opala e o Raymond já são o momento da mão; a fala do pote não vem depois
+        this.budget.reserve(s.hand, 0, 0);
+      }
     }
     const rest = signals.filter((s) => s.priority !== 1 && this.rng() < s.chance && this.modeAllows(s.priority));
     // P2 antes de P3; dentro da mesma prioridade, sorteio
@@ -587,8 +599,9 @@ class DialogueDirector implements Director {
             scene: this.tracker.phase === 'opening' ? 'opening' : undefined });
         } else {
           const first = s.effect.castNo <= 1;
-          const c = s.effect.id === 'blackjack' || s.effect.id === 'double_pot' ? CAST_REPEAT_PAYOFF : CAST_REPEAT;
-          out.push({ ...s, priority: first ? 2 : 3, chance: first ? c.firstChance : c.laterChance });
+          const c = CAST_REPEAT_PAYOFF[s.effect.id] ?? CAST_REPEAT;
+          const chance = first ? c.firstChance : c.laterChance;
+          if (chance > 0) out.push({ ...s, priority: first ? 2 : 3, chance });
         }
         continue;
       }

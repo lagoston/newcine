@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Loader2 } from 'lucide-react';
 import { FOCUS_RING, MIST, PAPER, PIXEL, oracleCardImage } from '../../../lib/oracleTheme';
-import { POKER_ORACLES, SEAT_ORDER, TITLE_STEPS, titleProgress, type PokerOracleId } from '../jackpot/pokerMeta';
+import { GAMES_RED, GAMES_RED_TEXT, POKER_ORACLES, SEAT_ORDER, TITLE_STEPS, titleProgress, type PokerOracleId } from '../jackpot/pokerMeta';
 import { fmt, type BestHand, type MarkView, type PlayerNumber, type RecentMatch, type Stats } from './model';
 
 // Peças do placar. Os gráficos seguem o método do skill de dataviz:
@@ -321,12 +321,13 @@ export const MarkRow: React.FC<{ mark: MarkView; equipped: boolean; busy: boolea
   const { t, i18n } = useTranslation();
   const earned = !!mark.unlockedAt;
   return (
-    <li className="pe-panel flex items-center gap-3 p-3" style={earned ? { boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.45)' } : undefined}>
+    // Adendo (03/11/2026): tags da categoria Jogos, no vermelho dela (pacote T).
+    <li className="pe-panel flex items-center gap-3 p-3" style={earned ? { boxShadow: `inset 0 0 0 1px ${GAMES_RED}88` } : undefined}>
       <span
         className="grid place-items-center w-12 h-12 shrink-0 rounded-full text-[24px]"
         style={
           earned
-            ? { background: 'radial-gradient(circle at 35% 30%, #2a3590, #0f1645)', boxShadow: '0 0 0 1.5px #F4C454, 0 0 14px -4px rgba(244,196,84,0.8)' }
+            ? { background: `radial-gradient(circle at 35% 30%, ${GAMES_RED}40, #1C1433)`, boxShadow: `0 0 0 1.5px ${GAMES_RED}, 0 0 14px -4px ${GAMES_RED}cc` }
             : { background: 'rgba(255,255,255,0.04)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)', filter: 'grayscale(1)', opacity: 0.45 }
         }
         aria-hidden
@@ -334,8 +335,8 @@ export const MarkRow: React.FC<{ mark: MarkView; equipped: boolean; busy: boolea
         {mark.emoji}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[14.5px] font-semibold leading-tight" style={{ color: earned ? PAPER : MIST }}>
-          {t(`pokerEntry.marks.${mark.key}.name`)}
+        <p className="text-[14.5px] font-semibold leading-tight" style={{ color: earned ? GAMES_RED_TEXT : MIST }}>
+          {mark.name}
         </p>
         <p className="mt-0.5 text-[12.5px] leading-snug" style={{ color: MIST }}>
           {earned
@@ -349,7 +350,7 @@ export const MarkRow: React.FC<{ mark: MarkView; equipped: boolean; busy: boolea
           onClick={onEquip}
           disabled={busy || equipped}
           className={`shrink-0 inline-flex items-center gap-1 h-9 px-3 rounded-full text-[12.5px] font-semibold transition disabled:cursor-default ${FOCUS_RING}`}
-          style={equipped ? { color: '#A7F3D0', boxShadow: 'inset 0 0 0 1px rgba(167,243,208,0.4)' } : { background: '#F3EAD3', color: '#221B36' }}
+          style={equipped ? { color: GAMES_RED_TEXT, boxShadow: `inset 0 0 0 1px ${GAMES_RED}88` } : { background: GAMES_RED, color: '#2A0610' }}
         >
           {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden /> : equipped ? <Check className="w-3.5 h-3.5" aria-hidden /> : null}
           {equipped ? t('pokerEntry.score.inUse') : t('pokerEntry.score.equip')}

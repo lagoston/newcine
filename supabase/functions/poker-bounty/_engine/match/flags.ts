@@ -16,6 +16,8 @@ export interface PublicHandInfo {
   runout: { board: Card[]; hands: { playerId: string; cards: Card[] }[] } | null;
   /** cardsShown desta mão (política de mostrar dos bots), antes do fim. */
   shownAfter: { playerId: string; cards: Card[]; afterFold: boolean }[];
+  /** Pôster Poker, Cassino: cartas a mais no baralho (públicas). */
+  extraCards?: readonly Card[];
 }
 
 export interface FlagsOut {
@@ -37,7 +39,8 @@ export function computeFlags(info: PublicHandInfo): FlagsOut {
 
   let odds: Record<string, number> | null = null;
   if (info.runout && info.runout.hands.length >= 2) {
-    odds = runoutOdds(info.runout.hands, info.runout.board);
+    // Board de 6 (Onze Homens) conta: o river de 2 cartas foi anunciado antes de sair.
+    odds = runoutOdds(info.runout.hands, info.runout.board, { extraCards: info.extraCards, boardSize: Math.max(5, result.board.length) });
     let victim: string | null = null;
     for (const h of info.runout.hands) if (victim === null || odds[h.playerId] > odds[victim]) victim = h.playerId;
     if (victim !== null && odds[victim] >= 0.75 && main && !mainWinners.includes(victim) && mainWinners.length > 0) {
@@ -71,7 +74,7 @@ export function computeFlags(info: PublicHandInfo): FlagsOut {
   // Largou e mostrou mão forte.
   for (const s of info.shownAfter) {
     if (!s.afterFold || board.length < 3) continue;
-    const b = bucketOf(s.cards, board);
+    const b = bucketOf(s.cards, board, info.extraCards);
     if (b === 'nuts' || b === 'strong' || (b === 'medium' && categoryOf([...s.cards, ...board]) >= 1)) {
       flags.heroFold = { playerId: s.playerId };
       break;

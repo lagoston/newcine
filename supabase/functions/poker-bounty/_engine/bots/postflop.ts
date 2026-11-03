@@ -10,7 +10,7 @@ import type { BotView, HandBucket } from '../types.ts';
 import type { Features } from './features.ts';
 import type { BotCtx, EffProfile, Ranked } from './policy.ts';
 import { CALL, CHECK, FOLD, betFrac, clamp01, gauss4, raiseTo } from './policy.ts';
-import { rangeFor } from './ranges.ts';
+import { rangeFor, withKnown } from './ranges.ts';
 
 function hasLabel(ctx: BotCtx, f: Features, label: 'pagaTudo' | 'blefador' | 'solto'): boolean {
   return !!ctx.model && f.opponents.some((o) => ctx.model!.has(o, label));
@@ -189,16 +189,19 @@ function facingBet(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, eq: numb
 }
 
 export function postflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, b: HandBucket, monster: boolean, pairPlus: boolean): Ranked {
-  const ranges: (WeightedRange | null)[] = f.opponents.map((o) => rangeFor(o, v, P.rangeModel, ctx.model
+  // Cartas viradas por efeito (Cartas na Mesa) entram na faixa de quem as tem.
+  const dead = [...v.hole, ...v.board];
+  const ranges: (WeightedRange | null)[] = f.opponents.map((o) => withKnown(rangeFor(o, v, P.rangeModel, ctx.model
     ? { rates: ctx.model.quick(o), labels: ctx.model.labels(o), aggrWeight: aggrWeightOf(ctx, o) }
-    : {}));
+    : {}), v.shownThisHand[o], dead));
   const iters = P.iters[v.street === 'preflop' ? 'flop' : v.street];
   const opponents = Math.max(1, f.opponents.length);
+  const extraCards = v.extraCards;
   let eq: number;
   try {
-    eq = estimateEquity({ hole: v.hole, board: v.board, opponents, iterations: iters, rng: ctx.rng, ranges }).equity;
+    eq = estimateEquity({ hole: v.hole, board: v.board, opponents, iterations: iters, rng: ctx.rng, ranges, extraCards }).equity;
   } catch {
-    eq = estimateEquity({ hole: v.hole, board: v.board, opponents, iterations: iters, rng: ctx.rng }).equity;
+    eq = estimateEquity({ hole: v.hole, board: v.board, opponents, iterations: iters, rng: ctx.rng, extraCards }).equity;
   }
   eq = clamp01(eq + gauss4(ctx.rng) * P.noise);
   if (!f.inPosition) eq *= 1 - 0.05 * P.positionUse;

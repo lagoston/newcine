@@ -1,54 +1,82 @@
 /**
- * `PokerApi` falso (SPEC §4.9 e §8, pacote D): roda o prêmio com a camada de
- * partida local, guardando tudo em `poker.mock.v1`, para o fluxo inteiro (lobby →
- * mesa do prêmio → captura → créditos) funcionar sem servidor.
+ * `PokerApi` falso (SPEC §4.9 e §8): roda a partida valendo com a camada de partida
+ * local, guardando tudo em `poker.mock.v2`, para o fluxo inteiro funcionar sem servidor.
  *
- * 03/11/2026: só para a prévia e para o desenvolvimento. Não concede nada de
- * verdade: em produção o salão fica fechado até o pacote C publicar o pokerApi.
+ * 03/11/2026 (tarde, Pôster Poker): espelha o `get_poker_home()` novo (torneio da semana,
+ * coleção dos 9 pôsteres, vitrine da Cobra) e a Edge `proto: 2` (entrada com fichas ou
+ * pôster, erros novos, `rewards` no fim). Os efeitos vêm do próprio motor (pacote E):
+ * basta a partida ter `config.tournament`.
+ *
+ * Alavancas da prévia (localStorage): `poker.mock.week` = um efeito (força o pôster da
+ * semana), `poker.mock.castAt` = mão da 1ª lançada, `poker.mock.cobra = 1` (a Cobra traz
+ * um item), `poker.mock.edge404 = 1` (Edge ainda não publicada).
+ *
+ * Só para a prévia e para o desenvolvimento: não concede nada de verdade.
  */
 import type { PlayerAction } from '../engine.ts';
-import type { MatchState, MatchSummary, PublicEvent, Rarity, RivalId, TitleId } from '../types.ts';
+import type { MatchState, MatchSummary, PosterEffectId, PublicEvent, Rarity, TitleId } from '../types.ts';
+import { DEFAULT_DIFFICULTY } from '../config.ts';
 import { applyHumanAction, createMatch, forfeitMatch, outcomeOf, tableView, toPublicEvents } from '../match/match.ts';
-import type {
-  BountyAct,
-  BountyResult,
-  BountyResume,
-  BountyStart,
-  IntervalPick,
-  PokerApiLike,
-  PokerHome,
-  PokerPrize,
-} from './apiTypes.ts';
+import type { BountyAct, BountyResult, BountyResume, BountyStart, IntervalPick, PokerApiLike, PokerHome, PokerPrize } from './apiTypes.ts';
 import { PokerClientError } from './apiTypes.ts';
 import { buildConfig } from './matchConfig.ts';
 import { randomSeed, uuid } from './freeStore.ts';
 import { POKER_PREVIEW } from './flags.ts';
+import {
+  CYCLE,
+  ENTRY_CHIPS,
+  POSTER_POKER,
+  STARS,
+  cycleIndex,
+  nextWeekOf,
+  posterDef,
+  weekEndsAt,
+  weekOf,
+  type CobraItem,
+  type StakeOption,
+  type TournamentPrize,
+  type TournamentRewards,
+  type TournamentStake,
+} from './tournament.ts';
 
-const KEY = 'poker.mock.v1';
+const KEY = 'poker.mock.v2';
 
 interface MockMatch {
   id: string;
+  week: string;
   day: string;
   seq: number;
   seed: string;
-  prizeId: string;
+  prize: TournamentPrize;
+  stake: TournamentStake;
+  cobra: CobraItem | null;
   state: MatchState;
   tail: PublicEvent[];
   status: 'active' | 'won' | 'lost' | 'forfeit';
   result?: BountyResult;
+  rewards?: TournamentRewards;
   lastIdem?: string;
   lastResponse?: BountyAct;
 }
 
+interface MockPoster extends StakeOption {
+  lost?: boolean;
+}
+
 interface MockDb {
-  v: 1;
+  v: 2;
   tickets: number;
   ageConfirmed: boolean;
   tutorialDone: boolean;
   tutorialChip: boolean;
   story: Record<string, string>;
+  /** Entradas no torneio por dia de Brasília. */
   attempts: Record<string, number>;
-  wonDay: Record<string, boolean>;
+  wonWeek: Record<string, boolean>;
+  /** Efeitos dos pôsteres do Pôster Poker que a pessoa tem (o gold). */
+  ppOwned: PosterEffectId[];
+  /** A coleção do Jackpot (o que dá para apostar). */
+  posters: MockPoster[];
   lossStreak: number;
   free: { matches: number; wins: number };
   bounty: { matches: number; wins: number };
@@ -58,31 +86,62 @@ interface MockDb {
   active: MockMatch | null;
 }
 
-const PRIZES: (PokerPrize & { carrier: RivalId })[] = [
-  { id: 'deck-noir', kind: 'deck', rarity: 'epic', name_pt: 'Baralho Noir', name_en: 'Noir Deck', article_pt: 'o',
-    blurb_pt: 'Verso preto e prata, em art déco.', blurb_en: 'Black and silver art deco back.', payload: { item_id: 'deck-noir' },
-    repeatable: false, carrier: 'cypher' },
-  { id: 'table-meia-noite', kind: 'table', rarity: 'legendary', name_pt: 'Feltro Meia-Noite', name_en: 'Midnight Felt',
-    article_pt: 'o', blurb_pt: 'O feltro azul-noite da sessão.', blurb_en: 'The midnight-blue felt.',
-    payload: { item_id: 'table-meia-noite' }, repeatable: false, carrier: 'fincher' },
-  { id: 'fichas-2', kind: 'tickets', rarity: 'common', name_pt: '2 fichas', name_en: '2 chips', article_pt: 'as',
-    payload: { amount: 2 }, repeatable: true, carrier: 'bogart' },
+// Pôsteres de exemplo da coleção do Jackpot (arquivos reais do TMDB).
+const SAMPLE_POSTERS: MockPoster[] = [
+  { item_id: 12, effect: 'none', title: 'Clube da Luta', title_en: 'Fight Club', year: 1999, file_path: '/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg', serial: 12, rarity: 'common' },
+  { item_id: 14, effect: 'holo', title: 'Pulp Fiction', title_en: 'Pulp Fiction', year: 1994, file_path: '/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg', serial: 14, rarity: 'common' },
+  { item_id: 21, effect: 'none', title: 'Parasita', title_en: 'Parasite', year: 2019, file_path: '/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg', serial: 21, rarity: 'rare' },
+  { item_id: 23, effect: 'negative', title: 'Interestelar', title_en: 'Interstellar', year: 2014, file_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg', serial: 23, rarity: 'rare' },
+  { item_id: 31, effect: 'none', title: 'O Cavaleiro das Trevas', title_en: 'The Dark Knight', year: 2008, file_path: '/qJ2tW6WMUDux911r6m7haRef0WH.jpg', serial: 11, rarity: 'epic' },
+  { item_id: 41, effect: 'ultra_red', title: 'O Poderoso Chefão', title_en: 'The Godfather', year: 1972, file_path: '/3bhkrj58Vtu7enYsRolD1fZdja1.jpg', serial: 3, rarity: 'legendary' },
 ];
+
+// O item secreto que a Cobra traz quando a prévia pede (o catálogo de verdade está vazio).
+const COBRA_SAMPLE: CobraItem = { id: 'deck-noir', name: 'Baralho Noir', kind: 'deck' };
 
 function today(): string {
   // Dia de Brasília (UTC−3), como o servidor (§2.6).
   return new Date(Date.now() - 3 * 3_600_000).toISOString().slice(0, 10);
 }
 
-// O dia de Brasília termina às 03:00 UTC do dia seguinte.
-function endsAt(day: string): string {
-  return new Date(new Date(`${day}T03:00:00Z`).getTime() + 86_400_000).toISOString();
+function knob(key: string): string | null {
+  try {
+    return window.localStorage.getItem(`poker.mock.${key}`);
+  } catch {
+    return null;
+  }
 }
 
-function prizeOf(day: string) {
-  let h = 0;
-  for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return PRIZES[h % PRIZES.length];
+function weekPrize(week: string): TournamentPrize {
+  const forced = knob('week') as PosterEffectId | null;
+  const def = posterDef(forced && CYCLE.includes(forced) ? forced : CYCLE[cycleIndex(week)]) ?? POSTER_POKER[0];
+  return {
+    id: def.id,
+    item_id: 100 + POSTER_POKER.indexOf(def),
+    rarity: def.rarity,
+    serial: def.serial,
+    title: def.titlePt,
+    title_en: def.titleEn,
+    year: def.year,
+    file_path: def.filePath,
+    effect_id: def.effect,
+  };
+}
+
+// O prêmio no formato antigo (poker_prize_json), que o start/resume ainda mandam.
+function legacyPrize(p: TournamentPrize): PokerPrize {
+  return {
+    id: p.id, kind: 'poster', rarity: p.rarity, name_pt: p.title, name_en: p.title_en ?? p.title, article_pt: 'o', image: p.file_path,
+    payload: { item_id: p.item_id, effect: 'gold', poster: { file_path: p.file_path, effect: 'gold', serial: p.serial } }, repeatable: false,
+  };
+}
+
+function blankDb(): MockDb {
+  return {
+    v: 2, tickets: 7, ageConfirmed: false, tutorialDone: false, tutorialChip: false, story: {}, attempts: {}, wonWeek: {}, ppOwned: [],
+    posters: SAMPLE_POSTERS.map((p) => ({ ...p })), lossStreak: 0, free: { matches: 0, wins: 0 }, bounty: { matches: 0, wins: 0 }, reported: [],
+    loadout: { deck: 'deck-classico', table: 'table-feltro-verde', quips: 'quips-padrao' }, owned: [], active: null,
+  };
 }
 
 function load(): MockDb {
@@ -90,16 +149,12 @@ function load(): MockDb {
     const raw = window.localStorage.getItem(KEY);
     if (raw) {
       const db = JSON.parse(raw) as MockDb;
-      if (db?.v === 1) return db;
+      if (db?.v === 2) return { ...blankDb(), ...db };
     }
   } catch {
     // começa do zero
   }
-  return {
-    v: 1, tickets: 7, ageConfirmed: false, tutorialDone: false, tutorialChip: false, story: {}, attempts: {}, wonDay: {},
-    lossStreak: 0, free: { matches: 0, wins: 0 }, bounty: { matches: 0, wins: 0 }, reported: [],
-    loadout: { deck: 'deck-classico', table: 'table-feltro-verde', quips: 'quips-padrao' }, owned: [], active: null,
-  };
+  return blankDb();
 }
 
 function save(db: MockDb) {
@@ -112,15 +167,8 @@ function save(db: MockDb) {
 
 const latency = () => new Promise((r) => setTimeout(r, 120 + Math.random() * 220));
 
-// Só na prévia: `poker.mock.edge404 = 1` imita a Edge Function ainda não publicada
-// (404 fora do protocolo), para ver a mesa do prêmio "abrir em breve".
-function edgeMissing(): boolean {
-  try {
-    return window.localStorage.getItem('poker.mock.edge404') === '1';
-  } catch {
-    return false;
-  }
-}
+// Só na prévia: `poker.mock.edge404 = 1` imita a Edge Function ainda não publicada.
+const edgeMissing = () => knob('edge404') === '1';
 
 function titleFor(wins: number): TitleId {
   if (wins >= 150) return 'lenda';
@@ -131,50 +179,92 @@ function titleFor(wins: number): TitleId {
   return 'figurante';
 }
 
-function stars(r: Rarity): 1 | 2 | 3 | 4 {
-  return r === 'common' ? 1 : r === 'rare' ? 2 : r === 'epic' ? 3 : 4;
+function stakeOptions(db: MockDb, rarity: Rarity): StakeOption[] {
+  const staked = db.active && db.active.status === 'active' && db.active.stake.kind === 'poster' ? db.active.stake : null;
+  return db.posters
+    .filter((p) => !p.lost && p.rarity === rarity && !(staked && staked.kind === 'poster' && staked.itemId === p.item_id && staked.effect === p.effect))
+    .map((p) => {
+      const o: StakeOption & { lost?: boolean } = { ...p };
+      delete o.lost;
+      return o;
+    });
 }
 
-function finishResult(db: MockDb, m: MockMatch, status: BountyResult['status'], place: number): BountyResult {
+function tournamentJson(m: MockMatch) {
+  return {
+    week: m.week, prize: m.prize, effect: m.prize.effect_id, rarity: m.prize.rarity, cobraItem: !!m.cobra,
+    stake: m.stake.kind === 'chips' ? { kind: 'chips', amount: ENTRY_CHIPS[m.prize.rarity] } : { kind: 'poster', item_id: m.stake.itemId, effect: m.stake.effect },
+  };
+}
+
+// O fim da partida: o pôster dourado e o item da Cobra para quem venceu; o pôster
+// apostado volta (vitória) ou fica na mesa (derrota).
+function finish(db: MockDb, m: MockMatch, status: BountyResult['status'], place: number): BountyResult {
   const before = db.free.wins + db.bounty.wins;
   db.bounty.matches += 1;
-  if (status === 'won') db.bounty.wins += 1;
-  const captured = m.state.capturedHand != null;
-  db.lossStreak = captured ? 0 : db.lossStreak + 1;
+  const won = status === 'won' && place === 1;
+  if (won) db.bounty.wins += 1;
+  db.lossStreak = won ? 0 : db.lossStreak + 1;
+  const rewards: TournamentRewards = {};
+  if (won) {
+    if (!db.ppOwned.includes(m.prize.effect_id)) db.ppOwned.push(m.prize.effect_id);
+    db.wonWeek[m.week] = true;
+    rewards.poster = { prizeId: m.prize.id, itemId: m.prize.item_id, title: m.prize.title, filePath: m.prize.file_path, serial: m.prize.serial, rarity: m.prize.rarity };
+    rewards.cobraItem = m.cobra;
+    rewards.cobraRevealed = null;
+  } else {
+    rewards.cobraItem = null;
+    rewards.cobraRevealed = m.cobra;
+  }
+  if (m.stake.kind === 'chips') rewards.stake = { kind: 'chips', amount: ENTRY_CHIPS[m.prize.rarity] };
+  else {
+    const st = m.stake;
+    const p = db.posters.find((x) => x.item_id === st.itemId && x.effect === st.effect);
+    if (p && !won) p.lost = true;
+    rewards.stake = { kind: 'poster', itemId: st.itemId, effect: st.effect, title: p?.title ?? '', filePath: p?.file_path ?? '', lost: !won };
+  }
   const wins = db.free.wins + db.bounty.wins;
-  const prize = PRIZES.find((p) => p.id === m.prizeId);
   const marks: string[] = [];
-  if (status === 'won' && db.bounty.wins === 1) marks.push('poker-first-win');
+  if (won && db.bounty.wins === 1) marks.push('poker-first-win');
+  if (won && m.stake.kind === 'poster') marks.push('poker-high-stakes');
   if (m.state.eliminatedBy?.fincher === 'human') marks.push('poker-fox-hunter');
+  m.rewards = rewards;
   return {
-    status, place, prizeCaptured: captured, prize, seed: m.seed, seedHash: 'mock', marks,
+    status, place, prizeCaptured: won, prize: legacyPrize(m.prize), seed: m.seed, seedHash: 'mock', marks,
     title: { wins, id: titleFor(wins), rankUp: titleFor(wins) !== titleFor(before) },
-  };
+    ...({ rewards } as object),
+  } as BountyResult;
 }
 
 export const mockApi: PokerApiLike = {
   async getHome(): Promise<PokerHome> {
     await latency();
     const db = load();
+    const week = weekOf();
     const day = today();
-    const p = prizeOf(day);
-    // Como o servidor: depois da captura, o lobby mostra o prêmio que a pessoa levou hoje.
-    const owned = db.owned.includes(p.id) && !p.repeatable && !db.wonDay[day];
-    const prize = owned ? PRIZES[2] : p;
-    const tomorrow = prizeOf(new Date(Date.now() + 86_400_000 - 3 * 3_600_000).toISOString().slice(0, 10));
+    const prize = weekPrize(week);
     const wins = db.free.wins + db.bounty.wins;
-    return {
+    const active = db.active && db.active.status === 'active' ? db.active : null;
+    const home = {
       enabled: POKER_PREVIEW,
       open: POKER_PREVIEW,
-      proto_min: 1,
-      bounty: {
-        day, ends_at: endsAt(day), prize, is_reserve: false, is_fallback: owned, carrier: owned ? PRIZES[2].carrier : p.carrier,
-        stars: stars(prize.rarity), attempts_used: db.attempts[day] ?? 0, max_attempts: 3, won_today: !!db.wonDay[day],
-        loan_next: db.lossStreak >= 3, friends_won: 2, tomorrow: { rarity: tomorrow.rarity, carrier: tomorrow.carrier },
-        active: db.active && db.active.status === 'active'
-          ? { match_id: db.active.id, hand: db.active.state.game.handNumber, seq: db.active.seq }
+      proto_min: 2,
+      bounty: null,
+      tournament: {
+        week, ends_at: weekEndsAt(week), prize, entry_chips: ENTRY_CHIPS[prize.rarity], chips: db.tickets,
+        attempts_used: db.attempts[day] ?? 0, max_attempts: 3, owned: db.ppOwned.includes(prize.effect_id), won_this_week: !!db.wonWeek[week],
+        active_match: active
+          ? { match_id: active.id, week: active.week, hand: active.state.game.handNumber, seq: active.seq, prize_id: active.prize.id,
+              stake: active.stake.kind === 'chips' ? { kind: 'chips', amount: ENTRY_CHIPS[active.prize.rarity] } : { kind: 'poster', item_id: active.stake.itemId, effect: active.stake.effect } }
           : null,
+        stake_options: stakeOptions(db, prize.rarity), cobra_pool: 0, stars: STARS[prize.rarity], loan_next: db.lossStreak >= 3,
       },
+      collection: POSTER_POKER.map((p, i) => ({
+        id: p.id, item_id: 100 + i, rarity: p.rarity, serial: p.serial, title: p.titlePt, title_en: p.titleEn, year: p.year, file_path: p.filePath,
+        effect_id: p.effect, owned: db.ppOwned.includes(p.effect), next_week: p.effect === prize.effect_id ? week : nextWeekOf(p.effect, week),
+        this_week: p.effect === prize.effect_id,
+      })),
+      cobra_items: [],
       player: {
         age_confirmed: db.ageConfirmed, age_gate_all: false, tutorial_done: db.tutorialDone, tutorial_chip: db.tutorialChip,
         story: db.story, lifetime_matches: db.free.matches + db.bounty.matches, last_played_at: null,
@@ -186,6 +276,7 @@ export const mockApi: PokerApiLike = {
       marks: [],
       tickets: db.tickets,
     };
+    return home as unknown as PokerHome;
   },
 
   async confirmAge() {
@@ -241,32 +332,51 @@ export const mockApi: PokerApiLike = {
   },
 
   bounty: {
-    async start(day: string, prizeId: string): Promise<BountyStart> {
+    // proto 2: start(week, prizeId, stake).
+    async start(week: string, prizeId: string, stake?: TournamentStake): Promise<BountyStart> {
       await latency();
       if (edgeMissing()) throw new PokerClientError(404, 'http_404');
       const db = load();
-      if (day !== today()) throw new PokerClientError(409, 'stale_day');
-      const p = prizeOf(day);
-      const eff = db.owned.includes(p.id) && !p.repeatable ? PRIZES[2] : p;
-      if (eff.id !== prizeId) throw new PokerClientError(409, 'prize_changed', { prize: eff });
+      const cur = weekOf();
+      const prize = weekPrize(cur);
+      const day = today();
+      if (week !== cur) throw new PokerClientError(409, 'stale_week', { tournament: { week: cur, prize } });
+      if (prizeId !== prize.id) throw new PokerClientError(409, 'prize_changed', { prize });
       if (!db.ageConfirmed) throw new PokerClientError(403, 'age_required');
-      if (db.wonDay[day]) throw new PokerClientError(403, 'won_today');
-      if ((db.attempts[day] ?? 0) >= 3) throw new PokerClientError(403, 'limit');
+      if (db.ppOwned.includes(prize.effect_id)) throw new PokerClientError(403, 'owned');
+      if (db.wonWeek[cur]) throw new PokerClientError(403, 'won_this_week');
+      if ((db.attempts[day] ?? 0) >= 3) throw new PokerClientError(403, 'attempts', { attempts_used: db.attempts[day], max_attempts: 3 });
       if (db.active && db.active.status === 'active') throw new PokerClientError(409, 'active_exists', { matchId: db.active.id });
-      if (db.tickets < 1) throw new PokerClientError(402, 'no_chips');
+      const entry: TournamentStake = stake ?? { kind: 'chips' };
+      const need = ENTRY_CHIPS[prize.rarity];
+      if (entry.kind === 'chips') {
+        if (db.tickets < need) throw new PokerClientError(402, 'no_chips', { need, have: db.tickets });
+      } else if (!stakeOptions(db, prize.rarity).some((o) => o.item_id === entry.itemId && o.effect === entry.effect)) {
+        throw new PokerClientError(400, 'stake_invalid', { reason: 'rarity' });
+      }
       const loan = db.lossStreak >= 3 ? 500 : 0;
       const seed = randomSeed();
-      const cfg = buildConfig({ mode: 'bounty', seed, home: null, loan, prize: { prizeId: eff.id, carrierId: eff.carrier, rarity: eff.rarity } });
+      const cfg = buildConfig({ mode: 'bounty', seed, home: null, loan, prize: null });
+      cfg.difficulty = cfg.settings.difficulty?.[prize.rarity] ?? DEFAULT_DIFFICULTY[prize.rarity];
+      const cobra = knob('cobra') === '1' ? COBRA_SAMPLE : null;
+      cfg.tournament = { prizeId: prize.id, rarity: prize.rarity, effect: prize.effect_id, cobraItem: !!cobra };
+      // Prévia: a 1ª lançada cedo, para ver o efeito sem jogar 9 mãos.
+      const castAt = Number(knob('castAt'));
+      if (castAt > 0) {
+        cfg.settings = { ...cfg.settings, effects: { [prize.effect_id]: { firstHand: [castAt, castAt], gapHands: 3, spread: 0 } } as never };
+      }
       const step = createMatch(cfg);
       const events = toPublicEvents(step.events, 'human');
-      db.tickets -= 1;
+      if (entry.kind === 'chips') db.tickets -= need;
       db.attempts[day] = (db.attempts[day] ?? 0) + 1;
-      db.active = { id: uuid(), day, seq: 1, seed, prizeId: eff.id, state: step.state, tail: events.slice(-60), status: 'active' };
+      db.active = { id: uuid(), week: cur, day, seq: 1, seed, prize, stake: entry, cobra, state: step.state, tail: events.slice(-60), status: 'active' };
       save(db);
-      return {
-        ok: true, matchId: db.active.id, seq: 1, seedHash: 'mock', attempt: db.attempts[day], loan, prize: eff, carrier: eff.carrier,
-        stars: stars(eff.rarity), events, view: tableView(step.state, 'human'),
+      const out = {
+        ok: true, matchId: db.active.id, seq: 1, seedHash: 'mock', attempt: db.attempts[day], loan, prize: legacyPrize(prize), carrier: null,
+        stars: STARS[prize.rarity], events, view: tableView(step.state, 'human'), tickets: db.tickets,
+        tournament: { ...tournamentJson(db.active), attemptsUsed: db.attempts[day], maxAttempts: 3 },
       };
+      return out as unknown as BountyStart;
     },
 
     async act(matchId, seq, idem, action: PlayerAction, show) {
@@ -274,7 +384,7 @@ export const mockApi: PokerApiLike = {
       const db = load();
       const m = db.active;
       if (!m || m.id !== matchId) throw new PokerClientError(404, 'not_found');
-      if (m.status !== 'active') throw new PokerClientError(410, 'finished', { result: m.result });
+      if (m.status !== 'active') throw new PokerClientError(410, 'finished', { result: m.result, rewards: m.rewards });
       if (seq === m.seq - 1 && idem === m.lastIdem && m.lastResponse) return m.lastResponse;
       if (seq !== m.seq) throw new PokerClientError(409, 'stale', { seq: m.seq, view: tableView(m.state, 'human'), recent: m.tail.slice(-20) });
       let step;
@@ -289,19 +399,13 @@ export const mockApi: PokerApiLike = {
       m.state = step.state;
       m.tail = [...m.tail, ...events].slice(-60);
       m.seq += 1;
-      if (out.captured) {
-        db.wonDay[m.day] = true;
-        const pr = PRIZES.find((p) => p.id === m.prizeId);
-        if (pr?.kind === 'tickets') db.tickets += Number((pr.payload as { amount?: number })?.amount ?? 0);
-        else if (pr && !db.owned.includes(pr.id)) db.owned.push(pr.id);
-      }
       let result: BountyResult | undefined;
       if (out.finished) {
         m.status = out.finished.status === 'won' ? 'won' : out.finished.status === 'forfeit' ? 'forfeit' : 'lost';
-        result = finishResult(db, m, out.finished.status, out.finished.place);
+        result = finish(db, m, out.finished.status, out.finished.place);
         m.result = result;
       }
-      const response: BountyAct = { ok: true, seq: m.seq, events, view: tableView(step.state, 'human'), result };
+      const response = { ok: true, seq: m.seq, events, view: tableView(step.state, 'human'), result, ...(result ? { rewards: m.rewards } : {}) } as BountyAct;
       m.lastIdem = idem;
       m.lastResponse = response;
       save(db);
@@ -313,12 +417,12 @@ export const mockApi: PokerApiLike = {
       const db = load();
       const m = db.active;
       if (!m || m.id !== matchId) throw new PokerClientError(404, 'not_found');
-      if (m.status !== 'active') throw new PokerClientError(410, 'finished', { result: m.result });
+      if (m.status !== 'active') throw new PokerClientError(410, 'finished', { result: m.result, rewards: m.rewards });
       const step = forfeitMatch(m.state);
       const out = outcomeOf(m.state, step.state);
       m.state = step.state;
       m.status = 'forfeit';
-      const result = finishResult(db, m, 'forfeit', out.finished?.place ?? 4);
+      const result = finish(db, m, 'forfeit', out.finished?.place ?? 4);
       m.result = result;
       save(db);
       return result;
@@ -330,12 +434,12 @@ export const mockApi: PokerApiLike = {
       const db = load();
       const m = db.active;
       if (!m || (matchId && m.id !== matchId)) throw new PokerClientError(404, 'none');
-      const prize = PRIZES.find((p) => p.id === m.prizeId) ?? PRIZES[2];
-      return {
-        ok: true, matchId: m.id, seq: m.seq, seedHash: 'mock', prize, carrier: m.state.config.prize?.carrierId ?? prize.carrier,
-        stars: stars(prize.rarity), loan: m.state.config.loan, view: tableView(m.state, 'human'), recent: m.tail,
-        result: m.status === 'active' ? undefined : m.result,
+      const out = {
+        ok: true, matchId: m.id, seq: m.seq, seedHash: 'mock', prize: legacyPrize(m.prize), carrier: null, stars: STARS[m.prize.rarity],
+        loan: m.state.config.loan, view: tableView(m.state, 'human'), recent: m.tail, tournament: tournamentJson(m),
+        result: m.status === 'active' ? undefined : m.result, ...(m.status === 'active' ? {} : { rewards: m.rewards }),
       };
+      return out as unknown as BountyResume;
     },
   },
 };

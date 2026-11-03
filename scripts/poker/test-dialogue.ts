@@ -958,7 +958,8 @@ section('2b. Cenários do Pôster Poker');
       }
       const nonP1 = after.filter((o) => o.item.priority !== 1 && (!o.item.exchange || o.item.exchange.part === 1) && o.item.debug?.hand === 6);
       check(nonP1.length <= 1, `bônus: ${nonP1.length} momentos não-P1 na mão`);
-      if (b.length) check(nonP1.every((o) => o.item.debug?.trigger === 'effectBonus'), 'o bônus fica com o momento da mão');
+      // a opala e o Raymond são P1 e ficam com o momento da mão: nada não-P1 nasce do fim dela
+      if (b.length) check(!nonP1.some((o) => (o.item.debug?.eventI ?? 0) >= 12), `o bônus fica com o momento da mão (${nonP1.map((o) => o.item.lineId)})`);
     }
     check(humanLines >= 30, `opala/Raymond da pessoa com fala (${humanLines}/50)`);
     // bônus depois do handComplete (ordem trocada): passa na frente da fala do pote que ainda não começou
@@ -974,11 +975,33 @@ section('2b. Cenários do Pôster Poker');
       dir.onEvent(done(11, 6, 'human', 35), ctx);
       dir.onEvent(bonus(12, 6, 'opal', 'human', 1000), ctx);
       stage.pump(12000);
-      const after = stage.out.slice(n0).filter((o) => o.item.priority !== 1);
+      const after = stage.out.slice(n0).filter((o) => o.item.debug?.hand === 6);
       if (after.some((o) => o.item.debug?.trigger === 'effectBonus')) preempted++;
-      check(after.filter((o) => !o.item.exchange || o.item.exchange.part === 1).length <= 1, 'bônus trocado: um momento só');
+      check(after.filter((o) => o.item.priority !== 1).length === 0, 'bônus trocado: a fala do pote não sai junto da opala');
     }
-    check(preempted >= 45, `o bônus depois do fim da mão ainda sai (${preempted}/80)`);
+    check(preempted >= 76, `o bônus depois do fim da mão ainda sai (${preempted}/80)`);
+    // o 1º pagamento do 21 é P1; o 2º (P2) passa na frente da fala do pote que ainda não começou
+    let bj = 0;
+    let bj1 = 0;
+    for (let k = 0; k < 80; k++) {
+      const ctxO: CtxOpts = { mode: 'bounty', story: VETERAN_FX };
+      const ctx = makeCtx(ctxO);
+      const { dir, stage } = newDirector({ ...ctxO, seed: `bj-${k}` });
+      play(dir, stage, [tstart(1, { effect: 'blackjack' }), hand(2, 3), cast(3, 3, 'blackjack'), bonus(4, 3, 'blackjack', 'cypher', 500), done(5, 3, 'cypher')], ctx);
+      stage.pump(6000);
+      if (stage.out.some((o) => o.item.debug?.trigger === 'effectBonus' && o.item.priority === 1)) bj1++;
+      check(!stage.out.some((o) => o.item.debug?.trigger === 'effectCast'), '21 já conhecido: a 1ª lançada passa em silêncio');
+      const n0 = stage.out.length;
+      dir.onEvent(hand(10, 6), ctx);
+      dir.onEvent(done(11, 6, 'human', 35), ctx);
+      dir.onEvent(bonus(12, 6, 'blackjack', 'human', 500), ctx);
+      stage.pump(12000);
+      const after = stage.out.slice(n0).filter((o) => o.item.debug?.hand === 6 && o.item.priority !== 1);
+      if (after.some((o) => o.item.debug?.trigger === 'effectBonus')) bj++;
+      check(after.filter((o) => !o.item.exchange || o.item.exchange.part === 1).length <= 1, `bônus do 21: um momento só (${after.map((o) => `${o.item.debug?.trigger}:${o.item.lineId}`)})`);
+    }
+    check(bj1 === 80, `1º pagamento do 21 sempre com fala (${bj1}/80)`);
+    check(bj >= 25, `o 2º pagamento do 21 depois do fim da mão passa na frente do pote (${bj}/80)`);
   }
   // carta aberta da leitura: só a da pessoa, só se a lançada passou em silêncio, curta
   {
@@ -1380,7 +1403,7 @@ function verifyPoster(tag: string, events: PublicEvent[], emitted: Emitted[], st
     if (POSTER_IN_HAND.has(d.trigger) && em.item.speaker === 'fincher') {
       check(lastCue('fincher', em.evIndex) !== 'confiante', `${tag}: Raposo falou (${em.item.lineId}) com o anel`);
     }
-    if (d.trigger === 'effectCast') {
+    if (d.trigger === 'effectCast' && (!em.item.exchange || em.item.exchange.part === 1)) {
       st.castLines++;
       if (line?.variant?.includes('explica')) st.explains++;
     }
@@ -1398,7 +1421,7 @@ function verifyPoster(tag: string, events: PublicEvent[], emitted: Emitted[], st
       }
     }
     if (d.trigger === 'effectBonus') {
-      st.bonusLines++;
+      if (!em.item.exchange || em.item.exchange.part === 1) st.bonusLines++;
       const b = evByI.get(d.eventI);
       check(b?.t === 'effectBonus', `${tag}: fala de bônus sem bônus`);
       if (b?.t === 'effectBonus' && line) {

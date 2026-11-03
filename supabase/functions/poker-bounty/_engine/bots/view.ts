@@ -8,6 +8,7 @@ import { getLegalActions, publicView } from '../engine.ts';
 import { levelFor } from '../config.ts';
 import type { BotView, PlayerId, RivalId } from '../types.ts';
 import type { MatchStateX } from '../match/internal.ts';
+import { extraCardsOf, revealedNow } from '../match/effects.ts';
 
 export function buildBotView(st: MatchStateX, botId: RivalId): BotView {
   const g = st.game;
@@ -29,6 +30,12 @@ export function buildBotView(st: MatchStateX, botId: RivalId): BotView {
     const p = g.players.find((q) => q.id === id);
     if (p && p.holeCards.length === 2) shownThisHand[id] = p.holeCards.slice();
   }
+  // Pôster Poker: cartas viradas por efeito (1 no reveal_one; 2 no 21). Já são públicas.
+  for (const [id, cards] of Object.entries(revealedNow(st))) {
+    if (id === botId || (shownThisHand[id] && shownThisHand[id].length >= cards.length)) continue;
+    shownThisHand[id] = cards.slice();
+  }
+  const extraCards = extraCardsOf(st);
   const level = levelFor(g.handNumber, st.config.settings);
   return {
     selfId: botId,
@@ -64,5 +71,6 @@ export function buildBotView(st: MatchStateX, botId: RivalId): BotView {
       levelIndex: st.levelIndex,
       handsToNextLevel: level.handsLeft,
     },
+    ...(extraCards.length > 0 ? { extraCards } : {}),
   };
 }

@@ -31,6 +31,59 @@ export type PrizeKind = 'tickets' | 'special_tickets' | 'poster' | 'avatar_frame
 export type TitleId = 'figurante' | 'duble' | 'coadjuvante' | 'protagonista' | 'estrela' | 'lenda';
 
 // ---------------------------------------------------------------------------
+// Pôster Poker (03/11/2026, tarde): o torneio da semana e o pôster mágico
+//
+// Pedido do Bruno: o pôquer vira um jogo à parte ("Pôster Poker"). O antigo prêmio
+// do dia (modo interno 'bounty') passa a ser o TORNEIO DA SEMANA (troca toda quinta,
+// 00h00 de Brasília): um dos 9 pôsteres exclusivos do pôquer, intrável, sempre com o
+// efeito "gold". Quem vence a mesa (1º lugar) leva o pôster — não há mais portador
+// nem captura no torneio (`MatchConfig.prize` fica null). O pôster flutua sobre a mesa
+// e, em mãos sorteadas pela semente, "lança" o seu efeito (evento `effectCast`).
+// O nome interno do modo continua 'bounty' (banco, Edge e protocolo).
+// ---------------------------------------------------------------------------
+
+/** Os 9 efeitos, um por pôster do torneio. */
+export type PosterEffectId =
+  | 'early_flop'   // Golpe de Mestre: o flop vira antes das apostas do pré-flop
+  | 'double_pot'   // A Cor do Dinheiro: a casa dobra o pote da mão
+  | 'blackjack'    // Quebrando a Banca: no fim da mão as cartas fechadas viram; a mais perto de 21 ganha um bônus
+  | 'hand_bounty'  // Rain Man: o primeiro a fechar uma mão com a jogada-alvo ganha um bônus
+  | 'eight_aces'   // Cassino: 8 ases a mais no baralho (2 de cada naipe) a partida inteira
+  | 'reveal_one'   // Cartas na Mesa: uma carta de cada jogador vira para todos
+  | 'sixth_card'   // Onze Homens e um Segredo: o river vem com uma sexta carta comunitária
+  | 'opal'         // Joias Brutas: uma carta vira a opala; quem levar um pote com ela na mão ganha um bônus
+  | 'tell';        // 007 Cassino Royale: por N mãos, cada aposta de oráculo mostra o tique (blefe ou valor)
+
+/** Números de cada efeito (padrão em config.ts DEFAULT_EFFECTS; o banco pode sobrepor). */
+export interface EffectParams {
+  casts: number;            // quantas vezes lança na partida (efeitos de mão); 1 para os de uma vez só
+  firstHand: [number, number];   // a 1ª lançada cai numa mão sorteada neste intervalo (inclusive)
+  gapHands: number;         // mínimo de mãos entre duas lançadas
+  amount?: number;          // bônus em fichas de mesa (blackjack, hand_bounty, opal)
+  hands?: number;           // duração em mãos (tell)
+  spread?: number;          // pacote E (03/11/2026): folga sorteada 0..spread além de gapHands (padrão 3)
+}
+
+export interface TournamentConfig {
+  prizeId: string;          // poker_prizes.id do pôster da semana
+  rarity: Rarity;
+  effect: PosterEffectId;
+  cobraItem: boolean;       // a Cobra trouxe um item secreto (sorteio do servidor); só visual e concessão
+}
+
+/** Dados públicos de cada lançada (o que a mesa mostra na hora do "CATCHAW"). */
+export type EffectCastData =
+  | { effect: 'early_flop' }
+  | { effect: 'double_pot' }
+  | { effect: 'blackjack'; amount: number }
+  | { effect: 'hand_bounty'; target: HandKind; amount: number }
+  | { effect: 'eight_aces'; added: Card[] }
+  | { effect: 'reveal_one' }
+  | { effect: 'sixth_card' }
+  | { effect: 'opal'; card: Card; amount: number }
+  | { effect: 'tell'; hands: number };
+
+// ---------------------------------------------------------------------------
 // Ajustes da mesa e níveis (§4.3, §2.2, §3.4)
 // ---------------------------------------------------------------------------
 
@@ -39,6 +92,7 @@ export interface PokerSettings {
   startStack: number; handsPerLevel: number; levels: [sb: number, bb: number, ante: number][];
   loanAmount: number; maxAttempts: number;
   carrierByRarity: Record<Rarity, RivalId>; difficulty: Record<Rarity | 'free', DifficultyRow>;
+  effects?: Partial<Record<PosterEffectId, Partial<EffectParams>>>;   // Pôster Poker; ausente = DEFAULT_EFFECTS
 }
 /**
  * `index` começa em 0 (a interface mostra "Nível index+1"). `handsLeft` = mãos deste
@@ -194,8 +248,11 @@ export interface BotView {
              totalBet: number; hasCards: boolean }[];
   buttonId: PlayerId; sbId: PlayerId; bbId: PlayerId; blinds: BlindLevel; handNumber: number;
   actions: ActionRecord[];                       // ações públicas desta mão
-  shownThisHand: Record<string, Card[]>;         // só cartas abertas
+  // Só cartas abertas. Pacote E (03/11/2026): 1 OU 2 cartas por jogador (1 = carta virada
+  // pelo efeito reveal_one do Pôster Poker); quem precisa da mão inteira confere o tamanho.
+  shownThisHand: Record<string, Card[]>;
   match: { holderId: PlayerId | null; captured: boolean; alive: number; levelIndex: number; handsToNextLevel: number };
+  extraCards?: Card[];                           // pacote E: cartas a mais no baralho (Cassino: 8 ases; público)
 }
 
 // ---------------------------------------------------------------------------
@@ -211,6 +268,7 @@ export interface MatchConfig {
   prize: { prizeId: string; carrierId: RivalId; rarity: Rarity } | null;
   memory: Record<PlayerId, OppCounters> | null;    // memória do Raposo (30%)
   tutorial?: TutorialScript;
+  tournament?: TournamentConfig | null;            // Pôster Poker: torneio da semana (com prize = null)
 }
 export interface BotMemory {
   committed: boolean; facedFirstBet: boolean;      // reset a cada mão (Sapo)
@@ -254,7 +312,8 @@ export interface HandFlags {                         // derivados SÓ de dados p
 
 export type PublicEvent = { i: number } & (           // i = eventNo, crescente na partida (dedupe na retomada)
   | { t: 'matchStarted'; mode: MatchMode; seats: { id: PlayerId; seat: number; stack: number }[];
-      loan: number; prize: { prizeId: string; holderId: PlayerId } | null; level: LevelInfo; seedHash?: string }
+      loan: number; prize: { prizeId: string; holderId: PlayerId } | null; level: LevelInfo; seedHash?: string;
+      tournament?: TournamentConfig | null }
   | { t: 'levelUp'; level: LevelInfo; handNumber: number }
   | { t: 'handStarted'; handNumber: number; buttonId: PlayerId; sbId: PlayerId; bbId: PlayerId;
       level: LevelInfo; stacks: Record<PlayerId, number> }
@@ -266,7 +325,9 @@ export type PublicEvent = { i: number } & (           // i = eventNo, crescente 
       sizeClass: SizeClass | null; thinkMs?: number; cue?: Cue }            // thinkMs e cue só em ação de bot
   | { t: 'uncalledReturned'; playerId: PlayerId; amount: number }
   | { t: 'runout'; hands: { playerId: PlayerId; cards: Card[] }[] }
-  | { t: 'street'; street: BoardStreet; cards: Card[]; board: Card[] }
+  // `early`: o flop do Golpe de Mestre, aberto antes das apostas do pré-flop (depois, a mão
+  // segue direto para o turn). No Onze Homens, o river pode trazer 2 cartas (board com 6).
+  | { t: 'street'; street: BoardStreet; cards: Card[]; board: Card[]; early?: boolean }
   | { t: 'showdown'; hands: { playerId: PlayerId; cards: Card[]; kind: HandKind; best5: Card[]; royal: boolean }[] }  // sem score
   | { t: 'cardsShown'; playerId: PlayerId; cards: [Card, Card]; afterFold: boolean }
   | { t: 'potAwarded'; potIndex: number; amount: number; eligibleIds: PlayerId[];
@@ -279,6 +340,18 @@ export type PublicEvent = { i: number } & (           // i = eventNo, crescente 
   | { t: 'tilt'; playerId: RivalId; kind: TiltKind; on: boolean; targetId?: PlayerId }
   | { t: 'styleRead'; by: RivalId; targetId: 'human'; label: StyleLabel }
   | { t: 'headsUp'; ids: [PlayerId, PlayerId]; handNumber: number }
+  // Pôster Poker. `effectCast`: o pôster mágico lança o efeito (no começo da mão, antes de
+  // dar as cartas; o eight_aces sai logo depois do matchStarted). `effectReveal`: cartas
+  // fechadas que o efeito abre para todos (reveal_one: 1 por jogador; blackjack: as 2 de
+  // quem recebeu cartas). `effectBonus`: fichas que a casa paga (entram no cacife na hora).
+  // `tellMark`: o tique de um oráculo numa aposta ou aumento, nas mãos do efeito tell.
+  | { t: 'effectCast'; effect: PosterEffectId; handNumber: number; castNo: number; data: EffectCastData }
+  // Pacote E (03/11/2026): hand_bounty e opal também viram cartas, para provar quem ganhou o
+  // bônus sem showdown (hand_bounty: as 2 do vencedor; opal: só a opala).
+  | { t: 'effectReveal'; effect: 'reveal_one' | 'blackjack' | 'hand_bounty' | 'opal'; handNumber: number;
+      cards: { playerId: PlayerId; cards: Card[] }[] }
+  | { t: 'effectBonus'; effect: PosterEffectId; handNumber: number; playerId: PlayerId; amount: number }
+  | { t: 'tellMark'; handNumber: number; playerId: RivalId; mark: 'blefe' | 'valor' }
   | { t: 'matchEnded'; places: Record<PlayerId, number>; winnerId: PlayerId | null; humanPlace: number;
       reason: 'won' | 'eliminated' | 'forfeit' | 'abandoned'; prizeCaptured: boolean; seed?: string }  // seed só no prêmio, revelada no fim
 );
@@ -294,7 +367,8 @@ export type PublicEvent = { i: number } & (           // i = eventNo, crescente 
 
 export type MatchOnlyEvent =
   | { type: 'matchStarted'; mode: MatchMode; seats: { id: PlayerId; seat: number; stack: number }[];
-      loan: number; prize: { prizeId: string; holderId: PlayerId } | null; level: LevelInfo; seedHash?: string }
+      loan: number; prize: { prizeId: string; holderId: PlayerId } | null; level: LevelInfo; seedHash?: string;
+      tournament?: TournamentConfig | null }
   | { type: 'levelUp'; level: LevelInfo; handNumber: number }
   // Vem logo antes do `actionTaken` do motor e o completa. `bucket` e `monster` são
   // privados (só para os testes do Diretor, §6.6); toPublicEvents copia só thinkMs e cue.
@@ -311,6 +385,12 @@ export type MatchOnlyEvent =
   | { type: 'tilt'; playerId: RivalId; kind: TiltKind; on: boolean; targetId?: PlayerId }
   | { type: 'styleRead'; by: RivalId; targetId: 'human'; label: StyleLabel }
   | { type: 'headsUp'; ids: [PlayerId, PlayerId]; handNumber: number }
+  // Pôster Poker (pacote E, 03/11/2026): os mesmos campos dos públicos.
+  | { type: 'effectCast'; effect: PosterEffectId; handNumber: number; castNo: number; data: EffectCastData }
+  | { type: 'effectReveal'; effect: 'reveal_one' | 'blackjack' | 'hand_bounty' | 'opal'; handNumber: number;
+      cards: { playerId: PlayerId; cards: Card[] }[] }
+  | { type: 'effectBonus'; effect: PosterEffectId; handNumber: number; playerId: PlayerId; amount: number }
+  | { type: 'tellMark'; handNumber: number; playerId: RivalId; mark: 'blefe' | 'valor' }
   | { type: 'matchEnded'; places: Record<PlayerId, number>; winnerId: PlayerId | null; humanPlace: number;
       reason: 'won' | 'eliminated' | 'forfeit' | 'abandoned'; prizeCaptured: boolean; seed?: string };
 
@@ -337,6 +417,9 @@ export interface TableView {
   toActId: PlayerId | null; legal: LegalActions | null;          // legal só quando é a vez da pessoa
   prize: { prizeId: string; holderId: PlayerId | null; captured: boolean } | null;
   loan: number; places: Partial<Record<PlayerId, number>>;
+  // Pôster Poker: o torneio e os efeitos em vigor (para a retomada redesenhar a mesa).
+  tournament?: { prizeId: string; rarity: Rarity; effect: PosterEffectId; cobraItem: boolean;
+                 casts: number; active: EffectCastData | null; revealed: { playerId: PlayerId; cards: Card[] }[] } | null;
 }
 export interface MatchSummary {
   v: 1; clientId: string; mode: 'free' | 'bounty'; startedAt: string; endedAt: string; durationS: number;
@@ -347,4 +430,5 @@ export interface MatchSummary {
   marks: { firstWinCandidate: boolean; foxHunter: boolean; cleanSweep: boolean; oscarBluff: boolean };
   prize: { prizeId: string; capturedHand: number | null } | null;
   engineHash: string; paramsVersion: Record<RivalId, number>;
+  tournament?: { prizeId: string; effect: PosterEffectId; won: boolean; casts: number; bonusWon: number } | null;
 }

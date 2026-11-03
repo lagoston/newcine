@@ -101,20 +101,39 @@ function flushOrOpenDraw(bs: Int32Array, a: number, b: number): boolean {
   return false;
 }
 
-export function boardInfo(board: readonly Card[]): BoardInfo {
-  const key = board.join('');
+/**
+ * Pôster Poker (Cassino): cópias que sobram de cada carta no baralho de 60, tirando as
+ * conhecidas. null sem cartas a mais (baralho normal).
+ */
+export function copiesLeft(known: readonly Card[], extra: readonly Card[] | undefined): Uint8Array | null {
+  if (!extra || extra.length === 0) return null;
+  const cnt = new Uint8Array(52).fill(1);
+  for (const c of extra) cnt[cardIndex(c)]++;
+  for (const c of known) {
+    const i = cardIndex(c);
+    if (cnt[i] > 0) cnt[i]--;
+  }
+  return cnt;
+}
+
+export function boardInfo(board: readonly Card[], extra?: readonly Card[]): BoardInfo {
+  const multi = !!extra && extra.length > 0;
+  const key = board.join('') + (multi ? `+${extra!.length}` : '');
   const hit = cache.get(key);
   if (hit) return hit;
   const bs = new Int32Array(4);
   const used = new Uint8Array(52);
   // Board com carta repetida (Cassino): as máscaras perderiam a cópia; avalia por contagem.
-  let repeated = false;
+  // Com o baralho de 60, o oponente pode ter uma cópia de carta que está no board.
+  let repeated = multi;
   for (const c of board) {
     const i = cardIndex(c);
     if (used[i]) repeated = true;
     used[i] = 1;
     bs[i & 3] |= 1 << (i >> 2);
   }
+  const left = copiesLeft(board, extra);
+  if (left) for (let i = 0; i < 52; i++) used[i] = left[i] === 0 ? 1 : 0;
   const buf = new Uint8Array(board.length + 2);
   board.forEach((c, k) => { buf[k] = cardIndex(c); });
   const score = new Int32Array(N_COMBOS).fill(-1);
@@ -227,14 +246,17 @@ export function rangeFor(oppId: PlayerId, v: BotView, model: RangeModel, ctx: Ra
       for (let i = 0; i < N_COMBOS; i++) w[i] = Math.max(0.05 * top[i], top[i] - cut[i]);
     } else w.fill(1);
   }
-  // Cartas que quem decide conhece (a própria mão e o board) não podem estar com o oponente.
+  // Cartas que quem decide conhece (a própria mão e o board) não podem estar com o oponente
+  // — no baralho do Cassino, só quando não sobra cópia delas.
   const dead = new Uint8Array(52);
-  for (const c of [...v.hole, ...v.board]) dead[cardIndex(c)] = 1;
+  const left = copiesLeft([...v.hole, ...v.board], v.extraCards);
+  if (left) for (let i = 0; i < 52; i++) dead[i] = left[i] === 0 ? 1 : 0;
+  else for (const c of [...v.hole, ...v.board]) dead[cardIndex(c)] = 1;
   for (let k = 0; k < N_COMBOS; k++) if (dead[IDX_A[k]] || dead[IDX_B[k]]) w[k] = 0;
 
   for (const a of acts) {
     if (a.street === 'preflop' || a.type === 'fold') continue;
-    const info = boardInfo(boardAt(v, a.street));
+    const info = boardInfo(boardAt(v, a.street), v.extraCards);
     const aggr = a.type === 'bet' || a.type === 'raise';
     if (model === 'static') {
       if (!aggr) continue;

@@ -38,12 +38,13 @@ export async function fetchProfileBits(userId: string): Promise<{ cardStyle: str
   };
 }
 
-// [Equipar] num marco: o mesmo caminho do TagPinsModal (profiles.active_tag).
-// O RLS de profiles só deixa a pessoa mudar a própria linha.
+// [Equipar] numa tag do pôquer: o mesmo caminho do TagPinsModal (profiles.active_tag).
+// O RLS de profiles só deixa a pessoa mudar a própria linha. 03/11/2026 (adendo):
+// as tags do Pôster Poker são da categoria nova "Jogos" (`games`, pacote T).
 export async function equipPokerMark(userId: string, mark: { name: string; emoji: string }): Promise<void> {
   const { error } = await supabase
     .from('profiles')
-    .update({ active_tag: { category: 'special', name: mark.name, emoji: mark.emoji } })
+    .update({ active_tag: { category: 'games', name: mark.name, emoji: mark.emoji } })
     .eq('id', userId);
   if (error) throw error;
 }

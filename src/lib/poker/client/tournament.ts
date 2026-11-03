@@ -92,6 +92,8 @@ export interface TournamentRewards {
 // ---------------------------------------------------------------------------
 
 export interface PosterPokerDef {
+  /** poker_prizes.id (pacote F). */
+  id: string;
   effect: PosterEffectId;
   rarity: Rarity;
   serial: number;
@@ -102,15 +104,15 @@ export interface PosterPokerDef {
 }
 
 export const POSTER_POKER: PosterPokerDef[] = [
-  { effect: 'blackjack', rarity: 'common', serial: 70, titlePt: 'Quebrando a Banca', titleEn: '21', year: 2008, filePath: '/bZdfpXmTOGKpVNNP1lximCo9Lfq.jpg' },
-  { effect: 'double_pot', rarity: 'common', serial: 75, titlePt: 'A Cor do Dinheiro', titleEn: 'The Color of Money', year: 1986, filePath: '/wgnduoIofLovoWsfW2ziosfmQYE.jpg' },
-  { effect: 'early_flop', rarity: 'common', serial: 80, titlePt: 'Golpe de Mestre', titleEn: 'The Sting', year: 1973, filePath: '/ho0bLp3w1ZBphrhaZDdRJZqvbF4.jpg' },
-  { effect: 'hand_bounty', rarity: 'rare', serial: 40, titlePt: 'Rain Man', titleEn: 'Rain Man', year: 1988, filePath: '/6Ou94c5bAzWguHu03pLFFKNhF5H.jpg' },
-  { effect: 'eight_aces', rarity: 'rare', serial: 45, titlePt: 'Cassino', titleEn: 'Casino', year: 1995, filePath: '/zFa5k1XomqXniHLJqL1AoLRQiLA.jpg' },
-  { effect: 'reveal_one', rarity: 'rare', serial: 50, titlePt: 'Cartas na Mesa', titleEn: 'Rounders', year: 1998, filePath: '/osc2XRp6TFLvIP8itEt1j6oh46y.jpg' },
-  { effect: 'sixth_card', rarity: 'epic', serial: 30, titlePt: 'Onze Homens e um Segredo', titleEn: "Ocean's Eleven", year: 2001, filePath: '/pfdabSiUVW6WqO9Dq4nyebkbHVv.jpg' },
-  { effect: 'opal', rarity: 'epic', serial: 35, titlePt: 'Joias Brutas', titleEn: 'Uncut Gems', year: 2019, filePath: '/1o12GnGlFNW4qYlfGgXIKLaFAjF.jpg' },
-  { effect: 'tell', rarity: 'legendary', serial: 20, titlePt: '007: Cassino Royale', titleEn: 'Casino Royale', year: 2006, filePath: '/v6az3cLRIJ9MR3jllvf1NLv7b3X.jpg' },
+  { id: 'pp-21', effect: 'blackjack', rarity: 'common', serial: 70, titlePt: 'Quebrando a Banca', titleEn: '21', year: 2008, filePath: '/bZdfpXmTOGKpVNNP1lximCo9Lfq.jpg' },
+  { id: 'pp-color-of-money', effect: 'double_pot', rarity: 'common', serial: 75, titlePt: 'A Cor do Dinheiro', titleEn: 'The Color of Money', year: 1986, filePath: '/wgnduoIofLovoWsfW2ziosfmQYE.jpg' },
+  { id: 'pp-the-sting', effect: 'early_flop', rarity: 'common', serial: 80, titlePt: 'Golpe de Mestre', titleEn: 'The Sting', year: 1973, filePath: '/ho0bLp3w1ZBphrhaZDdRJZqvbF4.jpg' },
+  { id: 'pp-rain-man', effect: 'hand_bounty', rarity: 'rare', serial: 40, titlePt: 'Rain Man', titleEn: 'Rain Man', year: 1988, filePath: '/6Ou94c5bAzWguHu03pLFFKNhF5H.jpg' },
+  { id: 'pp-casino', effect: 'eight_aces', rarity: 'rare', serial: 45, titlePt: 'Cassino', titleEn: 'Casino', year: 1995, filePath: '/zFa5k1XomqXniHLJqL1AoLRQiLA.jpg' },
+  { id: 'pp-rounders', effect: 'reveal_one', rarity: 'rare', serial: 50, titlePt: 'Cartas na Mesa', titleEn: 'Rounders', year: 1998, filePath: '/osc2XRp6TFLvIP8itEt1j6oh46y.jpg' },
+  { id: 'pp-oceans-eleven', effect: 'sixth_card', rarity: 'epic', serial: 30, titlePt: 'Onze Homens e um Segredo', titleEn: "Ocean's Eleven", year: 2001, filePath: '/pfdabSiUVW6WqO9Dq4nyebkbHVv.jpg' },
+  { id: 'pp-uncut-gems', effect: 'opal', rarity: 'epic', serial: 35, titlePt: 'Joias Brutas', titleEn: 'Uncut Gems', year: 2019, filePath: '/1o12GnGlFNW4qYlfGgXIKLaFAjF.jpg' },
+  { id: 'pp-casino-royale', effect: 'tell', rarity: 'legendary', serial: 20, titlePt: '007: Cassino Royale', titleEn: 'Casino Royale', year: 2006, filePath: '/v6az3cLRIJ9MR3jllvf1NLv7b3X.jpg' },
 ];
 
 /** A ordem do ciclo, a partir da semana de quinta 29/10/2026 (BRIEF2). */
@@ -202,7 +204,7 @@ export function weekPrizeOf(home: unknown, now = Date.now()): TournamentPrize {
   const week = weekOf(now);
   const def = posterDef(CYCLE[cycleIndex(week)])!;
   return {
-    id: `pp-${def.effect}`,
+    id: def.id,
     item_id: 0,
     rarity: def.rarity,
     serial: def.serial,

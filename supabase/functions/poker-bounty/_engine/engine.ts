@@ -15,6 +15,11 @@
  *  - Valores de aposta são sempre "até" (total apostado na rua depois da ação):
  *    `{ type: 'raise', amount: 600 }` = aumentar PARA 600, não "mais 600".
  *  - Fichas são inteiros.
+ *
+ * Pôster Poker (03/11/2026): três ganchos por mão, todos opcionais e desligados por
+ * padrão (`StartHandOptions.fx`): cartas a mais no baralho (Cassino, com repetidas),
+ * flop aberto antes das apostas do pré-flop (Golpe de Mestre) e river de 2 cartas
+ * (Onze Homens). Sem `fx`, o motor faz exatamente o mesmo de antes.
  */
 import type { Card } from './cards.ts';
 import { fullDeck, isCard } from './cards.ts';
@@ -168,6 +173,16 @@ export interface HandResult {
   actions: ActionRecord[];
 }
 
+/** Ganchos de efeito guardados na mão (Pôster Poker). */
+export interface HandFxState {
+  /** O baralho tem cartas repetidas: o showdown usa o caminho por contagem. */
+  repeats?: boolean;
+  /** O flop foi aberto antes das apostas do pré-flop: depois do pré-flop vem o turn. */
+  earlyFlop?: boolean;
+  /** Cartas do river (2 = board de 6). */
+  riverCards?: number;
+}
+
 export interface HandState {
   handNumber: number;
   buttonSeat: number;
@@ -188,6 +203,8 @@ export interface HandState {
   runout: boolean;
   actions: ActionRecord[];
   result: HandResult | null;
+  /** Efeitos desta mão (ausente = mão normal). */
+  fx?: HandFxState;
 }
 
 export interface GameState {
@@ -247,7 +264,8 @@ export type PokerEvent =
     }
   | { type: 'uncalledBetReturned'; playerId: string; amount: number }
   | { type: 'allInRunout'; hands: { playerId: string; cards: Card[] }[] }
-  | { type: 'streetDealt'; street: BoardStreet; cards: Card[]; board: Card[] }
+  /** `early`: flop do Golpe de Mestre, aberto antes das apostas do pré-flop. */
+  | { type: 'streetDealt'; street: BoardStreet; cards: Card[]; board: Card[]; early?: true }
   | { type: 'showdown'; hands: ShownHand[] }
   | {
       type: 'potAwarded';
@@ -288,7 +306,18 @@ export interface LegalActions {
   allIn: { amount: number; to: number; kind: 'call' | 'bet' | 'raise' } | null;
 }
 
+/** Efeitos de uma mão (Pôster Poker). Vêm do servidor (camada de partida), nunca do cliente. */
+export interface HandFx {
+  /** Cartas a mais no baralho desta mão (podem repetir as do baralho normal). */
+  extraCards?: Card[];
+  /** Abre o flop logo depois das cartas fechadas, antes das apostas do pré-flop. */
+  earlyFlop?: boolean;
+  /** 2 = o river vem com duas cartas (board de 6). */
+  riverCards?: 1 | 2;
+}
+
 export interface StartHandOptions {
+  fx?: HandFx;
   /**
    * SOMENTE para testes e tutoriais: fixa cartas fechadas de alguns jogadores
    * e/ou o board. O resto continua vindo do baralho embaralhado.
@@ -629,10 +658,12 @@ function awardPots(s: GameState, events: PokerEvent[], shown: Record<string, Sho
 function dealStreet(s: GameState, events: PokerEvent[]): void {
   const hand = s.hand!;
   const next: Record<Street, BoardStreet | null> = { preflop: 'flop', flop: 'turn', turn: 'river', river: null };
-  const street = next[hand.street];
+  let street = next[hand.street];
   if (!street) throw new PokerRuleError('internal', 'Não há rua depois do river.');
+  // Golpe de Mestre: o flop já saiu antes das apostas do pré-flop; segue para o turn.
+  if (street === 'flop' && hand.board.length >= 3) street = 'turn';
   hand.deck.shift(); // queima uma carta, como na mesa de verdade
-  const count = street === 'flop' ? 3 : 1;
+  const count = street === 'flop' ? 3 : street === 'river' ? hand.fx?.riverCards ?? 1 : 1;
   const cards = hand.deck.splice(0, count);
   hand.board.push(...cards);
   hand.street = street;
@@ -719,7 +750,7 @@ function showdown(s: GameState, events: PokerEvent[]): void {
   // mostradas (sem "muck"), como em Poker Night — é o que alimenta as falas.
   for (const p of playersFromLeftOfButton(s)) {
     if (!isInHand(p)) continue;
-    const v = evaluateHand([...p.holeCards, ...hand.board]);
+    const v = evaluateHand([...p.holeCards, ...hand.board], { repeats: hand.fx?.repeats === true });
     const sh: ShownHand = {
       playerId: p.id,
       cards: p.holeCards.slice(),
@@ -792,7 +823,7 @@ function proceed(s: GameState, events: PokerEvent[], fromIdx: number): void {
 // API: iniciar mão
 // ---------------------------------------------------------------------------
 
-function validatePreset(s: GameState, holes: Record<string, Card[]>, board: Card[]): Set<Card> {
+function validatePreset(s: GameState, holes: Record<string, Card[]>, board: Card[], maxBoard: number): Set<Card> {
   const reserved = new Set<Card>();
   const add = (c: Card): void => {
     if (!isCard(c)) throw new PokerRuleError('invalid_preset', `Carta inválida no preset: ${String(c)}`);
@@ -805,7 +836,7 @@ function validatePreset(s: GameState, holes: Record<string, Card[]>, board: Card
     if (cards.length !== 2) throw new PokerRuleError('invalid_preset', `Preset de ${id} precisa de 2 cartas.`);
     cards.forEach(add);
   }
-  if (board.length > 5) throw new PokerRuleError('invalid_preset', 'Board do preset tem mais de 5 cartas.');
+  if (board.length > maxBoard) throw new PokerRuleError('invalid_preset', `Board do preset tem mais de ${maxBoard} cartas.`);
   board.forEach(add);
   return reserved;
 }
@@ -908,12 +939,28 @@ export function startHand(state: GameState, options: StartHandOptions = {}): Eng
   });
 
   // Embaralha e distribui (uma carta por vez, começando à esquerda do botão).
-  let deck = rng.shuffle(fullDeck());
+  const fx = options.fx;
+  const extra = fx?.extraCards ?? [];
+  for (const c of extra) if (!isCard(c)) throw new PokerRuleError('invalid_config', `Carta a mais inválida: ${String(c)}`);
+  const riverCards = fx?.riverCards === 2 ? 2 : 1;
+  if (extra.length > 0 || fx?.earlyFlop || riverCards === 2) {
+    s.hand.fx = {
+      ...(extra.length > 0 ? { repeats: true } : {}),
+      ...(fx?.earlyFlop ? { earlyFlop: true } : {}),
+      ...(riverCards === 2 ? { riverCards: 2 } : {}),
+    };
+  }
+  // Sem cartas a mais o baralho é o mesmo de sempre (mesma semente = mesmas cartas).
+  let deck = rng.shuffle(extra.length > 0 ? fullDeck().concat(extra) : fullDeck());
   s.rng = rng.getState();
   const presetHoles = options.preset?.holeCards ?? {};
   const presetBoard = options.preset?.board ?? [];
-  const reserved = validatePreset(s, presetHoles, presetBoard);
-  if (reserved.size > 0) deck = deck.filter((c) => !reserved.has(c));
+  const reserved = validatePreset(s, presetHoles, presetBoard, 4 + riverCards);
+  if (reserved.size > 0) {
+    // Tira UMA cópia de cada carta reservada (o baralho do Cassino tem repetidas).
+    const left = new Set(reserved);
+    deck = deck.filter((c) => !(left.has(c) && left.delete(c)));
+  }
   // Aqui o critério é "está na mão" (e não "tem fichas"): quem ficou all-in só
   // de postar ante/blind tem stack 0, mas recebe cartas normalmente.
   const dealOrder: PlayerState[] = [];
@@ -932,8 +979,8 @@ export function startHand(state: GameState, options: StartHandOptions = {}): Eng
     }
   }
   if (presetBoard.length > 0) {
-    // Ordem de saída: queima, flop (3), queima, turn, queima, river.
-    const layout: (number | null)[] = [null, 0, 1, 2, null, 3, null, 4];
+    // Ordem de saída: queima, flop (3), queima, turn, queima, river (1 ou 2).
+    const layout: (number | null)[] = riverCards === 2 ? [null, 0, 1, 2, null, 3, null, 4, 5] : [null, 0, 1, 2, null, 3, null, 4];
     const arranged: Card[] = [];
     for (const slot of layout) {
       arranged.push(slot !== null && slot < presetBoard.length ? presetBoard[slot] : deck.shift()!);
@@ -942,6 +989,15 @@ export function startHand(state: GameState, options: StartHandOptions = {}): Eng
   }
   s.hand.deck = deck;
   events.push({ type: 'holeCardsDealt', hands: dealOrder.map((p) => ({ playerId: p.id, cards: p.holeCards.slice() })) });
+  if (fx?.earlyFlop) {
+    // Golpe de Mestre: queima e abre o flop já agora; a rua continua sendo o pré-flop
+    // (blinds e aumento mínimo intactos) e, fechadas as apostas, vem o turn.
+    const hand = s.hand;
+    hand.deck.shift();
+    const cards = hand.deck.splice(0, 3);
+    hand.board.push(...cards);
+    events.push({ type: 'streetDealt', street: 'flop', cards: cards.slice(), board: hand.board.slice(), early: true });
+  }
 
   s.phase = 'betting';
   proceed(s, events, bbIdx);
@@ -1144,7 +1200,10 @@ export function currentPlayerId(state: GameState): string | null {
   return state.phase === 'betting' ? state.hand?.toActId ?? null : null;
 }
 
-/** Soma de todas as fichas da mesa (stacks + pote). Nunca muda durante o jogo. */
+/**
+ * Soma de todas as fichas da mesa (stacks + pote). O motor nunca a muda; no Pôster
+ * Poker a camada de partida soma os bônus da casa (`effectBonus`) por fora.
+ */
 export function totalChips(state: GameState): number {
   let t = 0;
   for (const p of state.players) t += p.stack + p.totalBet;
@@ -1156,7 +1215,7 @@ export interface PublicPlayerState extends PlayerState {
   hasHiddenCards: boolean;
 }
 
-export interface PublicHandState extends Omit<HandState, 'deck'> {
+export interface PublicHandState extends Omit<HandState, 'deck' | 'fx'> {
   deckCount: number;
 }
 
@@ -1191,7 +1250,9 @@ export function publicView(state: GameState, viewerId: string | null): PublicGam
     }),
     hand: hand
       ? (() => {
-          const { deck, ...h } = hand;
+          // `fx` fica de fora: o river de 2 cartas armado (Onze Homens) é segredo até o anúncio.
+          const { deck, fx: _fx, ...h } = hand;
+          void _fx;
           return { ...h, board: h.board.slice(), actions: h.actions.slice(), deckCount: deck.length };
         })()
       : null,

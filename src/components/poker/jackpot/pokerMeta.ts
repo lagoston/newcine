@@ -1,4 +1,5 @@
 import type { PokerTeaser, PokerTeaserPrize, PosterEffect, PosterRarity } from '../../../lib/posterJackpot';
+import * as theme from '../../../lib/oracleTheme';
 
 type Row = Record<string, unknown>;
 const RARITIES: PosterRarity[] = ['common', 'rare', 'epic', 'legendary'];
@@ -83,14 +84,29 @@ export function titleProgress(wins: number, serverId?: string | null) {
   return { index, current, next, toNext: next ? Math.max(0, next.at - safe) : 0, share };
 }
 
-// Os 5 marcos (SPEC §2.9): id da tag, o emoji e a chave do texto.
-export const MARKS: { tagId: string; key: 'firstWin' | 'foxHunter' | 'cleanSweep' | 'oscarBluff' | 'sevenNights'; emoji: string; name: string }[] = [
-  { tagId: 'poker-first-win', key: 'firstWin', emoji: '🃏', name: 'Opening Night' },
-  { tagId: 'poker-fox-hunter', key: 'foxHunter', emoji: '🦊', name: 'Fox Hunter' },
+// As tags do Pôster Poker (adendo de 03/11/2026, 13h22): não há mais "marcos"
+// soltos — são tags da categoria nova "Jogos" (vermelha). Nome em inglês e um
+// emoji que nenhuma outra tag usa; os ids antigos continuam.
+export type MarkKey =
+  | 'firstWin' | 'foxHunter' | 'cleanSweep' | 'oscarBluff' | 'sevenNights'
+  | 'highStakes' | 'royalFlush' | 'fullHouse' | 'cardShark';
+export const MARKS: { tagId: string; key: MarkKey; emoji: string; name: string }[] = [
+  { tagId: 'poker-first-win', key: 'firstWin', emoji: '♠️', name: 'All-in' },
+  { tagId: 'poker-fox-hunter', key: 'foxHunter', emoji: '🎯', name: 'Outfoxed' },
   { tagId: 'poker-clean-sweep', key: 'cleanSweep', emoji: '🧹', name: 'Clean Sweep' },
-  { tagId: 'poker-oscar-bluff', key: 'oscarBluff', emoji: '🏆', name: 'Oscar Bluff' },
+  { tagId: 'poker-oscar-bluff', key: 'oscarBluff', emoji: '😐', name: 'Poker Face' },
   { tagId: 'poker-seven-nights', key: 'sevenNights', emoji: '🌙', name: 'Seven Nights' },
+  { tagId: 'poker-high-stakes', key: 'highStakes', emoji: '💎', name: 'High Stakes' },
+  { tagId: 'poker-royal-flush', key: 'royalFlush', emoji: '⚜️', name: 'Royal Flush' },
+  { tagId: 'poker-full-house', key: 'fullHouse', emoji: '🖼️', name: 'Full House' },
+  { tagId: 'poker-card-shark', key: 'cardShark', emoji: '🦈', name: 'Card Shark' },
 ];
+
+// O vermelho da categoria Jogos: o do pacote T (TAG_GAMES_RED em oracleTheme), com
+// o provisório dele (#FF4D63) enquanto a constante não chega.
+export const GAMES_RED: string =
+  ((theme as Record<string, unknown>).TAG_GAMES_RED as string | undefined) ?? '#FF4D63';
+export const GAMES_RED_TEXT = '#FFC7CE';
 
 // Brilho da raridade no cartão do prêmio (as cores do Jackpot).
 export const RARITY_GLOW: Record<PosterRarity, string> = {

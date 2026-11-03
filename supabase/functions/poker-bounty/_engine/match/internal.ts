@@ -10,7 +10,8 @@
 import type { Card } from '../cards.ts';
 import type { ActionRecord, GameState, PlayerState, PokerEvent } from '../engine.ts';
 import type {
-  BotMemory, HumanTally, LevelInfo, MatchEvent, MatchOnlyEvent, MatchState, OppCounters, PlayerId, RivalId, SizeClass,
+  BotMemory, EffectCastData, EffectParams, HumanTally, LevelInfo, MatchEvent, MatchOnlyEvent, MatchState, OppCounters, PlayerId,
+  PosterEffectId, RivalId, SizeClass,
 } from '../types.ts';
 
 export const HUMAN = 'human';
@@ -25,12 +26,54 @@ export interface LastUncontestedX {
   cards?: [Card, Card];
 }
 
+// Pôster Poker (pacote E, 03/11/2026): estado privado dos efeitos do pôster (effects.ts).
+export interface EffectReveal { playerId: PlayerId; cards: Card[] }
+
+/** Estado privado dos efeitos (vai no JSON salvo da partida). */
+export interface FxState {
+  effect: PosterEffectId;
+  /** Números já mesclados com poker_settings.effects (ficam fixos na partida). */
+  params: EffectParams;
+  /** Mãos sorteadas para cada lançada. Segredo do servidor. */
+  schedule: number[];
+  /** Lançadas até agora. */
+  castNo: number;
+  lastCastHand: number | null;
+  /** O que está em vigor e em que mãos (inclusive). */
+  active: EffectCastData | null;
+  activeFrom: number;
+  activeTo: number;
+  /** hand_bounty e opal: alguém já levou. */
+  claimed: boolean;
+  /** Cartas viradas por efeito na mão `hand`. */
+  revealed: { hand: number; cards: EffectReveal[] } | null;
+  /** Fichas de bônus que a pessoa ganhou (para o resumo). */
+  bonusWon: number;
+}
+
+export function cloneCast(d: EffectCastData): EffectCastData {
+  if (d.effect === 'eight_aces') return { effect: d.effect, added: d.added.slice() };
+  return { ...d };
+}
+
+export function cloneFx(fx: FxState): FxState {
+  return {
+    ...fx,
+    params: { ...fx.params, firstHand: [fx.params.firstHand[0], fx.params.firstHand[1]] },
+    schedule: fx.schedule.slice(),
+    active: fx.active ? cloneCast(fx.active) : null,
+    revealed: fx.revealed ? { hand: fx.revealed.hand, cards: fx.revealed.cards.map((r) => ({ playerId: r.playerId, cards: r.cards.slice() })) } : null,
+  };
+}
+
 export interface MatchStateX extends MatchState {
   lastUncontested: LastUncontestedX | null;
   /** Como a partida terminou para a pessoa (summarizeMatch e outcomeOf precisam). */
   endReason?: EndReason;
   /** Quem mostrou as cartas por `cardsShown` na mão `hand` (o motor só marca showdown/runout). */
   revealed?: { hand: number; ids: string[] };
+  /** Pôster Poker: efeitos do torneio (ausente na mesa livre e no treino). */
+  fx?: FxState;
 }
 
 /** O handStarted privado leva também o nível da mão (toPublicEvents não tem o estado). */
@@ -97,6 +140,7 @@ export function cloneMatch(s: MatchState): MatchStateX {
   };
   if (out.lastUncontested && !out.lastUncontested.cards) delete out.lastUncontested.cards;
   if (sx.revealed) out.revealed = { hand: sx.revealed.hand, ids: sx.revealed.ids.slice() };
+  if (sx.fx) out.fx = cloneFx(sx.fx);
   return out;
 }
 

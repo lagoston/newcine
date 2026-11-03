@@ -193,6 +193,7 @@ export class SignalTracker {
   /** Dados de cada efeito lançado (alvo do Raymond, a opala), para as falas do bônus. */
   effectData: { target?: HandKind; opal?: Card; amount?: number } = {};
   private bonusHands = new Set<string>();
+  private blackjackPaid = false;
   private tellMarks = 0;
   /** Tique que chegou antes da aposta: espera a ação do mesmo oráculo nesta mão. */
   private pendingTell: { playerId: RivalId; mark: 'blefe' | 'valor'; hand: number } | null = null;
@@ -371,17 +372,20 @@ export class SignalTracker {
   }
 
   /**
-   * Fichas da casa. A opala e o Raymond (uma vez por partida) quase sempre têm fala; o 21,
-   * metade das vezes; o pote dobrado, pouco (e só o primeiro bônus da mão, quando há vários potes).
+   * Fichas da casa. A opala achada, o alvo do Raymond batido e o 1º pagamento do 21 (o
+   * desfecho do efeito, uma vez por partida) são P1, como a captura do antigo prêmio do dia;
+   * o 2º pagamento do 21 é P2 (50%); o pote dobrado, P3 (35%). Só o primeiro bônus da mão
+   * fala (empates e potes paralelos).
    */
   private onEffectBonus(e: Extract<PublicEvent, { t: 'effectBonus' }>): Signal[] {
     const key = `${e.handNumber}|${e.effect}`;
     if (this.bonusHands.has(key)) return [];
     this.bonusHands.add(key);
     const human = e.playerId === HUMAN;
-    const rare = e.effect === 'opal' || e.effect === 'hand_bounty';
-    const priority: 2 | 3 = e.effect === 'double_pot' ? 3 : 2;
-    const chance = rare ? 0.8 : e.effect === 'blackjack' ? 0.5 : 0.35;
+    const once = e.effect === 'opal' || e.effect === 'hand_bounty' || (e.effect === 'blackjack' && !this.blackjackPaid);
+    if (e.effect === 'blackjack') this.blackjackPaid = true;
+    const priority: 1 | 2 | 3 = once ? 1 : e.effect === 'double_pot' ? 3 : 2;
+    const chance = once ? 1 : e.effect === 'blackjack' ? 0.5 : 0.35;
     const vars: SignalVars = { fichas: e.amount };
     if (e.effect === 'hand_bounty' && this.effectData.target) vars.alvo = this.effectData.target;
     if (e.effect === 'opal' && this.effectData.opal) vars.carta = this.effectData.opal;
@@ -409,7 +413,7 @@ export class SignalTracker {
   private tellSignal(pid: RivalId, mark: 'blefe' | 'valor', cue: Cue, hand: number): Signal {
     this.tellMarks++;
     const first = this.tellMarks === 1;
-    const s = this.sig({ trigger: 'tellMark', priority: first ? 2 : 3, chance: first ? 0.5 : 0.25, actorId: pid, cue,
+    const s = this.sig({ trigger: 'tellMark', priority: first ? 2 : 3, chance: first ? 0.6 : 0.3, actorId: pid, cue,
       variant: [mark], speakers: this.alive(), phase: 'inHand', short: true, noExchange: true, preempt: true });
     s.hand = hand;
     return s;

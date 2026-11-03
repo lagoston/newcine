@@ -5,10 +5,14 @@
  * Depois do flop: as combinações possíveis do oponente (sem as cartas mortas) são
  * avaliadas com o board, e a mão entra pelo percentil (fração das combinações que a
  * vencem). ~1.000 avaliações por chamada (≈ 0,2 ms no Node); o chamador guarda por rua.
+ *
+ * Pôster Poker (03/11/2026): `extra` = cartas a mais no baralho (Cassino, com repetidas):
+ * as combinações do oponente saem do baralho restante real (com peso pela quantidade de
+ * cópias) e as mãos passam pelo avaliador que aceita repetidas. Sem `extra`, o de sempre.
  */
 import type { Card } from '../cards.ts';
 import { cardIndex, rankOf, suitOf } from '../cards.ts';
-import { scoreMasks } from '../evaluator.ts';
+import { scoreCardsAny, scoreIndicesAny, scoreMasks } from '../evaluator.ts';
 import type { HandBucket } from '../types.ts';
 import { PREFLOP_RANK } from './preflopTable.ts';
 
@@ -50,8 +54,37 @@ function masksOf(cards: readonly Card[]): [number, number, number, number] {
   return m;
 }
 
+/** handPercentile com o baralho de repetidas: combinações pesadas pelas cópias que sobram. */
+function handPercentileMulti(hole: readonly Card[], board: readonly Card[], extra: readonly Card[]): number {
+  const cnt = new Uint8Array(52).fill(1);
+  for (const c of extra) cnt[cardIndex(c)]++;
+  const known = [...hole, ...board].map(cardIndex);
+  for (const i of known) if (cnt[i] > 0) cnt[i]--;
+  const hero = scoreIndicesAny(known, known.length);
+  const buf = new Uint8Array(board.length + 2);
+  for (let k = 0; k < board.length; k++) buf[k] = cardIndex(board[k]);
+  const nb = board.length;
+  let better = 0;
+  let total = 0;
+  for (let a = 0; a < 52; a++) {
+    if (cnt[a] === 0) continue;
+    for (let b = a; b < 52; b++) {
+      const w = a === b ? (cnt[a] * (cnt[a] - 1)) / 2 : cnt[a] * cnt[b];
+      if (w <= 0) continue;
+      buf[nb] = a;
+      buf[nb + 1] = b;
+      const v = scoreIndicesAny(buf, nb + 2);
+      total += w;
+      if (v > hero) better += w;
+      else if (v === hero) better += 0.5 * w;
+    }
+  }
+  return total > 0 ? better / total : 0;
+}
+
 /** Fração (0..1) das mãos possíveis do oponente que vencem esta (empates contam metade). */
-export function handPercentile(hole: readonly Card[], board: readonly Card[]): number {
+export function handPercentile(hole: readonly Card[], board: readonly Card[], extra?: readonly Card[]): number {
+  if (extra && extra.length > 0) return handPercentileMulti(hole, board, extra);
   const dead = new Uint8Array(52);
   for (const c of hole) dead[cardIndex(c)] = 1;
   for (const c of board) dead[cardIndex(c)] = 1;
@@ -76,10 +109,9 @@ export function handPercentile(hole: readonly Card[], board: readonly Card[]): n
   return total > 0 ? better / total : 0;
 }
 
-/** Categoria da melhor mão com as cartas (0 = carta alta … 8 = straight flush). */
+/** Categoria da melhor mão com as cartas (0 = carta alta … 8 = straight flush, 9 = cinco iguais). Aceita repetidas. */
 export function categoryOf(cards: readonly Card[]): number {
-  const m = masksOf(cards);
-  return scoreMasks(m[0], m[1], m[2], m[3]) >>> 20;
+  return scoreCardsAny(cards) >>> 20;
 }
 
 /** Projeto: 4 cartas de um naipe (ao menos uma da mão) ou sequência aberta (com carta da mão). */
@@ -110,9 +142,9 @@ export function hasDraw(hole: readonly Card[], board: readonly Card[]): boolean 
  * Bucket do §3.5: nuts ≤ 3% · strong ≤ 15% · medium ≤ 40% com par+ · weak par+ acima de 40%
  * · draw sem par com projeto (flop e turn) · air o resto. Antes do flop: preflopBucket.
  */
-export function bucketOf(hole: readonly Card[], board: readonly Card[]): HandBucket {
+export function bucketOf(hole: readonly Card[], board: readonly Card[], extra?: readonly Card[]): HandBucket {
   if (board.length < 3) return preflopBucket(hole);
-  const pct = handPercentile(hole, board);
+  const pct = handPercentile(hole, board, extra);
   if (pct <= 0.03) return 'nuts';
   if (pct <= 0.15) return 'strong';
   const cat = categoryOf([...hole, ...board]);
@@ -129,8 +161,8 @@ export function isMonster(hole: readonly Card[], board: readonly Card[], bucket:
 }
 
 /** Grupo, monstro e "par ou melhor" da mão (para a decisão, os tells e os logs). */
-export function handInfo(hole: readonly Card[], board: readonly Card[]): { bucket: HandBucket; monster: boolean; pairPlus: boolean } {
-  const bucket = bucketOf(hole, board);
+export function handInfo(hole: readonly Card[], board: readonly Card[], extra?: readonly Card[]): { bucket: HandBucket; monster: boolean; pairPlus: boolean } {
+  const bucket = bucketOf(hole, board, extra);
   const pairPlus = board.length === 0 ? rankOf(hole[0]) === rankOf(hole[1]) : categoryOf([...hole, ...board]) >= 1;
   return { bucket, monster: isMonster(hole, board, bucket), pairPlus };
 }
