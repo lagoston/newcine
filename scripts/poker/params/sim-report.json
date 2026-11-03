@@ -2,13 +2,13 @@
  "v": 1,
  "sng": 1000,
  "params": "scripts/poker/params/v1.json",
- "secs": 951,
+ "secs": 501,
  "metrics": [
   {
    "name": "1º lugar · iniciante",
-   "value": 15.9,
-   "lo": 13.6,
-   "hi": 18.2,
+   "value": 15,
+   "lo": 12.8,
+   "hi": 17.2,
    "target": [
     18,
     24
@@ -18,9 +18,9 @@
   },
   {
    "name": "top 2 · iniciante",
-   "value": 41.9,
-   "lo": 38.8,
-   "hi": 45,
+   "value": 42.8,
+   "lo": 39.7,
+   "hi": 45.9,
    "target": [
     40,
     50
@@ -30,9 +30,9 @@
   },
   {
    "name": "1º lugar · medio",
-   "value": 28,
-   "lo": 25.2,
-   "hi": 30.8,
+   "value": 29.6,
+   "lo": 26.8,
+   "hi": 32.4,
    "target": [
     28,
     35
@@ -42,9 +42,9 @@
   },
   {
    "name": "top 2 · medio",
-   "value": 61,
-   "lo": 58,
-   "hi": 64,
+   "value": 62.6,
+   "lo": 59.6,
+   "hi": 65.6,
    "target": [
     50,
     60
@@ -54,9 +54,9 @@
   },
   {
    "name": "1º lugar · bom",
-   "value": 31.4,
-   "lo": 28.5,
-   "hi": 34.3,
+   "value": 33.1,
+   "lo": 30.2,
+   "hi": 36,
    "target": [
     40,
     50
@@ -66,9 +66,9 @@
   },
   {
    "name": "top 2 · bom",
-   "value": 62.8,
-   "lo": 59.8,
-   "hi": 65.8,
+   "value": 61.9,
+   "lo": 58.9,
+   "hi": 64.9,
    "target": [
     65,
     75
@@ -78,9 +78,9 @@
   },
   {
    "name": "com o médio: Sapo cai primeiro (~45%)",
-   "value": 25,
-   "lo": 22.3,
-   "hi": 27.7,
+   "value": 29.1,
+   "lo": 26.3,
+   "hi": 31.9,
    "target": [
     38,
     52
@@ -90,9 +90,9 @@
   },
   {
    "name": "com o médio: Raposo vence a mesa (~35%)",
-   "value": 30.9,
-   "lo": 28,
-   "hi": 33.8,
+   "value": 30.5,
+   "lo": 27.6,
+   "hi": 33.4,
    "target": [
     28,
     42
@@ -102,9 +102,9 @@
   },
   {
    "name": "mãos por partida (médio): mediana",
-   "value": 35,
-   "lo": 35,
-   "hi": 35,
+   "value": 33,
+   "lo": 33,
+   "hi": 33,
    "target": [
     30,
     40
@@ -114,9 +114,9 @@
   },
   {
    "name": "mãos por partida (médio): p90",
-   "value": 49,
-   "lo": 49,
-   "hi": 49,
+   "value": 47,
+   "lo": 47,
+   "hi": 47,
    "target": [
     0,
     55
@@ -126,123 +126,123 @@
   },
   {
    "name": "VPIP bogart",
-   "value": 30.4,
-   "lo": 29.8,
-   "hi": 30.9,
+   "value": 33.5,
+   "lo": 32.9,
+   "hi": 34.1,
    "target": [
     22,
     28
    ],
    "ok": false,
-   "n": 26220
+   "n": 23498
   },
   {
    "name": "PFR bogart",
-   "value": 6.2,
-   "lo": 5.9,
-   "hi": 6.5,
+   "value": 6.1,
+   "lo": 5.8,
+   "hi": 6.4,
    "target": [
     4,
     8
    ],
    "ok": true,
-   "n": 26220
+   "n": 23498
   },
   {
    "name": "AF bogart",
-   "value": 1.39,
-   "lo": 1.39,
-   "hi": 1.39,
+   "value": 1.09,
+   "lo": 1.09,
+   "hi": 1.09,
    "target": [
     0.8,
     1.2
    ],
-   "ok": false,
-   "n": 26220
+   "ok": true,
+   "n": 23498
   },
   {
    "name": "VPIP cypher",
-   "value": 51.1,
-   "lo": 50.5,
-   "hi": 51.8,
+   "value": 51.7,
+   "lo": 51,
+   "hi": 52.3,
    "target": [
     42,
     50
    ],
    "ok": false,
-   "n": 22929
+   "n": 21470
   },
   {
    "name": "PFR cypher",
-   "value": 32.3,
-   "lo": 31.7,
-   "hi": 32.9,
+   "value": 29.5,
+   "lo": 28.9,
+   "hi": 30.1,
    "target": [
     32,
     38
    ],
-   "ok": true,
-   "n": 22929
+   "ok": false,
+   "n": 21470
   },
   {
    "name": "AF cypher",
-   "value": 1.97,
-   "lo": 1.97,
-   "hi": 1.97,
+   "value": 1.58,
+   "lo": 1.58,
+   "hi": 1.58,
    "target": [
     3.5,
     4.5
    ],
    "ok": false,
-   "n": 22929
+   "n": 21470
   },
   {
    "name": "VPIP fincher",
-   "value": 35.9,
+   "value": 36,
    "lo": 35.4,
-   "hi": 36.5,
+   "hi": 36.6,
    "target": [
     30,
     36
    ],
    "ok": true,
-   "n": 25659
+   "n": 25228
   },
   {
    "name": "PFR fincher",
-   "value": 25.1,
-   "lo": 24.6,
-   "hi": 25.7,
+   "value": 23,
+   "lo": 22.5,
+   "hi": 23.5,
    "target": [
     24,
     29
    ],
-   "ok": true,
-   "n": 25659
+   "ok": false,
+   "n": 25228
   },
   {
    "name": "AF fincher",
-   "value": 1.51,
-   "lo": 1.51,
-   "hi": 1.51,
+   "value": 1.24,
+   "lo": 1.24,
+   "hi": 1.24,
    "target": [
     2.5,
     3
    ],
    "ok": false,
-   "n": 25659
+   "n": 25228
   },
   {
    "name": "tell: anel de fumaça → nuts",
-   "value": 92.1,
-   "lo": 83.5,
-   "hi": 100.7,
+   "value": 90.4,
+   "lo": 82.4,
+   "hi": 98.4,
    "target": [
     85,
     92
    ],
-   "ok": false,
-   "n": 38
+   "ok": true,
+   "n": 52
   },
   {
    "name": "tell: Sapo calado em aposta grande → monstro",
@@ -254,25 +254,25 @@
     100
    ],
    "ok": true,
-   "n": 899
+   "n": 878
   },
   {
    "name": "tell: Cobra nervosa em aposta → blefe",
-   "value": 68.4,
-   "lo": 66.5,
-   "hi": 70.4,
+   "value": 69.8,
+   "lo": 67.9,
+   "hi": 71.6,
    "target": [
     60,
     75
    ],
    "ok": true,
-   "n": 2132
+   "n": 2340
   },
   {
    "name": "captura · médio · common",
-   "value": 37.5,
-   "lo": 34.5,
-   "hi": 40.5,
+   "value": 44.4,
+   "lo": 41.3,
+   "hi": 47.5,
    "target": [
     45,
     50
@@ -282,21 +282,21 @@
   },
   {
    "name": "captura · médio · rare",
-   "value": 35.6,
-   "lo": 32.6,
-   "hi": 38.6,
+   "value": 41.2,
+   "lo": 38.1,
+   "hi": 44.3,
    "target": [
     40,
     45
    ],
-   "ok": false,
+   "ok": true,
    "n": 1000
   },
   {
    "name": "captura · médio · epic",
-   "value": 34.6,
-   "lo": 31.7,
-   "hi": 37.5,
+   "value": 41,
+   "lo": 38,
+   "hi": 44,
    "target": [
     35,
     40
@@ -306,9 +306,9 @@
   },
   {
    "name": "captura · médio · legendary",
-   "value": 35.2,
-   "lo": 32.2,
-   "hi": 38.2,
+   "value": 32.6,
+   "lo": 29.7,
+   "hi": 35.5,
    "target": [
     25,
     30
@@ -318,21 +318,21 @@
   },
   {
    "name": "captura · iniciante · média das raridades",
-   "value": 25.3,
-   "lo": 22.6,
-   "hi": 28,
+   "value": 23.3,
+   "lo": 20.7,
+   "hi": 25.9,
    "target": [
     25,
     30
    ],
-   "ok": true,
+   "ok": false,
    "n": 1000
   },
   {
    "name": "captura · bom · média das raridades",
-   "value": 40.2,
-   "lo": 37.2,
-   "hi": 43.2,
+   "value": 41.3,
+   "lo": 38.2,
+   "hi": 44.4,
    "target": [
     50,
     60
@@ -342,9 +342,9 @@
   },
   {
    "name": "heads-up Raposo × Cobra",
-   "value": 49.3,
-   "lo": 46.2,
-   "hi": 52.4,
+   "value": 50.9,
+   "lo": 47.8,
+   "hi": 54,
    "target": [
     58,
     65
@@ -354,21 +354,21 @@
   },
   {
    "name": "heads-up Cobra × Sapo",
-   "value": 65.1,
-   "lo": 62.1,
-   "hi": 68.1,
+   "value": 61.9,
+   "lo": 58.9,
+   "hi": 64.9,
    "target": [
     65,
     72
    ],
-   "ok": true,
+   "ok": false,
    "n": 1000
   },
   {
    "name": "heads-up Raposo × Sapo",
-   "value": 68.7,
-   "lo": 65.8,
-   "hi": 71.6,
+   "value": 66,
+   "lo": 63.1,
+   "hi": 68.9,
    "target": [
     75,
     85
@@ -378,9 +378,9 @@
   },
   {
    "name": "exploração · allin · 1º lugar",
-   "value": 9.8,
-   "lo": 7.2,
-   "hi": 12.4,
+   "value": 10.8,
+   "lo": 8.1,
+   "hi": 13.5,
    "target": [
     0,
     15
@@ -390,9 +390,9 @@
   },
   {
    "name": "exploração · station · 1º lugar",
-   "value": 8.2,
-   "lo": 5.8,
-   "hi": 10.6,
+   "value": 6.6,
+   "lo": 4.4,
+   "hi": 8.8,
    "target": [
     0,
     15
@@ -402,9 +402,9 @@
   },
   {
    "name": "exploração · maniac · 1º lugar",
-   "value": 15,
-   "lo": 11.9,
-   "hi": 18.1,
+   "value": 13.6,
+   "lo": 10.6,
+   "hi": 16.6,
    "target": [
     0,
     15
@@ -414,9 +414,9 @@
   },
   {
    "name": "modelo do Raposo ligado − desligado contra o maniac (pp de 1º lugar)",
-   "value": -2,
-   "lo": -2,
-   "hi": -2,
+   "value": -1.5,
+   "lo": -1.5,
+   "hi": -1.5,
    "target": [
     8,
     100
@@ -426,9 +426,9 @@
   },
   {
    "name": "empréstimo de +500 (pp de 1º lugar, médio)",
-   "value": 5.6,
-   "lo": 5.6,
-   "hi": 5.6,
+   "value": 4.4,
+   "lo": 4.4,
+   "hi": 4.4,
    "target": [
     4,
     8
@@ -444,17 +444,18 @@
   "top 2 · bom",
   "com o médio: Sapo cai primeiro (~45%)",
   "VPIP bogart",
-  "AF bogart",
   "VPIP cypher",
+  "PFR cypher",
   "AF cypher",
+  "PFR fincher",
   "AF fincher",
-  "tell: anel de fumaça → nuts",
   "captura · médio · common",
-  "captura · médio · rare",
   "captura · médio · epic",
   "captura · médio · legendary",
+  "captura · iniciante · média das raridades",
   "captura · bom · média das raridades",
   "heads-up Raposo × Cobra",
+  "heads-up Cobra × Sapo",
   "heads-up Raposo × Sapo",
   "modelo do Raposo ligado − desligado contra o maniac (pp de 1º lugar)"
  ]

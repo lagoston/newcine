@@ -113,7 +113,15 @@ const iniciante: Hero = (L, rng, s) => {
   const pct = preflopPct(sp.hole);
   if (sp.street === 'preflop') {
     if (pct <= 3 && rng.nextFloat() < 0.5) return betPot(L, 0.8);
-    if (pct <= 55 || L.toCall === 0) return L.toCall > 6 * sp.bb && pct > 20 ? passive(L) : callOr(L);
+    // A3 (03/11/2026): "paga qualquer par" vale antes do flop também, e diante de um
+    // empurrão que já leva boa parte do cacife o iniciante paga com a mesma faixa larga
+    // (antes só pagava com top 20% e largava ~80% dos all-ins curtos; VPIP medido 42%).
+    const pair = sp.hole[0][0] === sp.hole[1][0];
+    const committing = L.toCall >= 0.35 * (L.stack + L.streetBet);
+    if (pct <= 55 || L.toCall === 0 || pair) {
+      if (L.toCall > 6 * sp.bb && pct > 20 && !pair && !(committing && pct <= 40)) return passive(L);
+      return callOr(L);
+    }
     return passive(L);
   }
   const pair = categoryOf([...sp.hole, ...sp.board]) >= 1;
@@ -258,12 +266,21 @@ function tellNeed(pub: readonly PublicEvent[] | undefined, id: string | null, bi
   if (!id) return 0;
   const a = lastAct(pub, id);
   if (!a || !a.cue || (a.action !== 'bet' && a.action !== 'raise')) return 0;
+  const ms = a.thinkMs ?? 1000;
   if (id === 'bogart') {
-    if (big) return a.cue === 'calado' ? 0.3 : a.cue === 'nervoso' ? -0.2 : 0;   // calado = monstro; nervoso = sem monstro
-    return a.cue === 'confiante' ? 0.08 : a.cue === 'neutro' ? -0.12 : 0;         // confiante = tem par
+    let d = 0;
+    if (big) d = a.cue === 'calado' ? 0.3 : a.cue === 'nervoso' ? -0.2 : 0;   // calado = monstro; nervoso = sem monstro
+    else d = a.cue === 'confiante' ? 0.08 : a.cue === 'neutro' ? -0.12 : 0;   // confiante = tem par
+    if (ms < 800) d += 0.08;                                                    // rápido = mão forte
+    return d;
   }
-  if (id === 'cypher') return a.cue === 'nervoso' ? -0.12 : a.cue === 'confiante' ? 0.08 : 0;   // língua = blefe
-  if (id === 'fincher') return a.cue === 'confiante' ? 0.35 : 0;                                // anel de fumaça = nuts
+  if (id === 'cypher') {
+    let d = a.cue === 'nervoso' ? -0.15 : a.cue === 'confiante' ? 0.1 : 0;     // língua = blefe; cauda = valor
+    if (ms < 600) d -= 0.08;                                                    // blefe sai rápido
+    else if (ms >= 2000 && ms <= 3000) d += 0.12;                               // pensou muito = monstro
+    return d;
+  }
+  if (id === 'fincher') return a.cue === 'confiante' ? 0.35 : 0;                // anel de fumaça = nuts
   return 0;
 }
 

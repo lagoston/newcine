@@ -16,11 +16,21 @@ function limpAllowed(P: EffProfile, f: Features, ctx: BotCtx, v: BotView): boole
   return ctx.model.rates(v.bbId).pfr < 0.15;   // BB passivo
 }
 
+/**
+ * Parte da faixa de entrada com que se isola um limp (A3, 03/11/2026: era 1,0). Isolar
+ * todo limp punia o iniciante, que limpa metade das mãos, muito mais do que qualquer
+ * outro estilo; o médio e o bom quase nunca limpam.
+ */
+const ISO_SHARE = 0.5;
+
+/** Distância (pp de "top %") além da faixa de entrada a partir da qual a mão é lixo. */
+const TRASH_GAP = 15;
+
 function isoRange(P: EffProfile, ctx: BotCtx, v: BotView, entry: number): number {
   if (P.preflop.raiseOnlyTopPct !== null) return P.preflop.raiseOnlyTopPct;
   const limpers = v.actions.filter((a) => a.street === 'preflop' && a.type === 'call').map((a) => a.playerId);
   const soft = ctx.model && limpers.some((id) => ctx.model!.has(id, 'solto'));
-  return entry * (soft ? 0.8 : 0.6) * ((globalThis as any).A3ISO ?? 1);
+  return entry * (soft ? 0.8 : 0.6) * ISO_SHARE;
 }
 
 function currentLevel(v: BotView): number {
@@ -70,7 +80,9 @@ export function preflop(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): Ra
   switch (f.facing) {
     case 'unopened': {
       if (pct > entry) {
-        ranked = f.pos === 'BB' ? [CHECK] : [FOLD, LIMP];
+        // Lixo (bem fora da faixa) não tem "erro plausível" de limp (A3): com ε alto o
+        // limp de lixo inflava o VPIP do Sapo e da Cobra acima das metas.
+        ranked = f.pos === 'BB' ? [CHECK] : pct > entry + TRASH_GAP ? [FOLD] : [FOLD, LIMP];
         break;
       }
       const open = f.pos === 'SB' ? P.preflop.openOOP : P.preflop.open;

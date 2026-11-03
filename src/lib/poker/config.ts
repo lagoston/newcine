@@ -10,13 +10,16 @@ import type { DifficultyRow, LevelInfo, PokerSettings, Rarity } from './types.ts
 /**
  * Dificuldade pública por raridade (§3.4). Só mexe em ε e no atraso de adaptação do
  * Raposo; as iterações nunca mudam. `stars` 0 = sem estrelas (mesa livre).
+ * Calibração A3 (03/11/2026): multiplicadores mais abertos (eram 1,3 / 1,15 / 1,0 / 0,85
+ * e 16 / 14 / 12 / 9 mãos) e pisos de ε mais baixos nos perfis: com a tabela antiga a
+ * captura do médio dava ~35% em todas as raridades (meta 45–50 → 25–30).
  */
 export const DEFAULT_DIFFICULTY: Record<Rarity | 'free', DifficultyRow> = {
   free: { stars: 0, epsilonMul: 1.0, adaptDelay: 12 },
-  common: { stars: 1, epsilonMul: 1.3, adaptDelay: 16 },
-  rare: { stars: 2, epsilonMul: 1.15, adaptDelay: 14 },
+  common: { stars: 1, epsilonMul: 2.4, adaptDelay: 18 },
+  rare: { stars: 2, epsilonMul: 1.5, adaptDelay: 15 },
   epic: { stars: 3, epsilonMul: 1.0, adaptDelay: 12 },
-  legendary: { stars: 4, epsilonMul: 0.85, adaptDelay: 9 },
+  legendary: { stars: 4, epsilonMul: 0.5, adaptDelay: 8 },
 };
 
 export const DEFAULT_SETTINGS: PokerSettings = {

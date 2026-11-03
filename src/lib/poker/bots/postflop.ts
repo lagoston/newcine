@@ -34,9 +34,28 @@ function valueSize(P: EffProfile, f: Features, v: BotView, ctx: BotCtx, b: HandB
   return cbetSize(P, f, v, ctx);
 }
 
+/**
+ * Raposo: quanto vale blefar contra quem está na mão, pela taxa de largar para c-bet
+ * que ele já viu (leitura rápida; A3, 03/11/2026). 1 = normal; 0 = não larga nunca
+ * (maniac, quem paga tudo): blefe nenhum. Não sobe contra quem larga demais: blefar
+ * mais o iniciante, que larga sem par, deixava a mesa dura demais para ele.
+ * Sem modelo (Cobra, Sapo, ou o Raposo com o modelo desligado no simulador), 1.
+ */
+function bluffScale(ctx: BotCtx, f: Features): number {
+  if (!ctx.model || f.opponents.length === 0) return 1;
+  let k = 1;
+  for (const o of f.opponents) {
+    const fold = ctx.model.quick(o).foldToCbet;
+    k = Math.min(k, Math.max(0, (fold - 0.2) / 0.25));
+  }
+  return k;
+}
+
 /** c-bet, segunda barrel ou river depois de duas, com os ajustes do modelo do Raposo. */
 function aggressionGate(P: EffProfile, f: Features, v: BotView, ctx: BotCtx, b: HandBucket): number {
   const strongish = b === 'nuts' || b === 'strong' || b === 'medium' || b === 'draw';
+  // Sem mão, a frequência acompanha o quanto o oponente larga (só o Raposo lê isso).
+  const bluffy = strongish ? 1 : bluffScale(ctx, f);
   if (v.street === 'flop') {
     let g = P.post.cbetHU * (f.opponents.length > 1 ? 0.6 : 1);
     if (ctx.model && f.opponents.length === 1) {
@@ -45,7 +64,8 @@ function aggressionGate(P: EffProfile, f: Features, v: BotView, ctx: BotCtx, b: 
       if (c && c.raw.cbetFaced >= 6 && ctx.model.rates(o).foldToCbet > 0.6) g = 0.85;
       // Contra quem paga tudo: c-bet só com valor e projeto (≈ 45% da faixa), nunca com ar.
       if (ctx.model.has(o, 'pagaTudo')) return strongish ? P.model.cbet.max : 0;
-      g = Math.min(P.model.cbet.max, Math.max(P.model.cbet.min, g));
+      g = Math.min(P.model.cbet.max, Math.max(P.model.cbet.min, g * bluffy));
+      if (!strongish && bluffy < 0.5) g *= bluffy * 2;
     }
     return g;
   }
@@ -53,16 +73,16 @@ function aggressionGate(P: EffProfile, f: Features, v: BotView, ctx: BotCtx, b: 
     let g = P.post.barrelTurn;
     if (ctx.model && f.opponents.some((o) => ctx.model!.rates(o).af < 1)) g += 0.15;
     if (hasLabel(ctx, f, 'pagaTudo') && !strongish) g = 0;
-    return g;
+    return Math.min(1, g * bluffy);
   }
-  return hasLabel(ctx, f, 'pagaTudo') && !strongish ? 0 : P.post.riverAfterTwo;
+  return hasLabel(ctx, f, 'pagaTudo') && !strongish ? 0 : Math.min(1, P.post.riverAfterTwo * bluffy);
 }
 
 function riverBluffProb(P: EffProfile, f: Features, ctx: BotCtx): number {
   if (hasLabel(ctx, f, 'pagaTudo')) return 0;
   const s = P.sizings.riverPolar;
   const share = P.post.riverBluffShare === 'balanced' ? s / (1 + 2 * s) : P.post.riverBluffShare;
-  return clamp01(share + P.mods.bluffPP / 100);
+  return clamp01((share + P.mods.bluffPP / 100) * bluffScale(ctx, f));
 }
 
 function betOrCheck(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, b: HandBucket, monster: boolean, pairPlus: boolean): PlayerAction[] {
@@ -75,13 +95,14 @@ function betOrCheck(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, b: Hand
   }
   if (b === 'medium') {
     if (P.id === 'bogart' && r() < 0.30) return [small, CHECK];                   // "um trailer"
-    if (P.id === 'fincher' && v.street === 'river' && hasLabel(ctx, f, 'pagaTudo')) return [betFrac(v, 0.5), CHECK];
+    // Raposo: valor fino contra quem paga tudo (rótulo) ou quase nunca larga (leitura rápida).
+    if (P.id === 'fincher' && v.street !== 'flop' && (hasLabel(ctx, f, 'pagaTudo') || bluffScale(ctx, f) < 0.5)) return [betFrac(v, 0.5), CHECK];
     return [CHECK, small];
   }
   if (v.street === 'river' && f.scareCard && f.checkedThroughTurn && r() < P.post.scareCardOverbet) {
     return [betFrac(v, P.sizings.scareOverbet), CHECK];                           // Cobra
   }
-  if (b === 'draw' && v.street !== 'river' && r() < clamp01(P.post.semibluffFreq + P.mods.bluffPP / 100)) {
+  if (b === 'draw' && v.street !== 'river' && r() < clamp01((P.post.semibluffFreq + P.mods.bluffPP / 100) * Math.max(0.5, Math.min(1, bluffScale(ctx, f))))) {
     return [betFrac(v, cbetSize(P, f, v, ctx)), CHECK];
   }
   if (b === 'air' && v.street === 'river' && r() < riverBluffProb(P, f, ctx)) return [betFrac(v, P.sizings.riverPolar), CHECK];
@@ -120,6 +141,9 @@ function marginAdj(v: BotView, f: Features, P: EffProfile, ctx: BotCtx): number 
   return m;
 }
 
+/** Cobra: chance de aumentar quando pagaria (flop e turn). */
+const COBRA_RAISE_INSTEAD = 0.35;
+
 /** Folga de equidade a partir da qual pagar é óbvio (sem segunda opção para o ε). */
 const CLEAR_CALL = 0.08;
 
@@ -137,9 +161,12 @@ function facingBet(v: BotView, f: Features, P: EffProfile, ctx: BotCtx, eq: numb
   const level = v.toCall + v.streetBet;
   const raise = raiseTo(level * 3);
   if ((b === 'nuts' || b === 'strong') && r() < P.post.raiseValueFreq) return [raise, CALL];
-  if (f.canCheckRaise && (b === 'draw' || b === 'air') && r() < P.post.checkRaise) return [raise, FOLD];
+  if (f.canCheckRaise && (b === 'draw' || b === 'air') && r() < P.post.checkRaise * (b === 'air' ? bluffScale(ctx, f) : 1)) return [raise, FOLD];
   if (P.id === 'fincher' && v.street === 'river' && f.facingRaise && (b === 'strong' || b === 'medium')
       && !(ctx.model?.has(f.aggressorId, 'blefador') ?? false) && r() < 0.70) return [FOLD, CALL];   // falha planejada
+  // Cobra: aumenta-ou-larga. Parte das vezes em que pagaria, aumenta (A3: o AF dela estava
+  // em 1,6 com meta 3,5–4,5; e o aumento leve é o vazamento que quem tem mão pune).
+  if (P.id === 'cypher' && eq >= need && v.street !== 'river' && r() < COBRA_RAISE_INSTEAD) return [raise, CALL];
   if (eq >= need) {
     if (P.id === 'bogart' && pairPlus) ctx.mem.committed = true;   // "já investi": dor = 0, margem −8
     // Pagar com folga não tem "erro plausível" de largar (A3): o ε vira pagamento curioso

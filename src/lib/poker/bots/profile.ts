@@ -200,9 +200,12 @@ export function mergeProfile(def: BotProfile, params: unknown, limits: ProfileLi
   return merged;
 }
 
-/** ε_final = max(epsilon × epsilonMul, epsilonFloor) (§3.4). */
+/** Teto do ε final: acima disso o bot joga a segunda opção quase tanto quanto a primeira. */
+export const EPSILON_CAP = 0.5;
+
+/** ε_final = max(epsilon × epsilonMul, epsilonFloor) (§3.4), preso em EPSILON_CAP (A3). */
 export function effectiveEpsilon(profile: BotProfile, difficulty: DifficultyRow): number {
-  return Math.max(profile.epsilon * difficulty.epsilonMul, profile.epsilonFloor);
+  return Math.min(EPSILON_CAP, Math.max(profile.epsilon * difficulty.epsilonMul, profile.epsilonFloor));
 }
 
 // ---------------------------------------------------------------------------
