@@ -136,7 +136,8 @@ export const AchievementCard: React.FC<{ story: FeedStory }> = ({ story }) => {
   const requirement = tagRequirementText(tag.category, tag.name, i18n.language);
   return (
     <div className="flex flex-col items-center text-center w-full">
-      <p style={{ ...PIXEL, color: style.accent }} className="text-sm tracking-wide uppercase">
+      {/* 03/11/2026: texto na cor `label` (o vermelho escuro dos Jogos não lê sobre o fundo noturno). */}
+      <p style={{ ...PIXEL, color: style.label }} className="text-sm tracking-wide uppercase">
         {t('feed.achievement.tagEyebrow')}
       </p>
       <motion.span

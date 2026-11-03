@@ -15,6 +15,7 @@ import { VELVET, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
 import { fetchStory, markStoryViewed, storyPoster, storyTitle, type FeedStory } from '../lib/friendsFeed';
 import StoryViewer from './feed/StoryViewer';
 import JackpotInviteCard from './posterJackpot/JackpotInviteCard';
+import PokerInviteActions from './poker/friends/PokerInviteActions';
 import { StatusPill, TradeCard } from './posterJackpot/PosterTradesPanel';
 import { getMyTrades, respondTrade, tradeErrorCode, type PosterTrade } from '../lib/posterTrades';
 
@@ -37,9 +38,12 @@ interface Whisper {
   // jackpot_invite: o convite do lançamento do Poster Jackpot (sistema);
   // poster_trade / poster_trade_result: proposta de troca de pôsteres e a
   // resposta a ela (trade_id aponta para poster_trades)
+  // poker_invite (03/11/2026, fase 3 do Pôster Poker): convite para uma mesa com amigos;
+  // poker_room_id aponta para a sala e message leva o código dela
   type: 'movie' | 'friend_request' | 'new_episode' | 'tag_unlocked' | 'story_like' | 'story_comment' | 'story_reply' | 'whisper_like'
-    | 'jackpot_invite' | 'poster_trade' | 'poster_trade_result';
+    | 'jackpot_invite' | 'poster_trade' | 'poster_trade_result' | 'poker_invite';
   trade_id?: number | null;
+  poker_room_id?: string | null;
   movie_id?: number;
   movie_title?: string;
   movie_poster?: string;
@@ -74,7 +78,9 @@ const FILTER_LABEL: Record<Filter, string> = {
 const isStoryWhisper = (type: Whisper['type']) => type === 'story_like' || type === 'story_comment' || type === 'story_reply';
 // as três notificações do feed dividem um filtro só; a curtida numa
 // indicação fica junto das indicações
-const isJackpotWhisper = (type: Whisper['type']) => type === 'jackpot_invite' || type === 'poster_trade' || type === 'poster_trade_result';
+// 03/11/2026: o convite do Pôster Poker entra no mesmo filtro dos jogos (Jackpot).
+const isJackpotWhisper = (type: Whisper['type']) =>
+  type === 'jackpot_invite' || type === 'poster_trade' || type === 'poster_trade_result' || type === 'poker_invite';
 const filterOf = (type: Whisper['type']): Filter =>
   isStoryWhisper(type) ? 'story' : isJackpotWhisper(type) ? 'jackpot' : type === 'whisper_like' ? 'movie' : (type as Filter);
 
@@ -360,6 +366,8 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
             ? t('indications.whisperLiked')
             : whisper.type === 'poster_trade'
               ? t('trades.whisperProposed')
+              : whisper.type === 'poker_invite'
+                ? t('poker.friends.invite.whisper')
               : whisper.type === 'poster_trade_result'
                 ? (() => {
                     const status = whisper.trade_id ? trades.get(whisper.trade_id)?.status : undefined;
@@ -579,6 +587,11 @@ export default function WhispersModal({ isOpen, onClose, onFriendAccepted }: Whi
     }
 
     if (whisper.type === 'jackpot_invite') return null;
+
+    // Convite para a mesa com amigos: aposta da sala e Entrar/Recusar ali mesmo (03/11/2026).
+    if (whisper.type === 'poker_invite') {
+      return <PokerInviteActions roomId={whisper.poker_room_id} code={whisper.message} onOpen={onClose} />;
+    }
 
     if (whisper.type === 'poster_trade' || whisper.type === 'poster_trade_result') {
       const trade = whisper.trade_id ? trades.get(whisper.trade_id) : undefined;
