@@ -253,7 +253,7 @@ const Credits: React.FC<{
               size="w342"
               animated={!reduced}
               loading="eager"
-              className="w-[150px] aspect-[2/3] rounded-[10px] pp-credit-poster"
+              className="w-[min(150px,20vh)] aspect-[2/3] rounded-[10px] pp-credit-poster"
             />
             <p className="pp-font pp-gold-letters text-[30px] leading-none mt-2">{t('poker.tourney.yours')}</p>
             <p className="text-[14.5px] font-bold" style={{ color: '#F5EBD3' }}>{tourTitle}</p>

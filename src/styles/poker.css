@@ -1546,6 +1546,10 @@
   background: var(--pk-gold-hi);
 }
 .pk-switch {
+  /* 03/11/2026: sem o mínimo de 44 px que o index.css dá a todo botão (ficava oval). */
+  display: block;
+  min-height: 0;
+  min-width: 0;
   width: 48px;
   height: 28px;
   border-radius: 99px;

@@ -1162,6 +1162,7 @@ if (!existsSync(FIX)) {
       const all: PublicEvent[] = [];
       playSteps(stage, [{ events: pub, view: EMPTY_VIEW, humanTurnAfter: false }], ctxBase, Math.random, all);
       verify(`${f}#${k}`, all, stage.out, meta);
+      if (all.some((e) => e.t === 'matchStarted' && e.tournament)) verifyPoster(`${f}#${k}`, all, stage.out, 'chips');
     }
   }
 }

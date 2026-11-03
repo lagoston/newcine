@@ -126,7 +126,7 @@ const TournamentScreen: React.FC<{ home: PokerHome }> = ({ home }) => {
       <div className="pp-state">
         <h3 className="pp-font pp-gold-letters">{t('poker.tourney.noChipsTitle')}</h3>
         <p>{t('poker.tourney.noChipsBody', { count: need, have: tour.chips, rarity: rarityName })}</p>
-        <button type="button" className="pp-ticket is-gold mt-4" onClick={() => navigate('/', { state: { openJackpot: 'missions' } })}>
+        <button type="button" className="pp-ticket is-gold mt-4" style={{ fontSize: 16 }} onClick={() => navigate('/', { state: { openJackpot: 'missions' } })}>
           {t('poker.tourney.getChips')}
         </button>
       </div>

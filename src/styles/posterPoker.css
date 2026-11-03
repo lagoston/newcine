@@ -399,6 +399,11 @@
 }
 .pp-stakes button {
   position: relative;
+  /* O index.css dá flex centrado e 44 px mínimos a todo botão: aqui é coluna. */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   flex: none;
   width: 84px;
   scroll-snap-align: start;
@@ -418,6 +423,9 @@
 }
 .pp-stakes button[aria-pressed='true'] .pp-stake-art {
   box-shadow: 0 0 0 2.5px var(--pp-gold), 0 0 18px rgba(232, 181, 74, 0.45);
+}
+.pp-stakes button .pp-stake-art {
+  flex: none;
 }
 .pp-stakes button span.pp-stake-title {
   display: block;
@@ -688,6 +696,10 @@
 /* A vaga do pôster: à esquerda, na faixa de fala e no alto do feltro (fora do
    pote, das cartas e das ações). A fala de um oráculo passa por cima. */
 .pp-magic-slot {
+  /* Sem o mínimo de 44 px do index.css: o pôster tem a proporção 2:3. */
+  display: block;
+  min-width: 0;
+  min-height: 0;
   grid-row: 3 / 5;
   grid-column: 1 / -1;
   justify-self: start;

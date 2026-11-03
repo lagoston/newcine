@@ -33,10 +33,10 @@ const markSeen = () => {
 
 // O leque: ás, rei, dama, valete e 10, girando atrás do pôster.
 const FAN = [
-  { r: 'A', red: false, rot: -38 },
-  { r: 'K', red: true, rot: -19 },
-  { r: 'Q', red: false, rot: 19 },
-  { r: 'J', red: true, rot: 38 },
+  { r: 'A', red: false, rot: -34, x: '-95%' },
+  { r: 'K', red: true, rot: -17, x: '-52%' },
+  { r: 'Q', red: false, rot: 17, x: '52%' },
+  { r: 'J', red: true, rot: 34, x: '95%' },
 ];
 
 type Phase = 'dark' | 'light' | 'card' | 'logo' | 'enter';
@@ -126,8 +126,8 @@ const PosterPokerIntro: React.FC<{ filePath: string; ready: boolean }> = ({ file
                     key={c.r}
                     data-r={c.r}
                     className={c.red ? 'is-red' : ''}
-                    initial={{ opacity: 0, rotate: 0, scale: 0.6 }}
-                    animate={logoIn ? { opacity: 1, rotate: c.rot, scale: 1 } : { opacity: 0, rotate: 0, scale: 0.6 }}
+                    initial={{ opacity: 0, rotate: 0, scale: 0.6, x: '0%' }}
+                    animate={logoIn ? { opacity: 1, rotate: c.rot, scale: 1, x: c.x } : { opacity: 0, rotate: 0, scale: 0.6, x: '0%' }}
                     transition={{ type: 'spring', stiffness: 220, damping: 18, delay: i * 0.05 }}
                   />
                 ))}
