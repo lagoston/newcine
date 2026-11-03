@@ -893,11 +893,13 @@ export function startHand(state: GameState, options: StartHandOptions = {}): Eng
   s.rng = rng.getState();
   const presetHoles = options.preset?.holeCards ?? {};
   const presetBoard = options.preset?.board ?? [];
-  const reserved = validatePreset(s, presetHoles, presetBoard, alive);
+  const reserved = validatePreset(s, presetHoles, presetBoard);
   if (reserved.size > 0) deck = deck.filter((c) => !reserved.has(c));
+  // Aqui o critério é "está na mão" (e não "tem fichas"): quem ficou all-in só
+  // de postar ante/blind tem stack 0, mas recebe cartas normalmente.
   const dealOrder: PlayerState[] = [];
   for (let k = 0, i = btnIdx; k < aliveIdx.length; k++) {
-    i = nextIndex(players, i, alive);
+    i = nextIndex(players, i, isInHand);
     dealOrder.push(players[i]);
   }
   for (let round = 0; round < 2; round++) {
@@ -927,12 +929,7 @@ export function startHand(state: GameState, options: StartHandOptions = {}): Eng
   return { state: s, events };
 }
 
-function validatePreset(
-  s: GameState,
-  holes: Record<string, Card[]>,
-  board: Card[],
-  alive: (p: PlayerState) => boolean,
-): Set<Card> {
+function validatePreset(s: GameState, holes: Record<string, Card[]>, board: Card[]): Set<Card> {
   const reserved = new Set<Card>();
   const add = (c: Card): void => {
     if (!isCard(c)) throw new PokerRuleError('invalid_preset', `Carta inválida no preset: ${String(c)}`);
@@ -941,7 +938,7 @@ function validatePreset(
   };
   for (const [id, cards] of Object.entries(holes)) {
     const p = s.players.find((x) => x.id === id);
-    if (!p || !alive(p)) throw new PokerRuleError('invalid_preset', `Jogador do preset não está na mão: ${id}`);
+    if (!p || !isInHand(p)) throw new PokerRuleError('invalid_preset', `Jogador do preset não está na mão: ${id}`);
     if (cards.length !== 2) throw new PokerRuleError('invalid_preset', `Preset de ${id} precisa de 2 cartas.`);
     cards.forEach(add);
   }
