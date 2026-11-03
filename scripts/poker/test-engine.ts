@@ -686,7 +686,7 @@ section('Engine — 20.000 mãos aleatórias com ações legais aleatórias');
   let tables = 0;
   let actions = 0;
   let illegalRejected = 0;
-  const stats = { showdowns: 0, sidePots: 0, runouts: 0, eliminations: 0, shortAllIns: 0, splits: 0, gameOvers: 0 };
+  const stats = { showdowns: 0, sidePots: 0, runouts: 0, eliminations: 0, shortAllIns: 0, splits: 0, gameOvers: 0, longestGame: 0 };
   let problems = 0;
   const problem = (msg: string): void => {
     problems++;
@@ -709,6 +709,10 @@ section('Engine — 20.000 mãos aleatórias com ações legais aleatórias');
       stack: rng.nextInt(5) === 0 ? 1 + rng.nextInt(bb * 2) : bb * (5 + rng.nextInt(100)),
     }));
     let st = createTable({ smallBlind: sb, bigBlind: bb, ante, historyLimit: 5 }, players, `fuzz-${tables}`);
+    // Metade das mesas joga "passivo" (muito fold/call, raises pequenos, all-in raro):
+    // partidas longas exercitam a rotação do botão, a subida de blinds e o histórico.
+    const passive = tables % 2 === 0;
+    const [pFold, pCall, pRaise] = passive ? [35, 90, 99] : [12, 60, 88];
     const total = totalChips(st);
     let handsHere = 0;
     while (st.phase !== 'gameOver' && hands < TARGET && handsHere < 150) {
@@ -762,11 +766,12 @@ section('Engine — 20.000 mãos aleatórias com ações legais aleatórias');
         const roll = rng.nextInt(100);
         const range = legal.bet ?? legal.raise;
         let action: PlayerAction;
-        if (roll < 12) action = { type: 'fold' };
-        else if (roll < 60) action = legal.canCheck ? { type: 'check' } : { type: 'call' };
-        else if (roll < 88 && range) {
+        if (roll < pFold) action = { type: 'fold' };
+        else if (roll < pCall) action = legal.canCheck ? { type: 'check' } : { type: 'call' };
+        else if (roll < pRaise && range) {
           const span = range.max - range.min;
-          const amount = range.min + (rng.nextInt(3) === 0 ? rng.nextInt(span + 1) : rng.nextInt(Math.min(span, bb * 3) + 1));
+          const wide = !passive && rng.nextInt(3) === 0;
+          const amount = range.min + (wide ? rng.nextInt(span + 1) : rng.nextInt(Math.min(span, bb * 3) + 1));
           action = { type: legal.bet ? 'bet' : 'raise', amount };
         } else if (legal.allIn) action = { type: 'allIn' };
         else action = legal.canCheck ? { type: 'check' } : { type: 'call' };
@@ -804,6 +809,7 @@ section('Engine — 20.000 mãos aleatórias com ações legais aleatórias');
       if (evs.some((e) => e.type === 'allInRunout')) stats.runouts++;
       stats.eliminations += res.eliminated.length;
       stats.shortAllIns += res.actions.filter((a) => a.shortAllIn).length;
+      stats.longestGame = Math.max(stats.longestGame, handsHere);
       if (st.phase === 'gameOver') {
         stats.gameOvers++;
         const alive = st.players.filter((x) => x.status !== 'eliminated');
@@ -818,7 +824,8 @@ section('Engine — 20.000 mãos aleatórias com ações legais aleatórias');
   console.log(
     `  ${hands} mãos, ${actions} ações, ${tables} mesas em ${(ms / 1000).toFixed(1)} s` +
       ` | showdowns ${stats.showdowns}, side pots ${stats.sidePots}, splits ${stats.splits}, board corrido ${stats.runouts},` +
-      ` all-ins curtos ${stats.shortAllIns}, eliminações ${stats.eliminations}, fins de jogo ${stats.gameOvers}, ilegais recusadas ${illegalRejected}`,
+      ` all-ins curtos ${stats.shortAllIns}, eliminações ${stats.eliminations}, fins de jogo ${stats.gameOvers}, partida mais longa ${stats.longestGame} mãos,` +
+      ` ilegais recusadas ${illegalRejected}`,
   );
 }
 
