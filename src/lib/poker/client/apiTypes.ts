@@ -336,6 +336,251 @@ export interface IntervalPick {
   oracle: RivalId;
 }
 
+// ---------------------------------------------------------------------------
+// Pôster Poker — fase 3 (03/11/2026, pacote F3): mesa com amigos e devolução na casual.
+// Edge `poker-friends` (FRIENDS_PROTO = 1), RPCs get_poker_friends_home / get_poker_invites /
+// poker_casual_begin. Formato completo em .../poker3/status/F3_NOTES.md. Os nomes são os
+// mesmos que a interface (G3) já usava em client/friends.ts.
+// ---------------------------------------------------------------------------
+
+export type FriendsRoomStatus = 'lobby' | 'playing' | 'finished' | 'closed';
+export type FriendsMemberStatus = 'invited' | 'joined' | 'declined' | 'left' | 'expired';
+
+/** Por que a aposta de alguém não vale (member.stakeProblem, stake_invalid.reason). */
+export type FriendsStakeProblem =
+  | 'missing' | 'rarity' | 'exclusive' | 'not_owned' | 'staked' | 'someone_has' | 'no_stake_room';
+
+/** O que impede quem criou de começar (room.blockers, start_blocked.blockers). */
+export type FriendsStartBlocker = 'need_players' | 'not_ready' | 'stake_problem' | 'member_closed';
+
+/** Um pôster na sala: de efeito (gold do Pôster Poker) ou apostado (da coleção). */
+export interface FriendsPosterCard {
+  itemId: number;
+  effect: PosterVersionEffect;
+  title: string | null;
+  titleEn: string | null;
+  year: number | null;
+  filePath: string;
+  serial: number | null;
+  rarity: Rarity;
+  /** Só nos pôsteres de efeito (gold do Pôster Poker). */
+  prizeId?: string;
+  effectId?: PosterEffectId;
+  /** Só em member.stake: held (travado) | returned | transferred | lost. */
+  status?: 'held' | 'returned' | 'transferred' | 'lost' | null;
+}
+
+export interface FriendsMember {
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+  avatarFrame: string | null;
+  status: FriendsMemberStatus;
+  isHost: boolean;
+  /** Quem criou conta sempre como pronto. */
+  ready: boolean;
+  effectPosters: FriendsPosterCard[];
+  stake: FriendsPosterCard | null;
+  /** Só no lobby, numa sala valendo pôster. */
+  stakeProblem: FriendsStakeProblem | string | null;
+  /** Na partida. */
+  seat: number | null;
+  playerId: string | null;
+  away: boolean;
+  place: number | null;
+}
+
+export interface FriendsStakeOutcome extends FriendsPosterCard {
+  ownerId: string;
+  /** returned = voltou ao dono (venceu, ou quem venceu já tinha a cópia); transferred = foi para quem venceu; lost = ficou com o oráculo. */
+  outcome: 'returned' | 'transferred' | 'lost';
+  toUserId: string | null;
+  oracle: RivalId | null;
+}
+
+export interface FriendsResult {
+  winner: { kind: 'person'; playerId: string; userId: string } | { kind: 'oracle'; playerId: string; oracle: RivalId };
+  places: { playerId: string; place: number | null; userId?: string | null; oracle?: RivalId | null }[];
+  stakes: FriendsStakeOutcome[];
+  /** A semente revelada (sha256(seed) = seedHash). */
+  seed: string;
+}
+
+export interface FriendsRoom {
+  id: string;
+  /** 6 letras/números, sem I, O, 0 e 1. */
+  code: string;
+  status: FriendsRoomStatus;
+  hostId: string;
+  /** null = sem aposta. */
+  stakeRarity: Rarity | null;
+  /** Sobe a cada mudança (o ping traz o mesmo número). */
+  version: number;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  /** 'host_left' | 'idle' (lobby parado 2 h) | 'stuck' (partida parada 24 h: apostas devolvidas). */
+  closedReason?: string | null;
+  me: { userId: string; status: FriendsMemberStatus | null; isHost: boolean };
+  /** joined + invited pendentes (+ quem jogou, depois do começo). */
+  members: FriendsMember[];
+  /** Todos os efeitos da mesa (repetido = acumula). */
+  effects: PosterEffectId[];
+  canStart: boolean;
+  blockers: (FriendsStartBlocker | string)[];
+  /** Só no lobby, só os MEUS: pôsteres de efeito que tenho e pôsteres que posso apostar NESTA sala. */
+  options: { effects: FriendsPosterCard[]; stakes: FriendsPosterCard[] } | null;
+  result: FriendsResult | null;
+}
+
+export interface FriendsSeat {
+  seat: number;
+  playerId: string;
+  kind: 'person' | 'oracle';
+  userId?: string;
+  oracle?: RivalId;
+}
+
+/**
+ * A partida vista por UMA pessoa. `view`/`events` são crus (ids p1..p4 e dos oráculos; só as
+ * cartas fechadas de `myPlayerId`); para tratar "eu" como 'human', passe por povView/povEvents.
+ */
+export interface FriendsMatch {
+  seq: number;
+  seedHash: string;
+  myPlayerId: string | null;
+  /** O meu lugar no motor (0..3). */
+  mySeat?: number | null;
+  seats: FriendsSeat[];
+  /** Os efeitos da mesa. */
+  effects?: PosterEffectId[];
+  view: TableView;
+  /** Eventos públicos com i > since (sem since: os últimos 60; numa jogada: os dela). */
+  events: PublicEvent[];
+  /** true = faltam eventos antes destes (redesenhe pela view). */
+  gap: boolean;
+  /** playerId da pessoa cuja decisão a mesa espera. */
+  toAct: string | null;
+  /** Prazo dessa decisão (ISO, relógio do servidor). */
+  deadline: string | null;
+  serverNow: string;
+  /** playerIds ausentes. */
+  away: string[];
+  result: FriendsResult | null;
+}
+
+export interface FriendsRoomReply {
+  ok: true;
+  room: FriendsRoom;
+  match?: FriendsMatch | null;
+  /** invite. */
+  invited?: string[];
+  skipped?: { userId: string; reason: 'self' | 'not_friend' | 'closed' | 'already' | 'too_soon' | 'full' | string }[];
+  /** act repetido (mesmo idem): a jogada já tinha sido feita. */
+  duplicate?: boolean;
+}
+
+export interface FriendsRoomBrief {
+  id: string;
+  code: string;
+  status: FriendsRoomStatus;
+  hostId: string;
+  stakeRarity: Rarity | null;
+  members: number;
+  version: number;
+}
+
+export interface FriendsInvite {
+  roomId: string;
+  code: string;
+  host: { userId: string; username: string; avatarUrl: string | null };
+  stakeRarity: Rarity | null;
+  members: number;
+  invitedAt: string;
+}
+
+export interface FriendsFriend {
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+  avatarFrame: string | null;
+  /** Já sentado numa sala aberta (lobby ou partida). */
+  inRoom: boolean;
+}
+
+export type FriendsHome =
+  | { enabled: false }
+  | {
+      enabled: true;
+      room: FriendsRoomBrief | null;
+      invites: FriendsInvite[];
+      friends: FriendsFriend[];
+      effectPosters: FriendsPosterCard[];
+      scoreboard: { userId: string; username: string; avatarUrl: string | null; wins: number; matches: number }[];
+    };
+
+/** O estado de um convite citado nos Sussurros (get_poker_invites). */
+export interface InviteState {
+  roomId: string;
+  state: 'open' | 'joined' | 'declined' | 'full' | 'started' | 'closed';
+  stakeRarity: Rarity | null;
+  members: number;
+  code: string;
+}
+
+/** O aviso do tempo real (Broadcast privado `poker-room:<id>`, evento `ping`). Sem cartas. */
+export interface FriendsPing {
+  roomId?: string;
+  version: number;
+  seq?: number;
+  status?: FriendsRoomStatus;
+  toAct?: string | null;
+  deadline?: string | null;
+}
+
+export interface FriendsApi {
+  home(): Promise<FriendsHome>;
+  inviteStates(roomIds: string[]): Promise<InviteState[]>;
+  create(stakeRarity: Rarity | null): Promise<FriendsRoomReply>;
+  invite(roomId: string, userIds: string[]): Promise<FriendsRoomReply>;
+  respond(roomId: string, accept: boolean): Promise<FriendsRoomReply>;
+  join(code: string): Promise<FriendsRoomReply>;
+  leave(roomId: string): Promise<FriendsRoomReply>;
+  configure(roomId: string, stakeRarity: Rarity | null): Promise<FriendsRoomReply>;
+  setEffects(roomId: string, itemIds: number[]): Promise<FriendsRoomReply>;
+  setStake(roomId: string, itemId: number | null, effect?: string): Promise<FriendsRoomReply>;
+  setReady(roomId: string, ready: boolean): Promise<FriendsRoomReply>;
+  start(roomId: string, idem?: string): Promise<FriendsRoomReply>;
+  sync(roomId: string, since?: number): Promise<FriendsRoomReply>;
+  act(roomId: string, seq: number, idem: string, action: PlayerAction, show?: boolean): Promise<FriendsRoomReply>;
+  tick(roomId: string, seq: number): Promise<FriendsRoomReply>;
+  back(roomId: string): Promise<FriendsRoomReply>;
+  /** Tempo real: chama `onPing` a cada mudança da sala. Devolve o "desligar". */
+  subscribe(roomId: string, onPing: (p: FriendsPing) => void): () => void;
+}
+
+/** poker_casual_begin(): chame ao começar TODA casual. */
+export type CasualBegin =
+  | { enabled: false }
+  | { enabled: true; mode: 'device' }
+  | { enabled: true; mode: 'server'; ticket: string }
+  | { enabled: true; mode: 'server'; matchId: string; resume: true };
+
+export interface RecoverResult extends BountyResult {
+  /** O pôster voltou (capturou o portador ou venceu a mesa). */
+  recovered?: boolean;
+  poster?: FriendsPosterCard | null;
+}
+
+export interface CasualApi {
+  begin(): Promise<CasualBegin>;
+  /** 410 gone = não há mais o que devolver: jogue a casual no aparelho. */
+  start(ticket: string): Promise<BountyStart & { recoverPrize?: FriendsPosterCard | null; prizeId?: string }>;
+  act(matchId: string, seq: number, idem: string, action: PlayerAction, show?: boolean): Promise<BountyAct & { result?: RecoverResult }>;
+  forfeit(matchId: string, seq: number): Promise<RecoverResult>;
+  resume(matchId?: string): Promise<BountyResume & { result?: RecoverResult; recoverPrize?: FriendsPosterCard | null; prizeId?: string }>;
+}
+
 export interface PokerApiLike {
   getHome(): Promise<PokerHome>;
   confirmAge(): Promise<void>;
@@ -351,6 +596,10 @@ export interface PokerApiLike {
     forfeit(matchId: string, seq: number): Promise<BountyResult>;
     resume(matchId?: string): Promise<BountyResume>;
   };
+  /** Fase 3 (F3): mesa com amigos (Edge poker-friends). Opcional: o mock antigo não tem. */
+  friends?: FriendsApi;
+  /** Fase 3 (F3): o contador de casuais e a casual de devolução. */
+  casual?: CasualApi;
 }
 
 /** Erro com o status HTTP e o código do protocolo (§4.7). */

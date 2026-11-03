@@ -9,6 +9,7 @@ import { evaluateHand, scoreCardsAny } from '../evaluator.ts';
 import type { HandFlags, HumanTally, MatchState, MatchSummary, PlayerId } from '../types.ts';
 import { isAirShown } from '../bots/buckets.ts';
 import { HUMAN, x } from './internal.ts';
+import { bonusOf } from './effects.ts';
 
 /** Até o pacote C gerar `engineHash.ts`, quem chama sobrescreve `engineHash` no resumo. */
 export const ENGINE_HASH_UNSET = 'unset';
@@ -42,21 +43,21 @@ export interface TallyInput {
   repeats?: boolean;
 }
 
-/** Atualiza o tally (no lugar). */
-export function updateTally(t: HumanTally, inp: TallyInput): void {
+/** Atualiza o tally (no lugar). `who` = a pessoa (pacote E3: mesa de amigos; padrão 'human'). */
+export function updateTally(t: HumanTally, inp: TallyInput, who: string = HUMAN): void {
   const { result } = inp;
   for (const e of inp.eliminations) t.eliminations.push({ ...e });
-  if (result.startStacks[HUMAN] === undefined) return;
-  const mine = inp.holes[HUMAN] ?? [];
+  if (result.startStacks[who] === undefined) return;
+  const mine = inp.holes[who] ?? [];
   const acts = result.actions;
   const board = result.board;
   t.hands += 1;
 
   const pre = acts.filter((a) => a.street === 'preflop');
-  if (pre.some((a) => a.playerId === HUMAN && (a.type === 'call' || a.type === 'bet' || a.type === 'raise'))) t.vpip += 1;
-  if (pre.some((a) => a.playerId === HUMAN && (a.type === 'bet' || a.type === 'raise'))) t.pfr += 1;
+  if (pre.some((a) => a.playerId === who && (a.type === 'call' || a.type === 'bet' || a.type === 'raise'))) t.vpip += 1;
+  if (pre.some((a) => a.playerId === who && (a.type === 'bet' || a.type === 'raise'))) t.pfr += 1;
   for (const a of acts) {
-    if (a.playerId !== HUMAN || a.street === 'preflop') continue;
+    if (a.playerId !== who || a.street === 'preflop') continue;
     if (a.type === 'bet' || a.type === 'raise') t.aggrBets += 1;
     else if (a.type === 'call') t.aggrCalls += 1;
   }
@@ -66,14 +67,14 @@ export function updateTally(t: HumanTally, inp: TallyInput): void {
   const flop = acts.filter((a) => a.street === 'flop');
   if (pfAggr && flop.length > 0) {
     const firstBet = flop.findIndex((a) => a.type === 'bet' || a.type === 'raise');
-    if (pfAggr === HUMAN) {
-      const mineIdx = flop.findIndex((a) => a.playerId === HUMAN);
+    if (pfAggr === who) {
+      const mineIdx = flop.findIndex((a) => a.playerId === who);
       if (mineIdx >= 0 && (firstBet < 0 || firstBet >= mineIdx)) {
         t.cbetOpp += 1;
         if (flop[mineIdx].type === 'bet') t.cbet += 1;
       }
     } else if (firstBet >= 0 && flop[firstBet].playerId === pfAggr && flop[firstBet].type === 'bet') {
-      const reply = flop.slice(firstBet + 1).find((a) => a.playerId === HUMAN);
+      const reply = flop.slice(firstBet + 1).find((a) => a.playerId === who);
       const raisedBefore = reply ? flop.slice(firstBet + 1, flop.indexOf(reply)).some((a) => a.type === 'raise') : true;
       if (reply && !raisedBefore) {
         t.foldToCbetOpp += 1;
@@ -82,29 +83,29 @@ export function updateTally(t: HumanTally, inp: TallyInput): void {
     }
   }
 
-  const won = result.winnerIds.includes(HUMAN);
+  const won = result.winnerIds.includes(who);
   if (won) t.handsWon += 1;
-  if (result.wentToShowdown && result.shown.some((s) => s.playerId === HUMAN)) {
+  if (result.wentToShowdown && result.shown.some((s) => s.playerId === who)) {
     t.showdowns += 1;
     if (won) t.showdownsWon += 1;
   }
 
   const main = result.pots[0];
   const mainWinners = main ? main.winners.filter((w) => w.amount > 0).map((w) => w.playerId) : [];
-  if (inp.odds && inp.odds[HUMAN] !== undefined) {
+  if (inp.odds && inp.odds[who] !== undefined) {
     t.allinCount += 1;
-    t.allinExpectedMilli += Math.round(inp.odds[HUMAN] * 1000);
-    if (mainWinners.length === 1 && mainWinners[0] === HUMAN) t.allinWon += 1;
+    t.allinExpectedMilli += Math.round(inp.odds[who] * 1000);
+    if (mainWinners.length === 1 && mainWinners[0] === who) t.allinWon += 1;
   }
 
   const lastAggr = [...acts].reverse().find((a) => a.type === 'bet' || a.type === 'raise')?.playerId ?? null;
-  const soleWinner = result.winnerIds.length === 1 && result.winnerIds[0] === HUMAN;
+  const soleWinner = result.winnerIds.length === 1 && result.winnerIds[0] === who;
   if (!result.wentToShowdown && soleWinner && mine.length === 2 && board.length >= 3) {
-    if (lastAggr === HUMAN && isAirShown(mine, board)) t.bluffsWorked += 1;
+    if (lastAggr === who && isAirShown(mine, board)) t.bluffsWorked += 1;
     // Blefe de Oscar: pote ≥ 20 BB sem showdown e alguém que largou tinha mão melhor no board.
     if (inp.potTotal >= 20 * inp.bb) {
       const myScore = scoreCardsAny([...mine, ...board]);
-      const folders = new Set(acts.filter((a) => a.type === 'fold' && a.playerId !== HUMAN).map((a) => a.playerId));
+      const folders = new Set(acts.filter((a) => a.type === 'fold' && a.playerId !== who).map((a) => a.playerId));
       for (const id of folders) {
         const h = inp.holes[id];
         if (h && h.length === 2 && scoreCardsAny([...h, ...board]) > myScore) {
@@ -115,15 +116,15 @@ export function updateTally(t: HumanTally, inp: TallyInput): void {
     }
   }
 
-  if (inp.flags.badBeat?.victimId === HUMAN) t.badBeatsSuffered += 1;
-  if (inp.flags.badBeat?.winnerId === HUMAN) t.badBeatsDealt += 1;
+  if (inp.flags.badBeat?.victimId === who) t.badBeatsSuffered += 1;
+  if (inp.flags.badBeat?.winnerId === who) t.badBeatsDealt += 1;
 
   let gross = 0;
-  for (const p of result.pots) for (const w of p.winners) if (w.playerId === HUMAN) gross += w.amount;
+  for (const p of result.pots) for (const w of p.winners) if (w.playerId === who) gross += w.amount;
   gross += inp.potBonus ?? 0;   // o pote dobrado pela casa conta inteiro
   if (gross > t.biggestPot) t.biggestPot = gross;
 
-  const folded = acts.some((a) => a.playerId === HUMAN && a.type === 'fold');
+  const folded = acts.some((a) => a.playerId === who && a.type === 'fold');
   // board de 5, ou de 6 no river de 2 cartas (Onze Homens)
   if (!folded && mine.length === 2 && board.length >= 5) {
     const v = evaluateHand([...mine, ...board], { repeats: inp.repeats === true });
@@ -170,9 +171,14 @@ export function isoToMs(iso: string): number {
 
 const CORE_RIVALS = ['bogart', 'cypher', 'fincher'] as const;
 
-export function summarizeMatch(s: MatchState, meta: { clientId: string; startedAt: string; endedAt: string }): MatchSummary {
+/**
+ * Resumo da partida para o placar. Pacote E3: na mesa de amigos, o resumo é de UMA pessoa
+ * (`viewer`, padrão p1): os números, a colocação e o motivo dela (`mode: 'friends'`).
+ */
+export function summarizeMatch(s: MatchState, meta: { clientId: string; startedAt: string; endedAt: string }, viewer?: PlayerId): MatchSummary {
   const st = x(s);
   if (st.config.mode === 'tutorial') throw new Error('summarizeMatch: treino não tem resumo');
+  if (st.config.mode === 'friends') return summarizeFriends(st, meta, viewer ?? (st.config.people?.[0] as PlayerId));
   const g = st.game;
   const alive = g.players.filter((p) => p.status !== 'eliminated').length;
   const humanWon = g.winnerId === HUMAN || st.endReason === 'won';
@@ -213,5 +219,53 @@ export function summarizeMatch(s: MatchState, meta: { clientId: string; startedA
         casts: st.fx?.castNo ?? 0, bonusWon: st.fx?.bonusWon ?? 0,
       },
     } : {}),
+    ...(st.config.reclaim ? { reclaim: true } : {}),
+  };
+}
+
+function durationOf(meta: { startedAt: string; endedAt: string }): number {
+  const start = isoToMs(meta.startedAt);
+  const end = isoToMs(meta.endedAt);
+  return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, Math.round((end - start) / 1000)) : 0;
+}
+
+function summarizeFriends(st: ReturnType<typeof x>, meta: { clientId: string; startedAt: string; endedAt: string }, who: PlayerId): MatchSummary {
+  const g = st.game;
+  const ps = st.people?.[who];
+  const tally = st.tallies?.[who];
+  if (!ps || !tally) throw new Error(`summarizeMatch: ${who} não é uma pessoa desta mesa`);
+  const alive = g.players.filter((p) => p.status !== 'eliminated').length;
+  const winnerId = (g.winnerId as PlayerId | null) ?? (st.status === 'finished' ? (Object.keys(st.places).find((k) => st.places[k] === 1) as PlayerId) ?? null : null);
+  const reason = ps.reason ?? (winnerId === who ? 'won' : st.places[who] !== undefined ? 'eliminated' : 'abandoned');
+  const place = (ps.place ?? st.places[who] ?? alive) as 1 | 2 | 3 | 4;
+  const { eliminations, oscarBluff, ...human } = tally;
+  return {
+    v: 1,
+    clientId: meta.clientId,
+    mode: 'friends',
+    startedAt: meta.startedAt,
+    endedAt: meta.endedAt,
+    durationS: durationOf(meta),
+    hands: g.handNumber,
+    place,
+    winnerId,
+    reason,
+    loan: false,
+    human: { ...human, bestHand: human.bestHand ? { ...human.bestHand, cards: human.bestHand.cards.slice() } : null },
+    eliminations: eliminations.map((e) => ({ ...e })),
+    comeback: reason === 'won' && tally.minStackBB < 5,
+    marks: {
+      firstWinCandidate: reason === 'won',
+      foxHunter: st.eliminatedBy.fincher === who,
+      cleanSweep: CORE_RIVALS.every((r) => st.eliminatedBy[r] === who),
+      oscarBluff,
+    },
+    prize: null,
+    engineHash: ENGINE_HASH_UNSET,
+    paramsVersion: { ...st.config.paramsVersion },
+    friends: {
+      playerId: who, people: st.config.people?.length ?? 1, effects: (st.config.effects ?? []).slice(),
+      winnerIsPerson: !!winnerId && (st.config.people ?? []).includes(winnerId), bonusWon: bonusOf(st, who), status: ps.status,
+    },
   };
 }

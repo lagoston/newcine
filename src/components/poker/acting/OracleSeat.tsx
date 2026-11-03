@@ -41,7 +41,43 @@ export interface OracleSeatProps {
   bj?: { value: number; best: boolean } | null;
   /** Pôster Poker: a caixinha do item secreto (só na Cobra, quando ela trouxe). */
   cobraBox?: boolean;
+  /**
+   * Mesa com amigos (fase 3): uma pessoa sentada no lugar de um oráculo — a foto e o nome
+   * dela, sem atuação de oráculo (nada de tique, tilt ou pista de corpo).
+   */
+  person?: { name: string; avatarUrl: string | null; color: string; away: boolean; left: boolean } | null;
+  /** O relógio de 30 s de quem está na vez (só pessoas). */
+  clock?: { endsAt: number; total: number } | null;
 }
+
+/** Segundos que faltam até `endsAt` (atualiza a cada 250 ms enquanto houver relógio). */
+export function useSecondsLeft(endsAt: number | null | undefined): number | null {
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    if (!endsAt) return;
+    setNow(Date.now());
+    const id = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, [endsAt]);
+  if (!endsAt) return null;
+  return Math.max(0, Math.ceil((endsAt - now) / 1000));
+}
+
+/** O anel do relógio em volta do retrato: esvazia em 30 s; vermelho nos últimos 10. */
+export const ClockRing: React.FC<{ endsAt: number; total: number; reduced: boolean }> = ({ endsAt, total, reduced }) => {
+  const { t } = useTranslation();
+  const left = useSecondsLeft(endsAt) ?? 0;
+  const frac = Math.max(0, Math.min(1, left / (total / 1000)));
+  return (
+    <span className={`pf-clock ${left <= 10 ? 'is-late' : ''} ${reduced ? 'is-still' : ''}`} role="timer" aria-label={t('poker.friends.table.clockAria', { count: left })}>
+      <svg viewBox="0 0 100 125" preserveAspectRatio="none" aria-hidden>
+        <rect x="2" y="2" width="96" height="121" rx="11" ry="11" pathLength={100} className="pf-clock-track" />
+        <rect x="2" y="2" width="96" height="121" rx="11" ry="11" pathLength={100} className="pf-clock-fill" style={{ strokeDashoffset: 100 - frac * 100 }} />
+      </svg>
+      <b className="pf-clock-num pk-num" aria-hidden>{left}</b>
+    </span>
+  );
+};
 
 type Act = { body: string; fx: React.ReactNode; badge: string | null; emote: EmoteId | null };
 
@@ -123,24 +159,27 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
   opal = null,
   bj = null,
   cobraBox = false,
+  person = null,
+  clock = null,
 }) => {
   const { t } = useTranslation();
   const style = normalizeStyle(cardStyle);
   const ch = characterOf(seat.id);
-  const color = ORACLE_COLOR[seat.id] ?? '#F3EAD3';
+  const color = person?.color ?? ORACLE_COLOR[seat.id] ?? '#F3EAD3';
   const crop = ch?.crop[style] ?? { focus: '50% 62%', zoom: 1.6 };
   const anchors = ch?.anchors[style] ?? { mouth: [50, 60] as [number, number], eyes: [50, 35] as [number, number], top: [50, 5] as [number, number] };
   const out = seat.status === 'eliminated';
   const folded = seat.status === 'folded';
   const allIn = seat.status === 'allIn';
-  const act = out ? { body: '', fx: null, badge: null, emote: null } : acting(seat.id, seat.cue, seat.cueKey, anchors);
-  const body = out ? '' : winner ? 'pk-jump' : folded ? 'pk-cue-recline' : thinking ? 'pk-breathe' : act.body;
-  const name = t(`poker.oracles.${seat.id}.short`, { defaultValue: seat.id });
+  // Pessoa: sem atuação de oráculo (só a queda, o pulo da vitória e o "dormindo" ao desistir).
+  const act = out || person ? { body: '', fx: null, badge: null, emote: null } : acting(seat.id, seat.cue, seat.cueKey, anchors);
+  const body = out ? '' : winner ? 'pk-jump' : folded && !person ? 'pk-cue-recline' : thinking ? 'pk-breathe' : act.body;
+  const name = person?.name ?? t(`poker.oracles.${seat.id}.short`, { defaultValue: seat.id });
   // As cartas abertas: a mão inteira (showdown, mostrou, 21) ou a carta que a Leitura virou.
   const open = seat.cards.length === 2 ? seat.cards : seat.revealed;
   const showCards = open.length > 0 && !out;
   const halfOpen = open.length === 1 && seat.hasCards;
-  const tag = emote ?? (folded ? 'zzz' : act.emote ?? (seat.tilt === 'veneno' ? 'vein' : null));
+  const tag = person ? (folded ? 'zzz' : null) : emote ?? (folded ? 'zzz' : act.emote ?? (seat.tilt === 'veneno' ? 'vein' : null));
   const badgeText = reduced && act.badge && seat.cue ? t(`poker.tells.${seat.id}.${seat.cue}`, { defaultValue: '' }) : '';
   const yugi = style === 'yugioh';
 
@@ -180,6 +219,7 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
       className={`pk-seat ${dim ? 'is-dim' : ''} ${out ? 'is-out' : ''} ${folded ? 'is-folded' : ''} ${allIn ? 'is-allin' : ''} ${speaking ? 'is-speaking' : ''} ${winner ? 'is-winner' : ''} ${seat.tilt === 'veneno' ? 'pk-tilt-venom' : ''}`}
       data-pos={pos}
       data-seat={seat.id}
+      data-person={person ? '' : undefined}
       style={{ '--c': color } as React.CSSProperties}
     >
       <div className="pk-actor">
@@ -195,20 +235,30 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
               status: out ? t('poker.table.out', seat.place ? { place: seat.place, count: seat.place, ordinal: true } : { place: '' }) : folded ? t('poker.table.folded') : thinking ? t('poker.table.thinking') : '',
             })}
           >
-            <span className="pk-portrait">
-              <img
-                src={cardArt(seat.id, cardStyle)}
-                alt=""
-                draggable={false}
-                decoding="async"
-                style={{ '--focus': crop.focus, '--zoom': String(crop.zoom) } as React.CSSProperties}
-              />
+            <span className={`pk-portrait ${person ? 'is-person' : ''}`}>
+              {person ? (
+                person.avatarUrl ? (
+                  <img src={person.avatarUrl} alt="" draggable={false} decoding="async" className="pf-face" />
+                ) : (
+                  <span className="pf-face-initial" style={{ color }}>{(person.name.trim().charAt(0) || '?').toUpperCase()}</span>
+                )
+              ) : (
+                <img
+                  src={cardArt(seat.id, cardStyle)}
+                  alt=""
+                  draggable={false}
+                  decoding="async"
+                  style={{ '--focus': crop.focus, '--zoom': String(crop.zoom) } as React.CSSProperties}
+                />
+              )}
               {out && <span className="pk-grain" aria-hidden />}
             </span>
           </button>
           {!reduced && act.fx}
         </div>
-        {thinking && !out && <span className="pk-ring" aria-hidden />}
+        {thinking && !out && !clock && <span className="pk-ring" aria-hidden />}
+        {clock && !out && <ClockRing endsAt={clock.endsAt} total={clock.total} reduced={reduced} />}
+        {person?.away && !out && <span className="pf-away-tag">{t('poker.friends.table.away')}</span>}
         {thinking && reduced && <span className="pk-thinking-tag">{t('poker.table.thinking')}</span>}
         {out && <span className="pk-stamp pk-display" aria-hidden>{t('poker.table.end')}</span>}
         {tag && !out && <Emote id={tag} horror={style === 'horror'} />}
@@ -272,8 +322,10 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
         </AnimatePresence>
       </div>
       <div className="pk-plate">
-        <span className="pk-plate-name" style={{ ...PIXEL, color }}>{name}</span>
-        {out ? (
+        <span className={`pk-plate-name ${person ? 'pf-plate-name' : ''}`} style={person ? { color } : { ...PIXEL, color }}>{name}</span>
+        {person?.left ? (
+          <span className="pk-plate-note">{t('poker.friends.table.left')}</span>
+        ) : out ? (
           <span className="pk-plate-note">{t('poker.table.out', seat.place ? { place: seat.place, count: seat.place, ordinal: true } : { place: '' })}</span>
         ) : (
           <span className="pk-plate-stack pk-num">{fmt(seat.stack, lang)}</span>

@@ -5,6 +5,7 @@
  * de 48 h por cima.
  */
 import type { Cue, PlayerId, RivalId } from '../types.ts';
+import { mentionsOf } from './friends.ts';
 import { handPhrase } from './handNames.ts';
 import type { RenderVars } from './render.ts';
 import { renderText, measure, SHORT_CHARS, TITLE_ORDER } from './render.ts';
@@ -93,12 +94,13 @@ export function isFresh(env: Pick<SelectEnv, 'lru' | 'now'>, id: string): boolea
 
 export function requiresOk(env: SelectEnv, r: LineRequires | undefined, sig: Signal | null): boolean {
   if (!r) return true;
-  if (r.alive && r.alive.some((id) => env.tracker.isOut(id))) return false;
+  if (r.alive && r.alive.some((id) => env.tracker.isOut(id) || env.tracker.isAbsent(id))) return false;
   if (r.caller && (!sig || sig.caller !== r.caller)) return false;
   if (r.titleAtLeast && TITLE_ORDER.indexOf(env.ctx.title) < TITLE_ORDER.indexOf(r.titleAtLeast)) return false;
   if (r.storyHas && !hasStory(env, r.storyHas)) return false;
   if (r.storyNot && hasStory(env, r.storyNot)) return false;
   if (r.minMatches !== undefined && env.ctx.lifetimeMatches < r.minMatches) return false;
+  if (r.absent && r.absent.some((id) => !env.tracker.isAbsent(id))) return false;
   return true;
 }
 
@@ -116,6 +118,24 @@ export function textOf(bank: DialogueBank, id: string, pt: string, lang: 'pt' | 
   if (en === null || en === undefined) return null;
   if (Array.isArray(en)) return part === undefined ? null : en[part] ?? null;
   return part === undefined ? en : null;
+}
+
+/** A fala cita (pelo nome ou apelido) um oráculo que não está na mesa? */
+export function citesAbsent(tracker: SignalTracker, pt: string, shown: string, speaker: string, allowed?: string[]): boolean {
+  for (const r of [...mentionsOf(pt, speaker), ...mentionsOf(shown, speaker)]) {
+    if (tracker.isAbsent(r) && !allowed?.includes(r)) return true;
+  }
+  return false;
+}
+
+/** Todos os balões da troca são de oráculos sentados e nenhum cita um ausente. */
+export function exchangeSeated(env: Pick<SelectEnv, 'tracker' | 'bank' | 'ctx'>, ex: Exchange): boolean {
+  const t = env.tracker;
+  return ex.parts.every((p, i) => {
+    if (t.isAbsent(p.speaker)) return false;
+    const shown = textOf(env.bank, ex.id, p.pt, env.ctx.lang, i) ?? '';
+    return !citesAbsent(t, p.pt, shown, p.speaker, ex.requires?.absent);
+  });
 }
 
 export function varsFor(env: SelectEnv, speaker: RivalId | 'human', mao?: ShownHand, extra: Partial<RenderVars> = {}): RenderVars {
@@ -173,6 +193,7 @@ function capKeyOf(line: Line): string | undefined {
 
 /** Peso do falante (§6.4): quem agiu 60%, quem sofreu 25%, testemunha 15%, × tagarelice. */
 export function speakerWeight(s: RivalId, sig: Signal, tracker: SignalTracker): number {
+  if (tracker.isAbsent(s)) return 0;   // mesa com amigos: oráculo sem lugar nunca fala
   const subject = s === sig.actorId || (sig.victimIds ?? []).includes(s) || s === sig.holderId;
   let w = s === sig.actorId ? 0.6 : subject ? 0.25 : 0.15;
   w *= TALK[s] ?? 0.8;
@@ -193,6 +214,8 @@ export function eligibleLines(env: SelectEnv, sig: Signal, s: RivalId, needShort
   const tags = speakerTags(s, sig, ctx);
   const state = tracker.speakerState(s);
   const isActorOfAction = sig.cue !== undefined && s === sig.actorId;
+  // Mesa com amigos (H3): oráculo sem lugar nunca fala.
+  if (tracker.isAbsent(s)) return [];
   // Silêncio do Sapo depois de `calado`, e o Raposo não fala com o anel na mesa.
   if (s === 'bogart' && tracker.sapoSilent && sig.phase === 'inHand') return [];
   if (s === 'fincher' && state === 'confiante' && sig.phase === 'inHand') return [];
@@ -210,6 +233,8 @@ export function eligibleLines(env: SelectEnv, sig: Signal, s: RivalId, needShort
     const raw = textOf(env.bank, line.id, line.pt, ctx.lang);
     if (raw === null) continue;
     if (needShort && measure(raw, ctx.lang) > SHORT_CHARS) continue;
+    // ...e nem aparece na fala de outro (a fala que cita um oráculo ausente fica de fora)
+    if (tracker.absent.size && citesAbsent(tracker, line.pt, raw, s, line.requires?.absent)) continue;
     const text = renderText(raw, varsFor(env, s, sig.mao, { target: sig.victimIds?.[0], ...sig.vars }));
     if (text === null) continue;
     out.push({ line, speaker: s, text, capKey });
@@ -251,7 +276,7 @@ export function drawFromDeck(env: SelectEnv, cands: Picked[], trigger: Trigger):
 /** Fala solta para um sinal: escolhe o falante pelos pesos e a fala no baralho dele. */
 export function pickLine(env: SelectEnv, sig: Signal, opts: { needShort?: boolean; pool?: Line[] } = {}): Picked | null {
   const pool = opts.pool ?? env.bank.lines;
-  const speakers = (sig.speakers ?? RIVALS).filter((s) => RIVALS.includes(s));
+  const speakers = (sig.speakers ?? RIVALS).filter((s) => RIVALS.includes(s) && !env.tracker.isAbsent(s));
   const options: { s: RivalId; w: number; cands: Picked[] }[] = [];
   for (const s of speakers) {
     const w = speakerWeight(s, sig, env.tracker);
@@ -287,6 +312,8 @@ export function eligibleExchanges(env: SelectEnv, sig: Signal, filter?: (x: Exch
     if (ex.variant && !ex.variant.every((v) => tags.has(v))) continue;
     if (!requiresOk(env, ex.requires, sig)) continue;
     if (!onceOk(env, ex.id, ex.once, ex.story)) continue;
+    // mesa com amigos (H3): troca com oráculo ausente (falando ou citado) não acontece
+    if (tracker.absent.size && !exchangeSeated(env, ex)) continue;
     // durante a mão: Sapo calado não entra; Raposo com o anel também não
     if (tracker.phase === 'inHand') {
       if (tracker.sapoSilent && ex.parts.some((p) => p.speaker === 'bogart')) continue;

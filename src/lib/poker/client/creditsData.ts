@@ -8,7 +8,7 @@ import type { PokerPrize } from './apiTypes.ts';
 import type { TournamentPrize, TournamentRewards } from './tournament.ts';
 
 export interface CreditsData {
-  mode: 'free' | 'bounty';
+  mode: 'free' | 'bounty' | 'friends';
   place: number;
   reason: 'won' | 'eliminated' | 'forfeit' | 'abandoned';
   eliminatedBy: PlayerId | null;
@@ -36,4 +36,27 @@ export interface CreditsData {
     rewards: TournamentRewards | null;
     stake: { kind: 'chips' | 'poster'; title?: string; filePath?: string; effect?: string } | null;
   } | null;
+  /**
+   * Mesa com amigos (fase 3): quem venceu a mesa e para onde foi cada pôster apostado
+   * (`returned` = voltou ao dono; `transferred` = foi para quem venceu; `lost` = ficou
+   * com o oráculo que venceu).
+   */
+  friends?: {
+    winner: { name: string; me: boolean; oracle: RivalId | null };
+    stakes: {
+      title: string;
+      titleEn: string;
+      filePath: string;
+      effect: string;
+      rarity: Rarity;
+      outcome: 'returned' | 'transferred' | 'lost';
+      owner: string;
+      mine: boolean;
+      to: string | null;
+      toMe: boolean;
+      oracle: RivalId | null;
+    }[];
+  } | null;
+  /** Casual de devolução (fase 3): o pôster que voltou para a coleção. */
+  recovered?: { title: string; titleEn: string; filePath: string; effect: string; rarity: Rarity } | null;
 }

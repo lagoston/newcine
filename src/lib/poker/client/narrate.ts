@@ -6,16 +6,22 @@ import type { TFunction } from 'i18next';
 import type { EffectCastData, PlayerId, PublicEvent } from '../types.ts';
 import type { TableShow } from './display.ts';
 import { cardsName, describeHand, fmt, type Lang } from './format.ts';
+import { tablePerson } from './people.ts';
 
 export function whoName(t: TFunction, id: PlayerId | null | undefined): string {
   if (!id) return '';
   if (id === 'human') return t('poker.table.you');
+  // Mesa com amigos (03/11/2026, fase 3): os lugares das pessoas têm o nome delas.
+  const person = tablePerson(id);
+  if (person) return person.name;
   return t(`poker.oracles.${id}.short`, { defaultValue: id });
 }
 
-/** Com artigo: "a Cobra", "O Raposo", "pelo Sapo" (pt) / "the Snake" (en). */
+/** Com artigo: "a Cobra", "O Raposo", "pelo Sapo" (pt) / "the Snake" (en). Pessoa: só o nome ("por Ana"). */
 export function theName(t: TFunction, id: PlayerId | null | undefined, form: 'the' | 'The' | 'by' = 'the'): string {
   if (!id) return '';
+  const person = tablePerson(id);
+  if (person) return form === 'by' ? t('poker.friends.byPerson', { name: person.name }) : person.name;
   return t(`poker.oracles.${id}.${form}`, { defaultValue: whoName(t, id) });
 }
 
@@ -85,7 +91,15 @@ export function narrate(t: TFunction, lang: Lang, e: PublicEvent, table: TableSh
       return t('poker.narrate.bonus', { who: whoName(t, e.playerId), amount: n(e.amount) });
     case 'tellMark':
       return t(`poker.narrate.tell_${e.mark}`, { who: whoName(t, e.playerId) });
+    // Mesa com amigos (fase 3): o relógio estourou, ausente, saiu da sala.
+    case 'clockOut':
+      return e.playerId === 'human' ? t('poker.friends.narrate.myClock') : t('poker.friends.narrate.clock', { who: whoName(t, e.playerId) });
+    case 'away':
+      return e.on ? t('poker.friends.narrate.away', { who: whoName(t, e.playerId) }) : t('poker.friends.narrate.back', { who: whoName(t, e.playerId) });
+    case 'personLeft':
+      return t('poker.friends.narrate.left', { who: whoName(t, e.playerId) });
     case 'matchEnded':
+      if (e.people && e.winnerId && e.winnerId !== 'human') return t('poker.friends.narrate.winner', { who: whoName(t, e.winnerId) });
       return e.humanPlace === 1 ? t('poker.narrate.won') : t('poker.narrate.ended', { place: e.humanPlace });
     default:
       void table;

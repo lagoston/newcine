@@ -3257,7 +3257,7 @@
       "count": "{{have}} de {{total}}",
       "intro": "Os 9 pôsteres do Pôster Poker. A cada quinta, um deles vale no torneio.",
       "ownedAria": "{{title}}, nº {{n}}. É seu.",
-      "lockedAria": "Pôster que você ainda não tem. Volta ao torneio em {{date}}.",
+      "lockedAria": "Pôster que você ainda não tem.",
       "thisWeek": "Nesta semana",
       "returns": "Volta em {{date}}",
       "unknown": "Pôster secreto",
@@ -3266,7 +3266,9 @@
       "ownedNote": "É seu, com o brilho dourado. Não entra em trocas.",
       "thisWeekNote": "Vale no torneio desta semana.",
       "returnsNote": "Volta ao torneio na quinta, {{date}}.",
-      "goTourney": "Ir para o torneio"
+      "goTourney": "Ir para o torneio",
+      "lockedNowAria": "{{title}}. Você ainda não tem; vale no torneio desta semana.",
+      "lockedNote": "Ainda não é seu. Ele volta ao torneio numa das próximas semanas."
     },
     "effects": {
       "early_flop": {

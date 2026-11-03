@@ -15,13 +15,16 @@
  */
 import type { PlayerId, PublicEvent, RivalId, TournamentConfig } from '../types.ts';
 import { Budget, BUDGET } from './budget.ts';
+import type { IdMap } from './friends.ts';
+import { remapIds, selfSwap } from './friends.ts';
 import { EXCHANGES, LINES } from './lines.pt.ts';
 import { EN } from './lines.en.ts';
 import { QUIP_LINES, QUIP_PACKS } from './quips.ts';
 import { balloonMs, renderText, SHORT_CHARS } from './render.ts';
 import type { Picked, PickedExchange, SelectEnv } from './select.ts';
 import {
-  drawFromDeck, eligibleExchanges, eligibleLines, exchangeIsNew, isFresh, pickExchange, pickLine, speakerWeight, textOf, varsFor,
+  citesAbsent, drawFromDeck, eligibleExchanges, eligibleLines, exchangeIsNew, isFresh, pickExchange, pickLine, speakerWeight, textOf,
+  varsFor,
 } from './select.ts';
 import type { Signal } from './signals.ts';
 import { RARITY_HOST, RIVALS, SignalTracker } from './signals.ts';
@@ -66,6 +69,12 @@ const CAST_REPEAT_PAYOFF: Partial<Record<string, { firstChance: number; laterCha
 /** Quanto um balão de troca espera a vez da pessoa fechar antes de a troca cair. */
 const HOLD_MAX_MS = 20000;
 
+/**
+ * Mesa com amigos (H3, 03/11/2026): reações a convidados que contam no teto `BUDGET.guestMax`
+ * (além do orçamento de sempre). Eliminações, saída e despedida ficam fora do teto.
+ */
+const GUEST_CAPPED = new Set<Trigger>(['guestPot', 'guestAllIn', 'guestBonus', 'away']);
+
 interface Part { speaker: RivalId | 'human'; text: string; lineId: string; emote?: Emote }
 
 interface QItem {
@@ -88,6 +97,8 @@ interface QItem {
   signal?: Signal;
   role: NonNullable<SpeechItem['debug']>['role'];
   farewell?: boolean;
+  /** Conta no teto de reações a convidados (mesa com amigos). */
+  guest?: boolean;
 }
 
 interface Active { item: QItem; index: number; nextAt: number; heldSince: number | null }
@@ -130,6 +141,13 @@ class DialogueDirector implements Director {
   private pendingTableWinner = false;
   private creditsDone = false;
   private opened = false;
+  // --- Mesa com amigos (H3, 03/11/2026) ---
+  /** Troca de ids deste aparelho (selfId ↔ 'human'); null fora da mesa com amigos. */
+  private idMap: IdMap | null = null;
+  private guestBalloons = 0;
+  /** Para onde foram os pôsteres apostados (momento `stakeResult`); undefined = pelo matchEnded. */
+  private stakeTo: PlayerId | null | undefined = undefined;
+  private pileP1Done = false;
 
   constructor(opts: DirectorOptions) {
     this.opts = opts;
@@ -170,10 +188,15 @@ class DialogueDirector implements Director {
   // Entradas
   // =========================================================================
 
-  onEvent(e: PublicEvent, ctx: TableContext): void {
+  onEvent(raw: PublicEvent, ctx: TableContext): void {
     this.ctx = ctx;
     this.env.ctx = ctx;
     this.env.now = this.clock();
+    // Mesa com amigos (H3): "eu" vira a visita ('human'); as outras pessoas ficam convidados.
+    // A troca vale a partida inteira, mesmo que um contexto venha sem `friends`.
+    if (ctx.friends) this.idMap = selfSwap(ctx.friends.selfId);
+    let e = remapIds(raw, this.idMap);
+    if (e.t === 'matchEnded' && ctx.friends && e.places.human !== undefined) e = { ...e, humanPlace: e.places.human };
     if (this.tutorial) {
       // No treino as falas vêm só dos beats; o rastreador segue para o silêncio do all-in.
       this.tracker.process(e, ctx);
@@ -204,8 +227,9 @@ class DialogueDirector implements Director {
         this.dropScope('inHand');
         break;
       case 'prizeMoved':
-        // quem eliminou e herdou o prêmio fala da herança, não só da eliminação
-        this.dropQueued((q) => q.trigger === 'eliminatesOracle' && q.parts[0]?.speaker === e.toId);
+        // quem eliminou e herdou o prêmio fala da herança, não só da eliminação (na casual de
+        // devolução a herança é calada: a fala da eliminação fica)
+        if (!this.tracker.reclaim) this.dropQueued((q) => q.trigger === 'eliminatesOracle' && q.parts[0]?.speaker === e.toId);
         break;
       case 'prizeCaptured':
         this.dropQueued((q) => q.trigger === 'eliminated' && q.parts[0]?.speaker === this.tracker.lastHolderBeforeCapture);
@@ -233,7 +257,8 @@ class DialogueDirector implements Director {
   }
 
   onIdleTick(msParada: number): void {
-    if (!this.humanTurnOpen || this.drawerOpen || this.tutorial || this.ctx.lifetimeMatches < 3) return;
+    // na mesa com amigos o relógio de 30 s já está na tela: ninguém apressa a visita (H3)
+    if (!this.humanTurnOpen || this.drawerOpen || this.tutorial || this.ctx.lifetimeMatches < 3 || this.friendsTable) return;
     const at = this.idleFired === 0 ? 25000 : this.idleFired === 1 ? 60000 : Infinity;
     if (msParada < at) return;
     this.idleFired++;
@@ -263,7 +288,9 @@ class DialogueDirector implements Director {
     })];
     const state = this.tracker.speakerState(target);
     const inHand = this.tracker.phase === 'inHand';
-    if (target === 'bogart' && this.tracker.sapoSilent) {
+    if (this.tracker.isAbsent(target)) {
+      // mesa com amigos: o alvo não está na mesa; fica só o balão da pessoa (H3)
+    } else if (target === 'bogart' && this.tracker.sapoSilent) {
       // com `calado` o Sapo responde só com o selo "…"
       items.push(this.makeItem({
         kind: 'line', priority: 1, parts: [{ speaker: 'bogart', text: '…', lineId: 'quip.silent', emote: 'dots' }],
@@ -333,12 +360,35 @@ class DialogueDirector implements Director {
       case 'intervalReturn':
         this.enqueueP1({ ...base, trigger: 'intervalReturn', priority: 1, variant: [], noExchange: true, phase: 'opening' }, 'opening');
         break;
+      // Mesa com amigos (H3): o mesmo que os eventos do motor (repetido = ignorado pelo rastreador)
+      case 'clockOut':
+        this.handleSignals(this.tracker.clockOut(this.mapId(m.playerId)));
+        break;
+      case 'away':
+        this.handleSignals(this.tracker.away(this.mapId(m.playerId), m.on));
+        break;
+      case 'personLeft':
+        this.handleSignals(this.tracker.left(this.mapId(m.playerId)));
+        break;
+      case 'stakeResult':
+        this.stakeTo = m.toId === null ? null : this.mapId(m.toId);
+        break;
     }
   }
 
-  cardLine(kind: 'recap' | 'intervalInvite', ctx: TableContext, info?: RecapInfo): SpeechItem | null {
+  private mapId(id: PlayerId): PlayerId {
+    return this.idMap ? this.idMap(id) : id;
+  }
+
+  /** Mesa com outras pessoas ou com oráculo sem lugar (mesa com amigos). */
+  private get friendsTable(): boolean {
+    return !!this.ctx.friends || this.ctx.mode === 'friends' || this.tracker.guests.size > 0 || this.tracker.absent.size > 0;
+  }
+
+  cardLine(kind: 'recap' | 'intervalInvite', ctx: TableContext, rawInfo?: RecapInfo): SpeechItem | null {
     this.ctx = ctx;
     this.env.ctx = ctx;
+    const info = remapIds(rawInfo, ctx.friends ? selfSwap(ctx.friends.selfId) : this.idMap);
     const variant: string[] = [];
     const extra: { lider?: PlayerId; portador?: PlayerId; cacife?: number; maoN?: number } = {};
     if (kind === 'recap' && info) {
@@ -348,7 +398,7 @@ class DialogueDirector implements Director {
       const mine = info.stacks.human ?? 0;
       extra.maoN = info.handNumber;
       extra.cacife = mine;
-      if (ctx.mode === 'bounty' && info.holderId && RIVALS.includes(info.holderId)) {
+      if (ctx.mode === 'bounty' && !ctx.reclaim && !this.tracker.reclaim && info.holderId && RIVALS.includes(info.holderId)) {
         variant.push('valendo');
         extra.portador = info.holderId;
       }
@@ -370,7 +420,9 @@ class DialogueDirector implements Director {
         if (line.on !== kind) continue;
         if (v === null ? (line.variant?.length ?? 0) > 0 : !line.variant?.includes(v)) continue;
         if (line.requires?.storyNot && this.hasStory(line.requires.storyNot)) continue;
+        if (this.tracker.isAbsent(line.speaker)) continue;   // mesa com amigos (H3)
         const raw = textOf(this.bank, line.id, line.pt, ctx.lang);
+        if (raw !== null && this.tracker.absent.size && citesAbsent(this.tracker, line.pt, raw, line.speaker, line.requires?.absent)) continue;
         const text = raw === null ? null : this.render(raw, line.speaker, extra);
         if (text) options.push({ line, speaker: line.speaker, text });
       }
@@ -398,6 +450,11 @@ class DialogueDirector implements Director {
     if (this.active) {
       const a = this.active;
       if (nowMs < a.nextAt) return null;
+      // trava final (H3): oráculo sem lugar nunca fala, nem no meio de uma troca
+      if (this.absentIn(a.item)) {
+        this.active = null;
+        return null;
+      }
       // Troca começada entre mãos que alcança a vez da pessoa: balão longo espera a vez
       // fechar (continua atômica: nada entra no meio); parada demais, o resto cai.
       const part = a.item.parts[a.index];
@@ -412,6 +469,7 @@ class DialogueDirector implements Director {
       return this.emitPart(a.item, a.index);
     }
     this.expire(nowMs);
+    if (this.tracker.absent.size) this.dropQueued((q) => this.absentIn(q));
     const start = this.pickStartable(nowMs);
     if (!start) return null;
     this.queue.splice(this.queue.indexOf(start), 1);
@@ -432,6 +490,11 @@ class DialogueDirector implements Director {
   // Fila
   // =========================================================================
 
+  /** Algum balão do item é de um oráculo sem lugar nesta mesa? */
+  private absentIn(q: QItem): boolean {
+    return q.parts.some((p) => p.speaker !== 'human' && this.tracker.isAbsent(p.speaker));
+  }
+
   private makeItem(p: Omit<QItem, 'enqueuedAt' | 'reserved'> & { reserved?: QItem['reserved'] }): QItem {
     return { reserved: null, ...p, enqueuedAt: null };
   }
@@ -439,6 +502,10 @@ class DialogueDirector implements Director {
   private refund(q: QItem): void {
     if (q.reserved) this.budget.refund(q.hand, q.reserved.cost, q.reserved.balloons, q.reserved.free);
     q.reserved = null;
+    if (q.guest) {
+      this.guestBalloons--;
+      q.guest = false;
+    }
   }
 
   private dropQueued(pred: (q: QItem) => boolean): void {
@@ -612,6 +679,21 @@ class DialogueDirector implements Director {
         continue;
       }
       if (s.trigger === 'effectReveal' && this.handBusy(s.hand)) continue;
+      if (s.trigger === 'effectPile') {
+        // Mesa com amigos (H3): dois pôsteres na mesma mão. Se a mão já tem explicação de
+        // efeito (P1), o "isso vai dar errado" não entra por cima; a 1ª vez da partida é P1,
+        // depois P3 com chance baixa.
+        const explaining = out.some((x) => x.trigger === 'effectCast' && x.priority === 1)
+          || this.queue.some((q) => q.hand === s.hand && q.priority === 1 && q.trigger === 'effectCast');
+        if (explaining) continue;
+        if (!this.pileP1Done) {
+          this.pileP1Done = true;
+          out.push({ ...s, priority: 1, chance: 1 });
+        } else {
+          out.push({ ...s, priority: 3, chance: 0.3 });
+        }
+        continue;
+      }
       out.push(s);
     }
     return out;
@@ -648,6 +730,8 @@ class DialogueDirector implements Director {
   private tryEnqueue(sig: Signal): boolean {
     if (!this.modeAllows(sig.priority)) return false;
     if (this.tracker.isOut('human') && sig.phase !== 'credits') return false;
+    // mesa com amigos: reações a convidados têm teto próprio (H3)
+    if (this.isGuestCapped(sig) && this.guestBalloons >= BUDGET.guestMax) return false;
     if ((sig.trigger === 'deal' || sig.trigger === 'flop') && !this.prevHandSilent(sig.hand)) return false;
     const needShort = this.humanTurnOpen || !!sig.short;
     // troca?
@@ -674,6 +758,10 @@ class DialogueDirector implements Director {
     this.env.decks.get(`${p.speaker}|${p.line.on}`)?.delete(p.line.id);
   }
 
+  private isGuestCapped(sig: Signal): boolean {
+    return GUEST_CAPPED.has(sig.trigger) || (sig.trigger === 'clockOut' && sig.variant.includes('amigo'));
+  }
+
   private enqueueLine(pick: Picked, sig: Signal, needShort: boolean): boolean {
     if (needShort && pick.text.length > SHORT_CHARS) return false;
     const h = sig.hand;
@@ -692,6 +780,11 @@ class DialogueDirector implements Director {
       role: pick.line.role, ids: [pick.line.id], story: pick.line.story, capKey: pick.capKey, hand: h,
       reserved: { cost: 1, balloons: 1, free: false },
     }));
+    if (this.isGuestCapped(sig)) {
+      this.queue[this.queue.length - 1].guest = true;
+      this.guestBalloons++;
+    }
+    if (sig.trigger === 'reclaimTaunt') this.tracker.reclaimTaunted = true;
     if (pick.line.once === 'match' || pick.line.once === 'session') this.env.playedMatch.add(pick.line.id);
     return true;
   }
@@ -773,6 +866,7 @@ class DialogueDirector implements Director {
     const lines: Line[] = tip.part ? cands : this.bank.lines.filter((l) => l.on === 'contextTip' && l.variant?.[0] === tip.kind);
     const queue: QItem[] = [];
     for (const line of lines.sort((a, b) => a.id.localeCompare(b.id))) {
+      if (this.tracker.isAbsent(line.speaker)) continue;   // mesa com amigos: o Raposo pode não estar (H3)
       const raw = textOf(this.bank, line.id, line.pt, this.ctx.lang);
       const text = raw === null ? null : this.render(raw, line.speaker);
       if (text === null) continue;
@@ -801,7 +895,8 @@ class DialogueDirector implements Director {
     if (ctx.returning) t.push('volta');
     if (ctx.localHour >= 0 && ctx.localHour < 5) t.push('madrugada');
     if (ctx.matchInSession >= 3) t.push('serie');
-    t.push(ctx.mode === 'bounty' ? 'valendo' : 'livre');
+    // casual de devolução (H3): nada de "valendo" (o pôster não é anunciado)
+    t.push(ctx.mode === 'bounty' && !this.tracker.reclaim ? 'valendo' : 'livre');
     const m = ctx.memory;
     if (m?.riverBluffHigh) t.push('memoria', 'blefador');
     if (m?.foldsMuch) t.push('memoria', 'pedra');
@@ -819,7 +914,12 @@ class DialogueDirector implements Director {
       this.openTournament(e, e.tournament, ctx, tags);
       return;
     }
-    const prizeSig: Signal | null = e.prize && ctx.prize && RIVALS.includes(e.prize.holderId)
+    if (this.friendsTable) {
+      this.openFriends(e, ctx, tags);
+      return;
+    }
+    // casual de devolução (H3): o pôster não é apresentado (nada de anúncio)
+    const prizeSig: Signal | null = !this.tracker.reclaim && e.prize && ctx.prize && RIVALS.includes(e.prize.holderId)
       ? { ...base, trigger: 'bountyIntro', holderId: e.prize.holderId, speakers: [e.prize.holderId],
           variant: [ctx.prize.kind, ctx.prize.rarity, `h.${e.prize.holderId}`] }
       : null;
@@ -873,6 +973,34 @@ class DialogueDirector implements Director {
     if (after) this.openLine({ ...after, noExchange: true });
   }
 
+  /**
+   * Mesa com amigos (H3, 03/11/2026): a abertura. Até 2 balões dos oráculos que sobraram: a
+   * saudação pelo número de oráculos (com 2, às vezes uma troca dos dois, sozinha) e mais um —
+   * os pôsteres apostados na sala ou, sem aposta, o "isso vai dar errado" quando há muitos
+   * pôsteres de efeito (3 ou mais, ou o mesmo efeito repetido). Sem oráculo na mesa, silêncio.
+   * Nada de 1ª visita aqui: a apresentação dos três fica para uma mesa com os três.
+   */
+  private openFriends(e: Extract<PublicEvent, { t: 'matchStarted' }>, ctx: TableContext, tags: string[]): void {
+    const n = this.tracker.seated.length;
+    if (n === 0) return;
+    this.budget.scaleRefill(BUDGET.friendsRefill[n] ?? 1);
+    const base = { priority: 1 as const, chance: 1, hand: 0, eventI: e.i, phase: 'opening' as const, scene: 'opening' as const };
+    const start: Signal = { ...base, trigger: 'friendsStart', variant: [`o${Math.min(n, 2)}`, ...tags] };
+    // pôsteres de efeito na mesa: do evento (E3: efeito + nível = pôsteres iguais) ou do contexto
+    const levels = e.effects?.length ? e.effects.map((x) => x.level)
+      : [...(ctx.friends?.effects ?? []).reduce((m, x) => m.set(x, (m.get(x) ?? 0) + 1), new Map<string, number>()).values()];
+    const posters = levels.reduce((a, b) => a + b, 0);
+    const pile = posters >= 3 || levels.some((l) => l >= 2);
+    let after: Signal | null = null;
+    if (ctx.friends?.stake) after = { ...base, trigger: 'friendsStake', variant: ['abertura', ctx.friends.stake] };
+    else if (pile) after = { ...base, trigger: 'effectPile', variant: ['abertura'] };
+    // a troca de quem cedeu o lugar só quando não há aposta nem pilha de pôsteres para contar
+    if (!after && n >= 2 && this.rng() < 0.35 && this.openExchange(start)) return;
+    this.openLine({ ...start, noExchange: true });
+    // o "vai dar errado" dito na abertura conta como o da partida (a mesma mão depois vira P3)
+    if (after && this.openLine({ ...after, noExchange: true }) && after.trigger === 'effectPile') this.pileP1Done = true;
+  }
+
   private openExchange(sig: Signal): boolean {
     const x = pickExchange(this.env, sig);
     if (!x) return false;
@@ -916,6 +1044,10 @@ class DialogueDirector implements Director {
       this.tournamentCredits(e, ctx, this.tracker.tournament, base, loan);
       return;
     }
+    if (this.friendsTable) {
+      this.friendsCredits(e, ctx, base);
+      return;
+    }
     if (e.reason === 'forfeit' || e.reason === 'abandoned') {
       this.enqueueP1({ ...base, trigger: 'playerLeaves', noExchange: true }, 'credits');
       return;
@@ -925,7 +1057,8 @@ class DialogueDirector implements Director {
       else this.enqueueP1({ ...base, trigger: 'playerWinsMatch', noExchange: true }, 'credits');
       return;
     }
-    if (ctx.mode === 'bounty') {
+    // casual de devolução (H3): créditos de mesa livre ("se não recuperou, nada especial")
+    if (ctx.mode === 'bounty' && !this.tracker.reclaim) {
       if (loan) {
         this.enqueueP1({ ...base, trigger: 'loanCredits', variant: [e.prizeCaptured ? 'premio' : 'perdeu'], noExchange: true }, 'credits');
       } else if (!e.prizeCaptured && this.tracker.holderId && RIVALS.includes(this.tracker.holderId)) {
@@ -942,6 +1075,35 @@ class DialogueDirector implements Director {
     } else {
       this.pendingTableWinner = true;
     }
+  }
+
+  /**
+   * Mesa com amigos (H3, 03/11/2026): créditos. Venceu a visita, um amigo ou um oráculo (este
+   * fala por si); com aposta, um 2º balão diz para onde foram os pôsteres (voltam com a
+   * visita, vão com o amigo, ficam com o oráculo). Saiu no meio: a despedida de sempre.
+   */
+  private friendsCredits(e: Extract<PublicEvent, { t: 'matchEnded' }>, ctx: TableContext, base: Omit<Signal, 'trigger'>): void {
+    if (!this.tracker.seated.length) return;
+    const p1 = (trigger: Trigger, extra: Partial<Signal> = {}): void => {
+      this.enqueueP1({ ...base, trigger, noExchange: true, ...extra }, 'credits');
+    };
+    if (e.reason === 'forfeit' || e.reason === 'abandoned') {
+      p1('playerLeaves');
+      return;
+    }
+    const w = e.winnerId ?? (e.humanPlace === 1 ? 'human' : null);
+    const who = w === 'human' ? 'voce' : w && this.tracker.isGuest(w) ? 'amigo' : w && RIVALS.includes(w) ? 'oraculo' : null;
+    if (!who) return;
+    const oracle = who === 'oraculo' ? (w as RivalId) : null;
+    p1('friendsEnd', oracle ? { variant: [who], actorId: oracle, speakers: [oracle] } : { variant: [who] });
+    if (!ctx.friends?.stake) return;
+    // o momento `stakeResult` (se veio) manda; senão, os pôsteres seguem quem venceu
+    const to = this.stakeTo !== undefined ? this.stakeTo : w;
+    if (to === null) return;
+    const dest = to === 'human' ? 'voltou' : this.tracker.isGuest(to) ? 'amigo' : RIVALS.includes(to) ? 'oraculo' : null;
+    if (!dest) return;
+    if (dest === 'oraculo') p1('friendsStake', { variant: [dest], actorId: to, speakers: [to as RivalId] });
+    else p1('friendsStake', { variant: [dest] });
   }
 
   /**

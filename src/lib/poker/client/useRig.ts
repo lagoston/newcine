@@ -105,6 +105,9 @@ export function useRig(mode: MatchMode, home: PokerHome | null): Rig {
       view: view ?? blankView(mode),
       reducedMotion: reduced,
       tournament: e.tournament,
+      // Fase 3 (H3): mesa com amigos e casual de devolução.
+      friends: e.friends,
+      reclaim: e.reclaim,
     };
   };
   const table = useTable({

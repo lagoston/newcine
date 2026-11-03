@@ -142,14 +142,7 @@ const Credits: React.FC<{
         {t('poker.credits.biggestPot', { amount: fmt(data.biggestPot, lang) })}
       </p>,
     );
-  if (data.title)
-    lines.push(
-      <p key="title" className="pk-credit-line" style={{ color: data.title.rankUp ? '#FFE8A3' : undefined }}>
-        {data.title.rankUp
-          ? t('poker.credits.newTitle', { title: t(`poker.titles.${data.title.id}`) })
-          : t('poker.credits.titleNow', { title: t(`poker.titles.${data.title.id}`) })}
-      </p>,
-    );
+  // O título (Figurante… Lenda da Sessão) saiu da interface do jogo (03/11/2026, fase 3).
   // Tags novas (adendo de 03/11/2026): da categoria Jogos, em vermelho, com [Equipar].
   data.marks.forEach((tagId) => {
     const m = MARKS.find((x) => x.tagId === tagId);

@@ -10,6 +10,7 @@ import {
   fetchTagProgress,
   fetchGameTagProgress,
   gameTagGoal,
+  sortGameTags,
   unlockedPinsFrom,
   type UnlockedPin,
   type SpecialTagStatus,
@@ -17,6 +18,7 @@ import {
 } from '../lib/tagProgress';
 import type { GameId } from '../lib/tags';
 import OracleSheet, { SheetFade } from './OracleSheet';
+import { sharedHome } from '../lib/poker/client/usePokerHome';
 import { NIGHT, VELVET, PAPER, MIST, FOCUS_RING, tagCategoryStyle, withAlpha } from '../lib/oracleTheme';
 
 interface TagPinsModalProps {
@@ -57,6 +59,12 @@ const GAME_SECTIONS: GameId[] = ['jackpot', 'poker'];
 // Modal "Tags": as tags desbloqueadas (e qual está no perfil agora) e o
 // progresso de cada categoria. O cálculo do progresso mora em
 // lib/tagProgress.ts, o mesmo usado pelo card de tags e pelo Personalizar.
+// 03/11/2026 (fase 3, pedido do Bruno): na aba Jogos entram também as tags do
+// Pôster Poker ainda fora do ar, com progresso, para quem já joga (o pôquer
+// liberado para a conta: get_poker_home().enabled — hoje, os testadores).
+
+// O pôquer está liberado para a conta? Sem rede ou sem o pôquer: não.
+const pokerEnabled = (): Promise<boolean> => sharedHome().then((h) => !!h?.enabled, () => false);
 const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, onSave }) => {
   const { session } = useAuth();
   const { t, i18n } = useTranslation();
@@ -88,11 +96,12 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
     try {
       setLoading(true);
       const isSelf = userId === session?.user?.id;
-      const [progress, { data: profileData }, games] = await Promise.all([
+      const [progress, { data: profileData }, games, poker] = await Promise.all([
         fetchTagProgress(userId),
         supabase.from('profiles').select('active_tag').eq('id', userId).single(),
         // o banco só devolve o progresso de quem está logado
         isSelf ? fetchGameTagProgress() : Promise.resolve({} as Record<string, number>),
+        isSelf ? pokerEnabled() : Promise.resolve(false),
       ]);
 
       setRatedMoviesCount(progress.ratedCount);
@@ -101,7 +110,7 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
       setThemeTagProgress(progress.theme);
       setOracleTagProgress(progress.oracle);
       setSpecialTags(progress.specialTags);
-      setGameTags(progress.gameTags);
+      setGameTags(poker && progress.pokerUpcomingTags.length ? sortGameTags([...progress.gameTags, ...progress.pokerUpcomingTags]) : progress.gameTags);
       setGameProgress(games);
       setActiveTag((profileData?.active_tag as ActiveTag | null) ?? null);
 
@@ -388,7 +397,7 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
               {activeTag.emoji}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium" style={{ color: tagCategoryStyle(activeTag.category).accent }}>
+              <p className="text-xs font-medium" style={{ color: tagCategoryStyle(activeTag.category).label }}>
                 {t('customize.tags.currentlyActive')}
               </p>
               <p className="font-semibold truncate" style={{ color: PAPER }}>
@@ -502,7 +511,7 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
           <div className="space-y-5">
             {GAME_SECTIONS.filter((game) => rows.some((row) => (row.game ?? 'jackpot') === game)).map((game) => (
               <section key={game} aria-labelledby={`tags-game-${game}`}>
-                <h3 id={`tags-game-${game}`} className="mb-2.5 text-xs font-semibold uppercase tracking-wider" style={{ color: tagCategoryStyle('games').accent }}>
+                <h3 id={`tags-game-${game}`} className="mb-2.5 text-xs font-semibold uppercase tracking-wider" style={{ color: tagCategoryStyle('games').label }}>
                   {t(`customize.tags.game.${game}`)}
                 </h3>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">{rows.filter((row) => (row.game ?? 'jackpot') === game).map(renderTagRow)}</ul>
@@ -540,7 +549,8 @@ const TagPinsModal: React.FC<TagPinsModalProps> = ({ isOpen, onClose, userId, on
         <div role="tablist" aria-label={t('profile.tagPins')} className="flex gap-2 overflow-x-auto px-5 sm:px-7 py-1.5 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
           {categories.map(({ id, label, icon: Icon }) => {
             const active = viewMode === id;
-            const accent = id === 'pins' ? '#A78BFA' : tagCategoryStyle(id).accent;
+            // texto e ícone da aba: a cor de texto da categoria (em Jogos, mais clara que o accent)
+            const accent = id === 'pins' ? '#A78BFA' : tagCategoryStyle(id).label;
             const count = id === 'pins' ? pins.length : pinsByCategory(id);
             return (
               <button

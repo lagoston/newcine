@@ -9,7 +9,8 @@
  *
  * Alavancas da prévia (localStorage): `poker.mock.week` = um efeito (força o pôster da
  * semana), `poker.mock.castAt` = mão da 1ª lançada, `poker.mock.cobra = 1` (a Cobra traz
- * um item), `poker.mock.edge404 = 1` (Edge ainda não publicada).
+ * um item), `poker.mock.edge404 = 1` (Edge ainda não publicada), `poker.mock.disabled = 1`
+ * (pôquer fechado para a conta).
  *
  * Só para a prévia e para o desenvolvimento: não concede nada de verdade.
  */
@@ -22,6 +23,8 @@ import { PokerClientError } from './apiTypes.ts';
 import { buildConfig } from './matchConfig.ts';
 import { randomSeed, uuid } from './freeStore.ts';
 import { POKER_PREVIEW } from './flags.ts';
+import { makeMockFriends } from './mockFriends.ts';
+import type { CasualApi, FriendsApi } from './friends.ts';
 import {
   CYCLE,
   ENTRY_CHIPS,
@@ -245,7 +248,25 @@ function finish(db: MockDb, m: MockMatch, status: BountyResult['status'], place:
   } as BountyResult;
 }
 
-export const mockApi: PokerApiLike = {
+// A mesa com amigos e a casual de devolução (fase 3, G3): o servidor falso mora em
+// mockFriends.ts e lê/mexe na coleção deste banco falso.
+const mockFriendsApi = makeMockFriends({
+  ppOwned: () => load().ppOwned,
+  posters: () => load().posters,
+  movePoster: (p, gain) => {
+    const db = load();
+    const have = db.posters.find((x) => x.item_id === p.itemId && x.effect === p.effect);
+    if (gain) {
+      if (have) have.lost = false;
+      else db.posters.push({ item_id: p.itemId, effect: p.effect as MockPoster['effect'], title: p.title, title_en: p.titleEn, year: null, file_path: p.filePath, serial: p.serial, rarity: p.rarity });
+    } else if (have) have.lost = true;
+    save(db);
+  },
+});
+
+export const mockApi: PokerApiLike & { friends: FriendsApi; casual: CasualApi } = {
+  friends: mockFriendsApi.friends,
+  casual: mockFriendsApi.casual,
   async getHome(): Promise<PokerHome> {
     await latency();
     const db = load();
@@ -255,8 +276,9 @@ export const mockApi: PokerApiLike = {
     const wins = db.free.wins + db.bounty.wins;
     const active = db.active && db.active.status === 'active' ? db.active : null;
     const home = {
-      enabled: POKER_PREVIEW,
-      open: POKER_PREVIEW,
+      // `poker.mock.disabled = 1` (prévia): o pôquer fechado para a conta.
+      enabled: POKER_PREVIEW && knob('disabled') !== '1',
+      open: POKER_PREVIEW && knob('disabled') !== '1',
       proto_min: 2,
       bounty: null,
       tournament: {

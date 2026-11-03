@@ -70,15 +70,15 @@ export function endOfHandTilt(st: MatchStateX, result: HandResult, flags: HandFl
 }
 
 /** A pessoa mostrou as cartas depois de levar sem showdown: blefe exposto contra quem largou. */
-export function tiltOnHumanShow(st: MatchStateX, result: HandResult, cards: Card[]): TiltChange[] {
+export function tiltOnHumanShow(st: MatchStateX, result: HandResult, cards: Card[], who: PlayerId = 'human'): TiltChange[] {
   const out: TiltChange[] = [];
   const lastAggr = [...result.actions].reverse().find((a) => a.type === 'bet' || a.type === 'raise')?.playerId;
-  if (lastAggr !== 'human' || !isAirShown(cards, result.board)) return out;
+  if (lastAggr !== who || !isAirShown(cards, result.board)) return out;
   const folders = new Set(result.actions.filter((a) => a.type === 'fold').map((a) => a.playerId));
   for (const id of Object.keys(st.bots)) {
     const prof = st.config.profiles[id];
     const alive = st.game.players.some((q) => q.id === id && q.status !== 'eliminated');
-    if (alive && prof?.tilt.trigger.bluffedByShown && folders.has(id)) trigger(st, id, 'human', out);
+    if (alive && prof?.tilt.trigger.bluffedByShown && folders.has(id)) trigger(st, id, who, out);
   }
   return out;
 }

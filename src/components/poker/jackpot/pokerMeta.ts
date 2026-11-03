@@ -140,6 +140,9 @@ export const BLEFE_ROUTES = {
   collection: `${PP_BASE}/colecao`,
   tourneyStart,
   resume: `${PP_BASE}/torneio/mesa`,
+  // Com amigos (fase 3, 03/11/2026): a sala (criar, convidar, código) e a mesa.
+  friends: `${PP_BASE}/amigos`,
+  friendsTable: (roomId: string) => `${PP_BASE}/amigos/mesa?sala=${encodeURIComponent(roomId)}`,
   // Compatibilidade (entradas antigas): entra no torneio com fichas.
   bounty: (week: string, prizeId: string) => tourneyStart(week, prizeId),
 };

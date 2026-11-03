@@ -27,10 +27,27 @@
  *     aberta, créditos (vitória, derrota, desistência), recapitulação.
  * 4b. Fuzz de torneio: partidas com os 9 efeitos (motor do E se já lança efeitos; senão,
  *     efeitos injetados nas partidas do simulador), com as regras de sempre e as do pôster.
+ *
+ * Mesa com amigos e casual de devolução (pacote H3, 03/11/2026):
+ * 1d. Estático: falas para cada oráculo em cada situação (qualquer um pode ser o único
+ *     sentado), sem gênero/nome para a outra pessoa, citação de oráculo só nas falas sobre a
+ *     ausência dele, curtas onde cabem na vez, provocação da devolução sem explicar nada.
+ * 6.  Cenários: 2, 3 e 4 pessoas (oráculo sem lugar nunca fala, nem na Réplica), cada aparelho
+ *     só se vê como a visita, amigo tirando amigo, a visita caindo para um amigo, créditos e
+ *     aposta (volta, amigo, oráculo), relógio/ausência/saída, muitos pôsteres de efeito.
+ * 6b. Fuzz (--fn N): partidas do simulador com 1 a 3 oráculos trocados por pessoas, vistas de
+ *     um aparelho sorteado, com efeitos, estouros e ausência injetados: as regras de sempre,
+ *     oráculo ausente nunca fala nem é citado, nada de outra pessoa sai como da visita, teto
+ *     das reações a amigos, orçamento por número de oráculos.
+ * 6d. Mesa com amigos no motor do E3 (--rn N), quando ele já monta: pessoas ao acaso (estouros e
+ *     saída), até 8 pôsteres de efeito, aparelhos com eventos crus e com o povEvents.
+ * 6c. Casual de devolução: nada de "valendo", no máximo uma provocação (do portador, antes de
+ *     recuperar), reação de quem carregava exatamente quando a pessoa recupera.
  */
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as ENGINE from '../../src/lib/poker/index.ts';
 import {
   applyHumanAction, createMatch, createRng, humanLegal, tableView, toPublicEvents,
 } from '../../src/lib/poker/index.ts';
@@ -39,7 +56,9 @@ import type {
 } from '../../src/lib/poker/index.ts';
 import type { Card } from '../../src/lib/poker/cards.ts';
 import type { EffectCastData, PosterEffectId, TournamentConfig } from '../../src/lib/poker/types.ts';
+import { BUDGET } from '../../src/lib/poker/dialogue/budget.ts';
 import { createDirector, DEFAULT_BANK } from '../../src/lib/poker/dialogue/director.ts';
+import { mentionsOf, remapIds } from '../../src/lib/poker/dialogue/friends.ts';
 import { describeHand, handPhrase } from '../../src/lib/poker/dialogue/handNames.ts';
 import { measure, MAX_CHARS, SHORT_CHARS, varsOf } from '../../src/lib/poker/dialogue/render.ts';
 import { memoryStorage } from '../../src/lib/poker/dialogue/storage.ts';
@@ -190,10 +209,12 @@ const VETERAN: Record<string, string> = { first_visit: 'x', 'tip.allin': 'x', 't
   'tip.blinds': 'x', 'tip.ante': 'x', 'tip.headsup': 'x' };
 
 interface CtxOpts {
-  mode?: 'free' | 'bounty' | 'tutorial'; lang?: 'pt' | 'en'; title?: TitleId; lifetimeMatches?: number; matchInSession?: number;
+  mode?: 'free' | 'bounty' | 'tutorial' | 'friends'; lang?: 'pt' | 'en'; title?: TitleId; lifetimeMatches?: number; matchInSession?: number;
   returning?: boolean; localHour?: number; story?: Record<string, string>; talk?: 'all' | 'important' | 'none';
   speed?: 'normal' | 'fast' | 'turbo'; prize?: TableContext['prize']; nemesis?: RivalId; customer?: RivalId;
   tournament?: TableContext['tournament'];
+  // mesa com amigos e casual de devolução (pacote H3)
+  friends?: TableContext['friends']; reclaim?: TableContext['reclaim'];
 }
 
 function makeCtx(o: CtxOpts = {}, view: TableView = EMPTY_VIEW): TableContext {
@@ -202,6 +223,7 @@ function makeCtx(o: CtxOpts = {}, view: TableView = EMPTY_VIEW): TableContext {
     matchInSession: o.matchInSession ?? 1, returning: o.returning ?? false, localHour: o.localHour ?? 21,
     story: o.story ?? VETERAN, speed: o.speed ?? 'normal', talk: o.talk ?? 'all', view,
     reducedMotion: false, prize: o.prize, nemesis: o.nemesis, customer: o.customer, tournament: o.tournament,
+    friends: o.friends, reclaim: o.reclaim,
   };
 }
 
@@ -1086,6 +1108,79 @@ section('2b. Cenários do Pôster Poker');
 }
 
 // ---------------------------------------------------------------------------
+// Regras do Pôster Poker numa partida (usadas pelas fixtures e pelo fuzz de torneio)
+// ---------------------------------------------------------------------------
+
+interface PosterStats { castLines: number; casts: number; explains: number; bonusLines: number; bonuses: number; tellLines: number; revealLines: number }
+
+/** As regras do Pôster Poker numa partida já tocada. */
+function verifyPoster(tag: string, events: PublicEvent[], emitted: Emitted[], stake: 'chips' | 'poster'): PosterStats {
+  const st: PosterStats = { castLines: 0, casts: 0, explains: 0, bonusLines: 0, bonuses: 0, tellLines: 0, revealLines: 0 };
+  const evByI = new Map<number, PublicEvent>(events.map((e) => [e.i, e]));
+  const posOf = new Map<number, number>(events.map((e, j) => [e.i, j]));
+  st.casts = events.filter((e) => e.t === 'effectCast').length;
+  st.bonuses = events.filter((e) => e.t === 'effectBonus').length;
+  const marks = new Map<string, Set<string>>();
+  for (const e of events) if (e.t === 'tellMark') {
+    const key = `${e.handNumber}|${e.playerId}`;
+    marks.set(key, (marks.get(key) ?? new Set()).add(e.mark));
+  }
+  const castHands = new Set(emitted.filter((o) => o.item.debug?.trigger === 'effectCast').map((o) => o.item.debug!.hand));
+  /** Último cue de `p` na mão, até o evento de índice `upto`. */
+  const lastCue = (p: PlayerId, upto: number): Cue | null => {
+    for (let j = Math.min(upto, events.length - 1); j >= 0; j--) {
+      const e = events[j];
+      if (e.t === 'handStarted' || e.t === 'handComplete') return null;
+      if (e.t === 'action' && e.playerId === p) return e.action === 'fold' ? null : e.cue ?? null;
+    }
+    return null;
+  };
+  for (const em of emitted) {
+    const d = em.item.debug;
+    if (!d) continue;
+    const line = byId.get(em.item.lineId);
+    if (POSTER_IN_HAND.has(d.trigger) && em.item.speaker === 'fincher') {
+      check(lastCue('fincher', em.evIndex) !== 'confiante', `${tag}: Raposo falou (${em.item.lineId}) com o anel`);
+    }
+    if (d.trigger === 'effectCast' && (!em.item.exchange || em.item.exchange.part === 1)) {
+      st.castLines++;
+      if (line?.variant?.includes('explica')) st.explains++;
+    }
+    if (d.trigger === 'tellMark' && line) {
+      st.tellLines++;
+      const key = `${d.hand}|${d.actorId}`;
+      if (line.variant?.length) check(!!marks.get(key)?.has(line.variant[0]), `${tag}: ${line.id} (${line.variant[0]}) sem esse tique`);
+      if (line.role === 'actor') {
+        check(line.speaker === d.actorId && !!d.cue && !!line.cue?.includes(d.cue), `${tag}: ${line.id} ator do tique com cue ${d.cue}`);
+        // o cue do sinal é o da aposta que levou o tique
+        const j = posOf.get(d.eventI) ?? -1;
+        const at = events[j];
+        const act = at?.t === 'action' ? at : events[j - 1];
+        check(act?.t === 'action' && act.playerId === d.actorId && act.cue === d.cue, `${tag}: ${line.id} cue ${d.cue} não é o da aposta`);
+      }
+    }
+    if (d.trigger === 'effectBonus') {
+      if (!em.item.exchange || em.item.exchange.part === 1) st.bonusLines++;
+      const b = evByI.get(d.eventI);
+      check(b?.t === 'effectBonus', `${tag}: fala de bônus sem bônus`);
+      if (b?.t === 'effectBonus' && line) {
+        check(line.variant!.includes(b.playerId === 'human' ? 'humano' : 'oraculo'), `${tag}: ${line.id} para bônus de ${b.playerId}`);
+        if (line.role === 'winner') check(line.speaker === b.playerId, `${tag}: ${line.id} de ${line.speaker}, bônus de ${b.playerId}`);
+      }
+    }
+    if (d.trigger === 'effectReveal') {
+      st.revealLines++;
+      check(!castHands.has(d.hand), `${tag}: carta aberta comentada na mão da lançada`);
+    }
+  }
+  const end = events.find((e) => e.t === 'matchEnded') as Extract<PublicEvent, { t: 'matchEnded' }> | undefined;
+  const credits = emitted.filter((o) => o.item.scene === 'credits').map((o) => o.item.debug?.trigger);
+  if (end && stake === 'poster' && end.humanPlace !== 1) check(credits.includes('stakeLost'), `${tag}: perdeu o pôster apostado sem fala (${credits})`);
+  if (end && end.humanPlace === 1) check(credits[0] === 'tournamentWon', `${tag}: venceu o torneio sem fala (${credits})`);
+  return st;
+}
+
+// ---------------------------------------------------------------------------
 // 3. Fixtures do A1
 // ---------------------------------------------------------------------------
 
@@ -1376,75 +1471,6 @@ function injectEffects(steps: StepIn[], meta: Map<number, PrivateMeta>, effect: 
   });
 }
 
-interface PosterStats { castLines: number; casts: number; explains: number; bonusLines: number; bonuses: number; tellLines: number; revealLines: number }
-
-/** As regras do Pôster Poker numa partida já tocada. */
-function verifyPoster(tag: string, events: PublicEvent[], emitted: Emitted[], stake: 'chips' | 'poster'): PosterStats {
-  const st: PosterStats = { castLines: 0, casts: 0, explains: 0, bonusLines: 0, bonuses: 0, tellLines: 0, revealLines: 0 };
-  const evByI = new Map<number, PublicEvent>(events.map((e) => [e.i, e]));
-  const posOf = new Map<number, number>(events.map((e, j) => [e.i, j]));
-  st.casts = events.filter((e) => e.t === 'effectCast').length;
-  st.bonuses = events.filter((e) => e.t === 'effectBonus').length;
-  const marks = new Map<string, Set<string>>();
-  for (const e of events) if (e.t === 'tellMark') {
-    const key = `${e.handNumber}|${e.playerId}`;
-    marks.set(key, (marks.get(key) ?? new Set()).add(e.mark));
-  }
-  const castHands = new Set(emitted.filter((o) => o.item.debug?.trigger === 'effectCast').map((o) => o.item.debug!.hand));
-  /** Último cue de `p` na mão, até o evento de índice `upto`. */
-  const lastCue = (p: PlayerId, upto: number): Cue | null => {
-    for (let j = Math.min(upto, events.length - 1); j >= 0; j--) {
-      const e = events[j];
-      if (e.t === 'handStarted' || e.t === 'handComplete') return null;
-      if (e.t === 'action' && e.playerId === p) return e.action === 'fold' ? null : e.cue ?? null;
-    }
-    return null;
-  };
-  for (const em of emitted) {
-    const d = em.item.debug;
-    if (!d) continue;
-    const line = byId.get(em.item.lineId);
-    if (POSTER_IN_HAND.has(d.trigger) && em.item.speaker === 'fincher') {
-      check(lastCue('fincher', em.evIndex) !== 'confiante', `${tag}: Raposo falou (${em.item.lineId}) com o anel`);
-    }
-    if (d.trigger === 'effectCast' && (!em.item.exchange || em.item.exchange.part === 1)) {
-      st.castLines++;
-      if (line?.variant?.includes('explica')) st.explains++;
-    }
-    if (d.trigger === 'tellMark' && line) {
-      st.tellLines++;
-      const key = `${d.hand}|${d.actorId}`;
-      if (line.variant?.length) check(!!marks.get(key)?.has(line.variant[0]), `${tag}: ${line.id} (${line.variant[0]}) sem esse tique`);
-      if (line.role === 'actor') {
-        check(line.speaker === d.actorId && !!d.cue && !!line.cue?.includes(d.cue), `${tag}: ${line.id} ator do tique com cue ${d.cue}`);
-        // o cue do sinal é o da aposta que levou o tique
-        const j = posOf.get(d.eventI) ?? -1;
-        const at = events[j];
-        const act = at?.t === 'action' ? at : events[j - 1];
-        check(act?.t === 'action' && act.playerId === d.actorId && act.cue === d.cue, `${tag}: ${line.id} cue ${d.cue} não é o da aposta`);
-      }
-    }
-    if (d.trigger === 'effectBonus') {
-      if (!em.item.exchange || em.item.exchange.part === 1) st.bonusLines++;
-      const b = evByI.get(d.eventI);
-      check(b?.t === 'effectBonus', `${tag}: fala de bônus sem bônus`);
-      if (b?.t === 'effectBonus' && line) {
-        check(line.variant!.includes(b.playerId === 'human' ? 'humano' : 'oraculo'), `${tag}: ${line.id} para bônus de ${b.playerId}`);
-        if (line.role === 'winner') check(line.speaker === b.playerId, `${tag}: ${line.id} de ${line.speaker}, bônus de ${b.playerId}`);
-      }
-    }
-    if (d.trigger === 'effectReveal') {
-      st.revealLines++;
-      check(!castHands.has(d.hand), `${tag}: carta aberta comentada na mão da lançada`);
-    }
-  }
-  const end = events.find((e) => e.t === 'matchEnded') as Extract<PublicEvent, { t: 'matchEnded' }> | undefined;
-  const credits = emitted.filter((o) => o.item.scene === 'credits').map((o) => o.item.debug?.trigger);
-  if (end && stake === 'poster' && end.humanPlace !== 1) check(credits.includes('stakeLost'), `${tag}: perdeu o pôster apostado sem fala (${credits})`);
-  if (end && end.humanPlace === 1) check(credits[0] === 'tournamentWon', `${tag}: venceu o torneio sem fala (${credits})`);
-  return st;
-}
-
 const T_STATS = new Map<string, number>();
 
 function fuzzTournament(n: number, label: string): void {
@@ -1583,6 +1609,862 @@ section(`4b. Fuzz de torneio (${tN} partidas)`);
   fuzzTournament(tN, quick ? 'q' : 'full');
   console.log(`  ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }
+
+// ---------------------------------------------------------------------------
+// 6. Mesa com amigos e casual de devolução (pacote H3, 03/11/2026)
+// ---------------------------------------------------------------------------
+
+const FRIEND_TRIGGERS = new Set<string>(['friendsStart', 'friendsStake', 'effectPile', 'guestOut', 'outByGuest', 'guestPot', 'guestAllIn',
+  'guestBonus', 'clockOut', 'away', 'personLeft', 'friendsEnd']);
+const RECLAIM_TRIGGERS = new Set<string>(['reclaimTaunt', 'reclaimWon']);
+const GUEST_CAPPED_T = new Set<string>(['guestPot', 'guestAllIn', 'guestBonus', 'away']);
+const BOUNTY_TRIGGERS = new Set<string>(['bountyIntro', 'bountyTaunt', 'bountyAtRisk', 'bountySteal', 'bountyWon', 'bountyLost']);
+const ORACLES: RivalId[] = ['bogart', 'cypher', 'fincher'];
+const exById = new Map(EXCHANGES.map((x) => [x.id, x]));
+
+section('1d. Estático da mesa com amigos e da devolução');
+{
+  const fl = LINES.filter((l) => FRIEND_TRIGGERS.has(l.on) || RECLAIM_TRIGGERS.has(l.on));
+  const enOf = (id: string): string => (typeof EN[id] === 'string' ? EN[id] as string : '');
+  // a outra pessoa nunca pelo nome nem com gênero ("a outra visita", "a sua turma")
+  const GENDER = /\b(amig[oa]|convidad[oa]|eliminad[oa]|derrubad[oa]|tirad[oa])\b/i;
+  for (const l of fl) {
+    check(!GENDER.test(l.pt), `${l.id}: gênero para a pessoa: ${l.pt}`);
+    // fala da mesa com amigos só cita outro oráculo quando é sobre a ausência dele
+    const cites = mentionsOf(l.pt, l.speaker);
+    check(cites.every((r) => l.requires?.absent?.includes(r)), `${l.id}: cita ${cites} sem exigir a ausência`);
+    if (l.requires?.absent) check(!l.requires.absent.includes(l.speaker), `${l.id}: exige a própria ausência`);
+  }
+  for (const x of EXCHANGES.filter((e) => FRIEND_TRIGGERS.has(e.on))) {
+    check(!!x.requires?.absent?.length, `${x.id}: troca da mesa com amigos sem oráculo ausente definido`);
+    for (const p of x.parts) {
+      check(!x.requires?.absent?.includes(p.speaker), `${x.id}: balão de ${p.speaker}, que está ausente`);
+      // cita só quem está na troca ou quem saiu
+      check(mentionsOf(p.pt, p.speaker).every((r) => x.requires?.absent?.includes(r) || x.parts.some((q) => q.speaker === r)),
+        `${x.id}: cita oráculo que pode não estar na mesa`);
+    }
+  }
+  // cada oráculo pode ser o único sentado: todos têm fala para cada situação
+  const need: [string, string | null][] = [['friendsStart', 'o1'], ['friendsStart', 'o2'], ['friendsStake', 'abertura'], ['friendsStake', 'voltou'],
+    ['friendsStake', 'amigo'], ['friendsStake', 'oraculo'], ['effectPile', 'abertura'], ['effectPile', 'mesma'], ['guestOut', 'porVoce'],
+    ['guestOut', 'porAmigo'], ['guestOut', 'porOraculo'], ['outByGuest', null], ['guestPot', null], ['guestAllIn', null], ['guestBonus', null],
+    ['clockOut', 'voce'], ['clockOut', 'amigo'], ['away', 'amigo'], ['away', 'voltou'], ['personLeft', null], ['friendsEnd', 'voce'],
+    ['friendsEnd', 'amigo'], ['friendsEnd', 'oraculo'], ['reclaimTaunt', null], ['reclaimWon', null]];
+  for (const s of ORACLES) {
+    for (const [t, v] of need) {
+      check(LINES.some((l) => l.speaker === s && l.on === t && (v ? !!l.variant?.includes(v) : !l.variant?.length)), `sem fala ${s}/${t}/${v ?? '-'}`);
+    }
+    check(LINES.some((l) => l.speaker === s && l.on === 'guestOut' && l.role === 'actor'), `${s}: sem fala de quem tirou o amigo`);
+  }
+  // falas que podem cair na vez da pessoa: curtas nos dois idiomas
+  for (const l of fl.filter((x) => ['guestAllIn', 'clockOut', 'reclaimTaunt', 'reclaimWon'].includes(x.on)
+    || (x.on === 'effectPile' && x.variant?.includes('mesma')))) {
+    check(!!l.curta && measure(enOf(l.id), 'en') <= SHORT_CHARS, `${l.id}: precisa ser curta (pt e en)`);
+  }
+  // o all-in de outra pessoa sai no meio da mão: regras de tell
+  for (const l of fl.filter((x) => x.on === 'guestAllIn')) {
+    if (l.speaker === 'bogart') check(JSON.stringify(l.cue) === '["nervoso"]' && l.out === 'also', `${l.id}: Sapo só nervoso ou fora`);
+    if (l.speaker === 'fincher') check(!!l.cue && !l.cue.includes('confiante'), `${l.id}: Raposo com o anel`);
+  }
+  // devolução: a provocação é do portador, curta e ambígua; nunca explica o mecanismo
+  const FORBID_PT = /recuper|devolv|de volta|resgat|a cada|partidas|elimin|me venc|vença|ganhe/i;
+  const FORBID_EN = /recover|get it back|back to you|win it back|rescue|reclaim|every \w+ match|eliminat|beat me/i;
+  for (const l of fl.filter((x) => x.on === 'reclaimTaunt')) {
+    check(l.role === 'carrier', `${l.id}: provocação de quem não carrega`);
+    check(!FORBID_PT.test(l.pt) && !FORBID_EN.test(enOf(l.id)), `${l.id}: a provocação explica o mecanismo: ${l.pt}`);
+  }
+  for (const l of fl.filter((x) => x.on === 'reclaimWon')) check(l.role === 'carrier' && l.priority === 1, `${l.id}: reação de quem carregava (P1)`);
+  console.log(`  ${fl.length} falas novas (${fl.filter((l) => FRIEND_TRIGGERS.has(l.on)).length} da mesa com amigos, ` +
+    `${fl.filter((l) => RECLAIM_TRIGGERS.has(l.on)).length} da devolução), ${EXCHANGES.filter((e) => FRIEND_TRIGGERS.has(e.on)).length} trocas`);
+}
+
+// --- apoio: eventos sintéticos da mesa com amigos ---------------------------
+
+const LV0 = { index: 0, sb: 25, bb: 50, ante: 0, handsLeft: 5, next: null };
+type PE = PublicEvent;
+function fStart(i: number, seats: PlayerId[], extra: Record<string, unknown> = {}): PE {
+  return { i, t: 'matchStarted', mode: 'friends', seats: seats.map((id, k) => ({ id, seat: k, stack: 1500 })), loan: 0, prize: null,
+    level: LV0, people: seats.filter((x) => /^p\d$/.test(x)), ...extra } as PE;
+}
+function fHand(i: number, n: number, ids: PlayerId[]): PE {
+  return { i, t: 'handStarted', handNumber: n, buttonId: ids[0], sbId: ids[1 % ids.length], bbId: ids[2 % ids.length], level: LV0,
+    stacks: Object.fromEntries(ids.map((id) => [id, 1500])) } as PE;
+}
+function fAct(i: number, pid: PlayerId, action: 'fold' | 'check' | 'call' | 'bet' | 'raise', extra: Record<string, unknown> = {}): PE {
+  return { i, t: 'action', playerId: pid, street: 'preflop', action, amount: 100, to: 100, toCall: 0, potAfter: 300, allIn: false,
+    shortAllIn: false, stackBefore: 1500, sizeClass: action === 'bet' || action === 'raise' ? 'big' : null,
+    ...(ORACLES.includes(pid) ? { cue: 'neutro', thinkMs: 800 } : {}), ...extra } as PE;
+}
+function fDone(i: number, n: number, winners: PlayerId[], net: Record<string, number>, potBB = 4): PE {
+  return { i, t: 'handComplete', handNumber: n, net, winnerIds: winners, wentToShowdown: false, potBB, flags: {} } as PE;
+}
+function fElim(i: number, pid: PlayerId, by: PlayerId | null, place: number, n: number): PE {
+  return { i, t: 'eliminated', playerId: pid, place, byId: by, handNumber: n } as PE;
+}
+function fEnd(i: number, places: Record<string, number>, winnerId: PlayerId | null, humanPlace: number, reason = 'won'): PE {
+  return { i, t: 'matchEnded', places, winnerId, humanPlace, reason, prizeCaptured: false } as PE;
+}
+function fCast(i: number, effect: PosterEffectId, n: number, castNo = 1): PE {
+  return { i, t: 'effectCast', effect, handNumber: n, castNo, data: FX_DATA[effect] } as PE;
+}
+
+/** Toca eventos crus no Diretor do aparelho de `selfId`; a vez da pessoa abre antes de cada ação dela. */
+function playFriends(stage: Stage, events: PE[], ctxBase: CtxOpts, selfId: PlayerId, rng: () => number, all: PE[],
+  opts: { quips?: boolean; people?: PlayerId[] } = {}): void {
+  const ctx = makeCtx(ctxBase);
+  for (const e of events) {
+    if (e.t === 'action' && !ORACLES.includes(e.playerId)) {
+      if (e.playerId === selfId && !e.auto) {
+        stage.turnOpen = true;
+        stage.dir.onHumanTurn(true);
+        if (opts.quips && rng() < 0.08) stage.dir.onQuip(['R1', 'R2', 'R3', 'R4'][Math.floor(rng() * 4)], ORACLES[Math.floor(rng() * 3)]);
+        const think = 1500 + Math.floor(rng() * 4000);
+        for (let ms = 0; ms < think; ms += 1000) {
+          stage.dir.onIdleTick(ms + 26000);   // na mesa com amigos o Diretor não apressa ninguém
+          stage.pump(1000);
+        }
+        stage.turnOpen = false;
+        stage.dir.onHumanTurn(false);
+      } else if (!e.auto) {
+        stage.pump(2000 + Math.floor(rng() * 6000));   // a outra pessoa pensa (até 30 s no relógio)
+      }
+    }
+    all.push(e);
+    stage.evIndex = all.length - 1;
+    if (e.t === 'handStarted') stage.hand = e.handNumber;
+    stage.dir.onEvent(e, ctx);
+    stage.pump(eventMs(e));
+  }
+  stage.pump(20000);
+}
+
+interface FriendStats { balloons: number; guestCapped: number; byTrigger: Map<string, number> }
+
+/** As regras da mesa com amigos numa partida já tocada (eventos crus, como a Edge manda). */
+function verifyFriends(tag: string, events: PE[], emitted: Emitted[], selfId: PlayerId, people: PlayerId[], absent: RivalId[]): FriendStats {
+  const st: FriendStats = { balloons: 0, guestCapped: 0, byTrigger: new Map() };
+  const guests = people.filter((p) => p !== selfId);
+  const evByI = new Map<number, PE>(events.map((e) => [e.i, e]));
+  const handOf = new Map<number, number>();
+  let h = 0;
+  for (const e of events) {
+    if (e.t === 'handStarted') h = e.handNumber;
+    handOf.set(e.i, h);
+  }
+  const myOut = events.findIndex((e) => e.t === 'eliminated' && e.playerId === selfId);
+  for (const em of emitted) {
+    const it = em.item;
+    const d = it.debug;
+    if (it.speaker !== 'human') {
+      check(!absent.includes(it.speaker), `${tag}: ${it.speaker} (sem lugar) falou ${it.lineId}: ${it.text}`);
+      const line = byId.get(it.lineId);
+      const ex = it.exchange ? exById.get(it.exchange.id) : undefined;
+      const allowed = line?.requires?.absent ?? ex?.requires?.absent ?? [];
+      for (const r of mentionsOf(it.text, it.speaker)) {
+        check(!absent.includes(r) || allowed.includes(r), `${tag}: ${it.lineId} cita ${r}, que não está na mesa: ${it.text}`);
+      }
+    }
+    if (it.scene !== 'quip' && it.scene !== 'card') st.balloons++;
+    // depois que a pessoa caiu (ela pode seguir assistindo): só despedida e créditos; uma troca
+    // atômica que já tinha começado vai até o fim
+    if (myOut >= 0 && em.evIndex > myOut && !(it.exchange && it.exchange.part > 1)) {
+      check(it.scene !== 'table', `${tag}: fala de mesa (${it.lineId}) depois que a pessoa caiu`);
+    }
+    if (!d) continue;
+    st.byTrigger.set(d.trigger, (st.byTrigger.get(d.trigger) ?? 0) + 1);
+    const line = byId.get(it.lineId);
+    const src = evByI.get(d.eventI);
+    const first = !it.exchange || it.exchange.part === 1;
+    switch (d.trigger) {
+      case 'playerFold': case 'playerAllIn': case 'playerBigBet':
+        check(src?.t === 'action' && src.playerId === selfId, `${tag}: ${it.lineId} (${d.trigger}) por ação de ${src?.t === 'action' ? src.playerId : src?.t}`);
+        break;
+      case 'potLostToPlayer': case 'playerStreak':
+        check(src?.t === 'handComplete' && src.winnerIds.includes(selfId), `${tag}: ${it.lineId} (${d.trigger}) sem a pessoa vencer a mão`);
+        break;
+      case 'playerBluffShown': {
+        const ok = (src?.t === 'cardsShown' && src.playerId === selfId) || (src?.t === 'handComplete'
+          && (src.flags.bluffShown?.playerId === selfId || events.some((x) => x.t === 'cardsShown' && x.playerId === selfId && handOf.get(x.i) === d.hand)));
+        check(ok, `${tag}: ${it.lineId} (blefe mostrado) sem blefe da pessoa`);
+        break;
+      }
+      case 'eliminatesPlayer':
+        check(src?.t === 'eliminated' && src.playerId === selfId && ORACLES.includes(src.byId ?? ''), `${tag}: despedida sem a pessoa cair para um oráculo`);
+        break;
+      case 'outByGuest':
+        check(src?.t === 'eliminated' && src.playerId === selfId && guests.includes(src.byId ?? ''), `${tag}: ${it.lineId} sem a pessoa cair para um amigo`);
+        break;
+      case 'guestOut':
+        check(src?.t === 'eliminated' && guests.includes(src.playerId), `${tag}: ${it.lineId} sem amigo caindo`);
+        if (src?.t === 'eliminated' && line?.variant?.includes('porVoce')) check(src.byId === selfId, `${tag}: ${it.lineId} (porVoce) por ${src.byId}`);
+        if (src?.t === 'eliminated' && line?.role === 'actor') check(src.byId === it.speaker, `${tag}: ${it.lineId} ator sem ter eliminado`);
+        break;
+      case 'guestAllIn':
+        check(src?.t === 'action' && guests.includes(src.playerId) && src.allIn, `${tag}: ${it.lineId} sem all-in de amigo`);
+        break;
+      case 'guestPot':
+        check(src?.t === 'handComplete' && src.winnerIds.length === 1 && guests.includes(src.winnerIds[0]), `${tag}: ${it.lineId} sem pote de amigo`);
+        break;
+      case 'guestBonus':
+        check(src?.t === 'effectBonus' && guests.includes(src.playerId), `${tag}: ${it.lineId} sem bônus de amigo`);
+        break;
+      case 'effectBonus':
+        if (src?.t === 'effectBonus' && line) {
+          check(line.variant!.includes(src.playerId === selfId ? 'humano' : 'oraculo'), `${tag}: ${it.lineId} para bônus de ${src.playerId}`);
+          check(!guests.includes(src.playerId), `${tag}: ${it.lineId} (bônus) por bônus de amigo`);
+        }
+        break;
+      case 'clockOut':
+        if (src?.t === 'clockOut' && line) check(src.playerId === selfId ? !!line.variant?.includes('voce') : guests.includes(src.playerId)
+          && !!line.variant?.includes('amigo'), `${tag}: ${it.lineId} para o relógio de ${src.playerId}`);
+        break;
+      case 'readPlayer':
+        check(src?.t === 'styleRead' && src.targetId === selfId, `${tag}: leitura de outra pessoa saiu como da visita`);
+        break;
+      case 'idle': case 'tableWinner': case 'playerWinsMatch': case 'playerLosesMatch': case 'bountyIntro':
+        check(false, `${tag}: ${d.trigger} na mesa com amigos (${it.lineId})`);
+        break;
+      default:
+        break;
+    }
+    if (first && (GUEST_CAPPED_T.has(d.trigger) || (d.trigger === 'clockOut' && !!line?.variant?.includes('amigo')))) st.guestCapped++;
+  }
+  check(st.guestCapped <= BUDGET.guestMax, `${tag}: ${st.guestCapped} reações a amigos (teto ${BUDGET.guestMax})`);
+  return st;
+}
+
+/** Sorteio com semente (cenários reproduzíveis). */
+function seeded(seed: string): () => number {
+  const r = createRng(seed);
+  return () => r.nextFloat();
+}
+
+/** Diretor de um aparelho da mesa com amigos. */
+function friendsDirector(selfId: PlayerId, people: PlayerId[], o: CtxOpts & { seed: string; stake?: Rarity | null; effects?: PosterEffectId[] },
+  player?: Player): { dir: Director; stage: Stage; ctx: CtxOpts } {
+  const ctx: CtxOpts = { mode: 'friends', ...o, friends: { selfId, people, stake: o.stake ?? null, effects: o.effects } };
+  const { dir, stage } = newDirector(ctx, player);
+  return { dir, stage, ctx };
+}
+
+section('6. Cenários da mesa com amigos');
+{
+  // 6a. 2 pessoas, o Raposo cedeu o lugar: só Sapo e Cobra falam; a troca "Cadê o Vovô?" só sem o Raposo
+  {
+    const seats: PlayerId[] = ['p1', 'bogart', 'p2', 'cypher'];
+    const ev: PE[] = [fStart(1, seats)];
+    let starts = 0;
+    let exch = 0;
+    for (let k = 0; k < 60; k++) {
+      const { stage, ctx } = friendsDirector('p1', ['p1', 'p2'], { seed: `f6a-${k}`, lang: k % 3 === 0 ? 'en' : 'pt' });
+      const all: PE[] = [];
+      playFriends(stage, ev, ctx, 'p1', seeded(`s6-${k}-1`), all);
+      verifyFriends(`6a#${k}`, all, stage.out, 'p1', ['p1', 'p2'], ['fincher']);
+      if (stage.out.some((x) => x.item.debug?.trigger === 'friendsStart')) starts++;
+      for (const x of stage.out) if (x.item.exchange) {
+        exch++;
+        check(x.item.exchange.id === 'PMT01', `6a: troca ${x.item.exchange.id} sem o oráculo certo ausente`);
+      }
+      check(stage.out.every((x) => x.item.scene === 'opening'), '6a: só abertura');
+    }
+    check(starts === 60, `6a: abertura da mesa com amigos em todas (${starts}/60)`);
+    check(exch > 0, '6a: a troca de quem saiu aparece às vezes');
+  }
+  // 6b. 3 pessoas (aparelho da p2), só a Cobra sentada: o all-in de um amigo, amigo tirando amigo, a visita tirando amigo, créditos
+  {
+    const seats: PlayerId[] = ['p1', 'p3', 'p2', 'cypher'];
+    const people: PlayerId[] = ['p1', 'p2', 'p3'];
+    const ev: PE[] = [
+      fStart(1, seats), fHand(2, 1, seats),
+      fAct(3, 'p1', 'raise', { allIn: true, sizeClass: 'overbet' }), fAct(4, 'p3', 'call'), fAct(5, 'p2', 'fold'), fAct(6, 'cypher', 'fold'),
+      fDone(7, 1, ['p1'], { p1: 1500, p3: -1500 }, 60), fElim(8, 'p3', 'p1', 4, 1),
+      fHand(9, 2, ['p1', 'p2', 'cypher']), fAct(10, 'p2', 'raise', { allIn: true }), fAct(11, 'p1', 'call'), fAct(12, 'cypher', 'fold'),
+      fDone(13, 2, ['p2'], { p2: 3000, p1: -3000 }, 60), fElim(14, 'p1', 'p2', 3, 2),
+      fHand(15, 3, ['p2', 'cypher']), fAct(16, 'p2', 'raise', { allIn: true }), fAct(17, 'cypher', 'call'),
+      fDone(18, 3, ['p2'], { p2: 1500, cypher: -1500 }, 60), fElim(19, 'cypher', 'p2', 2, 3),
+      fEnd(20, { p2: 1, cypher: 2, p1: 3, p3: 4 }, 'p2', 1),
+    ];
+    let porVoce = 0;
+    let stakeBack = 0;
+    for (let k = 0; k < 40; k++) {
+      const { stage, ctx } = friendsDirector('p2', people, { seed: `f6b-${k}`, stake: 'rare', lang: k % 4 === 0 ? 'en' : 'pt' });
+      const all: PE[] = [];
+      playFriends(stage, ev, ctx, 'p2', seeded(`s6-${k}-2`), all);
+      verifyFriends(`6b#${k}`, all, stage.out, 'p2', people, ['bogart', 'fincher']);
+      check(stage.out.every((x) => x.item.speaker === 'cypher' || x.item.speaker === 'human'), '6b: só a Cobra fala');
+      const ids = stage.out.map((x) => x.item.debug?.trigger);
+      check(ids[0] === 'friendsStart', `6b: abre com a saudação (${ids[0]})`);
+      check(ids.includes('friendsStake') && stage.out.some((x) => x.item.scene === 'opening' && x.item.debug?.trigger === 'friendsStake'),
+        '6b: a aposta de pôster na abertura');
+      const pv = stage.out.filter((x) => x.item.debug?.trigger === 'guestOut' && byId.get(x.item.lineId)?.variant?.includes('porVoce'));
+      porVoce += pv.length;
+      const cr = stage.out.filter((x) => x.item.scene === 'credits').map((x) => `${x.item.debug?.trigger}:${byId.get(x.item.lineId)?.variant?.[0]}`);
+      check(cr[0] === 'friendsEnd:voce', `6b: créditos de quem venceu (${cr})`);
+      if (cr.includes('friendsStake:voltou')) stakeBack++;
+    }
+    check(porVoce >= 38, `6b: a visita tirando um amigo sempre ganha fala (${porVoce}/40)`);
+    check(stakeBack === 40, `6b: os pôsteres voltam com a visita nos créditos (${stakeBack}/40)`);
+  }
+  // 6c. 4 pessoas: nenhum oráculo na mesa, nenhum balão de oráculo (nem resposta de Réplica)
+  {
+    const seats: PlayerId[] = ['p1', 'p2', 'p3', 'p4'];
+    const ev: PE[] = [fStart(1, seats, { effects: [{ effect: 'opal', level: 3 }] }), fHand(2, 1, seats), fCast(3, 'opal', 1),
+      fAct(4, 'p1', 'raise', { allIn: true }), fAct(5, 'p2', 'call'), fAct(6, 'p3', 'fold'), fAct(7, 'p4', 'fold'),
+      fDone(8, 1, ['p1'], { p1: 1500, p2: -1500 }, 60), fElim(9, 'p2', 'p1', 4, 1),
+      { i: 10, t: 'clockOut', playerId: 'p3', handNumber: 2, streak: 1 } as PE, { i: 11, t: 'personLeft', playerId: 'p4', reason: 'forfeit', handNumber: 2 } as PE,
+      fEnd(12, { p1: 1, p3: 2, p4: 3, p2: 4 }, 'p1', 1)];
+    for (const self of seats) {
+      const { stage, ctx } = friendsDirector(self, seats, { seed: `f6c-${self}`, stake: 'common', effects: ['opal', 'opal', 'opal'] });
+      const all: PE[] = [];
+      playFriends(stage, ev, ctx, self, seeded(`s6c-${self}`), all, { quips: true });
+      stage.dir.onQuip('R1', 'bogart');
+      stage.pump(8000);
+      check(stage.out.every((x) => x.item.speaker === 'human'), `6c (${self}): oráculo falou numa mesa sem oráculos`);
+    }
+  }
+  // 6d. a visita cai para um amigo: despedida de um oráculo que ficou; depois silêncio até os créditos
+  {
+    const seats: PlayerId[] = ['p1', 'bogart', 'p2', 'fincher'];
+    const people: PlayerId[] = ['p1', 'p2'];
+    const ev: PE[] = [fStart(1, seats), fHand(2, 1, seats), fAct(3, 'p2', 'raise', { allIn: true }), fAct(4, 'p1', 'call'),
+      fAct(5, 'bogart', 'fold'), fAct(6, 'fincher', 'fold'), fDone(7, 1, ['p2'], { p2: 1500, p1: -1500 }, 60), fElim(8, 'p1', 'p2', 4, 1),
+      fHand(9, 2, ['p2', 'bogart', 'fincher']), fAct(10, 'bogart', 'raise', { allIn: true, cue: 'nervoso' }), fAct(11, 'p2', 'call'),
+      fAct(12, 'fincher', 'fold'), fDone(13, 2, ['p2'], { p2: 1500, bogart: -1500 }, 60), fElim(14, 'bogart', 'p2', 3, 2),
+      fEnd(15, { p2: 1, fincher: 2, bogart: 3, p1: 4 }, 'p2', 4, 'eliminated')];
+    let fw = 0;
+    for (let k = 0; k < 30; k++) {
+      const { stage, ctx } = friendsDirector('p1', people, { seed: `f6d-${k}`, stake: 'epic' });
+      const all: PE[] = [];
+      playFriends(stage, ev, ctx, 'p1', seeded(`s6-${k}-4`), all);
+      verifyFriends(`6d#${k}`, all, stage.out, 'p1', people, ['cypher']);
+      const f = stage.out.filter((x) => x.item.scene === 'farewell');
+      if (f.length === 1 && f[0].item.debug?.trigger === 'outByGuest') fw++;
+      const cr = stage.out.filter((x) => x.item.scene === 'credits').map((x) => `${x.item.debug?.trigger}:${byId.get(x.item.lineId)?.variant?.[0]}`);
+      check(cr.join(',') === 'friendsEnd:amigo,friendsStake:amigo', `6d: créditos de amigo vencedor com aposta (${cr})`);
+    }
+    check(fw === 30, `6d: despedida de quem caiu para um amigo (${fw}/30)`);
+  }
+  // 6e. um oráculo vence: ele mesmo fala nos créditos, e os pôsteres ficam com ele
+  {
+    const seats: PlayerId[] = ['p1', 'bogart', 'p2', 'cypher'];
+    const people: PlayerId[] = ['p1', 'p2'];
+    const ev: PE[] = [fStart(1, seats), fHand(2, 1, seats), fElim(3, 'p2', 'cypher', 4, 1), fElim(4, 'bogart', 'cypher', 3, 1),
+      fElim(5, 'p1', 'cypher', 2, 1), fEnd(6, { cypher: 1, p1: 2, bogart: 3, p2: 4 }, 'cypher', 2, 'eliminated')];
+    for (let k = 0; k < 20; k++) {
+      const { stage, ctx } = friendsDirector('p1', people, { seed: `f6e-${k}`, stake: 'legendary' });
+      const all: PE[] = [];
+      playFriends(stage, ev, ctx, 'p1', seeded(`s6-${k}-5`), all);
+      verifyFriends(`6e#${k}`, all, stage.out, 'p1', people, ['fincher']);
+      const cr = stage.out.filter((x) => x.item.scene === 'credits');
+      check(cr.length === 2 && cr.every((x) => x.item.speaker === 'cypher'), `6e: a Cobra fala nos créditos (${cr.map((x) => x.item.speaker)})`);
+      check(cr[1]?.item.debug?.trigger === 'friendsStake' && !!byId.get(cr[1].item.lineId)?.variant?.includes('oraculo'), '6e: os pôsteres ficam com ela');
+      check(stage.out.some((x) => x.item.debug?.trigger === 'eliminatesPlayer'), '6e: despedida de quem caiu para a Cobra');
+    }
+  }
+  // 6f. relógio, ausência e saída; o momento repetido pela interface não dobra
+  {
+    const seats: PlayerId[] = ['p1', 'bogart', 'p2', 'p3'];
+    const people: PlayerId[] = ['p1', 'p2', 'p3'];
+    let mine = 0;
+    let away = 0;
+    let left = 0;
+    for (let k = 0; k < 60; k++) {
+      const ev: PE[] = [fStart(1, seats), fHand(2, 1, seats),
+        { i: 3, t: 'clockOut', playerId: 'p1', handNumber: 1, streak: 1 } as PE, fAct(4, 'p1', 'fold', { auto: 'timeout' }),
+        { i: 5, t: 'clockOut', playerId: 'p2', handNumber: 1, streak: 1 } as PE, fAct(6, 'p2', 'check', { auto: 'timeout' }),
+        fDone(7, 1, ['bogart'], { bogart: 75, p2: -75 }), fHand(8, 2, seats), { i: 9, t: 'away', playerId: 'p3', on: true, handNumber: 2 } as PE,
+        fAct(10, 'p3', 'fold', { auto: 'away' }), fDone(11, 2, ['p1'], { p1: 75 }), fHand(12, 3, seats),
+        { i: 13, t: 'personLeft', playerId: 'p2', reason: 'forfeit', handNumber: 3 } as PE, fElim(14, 'p2', null, 4, 3),
+        fDone(15, 3, ['p1'], { p1: 75 })];
+      const { dir, stage, ctx } = friendsDirector('p1', people, { seed: `f6f-${k}` });
+      const all: PE[] = [];
+      playFriends(stage, ev.slice(0, 1), ctx, 'p1', seeded(`s6f-${k}-a`), all);   // a abertura termina antes
+      playFriends(stage, ev.slice(1, 4), ctx, 'p1', seeded(`s6f-${k}-b`), all);
+      dir.onMoment({ t: 'clockOut', playerId: 'p1' });   // a interface também avisou: não dobra
+      playFriends(stage, ev.slice(4), ctx, 'p1', seeded(`s6f-${k}-c`), all);
+      dir.onMoment({ t: 'away', playerId: 'p3', on: true });
+      dir.onMoment({ t: 'personLeft', playerId: 'p2' });
+      stage.pump(10000);
+      verifyFriends(`6f#${k}`, all, stage.out, 'p1', people, ['cypher', 'fincher']);
+      const t = (x: string): Emitted[] => stage.out.filter((o) => o.item.debug?.trigger === x);
+      check(t('clockOut').length <= 2, '6f: no máximo um balão por estouro');
+      if (t('clockOut').some((o) => byId.get(o.item.lineId)?.variant?.includes('voce'))) mine++;
+      check(t('away').length <= 1 && t('personLeft').length <= 1, '6f: ausência e saída sem repetir');
+      if (t('away').length) away++;
+      if (t('personLeft').length) left++;
+      check(!stage.out.some((o) => o.item.debug?.trigger === 'guestOut'), '6f: quem saiu não vira "amigo eliminado"');
+    }
+    check(mine > 10, `6f: o estouro da visita às vezes ganha fala (${mine}/60)`);
+    check(away > 10 && left > 10, `6f: ausência (${away}/60) e saída (${left}/60) com fala`);
+  }
+  // 6g. muitos pôsteres de efeito: a abertura diz que vai dar errado; dois na mesma mão: P1 uma vez
+  {
+    const seats: PlayerId[] = ['p1', 'bogart', 'p2', 'cypher'];
+    const people: PlayerId[] = ['p1', 'p2'];
+    let openPile = 0;
+    let same = 0;
+    for (let k = 0; k < 40; k++) {
+      const ev: PE[] = [fStart(1, seats, { effects: [{ effect: 'early_flop', level: 2 }, { effect: 'double_pot', level: 1 }] }),
+        fHand(2, 1, seats), fDone(3, 1, ['bogart'], { bogart: 75 }), fHand(4, 2, seats), fCast(5, 'early_flop', 2), fCast(6, 'double_pot', 2),
+        fAct(7, 'p1', 'check'), fDone(8, 2, ['p1'], { p1: 75 }), fHand(9, 3, seats), fDone(10, 3, ['bogart'], { bogart: 75 }),
+        fHand(11, 4, seats), fCast(12, 'early_flop', 4, 2), fCast(13, 'double_pot', 4, 2), fDone(14, 4, ['p2'], { p2: 75 })];
+      const { stage, ctx } = friendsDirector('p1', people, { seed: `f6g-${k}`, story: VETERAN_FX, effects: ['early_flop', 'early_flop', 'double_pot'] });
+      const all: PE[] = [];
+      playFriends(stage, ev, ctx, 'p1', seeded(`s6-${k}-7`), all);
+      verifyFriends(`6g#${k}`, all, stage.out, 'p1', people, ['fincher']);
+      const op = stage.out.filter((o) => o.item.scene === 'opening').map((o) => o.item.debug?.trigger);
+      if (op.includes('effectPile')) openPile++;
+      const piles = stage.out.filter((o) => o.item.debug?.trigger === 'effectPile' && o.item.scene !== 'opening');
+      check(piles.filter((o) => o.item.priority === 1).length <= 1, '6g: "vai dar errado" P1 no máximo uma vez');
+      if (op.includes('effectPile')) check(piles.every((o) => o.item.priority !== 1), '6g: dito na abertura, a mesma mão não é P1');
+      if (piles.length) same++;
+    }
+    check(openPile >= 30, `6g: a abertura comenta os pôsteres (${openPile}/40)`);
+    check(same > 0, `6g: dois pôsteres na mesma mão ganham fala (${same}/40)`);
+  }
+  // 6h. o mesmo evento visto de dois aparelhos: cada um só se vê como a visita
+  {
+    const seats: PlayerId[] = ['p1', 'bogart', 'p2', 'cypher'];
+    const people: PlayerId[] = ['p1', 'p2'];
+    const ev: PE[] = [fStart(1, seats), fHand(2, 1, seats), fAct(3, 'p1', 'raise', { allIn: true, potAfter: 3000 }), fAct(4, 'bogart', 'fold'),
+      fAct(5, 'p2', 'fold'), fAct(6, 'cypher', 'fold'), fDone(7, 1, ['p1'], { p1: 150, bogart: -50, p2: -100 }, 3),
+      { i: 8, t: 'styleRead', by: 'fincher', targetId: 'p2', label: 'pedra' } as PE, fHand(9, 2, seats), fDone(10, 2, ['bogart'], { bogart: 75 })];
+    const got: Record<string, Set<string>> = { p1: new Set(), p2: new Set() };
+    for (let k = 0; k < 80; k++) {
+      for (const self of people) {
+        const { stage, ctx } = friendsDirector(self, people, { seed: `f6h-${k}-${self}` });
+        const all: PE[] = [];
+        playFriends(stage, ev, ctx, self, seeded(`s6h-${k}-${self}`), all);
+        verifyFriends(`6h#${k}(${self})`, all, stage.out, self, people, ['fincher']);
+        for (const o of stage.out) if (o.item.debug) got[self].add(o.item.debug.trigger);
+      }
+    }
+    // o all-in é da p1; a leitura do Raposo é da p2
+    check(!got.p2.has('playerAllIn'), `6h: no aparelho da p2, o all-in da p1 saiu como da visita (${[...got.p2]})`);
+    check(!got.p1.has('readPlayer'), `6h: no aparelho da p1, a leitura da p2 saiu como da visita (${[...got.p1]})`);
+    check(got.p1.has('playerAllIn'), '6h: no aparelho da p1 o all-in é dela');
+    check(!got.p1.has('guestAllIn'), '6h: o próprio all-in nunca é "da outra visita"');
+  }
+  // 6i. a troca de ids vale a partida inteira, mesmo que a interface mande um contexto sem `friends`
+  {
+    const seats: PlayerId[] = ['p1', 'bogart', 'p2', 'cypher'];
+    const people: PlayerId[] = ['p1', 'p2'];
+    const ev: PE[] = [fStart(1, seats), fHand(2, 1, seats), fAct(3, 'p1', 'raise', { allIn: true, potAfter: 3000 }),
+      fAct(4, 'p2', 'raise', { allIn: true, potAfter: 6000 }), fAct(5, 'bogart', 'fold'), fAct(6, 'cypher', 'fold'),
+      fDone(7, 1, ['p2'], { p2: 3000, p1: -3000 }, 60), fElim(8, 'p1', 'p2', 4, 1)];
+    let mine = 0;
+    for (let k = 0; k < 40; k++) {
+      const { stage, ctx } = friendsDirector('p2', people, { seed: `f6i-${k}` });
+      const all: PE[] = [];
+      playFriends(stage, ev.slice(0, 1), ctx, 'p2', seeded(`s6i-${k}-a`), all);
+      playFriends(stage, ev.slice(1), { ...ctx, friends: undefined, mode: 'friends' }, 'p2', seeded(`s6i-${k}-b`), all);
+      verifyFriends(`6i#${k}`, all, stage.out, 'p2', people, ['fincher']);
+      if (stage.out.some((o) => o.item.debug?.trigger === 'playerAllIn')) mine++;
+      check(stage.out.some((o) => o.item.debug?.trigger === 'guestOut'), '6i: a visita tirou a outra: fala P1');
+    }
+    check(mine > 0, `6i: o all-in da p2 é o da visita (${mine}/40)`);
+  }
+}
+
+// --- fuzz da mesa com amigos -------------------------------------------------
+
+/**
+ * Mesa com amigos a partir de uma partida do motor (enquanto o E3 não monta a mesa de várias
+ * pessoas no simulador): os oráculos de `takeover` viram pessoas (p2…), a pessoa vira p1. Os
+ * eventos ficam crus (como a Edge manda); ações das pessoas perdem cue/thinkMs e os eventos
+ * que pessoas não têm (tilt, leitura feita por elas, tique) somem.
+ */
+function friendsFromRun(steps: StepIn[], takeover: RivalId[], rng: () => number): { events: PE[]; people: PlayerId[] } {
+  const map: Record<string, string> = { human: 'p1' };
+  takeover.forEach((r, j) => { map[r] = `p${j + 2}`; });
+  const fn = (id: string): string => map[id] ?? id;
+  const people = ['p1', ...takeover.map((_, j) => `p${j + 2}`)];
+  const out: PE[] = [];
+  const outIds = new Set<string>();
+  for (const st of steps) {
+    for (const raw of st.events) {
+      if ((raw.t === 'tilt' || raw.t === 'tellMark') && map[raw.playerId]) continue;
+      if (raw.t === 'styleRead' && map[raw.by]) continue;
+      let e = remapIds(raw, fn);
+      if (e.t === 'matchStarted') e = { ...e, mode: 'friends', prize: null, people };
+      if (e.t === 'action' && people.includes(e.playerId)) {
+        const { cue: _c, thinkMs: _t, ...rest } = e;
+        void _c; void _t;
+        e = rest as PE;
+      }
+      if (e.t === 'eliminated') outIds.add(e.playerId);
+      if (e.t === 'matchEnded' && !e.winnerId) {
+        // a partida do motor acabou quando a p1 caiu: alguém que sobrou "vence" (créditos)
+        const alive = Object.keys(e.places).filter((p) => !outIds.has(p));
+        e = { ...e, winnerId: alive.length ? alive[Math.floor(rng() * alive.length)] : null };
+      }
+      out.push(e);
+    }
+  }
+  return { events: out, people };
+}
+
+/** Efeitos, relógio e ausência injetados na mesa com amigos (os `i` novos são fracionários). */
+function injectFriends(events: PE[], people: PlayerId[], rng: () => number, o: { effects: PosterEffectId[]; clock: boolean; away: boolean }): PE[] {
+  const pick = (a: number, b: number): number => a + Math.floor(rng() * (b - a + 1));
+  const levels = new Map<PosterEffectId, number>();
+  for (const f of o.effects) levels.set(f, (levels.get(f) ?? 0) + 1);
+  const castsAt = new Map<number, PosterEffectId[]>();
+  let base = -1;
+  for (const f of levels.keys()) {
+    const c1 = base > 0 && rng() < 0.6 ? base : pick(2, 8);   // muitas vezes na mesma mão de outro efeito
+    if (base < 0) base = c1;
+    const hands = f === 'opal' || f === 'hand_bounty' ? [c1] : [c1, c1 + 6 + pick(0, 3)];
+    for (const hh of hands) castsAt.set(hh, [...(castsAt.get(hh) ?? []), f]);
+  }
+  const castNo = new Map<PosterEffectId, number>();
+  const bonusAt = new Map<number, PosterEffectId>();
+  const awayWho = o.away ? people[1 + Math.floor(rng() * (people.length - 1))] : null;
+  const awayHand = pick(3, 12);
+  let k = 0;
+  let cur = 0;
+  let castHere: PosterEffectId[] = [];
+  const out: PE[] = [];
+  const add = (baseI: number, pre: boolean, body: Record<string, unknown>): PE => {
+    k++;
+    return { ...body, i: baseI + (pre ? -0.5 : 0) + k * 0.0001 } as PE;
+  };
+  for (const e of events) {
+    const pre: PE[] = [];
+    const post: PE[] = [];
+    let main: PE = e;
+    switch (e.t) {
+      case 'matchStarted':
+        main = { ...e, effects: [...levels].map(([effect, level]) => ({ effect, level })) } as PE;
+        break;
+      case 'handStarted':
+        cur = e.handNumber;
+        castHere = castsAt.get(cur) ?? [];
+        for (const f of castHere) {
+          const n = (castNo.get(f) ?? 0) + 1;
+          castNo.set(f, n);
+          post.push(add(e.i, false, { t: 'effectCast', effect: f, handNumber: cur, castNo: n, data: FX_DATA[f] }));
+          if (f === 'opal' || f === 'hand_bounty') bonusAt.set(cur + pick(0, 4), f);
+        }
+        if (awayWho && cur === awayHand) post.push(add(e.i, false, { t: 'away', playerId: awayWho, on: true, handNumber: cur }));
+        if (awayWho && cur === awayHand + 2) post.push(add(e.i, false, { t: 'away', playerId: awayWho, on: false, handNumber: cur }));
+        break;
+      case 'action':
+        if (o.clock && people.includes(e.playerId) && (e.action === 'fold' || e.action === 'check') && rng() < 0.06) {
+          pre.push(add(e.i, true, { t: 'clockOut', playerId: e.playerId, handNumber: cur, streak: 1 }));
+          main = { ...e, auto: 'timeout' } as PE;
+        }
+        break;
+      case 'potAwarded':
+        if (castHere.includes('double_pot') && e.winners[0]) {
+          post.push(add(e.i, false, { t: 'effectBonus', effect: 'double_pot', handNumber: cur, playerId: e.winners[0].playerId, amount: e.amount }));
+        }
+        break;
+      case 'handComplete': {
+        const f = bonusAt.get(cur);
+        if (f && e.winnerIds[0]) {
+          pre.push(add(e.i, true, { t: 'effectBonus', effect: f, handNumber: cur, playerId: e.winnerIds[0], amount: f === 'opal' ? 1000 : 800 }));
+          bonusAt.delete(cur);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+    out.push(...pre, main, ...post);
+  }
+  return out;
+}
+
+interface FriendsFuzzRow { matches: number; hands: number; balloons: number; p1: number; silent: number; guest: number; b35: number[] }
+
+function fuzzFriends(n: number, label: string): Map<number, FriendsFuzzRow> {
+  const rows = new Map<number, FriendsFuzzRow>();
+  const trig = new Map<string, number>();
+  let player: Player = newPlayer();
+  for (let k = 0; k < n; k++) {
+    if (k % 10 === 0) player = newPlayer(k % 40 === 0 ? { first_visit: 'x' } : VETERAN_FX, k % 40 === 0 ? 3 : 20);
+    const rng = createRng(`ff-${label}-${k}`);
+    const nPeople = 2 + (k % 3);   // 2, 3, 4
+    const order = [...ORACLES].sort(() => rng.nextFloat() - 0.5);
+    const takeover = order.slice(0, nPeople - 1);
+    const absent = takeover;   // o oráculo cujo lugar foi tomado não fala
+    const cfg = makeConfig({ mode: 'free', seed: `ffm-${label}-${k}` });
+    const steps: StepIn[] = [];
+    const priv: MatchEvent[] = [];
+    let step = createMatch(cfg);
+    let s: MatchState = step.state;
+    const flush = (): void => {
+      priv.push(...step.events);
+      steps.push({ events: toPublicEvents(step.events, 'human'), view: tableView(step.state, 'human'), humanTurnAfter: false });
+    };
+    flush();
+    const heroName: HeroName = (['medio', 'iniciante', 'bom'] as HeroName[])[k % 3];
+    for (let guard = 0; s.status === 'running' && guard < 3000; guard++) {
+      const L = humanLegal(s);
+      if (!L) break;
+      step = applyHumanAction(s, HEROES[heroName](L, rng, s), { show: rng.nextFloat() < 0.3 });
+      s = step.state;
+      flush();
+    }
+    const base = friendsFromRun(steps, takeover, () => rng.nextFloat());
+    const effects: PosterEffectId[] = k % 2 === 0 ? [] : ([['early_flop', 'double_pot'], ['opal', 'opal', 'hand_bounty'],
+      ['double_pot', 'double_pot', 'early_flop', 'opal']] as PosterEffectId[][])[k % 3];
+    const events = injectFriends(base.events, base.people, () => rng.nextFloat(), { effects, clock: true, away: k % 4 === 1 });
+    const selfId = base.people[k % base.people.length];
+    const stake: Rarity | null = k % 3 === 0 ? null : (['common', 'rare', 'epic', 'legendary'] as Rarity[])[k % 4];
+    const lang = k % 5 === 0 ? 'en' : 'pt';
+    const { dir, stage, ctx } = friendsDirector(selfId, base.people, {
+      seed: `ffd-${label}-${k}`, stake, effects, lang, lifetimeMatches: player.lifetime, story: { ...player.story },
+    }, player);
+    const all: PE[] = [];
+    playFriends(stage, events, ctx, selfId, () => rng.nextFloat(), all, { quips: true });
+    for (const key of dir.storyTouched()) player.story[key] = 'x';
+    player.lifetime++;
+    player.clock.t += 60_000;
+    const tag = `amigos-${label}-${k}(${nPeople}p, eu=${selfId})`;
+    const st = verify(tag, all, stage.out, privateMeta(priv));
+    const fs = verifyFriends(tag, all, stage.out, selfId, base.people, absent);
+    if (nPeople === 4) check(stage.out.every((o) => o.item.speaker === 'human'), `${tag}: oráculo falou sem oráculo na mesa`);
+    for (const [t, c] of fs.byTrigger) trig.set(t, (trig.get(t) ?? 0) + c);
+    const row = rows.get(nPeople) ?? { matches: 0, hands: 0, balloons: 0, p1: 0, silent: 0, guest: 0, b35: [] };
+    row.matches++;
+    row.hands += st.hands;
+    row.balloons += st.balloons;
+    row.p1 += st.byPriority[1];
+    row.silent += st.silentHands;
+    row.guest += fs.guestCapped;
+    if (st.hands >= 28 && st.hands <= 42) row.b35.push(st.balloons);
+    rows.set(nPeople, row);
+  }
+  for (const [np, r] of [...rows].sort((a, b) => a[0] - b[0])) {
+    const per35 = r.b35.length ? r.b35.reduce((a, b) => a + b, 0) / r.b35.length : NaN;
+    console.log(`  ${np} pessoas (${4 - np} oráculo${4 - np === 1 ? '' : 's'}): ${r.matches} partidas, ${(r.hands / r.matches).toFixed(1)} mãos, ` +
+      `${(r.balloons / r.matches).toFixed(1)} balões (${(r.p1 / r.matches).toFixed(1)} P1), ~35 mãos: ${per35.toFixed(1)} (${r.b35.length}), ` +
+      `${(100 * r.silent / Math.max(1, r.hands)).toFixed(1)}% das mãos em silêncio, ${(r.guest / r.matches).toFixed(2)} reações a amigos`);
+  }
+  if (args.includes('--stats')) {
+    console.log('  balões por gatilho (mesa com amigos):\n    ' + [...trig].sort((a, b) => b[1] - a[1]).slice(0, 30).map(([t, c]) => `${t}: ${c}`).join('\n    '));
+  }
+  return rows;
+}
+
+// --fn N: tamanho do fuzz da mesa com amigos (padrão 60 no --quick, 1.500 no completo)
+const fN = args.includes('--fn') ? Number(args[args.indexOf('--fn') + 1]) : quick ? 60 : 1500;
+section(`6b. Fuzz da mesa com amigos (${fN} partidas)`);
+{
+  const t0 = Date.now();
+  const rows = fuzzFriends(fN, quick ? 'q' : 'full');
+  const r2 = rows.get(2);
+  const r3 = rows.get(3);
+  for (const [np, r] of rows) {
+    if (np < 4) check(r.silent / Math.max(1, r.hands) >= 0.4, `${np} pessoas: ${(100 * r.silent / Math.max(1, r.hands)).toFixed(1)}% das mãos em silêncio (meta ≥ 40%)`);
+  }
+  const avg35 = (r?: FriendsFuzzRow): number => (r && r.b35.length ? r.b35.reduce((a, b) => a + b, 0) / r.b35.length : NaN);
+  // com menos oráculos, menos conversa: o orçamento encolhe com a mesa
+  // (e sem emudecer: a mesa com amigos ainda tem a conversa dos oráculos que ficaram)
+  if (r2 && r2.b35.length >= 10) check(avg35(r2) >= 8 && avg35(r2) <= 20, `2 pessoas: ${avg35(r2).toFixed(1)} balões por ~35 mãos (meta 8–20)`);
+  if (r3 && r3.b35.length >= 10) check(avg35(r3) >= 5 && avg35(r3) <= 15, `3 pessoas: ${avg35(r3).toFixed(1)} balões por ~35 mãos (meta 5–15)`);
+  if (r2 && r3 && r2.matches >= 10 && r3.matches >= 10) check(r3.balloons / r3.matches < r2.balloons / r2.matches, 'um oráculo fala menos que dois');
+  console.log(`  ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+}
+
+// --- mesa com amigos no motor do E3 (quando ele já monta a mesa de várias pessoas) ------
+
+interface FriendsEngine {
+  friendsConfig: (o: { seed: string; people: number; effects?: PosterEffectId[] }) => MatchConfig;
+  waitingFor: (s: MatchState) => PlayerId | null;
+  personLegal: (s: MatchState, id: PlayerId) => ReturnType<typeof humanLegal>;
+  applyPersonAction: (s: MatchState, id: PlayerId, a: Parameters<typeof applyHumanAction>[1], o?: { show?: boolean }) => ReturnType<typeof createMatch>;
+  timeoutPerson: (s: MatchState, id: PlayerId) => ReturnType<typeof createMatch>;
+  leavePerson?: (s: MatchState, id: PlayerId, reason?: 'forfeit' | 'abandoned') => ReturnType<typeof createMatch>;
+  povEvents?: (ev: readonly PublicEvent[], viewer: PlayerId, seat: number) => PublicEvent[];
+}
+
+function friendsEngine(): FriendsEngine | null {
+  const m = ENGINE as unknown as Partial<FriendsEngine>;
+  return m.friendsConfig && m.waitingFor && m.personLegal && m.applyPersonAction && m.timeoutPerson ? m as FriendsEngine : null;
+}
+
+const rN = args.includes('--rn') ? Number(args[args.indexOf('--rn') + 1]) : quick ? 30 : 600;
+section(`6d. Mesa com amigos no motor do E3 (${rN} partidas)`);
+{
+  const E = friendsEngine();
+  if (!E) {
+    console.log('  (o motor ainda não monta a mesa de amigos: pulando)');
+  } else {
+    const t0 = Date.now();
+    let done = 0;
+    let threw = 0;
+    let balloons = 0;
+    let pov = 0;
+    const FX_SETS: PosterEffectId[][] = [[], ['early_flop', 'double_pot'], ['opal', 'opal', 'hand_bounty'], ['tell', 'reveal_one', 'blackjack'],
+      ['double_pot', 'double_pot', 'double_pot', 'sixth_card', 'early_flop', 'opal', 'tell', 'eight_aces']];
+    let player: Player = newPlayer();
+    for (let k = 0; k < rN; k++) {
+      if (k % 10 === 0) player = newPlayer(k % 30 === 0 ? { first_visit: 'x' } : VETERAN_FX, 20);
+      const rng = createRng(`fr-${k}`);
+      const nPeople = 2 + (k % 3);
+      const effects = FX_SETS[k % FX_SETS.length];
+      let cfg: MatchConfig;
+      let priv: MatchEvent[] = [];
+      try {
+        cfg = E.friendsConfig({ seed: `frm-${k}`, people: nPeople, effects });
+        let step = createMatch(cfg);
+        let s: MatchState = step.state;
+        priv = [...step.events];
+        const leaver = nPeople >= 3 && k % 7 === 0 ? (cfg.people ?? [])[nPeople - 1] : null;
+        for (let guard = 0; s.status === 'running' && guard < 6000; guard++) {
+          const who = E.waitingFor(s);
+          if (!who) break;
+          if (leaver && who === leaver && E.leavePerson && rng.nextFloat() < 0.05) step = E.leavePerson(s, who, 'forfeit');
+          else if (rng.nextFloat() < 0.04) step = E.timeoutPerson(s, who);
+          else {
+            const L = E.personLegal(s, who);
+            if (!L) break;
+            step = E.applyPersonAction(s, who, randomHumanAction(L, rng), { show: rng.nextFloat() < 0.2 });
+          }
+          s = step.state;
+          priv.push(...step.events);
+        }
+      } catch (err) {
+        threw++;
+        if (threw <= 3) console.log(`  (motor lançou erro em frm-${k}: ${(err as Error).message})`);
+        continue;
+      }
+      const people = (cfg.people ?? []) as PlayerId[];
+      const absent = ORACLES.filter((r) => cfg.seats[r] === undefined);
+      const selfRaw = people[k % people.length];
+      let events = toPublicEvents(priv, selfRaw);
+      let selfId: PlayerId = selfRaw;
+      // metade dos aparelhos passa pelo povEvents do E3 ("eu" = 'human'), metade recebe crus
+      if (E.povEvents && k % 2 === 1) {
+        events = E.povEvents(events, selfRaw, cfg.seats[selfRaw]);
+        selfId = 'human';
+        pov++;
+      }
+      const peopleSeen = selfId === 'human' ? people.map((p) => (p === selfRaw ? 'human' : p)) : people;
+      const stake: Rarity | null = k % 2 === 0 ? (['common', 'rare', 'epic', 'legendary'] as Rarity[])[k % 4] : null;
+      const { dir, stage, ctx } = friendsDirector(selfId, peopleSeen, { seed: `frd-${k}`, stake, lang: k % 5 === 0 ? 'en' : 'pt',
+        lifetimeMatches: player.lifetime, story: { ...player.story } }, player);
+      const all: PE[] = [];
+      playFriends(stage, events, ctx, selfId, () => rng.nextFloat(), all, { quips: true });
+      for (const key of dir.storyTouched()) player.story[key] = 'x';
+      player.lifetime++;
+      player.clock.t += 60_000;
+      const tag = `motor-amigos-${k}(${nPeople}p, ${effects.length} pôsteres, eu=${selfRaw}${selfId === 'human' ? ' pov' : ''})`;
+      verify(tag, all, stage.out, privateMeta(priv));
+      verifyFriends(tag, all, stage.out, selfId, peopleSeen, absent);
+      if (nPeople === 4) check(stage.out.every((o) => o.item.speaker === 'human'), `${tag}: oráculo falou sem oráculo na mesa`);
+      check(all.some((e) => e.t === 'matchEnded'), `${tag}: a partida não terminou`);
+      balloons += stage.out.filter((o) => o.item.scene !== 'quip' && o.item.scene !== 'card').length;
+      done++;
+    }
+    check(threw === 0, `motor do E3: ${threw} partidas lançaram erro`);
+    console.log(`  ${done} partidas (${pov} pelo povEvents), ${(balloons / Math.max(1, done)).toFixed(1)} balões por partida, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  }
+}
+
+// --- casual de devolução -----------------------------------------------------
+
+section('6c. Casual de devolução');
+{
+  // cartão "Anteriormente em…" nunca vira "partida valendo"
+  {
+    const ctxBase: CtxOpts = { mode: 'free', reclaim: { holderId: 'cypher' } };
+    for (let k = 0; k < 20; k++) {
+      const { dir } = newDirector({ ...ctxBase, seed: `rc-${k}` });
+      const r = dir.cardLine('recap', makeCtx(ctxBase), { handNumber: 12, bb: 100, stacks: { human: 3000, cypher: 2000, bogart: 1000 }, holderId: 'cypher' });
+      check(!!r && !byId.get(r.lineId)?.variant?.includes('valendo'), `devolução: recapitulação "valendo" (${r?.lineId})`);
+    }
+  }
+  const rn = quick ? 60 : 900;
+  let realReclaim = 0;
+  let taunted = 0;
+  let captured = 0;
+  let wonLines = 0;
+  for (let k = 0; k < rn; k++) {
+    const rarity = (['common', 'rare', 'epic', 'legendary'] as Rarity[])[k % 4];
+    const carrier = ORACLES[k % 3];
+    // metade com a casual de devolução do motor do E3 (rescueConfig), metade com o portador da fase 1
+    const rescue = (ENGINE as unknown as { rescueConfig?: (o: { seed: string; carrierId: RivalId; prizeId: string; rarity: Rarity }) => MatchConfig }).rescueConfig;
+    const real = !!rescue && k % 2 === 1;
+    const cfg = real ? rescue!({ seed: `rcm-${k}`, carrierId: carrier, prizeId: 'pp-lost-1', rarity })
+      : makeConfig({ mode: 'bounty', seed: `rcm-${k}`, rarity, carrierId: carrier as 'bogart' });
+    if (real) realReclaim++;
+    const rng = createRng(`rch-${k}`);
+    const steps: StepIn[] = [];
+    const priv: MatchEvent[] = [];
+    let step = createMatch(cfg);
+    let s: MatchState = step.state;
+    const flush = (): void => {
+      priv.push(...step.events);
+      steps.push({ events: toPublicEvents(step.events, 'human'), view: tableView(step.state, 'human'), humanTurnAfter: step.state.status === 'running' });
+    };
+    flush();
+    for (let guard = 0; s.status === 'running' && guard < 3000; guard++) {
+      const L = humanLegal(s);
+      if (!L) break;
+      step = applyHumanAction(s, HEROES[(['medio', 'bom'] as HeroName[])[k % 2]](L, rng, s), { show: rng.nextFloat() < 0.3 });
+      s = step.state;
+      flush();
+    }
+    // a casual de devolução do E3: modo casual, o portador da fase 1 e a marca `reclaim`
+    if (!real) {
+      for (const st of steps) {
+        st.events = st.events.map((e) => (e.t === 'matchStarted' ? { ...e, mode: 'free', reclaim: true } as PE : e));
+      }
+    }
+    check(steps[0].events.some((e) => e.t === 'matchStarted' && e.reclaim === true && !!e.prize), `devolução-${k}: matchStarted sem reclaim/prize`);
+    const ctxBase: CtxOpts = { mode: 'free', lang: k % 5 === 0 ? 'en' : 'pt', reclaim: k % 2 === 0 ? { holderId: carrier } : undefined };
+    const { stage } = newDirector({ ...ctxBase, seed: `rcd-${k}` });
+    const all: PE[] = [];
+    playSteps(stage, steps, ctxBase, () => rng.nextFloat(), all, { quips: true });
+    const tag = `devolução-${k}`;
+    verify(tag, all, stage.out, privateMeta(priv));
+    // quem carrega, evento a evento
+    const holderAt: (string | null)[] = [];
+    let holder: string | null = carrier;
+    let capI = -1;
+    let holderBeforeCap: string | null = null;
+    all.forEach((e, j) => {
+      if (e.t === 'prizeMoved') holder = e.toId;
+      if (e.t === 'prizeCaptured') {
+        capI = j;
+        holderBeforeCap = holder;
+        holder = 'human';
+      }
+      holderAt.push(holder);
+    });
+    const tr = (t: string): Emitted[] => stage.out.filter((o) => o.item.debug?.trigger === t);
+    for (const o of stage.out) {
+      const t = o.item.debug?.trigger ?? '';
+      check(!BOUNTY_TRIGGERS.has(t), `${tag}: ${t} (${o.item.lineId}) anuncia o pôster`);
+      check(!byId.get(o.item.lineId)?.variant?.includes('valendo'), `${tag}: fala de "valendo" (${o.item.lineId})`);
+    }
+    const ta = tr('reclaimTaunt');
+    check(ta.length <= 1, `${tag}: ${ta.length} provocações`);
+    for (const o of ta) {
+      check(o.item.speaker === holderAt[o.evIndex], `${tag}: provocação de ${o.item.speaker}, quem carrega é ${holderAt[o.evIndex]}`);
+      check(capI < 0 || o.evIndex < capI, `${tag}: provocação depois de recuperado`);
+      check(o.item.curta, `${tag}: provocação longa`);
+    }
+    if (ta.length) taunted++;
+    const won = tr('reclaimWon');
+    if (capI >= 0) {
+      captured++;
+      wonLines += won.length;
+      check(won.length === 1 && won[0].item.speaker === holderBeforeCap, `${tag}: recuperou sem a reação de quem carregava (${won.map((o) => o.item.speaker)})`);
+    } else {
+      check(won.length === 0, `${tag}: reação de recuperado sem recuperar`);
+    }
+  }
+  console.log(`  ${rn} partidas (${realReclaim} com o rescueConfig do E3): provocação em ${(100 * taunted / rn).toFixed(0)}%, ` +
+    `recuperado em ${captured} (${wonLines} reações)`);
+  check(taunted > 0 && taunted / rn < 0.45, `devolução: provocação "de vez em quando" (${(100 * taunted / rn).toFixed(0)}% das partidas)`);
+  check(captured > 0, 'devolução: o fuzz recuperou pôsteres');
+}
+
 
 console.log(`\n${passed} asserções ok, ${failed} falharam.`);
 if (failed) {

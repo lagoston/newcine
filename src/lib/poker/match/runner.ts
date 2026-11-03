@@ -10,13 +10,19 @@
  * do matchStarted, do handStarted, das cartas fechadas e de cada aposta de bot, antes do
  * river, e no fim da mão logo depois dos bots que mostram (viradas e bônus da casa, que já
  * entram no `net` do resumo).
+ *
+ * Mesa de amigos (pacote E3, 03/11/2026): vários lugares de pessoas (`config.people`). O laço
+ * para na vez de qualquer pessoa presente; quem está ausente (3 estouros) ou saiu é jogado na
+ * hora pelo servidor (`auto`). Quem saiu deixa a mesa no fim da mão (as fichas saem com ela).
+ * Sem pessoa jogando, os oráculos terminam a partida sozinhos (sem eventos) e sai o matchEnded.
+ * Os modos de uma pessoa ('human') seguem exatamente o caminho de antes.
  */
 import type { Card } from '../cards.ts';
 import type { HandResult, PlayerAction, PokerEvent } from '../engine.ts';
 import { PokerRuleError, applyAction, createTable, getLegalActions, setBlinds, startHand, timeoutAction } from '../engine.ts';
 import { createRng, seedToRngState } from '../rng.ts';
 import { blindsFor, levelFor } from '../config.ts';
-import type { BotMemory, MatchConfig, OppCounters, PlayerId, RivalId } from '../types.ts';
+import type { AutoActionKind, BotMemory, EndReasonPublic, HumanTally, MatchConfig, OppCounters, PlayerId, RivalId, StyleLabel } from '../types.ts';
 import type { BotChoice } from '../bots/driver.ts';
 import { defaultBotChoice } from '../bots/driver.ts';
 import { bucketOf, isAirShown } from '../bots/buckets.ts';
@@ -27,12 +33,13 @@ import { computeFlags } from './flags.ts';
 import { eliminatorOf } from './eliminator.ts';
 import { emptyTally, updateTally } from './summary.ts';
 import { scriptedChoice } from './scripted.ts';
-import type { EndReason, MatchStateX, StepCtx } from './internal.ts';
-import { HUMAN, emit, isAlive, isRevealed, markRevealed, playerOf, sizeClassOf } from './internal.ts';
+import type { EndReason, MatchStateX, PersonState, StepCtx } from './internal.ts';
+import { HUMAN, emit, isAlive, isPerson, isRevealed, markRevealed, peopleOf, playerOf, sizeClassOf } from './internal.ts';
 import {
-  beforeRiver, extraCardsOf, handFxFor, initEffects, onBotAggression, onHandEnd, onHandStarted, onHoleCards, onMatchStarted,
-  revealedNow,
+  beforeRiver, extraCardsOf, handFxFor, initEffectList, initEffects, onBotAggression, onHandEnd, onHandStarted, onHoleCards,
+  onMatchStarted, revealedNow,
 } from './effects.ts';
+import { effectLevels } from '../config.ts';
 
 /** Nos testes, ação ilegal de bot estoura em vez de virar check/fold. */
 let strictBots = false;
@@ -47,7 +54,9 @@ export function setStrictBots(on: boolean): void {
 export function initialState(cfg: MatchConfig, buttonSeat?: number): MatchStateX {
   const s = cfg.settings;
   const lvl = levelFor(1, s);
-  if (cfg.seats[HUMAN] === undefined) throw new Error('MatchConfig.seats precisa de human');
+  const people = peopleOf(cfg);
+  for (const id of people) if (cfg.seats[id] === undefined) throw new Error(`MatchConfig.seats precisa de ${id}`);
+  if (cfg.mode === 'friends' && cfg.people === undefined) throw new Error('mesa de amigos precisa de MatchConfig.people');
   const players = Object.entries(cfg.seats).map(([id, seat]) => ({
     id, seat, stack: s.startStack + (id === HUMAN ? cfg.loan : 0),
   }));
@@ -58,7 +67,7 @@ export function initialState(cfg: MatchConfig, buttonSeat?: number): MatchStateX
   );
   const bots: Record<string, BotMemory> = {};
   for (const id of Object.keys(cfg.seats)) {
-    if (id === HUMAN) continue;
+    if (people.includes(id)) continue;
     const prof = cfg.profiles[id];
     if (!prof) throw new Error(`MatchConfig.profiles sem ${id}`);
     const mem: BotMemory = { committed: false, facedFirstBet: false, tilt: null, labelsAnnounced: [] };
@@ -75,8 +84,22 @@ export function initialState(cfg: MatchConfig, buttonSeat?: number): MatchStateX
   }
   const humanStack = s.startStack + cfg.loan;
   const fx = initEffects(cfg);
+  const fxs = initEffectList(cfg);
+  // Mesa de amigos: situação e números de cada pessoa.
+  let friends: Pick<MatchStateX, 'people' | 'tallies'> = {};
+  if (cfg.mode === 'friends') {
+    const ppl: Record<string, PersonState> = {};
+    const tallies: Record<string, HumanTally> = {};
+    for (const id of people) {
+      ppl[id] = { status: 'playing', streak: 0, away: false };
+      tallies[id] = emptyTally(s.startStack / lvl.bb);
+    }
+    friends = { people: ppl, tallies };
+  }
   return {
     ...(fx ? { fx } : {}),
+    ...(fxs ? { fxs } : {}),
+    ...friends,
     v: 1,
     config: cfg,
     game,
@@ -105,6 +128,8 @@ export function emitMatchStarted(ctx: StepCtx): void {
     prize: cfg.prize ? { prizeId: cfg.prize.prizeId, holderId: cfg.prize.carrierId } : null,
     level: levelFor(1, cfg.settings),
     ...(cfg.mode === 'bounty' && cfg.tournament ? { tournament: { ...cfg.tournament } } : {}),
+    ...(cfg.mode === 'friends' ? { people: peopleOf(cfg) as PlayerId[], effects: effectLevels(cfg.effects) } : {}),
+    ...(cfg.reclaim && cfg.prize ? { reclaim: true as const } : {}),
   });
   onMatchStarted(ctx);
 }
@@ -120,7 +145,7 @@ function botShows(st: MatchStateX, result: HandResult): { playerId: string; card
   const board = result.board;
   const winner = !result.wentToShowdown && result.winnerIds.length === 1 ? result.winnerIds[0] : null;
   for (const p of st.game.players) {
-    if (p.id === HUMAN || p.showCards || p.holeCards.length !== 2 || result.startStacks[p.id] === undefined) continue;
+    if (isPerson(st, p.id) || p.showCards || p.holeCards.length !== 2 || result.startStacks[p.id] === undefined) continue;
     const pol = st.config.profiles[p.id]?.showPolicy;
     if (!pol) continue;
     let chance = 0;
@@ -181,6 +206,65 @@ export function emitMatchEnded(ctx: StepCtx, reason: EndReason, humanPlace: numb
   });
 }
 
+// ---------------------------------------------------------------------------
+// Mesa de amigos (pacote E3, 03/11/2026): situação das pessoas e saída da mesa
+// ---------------------------------------------------------------------------
+
+function setOut(ps: PersonState, place: number, reason: EndReason): void {
+  ps.status = ps.leaving ? 'left' : 'out';
+  ps.place = place;
+  ps.reason = ps.leaving ?? reason;
+  ps.away = false;
+}
+
+/** Alguma pessoa joga e está presente (não ausente, não saindo)? */
+function someonePresent(st: MatchStateX): boolean {
+  return Object.values(st.people ?? {}).some((p) => p.status === 'playing' && !p.away && !p.leaving);
+}
+
+/** Alguma pessoa ainda joga (mesmo ausente)? Quem está saindo não conta. */
+function anyPlaying(st: MatchStateX): boolean {
+  return Object.values(st.people ?? {}).some((p) => p.status === 'playing' && !p.leaving);
+}
+
+/**
+ * Tira da mesa quem saiu: cacife zerado (as fichas saem com a pessoa), colocação = vivos
+ * agora (contando ela), `eliminated{ byId: null }`. Se sobrar um só, a partida acaba.
+ */
+export function removeLeaver(ctx: StepCtx, id: string, hand: number, elims?: { victimId: PlayerId; byId: PlayerId | null; hand: number }[]): void {
+  const st = ctx.st;
+  const g = st.game;
+  const p = playerOf(g, id);
+  const ps = st.people![id];
+  if (p.status === 'eliminated') {
+    setOut(ps, st.places[id] ?? g.players.filter(isAlive).length + 1, ps.leaving ?? 'forfeit');
+    return;
+  }
+  // Saiu estando all-in e a mão (já decidida pelas cartas) o deixou como o único vivo: vence.
+  if (g.phase === 'gameOver' && g.winnerId === id) {
+    ps.status = 'left';
+    ps.place = 1;
+    ps.reason = 'won';
+    return;
+  }
+  const place = g.players.filter(isAlive).length;
+  const stackLeft = p.stack;
+  p.stack = 0;
+  p.status = 'eliminated';
+  st.places[id] = place;
+  st.eliminatedBy[id] = null;
+  setOut(ps, place, ps.leaving ?? 'forfeit');
+  elims?.push({ victimId: id, byId: null, hand });
+  emit(ctx, { type: 'eliminated', playerId: id, place, byId: null, handNumber: hand, stackLeft });
+  // `g` já é a cópia desta chamada (closeHand vem do motor; leavePerson copia antes).
+  const alive = g.players.filter((q) => isAlive(q) && q.stack > 0);
+  if (alive.length <= 1 && g.phase !== 'betting') {
+    g.phase = 'gameOver';
+    g.winnerId = alive[0]?.id ?? null;
+    if (alive[0]) st.places[alive[0].id] = 1;
+  }
+}
+
 function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; hands: { playerId: string; cards: Card[] }[] } | null): void {
   const st = ctx.st;
   const g = st.game;
@@ -219,12 +303,22 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
   });
   // 5) eliminações (uma regra só: eliminatorOf)
   const elims: { victimId: PlayerId; byId: PlayerId | null; hand: number }[] = [];
+  const persons = cfg.people ?? [HUMAN];
   for (const e of result.eliminated) {
-    const byId = eliminatorOf(result, e.playerId);
+    const byId = eliminatorOf(result, e.playerId, persons);
     st.places[e.playerId] = e.place;
     st.eliminatedBy[e.playerId] = byId;
     elims.push({ victimId: e.playerId, byId, hand: n });
     emit(ctx, { type: 'eliminated', playerId: e.playerId, place: e.place, byId, handNumber: n });
+    const ps = st.people?.[e.playerId];
+    if (ps && ps.status === 'playing') setOut(ps, e.place, ps.leaving ?? 'eliminated');
+  }
+  // 5b) mesa de amigos: quem saiu no meio deixa a mesa agora (as fichas saem com a pessoa)
+  if (st.people) {
+    for (const id of persons) {
+      const ps = st.people[id];
+      if (ps.status === 'playing' && ps.leaving) removeLeaver(ctx, id, n, elims);
+    }
   }
   if (g.phase === 'gameOver' && g.winnerId) st.places[g.winnerId] = 1;
   // 6) prêmio
@@ -242,6 +336,22 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
       const alive = g.players.some((p) => p.id === id && p.status !== 'eliminated');
       if (!mem.model || !cfg.profiles[id]?.model.enabled || !alive) continue;
       updateModel(mem.model, result, shown);
+      if (st.people) {
+        // Mesa de amigos: uma leitura por pessoa que ainda joga.
+        if (st.status !== 'running') continue;
+        const by = mem.labelsBy ?? (mem.labelsBy = {} as Record<PlayerId, StyleLabel[]>);
+        for (const pid of persons) {
+          const c = mem.model[pid];
+          if (!c || st.people[pid].status !== 'playing' || st.people[pid].leaving) continue;
+          const done = by[pid] ?? (by[pid] = []);
+          for (const label of labelsOf(c, cfg.difficulty.adaptDelay)) {
+            if (done.includes(label)) continue;
+            done.push(label);
+            emit(ctx, { type: 'styleRead', by: id, targetId: pid, label });
+          }
+        }
+        continue;
+      }
       const human = mem.model.human;
       if (st.status !== 'running' || !human) continue;
       for (const label of labelsOf(human, cfg.difficulty.adaptDelay)) {
@@ -252,7 +362,19 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
     }
   }
   // 9) números da pessoa (enquanto ela joga)
-  if (st.status === 'running' && !tutorial) {
+  if (st.tallies) {
+    // Mesa de amigos: os números de cada pessoa (só conta a mão de quem recebeu cartas).
+    if (!ctx.completing) {
+      for (const pid of persons) {
+        const t = st.tallies[pid];
+        if (!t) continue;
+        updateTally(t, {
+          result, bb, holes, flags, potTotal, odds, humanStackAfter: playerOf(g, pid).stack, eliminations: elims,
+          potBonus: fxEnd.potBonus[pid] ?? 0, repeats: extraCards.length > 0,
+        }, pid);
+      }
+    }
+  } else if (st.status === 'running' && !tutorial) {
     updateTally(st.tally, {
       result, bb, holes, flags, potTotal, odds, humanStackAfter: playerOf(g, HUMAN).stack, eliminations: elims,
       potBonus: fxEnd.potBonus[HUMAN] ?? 0, repeats: extraCards.length > 0,
@@ -261,7 +383,7 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
   // 9) último pote sem showdown (para o "Mostrar")
   if (!result.wentToShowdown && result.winnerIds.length === 1) {
     const w = result.winnerIds[0];
-    const mine = w === HUMAN ? holes[HUMAN] : undefined;
+    const mine = isPerson(st, w) ? holes[w] : undefined;
     st.lastUncontested = {
       hand: n, playerId: w, shown: shownAfter.some((s) => s.playerId === w) || isRevealed(st, playerOf(g, w)),
       ...(mine ? { cards: [mine[0], mine[1]] as [Card, Card] } : {}),
@@ -275,6 +397,19 @@ function closeHand(ctx: StepCtx, result: HandResult, runout: { board: Card[]; ha
     return;
   }
   if (st.status !== 'running') return;   // simulateRest: só bots
+  if (st.people) {
+    if (ctx.completing) return;
+    if (g.phase === 'gameOver' || !anyPlaying(st)) {
+      // Quem termina a mesa é o laço (runUntilHuman): os oráculos ainda podem ter de jogar sozinhos.
+      ctx.finishPending = true;
+      return;
+    }
+    const aliveNow = g.players.filter(isAlive);
+    if (aliveNow.length === 2 && Object.keys(result.startStacks).length >= 3) {
+      emit(ctx, { type: 'headsUp', ids: [aliveNow[0].id, aliveNow[1].id], handNumber: n + 1 });
+    }
+    return;
+  }
   if (elims.some((e) => e.victimId === HUMAN)) {
     st.status = 'humanOut';
     st.endReason = 'eliminated';
@@ -313,7 +448,11 @@ function processEngine(ctx: StepCtx, events: PokerEvent[], boardBefore: Card[], 
   if (result) closeHand(ctx, result, runout);
 }
 
-export function startNextHand(ctx: StepCtx): void {
+/**
+ * Começa a próxima mão. `testPreset` (SÓ testes: cenários exatos de combinação de efeitos)
+ * fixa cartas como o preset do treino; nunca vem de fora.
+ */
+export function startNextHand(ctx: StepCtx, testPreset?: { holeCards?: Record<string, Card[]>; board?: Card[] }): void {
   const st = ctx.st;
   const cfg = st.config;
   let g = st.game;
@@ -332,7 +471,7 @@ export function startNextHand(ctx: StepCtx): void {
   g = { ...g, rng: seedToRngState(`${cfg.seed}:deck:${n}`) };
   const preset = cfg.mode === 'tutorial' && cfg.tutorial && st.tutorialHand !== undefined
     ? cfg.tutorial.hands[st.tutorialHand]?.preset
-    : undefined;
+    : testPreset;
   const fx = handFxFor(st, n);
   const r = startHand(g, {
     ...(preset ? { preset: { holeCards: preset.holeCards, board: preset.board } } : {}),
@@ -343,7 +482,7 @@ export function startNextHand(ctx: StepCtx): void {
 }
 
 /** Aplica uma ação (da pessoa ou de bot) e processa o que o motor devolveu. */
-export function applyAndProcess(ctx: StepCtx, id: string, action: PlayerAction, bot: BotChoice | null): void {
+export function applyAndProcess(ctx: StepCtx, id: string, action: PlayerAction, bot: BotChoice | null, auto?: AutoActionKind): void {
   const st = ctx.st;
   const g = st.game;
   const hand = g.hand;
@@ -371,7 +510,9 @@ export function applyAndProcess(ctx: StepCtx, id: string, action: PlayerAction, 
     botMeta = { thinkMs: t.thinkMs, cue: t.cue, bucket: bot.bucket, monster: bot.monster };
   }
   st.actionNo += 1;
-  emit(ctx, { type: 'actionMeta', playerId: id, handNumber, stackBefore, sizeClass, ...(botMeta ? { bot: botMeta } : {}) });
+  emit(ctx, {
+    type: 'actionMeta', playerId: id, handNumber, stackBefore, sizeClass, ...(botMeta ? { bot: botMeta } : {}), ...(auto ? { auto } : {}),
+  });
   st.game = r.state;
   // O tique (efeito tell) sai logo depois da aposta/aumento do oráculo.
   const aggr = bot && (rec.type === 'bet' || rec.type === 'raise');
@@ -395,10 +536,97 @@ export function botAct(ctx: StepCtx, botId: string): void {
   }
 }
 
-/** Roda até a vez da pessoa, o fim da partida para ela, ou o fim do treino. */
+// ---------------------------------------------------------------------------
+// Mesa de amigos (pacote E3, 03/11/2026): ação automática e fim da mesa
+// ---------------------------------------------------------------------------
+
+/** Ação automática pela pessoa: passa se puder, senão desiste (quem saiu sempre desiste). */
+export function autoAct(ctx: StepCtx, id: string, auto: AutoActionKind): void {
+  const g = ctx.st.game;
+  const a = auto === 'left' ? { type: 'fold' as const } : timeoutAction(g, id);
+  if (!a) throw new PokerRuleError('not_your_turn', `Não é a vez de ${id}.`);
+  applyAndProcess(ctx, id, a, null, auto);
+}
+
+/** Sem pessoa jogando: os oráculos terminam a partida sozinhos (sem eventos), até 300 mãos. */
+function completeWithBots(ctx: StepCtx): void {
+  const st = ctx.st;
+  const rec = ctx.record;
+  const maxD = ctx.maxDecisions;
+  ctx.record = false;
+  ctx.completing = true;
+  ctx.maxDecisions = Number.POSITIVE_INFINITY;
+  const start = st.game.handNumber;
+  try {
+    while (st.game.phase !== 'gameOver' && st.game.handNumber - start < 300) {
+      const g = st.game;
+      if (g.phase !== 'betting') {
+        startNextHand(ctx);
+        continue;
+      }
+      const to = g.hand!.toActId;
+      if (!to) break;
+      if (isPerson(st, to)) autoAct(ctx, to, 'left');
+      else botAct(ctx, to);
+    }
+  } finally {
+    ctx.record = rec;
+    ctx.completing = false;
+    ctx.maxDecisions = maxD;
+  }
+  // Ninguém viu essas mãos: a visão final não mostra o board nem cartas delas (só cacifes e colocações).
+  if (st.game.handNumber > start) {
+    const g = st.game;
+    st.game = { ...g, hand: null, players: g.players.map((p) => ({ ...p, holeCards: [], showCards: false })) };
+    delete st.revealed;
+    for (const fx of st.fxs ?? []) fx.revealed = null;
+  }
+}
+
+/** Fim da mesa de amigos: colocações de todos, vencedor e o matchEnded (com `people`). */
+export function finishFriends(ctx: StepCtx): void {
+  const st = ctx.st;
+  if (st.game.phase === 'betting' || (st.game.phase !== 'gameOver' && st.game.players.filter((p) => isAlive(p) && p.stack > 0).length >= 2)) {
+    completeWithBots(ctx);
+  }
+  const g = st.game;
+  // Passou do limite de mãos: vence o maior cacife; os outros vivos pela ordem dos cacifes.
+  const alive = g.players.filter((p) => isAlive(p) && st.places[p.id] === undefined).sort((p, q) => q.stack - p.stack || p.seat - q.seat);
+  alive.forEach((p, k) => {
+    st.places[p.id] = k + 1;
+  });
+  const winnerId = (g.winnerId ?? alive[0]?.id ?? Object.keys(st.places).find((k) => st.places[k] === 1) ?? null) as PlayerId | null;
+  if (winnerId) st.places[winnerId] = 1;
+  const people: Record<string, { place: number; reason: EndReasonPublic }> = {};
+  for (const [id, ps] of Object.entries(st.people ?? {})) {
+    if (ps.status === 'playing') {
+      ps.place = st.places[id];
+      ps.reason = id === winnerId ? 'won' : 'eliminated';
+      ps.status = id === winnerId ? 'playing' : 'out';
+    }
+    people[id] = { place: ps.place ?? st.places[id] ?? g.players.length, reason: ps.reason ?? 'eliminated' };
+  }
+  st.status = 'finished';
+  const winnerIsPerson = !!winnerId && isPerson(st, winnerId);
+  emit(ctx, {
+    type: 'matchEnded', places: { ...st.places } as Record<PlayerId, number>, winnerId, humanPlace: 0,
+    reason: winnerIsPerson ? 'won' : 'eliminated', prizeCaptured: false, people: people as Record<PlayerId, { place: number; reason: EndReasonPublic }>,
+  });
+}
+
+/**
+ * Roda até a vez de uma pessoa presente, o fim da partida para ela, ou o fim do treino.
+ * Mesa de amigos: quem saiu desiste na hora; quem está ausente passa/desiste na hora, a
+ * menos que todas as pessoas que ainda jogam estejam ausentes (aí a mesa espera o relógio).
+ */
 export function runUntilHuman(ctx: StepCtx): void {
   for (;;) {
     const st = ctx.st;
+    if (ctx.finishPending) {
+      ctx.finishPending = false;
+      finishFriends(ctx);
+      return;
+    }
     const g = st.game;
     if (st.status !== 'running' || g.phase === 'gameOver') return;
     if (g.phase !== 'betting') {
@@ -406,7 +634,20 @@ export function runUntilHuman(ctx: StepCtx): void {
       continue;
     }
     const to = g.hand!.toActId;
-    if (!to || to === HUMAN) return;
-    botAct(ctx, to);
+    if (!to) return;
+    if (!isPerson(st, to)) {
+      botAct(ctx, to);
+      continue;
+    }
+    const ps = st.people?.[to];
+    if (ps?.leaving) {
+      autoAct(ctx, to, 'left');
+      continue;
+    }
+    if (ps?.away && someonePresent(st)) {
+      autoAct(ctx, to, 'away');
+      continue;
+    }
+    return;
   }
 }

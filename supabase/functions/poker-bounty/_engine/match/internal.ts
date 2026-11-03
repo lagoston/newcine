@@ -10,8 +10,8 @@
 import type { Card } from '../cards.ts';
 import type { ActionRecord, GameState, PlayerState, PokerEvent } from '../engine.ts';
 import type {
-  BotMemory, EffectCastData, EffectParams, HumanTally, LevelInfo, MatchEvent, MatchOnlyEvent, MatchState, OppCounters, PlayerId,
-  PosterEffectId, RivalId, SizeClass,
+  BotMemory, EffectCastData, EffectParams, HumanTally, LevelInfo, MatchConfig, MatchEvent, MatchOnlyEvent, MatchState, OppCounters,
+  PersonStatus, PlayerId, PosterEffectId, RivalId, SizeClass, StyleLabel,
 } from '../types.ts';
 
 export const HUMAN = 'human';
@@ -49,6 +49,11 @@ export interface FxState {
   revealed: { hand: number; cards: EffectReveal[] } | null;
   /** Fichas de bônus que a pessoa ganhou (para o resumo). */
   bonusWon: number;
+  /** Pacote E3 (mesa de amigos): pôsteres iguais na mesa (ausente = 1) e bônus por pessoa. */
+  level?: number;
+  bonusBy?: Record<string, number>;
+  /** Pacote E3 (mesa de amigos): tudo o que a casa pagou com este efeito (também quando os oráculos terminam sozinhos). */
+  paid?: number;
 }
 
 export function cloneCast(d: EffectCastData): EffectCastData {
@@ -63,7 +68,22 @@ export function cloneFx(fx: FxState): FxState {
     schedule: fx.schedule.slice(),
     active: fx.active ? cloneCast(fx.active) : null,
     revealed: fx.revealed ? { hand: fx.revealed.hand, cards: fx.revealed.cards.map((r) => ({ playerId: r.playerId, cards: r.cards.slice() })) } : null,
+    ...(fx.bonusBy ? { bonusBy: { ...fx.bonusBy } } : {}),
   };
+}
+
+/**
+ * Pacote E3 (03/11/2026): situação de cada pessoa da mesa de amigos. `streak` = estouros
+ * seguidos do relógio; `away` = ausente (3 estouros; a vez dela é jogada na hora);
+ * `leaving` = saiu no meio (desiste na vez dela e sai da mesa no fim da mão).
+ */
+export interface PersonState {
+  status: PersonStatus;
+  streak: number;
+  away: boolean;
+  leaving?: 'forfeit' | 'abandoned';
+  place?: number;
+  reason?: EndReason;
 }
 
 export interface MatchStateX extends MatchState {
@@ -74,6 +94,11 @@ export interface MatchStateX extends MatchState {
   revealed?: { hand: number; ids: string[] };
   /** Pôster Poker: efeitos do torneio (ausente na mesa livre e no treino). */
   fx?: FxState;
+  /** Pacote E3: efeitos da mesa de amigos (um por efeito distinto, na ordem EFFECT_ORDER). */
+  fxs?: FxState[];
+  /** Pacote E3: pessoas da mesa de amigos e os números de cada uma. */
+  people?: Record<string, PersonState>;
+  tallies?: Record<string, HumanTally>;
 }
 
 /** O handStarted privado leva também o nível da mão (toPublicEvents não tem o estado). */
@@ -87,6 +112,8 @@ export interface StepCtx {
   /** Decisões de bot nesta chamada (o servidor corta em 200). */
   decisions: number;
   maxDecisions: number;
+  /** Pacote E3: os oráculos terminam a mesa de amigos sozinhos (closeHand não fecha a partida). */
+  completing?: boolean;
 }
 
 export function emit(ctx: StepCtx, e: PokerEvent | MatchOnlyEvent | HandStartedX): void {
@@ -109,6 +136,11 @@ function cloneMemory(m: BotMemory): BotMemory {
     tilt: m.tilt ? { ...m.tilt } : null,
     labelsAnnounced: m.labelsAnnounced.slice(),
   };
+  if (m.labelsBy) {
+    const by: Record<string, StyleLabel[]> = {};
+    for (const [k, v] of Object.entries(m.labelsBy)) by[k] = v.slice();
+    out.labelsBy = by as Record<PlayerId, StyleLabel[]>;
+  }
   if (m.model) {
     const model: Record<string, OppCounters> = {};
     for (const [k, v] of Object.entries(m.model)) model[k] = cloneCounters(v);
@@ -141,11 +173,52 @@ export function cloneMatch(s: MatchState): MatchStateX {
   if (out.lastUncontested && !out.lastUncontested.cards) delete out.lastUncontested.cards;
   if (sx.revealed) out.revealed = { hand: sx.revealed.hand, ids: sx.revealed.ids.slice() };
   if (sx.fx) out.fx = cloneFx(sx.fx);
+  if (sx.fxs) out.fxs = sx.fxs.map(cloneFx);
+  if (sx.people) {
+    const people: Record<string, PersonState> = {};
+    for (const [k, v] of Object.entries(sx.people)) people[k] = { ...v };
+    out.people = people;
+  }
+  if (sx.tallies) {
+    const tallies: Record<string, HumanTally> = {};
+    for (const [k, v] of Object.entries(sx.tallies)) tallies[k] = cloneTally(v);
+    out.tallies = tallies;
+  }
   return out;
 }
 
 export function newCtx(s: MatchState, record = true): StepCtx {
   return { st: cloneMatch(s), ev: [], record, decisions: 0, maxDecisions: 200 };
+}
+
+// ---------------------------------------------------------------------------
+// Pessoas (pacote E3, 03/11/2026)
+// ---------------------------------------------------------------------------
+
+/** Lugares controlados por pessoas (os modos de uma pessoa: só 'human'). */
+export function peopleOf(cfg: MatchConfig): string[] {
+  return cfg.people && cfg.people.length > 0 ? cfg.people.slice() : [HUMAN];
+}
+
+export function isPerson(st: MatchState, id: string): boolean {
+  const ppl = st.config.people;
+  return ppl && ppl.length > 0 ? ppl.includes(id) : id === HUMAN;
+}
+
+export function isFriends(st: MatchState): boolean {
+  return st.config.mode === 'friends';
+}
+
+/** Números da pessoa `id` (na mesa de uma pessoa, `st.tally`). */
+export function tallyOf(st: MatchStateX, id: string): HumanTally | undefined {
+  if (st.tallies) return st.tallies[id];
+  return id === HUMAN ? st.tally : undefined;
+}
+
+/** Lista de efeitos do estado: a da mesa de amigos, ou o efeito único do torneio. */
+export function fxList(st: MatchStateX): FxState[] {
+  if (st.fxs) return st.fxs;
+  return st.fx ? [st.fx] : [];
 }
 
 // ---------------------------------------------------------------------------

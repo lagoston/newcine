@@ -3,6 +3,10 @@
  * eliminatorOf, passagem e captura do prêmio, empréstimo, desistência, mostrar, treino,
  * simulateRest, resumo, determinismo e pureza.
  *
+ * Pacote E3 (03/11/2026): mesa de amigos (lugares, vez de cada pessoa, relógio, ausente,
+ * saída, colocações, resumo por pessoa, ponto de vista) e a casual de devolução (portador sem
+ * torneio: eliminar o portador ou vencer a mesa devolve o pôster).
+ *
  *   node scripts/poker/test-match.ts [--n 300]
  */
 import {
@@ -15,6 +19,12 @@ import { setStrictBots } from '../../src/lib/poker/match/runner.ts';
 import { isoToMs } from '../../src/lib/poker/match/summary.ts';
 import { ALL_EFFECTS, EFFECT_RARITY, check, eq, finish, makeConfig, playRandomMatch, randomHumanAction, section, throws } from './lib/harness.ts';
 import { DEFAULT_DIFFICULTY, DEFAULT_EFFECTS, effectParams } from '../../src/lib/poker/index.ts';
+import {
+  applyPersonAction, friendsConfig, friendsPayload, friendsResult, friendsSeating, leavePerson, personBack, personLegal, povEvents,
+  povView, rescueConfig, timeoutPerson, waitingFor,
+} from '../../src/lib/poker/index.ts';
+import type { MatchStateX } from '../../src/lib/poker/match/internal.ts';
+import { checkFriends, emptyFriendsStats, playFriends } from './lib/friends.ts';
 import { SAMPLE_TUTORIAL, suggested } from './lib/tutorialSample.ts';
 
 setStrictBots(true);
@@ -408,6 +418,279 @@ section('limites de ação');
   const L = humanLegal(s)!;
   throws(() => applyHumanAction(s, { type: 'raise', amount: 1 } as PlayerAction), 'aumento abaixo do mínimo', L.raise || L.bet ? 'invalid_amount' : 'illegal_action');
   if (!L.canCheck) throws(() => applyHumanAction(s, { type: 'check' }), 'check sem poder', 'illegal_action');
+}
+
+// ---------------------------------------------------------------------------
+section('mesa de amigos: lugares e configuração');
+{
+  for (let n = 1; n <= 4; n++) {
+    const seen = new Set<string>();
+    for (let k = 0; k < 40; k++) {
+      const sx = friendsSeating(`seat-${n}-${k}`, n);
+      eq(sx.people, ['p1', 'p2', 'p3', 'p4'].slice(0, n), `${n} pessoas: p1..p${n}`);
+      eq(sx.seats.p1, 0, 'p1 no lugar 0');
+      eq(sx.oracles.length, 4 - n, `${n} pessoas: ${4 - n} oráculos`);
+      const seatsUsed = Object.values(sx.seats).sort();
+      eq(seatsUsed, [0, 1, 2, 3], 'os 4 lugares ocupados, sem repetir');
+      const ORACLE: Record<string, number> = { bogart: 1, fincher: 2, cypher: 3 };
+      for (const o of sx.oracles) eq(sx.seats[o], ORACLE[o], `${o} no lugar dele`);
+      seen.add(sx.oracles.join(','));
+      eq(friendsSeating(`seat-${n}-${k}`, n), sx, 'mesma semente, mesmos lugares');
+    }
+    if (n === 2 || n === 3) check(seen.size === 3, `${n} pessoas: o oráculo que sai é sorteado (${[...seen].join(' | ')})`);
+  }
+  const cfg = friendsConfig({ seed: 'cfg-1', people: 3, effects: ['opal', 'zzz', 'tell', 'opal', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'tell'] });
+  eq(cfg.mode, 'friends', 'modo friends');
+  eq(cfg.effects, ['opal', 'tell', 'opal', 'tell'], 'efeitos: só ids válidos, repetidos ficam (até 8)');
+  eq(cfg.loan, 0, 'sem empréstimo');
+  eq(cfg.prize, null, 'sem prêmio');
+  eq(cfg.difficulty, DEFAULT_DIFFICULTY.free, 'oráculos no padrão da casual');
+  eq(Object.keys(cfg.profiles).length, 1, 'perfil só dos oráculos sentados');
+  const st = createMatch(cfg);
+  const ms = st.events.find((e) => e.type === 'matchStarted') as Ev<'matchStarted'>;
+  eq(ms.people, ['p1', 'p2', 'p3'], 'matchStarted.people');
+  eq(ms.effects, [{ effect: 'tell', level: 2 }, { effect: 'opal', level: 2 }], 'matchStarted.effects (ordem fixa, com o nível)');
+  check(ms.seats.length === 4 && !ms.seats.some((x) => x.id === 'human'), 'ninguém se chama human na mesa de amigos');
+  const w = waitingFor(st.state);
+  check(!!w && cfg.people!.includes(w), `createMatch para na vez de uma pessoa (${w})`);
+  throws(() => applyHumanAction(st.state, { type: 'fold' }), 'applyHumanAction não vale na mesa de amigos', 'illegal_action');
+  throws(() => forfeitMatch(st.state), 'forfeitMatch não vale na mesa de amigos', 'illegal_action');
+  const other = cfg.people!.find((id) => id !== w)!;
+  throws(() => applyPersonAction(st.state, other, { type: 'fold' }), 'ação fora da vez', 'not_your_turn');
+  throws(() => timeoutPerson(st.state, other), 'estouro fora da vez', 'not_your_turn');
+  throws(() => applyPersonAction(st.state, 'bogart', { type: 'fold' }), 'oráculo não é pessoa', 'illegal_action');
+  eq(personLegal(st.state, other), null, 'sem ações legais fora da vez');
+  check(!!personLegal(st.state, w!), 'ações legais na vez');
+  throws(() => timeoutPerson(createMatch(makeConfig({ seed: 'x' })).state, 'human'), 'relógio só na mesa de amigos', 'illegal_action');
+}
+
+// ---------------------------------------------------------------------------
+section('mesa de amigos: vez, saída, colocações e resumo por pessoa');
+{
+  const stats = emptyFriendsStats();
+  const META = { clientId: 'f', startedAt: '2026-11-03T00:00:00Z', endedAt: '2026-11-03T00:20:00Z' };
+  for (let m = 0; m < Math.max(30, Math.floor(N / 6)); m++) {
+    const n = 1 + (m % 4);
+    const cfg = friendsConfig({ seed: `fm-${m}`, people: n, effects: m % 3 === 0 ? [] : ['blackjack', 'opal'] });
+    const p = playFriends(cfg, `fm-h-${m}`, { pTimeout: 0.08, pLeave: 0.005, pLeaveOther: 0.004 });
+    checkFriends(p, `fm-${m}`, stats, m % 4 === 0);
+    // Resumo de cada pessoa
+    const r = friendsResult(p.final);
+    for (const id of cfg.people!) {
+      const sum = summarizeMatch(p.final, META, id);
+      eq(sum.mode, 'friends', 'resumo mode friends');
+      eq(sum.place, r.people[id].place, `resumo: colocação de ${id}`);
+      eq(sum.reason, r.people[id].reason, `resumo: motivo de ${id}`);
+      eq(sum.friends?.playerId, id, 'resumo.friends.playerId');
+      eq(sum.friends?.winnerIsPerson, r.winnerIsPerson, 'resumo.friends.winnerIsPerson');
+      eq(sum.loan, false, 'sem empréstimo');
+      eq(sum.prize, null, 'sem prêmio');
+      check(sum.human.hands <= p.final.game.handNumber, 'mãos da pessoa ≤ mãos da partida');
+    }
+    // Uma pessoa nunca age depois de sair ou cair.
+    const out = new Set<string>();
+    for (const e of p.priv) {
+      if (e.type === 'eliminated') out.add(e.playerId);
+      if (e.type === 'actionMeta' && out.has(e.playerId)) check(false, `${e.playerId} agiu depois de sair da mesa`);
+    }
+    throws(() => applyPersonAction(p.final, cfg.people![0], { type: 'fold' }), 'nada depois do fim', 'game_over');
+  }
+  console.log(`  ${stats.hands} mãos · saídas ${stats.leaves} · estouros ${stats.timeouts} · vencedor pessoa ${stats.personWins}, oráculo ${stats.oracleWins}`);
+  check(stats.personWins > 0 && stats.oracleWins > 0, 'venceram pessoas e oráculos');
+}
+
+// ---------------------------------------------------------------------------
+section('mesa de amigos: sair no meio não acaba a partida das outras');
+{
+  let tested = 0;
+  for (let m = 0; m < 20; m++) {
+    const cfg = friendsConfig({ seed: `lv-${m}`, people: 3, effects: [] });
+    let s = createMatch(cfg).state;
+    const rng = createRng(`lv-h-${m}`);
+    for (let k = 0; k < 4 && s.status === 'running'; k++) s = applyPersonAction(s, waitingFor(s)!, randomHumanAction(personLegal(s, waitingFor(s)!)!, rng)).state;
+    if (s.status !== 'running') continue;
+    const who = waitingFor(s)!;
+    const other = cfg.people!.find((id) => id !== who && (s as MatchStateX).people![id].status === 'playing')!;
+    if (!other) continue;
+    const st = leavePerson(s, other, 'abandoned');
+    check(st.events.some((e) => e.type === 'personLeft' && e.playerId === other && e.reason === 'abandoned'), 'personLeft');
+    eq(st.state.status, 'running', 'a partida continua');
+    eq(friendsResult(st.state).people[other].status, 'playing', 'continua sentado até o fim da mão');
+    eq(tableView(st.state, who).people?.[other].status, 'left', 'a visão já mostra que saiu');
+    throws(() => leavePerson(st.state, other), 'sair duas vezes', 'game_over');
+    throws(() => applyPersonAction(st.state, other, { type: 'fold' }), 'quem saiu não age', 'game_over');
+    // Joga até a próxima mão: ela sai da mesa
+    let s2 = st.state;
+    const hand = s2.game.handNumber;
+    for (let g = 0; g < 60 && s2.status === 'running' && s2.game.handNumber === hand; g++) {
+      const w = waitingFor(s2)!;
+      s2 = applyPersonAction(s2, w, personLegal(s2, w)!.canCheck ? { type: 'check' } : { type: 'call' }).state;
+    }
+    const pr = friendsResult(s2).people[other];
+    check(pr.status === 'left' && pr.reason === 'abandoned' && pr.place !== null, `saiu da mesa com colocação (${JSON.stringify(pr)})`);
+    eq(s2.game.players.find((q) => q.id === other)!.stack, 0, 'as fichas saíram com a pessoa');
+    tested++;
+  }
+  check(tested >= 10, `saídas no meio (${tested})`);
+}
+
+// ---------------------------------------------------------------------------
+section('mesa de amigos: ponto de vista ("eu" = human)');
+{
+  const cfg = friendsConfig({ seed: 'pov-1', people: 4, effects: ['reveal_one'] });
+  const step = createMatch(cfg);
+  for (const id of cfg.people!) {
+    const raw = toPublicEvents(step.events, id);
+    const pov = povEvents(raw, id, cfg.seats[id]);
+    const mine = raw.find((e) => e.t === 'holeCards');
+    const minePov = pov.find((e) => e.t === 'holeCards');
+    eq(minePov, mine, `${id}: as minhas cartas continuam as minhas`);
+    const ms = pov.find((e) => e.t === 'matchStarted') as Extract<typeof pov[number], { t: 'matchStarted' }>;
+    eq(ms.seats.find((x) => x.id === 'human')?.seat, 0, `${id}: eu no lugar 0`);
+    eq(ms.seats.map((x) => x.seat).sort(), [0, 1, 2, 3], 'lugares girados, sem repetir');
+    check(!JSON.stringify(pov).includes(`"${id}"`), `${id}: nenhum "${id}" sobra`);
+    const view = povView(tableView(step.state, id), id);
+    eq(view.seats.find((x) => x.id === 'human')?.holeCards, step.state.game.players.find((q) => q.id === id)!.holeCards, `${id}: a visão mostra as minhas cartas como human`);
+    eq(friendsPayload(step.state, step.events, id), { events: pov, view }, `${id}: friendsPayload = povEvents + povView`);
+    // ordem dos lugares preservada (sentido horário)
+    const order = (sts: { id: string; seat: number }[]): string[] => sts.slice().sort((a, b) => a.seat - b.seat).map((x) => x.id);
+    const rawOrder = order(tableView(step.state, id).seats);
+    const k = rawOrder.indexOf(id);
+    eq(order(view.seats), [...rawOrder.slice(k), ...rawOrder.slice(0, k)].map((x) => (x === id ? 'human' : x)), `${id}: mesma ordem na mesa`);
+  }
+  eq(povView(tableView(createMatch(makeConfig({ seed: 'pov-2' })).state, 'human'), 'human'), tableView(createMatch(makeConfig({ seed: 'pov-2' })).state, 'human'), 'human vê como sempre');
+}
+
+// ---------------------------------------------------------------------------
+section('mesa de amigos: ausente e Voltar');
+{
+  const cfg = friendsConfig({ seed: 'aw-1', people: 2, effects: [] });
+  let s = createMatch(cfg).state;
+  const rng = createRng('aw-h');
+  let streakSeen = 0;
+  let back = false;
+  for (let g = 0; g < 400 && s.status === 'running'; g++) {
+    const who = waitingFor(s)!;
+    if (who === 'p2' && !back) {
+      const st = timeoutPerson(s, 'p2');
+      const co = st.events.find((e) => e.type === 'clockOut') as Ev<'clockOut'>;
+      streakSeen = co.streak;
+      const meta = st.events.find((e) => e.type === 'actionMeta' && e.playerId === 'p2') as Ev<'actionMeta'>;
+      eq(meta.auto, 'timeout', 'estouro: ação automática timeout');
+      const act = st.events.find((e) => e.type === 'actionTaken' && e.playerId === 'p2') as Ev<'actionTaken'>;
+      check(act.action === 'check' || act.action === 'fold', 'estouro passa ou desiste');
+      if (co.streak === 3) check(st.events.some((e) => e.type === 'away' && e.on), 'ausente no 3º');
+      s = st.state;
+      if ((s as MatchStateX).people!.p2.away && s.status === 'running') {
+        eq(tableView(s, 'p1').people?.p2.away, true, 'a visão mostra ausente');
+        // Com p1 presente, a vez de p2 não espera mais o relógio.
+        for (let h = 0; h < 30 && s.status === 'running' && (s as MatchStateX).people!.p1.status === 'playing'; h++) {
+          const w2 = waitingFor(s)!;
+          check(w2 === 'p1', 'ausente com outra pessoa presente: a mesa nunca espera por ele');
+          const st2 = applyPersonAction(s, 'p1', randomHumanAction(personLegal(s, 'p1')!, rng));
+          for (const e of st2.events) if (e.type === 'actionMeta' && e.playerId === 'p2') eq(e.auto, 'away', 'vez do ausente jogada na hora');
+          s = st2.state;
+        }
+        if (s.status === 'running' && (s as MatchStateX).people!.p2.status === 'playing') {
+          const b = personBack(s, 'p2');
+          check(b.events.some((e) => e.type === 'away' && e.playerId === 'p2' && !e.on), 'Voltar');
+          s = b.state;
+          eq((s as MatchStateX).people!.p2.streak, 0, 'Voltar zera os estouros');
+        }
+        back = true;
+      }
+      continue;
+    }
+    s = applyPersonAction(s, who, randomHumanAction(personLegal(s, who)!, rng)).state;
+  }
+  check(streakSeen >= 3 || back, 'chegou ao 3º estouro');
+  // Agir zera a sequência.
+  const c2 = friendsConfig({ seed: 'aw-2', people: 2, effects: [] });
+  let s2 = createMatch(c2).state;
+  for (let g = 0; g < 60 && s2.status === 'running'; g++) {
+    const who = waitingFor(s2)!;
+    s2 = (g % 3 === 2 ? applyPersonAction(s2, who, personLegal(s2, who)!.canCheck ? { type: 'check' } : { type: 'fold' }) : timeoutPerson(s2, who)).state;
+    for (const id of c2.people!) {
+      const ps = (s2 as MatchStateX).people![id];
+      if (ps.status === 'playing') check(ps.streak < 3 || ps.away, `3 estouros seguidos = ausente (${id}: ${JSON.stringify(ps)})`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+section('casual de devolução: o oráculo portador traz o pôster perdido');
+{
+  let captured = 0;
+  let byWin = 0;
+  let byElim = 0;
+  let moved = 0;
+  let lost = 0;
+  const META = { clientId: 'r', startedAt: '2026-11-03T00:00:00Z', endedAt: '2026-11-03T00:20:00Z' };
+  const carriers = ['bogart', 'fincher', 'cypher'] as const;
+  for (let m = 0; m < Math.max(60, Math.floor(N / 3)); m++) {
+    const carrierId = carriers[m % 3];
+    const cfg = rescueConfig({ seed: `rs-${m}`, carrierId, prizeId: `lost:${m}`, rarity: 'rare' });
+    eq(cfg.mode, 'free', 'casual: modo free');
+    eq(cfg.difficulty, DEFAULT_DIFFICULTY.free, 'casual: sem estrelas');
+    const { steps, final } = playRandomMatch(cfg, `rs-h-${m}`, undefined, m % 2 ? undefined : (L) => (L.toCall === 0 ? { type: 'check' } : L.allIn && L.toCall > L.stack / 2 ? { type: 'fold' } : { type: 'call' }));
+    const all = steps.flatMap((x) => x.events);
+    const ms = all.find((e) => e.type === 'matchStarted') as Ev<'matchStarted'>;
+    eq(ms.prize, { prizeId: `lost:${m}`, holderId: carrierId }, 'o portador começa com o pôster');
+    eq(ms.reclaim, true, 'matchStarted.reclaim');
+    eq(ms.tournament, undefined, 'sem torneio');
+    const pub = toPublicEvents(all, 'human');
+    check((pub.find((e) => e.t === 'matchStarted') as { reclaim?: boolean }).reclaim === true, 'reclaim público');
+    check(!all.some((e) => e.type.startsWith('effect') || e.type === 'tellMark'), 'sem efeitos');
+    const cap = all.find((e) => e.type === 'prizeCaptured') as Ev<'prizeCaptured'> | undefined;
+    const mv = all.filter((e) => e.type === 'prizeMoved') as Ev<'prizeMoved'>[];
+    moved += mv.length;
+    const out = outcomeOf(steps[0].state, final);
+    void out;
+    // Captura: no passo em que aconteceu, outcomeOf avisa.
+    let capStep = -1;
+    for (let k = 1; k < steps.length; k++) if (outcomeOf(steps[k - 1].state, steps[k].state).captured) capStep = k;
+    if (cap) {
+      captured++;
+      check(capStep > 0, 'outcomeOf.captured no passo da captura');
+      // Quem eliminou o portador (ou a pessoa venceu a mesa)
+      const holderAtCap = mv.length ? mv[mv.length - 1].toId : carrierId;
+      const elim = all.find((e) => e.type === 'eliminated' && e.playerId === holderAtCap && e.handNumber === cap.handNumber) as Ev<'eliminated'> | undefined;
+      if (elim) {
+        eq(elim.byId, 'human', 'captura = a pessoa eliminou o portador');
+        byElim++;
+      } else {
+        eq(final.game.winnerId, 'human', 'captura sem eliminar o portador = venceu a mesa');
+        byWin++;
+      }
+      const sum = summarizeMatch(final, META);
+      eq(sum.prize, { prizeId: `lost:${m}`, capturedHand: cap.handNumber }, 'resumo com a captura');
+      eq(sum.mode, 'free', 'resumo: casual');
+      eq(sum.reclaim, true, 'resumo.reclaim');
+      eq((all.find((e) => e.type === 'matchEnded') as Ev<'matchEnded'>).prizeCaptured, true, 'matchEnded.prizeCaptured');
+    } else {
+      lost++;
+      eq(capStep, -1, 'sem captura, sem aviso');
+      eq(summarizeMatch(final, META).prize?.capturedHand, null, 'resumo sem captura');
+      eq(final.places.human !== undefined && final.places.human > 1 || final.status === 'finished', true, 'não capturou: caiu ou desistiu');
+    }
+    check(tableView(final, 'human').prize?.prizeId === `lost:${m}`, 'TableView.prize');
+  }
+  console.log(`  capturas ${captured} (eliminando o portador ${byElim}, vencendo a mesa ${byWin}) · sem captura ${lost} · passagens ${moved}`);
+  check(byElim > 0 && byWin >= 0 && lost > 0, 'houve captura eliminando o portador e partidas sem captura');
+  check(moved > 0, 'houve passagem do pôster entre oráculos');
+  // Desistência depois de capturar: o pôster continua devolvido.
+  for (let m = 0; m < 200; m++) {
+    const cfg = rescueConfig({ seed: `rs-f-${m}`, carrierId: 'bogart', prizeId: 'lost:f', rarity: 'common' });
+    const rng = createRng(`rs-f-h-${m}`);
+    let s = createMatch(cfg).state;
+    while (s.status === 'running' && s.capturedHand === null) s = applyHumanAction(s, randomHumanAction(humanLegal(s)!, rng)).state;
+    if (s.status !== 'running') continue;
+    const f = forfeitMatch(s);
+    eq(f.state.capturedHand, s.capturedHand, 'desistir depois de capturar mantém a captura');
+    eq((f.events.find((e) => e.type === 'matchEnded') as Ev<'matchEnded'>).prizeCaptured, true, 'matchEnded.prizeCaptured depois de desistir');
+    break;
+  }
+  throws(() => rescueConfig({ seed: 'x', carrierId: 'human' as 'bogart', prizeId: 'p', rarity: 'common' }), 'portador tem de ser oráculo');
 }
 
 console.log(`\n(${((Date.now() - t0) / 1000).toFixed(1)} s)`);

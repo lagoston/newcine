@@ -98,6 +98,76 @@ export function effectParams(settings: PokerSettings | undefined, effect: Poster
   return out;
 }
 
+// ---------------------------------------------------------------------------
+// Mesa de amigos (pacote E3, 03/11/2026): vários pôsteres, o mesmo efeito acumula
+// ---------------------------------------------------------------------------
+
+/**
+ * Ordem fixa dos efeitos numa mesa com vários (não depende da ordem em que os pôsteres
+ * chegaram): é a ordem dos `effectCast` no começo da mão e a dos bônus no fim
+ * (Dinheiro dobrado → 21 → Raymond → opala). O Dinheiro dobrado só dobra os POTES; os
+ * outros bônus nunca são dobrados.
+ */
+export const EFFECT_ORDER: readonly PosterEffectId[] = [
+  'eight_aces', 'early_flop', 'reveal_one', 'sixth_card', 'tell', 'double_pot', 'blackjack', 'hand_bounty', 'opal',
+];
+/** Máximo de pôsteres de efeito numa mesa (4 pessoas × 2). */
+export const MAX_TABLE_EFFECTS = 8;
+/** A partir deste número de pôsteres iguais, mais um não muda nada (teto de cada efeito). */
+export const STACK_CAP: Record<PosterEffectId, number> = {
+  early_flop: 3, double_pot: 3, blackjack: 3, reveal_one: 3, sixth_card: 3, tell: 3, hand_bounty: 3, opal: 3, eight_aces: 1,
+};
+
+/**
+ * Números do efeito com `level` pôsteres iguais na mesa (1 = igual ao torneio). Regras
+ * (03/11/2026; teto no 3º pôster igual — STACK_CAP):
+ *  - early_flop, double_pot, blackjack, reveal_one, sixth_card: MAIS LANÇADAS — casts × level
+ *    (2 → 4 → 6) e as lançadas mais perto umas das outras (gapHands − 1 por pôster a mais,
+ *    mínimo 3). Cada lançada continua igual (o 21 paga o mesmo, a leitura vira 1 carta, o
+ *    river vem com 2, o pote dobra uma vez).
+ *  - tell: MAIS MÃOS DE TIQUE — hands × level (3 → 6 → 9), mesmas 2 lançadas, com o intervalo
+ *    crescendo junto (gapHands + mãos a mais) para as janelas não se encostarem.
+ *  - hand_bounty, opal: MAIS LANÇADAS EM SEQUÊNCIA — até `level` (1 → 2 → 3); a seguinte só
+ *    lança 2 mãos depois de alguém levar a anterior (Raymond: nova jogada-alvo; opala: nova
+ *    carta). O bônus de cada uma é o de sempre.
+ *  - eight_aces: NÃO ACUMULA (o baralho já é o do Ace: 60 cartas; mais ases deixariam o
+ *    avaliador com seis e sete iguais e o jogo virava loteria).
+ */
+export function stackedParams(settings: PokerSettings | undefined, effect: PosterEffectId, level: number): EffectParams {
+  const base = effectParams(settings, effect);
+  const lv = Math.max(1, Math.min(STACK_CAP[effect], Math.floor(level) || 1));
+  if (lv === 1) return base;
+  const out: EffectParams = { ...base, firstHand: [base.firstHand[0], base.firstHand[1]] };
+  switch (effect) {
+    case 'tell': {
+      const hands = Math.min(9, (base.hands ?? 3) * lv);
+      out.hands = hands;
+      out.gapHands = base.gapHands + (hands - (base.hands ?? 3));
+      break;
+    }
+    case 'hand_bounty':
+    case 'opal':
+      out.casts = base.casts === 0 ? 0 : Math.min(3, lv);   // 0 = desligado no banco: continua desligado
+      out.gapHands = 2;
+      out.spread = 0;
+      break;
+    case 'eight_aces':
+      break;
+    default:
+      out.casts = Math.min(6, base.casts * lv);
+      out.gapHands = Math.max(3, base.gapHands - (lv - 1));
+      break;
+  }
+  return out;
+}
+
+/** Lista de efeitos da mesa → efeitos distintos (na ordem fixa) com o número de pôsteres de cada. */
+export function effectLevels(list: readonly PosterEffectId[] | undefined): { effect: PosterEffectId; level: number }[] {
+  const count = new Map<PosterEffectId, number>();
+  for (const e of (list ?? []).slice(0, MAX_TABLE_EFFECTS)) if (DEFAULT_EFFECTS[e]) count.set(e, (count.get(e) ?? 0) + 1);
+  return EFFECT_ORDER.filter((e) => count.has(e)).map((effect) => ({ effect, level: count.get(effect)! }));
+}
+
 /**
  * Nível da mão `handNumber` (1 = primeira mão da partida). O nível vale pelo número da
  * mão, não por relógio nem por eliminações (§2.2); depois do último, fica nele.

@@ -11,13 +11,14 @@ import { BLEFE_ROUTES } from '../jackpot/pokerMeta';
 import { CardBack, FeltSwatch } from '../cosmetics/CosmeticPreviews';
 import HandRanking from '../cards/HandRanking';
 import { Sheet } from '../table/Overlays';
+import Layer from './PpLayer';
 import '../../../styles/poker.css';
 
 // As folhas da tela título do Pôster Poker (03/11/2026): Configurações (velocidade,
 // falas, sons, vibração e, para quem tem, o baralho e a mesa) e Como jogar (as 3
 // mãos de treino que já existiam e o ranking das mãos).
 
-const Layer: React.FC<{ children: React.ReactNode }> = ({ children }) => <div className="fixed inset-0 z-[80]">{children}</div>;
+// As folhas ficam no body, por cima da barra do celular (PpLayer, 03/11/2026, fase 3).
 
 export const SettingsSheet: React.FC<{ home: PokerHome; reduced: boolean; onClose: () => void }> = ({ home, reduced, onClose }) => {
   const { t } = useTranslation();

@@ -6,7 +6,7 @@ import type { Card } from '../../../lib/poker/cards';
 import { rankOf } from '../../../lib/poker/cards';
 import type { PlayerId, Rarity } from '../../../lib/poker/types';
 import type { TableShow } from '../../../lib/poker/client/display';
-import { HAND_EFFECTS } from '../../../lib/poker/client/display';
+import { HAND_EFFECTS, castThisHand } from '../../../lib/poker/client/display';
 import type { CastShow } from '../../../lib/poker/client/useTable';
 import { cardsName, fmt, type Lang } from '../../../lib/poker/client/format';
 import { castRule } from '../../../lib/poker/client/narrate';
@@ -184,12 +184,14 @@ export const CastOverlay: React.FC<{
 export function effectRibbon(t: (k: string, o?: Record<string, unknown>) => string, table: TableShow, lang: Lang): React.ReactNode {
   const tt = table.tournament;
   if (!tt) return null;
-  const a = tt.active;
   const text = (() => {
-    // A de mão primeiro (vale agora), depois as que ficam em vigor.
-    if (a && HAND_EFFECTS.includes(a.effect) && tt.castHand === table.handNumber) {
-      if (a.effect === 'blackjack') return t('poker.effects.blackjack.ribbon', { amount: fmt(a.amount, lang) });
-      return t(`poker.effects.${a.effect}.ribbon`);
+    // A de mão primeiro (vale agora), depois as que ficam em vigor. Fase 3: com vários
+    // efeitos na mesma mão, as de mão se juntam numa linha só.
+    const hand = HAND_EFFECTS.map((e) => castThisHand(tt, e, table.handNumber)).filter((x): x is NonNullable<typeof x> => !!x);
+    if (hand.length) {
+      return hand
+        .map((a) => (a.effect === 'blackjack' ? t('poker.effects.blackjack.ribbon', { amount: fmt(a.amount, lang) }) : t(`poker.effects.${a.effect}.ribbon`)))
+        .join(' ');
     }
     if (tt.bounty && !tt.bounty.claimed) return t('poker.effects.hand_bounty.ribbon', { hand: t(`poker.hands.${tt.bounty.target}`).toLowerCase(), amount: fmt(tt.bounty.amount, lang) });
     if (tt.opal && !tt.opal.claimed) return t('poker.effects.opal.ribbon', { card: cardsName([tt.opal.card], lang), amount: fmt(tt.opal.amount, lang) });
@@ -315,7 +317,7 @@ export function blackjackValue(cards: Card[]): number {
 /** Quem está mais perto de 21 entre as mãos viradas pelo efeito 21. */
 export function blackjackLeaders(table: TableShow): Set<PlayerId> {
   const tt = table.tournament;
-  if (!tt || tt.active?.effect !== 'blackjack' || tt.castHand !== table.handNumber) return new Set();
+  if (!castThisHand(tt, 'blackjack', table.handNumber)) return new Set();
   const vals = table.seats
     .filter((s) => s.revealed.length === 2)
     .map((s) => ({ id: s.id, v: blackjackValue(s.revealed) }))

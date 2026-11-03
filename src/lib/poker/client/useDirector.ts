@@ -9,7 +9,7 @@
  * "Você: …" das Réplicas).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { MatchMode, PrizeKind, PublicEvent, Rarity, RivalId, TableView, TitleId } from '../types.ts';
+import type { MatchMode, PosterEffectId, PrizeKind, PublicEvent, Rarity, RivalId, TableView, TitleId } from '../types.ts';
 import type { Speed, TalkMode } from './settings.ts';
 import { playVoice } from './sound.ts';
 
@@ -45,6 +45,13 @@ export interface TableContext {
   reducedMotion: boolean;
   /** Pôster Poker (pedido do H, 03/11/2026): o que a pessoa pôs na mesa para entrar no torneio. */
   tournament?: { stake: 'chips' | 'poster' };
+  /**
+   * Mesa com amigos (fase 3, contrato do H3): "eu" e as outras pessoas da mesa. Os ids já vêm
+   * com "eu" = 'human' (a interface aplica o povEvents/povView do E3).
+   */
+  friends?: { selfId: string; people: string[]; oracles?: RivalId[]; stake: Rarity | null; effects?: PosterEffectId[] };
+  /** Casual de devolução (fase 3): o oráculo que carrega o pôster perdido. Nada é anunciado. */
+  reclaim?: { holderId?: RivalId };
 }
 
 export type DirectorMoment =
@@ -52,7 +59,12 @@ export type DirectorMoment =
   | { t: 'tableWinner'; winnerId: string }
   | { t: 'rematch' }
   | { t: 'playerLeaves' }
-  | { t: 'intervalReturn' };
+  | { t: 'intervalReturn' }
+  // Mesa com amigos (fase 3): quando o motor não manda evento próprio.
+  | { t: 'clockOut'; playerId: string }
+  | { t: 'away'; playerId: string; on: boolean }
+  | { t: 'personLeft'; playerId: string }
+  | { t: 'stakeResult'; toId: string | null };
 
 export interface RecapInfo {
   handNumber: number;

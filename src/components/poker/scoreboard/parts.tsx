@@ -2,49 +2,13 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Loader2 } from 'lucide-react';
 import { FOCUS_RING, MIST, PAPER, PIXEL, oracleCardImage } from '../../../lib/oracleTheme';
-import { GAMES_RED, GAMES_RED_TEXT, POKER_ORACLES, SEAT_ORDER, TITLE_STEPS, titleProgress, type PokerOracleId } from '../jackpot/pokerMeta';
+import { GAMES_RED, GAMES_RED_TEXT, POKER_ORACLES, SEAT_ORDER, type PokerOracleId } from '../jackpot/pokerMeta';
 import { fmt, type BestHand, type MarkView, type PlayerNumber, type RecentMatch, type Stats } from './model';
 
 // Peças do placar. Os gráficos seguem o método do skill de dataviz:
 // marcas finas, 2 px de vão entre blocos, legenda sempre que há duas
 // séries, texto nunca na cor do dado, e todo valor também escrito (o balão
 // de hover/foco só reforça, nunca é o único caminho).
-
-// ---------------------------------------------------------------------------
-// A carreira: o título atual e a película com os 6 títulos
-// ---------------------------------------------------------------------------
-
-export const TitleReel: React.FC<{ wins: number; titleId: string | null }> = ({ wins, titleId }) => {
-  const { t } = useTranslation();
-  const progress = titleProgress(wins, titleId);
-  const aria = progress.next
-    ? t('pokerEntry.score.reelAria', { title: t(`pokerEntry.titles.${progress.current.id}`), n: progress.index + 1, count: progress.toNext, next: t(`pokerEntry.titles.${progress.next.id}`) })
-    : t('pokerEntry.score.reelTopAria', { title: t(`pokerEntry.titles.${progress.current.id}`) });
-  return (
-    <div>
-      <div className="pe-reel" role="img" aria-label={aria}>
-        {TITLE_STEPS.map((step, i) => {
-          const done = i <= progress.index;
-          const isNext = i === progress.index + 1;
-          return (
-            <span key={step.id} className={`pe-frame ${done ? 'is-done' : ''} ${i === progress.index ? 'is-current' : ''}`}>
-              {isNext && progress.share > 0 && <span className="pe-frame-fill" style={{ width: `${Math.round(progress.share * 100)}%` }} />}
-            </span>
-          );
-        })}
-      </div>
-      <div className="mt-1.5 flex items-baseline justify-between gap-3 text-[12px]" style={{ color: MIST }} aria-hidden>
-        <span>{t(`pokerEntry.titles.${TITLE_STEPS[0].id}`)}</span>
-        <span>{t(`pokerEntry.titles.${TITLE_STEPS[TITLE_STEPS.length - 1].id}`)}</span>
-      </div>
-      <p className="mt-2.5 text-[13.5px] leading-snug" style={{ color: PAPER }}>
-        {progress.next
-          ? t('pokerEntry.score.toNext', { count: progress.toNext, title: t(`pokerEntry.titles.${progress.next.id}`) })
-          : t('pokerEntry.score.topTitle')}
-      </p>
-    </div>
-  );
-};
 
 // ---------------------------------------------------------------------------
 // Colocações: barra segmentada alta (1º a 4º), rampa ordinal de ouro
@@ -350,7 +314,7 @@ export const MarkRow: React.FC<{ mark: MarkView; equipped: boolean; busy: boolea
           onClick={onEquip}
           disabled={busy || equipped}
           className={`shrink-0 inline-flex items-center gap-1 h-9 px-3 rounded-full text-[12.5px] font-semibold transition disabled:cursor-default ${FOCUS_RING}`}
-          style={equipped ? { color: GAMES_RED_TEXT, boxShadow: `inset 0 0 0 1px ${GAMES_RED}88` } : { background: GAMES_RED, color: '#2A0610' }}
+          style={equipped ? { color: GAMES_RED_TEXT, boxShadow: `inset 0 0 0 1px ${GAMES_RED}88` } : { background: GAMES_RED, color: '#FFF3F0' }}
         >
           {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden /> : equipped ? <Check className="w-3.5 h-3.5" aria-hidden /> : null}
           {equipped ? t('pokerEntry.score.inUse') : t('pokerEntry.score.equip')}

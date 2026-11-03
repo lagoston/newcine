@@ -16,6 +16,10 @@ export const BUDGET = {
   globalGapMs: 3500, speakerGapMs: 9000,               // entre inícios de balões; trocas livres do gap por personagem
   halfFromConsecutiveMatch: 3, // da 3ª partida seguida em diante: refill e fichas iniciais × 0,5; só P1 e trocas inéditas furam
   tournamentRefill: 0.9,       // Pôster Poker: no torneio a recarga fica em 90% (os efeitos têm falas P1 próprias)
+  // Mesa com amigos (H3, 03/11/2026): menos oráculos, menos conversa (um oráculo sozinho não
+  // pode virar narrador da partida); reações a convidados têm teto próprio por partida.
+  friendsRefill: { 2: 0.85, 1: 0.6 } as Record<number, number>,
+  guestMax: 3,                 // balões não-P1 sobre convidados por partida (all-in, pote, bônus, relógio, ausência)
   queueMax: 2,                 // itens não-P1 esperando
   waitMs: 4000,                // um balão não-P1 que espera mais que isso cai
   waitP1Ms: 20000,             // P1 espera mais (abertura, eliminações enquanto a próxima mão é dada)

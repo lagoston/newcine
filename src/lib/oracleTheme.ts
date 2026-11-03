@@ -143,17 +143,24 @@ export const glassPanel = (accent?: string): React.CSSProperties => ({
 // Pins): básico = verde, tema = âmbar, comunidade = azul-céu, oráculo =
 // rosa, jogos = vermelho, especial = preto com contorno claro.
 export type TagCategory = 'basic' | 'theme' | 'community' | 'oracle' | 'games' | 'special';
-// Jogos (03/11/2026, Poster Jackpot e Pôster Poker): o "vermelho-carta" dos
-// naipes de copas e ouros (matiz 353°). 5,9:1 sobre NIGHT e 5,4:1 sobre
-// VELVET; mais saturado e mais frio que o vermelho de erro do site (red-400/
-// 500, matiz 0°, coral) e longe do rosa dos Oráculos. O texto claro sobre o
-// tingido é TAG_GAMES_RED_TEXT (10:1). Os créditos do pôquer usam os dois.
-export const TAG_GAMES_RED = '#FF4D63';
-export const TAG_GAMES_RED_TEXT = '#FFC7CE';
-export const tagCategoryStyle = (category: string): { pill: string; accent: string } => {
+// Jogos (03/11/2026, Poster Jackpot e Pôster Poker): um carmim escuro, o
+// vermelho das cartas de copas (matiz 355°). 03/11/2026 (fase 3, pedido do
+// Bruno): o vermelho-carta claro de antes (#FF4D63) a 15% sobre o violeta da
+// noite virava quase o mesmo malva do rosa dos Oráculos. Agora o tingido é
+// mais denso (35% na pílula) e o texto tem um tom quente (pêssego), longe do
+// rosa frio (pink-200): a pílula lê vinho, a do Oráculo lê malva.
+//   TAG_GAMES_RED        contornos, barras, ícones e tingidos (3,5:1 sobre NIGHT:
+//                        serve para peças e traços, não para texto miúdo);
+//   TAG_GAMES_RED_TEXT   texto sobre o tingido (9,7:1 na pílula sobre VELVET);
+//   TAG_GAMES_RED_LABEL  texto miúdo na cor da categoria direto no escuro
+//                        (7:1 sobre NIGHT) — o `label` de tagCategoryStyle.
+export const TAG_GAMES_RED = '#D11A2A';
+export const TAG_GAMES_RED_TEXT = '#FFD4CC';
+export const TAG_GAMES_RED_LABEL = '#FF7A6E';
+const tagCategoryBase = (category: string): { pill: string; accent: string } => {
   switch (category) {
     case 'games':
-      return { pill: 'bg-[#FF4D63]/15 text-[#FFC7CE] ring-1 ring-[#FF4D63]/30', accent: TAG_GAMES_RED };
+      return { pill: 'bg-[#D11A2A]/35 text-[#FFD4CC] ring-1 ring-[#D11A2A]/60', accent: TAG_GAMES_RED };
     case 'basic':
       return { pill: 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/30', accent: '#34D399' };
     case 'theme':
@@ -167,6 +174,13 @@ export const tagCategoryStyle = (category: string): { pill: string; accent: stri
     default:
       return { pill: 'bg-white/10 text-[#BDB4D6] ring-1 ring-white/15', accent: MIST };
   }
+};
+// `label`: a cor do texto miúdo na cor da categoria (título de seção, "Ativa no
+// momento", contadores) — igual ao accent, menos em Jogos, cujo accent escuro
+// não tem contraste para texto pequeno.
+export const tagCategoryStyle = (category: string): { pill: string; accent: string; label: string } => {
+  const s = tagCategoryBase(category);
+  return { ...s, label: category === 'games' ? TAG_GAMES_RED_LABEL : s.accent };
 };
 
 export type OracleId = 'bogart' | 'fincher' | 'cypher';

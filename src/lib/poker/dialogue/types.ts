@@ -8,7 +8,7 @@
  *   créditos do empréstimo, "você mostra primeiro") ganharam nomes próprios no fim de `Trigger`;
  * - `requires.minMatches` (arco que só toca depois de N partidas na vida).
  */
-import type { Cue, MatchMode, PlayerId, PrizeKind, PublicEvent, Rarity, RivalId, TableView, TitleId } from '../types.ts';
+import type { Cue, MatchMode, PlayerId, PosterEffectId, PrizeKind, PublicEvent, Rarity, RivalId, TableView, TitleId } from '../types.ts';
 
 /** 'slow' (Pôster Poker, 03/11/2026: a mesa ficou mais lenta) vale como 'normal' para as falas. */
 export type Speed = 'slow' | 'normal' | 'fast' | 'turbo';
@@ -35,7 +35,21 @@ export type Trigger =
   | 'effectBonus'       // fichas da casa (variantes: efeito; 'humano' quando foi a pessoa)
   | 'tellMark'          // o tique de Le Chiffre numa aposta de oráculo (variantes: blefe, valor)
   | 'tournamentWon' | 'tournamentLost'   // créditos do torneio
-  | 'stakeBack' | 'stakeLost';            // créditos: o pôster apostado volta ou fica com a Cobra
+  | 'stakeBack' | 'stakeLost'             // créditos: o pôster apostado volta ou fica com a Cobra
+  // Mesa com amigos (pacote H3, 03/11/2026). "Convidado" = outra pessoa na mesa; nunca pelo nome.
+  | 'friendsStart'      // abertura (variantes: o2 = sobraram 2 oráculos, o1 = sobrou 1)
+  | 'friendsStake'      // pôster apostado na sala (variantes: abertura, voltou, amigo, oraculo)
+  | 'effectPile'        // vários pôsteres mágicos de uma vez (variantes: abertura, mesma = 2 na mesma mão)
+  | 'guestOut'          // um amigo caiu (variantes: porVoce, porOraculo, porAmigo)
+  | 'outByGuest'        // a visita foi eliminada por um amigo (despedida)
+  | 'guestPot' | 'guestAllIn' | 'guestBonus'   // reações genéricas a convidados (orçamento próprio)
+  | 'clockOut'          // o relógio estourou (variantes: voce, amigo); nunca humilha
+  | 'away'              // um amigo ficou ausente (variantes: amigo, voltou)
+  | 'personLeft'        // um amigo saiu da sala
+  | 'friendsEnd'        // créditos da mesa com amigos (variantes: voce, amigo, oraculo)
+  // Casual de devolução (item 5 da fase 3): nada é anunciado
+  | 'reclaimTaunt'      // o portador provoca, curto e ambíguo, de vez em quando
+  | 'reclaimWon';       // a pessoa recuperou o pôster (eliminou o portador ou venceu a mesa)
 
 /** Gatilhos de ação de bot: toda fala de ator neles precisa de `cue` (§6.6). */
 export const BOT_ACTION_TRIGGERS: readonly Trigger[] = [
@@ -53,6 +67,11 @@ export interface LineRequires {
   storyHas?: string;
   /** Só depois de N partidas na vida (`lifetimeMatches`). */
   minMatches?: number;
+  /**
+   * Mesa com amigos (H3, 03/11/2026): só quando estes oráculos NÃO estão na mesa (o lugar foi
+   * de um amigo). A fala pode citá-los ("Cadê o Raposo?"); fora disso, citar um ausente veta.
+   */
+  absent?: RivalId[];
 }
 
 export interface Line {
@@ -120,6 +139,19 @@ export interface SpeechItem {
             actorId?: PlayerId };
 }
 
+export interface FriendsContext {
+  /** O id do lugar deste aparelho nos eventos ("eu"). */
+  selfId: PlayerId;
+  /** Ids de todos os lugares de pessoas, inclusive `selfId` (2 a 4). */
+  people: PlayerId[];
+  /** Oráculos sentados; se faltar, sai do `matchStarted.seats`. */
+  oracles?: RivalId[];
+  /** Aposta da sala: null = sem aposta; senão a raridade dos pôsteres apostados. */
+  stake: Rarity | null;
+  /** Pôsteres de efeito na mesa, um item por pôster (repetidos contam). */
+  effects?: PosterEffectId[];
+}
+
 export interface TableContext {
   mode: MatchMode; lang: 'pt' | 'en'; title: TitleId; lifetimeMatches: number;
   matchInSession: number; returning: boolean; localHour: number; nemesis?: RivalId; customer?: RivalId;
@@ -135,6 +167,18 @@ export interface TableContext {
    * um pôster da coleção, da raridade do torneio (vai embora se ela não vencer).
    */
   tournament?: { stake: 'chips' | 'poster' };
+  /**
+   * Mesa com amigos (fase 3, 03/11/2026). Ausente = mesa de uma pessoa só. O Diretor de cada
+   * aparelho troca os ids sozinho: `selfId` vira "a visita" ('human' por dentro) e as outras
+   * pessoas viram convidados (nunca pelo nome). Oráculo fora dos lugares nunca fala.
+   */
+  friends?: FriendsContext;
+  /**
+   * Casual de devolução (fase 3, item 5): o oráculo `holderId` carrega um pôster que a pessoa
+   * perdeu. Nada é anunciado: saem as falas de "partida valendo"; o portador pode, no máximo,
+   * uma provocação curta e ambígua; recuperar ganha uma reação curta.
+   */
+  reclaim?: { holderId?: RivalId };
 }
 
 /** Momentos que não vêm de `PublicEvent` (créditos, botões, Intervalo). */
@@ -143,7 +187,14 @@ export type DirectorMoment =
   | { t: 'tableWinner'; winnerId: PlayerId }   // livre: resultado do simulateRest, nos créditos
   | { t: 'rematch' }
   | { t: 'playerLeaves' }
-  | { t: 'intervalReturn' };
+  | { t: 'intervalReturn' }
+  // Mesa com amigos (fase 3, 03/11/2026): para quando o motor não manda evento próprio.
+  // `playerId` é o id do lugar como nos eventos (o Diretor troca para "eu"/convidado).
+  | { t: 'clockOut'; playerId: PlayerId }
+  | { t: 'away'; playerId: PlayerId; on: boolean }
+  | { t: 'personLeft'; playerId: PlayerId }
+  /** Para onde foram os pôsteres apostados (null = voltaram aos donos), se o `matchEnded` não disser. */
+  | { t: 'stakeResult'; toId: PlayerId | null };
 
 /** Dados do cartão "Anteriormente em…" (§7.8). */
 export interface RecapInfo {

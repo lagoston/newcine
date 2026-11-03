@@ -9,7 +9,7 @@ import type { HandResult } from '../engine.ts';
 import type { PlayerId } from '../types.ts';
 import { HUMAN } from './internal.ts';
 
-export function eliminatorOf(result: HandResult, victimId: string): PlayerId | null {
+export function eliminatorOf(result: HandResult, victimId: string, persons: readonly string[] = [HUMAN]): PlayerId | null {
   let best: HandResult['pots'][number] | null = null;
   for (const pot of result.pots) {
     if (!pot.eligibleIds.includes(victimId)) continue;
@@ -18,6 +18,8 @@ export function eliminatorOf(result: HandResult, victimId: string): PlayerId | n
   if (!best) return null;
   const winners = best.winners.filter((w) => w.playerId !== victimId).map((w) => w.playerId);
   if (winners.length === 0) return null;
-  if (winners.includes(HUMAN)) return HUMAN;
+  // Pacote E3: na mesa de amigos, qualquer pessoa tem a prioridade (a primeira na ordem da ficha ímpar).
+  const person = winners.find((w) => persons.includes(w));
+  if (person) return person;
   return winners[0];
 }

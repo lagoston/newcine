@@ -50,22 +50,28 @@ interface Spot {
   extra: Card[];
 }
 
+/**
+ * Pacote E3 (03/11/2026): o lugar de quem o substituto joga ('human' nas mesas de uma pessoa;
+ * p1..p4 na mesa de amigos). `heroFor(nome, id)` devolve o substituto jogando por `id`.
+ */
+let ME = 'human';
+
 function spot(L: LegalActions, s: MatchState): Spot {
   const g = s.game;
   const h = g.hand!;
-  const me = g.players.find((p) => p.id === 'human')!;
+  const me = g.players.find((p) => p.id === ME)!;
   const inHand = g.players.filter((p) => p.status === 'active' || p.status === 'allIn');
   const seatOf = (seat: number): string => g.players.find((p) => p.seat === seat)!.id;
   const btn = seatOf(h.buttonSeat);
   const sb = seatOf(h.smallBlindSeat);
   const bbId = seatOf(h.bigBlindSeat);
-  const pos = bbId === 'human' ? 'BB' : sb === 'human' ? (sb === btn ? 'BTN' : 'SB') : btn === 'human' ? 'BTN' : 'CO';
+  const pos = bbId === ME ? 'BB' : sb === ME ? (sb === btn ? 'BTN' : 'SB') : btn === ME ? 'BTN' : 'CO';
   const street = h.actions.filter((a) => a.street === h.street);
   const aggr = [...street].reverse().find((a) => a.type === 'bet' || a.type === 'raise');
   const pf = [...h.actions.filter((a) => a.street === 'preflop')].reverse().find((a) => a.type === 'bet' || a.type === 'raise');
   return {
     hole: me.holeCards, board: h.board, street: h.street, bb: h.blinds.bigBlind, pot: L.pot, toCall: L.toCall,
-    odds: L.toCall / (L.pot + L.toCall), opps: inHand.filter((p) => p.id !== 'human').map((p) => p.id), acts: h.actions,
+    odds: L.toCall / (L.pot + L.toCall), opps: inHand.filter((p) => p.id !== ME).map((p) => p.id), acts: h.actions,
     stackBB: (me.stack + me.streetBet) / h.blinds.bigBlind, pos, aggressorId: aggr?.playerId ?? null,
     pfAggressor: pf?.playerId ?? null, handNumber: g.handNumber, extra: extraCardsOf(s as Parameters<typeof extraCardsOf>[0]),
   };
@@ -178,7 +184,7 @@ const medio: Hero = (L, rng, s) => {
   const n = Math.max(1, sp.opps.length);
   if (L.toCall === 0) {
     if (eq > 0.62 / Math.sqrt(n)) return betPot(L, 0.6);
-    if (sp.street === 'flop' && sp.pfAggressor === 'human' && rng.nextFloat() < 0.6) return betPot(L, 0.5);
+    if (sp.street === 'flop' && sp.pfAggressor === ME && rng.nextFloat() < 0.6) return betPot(L, 0.5);
     return { type: 'check' };
   }
   if (eq > 0.85) return betPot(L, 1);
@@ -358,7 +364,7 @@ const bom: Hero = (L, rng, s, pub) => {
       const defend = (sp.pos === 'BB' ? (opener === 'cypher' ? B().defendBB + 10 : B().defendBB) : opener === 'cypher' ? B().callOpen + 10 : B().callOpen) + (hu ? 25 : alive === 3 ? 10 : 0);
       return pct <= defend ? { type: 'call' } : passive(L);
     }
-    const iOpened = pre.find((a) => a.type === 'raise' || a.type === 'bet')?.playerId === 'human';
+    const iOpened = pre.find((a) => a.type === 'raise' || a.type === 'bet')?.playerId === ME;
     if (raises === 2) {
       // Heads-up: quem abre 85% não pode largar todo 3-bet; com até 35 BB, all-in no topo.
       if (nAlive === 2 && iOpened) {
@@ -377,18 +383,18 @@ const bom: Hero = (L, rng, s, pub) => {
   const n = Math.max(1, sp.opps.length);
   const vsSapo = n === 1 && sp.opps[0] === 'bogart';
   const streetActs = sp.acts.filter((a) => a.street === sp.street);
-  const iBetFlop = sp.acts.some((a) => a.street === 'flop' && a.playerId === 'human' && (a.type === 'bet' || a.type === 'raise'));
+  const iBetFlop = sp.acts.some((a) => a.street === 'flop' && a.playerId === ME && (a.type === 'bet' || a.type === 'raise'));
   if (L.toCall === 0) {
     // Valor fino contra o Sapo (ele paga com qualquer par).
     if (eq > (vsSapo ? B().valueSapo : B().value) / Math.sqrt(n)) return betPot(L, vsSapo ? B().valueSizeSapo : B().valueSize);
     // O Sapo passou sem par (pista neutra): ele larga quase tudo para uma aposta.
     if (vsSapo && sapoNoPair(pub, sp.street) && rng.nextFloat() < B().sapoNoPairBet) return betPot(L, 0.5);
-    if (sp.street === 'flop' && sp.pfAggressor === 'human' && rng.nextFloat() < (n === 1 ? (vsSapo ? B().cbetSapo : B().cbet) : B().cbetMulti)) return betPot(L, 0.45);
+    if (sp.street === 'flop' && sp.pfAggressor === ME && rng.nextFloat() < (n === 1 ? (vsSapo ? B().cbetSapo : B().cbet) : B().cbetMulti)) return betPot(L, 0.45);
     // Segunda barrel, só com equidade razoável.
     if (sp.street === 'turn' && iBetFlop && n === 1 && eq > 0.35 && rng.nextFloat() < B().barrel) return betPot(L, 0.6);
     return { type: 'check' };
   }
-  const checkedFirst = streetActs.some((a) => a.playerId === 'human' && a.type === 'check');
+  const checkedFirst = streetActs.some((a) => a.playerId === ME && a.type === 'check');
   // Check-raise no turn do Raposo.
   if (sp.street === 'turn' && sp.aggressorId === 'fincher' && checkedFirst && eq > 0.5) return betPot(L, 1);
   let need = sp.odds + tellNeed(pub, sp.aggressorId, L.toCall >= 0.7 * L.pot);
@@ -421,4 +427,16 @@ function legal(h: Hero): Hero {
 export const HEROES: Record<HeroName, Hero> = {
   iniciante: legal(iniciante), medio: legal(medio), bom: legal(bom), allin: legal(allin), station: legal(station), maniac: legal(maniac),
 };
+
+export function heroFor(name: HeroName, id: string): Hero {
+  return (L, rng, s, pub) => {
+    const prev = ME;
+    ME = id;
+    try {
+      return HEROES[name](L, rng, s, pub);
+    } finally {
+      ME = prev;
+    }
+  };
+}
 

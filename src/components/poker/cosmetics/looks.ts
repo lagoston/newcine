@@ -16,7 +16,8 @@ export const DEFAULT_TABLE_ID = 'table-feltro-verde';
 export const DECK_IDS = ['deck-classico', 'deck-noir'] as const;
 export const TABLE_IDS = ['table-feltro-verde', 'table-meia-noite'] as const;
 
-export type PokerMode = 'free' | 'bounty' | 'tutorial';
+// 'friends' (03/11/2026, fase 3): a mesa com amigos usa o feltro equipado, como a casual.
+export type PokerMode = 'free' | 'bounty' | 'tutorial' | 'friends';
 
 export interface DeckLook {
   id: string;

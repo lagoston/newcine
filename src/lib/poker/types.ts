@@ -19,7 +19,8 @@ import type { HandKind } from './evaluator.ts';
 
 export type RivalId = 'bogart' | 'cypher' | 'fincher' | (string & {});   // rival novo = mais um id
 export type PlayerId = 'human' | RivalId;
-export type MatchMode = 'free' | 'bounty' | 'tutorial';
+// Pacote E3 (03/11/2026): 'friends' = mesa com amigos (até 4 pessoas; os lugares que sobram ficam com oráculos).
+export type MatchMode = 'free' | 'bounty' | 'tutorial' | 'friends';
 export type Cue = 'confiante' | 'nervoso' | 'calado' | 'neutro';
 export type SizeClass = 'small' | 'medium' | 'big' | 'overbet';   // <0,5 · 0,5–0,75 · ≥0,75 ou ≥30% do cacife · >1,0 pote
 export type StyleLabel = 'pedra' | 'solto' | 'pagaTudo' | 'blefador';
@@ -62,6 +63,18 @@ export interface EffectParams {
   hands?: number;           // duração em mãos (tell)
   spread?: number;          // pacote E (03/11/2026): folga sorteada 0..spread além de gapHands (padrão 3)
 }
+
+/**
+ * Pacote E3 (03/11/2026): ids dos lugares de pessoas na mesa de amigos, na ordem de entrada
+ * na sala (p1 = quem criou, no lugar 0). Nenhum lugar se chama 'human' numa mesa de amigos;
+ * cada aparelho troca o próprio id por 'human' com povEvents/povView (match/pov.ts).
+ */
+export type PersonSeatId = 'p1' | 'p2' | 'p3' | 'p4';
+/** Situação de cada pessoa numa mesa de amigos. */
+export type PersonStatus = 'playing' | 'out' | 'left';
+export type EndReasonPublic = 'won' | 'eliminated' | 'forfeit' | 'abandoned';
+/** Ação feita pelo servidor no lugar de uma pessoa (estouro do relógio, ausente, quem saiu). */
+export type AutoActionKind = 'timeout' | 'away' | 'left';
 
 export interface TournamentConfig {
   prizeId: string;          // poker_prizes.id do pôster da semana
@@ -268,12 +281,20 @@ export interface MatchConfig {
   memory: Record<PlayerId, OppCounters> | null;    // memória do Raposo (30%)
   tutorial?: TutorialScript;
   tournament?: TournamentConfig | null;            // Pôster Poker: torneio da semana (com prize = null)
+  // Pacote E3 (03/11/2026). `people`: lugares controlados por pessoas (ausente = ['human'], os
+  // modos de uma pessoa). `effects`: pôsteres de efeito da mesa de amigos (até 8; repetidos
+  // acumulam, regras em config.ts stackedParams). `reclaim`: casual de devolução (o oráculo
+  // portador de `prize` carrega um pôster que a pessoa perdeu).
+  people?: PlayerId[];
+  effects?: PosterEffectId[];
+  reclaim?: boolean;
 }
 export interface BotMemory {
   committed: boolean; facedFirstBet: boolean;      // reset a cada mão (Sapo)
   tilt: { kind: TiltKind; handsLeft: number; targetId?: PlayerId } | null;
   model?: Record<PlayerId, OppCounters>;           // só o Raposo
   labelsAnnounced: StyleLabel[];
+  labelsBy?: Record<PlayerId, StyleLabel[]>;       // pacote E3: leituras já anunciadas por pessoa (mesa de amigos)
 }
 export interface HumanTally {                       // atualizado ao fim de cada mão, com informação privada
   hands: number; vpip: number; pfr: number; aggrBets: number; aggrCalls: number;
@@ -312,7 +333,9 @@ export interface HandFlags {                         // derivados SÓ de dados p
 export type PublicEvent = { i: number } & (           // i = eventNo, crescente na partida (dedupe na retomada)
   | { t: 'matchStarted'; mode: MatchMode; seats: { id: PlayerId; seat: number; stack: number }[];
       loan: number; prize: { prizeId: string; holderId: PlayerId } | null; level: LevelInfo; seedHash?: string;
-      tournament?: TournamentConfig | null }
+      tournament?: TournamentConfig | null;
+      // pacote E3: mesa de amigos (quem é pessoa e os efeitos na mesa) e casual de devolução
+      people?: PlayerId[]; effects?: { effect: PosterEffectId; level: number }[]; reclaim?: true }
   | { t: 'levelUp'; level: LevelInfo; handNumber: number }
   | { t: 'handStarted'; handNumber: number; buttonId: PlayerId; sbId: PlayerId; bbId: PlayerId;
       level: LevelInfo; stacks: Record<PlayerId, number> }
@@ -321,7 +344,8 @@ export type PublicEvent = { i: number } & (           // i = eventNo, crescente 
   | { t: 'holeCards'; cards: [Card, Card] }                                    // só as da pessoa
   | { t: 'action'; playerId: PlayerId; street: Street; action: RecordedActionType; amount: number; to: number;
       toCall: number; potAfter: number; allIn: boolean; shortAllIn: boolean; stackBefore: number;
-      sizeClass: SizeClass | null; thinkMs?: number; cue?: Cue }            // thinkMs e cue só em ação de bot
+      sizeClass: SizeClass | null; thinkMs?: number; cue?: Cue             // thinkMs e cue só em ação de bot
+      auto?: AutoActionKind }                                              // pacote E3: o servidor agiu pela pessoa
   | { t: 'uncalledReturned'; playerId: PlayerId; amount: number }
   | { t: 'runout'; hands: { playerId: PlayerId; cards: Card[] }[] }
   // `early`: o flop do Golpe de Mestre, aberto antes das apostas do pré-flop (depois, a mão
@@ -333,12 +357,19 @@ export type PublicEvent = { i: number } & (           // i = eventNo, crescente 
       winners: { playerId: PlayerId; amount: number }[]; uncontested: boolean; kind: HandKind | null }
   | { t: 'handComplete'; handNumber: number; net: Record<PlayerId, number>; winnerIds: PlayerId[];
       wentToShowdown: boolean; potBB: number; flags: HandFlags }
-  | { t: 'eliminated'; playerId: PlayerId; place: number; byId: PlayerId | null; handNumber: number }
+  | { t: 'eliminated'; playerId: PlayerId; place: number; byId: PlayerId | null; handNumber: number;
+      stackLeft?: number }   // pacote E3: quem saiu da mesa de amigos (as fichas que saíram com a pessoa)
   | { t: 'prizeMoved'; fromId: PlayerId; toId: PlayerId; handNumber: number }
   | { t: 'prizeCaptured'; handNumber: number; prizeId: string }
   | { t: 'tilt'; playerId: RivalId; kind: TiltKind; on: boolean; targetId?: PlayerId }
-  | { t: 'styleRead'; by: RivalId; targetId: 'human'; label: StyleLabel }
+  | { t: 'styleRead'; by: RivalId; targetId: PlayerId; label: StyleLabel }   // E3: PlayerId (uma leitura por pessoa)
   | { t: 'headsUp'; ids: [PlayerId, PlayerId]; handNumber: number }
+  // Pacote E3 (03/11/2026), mesa de amigos: relógio estourado (logo antes da ação automática;
+  // `streak` = estouros seguidos), ausente (3 seguidos) / voltou, e quem saiu no meio (o
+  // `eliminated` dela vem no fim da mão, ou na hora se não estava na mão).
+  | { t: 'clockOut'; playerId: PlayerId; handNumber: number; streak: number }
+  | { t: 'away'; playerId: PlayerId; on: boolean; handNumber: number }
+  | { t: 'personLeft'; playerId: PlayerId; reason: 'forfeit' | 'abandoned'; handNumber: number }
   // Pôster Poker. `effectCast`: o pôster mágico lança o efeito (no começo da mão, antes de
   // dar as cartas; o eight_aces sai logo depois do matchStarted). `effectReveal`: cartas
   // fechadas que o efeito abre para todos (reveal_one: 1 por jogador; blackjack: as 2 de
@@ -352,7 +383,8 @@ export type PublicEvent = { i: number } & (           // i = eventNo, crescente 
   | { t: 'effectBonus'; effect: PosterEffectId; handNumber: number; playerId: PlayerId; amount: number }
   | { t: 'tellMark'; handNumber: number; playerId: RivalId; mark: 'blefe' | 'valor' }
   | { t: 'matchEnded'; places: Record<PlayerId, number>; winnerId: PlayerId | null; humanPlace: number;
-      reason: 'won' | 'eliminated' | 'forfeit' | 'abandoned'; prizeCaptured: boolean; seed?: string }  // seed só no prêmio, revelada no fim
+      reason: 'won' | 'eliminated' | 'forfeit' | 'abandoned'; prizeCaptured: boolean; seed?: string;  // seed só no prêmio, revelada no fim
+      people?: Record<PlayerId, { place: number; reason: EndReasonPublic }> }   // E3: mesa de amigos
 );
 
 // ---------------------------------------------------------------------------
@@ -367,23 +399,27 @@ export type PublicEvent = { i: number } & (           // i = eventNo, crescente 
 export type MatchOnlyEvent =
   | { type: 'matchStarted'; mode: MatchMode; seats: { id: PlayerId; seat: number; stack: number }[];
       loan: number; prize: { prizeId: string; holderId: PlayerId } | null; level: LevelInfo; seedHash?: string;
-      tournament?: TournamentConfig | null }
+      tournament?: TournamentConfig | null;
+      people?: PlayerId[]; effects?: { effect: PosterEffectId; level: number }[]; reclaim?: true }
   | { type: 'levelUp'; level: LevelInfo; handNumber: number }
   // Vem logo antes do `actionTaken` do motor e o completa. `bucket` e `monster` são
   // privados (só para os testes do Diretor, §6.6); toPublicEvents copia só thinkMs e cue.
   | { type: 'actionMeta'; playerId: PlayerId; handNumber: number; stackBefore: number; sizeClass: SizeClass | null;
-      bot?: { thinkMs: number; cue: Cue; bucket: HandBucket | null; monster: boolean } }
+      bot?: { thinkMs: number; cue: Cue; bucket: HandBucket | null; monster: boolean }; auto?: AutoActionKind }
   | { type: 'cardsShown'; playerId: PlayerId; cards: [Card, Card]; afterFold: boolean }
   // Na saída pública substitui o `handComplete` do motor (que traz scores e as mãos inteiras).
   | { type: 'handSummary'; handNumber: number; net: Record<PlayerId, number>; winnerIds: PlayerId[];
       wentToShowdown: boolean; potBB: number; flags: HandFlags }
   // Na saída pública substitui o `playerEliminated` do motor (acrescenta quem eliminou).
-  | { type: 'eliminated'; playerId: PlayerId; place: number; byId: PlayerId | null; handNumber: number }
+  | { type: 'eliminated'; playerId: PlayerId; place: number; byId: PlayerId | null; handNumber: number; stackLeft?: number }
   | { type: 'prizeMoved'; fromId: PlayerId; toId: PlayerId; handNumber: number }
   | { type: 'prizeCaptured'; handNumber: number; prizeId: string }
   | { type: 'tilt'; playerId: RivalId; kind: TiltKind; on: boolean; targetId?: PlayerId }
-  | { type: 'styleRead'; by: RivalId; targetId: 'human'; label: StyleLabel }
+  | { type: 'styleRead'; by: RivalId; targetId: PlayerId; label: StyleLabel }
   | { type: 'headsUp'; ids: [PlayerId, PlayerId]; handNumber: number }
+  | { type: 'clockOut'; playerId: PlayerId; handNumber: number; streak: number }
+  | { type: 'away'; playerId: PlayerId; on: boolean; handNumber: number }
+  | { type: 'personLeft'; playerId: PlayerId; reason: 'forfeit' | 'abandoned'; handNumber: number }
   // Pôster Poker (pacote E, 03/11/2026): os mesmos campos dos públicos.
   | { type: 'effectCast'; effect: PosterEffectId; handNumber: number; castNo: number; data: EffectCastData }
   | { type: 'effectReveal'; effect: 'reveal_one' | 'blackjack' | 'hand_bounty' | 'opal'; handNumber: number;
@@ -391,7 +427,8 @@ export type MatchOnlyEvent =
   | { type: 'effectBonus'; effect: PosterEffectId; handNumber: number; playerId: PlayerId; amount: number }
   | { type: 'tellMark'; handNumber: number; playerId: RivalId; mark: 'blefe' | 'valor' }
   | { type: 'matchEnded'; places: Record<PlayerId, number>; winnerId: PlayerId | null; humanPlace: number;
-      reason: 'won' | 'eliminated' | 'forfeit' | 'abandoned'; prizeCaptured: boolean; seed?: string };
+      reason: 'won' | 'eliminated' | 'forfeit' | 'abandoned'; prizeCaptured: boolean; seed?: string;
+      people?: Record<PlayerId, { place: number; reason: EndReasonPublic }> };
 
 export type MatchEvent = { i: number } & (PokerEvent | MatchOnlyEvent);
 
@@ -419,9 +456,14 @@ export interface TableView {
   // Pôster Poker: o torneio e os efeitos em vigor (para a retomada redesenhar a mesa).
   tournament?: { prizeId: string; rarity: Rarity; effect: PosterEffectId; cobraItem: boolean;
                  casts: number; active: EffectCastData | null; revealed: { playerId: PlayerId; cards: Card[] }[] } | null;
+  // Pacote E3 (03/11/2026), só na mesa de amigos: a situação de cada pessoa e os efeitos em vigor
+  // (`level` = pôsteres iguais; `casts` = lançadas até agora; `revealed` = cartas viradas nesta mão).
+  people?: Record<PlayerId, { status: PersonStatus; away: boolean; streak: number; place: number | null }>;
+  effects?: { list: { effect: PosterEffectId; level: number; casts: number; active: EffectCastData | null }[];
+              revealed: { playerId: PlayerId; cards: Card[] }[] } | null;
 }
 export interface MatchSummary {
-  v: 1; clientId: string; mode: 'free' | 'bounty'; startedAt: string; endedAt: string; durationS: number;
+  v: 1; clientId: string; mode: 'free' | 'bounty' | 'friends'; startedAt: string; endedAt: string; durationS: number;
   hands: number; place: 1 | 2 | 3 | 4; winnerId: PlayerId | null;
   reason: 'won' | 'eliminated' | 'forfeit' | 'abandoned'; loan: boolean;
   human: Omit<HumanTally, 'eliminations' | 'oscarBluff'>; eliminations: HumanTally['eliminations'];
@@ -430,4 +472,8 @@ export interface MatchSummary {
   prize: { prizeId: string; capturedHand: number | null } | null;
   engineHash: string; paramsVersion: Record<RivalId, number>;
   tournament?: { prizeId: string; effect: PosterEffectId; won: boolean; casts: number; bonusWon: number } | null;
+  // Pacote E3: resumo de UMA pessoa da mesa de amigos (`summarizeMatch(s, meta, id)`).
+  friends?: { playerId: PlayerId; people: number; effects: PosterEffectId[]; winnerIsPerson: boolean;
+              bonusWon: number; status: PersonStatus } | null;
+  reclaim?: boolean;   // casual de devolução
 }

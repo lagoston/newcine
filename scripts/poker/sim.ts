@@ -9,6 +9,12 @@
  * um só), na raridade do pôster, contra a mesma raridade sem efeito (linha de base).
  * Informa 1º lugar, mediana de mãos, lançadas e bônus por partida, e erros.
  *
+ * --friends (pacote E3, 03/11/2026): mesas de amigos com pessoas substitutas jogando como o
+ * "médio" (todas), em combinações de pôsteres (sem efeito, cada efeito ×1 e ×3, 8 pôsteres).
+ * Informa a parte das vitórias que fica com pessoas (e por lugar de pessoa), mãos, lançadas,
+ * fichas que a casa injetou e a inflação de fichas da mesa, e marca o que parecer absurdo.
+ *   node scripts/poker/sim.ts --friends all --sng 300 [--people 2] [--out arquivo.json]
+ *
  * --suite roda todas as metas do §3.8 e grava scripts/poker/params/sim-report.json e
  * sim-params.sql (o `update` de poker_bot_params). --strict sai com código 1 se alguma
  * meta ficar fora da faixa (pela estimativa pontual; o IC de 95% vai no relatório).
@@ -22,9 +28,10 @@ import {
 } from '../../src/lib/poker/index.ts';
 import type { BotMemory, BotProfile, MatchConfig, MatchEvent, MatchState, PosterEffectId, Rarity } from '../../src/lib/poker/index.ts';
 import { ALL_EFFECTS, EFFECT_RARITY } from './lib/harness.ts';
+import { applyPersonAction, friendsConfig, friendsResult, personLegal, totalChips, waitingFor } from '../../src/lib/poker/index.ts';
 import { emptyTally } from '../../src/lib/poker/match/summary.ts';
 import { emptyCounters } from '../../src/lib/poker/bots/model.ts';
-import { HEROES, handFeed } from './surrogates.ts';
+import { HEROES, handFeed, heroFor } from './surrogates.ts';
 import type { HeroName } from './surrogates.ts';
 
 type Rival = 'bogart' | 'cypher' | 'fincher';
@@ -239,6 +246,81 @@ function merge(a: Tally, b: Tally): Tally {
 }
 
 // ---------------------------------------------------------------------------
+// Mesa de amigos (pacote E3)
+// ---------------------------------------------------------------------------
+
+interface FriendsSpec { key: string; effects: PosterEffectId[]; people: number; n: number }
+interface FriendsTally {
+  n: number; personWins: number; seatWins: Record<string, number>; hands: number[]; casts: number; bonus: number;
+  inflation: number[]; bonusShare: number[]; errors: number; firstError: string | null; capped: number;
+}
+function emptyFriendsTally(): FriendsTally {
+  return { n: 0, personWins: 0, seatWins: {}, hands: [], casts: 0, bonus: 0, inflation: [], bonusShare: [], errors: 0, firstError: null, capped: 0 };
+}
+function mergeFriends(a: FriendsTally, b: FriendsTally): FriendsTally {
+  a.n += b.n; a.personWins += b.personWins; a.casts += b.casts; a.bonus += b.bonus; a.errors += b.errors; a.capped += b.capped;
+  for (const [k, v] of Object.entries(b.seatWins)) a.seatWins[k] = (a.seatWins[k] ?? 0) + v;
+  a.hands.push(...b.hands); a.inflation.push(...b.inflation); a.bonusShare.push(...b.bonusShare);
+  a.firstError ??= b.firstError;
+  return a;
+}
+function runFriendsChunk(sp: FriendsSpec, from: number, to: number): FriendsTally {
+  const t = emptyFriendsTally();
+  for (let m = from; m < to; m++) {
+    const cfg = friendsConfig({ seed: `simf-${sp.key}-${m}`, people: sp.people, effects: sp.effects });
+    const rng = createRng(`simf-h-${sp.key}-${m}`);
+    try {
+      let step = createMatch(cfg);
+      let casts = step.events.filter((e) => e.type === 'effectCast').length;
+      let bonus = 0;
+      for (let guard = 0; guard < 6000 && step.state.status === 'running'; guard++) {
+        const who = waitingFor(step.state)!;
+        step = applyPersonAction(step.state, who, heroFor('medio', who)(personLegal(step.state, who)!, rng, step.state));
+        for (const e of step.events) {
+          if (e.type === 'effectCast') casts++;
+          else if (e.type === 'effectBonus') bonus += e.amount;
+        }
+      }
+      const s = step.state;
+      const r = friendsResult(s);
+      if (!r.done || !r.winnerId) throw new Error('mesa sem fim');
+      t.n++;
+      if (r.winnerIsPerson) t.personWins++;
+      t.seatWins[r.winnerIsPerson ? 'pessoa' : r.winnerId] = (t.seatWins[r.winnerIsPerson ? 'pessoa' : r.winnerId] ?? 0) + 1;
+      t.hands.push(s.game.handNumber);
+      t.casts += casts;
+      // o que a casa pagou (inclui o que os oráculos ganharam terminando sozinhos)
+      const paid = ((s as unknown as { fxs?: { paid?: number }[] }).fxs ?? []).reduce((a, f) => a + (f.paid ?? 0), 0);
+      t.bonus += paid;
+      const start = cfg.settings.startStack * Object.keys(cfg.seats).length;
+      t.inflation.push(totalChips(s.game) / start);
+      t.bonusShare.push(paid / (start + paid));
+      if (s.game.handNumber >= 299) t.capped++;
+      void bonus;
+    } catch (e) {
+      t.errors++;
+      t.firstError ??= `${sp.key}#${m}: ${(e as Error).message}`;
+    }
+  }
+  return t;
+}
+function runFriends(sp: FriendsSpec, workers: number): Promise<FriendsTally> {
+  const per = Math.ceil(sp.n / workers);
+  const jobs: Promise<FriendsTally>[] = [];
+  for (let w = 0; w < workers; w++) {
+    const from = w * per;
+    const to = Math.min(sp.n, from + per);
+    if (from >= to) continue;
+    jobs.push(new Promise((res, rej) => {
+      const wk = new Worker(new URL(import.meta.url), { workerData: { friends: sp, from, to } });
+      wk.once('message', res);
+      wk.once('error', rej);
+    }));
+  }
+  return Promise.all(jobs).then((ts) => ts.reduce(mergeFriends, emptyFriendsTally()));
+}
+
+// ---------------------------------------------------------------------------
 // Worker
 // ---------------------------------------------------------------------------
 
@@ -315,6 +397,56 @@ async function main(): Promise<void> {
     for (const e of effects) await runRow(e, e, EFFECT_RARITY[e]);
     const out = arg('--out');
     if (out) writeFileSync(out, `${JSON.stringify({ v: 1, hero, sng: N, rows }, null, 1)}\n`);
+    return;
+  }
+
+  if (has('--friends')) {
+    const which = arg('--friends') ?? 'all';
+    const onlyPeople = arg('--people') ? Number(arg('--people')) : null;
+    const specs: FriendsSpec[] = [];
+    const add = (key: string, effects: PosterEffectId[], people: number): void => {
+      if (onlyPeople === null || onlyPeople === people) specs.push({ key, effects, people, n: N });
+    };
+    for (const n of [2, 3, 4]) add(`sem-efeito-${n}p`, [], n);
+    if (which === 'all' || which === 'single') {
+      for (const e of ALL_EFFECTS) {
+        add(`${e}x1-2p`, [e], 2);
+        add(`${e}x3-2p`, [e, e, e], 2);
+      }
+    }
+    if (which === 'all' || which === 'max') {
+      for (const n of [2, 4]) {
+        add(`oito-diferentes-${n}p`, ALL_EFFECTS.filter((e) => e !== 'tell'), n);
+        add(`bonus-${n}p`, ['double_pot', 'double_pot', 'double_pot', 'blackjack', 'blackjack', 'blackjack', 'hand_bounty', 'opal'], n);
+        add(`opala-raymond-${n}p`, ['opal', 'opal', 'opal', 'opal', 'hand_bounty', 'hand_bounty', 'hand_bounty', 'hand_bounty'], n);
+        add(`board-${n}p`, ['early_flop', 'early_flop', 'early_flop', 'sixth_card', 'sixth_card', 'sixth_card', 'eight_aces', 'reveal_one'], n);
+        add(`tique-leitura-${n}p`, ['tell', 'tell', 'tell', 'tell', 'reveal_one', 'reveal_one', 'reveal_one', 'reveal_one'], n);
+      }
+    }
+    const rows: Record<string, unknown>[] = [];
+    for (const sp of specs) {
+      const t = await runFriends(sp, workers);
+      const d = Math.max(1, t.n);
+      const fair = sp.people / 4;
+      const row = {
+        mesa: sp.key, pessoas: sp.people, n: t.n, pessoaVence: +(100 * t.personWins / d).toFixed(1), justo: +(100 * fair).toFixed(0),
+        porPessoa: +(100 * t.personWins / d / sp.people).toFixed(1), maosMediana: quantile(t.hands, 0.5), maosP90: quantile(t.hands, 0.9),
+        lancadas: +(t.casts / d).toFixed(1), casaPagou: Math.round(t.bonus / d), inflacaoMediana: +quantile(t.inflation, 0.5).toFixed(2),
+        inflacaoP90: +quantile(t.inflation, 0.9).toFixed(2), partePaga: +(100 * quantile(t.bonusShare, 0.5)).toFixed(1),
+        vencedores: t.seatWins, erros: t.errors, primeiroErro: t.firstError, limite300: t.capped,
+      };
+      const flags: string[] = [];
+      if (row.maosMediana < 12) flags.push('curta');
+      if (row.maosP90 > 90) flags.push('longa');
+      if (row.inflacaoP90 > 2.5) flags.push('inflação');
+      if (t.errors > 0) flags.push('ERRO');
+      if (t.capped > 0) flags.push('limite');
+      rows.push({ ...row, alerta: flags });
+      log(`${sp.key.padEnd(22)} pessoa vence ${String(row.pessoaVence).padStart(5)}% (justo ${row.justo}%; ${row.porPessoa}%/pessoa) · mãos ${row.maosMediana} (p90 ${row.maosP90}) · `
+        + `lançadas ${row.lancadas} · casa ${row.casaPagou} · fichas ×${row.inflacaoMediana} (p90 ×${row.inflacaoP90}) · erros ${t.errors}${flags.length ? ` · ALERTA ${flags.join(',')}` : ''}`);
+    }
+    const out = arg('--out');
+    if (out) writeFileSync(out, `${JSON.stringify({ v: 1, hero: 'medio', sng: N, rows }, null, 1)}\n`);
     return;
   }
 
@@ -441,8 +573,9 @@ async function main(): Promise<void> {
 
 // Worker: roda um pedaço do cenário; thread principal: a suíte.
 if (!isMainThread) {
-  const { sc, from, to, params } = workerData as { sc: Scenario; from: number; to: number; params: Params };
-  parentPort!.postMessage(runChunk(sc, from, to, params));
+  const wd = workerData as { sc: Scenario; from: number; to: number; params: Params; friends?: FriendsSpec };
+  if (wd.friends) parentPort!.postMessage(runFriendsChunk(wd.friends, wd.from, wd.to));
+  else parentPort!.postMessage(runChunk(wd.sc, wd.from, wd.to, wd.params));
 } else {
   await main();
 }

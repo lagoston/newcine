@@ -3258,7 +3258,7 @@
       "count": "{{have}} of {{total}}",
       "intro": "The 9 Pôster Poker posters. Every Thursday, one of them is up in the tournament.",
       "ownedAria": "{{title}}, no. {{n}}. Yours.",
-      "lockedAria": "A poster you don't have yet. Back in the tournament on {{date}}.",
+      "lockedAria": "A poster you don't have yet.",
       "thisWeek": "This week",
       "returns": "Back on {{date}}",
       "unknown": "Secret poster",
@@ -3267,7 +3267,9 @@
       "ownedNote": "Yours, with the gold shine. It can't be traded.",
       "thisWeekNote": "Up in this week's tournament.",
       "returnsNote": "Back in the tournament on Thursday, {{date}}.",
-      "goTourney": "Go to the tournament"
+      "goTourney": "Go to the tournament",
+      "lockedNowAria": "{{title}}. Not yours yet; it's up in this week's tournament.",
+      "lockedNote": "Not yours yet. It comes back to the tournament in a coming week."
     },
     "effects": {
       "early_flop": {

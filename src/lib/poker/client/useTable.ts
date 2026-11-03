@@ -12,7 +12,7 @@ import type { TFunction } from 'i18next';
 import type { Card } from '../cards.ts';
 import type { PlayerAction } from '../engine.ts';
 import type { EffectCastData, MatchMode, PosterEffectId, PublicEvent, TableView } from '../types.ts';
-import { applyEvent, emptyTable, fromView, seatOf, type TableShow } from './display.ts';
+import { applyEvent, castThisHand, emptyTable, fromView, seatOf, type TableShow } from './display.ts';
 import type { Director, TableContext } from './useDirector.ts';
 import type { MatchClient } from './matchClient.ts';
 import { getPokerSettings, speedFactor } from './settings.ts';
@@ -54,8 +54,7 @@ function roundOddsTo100(odds: Record<string, number>): Record<string, number> {
 
 // Pôster Poker: o board vai a 6 na mão do Onze Homens (o effectCast sai antes do river).
 function boardTarget(t: TableShow): number {
-  const tt = t.tournament;
-  return tt?.active?.effect === 'sixth_card' && tt.castHand === t.handNumber ? 6 : 5;
+  return castThisHand(t.tournament, 'sixth_card', t.handNumber) ? 6 : 5;
 }
 
 /** O que as contas de % precisam saber dos efeitos: os 8 ases do Cassino e o board de 6. */

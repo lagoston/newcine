@@ -157,7 +157,13 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
         </div>
       </section>
 
-      {/* ---------- As três portas ---------- */}
+      {/* ---------- As três portas (e o botão do Pôster Poker) ----------
+          03/11/2026 (fase 3, pedido do Bruno): o botão do Pôster Poker fica
+          logo abaixo da porta do Poster Jackpot. No celular, na pilha, entre
+          o Jackpot e a Persona (a ordem do DOM); no computador, numa segunda
+          linha do tríptico, só na coluna do meio (a do Jackpot), com a
+          largura dela — por isso cada porta tem lugar fixo no lg. Sem o
+          pôquer liberado, o item fica vazio e some (empty:hidden). */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-5 sm:pt-7" aria-label={t('home.doors.label')}>
         <motion.ul
           className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4"
@@ -165,23 +171,19 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
           initial="hidden"
           animate={visible ? 'shown' : 'hidden'}
         >
-          <motion.li variants={doorItem} className="min-w-0">
+          <motion.li variants={doorItem} className="min-w-0 lg:col-start-1 lg:row-start-1">
             <OracleLibraryDoor cardStyle={cardStyle} />
           </motion.li>
-          <motion.li variants={doorItem} className="min-w-0 empty:hidden">
+          <motion.li variants={doorItem} className="min-w-0 empty:hidden lg:col-start-2 lg:row-start-1">
             <PosterJackpotDoor />
           </motion.li>
-          <motion.li variants={doorItem} className="min-w-0">
+          <motion.li variants={doorItem} className="min-w-0 empty:hidden lg:col-start-2 lg:row-start-2">
+            <PosterPokerButton />
+          </motion.li>
+          <motion.li variants={doorItem} className="min-w-0 lg:col-start-3 lg:row-start-1">
             <PersonaDoor userId={userId} username={displayName || null} />
           </motion.li>
         </motion.ul>
-      </section>
-
-      {/* ---------- Pôster Poker: o botão do jogo (03/11/2026, tarde) ----------
-          No lugar da faixa de feltro. Só para quem tem o pôquer liberado; sem
-          ele, a seção fica vazia e some (empty:hidden). */}
-      <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-3 sm:pt-4 empty:hidden">
-        <PosterPokerButton />
       </section>
 
       {/* ---------- O evento sazonal e o Clube do Terror ---------- */}

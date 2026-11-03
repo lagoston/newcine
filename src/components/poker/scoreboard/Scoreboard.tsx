@@ -9,19 +9,21 @@ import { loadJackpotFont } from '../../../lib/posterJackpot';
 import { OracleTrio } from '../jackpot/CarrierFace';
 import PrizeArt from '../jackpot/PrizeArt';
 import { equipPokerMark, fetchPokerScoreboard, fetchProfileBits } from '../jackpot/entryApi';
-import { BLEFE_ROUTES, prizeNameOf, titleProgress } from '../jackpot/pokerMeta';
+import { BLEFE_ROUTES, prizeNameOf } from '../jackpot/pokerMeta';
 import { currentStreak, fmt, mergeStats, parseScoreboard, placements, playerNumbers, type ScoreboardData } from './model';
-import { HandCards, LuckBullet, MarkRow, ModeSplit, NumberRow, PlacementBar, RecentRow, RivalRows, TitleReel } from './parts';
+import { HandCards, LuckBullet, MarkRow, ModeSplit, NumberRow, PlacementBar, RecentRow, RivalRows } from './parts';
 import '../../../styles/posterJackpot.css';
 import '../../../styles/pokerEntry.css';
 
-// O placar do Grande Blefe (/blefe/placar; SPEC §7.7). De cima para baixo:
-// o título da pessoa numa película (a carreira de Figurante a Lenda da
-// Sessão), o filtro Geral × Valendo, as vitórias e derrotas, as
+// O placar do Pôster Poker (/poster-poker/placar; SPEC §7.7). De cima para baixo:
+// o filtro Geral × Valendo, as vitórias e derrotas, as
 // colocações, livre × prêmio, os prêmios da mesa, a rivalidade com cada
 // oráculo, os momentos, a sorte nos all-ins, os marcos (com [Equipar]), os
 // números de jogador (recolhidos) e as últimas partidas. Só as partidas
 // valendo prêmio são verificadas pelo servidor; o Geral avisa.
+// 03/11/2026 (fase 3, pedido do Bruno): saiu o cartão "Seu título" (a carreira de
+// Figurante a Lenda da Sessão); o título deixou de existir na interface do jogo.
+// Os marcos são as tags da categoria Jogos (as mesmas do modal de Tags do perfil).
 
 type Scope = 'all' | 'bounty';
 type Load = { state: 'loading' } | { state: 'closed' } | { state: 'error' } | { state: 'ready'; data: ScoreboardData };
@@ -160,7 +162,6 @@ const Scoreboard: React.FC = () => {
       </div>
     );
   } else if (data && stats) {
-    const progress = titleProgress(data.titleWins, data.titleId);
     const losses = Math.max(0, stats.matches - stats.wins);
     const rate = stats.matches ? Math.round((stats.wins / stats.matches) * 100) : 0;
     const streakNow = scope === 'bounty' ? data.bounty.streak : currentStreak(recent);
@@ -170,24 +171,6 @@ const Scoreboard: React.FC = () => {
 
     body = (
       <>
-        {/* O título: o letreiro com a carreira em película. */}
-        <section className="pe-marquee mt-5" aria-labelledby="pe-score-title">
-          <div className="pe-marquee-inner px-5 pt-5 pb-5">
-            <span className="pj-stars" aria-hidden />
-            <div className="relative">
-              <p className="text-[12.5px]" style={{ color: MIST }}>
-                {t('pokerEntry.score.yourTitle')}
-              </p>
-              <p id="pe-score-title" className="pe-cinzel pj-gold-text mt-1.5 text-[30px] sm:text-[38px] font-black leading-none">
-                {t(`pokerEntry.titles.${progress.current.id}`)}
-              </p>
-              <div className="mt-4">
-                <TitleReel wins={data.titleWins} titleId={data.titleId} />
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* O filtro vale para tudo o que vem abaixo. */}
         <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2">
           <div className="pe-seg" role="group" aria-label={t('pokerEntry.score.filterAria')}>

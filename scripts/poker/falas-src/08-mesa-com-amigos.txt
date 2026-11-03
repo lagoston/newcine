@@ -1,0 +1,180 @@
+// Pacote H3 (03/11/2026): falas da mesa com amigos e da casual de devolução. Mesmo formato
+// das outras fontes; os eventos novos (FRIENDS_START, FRIENDS_STAKE, EFFECT_PILE, GUEST_OUT,
+// OUT_BY_GUEST, GUEST_POT, GUEST_ALL_IN, GUEST_BONUS, CLOCK_OUT, AWAY, PERSON_LEFT, FRIENDS_END,
+// RECLAIM_TAUNT, RECLAIM_WON) estão na tabela `classify` do gen-lines.ts.
+// Regra da casa: nenhuma fala usa nome de pessoa nem flexiona gênero para ela. A outra pessoa
+// é "a outra visita", "quem você trouxe" ou "a sua turma" (en: "your friend", "your gang").
+# 16. Mesa com amigos || 16. Friends' table
+% Até 4 pessoas na mesa: cada pessoa além da primeira toma, ao acaso, o lugar de um oráculo. Só falam os oráculos sentados; o oráculo que cedeu o lugar nunca fala (nem é citado, a não ser nas falas que comentam a ausência dele). Cada aparelho tem o seu Diretor: "você" é sempre quem está naquele aparelho; as outras pessoas são "a outra visita" ou "a sua turma", nunca pelo nome. As reações às outras pessoas têm teto próprio por partida, para a mesa não virar falatório. || Up to 4 people at the table: each person after the first randomly takes an oracle's seat. Only seated oracles speak; the oracle who gave up a seat never speaks (nor is mentioned, except in lines about their absence). Each device has its own Director: "you" is always the person on that device; the others are "your friend" or "your gang", never by name. Reactions to other people have their own cap per match, so the table doesn't turn into chatter.
+
+## A abertura || The opening
+PMB01 | bogart | FRIENDS_START | o2 | - | P1 | - | Duas visitas na mesa?! Alguém sumiu com um oráculo. Não fui eu. Juro. | Two guests at the table?! Someone made an oracle vanish. Not me. I swear.
+PMB02 | bogart | FRIENDS_START | o2 | - | P1 | - | Mesa de amigos! Eu trouxe pipoca pra todo mundo. Pra mim, no caso. | A friends' table! I brought popcorn for everyone. Meaning me.
+PMB03 | bogart | FRIENDS_START | o2 | - | P1 | - | Vocês se conhecem? Então já brigaram por menos. Croac. | You know each other? Then you've fought over less. Ribbit.
+PMC01 | cypher | FRIENDS_START | o2 | - | P1 | - | Uma visita trouxe outra. Que gentileza. Mais gente pra eu derrubar. | One guest brought another. How kind. More people for me to topple.
+PMC02 | cypher | FRIENDS_START | o2 | - | P1 | - | Amizade numa mesa de pôquer. Adoro ver como termina. | Friendship at a poker table. I love seeing how it ends.
+PMC03 | cypher | FRIENDS_START | o2 | - | P1 | - | Sobramos dois oráculos. O resto da mesa é afeto. Por enquanto. | Two oracles left. The rest of the table is affection. For now.
+PMF01 | fincher | FRIENDS_START | o2 | - | P1 | - | Duas visitas e dois de nós. Mesa equilibrada. Até a primeira mão. | Two guests and two of us. A balanced table. Until the first hand.
+PMF02 | fincher | FRIENDS_START | o2 | - | P1 | - | Jogar com quem se conhece é outra arte. Cada um sabe o tique do outro. | Playing someone you know is another art. You know each other's tells.
+PMF03 | fincher | FRIENDS_START | o2 | - | P1 | - | Um de nós cedeu o lugar. Não se acostume, {estreante}. | One of us gave up a seat. Don't get used to it, {estreante}.
+PMB04 | bogart | FRIENDS_START | o1 | - | P1 | emote=sweat | Só eu de oráculo?! Três contra um sapo! Isso é filme de terror! | Just me as an oracle?! Three against one frog! This is a horror movie!
+PMB05 | bogart | FRIENDS_START | o1 | - | P1 | - | A Cobra e o Vovô fugiram. Eu fiquei. Coragem ou ninguém me avisou. | The Snake and Grandpa ran off. I stayed. Courage, or nobody told me.
+PMB06 | bogart | FRIENDS_START | o1 | - | P1 | - | Fiquei sozinho com a turma. Se eu chorar, finjam que é chuva. | I'm alone with the gang. If I cry, pretend it's rain.
+PMC04 | cypher | FRIENDS_START | o1 | - | P1 | - | Uma cobra e três visitas. Contem os dedos no fim da noite. | One snake and three guests. Count your fingers at the end of the night.
+PMC05 | cypher | FRIENDS_START | o1 | - | P1 | - | Sem o sapinho, sem o velho. Só eu e a turma. Era o que eu queria. | No froggy, no old man. Just me and the gang. Exactly what I wanted.
+PMC06 | cypher | FRIENDS_START | o1 | - | P1 | - | Três visitas e eu. Vou ser a vilã que une a turma. Ou que separa. | Three guests and me. I'll be the villain who unites the gang. Or splits it.
+PMF04 | fincher | FRIENDS_START | o1 | - | P1 | - | Três visitas e um velho raposo. Já vi esse faroeste. Termina no saloon. | Three guests and an old fox. I've seen this western. It ends in the saloon.
+PMF05 | fincher | FRIENDS_START | o1 | - | P1 | - | O Crítico e a víbora cederam o lugar. Sobrei eu para ensinar a turma. | The Critic and the viper gave up their seats. I'm left to teach the gang.
+PMF06 | fincher | FRIENDS_START | o1 | - | P1 | - | Um oráculo contra três visitas. Joguem entre vocês. Eu recolho o resto. | One oracle against three guests. Play among yourselves. I'll collect the rest.
+
+=PMT01 | FRIENDS_START | o2; saiu o Raposo | P1 | - | Cadê o Vovô? | Where's Grandpa?
+> bogart | Cadê o Vovô? Tem uma visita na cadeira dele! | Where's Grandpa? There's a guest in his chair!
+> cypher | Foi cochilar. A cadeira é de quem chegar primeiro, sapinho. | He went for a nap. The chair belongs to whoever gets there first, froggy.
+
+=PMT02 | FRIENDS_START | o2; saiu a Cobra | P1 | - | Cadê a Cobra? | Where's the Snake?
+> fincher | A Cobra cedeu o lugar. Primeira vez que a vejo ceder alguma coisa. | The Snake gave up her seat. First time I've seen her give up anything.
+> bogart | Ela vai voltar com raiva. Eu sinto no papo. | She'll come back angry. I can feel it in my throat.
+
+=PMT03 | FRIENDS_START | o2; saiu o Sapo | P1 | - | Cadê o Sapo? | Where's the Frog?
+> cypher | Sem o Sapo hoje. A mesa ficou tão silenciosa. | No Frog tonight. The table's gone so quiet.
+> fincher | Silenciosa e mais cara. Sejam bem-vindas, visitas. | Quiet and pricier. Welcome, guests.
+
+## Os pôsteres apostados na sala || The posters staked in the room
+% Valendo pôster, cada pessoa aposta um da coleção (da raridade da sala). Quem vence a mesa leva todos; se um oráculo vence, eles ficam com o oráculo. Abertura: um balão depois da saudação. Créditos: para onde os pôsteres foram. || With posters at stake, each person bets one from the collection (in the room's rarity). The table's winner takes them all; if an oracle wins, they stay with the oracle. Opening: one balloon after the greeting. Credits: where the posters went.
+PMC07 | cypher | FRIENDS_STAKE | abertura | - | P1 | - | Pôsteres apostados entre amigos. Ninguém sai daqui com a amizade intacta. | Posters staked between friends. Nobody leaves with the friendship intact.
+PMC08 | cypher | FRIENDS_STAKE | abertura | - | P1 | - | Cada um botou um pôster na mesa. Que cheiro bom de arrependimento. | Everyone put a poster on the table. Smells like regret already.
+PMB07 | bogart | FRIENDS_STAKE | abertura | - | P1 | - | Pôster de um contra pôster do outro? E se um oráculo levar tudo? Eu, por exemplo? | One's poster against the other's? What if an oracle takes it all? Me, say?
+PMB08 | bogart | FRIENDS_STAKE | abertura | - | P1 | - | Quem vencer leva os pôsteres de todo mundo! Até eu fiquei nervoso. | Whoever wins takes everyone's posters! Even I got nervous.
+PMF07 | fincher | FRIENDS_STAKE | abertura | - | P1 | - | Os pôsteres ficam no centro. Quem levar a mesa leva a parede inteira. | The posters sit in the middle. Whoever takes the table takes the whole wall.
+PMF08 | fincher | FRIENDS_STAKE | abertura | - | P1 | - | Apostar a coleção contra quem você conhece. Isso, sim, é pôquer, {estreante}. | Betting your collection against people you know. Now that's poker, {estreante}.
+PMB09 | bogart | FRIENDS_STAKE | abertura; comum | - | P1 | - | Só comuns na aposta? Ótimo. Eu choro menos quando são comuns. | Only commons at stake? Good. I cry less when they're common.
+PMC09 | cypher | FRIENDS_STAKE | abertura; épico | - | P1 | - | Épicos lado a lado na mesa. Parece vitrine de joalheria. Das que eu assalto. | Epics side by side on the table. Like a jewelry window. The kind I rob.
+PMF09 | fincher | FRIENDS_STAKE | abertura; lendário | - | P1 | - | Lendários numa mesa de amigos. Alguém vai lembrar desta noite por anos. | Legendaries on a friends' table. Someone will remember tonight for years.
+PMC10 | cypher | FRIENDS_STAKE | voltou | - | P1 | - | Levou os pôsteres da turma toda. Agora sim tem uma amizade em risco. | You took the whole gang's posters. Now there's a friendship at risk.
+PMB10 | bogart | FRIENDS_STAKE | voltou | - | P1 | - | Todos os pôsteres pra você?! Vai precisar de outra parede, girino! | All the posters for you?! You'll need another wall, tadpole!
+PMF10 | fincher | FRIENDS_STAKE | voltou | - | P1 | - | O seu volta e os outros vêm junto. Devolva no aniversário de alguém. | Yours comes back and the others come along. Return them on someone's birthday.
+PMC11 | cypher | FRIENDS_STAKE | amigo | - | P1 | - | Os pôsteres foram com a outra visita. Peça de volta com jeitinho. Ou não. | The posters went with your friend. Ask for them back nicely. Or don't.
+PMB11 | bogart | FRIENDS_STAKE | amigo | - | P1 | - | Seu pôster agora mora com quem você trouxe. Vai visitar, pelo menos. | Your poster now lives at your friend's place. At least go visit.
+PMF11 | fincher | FRIENDS_STAKE | amigo | - | P1 | - | A coleção mudou de dono, não de turma. Revanche resolve, {estreante}. | The collection changed hands, not gangs. A rematch fixes it, {estreante}.
+PMC12 | cypher | FRIENDS_STAKE | oraculo | - | P1 | - | Todos os pôsteres comigo. Amizade é linda. Prejuízo também. | All the posters with me. Friendship is beautiful. So is loss.
+PMC13 | cypher | FRIENDS_STAKE | oraculo | - | P1 | - | Obrigada, turma. Vou pendurar um do lado do outro, em ordem de choro. | Thanks, gang. I'll hang them side by side, in order of tears.
+PMB12 | bogart | FRIENDS_STAKE | oraculo | - | P1 | - | Eu ganhei os pôsteres?! De todo mundo?! Vou cuidar bem. Eu acho. | I won the posters?! Everyone's?! I'll take good care of them. I think.
+PMB13 | bogart | FRIENDS_STAKE | oraculo | - | P1 | - | Os pôsteres vêm pro brejo! Prometo não molhar. Muito. | The posters are coming to the swamp! I promise not to get them wet. Much.
+PMF12 | fincher | FRIENDS_STAKE | oraculo | - | P1 | - | Os pôsteres ficam comigo. A casa não aposta, mas recebe. | The posters stay with me. The house doesn't bet, but it collects.
+PMF13 | fincher | FRIENDS_STAKE | oraculo | - | P1 | - | Bom jogo, turma. Pôsteres assim ficam bem numa parede de raposo. | Good game, gang. Posters like these look good on a fox's wall.
+
+## Muitos pôsteres mágicos || Too many magic posters
+% Cada pessoa pode trazer até 2 pôsteres do Pôster Poker; os efeitos valem para a mesa toda e o mesmo efeito acumula. Com 3 pôsteres ou mais (ou um efeito repetido) a abertura diz que "isso vai dar errado". Na mão em que dois pôsteres lançam juntos, um oráculo reage (a 1ª vez da partida é P1; depois, P3), menos quando a mão já tem a explicação de um efeito. || Each person may bring up to 2 Poster Poker posters; the effects apply to the whole table and the same effect stacks. With 3+ posters (or a repeated effect) the opening says "this is going to go wrong". On a hand where two posters cast together, an oracle reacts (the 1st time in the match is P1; then P3), except when the hand already has an effect explanation.
+PMB14 | bogart | EFFECT_PILE | abertura | - | P1 | emote=sweat | Quantos pôsteres mágicos! Isso vai dar errado. Eu sinto no papo! | So many magic posters! This is going to go wrong. I feel it in my throat!
+PMB15 | bogart | EFFECT_PILE | abertura | - | P1 | - | Pôster em cima de pôster! Quem trouxe tanto feitiço pra uma mesa só? | Poster on top of poster! Who brought this much magic to one table?
+PMC14 | cypher | EFFECT_PILE | abertura | - | P1 | - | Tanto pôster mágico junto. Isso vai dar errado. Mal posso esperar. | So many magic posters together. This will go wrong. I can't wait.
+PMC15 | cypher | EFFECT_PILE | abertura | - | P1 | - | Os efeitos vão se somar. Caos com trilha sonora. Meu gênero favorito. | The effects will stack. Chaos with a soundtrack. My favorite genre.
+PMF14 | fincher | EFFECT_PILE | abertura | - | P1 | - | Pôsteres demais na mesa. Em trinta anos, nunca vi isso terminar bem. | Too many posters on the table. In thirty years I've never seen this end well.
+PMF15 | fincher | EFFECT_PILE | abertura | - | P1 | - | Efeito em cima de efeito. Joguem com calma: a mesa vai jogar por vocês. | Effect on top of effect. Play calmly: the table will play for you.
+PMB16 | bogart | EFFECT_PILE | mesma | - | P3 | vez | Dois de uma vez?! Eu avisei! Avisei? | Two at once?! I warned you! Did I?
+PMB17 | bogart | EFFECT_PILE | mesma | - | P3 | vez | Feitiço duplo! Alguém segura a mesa! | Double spell! Someone hold the table!
+PMC16 | cypher | EFFECT_PILE | mesma | - | P3 | vez | Dois pôsteres na mesma mão. Lindo caos. | Two posters in one hand. Lovely chaos.
+PMC17 | cypher | EFFECT_PILE | mesma | - | P3 | vez | Isso vai dar errado. Ainda bem. | This will go wrong. Thank goodness.
+PMF16 | fincher | EFFECT_PILE | mesma | - | P3 | vez | Dois efeitos juntos. Respire, {estreante}. | Two effects at once. Breathe, {estreante}.
+PMF17 | fincher | EFFECT_PILE | mesma | - | P3 | vez | Lá vem confusão em dobro. | Here comes double trouble.
+
+## Alguém caiu || Someone fell
+% Um amigo eliminado: pela visita (P1, o momento é dela), por um oráculo (fala quem eliminou, ou um oráculo que assistiu) ou por outro amigo (P2). A visita eliminada por um amigo ganha uma despedida de um balão de um oráculo que ficou. Nunca o nome de ninguém. || A friend eliminated: by you (P1, it's your moment), by an oracle (the eliminator speaks, or an oracle who watched) or by another friend (P2). You eliminated by a friend get a one-balloon farewell from a remaining oracle. Never anyone's name.
+PMB18 | bogart | GUEST_OUT | por você | - | P1 | - | Derrubou a própria turma! Que frieza, girino! | You knocked out your own gang! So cold, tadpole!
+PMB19 | bogart | GUEST_OUT | por você | - | P1 | - | Uma visita a menos! E foi você! Amizade testada e reprovada! | One guest down! And it was you! Friendship tested and failed!
+PMC18 | cypher | GUEST_OUT | por você | - | P1 | - | Tirou a outra visita sem hesitar. Estou orgulhosa, criatura. | You took out your friend without hesitating. I'm proud, creature.
+PMC19 | cypher | GUEST_OUT | por você | - | P1 | - | Amizade é bonita. Fichas são mais. Você entendeu tudo. | Friendship is pretty. Chips are prettier. You understood everything.
+PMF18 | fincher | GUEST_OUT | por você | - | P1 | - | Na mesa não há amigos, só cacifes. Bem jogado, {estreante}. | At the table there are no friends, only stacks. Well played, {estreante}.
+PMF19 | fincher | GUEST_OUT | por você | - | P1 | - | Derrubou quem você trouxe. Pague o café depois. É o costume. | You knocked out your own friend. Buy the coffee afterwards. It's customary.
+PMB20 | bogart | GUEST_OUT | por oráculo; ator | - | P2 | - | Eu tirei uma visita?! Desculpa! Não, espera… Croac de vitória! | I knocked out a guest?! Sorry! No, wait… a victory ribbit!
+PMB21 | bogart | GUEST_OUT | por oráculo; ator | - | P2 | - | Tirei alguém da turma! Alguém me dá um troféu? Ou um abraço? | I took one of the gang out! Somebody give me a trophy? Or a hug?
+PMC20 | cypher | GUEST_OUT | por oráculo; ator | - | P2 | - | Uma visita a menos. Pode chorar no ombro de quem ficou. | One guest fewer. Cry on the shoulder of whoever's left.
+PMC21 | cypher | GUEST_OUT | por oráculo; ator | - | P2 | - | Shhh. Uma visita dormiu. Ninguém acorda. | Shhh. A guest fell asleep. Nobody wake them.
+PMF20 | fincher | GUEST_OUT | por oráculo; ator | - | P2 | - | Uma visita sai. Volte quando quiser. A mesa guarda o lugar. | One guest leaves. Come back anytime. The table keeps the seat.
+PMF21 | fincher | GUEST_OUT | por oráculo; ator | - | P2 | - | Lição grátis para a sua turma. A próxima é cobrada. | A free lesson for your gang. The next one costs.
+PMB22 | bogart | GUEST_OUT | por oráculo; testemunha | - | P2 | - | Caiu alguém da sua turma! O próximo podia ser eu. Ou você. Prefiro você. | Someone from your gang fell! Next could be me. Or you. I'd prefer you.
+PMC22 | cypher | GUEST_OUT | por oráculo; testemunha | - | P2 | - | Um a menos na sua turma. A gente se ajuda por aqui, sabe? | One fewer in your gang. We help each other around here, you know?
+PMF22 | fincher | GUEST_OUT | por oráculo; testemunha | - | P2 | - | Uma visita a menos. Agora a conta divide por menos gente. | One guest fewer. Now the bill splits among fewer people.
+PMB23 | bogart | GUEST_OUT | por amigo | - | P2 | - | Visita derrubando visita! Eu só assisto. Com pipoca! | Guest knocking out guest! I'm just watching. With popcorn!
+PMB24 | bogart | GUEST_OUT | por amigo | - | P2 | - | Uma visita tirou a outra! Isso vai dar briga no grupo da família! | One guest took out another! That'll start a fight in the family chat!
+PMC23 | cypher | GUEST_OUT | por amigo | - | P2 | - | A sua turma começou a se devorar. Eu nem precisei mexer um dedo. | Your gang started eating each other. I didn't lift a finger.
+PMC24 | cypher | GUEST_OUT | por amigo | - | P2 | - | Traição entre visitas. Que roteiro. Eu assinaria. | Betrayal between guests. What a script. I'd sign it.
+PMF23 | fincher | GUEST_OUT | por amigo | - | P2 | - | Entre amigos, a eliminação dói em dobro. E rende assunto por semanas. | Between friends, an elimination hurts double. And makes talk for weeks.
+PMF24 | fincher | GUEST_OUT | por amigo | - | P2 | - | Uma visita cai pela mão de outra. Clássico de faroeste. | One guest falls by another's hand. A western classic.
+PMB25 | bogart | OUT_BY_GUEST | - | - | P1 | - | Fora pela própria turma! Isso eu não vi nem em novela. | Out by your own gang! I haven't seen that even in soap operas.
+PMB26 | bogart | OUT_BY_GUEST | - | - | P1 | - | Quem diria: fora da mesa por quem você trouxe. Leva um lencinho. | Who'd have guessed: taken out by your own friend. Take a tissue.
+PMC25 | cypher | OUT_BY_GUEST | - | - | P1 | - | Fora, pela mão de quem você trouxe. A facada mais bonita vem do lado. | Out, by the hand of someone you brought. The prettiest stab comes from the side.
+PMC26 | cypher | OUT_BY_GUEST | - | - | P1 | - | A turma te tirou da mesa. Eu só assisti. E adorei. | The gang took you off the table. I only watched. And loved it.
+PMF25 | fincher | OUT_BY_GUEST | - | - | P1 | - | Perder para quem se conhece dói mais. E ensina mais, {estreante}. | Losing to someone you know hurts more. And teaches more, {estreante}.
+PMF26 | fincher | OUT_BY_GUEST | - | - | P1 | - | Sua partida acaba pela mão de uma visita. Fique para ver quem leva. | Your match ends at a guest's hand. Stay to see who takes it.
+
+## A outra visita na mão || Your friend in the hand
+% Reações genéricas ao que a outra pessoa faz: um pote grande que ela leva, um all-in dela, um bônus da casa para ela. Raras (P3 ou P2) e com teto de 3 balões por partida, somadas às do relógio e da ausência. O all-in sai no meio da mão: curto, e o Sapo só fala nervoso ou fora da mão; o Raposo nunca com o anel. || Generic reactions to what the other person does: a big pot they take, their all-in, a house bonus for them. Rare (P3 or P2) and capped at 3 balloons per match, together with the clock and away ones. The all-in fires mid-hand: short, the Frog only speaks nervous or out of the hand; the Fox never with the ring.
+PMB27 | bogart | GUEST_POT | - | - | P3 | - | A outra visita levou o pote! E eu achando que visita era educada. | Your friend took the pot! And I thought guests were polite.
+PMC27 | cypher | GUEST_POT | - | - | P3 | - | A sua turma também morde. Que bom saber. | Your gang bites too. Good to know.
+PMF27 | fincher | GUEST_POT | - | - | P3 | - | Bom pote da outra visita. Anotado. | Nice pot from your friend. Noted.
+PMB28 | bogart | GUEST_POT | contra você | - | P3 | - | Perdeu pra quem você trouxe! Isso vai pro grupo da família! | You lost to your own friend! That's going in the family chat!
+PMC28 | cypher | GUEST_POT | contra você | - | P3 | - | A outra visita levou as suas fichas. Amizade tem preço. | Your friend took your chips. Friendship has a price.
+PMF28 | fincher | GUEST_POT | contra você | - | P3 | - | Perder um pote para a turma ainda é perder um pote, {estreante}. | Losing a pot to your gang is still losing a pot, {estreante}.
+PMB29 | bogart | GUEST_ALL_IN | - | nervoso,fora | P3 | vez | All-in da outra visita! Eu tremo! | Your friend's all-in! I'm shaking!
+PMB30 | bogart | GUEST_ALL_IN | - | nervoso,fora | P3 | vez | Tudo dentro?! Quem educou essa turma? | All in?! Who raised this gang?
+PMC29 | cypher | GUEST_ALL_IN | - | * | P3 | vez | A outra visita empurrou tudo. Ui. | Your friend shoved it all. Ooh.
+PMC30 | cypher | GUEST_ALL_IN | - | * | P3 | vez | Que coragem tem a sua turma. | Your gang has nerve.
+PMF29 | fincher | GUEST_ALL_IN | - | nervoso,neutro,fora | P3 | vez | All-in da outra visita. Pense bem. | Your friend's all-in. Think it over.
+PMF30 | fincher | GUEST_ALL_IN | - | nervoso,neutro,fora | P3 | vez | Ousado. A sua turma tem pressa. | Bold. Your gang's in a hurry.
+PMB31 | bogart | GUEST_BONUS | qualquer | - | P3 | - | O bônus foi pra outra visita! A casa tem favorito, e não sou eu. | The bonus went to your friend! The house has a favorite, and it's not me.
+PMC31 | cypher | GUEST_BONUS | qualquer | - | P3 | - | {fichas} para a outra visita. A casa adora a sua turma. | {fichas} for your friend. The house loves your gang.
+PMF31 | fincher | GUEST_BONUS | qualquer | - | P3 | - | Bônus para a outra visita. A sorte também senta à mesa. | A bonus for your friend. Luck takes a seat too.
+PMC32 | cypher | GUEST_BONUS | opal | - | P3 | - | A opala foi para a outra visita. Que desperdício de joia. | The opal went to your friend. What a waste of a gem.
+PMB32 | bogart | GUEST_BONUS | hand_bounty | - | P3 | - | A outra visita bateu a conta do Raymond! Eu ainda tava no três! | Your friend hit Raymond's count! I was still on three!
+PMF32 | fincher | GUEST_BONUS | blackjack | - | P3 | - | Vinte e um para a outra visita. A banca paga e sorri. | Twenty-one for your friend. The bank pays and smiles.
+
+## O relógio e quem sai || The clock and who leaves
+% Com pessoas na mesa, cada decisão tem 30 s; estourou, o servidor passa ou desiste por ela. Os oráculos comentam sem humilhar (nunca "lento", nunca "medo"). Três estouros seguidos: a pessoa fica ausente (o servidor joga por ela até ela voltar). Sair no meio é desistência. Tudo isso chega no meio da mão: falas curtas. || With people at the table, each decision has 30 s; on timeout, the server checks or folds for them. The oracles comment without humiliating (never "slow", never "scared"). Three timeouts in a row: the person is away (the server plays for them until they return). Leaving mid-match is a forfeit. All of it arrives mid-hand: short lines.
+PMB33 | bogart | CLOCK_OUT | você | - | P2 | vez | O relógio jogou por você. Acontece! | The clock played for you. Happens!
+PMB34 | bogart | CLOCK_OUT | você | - | P2 | vez | Tempo! Tudo bem, eu também travo. | Time! It's fine, I freeze up too.
+PMC33 | cypher | CLOCK_OUT | você | - | P2 | vez | O relógio decidiu. Ele é impaciente. | The clock decided. It's impatient.
+PMC34 | cypher | CLOCK_OUT | você | - | P2 | vez | Tempo esgotado. Respira e volta. | Time's up. Breathe and come back.
+PMF33 | fincher | CLOCK_OUT | você | - | P2 | vez | O tempo correu. Acontece com todos. | Time ran out. It happens to everyone.
+PMF34 | fincher | CLOCK_OUT | você | - | P2 | vez | Trinta segundos passam rápido, {estreante}. | Thirty seconds go fast, {estreante}.
+PMB35 | bogart | CLOCK_OUT | amigo | - | P3 | vez | O relógio jogou pela outra visita! | The clock played for your friend!
+PMC35 | cypher | CLOCK_OUT | amigo | - | P3 | vez | A outra visita pensou demais. Charmoso. | Your friend thought too long. Charming.
+PMF35 | fincher | CLOCK_OUT | amigo | - | P3 | vez | O relógio decidiu pela sua turma. | The clock decided for your gang.
+PMB36 | bogart | AWAY | amigo | - | P2 | vez | A outra visita foi pegar pipoca? Traz mais! | Your friend went for popcorn? Bring more!
+PMC36 | cypher | AWAY | amigo | - | P2 | vez | Ausente. A cadeira segue quente. Eu vigio. | Away. The chair's still warm. I'll watch it.
+PMF36 | fincher | AWAY | amigo | - | P2 | vez | Ausente. O relógio joga pela outra visita. | Away. The clock plays for your friend.
+PMB37 | bogart | AWAY | voltou | - | P3 | vez | A outra visita voltou! Ufa! | Your friend's back! Phew!
+PMC37 | cypher | AWAY | voltou | - | P3 | vez | A outra visita voltou. Que pena. | Your friend's back. Pity.
+PMF37 | fincher | AWAY | voltou | - | P3 | vez | De volta, a outra visita. Mesa cheia é viva. | Your friend's back. A full table is alive.
+PMB38 | bogart | PERSON_LEFT | - | - | P2 | vez | A outra visita saiu sem tchau! Doeu. | Your friend left without a goodbye! Ouch.
+PMC38 | cypher | PERSON_LEFT | - | - | P2 | vez | Uma visita saiu no meio do filme. Eu fico. | A guest walked out mid-movie. I'm staying.
+PMF38 | fincher | PERSON_LEFT | - | - | P2 | vez | Uma cadeira vazia. A mesa segue, {estreante}. | An empty chair. The table goes on, {estreante}.
+
+## Os créditos || The credits
+PMB40 | bogart | FRIENDS_END | você | - | P1 | - | Você venceu a turma toda! E os oráculos! Vou contar pra todo mundo! | You beat the whole gang! And the oracles! I'm telling everyone!
+PMC40 | cypher | FRIENDS_END | você | - | P1 | - | Venceu a turma inteira. Agora ninguém te convida mais. Que delícia. | You beat the whole gang. Now nobody invites you again. Delicious.
+PMF40 | fincher | FRIENDS_END | você | - | P1 | - | A mesa é sua. Ganhar de quem se conhece é a vitória mais difícil. | The table is yours. Beating people you know is the hardest win.
+PMB41 | bogart | FRIENDS_END | amigo | - | P1 | - | Quem levou foi a outra visita! Pelo menos ficou em família! | Your friend took it! At least it stayed in the family!
+PMC41 | cypher | FRIENDS_END | amigo | - | P1 | - | A outra visita levou a mesa. Exija revanche. Eu assisto. | Your friend took the table. Demand a rematch. I'll watch.
+PMF41 | fincher | FRIENDS_END | amigo | - | P1 | - | Venceu quem você trouxe. Boa escolha de companhia, {estreante}. | Your friend won. Good choice of company, {estreante}.
+PMB42 | bogart | FRIENDS_END | oraculo | - | P1 | emote=excl | EU venci a mesa de amigos?! Alguém filma! Ninguém vai acreditar! | I won the friends' table?! Someone film it! Nobody will believe it!
+PMC42 | cypher | FRIENDS_END | oraculo | - | P1 | - | Uma cobra contra a turma toda. E a cobra venceu. Que final. | One snake against the whole gang. And the snake won. What an ending.
+PMF42 | fincher | FRIENDS_END | oraculo | - | P1 | - | A casa venceu a turma. Boa partida a todos. Quase todos. | The house beat the gang. Good game, everyone. Almost everyone.
+
+# 17. Casual de devolução || 17. The return casual
+% Pôster perdido para um oráculo (aposta do torneio ou mesa de amigos vencida por oráculo) às vezes volta numa casual: o oráculo que o tomou o traz para a mesa. Nada é anunciado. O portador pode, no máximo, uma provocação curta e ambígua (em 40% dessas partidas): nunca diz que dá para recuperar, nunca fala de "a cada 3 partidas". Se a pessoa recupera (elimina o portador ou vence a mesa), uma reação curta de quem o carregava; se não, nada especial. || A poster lost to an oracle (tournament stake or a friends' table an oracle won) sometimes comes back in a casual: the oracle who took it brings it to the table. Nothing is announced. The carrier may, at most, tease once, short and ambiguous (in 40% of those matches): never says it can be recovered, never mentions "every 3 matches". If the person recovers it (eliminates the carrier or wins the table), a short reaction from the carrier; if not, nothing special.
+DVB01 | bogart | RECLAIM_TAUNT | - | - | P3 | vez | Tô cuidando bem de uma coisa sua. Juro. | I'm minding something of yours. I swear.
+DVB02 | bogart | RECLAIM_TAUNT | - | - | P3 | vez | Reconhece este brilho? Não? Melhor. | Recognize this shine? No? Better.
+DVB03 | bogart | RECLAIM_TAUNT | - | - | P3 | vez | Meu brejo tem decoração nova. Linda. | My swamp has new decor. Lovely.
+DVC01 | cypher | RECLAIM_TAUNT | - | - | P3 | vez | Minha parede nova te mandou um beijo. | My new wall sends you a kiss.
+DVC02 | cypher | RECLAIM_TAUNT | - | - | P3 | vez | Coisas perdidas ficam lindas em mim. | Lost things look lovely on me.
+DVC03 | cypher | RECLAIM_TAUNT | - | - | P3 | vez | Sinto falta de nada. Você, talvez. | I miss nothing. You might.
+DVF01 | fincher | RECLAIM_TAUNT | - | - | P3 | vez | Guardo bem o que a mesa me dá. | I keep well what the table gives me.
+DVF02 | fincher | RECLAIM_TAUNT | - | - | P3 | vez | Lembra de mim? Eu lembro de você. | Remember me? I remember you.
+DVF03 | fincher | RECLAIM_TAUNT | - | - | P3 | vez | Tenho bom gosto. Você também tinha. | I have good taste. So did you.
+DVB04 | bogart | RECLAIM_WON | - | - | P1 | vez | Leva! Leva! Tava cuidando pra você! | Take it! Take it! I was minding it for you!
+DVB05 | bogart | RECLAIM_WON | - | - | P1 | vez | Era seu? Que coincidência! Toma. | It was yours? What a coincidence! Here.
+DVC04 | cypher | RECLAIM_WON | - | - | P1 | vez | Leve. Eu nem gostava tanto. | Take it. I didn't even like it that much.
+DVC05 | cypher | RECLAIM_WON | - | - | P1 | vez | Tome. Ficava melhor em mim. | Take it. It looked better on me.
+DVF04 | fincher | RECLAIM_WON | - | - | P1 | vez | Bem jogado. O que é seu volta a você. | Well played. What's yours returns to you.
+DVF05 | fincher | RECLAIM_WON | - | - | P1 | vez | Recuperado. Pendure de novo, {estreante}. | Recovered. Hang it again, {estreante}.

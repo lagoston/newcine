@@ -5,7 +5,7 @@ import { ChevronLeft, FastForward, Menu, MessageCircle, Eye } from 'lucide-react
 import type { PlayerAction } from '../../../lib/poker/engine';
 import type { MatchMode, PlayerId, Rarity } from '../../../lib/poker/types';
 import type { TableShow } from '../../../lib/poker/client/display';
-import { seatOf } from '../../../lib/poker/client/display';
+import { castThisHand, seatOf } from '../../../lib/poker/client/display';
 import type { Banner, CastShow, TablePhase } from '../../../lib/poker/client/useTable';
 import type { SpeechItem } from '../../../lib/poker/client/useDirector';
 import { SPEED_TAG, type PokerSettingsLocal } from '../../../lib/poker/client/settings';
@@ -115,14 +115,15 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
     p.mode === 'bounty' ? (p.tourney ? t('poker.table.tourney') : t('poker.table.bounty')) : p.mode === 'tutorial' ? t('poker.table.training') : t('poker.table.free');
   // Pôster Poker (03/11/2026): o que o efeito em vigor muda no desenho.
   const tt = table.tournament;
-  const castNow = !!tt && tt.castHand === table.handNumber ? tt.active : null;
-  const six = table.board.length > 5 || castNow?.effect === 'sixth_card';
+  // Fase 3: na mesa com amigos vários efeitos podem lançar na mesma mão.
+  const castIn = (effect: Parameters<typeof castThisHand>[1]) => castThisHand(tt, effect, table.handNumber);
+  const six = table.board.length > 5 || !!castIn('sixth_card');
   // A opala acende onde aparecer até ser levada (e ainda na mão em que foi levada).
   const opal = tt?.opal && (!tt.opal.claimed || tt.opal.claimedHand === table.handNumber) ? tt.opal.card : null;
-  const doubled = castNow?.effect === 'double_pot';
+  const doubled = !!castIn('double_pot');
   const bjBest = blackjackLeaders(table);
   const bjOf = (s: { id: string; revealed: string[] }) =>
-    castNow?.effect === 'blackjack' && s.revealed.length === 2 ? { value: blackjackValue(s.revealed as never), best: bjBest.has(s.id) } : null;
+    castIn('blackjack') && s.revealed.length === 2 ? { value: blackjackValue(s.revealed as never), best: bjBest.has(s.id) } : null;
   const ribbon = p.tourney ? effectRibbon(t, table, lang) : null;
   const myBj = me ? bjOf(me) : null;
 

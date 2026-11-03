@@ -80,6 +80,13 @@ export interface TourneyShow {
   earlyFlop: boolean;
   /** A última paga da casa (chave da animação das fichas voando). */
   lastBonus: { key: number; playerId: PlayerId; amount: number; effect: PosterEffectId } | null;
+  /**
+   * Mesa com amigos (fase 3): todos os efeitos da mesa (`level` = pôsteres iguais) e as
+   * lançadas em vigor nesta mão — vários podem lançar na mesma mão. No torneio, um só.
+   * `active`/`castHand` continuam sendo a última lançada (o desenho de antes).
+   */
+  list: { effect: PosterEffectId; level: number; casts: number }[];
+  handCasts: { data: EffectCastData; hand: number }[];
 }
 
 export interface TableShow {
@@ -134,16 +141,32 @@ export function emptyTable(mode: MatchMode): TableShow {
   };
 }
 
-function tourneyBlank(t: { prizeId: string; rarity: Rarity; effect: PosterEffectId; cobraItem: boolean }): TourneyShow {
+function tourneyBlank(t: { prizeId: string; rarity: Rarity; effect: PosterEffectId; cobraItem: boolean }, list?: TourneyShow['list']): TourneyShow {
   return {
     prizeId: t.prizeId, rarity: t.rarity, effect: t.effect, cobraItem: !!t.cobraItem, casts: 0, active: null, castHand: null,
     bounty: null, opal: null, tellUntil: null, aces: false, extra: [], earlyFlop: false, lastBonus: null,
+    list: list ?? [{ effect: t.effect, level: 1, casts: 0 }], handCasts: [],
   };
+}
+
+/** Mesa com amigos: os efeitos da mesa (`matchStarted.effects`), sem pôster da semana. */
+function effectsBlank(effects: { effect: PosterEffectId; level: number }[]): TourneyShow {
+  return tourneyBlank({ prizeId: '', rarity: 'common', effect: effects[0].effect, cobraItem: false }, effects.map((x) => ({ effect: x.effect, level: x.level, casts: 0 })));
+}
+
+/** O efeito lançou nesta mão? (vários podem lançar na mesma mão na mesa com amigos) */
+export function castThisHand(tt: TourneyShow | null | undefined, effect: PosterEffectId, hand: number): EffectCastData | null {
+  if (!tt) return null;
+  const hit = (tt.handCasts ?? []).find((c) => c.data.effect === effect && c.hand === hand);
+  if (hit) return hit.data;
+  return tt.active?.effect === effect && tt.castHand === hand ? tt.active : null;
 }
 
 /** O que uma lançada deixa em vigor (a opala, o alvo do Raymond, o tique, os ases). */
 function withCast(tt: TourneyShow, data: EffectCastData, handNumber: number): TourneyShow {
-  const next: TourneyShow = { ...tt, active: data, castHand: handNumber };
+  const handCasts = [...(tt.handCasts ?? []).filter((c) => !(c.data.effect === data.effect && c.hand === handNumber)), { data, hand: handNumber }];
+  const list = (tt.list ?? []).map((x) => (x.effect === data.effect ? { ...x, casts: x.casts + 1 } : x));
+  const next: TourneyShow = { ...tt, active: data, castHand: handNumber, handCasts, list };
   if (data.effect === 'hand_bounty') next.bounty = { target: data.target, amount: data.amount, claimed: false };
   if (data.effect === 'opal') next.opal = { card: data.card, amount: data.amount, claimed: false };
   if (data.effect === 'tell') next.tellUntil = handNumber + Math.max(1, data.hands) - 1;
@@ -157,6 +180,21 @@ function withCast(tt: TourneyShow, data: EffectCastData, handNumber: number): To
 // A retomada redesenha a mesa a partir da view: o efeito em vigor e as cartas abertas.
 function tourneyFromView(view: TableView, base: TableShow, sameHand: boolean): TourneyShow | null {
   const vt = view.tournament;
+  const ve = view.effects;
+  // Mesa com amigos: a lista de efeitos da view (retomada) e as lançadas em vigor.
+  if (!vt && ve && ve.list.length) {
+    let tt: TourneyShow = base.tournament ? { ...base.tournament } : effectsBlank(ve.list);
+    tt.list = ve.list.map((x) => ({ effect: x.effect, level: x.level, casts: Math.max(x.casts, tt.list?.find((y) => y.effect === x.effect)?.casts ?? 0) }));
+    tt.casts = Math.max(tt.casts, ve.list.reduce((a, x) => a + x.casts, 0));
+    for (const x of ve.list) {
+      if (x.active && !castThisHand(tt, x.effect, view.handNumber) && !(tt.handCasts ?? []).some((c) => c.data.effect === x.effect)) {
+        const keep = { list: tt.list, casts: tt.casts };
+        tt = { ...withCast(tt, x.active, view.handNumber), ...keep };
+      }
+    }
+    if (!sameHand) tt.earlyFlop = false;
+    return tt;
+  }
   if (!vt) return base.tournament;
   let tt: TourneyShow = base.tournament && base.tournament.prizeId === vt.prizeId ? { ...base.tournament } : tourneyBlank(vt);
   tt.casts = Math.max(tt.casts, vt.casts ?? 0);
@@ -168,7 +206,7 @@ function tourneyFromView(view: TableView, base: TableShow, sameHand: boolean): T
 
 /** Cartas abertas pelo efeito, da view (retomada) para os lugares. */
 export function revealedFromView(view: TableView): Map<PlayerId, Card[]> {
-  return new Map((view.tournament?.revealed ?? []).map((r) => [r.playerId, r.cards]));
+  return new Map((view.tournament?.revealed ?? view.effects?.revealed ?? []).map((r) => [r.playerId, r.cards]));
 }
 
 /** Mesa a partir da `TableView` (retomada, ou correção no fim de um lote). */
@@ -236,7 +274,7 @@ export function applyEvent(t0: TableShow, e: PublicEvent): TableShow {
         loan: e.loan,
         prize: e.prize ? { prizeId: e.prize.prizeId, holderId: e.prize.holderId, captured: false } : null,
         seats: [...e.seats].sort((a, b) => a.seat - b.seat).map((s) => seatBlank(s.id, s.seat, s.stack)),
-        tournament: e.tournament ? tourneyBlank(e.tournament) : t.tournament,
+        tournament: e.tournament ? tourneyBlank(e.tournament) : e.effects?.length ? effectsBlank(e.effects) : t.tournament,
       };
     case 'levelUp':
       return { ...t, level: e.level };
@@ -273,6 +311,7 @@ export function applyEvent(t0: TableShow, e: PublicEvent): TableShow {
                 t.tournament.active && HAND_EFFECTS.includes(t.tournament.active.effect) && t.tournament.castHand !== e.handNumber
                   ? null
                   : t.tournament.active,
+              handCasts: (t.tournament.handCasts ?? []).filter((c) => !HAND_EFFECTS.includes(c.data.effect) || c.hand === e.handNumber),
             }
           : null,
       };

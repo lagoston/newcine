@@ -17,6 +17,10 @@
  * `cobra_items` (bounty = null); bounty.start(week, prizeId, stake, idem?)
  * entra com fichas ou com um pôster apostado; a resposta final traz `rewards`.
  * Os tipos do torneio moram em poker/client/apiTypes.ts (os mesmos da interface).
+ *
+ * 03/11/2026 (noite, pacote F3 — fase 3): `friends` (mesa com amigos, Edge
+ * `poker-friends`, FRIENDS_PROTO = 1, tempo real por Broadcast privado) e `casual`
+ * (o contador de casuais e a casual de devolução). Formato em .../poker3/status/F3_NOTES.md.
  */
 import { FunctionRegion, FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
@@ -37,7 +41,14 @@ import type {
 } from './poker/types.ts';
 import type {
   BountyTournamentInfo,
+  CasualApi,
+  CasualBegin,
   CobraItemEntry,
+  FriendsApi,
+  FriendsHome,
+  FriendsPing,
+  FriendsRoomReply,
+  InviteState,
   TournamentCollectionEntry,
   TournamentHome,
   TournamentRewards,
@@ -47,9 +58,31 @@ import type {
 
 export type {
   BountyTournamentInfo,
+  CasualApi,
+  CasualBegin,
   CobraItemEntry,
   CobraItemReward,
+  FriendsApi,
+  FriendsFriend,
+  FriendsHome,
+  FriendsInvite,
+  FriendsMatch,
+  FriendsMember,
+  FriendsMemberStatus,
+  FriendsPing,
+  FriendsPosterCard,
+  FriendsResult,
+  FriendsRoom,
+  FriendsRoomBrief,
+  FriendsRoomReply,
+  FriendsRoomStatus,
+  FriendsSeat,
+  FriendsStakeOutcome,
+  FriendsStakeProblem,
+  FriendsStartBlocker,
+  InviteState,
   PosterVersionEffect,
+  RecoverResult,
   TournamentCollectionEntry,
   TournamentHome,
   TournamentPrize,
@@ -65,6 +98,12 @@ export type {
  * 2 = Pôster Poker (03/11/2026): start com week, prizeId e stake.
  */
 export const POKER_PROTO = 2;
+
+/**
+ * Versão do protocolo da Edge poker-friends (mesa com amigos e casual de devolução),
+ * separada da poker-bounty. 1 = fase 3 (03/11/2026).
+ */
+export const FRIENDS_PROTO = 1;
 
 // O banco mora em São Paulo: a Edge roda na mesma região (menos latência por jogada).
 const EDGE_REGION = FunctionRegion.SaEast1;
@@ -419,6 +458,21 @@ export interface PokerApi {
     forfeit(matchId: string, seq: number): Promise<BountyResult>;
     resume(matchId?: string): Promise<BountyResume>;
   };
+  /**
+   * Fase 3: mesa com amigos (Edge poker-friends). Erros (PokerApiError): 403 closed | bot |
+   * age_required | not_host | not_friend | not_seated · 404 no_room | not_invited · 409 full |
+   * started | room_closed | in_room {roomId} | not_started | stale {seq, match} | not_yet
+   * {deadline, serverNow} | not_your_turn {match} | start_blocked {blockers} | state_changed |
+   * busy · 400 bad_request | stake_invalid {reason} | effects_invalid {reason} · 422 illegal
+   * {match} · 410 finished {match} · 429 too_many.
+   */
+  friends: FriendsApi;
+  /**
+   * Fase 3: a casual de devolução. begin() a cada casual; mode 'server' → start(ticket) e a
+   * partida segue como a do torneio (act/forfeit/resume). Erros: 410 gone (jogue no aparelho),
+   * 404 not_found | none, 409 stale, 422 illegal, 410 finished.
+   */
+  casual: CasualApi;
 }
 
 // ---------------------------------------------------------------------------
@@ -437,9 +491,9 @@ async function rpc(fn: string, args?: Row): Promise<unknown> {
 // A Edge responde {ok:false, code, …} com o status HTTP do protocolo. O
 // functions.invoke manda o token da sessão (renovado sozinho) e devolve o
 // erro com a Response em `context`.
-async function edge<T>(body: Row): Promise<T> {
-  const { data, error } = await supabase.functions.invoke('poker-bounty', {
-    body: { proto: POKER_PROTO, ...body },
+async function edge<T>(body: Row, fn: 'poker-bounty' | 'poker-friends' = 'poker-bounty'): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(fn, {
+    body: { proto: fn === 'poker-friends' ? FRIENDS_PROTO : POKER_PROTO, ...body },
     region: EDGE_REGION,
   });
   if (!error) return data as T;
@@ -559,6 +613,88 @@ const bounty: PokerApi['bounty'] = {
   resume: (matchId) => edge<BountyResume>(matchId ? { op: 'resume', matchId } : { op: 'resume' }),
 };
 
+// ---------------------------------------------------------------------------
+// Fase 3 (03/11/2026, pacote F3): mesa com amigos e casual de devolução
+// ---------------------------------------------------------------------------
+
+const friendsEdge = <T>(body: Row): Promise<T> => edge<T>(body, 'poker-friends');
+
+async function friendsHome(): Promise<FriendsHome> {
+  const raw = asRow(await rpc('get_poker_friends_home'));
+  if (!raw || raw.enabled !== true) return { enabled: false };
+  return raw as unknown as FriendsHome;
+}
+
+async function inviteStates(roomIds: string[]): Promise<InviteState[]> {
+  if (roomIds.length === 0) return [];
+  const data = await rpc('get_poker_invites', { p_room_ids: roomIds.slice(0, 100) });
+  return (Array.isArray(data) ? data : []) as InviteState[];
+}
+
+/**
+ * Tempo real da sala: Broadcast PRIVADO no tópico `poker-room:<id>`, evento `ping` (só membros
+ * recebem: RLS em realtime.messages). O ping não tem cartas; ao receber, chame sync(roomId, since).
+ */
+function subscribeRoom(roomId: string, onPing: (p: FriendsPing) => void): () => void {
+  const ch = supabase
+    .channel(`poker-room:${roomId}`, { config: { private: true } })
+    .on('broadcast', { event: 'ping' }, ({ payload }) => {
+      const p = asRow(payload) ?? {};
+      onPing({
+        roomId: typeof p.roomId === 'string' ? p.roomId : roomId,
+        version: typeof p.version === 'number' ? p.version : 0,
+        seq: typeof p.seq === 'number' ? p.seq : undefined,
+        status: typeof p.status === 'string' ? (p.status as FriendsPing['status']) : undefined,
+        toAct: typeof p.toAct === 'string' ? p.toAct : null,
+        deadline: typeof p.deadline === 'string' ? p.deadline : null,
+      });
+    })
+    .subscribe();
+  return () => {
+    void supabase.removeChannel(ch);
+  };
+}
+
+const friends: FriendsApi = {
+  home: friendsHome,
+  inviteStates,
+  create: (stakeRarity) => friendsEdge<FriendsRoomReply>({ op: 'create', stakeRarity }),
+  invite: (roomId, userIds) => friendsEdge<FriendsRoomReply>({ op: 'invite', roomId, userIds }),
+  respond: (roomId, accept) => friendsEdge<FriendsRoomReply>({ op: 'respond', roomId, accept }),
+  join: (code) => friendsEdge<FriendsRoomReply>({ op: 'join', code: code.trim().toUpperCase() }),
+  leave: (roomId) => friendsEdge<FriendsRoomReply>({ op: 'leave', roomId }),
+  configure: (roomId, stakeRarity) => friendsEdge<FriendsRoomReply>({ op: 'config', roomId, stakeRarity }),
+  setEffects: (roomId, itemIds) => friendsEdge<FriendsRoomReply>({ op: 'effects', roomId, itemIds }),
+  setStake: (roomId, itemId, effect) =>
+    friendsEdge<FriendsRoomReply>(itemId === null ? { op: 'stake', roomId, itemId: null } : { op: 'stake', roomId, itemId, effect }),
+  setReady: (roomId, ready) => friendsEdge<FriendsRoomReply>({ op: 'ready', roomId, ready }),
+  start: (roomId, idem) => friendsEdge<FriendsRoomReply>(idem ? { op: 'start', roomId, idem } : { op: 'start', roomId }),
+  sync: (roomId, since) => friendsEdge<FriendsRoomReply>(since === undefined ? { op: 'sync', roomId } : { op: 'sync', roomId, since }),
+  act: (roomId, seq, idem, action, show) =>
+    friendsEdge<FriendsRoomReply>(show ? { op: 'act', roomId, seq, idem, action, show: true } : { op: 'act', roomId, seq, idem, action }),
+  tick: (roomId, seq) => friendsEdge<FriendsRoomReply>({ op: 'tick', roomId, seq }),
+  back: (roomId) => friendsEdge<FriendsRoomReply>({ op: 'back', roomId }),
+  subscribe: subscribeRoom,
+};
+
+async function casualBegin(): Promise<CasualBegin> {
+  const raw = asRow(await rpc('poker_casual_begin'));
+  if (!raw || raw.enabled !== true) return { enabled: false };
+  if (raw.mode === 'server' && typeof raw.ticket === 'string') return { enabled: true, mode: 'server', ticket: raw.ticket };
+  if (raw.mode === 'server' && typeof raw.matchId === 'string') return { enabled: true, mode: 'server', matchId: raw.matchId, resume: true };
+  return { enabled: true, mode: 'device' };
+}
+
+const casual: CasualApi = {
+  begin: casualBegin,
+  start: (ticket) => friendsEdge({ op: 'recover.start', ticket }),
+  act: (matchId, seq, idem, action, show) =>
+    friendsEdge(show ? { op: 'recover.act', matchId, seq, idem, action, show: true } : { op: 'recover.act', matchId, seq, idem, action }),
+  forfeit: async (matchId, seq) =>
+    (await friendsEdge<{ ok: true; result: Awaited<ReturnType<CasualApi['forfeit']>> }>({ op: 'recover.forfeit', matchId, seq })).result,
+  resume: (matchId) => friendsEdge(matchId ? { op: 'recover.resume', matchId } : { op: 'recover.resume' }),
+};
+
 export const pokerApi: PokerApi = {
   getHome,
   getScoreboard,
@@ -570,6 +706,8 @@ export const pokerApi: PokerApi = {
   intervalPick,
   cosmeticUnlocks,
   bounty,
+  friends,
+  casual,
 };
 
 export default pokerApi;

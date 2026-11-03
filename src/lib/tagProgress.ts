@@ -27,6 +27,12 @@ import { PROGRESSION_TAGS, THEME_TAGS, COMMUNITY_TAGS, ORACLE_TAGS, FRANCHISE_MO
 //     progresso de cada uma vem de fetchGameTagProgress() (só da própria
 //     pessoa, então fica fora do fetchTagProgress, que também serve aos
 //     perfis dos outros).
+//   • Pôster Poker (03/11/2026, fase 3): as tags do pôquer só "começam" no
+//     lançamento (starts_at), mas quem já joga (hoje, os testadores) vê todas
+//     elas na aba Jogos, com o progresso. Por isso o fetchTagProgress também
+//     devolve, à parte, as do pôquer que ainda não estão no ar
+//     (pokerUpcomingTags); o modal só as mostra para quem tem o pôquer
+//     liberado (get_poker_home().enabled).
 
 export type TagCategoryId = 'basic' | 'theme' | 'community' | 'oracle' | 'games' | 'special';
 
@@ -69,6 +75,8 @@ export interface TagProgress {
   specialTags: SpecialTagStatus[];
   // Jogos já no ar ou já conquistadas, na ordem de GAME_TAGS.
   gameTags: SpecialTagStatus[];
+  // Pôster Poker ainda fora do ar e não conquistadas (só para quem já joga).
+  pokerUpcomingTags: SpecialTagStatus[];
 }
 
 interface RatedRow {
@@ -102,6 +110,23 @@ async function fetchCacheRows(ids: number[]): Promise<CacheRow[]> {
   );
   return results.flatMap((r) => (r.data as CacheRow[] | null) ?? []);
 }
+
+// Meta e jogo de uma tag de Jogos: o banco (requirement_data) manda; a lista
+// GAME_TAGS cobre o banco antigo.
+export const gameTagGoal = (tag: SpecialTagStatus): { metric: string | null; goal: number | null; game: GameId | null } => {
+  const local = GAME_TAGS.find((item) => item.id === tag.id);
+  const data = tag.requirement_data ?? {};
+  const metric = typeof data.metric === 'string' ? data.metric : local?.metric ?? null;
+  const goal = typeof data.goal === 'number' ? data.goal : local?.goal ?? null;
+  const source = data.source === 'jackpot' || data.source === 'poker' ? data.source : local?.game ?? null;
+  return { metric, goal: metric ? goal : null, game: source };
+};
+
+// Ordem de GAME_TAGS; uma tag de Jogos nova no banco que a lista ainda não
+// conhece vai para o fim (aparece do mesmo jeito).
+const GAME_ORDER = new Map(GAME_TAGS.map((tag, index) => [tag.id, index]));
+export const sortGameTags = (tags: SpecialTagStatus[]): SpecialTagStatus[] =>
+  tags.slice().sort((a, b) => (GAME_ORDER.get(a.id) ?? GAME_TAGS.length) - (GAME_ORDER.get(b.id) ?? GAME_TAGS.length));
 
 export async function fetchTagProgress(userId: string): Promise<TagProgress> {
   const [moviesRes, poolsRes, friendsRes, realReviewsRes, aiReviewsRes, specialRes, userSpecialRes] = await Promise.all([
@@ -219,7 +244,7 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
     ((userSpecialRes.data as { tag_id: string; unlocked_at: string }[] | null) ?? []).map((ut) => [ut.tag_id, ut]),
   );
   const now = Date.now();
-  const visibleTags: SpecialTagStatus[] = ((specialRes.data as Omit<SpecialTagStatus, 'is_unlocked' | 'unlocked_at' | 'is_currently_active'>[] | null) ?? [])
+  const allTags: SpecialTagStatus[] = ((specialRes.data as Omit<SpecialTagStatus, 'is_unlocked' | 'unlocked_at' | 'is_currently_active'>[] | null) ?? [])
     .map((tag) => {
       const mine = userSpecial.get(tag.id);
       return {
@@ -242,16 +267,14 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
         is_currently_active:
           (!tag.starts_at || new Date(tag.starts_at).getTime() <= now) && (!tag.ends_at || new Date(tag.ends_at).getTime() > now),
       };
-    })
-    .filter((tag) => tag.is_unlocked || tag.is_currently_active);
+    });
+  const visibleTags = allTags.filter((tag) => tag.is_unlocked || tag.is_currently_active);
 
   const specialTags = visibleTags.filter((tag) => tag.category === 'special');
-  // Ordem de GAME_TAGS; uma tag de Jogos nova no banco que a lista ainda não
-  // conhece vai para o fim (aparece do mesmo jeito).
-  const gameOrder = new Map(GAME_TAGS.map((tag, index) => [tag.id, index]));
-  const gameTags = visibleTags
-    .filter((tag) => tag.category === 'games')
-    .sort((a, b) => (gameOrder.get(a.id) ?? GAME_TAGS.length) - (gameOrder.get(b.id) ?? GAME_TAGS.length));
+  const gameTags = sortGameTags(visibleTags.filter((tag) => tag.category === 'games'));
+  const pokerUpcomingTags = sortGameTags(
+    allTags.filter((tag) => tag.category === 'games' && !tag.is_unlocked && !tag.is_currently_active && gameTagGoal(tag).game === 'poker'),
+  );
 
   return {
     ratedCount: rated.length,
@@ -261,6 +284,7 @@ export async function fetchTagProgress(userId: string): Promise<TagProgress> {
     oracle,
     specialTags,
     gameTags,
+    pokerUpcomingTags,
   };
 }
 
@@ -281,17 +305,6 @@ export async function fetchGameTagProgress(): Promise<Record<string, number>> {
     return {};
   }
 }
-
-// Meta e jogo de uma tag de Jogos: o banco (requirement_data) manda; a lista
-// GAME_TAGS cobre o banco antigo.
-export const gameTagGoal = (tag: SpecialTagStatus): { metric: string | null; goal: number | null; game: GameId | null } => {
-  const local = GAME_TAGS.find((item) => item.id === tag.id);
-  const data = tag.requirement_data ?? {};
-  const metric = typeof data.metric === 'string' ? data.metric : local?.metric ?? null;
-  const goal = typeof data.goal === 'number' ? data.goal : local?.goal ?? null;
-  const source = data.source === 'jackpot' || data.source === 'poker' ? data.source : local?.game ?? null;
-  return { metric, goal: metric ? goal : null, game: source };
-};
 
 // Progresso de uma tag básica: as sem condição contam títulos avaliados.
 export const basicTagProgress = (progress: TagProgress, tagName: string): number => {

@@ -16,7 +16,12 @@ function fill<T>(ids: string[], get: (id: string) => T | undefined, dflt: T): Re
   return out as Record<PlayerId, T>;
 }
 
-export function toPublicEvents(ev: MatchEvent[], viewer: 'human'): PublicEvent[] {
+/**
+ * `viewer` = a pessoa que vê (pacote E3: na mesa de amigos, o id dela; só as cartas fechadas
+ * dela saem, e `matchEnded.humanPlace/reason` são os dela). Os ids continuam crus: para tratar
+ * "eu" como 'human' no aparelho, passe por povEvents (pov.ts).
+ */
+export function toPublicEvents(ev: MatchEvent[], viewer: PlayerId = 'human'): PublicEvent[] {
   const out: PublicEvent[] = [];
   let meta: MetaEvent | null = null;
   for (const e of ev) {
@@ -28,6 +33,9 @@ export function toPublicEvents(ev: MatchEvent[], viewer: 'human'): PublicEvent[]
           prize: e.prize ? { ...e.prize } : null, level: { ...e.level, next: e.level.next ? { ...e.level.next } : null },
           ...(e.seedHash ? { seedHash: e.seedHash } : {}),
           ...(e.tournament ? { tournament: { ...e.tournament } } : {}),
+          ...(e.people ? { people: e.people.slice() } : {}),
+          ...(e.effects ? { effects: e.effects.map((f) => ({ ...f })) } : {}),
+          ...(e.reclaim ? { reclaim: true as const } : {}),
         });
         break;
       case 'levelUp':
@@ -64,6 +72,7 @@ export function toPublicEvents(ev: MatchEvent[], viewer: 'human'): PublicEvent[]
           toCall: e.toCall, potAfter: e.potAfter, allIn: e.allIn, shortAllIn: e.shortAllIn,
           stackBefore: m ? m.stackBefore : e.amount, sizeClass: m ? m.sizeClass : null,
           ...(m?.bot ? { thinkMs: m.bot.thinkMs, cue: m.bot.cue } : {}),
+          ...(m?.auto ? { auto: m.auto } : {}),
         });
         break;
       }
@@ -98,7 +107,10 @@ export function toPublicEvents(ev: MatchEvent[], viewer: 'human'): PublicEvent[]
         });
         break;
       case 'eliminated':
-        out.push({ i, t: 'eliminated', playerId: e.playerId, place: e.place, byId: e.byId, handNumber: e.handNumber });
+        out.push({
+          i, t: 'eliminated', playerId: e.playerId, place: e.place, byId: e.byId, handNumber: e.handNumber,
+          ...(e.stackLeft !== undefined ? { stackLeft: e.stackLeft } : {}),
+        });
         break;
       case 'prizeMoved':
         out.push({ i, t: 'prizeMoved', fromId: e.fromId, toId: e.toId, handNumber: e.handNumber });
@@ -114,6 +126,16 @@ export function toPublicEvents(ev: MatchEvent[], viewer: 'human'): PublicEvent[]
         break;
       case 'headsUp':
         out.push({ i, t: 'headsUp', ids: [e.ids[0], e.ids[1]], handNumber: e.handNumber });
+        break;
+      // Pacote E3, mesa de amigos: relógio, ausente e saída (públicos para a mesa toda).
+      case 'clockOut':
+        out.push({ i, t: 'clockOut', playerId: e.playerId, handNumber: e.handNumber, streak: e.streak });
+        break;
+      case 'away':
+        out.push({ i, t: 'away', playerId: e.playerId, on: e.on, handNumber: e.handNumber });
+        break;
+      case 'personLeft':
+        out.push({ i, t: 'personLeft', playerId: e.playerId, reason: e.reason, handNumber: e.handNumber });
         break;
       // Pôster Poker: o que o efeito anuncia, as cartas que ele vira (já públicas por
       // definição), os bônus da casa e o tique de Le Chiffre (a única força de mão de bot
@@ -132,12 +154,15 @@ export function toPublicEvents(ev: MatchEvent[], viewer: 'human'): PublicEvent[]
       case 'tellMark':
         out.push({ i, t: 'tellMark', handNumber: e.handNumber, playerId: e.playerId, mark: e.mark });
         break;
-      case 'matchEnded':
+      case 'matchEnded': {
+        const mine = e.people?.[viewer];
         out.push({
-          i, t: 'matchEnded', places: { ...e.places }, winnerId: e.winnerId, humanPlace: e.humanPlace, reason: e.reason,
-          prizeCaptured: e.prizeCaptured, ...(e.seed ? { seed: e.seed } : {}),
+          i, t: 'matchEnded', places: { ...e.places }, winnerId: e.winnerId, humanPlace: mine ? mine.place : e.humanPlace,
+          reason: mine ? mine.reason : e.reason, prizeCaptured: e.prizeCaptured, ...(e.seed ? { seed: e.seed } : {}),
+          ...(e.people ? { people: JSON.parse(JSON.stringify(e.people)) } : {}),
         });
         break;
+      }
       default:
         // playerEliminated, handComplete e gameOver do motor: substituídos pelos da partida.
         break;

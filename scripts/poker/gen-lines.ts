@@ -36,7 +36,7 @@ const SRC = join(HERE, 'falas-src');
 const OUT_DIALOGUE = join(ROOT, 'src', 'lib', 'poker', 'dialogue');
 const OUT_MARKS = join(HERE, 'marks.sql.txt');
 const FILES = ['01-bogart.txt', '02-cypher.txt', '03-fincher.txt', '04-trocas.txt', '05-novo.txt', '06-tutorial.txt',
-  '07-poster-poker.txt'];
+  '07-poster-poker.txt', '08-mesa-com-amigos.txt'];
 const ALL_CUES: Cue[] = ['confiante', 'nervoso', 'calado', 'neutro'];
 const BOT_ACTION: Trigger[] = ['limp', 'call', 'fold', 'bet', 'bigBet', 'overbet', 'checkRaise', '3bet', 'isolate', 'allIn', 'foldToPlayer'];
 /** Pôster Poker (03/11/2026): o tique sai junto da aposta do oráculo; a fala de quem apostou segue o cue dela. */
@@ -430,6 +430,51 @@ function classify(ev: string, who: string, ctxRaw: string, isExchange: boolean):
       if (!kind) return `TIP: "${ctxRaw}"`;
       return K('contextTip', 'any', part ? [kind, part] : [kind]);
     }
+    // ---- Mesa com amigos e casual de devolução (pacote H3, 03/11/2026) ----
+    case 'FRIENDS_START': {
+      // "o2" / "o1" = oráculos que sobraram; "o2; saiu o Raposo" = só com ele ausente (e pode citá-lo).
+      // Fala solta de "o1": os outros dois estão fora (pode citá-los).
+      const [o, extra] = c.split(';').map((x) => x.trim());
+      if (o !== 'o1' && o !== 'o2') return `FRIENDS_START: "${ctxRaw}"`;
+      const req: LineRequires = {};
+      if (extra) {
+        const m = extra.match(/^saiu (?:o|a) (sapo|cobra|raposo)$/);
+        if (!m) return `FRIENDS_START: "${ctxRaw}"`;
+        req.absent = [ID_OF[m[1]]];
+      } else if (o === 'o1' && !isExchange) {
+        req.absent = ['bogart', 'cypher', 'fincher'].filter((x) => x !== who);
+      }
+      return K('friendsStart', 'any', [o], Object.keys(req).length ? { requires: req } : {});
+    }
+    case 'FRIENDS_STAKE': {
+      const [what, rar] = c.split(';').map((x) => x.trim());
+      if (what === 'abertura') return K('friendsStake', 'any', rar ? (RARITY[rar] ? ['abertura', RARITY[rar]] : ['?']) : ['abertura']);
+      if (what === 'voltou' || what === 'amigo') return K('friendsStake', 'any', [what]);
+      if (what === 'oraculo') return K('friendsStake', 'winner', ['oraculo']);
+      return `FRIENDS_STAKE: "${ctxRaw}"`;
+    }
+    case 'EFFECT_PILE': return c === 'abertura' || c === 'mesma' ? K('effectPile', 'any', [c]) : `EFFECT_PILE: "${ctxRaw}"`;
+    case 'GUEST_OUT': {
+      if (c === 'por voce') return K('guestOut', 'any', ['porVoce']);
+      if (c === 'por oraculo; ator') return K('guestOut', 'actor', ['porOraculo']);
+      if (c === 'por oraculo; testemunha') return K('guestOut', 'bystander', ['porOraculo']);
+      if (c === 'por amigo') return K('guestOut', 'any', ['porAmigo']);
+      return `GUEST_OUT: "${ctxRaw}"`;
+    }
+    case 'OUT_BY_GUEST': return K('outByGuest', 'any');
+    case 'GUEST_POT': return none ? K('guestPot', 'any') : c === 'contra voce' ? K('guestPot', 'any', ['contraVoce']) : `GUEST_POT: "${ctxRaw}"`;
+    case 'GUEST_ALL_IN': return K('guestAllIn', 'any');
+    case 'GUEST_BONUS': return c === 'qualquer' ? K('guestBonus', 'any') : EFFECTS.includes(c) ? K('guestBonus', 'any', [c]) : `GUEST_BONUS: "${ctxRaw}"`;
+    case 'CLOCK_OUT': return c === 'voce' || c === 'amigo' ? K('clockOut', 'any', [c]) : `CLOCK_OUT: "${ctxRaw}"`;
+    case 'AWAY': return c === 'amigo' || c === 'voltou' ? K('away', 'any', [c]) : `AWAY: "${ctxRaw}"`;
+    case 'PERSON_LEFT': return K('personLeft', 'any');
+    case 'FRIENDS_END': {
+      if (c === 'voce' || c === 'amigo') return K('friendsEnd', 'any', [c]);
+      if (c === 'oraculo') return K('friendsEnd', 'winner', ['oraculo']);
+      return `FRIENDS_END: "${ctxRaw}"`;
+    }
+    case 'RECLAIM_TAUNT': return K('reclaimTaunt', 'carrier');
+    case 'RECLAIM_WON': return K('reclaimWon', 'carrier');
     case 'MILESTONE': return { on: 'tutorial', role: 'any', variant: [], mark: true };
     case 'TUTORIAL': return K('tutorial', 'any');
     default: return `evento desconhecido ${ev}`;

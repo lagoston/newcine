@@ -12,6 +12,7 @@ import type { Street } from '../engine.ts';
 import type { HandKind } from '../evaluator.ts';
 import { evaluateHand } from '../evaluator.ts';
 import type { Cue, MatchMode, PlayerId, PosterEffectId, PublicEvent, Rarity, RivalId, StyleLabel, TournamentConfig } from '../types.ts';
+import { selfSwap } from './friends.ts';
 import type { TableContext, Trigger } from './types.ts';
 
 export const RIVALS: RivalId[] = ['bogart', 'cypher', 'fincher'];
@@ -29,6 +30,18 @@ export const EFFECT_HOST: Record<PosterEffectId, RivalId> = {
 };
 /** Quem apresenta o pôster da semana (o antigo portador por raridade, veredito Q2). */
 export const RARITY_HOST: Record<Rarity, RivalId> = { common: 'bogart', rare: 'bogart', epic: 'cypher', legendary: 'fincher' };
+
+/**
+ * Mesa com amigos (pacote H3, 03/11/2026): gatilhos que já nascem falando de convidados
+ * (genéricos, sem nome) e gatilhos em que um convidado pode ser o ator (a fala é de quem
+ * sofreu ou é sobre a visita; o convidado sai do sinal).
+ */
+const GUEST_TRIGGERS = new Set<Trigger>(['guestOut', 'outByGuest', 'guestPot', 'guestAllIn', 'guestBonus', 'clockOut', 'away', 'personLeft',
+  'effectPile']);
+const GUEST_ACTOR_OK = new Set<Trigger>(['playerBadBeat', 'badBeatAgainstMe', 'playerBluffCaught', 'eliminated', 'oracleOut', 'catchBluff',
+  'tiltStart']);
+/** Efeitos de uma vez só: o bônus deles é o desfecho do efeito. */
+const ONCE_BONUS = new Set<PosterEffectId>(['opal', 'hand_bounty']);
 
 /** Valores das variáveis do Pôster Poker que vêm do evento. */
 export interface SignalVars { fichas?: number; alvo?: HandKind; carta?: Card; maos?: number }
@@ -199,6 +212,20 @@ export class SignalTracker {
   private pendingTell: { playerId: RivalId; mark: 'blefe' | 'valor'; hand: number } | null = null;
   private prevEvent: PublicEvent | null = null;
   private cobraTauntHand = -1;
+  // --- Mesa com amigos e casual de devolução (pacote H3, 03/11/2026) ---
+  /** Oráculos que não estão sentados (um amigo tomou o lugar): nunca falam. */
+  absent = new Set<RivalId>();
+  /** As outras pessoas da mesa (ids já trocados: 'human' é sempre "eu" neste aparelho). */
+  guests = new Set<PlayerId>();
+  /** Casual de devolução: o portador carrega um pôster perdido; nada é anunciado. */
+  reclaim = false;
+  private castsInHand = new Map<number, number>();
+  private clockHands = new Set<string>();
+  private awayNow = new Set<PlayerId>();
+  private leftIds = new Set<PlayerId>();
+  private reclaimTauntHand = -1;
+  /** O Diretor marca quando a provocação da casual de devolução entrou na fila. */
+  reclaimTaunted = false;
 
   constructor(rng: () => number) {
     this.rng = rng;
@@ -206,6 +233,21 @@ export class SignalTracker {
 
   isOut(id: PlayerId): boolean {
     return this.out.has(id);
+  }
+
+  /** Oráculo sem lugar nesta mesa (mesa com amigos): nunca fala, nem como plateia. */
+  isAbsent(id: PlayerId | 'human'): boolean {
+    return this.absent.has(id);
+  }
+
+  /** Outra pessoa na mesa (mesa com amigos). */
+  isGuest(id: PlayerId | null | undefined): boolean {
+    return !!id && this.guests.has(id);
+  }
+
+  /** Oráculos sentados (presentes nesta mesa, vivos ou não). */
+  get seated(): RivalId[] {
+    return RIVALS.filter((r) => !this.absent.has(r));
   }
 
   /**
@@ -242,9 +284,89 @@ export class SignalTracker {
   }
 
   process(e: PublicEvent, ctx: TableContext): Signal[] {
-    const out = this.processEvent(e, ctx);
+    const raw = this.processEvent(e, ctx);
     this.prevEvent = e;
+    return this.guests.size ? this.guardGuests(raw) : raw;
+  }
+
+  // -------------------------------------------------------------------------
+  // Mesa com amigos (pacote H3, 03/11/2026)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Nenhum sinal sobre outra pessoa sai como se fosse da visita. Convidado como ator: só nos
+   * gatilhos em que a fala é de quem sofreu (o oráculo da bad beat, o eliminado) ou sobre a
+   * própria visita (a bad beat dela), e sem o convidado no sinal. Convidado como vítima ou
+   * portador sai do sinal; a bad beat de um convidado não tem oráculo vítima e cai.
+   */
+  private guardGuests(signals: Signal[]): Signal[] {
+    const out: Signal[] = [];
+    for (const s of signals) {
+      if (GUEST_TRIGGERS.has(s.trigger)) {
+        out.push(s);
+        continue;
+      }
+      if (this.isGuest(s.holderId)) continue;
+      let t = s;
+      if (this.isGuest(t.actorId)) {
+        if (!GUEST_ACTOR_OK.has(t.trigger)) continue;
+        t = { ...t, actorId: undefined };
+      }
+      if (t.victimIds?.some((v) => this.isGuest(v))) {
+        const victimIds = t.victimIds.filter((v) => !this.isGuest(v));
+        if (!victimIds.length && t.trigger === 'badBeatAgainstMe') continue;
+        t = { ...t, victimIds };
+      }
+      if (t.caller && this.isGuest(t.caller)) t = { ...t, caller: undefined };
+      out.push(t);
+    }
     return out;
+  }
+
+  /** Reação genérica a um convidado (orçamento próprio no Diretor). */
+  private guestSig(trigger: Trigger, priority: 2 | 3, chance: number, variant: string[], phase: Signal['phase'], hand = this.hand.n): Signal {
+    const s = this.sig({ trigger, priority, chance, variant, speakers: this.alive(), phase, short: phase === 'inHand' || undefined,
+      noExchange: true });
+    s.hand = hand;
+    return s;
+  }
+
+  /**
+   * Relógio, ausência e saída chegam no meio da mão (logo antes da ação automática): a fala é
+   * da mão (curta, cai no fim dela). Entre mãos, fica para a próxima.
+   */
+  private nowPhase(): Signal['phase'] {
+    return this.phase === 'inHand' || this.phase === 'dealing' ? 'inHand' : 'post';
+  }
+
+  /** O relógio de alguém estourou (o servidor agiu por ele). Uma vez por pessoa por mão. */
+  clockOut(pid: PlayerId): Signal[] {
+    const key = `${pid}|${this.hand.n}`;
+    if (this.clockHands.has(key) || this.out.has(pid)) return [];
+    this.clockHands.add(key);
+    if (pid === HUMAN) return [this.guestSig('clockOut', 2, 0.5, ['voce'], this.nowPhase())];
+    if (this.isGuest(pid)) return [this.guestSig('clockOut', 3, 0.3, ['amigo'], this.nowPhase())];
+    return [];
+  }
+
+  /** Alguém ficou ausente (3 estouros seguidos) ou voltou. Só a outra pessoa interessa aqui. */
+  away(pid: PlayerId, on: boolean): Signal[] {
+    if (!this.isGuest(pid) || this.out.has(pid) || this.leftIds.has(pid)) return [];
+    if (on === this.awayNow.has(pid)) return [];
+    if (on) this.awayNow.add(pid);
+    else this.awayNow.delete(pid);
+    return [on ? this.guestSig('away', 2, 0.7, ['amigo'], this.nowPhase()) : this.guestSig('away', 3, 0.4, ['voltou'], this.nowPhase())];
+  }
+
+  /** Um amigo saiu da sala no meio (desistência). */
+  left(pid: PlayerId): Signal[] {
+    if (!this.isGuest(pid) || this.leftIds.has(pid)) return [];
+    this.leftIds.add(pid);
+    this.awayNow.delete(pid);
+    const phase = this.nowPhase();
+    const s = this.sig({ trigger: 'personLeft', priority: 2, chance: 0.8, variant: [], speakers: this.alive(), phase,
+      short: phase === 'inHand' || undefined, noExchange: true });
+    return [s];
   }
 
   private processEvent(e: PublicEvent, ctx: TableContext): Signal[] {
@@ -277,6 +399,7 @@ export class SignalTracker {
       case 'eliminated': return this.onEliminated(e);
       case 'prizeMoved':
         this.holderId = e.toId;
+        if (this.reclaim) return [];   // casual de devolução: o pôster muda de mão em silêncio
         return [this.sig({ trigger: 'bountySteal', priority: 1, chance: 1, actorId: e.toId, victimIds: [e.fromId],
           speakers: RIVALS.includes(e.toId) ? [e.toId] : undefined, phase: 'post' })];
       case 'prizeCaptured': {
@@ -285,18 +408,24 @@ export class SignalTracker {
         this.holderId = HUMAN;
         this.prizeCaptured = true;
         if (!from || from === HUMAN) return [];
+        if (this.reclaim) {
+          // a pessoa recuperou o pôster: uma reação curta de quem o carregava
+          return [this.sig({ trigger: 'reclaimWon', priority: 1, chance: 1, holderId: from, actorId: HUMAN, victimIds: [from],
+            speakers: [from], phase: 'post', short: true, noExchange: true })];
+        }
         return [this.sig({ trigger: 'bountyWon', priority: 1, chance: 1, holderId: from, actorId: HUMAN, victimIds: [from],
           speakers: [from], phase: 'post' })];
       }
       case 'tilt': return this.onTilt(e);
       case 'styleRead':
+        if (e.targetId !== HUMAN) return [];   // mesa com amigos: leitura de outra pessoa não é da visita
         this.label = e.label;
         return [this.sig({ trigger: 'readPlayer', priority: 2, chance: 0.6, actorId: e.by, variant: [LABEL_TAG[e.label]], phase: 'post' })];
       case 'headsUp': {
         const bot = e.ids.find((id) => id !== HUMAN);
         const out: Signal[] = [];
         if (bot && e.ids.includes(HUMAN)) {
-          out.push(this.sig({ trigger: 'headsUp', priority: 2, chance: 0.6, actorId: bot, speakers: [bot], phase: 'post' }));
+          if (RIVALS.includes(bot)) out.push(this.sig({ trigger: 'headsUp', priority: 2, chance: 0.6, actorId: bot, speakers: [bot], phase: 'post' }));
           if (ctx.mode !== 'tutorial' && !ctx.story['tip.headsup']) {
             out.push(this.sig({ trigger: 'contextTip', priority: 1, chance: 1, variant: ['headsup'], speakers: ['fincher'],
               tip: { kind: 'headsup' }, phase: 'post' }));
@@ -311,9 +440,22 @@ export class SignalTracker {
       case 'effectReveal': return this.onEffectReveal(e);
       case 'effectBonus': return this.onEffectBonus(e);
       case 'tellMark': return this.onTellMark(e);
+      // mesa com amigos (E3_NOTES §4): relógio, ausência e saída
+      case 'clockOut': return this.clockOut(e.playerId);
+      case 'away': return this.away(e.playerId, e.on);
+      case 'personLeft': return this.left(e.playerId);
       default:
-        return [];   // evento desconhecido: ignora (APK antigo continua vivo)
+        return this.extraEvent(e as unknown as { t: string; playerId?: PlayerId; on?: boolean });
     }
+  }
+
+  /**
+   * Evento desconhecido: ignora (APK antigo continua vivo). Só o nome antigo do estouro do
+   * relógio ('timeout') ainda é aceito, por garantia.
+   */
+  private extraEvent(e: { t: string; playerId?: PlayerId; on?: boolean }): Signal[] {
+    if (e.t === 'timeout' && e.playerId) return this.clockOut(e.playerId);
+    return [];
   }
 
   // -------------------------------------------------------------------------
@@ -322,7 +464,7 @@ export class SignalTracker {
 
   /** Oráculos vivos (os eliminados só falam em P1, como plateia). */
   private alive(): RivalId[] {
-    return RIVALS.filter((r) => !this.out.has(r));
+    return RIVALS.filter((r) => !this.out.has(r) && !this.absent.has(r));
   }
 
   /**
@@ -350,11 +492,21 @@ export class SignalTracker {
     const host = EFFECT_HOST[e.effect];
     const midHand = e.effect === 'sixth_card' && this.phase === 'inHand';
     const s = this.sig({
-      trigger: 'effectCast', priority: 2, chance: 1, actorId: host && !this.out.has(host) ? host : undefined,
+      trigger: 'effectCast', priority: 2, chance: 1, actorId: host && !this.out.has(host) && !this.absent.has(host) ? host : undefined,
       variant: [e.effect], speakers: RIVALS, phase: midHand ? 'inHand' : 'post', short: midHand || undefined,
       noExchange: true, vars, effect: { id: e.effect, castNo: e.castNo },
     });
     s.hand = e.handNumber;
+    // Mesa com amigos (H3): vários pôsteres podem lançar na mesma mão. O 2º da mão é o
+    // "isso vai dar errado" (o Diretor decide a prioridade); o 3º em diante passa calado.
+    const n = (this.castsInHand.get(e.handNumber) ?? 0) + 1;
+    this.castsInHand.set(e.handNumber, n);
+    if (n === 2) {
+      const pile = this.sig({ trigger: 'effectPile', priority: 2, chance: 1, variant: ['mesma'], speakers: this.alive(),
+        phase: midHand ? 'inHand' : 'post', short: midHand || undefined, noExchange: true, preempt: true });
+      pile.hand = e.handNumber;
+      return [s, pile];
+    }
     return [s];
   }
 
@@ -384,6 +536,14 @@ export class SignalTracker {
     const human = e.playerId === HUMAN;
     const once = e.effect === 'opal' || e.effect === 'hand_bounty' || (e.effect === 'blackjack' && !this.blackjackPaid);
     if (e.effect === 'blackjack') this.blackjackPaid = true;
+    if (this.isGuest(e.playerId)) {
+      // Mesa com amigos: o bônus foi para outra pessoa. Reação genérica, sem nome.
+      const g = ONCE_BONUS.has(e.effect) || once
+        ? this.guestSig('guestBonus', 2, 0.6, [e.effect], 'post', e.handNumber)
+        : this.guestSig('guestBonus', 3, 0.3, [e.effect], 'post', e.handNumber);
+      g.vars = { fichas: e.amount };
+      return [g];
+    }
     const priority: 1 | 2 | 3 = once ? 1 : e.effect === 'double_pot' ? 3 : 2;
     const chance = once ? 1 : e.effect === 'blackjack' ? 0.5 : 0.35;
     const vars: SignalVars = { fichas: e.amount };
@@ -431,8 +591,35 @@ export class SignalTracker {
     this.tournament = e.tournament ?? null;
     // a Cobra volta a provocar com a caixinha no fim de uma mão sorteada entre a 4ª e a 7ª
     if (this.tournament?.cobraItem) this.cobraTauntHand = 4 + Math.floor(this.rng() * 4);
-    void ctx;
+    this.setupSeats(e, ctx);
+    // Casual de devolução (H3): o portador provoca no máximo uma vez, e só em 40% das partidas
+    this.reclaim = !!ctx.reclaim || !!(e as { reclaim?: boolean }).reclaim;
+    if (this.reclaim) {
+      this.holderId = e.prize?.holderId ?? ctx.reclaim?.holderId ?? null;
+      this.reclaimTauntHand = this.rng() < 0.4 ? 3 + Math.floor(this.rng() * 8) : -1;
+    }
     return [];   // a abertura é montada pelo Diretor (precisa de vários balões coordenados)
+  }
+
+  /**
+   * Mesa com amigos (H3): quem está em cada lugar. Oráculo fora dos lugares (ou cujo lugar é
+   * de uma pessoa) fica ausente; qualquer lugar que não é 'human' nem oráculo é convidado.
+   * Os ids do evento já vêm trocados pelo Diretor; os do contexto, não (troca aqui).
+   */
+  private setupSeats(e: Extract<PublicEvent, { t: 'matchStarted' }>, ctx: TableContext): void {
+    const f = ctx.friends;
+    const map = selfSwap(f?.selfId);
+    // `e.people` (E3) já vem com os ids trocados; `f.people` (da interface) é cru
+    const people = new Set<PlayerId>([...(e.people ?? []), ...(f?.people ?? []).map((id) => (map ? map(id) : id))]);
+    people.delete(HUMAN);
+    const seatIds = e.seats.map((x) => x.id);
+    this.guests = new Set<PlayerId>([...people, ...seatIds.filter((id) => id !== HUMAN && !RIVALS.includes(id))]);
+    let seatedOracles: RivalId[] | null = null;
+    if (f?.oracles) seatedOracles = f.oracles.filter((r) => RIVALS.includes(r));
+    else if (seatIds.length) seatedOracles = seatIds.filter((id) => RIVALS.includes(id));
+    this.absent = new Set(seatedOracles ? RIVALS.filter((r) => !seatedOracles!.includes(r) || people.has(r)) : []);
+    // um oráculo ausente nunca entra em nada (nem como eliminado)
+    for (const r of this.absent) this.guests.delete(r);
   }
 
   private onLevelUp(e: Extract<PublicEvent, { t: 'levelUp' }>, ctx: TableContext): Signal[] {
@@ -467,7 +654,17 @@ export class SignalTracker {
     this.runoutSilence = false;
     this.pendingTell = null;
     const out: Signal[] = [];
-    if (this.mode === 'bounty' && !this.prizeCaptured && this.holderId && RIVALS.includes(this.holderId) && !this.out.has(this.holderId)) {
+    // Casual de devolução (H3): nada de "partida valendo"; o portador pode provocar uma vez,
+    // curto e ambíguo, a partir da mão sorteada (o Diretor marca quando entrou na fila).
+    if (this.reclaim) {
+      const holder = this.holderId;
+      if (!this.reclaimTaunted && this.reclaimTauntHand > 0 && e.handNumber >= this.reclaimTauntHand
+        && e.handNumber <= this.reclaimTauntHand + 3 && !this.prizeCaptured && holder && RIVALS.includes(holder)
+        && !this.out.has(holder) && !this.absent.has(holder)) {
+        out.push(this.sig({ trigger: 'reclaimTaunt', priority: 3, chance: 1, holderId: holder, speakers: [holder], phase: 'post',
+          short: true, noExchange: true }));
+      }
+    } else if (this.mode === 'bounty' && !this.prizeCaptured && this.holderId && RIVALS.includes(this.holderId) && !this.out.has(this.holderId)) {
       const holder = this.holderId;
       const st = e.stacks[holder] ?? 0;
       if (!this.atRiskDone && st > 0 && st <= 10 * h.bb) {
@@ -503,7 +700,8 @@ export class SignalTracker {
     const h = this.hand;
     this.phase = 'inHand';
     const pid = e.playerId;
-    const isBot = pid !== HUMAN;
+    // Mesa com amigos (H3): só oráculo é "bot"; outra pessoa tem ramo próprio
+    const isBot = RIVALS.includes(pid);
     const bb = h.bb || 50;
     const out: Signal[] = [];
     const facingHuman = h.streetAggressor === HUMAN;
@@ -560,23 +758,7 @@ export class SignalTracker {
       if (trig) out.push(this.sig({ ...base, trigger: trig, priority, chance, variant }));
 
       // dicas de contexto: primeira vez que a pessoa enfrenta all-in / aposta grande de um bot
-      if (ctx.mode !== 'tutorial' && humanLive && (e.action === 'bet' || e.action === 'raise')) {
-        if (e.allIn) {
-          h.allInFaced = true;
-          if (!ctx.story['tip.allin'] && !h.tipsThisHand.has('allin')) {
-            h.tipsThisHand.add('allin');
-            out.push(this.sig({ trigger: 'contextTip', priority: 1, chance: 1, variant: ['allin', 'a'], speakers: ['fincher'],
-              tip: { kind: 'allin', part: 'a' }, short: true, phase: 'inHand' }));
-          }
-        } else if (e.sizeClass === 'big' || e.sizeClass === 'overbet') {
-          h.bigBetFaced = true;
-          if (!ctx.story['tip.bigbet'] && !h.tipsThisHand.has('bigbet')) {
-            h.tipsThisHand.add('bigbet');
-            out.push(this.sig({ trigger: 'contextTip', priority: 1, chance: 1, variant: ['bigbet', 'a'], speakers: ['fincher'],
-              tip: { kind: 'bigbet', part: 'a' }, short: true, phase: 'inHand' }));
-          }
-        }
-      }
+      this.facingTips(e, ctx, humanLive, out);
       if (pid === 'fincher' && e.allIn && cue === 'confiante') h.ringAllIn = true;
       if (h.humanAllIn && e.action === 'call' && RIVALS.includes(pid)) h.humanAllInCallers.push(pid);
       // Pôster Poker: o tique que chegou antes desta aposta
@@ -585,6 +767,12 @@ export class SignalTracker {
         this.pendingTell = null;
         out.push(this.tellSignal(pid, pt.mark, cue, h.n));
       }
+    } else if (pid !== HUMAN) {
+      // Mesa com amigos (H3): outra pessoa agiu. Nada sai como se fosse da visita; no máximo
+      // uma reação genérica ao all-in dela (orçamento de convidados) e as dicas de quem a
+      // enfrenta (a dica é sobre a aposta, não sobre quem apostou).
+      if (e.allIn && (e.action === 'bet' || e.action === 'raise')) out.push(this.guestSig('guestAllIn', 3, 0.25, [], 'inHand'));
+      this.facingTips(e, ctx, humanLive, out);
     } else {
       // ação da pessoa
       if (e.action === 'fold') {
@@ -634,6 +822,27 @@ export class SignalTracker {
     }
     if (e.allIn) h.allIn = true;
     return out;
+  }
+
+  /** Dica do Raposo na primeira vez que a pessoa enfrenta um all-in ou uma aposta grande. */
+  private facingTips(e: Extract<PublicEvent, { t: 'action' }>, ctx: TableContext, humanLive: boolean, out: Signal[]): void {
+    const h = this.hand;
+    if (ctx.mode === 'tutorial' || !humanLive || (e.action !== 'bet' && e.action !== 'raise')) return;
+    if (e.allIn) {
+      h.allInFaced = true;
+      if (!ctx.story['tip.allin'] && !h.tipsThisHand.has('allin')) {
+        h.tipsThisHand.add('allin');
+        out.push(this.sig({ trigger: 'contextTip', priority: 1, chance: 1, variant: ['allin', 'a'], speakers: ['fincher'],
+          tip: { kind: 'allin', part: 'a' }, short: true, phase: 'inHand' }));
+      }
+    } else if (e.sizeClass === 'big' || e.sizeClass === 'overbet') {
+      h.bigBetFaced = true;
+      if (!ctx.story['tip.bigbet'] && !h.tipsThisHand.has('bigbet')) {
+        h.tipsThisHand.add('bigbet');
+        out.push(this.sig({ trigger: 'contextTip', priority: 1, chance: 1, variant: ['bigbet', 'a'], speakers: ['fincher'],
+          tip: { kind: 'bigbet', part: 'a' }, short: true, phase: 'inHand' }));
+      }
+    }
   }
 
   private onCardsShown(e: Extract<PublicEvent, { t: 'cardsShown' }>, ctx: TableContext): Signal[] {
@@ -768,6 +977,11 @@ export class SignalTracker {
       }
     }
 
+    // Mesa com amigos (H3): um convidado levou um pote grande sozinho (reação genérica)
+    if (this.guests.size && e.potBB >= 20 && e.winnerIds.length === 1 && this.isGuest(e.winnerIds[0]) && !this.out.has(HUMAN)) {
+      out.push(this.guestSig('guestPot', 3, 0.3, (net[HUMAN] ?? 0) < 0 ? ['contraVoce'] : [], post, e.handNumber));
+    }
+
     // lição do Raposo (uma por partida)
     if (!this.lessonDone && !this.out.has('fincher')) {
       const humanNet = net[HUMAN] ?? 0;
@@ -807,17 +1021,33 @@ export class SignalTracker {
     if (victim === HUMAN) {
       if (by && RIVALS.includes(by)) {
         out.push(this.sig({ trigger: 'eliminatesPlayer', priority: 1, chance: 1, actorId: by, victimIds: [HUMAN], phase: 'credits', scene: 'farewell' }));
+      } else if (this.isGuest(by)) {
+        // Mesa com amigos (H3): um amigo tirou a visita. Despedida de um oráculo que ficou.
+        out.push(this.sig({ trigger: 'outByGuest', priority: 1, chance: 1, victimIds: [HUMAN], speakers: this.alive(),
+          phase: 'credits', scene: 'farewell', noExchange: true }));
+      }
+      return out;
+    }
+    if (this.isGuest(victim)) {
+      // Mesa com amigos (H3): caiu um amigo. Tirado pela visita: P1 (o momento é dela);
+      // por um oráculo ou por outro amigo: P2, sem nome nenhum.
+      const variant = by === HUMAN ? 'porVoce' : by && RIVALS.includes(by) ? 'porOraculo' : this.isGuest(by) ? 'porAmigo' : null;
+      if (variant && !this.out.has(HUMAN)) {
+        const mine = variant === 'porVoce';
+        out.push(this.sig({ trigger: 'guestOut', priority: mine ? 1 : 2, chance: mine ? 1 : 0.7, variant: [variant],
+          actorId: variant === 'porOraculo' ? by! : mine ? HUMAN : undefined, speakers: this.alive(), phase: 'post', noExchange: true }));
       }
       return out;
     }
     // Caiu o portador do prêmio: logo depois vem prizeCaptured (fala o portador) ou prizeMoved
     // (fala quem herdou). Para não dobrar os balões, a fala do prêmio substitui a da eliminação.
-    const carrierOut = this.mode === 'bounty' && !this.prizeCaptured && this.holderId === victim;
+    // Na casual de devolução (H3) o pôster muda de mão calado: quem eliminou fala normalmente.
+    const carrierOut = (this.mode === 'bounty' || this.reclaim) && !this.prizeCaptured && this.holderId === victim;
     if (!(carrierOut && by === HUMAN)) {
       out.push(this.sig({ trigger: 'eliminated', priority: 1, chance: 1, actorId: by ?? undefined, victimIds: [victim],
         speakers: [victim], phase: 'post' }));
     }
-    if (by && RIVALS.includes(by) && !carrierOut) {
+    if (by && RIVALS.includes(by) && !(carrierOut && !this.reclaim)) {
       out.push(this.sig({ trigger: 'eliminatesOracle', priority: 1, chance: 1, actorId: by, victimIds: [victim], speakers: [by], phase: 'post' }));
     }
     out.push(this.sig({ trigger: 'oracleOut', priority: 3, chance: 0.3, actorId: by ?? undefined, victimIds: [victim],
