@@ -9,17 +9,22 @@
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { applyHumanAction, createMatch, createRng, humanLegal, logHash, toPublicEvents } from '../../src/lib/poker/index.ts';
-import type { MatchEvent, PlayerAction } from '../../src/lib/poker/index.ts';
+import type { MatchEvent, PlayerAction, PosterEffectId } from '../../src/lib/poker/index.ts';
 import { check, eq, finish, makeConfig, section } from './lib/harness.ts';
 import { HEROES } from './surrogates.ts';
 
 const FILE = new URL('./fixtures/determinism.json', import.meta.url);
 const UPDATE = process.argv.includes('--update');
 
-interface Case { name: string; mode: 'free' | 'bounty'; seed: string; loan: number; rarity: 'common' | 'rare' | 'epic' | 'legendary'; actions: { a: PlayerAction; show: boolean }[]; hash: string; publicHash: string; events: number }
+interface Case {
+  name: string; mode: 'free' | 'bounty'; seed: string; loan: number; rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  /** Pôster Poker (03/11/2026): torneio da semana com este efeito. */
+  effect?: PosterEffectId;
+  actions: { a: PlayerAction; show: boolean }[]; hash: string; publicHash: string; events: number;
+}
 
 function replay(c: Omit<Case, 'hash' | 'publicHash' | 'events'>): { log: MatchEvent[]; actions: { a: PlayerAction; show: boolean }[] } {
-  const cfg = makeConfig({ mode: c.mode, seed: c.seed, loan: c.loan, rarity: c.rarity });
+  const cfg = c.effect ? makeConfig({ seed: c.seed, effect: c.effect, loan: c.loan }) : makeConfig({ mode: c.mode, seed: c.seed, loan: c.loan, rarity: c.rarity });
   let step = createMatch(cfg);
   const log: MatchEvent[] = [...step.events];
   const actions = c.actions.slice();
@@ -45,6 +50,16 @@ const base: Omit<Case, 'hash' | 'publicHash' | 'events' | 'actions'>[] = [
   { name: 'premio-comum', mode: 'bounty', seed: 'det-premio-comum', loan: 0, rarity: 'common' },
   { name: 'premio-lendario-emprestimo', mode: 'bounty', seed: 'det-premio-lendario', loan: 500, rarity: 'legendary' },
   { name: 'premio-epico', mode: 'bounty', seed: 'det-premio-epico', loan: 0, rarity: 'epic' },
+  // Pôster Poker: um torneio por efeito (a raridade é a do pôster).
+  { name: 'torneio-early_flop', mode: 'bounty', seed: 'det-t-early_flop', loan: 0, rarity: 'common', effect: 'early_flop' },
+  { name: 'torneio-double_pot', mode: 'bounty', seed: 'det-t-double_pot', loan: 0, rarity: 'common', effect: 'double_pot' },
+  { name: 'torneio-blackjack', mode: 'bounty', seed: 'det-t-blackjack', loan: 500, rarity: 'common', effect: 'blackjack' },
+  { name: 'torneio-hand_bounty', mode: 'bounty', seed: 'det-t-hand_bounty', loan: 0, rarity: 'rare', effect: 'hand_bounty' },
+  { name: 'torneio-eight_aces', mode: 'bounty', seed: 'det-t-eight_aces', loan: 0, rarity: 'rare', effect: 'eight_aces' },
+  { name: 'torneio-reveal_one', mode: 'bounty', seed: 'det-t-reveal_one', loan: 0, rarity: 'rare', effect: 'reveal_one' },
+  { name: 'torneio-sixth_card', mode: 'bounty', seed: 'det-t-sixth_card', loan: 0, rarity: 'epic', effect: 'sixth_card' },
+  { name: 'torneio-opal', mode: 'bounty', seed: 'det-t-opal', loan: 0, rarity: 'epic', effect: 'opal' },
+  { name: 'torneio-tell', mode: 'bounty', seed: 'det-t-tell', loan: 500, rarity: 'legendary', effect: 'tell' },
 ];
 const golden: Case[] = existsSync(FILE) ? JSON.parse(readFileSync(FILE, 'utf8')).cases : [];
 const out: Case[] = [];
@@ -65,7 +80,7 @@ for (const b of base) {
 }
 check(new Set(out.map((c) => c.hash)).size === out.length, 'sementes diferentes, hashes diferentes');
 if (UPDATE || golden.length === 0) {
-  writeFileSync(FILE, `${JSON.stringify({ v: 1, note: 'GERADO por scripts/poker/test-determinism.ts --update. O pacote C confere os mesmos hashes no Deno.', cases: out })}\n`);
+  writeFileSync(FILE, `${JSON.stringify({ v: 2, note: 'GERADO por scripts/poker/test-determinism.ts --update. O pacote C confere os mesmos hashes no Deno. v2 (03/11/2026): torneios do Pôster Poker.', cases: out })}\n`);
   console.log('  golden gravado');
 }
 finish();

@@ -13,7 +13,8 @@ import {
 import type { Card, HandResult, MatchEvent, MatchState, PlayerAction } from '../../src/lib/poker/index.ts';
 import { setStrictBots } from '../../src/lib/poker/match/runner.ts';
 import { isoToMs } from '../../src/lib/poker/match/summary.ts';
-import { check, eq, finish, makeConfig, playRandomMatch, randomHumanAction, section, throws } from './lib/harness.ts';
+import { ALL_EFFECTS, EFFECT_RARITY, check, eq, finish, makeConfig, playRandomMatch, randomHumanAction, section, throws } from './lib/harness.ts';
+import { DEFAULT_DIFFICULTY, DEFAULT_EFFECTS, effectParams } from '../../src/lib/poker/index.ts';
 import { SAMPLE_TUTORIAL, suggested } from './lib/tutorialSample.ts';
 
 setStrictBots(true);
@@ -317,6 +318,87 @@ section('runoutOdds e datas');
   eq(isoToMs('1970-01-01T00:00:00Z'), 0, 'iso epoch');
   eq(isoToMs('2026-11-03T12:00:00-03:00') - isoToMs('2026-11-03T15:00:00Z'), 0, 'iso com fuso');
   check(Number.isNaN(isoToMs('ontem')), 'iso inválido → NaN');
+}
+
+// ---------------------------------------------------------------------------
+section('Pôster Poker: torneio da semana (prize null, efeitos, bônus, resumo)');
+{
+  let tWins = 0;
+  let tBonus = 0;
+  let tCasts = 0;
+  const nT = Math.max(27, Math.round(N / 3));
+  for (let m = 0; m < nT; m++) {
+    const effect = ALL_EFFECTS[m % ALL_EFFECTS.length];
+    const loan = m % 4 === 0 ? 500 : 0;
+    const cfg = makeConfig({ seed: `tt-${m}`, effect, loan, cobraItem: m % 5 === 0 });
+    eq(cfg.difficulty, DEFAULT_DIFFICULTY[EFFECT_RARITY[effect]], 'dificuldade pela raridade do pôster');
+    let step = createMatch(cfg);
+    const ms = step.events.find((e) => e.type === 'matchStarted') as Ev<'matchStarted'>;
+    eq(ms.prize, null, 'torneio: sem portador');
+    eq(ms.tournament, cfg.tournament, 'matchStarted.tournament = config');
+    const rng = createRng(`tt-h-${m}`);
+    let s: MatchState = step.state;
+    let bonus = 0;
+    let casts = 0;
+    const count = (evs: MatchEvent[]): void => {
+      for (const e of evs) {
+        if (e.type === 'effectBonus') bonus += e.amount;
+        if (e.type === 'effectCast') casts++;
+        check(e.type !== 'prizeMoved' && e.type !== 'prizeCaptured', 'torneio: sem passagem nem captura');
+      }
+    };
+    count(step.events);
+    while (s.status === 'running') {
+      const before = JSON.stringify(s);
+      const prev = s;
+      step = applyHumanAction(s, randomHumanAction(humanLegal(s)!, rng), { show: rng.nextFloat() < 0.5 });
+      check(JSON.stringify(s) === before, 'torneio: applyHumanAction não altera a entrada');
+      count(step.events);
+      eq(totalChips(step.state.game), 8000 + loan + bonus, 'torneio: fichas = 8.000 + empréstimo + bônus da casa');
+      const out = outcomeOf(prev, step.state);
+      check(!out.captured, 'torneio: outcomeOf sem captura');
+      if (step.state.status !== 'running') check(!!out.finished, 'torneio: outcomeOf.finished no fim');
+      s = step.state;
+    }
+    eq(s.holderId, null, 'torneio: holderId null');
+    eq(s.capturedHand, null, 'torneio: capturedHand null');
+    const me = toPublicEvents(step.events, 'human').find((e) => e.t === 'matchEnded');
+    check(me?.t === 'matchEnded' && me.prizeCaptured === false && typeof me.seed === 'string', 'torneio: matchEnded sem captura e com a semente');
+    const sum = summarizeMatch(s, { clientId: `t${m}`, startedAt: '2026-11-03T00:00:00Z', endedAt: '2026-11-03T00:10:00Z' });
+    eq(sum.tournament?.prizeId, cfg.tournament!.prizeId, 'resumo.tournament.prizeId');
+    eq(sum.tournament?.effect, effect, 'resumo.tournament.effect');
+    eq(sum.tournament?.won, sum.place === 1, 'resumo.tournament.won ⇔ 1º lugar');
+    eq(sum.tournament?.casts, casts, 'resumo.tournament.casts');
+    check((sum.tournament?.bonusWon ?? -1) >= 0 && sum.tournament!.bonusWon <= bonus, 'resumo.tournament.bonusWon ≤ bônus pagos');
+    check(sum.human.biggestPot <= 8000 + loan + bonus, 'maior pote ≤ fichas da mesa');
+    const v = tableView(s, 'human');
+    eq(v.tournament?.cobraItem, cfg.tournament!.cobraItem, 'view.tournament.cobraItem');
+    if (s.status === 'humanOut') {
+      const r = simulateRest(s);
+      const pl = Object.values(r.places);
+      eq(pl.length, 4, 'torneio: simulateRest com 4 colocações');
+      eq(r.places.human, s.places.human, 'torneio: simulateRest mantém a pessoa');
+    }
+    if (sum.place === 1) tWins++;
+    tBonus += bonus;
+    tCasts += casts;
+  }
+  console.log(`  ${nT} torneios: ${tWins} vitórias da pessoa, ${tCasts} lançadas, ${tBonus} fichas de bônus`);
+  // Desistência no torneio.
+  const cfg = makeConfig({ seed: 'tt-ff', effect: 'tell' });
+  const { steps } = playRandomMatch(cfg, 'tt-ff-h', undefined, (L) => (L.canCheck ? { type: 'check' } : { type: 'call' }));
+  const mid = steps.find((x, k) => k > 3 && x.state.status === 'running')?.state ?? steps[0].state;
+  const f = forfeitMatch(mid);
+  eq(summarizeMatch(f.state, { clientId: 'x', startedAt: '2026-11-03T00:00:00Z', endedAt: '2026-11-03T00:01:00Z' }).tournament?.won, false, 'torneio: desistir não vence');
+  // Números dos efeitos: padrão e sobreposição do banco, com limites.
+  eq(effectParams(undefined, 'blackjack'), DEFAULT_EFFECTS.blackjack, 'effectParams sem banco = DEFAULT_EFFECTS');
+  const over = effectParams({ ...DEFAULT_SETTINGS, effects: { blackjack: { amount: 99999, casts: 50, firstHand: [0, 900], gapHands: -3 } } }, 'blackjack');
+  eq([over.amount, over.casts, over.firstHand, over.gapHands], [5000, 6, [1, 60], 1], 'effectParams presos nos limites');
+  eq(effectParams({ ...DEFAULT_SETTINGS, effects: { opal: { casts: 3 } } }, 'opal').casts, 1, 'opala vale uma vez só');
+  const custom = makeConfig({ seed: 'tt-custom', effect: 'double_pot' });
+  const c2 = { ...custom, settings: { ...custom.settings, effects: { double_pot: { firstHand: [1, 1] as [number, number], casts: 1 } } } };
+  const st = createMatch(c2);
+  check(st.events.some((e) => e.type === 'effectCast' && e.handNumber === 1), 'poker_settings.effects muda o cronograma (lança na mão 1)');
 }
 
 // ---------------------------------------------------------------------------

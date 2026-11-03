@@ -35,9 +35,14 @@ const ROOT = join(HERE, '..', '..');
 const SRC = join(HERE, 'falas-src');
 const OUT_DIALOGUE = join(ROOT, 'src', 'lib', 'poker', 'dialogue');
 const OUT_MARKS = join(HERE, 'marks.sql.txt');
-const FILES = ['01-bogart.txt', '02-cypher.txt', '03-fincher.txt', '04-trocas.txt', '05-novo.txt', '06-tutorial.txt'];
+const FILES = ['01-bogart.txt', '02-cypher.txt', '03-fincher.txt', '04-trocas.txt', '05-novo.txt', '06-tutorial.txt',
+  '07-poster-poker.txt'];
 const ALL_CUES: Cue[] = ['confiante', 'nervoso', 'calado', 'neutro'];
 const BOT_ACTION: Trigger[] = ['limp', 'call', 'fold', 'bet', 'bigBet', 'overbet', 'checkRaise', '3bet', 'isolate', 'allIn', 'foldToPlayer'];
+/** Pôster Poker (03/11/2026): o tique sai junto da aposta do oráculo; a fala de quem apostou segue o cue dela. */
+const CUE_LIKE_ACTION: Trigger[] = [...BOT_ACTION, 'tellMark'];
+const EFFECTS = ['early_flop', 'double_pot', 'blackjack', 'hand_bounty', 'eight_aces', 'reveal_one', 'sixth_card', 'opal', 'tell'];
+const RARITY: Record<string, string> = { comum: 'common', raro: 'rare', epico: 'epic', lendario: 'legendary' };
 
 // ---------------------------------------------------------------------------
 // Leitura das fontes
@@ -359,9 +364,58 @@ function classify(ev: string, who: string, ctxRaw: string, isExchange: boolean):
     case 'QUIP_REPLY': return /^r\d$/.test(c) ? K('quipAnswer', 'any', [c.toUpperCase()]) : `QUIP_REPLY: "${ctxRaw}"`;
     case 'INTERVAL_INVITE': return K('intervalInvite', 'any');
     case 'INTERVAL_RETURN': return K('intervalReturn', 'any');
+    // ---- Pôster Poker (pacote H, 03/11/2026) ----
+    case 'TOURNEY_INTRO': {
+      if (RARITY[c]) return K('tournamentIntro', 'any', [RARITY[c]]);
+      if (EFFECTS.includes(c)) return K('tournamentIntro', 'any', [c]);
+      return `TOURNEY_INTRO: "${ctxRaw}"`;
+    }
+    case 'STAKE': {
+      const [what, rar] = c.split(';').map((x) => x.trim());
+      if (what === 'abertura') return K('stakePoster', 'any', rar ? (RARITY[rar] ? [RARITY[rar]] : ['?']) : []);
+      if (what === 'perdeu') return K('stakeLost', 'any');
+      if (what === 'voltou') return K('stakeBack', 'any');
+      return `STAKE: "${ctxRaw}"`;
+    }
+    case 'COBRA_ITEM': return ['abertura', 'meio', 'ganhou', 'perdeu'].includes(c) ? K('cobraItem', 'any', [c]) : `COBRA_ITEM: "${ctxRaw}"`;
+    case 'EFFECT_CAST': {
+      const [fx, extra] = c.split(',').map((x) => x.trim());
+      if (!EFFECTS.includes(fx) || (extra && extra !== 'explica')) return `EFFECT_CAST: "${ctxRaw}"`;
+      return K('effectCast', 'any', extra ? [fx, 'explica'] : [fx]);
+    }
+    case 'EFFECT_REVEAL': {
+      const [fx, rank] = c.split(';').map((x) => x.trim());
+      const ranks: Record<string, string> = { as: 'as', figura: 'figura', baixa: 'baixa' };
+      if (fx !== 'reveal_one' || (rank && !ranks[rank])) return `EFFECT_REVEAL: "${ctxRaw}"`;
+      return K('effectReveal', 'any', rank ? [fx, ranks[rank]] : [fx]);
+    }
+    case 'EFFECT_BONUS': {
+      // "<efeito|qualquer>; <ganhou|outro|você>": quem ganhou fala; os outros oráculos invejam; a pessoa ganhou.
+      const [fx, who] = c.split(';').map((x) => x.trim());
+      const v = fx === 'qualquer' ? [] : EFFECTS.includes(fx) ? [fx] : null;
+      if (!v) return `EFFECT_BONUS: "${ctxRaw}"`;
+      if (isExchange && who === 'voce') return K('effectBonus', 'any', [...v, 'humano']);
+      if (who === 'ganhou') return K('effectBonus', 'winner', [...v, 'oraculo']);
+      if (who === 'outro') return K('effectBonus', 'bystander', [...v, 'oraculo']);
+      if (who === 'voce') return K('effectBonus', 'any', [...v, 'humano']);
+      return `EFFECT_BONUS: "${ctxRaw}"`;
+    }
+    case 'TELL_MARK': {
+      const [mark, who] = c.split(';').map((x) => x.trim());
+      const v = mark === 'qualquer' ? [] : mark === 'blefe' || mark === 'valor' ? [mark] : null;
+      if (!v || (who !== 'ator' && who !== 'testemunha')) return `TELL_MARK: "${ctxRaw}"`;
+      return K('tellMark', who === 'ator' ? 'actor' : 'bystander', v);
+    }
+    case 'TOURNEY_END': {
+      const [what, rar] = c.split(';').map((x) => x.trim());
+      const on: Trigger | null = what === 'venceu' ? 'tournamentWon' : what === 'perdeu' ? 'tournamentLost' : null;
+      if (!on || (rar && !RARITY[rar])) return `TOURNEY_END: "${ctxRaw}"`;
+      return K(on, 'any', rar ? [RARITY[rar]] : []);
+    }
     case 'RECAP': {
       const map: Record<string, string[]> = { geral: [], 'voce liderava': ['lider'], 'voce estava curto': ['curto'],
-        'um oraculo liderava': ['oraculoLider'], 'partida valendo': ['valendo'], 'um oraculo ja caiu': ['caiu'] };
+        'um oraculo liderava': ['oraculoLider'], 'partida valendo': ['valendo'], 'um oraculo ja caiu': ['caiu'],
+        'partida de torneio': ['torneio'] };
       return map[c] ? K('recap', 'any', map[c]) : `RECAP: "${ctxRaw}"`;
     }
     case 'TIP': {
@@ -399,7 +453,7 @@ function speakerCues(who: string): Cue[] {
 }
 
 function parseCue(raw: string, who: string, on: Trigger, role: Role): { cue?: Cue[]; out?: 'also' | 'only' } {
-  const isBotAction = BOT_ACTION.includes(on) && role === 'actor';
+  const isBotAction = CUE_LIKE_ACTION.includes(on) && role === 'actor';
   if (raw === '-' || raw === '') return isBotAction ? { cue: speakerCues(who) } : {};
   // '*' = qualquer cue (teatro), e também com o falante fora da mão.
   if (raw === '*') return isBotAction ? { cue: speakerCues(who) } : { cue: speakerCues(who), out: 'also' };
@@ -477,6 +531,13 @@ for (const e of entries.values()) {
   if (fl.once) line.once = fl.once;
   const requires: LineRequires = { ...(k.requires ?? {}) };
   if (fl.story) line.story = fl.story;
+  // Pôster Poker: a explicação de um efeito toca uma vez na vida, por efeito (as três falas
+  // de explicação dividem a chave `fx.<efeito>`, que o Diretor também consulta).
+  if (on === 'effectCast' && variant.includes('explica')) {
+    line.once = 'life';
+    line.story = `fx.${variant[0]}`;
+    requires.storyNot = line.story;
+  }
   // Toda fala "uma vez na vida" ganha uma chave de story, que vale em qualquer aparelho.
   if (fl.once === 'life') {
     if (!line.story) line.story = on === 'contextTip' ? `tip.${variant[0]}` : `once.${e.id.toLowerCase()}`;
@@ -525,7 +586,8 @@ for (const x of allX) {
 // Referências cruzadas mínimas.
 for (const l of [...LINES, ...QUIP_LINES]) {
   if (!['bogart', 'cypher', 'fincher'].includes(l.speaker)) errors.push(`${l.id}: falante "${l.speaker}"`);
-  if (l.role === 'actor' && BOT_ACTION.includes(l.on) && (!l.cue || l.cue.length === 0)) errors.push(`${l.id}: ator sem cue`);
+  if (l.role === 'actor' && CUE_LIKE_ACTION.includes(l.on) && (!l.cue || l.cue.length === 0)) errors.push(`${l.id}: ator sem cue`);
+  if (l.variant?.includes('?')) errors.push(`${l.id}: raridade desconhecida no contexto`);
   if (l.speaker === 'bogart' && l.role === 'actor' && l.cue?.includes('calado')) errors.push(`${l.id}: Sapo ator com calado`);
 }
 for (const s of [...LINES, ...EXCHANGES]) {

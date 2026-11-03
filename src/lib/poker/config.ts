@@ -5,7 +5,7 @@
  * jogar offline (partida livre sem rede) e para os testes/simulador. Mudou lá, muda aqui.
  */
 import type { BlindLevel } from './engine.ts';
-import type { DifficultyRow, LevelInfo, PokerSettings, Rarity } from './types.ts';
+import type { DifficultyRow, EffectParams, LevelInfo, PokerSettings, PosterEffectId, Rarity } from './types.ts';
 
 /**
  * Dificuldade pública por raridade (§3.4). Só mexe em ε e no atraso de adaptação do
@@ -52,6 +52,51 @@ export const DEFAULT_SETTINGS: PokerSettings = {
   carrierByRarity: { common: 'bogart', rare: 'bogart', epic: 'cypher', legendary: 'fincher' },
   difficulty: DEFAULT_DIFFICULTY,
 };
+
+/**
+ * Pôster Poker (03/11/2026, BRIEF2): números de cada efeito do pôster mágico do torneio.
+ * Efeitos de mão lançam 2 vezes: a 1ª numa mão sorteada entre 3 e 9, a 2ª `gapHands` +
+ * 0..`spread` mãos depois (no tell, 8). hand_bounty e opal: 1 vez, entre as mãos 3 e 8.
+ * eight_aces: 1 vez, no começo (firstHand é ignorado). Bônus em fichas de mesa.
+ * `poker_settings.effects` sobrepõe campo a campo (effectParams, com limites).
+ */
+export const DEFAULT_EFFECTS: Record<PosterEffectId, EffectParams> = {
+  early_flop: { casts: 2, firstHand: [3, 9], gapHands: 6, spread: 3 },
+  double_pot: { casts: 2, firstHand: [3, 9], gapHands: 6, spread: 3 },
+  blackjack: { casts: 2, firstHand: [3, 9], gapHands: 6, spread: 3, amount: 500 },
+  reveal_one: { casts: 2, firstHand: [3, 9], gapHands: 6, spread: 3 },
+  sixth_card: { casts: 2, firstHand: [3, 9], gapHands: 6, spread: 3 },
+  tell: { casts: 2, firstHand: [3, 9], gapHands: 8, spread: 3, hands: 3 },
+  hand_bounty: { casts: 1, firstHand: [3, 8], gapHands: 0, spread: 0, amount: 800 },
+  opal: { casts: 1, firstHand: [3, 8], gapHands: 0, spread: 0, amount: 1000 },
+  eight_aces: { casts: 1, firstHand: [1, 1], gapHands: 0, spread: 0 },
+};
+
+/** Efeitos que valem uma vez só na partida (o banco não consegue pedir mais). */
+const ONCE: ReadonlySet<PosterEffectId> = new Set(['hand_bounty', 'opal', 'eight_aces']);
+
+function clampInt(v: unknown, lo: number, hi: number, dflt: number): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return dflt;
+  return Math.min(hi, Math.max(lo, Math.round(v)));
+}
+
+/** Números do efeito: DEFAULT_EFFECTS mesclado com `settings.effects`, dentro de limites sensatos. */
+export function effectParams(settings: PokerSettings | undefined, effect: PosterEffectId): EffectParams {
+  const base = DEFAULT_EFFECTS[effect];
+  const o = settings?.effects?.[effect] ?? {};
+  const fh = Array.isArray(o.firstHand) && o.firstHand.length === 2 ? o.firstHand : base.firstHand;
+  const lo = clampInt(fh[0], 1, 40, base.firstHand[0]);
+  const hi = clampInt(fh[1], lo, 60, Math.max(lo, base.firstHand[1]));
+  const out: EffectParams = {
+    casts: clampInt(o.casts, 0, ONCE.has(effect) ? 1 : 6, base.casts),
+    firstHand: [lo, hi],
+    gapHands: clampInt(o.gapHands, 1, 40, Math.max(1, base.gapHands)),
+    spread: clampInt(o.spread, 0, 10, base.spread ?? 3),
+  };
+  if (base.amount !== undefined) out.amount = clampInt(o.amount, 0, 5000, base.amount);
+  if (base.hands !== undefined) out.hands = clampInt(o.hands, 1, 10, base.hands);
+  return out;
+}
 
 /**
  * Nível da mão `handNumber` (1 = primeira mão da partida). O nível vale pelo número da

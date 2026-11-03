@@ -6,7 +6,184 @@
  * Quando o C publicar os dele, `api.ts` adapta (os nomes e campos são os do SPEC).
  */
 import type { PlayerAction } from '../engine.ts';
-import type { MatchSummary, PokerSettings, PrizeKind, PublicEvent, Rarity, RivalId, TableView, TitleId } from '../types.ts';
+import type {
+  MatchSummary,
+  PokerSettings,
+  PosterEffectId,
+  PrizeKind,
+  PublicEvent,
+  Rarity,
+  RivalId,
+  TableView,
+  TitleId,
+} from '../types.ts';
+
+// ---------------------------------------------------------------------------
+// Pôster Poker (03/11/2026, tarde — pacote F): o torneio da semana.
+// O formato é o de get_poker_home() e da Edge poker-bounty (proto 2); a
+// descrição completa está em .../scratchpad/poker2/status/F_NOTES.md.
+// ---------------------------------------------------------------------------
+
+/** Efeito de um pôster da coleção (gold = só os 9 do Pôster Poker). */
+export type PosterVersionEffect = 'none' | 'holo' | 'negative' | 'ultra_red' | 'gold';
+
+/** Um dos 9 pôsteres do Pôster Poker (get_poker_home().tournament.prize e .collection[]). */
+export interface TournamentPrize {
+  /** poker_prizes.id: 'pp-the-sting', 'pp-21'… */
+  id: string;
+  /** poster_items.id (para desenhar com o mesmo componente da coleção do Jackpot). */
+  item_id: number;
+  rarity: Rarity;
+  /** Número de colecionador (070, 075, 080 / 040, 045, 050 / 030, 035 / 020). */
+  serial: number;
+  title: string;
+  title_en: string;
+  year: number | null;
+  file_path: string;
+  /** O efeito que o pôster lança na mesa. */
+  effect_id: PosterEffectId;
+  /** O efeito do pôster ganho (sempre 'gold'). */
+  effect: 'gold';
+  blurb_pt: string | null;
+  blurb_en: string | null;
+}
+
+export interface TournamentCollectionEntry extends TournamentPrize {
+  /** A pessoa já tem a versão gold. */
+  owned: boolean;
+  /** A próxima semana (quinta, >= a atual) em que o pôster volta; a atual se for o da semana. */
+  next_week: string;
+  this_week: boolean;
+}
+
+/** Um pôster da coleção que pode ir de aposta (mesma raridade; nunca exclusivo/gold nem já apostado). */
+export interface TournamentStakeOption {
+  item_id: number;
+  effect: Exclude<PosterVersionEffect, 'gold'>;
+  title: string | null;
+  title_en: string | null;
+  year: number | null;
+  file_path: string;
+  serial: number | null;
+  rarity: Rarity;
+}
+
+/** A aposta como o banco devolve (get_poker_home, active_match). */
+export type TournamentStakeJson =
+  | { kind: 'chips'; amount: number }
+  | { kind: 'poster'; item_id: number; effect: PosterVersionEffect };
+
+export interface TournamentHome {
+  /** A quinta-feira (Brasília) em que a semana começou. */
+  week: string;
+  /** Quinta seguinte, 00h00 de Brasília (ISO). */
+  ends_at: string;
+  prize: TournamentPrize;
+  /** Fichas da entrada (comum e raro 1, épico 2, lendário 3). */
+  entry_chips: number;
+  /** Saldo de fichas comuns da pessoa. */
+  chips: number;
+  /** Entradas hoje (dia de Brasília). */
+  attempts_used: number;
+  max_attempts: number;
+  /** Já tem o pôster da semana (de um ciclo anterior): "Já é seu", sobra o Casual. */
+  owned: boolean;
+  /** Venceu o torneio nesta semana: fechado até quinta. */
+  won_this_week: boolean;
+  active_match: {
+    match_id: string;
+    week: string | null;
+    hand: number;
+    seq: number;
+    prize_id: string;
+    stake: TournamentStakeJson | null;
+  } | null;
+  stake_options: TournamentStakeOption[];
+  /** Itens da Cobra que a pessoa ainda não tem (0 = a Cobra não traz nada). */
+  cobra_pool: number;
+  stars: 0 | 1 | 2 | 3 | 4;
+  /** A próxima partida vem com o empréstimo do Sapo. */
+  loan_next: boolean;
+  /** Amigos que venceram o torneio desta semana. */
+  friends_won: number;
+  next: { week: string; prize_id: string; rarity: Rarity } | null;
+}
+
+/** A vitrine dos itens da Cobra (get_poker_home().cobra_items; vazia por enquanto). */
+export interface CobraItemEntry {
+  id: string;
+  kind: 'deck' | 'table' | 'rival' | 'poker_quip';
+  name_pt: string;
+  name_en: string;
+  owned: boolean;
+}
+
+/** A aposta enviada no start (Edge, proto 2). */
+export type TournamentStake =
+  | { kind: 'chips' }
+  | { kind: 'poster'; itemId: number; effect: Exclude<PosterVersionEffect, 'gold'> };
+
+/** A aposta como a Edge devolve (start/resume). */
+export type TournamentStakeInfo =
+  | { kind: 'chips'; amount: number }
+  | { kind: 'poster'; itemId: number; effect: PosterVersionEffect };
+
+/** O bloco `tournament` das respostas de start e resume da Edge. */
+export interface BountyTournamentInfo {
+  week: string;
+  prize: TournamentPrize;
+  effect: PosterEffectId;
+  rarity: Rarity;
+  /** A Cobra trouxe um item secreto (qual, só no fim). */
+  cobraItem: boolean;
+  stake: TournamentStakeInfo | null;
+  /** Só no resume: held (em jogo) | returned | lost | spent. */
+  stakeStatus?: 'held' | 'returned' | 'lost' | 'spent' | null;
+  attemptsUsed: number | null;
+  maxAttempts: number | null;
+}
+
+export interface CobraItemReward {
+  id: string;
+  name: string;
+  nameEn: string;
+  kind: string;
+}
+
+/** result.rewards (e `rewards` no topo da resposta final). */
+export interface TournamentRewards {
+  /** Só na vitória (1º lugar). */
+  poster: {
+    prizeId: string;
+    itemId: number;
+    title: string;
+    titleEn: string;
+    filePath: string;
+    serial: number;
+    rarity: Rarity;
+    effect: 'gold';
+    effectId: PosterEffectId;
+  } | null;
+  /** Só na vitória, se a Cobra trouxe item. */
+  cobraItem: CobraItemReward | null;
+  /** Só na derrota, se a Cobra trouxe item ("era isto"). */
+  cobraRevealed: CobraItemReward | null;
+  stake:
+    | { kind: 'chips'; amount: number }
+    | {
+        kind: 'poster';
+        itemId: number;
+        effect: PosterVersionEffect;
+        title: string | null;
+        titleEn: string | null;
+        filePath: string;
+        serial: number | null;
+        rarity: Rarity;
+        /** Perdeu o pôster apostado (ficou com a Cobra). */
+        lost: boolean;
+      }
+    | null;
+}
 
 export interface PokerPrize {
   id: string;
@@ -20,6 +197,8 @@ export interface PokerPrize {
   image?: string | null;
   payload?: Record<string, unknown>;
   repeatable?: boolean;
+  /** Pôster Poker: o efeito de mesa do pôster (null nos prêmios antigos). */
+  effect_id?: PosterEffectId | null;
 }
 
 export interface PokerBountyHome {
@@ -58,9 +237,18 @@ export interface PokerHome {
     max_attempts: number;
     carrier_by_rarity: PokerSettings['carrierByRarity'];
     difficulty: PokerSettings['difficulty'];
+    /** Pôster Poker: sobreposição dos DEFAULT_EFFECTS ({} = padrões do motor). */
+    effects: PokerSettings['effects'];
+    entry_chips: Record<Rarity, number>;
   }>;
   bot_params?: Record<string, { version: number; params: unknown }>;
+  /** O prêmio do dia acabou (03/11/2026): sempre null. Use `tournament`. */
   bounty?: PokerBountyHome | null;
+  /** Pôster Poker: o torneio da semana (null só com o catálogo vazio). */
+  tournament?: TournamentHome | null;
+  /** Os 9 pôsteres do Pôster Poker. */
+  collection?: TournamentCollectionEntry[];
+  cobra_items?: CobraItemEntry[];
   player?: {
     age_confirmed: boolean;
     age_gate_all: boolean;
@@ -88,6 +276,9 @@ export interface BountyResult {
   seedHash?: string;
   marks: string[];
   title: { wins: number; id: TitleId; rankUp: boolean };
+  /** Pôster Poker: partida de torneio. */
+  tournament?: boolean;
+  rewards?: TournamentRewards | null;
 }
 
 export interface BountyStart {
@@ -102,6 +293,9 @@ export interface BountyStart {
   stars: number;
   events: PublicEvent[];
   view: TableView;
+  /** Fichas que sobraram depois da entrada. */
+  tickets?: number;
+  tournament?: BountyTournamentInfo;
 }
 
 export interface BountyAct {
@@ -110,6 +304,8 @@ export interface BountyAct {
   events: PublicEvent[];
   view: TableView;
   result?: BountyResult;
+  /** Só na resposta final de um torneio (= result.rewards). */
+  rewards?: TournamentRewards | null;
 }
 
 export interface BountyResume {
@@ -124,6 +320,10 @@ export interface BountyResume {
   view: TableView;
   recent: PublicEvent[];
   result?: BountyResult;
+  tournament?: BountyTournamentInfo;
+  rewards?: TournamentRewards | null;
+  /** Veio de um start repetido (mesmo idem): a partida que já estava aberta. */
+  duplicate?: boolean;
 }
 
 export interface IntervalPick {
@@ -145,7 +345,8 @@ export interface PokerApiLike {
   reportFreeMatch(s: MatchSummary): Promise<{ ok: boolean; wins: number; title: TitleId }>;
   intervalPick(): Promise<IntervalPick | null>;
   bounty: {
-    start(day: string, prizeId: string): Promise<BountyStart>;
+    /** Pôster Poker (proto 2): week = tournament.week, prizeId = tournament.prize.id. */
+    start(week: string, prizeId: string, stake?: TournamentStake, idem?: string): Promise<BountyStart>;
     act(matchId: string, seq: number, idem: string, action: PlayerAction, show?: boolean): Promise<BountyAct>;
     forfeit(matchId: string, seq: number): Promise<BountyResult>;
     resume(matchId?: string): Promise<BountyResume>;

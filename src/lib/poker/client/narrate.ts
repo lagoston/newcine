@@ -43,6 +43,7 @@ export function narrate(t: TFunction, lang: Lang, e: PublicEvent, table: TableSh
       return t('poker.narrate.raise', { who, amount: n(e.to) });
     }
     case 'street':
+      if (e.early) return t('poker.narrate.earlyFlop', { cards: cardsName(e.cards, lang) });
       return t(`poker.narrate.${e.street}`, { cards: cardsName(e.cards, lang) });
     case 'showdown':
       return e.hands
@@ -62,6 +63,23 @@ export function narrate(t: TFunction, lang: Lang, e: PublicEvent, table: TableSh
       return t('poker.narrate.headsUp', { a: whoName(t, e.ids[0]), b: whoName(t, e.ids[1]) });
     case 'levelUp':
       return t('poker.narrate.levelUp', { blinds: blindsText(t, lang, e.level.sb, e.level.bb, e.level.ante) });
+    // Pôster Poker (03/11/2026): o pôster lança, as cartas que o efeito vira, a casa paga, o tique.
+    case 'effectCast': {
+      const name = t(`poker.effects.${e.effect}.name`);
+      if (e.data.effect === 'hand_bounty')
+        return t('poker.narrate.castBounty', { name, hand: t(`poker.hands.${e.data.target}`).toLowerCase(), amount: n(e.data.amount) });
+      if (e.data.effect === 'opal') return t('poker.narrate.castOpal', { name, card: cardsName([e.data.card], lang), amount: n(e.data.amount) });
+      return t('poker.narrate.cast', { name, rule: t(`poker.effects.${e.effect}.short`) });
+    }
+    case 'effectReveal':
+      return e.cards
+        .filter((c) => c.cards.length > 0)
+        .map((c) => t('poker.narrate.revealed', { who: whoName(t, c.playerId), cards: cardsName(c.cards, lang) }))
+        .join(' ');
+    case 'effectBonus':
+      return t('poker.narrate.bonus', { who: whoName(t, e.playerId), amount: n(e.amount) });
+    case 'tellMark':
+      return t(`poker.narrate.tell_${e.mark}`, { who: whoName(t, e.playerId) });
     case 'matchEnded':
       return e.humanPlace === 1 ? t('poker.narrate.won') : t('poker.narrate.ended', { place: e.humanPlace });
     default:

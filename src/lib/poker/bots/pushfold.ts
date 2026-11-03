@@ -20,7 +20,7 @@ import { preflopPct } from './buckets.ts';
 import type { Features } from './features.ts';
 import type { BotCtx, EffProfile, Ranked } from './policy.ts';
 import { ALLIN, CALL, CHECK, FOLD } from './policy.ts';
-import { rangeFor, topWeights, ALL_COMBOS } from './ranges.ts';
+import { rangeFor, topWeights, withKnown, ALL_COMBOS } from './ranges.ts';
 
 /** Diferença de equidade (sobre o necessário) a partir da qual pagar/largar é óbvio. */
 const CLEAR = 0.07;
@@ -111,17 +111,21 @@ function involved(v: BotView, f: Features): string[] {
 function equityVs(v: BotView, f: Features, ctx: BotCtx, P: EffProfile, aggrPct: number | null): number {
   const vs = v.street === 'preflop' ? involved(v, f) : f.opponents;
   const opps = Math.max(1, vs.length);
-  const ranges: (WeightedRange | null)[] = vs.map((o) => {
+  const base: (WeightedRange | null)[] = vs.map((o) => {
     if (v.street !== 'preflop') return aggrPct === null ? null : rangeFor(o, v, P.rangeModel === 'random' ? 'static' : P.rangeModel);
     if (aggrPct === null) return null;
     // Quem pagou um all-in antes de mim tem mão boa (top 20%).
     const pct = o === f.aggressorId ? aggrPct : 20;
     return { combos: ALL_COMBOS, weights: Array.from(topWeights(pct)) };
   });
+  // Pôster Poker: cartas viradas por efeito e o baralho do Cassino.
+  const dead = [...v.hole, ...v.board];
+  const ranges = base.map((r, k) => withKnown(r, v.shownThisHand[vs[k]], dead));
+  const extraCards = v.extraCards;
   try {
-    return estimateEquity({ hole: v.hole, board: v.board, opponents: opps, iterations: P.iters.flop, rng: ctx.rng, ranges }).equity;
+    return estimateEquity({ hole: v.hole, board: v.board, opponents: opps, iterations: P.iters.flop, rng: ctx.rng, ranges, extraCards }).equity;
   } catch {
-    return estimateEquity({ hole: v.hole, board: v.board, opponents: opps, iterations: P.iters.flop, rng: ctx.rng }).equity;
+    return estimateEquity({ hole: v.hole, board: v.board, opponents: opps, iterations: P.iters.flop, rng: ctx.rng, extraCards }).equity;
   }
 }
 

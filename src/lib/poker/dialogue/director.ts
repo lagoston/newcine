@@ -13,16 +13,18 @@
  * O banco vem junto (lines.pt/lines.en/quips): este módulo já é carregado sob demanda pela
  * interface (import dinâmico), então o banco não pesa na abertura do app.
  */
-import type { PlayerId, PublicEvent, RivalId } from '../types.ts';
+import type { PlayerId, PublicEvent, RivalId, TournamentConfig } from '../types.ts';
 import { Budget, BUDGET } from './budget.ts';
 import { EXCHANGES, LINES } from './lines.pt.ts';
 import { EN } from './lines.en.ts';
 import { QUIP_LINES, QUIP_PACKS } from './quips.ts';
 import { balloonMs, renderText, SHORT_CHARS } from './render.ts';
 import type { Picked, PickedExchange, SelectEnv } from './select.ts';
-import { drawFromDeck, eligibleLines, exchangeIsNew, pickExchange, pickLine, textOf, varsFor } from './select.ts';
+import {
+  drawFromDeck, eligibleExchanges, eligibleLines, exchangeIsNew, isFresh, pickExchange, pickLine, speakerWeight, textOf, varsFor,
+} from './select.ts';
 import type { Signal } from './signals.ts';
-import { RIVALS, SignalTracker } from './signals.ts';
+import { RARITY_HOST, RIVALS, SignalTracker } from './signals.ts';
 import { browserStorage, freshSession, memoryStorage, remember } from './storage.ts';
 import type {
   DialogueBank, DialogueMemory, DialogueStorage, Director, DirectorMoment, DirectorOptions, Emote, Exchange, Line,
@@ -41,7 +43,17 @@ const EXCHANGE_CHANCE: Partial<Record<Trigger, number>> = {
   banter: 0.75, readPlayer: 0.5, playerStreak: 0.5, badBeatAgainstMe: 0.5, potWon: 0.6, potLostToPlayer: 0.6,
   playerBluffShown: 0.5, tiltStart: 0.6, eliminated: 0.5, bountySteal: 0.6, rankUp: 1, secretTell: 1,
   eliminatesPlayer: 1, firstVisit: 1, matchStart: 0.35, sapoLoan: 0.35, bountyIntro: 0.35,
+  // Pôster Poker (03/11/2026): o lendário tem cerimônia (troca) sempre que houver uma inédita em 48 h
+  tournamentIntro: 0.35, cobraItem: 0.4, effectBonus: 0.4,
 };
+
+/**
+ * Pôster Poker: chance da lançada já conhecida. A 1ª da partida é P2 (metade das vezes),
+ * a 2ª é P3 (menos ainda): o "CATCHAW" já é o momento. Na 1ª vez da vida, P1 com a explicação.
+ */
+const CAST_REPEAT = { firstChance: 0.5, laterChance: 0.3 };
+/** No 21 e no pote dobrado o bônus sai no fim da MESMA mão: a lançada fala menos para ele caber. */
+const CAST_REPEAT_PAYOFF = { firstChance: 0.3, laterChance: 0.2 };
 
 /** Quanto um balão de troca espera a vez da pessoa fechar antes de a troca cair. */
 const HOLD_MAX_MS = 20000;
@@ -177,6 +189,8 @@ class DialogueDirector implements Director {
       case 'action':
         if (before !== 'inHand') this.dropScope('post');
         if (e.playerId === 'bogart' && e.cue === 'calado') this.dropSpeaker('bogart');
+        // 03/11/2026 (pacote H): o mesmo para o anel do Raposo, que nunca fala enquanto o mostra
+        if (e.playerId === 'fincher' && e.cue === 'confiante') this.dropSpeaker('fincher');
         break;
       case 'handComplete':
         this.dropScope('inHand');
@@ -331,9 +345,10 @@ class DialogueDirector implements Director {
         extra.lider = stacks[0][0];
       }
       if (mine > 0 && mine <= 10 * bb) variant.push('curto');
+      if (this.tracker.tournament || ctx.tournament) variant.push('torneio');
     }
     // a variante mais específica que tiver fala vence; senão a geral
-    const order = kind === 'recap' ? ['valendo', 'caiu', 'lider', 'curto', 'oraculoLider'] : [];
+    const order = kind === 'recap' ? ['valendo', 'caiu', 'lider', 'curto', 'torneio', 'oraculoLider'] : [];
     let best: { line: Line; speaker: RivalId; text: string } | null = null;
     for (const v of [...order.filter((o) => variant.includes(o)), null]) {
       const options: { line: Line; speaker: RivalId; text: string }[] = [];
@@ -454,6 +469,9 @@ class DialogueDirector implements Director {
     }
     // Sapo de `calado`: nenhum balão dele até a mão acabar (só o selo "…" da Réplica)
     if (t.sapoSilent && q.scene !== 'tutorial' && q.parts.some((p) => p.speaker === 'bogart' && p.lineId !== 'quip.silent')) return false;
+    // Raposo com o anel (cue confiante na mão): nada dele que seja da mão começa
+    if (q.scope === 'inHand' && t.phase === 'inHand' && t.speakerState('fincher') === 'confiante'
+      && q.parts.some((p) => p.speaker === 'fincher')) return false;
     if (q.priority !== 1) {
       if (now - this.lastStartAt < BUDGET.globalGapMs) return false;
       if (q.kind === 'line' && now - (this.lastStartBy.get(String(first.speaker)) ?? -Infinity) < BUDGET.speakerGapMs) return false;
@@ -535,16 +553,71 @@ class DialogueDirector implements Director {
     return true;
   }
 
-  private handleSignals(signals: Signal[]): void {
+  private handleSignals(raw: Signal[]): void {
+    const signals = this.posterSignals(raw);
     const p1 = signals.filter((s) => s.priority === 1);
     for (const s of p1) {
       if (s.tip) this.enqueueTip(s);
-      else this.enqueueP1(s, s.scene === 'farewell' ? 'farewell' : 'table');
+      else this.enqueueP1(s, s.scene === 'farewell' ? 'farewell' : s.scene === 'opening' ? 'opening' : 'table');
     }
     const rest = signals.filter((s) => s.priority !== 1 && this.rng() < s.chance && this.modeAllows(s.priority));
     // P2 antes de P3; dentro da mesma prioridade, sorteio
     const order = rest.map((s) => ({ s, k: s.priority * 10 + this.rng() })).sort((a, b) => a.k - b.k).map((x) => x.s);
-    for (const s of order) if (this.tryEnqueue(s)) break;
+    for (const s of order) {
+      if (this.tryEnqueue(s)) break;
+      if (s.preempt && this.preempt(s) && this.tryEnqueue(s)) break;
+    }
+  }
+
+  // =========================================================================
+  // Pôster Poker (03/11/2026)
+  // =========================================================================
+
+  /**
+   * Ajusta os sinais dos efeitos: a lançada vira P1 com a explicação na 1ª vez da vida
+   * (`fx.<efeito>`), senão P2/P3; o comentário da carta aberta só sai se a lançada da mão
+   * passou em silêncio (um momento por mão, e o "CATCHAW" já é um).
+   */
+  private posterSignals(signals: Signal[]): Signal[] {
+    const out: Signal[] = [];
+    for (const s of signals) {
+      if (s.trigger === 'effectCast' && s.effect) {
+        if (!this.hasStory(`fx.${s.effect.id}`)) {
+          out.push({ ...s, priority: 1, chance: 1, variant: [...s.variant, 'explica'], needVariant: 'explica',
+            scene: this.tracker.phase === 'opening' ? 'opening' : undefined });
+        } else {
+          const first = s.effect.castNo <= 1;
+          const c = s.effect.id === 'blackjack' || s.effect.id === 'double_pot' ? CAST_REPEAT_PAYOFF : CAST_REPEAT;
+          out.push({ ...s, priority: first ? 2 : 3, chance: first ? c.firstChance : c.laterChance });
+        }
+        continue;
+      }
+      if (s.trigger === 'effectReveal' && this.handBusy(s.hand)) continue;
+      out.push(s);
+    }
+    return out;
+  }
+
+  /** A mão h já teve (ou tem na fila) um momento na mesa. */
+  private handBusy(h: number): boolean {
+    if (this.budget.hadMoment(h) || this.spokeInHand.has(h)) return true;
+    if (this.active && this.active.item.hand === h) return true;
+    return this.queue.some((q) => q.hand === h && q.scene === 'table');
+  }
+
+  /**
+   * O bônus da casa (e o tique) passa na frente das falas não-P1 desta mão que ainda não
+   * começaram: devolve a reserva delas para a fala mais específica caber.
+   */
+  private preempt(s: Signal): boolean {
+    const victims = this.queue.filter((q) => q.priority !== 1 && q.hand === s.hand && q.scene === 'table');
+    if (!victims.length) return false;
+    // só derruba a fila se este sinal tem mesmo quem fale
+    const needShort = this.humanTurnOpen || !!s.short;
+    const speakers = (s.speakers ?? RIVALS).filter((r) => speakerWeight(r, s, this.tracker) > 0);
+    if (!speakers.some((r) => eligibleLines(this.env, s, r, needShort, this.bank.lines).length > 0)) return false;
+    this.dropQueued((q) => victims.includes(q));
+    return true;
   }
 
   /** "Só depois de uma mão em silêncio" (deal, flop). */
@@ -720,6 +793,10 @@ class DialogueDirector implements Director {
     this.opened = true;
     const tags = this.contextTags(ctx);
     const base = { priority: 1 as const, chance: 1, hand: 0, eventI: e.i, phase: 'opening' as const, scene: 'opening' as const };
+    if (e.tournament) {
+      this.openTournament(e, e.tournament, ctx, tags);
+      return;
+    }
     const prizeSig: Signal | null = e.prize && ctx.prize && RIVALS.includes(e.prize.holderId)
       ? { ...base, trigger: 'bountyIntro', holderId: e.prize.holderId, speakers: [e.prize.holderId],
           variant: [ctx.prize.kind, ctx.prize.rarity, `h.${e.prize.holderId}`] }
@@ -738,6 +815,39 @@ class DialogueDirector implements Director {
     if (!slotA.noExchange && this.rng() < (EXCHANGE_CHANCE[slotA.trigger] ?? 0) && this.openExchange(slotA)) return;
     this.openLine({ ...slotA, noExchange: true });
     if (prizeSig) this.openLine(prizeSig);
+  }
+
+  /**
+   * Pôster Poker (03/11/2026): a abertura do torneio da semana. Até 2 balões: a apresentação
+   * do pôster (por raridade ou pelo filme; quem apresenta é o antigo portador da raridade) e
+   * mais um — o pôster que a pessoa apostou, a caixinha da Cobra, o empréstimo, a volta do
+   * Intervalo ou, metade das vezes, uma saudação. O lendário ganha cerimônia (troca de 3
+   * balões, sozinha) sempre que houver uma que a pessoa não ouviu em 48 h. Com o Cassino na
+   * 1ª vez da vida, a explicação dos 8 ases (que chega logo depois) toma o lugar do 2º balão.
+   */
+  private openTournament(e: Extract<PublicEvent, { t: 'matchStarted' }>, t: TournamentConfig, ctx: TableContext, tags: string[]): void {
+    const base = { priority: 1 as const, chance: 1, hand: 0, eventI: e.i, phase: 'opening' as const, scene: 'opening' as const };
+    const intro: Signal = { ...base, trigger: 'tournamentIntro', actorId: RARITY_HOST[t.rarity], variant: [t.rarity, t.effect] };
+    if (!this.hasStory('first_visit')) {
+      if (this.openExchange({ ...base, trigger: 'firstVisit', variant: tags })) this.openLine({ ...intro, noExchange: true });
+      return;
+    }
+    const hasFresh = eligibleExchanges(this.env, intro).some((x) => isFresh(this.env, x.ex.id));
+    const exChance = t.rarity === 'legendary' && hasFresh ? 1 : hasFresh ? (EXCHANGE_CHANCE.tournamentIntro ?? 0) : 0;
+    if (this.rng() < exChance && this.openExchange(intro)) return;
+    const explainAces = t.effect === 'eight_aces' && !this.hasStory('fx.eight_aces');
+    let before: Signal | null = null;
+    let after: Signal | null = null;
+    if (!explainAces) {
+      if (ctx.tournament?.stake === 'poster') after = { ...base, trigger: 'stakePoster', actorId: 'cypher', variant: [t.rarity] };
+      else if (t.cobraItem) after = { ...base, trigger: 'cobraItem', actorId: 'cypher', variant: ['abertura'] };
+      else if (this.opts.afterInterval) before = { ...base, trigger: 'intervalReturn', variant: tags };
+      else if (e.loan > 0) before = { ...base, trigger: 'sapoLoan', variant: tags, actorId: 'bogart' };
+      else if (this.rng() < 0.5) before = { ...base, trigger: 'matchStart', variant: tags };
+    }
+    if (before) this.openLine({ ...before, noExchange: true });
+    this.openLine({ ...intro, noExchange: true });
+    if (after) this.openLine({ ...after, noExchange: true });
   }
 
   private openExchange(sig: Signal): boolean {
@@ -779,6 +889,10 @@ class DialogueDirector implements Director {
     this.creditsDone = true;
     const base = { priority: 1 as const, chance: 1, hand: this.tracker.handNumber, eventI: e.i, phase: 'credits' as const, variant: [] as string[] };
     const loan = this.tracker.loan > 0;
+    if (this.tracker.tournament) {
+      this.tournamentCredits(e, ctx, this.tracker.tournament, base, loan);
+      return;
+    }
     if (e.reason === 'forfeit' || e.reason === 'abandoned') {
       this.enqueueP1({ ...base, trigger: 'playerLeaves', noExchange: true }, 'credits');
       return;
@@ -805,6 +919,36 @@ class DialogueDirector implements Director {
     } else {
       this.pendingTableWinner = true;
     }
+  }
+
+  /**
+   * Pôster Poker (03/11/2026): créditos do torneio. Vitória: 2 balões (a vitória e, se
+   * houver, o pôster apostado que volta, a caixinha da Cobra ou o empréstimo). Derrota:
+   * 1 balão, depois da despedida (o pôster apostado que fica com a Cobra, a caixinha que
+   * ela mostra, o empréstimo ou a derrota). Desistência com pôster apostado: ele fica.
+   */
+  private tournamentCredits(e: Extract<PublicEvent, { t: 'matchEnded' }>, ctx: TableContext, t: TournamentConfig,
+    base: Omit<Signal, 'trigger'>, loan: boolean): void {
+    const stakePoster = ctx.tournament?.stake === 'poster';
+    const p1 = (trigger: Trigger, extra: Partial<Signal> = {}): void => {
+      this.enqueueP1({ ...base, trigger, noExchange: true, ...extra }, 'credits');
+    };
+    if (e.reason === 'forfeit' || e.reason === 'abandoned') {
+      if (stakePoster) p1('stakeLost', { actorId: 'cypher' });
+      else p1('playerLeaves');
+      return;
+    }
+    if (e.humanPlace === 1) {
+      p1('tournamentWon', { variant: [t.rarity] });
+      if (stakePoster) p1('stakeBack', { actorId: 'cypher' });
+      else if (t.cobraItem) p1('cobraItem', { variant: ['ganhou'], speakers: ['cypher'] });
+      else if (loan) p1('loanCredits', { variant: ['premio'] });
+      return;
+    }
+    if (stakePoster) p1('stakeLost', { actorId: 'cypher' });
+    else if (t.cobraItem) p1('cobraItem', { variant: ['perdeu'], speakers: ['cypher'] });
+    else if (loan) p1('loanCredits', { variant: ['perdeu'] });
+    else p1('tournamentLost', { variant: [t.rarity] });
   }
 }
 

@@ -22,7 +22,8 @@ const PosterArt: React.FC<{
   loading?: 'lazy' | 'eager';
   mark?: PosterMark | null;
 }> = ({ filePath, effect = 'none', alt = '', size = 'w342', animated = true, className = '', style, loading = 'lazy', mark }) => {
-  const effectClass = effect === 'negative' ? 'pj-negative' : effect === 'ultra_red' ? 'pj-ultra' : effect === 'holo' ? 'pj-holo' : '';
+  const effectClass =
+    effect === 'negative' ? 'pj-negative' : effect === 'ultra_red' ? 'pj-ultra' : effect === 'holo' ? 'pj-holo' : effect === 'gold' ? 'pj-gold' : '';
   // Quem passa `absolute` posiciona; senão, o pôster é o próprio quadro.
   const position = /\babsolute\b/.test(className) ? '' : 'relative';
   return (
@@ -39,6 +40,16 @@ const PosterArt: React.FC<{
           <span aria-hidden className="pj-holo-foil" />
           <span aria-hidden className="pj-holo-layer" />
           <span aria-hidden className="pj-holo-sheen" />
+        </>
+      )}
+      {/* Brilho dourado (03/11/2026, Pôster Poker): tom de ouro, a lâmina metálica
+          que atravessa o pôster e o friso. Só dos pôsteres do torneio do pôquer. */}
+      {effect === 'gold' && (
+        <>
+          <span aria-hidden className="pj-gold-wash" />
+          <span aria-hidden className="pj-gold-grain" />
+          <span aria-hidden className="pj-gold-sheen" />
+          <span aria-hidden className="pj-gold-rim" />
         </>
       )}
       {mark && <CollectorMark rarity={mark.rarity} serial={mark.serial} size={mark.size} bottom={mark.bottom} />}
@@ -71,7 +82,7 @@ export const EffectTag: React.FC<{ effect: PosterEffect; className?: string }> =
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none ${className}`}
       style={{ background: effect === 'negative' ? '#F3EAD3' : 'rgba(10,14,44,0.85)', boxShadow: `inset 0 0 0 1px ${meta.color}`, color: effect === 'negative' ? '#120D22' : meta.color }}
     >
-      <span className={effect === 'holo' ? 'pj-holo-text' : undefined}>{t(`jackpot.effect.${effect}`)}</span>
+      <span className={effect === 'holo' ? 'pj-holo-text' : effect === 'gold' ? 'pj-gold-text' : undefined}>{t(`jackpot.effect.${effect}`)}</span>
     </span>
   );
 };

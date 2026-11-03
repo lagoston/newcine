@@ -10,7 +10,7 @@
 import type { Card } from '../cards.ts';
 import type { LegalActions, PlayerStatus, RecordedActionType } from '../engine.ts';
 import type { HandKind } from '../evaluator.ts';
-import type { Cue, HandFlags, LevelInfo, MatchMode, PlayerId, PublicEvent, TableView, TiltKind } from '../types.ts';
+import type { Cue, EffectCastData, HandFlags, LevelInfo, MatchMode, PlayerId, PosterEffectId, PublicEvent, Rarity, TableView, TiltKind } from '../types.ts';
 
 export interface SeatShow {
   id: PlayerId;
@@ -44,6 +44,42 @@ export interface SeatShow {
   royal: boolean;
   /** Mostrou as cartas depois de vencer sem showdown. */
   shownAfterFold: boolean;
+  /** Pôster Poker: cartas fechadas que o efeito abriu para todos (1 na Leitura, 2 no 21). */
+  revealed: Card[];
+  /** O tique de Le Chiffre na última aposta (some na próxima ação dele ou no fim da mão). */
+  tell: 'blefe' | 'valor' | null;
+  /** Fichas da casa nesta mão ("+800 da casa"). */
+  bonus: number | null;
+}
+
+/** Efeitos que valem só na mão em que lançam (os outros ficam em vigor na partida). */
+export const HAND_EFFECTS: PosterEffectId[] = ['early_flop', 'double_pot', 'blackjack', 'reveal_one', 'sixth_card'];
+
+/** O torneio na mesa (Pôster Poker, 03/11/2026): o pôster mágico e o que ele lançou. */
+export interface TourneyShow {
+  prizeId: string;
+  rarity: Rarity;
+  effect: PosterEffectId;
+  cobraItem: boolean;
+  /** Quantas vezes o pôster já lançou (a lançada nova dispara o CATCHAW). */
+  casts: number;
+  /** A última lançada, enquanto vale (na mão, ou na partida para os de uma vez só). */
+  active: EffectCastData | null;
+  castHand: number | null;
+  /** A conta do Raymond: a jogada-alvo até alguém fechar. */
+  bounty: { target: string; amount: number; claimed: boolean } | null;
+  /** A opala negra: a carta marcada até alguém levar o pote com ela. */
+  opal: { card: Card; amount: number; claimed: boolean } | null;
+  /** O tique de Le Chiffre vale até esta mão (inclusive). */
+  tellUntil: number | null;
+  /** 8 ases a mais no baralho. */
+  aces: boolean;
+  /** As cartas a mais (para as contas de %). */
+  extra: Card[];
+  /** O flop do telegrama nesta mão (aberto antes das apostas). */
+  earlyFlop: boolean;
+  /** A última paga da casa (chave da animação das fichas voando). */
+  lastBonus: { key: number; playerId: PlayerId; amount: number; effect: PosterEffectId } | null;
 }
 
 export interface TableShow {
@@ -75,6 +111,8 @@ export interface TableShow {
   eliminatedHand: Partial<Record<PlayerId, number>>;
   /** Contador de ações (chave das animações). */
   actionNo: number;
+  /** Pôster Poker: o torneio da semana (null na livre, no treino e no prêmio antigo). */
+  tournament: TourneyShow | null;
 }
 
 const DEFAULT_SEATS: Record<string, number> = { human: 0, bogart: 1, fincher: 2, cypher: 3 };
@@ -84,7 +122,7 @@ function seatBlank(id: PlayerId, seat: number, stack: number): SeatShow {
   return {
     id, seat, stack, bet: 0, status: 'active', cards: [], hasCards: false, isButton: false, isSB: false, isBB: false,
     place: null, tilt: null, last: null, cue: null, cueKey: 0, odds: null, won: null, kind: null, best5: null, royal: false,
-    shownAfterFold: false,
+    shownAfterFold: false, revealed: [], tell: null, bonus: null,
   };
 }
 
@@ -92,8 +130,45 @@ export function emptyTable(mode: MatchMode): TableShow {
   return {
     mode, handNumber: 0, level: DEFAULT_LEVEL, seats: [], board: [], potTotal: 0, pots: [], toActId: null, legal: null,
     thinkingId: null, prize: null, loan: 0, runout: false, showdown: false, winners: [], headsUp: false, winningHand: null,
-    flags: null, status: 'running', ended: null, eliminatedBy: {}, eliminatedHand: {}, actionNo: 0,
+    flags: null, status: 'running', ended: null, eliminatedBy: {}, eliminatedHand: {}, actionNo: 0, tournament: null,
   };
+}
+
+function tourneyBlank(t: { prizeId: string; rarity: Rarity; effect: PosterEffectId; cobraItem: boolean }): TourneyShow {
+  return {
+    prizeId: t.prizeId, rarity: t.rarity, effect: t.effect, cobraItem: !!t.cobraItem, casts: 0, active: null, castHand: null,
+    bounty: null, opal: null, tellUntil: null, aces: false, extra: [], earlyFlop: false, lastBonus: null,
+  };
+}
+
+/** O que uma lançada deixa em vigor (a opala, o alvo do Raymond, o tique, os ases). */
+function withCast(tt: TourneyShow, data: EffectCastData, handNumber: number): TourneyShow {
+  const next: TourneyShow = { ...tt, active: data, castHand: handNumber };
+  if (data.effect === 'hand_bounty') next.bounty = { target: data.target, amount: data.amount, claimed: false };
+  if (data.effect === 'opal') next.opal = { card: data.card, amount: data.amount, claimed: false };
+  if (data.effect === 'tell') next.tellUntil = handNumber + Math.max(1, data.hands) - 1;
+  if (data.effect === 'eight_aces') {
+    next.aces = true;
+    next.extra = data.added ?? [];
+  }
+  return next;
+}
+
+// A retomada redesenha a mesa a partir da view: o efeito em vigor e as cartas abertas.
+function tourneyFromView(view: TableView, base: TableShow, sameHand: boolean): TourneyShow | null {
+  const vt = view.tournament;
+  if (!vt) return base.tournament;
+  let tt: TourneyShow = base.tournament && base.tournament.prizeId === vt.prizeId ? { ...base.tournament } : tourneyBlank(vt);
+  tt.casts = Math.max(tt.casts, vt.casts ?? 0);
+  tt.cobraItem = !!vt.cobraItem;
+  if (vt.active && !tt.active) tt = withCast(tt, vt.active, view.handNumber);
+  if (!sameHand) tt.earlyFlop = false;
+  return tt;
+}
+
+/** Cartas abertas pelo efeito, da view (retomada) para os lugares. */
+export function revealedFromView(view: TableView): Map<PlayerId, Card[]> {
+  return new Map((view.tournament?.revealed ?? []).map((r) => [r.playerId, r.cards]));
 }
 
 /** Mesa a partir da `TableView` (retomada, ou correção no fim de um lote). */
@@ -101,6 +176,7 @@ export function fromView(view: TableView, prev?: TableShow | null): TableShow {
   const base = prev ?? emptyTable(view.mode);
   const prevSeat = (id: PlayerId) => base.seats.find((s) => s.id === id);
   const sameHand = !!prev && prev.handNumber === view.handNumber;
+  const opened = revealedFromView(view);
   const seats: SeatShow[] = [...view.seats]
     .sort((a, b) => a.seat - b.seat)
     .map((v) => {
@@ -117,6 +193,9 @@ export function fromView(view: TableView, prev?: TableShow | null): TableShow {
       s.isBB = v.isBB;
       s.tilt = v.tilt;
       s.place = v.place;
+      const open = opened.get(v.id);
+      if (open) s.revealed = open;
+      else if (!sameHand) s.revealed = [];
       if (v.status === 'eliminated') s.hasCards = false;
       return s;
     });
@@ -135,6 +214,7 @@ export function fromView(view: TableView, prev?: TableShow | null): TableShow {
     prize: view.prize,
     loan: view.loan,
     status: view.status,
+    tournament: tourneyFromView(view, base, sameHand),
   };
 }
 
@@ -156,6 +236,7 @@ export function applyEvent(t0: TableShow, e: PublicEvent): TableShow {
         loan: e.loan,
         prize: e.prize ? { prizeId: e.prize.prizeId, holderId: e.prize.holderId, captured: false } : null,
         seats: [...e.seats].sort((a, b) => a.seat - b.seat).map((s) => seatBlank(s.id, s.seat, s.stack)),
+        tournament: e.tournament ? tourneyBlank(e.tournament) : t.tournament,
       };
     case 'levelUp':
       return { ...t, level: e.level };
@@ -183,6 +264,17 @@ export function applyEvent(t0: TableShow, e: PublicEvent): TableShow {
         winners: [],
         winningHand: null,
         flags: null,
+        tournament: t.tournament
+          ? {
+              ...t.tournament,
+              earlyFlop: false,
+              // Efeito de mão: vale só na mão em que lançou.
+              active:
+                t.tournament.active && HAND_EFFECTS.includes(t.tournament.active.effect) && t.tournament.castHand !== e.handNumber
+                  ? null
+                  : t.tournament.active,
+            }
+          : null,
       };
       return allSeats(t, (s) => {
         const stack = e.stacks[s.id];
@@ -200,6 +292,9 @@ export function applyEvent(t0: TableShow, e: PublicEvent): TableShow {
         s.best5 = null;
         s.royal = false;
         s.shownAfterFold = false;
+        s.revealed = [];
+        s.tell = null;
+        s.bonus = null;
         s.isButton = s.id === e.buttonId;
         s.isSB = s.id === e.sbId;
         s.isBB = s.id === e.bbId;
@@ -239,6 +334,8 @@ export function applyEvent(t0: TableShow, e: PublicEvent): TableShow {
         s.last = { kind: e.action, amount: e.amount, to: e.to, allIn: e.allIn };
         s.cue = e.cue ?? null;
         s.cueKey = no;
+        s.tell = null;
+        if (e.action === 'fold') s.revealed = [];
         return s;
       });
       return { ...t, potTotal: e.potAfter, thinkingId: null, toActId: null, legal: null, actionNo: no };
@@ -256,6 +353,9 @@ export function applyEvent(t0: TableShow, e: PublicEvent): TableShow {
       return { ...t, runout: true };
     }
     case 'street':
+      // O flop do telegrama (Golpe de Mestre) abre antes das apostas do pré-flop:
+      // as apostas da rua continuam na frente de cada um.
+      if (e.early) return { ...t, board: e.board, tournament: t.tournament ? { ...t.tournament, earlyFlop: true } : t.tournament };
       t = allSeats(t, (s) => {
         s.bet = 0;
         if (s.last && !s.last.allIn) s.last = null;
@@ -321,6 +421,31 @@ export function applyEvent(t0: TableShow, e: PublicEvent): TableShow {
       return mapSeat(t, e.playerId, (s) => ({ ...s, tilt: e.on ? e.kind : null }));
     case 'headsUp':
       return { ...t, headsUp: true };
+    case 'effectCast': {
+      const base = t.tournament ?? tourneyBlank({ prizeId: '', rarity: 'common', effect: e.effect, cobraItem: false });
+      return { ...t, tournament: { ...withCast(base, e.data, e.handNumber), casts: Math.max(base.casts + 1, e.castNo) } };
+    }
+    case 'effectReveal': {
+      const open = new Map(e.cards.map((c) => [c.playerId, c.cards]));
+      return allSeats(t, (s) => {
+        const c = open.get(s.id);
+        // Duas cartas = a mão inteira (21, prova do bônus); uma = a Leitura. Sem Set: com
+        // os 8 ases do Cassino a mesma carta pode vir duas vezes.
+        if (c && c.length >= 2) s.revealed = c;
+        else if (c && c.length === 1 && !s.revealed.includes(c[0])) s.revealed = [...s.revealed, c[0]];
+        return s;
+      });
+    }
+    case 'effectBonus': {
+      t = mapSeat(t, e.playerId, (s) => ({ ...s, stack: s.stack + e.amount, bonus: (s.bonus ?? 0) + e.amount }));
+      if (!t.tournament) return t;
+      const tt = { ...t.tournament, lastBonus: { key: (t.tournament.lastBonus?.key ?? 0) + 1, playerId: e.playerId, amount: e.amount, effect: e.effect } };
+      if (e.effect === 'hand_bounty' && tt.bounty) tt.bounty = { ...tt.bounty, claimed: true };
+      if (e.effect === 'opal' && tt.opal) tt.opal = { ...tt.opal, claimed: true };
+      return { ...t, tournament: tt };
+    }
+    case 'tellMark':
+      return mapSeat(t, e.playerId, (s) => ({ ...s, tell: e.mark }));
     case 'matchEnded':
       return {
         ...t,

@@ -33,8 +33,9 @@ export type CoreRequest =
   | { op: 'simulateRest' }
   | { op: 'summarize'; meta: { clientId: string; startedAt: string; endedAt: string } }
   | { op: 'tutorial'; script: TutorialScript; hand: 0 | 1 | 2 }
-  | { op: 'thermo'; hole: Card[]; board: Card[]; opponents: number; dead: Card[] }
-  | { op: 'odds'; hands: { playerId: string; cards: Card[] }[]; board: Card[] };
+  // extra/boardSize (03/11/2026, Pôster Poker): os 8 ases do Cassino e o board de 6 do Onze Homens.
+  | { op: 'thermo'; hole: Card[]; board: Card[]; opponents: number; dead: Card[]; extra?: Card[]; boardSize?: number }
+  | { op: 'odds'; hands: { playerId: string; cards: Card[] }[]; board: Card[]; extra?: Card[]; boardSize?: number };
 
 export interface StepReply {
   state: MatchState;
@@ -114,13 +115,15 @@ export function handleCore(req: CoreRequest): CoreReply {
           iterations: req.board.length >= 3 ? 300 : 600,
           rng: createRng(`thermo:${req.hole.join('')}${req.board.join('')}:${opp}`),
           deadCards: req.dead,
+          extraCards: req.extra,
+          boardSize: req.boardSize,
         });
         return { kind: 'equity', value: r.equity };
       }
       case 'odds': {
         let odds: Record<string, number>;
         try {
-          odds = runoutOdds(req.hands, req.board);
+          odds = runoutOdds(req.hands, req.board, { extraCards: req.extra, boardSize: req.boardSize });
         } catch {
           odds = oddsFallback(req.hands, req.board);
         }

@@ -1,0 +1,289 @@
+// Pacote H (03/11/2026): falas do Pôster Poker. Mesmo formato das outras fontes; os eventos
+// novos (EFFECT_CAST, EFFECT_BONUS, EFFECT_REVEAL, TELL_MARK, TOURNEY_INTRO, TOURNEY_END,
+// COBRA_ITEM, STAKE) estão na tabela `classify` do gen-lines.ts.
+# 14. Pôster Poker: o pôster da semana || 14. Poster Poker: the poster of the week
+% O torneio troca toda quinta. A abertura apresenta o pôster pela raridade ou pelo filme (o lendário ganha cerimônia, em troca de 3 balões). Até 2 balões: a apresentação e mais um (aposta de pôster, caixinha da Cobra, empréstimo ou saudação). Ninguém cita fala de filme ao pé da letra: as falas reconhecem o filme pelo enredo. || The tournament changes every Thursday. The opening presents the poster by rarity or by film (the legendary gets a 3-balloon ceremony). Up to 2 balloons: the presentation plus one more (poster stake, the Snake's box, loan or greeting). Nobody quotes a film line verbatim: the lines recognize the film by its plot.
+
+## Por raridade || By rarity
+PPB01 | bogart | TOURNEY_INTRO | comum | - | P1 | - | Pôster da semana: comum, mas brilha dourado. Quer? Vence a mesa inteira, girino. | Poster of the week: common, but it shines gold. Want it? Win the whole table, tadpole.
+PPC01 | cypher | TOURNEY_INTRO | comum | - | P1 | - | Um pôster comum com brilho de ouro. O mais perigoso dos disfarces. | A common poster with a gold shine. The most dangerous disguise.
+PPF01 | fincher | TOURNEY_INTRO | comum | - | P1 | - | Comum no catálogo, raro na parede de quem vence. É o torneio da semana. | Common in the catalog, rare on the winner's wall. This week's tournament.
+PPB02 | bogart | TOURNEY_INTRO | raro | - | P1 | - | Raro e dourado! Esse eu queria pro meu brejo. Só leva quem ficar por último. | Rare and golden! I wanted it for my swamp. Only the last one standing takes it.
+PPC02 | cypher | TOURNEY_INTRO | raro | - | P1 | - | Raro. Brilha como coisa roubada. Fica com quem sobreviver à mesa. | Rare. Shines like stolen goods. It goes to whoever survives the table.
+PPF02 | fincher | TOURNEY_INTRO | raro | - | P1 | - | Um raro dourado flutuando sobre a mesa. Bons torneios começam assim. | A golden rare floating over the table. Good tournaments start like this.
+PPC03 | cypher | TOURNEY_INTRO | épico | - | P1 | - | Épico. Olhe ele flutuar, criatura. Vai passar a noite me encarando. | Epic. Watch it float, creature. It'll stare at me all night.
+PPB03 | bogart | TOURNEY_INTRO | épico | - | P1 | - | Um épico?! Brilhando em cima da gente?! Eu não consigo jogar com plateia! | An epic?! Glowing above us?! I can't play with an audience!
+PPF03 | fincher | TOURNEY_INTRO | épico | - | P1 | - | Épico, dourado e intrável. Só sai daqui na mão de quem vencer. | Epic, golden, untradeable. It only leaves in the winner's hands.
+PPF04 | fincher | TOURNEY_INTRO | lendário | - | P1 | - | Senhoras, senhores e Crítico: o lendário da semana. Levantem-se. Ele merece. | Ladies, gentlemen and Critic: this week's legendary. Rise. It deserves it.
+PPC04 | cypher | TOURNEY_INTRO | lendário | - | P1 | - | Lendário. Até o meu veneno parou pra olhar. | Legendary. Even my venom stopped to look.
+PPB04 | bogart | TOURNEY_INTRO | lendário | - | P1 | - | Lendário! Tirei o chapéu. Eu não uso chapéu. Tirei mesmo assim. | Legendary! Hat's off. I don't wear a hat. Took it off anyway.
+
+## Pelo filme || By film
+PPF05 | fincher | TOURNEY_INTRO | early_flop | - | P1 | - | Golpe de Mestre: dois vigaristas, um telegrama e um banqueiro enganado. Meu tipo. | The Sting: two grifters, a wire and a fooled banker. My kind of poster.
+PPF06 | fincher | TOURNEY_INTRO | double_pot | - | P1 | - | A Cor do Dinheiro. Um velho mestre da sinuca e um garoto convencido. Conheço os dois. | The Color of Money. An old pool master and a cocky kid. I know them both.
+PPC05 | cypher | TOURNEY_INTRO | blackjack | - | P1 | - | Quebrando a Banca. Estudantes contando cartas em Las Vegas. Inveja pura. | 21. Students counting cards in Las Vegas. Pure envy.
+PPB05 | bogart | TOURNEY_INTRO | hand_bounty | - | P1 | - | Rain Man! O gênio que contava tudo! Eu conto fichas. Só as minhas. | Rain Man! The genius who counted everything! I count chips. Only mine.
+PPB06 | bogart | TOURNEY_INTRO | eight_aces | - | P1 | emote=sweat | Cassino. Las Vegas, máfia, ases demais. Já tô suando e nem deram as cartas. | Casino. Vegas, the mob, too many aces. I'm sweating and nothing's dealt yet.
+PPF07 | fincher | TOURNEY_INTRO | reveal_one | - | P1 | - | Cartas na Mesa. Um estudante de direito e um russo do biscoito. Leitura pura. | Rounders. A law student and a cookie-loving Russian. Pure reading.
+PPC06 | cypher | TOURNEY_INTRO | sixth_card | - | P1 | - | Onze Homens e um Segredo. Um bando, três cassinos e um cofre. Adoro um plano. | Ocean's Eleven. One crew, three casinos, one vault. I love a plan.
+PPC07 | cypher | TOURNEY_INTRO | opal | - | P1 | - | Joias Brutas. Um joalheiro, uma opala e dívida até o pescoço. Meu filme. | Uncut Gems. A jeweler, an opal and debt up to the neck. My movie.
+PPF08 | fincher | TOURNEY_INTRO | tell | - | P1 | - | 007: Cassino Royale. Montenegro, mesa alta e um banqueiro com tique. Clássico. | Casino Royale. Montenegro, high stakes and a banker with a tell. A classic.
+
+## Cerimônias || Ceremonies
+=PPT01 | TOURNEY_INTRO | lendário | P1 | - | A cerimônia | The ceremony
+> fincher | Apaguem as luzes. O lendário da semana vai entrar. | Dim the lights. This week's legendary is coming in.
+> cypher | Dourado, intrável e flutuando em cima de mim. Que noite. | Golden, untradeable and floating over me. What a night.
+> bogart | Alguém me segura. Vou chorar de emoção. Ou de medo. | Someone hold me. I'll cry from emotion. Or fear.
+
+=PPT02 | TOURNEY_INTRO | lendário | P1 | - | Tapete vermelho | Red carpet
+> bogart | Tapete vermelho! Flash! Alguém filma o pôster chegando! | Red carpet! Flashes! Someone film the poster's arrival!
+> fincher | Calma, Crítico. Lendário não corre. Desfila. | Easy, Critic. A legendary doesn't run. It parades.
+> cypher | E vai embora com quem sobrar. Tomara que seja eu. | And it leaves with whoever's left. Let it be me.
+
+=PPT03 | TOURNEY_INTRO | lendário | P1 | - | O brinde | The toast
+> cypher | Um brinde ao lendário da semana. | A toast to this week's legendary.
+> fincher | E a quem achar que vai levá-lo pra casa. | And to whoever thinks they'll take it home.
+> bogart | Eu brindo com refri. Pôster lendário merece refri. | I'll toast with soda. A legendary poster deserves soda.
+
+=PPT04 | TOURNEY_INTRO | tell | P1 | - | Montenegro | Montenegro
+> cypher | Cassino Royale. Um banqueiro, um espião e um tique fatal. | Casino Royale. A banker, a spy and a fatal tell.
+> bogart | Espião? Na mesa? Eu tô sendo espionado? | A spy? At the table? Am I being spied on?
+> fincher | Só pelo pôster, Crítico. Por enquanto. | Only by the poster, Critic. For now.
+
+=PPT05 | TOURNEY_INTRO | épico | P1 | - | A plateia de cima | The audience above
+> bogart | Por que o pôster tá me olhando? | Why is the poster looking at me?
+> cypher | Porque ele sabe quem cai primeiro, sapinho. | Because it knows who falls first, froggy.
+> fincher | Pôster épico tem bom olho. Joguem direito. | An epic poster has a good eye. Play properly.
+
+## A pessoa apostou um pôster || You staked a poster
+% Na entrada, a pessoa pode apostar um pôster da coleção (da mesma raridade) no lugar das fichas. Perdeu, ele fica com a Cobra (na ficção); venceu, volta. || At the entrance, you can stake a poster from your collection (same rarity) instead of chips. Lose, and it stays with the Snake (in the fiction); win, and it comes back.
+PPC08 | cypher | STAKE | abertura | - | P1 | - | Apostou um pôster da coleção? Que delícia. Perdeu, ele mora comigo. | You staked a poster from your collection? Delicious. Lose, and it lives with me.
+PPB07 | bogart | STAKE | abertura | - | P1 | - | Botou um pôster seu na mesa?! Eu nunca apostaria nada meu. Nada! | You put your own poster on the table?! I'd never bet anything of mine. Nothing!
+PPF09 | fincher | STAKE | abertura | - | P1 | - | Apostar a própria coleção. Coragem de colecionador, {estreante}. | Betting your own collection. A collector's nerve, {estreante}.
+PPB08 | bogart | STAKE | abertura; comum | - | P1 | - | Um comum seu? Tá. Ainda assim, eu cuidaria melhor dele. | One of your commons? Fine. I'd still take better care of it.
+PPB09 | bogart | STAKE | abertura; raro | - | P1 | - | Um raro na aposta! Cuidado, girino. A Cobra tá babando. | A rare on the line! Careful, tadpole. The Snake is drooling.
+PPC09 | cypher | STAKE | abertura; épico | - | P1 | - | Um épico na mesa. Já estou escolhendo a parede da toca. | An epic on the table. I'm already picking a wall in my den.
+PPF10 | fincher | STAKE | abertura; lendário | - | P1 | - | Um lendário seu contra o da casa. Isso, sim, é um duelo. | Your legendary against the house's. Now that's a duel.
+PPC10 | cypher | STAKE | perdeu | - | P1 | - | Seu pôster fica comigo. Vou pendurar bem na entrada da toca. | Your poster stays with me. I'll hang it right at the den's entrance.
+PPC11 | cypher | STAKE | perdeu | - | P1 | - | Obrigada pelo pôster. Prometo maltratar com carinho. | Thanks for the poster. I promise to mistreat it lovingly.
+PPB10 | bogart | STAKE | perdeu | - | P1 | - | Seu pôster foi pra Cobra. Eu avisei. Acho. Avisei? | Your poster went to the Snake. I warned you. I think. Did I?
+PPF11 | fincher | STAKE | perdeu | - | P1 | - | O pôster apostado fica na mesa. Na próxima, aposte com a cabeça, {estreante}. | The staked poster stays at the table. Next time, bet with your head, {estreante}.
+PPC12 | cypher | STAKE | voltou | - | P1 | - | Seu pôster volta pra casa. E eu que já tinha escolhido a parede. | Your poster goes home. And I'd already picked the wall.
+PPB11 | bogart | STAKE | voltou | - | P1 | - | Pegou seu pôster de volta e ainda levou o nosso! Dois pôsteres! Que ganância! | You got your poster back and took ours too! Two posters! Such greed!
+PPF12 | fincher | STAKE | voltou | - | P1 | - | Seu pôster volta à coleção. Com uma história a mais. | Your poster returns to the collection. With one more story.
+
+## A caixinha da Cobra || The Snake's little box
+% Em 20% dos torneios a Cobra traz um item secreto numa caixinha fechada. Ela provoca, nunca diz o que é. Vencer leva o item junto com o pôster; perder mostra o que era nos créditos. || In 20% of tournaments the Snake brings a secret item in a closed box. She teases, never says what it is. Winning takes the item along with the poster; losing shows what it was in the credits.
+PPC13 | cypher | COBRA_ITEM | abertura | - | P1 | - | Trouxe uma caixinha. Não, não vou dizer o que tem. Vença e descubra. | I brought a little box. No, I won't say what's inside. Win and find out.
+PPC14 | cypher | COBRA_ITEM | abertura | - | P1 | - | Está vendo a caixa? Ela fica comigo. A não ser que você me vença. | See the box? It stays with me. Unless you beat me.
+PPC15 | cypher | COBRA_ITEM | abertura | - | P1 | - | Um segredo pra quem vencer. Pode chacoalhar. Não pode abrir. | A secret for the winner. You may shake it. You may not open it.
+PPB12 | bogart | COBRA_ITEM | abertura | - | P1 | - | A Cobra trouxe uma caixa. Eu não chego perto. Pode ter outra cobra dentro. | The Snake brought a box. I'm not going near it. Might be another snake inside.
+PPF13 | fincher | COBRA_ITEM | abertura | - | P1 | - | A víbora trouxe um presente. Desconfie de presente de víbora, {estreante}. | The viper brought a gift. Beware of a viper's gifts, {estreante}.
+PPC16 | cypher | COBRA_ITEM | meio | - | P3 | - | A caixa ainda está aqui. E ainda é minha. | The box is still here. And still mine.
+PPC17 | cypher | COBRA_ITEM | meio | - | P3 | - | Ouviu? A caixa fez barulho. Ela gosta de mim. | Hear that? The box rattled. It likes me.
+PPC18 | cypher | COBRA_ITEM | ganhou | - | P1 | - | Leve a caixinha. Abra longe de mim. Eu não aguento ver. | Take the little box. Open it far from me. I can't watch.
+PPC19 | cypher | COBRA_ITEM | ganhou | - | P1 | - | O segredo é seu. Cuide melhor dele do que eu cuidei. | The secret is yours. Guard it better than I did.
+PPC20 | cypher | COBRA_ITEM | perdeu | - | P1 | - | Quer saber o que tinha na caixa? Olhe bem. Agora fica comigo. | Want to know what was in the box? Take a good look. It stays with me.
+PPC21 | cypher | COBRA_ITEM | perdeu | - | P1 | - | Era isto. Bonito, não é? Até a próxima, criatura. | This was it. Pretty, isn't it? Until next time, creature.
+
+=PPT06 | COBRA_ITEM | meio | P3 | - | A caixinha | The little box
+> bogart | O que tem nessa caixa, Cobra? | What's in that box, Snake?
+> cypher | Uma coisa bonita. Pra quem me vencer. | Something pretty. For whoever beats me.
+> fincher | Ou seja: ninguém abre hoje. | In other words: nobody opens it tonight.
+
+# 15. Os efeitos dos pôsteres (o "CATCHAW") || 15. The poster effects (the "CATCHAW")
+% Cada pôster lança o seu efeito em mãos sorteadas. Na primeira lançada da vida da pessoa, um oráculo explica a regra (P1, `explica`, uma vez na vida por efeito: `fx.<efeito>`). Depois disso a lançada vira P2 (1ª da partida, 50%) ou P3 (2ª, 30%), e muitas passam em silêncio: o "CATCHAW" já é o momento. O dono de cada efeito (Raposo: telegrama, dinheiro dobrado, leitura; Cobra: 21, opala, tique; Sapo: Raymond, ases, um a mais) fala mais vezes. As falas nunca dizem a força da mão de quem fala; no Onze Homens, que lança no meio da mão, valem as regras de tell (Sapo calado não fala; Raposo com o anel não fala; na vez da pessoa, só curtas). || Each poster casts its effect on random hands. On a person's first-ever cast, an oracle explains the rule (P1, `explica`, once per lifetime per effect: `fx.<effect>`). After that the cast becomes P2 (1st of the match, 50%) or P3 (2nd, 30%), and many pass in silence: the "CATCHAW" is the moment. Each effect's owner (Fox: the wire, double money, the read; Snake: 21, opal, tell; Frog: Raymond, aces, one more) speaks more often. Lines never state the speaker's hand strength; in Ocean's Eleven, which casts mid-hand, tell rules apply (silent Frog stays silent; the Fox doesn't talk with the ring; on your turn, short lines only).
+
+## Golpe de Mestre · O telegrama || The Sting · The wire
+PPF14 | fincher | EFFECT_CAST | early_flop, explica | - | P1 | - | O telegrama chegou antes da corrida: o flop vira já, antes de qualquer aposta. | The wire came in before the race: the flop turns now, before any betting.
+PPC22 | cypher | EFFECT_CAST | early_flop, explica | - | P1 | - | Golpe de mestre: o flop abre antes das apostas. Todo mundo vê o fim antes do começo. | A master con: the flop opens before the betting. Everyone sees the end first.
+PPB13 | bogart | EFFECT_CAST | early_flop, explica | - | P1 | - | O flop vai abrir antes de alguém apostar?! Isso é golpe! …Golpe em todo mundo, né? | The flop opens before anyone bets?! It's a con! …A con on everyone, right?
+PPF15 | fincher | EFFECT_CAST | early_flop | - | P2 | - | Ragtime ao fundo e o flop na mesa. Já vi este golpe. | Ragtime playing and the flop on the table. I've seen this con.
+PPF16 | fincher | EFFECT_CAST | early_flop | - | P2 | - | Encoste no nariz se entendeu o golpe, {estreante}. | Touch your nose if you got the con, {estreante}.
+PPC23 | cypher | EFFECT_CAST | early_flop | - | P2 | - | O flop antes das apostas. Spoiler oficial. Adoro. | The flop before the betting. An official spoiler. Love it.
+PPC24 | cypher | EFFECT_CAST | early_flop | - | P2 | - | Telegrama adiantado. Agora quem paga sabe o quê. | An early wire. Now whoever calls knows what for.
+PPB14 | bogart | EFFECT_CAST | early_flop | - | P2 | - | Flop adiantado! Eu nem terminei a pipoca! | Early flop! I haven't finished my popcorn!
+PPB15 | bogart | EFFECT_CAST | early_flop | - | P2 | - | Quem mandou esse telegrama? Quero o número. | Who sent that wire? I want their number.
+
+## A Cor do Dinheiro · Dinheiro dobrado || The Color of Money · Double money
+PPF17 | fincher | EFFECT_CAST | double_pot, explica | - | P1 | - | A cor do dinheiro, {estreante}: nesta mão, a casa dobra o pote de quem levar. | The color of money, {estreante}: this hand, the house doubles the winner's pot.
+PPC25 | cypher | EFFECT_CAST | double_pot, explica | - | P1 | - | Dinheiro dobrado: quem vencer esta mão recebe o pote e a casa paga outro igual. | Double money: whoever wins this hand gets the pot, and the house pays it again.
+PPB16 | bogart | EFFECT_CAST | double_pot, explica | - | P1 | - | A casa vai dobrar o pote desta mão?! De graça?! Alguém vê se a casa tá bem. | The house doubles this hand's pot?! For free?! Someone check the house is okay.
+PPF18 | fincher | EFFECT_CAST | double_pot | - | P2 | - | Ensinei um garoto a jogar sinuca. Aprendeu a cobrar em dobro. | I taught a kid to shoot pool once. He learned to charge double.
+PPF19 | fincher | EFFECT_CAST | double_pot | - | P2 | - | Pote em dobro. Jogue como se valesse o dobro. Vale. | Double pot. Play like it's worth twice. It is.
+PPC26 | cypher | EFFECT_CAST | double_pot | - | P2 | - | Verde-feltro em dobro. Minha cor favorita depois do veneno. | Felt green, doubled. My favorite color after venom.
+PPC27 | cypher | EFFECT_CAST | double_pot | - | P2 | - | Pote dobrado. Vamos ver quem gira o taco agora. | Double pot. Let's see who twirls the cue now.
+PPB17 | bogart | EFFECT_CAST | double_pot | - | P2 | - | Em dobro?! Então perder também dói em dobro? | Double?! So losing hurts double too?
+PPB18 | bogart | EFFECT_CAST | double_pot | - | P2 | - | Dinheiro dobrado. Eu guardo o dobro. Lógica perfeita. | Double money. I'll save double. Flawless logic.
+
+## Quebrando a Banca · 21 || 21 · 21
+PPC28 | cypher | EFFECT_CAST | blackjack, explica | - | P1 | - | Vinte e um: no fim da mão as cartas viram, e quem somar mais perto de 21 leva {fichas}. | Twenty-one: at the end of the hand cards flip, and closest to 21 takes {fichas}.
+PPF20 | fincher | EFFECT_CAST | blackjack, explica | - | P1 | - | Blackjack no pôquer: no fim, as cartas viram e a mais perto de 21 ganha {fichas}. | Blackjack at a poker table. At the end all cards flip; closest to 21 wins {fichas}.
+PPB19 | bogart | EFFECT_CAST | blackjack, explica | - | P1 | - | No fim todo mundo mostra as duas e quem somar perto de 21 leva {fichas}? Eu sei somar! | At the end we all show both and closest to 21 gets {fichas}? I can add!
+PPC29 | cypher | EFFECT_CAST | blackjack | - | P2 | - | Mais um, menos um… eu conto cartas. É feio. É lindo. | Plus one, minus one… I count cards. Ugly. Beautiful.
+PPC30 | cypher | EFFECT_CAST | blackjack | - | P2 | - | Uns estudantes quebraram a banca assim. A banca não esqueceu. | Some students broke the bank like this. The bank never forgot.
+PPF21 | fincher | EFFECT_CAST | blackjack | - | P2 | - | Vinte e um. O ás vale um ou onze, como a sorte. | Twenty-one. The ace counts one or eleven, like luck.
+PPF22 | fincher | EFFECT_CAST | blackjack | - | P2 | - | Las Vegas já expulsou gente por contar assim, {estreante}. | Vegas has thrown people out for counting like this, {estreante}.
+PPB20 | bogart | EFFECT_CAST | blackjack | - | P2 | - | Vinte e um? Eu sei contar até vinte. O resto é fé. | Twenty-one? I can count to twenty. The rest is faith.
+PPB21 | bogart | EFFECT_CAST | blackjack | - | P2 | - | Professor, eu juro que não tô contando nada! | Professor, I swear I'm not counting anything!
+
+## Rain Man · A conta do Raymond || Rain Man · Raymond's count
+PPB22 | bogart | EFFECT_CAST | hand_bounty, explica | - | P1 | - | A conta do Raymond! Primeiro a fechar a mão com {alvo} ou melhor leva {fichas}. | Raymond's count! First to finish a hand with {alvo} or better takes {fichas}.
+PPC31 | cypher | EFFECT_CAST | hand_bounty, explica | - | P1 | - | Um gênio dos números marcou: {alvo} ou melhor no fim da mão vale {fichas}. | A numbers genius set it: {alvo} or better at hand's end pays {fichas}.
+PPF23 | fincher | EFFECT_CAST | hand_bounty, explica | - | P1 | - | Raymond fez a conta: o primeiro a fechar {alvo} ou melhor ganha {fichas}. | Raymond did the math: first to end a hand with {alvo} or better wins {fichas}.
+PPB23 | bogart | EFFECT_CAST | hand_bounty | - | P2 | - | Contei os palitos no chão. Duzentos e poucos. Acho. | I counted the toothpicks on the floor. Two hundred-ish. I think.
+PPB24 | bogart | EFFECT_CAST | hand_bounty | - | P2 | - | Vou contar igual o Raymond. Um, dois… perdi a conta. | I'll count like Raymond. One, two… lost count.
+PPC32 | cypher | EFFECT_CAST | hand_bounty | - | P2 | - | Um gênio da conta em Las Vegas. Expulso, claro. Os melhores são. | A counting genius in Vegas. Thrown out, of course. The best always are.
+PPC33 | cypher | EFFECT_CAST | hand_bounty | - | P2 | - | {alvo} vale {fichas}. A conta é simples. A ganância, não. | {alvo} pays {fichas}. The math is simple. Greed isn't.
+PPF24 | fincher | EFFECT_CAST | hand_bounty | - | P2 | - | Seis baralhos de cabeça. Aqui basta uma conta, {estreante}. | Six decks in his head. Here one count is enough, {estreante}.
+PPF25 | fincher | EFFECT_CAST | hand_bounty | - | P2 | - | Números não blefam. Por isso gosto deles. | Numbers don't bluff. That's why I like them.
+
+## Cassino · Os ases do Ace || Casino · Ace's aces
+PPB25 | bogart | EFFECT_CAST | eight_aces, explica | - | P1 | emote=sweat | Oito ases a mais no baralho! E cinco iguais vence até straight flush! Socorro! | Eight extra aces in the deck! And five of a kind beats a straight flush! Help!
+PPC34 | cypher | EFFECT_CAST | eight_aces, explica | - | P1 | - | Os ases do Ace: oito a mais no baralho. Cinco iguais agora vale mais que straight flush. | Ace's aces: eight more in the deck. Five of a kind now beats a straight flush.
+PPF26 | fincher | EFFECT_CAST | eight_aces, explica | - | P1 | - | O baralho ganhou oito ases, dois de cada naipe. Cinco iguais agora vence tudo. | The deck got eight more aces, two of each suit. Five of a kind now beats everything.
+PPB26 | bogart | EFFECT_CAST | eight_aces | - | P2 | emote=sweat | Doze ases na mesa e eu sentado nela. Socorro. | Twelve aces at the table and I'm sitting at it. Help.
+PPB27 | bogart | EFFECT_CAST | eight_aces | - | P2 | - | Eu não trouxe ás nenhum! Revistem a Cobra! | I didn't bring any aces! Search the Snake!
+PPC35 | cypher | EFFECT_CAST | eight_aces | - | P2 | - | Sessenta cartas, doze ases. O caos trouxe baralho próprio. | Sixty cards, twelve aces. Chaos brought its own deck.
+PPC36 | cypher | EFFECT_CAST | eight_aces | - | P2 | - | Ás repetido na mesa. No Tangiers, isso acabava no deserto. | Duplicate aces. At the Tangiers, that ended in the desert.
+PPF27 | fincher | EFFECT_CAST | eight_aces | - | P2 | - | O Ace contava os mirtilos de cada bolinho. Imagine doze ases. | Ace counted the blueberries in every muffin. Imagine twelve aces.
+PPF28 | fincher | EFFECT_CAST | eight_aces | - | P2 | - | Na Las Vegas dos anos 70, ás sobrando era caso de polícia. | In '70s Vegas, spare aces were a police matter.
+
+## Cartas na Mesa · A leitura || Rounders · The read
+PPF29 | fincher | EFFECT_CAST | reveal_one, explica | - | P1 | - | A leitura: uma carta de cada um vira para todos. A sua também, {estreante}. Leia a mesa. | The read: one card from each of us flips for all. Yours too, {estreante}. Read the table.
+PPC37 | cypher | EFFECT_CAST | reveal_one, explica | - | P1 | - | Uma carta de cada jogador vai virar. A sua também, criatura. Todo mundo lê todo mundo. | One card from each player flips. Yours too, creature. Everyone reads everyone.
+PPB28 | bogart | EFFECT_CAST | reveal_one, explica | - | P1 | - | Vão virar uma carta de cada um?! A minha também?! Isso é invasão de privacidade! | They'll flip one card from each of us?! Mine too?! That's an invasion of privacy!
+PPF30 | fincher | EFFECT_CAST | reveal_one | - | P2 | - | Um russo abria o biscoito quando tinha mão. Hoje é mais fácil. | A Russian split his cookie when he had a hand. Tonight is easier.
+PPF31 | fincher | EFFECT_CAST | reveal_one | - | P2 | - | Meia mão na mesa. A outra metade está na cara. | Half a hand on the table. The other half is on the face.
+PPC38 | cypher | EFFECT_CAST | reveal_one | - | P2 | - | Uma carta à mostra. O resto é imaginação. A minha é cruel. | One card showing. The rest is imagination. Mine is cruel.
+PPC39 | cypher | EFFECT_CAST | reveal_one | - | P2 | - | Agora dá pra ler. Pena que eu minto até de carta aberta. | Now you can read. Shame I lie even face up.
+PPB29 | bogart | EFFECT_CAST | reveal_one | - | P2 | - | Ninguém olha pra minha carta! Ela é tímida! | Nobody look at my card! It's shy!
+PPB30 | bogart | EFFECT_CAST | reveal_one | - | P2 | - | Carta aberta é que nem spoiler: estraga a surpresa. | A face-up card is like a spoiler: ruins the surprise.
+
+## Onze Homens e um Segredo · Um a mais no plano || Ocean's Eleven · One more in the crew
+% Lança no meio da mão, logo antes do river: as falas ficam curtas e neutras, e as regras de tell valem. || Casts mid-hand, right before the river: lines stay short and neutral, and tell rules apply.
+PPB31 | bogart | EFFECT_CAST | sixth_card, explica | - | P1 | - | Um a mais no plano! O river vem com duas cartas. Cada um usa as cinco melhores. | One more in the crew! The river brings two cards. Everyone uses their best five.
+PPC40 | cypher | EFFECT_CAST | sixth_card, explica | - | P1 | - | Todo bando esconde um a mais. O river traz duas cartas. Escolha as suas cinco. | Every crew hides one extra. The river brings two cards. Pick your best five.
+PPF32 | fincher | EFFECT_CAST | sixth_card, explica | - | P1 | - | Onze e mais um: o river vem em dobro. Seis na mesa; a melhor mão de cinco vence. | Eleven and one more: a double river. Six on the board; best five wins.
+PPB32 | bogart | EFFECT_CAST | sixth_card | - | P2 | vez | Posso ser o décimo segundo do bando? | Can I be the twelfth one in the crew?
+PPB33 | bogart | EFFECT_CAST | sixth_card | fora | P2 | vez | Duas no river! Ainda bem que eu saí. | Two on the river! Glad I'm out.
+PPC41 | cypher | EFFECT_CAST | sixth_card | - | P2 | vez | Um a mais no plano. Sempre há. | One more in the plan. There always is.
+PPC42 | cypher | EFFECT_CAST | sixth_card | - | P2 | vez | Duas cartas no river. Golpe de cassino. | Two cards on the river. A casino job.
+PPF33 | fincher | EFFECT_CAST | sixth_card | - | P2 | vez | Seis no board. Escolha as suas cinco. | Six on the board. Choose your five.
+PPF34 | fincher | EFFECT_CAST | sixth_card | - | P2 | vez | Mais um no bando. Como nos velhos golpes. | One more in the crew. Like the old heists.
+
+## Joias Brutas · A opala negra || Uncut Gems · The black opal
+PPC43 | cypher | EFFECT_CAST | opal, explica | - | P1 | - | A opala negra é {carta}. Leve um pote com ela na mão e a casa paga {fichas}. | The black opal is {carta}. Win a pot holding it and the house pays {fichas}.
+PPF35 | fincher | EFFECT_CAST | opal, explica | - | P1 | - | A opala da noite é {carta}. Quem levar um pote com ela na mão ganha {fichas}. | Tonight's opal is {carta}. Whoever wins a pot holding it gets {fichas}.
+PPB34 | bogart | EFFECT_CAST | opal, explica | - | P1 | - | A pedra mágica virou {carta}! Ganhou pote com ela na mão, ganha {fichas}! | The magic stone is now {carta}! Win a pot holding it, get {fichas}!
+PPC44 | cypher | EFFECT_CAST | opal | - | P2 | - | Uma opala brilha que nem dívida grande. Linda. | An opal shines like a big debt. Gorgeous.
+PPC45 | cypher | EFFECT_CAST | opal | - | P2 | - | Joalheiro que aposta tudo numa pedra… meu herói. | A jeweler betting it all on one stone… my hero.
+PPF36 | fincher | EFFECT_CAST | opal | - | P2 | - | Um joalheiro apostou tudo numa pedra dessas. Acabou mal. | A jeweler bet everything on a stone like this. It ended badly.
+PPF37 | fincher | EFFECT_CAST | opal | - | P2 | - | {carta}. Brilha. Quase tudo que brilha sai caro. | {carta}. It shines. Almost everything that shines costs dearly.
+PPB35 | bogart | EFFECT_CAST | opal | - | P2 | - | Uma pedra dentro da carta? Isso é joia ou é golpe? | A stone inside a card? Is that a jewel or a con?
+PPB36 | bogart | EFFECT_CAST | opal | - | P2 | - | Vou apostar tudo na opala! Não. Espera. Não vou. | I'm betting it all on the opal! No. Wait. I'm not.
+
+## 007: Cassino Royale · O tique de Le Chiffre || Casino Royale · Le Chiffre's tell
+PPC46 | cypher | EFFECT_CAST | tell, explica | - | P1 | - | O tique de Le Chiffre: por {maos} mãos, cada aposta nossa mostra se é blefe ou valor. | Le Chiffre's tell: for {maos} hands, each of our bets shows bluff or value.
+PPF38 | fincher | EFFECT_CAST | tell, explica | - | P1 | - | Um banqueiro com tique em Montenegro. Por {maos} mãos, nossa aposta mostra blefe ou valor. | A banker with a tell, in Montenegro. For {maos} hands, our bets show bluff or value.
+PPB37 | bogart | EFFECT_CAST | tell, explica | - | P1 | - | Por {maos} mãos o pôster mostra se a gente tá blefando?! Eu nunca blefo! …Né? | For {maos} hands the poster shows when we bluff?! I never bluff! …Right?
+PPC47 | cypher | EFFECT_CAST | tell | - | P2 | - | Até o vilão do espião tinha um tique. O meu é ensaiado. | Even the spy's villain had a tell. Mine is rehearsed.
+PPC48 | cypher | EFFECT_CAST | tell | - | P2 | - | Um olho que chora sangue. Que figurino. | An eye that weeps blood. What a costume.
+PPF39 | fincher | EFFECT_CAST | tell | - | P2 | - | Montenegro de novo. O tique vem junto. | Montenegro again. The tell comes along.
+PPF40 | fincher | EFFECT_CAST | tell | - | P2 | - | Por {maos} mãos, o pôster dedura. Aproveite, {estreante}. | For {maos} hands, the poster snitches. Enjoy it, {estreante}.
+PPB38 | bogart | EFFECT_CAST | tell | - | P2 | - | Eu tenho tique? Que tique? Por que meu olho tá piscando? | I have a tell? What tell? Why is my eye blinking?
+PPB39 | bogart | EFFECT_CAST | tell | - | P2 | - | Um pôster fofoqueiro. Era só o que faltava. | A gossiping poster. Just what I needed.
+
+## O tique na aposta || The tell on a bet
+% Por algumas mãos, cada aposta ou aumento de um oráculo sai com o tique: `blefe` ou `valor`. A marca é pública; o tique é a graça do efeito. Quem apostou só fala com o cue da própria aposta (Sapo: `nervoso` no blefe, `confiante` no valor; Raposo nunca com o anel); quem assiste comenta a marca, e o Sapo só depois de largar. Todas curtas (costuma cair na sua vez). No máximo 2 por partida. || For a few hands, each oracle bet or raise comes with the tell: `blefe` (bluff) or `valor` (value). The mark is public; the tell is the point of the effect. The bettor only speaks with the cue of their own bet (Frog: `nervoso` on a bluff, `confiante` on value; Fox never with the ring); onlookers comment on the mark, the Frog only after folding. All short (it usually lands on your turn). At most 2 per match.
+PPB40 | bogart | TELL_MARK | blefe; ator | nervoso | P3 | vez | Não é tique! É cisco no olho! | It's not a tell! Something's in my eye!
+PPB41 | bogart | TELL_MARK | valor; ator | confiante | P3 | vez | Tremeu de alegria. Só isso. | It twitched with joy. That's all.
+PPB42 | bogart | TELL_MARK | qualquer; ator | - | P3 | vez | Pôster dedo-duro! | Snitch poster!
+PPC49 | cypher | TELL_MARK | qualquer; ator | * | P3 | vez | O pôster me dedurou. Ou ensaiou comigo. | The poster snitched. Or rehearsed with me.
+PPC50 | cypher | TELL_MARK | blefe; ator | * | P3 | vez | Pisquei. Acontece com as melhores. | I blinked. It happens to the best.
+PPC51 | cypher | TELL_MARK | valor; ator | * | P3 | vez | E daí? Pague e veja se é verdade. | So? Call and see if it's true.
+PPF41 | fincher | TELL_MARK | qualquer; ator | - | P3 | vez | Um tique. Até os grandes tinham. | A tell. Even the greats had one.
+PPF42 | fincher | TELL_MARK | qualquer; ator | - | P3 | vez | Anote, {estreante}. Não se repete. | Write it down, {estreante}. Won't happen again.
+PPC52 | cypher | TELL_MARK | blefe; testemunha | - | P3 | vez | Tremeu o olho. Cheiro de blefe. | The eye twitched. Smells like a bluff.
+PPC53 | cypher | TELL_MARK | valor; testemunha | - | P3 | vez | Tique de valor. Que tédio honesto. | A value tell. How dull and honest.
+PPF43 | fincher | TELL_MARK | blefe; testemunha | - | P3 | vez | O pôster diz blefe. Pôster não mente. | The poster says bluff. Posters don't lie.
+PPF44 | fincher | TELL_MARK | valor; testemunha | - | P3 | vez | Valor, diz o tique. Respeite. | Value, says the tell. Respect it.
+PPB43 | bogart | TELL_MARK | blefe; testemunha | fora | P3 | vez | Blefe! Eu vi! E saí antes! | Bluff! I saw it! And I left first!
+PPB44 | bogart | TELL_MARK | valor; testemunha | fora | P3 | vez | Ih, valor. Ainda bem que eu larguei. | Uh-oh, value. Glad I folded.
+
+## A carta aberta pela leitura || The card flipped by the read
+% Cartas na Mesa: depois que a carta de cada um vira, um oráculo pode comentar a SUA carta aberta (nunca a própria). Só quando a lançada passou em silêncio; curtas, P3, no máximo 1 por partida. || Rounders: after everyone's card flips, an oracle may comment on YOUR face-up card (never their own). Only when the cast went silent; short, P3, at most 1 per match.
+PPF45 | fincher | EFFECT_REVEAL | reveal_one; ás | - | P3 | vez | Um ás à mostra. Jogue como quem tem dois. | An ace showing. Play it like you have two.
+PPC54 | cypher | EFFECT_REVEAL | reveal_one; ás | - | P3 | vez | Um ás à mostra. Pena: eu ia adivinhar. | An ace showing. Shame: I wanted to guess.
+PPB45 | bogart | EFFECT_REVEAL | reveal_one; ás | - | P3 | vez | Um ás! Eu vi! Todo mundo viu! Croac! | An ace! I saw it! Everybody saw it! Ribbit!
+PPC55 | cypher | EFFECT_REVEAL | reveal_one; figura | - | P3 | vez | Figura à mostra. Rei, dama e valete mentem. | Face card. Kings, queens, jacks: all liars.
+PPF46 | fincher | EFFECT_REVEAL | reveal_one; figura | - | P3 | vez | Uma figura. Bonita no pôster, cara na mesa. | A face card. Pretty on posters, pricey here.
+PPC56 | cypher | EFFECT_REVEAL | reveal_one; baixa | - | P3 | vez | Carta baixa à mostra. Agora é blefe ou fé. | A low card showing. Now it's bluff or faith.
+PPB46 | bogart | EFFECT_REVEAL | reveal_one; baixa | - | P3 | vez | Carta baixinha! Igual meu orçamento! | A little low card! Like my budget!
+PPF47 | fincher | EFFECT_REVEAL | reveal_one; baixa | - | P3 | vez | Carta baixa. Jogue a outra, {estreante}. | Low card. Play the other one, {estreante}.
+PPF48 | fincher | EFFECT_REVEAL | reveal_one | - | P3 | vez | Sua carta está na mesa. Sua cara também. | Your card is on the table. So is your face.
+PPC57 | cypher | EFFECT_REVEAL | reveal_one | - | P3 | vez | Agora eu vejo metade de você. Basta. | Now I see half of you. That's enough.
+
+## Fichas da casa (bônus) || House chips (bonus)
+% Quem ganhou fala (`ganhou`); os outros oráculos invejam (`outro`); quando é a pessoa, os três reclamam ou cumprimentam (`você`). A opala achada e o alvo do Raymond batido valem uma vez por partida e quase sempre têm fala (P2, 80%); o 21, P2 com 50%; o pote dobrado, P3 com 35%. Um momento por mão: a fala do bônus passa na frente da fala do pote. || The winner speaks (`ganhou`); other oracles envy (`outro`); when it's you, all three grumble or congratulate (`você`). The found opal and Raymond's target hit happen once per match and almost always get a line (P2, 80%); 21, P2 at 50%; the doubled pot, P3 at 35%. One moment per hand: the bonus line goes ahead of the pot line.
+PPB47 | bogart | EFFECT_BONUS | qualquer; ganhou | - | P2 | emote=star | Fichas da casa! De graça! Meu tipo de dinheiro! | House chips! Free! My kind of money!
+PPB48 | bogart | EFFECT_BONUS | qualquer; ganhou | - | P2 | - | Ganhei bônus! Vai pra debaixo da vitória-régia. | I got a bonus! It's going under the lily pad.
+PPC58 | cypher | EFFECT_BONUS | qualquer; ganhou | - | P2 | - | A casa me pagou. Pena. Eu preferia ter roubado. | The house paid me. Shame. I'd rather have stolen it.
+PPC59 | cypher | EFFECT_BONUS | qualquer; ganhou | - | P2 | - | Bônus. Doce como veneno de graça. | A bonus. Sweet as free venom.
+PPF49 | fincher | EFFECT_BONUS | qualquer; ganhou | - | P2 | - | A casa paga. Já paguei a casa muitas vezes. | The house pays. I've paid the house plenty.
+PPF50 | fincher | EFFECT_BONUS | qualquer; ganhou | - | P2 | - | Fichas da casa. Na minha idade, aceito. | House chips. At my age, I'll take them.
+PPB49 | bogart | EFFECT_BONUS | qualquer; você | - | P2 | - | Bônus pra visita?! E pra mim, nada? Crítica: zero. | A bonus for our guest?! And nothing for me? Review: zero.
+PPC60 | cypher | EFFECT_BONUS | qualquer; você | - | P2 | - | A casa gosta de você. Eu, ainda não. | The house likes you. I don't. Yet.
+PPF51 | fincher | EFFECT_BONUS | qualquer; você | - | P2 | - | Fichas da casa. Gaste com juízo, {estreante}. | House chips. Spend them wisely, {estreante}.
+PPB50 | bogart | EFFECT_BONUS | qualquer; outro | - | P2 | - | Por que nunca é pra mim? Nunca! | Why is it never me? Never!
+PPC61 | cypher | EFFECT_BONUS | qualquer; outro | - | P2 | - | Bônus pros outros. Que injusto. Que divertido. | Bonuses for others. How unfair. How fun.
+PPF52 | fincher | EFFECT_BONUS | qualquer; outro | - | P2 | - | A casa escolhe os favoritos. Eu escolho a hora. | The house picks favorites. I pick my moment.
+PPC62 | cypher | EFFECT_BONUS | blackjack; ganhou | - | P2 | - | Vinte e um. Eu contei desde o começo. | Twenty-one. I counted from the start.
+PPB51 | bogart | EFFECT_BONUS | blackjack; ganhou | - | P2 | emote=star | Cheguei perto de 21! Eu sei somar! | I got close to 21! I can add!
+PPF53 | fincher | EFFECT_BONUS | blackjack; ganhou | - | P2 | - | Vinte e um. A banca quebra de vez em quando. | Twenty-one. The bank breaks now and then.
+PPC63 | cypher | EFFECT_BONUS | blackjack; você | - | P2 | - | Mais perto de 21 que eu? Vou recontar. | Closer to 21 than me? I'm recounting.
+PPB52 | bogart | EFFECT_BONUS | blackjack; você | - | P2 | - | A visita sabe somar! Ninguém me avisou! | Our guest can add! Nobody warned me!
+PPF54 | fincher | EFFECT_BONUS | blackjack; você | - | P2 | - | Vinte e um. Os estudantes ficariam orgulhosos. | Twenty-one. The students would be proud.
+PPF55 | fincher | EFFECT_BONUS | double_pot; ganhou | - | P3 | - | Pote em dobro. A cor do dinheiro é esta. | A doubled pot. That's the color of money.
+PPB53 | bogart | EFFECT_BONUS | double_pot; ganhou | - | P3 | emote=star | Em dobro! Vou contar duas vezes! | Double! I'll count it twice!
+PPC64 | cypher | EFFECT_BONUS | double_pot; ganhou | - | P3 | - | Dobrou. Gosto de tudo que dobra. | Doubled. I like anything that doubles.
+PPF56 | fincher | EFFECT_BONUS | double_pot; você | - | P3 | - | Pote dobrado. Belo taco, {estreante}. | A doubled pot. Nice cue work, {estreante}.
+PPC65 | cypher | EFFECT_BONUS | double_pot; você | - | P3 | - | A casa dobrou o seu. Eu dobro a raiva. | The house doubled yours. I'm doubling my spite.
+PPB54 | bogart | EFFECT_BONUS | double_pot; você | - | P3 | - | Dobrou pra visita! Eu pagava pra não ver isso. | Doubled for our guest! I'd pay not to see that.
+PPB55 | bogart | EFFECT_BONUS | hand_bounty; ganhou | - | P2 | emote=star | Bati a conta do Raymond! {fichas}! Contei certinho! | I hit Raymond's count! {fichas}! Counted it right!
+PPC66 | cypher | EFFECT_BONUS | hand_bounty; ganhou | - | P2 | - | {alvo}. A conta fechou pra mim. | {alvo}. The count closed in my favor.
+PPF57 | fincher | EFFECT_BONUS | hand_bounty; ganhou | - | P2 | - | A conta do Raymond. Números não mentem. | Raymond's count. Numbers don't lie.
+PPB56 | bogart | EFFECT_BONUS | hand_bounty; você | - | P2 | - | A visita bateu a conta! Eu nem tinha terminado de contar! | Our guest hit the count! I hadn't even finished counting!
+PPC67 | cypher | EFFECT_BONUS | hand_bounty; você | - | P2 | - | Você fechou a conta. O Raymond aprovaria. Eu, não. | You closed the count. Raymond would approve. I don't.
+PPF58 | fincher | EFFECT_BONUS | hand_bounty; você | - | P2 | - | Conta batida, {estreante}. {fichas} na pilha. | Count hit, {estreante}. {fichas} on your stack.
+PPC68 | cypher | EFFECT_BONUS | opal; ganhou | - | P2 | - | A opala é minha. Brilha melhor enrolada no meu rabo. | The opal is mine. It shines better in my coils.
+PPB57 | bogart | EFFECT_BONUS | opal; ganhou | - | P2 | emote=star | A opala veio pra mim! Primeira joia da minha vida! | The opal came to me! First jewel of my life!
+PPF59 | fincher | EFFECT_BONUS | opal; ganhou | - | P2 | - | A opala. Vai pro bolso do colete, como nos velhos tempos. | The opal. Into the vest pocket, like old times.
+PPC69 | cypher | EFFECT_BONUS | opal; você | - | P2 | - | Você achou a opala. Agora começa a parte em que tudo dá errado. | You found the opal. Now comes the part where everything goes wrong.
+PPB58 | bogart | EFFECT_BONUS | opal; você | - | P2 | - | A opala foi pra visita?! Eu tava olhando pra ela! | The opal went to our guest?! I was staring right at it!
+PPF60 | fincher | EFFECT_BONUS | opal; você | - | P2 | - | A opala é sua, {estreante}. Não aposte tudo nela. | The opal is yours, {estreante}. Don't bet it all on it.
+
+=PPT07 | EFFECT_BONUS | opal; você | P2 | - | A pedra | The stone
+> cypher | A opala foi pra visita. Que comece o desastre. | The opal went to our guest. Let the disaster begin.
+> bogart | Desastre? A visita ganhou {fichas} fichas! | Disaster? Our guest won {fichas} chips!
+> fincher | No filme também começou assim, Crítico. | That's how the movie started too, Critic.
+
+=PPT08 | EFFECT_BONUS | hand_bounty; você | P2 | - | A conta | The count
+> bogart | Alguém conferiu a conta da visita? | Did anyone check our guest's count?
+> fincher | Conferi. Bateu. | I checked. It's right.
+> cypher | O Raymond nunca erra. Já o Sapo… | Raymond never misses. The Frog, though…
+
+# 16. Fim do torneio || 16. End of the tournament
+% Quem vence a mesa leva o pôster da semana (dourado, intrável). Vitória: 2 balões (a vitória e, se houver, o pôster apostado que volta, a caixinha da Cobra ou o empréstimo). Derrota: 1 balão, depois da despedida (o pôster apostado que fica com a Cobra, a caixinha, o empréstimo ou a derrota). || Whoever wins the table takes the poster of the week (golden, untradeable). Win: 2 balloons (the win and, if any, the staked poster coming back, the Snake's box or the loan). Loss: 1 balloon, after the farewell (the staked poster staying with the Snake, the box, the loan or the loss).
+PPB59 | bogart | TOURNEY_END | venceu | - | P1 | - | Venceu o torneio! Leva o pôster. Ele vai brilhar longe de mim. Snif. | You won the tournament! Take the poster. It'll shine far away from me. Sniff.
+PPC70 | cypher | TOURNEY_END | venceu | - | P1 | - | O pôster é seu. Dourado, intrável e ainda com o meu veneno nele. | The poster is yours. Golden, untradeable, and still with my venom on it.
+PPF61 | fincher | TOURNEY_END | venceu | - | P1 | - | Primeiro lugar. O pôster desce da mesa e vai pra sua parede. Merecido. | First place. The poster comes down from the table to your wall. Earned.
+PPB60 | bogart | TOURNEY_END | venceu; épico | - | P1 | - | Um épico pra visita! Minha crítica: cinco estrelas. Doeu escrever. | An epic for our guest! My review: five stars. It hurt to write.
+PPC71 | cypher | TOURNEY_END | venceu; lendário | - | P1 | - | Levou o lendário. Vou espalhar que foi sorte. Não foi. | You took the legendary. I'll tell everyone it was luck. It wasn't.
+PPF62 | fincher | TOURNEY_END | venceu; lendário | - | P1 | - | Um lendário na sua parede. Poucos têm. Menos ainda merecem. Você merece. | A legendary on your wall. Few have one. Fewer deserve it. You do.
+PPB61 | bogart | TOURNEY_END | perdeu | - | P1 | - | O pôster fica flutuando aqui mais um pouco. Volta amanhã, girino. | The poster stays floating here a while longer. Come back tomorrow, tadpole.
+PPC72 | cypher | TOURNEY_END | perdeu | - | P1 | - | O pôster continua lá em cima. Olhando você ir embora. | The poster's still up there. Watching you leave.
+PPF63 | fincher | TOURNEY_END | perdeu | - | P1 | - | O pôster não desceu hoje. Ele espera até quinta. Eu também. | The poster didn't come down tonight. It waits until Thursday. So do I.
+PPF64 | fincher | TOURNEY_END | perdeu | - | P1 | - | Torneio é maratona, {estreante}. A semana ainda não acabou. | A tournament is a marathon, {estreante}. The week isn't over.
+PPC73 | cypher | TOURNEY_END | perdeu; lendário | - | P1 | - | O lendário fica com a mesa. Volte com mais veneno. | The legendary stays with the table. Come back with more venom.
+AN7 | fincher | RECAP | partida de torneio | - | P1 | - | O pôster da semana flutuava sobre a mesa. Ninguém tirava os olhos dele. | The poster of the week floated over the table. Nobody took their eyes off it.

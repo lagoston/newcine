@@ -5,6 +5,7 @@ import type { Card } from '../cards.ts';
 import type { HandKind } from '../evaluator.ts';
 import type { PlayerId, Rarity, RivalId, TitleId } from '../types.ts';
 import type { PokerPrize } from './apiTypes.ts';
+import type { TournamentPrize, TournamentRewards } from './tournament.ts';
 
 export interface CreditsData {
   mode: 'free' | 'bounty';
@@ -25,4 +26,14 @@ export interface CreditsData {
   tomorrow: { rarity: Rarity; carrier: RivalId } | null;
   /** Partida que já tinha terminado ao abrir a mesa: direto aos créditos, sem despedida. */
   instant?: boolean;
+  /**
+   * Pôster Poker (03/11/2026): o torneio da semana. `won` = 1º lugar (leva o pôster);
+   * `rewards` vem da resposta final da Edge (pôster, item da Cobra, o que foi apostado).
+   */
+  tournament?: {
+    prize: TournamentPrize | null;
+    won: boolean;
+    rewards: TournamentRewards | null;
+    stake: { kind: 'chips' | 'poster'; title?: string; filePath?: string; effect?: string } | null;
+  } | null;
 }

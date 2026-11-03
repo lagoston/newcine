@@ -104,6 +104,7 @@ export function useRig(mode: MatchMode, home: PokerHome | null): Rig {
       talk: s.talk,
       view: view ?? blankView(mode),
       reducedMotion: reduced,
+      tournament: e.tournament,
     };
   };
   const table = useTable({

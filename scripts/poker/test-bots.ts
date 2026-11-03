@@ -6,17 +6,17 @@
  */
 import { DEFAULT_DIFFICULTY, DEFAULT_PROFILES, createRng, mergeProfile } from '../../src/lib/poker/index.ts';
 import type { BotView, Card, LegalActions } from '../../src/lib/poker/index.ts';
-import { bucketOf, handClass, isAirShown, isMonster, preflopPct } from '../../src/lib/poker/bots/buckets.ts';
+import { bucketOf, categoryOf, handClass, handInfo, handPercentile, isAirShown, isMonster, preflopPct } from '../../src/lib/poker/bots/buckets.ts';
 import { features, isScareCard, isWet } from '../../src/lib/poker/bots/features.ts';
 import { guardrails, toLegalAmount } from '../../src/lib/poker/bots/guardrails.ts';
 import { emptyCounters, labelsOf, ratesOf } from '../../src/lib/poker/bots/model.ts';
 import { applyMods } from '../../src/lib/poker/bots/policy.ts';
 import type { BotCtx } from '../../src/lib/poker/bots/policy.ts';
 import { decide } from '../../src/lib/poker/bots/decide.ts';
-import { rangeFor } from '../../src/lib/poker/bots/ranges.ts';
+import { ALL_COMBOS, rangeFor, withKnown } from '../../src/lib/poker/bots/ranges.ts';
 import { tellsFor } from '../../src/lib/poker/bots/tells.ts';
 import { setStrictBots } from '../../src/lib/poker/match/runner.ts';
-import { check, eq, finish, makeConfig, playRandomMatch, section } from './lib/harness.ts';
+import { ALL_EFFECTS, check, eq, finish, makeConfig, playRandomMatch, section } from './lib/harness.ts';
 
 const c = (s: string): Card[] => s.split(' ') as Card[];
 
@@ -184,6 +184,47 @@ section('parâmetros do banco mudam o comportamento');
   eq(bets, 0, 'cbetHU = 0 → a Cobra não faz c-bet com ar');
 }
 
+section('Pôster Poker: cartas repetidas, carta virada, flop antecipado e board de 6');
+{
+  const ACES = c('As As Ah Ah Ad Ad Ac Ac');
+  // Com o baralho de 60, a A♠ na mão e na mesa forma par.
+  eq(categoryOf(c('As Kd As 7c 2h')), 1, 'par com carta repetida (A♠ A♠)');
+  eq(handInfo(c('As Kd'), c('As 7c 2h'), ACES).pairPlus, true, 'handInfo vê o par com a repetida');
+  check(['nuts', 'strong', 'medium'].includes(bucketOf(c('As Kd'), c('As 7c 2h'), ACES)), `par de ases com a repetida não é ar (${bucketOf(c('As Kd'), c('As 7c 2h'), ACES)})`);
+  eq(handPercentile(c('Jh Th'), c('9h 8c 2d'), []), handPercentile(c('Jh Th'), c('9h 8c 2d')), 'percentil sem cartas a mais = o de sempre');
+  check(handPercentile(c('Kh Kd'), c('9h 8c 2d'), ACES) > handPercentile(c('Kh Kd'), c('9h 8c 2d')), 'com 8 ases a mais, KK perde para mais mãos');
+  // Carta virada: a faixa fica só com as combinações que a contêm.
+  const r = withKnown(null, ['Qs'], c('Ah Ad'));
+  const hasQ = (cb: readonly Card[]): boolean => cb[0] === 'Qs' || cb[1] === 'Qs';
+  const dead = (cb: readonly Card[]): boolean => cb.includes('Ah') || cb.includes('Ad');
+  check(!!r && r.combos.every((cb, i) => (r.weights![i] > 0) === (hasQ(cb) && !dead(cb))), 'withKnown: só combinações com a carta virada (sem as cartas mortas)');
+  eq(withKnown(null, undefined, []), null, 'sem carta conhecida, a faixa volta como veio');
+  eq(withKnown(null, ['Qs', 'Jd'], []), { combos: [['Qs', 'Jd']] }, 'duas viradas = mão exata');
+  const hasA = (cb: readonly Card[]): boolean => cb[0][0] === 'A' || cb[1][0] === 'A';
+  const prior = { combos: ALL_COMBOS, weights: ALL_COMBOS.map((cb) => (hasA(cb) ? 1 : 0)) };
+  const r2 = withKnown(prior, ['Qs'], []);
+  check(r2!.combos.every((cb, i) => (r2!.weights![i] > 0) === (hasQ(cb) && hasA(cb))), 'withKnown mantém os pesos da leitura');
+  // Pré-flop com o flop aberto (Golpe de Mestre): decide pelo caminho de pós-flop.
+  const early = view({ hole: c('7c 2d'), board: c('7h 7s 2c') });
+  let agg = 0;
+  for (let i = 0; i < 40; i++) {
+    const d = decide(early, ctxFor('cypher', `ef${i}`));
+    check(['fold', 'call', 'raise', 'allIn', 'check'].includes(d.action.type), 'flop antecipado: ação válida');
+    if (d.action.type !== 'fold') agg++;
+    eq(d.bucket, 'nuts', 'flop antecipado: o grupo da mão usa o board (full house = nuts)');
+  }
+  eq(agg, 40, 'flop antecipado: com full house ninguém larga');
+  const junk = view({ hole: c('7c 2d'), board: c('Ah Kh Qs') });
+  let folds = 0;
+  for (let i = 0; i < 40; i++) if (decide(junk, ctxFor('fincher', `ej${i}`)).action.type === 'fold') folds++;
+  check(folds > 20, `flop antecipado: 7-2 sem nada no A-K-Q larga quase sempre (${folds}/40)`);
+  // Board de 6 no river: decisão legal e grupo pela melhor de 8 cartas.
+  const six = view({ hole: c('As Ks'), board: c('Qh Jd 2c 7d 3c Ts'), street: 'river', legal: { street: 'river', toCall: 0, canCheck: true, call: null, bet: { min: 50, max: 2000 }, raise: null, allIn: { amount: 2000, to: 2000, kind: 'bet' } } });
+  const d6 = decide(six, ctxFor('fincher', 'six'));
+  check(d6.action.type !== 'fold', 'board de 6: com a sequência no river não larga');
+  eq(d6.bucket, 'nuts', 'board de 6: sequência ao ás = nuts');
+}
+
 section('decisões sempre legais em partidas inteiras');
 {
   setStrictBots(true);
@@ -193,5 +234,11 @@ section('decisões sempre legais em partidas inteiras');
     n += r.allEvents.filter((e) => e.type === 'actionMeta' && e.bot).length;
   }
   check(n > 1000, `${n} decisões de bot sem ação ilegal`);
+  let nt = 0;
+  for (let m = 0; m < 45; m++) {
+    const r = playRandomMatch(makeConfig({ seed: `tbt-${m}`, effect: ALL_EFFECTS[m % ALL_EFFECTS.length] }), `tbt-h-${m}`);
+    nt += r.allEvents.filter((e) => e.type === 'actionMeta' && e.bot).length;
+  }
+  check(nt > 500, `torneios com os 9 efeitos: ${nt} decisões de bot sem ação ilegal`);
 }
 finish();

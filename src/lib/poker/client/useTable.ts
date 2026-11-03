@@ -9,8 +9,9 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TFunction } from 'i18next';
+import type { Card } from '../cards.ts';
 import type { PlayerAction } from '../engine.ts';
-import type { MatchMode, PublicEvent, TableView } from '../types.ts';
+import type { EffectCastData, MatchMode, PosterEffectId, PublicEvent, TableView } from '../types.ts';
 import { applyEvent, emptyTable, fromView, seatOf, type TableShow } from './display.ts';
 import type { Director, TableContext } from './useDirector.ts';
 import type { MatchClient } from './matchClient.ts';
@@ -19,7 +20,9 @@ import { narrate } from './narrate.ts';
 import type { Lang } from './format.ts';
 import {
   playBet,
+  playCatchaw,
   playCheck,
+  playHouseChips,
   playCutFinal,
   playDeal,
   playElimination,
@@ -49,6 +52,20 @@ function roundOddsTo100(odds: Record<string, number>): Record<string, number> {
   return Object.fromEntries(base.map((b) => [b.id, b.int / 100]));
 }
 
+// Pôster Poker: o board vai a 6 na mão do Onze Homens (o effectCast sai antes do river).
+function boardTarget(t: TableShow): number {
+  const tt = t.tournament;
+  return tt?.active?.effect === 'sixth_card' && tt.castHand === t.handNumber ? 6 : 5;
+}
+
+/** O que as contas de % precisam saber dos efeitos: os 8 ases do Cassino e o board de 6. */
+export function oddsFx(t: TableShow): { extra?: Card[]; boardSize?: number } {
+  const out: { extra?: Card[]; boardSize?: number } = {};
+  if (t.tournament?.extra.length) out.extra = t.tournament.extra;
+  if (boardTarget(t) === 6) out.boardSize = 6;
+  return out;
+}
+
 export type TablePhase = 'idle' | 'playing' | 'human' | 'submitting' | 'ended';
 export interface Batch {
   events: PublicEvent[];
@@ -60,7 +77,19 @@ export interface Banner {
   text?: string;
 }
 
-/** Durações no ritmo Normal, em ms (§7.11 e 05 §3). Rápido e Turbo multiplicam. */
+/** O pôster mágico lançando o efeito (o CATCHAW na tela, Pôster Poker). */
+export interface CastShow {
+  id: number;
+  effect: PosterEffectId;
+  data: EffectCastData;
+  handNumber: number;
+  castNo: number;
+}
+
+/**
+ * Durações de referência, em ms (§7.11 e 05 §3). A velocidade multiplica (settings.ts:
+ * 03/11/2026, o Normal vale 1,4× estes números e a Calma 2×).
+ */
 export const DUR = {
   handStarted: 380,
   blinds: 420,
@@ -82,7 +111,17 @@ export const DUR = {
   prizeCaptured: 1700,
   levelUp: 1300,
   headsUp: 1750,
+  // Pôster Poker (03/11/2026): a aproximação + CATCHAW + o nome do efeito; as cartas
+  // que o efeito vira; as fichas da casa voando; o tique (curto, sai junto da aposta).
+  effectCast: 2300,
+  effectReveal: 1150,
+  effectBonus: 1250,
+  tellMark: 380,
+  earlyFlop: 1350,
 };
+
+/** O CATCHAW nunca passa rápido demais para ler o nome do efeito. */
+const CAST_MIN_MS = 1700;
 
 export interface UseTableOptions {
   mode: MatchMode;
@@ -101,6 +140,8 @@ export interface UseTable {
   table: TableShow;
   phase: TablePhase;
   banner: Banner | null;
+  /** O pôster lançando um efeito agora (some quando a espera termina ou com um toque). */
+  cast: CastShow | null;
   /** Texto para o `aria-live="polite"`. */
   live: string;
   /** Texto para o `aria-live="assertive"` (a vez da pessoa). */
@@ -131,6 +172,8 @@ export function useTable(opts: UseTableOptions): UseTable {
   const [table, setTable] = useState<TableShow>(() => emptyTable(opts.mode));
   const [phase, setPhase] = useState<TablePhase>('idle');
   const [banner, setBanner] = useState<Banner | null>(null);
+  const [cast, setCast] = useState<CastShow | null>(null);
+  const castNo = useRef(0);
   const [live, setLive] = useState('');
   const [alert, setAlert] = useState('');
   const [log, setLog] = useState<{ id: number; text: string; speaker?: string }[]>([]);
@@ -194,14 +237,15 @@ export function useTable(opts: UseTableOptions): UseTable {
   // aplica se a mesa ainda estiver na mesma mão.
   const refreshOdds = useCallback((t: TableShow) => {
     const client = optsRef.current.compute;
-    if (!client || t.board.length >= 5) return;
+    if (!client || t.board.length >= boardTarget(t)) return;
     const hands = t.seats
       .filter((s) => s.cards.length === 2 && (s.status === 'allIn' || s.status === 'active') && s.hasCards)
       .map((s) => ({ playerId: s.id, cards: s.cards }));
     if (hands.length < 2) return;
     const hand = t.handNumber;
     const boardLen = t.board.length;
-    void client.call({ op: 'odds', hands, board: t.board }).then((r) => {
+    const fx = oddsFx(t);
+    void client.call({ op: 'odds', hands, board: t.board, ...fx }).then((r) => {
       if (r.kind !== 'odds' || !aliveRef.current) return;
       const cur = tableRef.current;
       if (cur.handNumber !== hand || cur.board.length !== boardLen || cur.showdown) return;
@@ -267,6 +311,12 @@ export function useTable(opts: UseTableOptions): UseTable {
           ms = DUR.runout;
           break;
         case 'street':
+          if (e.early) {
+            // O telegrama: o flop vira antes das apostas, sem varrer as blinds.
+            playFlop(e.cards.length);
+            ms = DUR.earlyFlop;
+            break;
+          }
           if (before.seats.some((s) => s.bet > 0)) playSweep();
           if (after.runout && e.street === 'river') playRumble();
           else playFlop(e.cards.length);
@@ -308,6 +358,28 @@ export function useTable(opts: UseTableOptions): UseTable {
           playCutFinal();
           showBanner({ kind: 'cutFinal' }, A(DUR.headsUp) + 300);
           ms = DUR.headsUp;
+          break;
+        case 'effectCast': {
+          // Não pausa o Diretor: a fala que explica o efeito sai junto (pedido do H).
+          castNo.current += 1;
+          setCast({ id: castNo.current, effect: e.effect, data: e.data, handNumber: e.handNumber, castNo: e.castNo });
+          playCatchaw();
+          vibrate([40, 30, 90]);
+          await wait(Math.max(CAST_MIN_MS, A(DUR.effectCast)));
+          setCast(null);
+          break;
+        }
+        case 'effectReveal':
+          playFlop(Math.min(4, e.cards.reduce((a, c) => a + c.cards.length, 0)));
+          ms = DUR.effectReveal;
+          break;
+        case 'effectBonus':
+          playHouseChips();
+          if (e.playerId === 'human') vibrate([20, 40, 40]);
+          ms = DUR.effectBonus;
+          break;
+        case 'tellMark':
+          ms = DUR.tellMark;
           break;
         case 'matchEnded':
           if (e.humanPlace === 1) {
@@ -464,6 +536,7 @@ export function useTable(opts: UseTableOptions): UseTable {
     table,
     phase,
     banner,
+    cast,
     live,
     alert,
     log,

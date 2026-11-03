@@ -19,6 +19,11 @@ import { equipPokerMark } from '../jackpot/entryApi';
 import { prizeAction } from '../prizes/registry';
 import type { SpeechItem } from '../../../lib/poker/client/useDirector';
 import SpeechBand from '../table/SpeechBand';
+import PosterArt from '../../posterJackpot/PosterArt';
+import { SerialLine } from '../../posterJackpot/CollectorMark';
+import { posterTitle } from '../../../lib/poker/client/tournament';
+import { loadPosterPokerFont } from '../game/font';
+import '../../../styles/posterPoker.css';
 
 // Os créditos (SPEC §7.6). Derrota: corte de película queimada e o letreiro FIM.
 // Vitória: as luzes acendem e os três aplaudem em preto e branco. As linhas sobem
@@ -55,6 +60,24 @@ const Credits: React.FC<{
   const prizeName = data.prize ? (isPt ? data.prize.name_pt : data.prize.name_en) : '';
   const use = data.captured ? prizeAction(data.prize, { userId, navigate }) : null;
 
+  // Pôster Poker: a vitória mostra o pôster dourado "É seu!"; a derrota com pôster
+  // apostado mostra que ele ficou na mesa; e o item da Cobra, quando houver.
+  const tour = data.tournament ?? null;
+  const tourPoster = tour?.prize ?? null;
+  const tourTitle = tourPoster ? posterTitle(tourPoster, lang) : '';
+  const cobraGot = tour?.won ? tour.rewards?.cobraItem ?? null : null;
+  const cobraSeen = !tour?.won ? tour?.rewards?.cobraRevealed ?? null : null;
+  const rs = tour?.rewards?.stake;
+  const stakeLost = !!tour && !tour.won && tour.stake?.kind === 'poster' && (rs ? rs.kind === 'poster' && rs.lost : true);
+  const stakeArt = rs && rs.kind === 'poster' ? { title: rs.title || tour?.stake?.title || '', filePath: rs.filePath || tour?.stake?.filePath || '', effect: rs.effect } : tour?.stake;
+  useEffect(() => {
+    if (tour) loadPosterPokerFont();
+    if (tour?.won && tourPoster) {
+      const id = window.setTimeout(() => playReveal(tourPoster.rarity, false), 700);
+      return () => window.clearTimeout(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (data.captured && data.prize) {
       const id = window.setTimeout(() => playReveal(data.prize!.rarity, false), 700);
@@ -209,6 +232,49 @@ const Credits: React.FC<{
           </motion.div>
         )}
 
+        {/* Pôster Poker: o pôster dourado é seu (e o item da Cobra, se ela trouxe). */}
+        {tour?.won && tourPoster && (
+          <motion.div
+            className="mx-auto my-3 max-w-[280px] grid justify-items-center gap-2"
+            initial={reduced ? false : { opacity: 0, y: 24, scale: 0.92, rotate: -3 }}
+            animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+            transition={{ duration: 0.7, delay: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
+          >
+            <PosterArt
+              filePath={tourPoster.file_path}
+              effect="gold"
+              size="w342"
+              animated={!reduced}
+              loading="eager"
+              className="w-[150px] aspect-[2/3] rounded-[10px] pp-credit-poster"
+            />
+            <p className="pp-font pp-gold-letters text-[30px] leading-none mt-2">{t('poker.tourney.yours')}</p>
+            <p className="text-[14.5px] font-bold" style={{ color: '#F5EBD3' }}>{tourTitle}</p>
+            <SerialLine rarity={tourPoster.rarity} serial={tourPoster.serial} />
+            <p className="text-[12.5px]" style={{ color: '#c9c2e0' }}>{t('poker.tourney.yoursNote')}</p>
+            {cobraGot && (
+              <p className="pp-cobra-line mt-1">{t('poker.tourney.cobraGot', { item: cobraGot.name })}</p>
+            )}
+          </motion.div>
+        )}
+        {/* Derrota com pôster apostado: ele ficou na mesa (com a Cobra). */}
+        {stakeLost && stakeArt && (
+          <motion.div
+            className="mx-auto my-3 max-w-[280px] grid justify-items-center gap-2"
+            initial={reduced ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            {stakeArt.filePath ? (
+              <PosterArt filePath={stakeArt.filePath} effect={(stakeArt.effect ?? 'none') as never} size="w185" animated={false} className="w-[84px] aspect-[2/3] rounded-[7px] pp-lost-poster" />
+            ) : null}
+            <p className="text-[14.5px] text-center" style={{ color: '#F3EAD3' }}>
+              {t('poker.tourney.stakeLost', { title: stakeArt.title || t('poker.tourney.yourPoster') })}
+            </p>
+          </motion.div>
+        )}
+        {cobraSeen && <p className="pp-cobra-line text-center my-2">{t('poker.tourney.cobraHad', { item: cobraSeen.name })}</p>}
+
         <motion.div
           className="grid gap-2 pt-2"
           initial={reduced ? false : { y: 160, opacity: 0 }}
@@ -232,7 +298,7 @@ const Credits: React.FC<{
           </button>
         )}
         <button type="button" className={data.captured && use ? 'pk-cta-paper' : 'pk-cta-gold'} onClick={onRematch} autoFocus>
-          {data.mode === 'bounty' ? t('poker.credits.freeRematch') : t('poker.credits.rematch')}
+          {data.mode === 'bounty' ? t('poker.credits.casualRematch') : t('poker.credits.rematch')}
         </button>
         <div className="grid grid-cols-2 gap-2">
           <button type="button" className="pk-cta-ghost" onClick={onScoreboard}>{t('poker.credits.scoreboard')}</button>

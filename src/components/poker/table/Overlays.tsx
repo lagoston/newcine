@@ -211,9 +211,10 @@ export const TableMenu: React.FC<{
           ))}
         </span>
       </div>
-      <div className="pk-row">
+      {/* Quatro velocidades (03/11/2026): o seletor ganha a linha inteira. */}
+      <div className="pk-row pk-row-stack">
         <span className="text-[14.5px]">{t('poker.settings.speed')}</span>
-        <span className="pk-seg" role="group" aria-label={t('poker.settings.speed')}>
+        <span className="pk-seg pk-seg-full" role="group" aria-label={t('poker.settings.speed')}>
           {SPEEDS.map((k) => (
             <button key={k} type="button" aria-pressed={settings.speed === k} onClick={() => setPokerSettings({ speed: k })}>
               {t(`poker.settings.${k}`)}

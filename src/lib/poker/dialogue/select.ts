@@ -17,11 +17,20 @@ import type { DialogueBank, Exchange, Line, LineRequires, Role, TableContext, Tr
 export const TALK: Record<string, number> = { cypher: 1.0, bogart: 0.9, fincher: 0.6 };
 
 /** Gatilhos em que a fala mais específica ganha (abertura, prêmio, recapitulação…). */
-const TIERED = new Set<Trigger>(['matchStart', 'bountyIntro', 'recap', 'blindsUp', 'rankUp', 'intervalReturn', 'sapoLoan']);
+const TIERED = new Set<Trigger>(['matchStart', 'bountyIntro', 'recap', 'blindsUp', 'rankUp', 'intervalReturn', 'sapoLoan',
+  'tournamentWon', 'tournamentLost']);
+/**
+ * Pôster Poker (03/11/2026): nos créditos do torneio a fala mais específica (a do lendário)
+ * ganha também entre falantes, não só dentro do baralho de cada um.
+ */
+const CROSS_TIERED = new Set<Trigger>(['tournamentWon', 'tournamentLost']);
 /** Variantes que não contam como "específicas" (valem quase sempre). */
 const LOW_TAGS = new Set(['livre', 'valendo', 'pequeno']);
-/** Limites por partida (§7.5: Nota do Sapo até 2, Coração da Cobra e Chapéu do Raposo até 1). */
-export const CAPS: Record<string, number> = { rateMove: 2, beautifulError: 1, hat: 1, lesson: 1 };
+/**
+ * Limites por partida (§7.5: Nota do Sapo até 2, Coração da Cobra e Chapéu do Raposo até 1).
+ * Pôster Poker (03/11/2026): o tique de Le Chiffre até 2 e o comentário da carta aberta até 1.
+ */
+export const CAPS: Record<string, number> = { rateMove: 2, beautifulError: 1, hat: 1, lesson: 1, tellMark: 2, effectReveal: 1 };
 
 const NAME_TAG: Record<string, string> = { bogart: 'Sapo', cypher: 'Cobra', fincher: 'Raposo' };
 
@@ -76,7 +85,8 @@ export function hasStory(env: Pick<SelectEnv, 'ctx' | 'touched'>, key: string): 
   return env.touched.has(key) || !!env.ctx.story[key];
 }
 
-function fresh(env: SelectEnv, id: string): boolean {
+/** A fala (ou troca) não tocou nas últimas 48 h neste aparelho. */
+export function isFresh(env: Pick<SelectEnv, 'lru' | 'now'>, id: string): boolean {
   const at = env.lru.get(id);
   return at === undefined || env.now - at > LRU_WINDOW_MS;
 }
@@ -155,7 +165,8 @@ function cueOk(line: Line, state: Cue | 'out', isActorOfAction: boolean, sigCue:
 }
 
 function capKeyOf(line: Line): string | undefined {
-  if (line.on === 'rateMove' || line.on === 'beautifulError' || line.on === 'lesson') return line.on;
+  if (line.on === 'rateMove' || line.on === 'beautifulError' || line.on === 'lesson' || line.on === 'tellMark'
+    || line.on === 'effectReveal') return line.on;
   if (line.emote === 'hat') return 'hat';
   return undefined;
 }
@@ -190,6 +201,7 @@ export function eligibleLines(env: SelectEnv, sig: Signal, s: RivalId, needShort
     if (line.speaker !== s || line.on !== sig.trigger) continue;
     if (!roles.has(line.role)) continue;
     if (line.variant && !line.variant.every((v) => tags.has(v))) continue;
+    if (sig.needVariant && !line.variant?.includes(sig.needVariant)) continue;
     if (!cueOk(line, state, isActorOfAction, sig.cue)) continue;
     if (!requiresOk(env, line.requires, sig)) continue;
     if (!onceOk(env, line.id, line.once, line.story)) continue;
@@ -198,7 +210,7 @@ export function eligibleLines(env: SelectEnv, sig: Signal, s: RivalId, needShort
     const raw = textOf(env.bank, line.id, line.pt, ctx.lang);
     if (raw === null) continue;
     if (needShort && measure(raw, ctx.lang) > SHORT_CHARS) continue;
-    const text = renderText(raw, varsFor(env, s, sig.mao, { target: sig.victimIds?.[0] }));
+    const text = renderText(raw, varsFor(env, s, sig.mao, { target: sig.victimIds?.[0], ...sig.vars }));
     if (text === null) continue;
     out.push({ line, speaker: s, text, capKey });
   }
@@ -211,7 +223,7 @@ export function drawFromDeck(env: SelectEnv, cands: Picked[], trigger: Trigger):
   const s = cands[0].speaker;
   const key = `${s}|${trigger}`;
   let pool = cands;
-  const freshOnes = pool.filter((c) => fresh(env, c.line.id));
+  const freshOnes = pool.filter((c) => isFresh(env, c.line.id));
   if (freshOnes.length) pool = freshOnes;
   if (TIERED.has(trigger)) {
     const top = Math.max(...pool.map((c) => specificity(c.line.variant)));
@@ -247,7 +259,16 @@ export function pickLine(env: SelectEnv, sig: Signal, opts: { needShort?: boolea
     const cands = eligibleLines(env, sig, s, !!opts.needShort, pool);
     if (cands.length) options.push({ s, w, cands });
   }
-  const chosen = weightedPick(options, (o) => o.w, env.rng);
+  let pickFrom = options;
+  if (CROSS_TIERED.has(sig.trigger) && options.length > 1) {
+    const spec = (o: { cands: Picked[] }): number => {
+      const fresh = o.cands.filter((c) => isFresh(env, c.line.id));
+      return fresh.length ? Math.max(...fresh.map((c) => specificity(c.line.variant))) : -1;
+    };
+    const top = Math.max(...options.map(spec));
+    if (top >= 0) pickFrom = options.filter((o) => spec(o) === top);
+  }
+  const chosen = weightedPick(pickFrom, (o) => o.w, env.rng);
   if (!chosen) return null;
   return drawFromDeck(env, chosen.cands, sig.trigger);
 }
@@ -275,7 +296,7 @@ export function eligibleExchanges(env: SelectEnv, sig: Signal, filter?: (x: Exch
     let ok = true;
     ex.parts.forEach((p, i) => {
       const raw = textOf(env.bank, ex.id, p.pt, ctx.lang, i);
-      const t = raw === null ? null : renderText(raw, varsFor(env, p.speaker, sig.mao, { target: sig.victimIds?.[0] }));
+      const t = raw === null ? null : renderText(raw, varsFor(env, p.speaker, sig.mao, { target: sig.victimIds?.[0], ...sig.vars }));
       if (t === null) ok = false;
       else texts.push(t);
     });
@@ -287,7 +308,7 @@ export function eligibleExchanges(env: SelectEnv, sig: Signal, filter?: (x: Exch
 export function pickExchange(env: SelectEnv, sig: Signal, filter?: (x: Exchange) => boolean): PickedExchange | null {
   const all = eligibleExchanges(env, sig, filter);
   if (!all.length) return null;
-  const freshOnes = all.filter((x) => fresh(env, x.ex.id));
+  const freshOnes = all.filter((x) => isFresh(env, x.ex.id));
   return weightedPick(freshOnes.length ? freshOnes : all, () => 1, env.rng);
 }
 

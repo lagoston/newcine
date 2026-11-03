@@ -1,6 +1,15 @@
 /**
  * poker-bounty — a lógica da partida com prêmio (SPEC §4.7), sem Deno nem rede.
  *
+ * 03/11/2026 (tarde, pacote F — Pôster Poker, proto 2): o prêmio do dia virou o
+ * TORNEIO DA SEMANA. O start leva `week`, `prizeId` e `stake` (fichas ou um
+ * pôster da coleção apostado) e chama poker_tournament_prepare/open; a partida
+ * nasce com `prize: null` e `tournament` (o efeito do pôster, a raridade e se a
+ * Cobra trouxe item — o item em si nunca sai do servidor antes do fim). O fim
+ * (1º lugar → pôster gold + item da Cobra; senão perde o pôster apostado) é
+ * decidido no banco (poker_bounty_step → poker_tournament_settle), que devolve
+ * `rewards` na resposta final.
+ *
  * 03/11/2026 (pacote C): o index.ts cuida de HTTP, CORS e do uid (auth.getUser);
  * aqui só entra o corpo já lido, o uid e as dependências (rpc com a service
  * role e o relógio). Assim o mesmo código roda no Deno (Edge) e no Node
@@ -34,10 +43,12 @@ import type {
   OppCounters,
   PlayerId,
   PokerSettings,
+  PosterEffectId,
   PublicEvent,
   Rarity,
   RivalId,
   TableView,
+  TournamentConfig,
 } from './_engine/types.ts';
 import { ENGINE_HASH } from './_engine/ENGINE_HASH.ts';
 
@@ -57,10 +68,21 @@ type Row = Record<string, unknown>;
 
 const SEATS: Record<PlayerId, number> = { human: 0, bogart: 1, fincher: 2, cypher: 3 };
 const STATE_VERSION = 1;
+// Protocolo deste handler. Um start de proto 1 (o prêmio do dia, sem week/stake) não
+// tem como ser lido: responde 426 antes de qualquer cobrança. O mínimo de verdade
+// mora em poker_settings.min_proto (o prepare/open também conferem).
+const PROTO = 2;
 const RECENT_STALE = 20;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const PRIZE_RE = /^[a-z0-9-]{2,48}$/;
+const POSTER_EFFECTS: readonly PosterEffectId[] = [
+  'early_flop', 'double_pot', 'blackjack', 'hand_bounty', 'eight_aces', 'reveal_one', 'sixth_card', 'opal', 'tell',
+];
+// Efeitos de pôster da coleção que podem ir de aposta (o banco recusa gold e exclusivos).
+const STAKE_EFFECTS = ['none', 'holo', 'negative', 'ultra_red', 'gold'];
+// Campos numéricos de EffectParams que o banco pode sobrepor (poker_settings.effects).
+const EFFECT_INT_KEYS = ['casts', 'gapHands', 'amount', 'hands', 'spread'];
 
 const asRow = (v: unknown): Row | null => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Row) : null);
 const ok = (body: Row): Reply => ({ status: 200, body: { ok: true, ...body } });
@@ -107,10 +129,36 @@ function parseAction(v: unknown): PlayerAction | null {
   }
 }
 
+/**
+ * poker_settings.effects → PokerSettings.effects (só ids e campos conhecidos, inteiros
+ * dentro de limites). Vazio/torto = undefined: valem os DEFAULT_EFFECTS do motor.
+ */
+function effectsFrom(raw: unknown): PokerSettings['effects'] | undefined {
+  const fx = asRow(raw);
+  if (!fx) return undefined;
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const id of POSTER_EFFECTS) {
+    const row = asRow(fx[id]);
+    if (!row) continue;
+    const p: Record<string, unknown> = {};
+    for (const k of EFFECT_INT_KEYS) {
+      const v = row[k];
+      if (isInt(v) && v >= 0 && v <= 100_000) p[k] = v;
+    }
+    const fh = row.firstHand;
+    if (Array.isArray(fh) && fh.length === 2 && fh.every((n) => isInt(n) && n >= 0 && n <= 500) && fh[0] <= fh[1]) {
+      p.firstHand = [fh[0], fh[1]];
+    }
+    if (Object.keys(p).length > 0) out[id] = p;
+  }
+  return Object.keys(out).length > 0 ? (out as PokerSettings['effects']) : undefined;
+}
+
 function settingsFrom(raw: unknown): PokerSettings {
   const s = asRow(raw);
   if (!s) return DEFAULT_SETTINGS;
   const levels = Array.isArray(s.levels) && s.levels.length > 0 ? (s.levels as [number, number, number][]) : DEFAULT_SETTINGS.levels;
+  const effects = effectsFrom(s.effects);
   return {
     startStack: isInt(s.start_stack) ? s.start_stack : DEFAULT_SETTINGS.startStack,
     handsPerLevel: isInt(s.hands_per_level) ? s.hands_per_level : DEFAULT_SETTINGS.handsPerLevel,
@@ -119,7 +167,29 @@ function settingsFrom(raw: unknown): PokerSettings {
     maxAttempts: isInt(s.max_attempts) ? s.max_attempts : DEFAULT_SETTINGS.maxAttempts,
     carrierByRarity: (asRow(s.carrier_by_rarity) as PokerSettings['carrierByRarity'] | null) ?? DEFAULT_SETTINGS.carrierByRarity,
     difficulty: (asRow(s.difficulty) as PokerSettings['difficulty'] | null) ?? DEFAULT_SETTINGS.difficulty,
+    ...(effects ? { effects } : {}),
   };
+}
+
+/** A aposta do start: {kind:'chips'} | {kind:'poster', itemId, effect} → o formato do banco. */
+function parseStake(v: unknown): Row | null {
+  const st = asRow(v);
+  if (!st) return null;
+  if (st.kind === 'chips') return { kind: 'chips' };
+  if (st.kind === 'poster' && isInt(st.itemId) && st.itemId > 0 && st.itemId < 1_000_000
+      && typeof st.effect === 'string' && STAKE_EFFECTS.includes(st.effect)) {
+    return { kind: 'poster', item_id: st.itemId, effect: st.effect };
+  }
+  return null;
+}
+
+/** A aposta do banco ({kind, amount} | {kind, item_id, effect}) no formato do protocolo. */
+function apiStake(v: unknown): Row | null {
+  const st = asRow(v);
+  if (!st) return null;
+  if (st.kind === 'chips') return { kind: 'chips', amount: isInt(st.amount) ? st.amount : 0 };
+  if (st.kind === 'poster') return { kind: 'poster', itemId: st.item_id, effect: st.effect };
+  return null;
 }
 
 /** Perfis = padrão do código + poker_bot_params (filtrado por LIMITS). Congelados na partida. */
@@ -214,6 +284,17 @@ interface Loaded {
   carrier: string;
   stars: number;
   loan: boolean;
+  rarity: string;
+  // Pôster Poker (null nas partidas da fase 1).
+  week: string | null;
+  effect_id: string | null;
+  tournament_prize: Row | null;
+  stake: Row | null;
+  stake_status: string | null;
+  cobra_item: boolean;
+  rewards: Row | null;
+  attempts_used: number | null;
+  max_attempts: number | null;
 }
 
 async function load(deps: Deps, uid: string, matchId: string | null): Promise<Loaded | null> {
@@ -296,16 +377,88 @@ function extraOf(r: Row): Row {
 // Operações
 // ---------------------------------------------------------------------------
 
+/** O bloco `tournament` das respostas de start e resume (sem o item da Cobra: só se há um). */
+function tournamentInfo(m: {
+  week: unknown; prize: unknown; effect: unknown; rarity: unknown; cobraItem: boolean; stake: unknown;
+  stakeStatus?: unknown; attemptsUsed: unknown; maxAttempts: unknown;
+}): Row {
+  return {
+    week: m.week,
+    prize: m.prize ?? null,
+    effect: m.effect,
+    rarity: m.rarity,
+    cobraItem: m.cobraItem,
+    stake: apiStake(m.stake),
+    ...(m.stakeStatus !== undefined ? { stakeStatus: m.stakeStatus } : {}),
+    attemptsUsed: m.attemptsUsed ?? null,
+    maxAttempts: m.maxAttempts ?? null,
+  };
+}
+
+async function opResume(body: Row, uid: string, deps: Deps, duplicate = false): Promise<Reply> {
+  const matchId = body.matchId;
+  if (matchId !== undefined && (typeof matchId !== 'string' || !UUID_RE.test(matchId))) return fail(400, 'bad_request');
+  let m = await load(deps, uid, typeof matchId === 'string' ? matchId : null);
+  if (!m) return fail(404, 'none');
+  if (m.status === 'active' && m.expired) {
+    await abandonExpired(deps, uid, m);
+    m = (await load(deps, uid, m.id)) ?? m;
+  }
+  const loan = isInt(m.state?.config?.loan) ? m.state.config.loan : m.loan ? DEFAULT_SETTINGS.loanAmount : 0;
+  const isTournament = typeof m.week === 'string';
+  return ok({
+    ...(duplicate ? { duplicate: true } : {}),
+    matchId: m.id,
+    seq: m.seq,
+    seedHash: m.seed_hash,
+    prize: m.prize,
+    carrier: isTournament ? null : m.carrier,
+    stars: m.stars,
+    loan,
+    view: m.public_view,
+    recent: tail(m.events_tail, 60),
+    ...(isTournament
+      ? {
+          tournament: tournamentInfo({
+            week: m.week,
+            prize: m.tournament_prize,
+            effect: m.effect_id,
+            rarity: m.rarity,
+            cobraItem: m.cobra_item === true,
+            stake: m.stake,
+            stakeStatus: m.stake_status,
+            attemptsUsed: m.attempts_used,
+            maxAttempts: m.max_attempts,
+          }),
+        }
+      : {}),
+    ...(m.status !== 'active' && m.result ? { result: m.result } : {}),
+    ...(m.status !== 'active' && isTournament && m.rewards ? { rewards: m.rewards } : {}),
+  });
+}
+
 async function opStart(body: Row, uid: string, deps: Deps, retry: number): Promise<Reply> {
-  const day = body.day;
+  if ((body.proto as number) < PROTO) return fail(426, 'update_required', { min_proto: PROTO });
+  const week = body.week;
   const prizeId = body.prizeId;
-  if (typeof day !== 'string' || !DAY_RE.test(day) || typeof prizeId !== 'string' || !PRIZE_RE.test(prizeId)) {
+  if (typeof week !== 'string' || !DAY_RE.test(week) || typeof prizeId !== 'string' || !PRIZE_RE.test(prizeId)) {
     return fail(400, 'bad_request');
   }
-  const prep = asRow(await deps.rpc('poker_bounty_prepare', { p_uid: uid, p_day: day, p_prize_id: prizeId, p_proto: body.proto }));
+  const idem = body.idem;
+  if (idem !== undefined && (typeof idem !== 'string' || !UUID_RE.test(idem))) return fail(400, 'bad_request');
+  const stake = parseStake(body.stake);
+  if (!stake) return fail(400, 'stake_invalid', { reason: 'bad' });
+
+  const prep = asRow(
+    await deps.rpc('poker_tournament_prepare', {
+      p_uid: uid, p_week: week, p_prize_id: prizeId, p_stake: stake, p_proto: body.proto, p_idem: idem ?? null,
+    }),
+  );
   if (!prep) return fail(500, 'server_error');
   if (prep.ok !== true) {
     const code = String(prep.code ?? 'server_error');
+    // O mesmo start de novo (rede): a partida já aberta, sem cobrar outra vez.
+    if (code === 'duplicate' && typeof prep.matchId === 'string') return opResume({ matchId: prep.matchId }, uid, deps, true);
     // Partida esquecida há mais de 24 h (o cron ainda não passou): encerra e tenta de novo.
     if (code === 'active_exists' && prep.expired === true && retry === 0) {
       const m = await load(deps, uid, typeof prep.matchId === 'string' ? prep.matchId : null);
@@ -315,13 +468,18 @@ async function opStart(body: Row, uid: string, deps: Deps, retry: number): Promi
     return fail(isInt(prep.status) ? prep.status : 500, code, extraOf(prep));
   }
 
+  const rarity = String(prep.rarity) as Rarity;
+  const effect = String(prep.effect_id) as PosterEffectId;
+  if (!POSTER_EFFECTS.includes(effect)) return fail(500, 'server_error');
+  // Interno: vai para o open e nunca para o aparelho (o segredo da Cobra).
+  const cobraItemId = typeof prep.cobra_item_id === 'string' ? prep.cobra_item_id : null;
   const seed = newSeed();
   const seedHash = await sha256Hex(seed);
-  const rarity = String(prep.rarity) as Rarity;
   const settings = settingsFrom(prep.settings);
   const { profiles, versions } = profilesFrom(prep.bot_params);
   const difficulty = (asRow(prep.difficulty) as DifficultyRow | null) ?? settings.difficulty[rarity] ?? DEFAULT_DIFFICULTY[rarity];
   const loan = isInt(prep.loan) ? prep.loan : 0;
+  const tournament: TournamentConfig = { prizeId: String(prep.prize_id), rarity, effect, cobraItem: cobraItemId !== null };
   const cfg: MatchConfig = {
     mode: 'bounty',
     seed,
@@ -331,22 +489,28 @@ async function opStart(body: Row, uid: string, deps: Deps, retry: number): Promi
     paramsVersion: versions,
     difficulty,
     loan,
-    prize: { prizeId: String(prep.prize_id), carrierId: String(prep.carrier) as RivalId, rarity },
+    // Torneio: sem portador nem captura; quem vence a mesa leva o pôster (o banco concede).
+    prize: null,
     memory: memoryFrom(prep.memory),
+    tournament,
   };
   const step = createMatch(cfg);
   const events = withSeedHash(toPublicEvents(step.events, 'human'), seedHash);
   const view = tableView(step.state, 'human');
 
   const opened = asRow(
-    await deps.rpc('poker_bounty_open', {
+    await deps.rpc('poker_tournament_open', {
       p_uid: uid,
-      p_day: day,
+      p_week: prep.week,
+      p_day: prep.day,
       p_attempt: prep.attempt,
       p_prize_id: prep.prize_id,
-      p_carrier: prep.carrier,
       p_rarity: prep.rarity,
+      p_effect_id: prep.effect_id,
       p_loan: loan,
+      p_stake: prep.stake,
+      p_cobra_item_id: cobraItemId,
+      p_idem: idem ?? null,
       p_seed: seed,
       p_seed_hash: seedHash,
       p_engine_hash: ENGINE_HASH,
@@ -360,9 +524,11 @@ async function opStart(body: Row, uid: string, deps: Deps, retry: number): Promi
   );
   if (!opened) return fail(500, 'server_error');
   if (opened.ok !== true) {
-    // Algo mudou entre o prepare e o open (tentativa, empréstimo): refaz uma vez.
-    if (opened.code === 'state_changed' && retry === 0) return opStart(body, uid, deps, retry + 1);
-    return fail(isInt(opened.status) ? opened.status : 500, String(opened.code ?? 'server_error'), extraOf(opened));
+    const code = String(opened.code ?? 'server_error');
+    if (code === 'duplicate' && typeof opened.matchId === 'string') return opResume({ matchId: opened.matchId }, uid, deps, true);
+    // Algo mudou entre o prepare e o open (tentativa, empréstimo, preço, aposta): refaz uma vez.
+    if (code === 'state_changed' && retry === 0) return opStart(body, uid, deps, retry + 1);
+    return fail(isInt(opened.status) ? opened.status : 500, code, extraOf(opened));
   }
   return ok({
     matchId: opened.match_id,
@@ -371,11 +537,21 @@ async function opStart(body: Row, uid: string, deps: Deps, retry: number): Promi
     attempt: prep.attempt,
     loan,
     prize: prep.prize,
-    carrier: prep.carrier,
+    carrier: null,
     stars: prep.stars,
     events,
     view,
     tickets: opened.tickets,
+    tournament: tournamentInfo({
+      week: prep.week,
+      prize: prep.tournament_prize,
+      effect,
+      rarity,
+      cobraItem: cobraItemId !== null,
+      stake: opened.stake,
+      attemptsUsed: opened.attempts_used,
+      maxAttempts: opened.max_attempts,
+    }),
   });
 }
 
@@ -414,30 +590,6 @@ async function opForfeit(body: Row, uid: string, deps: Deps): Promise<Reply> {
   const r = await saveStep(deps, uid, m, m.state, step, { seq: m.seq, forfeit: true }, null);
   if (r.status !== 200) return r;
   return ok({ result: r.body.result ?? null });
-}
-
-async function opResume(body: Row, uid: string, deps: Deps): Promise<Reply> {
-  const matchId = body.matchId;
-  if (matchId !== undefined && (typeof matchId !== 'string' || !UUID_RE.test(matchId))) return fail(400, 'bad_request');
-  let m = await load(deps, uid, typeof matchId === 'string' ? matchId : null);
-  if (!m) return fail(404, 'none');
-  if (m.status === 'active' && m.expired) {
-    await abandonExpired(deps, uid, m);
-    m = (await load(deps, uid, m.id)) ?? m;
-  }
-  const loan = isInt(m.state?.config?.loan) ? m.state.config.loan : m.loan ? DEFAULT_SETTINGS.loanAmount : 0;
-  return ok({
-    matchId: m.id,
-    seq: m.seq,
-    seedHash: m.seed_hash,
-    prize: m.prize,
-    carrier: m.carrier,
-    stars: m.stars,
-    loan,
-    view: m.public_view,
-    recent: tail(m.events_tail, 60),
-    ...(m.status !== 'active' && m.result ? { result: m.result } : {}),
-  });
 }
 
 /** Entrada única: corpo já lido (JSON), uid do token. */

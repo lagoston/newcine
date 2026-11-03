@@ -6,7 +6,7 @@ import {
   DEFAULT_DIFFICULTY, DEFAULT_PROFILES, DEFAULT_SETTINGS, applyHumanAction, createMatch, createRng, humanLegal,
 } from '../../../src/lib/poker/index.ts';
 import type {
-  LegalActions, MatchConfig, MatchEvent, MatchState, MatchStep, PlayerAction, Rarity, Rng,
+  LegalActions, MatchConfig, MatchEvent, MatchState, MatchStep, PlayerAction, PosterEffectId, Rarity, Rng,
 } from '../../../src/lib/poker/index.ts';
 
 // ---------------------------------------------------------------------------
@@ -62,9 +62,35 @@ export function finish(): void {
 // Configs
 // ---------------------------------------------------------------------------
 
+/** Raridade de cada pôster do Pôster Poker (BRIEF2): define as estrelas do torneio. */
+export const EFFECT_RARITY: Record<PosterEffectId, Rarity> = {
+  blackjack: 'common', double_pot: 'common', early_flop: 'common',
+  hand_bounty: 'rare', eight_aces: 'rare', reveal_one: 'rare',
+  sixth_card: 'epic', opal: 'epic', tell: 'legendary',
+};
+export const ALL_EFFECTS = Object.keys(EFFECT_RARITY) as PosterEffectId[];
+
 export function makeConfig(opts: {
   mode?: 'free' | 'bounty'; seed: string; loan?: number; rarity?: Rarity; carrierId?: 'bogart' | 'cypher' | 'fincher';
+  /** Pôster Poker: torneio da semana com este efeito (modo 'bounty', sem portador). */
+  effect?: PosterEffectId; cobraItem?: boolean;
 }): MatchConfig {
+  if (opts.effect) {
+    const rarity = opts.rarity ?? EFFECT_RARITY[opts.effect];
+    return {
+      mode: 'bounty',
+      seed: opts.seed,
+      settings: DEFAULT_SETTINGS,
+      seats: { human: 0, bogart: 1, fincher: 2, cypher: 3 },
+      profiles: { bogart: DEFAULT_PROFILES.bogart, cypher: DEFAULT_PROFILES.cypher, fincher: DEFAULT_PROFILES.fincher },
+      paramsVersion: { bogart: 1, cypher: 1, fincher: 1 },
+      difficulty: DEFAULT_DIFFICULTY[rarity],
+      loan: opts.loan ?? 0,
+      prize: null,
+      memory: null,
+      tournament: { prizeId: `pp-${opts.effect}`, rarity, effect: opts.effect, cobraItem: opts.cobraItem ?? false },
+    };
+  }
   const mode = opts.mode ?? 'free';
   const rarity = opts.rarity ?? 'common';
   return {

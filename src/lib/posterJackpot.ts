@@ -9,7 +9,9 @@ import { supabase } from './supabase';
 // a capa na biblioteca dela e no menu do título).
 
 export type PosterRarity = 'common' | 'rare' | 'epic' | 'legendary';
-export type PosterEffect = 'none' | 'holo' | 'negative' | 'ultra_red';
+// 'gold' (03/11/2026, Pôster Poker): o brilho dourado, só dos 9 pôsteres do torneio
+// semanal do pôquer. Fica fora de EFFECTS: a roleta nunca sorteia.
+export type PosterEffect = 'none' | 'holo' | 'negative' | 'ultra_red' | 'gold';
 export type TitleType = 'movie' | 'tv';
 
 export const RARITIES: PosterRarity[] = ['legendary', 'epic', 'rare', 'common'];
@@ -28,6 +30,7 @@ export const EFFECT_META: Record<Exclude<PosterEffect, 'none'>, { color: string;
   holo: { color: '#67E8F9', odds: 80 },
   negative: { color: '#E5E7EB', odds: 15 },
   ultra_red: { color: '#F87171', odds: 5 },
+  gold: { color: '#F4C454', odds: 0 },
 };
 
 export const posterUrl = (filePath: string, size: 'w185' | 'w342' | 'w500' | 'w780' = 'w342') =>

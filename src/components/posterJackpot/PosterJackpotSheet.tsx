@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Check, Copy, Crown, Gift, LayoutGrid, ListChecks, Loader2, Maximize2, Repeat2, Share2, Spade, Sparkles, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { Check, Copy, Crown, Gift, Loader2, Maximize2, Share2, Sparkles, Trophy, Volume2, VolumeX } from 'lucide-react';
 import OracleSheet, { SheetFade } from '../OracleSheet';
 import PosterArt, { EffectTag, RarityTag } from './PosterArt';
 import { RarityGem, SerialLine } from './CollectorMark';
@@ -46,9 +46,6 @@ import { INVITE_REWARD, copyInvite, getMyInvite, shareInvite, type MyInvite } fr
 import { getMyTrades, type PosterTrade } from '../../lib/posterTrades';
 import PosterTradesPanel from './PosterTradesPanel';
 import { DailyChipReward } from './DailyChip';
-import PokerTab from '../poker/jackpot/PokerTab';
-import TodayAtTableLine from '../poker/jackpot/TodayAtTableLine';
-import { shouldShowTodayLine } from '../poker/jackpot/pokerMeta';
 import TablePrizeSeal from '../poker/jackpot/TablePrizeSeal';
 import '../../styles/posterJackpot.css';
 
@@ -62,9 +59,9 @@ const MovieDetailsModal = lazy(() => import('../MovieDetailsModal'));
 // com a fita de pôsteres do estilo CS:GO, a revelação do prêmio com raios
 // na cor da raridade e faíscas, a coleção (só os pôsteres) e as missões.
 
-// 'poker' (03/11/2026): a aba do Grande Blefe, só quando o servidor diz que o
-// pôquer está aberto para a conta (state.poker não nulo).
-export type JackpotTab = 'machine' | 'poker' | 'collection' | 'trades' | 'missions';
+// 03/11/2026 (tarde), pedido do Bruno: o pôquer virou um jogo à parte (Pôster
+// Poker, botão próprio na home) e a aba Pôquer saiu da gaveta. Voltam as 4 abas.
+export type JackpotTab = 'machine' | 'collection' | 'trades' | 'missions';
 type Tab = JackpotTab;
 
 const RARITY_ASC: PosterRarity[] = ['common', 'rare', 'epic', 'legendary'];
@@ -715,7 +712,7 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void; 
                     <Check className="w-3.5 h-3.5" aria-hidden />
                   </span>
                 )}
-                {/* Ganho no Grande Blefe: não entra em trocas (03/11/2026). */}
+                {/* Ganho no Pôster Poker: não entra em trocas (03/11/2026). */}
                 {poster.tradeable === false && <TablePrizeSeal size="xs" className="absolute top-1.5 left-1.5" />}
               </button>
             </li>
@@ -1016,12 +1013,6 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
         })}
       </ul>
 
-      {/* "Hoje na mesa…" (03/11/2026): depois da ficha do dia, o prêmio do
-          Grande Blefe e quem o carrega — a ficha já tem onde cair. Fica logo
-          depois das missões para não cortar a ponte "Quer mais? ⌄" da ficha
-          do dia, que aponta para elas. */}
-      {dailyReward && shouldShowTodayLine(state.poker) && <TodayAtTableLine teaser={state.poker} />}
-
       {dailyReward && (
         <>
           {resetsLine}
@@ -1128,21 +1119,12 @@ const PosterJackpotSheet: React.FC<{
   const claimable = useMemo(() => (state?.missions || []).filter((m) => !m.claimed && m.progress >= m.target).length, [state?.missions]);
   const incomingTrades = useMemo(() => (trades || []).filter((tr) => tr.status === 'pending' && tr.incoming).length, [trades]);
 
-  // O Grande Blefe (03/11/2026): a aba Pôquer só existe quando o servidor
-  // manda o resumo do pôquer aberto para esta conta. Sem ela, as 4 abas de
-  // sempre, com a mesma marcação de antes.
-  const poker = state?.poker ?? null;
-  const tabs: { key: Tab; label: string; badge?: number; icon: typeof Spade }[] = [
-    { key: 'machine', label: t('jackpot.tabs.machine'), icon: Sparkles },
-    ...(poker ? [{ key: 'poker' as Tab, label: t('pokerEntry.tab'), icon: Spade }] : []),
-    { key: 'collection', label: t('jackpot.tabs.collection'), icon: LayoutGrid },
-    { key: 'trades', label: t('jackpot.tabs.trades'), badge: incomingTrades || undefined, icon: Repeat2 },
-    { key: 'missions', label: t('jackpot.tabs.missions'), badge: claimable || undefined, icon: ListChecks },
+  const tabs: { key: Tab; label: string; badge?: number }[] = [
+    { key: 'machine', label: t('jackpot.tabs.machine') },
+    { key: 'collection', label: t('jackpot.tabs.collection') },
+    { key: 'trades', label: t('jackpot.tabs.trades'), badge: incomingTrades || undefined },
+    { key: 'missions', label: t('jackpot.tabs.missions'), badge: claimable || undefined },
   ];
-  // Cinco abas: abaixo de 400 px, ícone em cima e o número vira ponto
-  // (pokerEntry.css). Pedido para abrir no Pôquer sem pôquer: abre a Roleta.
-  const fiveTabs = tabs.length === 5;
-  const shownTab: Tab = tab === 'poker' && !poker ? 'machine' : tab;
 
   return (
     <OracleSheet
@@ -1151,7 +1133,7 @@ const PosterJackpotSheet: React.FC<{
       title={t('jackpot.title')}
       subtitle={state ? t('jackpot.subtitle', { count: state.tickets }) : undefined}
       size="lg"
-      contentKey={shownTab}
+      contentKey={tab}
       escapeEnabled={!layerOpen}
     >
       {!state ? (
@@ -1160,10 +1142,9 @@ const PosterJackpotSheet: React.FC<{
         </div>
       ) : (
         <>
-          <div className={`mb-5 grid ${fiveTabs ? 'grid-cols-5' : 'grid-cols-4'} gap-1 rounded-xl p-1`} style={{ background: VELVET }} role="tablist">
+          <div className="mb-5 grid grid-cols-4 gap-1 rounded-xl p-1" style={{ background: VELVET }} role="tablist">
             {tabs.map((item) => {
-              const active = shownTab === item.key;
-              const Icon = item.icon;
+              const active = tab === item.key;
               return (
                 <button
                   key={item.key}
@@ -1171,19 +1152,13 @@ const PosterJackpotSheet: React.FC<{
                   role="tab"
                   aria-selected={active}
                   onClick={() => setTab(item.key)}
-                  className={`relative h-10 rounded-lg text-[13px] sm:text-sm font-semibold transition ${fiveTabs ? 'pe-tab min-w-0' : ''} ${FOCUS_RING}`}
+                  className={`relative h-10 rounded-lg text-[13px] sm:text-sm font-semibold transition ${FOCUS_RING}`}
                   style={active ? { background: PAPER, color: '#221B36' } : { color: MIST }}
                 >
-                  {fiveTabs && (
-                    <span className="pe-tab-icon" aria-hidden>
-                      <Icon className="w-[18px] h-[18px]" />
-                      {item.badge ? <span className="pe-tab-dot" /> : null}
-                    </span>
-                  )}
                   {item.label}
                   {item.badge ? (
                     <span
-                      className={`ml-1 inline-grid place-items-center min-w-[1.1rem] h-[18px] px-1 rounded-full text-[10.5px] tabular-nums ${fiveTabs ? 'pe-tab-badge' : ''}`}
+                      className="ml-1 inline-grid place-items-center min-w-[1.1rem] h-[18px] px-1 rounded-full text-[10.5px] tabular-nums"
                       style={{ background: '#FDE68A', color: '#221B36' }}
                     >
                       {item.badge}
@@ -1193,11 +1168,10 @@ const PosterJackpotSheet: React.FC<{
               );
             })}
           </div>
-          <SheetFade id={shownTab}>
-            {shownTab === 'machine' && <Machine state={state} owned={owned} onState={onState} onCollectionChanged={loadOwned} onInvite={() => setTab('missions')} />}
-            {shownTab === 'poker' && poker && <PokerTab teaser={poker} tickets={state.tickets} onGoMissions={() => setTab('missions')} />}
-            {shownTab === 'collection' && <Collection list={owned} onChanged={loadOwned} onLayer={setLayerOpen} />}
-            {shownTab === 'trades' && (
+          <SheetFade id={tab}>
+            {tab === 'machine' && <Machine state={state} owned={owned} onState={onState} onCollectionChanged={loadOwned} onInvite={() => setTab('missions')} />}
+            {tab === 'collection' && <Collection list={owned} onChanged={loadOwned} onLayer={setLayerOpen} />}
+            {tab === 'trades' && (
               <PosterTradesPanel
                 trades={trades}
                 onChanged={() => {
@@ -1207,7 +1181,7 @@ const PosterJackpotSheet: React.FC<{
                 }}
               />
             )}
-            {shownTab === 'missions' && <Missions state={state} onState={onState} dailyReward={dailyReward} />}
+            {tab === 'missions' && <Missions state={state} onState={onState} dailyReward={dailyReward} />}
           </SheetFade>
         </>
       )}

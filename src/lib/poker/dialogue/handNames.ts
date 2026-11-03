@@ -7,7 +7,7 @@
  * aceitam `best5` em qualquer ordem (e também 1 a 4 cartas, antes do flop).
  */
 import type { Card, Rank, Suit } from '../cards.ts';
-import { rankOf, suitOf } from '../cards.ts';
+import { isCard, rankOf, suitOf } from '../cards.ts';
 import type { HandKind } from '../evaluator.ts';
 import { evaluateHand } from '../evaluator.ts';
 
@@ -33,6 +33,14 @@ const EN_SINGULAR: Record<number, string> = {
 const PT_SUIT: Record<Suit, string> = { s: 'espadas', h: 'copas', d: 'ouros', c: 'paus' };
 const EN_SUIT: Record<Suit, string> = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
 
+/**
+ * Cinco iguais (Pôster Poker, efeito Cassino: 8 ases a mais no baralho). A categoria ainda
+ * não tem nome fixo no avaliador do pacote E; qualquer `kind` que comece com "five" vale.
+ */
+function isFiveKind(kind: HandKind): boolean {
+  return String(kind).startsWith('five');
+}
+
 /** "até o nove" / "até a dama" (dama é a única carta feminina). */
 function ptUpTo(rank: number): string {
   return `até ${rank === 12 ? 'a' : 'o'} ${PT_SINGULAR[rank]}`;
@@ -53,7 +61,7 @@ function shapeOf(kind: HandKind, best5: readonly Card[], royalHint: boolean): Sh
   let k: HandKind = kind;
   let royal = royalHint;
   try {
-    const v = evaluateHand(cards);
+    const v = evaluateHand(cards, { repeats: true });   // Cassino: cartas repetidas
     cards = v.best5;
     // Confia no avaliador quando ele concorda com a categoria pedida; senão usa a pedida.
     if (v.kind === kind) royal = royal || v.royal;
@@ -78,6 +86,7 @@ export function describeHand(kind: HandKind, best5: Card[], lang: Lang, royal = 
   const s = shapeOf(kind, best5, royal);
   if (!s) return lang === 'pt' ? 'carta alta' : 'high card';
   const [r0, r1, r2, r3] = s.ranks;
+  if (isFiveKind(kind)) return lang === 'pt' ? `cinco ${PT_PLURAL[r0]}` : `five ${EN_PLURAL[r0]}`;
   if (lang === 'pt') {
     switch (s.kind) {
       case 'high_card': return `carta alta, ${PT_SINGULAR[r0]}`;
@@ -115,6 +124,7 @@ export function handPhrase(kind: HandKind, best5: Card[], lang: Lang, royal = fa
   const s = shapeOf(kind, best5, royal);
   if (!s) return lang === 'pt' ? 'carta alta' : 'high card';
   const r0 = s.ranks[0];
+  if (isFiveKind(kind)) return lang === 'pt' ? `cinco ${PT_PLURAL[r0]}` : `five ${EN_PLURAL[r0]}`;
   if (lang === 'pt') {
     switch (s.kind) {
       case 'high_card': return 'carta alta';
@@ -155,5 +165,46 @@ export function longestHandPhrase(lang: Lang): number {
   const withRank = lang === 'pt'
     ? ['um par de ', 'uma trinca de ', 'uma quadra de '].map((p) => p.length + longestPl)
     : ['a pair of ', 'three ', 'four '].map((p) => p.length + longestPl).concat([longestSg + ' high'.length]);
-  return Math.max(...fixed.map((x) => x.length), ...withRank);
+  const five = (lang === 'pt' ? 'cinco ' : 'five ').length + longestPl;
+  return Math.max(...fixed.map((x) => x.length), ...withRank, five);
+}
+
+// ---------------------------------------------------------------------------
+// Pôster Poker (03/11/2026): {alvo} e {carta}
+// ---------------------------------------------------------------------------
+
+const PT_TARGET: Record<string, string> = {
+  high_card: 'carta alta', pair: 'um par', two_pair: 'dois pares', trips: 'uma trinca', straight: 'uma sequência',
+  flush: 'um flush', full_house: 'um full house', quads: 'uma quadra', straight_flush: 'um straight flush',
+};
+const EN_TARGET: Record<string, string> = {
+  high_card: 'high card', pair: 'a pair', two_pair: 'two pair', trips: 'three of a kind', straight: 'a straight',
+  flush: 'a flush', full_house: 'a full house', quads: 'four of a kind', straight_flush: 'a straight flush',
+};
+
+/** A jogada-alvo do Rain Man, sem posto: "uma trinca" / "three of a kind". */
+export function targetPhrase(kind: HandKind, lang: Lang): string {
+  if (isFiveKind(kind)) return lang === 'pt' ? 'cinco iguais' : 'five of a kind';
+  return (lang === 'pt' ? PT_TARGET : EN_TARGET)[kind] ?? String(kind);
+}
+
+export function longestTargetPhrase(lang: Lang): number {
+  return Math.max(...Object.values(lang === 'pt' ? PT_TARGET : EN_TARGET).map((x) => x.length), (lang === 'pt' ? 'cinco iguais' : 'five of a kind').length);
+}
+
+/** Uma carta com artigo: "o valete de espadas", "a dama de copas" / "the jack of spades". */
+export function cardPhrase(card: Card, lang: Lang): string {
+  if (!isCard(card)) return String(card);
+  const r = rankOf(card);
+  const s = suitOf(card);
+  if (lang === 'pt') return `${r === 12 ? 'a' : 'o'} ${PT_SINGULAR[r]} de ${PT_SUIT[s]}`;
+  return `the ${EN_SINGULAR[r]} of ${EN_SUIT[s]}`;
+}
+
+export function longestCardPhrase(lang: Lang): number {
+  const sg = lang === 'pt' ? PT_SINGULAR : EN_SINGULAR;
+  const su = lang === 'pt' ? PT_SUIT : EN_SUIT;
+  const r = Math.max(...Object.values(sg).map((x) => x.length));
+  const s = Math.max(...Object.values(su).map((x) => x.length));
+  return (lang === 'pt' ? 'o  de '.length : 'the  of '.length) + r + s;
 }

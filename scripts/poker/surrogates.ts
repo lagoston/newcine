@@ -7,7 +7,7 @@
  *    3-bets dela, check-raise no turn do Raposo e troca de marcha a cada 12 mãos;
  *  - allin (empurra tudo), station (paga tudo), maniac (aumenta 70%).
  */
-import { estimateEquity } from '../../src/lib/poker/index.ts';
+import { estimateEquity, extraCardsOf } from '../../src/lib/poker/index.ts';
 import type { ActionRecord, Card, LegalActions, MatchState, PlayerAction, PublicEvent, Rng, WeightedRange } from '../../src/lib/poker/index.ts';
 import { ALL_COMBOS, boardInfo, topWeights } from '../../src/lib/poker/bots/ranges.ts';
 import { categoryOf, preflopPct } from '../../src/lib/poker/bots/buckets.ts';
@@ -46,6 +46,8 @@ interface Spot {
   aggressorId: string | null;
   pfAggressor: string | null;
   handNumber: number;
+  /** Pôster Poker, Cassino: cartas a mais no baralho (públicas). */
+  extra: Card[];
 }
 
 function spot(L: LegalActions, s: MatchState): Spot {
@@ -65,12 +67,12 @@ function spot(L: LegalActions, s: MatchState): Spot {
     hole: me.holeCards, board: h.board, street: h.street, bb: h.blinds.bigBlind, pot: L.pot, toCall: L.toCall,
     odds: L.toCall / (L.pot + L.toCall), opps: inHand.filter((p) => p.id !== 'human').map((p) => p.id), acts: h.actions,
     stackBB: (me.stack + me.streetBet) / h.blinds.bigBlind, pos, aggressorId: aggr?.playerId ?? null,
-    pfAggressor: pf?.playerId ?? null, handNumber: g.handNumber,
+    pfAggressor: pf?.playerId ?? null, handNumber: g.handNumber, extra: extraCardsOf(s as Parameters<typeof extraCardsOf>[0]),
   };
 }
 
 function eqOf(sp: Spot, rng: Rng, iters = 250): number {
-  return estimateEquity({ hole: sp.hole, board: sp.board, opponents: Math.max(1, sp.opps.length), iterations: iters, rng }).equity;
+  return estimateEquity({ hole: sp.hole, board: sp.board, opponents: Math.max(1, sp.opps.length), iterations: iters, rng, extraCards: sp.extra }).equity;
 }
 
 /**
@@ -87,7 +89,7 @@ function eqVsPreflop(sp: Spot, rng: Rng, iters = 250): number {
     return pct >= 100 ? null : { combos: ALL_COMBOS, weights: Array.from(topWeights(pct)) };
   });
   try {
-    return estimateEquity({ hole: sp.hole, board: sp.board, opponents: Math.max(1, sp.opps.length), iterations: iters, rng, ranges }).equity;
+    return estimateEquity({ hole: sp.hole, board: sp.board, opponents: Math.max(1, sp.opps.length), iterations: iters, rng, ranges, extraCards: sp.extra }).equity;
   } catch {
     return eqOf(sp, rng, iters);
   }
@@ -241,7 +243,7 @@ function bomRange(o: string, sp: Spot): WeightedRange | null {
 function bomEq(sp: Spot, rng: Rng, iters = 300): number {
   const ranges = sp.opps.map((o) => bomRange(o, sp));
   try {
-    return estimateEquity({ hole: sp.hole, board: sp.board, opponents: Math.max(1, sp.opps.length), iterations: iters, rng, ranges }).equity;
+    return estimateEquity({ hole: sp.hole, board: sp.board, opponents: Math.max(1, sp.opps.length), iterations: iters, rng, ranges, extraCards: sp.extra }).equity;
   } catch {
     return eqOf(sp, rng, iters);
   }
@@ -314,7 +316,7 @@ const bom: Hero = (L, rng, s, pub) => {
       const top = tops[shover as 'cypher'] ?? 45;
       const w = topWeights(top);
       const ranges = sp.opps.map((o) => (o === shover ? { combos: ALL_COMBOS, weights: Array.from(w) } : null));
-      return estimateEquity({ hole: sp.hole, board: [], opponents: Math.max(1, sp.opps.length), iterations: 400, rng, ranges }).equity;
+      return estimateEquity({ hole: sp.hole, board: [], opponents: Math.max(1, sp.opps.length), iterations: 400, rng, ranges, extraCards: sp.extra }).equity;
     };
     const aliveN = g.players.filter((p) => p.status !== 'eliminated').length;
     // Heads-up curto: empurra ou larga pela profundidade efetiva (um pouco mais fechado

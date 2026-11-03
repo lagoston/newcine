@@ -7,6 +7,7 @@ import { getLegalActions, getPots, potTotal } from '../engine.ts';
 import { levelFor } from '../config.ts';
 import type { MatchState, PlayerId, TableView } from '../types.ts';
 import { HUMAN, isInHand, isRevealed, x } from './internal.ts';
+import { tournamentView } from './effects.ts';
 
 export function tableView(s: MatchState, viewer: 'human'): TableView {
   const st = x(s);
@@ -45,5 +46,6 @@ export function tableView(s: MatchState, viewer: 'human'): TableView {
     prize: st.config.prize ? { prizeId: st.config.prize.prizeId, holderId: st.holderId, captured: st.capturedHand !== null } : null,
     loan: st.config.loan,
     places: { ...st.places },
+    tournament: tournamentView(st),
   };
 }

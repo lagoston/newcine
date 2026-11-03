@@ -10,6 +10,9 @@
  */
 import type { Cue, MatchMode, PlayerId, PrizeKind, PublicEvent, Rarity, RivalId, TableView, TitleId } from '../types.ts';
 
+/** 'slow' (Pôster Poker, 03/11/2026: a mesa ficou mais lenta) vale como 'normal' para as falas. */
+export type Speed = 'slow' | 'normal' | 'fast' | 'turbo';
+
 export type Trigger =
   // §6.2
   | 'firstVisit' | 'matchStart' | 'bountyIntro' | 'sapoLoan' | 'bountyTaunt' | 'bountyAtRisk' | 'bountySteal'
@@ -22,7 +25,17 @@ export type Trigger =
   | 'rateMove' | 'beautifulError' | 'lesson' | 'secretTell' | 'banter' | 'idle' | 'rematch' | 'playerLeaves'
   | 'tutorial' | 'contextTip' | 'intervalReturn' | 'recap' | 'quipAnswer'
   // acrescentados pelo pacote B (03/11/2026) para falas do banco final
-  | 'showdown' | 'tableWinner' | 'intervalInvite' | 'loanCredits';
+  | 'showdown' | 'tableWinner' | 'intervalInvite' | 'loanCredits'
+  // Pôster Poker (pacote H, 03/11/2026): o torneio da semana e os efeitos do pôster
+  | 'tournamentIntro'   // abertura: o pôster da semana (variantes: raridade, efeito)
+  | 'stakePoster'       // abertura: a pessoa apostou um pôster da coleção
+  | 'cobraItem'         // a caixinha da Cobra (variantes: abertura, meio, ganhou, perdeu)
+  | 'effectCast'        // o "CATCHAW" (variantes: efeito; 'explica' = 1ª vez na vida)
+  | 'effectReveal'      // cartas fechadas abertas pelo efeito (reveal_one)
+  | 'effectBonus'       // fichas da casa (variantes: efeito; 'humano' quando foi a pessoa)
+  | 'tellMark'          // o tique de Le Chiffre numa aposta de oráculo (variantes: blefe, valor)
+  | 'tournamentWon' | 'tournamentLost'   // créditos do torneio
+  | 'stakeBack' | 'stakeLost';            // créditos: o pôster apostado volta ou fica com a Cobra
 
 /** Gatilhos de ação de bot: toda fala de ator neles precisa de `cue` (§6.6). */
 export const BOT_ACTION_TRIGGERS: readonly Trigger[] = [
@@ -114,8 +127,14 @@ export interface TableContext {
   memory?: { riverBluffHigh?: boolean; foldsMuch?: boolean; callsMuch?: boolean };
   /** `name` já com artigo no idioma da mesa ("o baralho Noir" / "the Noir deck"). */
   prize?: { name: string; kind: PrizeKind; rarity: Rarity };
-  story: Record<string, string>; speed: 'normal' | 'fast' | 'turbo'; talk: 'all' | 'important' | 'none';
+  story: Record<string, string>; speed: Speed; talk: 'all' | 'important' | 'none';
   view: TableView; reducedMotion: boolean;
+  /**
+   * Pôster Poker (03/11/2026): o que só a interface sabe do torneio (o resto vem em
+   * `matchStarted.tournament`). `stake`: como a pessoa pagou a entrada; 'poster' = apostou
+   * um pôster da coleção, da raridade do torneio (vai embora se ela não vencer).
+   */
+  tournament?: { stake: 'chips' | 'poster' };
 }
 
 /** Momentos que não vêm de `PublicEvent` (créditos, botões, Intervalo). */
@@ -151,7 +170,7 @@ export interface DirectorOptions {
   mode: MatchMode;
   lang: 'pt' | 'en';
   talk: 'all' | 'important' | 'none';
-  speed: 'normal' | 'fast' | 'turbo';
+  speed: Speed;
   story: Record<string, string>;
   lifetimeMatches: number;
   matchInSession: number;

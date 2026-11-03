@@ -5,9 +5,14 @@
  * ("estreante" até Protagonista, depois "colega"), {apelido}, {titulo}, {lider} e
  * {portador} (nome do oráculo com artigo), {cacife}, {mao_n} e {o|a} (só quando o alvo
  * é outro oráculo). Nome de usuário NUNCA.
+ *
+ * Pôster Poker (03/11/2026): {fichas} (bônus da casa, "1.000"), {alvo} (a jogada-alvo do
+ * Rain Man, "uma trinca"), {carta} (a opala, "o valete de espadas") e {maos} (mãos do tique).
  */
+import type { Card } from '../cards.ts';
+import type { HandKind } from '../evaluator.ts';
 import type { PlayerId, RivalId, TitleId } from '../types.ts';
-import { longestHandPhrase } from './handNames.ts';
+import { cardPhrase, longestCardPhrase, longestTargetPhrase, longestHandPhrase, targetPhrase } from './handNames.ts';
 import type { Lang } from './handNames.ts';
 
 export const MAX_CHARS = 88;
@@ -47,6 +52,10 @@ export function tokenMax(lang: Lang): Record<string, number> {
     cacife: 6,   // "12.000"
     mao_n: 2,
     'o|a': 1,
+    fichas: 5,   // "1.000"
+    alvo: longestTargetPhrase(lang),
+    carta: longestCardPhrase(lang),
+    maos: 1,
   };
 }
 
@@ -67,6 +76,10 @@ export interface RenderVars {
   cacife?: number;
   maoN?: number;
   target?: PlayerId;          // alvo, para {o|a}
+  fichas?: number;            // Pôster Poker: bônus da casa
+  alvo?: HandKind;            // Pôster Poker: jogada-alvo do Rain Man
+  carta?: Card;               // Pôster Poker: a opala
+  maos?: number;              // Pôster Poker: mãos do tique
 }
 
 function isColleague(title: TitleId): boolean {
@@ -113,6 +126,10 @@ export function renderText(text: string, v: RenderVars): string | null {
       case 'cacife': val = v.cacife !== undefined ? formatNumber(v.cacife, v.lang) : null; break;
       case 'mao_n': val = v.maoN !== undefined ? String(v.maoN) : null; break;
       case 'o|a': val = v.target && PT_ARTICLE[v.target] ? PT_ARTICLE[v.target] : null; break;
+      case 'fichas': val = v.fichas !== undefined ? formatNumber(v.fichas, v.lang) : null; break;
+      case 'alvo': val = v.alvo ? targetPhrase(v.alvo, v.lang) : null; break;
+      case 'carta': val = v.carta ? cardPhrase(v.carta, v.lang) : null; break;
+      case 'maos': val = v.maos !== undefined ? String(v.maos) : null; break;
       default: val = null;
     }
     if (val === null) {
@@ -136,7 +153,7 @@ export function varsOf(text: string): string[] {
  * tem ritmo próprio (roteirista): 0,8 s + 40 ms por caractere. "Rápido" encurta, mas
  * nunca abaixo de 1,8 s, para dar tempo de ler.
  */
-export function balloonMs(text: string, opts: { farewell?: boolean; speed?: 'normal' | 'fast' | 'turbo' } = {}): number {
+export function balloonMs(text: string, opts: { farewell?: boolean; speed?: 'slow' | 'normal' | 'fast' | 'turbo' } = {}): number {
   const n = text.length;
   let ms = opts.farewell ? 800 + 40 * n : Math.min(6000, Math.max(2200, 1200 + 55 * n));
   if (opts.speed === 'fast' || opts.speed === 'turbo') ms = Math.max(1800, Math.round(ms * 0.6));

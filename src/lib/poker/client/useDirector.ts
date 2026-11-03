@@ -43,6 +43,8 @@ export interface TableContext {
   talk: TalkMode;
   view: TableView;
   reducedMotion: boolean;
+  /** Pôster Poker (pedido do H, 03/11/2026): o que a pessoa pôs na mesa para entrar no torneio. */
+  tournament?: { stake: 'chips' | 'poster' };
 }
 
 export type DirectorMoment =

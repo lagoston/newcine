@@ -52,10 +52,12 @@ export function cardsName(cards: Card[], lang: Lang): string {
 const KIND_PT: Record<HandKind, string> = {
   high_card: 'carta alta', pair: 'par', two_pair: 'dois pares', trips: 'trinca', straight: 'sequência',
   flush: 'flush', full_house: 'full house', quads: 'quadra', straight_flush: 'straight flush',
+  five_kind: 'cinco iguais', // 03/11/2026: só com os 8 ases a mais do Cassino
 };
 const KIND_EN: Record<HandKind, string> = {
   high_card: 'high card', pair: 'a pair', two_pair: 'two pair', trips: 'three of a kind', straight: 'a straight',
   flush: 'a flush', full_house: 'a full house', quads: 'four of a kind', straight_flush: 'a straight flush',
+  five_kind: 'five of a kind',
 };
 
 /**
@@ -81,6 +83,8 @@ export function describeHandFallback(kind: HandKind, best5: Card[], lang: Lang, 
       return pt ? `trinca de ${pl[groups[0]]}` : `three ${pl[groups[0]]}`;
     case 'quads':
       return pt ? `quadra de ${pl[groups[0]]}` : `four ${pl[groups[0]]}`;
+    case 'five_kind':
+      return pt ? `cinco ${pl[groups[0]]}` : `five ${pl[groups[0]]}`;
     case 'full_house':
       return pt ? `full house, ${pl[groups[0]]} com ${pl[groups[1]]}` : `a full house, ${pl[groups[0]]} over ${pl[groups[1]]}`;
     case 'straight':
@@ -110,7 +114,8 @@ export function describeHand(kind: HandKind, best5: Card[], lang: Lang, royal = 
 export function whatYouHave(hole: Card[], board: Card[], lang: Lang): { text: string; kind: HandKind; best5: Card[] } | null {
   if (hole.length !== 2) return null;
   if (board.length >= 3) {
-    const v = evaluateHand([...hole, ...board]);
+    // repeats: com os 8 ases do Cassino a mesma carta pode aparecer duas vezes (E, 03/11/2026).
+    const v = evaluateHand([...hole, ...board], { repeats: true });
     return { text: describeHand(v.kind, v.best5, lang, v.royal), kind: v.kind, best5: v.best5 };
   }
   const [a, b] = hole.map(rankOf);

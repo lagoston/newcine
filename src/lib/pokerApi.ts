@@ -11,6 +11,12 @@
  *   - Os tipos espelham o JSON das RPCs e da Edge. Erro do protocolo vira
  *     PokerApiError {status, code, data} (mesmo formato do PokerClientError do
  *     mockApi, para a interface tratar os dois do mesmo jeito).
+ *
+ * 03/11/2026 (tarde, pacote F — Pôster Poker): proto 2. O prêmio do dia virou o
+ * torneio da semana: get_poker_home traz `tournament`, `collection` e
+ * `cobra_items` (bounty = null); bounty.start(week, prizeId, stake, idem?)
+ * entra com fichas ou com um pôster apostado; a resposta final traz `rewards`.
+ * Os tipos do torneio moram em poker/client/apiTypes.ts (os mesmos da interface).
  */
 import { FunctionRegion, FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
@@ -20,6 +26,8 @@ import type { HandKind } from './poker/evaluator.ts';
 import type {
   DifficultyRow,
   MatchSummary,
+  PokerSettings,
+  PosterEffectId,
   PrizeKind,
   PublicEvent,
   Rarity,
@@ -27,9 +35,36 @@ import type {
   TableView,
   TitleId,
 } from './poker/types.ts';
+import type {
+  BountyTournamentInfo,
+  CobraItemEntry,
+  TournamentCollectionEntry,
+  TournamentHome,
+  TournamentRewards,
+  TournamentStake,
+  TournamentStakeJson,
+} from './poker/client/apiTypes.ts';
 
-/** Versão do protocolo da Edge. O servidor recusa (426) abaixo de poker_settings.min_proto. */
-export const POKER_PROTO = 1;
+export type {
+  BountyTournamentInfo,
+  CobraItemEntry,
+  CobraItemReward,
+  PosterVersionEffect,
+  TournamentCollectionEntry,
+  TournamentHome,
+  TournamentPrize,
+  TournamentRewards,
+  TournamentStake,
+  TournamentStakeInfo,
+  TournamentStakeJson,
+  TournamentStakeOption,
+} from './poker/client/apiTypes.ts';
+
+/**
+ * Versão do protocolo da Edge. O servidor recusa (426) abaixo de poker_settings.min_proto.
+ * 2 = Pôster Poker (03/11/2026): start com week, prizeId e stake.
+ */
+export const POKER_PROTO = 2;
 
 // O banco mora em São Paulo: a Edge roda na mesma região (menos latência por jogada).
 const EDGE_REGION = FunctionRegion.SaEast1;
@@ -53,6 +88,8 @@ export interface PokerPrize {
   payload: Record<string, unknown>;
   repeatable: boolean;
   carrier: RivalId | null;
+  /** Pôster Poker: o efeito de mesa do pôster (null nos prêmios antigos). */
+  effect_id: PosterEffectId | null;
 }
 
 export interface PokerSettingsJson {
@@ -63,6 +100,10 @@ export interface PokerSettingsJson {
   max_attempts: number;
   carrier_by_rarity: Record<Rarity, RivalId>;
   difficulty: Record<Rarity | 'free', DifficultyRow>;
+  /** Pôster Poker: sobreposição dos DEFAULT_EFFECTS do motor ({} = padrões). */
+  effects: NonNullable<PokerSettings['effects']>;
+  /** Fichas da entrada do torneio por raridade ({common:1, rare:1, epic:2, legendary:3}). */
+  entry_chips: Record<Rarity, number>;
 }
 
 /** poker_bot_params: Partial<BotProfile> por rival, com a versão (o cliente guarda em poker.home.v1). */
@@ -150,8 +191,14 @@ export interface PokerHomeOpen {
   proto_min: number;
   settings: PokerSettingsJson;
   bot_params: PokerBotParams;
-  /** null num dia sem prêmio gravado (catálogo vazio). */
+  /** O prêmio do dia acabou (03/11/2026): sempre null. Use `tournament`. */
   bounty: PokerBountyHome | null;
+  /** Pôster Poker: o torneio da semana (null só com o catálogo do torneio vazio). */
+  tournament: TournamentHome | null;
+  /** Os 9 pôsteres do Pôster Poker (comum → lendário, depois nº). */
+  collection: TournamentCollectionEntry[];
+  /** A vitrine dos itens da Cobra (vazia por enquanto). */
+  cobra_items: CobraItemEntry[];
   player: {
     age_confirmed: boolean;
     /** casino_age_gate: a folha 18+ antes de qualquer partida (desligada na v1). */
@@ -168,7 +215,7 @@ export interface PokerHomeOpen {
   owned_items: string[];
   items: PokerItem[];
   marks: { tag_id: string; unlocked_at: string }[];
-  /** Saldo de fichas do Jackpot (cópia de bounty.tickets, para o lobby). */
+  /** Saldo de fichas comuns do Jackpot. */
   tickets: number;
 }
 
@@ -226,6 +273,13 @@ export interface PokerRecentBounty {
   seed: string | null;
   /** Só nas terminadas. A expiração (24 h sem jogar) grava o resumo mínimo. */
   summary: MatchSummary | PokerMinimalSummary | null;
+  /** Pôster Poker (null nas partidas do prêmio do dia). */
+  week: string | null;
+  effect_id: PosterEffectId | null;
+  stake: TournamentStakeJson | null;
+  stake_status: 'held' | 'returned' | 'lost' | 'spent' | null;
+  /** Só nas terminadas. */
+  rewards: TournamentRewards | null;
 }
 
 export interface PokerScoreboardOpen {
@@ -235,9 +289,11 @@ export interface PokerScoreboardOpen {
   title: { wins: number; id: TitleId };
   recent_free: PokerRecentFree[];
   recent_bounty: PokerRecentBounty[];
-  prizes: { prize_id: string; kind: string; day: string | null; granted_at: string; prize: PokerPrize }[];
+  prizes: { prize_id: string; kind: string; day: string | null; week: string | null; granted_at: string; prize: PokerPrize }[];
   marks: PokerMark[];
   friends_won_today: number;
+  /** Amigos que venceram o torneio desta semana. */
+  friends_won_week: number;
 }
 
 export type PokerScoreboard = PokerHomeClosed | PokerScoreboardOpen;
@@ -267,6 +323,9 @@ export interface BountyResult {
   /** Ids das tags novas (poker-first-win, poker-fox-hunter, …). */
   marks: string[];
   title: { wins: number; id: TitleId; rankUp: boolean };
+  /** Pôster Poker: partida de torneio (prizeCaptured = venceu em 1º). */
+  tournament?: boolean;
+  rewards?: TournamentRewards | null;
 }
 
 export interface BountyStart {
@@ -277,12 +336,14 @@ export interface BountyStart {
   attempt: number;
   loan: number;
   prize: PokerPrize;
-  carrier: RivalId;
+  /** null no torneio (não há portador). */
+  carrier: RivalId | null;
   stars: number;
   events: PublicEvent[];
   view: TableView;
   /** Fichas que sobraram depois do débito. */
   tickets: number;
+  tournament: BountyTournamentInfo;
 }
 
 export interface BountyAct {
@@ -291,6 +352,8 @@ export interface BountyAct {
   events: PublicEvent[];
   view: TableView;
   result?: BountyResult;
+  /** Só na resposta final de um torneio (= result.rewards). */
+  rewards?: TournamentRewards | null;
 }
 
 export interface BountyResume {
@@ -299,20 +362,28 @@ export interface BountyResume {
   seq: number;
   seedHash: string;
   prize: PokerPrize;
-  carrier: RivalId;
+  /** null no torneio. */
+  carrier: RivalId | null;
   stars: number;
   loan: number;
   view: TableView;
   /** Últimos ≤ 60 eventos públicos (dedupe pelo `i`). */
   recent: PublicEvent[];
   result?: BountyResult;
+  tournament?: BountyTournamentInfo;
+  rewards?: TournamentRewards | null;
+  /** Veio de um start repetido (mesmo idem): a partida que já estava aberta, sem nova cobrança. */
+  duplicate?: boolean;
 }
 
 /**
- * Códigos do protocolo (§4.7): 426 update_required · 403 closed | age_required |
- * limit | won_today | bot · 409 stale_day | prize_changed {prize} | active_exists
- * {matchId} | stale {seq, view, recent} · 402 no_chips · 422 illegal {view} ·
- * 404 not_found | none · 410 finished {result}. status 0 = sem rede.
+ * Códigos do protocolo (proto 2, Pôster Poker): 426 update_required {min_proto} ·
+ * 403 closed | age_required | bot | owned | won_this_week | attempts {attempts_used,
+ * max_attempts} · 409 stale_week {tournament: {week, prize}} | prize_changed {prize} |
+ * active_exists {matchId} | stale {seq, view, recent} · 400 stake_invalid {reason:
+ * bad | not_owned | rarity | exclusive | staked} | bad_request · 402 no_chips {need,
+ * have} · 422 illegal {view} · 404 not_found | none · 410 finished {result}.
+ * status 0 = sem rede.
  */
 export class PokerApiError extends Error {
   status: number;
@@ -339,7 +410,11 @@ export interface PokerApi {
   /** Molduras e banners ganhos na mesa: "frame:gold", "banner:gold"… */
   cosmeticUnlocks(): Promise<Set<string>>;
   bounty: {
-    start(day: string, prizeId: string): Promise<BountyStart>;
+    /**
+     * Entra no torneio da semana: week = tournament.week, prizeId = tournament.prize.id,
+     * stake = fichas ou um pôster de stake_options. idem (uuid) torna o start repetível.
+     */
+    start(week: string, prizeId: string, stake?: TournamentStake, idem?: string): Promise<BountyStart>;
     act(matchId: string, seq: number, idem: string, action: PlayerAction, show?: boolean): Promise<BountyAct>;
     forfeit(matchId: string, seq: number): Promise<BountyResult>;
     resume(matchId?: string): Promise<BountyResume>;
@@ -392,7 +467,12 @@ async function getHome(): Promise<PokerHome> {
   const raw = asRow(await rpc('get_poker_home'));
   if (!raw || raw.enabled !== true) return { enabled: false, open: false };
   const home = raw as unknown as PokerHomeOpen;
-  return { ...home, tickets: home.bounty?.tickets ?? 0 };
+  return {
+    ...home,
+    tickets: typeof raw.tickets === 'number' ? raw.tickets : home.tournament?.chips ?? 0,
+    collection: Array.isArray(raw.collection) ? home.collection : [],
+    cobra_items: Array.isArray(raw.cobra_items) ? home.cobra_items : [],
+  };
 }
 
 async function getScoreboard(): Promise<PokerScoreboard> {
@@ -471,7 +551,8 @@ async function cosmeticUnlocks(): Promise<Set<string>> {
 }
 
 const bounty: PokerApi['bounty'] = {
-  start: (day, prizeId) => edge<BountyStart>({ op: 'start', day, prizeId }),
+  start: (week, prizeId, stake, idem) =>
+    edge<BountyStart>({ op: 'start', week, prizeId, ...(stake ? { stake } : {}), ...(idem ? { idem } : {}) }),
   act: (matchId, seq, idem, action, show) =>
     edge<BountyAct>(show ? { op: 'act', matchId, seq, idem, action, show: true } : { op: 'act', matchId, seq, idem, action }),
   forfeit: async (matchId, seq) => (await edge<{ ok: true; result: BountyResult }>({ op: 'forfeit', matchId, seq })).result,

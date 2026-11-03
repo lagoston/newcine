@@ -27,6 +27,7 @@ export function toPublicEvents(ev: MatchEvent[], viewer: 'human'): PublicEvent[]
           i, t: 'matchStarted', mode: e.mode, seats: e.seats.map((s) => ({ ...s })), loan: e.loan,
           prize: e.prize ? { ...e.prize } : null, level: { ...e.level, next: e.level.next ? { ...e.level.next } : null },
           ...(e.seedHash ? { seedHash: e.seedHash } : {}),
+          ...(e.tournament ? { tournament: { ...e.tournament } } : {}),
         });
         break;
       case 'levelUp':
@@ -73,7 +74,7 @@ export function toPublicEvents(ev: MatchEvent[], viewer: 'human'): PublicEvent[]
         out.push({ i, t: 'runout', hands: e.hands.map((h) => ({ playerId: h.playerId, cards: h.cards.slice() })) });
         break;
       case 'streetDealt':
-        out.push({ i, t: 'street', street: e.street, cards: e.cards.slice(), board: e.board.slice() });
+        out.push({ i, t: 'street', street: e.street, cards: e.cards.slice(), board: e.board.slice(), ...(e.early ? { early: true } : {}) });
         break;
       case 'showdown':
         out.push({
@@ -113,6 +114,23 @@ export function toPublicEvents(ev: MatchEvent[], viewer: 'human'): PublicEvent[]
         break;
       case 'headsUp':
         out.push({ i, t: 'headsUp', ids: [e.ids[0], e.ids[1]], handNumber: e.handNumber });
+        break;
+      // Pôster Poker: o que o efeito anuncia, as cartas que ele vira (já públicas por
+      // definição), os bônus da casa e o tique de Le Chiffre (a única força de mão de bot
+      // que sai de propósito, só nas mãos do efeito tell).
+      case 'effectCast':
+        out.push({ i, t: 'effectCast', effect: e.effect, handNumber: e.handNumber, castNo: e.castNo,
+          data: e.data.effect === 'eight_aces' ? { effect: 'eight_aces', added: e.data.added.slice() } : { ...e.data } });
+        break;
+      case 'effectReveal':
+        out.push({ i, t: 'effectReveal', effect: e.effect, handNumber: e.handNumber,
+          cards: e.cards.map((c) => ({ playerId: c.playerId, cards: c.cards.slice() })) });
+        break;
+      case 'effectBonus':
+        out.push({ i, t: 'effectBonus', effect: e.effect, handNumber: e.handNumber, playerId: e.playerId, amount: e.amount });
+        break;
+      case 'tellMark':
+        out.push({ i, t: 'tellMark', handNumber: e.handNumber, playerId: e.playerId, mark: e.mark });
         break;
       case 'matchEnded':
         out.push({

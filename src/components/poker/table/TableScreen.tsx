@@ -11,7 +11,11 @@ import { prizeWithArticle } from '../../../lib/poker/client/format';
 import { setPokerSettings, SPEEDS } from '../../../lib/poker/client/settings';
 import { useRig, type Rig } from '../../../lib/poker/client/useRig';
 import { useFreeMatch, type MatchCtl } from '../../../lib/poker/client/useFreeMatch';
-import { useBountyMatch } from '../../../lib/poker/client/useBountyMatch';
+import { useBountyMatch, type TourneyInfo } from '../../../lib/poker/client/useBountyMatch';
+import { oddsFx } from '../../../lib/poker/client/useTable';
+import { posterTitle, type TournamentStake } from '../../../lib/poker/client/tournament';
+import type { StakeShow, TourneyPoster } from '../tournament/TableTourney';
+import PosterInfoSheet from '../tournament/PosterInfoSheet';
 import { useTraining, type TrainingCtl } from '../../../lib/poker/client/useTraining';
 import { primePokerAudio } from '../../../lib/poker/client/sound';
 import { loadJackpotFont } from '../../../lib/posterJackpot';
@@ -37,11 +41,13 @@ interface ScreenProps {
   home: PokerHome | null;
   prize: PokerPrize | null;
   training?: TrainingCtl | null;
+  /** Pôster Poker: o torneio da semana (o pôster mágico e a entrada). */
+  tourney?: TourneyInfo | null;
 }
 
 const FAREWELL_MS = 4000;
 
-const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, training }) => {
+const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, training, tourney }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { table: tb, dir, settings, reduced, lang, mode, client } = rig;
@@ -59,6 +65,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
   const [showUntil, setShowUntil] = useState(0);
   const [stage, setStage] = useState<'table' | 'farewell' | 'credits'>('table');
   const [notice, setNotice] = useState<string | null>(null);
+  const [posterInfo, setPosterInfo] = useState(false);
   const me = seatOf(table, 'human');
   const prizeInfo = prize ? { rarity: prize.rarity as Rarity, name: lang === 'pt' ? prize.name_pt : prize.name_en, the: prizeWithArticle(prize, lang) } : null;
   const thermoOn = settings.thermo ?? !!home?.player?.tutorial_done;
@@ -119,7 +126,7 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
     }
     const opp = Math.max(1, inHandIds(table).length - 1);
     let alive = true;
-    void client.call({ op: 'thermo', hole: me.cards, board: table.board, opponents: opp, dead: [] }).then((r) => {
+    void client.call({ op: 'thermo', hole: me.cards, board: table.board, opponents: opp, dead: [], ...oddsFx(table) }).then((r) => {
       if (!alive || r.kind !== 'equity') return;
       const n = opp;
       setThermo(r.value < 0.8 / (n + 1) ? 'weak' : r.value > 1.5 / (n + 1) ? 'strong' : 'good');
@@ -277,6 +284,16 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
   }, [ctl.recap]);
 
   const fincherAllIn = seatOf(table, 'fincher')?.status === 'allIn';
+  // O pôster da semana e o pôster apostado, como a mesa desenha.
+  const stageTourney = useMemo((): { poster: TourneyPoster; stake: StakeShow | null } | null => {
+    if (!tourney) return null;
+    const pz = tourney.prize;
+    const st = tourney.stake;
+    return {
+      poster: { title: posterTitle(pz, lang), filePath: pz.file_path, rarity: pz.rarity, serial: pz.serial },
+      stake: st && st.kind === 'poster' && st.filePath ? { title: st.title ?? '', filePath: st.filePath, effect: st.effect ?? 'none' } : null,
+    };
+  }, [tourney, lang]);
   const eliminator = ctl.credits?.eliminatedBy ?? null;
 
   return (
@@ -326,6 +343,9 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
       vignette={fincherAllIn}
       onSkipTraining={training ? () => navigate(BLEFE_ROUTES.lobby) : null}
       onBlocked={training ? training.blocked : undefined}
+      tourney={stageTourney}
+      cast={tb.cast}
+      onPosterInfo={() => setPosterInfo(true)}
     >
       <p id="pk-read" className="sr-only-pk" aria-live="polite" />
 
@@ -404,11 +424,8 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
           onSkipSpeech={dir.skip}
           onRematch={ctl.rematch}
           onScoreboard={() => navigate(BLEFE_ROUTES.scoreboard)}
-          onRetry={
-            ctl.credits.retry && home?.bounty?.prize
-              ? () => navigate(BLEFE_ROUTES.bounty(home.bounty!.day, home.bounty!.prize.id))
-              : null
-          }
+          // Tentar de novo: volta à tela do torneio, para escolher a entrada outra vez.
+          onRetry={ctl.credits.retry && ctl.credits.tournament ? () => navigate(BLEFE_ROUTES.tournament) : null}
           onLobby={() => navigate(BLEFE_ROUTES.lobby)}
         />
       )}
@@ -423,6 +440,9 @@ const TableScreen: React.FC<ScreenProps> = ({ rig, ctl, cardStyle, home, prize, 
         </div>
       )}
 
+      {posterInfo && tourney && stageTourney && (
+        <PosterInfoSheet prize={tourney.prize} table={table} lang={lang} reduced={reduced} onClose={() => setPosterInfo(false)} />
+      )}
       {portrait && <CardViewer id={portrait} cardStyle={cardStyle} onClose={() => setPortrait(null)} />}
       {quipOpen && (
         <QuipPicker
@@ -513,18 +533,19 @@ export const FreeTable: React.FC<{ home: PokerHome | null; cardStyle: string }> 
   return <TableScreen rig={rig} ctl={ctl} cardStyle={cardStyle} home={home} prize={null} />;
 };
 
-export const BountyTable: React.FC<{ home: PokerHome | null; cardStyle: string; start: boolean; day: string | null; prizeId: string | null }> = ({
-  home,
-  cardStyle,
-  start,
-  day,
-  prizeId,
-}) => {
+export const BountyTable: React.FC<{
+  home: PokerHome | null;
+  cardStyle: string;
+  start: boolean;
+  week: string | null;
+  prizeId: string | null;
+  stake: TournamentStake | null;
+}> = ({ home, cardStyle, start, week, prizeId, stake }) => {
   const rig = useRig('bounty', home);
-  const ctl = useBountyMatch(rig, home, { start, day, prizeId });
+  const ctl = useBountyMatch(rig, home, { start, week, prizeId, stake });
   return (
     <>
-      <TableScreen rig={rig} ctl={ctl} cardStyle={cardStyle} home={home} prize={ctl.prize} />
+      <TableScreen rig={rig} ctl={ctl} cardStyle={cardStyle} home={home} prize={ctl.prize} tourney={ctl.tourney} />
       <AgeGate open={ctl.needAge} onConfirmed={ctl.ageConfirmed} onClose={ctl.ageDeclined} zIndexClass="z-[10050]" />
     </>
   );

@@ -38,11 +38,14 @@ const Typed: React.FC<{ text: string; ms: number; off: boolean }> = ({ text, ms,
   );
 };
 
-const SpeechBand: React.FC<{ speech: SpeechItem | null; onSkip: () => void; reduced: boolean; hint?: React.ReactNode }> = ({
+// `ribbon` (03/11/2026, Pôster Poker): a faixa do efeito em vigor (o alvo do Raymond, a
+// opala…), que ocupa a faixa de fala só quando ninguém fala.
+const SpeechBand: React.FC<{ speech: SpeechItem | null; onSkip: () => void; reduced: boolean; hint?: React.ReactNode; ribbon?: React.ReactNode }> = ({
   speech,
   onSkip,
   reduced,
   hint,
+  ribbon,
 }) => {
   const { t } = useTranslation();
   const who = speech?.speaker ?? null;
@@ -78,6 +81,10 @@ const SpeechBand: React.FC<{ speech: SpeechItem | null; onSkip: () => void; redu
           <motion.div key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pk-balloon is-fincher" style={{ '--c': '#EE7A3E' } as React.CSSProperties}>
             <span className="pk-balloon-tail" style={{ left: '50%' }} aria-hidden />
             <p className="pk-balloon-text">{hint}</p>
+          </motion.div>
+        ) : ribbon ? (
+          <motion.div key="ribbon" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            {ribbon}
           </motion.div>
         ) : null}
       </AnimatePresence>

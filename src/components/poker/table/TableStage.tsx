@@ -6,9 +6,9 @@ import type { PlayerAction } from '../../../lib/poker/engine';
 import type { MatchMode, PlayerId, Rarity } from '../../../lib/poker/types';
 import type { TableShow } from '../../../lib/poker/client/display';
 import { seatOf } from '../../../lib/poker/client/display';
-import type { Banner, TablePhase } from '../../../lib/poker/client/useTable';
+import type { Banner, CastShow, TablePhase } from '../../../lib/poker/client/useTable';
 import type { SpeechItem } from '../../../lib/poker/client/useDirector';
-import type { PokerSettingsLocal } from '../../../lib/poker/client/settings';
+import { SPEED_TAG, type PokerSettingsLocal } from '../../../lib/poker/client/settings';
 import { displayFont, fmt, whatYouHave, type Lang } from '../../../lib/poker/client/format';
 import { blindsText } from '../../../lib/poker/client/narrate';
 import { pokerCosmetics } from '../cosmetics/looks';
@@ -18,8 +18,20 @@ import PlayingCard from '../cards/PlayingCard';
 import TableChip from '../cards/TableChip';
 import ActionBar, { type ActionBarHandle, type PreAction, type TutorialGate } from './ActionBar';
 import SpeechBand from './SpeechBand';
+import {
+  CastOverlay,
+  HouseChips,
+  MagicPoster,
+  StakeThumb,
+  blackjackLeaders,
+  blackjackValue,
+  effectRibbon,
+  type StakeShow,
+  type TourneyPoster,
+} from '../tournament/TableTourney';
 import '../../../styles/posterJackpot.css';
 import '../../../styles/poker.css';
+import '../../../styles/posterPoker.css';
 
 // A mesa desenhada (03/11/2026), sem estado próprio de partida: recebe a mesa
 // projetada (`TableShow`) e devolve os toques. É o mesmo componente na partida
@@ -70,6 +82,11 @@ export interface TableStageProps {
   /** Treino: [Pular] sempre visível no lugar da velocidade. */
   onSkipTraining?: (() => void) | null;
   onBlocked?: (type: PlayerAction['type']) => void;
+  /** Pôster Poker: o pôster da semana e o pôster apostado (só no torneio). */
+  tourney?: { poster: TourneyPoster; stake: StakeShow | null } | null;
+  /** O pôster lançando um efeito agora (o CATCHAW). */
+  cast?: CastShow | null;
+  onPosterInfo?: () => void;
   children?: React.ReactNode;
 }
 
@@ -94,7 +111,19 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
   const realPots = table.pots.filter((x) => x.eligibleIds.length >= 2);
   const pots = realPots.length > 1 && table.seats.some((x) => x.status === 'allIn') ? realPots : null;
   const level = table.level;
-  const modeLabel = p.mode === 'bounty' ? t('poker.table.bounty') : p.mode === 'tutorial' ? t('poker.table.training') : t('poker.table.free');
+  const modeLabel =
+    p.mode === 'bounty' ? (p.tourney ? t('poker.table.tourney') : t('poker.table.bounty')) : p.mode === 'tutorial' ? t('poker.table.training') : t('poker.table.free');
+  // Pôster Poker (03/11/2026): o que o efeito em vigor muda no desenho.
+  const tt = table.tournament;
+  const castNow = !!tt && tt.castHand === table.handNumber ? tt.active : null;
+  const six = table.board.length > 5 || castNow?.effect === 'sixth_card';
+  const opal = tt?.opal?.card ?? null;
+  const doubled = castNow?.effect === 'double_pot';
+  const bjBest = blackjackLeaders(table);
+  const bjOf = (s: { id: string; revealed: string[] }) =>
+    castNow?.effect === 'blackjack' && s.revealed.length === 2 ? { value: blackjackValue(s.revealed as never), best: bjBest.has(s.id) } : null;
+  const ribbon = p.tourney ? effectRibbon(t, table, lang) : null;
+  const myBj = me ? bjOf(me) : null;
 
   const thermoTone = p.thermo === 'strong' ? '#7BE0A0' : p.thermo === 'good' ? '#FFE8A3' : '#FF9AA0';
   const thermoBars = p.thermo === 'strong' ? 3 : p.thermo === 'good' ? 2 : 1;
@@ -116,7 +145,7 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
 
   return (
     <div
-      className={`pk-room ${reduced ? 'pk-reduced' : ''} ${settings.bigCards ? 'pk-big-cards' : ''}`}
+      className={`pk-room ${reduced ? 'pk-reduced' : ''} ${settings.bigCards ? 'pk-big-cards' : ''} ${p.cast ? 'pk-casting' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label={t('poker.table.aria')}
@@ -152,7 +181,7 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
             <button type="button" className="pk-icon-btn" onClick={p.onSpeed} aria-label={t('poker.settings.speed') + ': ' + t(`poker.settings.${settings.speed}`)}>
               <span className="flex flex-col items-center leading-none">
                 <FastForward className="w-5 h-5" />
-                <span className="pk-speed">{settings.speed === 'normal' ? '1×' : settings.speed === 'fast' ? '2×' : '5×'}</span>
+                <span className="pk-speed">{SPEED_TAG[settings.speed] ?? '1×'}</span>
               </span>
             </button>
           )}
@@ -167,6 +196,11 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
             <div className={`pk-lamp ${table.seats.some((s) => s.status === 'allIn') ? 'is-hot' : ''}`} />
           </div>
         </div>
+
+        {/* Pôster Poker: o pôster mágico flutuando à esquerda do feltro. */}
+        {p.tourney && (
+          <MagicPoster poster={p.tourney.poster} casts={tt?.casts ?? 0} casting={!!p.cast} reduced={reduced} onOpen={() => p.onPosterInfo?.()} />
+        )}
 
         {/* O arco: Sapo à esquerda, Raposo no alto, Cobra à direita. */}
         <section className="pk-seats" aria-label={t('poker.table.rivals')}>
@@ -187,11 +221,14 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
               reduced={reduced}
               lang={lang}
               onPortrait={() => p.onPortrait(s.id)}
+              opal={opal}
+              bj={bjOf(s)}
+              cobraBox={s.id === 'cypher' && !!tt?.cobraItem}
             />
           ))}
         </section>
 
-        <SpeechBand speech={p.speech} onSkip={p.onSkipSpeech} reduced={reduced} hint={p.hint} />
+        <SpeechBand speech={p.speech} onSkip={p.onSkipSpeech} reduced={reduced} hint={p.hint} ribbon={ribbon} />
 
         {/* Pote e mesa. */}
         <section className="pk-board" aria-label={t('poker.table.boardAria')} onClick={p.onSkipAnim}>
@@ -224,20 +261,23 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
                 )}
               </span>
             )}
+            {doubled && <span className="pp-x2 pk-num" aria-label={t('poker.effects.double_pot.ribbon')}>×2</span>}
           </div>
-          <div className="pk-cards5" style={hl('board')}>
-            {Array.from({ length: 5 }, (_, i) => {
+          <div className={`pk-cards5 ${six ? 'is-six' : ''}`} style={hl('board')}>
+            {Array.from({ length: six ? 6 : 5 }, (_, i) => {
               const c = table.board[i];
               return c ? (
                 <PlayingCard
-                  key={`${table.handNumber}-${c}`}
+                  // Índice na chave: com os 8 ases do Cassino a mesma carta pode repetir.
+                  key={`${table.handNumber}-${i}-${c}`}
                   card={c}
                   size="board"
                   fourColor={settings.fourColor}
                   deal={!reduced}
-                  delay={i < 3 ? i * 0.12 : 0}
+                  delay={i < 3 ? i * 0.12 : i === 5 ? 0.12 : 0}
                   best={showdownDim && best!.includes(c)}
                   dimmed={showdownDim && !best!.includes(c)}
+                  className={opal && c === opal ? 'pp-opal' : ''}
                 />
               ) : (
                 <span key={`slot-${i}`} className="pk-slot" aria-hidden />
@@ -260,6 +300,7 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
                 </motion.span>
               )}
               <span className="text-[12.5px] font-bold" style={{ color: '#F3EAD3' }}>{t('poker.table.you')}</span>
+              {p.tourney?.stake && <StakeThumb stake={p.tourney.stake} />}
               {holder === 'human' && p.prize && (
                 <motion.span layoutId="pk-wanted" className="relative inline-block" transition={{ duration: reduced ? 0 : 0.7 }}>
                   <WantedPoster rarity={p.prize.rarity} size={20} />
@@ -268,27 +309,44 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
             </span>
             <span className="pk-num text-[15px]" style={{ color: '#FFE8A3' }}>{n(me?.stack ?? 0)}</span>
             {table.loan > 0 && <span className="pk-loan">{t('poker.table.loan')}</span>}
+            {me?.bonus != null && me.bonus > 0 && <span className="pp-house self-start">{t('poker.tourney.house', { amount: n(me.bonus) })}</span>}
           </div>
           <div className={`pk-hero-cards ${me?.status === 'folded' ? 'is-folded' : ''}`} style={hl('holeCards')}>
             {me && me.cards.length === 2
-              ? me.cards.map((c, i) => (
-                  <PlayingCard
-                    key={`${table.handNumber}-${c}`}
-                    card={c}
-                    size="hand"
-                    fourColor={settings.fourColor}
-                    deal={!reduced}
-                    delay={i * 0.09}
-                    rotate={i === 0 ? -4 : 4}
-                    best={showdownDim && best!.includes(c)}
-                    dimmed={showdownDim && !best!.includes(c)}
-                  />
-                ))
+              ? me.cards.map((c, i) => {
+                  // A Leitura virou esta carta para todos: o olho no canto.
+                  const opened = me.revealed.length === 1 && me.revealed[0] === c && me.cards.indexOf(c) === i;
+                  const card = (
+                    <PlayingCard
+                      key={`${table.handNumber}-${i}-${c}`}
+                      card={c}
+                      size="hand"
+                      fourColor={settings.fourColor}
+                      deal={!reduced}
+                      delay={i * 0.09}
+                      rotate={i === 0 ? -4 : 4}
+                      best={showdownDim && best!.includes(c)}
+                      dimmed={showdownDim && !best!.includes(c)}
+                      className={opal && c === opal ? 'pp-opal' : ''}
+                    />
+                  );
+                  return opened ? (
+                    <span key={`${table.handNumber}-${i}-${c}`} className="pp-open">
+                      {card}
+                      <span className="pp-open-eye" role="img" aria-label={t('poker.tourney.openForAll')}>
+                        <Eye aria-hidden />
+                      </span>
+                    </span>
+                  ) : (
+                    card
+                  );
+                })
               : me?.status === 'eliminated'
                 ? null
                 : [0, 1].map((i) => <span key={i} className="pk-slot" style={{ width: 'var(--hand-w)', height: 'calc(var(--hand-w) * 1.393)', borderRadius: 7 }} aria-hidden />)}
           </div>
           <div className="pk-hero-side">
+            {myBj && <span className={`pp-bj pk-num ${myBj.best ? 'is-best' : ''}`} style={{ position: 'static', transform: 'none' }}>{myBj.value}</span>}
             {me && me.bet > 0 ? (
               <span className={`pk-pill pk-num ${me.status === 'allIn' ? 'is-allin' : ''}`}>
                 {me.odds != null ? <span className="pk-odds">{Math.round(me.odds * 100)}%</span> : <TableChip amount={me.bet} size={16} />}
@@ -375,6 +433,10 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Pôster Poker: as fichas da casa voando e o CATCHAW por cima de tudo. */}
+        {p.tourney && <HouseChips bonus={tt?.lastBonus ?? null} reduced={reduced} />}
+        {p.tourney && p.cast && <CastOverlay key={p.cast.id} cast={p.cast} poster={p.tourney.poster} lang={lang} reduced={reduced} onSkip={p.onSkipAnim} />}
 
         {p.children}
       </div>

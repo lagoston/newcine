@@ -24,6 +24,9 @@ import {
   ranksOfScore,
   rngFromState,
   scoreCards,
+  scoreCardsAny,
+  scoreIndicesAny,
+  scoreIndicesMulti,
   scoreMasks,
   setBlinds,
   startHand,
@@ -169,7 +172,9 @@ const compareCases: [string, -1 | 0 | 1, string, string][] = [
 for (const [a, expected, b, note] of compareCases) eq(cmp(a, b), expected, note);
 throws(() => evaluateHand(c('As As Kd Qc Jh')), 'carta repetida lança erro');
 throws(() => evaluateHand(['Ax' as Card, 'Kd', 'Qc', 'Jh', 'Th']), 'carta inválida lança erro');
-throws(() => evaluateHand(c('As Ks Qs Js Ts 9s 8s 7s')), 'mais de 7 cartas lança erro');
+// Pôster Poker (03/11/2026): até 8 cartas (board de 6 do Onze Homens).
+throws(() => evaluateHand(c('As Ks Qs Js Ts 9s 8s 7s 6s')), 'mais de 8 cartas lança erro');
+eq(evaluateHand(c('As Ks Qs Js Ts 9s 8s 7s')).kind, 'straight_flush', '8 cartas: royal entre elas');
 eq(cardLabel('As'), 'A♠', 'cardLabel As');
 eq(cardLabel('Th'), '10♥', 'cardLabel Th');
 eq(c('10h as KD'), ['Th', 'As', 'Kd'] as Card[], 'parseCards aceita formas soltas');
@@ -260,6 +265,126 @@ function naiveBest(idx: number[]): number {
     eq(scoreCards(c(f)), naiveBest(idx), `forçado: ${f}`);
   }
   console.log(`  distribuição por categoria (0..8): ${perCategory.join(', ')}`);
+}
+
+// ---------------------------------------------------------------------------
+// Avaliador: cartas repetidas e 8 cartas (Pôster Poker, 03/11/2026)
+// ---------------------------------------------------------------------------
+
+section('Avaliador — cartas repetidas (Cassino) e 8 cartas (Onze Homens)');
+
+/** Ingênuo para 5 cartas que podem repetir: cinco iguais (9) e flush com valores repetidos. */
+function naive5Multi(idx: number[]): number {
+  const ranks = idx.map((i) => (i >> 2) + 2);
+  const suits = idx.map((i) => i & 3);
+  const flush = suits.every((x) => x === suits[0]);
+  const counts = new Map<number, number>();
+  for (const r of ranks) counts.set(r, (counts.get(r) ?? 0) + 1);
+  const groups = [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0]);
+  const uniq = [...counts.keys()].sort((a, b) => b - a);
+  const sorted = ranks.slice().sort((a, b) => b - a);
+  let straightHigh = 0;
+  if (uniq.length === 5 && uniq[0] - uniq[4] === 4) straightHigh = uniq[0];
+  if (uniq.join(',') === '14,5,4,3,2') straightHigh = 5;
+  let cat: number;
+  let vals: number[];
+  if (groups[0][1] >= 5) [cat, vals] = [9, [groups[0][0]]];
+  else if (straightHigh && flush) [cat, vals] = [8, [straightHigh]];
+  else if (groups[0][1] === 4) [cat, vals] = [7, [groups[0][0], groups[1][0]]];
+  else if (groups[0][1] === 3 && groups[1][1] === 2) [cat, vals] = [6, [groups[0][0], groups[1][0]]];
+  else if (flush) [cat, vals] = [5, sorted];
+  else if (straightHigh) [cat, vals] = [4, [straightHigh]];
+  else if (groups[0][1] === 3) [cat, vals] = [3, groups.map((g) => g[0])];
+  else if (groups[0][1] === 2 && groups[1][1] === 2) [cat, vals] = [2, groups.map((g) => g[0])];
+  else if (groups[0][1] === 2) [cat, vals] = [1, groups.map((g) => g[0])];
+  else [cat, vals] = [0, uniq];
+  let v = cat;
+  for (let i = 0; i < 5; i++) v = v * 16 + (vals[i] ?? 0);
+  return v;
+}
+
+function naiveBestMulti(idx: number[]): number {
+  if (idx.length === 5) return naive5Multi(idx);
+  let best = -1;
+  const pick: number[] = [];
+  const rec = (start: number): void => {
+    if (pick.length === 5) {
+      best = Math.max(best, naive5Multi(pick));
+      return;
+    }
+    for (let i = start; i < idx.length; i++) {
+      pick.push(idx[i]);
+      rec(i + 1);
+      pick.pop();
+    }
+  };
+  rec(0);
+  return best;
+}
+
+{
+  const rng = createRng('cross-check-multi');
+  const aces = c('As As Ah Ah Ad Ad Ac Ac').map(cardIndex);
+  const deck60 = [...Array.from({ length: 52 }, (_, i) => i), ...aces];
+  let mism = 0;
+  let mism8 = 0;
+  let withRepeat = 0;
+  const perCat = new Array<number>(10).fill(0);
+  const N = 60000;
+  for (let t = 0; t < N; t++) {
+    const n = 5 + (t % 4);   // 5..8 cartas
+    const d = deck60.slice();
+    for (let k = 0; k < n; k++) {
+      const j = k + rng.nextInt(d.length - k);
+      const tmp = d[k];
+      d[k] = d[j];
+      d[j] = tmp;
+    }
+    const hand = d.slice(0, n);
+    if (new Set(hand).size < n) withRepeat++;
+    const fast = scoreIndicesAny(hand, n);
+    perCat[fast >>> 20]++;
+    if (fast !== naiveBestMulti(hand)) {
+      mism++;
+      if (mism <= 5) console.log('  divergência (repetidas):', hand.map(cardFromIndex).join(' '), fast.toString(16), naiveBestMulti(hand).toString(16));
+    }
+    // Sem repetida, o caminho por contagem dá o mesmo número das máscaras.
+    if (new Set(hand).size === n) check(scoreIndicesMulti(hand, n) === scoreCards(hand.map(cardFromIndex)), 'contagem = máscaras sem repetida');
+  }
+  eq(mism, 0, `${N} mãos do baralho de 60 (5 a 8 cartas; ${withRepeat} com repetida) iguais ao ingênuo`);
+  console.log(`  distribuição por categoria (0..9): ${perCat.join(', ')}`);
+  // 8 cartas distintas: as máscaras continuam certas.
+  const deck = Array.from({ length: 52 }, (_, i) => i);
+  for (let t = 0; t < 20000; t++) {
+    for (let k = 0; k < 8; k++) {
+      const j = k + rng.nextInt(52 - k);
+      const tmp = deck[k];
+      deck[k] = deck[j];
+      deck[j] = tmp;
+    }
+    const hand = deck.slice(0, 8);
+    if (scoreCards(hand.map(cardFromIndex)) !== naiveBestMulti(hand)) mism8++;
+  }
+  eq(mism8, 0, '20.000 mãos de 8 cartas distintas iguais ao ingênuo');
+
+  const ev = (cards: string): ReturnType<typeof evaluateHand> => evaluateHand(c(cards), { repeats: true });
+  eq(ev('As As Ad Ac Ah Kd 2c').kind, 'five_kind', 'cinco ases = cinco iguais');
+  eq(ev('As As Ad Ac Ah Kd 2c').category, 9, 'cinco iguais é a categoria 9');
+  check(ev('As As Ad Ac Ah').score > ev('As Ks Qs Js Ts').score, 'cinco iguais > royal flush');
+  eq(ev('As As Ks Qs Js 3d 2c').kind, 'flush', 'flush com valor repetido (A♠ A♠ K♠ Q♠ J♠)');
+  check(ev('As As Ks Qs Js').score > ev('As Ks Qs Js 9s').score, 'flush A-A-K-Q-J > A-K-Q-J-9');
+  eq(ev('As As Ah Ks Kd').kind, 'full_house', 'trinca de ases com 2 iguais + par');
+  eq(ev('As As Kd Qc Jh').kind, 'pair', 'par com duas cartas iguais');
+  eq(ev('As As Ks Qs Js Ts').kind, 'straight_flush', 'sequência usa valores distintos');
+  eq(ev('As As Ah Ad Kd').best5.length, 5, 'best5 com repetidas tem 5 cartas');
+  for (const h of ['As As Ad Ac Ah Kd 2c', 'As As Ks Qs Js 3d 2c', 'Ah Ah Ad Ad Kc Kc 2s 3s']) {
+    const v = ev(h);
+    eq(naive5Multi(v.best5.map(cardIndex)), v.score, `best5 confere com o score (${h})`);
+  }
+  eq(scoreCardsAny(c('As As Ad Ac Ah')) >>> 20, 9, 'scoreCardsAny: cinco iguais');
+  eq(scoreCardsAny(c('As Kd Qc Jh 9s')), scoreCards(c('As Kd Qc Jh 9s')), 'scoreCardsAny sem repetida = scoreCards');
+  throws(() => evaluateHand(c('As As Kd Qc Jh')), 'sem repeats, carta repetida continua sendo erro');
+  check(evaluateHand(c('As Ks Qs Js Ts 9s 8s 2c')).royal, 'royal em 8 cartas');
 }
 
 // ---------------------------------------------------------------------------
@@ -598,6 +723,107 @@ section('Engine — publicView e eventos por espectador');
   const v2 = publicView(d.state, null);
   check(v2.players.every((p) => p.holeCards.length === 2 && !p.hasHiddenCards), 'depois do showdown todos veem as mãos');
   check(JSON.stringify(JSON.parse(JSON.stringify(d.state))) === JSON.stringify(d.state), 'estado é JSON puro (ida e volta idêntica)');
+}
+
+// ---------------------------------------------------------------------------
+// Engine: ganchos de efeito do Pôster Poker (03/11/2026)
+// ---------------------------------------------------------------------------
+
+section('Engine — efeitos do Pôster Poker (cartas a mais, flop antecipado, river de 2)');
+{
+  const ACES = c('As As Ah Ah Ad Ad Ac Ac');
+  // Sem fx o baralho é o mesmo de sempre (mesma semente = mesmas cartas).
+  const plain = startHand(makeTable([1000, 1000, 1000], {}, undefined, 'fx-seed'));
+  const empty = startHand(makeTable([1000, 1000, 1000], {}, undefined, 'fx-seed'), { fx: {} });
+  eq(empty.state.hand!.deck, plain.state.hand!.deck, 'fx vazio não muda o baralho');
+  check(plain.state.hand!.fx === undefined, 'mão normal sem fx no estado');
+
+  // Cassino: 60 cartas, 12 ases, showdown com repetidas.
+  let fives = 0;
+  let repeatsSeen = 0;
+  for (let k = 0; k < 400; k++) {
+    const d = new Driver(makeTable([1000, 1000, 1000, 1000], {}, undefined, `fx-aces-${k}`));
+    const r = startHand(d.state, { fx: { extraCards: ACES } });
+    const h = r.state.hand!;
+    const all = [...h.deck, ...h.board, ...r.state.players.flatMap((p) => p.holeCards)];
+    if (k === 0) {
+      eq(all.length, 60, 'baralho do Cassino: 60 cartas');
+      eq(all.filter((x) => x[0] === 'A').length, 12, '12 ases (4 + 8)');
+      eq(h.fx?.repeats, true, 'mão marcada com repetidas');
+    }
+    d.state = r.state;
+    // Todo mundo paga até o fim.
+    for (let guard = 0; guard < 40 && d.state.phase === 'betting'; guard++) {
+      const to = d.state.hand!.toActId!;
+      const L = getLegalActions(d.state, to)!;
+      d.act(to, L.canCheck ? { type: 'check' } : { type: 'call' });
+    }
+    const sd = d.ofType('showdown')[0];
+    check(!!sd, 'mão do Cassino chega ao showdown');
+    for (const hh of sd?.hands ?? []) {
+      if (hh.kind === 'five_kind') fives++;
+      const seven = [...hh.cards, ...d.state.hand!.board];
+      if (new Set(seven).size < seven.length) repeatsSeen++;
+      eq(hh.score, scoreCardsAny(seven), 'showdown usa o avaliador que aceita repetidas');
+    }
+  }
+  check(repeatsSeen > 0, `houve mãos com carta repetida no showdown (${repeatsSeen}; cinco iguais: ${fives})`);
+  throws(() => startHand(makeTable([1000, 1000]), { fx: { extraCards: ['Ax' as Card] } }), 'carta a mais inválida é recusada', 'invalid_config');
+
+  // Golpe de Mestre: flop antes das apostas do pré-flop, depois direto para o turn.
+  {
+    const d = new Driver(makeTable([1000, 1000, 1000]));
+    d.events = [];
+    const r = startHand(d.state, { fx: { earlyFlop: true } });
+    d.state = r.state;
+    d.events.push(...r.events);
+    const types = r.events.map((e) => e.type);
+    eq(types.slice(0, 4), ['handStarted', 'blindsPosted', 'holeCardsDealt', 'streetDealt'], 'flop sai logo depois das cartas fechadas');
+    const early = d.ofType('streetDealt')[0];
+    eq([early.street, early.early, early.cards.length], ['flop', true, 3], 'streetDealt do flop com early: true');
+    eq(d.state.hand!.street, 'preflop', 'a rua continua sendo o pré-flop');
+    eq(d.state.hand!.currentBet, 100, 'nível a pagar = big blind');
+    eq(getLegalActions(d.state, d.state.hand!.toActId!)!.street, 'preflop', 'ações legais do pré-flop');
+    d.act('p0', { type: 'call' }).act('p1', { type: 'call' }).act('p2', { type: 'check' });
+    const streets = d.ofType('streetDealt');
+    eq(streets.map((e) => e.street), ['flop', 'turn'], 'depois do pré-flop vem o turn (sem segunda rodada de flop)');
+    eq(d.state.hand!.board.length, 4, 'board com 4 no turn');
+    eq(d.state.hand!.actions.filter((a) => a.street === 'flop').length, 0, 'nenhuma ação de flop');
+    for (const id of ['p1', 'p2', 'p0']) d.act(id, { type: 'check' });
+    for (const id of ['p1', 'p2', 'p0']) d.act(id, { type: 'check' });
+    eq(d.ofType('showdown').length, 1, 'showdown no fim');
+    eq(d.state.hand!.board.length, 5, 'board de 5 no fim');
+  }
+  {
+    // Flop antecipado + all-in no pré-flop: corre turn e river.
+    const d = new Driver(makeTable([1000, 1000]));
+    const r = startHand(d.state, { fx: { earlyFlop: true } });
+    d.state = r.state;
+    d.events = r.events.slice();
+    const to = d.state.hand!.toActId!;
+    d.act(to, { type: 'allIn' });
+    d.act(d.state.hand!.toActId!, { type: 'call' });
+    eq(d.ofType('streetDealt').map((e) => e.street), ['flop', 'turn', 'river'], 'all-in com flop antecipado: turn e river');
+    eq(d.state.hand!.board.length, 5, 'board de 5');
+  }
+
+  // Onze Homens: river com 2 cartas (board de 6), showdown com 8 cartas.
+  {
+    const d = new Driver(makeTable([1000, 1000, 1000]));
+    const r = startHand(d.state, { fx: { riverCards: 2 }, preset: { holeCards: { p1: c('As Ks') }, board: c('Qh Jd 2c 7d 3c Ts') } });
+    d.state = r.state;
+    d.events = r.events.slice();
+    d.act('p0', { type: 'call' }).act('p1', { type: 'call' }).act('p2', { type: 'check' });
+    for (let street = 0; street < 3; street++) for (const id of ['p1', 'p2', 'p0']) d.act(id, { type: 'check' });
+    const river = d.ofType('streetDealt').find((e) => e.street === 'river')!;
+    eq(river.cards, c('3c Ts'), 'river com 2 cartas (preset de 6)');
+    eq(d.state.hand!.board, c('Qh Jd 2c 7d 3c Ts'), 'board de 6');
+    const sd = d.ofType('showdown')[0];
+    const p1 = sd.hands.find((h) => h.playerId === 'p1')!;
+    eq(p1.kind, 'straight', 'p1 faz a sequência com a 6ª carta (avaliado com 8 cartas)');
+    check(p1.best5.includes('Ts'), 'a 6ª carta entra no best5');
+    throws(() => startHand(makeTable([1000, 1000]), { preset: { board: c('2c 7d 9h Th 3s Qs') } }), 'board de 6 sem riverCards: 2 é recusado', 'invalid_preset');
+  }
 }
 
 // ---------------------------------------------------------------------------

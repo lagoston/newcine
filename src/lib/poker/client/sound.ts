@@ -165,6 +165,51 @@ export function playVictory() {
   });
 }
 
+/**
+ * CATCHAW! (03/11/2026, Pôster Poker): o pôster mágico chega perto (um sopro que sobe)
+ * e lança o efeito — baque grave, prato e um acorde de metais curto, como flash de estreia.
+ */
+export function playCatchaw() {
+  const ac = audio();
+  if (!ac) return;
+  const t = ac.currentTime;
+  // A aproximação: ruído filtrado subindo.
+  const src = ac.createBufferSource();
+  if (!noiseBuf) noise(ac, t, 0.01, 0.0001, { type: 'lowpass', freq: 100 });
+  src.buffer = noiseBuf;
+  const f = ac.createBiquadFilter();
+  f.type = 'bandpass';
+  f.Q.value = 1.4;
+  f.frequency.setValueAtTime(400, t);
+  f.frequency.exponentialRampToValueAtTime(5200, t + 0.42);
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.09, t + 0.36);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.46);
+  src.connect(f).connect(g).connect(ac.destination);
+  src.start(t);
+  src.stop(t + 0.5);
+  // O impacto.
+  const hit = t + 0.44;
+  tone(ac, 110, hit, 0.35, 0.22, 'sine', 42);
+  noise(ac, hit, 0.7, 0.09, { type: 'highpass', freq: 4200 });
+  [523.25, 659.25, 783.99, 1046.5].forEach((fr, i) => {
+    tone(ac, fr, hit + 0.02, 0.32 + i * 0.04, 0.035, 'square');
+    tone(ac, fr / 2, hit + 0.02, 0.4, 0.025, 'triangle');
+  });
+}
+
+/** Fichas da casa (bônus do efeito): uma cascata de cerâmica. */
+export function playHouseChips() {
+  const ac = audio();
+  if (!ac) return;
+  const t = ac.currentTime;
+  for (let i = 0; i < 9; i++) {
+    tone(ac, 2700 + Math.random() * 300, t + i * 0.05, 0.08, 0.032);
+    tone(ac, 4100 + Math.random() * 120, t + i * 0.05 + 0.012, 0.05, 0.018);
+  }
+}
+
 /** Sua vez: sininho. */
 export function playYourTurn() {
   const ac = audio();

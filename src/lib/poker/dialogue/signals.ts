@@ -11,11 +11,27 @@ import { rankOf } from '../cards.ts';
 import type { Street } from '../engine.ts';
 import type { HandKind } from '../evaluator.ts';
 import { evaluateHand } from '../evaluator.ts';
-import type { Cue, MatchMode, PlayerId, PublicEvent, RivalId, StyleLabel } from '../types.ts';
+import type { Cue, MatchMode, PlayerId, PosterEffectId, PublicEvent, Rarity, RivalId, StyleLabel, TournamentConfig } from '../types.ts';
 import type { TableContext, Trigger } from './types.ts';
 
 export const RIVALS: RivalId[] = ['bogart', 'cypher', 'fincher'];
 const HUMAN = 'human';
+
+/**
+ * Pôster Poker (03/11/2026): o "dono" de cada efeito fala mais na lançada (entra como ator,
+ * peso 0,6). Raposo: os golpes e a leitura; Cobra: contar cartas, a opala e o tique; Sapo:
+ * o Raymond, os ases e o bando.
+ */
+export const EFFECT_HOST: Record<PosterEffectId, RivalId> = {
+  early_flop: 'fincher', double_pot: 'fincher', reveal_one: 'fincher',
+  blackjack: 'cypher', opal: 'cypher', tell: 'cypher',
+  eight_aces: 'bogart', hand_bounty: 'bogart', sixth_card: 'bogart',
+};
+/** Quem apresenta o pôster da semana (o antigo portador por raridade, veredito Q2). */
+export const RARITY_HOST: Record<Rarity, RivalId> = { common: 'bogart', rare: 'bogart', epic: 'cypher', legendary: 'fincher' };
+
+/** Valores das variáveis do Pôster Poker que vêm do evento. */
+export interface SignalVars { fichas?: number; alvo?: HandKind; carta?: Card; maos?: number }
 
 export interface ShownHand { cards: Card[]; kind: HandKind; best5: Card[]; royal: boolean }
 
@@ -45,6 +61,15 @@ export interface Signal {
   noExchange?: boolean;
   /** Sinal de abertura/créditos montado pelo Diretor. */
   scene?: 'opening' | 'credits' | 'farewell';
+  // --- Pôster Poker (03/11/2026) ---
+  /** Variáveis vindas do evento ({fichas}, {alvo}, {carta}, {maos}). */
+  vars?: SignalVars;
+  /** Só falas com esta variante (a explicação de um efeito usa 'explica'). */
+  needVariant?: string;
+  /** Lançada: o Diretor decide a prioridade (P1 na 1ª vez da vida, senão P2/P3). */
+  effect?: { id: PosterEffectId; castNo: number };
+  /** Passa na frente de falas não-P1 desta mão que ainda não começaram (o bônus vence o pote). */
+  preempt?: boolean;
 }
 
 interface HandTrack {
@@ -96,7 +121,10 @@ function emptyHand(): HandTrack {
   };
 }
 
-/** "Ar": nada além de carta alta (ou só o par do board). Antes do flop: sem par e sem dama ou maior. */
+/**
+ * "Ar": nada além de carta alta (ou só o par do board). Antes do flop: sem par e sem dama ou maior.
+ * `repeats`: no Cassino (8 ases a mais) a mesma carta pode aparecer duas vezes (03/11/2026).
+ */
 export function isAir(cards: Card[], board: Card[]): boolean {
   if (cards.length !== 2) return false;
   if (board.length < 3) {
@@ -104,7 +132,7 @@ export function isAir(cards: Card[], board: Card[]): boolean {
     return a !== b && Math.max(a, b) < 12;
   }
   try {
-    const v = evaluateHand([...cards, ...board]);
+    const v = evaluateHand([...cards, ...board], { repeats: true });
     if (v.category === 0) return true;
     if (v.category === 1) {
       const pairRank = rankOf(v.best5[0]);
@@ -118,7 +146,7 @@ export function isAir(cards: Card[], board: Card[]): boolean {
 
 function strongShown(cards: Card[], board: Card[]): ShownHand | null {
   try {
-    const v = evaluateHand([...cards, ...board]);
+    const v = evaluateHand([...cards, ...board], { repeats: true });
     return { cards, kind: v.kind, best5: v.best5, royal: v.royal };
   } catch {
     return null;
@@ -159,6 +187,17 @@ export class SignalTracker {
   eventI = 0;
   /** Quem já levou o prêmio de quem (para o bountyWon na captura). */
   lastHolderBeforeCapture: PlayerId | null = null;
+  // --- Pôster Poker (03/11/2026) ---
+  /** O torneio da semana (do `matchStarted.tournament`); null na mesa casual. */
+  tournament: TournamentConfig | null = null;
+  /** Dados de cada efeito lançado (alvo do Raymond, a opala), para as falas do bônus. */
+  effectData: { target?: HandKind; opal?: Card; amount?: number } = {};
+  private bonusHands = new Set<string>();
+  private tellMarks = 0;
+  /** Tique que chegou antes da aposta: espera a ação do mesmo oráculo nesta mão. */
+  private pendingTell: { playerId: RivalId; mark: 'blefe' | 'valor'; hand: number } | null = null;
+  private prevEvent: PublicEvent | null = null;
+  private cobraTauntHand = -1;
 
   constructor(rng: () => number) {
     this.rng = rng;
@@ -202,6 +241,12 @@ export class SignalTracker {
   }
 
   process(e: PublicEvent, ctx: TableContext): Signal[] {
+    const out = this.processEvent(e, ctx);
+    this.prevEvent = e;
+    return out;
+  }
+
+  private processEvent(e: PublicEvent, ctx: TableContext): Signal[] {
     this.eventI = e.i;
     switch (e.t) {
       case 'matchStarted': return this.onMatchStarted(e, ctx);
@@ -261,9 +306,113 @@ export class SignalTracker {
       case 'matchEnded':
         this.phase = 'ended';
         return [];
+      case 'effectCast': return this.onEffectCast(e);
+      case 'effectReveal': return this.onEffectReveal(e);
+      case 'effectBonus': return this.onEffectBonus(e);
+      case 'tellMark': return this.onTellMark(e);
       default:
         return [];   // evento desconhecido: ignora (APK antigo continua vivo)
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Pôster Poker (03/11/2026)
+  // -------------------------------------------------------------------------
+
+  /** Oráculos vivos (os eliminados só falam em P1, como plateia). */
+  private alive(): RivalId[] {
+    return RIVALS.filter((r) => !this.out.has(r));
+  }
+
+  /**
+   * O "CATCHAW". A prioridade fica a cargo do Diretor (que sabe se a pessoa já ouviu a
+   * explicação deste efeito). Lançada no começo da mão: 'post' (cai quando a mão anda);
+   * o Onze Homens lança no meio da mão (logo antes do river): 'inHand', curta.
+   */
+  private onEffectCast(e: Extract<PublicEvent, { t: 'effectCast' }>): Signal[] {
+    const d = e.data;
+    const vars: SignalVars = {};
+    if (d.effect === 'blackjack') vars.fichas = d.amount;
+    if (d.effect === 'hand_bounty') {
+      vars.fichas = d.amount;
+      vars.alvo = d.target;
+      this.effectData.target = d.target;
+      this.effectData.amount = d.amount;
+    }
+    if (d.effect === 'opal') {
+      vars.fichas = d.amount;
+      vars.carta = d.card;
+      this.effectData.opal = d.card;
+      this.effectData.amount = d.amount;
+    }
+    if (d.effect === 'tell') vars.maos = d.hands;
+    const host = EFFECT_HOST[e.effect];
+    const midHand = e.effect === 'sixth_card' && this.phase === 'inHand';
+    const s = this.sig({
+      trigger: 'effectCast', priority: 2, chance: 1, actorId: host && !this.out.has(host) ? host : undefined,
+      variant: [e.effect], speakers: RIVALS, phase: midHand ? 'inHand' : 'post', short: midHand || undefined,
+      noExchange: true, vars, effect: { id: e.effect, castNo: e.castNo },
+    });
+    s.hand = e.handNumber;
+    return [s];
+  }
+
+  /** A leitura (Cartas na Mesa): um oráculo pode comentar a carta aberta da PESSOA. */
+  private onEffectReveal(e: Extract<PublicEvent, { t: 'effectReveal' }>): Signal[] {
+    if (e.effect !== 'reveal_one') return [];   // 21: quem fala é o bônus que vem logo depois
+    const mine = e.cards.find((c) => c.playerId === HUMAN)?.cards[0];
+    if (!mine) return [];
+    const r = rankOf(mine);
+    const tag = r === 14 ? ['as'] : r >= 11 ? ['figura'] : r <= 6 ? ['baixa'] : [];
+    const s = this.sig({ trigger: 'effectReveal', priority: 3, chance: 0.35, variant: ['reveal_one', ...tag],
+      speakers: this.alive(), phase: 'inHand', short: true, noExchange: true });
+    s.hand = e.handNumber;
+    return [s];
+  }
+
+  /**
+   * Fichas da casa. A opala e o Raymond (uma vez por partida) quase sempre têm fala; o 21,
+   * metade das vezes; o pote dobrado, pouco (e só o primeiro bônus da mão, quando há vários potes).
+   */
+  private onEffectBonus(e: Extract<PublicEvent, { t: 'effectBonus' }>): Signal[] {
+    const key = `${e.handNumber}|${e.effect}`;
+    if (this.bonusHands.has(key)) return [];
+    this.bonusHands.add(key);
+    const human = e.playerId === HUMAN;
+    const rare = e.effect === 'opal' || e.effect === 'hand_bounty';
+    const priority: 2 | 3 = e.effect === 'double_pot' ? 3 : 2;
+    const chance = rare ? 0.8 : e.effect === 'blackjack' ? 0.5 : 0.35;
+    const vars: SignalVars = { fichas: e.amount };
+    if (e.effect === 'hand_bounty' && this.effectData.target) vars.alvo = this.effectData.target;
+    if (e.effect === 'opal' && this.effectData.opal) vars.carta = this.effectData.opal;
+    const s = this.sig({
+      trigger: 'effectBonus', priority, chance, actorId: e.playerId, variant: [e.effect, human ? 'humano' : 'oraculo'],
+      speakers: this.alive(), phase: 'post', vars, preempt: e.effect !== 'double_pot',
+    });
+    s.hand = e.handNumber;
+    return [s];
+  }
+
+  /**
+   * O tique de Le Chiffre. A fala de quem apostou segue o cue daquela aposta (como as falas
+   * de ação), então o tique precisa da ação: se ele chegou antes dela, espera.
+   */
+  private onTellMark(e: Extract<PublicEvent, { t: 'tellMark' }>): Signal[] {
+    const p = this.prevEvent;
+    if (p && p.t === 'action' && p.playerId === e.playerId && this.hand.n === e.handNumber) {
+      return [this.tellSignal(e.playerId, e.mark, p.cue ?? 'neutro', e.handNumber)];
+    }
+    this.pendingTell = { playerId: e.playerId, mark: e.mark, hand: e.handNumber };
+    return [];
+  }
+
+  private tellSignal(pid: RivalId, mark: 'blefe' | 'valor', cue: Cue, hand: number): Signal {
+    this.tellMarks++;
+    const first = this.tellMarks === 1;
+    const s = this.sig({ trigger: 'tellMark', priority: first ? 2 : 3, chance: first ? 0.5 : 0.25, actorId: pid, cue,
+      variant: [mark], speakers: this.alive(), phase: 'inHand', short: true, noExchange: true, preempt: true });
+    s.hand = hand;
+    return s;
   }
 
   // -------------------------------------------------------------------------
@@ -275,6 +424,9 @@ export class SignalTracker {
     this.holderId = e.prize?.holderId ?? null;
     this.phase = 'opening';
     this.anteSeen = e.level.ante > 0;
+    this.tournament = e.tournament ?? null;
+    // a Cobra volta a provocar com a caixinha no fim de uma mão sorteada entre a 4ª e a 7ª
+    if (this.tournament?.cobraItem) this.cobraTauntHand = 4 + Math.floor(this.rng() * 4);
     void ctx;
     return [];   // a abertura é montada pelo Diretor (precisa de vários balões coordenados)
   }
@@ -309,6 +461,7 @@ export class SignalTracker {
     this.hand = h;
     this.phase = 'dealing';
     this.runoutSilence = false;
+    this.pendingTell = null;
     const out: Signal[] = [];
     if (this.mode === 'bounty' && !this.prizeCaptured && this.holderId && RIVALS.includes(this.holderId) && !this.out.has(this.holderId)) {
       const holder = this.holderId;
@@ -336,7 +489,8 @@ export class SignalTracker {
     h.board = e.board.slice();
     h.streetAggressor = null;
     h.checkedThisStreet = new Set();
-    if (e.street !== 'flop' || this.runoutSilence) return [];
+    // o flop adiantado do Golpe de Mestre já teve o seu momento (a lançada)
+    if (e.street !== 'flop' || this.runoutSilence || e.early) return [];
     const suits = new Set(e.cards.map((c) => c[1]));
     return [this.sig({ trigger: 'flop', priority: 3, chance: 0.1, variant: suits.size === 1 ? ['monotone'] : [], phase: 'inHand' })];
   }
@@ -421,6 +575,12 @@ export class SignalTracker {
       }
       if (pid === 'fincher' && e.allIn && cue === 'confiante') h.ringAllIn = true;
       if (h.humanAllIn && e.action === 'call' && RIVALS.includes(pid)) h.humanAllInCallers.push(pid);
+      // Pôster Poker: o tique que chegou antes desta aposta
+      const pt = this.pendingTell;
+      if (pt && pt.playerId === pid && pt.hand === h.n && (e.action === 'bet' || e.action === 'raise')) {
+        this.pendingTell = null;
+        out.push(this.tellSignal(pid, pt.mark, cue, h.n));
+      }
     } else {
       // ação da pessoa
       if (e.action === 'fold') {
@@ -511,6 +671,11 @@ export class SignalTracker {
     const humanWon = (net[HUMAN] ?? 0) > 0;
     const post = 'post' as const;
     const bigPotTags = (potBB: number): string[] => (potBB >= 30 ? ['grande', 'enorme'] : potBB >= 20 ? ['grande'] : ['pequeno']);
+
+    // Pôster Poker: a Cobra volta a provocar com a caixinha (entre mãos, para a troca caber)
+    if (e.handNumber === this.cobraTauntHand && !this.out.has('cypher')) {
+      out.push(this.sig({ trigger: 'cobraItem', priority: 3, chance: 0.3, variant: ['meio'], phase: post }));
+    }
 
     // sequência da pessoa
     if (e.winnerIds.includes(HUMAN)) this.humanStreak++;

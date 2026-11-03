@@ -2077,3 +2077,19 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* Quatro velocidades (03/11/2026, Pôster Poker): o seletor ganha a linha inteira. */
+.pk-row.pk-row-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 0;
+}
+.pk-seg.pk-seg-full {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+.pk-seg.pk-seg-full button {
+  padding: 0 6px;
+}

@@ -3,6 +3,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 import { handle } from './handler.ts';
 
 // poker-bounty — a partida com prêmio de O Grande Blefe (SPEC §4.7). 03/11/2026.
+// Desde 03/11/2026 (tarde): o torneio da semana do Pôster Poker, protocolo 2
+// (start com week, prizeId e stake; recompensas no fim). Ver handler.ts.
 //
 // verify_jwt = true. O uid vem de auth.getUser(token), NUNCA do corpo. O banco
 // é acessado com a service role (variável de ambiente da Edge, nunca no

@@ -11,6 +11,8 @@ import PlayingCard from '../cards/PlayingCard';
 import TableChip from '../cards/TableChip';
 import Emote from './Emote';
 import WantedPoster from './WantedPoster';
+import { CobraBox, TellTag } from '../tournament/TableTourney';
+import type { Card } from '../../../lib/poker/cards';
 
 // Um oráculo à mesa (SPEC §7.3 e §7.5). A carta equipada nunca muda: a atuação
 // vem de luz (halo na cor dele, aura no all-in), corpo (só transform), sinais
@@ -33,6 +35,12 @@ export interface OracleSeatProps {
   lang: Lang;
   best5?: string[] | null;
   onPortrait?: () => void;
+  /** Pôster Poker: a opala negra (a carta acende onde aparecer). */
+  opal?: Card | null;
+  /** Pôster Poker: o valor no 21 das cartas viradas pelo efeito. */
+  bj?: { value: number; best: boolean } | null;
+  /** Pôster Poker: a caixinha do item secreto (só na Cobra, quando ela trouxe). */
+  cobraBox?: boolean;
 }
 
 type Act = { body: string; fx: React.ReactNode; badge: string | null; emote: EmoteId | null };
@@ -112,6 +120,9 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
   reduced,
   lang,
   onPortrait,
+  opal = null,
+  bj = null,
+  cobraBox = false,
 }) => {
   const { t } = useTranslation();
   const style = normalizeStyle(cardStyle);
@@ -125,14 +136,17 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
   const act = out ? { body: '', fx: null, badge: null, emote: null } : acting(seat.id, seat.cue, seat.cueKey, anchors);
   const body = out ? '' : winner ? 'pk-jump' : folded ? 'pk-cue-recline' : thinking ? 'pk-breathe' : act.body;
   const name = t(`poker.oracles.${seat.id}.short`, { defaultValue: seat.id });
-  const showCards = seat.cards.length === 2 && !out;
+  // As cartas abertas: a mão inteira (showdown, mostrou, 21) ou a carta que a Leitura virou.
+  const open = seat.cards.length === 2 ? seat.cards : seat.revealed;
+  const showCards = open.length > 0 && !out;
+  const halfOpen = open.length === 1 && seat.hasCards;
   const tag = emote ?? (folded ? 'zzz' : act.emote ?? (seat.tilt === 'veneno' ? 'vein' : null));
   const badgeText = reduced && act.badge && seat.cue ? t(`poker.tells.${seat.id}.${seat.cue}`, { defaultValue: '' }) : '';
   const yugi = style === 'yugioh';
 
   const pill = (() => {
     if (out) return null;
-    if (seat.odds != null && showCards)
+    if (seat.odds != null && seat.cards.length === 2 && !out)
       return (
         <span className={`pk-pill pk-num ${allIn ? 'is-allin' : ''}`}>
           <span className="pk-odds">{Math.round(seat.odds * 100)}%</span>
@@ -165,6 +179,7 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
     <div
       className={`pk-seat ${dim ? 'is-dim' : ''} ${out ? 'is-out' : ''} ${folded ? 'is-folded' : ''} ${allIn ? 'is-allin' : ''} ${speaking ? 'is-speaking' : ''} ${winner ? 'is-winner' : ''} ${seat.tilt === 'veneno' ? 'pk-tilt-venom' : ''}`}
       data-pos={pos}
+      data-seat={seat.id}
       style={{ '--c': color } as React.CSSProperties}
     >
       <div className="pk-actor">
@@ -211,12 +226,36 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
         )}
         {showCards && (
           <span className="pk-shown">
-            {seat.cards.map((c, i) => (
-              <PlayingCard key={c} card={c} size="seat" fourColor={fourColor} best={!!seat.best5?.includes(c) && winner} deal={!reduced} rotate={i === 0 ? -6 : 5} />
+            {open.map((c, i) => (
+              <PlayingCard
+                key={`${i}-${c}`}
+                card={c}
+                size="seat"
+                fourColor={fourColor}
+                best={!!seat.best5?.includes(c) && winner}
+                deal={!reduced}
+                rotate={i === 0 ? -6 : 5}
+                className={opal && c === opal ? 'pp-opal' : ''}
+              />
             ))}
+            {halfOpen && <PlayingCard size="seat" faceDown deckId={deckId} decorative rotate={5} />}
+            {bj && <span className={`pp-bj pk-num ${bj.best ? 'is-best' : ''}`}>{bj.value}</span>}
           </span>
         )}
+        {cobraBox && !out && <CobraBox />}
         <AnimatePresence>
+          {seat.bonus != null && seat.bonus > 0 && (
+            <motion.span
+              key={`bonus-${seat.bonus}`}
+              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 6 }}
+              animate={reduced ? { opacity: 1 } : { opacity: 1, y: -4 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="pp-house absolute left-1/2 -translate-x-1/2 top-[38%] z-10"
+            >
+              {t('poker.tourney.house', { amount: fmt(seat.bonus, lang) })}
+            </motion.span>
+          )}
           {seat.won != null && seat.won > 0 && (
             <motion.span
               key={`won-${seat.won}`}
@@ -247,6 +286,7 @@ const OracleSeat: React.FC<OracleSeatProps> = ({
           </motion.span>
         )}
         {pill}
+        {seat.tell && !out && <TellTag mark={seat.tell} />}
         {folded && !pill && <span className="pk-plate-note">{t('poker.table.folded')}</span>}
       </div>
     </div>

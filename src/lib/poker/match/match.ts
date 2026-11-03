@@ -24,6 +24,9 @@ export { runoutOdds } from './odds.ts';
 export { startTutorialHand } from './tutorialRunner.ts';
 export { eliminatorOf } from './eliminator.ts';
 export { logHash } from './logHash.ts';
+// Pôster Poker (pacote E, 03/11/2026): utilidades públicas dos efeitos.
+export { EXTRA_ACES, blackjackValue, extraCardsOf, hasEffects } from './effects.ts';
+export type { RunoutOptions } from './odds.ts';
 
 /** Emite matchStarted e roda até a vez da pessoa. */
 export function createMatch(cfg: MatchConfig): MatchStep {

@@ -2,7 +2,7 @@ import type { PokerTeaser, PokerTeaserPrize, PosterEffect, PosterRarity } from '
 
 type Row = Record<string, unknown>;
 const RARITIES: PosterRarity[] = ['common', 'rare', 'epic', 'legendary'];
-const EFFECT_SET: PosterEffect[] = ['none', 'holo', 'negative', 'ultra_red'];
+const EFFECT_SET: PosterEffect[] = ['none', 'holo', 'negative', 'ultra_red', 'gold'];
 
 // Um prêmio vindo do banco (poker_prize_json, em snake_case) no formato que
 // as telas usam. Qualquer campo torto vira um valor neutro.
@@ -34,7 +34,7 @@ export function posterOfPrize(prize: Pick<PokerTeaserPrize, 'image' | 'payload' 
   return filePath && filePath.startsWith('/') ? { filePath, effect, serial } : null;
 }
 
-// O Grande Blefe — dados pequenos que as entradas (gaveta do Jackpot, faixa
+// Pôster Poker (antes O Grande Blefe) — dados pequenos que as entradas (botão
 // da home, placar, 18+) compartilham. Sem JSX: só constantes e funções puras.
 
 export type PokerOracleId = 'bogart' | 'cypher' | 'fincher';
@@ -103,14 +103,31 @@ export const RARITY_GLOW: Record<PosterRarity, string> = {
 export const prizeNameOf = (prize: { namePt: string; nameEn: string } | null | undefined, isPt: boolean) =>
   prize ? (isPt ? prize.namePt || prize.nameEn : prize.nameEn || prize.namePt) : '';
 
-// As rotas do salão (o pacote D1 registra em App.tsx).
+// As rotas do jogo. 03/11/2026 (tarde): o pôquer virou o Pôster Poker, um jogo à
+// parte em /poster-poker (o /blefe antigo redireciona). O "salão" agora é a tela
+// título; o prêmio do dia virou o torneio da semana.
+export const PP_BASE = '/poster-poker';
+export type StakeParam = { kind: 'chips' } | { kind: 'poster'; itemId: number; effect: string };
+const tourneyStart = (week: string, prizeId: string, stake: StakeParam = { kind: 'chips' }) => {
+  const q = new URLSearchParams({ start: '1', week, prize: prizeId, stake: stake.kind });
+  if (stake.kind === 'poster') {
+    q.set('item', String(stake.itemId));
+    q.set('effect', stake.effect);
+  }
+  return `${PP_BASE}/torneio/mesa?${q.toString()}`;
+};
 export const BLEFE_ROUTES = {
-  lobby: '/blefe',
-  free: '/blefe/mesa',
-  scoreboard: '/blefe/placar',
-  bounty: (day: string, prizeId: string) =>
-    `/blefe/premio?start=1&day=${encodeURIComponent(day)}&prize=${encodeURIComponent(prizeId)}`,
-  resume: '/blefe/premio',
+  lobby: PP_BASE,
+  title: PP_BASE,
+  free: `${PP_BASE}/casual`,
+  scoreboard: `${PP_BASE}/placar`,
+  training: `${PP_BASE}/treino`,
+  tournament: `${PP_BASE}/torneio`,
+  collection: `${PP_BASE}/colecao`,
+  tourneyStart,
+  resume: `${PP_BASE}/torneio/mesa`,
+  // Compatibilidade (entradas antigas): entra no torneio com fichas.
+  bounty: (week: string, prizeId: string) => tourneyStart(week, prizeId),
 };
 
 // A linha "Hoje na mesa…" só aparece com prêmio, sem captura hoje e com

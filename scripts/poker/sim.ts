@@ -3,6 +3,11 @@
  *
  *   node scripts/poker/sim.ts --suite --sng 2000 [--params scripts/poker/params/v1.json] [--workers 2] [--strict]
  *   node scripts/poker/sim.ts --sng 1000 --hero medio [--bounty legendary] [--loan] [--no-model]
+ *   node scripts/poker/sim.ts --tournament all --sng 500 [--hero medio]
+ *
+ * --tournament (Pôster Poker, pacote E, 03/11/2026): torneio da semana com cada efeito (ou
+ * um só), na raridade do pôster, contra a mesma raridade sem efeito (linha de base).
+ * Informa 1º lugar, mediana de mãos, lançadas e bônus por partida, e erros.
  *
  * --suite roda todas as metas do §3.8 e grava scripts/poker/params/sim-report.json e
  * sim-params.sql (o `update` de poker_bot_params). --strict sai com código 1 se alguma
@@ -15,7 +20,8 @@ import {
   DEFAULT_DIFFICULTY, DEFAULT_PROFILES, DEFAULT_SETTINGS, applyHumanAction, createMatch, createRng, createTable,
   humanLegal, levelFor, mergeProfile, simulateRest, toPublicEvents,
 } from '../../src/lib/poker/index.ts';
-import type { BotMemory, BotProfile, MatchConfig, MatchEvent, MatchState, Rarity } from '../../src/lib/poker/index.ts';
+import type { BotMemory, BotProfile, MatchConfig, MatchEvent, MatchState, PosterEffectId, Rarity } from '../../src/lib/poker/index.ts';
+import { ALL_EFFECTS, EFFECT_RARITY } from './lib/harness.ts';
 import { emptyTally } from '../../src/lib/poker/match/summary.ts';
 import { emptyCounters } from '../../src/lib/poker/bots/model.ts';
 import { HEROES, handFeed } from './surrogates.ts';
@@ -37,6 +43,8 @@ interface Scenario {
   n: number;
   /** Estatísticas dos bots e tells (caro: só no cenário de referência). */
   botStats?: boolean;
+  /** Pôster Poker: torneio (prize null) com este efeito; 'none' = torneio sem efeito (linha de base). */
+  effect?: PosterEffectId | 'none';
 }
 
 interface Tally {
@@ -47,12 +55,15 @@ interface Tally {
   bot: Record<string, { hands: number; vpip: number; pfr: number; bets: number; calls: number }>;
   tells: { smokeNuts: number; smoke: number; sapoQuietMonster: number; sapoQuietBig: number; cobraNervousBluff: number; cobraNervousBet: number };
   huWins: Record<string, number>;
+  /** Pôster Poker: lançadas, bônus pagos (eventos e fichas), bônus da pessoa, partidas com erro. */
+  fx: { casts: number; paid: number; chips: number; human: number; humanPaid: number; errors: number; firstError: string | null };
 }
 
 function emptyTallyStats(): Tally {
   return {
     n: 0, first: 0, top2: 0, captures: 0, heroHands: [], tableHands: [], tableWinner: {}, lastOut: {},
     bot: {}, tells: { smokeNuts: 0, smoke: 0, sapoQuietMonster: 0, sapoQuietBig: 0, cobraNervousBluff: 0, cobraNervousBet: 0 }, huWins: {},
+    fx: { casts: 0, paid: 0, chips: 0, human: 0, humanPaid: 0, errors: 0, firstError: null },
   };
 }
 
@@ -69,12 +80,14 @@ function profilesFrom(params: Params, noModel: boolean): Record<Rival, BotProfil
 function config(sc: Scenario, seed: string, profiles: Record<Rival, BotProfile>): MatchConfig {
   const mode = sc.mode ?? 'free';
   const rarity = sc.rarity ?? 'common';
+  const tournament = sc.effect !== undefined;
   return {
     mode, seed, settings: DEFAULT_SETTINGS, seats: { human: 0, bogart: 1, fincher: 2, cypher: 3 }, profiles,
     paramsVersion: { bogart: 1, cypher: 1, fincher: 1 },
     difficulty: mode === 'bounty' ? DEFAULT_DIFFICULTY[rarity] : DEFAULT_DIFFICULTY.free, loan: sc.loan ?? 0,
-    prize: mode === 'bounty' ? { prizeId: 'sim', carrierId: DEFAULT_SETTINGS.carrierByRarity[rarity], rarity } : null,
+    prize: mode === 'bounty' && !tournament ? { prizeId: 'sim', carrierId: DEFAULT_SETTINGS.carrierByRarity[rarity], rarity } : null,
     memory: null,
+    ...(sc.effect && sc.effect !== 'none' ? { tournament: { prizeId: `pp-${sc.effect}`, rarity, effect: sc.effect, cobraItem: false } } : {}),
   };
 }
 
@@ -126,11 +139,26 @@ function runMatch(sc: Scenario, i: number, profiles: Record<Rival, BotProfile>, 
   const events: MatchEvent[] = sc.botStats ? [...step.events] : [];
   // O substituto vê o que a pessoa veria na mesa: os eventos públicos da mão.
   const feed = handFeed();
+  const fxScan = (evs: MatchEvent[]): void => {
+    for (const e of evs) {
+      if (e.type === 'effectCast') t.fx.casts++;
+      else if (e.type === 'effectBonus') {
+        t.fx.paid++;
+        t.fx.chips += e.amount;
+        if (e.playerId === 'human') {
+          t.fx.human += e.amount;
+          t.fx.humanPaid++;
+        }
+      }
+    }
+  };
+  fxScan(step.events);
   feed.push(toPublicEvents(step.events, 'human'));
   let s: MatchState = step.state;
   while (s.status === 'running') {
     const L = humanLegal(s)!;
     step = applyHumanAction(s, hero(L, rng, s, feed.events));
+    fxScan(step.events);
     feed.push(toPublicEvents(step.events, 'human'));
     if (sc.botStats) events.push(...step.events);
     s = step.state;
@@ -182,7 +210,15 @@ function runChunk(sc: Scenario, from: number, to: number, params: Params): Tally
   const t = emptyTallyStats();
   for (let i = from; i < to; i++) {
     if (sc.kind === 'hu') runHU(sc, i, profiles, t);
-    else runMatch(sc, i, profiles, t);
+    else if (sc.effect !== undefined) {
+      // Torneio: um erro não derruba a simulação, mas é contado e informado.
+      try {
+        runMatch(sc, i, profiles, t);
+      } catch (e) {
+        t.fx.errors++;
+        t.fx.firstError ??= `${i}: ${(e as Error).message}`;
+      }
+    } else runMatch(sc, i, profiles, t);
   }
   return t;
 }
@@ -197,6 +233,8 @@ function merge(a: Tally, b: Tally): Tally {
     s.hands += v.hands; s.vpip += v.vpip; s.pfr += v.pfr; s.bets += v.bets; s.calls += v.calls;
   }
   for (const k of Object.keys(a.tells) as (keyof Tally['tells'])[]) a.tells[k] += b.tells[k];
+  a.fx.casts += b.fx.casts; a.fx.paid += b.fx.paid; a.fx.chips += b.fx.chips; a.fx.human += b.fx.human;
+  a.fx.humanPaid += b.fx.humanPaid; a.fx.errors += b.fx.errors; a.fx.firstError ??= b.fx.firstError;
   return a;
 }
 
@@ -249,6 +287,36 @@ async function main(): Promise<void> {
   const params: Params = paramsPath ? JSON.parse(readFileSync(paramsPath, 'utf8')) : {};
   const t0 = Date.now();
   const log = (msg: string): void => console.log(`[${((Date.now() - t0) / 1000).toFixed(0)}s] ${msg}`);
+
+  if (has('--tournament')) {
+    const which = arg('--tournament') ?? 'all';
+    const effects = which === 'all' ? ALL_EFFECTS : (which.split(',') as PosterEffectId[]);
+    const hero = (arg('--hero') ?? 'medio') as HeroName;
+    const rows: Record<string, unknown>[] = [];
+    const runRow = async (label: string, effect: PosterEffectId | 'none', rarity: Rarity): Promise<void> => {
+      const t = await runScenario({ key: `t-${label}`, kind: 'match', hero, mode: 'bounty', rarity, effect, n: N }, params, workers);
+      const done = t.n;
+      const row = {
+        efeito: label, raridade: rarity, n: done, vitoria: +(100 * t.first / Math.max(1, done)).toFixed(1),
+        ic95: +(196 * Math.sqrt((t.first / Math.max(1, done)) * (1 - t.first / Math.max(1, done)) / Math.max(1, done))).toFixed(1),
+        top2: +(100 * t.top2 / Math.max(1, done)).toFixed(1), maosMediana: quantile(t.heroHands, 0.5), maosP90: quantile(t.heroHands, 0.9),
+        lancadasPorPartida: +(t.fx.casts / Math.max(1, done)).toFixed(2), pagosPorPartida: +(t.fx.paid / Math.max(1, done)).toFixed(2),
+        fichasPorPartida: Math.round(t.fx.chips / Math.max(1, done)), pessoaPagos: t.fx.humanPaid, pessoaFichas: t.fx.human,
+        vencedorDaMesa: t.tableWinner, erros: t.fx.errors, primeiroErro: t.fx.firstError,
+      };
+      rows.push(row);
+      log(`${label.padEnd(12)} ${rarity.padEnd(9)} 1º ${String(row.vitoria).padStart(5)}% ±${row.ic95} · top2 ${row.top2}% · mãos ${row.maosMediana} (p90 ${row.maosP90}) · `
+        + `lançadas ${row.lancadasPorPartida}/partida · pagos ${row.pagosPorPartida}/partida (${row.fichasPorPartida} fichas) · erros ${row.erros}`);
+    };
+    if (!has('--no-base')) {
+      const rarities = Array.from(new Set(effects.map((e) => EFFECT_RARITY[e])));
+      for (const r of rarities) await runRow(`(sem efeito)`, 'none', r);
+    }
+    for (const e of effects) await runRow(e, e, EFFECT_RARITY[e]);
+    const out = arg('--out');
+    if (out) writeFileSync(out, `${JSON.stringify({ v: 1, hero, sng: N, rows }, null, 1)}\n`);
+    return;
+  }
 
   if (!has('--suite')) {
     const sc: Scenario = { key: 'one', kind: 'match', hero: (arg('--hero') ?? 'medio') as HeroName, mode: arg('--bounty') ? 'bounty' : 'free',

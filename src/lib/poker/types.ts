@@ -60,6 +60,7 @@ export interface EffectParams {
   gapHands: number;         // mínimo de mãos entre duas lançadas
   amount?: number;          // bônus em fichas de mesa (blackjack, hand_bounty, opal)
   hands?: number;           // duração em mãos (tell)
+  spread?: number;          // pacote E (03/11/2026): folga sorteada 0..spread além de gapHands (padrão 3)
 }
 
 export interface TournamentConfig {
@@ -246,8 +247,11 @@ export interface BotView {
              totalBet: number; hasCards: boolean }[];
   buttonId: PlayerId; sbId: PlayerId; bbId: PlayerId; blinds: BlindLevel; handNumber: number;
   actions: ActionRecord[];                       // ações públicas desta mão
-  shownThisHand: Record<string, Card[]>;         // só cartas abertas
+  // Só cartas abertas. Pacote E (03/11/2026): 1 OU 2 cartas por jogador (1 = carta virada
+  // pelo efeito reveal_one do Pôster Poker); quem precisa da mão inteira confere o tamanho.
+  shownThisHand: Record<string, Card[]>;
   match: { holderId: PlayerId | null; captured: boolean; alive: number; levelIndex: number; handsToNextLevel: number };
+  extraCards?: Card[];                           // pacote E: cartas a mais no baralho (Cassino: 8 ases; público)
 }
 
 // ---------------------------------------------------------------------------
@@ -341,7 +345,10 @@ export type PublicEvent = { i: number } & (           // i = eventNo, crescente 
   // quem recebeu cartas). `effectBonus`: fichas que a casa paga (entram no cacife na hora).
   // `tellMark`: o tique de um oráculo numa aposta ou aumento, nas mãos do efeito tell.
   | { t: 'effectCast'; effect: PosterEffectId; handNumber: number; castNo: number; data: EffectCastData }
-  | { t: 'effectReveal'; effect: 'reveal_one' | 'blackjack'; handNumber: number; cards: { playerId: PlayerId; cards: Card[] }[] }
+  // Pacote E (03/11/2026): hand_bounty e opal também viram cartas, para provar quem ganhou o
+  // bônus sem showdown (hand_bounty: as 2 do vencedor; opal: só a opala).
+  | { t: 'effectReveal'; effect: 'reveal_one' | 'blackjack' | 'hand_bounty' | 'opal'; handNumber: number;
+      cards: { playerId: PlayerId; cards: Card[] }[] }
   | { t: 'effectBonus'; effect: PosterEffectId; handNumber: number; playerId: PlayerId; amount: number }
   | { t: 'tellMark'; handNumber: number; playerId: RivalId; mark: 'blefe' | 'valor' }
   | { t: 'matchEnded'; places: Record<PlayerId, number>; winnerId: PlayerId | null; humanPlace: number;
@@ -359,7 +366,8 @@ export type PublicEvent = { i: number } & (           // i = eventNo, crescente 
 
 export type MatchOnlyEvent =
   | { type: 'matchStarted'; mode: MatchMode; seats: { id: PlayerId; seat: number; stack: number }[];
-      loan: number; prize: { prizeId: string; holderId: PlayerId } | null; level: LevelInfo; seedHash?: string }
+      loan: number; prize: { prizeId: string; holderId: PlayerId } | null; level: LevelInfo; seedHash?: string;
+      tournament?: TournamentConfig | null }
   | { type: 'levelUp'; level: LevelInfo; handNumber: number }
   // Vem logo antes do `actionTaken` do motor e o completa. `bucket` e `monster` são
   // privados (só para os testes do Diretor, §6.6); toPublicEvents copia só thinkMs e cue.
@@ -376,6 +384,12 @@ export type MatchOnlyEvent =
   | { type: 'tilt'; playerId: RivalId; kind: TiltKind; on: boolean; targetId?: PlayerId }
   | { type: 'styleRead'; by: RivalId; targetId: 'human'; label: StyleLabel }
   | { type: 'headsUp'; ids: [PlayerId, PlayerId]; handNumber: number }
+  // Pôster Poker (pacote E, 03/11/2026): os mesmos campos dos públicos.
+  | { type: 'effectCast'; effect: PosterEffectId; handNumber: number; castNo: number; data: EffectCastData }
+  | { type: 'effectReveal'; effect: 'reveal_one' | 'blackjack' | 'hand_bounty' | 'opal'; handNumber: number;
+      cards: { playerId: PlayerId; cards: Card[] }[] }
+  | { type: 'effectBonus'; effect: PosterEffectId; handNumber: number; playerId: PlayerId; amount: number }
+  | { type: 'tellMark'; handNumber: number; playerId: RivalId; mark: 'blefe' | 'valor' }
   | { type: 'matchEnded'; places: Record<PlayerId, number>; winnerId: PlayerId | null; humanPlace: number;
       reason: 'won' | 'eliminated' | 'forfeit' | 'abandoned'; prizeCaptured: boolean; seed?: string };
 

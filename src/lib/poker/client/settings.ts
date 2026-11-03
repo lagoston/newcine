@@ -6,7 +6,8 @@
 import { useSyncExternalStore } from 'react';
 
 export type TalkMode = 'all' | 'important' | 'none';
-export type Speed = 'normal' | 'fast' | 'turbo';
+// 'slow' (03/11/2026): a Calma, mais lenta que o Normal.
+export type Speed = 'slow' | 'normal' | 'fast' | 'turbo';
 
 export interface PokerSettingsLocal {
   v: 1;
@@ -44,7 +45,8 @@ function read(): PokerSettingsLocal {
     if (!raw) return DEFAULTS;
     const parsed = JSON.parse(raw) as Partial<PokerSettingsLocal>;
     if (parsed?.v !== 1) return DEFAULTS;
-    return { ...DEFAULTS, ...parsed, v: 1 };
+    const speed = parsed.speed && ['slow', 'normal', 'fast', 'turbo'].includes(parsed.speed) ? parsed.speed : DEFAULTS.speed;
+    return { ...DEFAULTS, ...parsed, speed, v: 1 };
   } catch {
     return DEFAULTS;
   }
@@ -79,11 +81,21 @@ export function usePokerSettings(): PokerSettingsLocal {
   return useSyncExternalStore(subscribe, getPokerSettings, () => DEFAULTS);
 }
 
-/** Multiplicador das durações (§7.9): Rápido = metade; Turbo = quase nada, mantendo as proporções do pensar. */
+/**
+ * Multiplicador das durações (§7.9) sobre os tempos de `DUR` (useTable) e o pensar dos bots.
+ * 03/11/2026 (Pôster Poker), pedido do Bruno: "a velocidade mais baixa está rápida para mim".
+ * Todas ficaram mais lentas e nasceu a Calma (a mais lenta); o Normal de hoje vale 1,4× o
+ * de antes. Proporções do pensar mantidas (o tempo de pensar é um tell, §3.6).
+ */
 export function speedFactor(speed: Speed): { anim: number; think: number } {
-  if (speed === 'fast') return { anim: 0.5, think: 0.5 };
-  if (speed === 'turbo') return { anim: 0.2, think: 0.2 };
-  return { anim: 1, think: 1 };
+  if (speed === 'slow') return { anim: 2, think: 1.9 };
+  if (speed === 'fast') return { anim: 0.8, think: 0.75 };
+  if (speed === 'turbo') return { anim: 0.4, think: 0.35 };
+  return { anim: 1.4, think: 1.35 };
 }
 
-export const SPEEDS: Speed[] = ['normal', 'fast', 'turbo'];
+/** Da mais lenta à mais rápida (o botão da barra da mesa gira nesta ordem). */
+export const SPEEDS: Speed[] = ['slow', 'normal', 'fast', 'turbo'];
+
+/** Rótulo curto do botão da barra, relativo ao Normal. */
+export const SPEED_TAG: Record<Speed, string> = { slow: '½×', normal: '1×', fast: '2×', turbo: '4×' };

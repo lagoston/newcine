@@ -18,19 +18,23 @@ const ROWS: { key: string; cards: Card[] }[] = [
   { key: 'high_card', cards: ['Ks', 'Th', '7d', '4c', '2h'] },
 ];
 
-const HandRanking: React.FC = () => {
+// Cinco iguais (03/11/2026, Pôster Poker): só existe com os 8 ases a mais do Cassino.
+const FIVE: { key: string; cards: Card[] } = { key: 'five_kind', cards: ['As', 'Ah', 'Ad', 'Ac', 'As'] };
+
+const HandRanking: React.FC<{ fiveKind?: boolean }> = ({ fiveKind = false }) => {
   const { t } = useTranslation();
+  const rows = fiveKind ? [FIVE, ...ROWS] : ROWS;
   return (
     <ol className="grid gap-2.5">
-      {ROWS.map((r, i) => (
+      {rows.map((r, i) => (
         <li key={r.key} className="flex items-center justify-between gap-3">
           <span className="text-[14px] min-w-0">
             <span className="pk-num mr-2" style={{ color: '#A7A0BF' }}>{i + 1}</span>
             {t(`poker.hands.${r.key}`)}
           </span>
           <span className="flex gap-[3px] flex-none" role="img" aria-label={t(`poker.hands.${r.key}`)}>
-            {r.cards.map((c) => (
-              <PlayingCard key={c} card={c} size="rank" decorative />
+            {r.cards.map((c, j) => (
+              <PlayingCard key={`${j}-${c}`} card={c} size="rank" decorative />
             ))}
           </span>
         </li>

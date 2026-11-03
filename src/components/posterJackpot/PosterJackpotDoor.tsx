@@ -14,7 +14,6 @@ import { ChipFace } from './Chips';
 import { JACKPOT_TOAST_STYLE } from './jackpotToast';
 import { DailyChipBalloon } from './DailyChip';
 import PosterJackpotSheet, { type JackpotTab } from './PosterJackpotSheet';
-import { publishPokerTeaser } from '../poker/jackpot/teaser';
 import '../../styles/posterJackpot.css';
 import '../../styles/flyingChip.css';
 
@@ -94,13 +93,6 @@ const PosterJackpotDoor: React.FC = () => {
   }, [reload]);
 
   const enabled = !!state?.enabled;
-  // O resumo do Grande Blefe que veio junto (03/11/2026): a faixa de feltro
-  // da home escuta daqui, sem outra chamada ao banco. Fechado ou servidor
-  // antigo = null (a faixa não aparece).
-  const pokerTeaser = state ? (state.enabled ? state.poker ?? null : null) : undefined;
-  useEffect(() => {
-    if (pokerTeaser !== undefined) publishPokerTeaser(pokerTeaser);
-  }, [pokerTeaser]);
   useEffect(() => {
     if (!enabled) return;
     loadJackpotFont();

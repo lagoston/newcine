@@ -16,6 +16,16 @@
  *    na vez da pessoa só fala curta.
  * 5. Orçamento: 18–22 balões por partida de ~35 mãos (P1 incluído), ≥ 40% das mãos em
  *    silêncio, ≤ 1 momento não-P1 por mão; meia-carga ≥ 35% abaixo.
+ *
+ * Pôster Poker (pacote H, 03/11/2026):
+ * 1c. Estático: cada efeito tem explicação (P1, `fx.<efeito>`) e reações dos três; variáveis
+ *     certas por efeito; tique e carta aberta curtos; fala de ator do tique com cue.
+ * 2b. Cenários: abertura por raridade (cerimônia do lendário), pôster apostado, caixinha da
+ *     Cobra, explicação na 1ª vez e só nela, Cassino na abertura, Onze Homens no meio da mão
+ *     com o Sapo calado e o Raposo no anel, o tique (antes e depois da aposta), bônus, carta
+ *     aberta, créditos (vitória, derrota, desistência), recapitulação.
+ * 4b. Fuzz de torneio: partidas com os 9 efeitos (motor do E se já lança efeitos; senão,
+ *     efeitos injetados nas partidas do simulador), com as regras de sempre e as do pôster.
  */
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -26,6 +36,8 @@ import {
 import type {
   Cue, MatchConfig, MatchEvent, MatchState, PlayerId, PublicEvent, Rarity, RivalId, TableView, TitleId,
 } from '../../src/lib/poker/index.ts';
+import type { Card } from '../../src/lib/poker/cards.ts';
+import type { EffectCastData, PosterEffectId, TournamentConfig } from '../../src/lib/poker/types.ts';
 import { createDirector, DEFAULT_BANK } from '../../src/lib/poker/dialogue/director.ts';
 import { describeHand, handPhrase } from '../../src/lib/poker/dialogue/handNames.ts';
 import { measure, MAX_CHARS, SHORT_CHARS, varsOf } from '../../src/lib/poker/dialogue/render.ts';
@@ -180,6 +192,7 @@ interface CtxOpts {
   mode?: 'free' | 'bounty' | 'tutorial'; lang?: 'pt' | 'en'; title?: TitleId; lifetimeMatches?: number; matchInSession?: number;
   returning?: boolean; localHour?: number; story?: Record<string, string>; talk?: 'all' | 'important' | 'none';
   speed?: 'normal' | 'fast' | 'turbo'; prize?: TableContext['prize']; nemesis?: RivalId; customer?: RivalId;
+  tournament?: TableContext['tournament'];
 }
 
 function makeCtx(o: CtxOpts = {}, view: TableView = EMPTY_VIEW): TableContext {
@@ -187,9 +200,30 @@ function makeCtx(o: CtxOpts = {}, view: TableView = EMPTY_VIEW): TableContext {
     mode: o.mode ?? 'free', lang: o.lang ?? 'pt', title: o.title ?? 'figurante', lifetimeMatches: o.lifetimeMatches ?? 10,
     matchInSession: o.matchInSession ?? 1, returning: o.returning ?? false, localHour: o.localHour ?? 21,
     story: o.story ?? VETERAN, speed: o.speed ?? 'normal', talk: o.talk ?? 'all', view,
-    reducedMotion: false, prize: o.prize, nemesis: o.nemesis, customer: o.customer,
+    reducedMotion: false, prize: o.prize, nemesis: o.nemesis, customer: o.customer, tournament: o.tournament,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Pôster Poker: dados comuns
+// ---------------------------------------------------------------------------
+
+const FX_ALL: PosterEffectId[] = ['early_flop', 'double_pot', 'blackjack', 'hand_bounty', 'eight_aces', 'reveal_one', 'sixth_card', 'opal', 'tell'];
+const FX_RARITY: Record<PosterEffectId, Rarity> = {
+  blackjack: 'common', double_pot: 'common', early_flop: 'common', hand_bounty: 'rare', eight_aces: 'rare', reveal_one: 'rare',
+  sixth_card: 'epic', opal: 'epic', tell: 'legendary',
+};
+const EIGHT_ACES: Card[] = ['As', 'As', 'Ah', 'Ah', 'Ad', 'Ad', 'Ac', 'Ac'];
+const FX_DATA: Record<PosterEffectId, EffectCastData> = {
+  early_flop: { effect: 'early_flop' }, double_pot: { effect: 'double_pot' }, blackjack: { effect: 'blackjack', amount: 500 },
+  hand_bounty: { effect: 'hand_bounty', target: 'trips', amount: 800 }, eight_aces: { effect: 'eight_aces', added: EIGHT_ACES },
+  reveal_one: { effect: 'reveal_one' }, sixth_card: { effect: 'sixth_card' }, opal: { effect: 'opal', card: 'Js', amount: 1000 },
+  tell: { effect: 'tell', hands: 3 },
+};
+/** Veterano que já ouviu a explicação de todos os efeitos. */
+const VETERAN_FX: Record<string, string> = { ...VETERAN, ...Object.fromEntries(FX_ALL.map((f) => [`fx.${f}`, 'x'])) };
+/** Gatilhos do Pôster Poker que podem sair no meio da mão. */
+const POSTER_IN_HAND = new Set(['effectCast', 'tellMark', 'effectReveal']);
 
 interface Emitted { item: SpeechItem; t: number; evIndex: number; turnOpen: boolean; hand: number }
 
@@ -262,6 +296,10 @@ function eventMs(e: PublicEvent): number {
     case 'prizeMoved': return 900;
     case 'prizeCaptured': return 1500;
     case 'headsUp': return 700;
+    case 'effectCast': return 1800;    // o "CATCHAW"
+    case 'effectReveal': return 900;
+    case 'effectBonus': return 1200;
+    case 'tellMark': return 300;
     default: return 200;
   }
 }
@@ -375,6 +413,92 @@ function playSteps(stage: Stage, steps: StepIn[], ctxBase: CtxOpts, rng: () => n
     }
   }
   stage.pump(20000);   // créditos
+}
+
+// ---------------------------------------------------------------------------
+// 1c. Estático do Pôster Poker
+// ---------------------------------------------------------------------------
+
+section('1c. Estático do Pôster Poker');
+{
+  const SPEAKERS = ['bogart', 'cypher', 'fincher'];
+  const FX_VARS: Record<PosterEffectId, string[]> = {
+    early_flop: [], double_pot: [], blackjack: ['fichas'], hand_bounty: ['fichas', 'alvo'], eight_aces: [], reveal_one: [],
+    sixth_card: [], opal: ['fichas', 'carta'], tell: ['maos'],
+  };
+  const posterVars = ['fichas', 'alvo', 'carta', 'maos'];
+  let nCast = 0;
+  for (const fx of FX_ALL) {
+    const casts = LINES.filter((l) => l.on === 'effectCast' && l.variant?.[0] === fx);
+    nCast += casts.length;
+    for (const s of SPEAKERS) {
+      const ex = casts.filter((l) => l.speaker === s && l.variant!.includes('explica'));
+      const re = casts.filter((l) => l.speaker === s && !l.variant!.includes('explica'));
+      check(ex.length >= 1, `${fx}: ${s} sem explicação`);
+      check(re.length >= 1, `${fx}: ${s} sem reação à lançada`);
+      for (const l of ex) {
+        check(l.priority === 1 && l.once === 'life' && l.story === `fx.${fx}` && l.requires?.storyNot === `fx.${fx}`,
+          `${l.id}: explicação sem P1/once=life/fx.${fx}`);
+      }
+      for (const l of re) check(l.priority !== 1 && !l.story, `${l.id}: reação à lançada com P1 ou story`);
+    }
+    for (const l of casts) {
+      for (const v of varsOf(l.pt)) {
+        if (posterVars.includes(v)) check(FX_VARS[fx].includes(v), `${l.id}: {${v}} não existe na lançada de ${fx}`);
+      }
+      // a explicação na 1ª vez também pode cair no meio da mão (Onze Homens): nada sobre a própria mão
+      if (fx === 'sixth_card' && !l.variant!.includes('explica')) check(!!l.curta, `${l.id}: reação do Onze Homens precisa ser curta`);
+    }
+    const intro = LINES.filter((l) => l.on === 'tournamentIntro' && l.variant?.includes(fx));
+    check(intro.length >= 1, `${fx}: sem apresentação pelo filme`);
+  }
+  for (const r of ['common', 'rare', 'epic', 'legendary']) {
+    check(LINES.filter((l) => l.on === 'tournamentIntro' && l.variant?.includes(r)).length >= 3, `apresentação ${r}: menos de 3 falas`);
+  }
+  check(EXCHANGES.filter((x) => x.on === 'tournamentIntro' && x.variant?.includes('legendary')).length >= 2, 'lendário: menos de 2 cerimônias');
+  // o tique: tudo curto; ator com cue; Sapo ator sem calado e com o cue certo; Raposo ator sem o anel; Sapo testemunha só fora
+  const tells = LINES.filter((l) => l.on === 'tellMark');
+  check(tells.length >= 10, `tique: só ${tells.length} falas`);
+  for (const l of tells) {
+    check(!!l.curta && measure(String(EN[l.id] ?? ''), 'en') <= SHORT_CHARS, `${l.id}: tique longo`);
+    check(l.role === 'actor' || l.role === 'bystander', `${l.id}: tique com papel ${l.role}`);
+    check(!l.variant?.length || l.variant.length === 1 && ['blefe', 'valor'].includes(l.variant[0]), `${l.id}: marca ${l.variant}`);
+    if (l.role === 'actor') {
+      check(!!l.cue?.length, `${l.id}: ator do tique sem cue`);
+      if (l.speaker === 'bogart') {
+        check(!l.cue!.includes('calado'), `${l.id}: Sapo ator do tique com calado`);
+        if (l.variant?.includes('blefe')) check(JSON.stringify(l.cue) === '["nervoso"]', `${l.id}: blefe do Sapo só nervoso`);
+        if (l.variant?.includes('valor')) check(JSON.stringify(l.cue) === '["confiante"]', `${l.id}: valor do Sapo só confiante`);
+      }
+      if (l.speaker === 'fincher') check(!l.cue!.includes('confiante'), `${l.id}: Raposo fala com o anel`);
+    }
+    if (l.role === 'bystander' && l.speaker === 'bogart') check(l.out === 'only', `${l.id}: Sapo testemunha do tique fora da mão só`);
+  }
+  for (const l of LINES.filter((x) => x.on === 'effectReveal')) check(!!l.curta, `${l.id}: comentário da carta aberta longo`);
+  // bônus: ganhou (os três) e a pessoa ganhou (os três), por efeito com bônus
+  for (const fx of ['blackjack', 'double_pot', 'hand_bounty', 'opal']) {
+    for (const s of SPEAKERS) {
+      check(LINES.some((l) => l.on === 'effectBonus' && l.speaker === s && l.role === 'winner' && l.variant?.includes(fx)), `bônus ${fx}: ${s} sem fala de quem ganhou`);
+      check(LINES.some((l) => l.on === 'effectBonus' && l.speaker === s && l.variant?.includes('humano') && l.variant?.includes(fx)), `bônus ${fx}: ${s} sem fala da pessoa`);
+    }
+  }
+  for (const l of LINES.filter((x) => x.on === 'effectBonus')) {
+    check(l.variant!.includes('humano') !== l.variant!.includes('oraculo'), `${l.id}: bônus sem humano/oraculo`);
+    if (l.role === 'winner') check(l.variant!.includes('oraculo'), `${l.id}: quem ganhou é oráculo`);
+  }
+  const need: [string, string][] = [['stakePoster', ''], ['stakeLost', ''], ['stakeBack', ''], ['cobraItem', 'abertura'],
+    ['cobraItem', 'meio'], ['cobraItem', 'ganhou'], ['cobraItem', 'perdeu'], ['tournamentWon', ''], ['tournamentLost', '']];
+  for (const [t, v] of need) check(LINES.some((l) => l.on === t && (!v || l.variant?.includes(v))), `sem fala ${t} ${v}`);
+  check(LINES.filter((l) => l.on === 'cobraItem' && ['meio', 'ganhou', 'perdeu'].some((v) => l.variant?.includes(v))).every((l) => l.speaker === 'cypher'),
+    'caixinha no meio e nos créditos: só a Cobra fala');
+  check(LINES.some((l) => l.on === 'recap' && l.variant?.includes('torneio')), 'recapitulação de torneio');
+  // nenhuma fala do pôster cita o nome da visita nem flexiona gênero para ela ("ela ganhou", "obrigado, ela"…)
+  const poster = LINES.filter((l) => l.id.startsWith('PP'));
+  for (const l of poster) check(!/\b(ela|ele) (ganhou|venceu|apostou|achou|perdeu)\b/i.test(l.pt), `${l.id}: gênero da visita`);
+  for (const x of EXCHANGES.filter((e) => e.id.startsWith('PPT'))) {
+    for (const p of x.parts) check(!/\b(ela|ele) (ganhou|venceu|apostou|achou|perdeu)\b/i.test(p.pt), `${x.id}: gênero da visita`);
+  }
+  console.log(`  ${poster.length} falas do Pôster Poker (${nCast} de lançada, ${tells.length} do tique), ${EXCHANGES.filter((e) => e.id.startsWith('PPT')).length} trocas`);
 }
 
 // ---------------------------------------------------------------------------
@@ -565,6 +689,379 @@ section('2. Cenários');
 }
 
 // ---------------------------------------------------------------------------
+// 2b. Cenários do Pôster Poker
+// ---------------------------------------------------------------------------
+
+section('2b. Cenários do Pôster Poker');
+{
+  const lvl = { index: 0, sb: 25, bb: 50, ante: 0, handsLeft: 5, next: { sb: 35, bb: 70, ante: 0 } };
+  const seats = [{ id: 'human', seat: 0, stack: 2000 }, { id: 'bogart', seat: 1, stack: 2000 }, { id: 'fincher', seat: 2, stack: 2000 }, { id: 'cypher', seat: 3, stack: 2000 }];
+  const STACKS = { human: 2000, bogart: 2000, fincher: 2000, cypher: 2000 };
+  const tstart = (i: number, t: Partial<TournamentConfig> = {}, loan = 0): PublicEvent => {
+    const effect = t.effect ?? 'early_flop';
+    return { i, t: 'matchStarted', mode: 'bounty', seats, loan, prize: null, level: lvl,
+      tournament: { prizeId: `pp-${effect}`, rarity: FX_RARITY[effect], effect, cobraItem: false, ...t } } as PublicEvent;
+  };
+  const hand = (i: number, n: number): PublicEvent => ({ i, t: 'handStarted', handNumber: n, buttonId: 'human', sbId: 'bogart', bbId: 'fincher',
+    level: lvl, stacks: { ...STACKS } });
+  const act = (i: number, p: PlayerId, action: 'fold' | 'check' | 'call' | 'bet' | 'raise', o: Partial<Extract<PublicEvent, { t: 'action' }>> = {}): PublicEvent =>
+    ({ i, t: 'action', playerId: p, street: 'preflop', action, amount: 100, to: 100, toCall: 50, potAfter: 300, allIn: false, shortAllIn: false,
+      stackBefore: 2000, sizeClass: null, ...(p !== 'human' ? { thinkMs: 900, cue: 'neutro' as Cue } : {}), ...o }) as PublicEvent;
+  const cast = (i: number, n: number, fx: PosterEffectId, castNo = 1): PublicEvent =>
+    ({ i, t: 'effectCast', effect: fx, handNumber: n, castNo, data: FX_DATA[fx] }) as PublicEvent;
+  const tell = (i: number, n: number, p: RivalId, mark: 'blefe' | 'valor'): PublicEvent => ({ i, t: 'tellMark', handNumber: n, playerId: p, mark });
+  const bonus = (i: number, n: number, fx: PosterEffectId, p: PlayerId, amount: number): PublicEvent =>
+    ({ i, t: 'effectBonus', effect: fx, handNumber: n, playerId: p, amount });
+  const done = (i: number, n: number, winner: PlayerId, potBB = 4): PublicEvent => ({ i, t: 'handComplete', handNumber: n,
+    net: { human: winner === 'human' ? 100 : -50, bogart: winner === 'bogart' ? 100 : -25, fincher: winner === 'fincher' ? 100 : -25, cypher: winner === 'cypher' ? 100 : 0 },
+    winnerIds: [winner], wentToShowdown: false, potBB, flags: {} });
+  const ended = (i: number, place: number, reason: 'won' | 'eliminated' | 'forfeit' = place === 1 ? 'won' : 'eliminated'): PublicEvent =>
+    ({ i, t: 'matchEnded', places: { human: place } as Record<PlayerId, number>, winnerId: place === 1 ? 'human' : null, humanPlace: place,
+      reason, prizeCaptured: false });
+  const lineOf = (o: Emitted): Line | undefined => byId.get(o.item.lineId);
+  const isExplain = (o: Emitted): boolean => !!lineOf(o)?.variant?.includes('explica');
+  const play = (dir: Director, stage: Stage, evs: PublicEvent[], ctx: TableContext, ms?: number): void => {
+    for (const e of evs) {
+      stage.evIndex++;
+      if (e.t === 'handStarted') stage.hand = e.handNumber;
+      dir.onEvent(e, ctx);
+      stage.pump(ms ?? eventMs(e));
+    }
+  };
+
+  // abertura por raridade: até 2 balões (3 na cerimônia), a apresentação sempre; o lendário com cerimônia
+  {
+    let ceremonies = 0;
+    let legendary = 0;
+    for (const fx of FX_ALL) {
+      for (let k = 0; k < 12; k++) {
+        const ctxO: CtxOpts = { mode: 'bounty', story: VETERAN_FX, lang: k % 4 === 3 ? 'en' : 'pt' };
+        const { dir, stage } = newDirector({ ...ctxO, seed: `op-${fx}-${k}` });
+        play(dir, stage, [tstart(1, { effect: fx })], makeCtx(ctxO), 25000);
+        const out = stage.out;
+        const ex = out.some((o) => !!o.item.exchange);
+        check(out.length >= 1 && out.length <= (ex ? 3 : 2), `abertura ${fx}#${k} com ${out.length} balões`);
+        check(out.some((o) => o.item.debug?.trigger === 'tournamentIntro'), `abertura ${fx}#${k} sem a apresentação do pôster`);
+        check(out.every((o) => o.item.scene === 'opening' && !/\{/.test(o.item.text)), `abertura ${fx}#${k}: cena ou variável`);
+        if (FX_RARITY[fx] === 'legendary') {
+          legendary++;
+          if (ex && out[0].item.debug?.trigger === 'tournamentIntro') ceremonies++;
+        }
+      }
+    }
+    check(ceremonies === legendary, `lendário com cerimônia inédita: ${ceremonies}/${legendary}`);
+    // a cerimônia já ouvida em 48 h: a apresentação vira fala solta na maioria das vezes
+    const pl = newPlayer(VETERAN_FX);
+    let lines = 0;
+    for (let k = 0; k < 8; k++) {
+      const { dir, stage } = newDirector({ mode: 'bounty', seed: `leg-${k}` }, pl);
+      play(dir, stage, [tstart(1, { effect: 'tell' })], makeCtx({ mode: 'bounty', story: VETERAN_FX }), 25000);
+      if (k >= 4 && stage.out.every((o) => !o.item.exchange)) lines++;
+      pl.clock.t += 60_000;
+    }
+    check(lines >= 2, `cerimônias repetidas em 48 h cedem lugar à fala solta (${lines}/4)`);
+  }
+  // pôster apostado, caixinha da Cobra e empréstimo entram como 2º balão
+  {
+    const cases: [string, CtxOpts['tournament'], Partial<TournamentConfig>, number, string][] = [
+      ['aposta', { stake: 'poster' }, { effect: 'blackjack' }, 0, 'stakePoster'],
+      ['caixinha', { stake: 'chips' }, { effect: 'reveal_one', cobraItem: true }, 0, 'cobraItem'],
+      ['empréstimo', undefined, { effect: 'double_pot' }, 500, 'sapoLoan'],
+    ];
+    for (const [name, tctx, t, loan, want] of cases) {
+      let hit = 0;
+      for (let k = 0; k < 20; k++) {
+        const ctxO: CtxOpts = { mode: 'bounty', story: VETERAN_FX, tournament: tctx };
+        const { dir, stage } = newDirector({ ...ctxO, seed: `slot-${name}-${k}` });
+        play(dir, stage, [tstart(1, t, loan)], makeCtx(ctxO), 25000);
+        check(stage.out.length === 2, `abertura com ${name}: ${stage.out.length} balões`);
+        if (stage.out.some((o) => o.item.debug?.trigger === want)) hit++;
+        if (want === 'cobraItem') check(stage.out.every((o) => o.item.debug?.trigger !== 'cobraItem' || !/\b(baralho|mesa|verso|feltro)\b/i.test(o.item.text)), 'a Cobra não diz o que tem na caixa');
+      }
+      check(hit === 20, `${name} na abertura: ${hit}/20`);
+    }
+  }
+  // a explicação: P1 na 1ª vez da vida de cada efeito, com as variáveis preenchidas; nunca de novo
+  for (const fx of FX_ALL) {
+    for (const lang of ['pt', 'en'] as const) {
+      const story = { ...VETERAN };   // sem nenhum fx.*
+      const ctxO: CtxOpts = { mode: 'bounty', story, lang };
+      const ctx = makeCtx(ctxO);
+      const { dir, stage } = newDirector({ ...ctxO, seed: `ex-${fx}-${lang}` });
+      if (fx === 'eight_aces') {
+        play(dir, stage, [tstart(1, { effect: fx }), cast(2, 0, fx)], ctx, 1);
+        stage.pump(30000);
+      } else {
+        play(dir, stage, [tstart(1, { effect: fx })], ctx, 25000);
+        const evs = fx === 'sixth_card'
+          ? [hand(2, 3), act(3, 'bogart', 'call', { street: 'turn' }), act(4, 'human', 'check', { street: 'turn' }), cast(5, 3, fx)]
+          : [hand(2, 3), cast(3, 3, fx)];
+        play(dir, stage, evs, ctx);
+        stage.pump(8000);
+      }
+      const ex = stage.out.filter(isExplain);
+      check(ex.length === 1, `${fx} [${lang}]: ${ex.length} explicações na 1ª lançada`);
+      const e0 = ex[0];
+      if (e0) {
+        check(e0.item.priority === 1 && lineOf(e0)!.variant![0] === fx, `${fx} [${lang}]: explicação P1 do efeito certo`);
+        check(!/\{/.test(e0.item.text), `${fx} [${lang}]: variável sobrou: ${e0.item.text}`);
+        const want: Partial<Record<PosterEffectId, RegExp>> = lang === 'pt'
+          ? { opal: /valete de espadas/, hand_bounty: /trinca.*800|800.*trinca/, blackjack: /500/, tell: /\b3\b/ }
+          : { opal: /jack of spades/, hand_bounty: /three of a kind.*800/, blackjack: /500/, tell: /\b3\b/ };
+        if (want[fx] && /\{(fichas|alvo|carta|maos)\}/.test(lineOf(e0)!.pt)) check(want[fx]!.test(e0.item.text), `${fx} [${lang}]: "${e0.item.text}"`);
+        if (fx === 'eight_aces') check(e0.item.scene === 'opening' && stage.out.length === 2, `Cassino na 1ª vez: apresentação + explicação na abertura (${stage.out.length})`);
+      }
+      check(dir.storyTouched().includes(`fx.${fx}`), `${fx} [${lang}]: marca fx.${fx}`);
+      // 2ª lançada na mesma partida: nada de explicação
+      const n0 = stage.out.length;
+      play(dir, stage, [done(20, 3, 'cypher'), hand(21, 12), cast(22, 12, fx, 2)], ctx);
+      stage.pump(8000);
+      check(!stage.out.slice(n0).some(isExplain), `${fx} [${lang}]: explicou de novo na 2ª lançada`);
+    }
+  }
+  // veterano: a lançada vira P2 (metade) ou P3 (menos); nunca explica
+  {
+    let first = 0;
+    let second = 0;
+    let explains = 0;
+    for (let k = 0; k < 300; k++) {
+      const ctxO: CtxOpts = { mode: 'bounty', story: VETERAN_FX };
+      const ctx = makeCtx(ctxO);
+      const fx = FX_ALL.filter((f) => !['eight_aces', 'sixth_card', 'blackjack', 'double_pot'].includes(f))[k % 5];
+      const { dir, stage } = newDirector({ ...ctxO, seed: `vet-${k}` });
+      play(dir, stage, [tstart(1, { effect: fx })], ctx, 25000);
+      play(dir, stage, [hand(2, 4), cast(3, 4, fx, 1)], ctx);
+      stage.pump(5000);
+      first += stage.out.filter((o) => o.item.debug?.trigger === 'effectCast').length;
+      const n0 = stage.out.length;
+      play(dir, stage, [done(4, 4, 'cypher'), hand(5, 12), cast(6, 12, fx, 2)], ctx);
+      stage.pump(5000);
+      second += stage.out.slice(n0).filter((o) => o.item.debug?.trigger === 'effectCast').length;
+      explains += stage.out.filter(isExplain).length;
+    }
+    check(explains === 0, `veterano ouviu explicação (${explains})`);
+    check(first > 60 && first < 200, `1ª lançada do veterano com fala em ~50% (${first}/300)`);
+    check(second < first && second > 15, `2ª lançada com menos fala (${second}/300)`);
+  }
+  // Onze Homens no meio da mão: Sapo calado e Raposo no anel não falam; na vez da pessoa, só curta
+  {
+    let cobraExplains = 0;
+    for (let k = 0; k < 200; k++) {
+      const veteran = k % 2 === 1;
+      const ctxO: CtxOpts = { mode: 'bounty', story: veteran ? VETERAN_FX : VETERAN };
+      const ctx = makeCtx(ctxO);
+      const { dir, stage } = newDirector({ ...ctxO, seed: `six-${k}` });
+      play(dir, stage, [tstart(1, { effect: 'sixth_card' })], ctx, 25000);
+      play(dir, stage, [hand(2, 5)], ctx);
+      const n0 = stage.out.length;   // a fala de "dar as cartas" (antes do calado) não conta
+      play(dir, stage, [
+        act(3, 'bogart', 'raise', { street: 'turn', sizeClass: 'big', cue: 'calado', to: 400, amount: 400 }),
+        act(4, 'fincher', 'call', { street: 'turn', cue: 'confiante' }),
+        act(5, 'cypher', 'call', { street: 'turn', cue: 'neutro' }),
+        act(6, 'human', 'call', { street: 'turn' }),
+        cast(7, 5, 'sixth_card')], ctx);
+      if (k % 4 === 0) {
+        stage.turnOpen = true;
+        dir.onHumanTurn(true);
+      }
+      stage.pump(6000);
+      stage.turnOpen = false;
+      dir.onHumanTurn(false);
+      const inHand = stage.out.slice(n0);
+      check(!inHand.some((o) => o.item.speaker === 'bogart'), `Onze Homens #${k}: Sapo calado falou (${inHand.map((o) => o.item.lineId)})`);
+      check(!inHand.some((o) => o.item.speaker === 'fincher'), `Onze Homens #${k}: Raposo falou com o anel`);
+      check(inHand.filter((o) => o.turnOpen).every((o) => o.item.text.length <= SHORT_CHARS), `Onze Homens #${k}: longa na vez`);
+      if (!veteran && inHand.some((o) => isExplain(o) && o.item.speaker === 'cypher')) cobraExplains++;
+    }
+    check(cobraExplains >= 45, `Onze Homens na 1ª vez: a Cobra explica quando os outros não podem (${cobraExplains}/50)`);
+  }
+  // o tique: fala de quem apostou segue o cue; a marca nunca é contrariada; Sapo calado e Raposo no anel calados
+  {
+    type Case = { p: RivalId; cue: Cue; mark: 'blefe' | 'valor'; before: boolean };
+    const cases: Case[] = [
+      { p: 'bogart', cue: 'nervoso', mark: 'blefe', before: false }, { p: 'bogart', cue: 'confiante', mark: 'valor', before: false },
+      { p: 'bogart', cue: 'calado', mark: 'valor', before: false }, { p: 'bogart', cue: 'nervoso', mark: 'blefe', before: true },
+      { p: 'cypher', cue: 'nervoso', mark: 'valor', before: false }, { p: 'fincher', cue: 'confiante', mark: 'valor', before: false },
+      { p: 'fincher', cue: 'nervoso', mark: 'blefe', before: true },
+    ];
+    let spoke = 0;
+    for (const c of cases) {
+      for (let k = 0; k < 60; k++) {
+        const ctxO: CtxOpts = { mode: 'bounty', story: VETERAN_FX };
+        const ctx = makeCtx(ctxO);
+        const { dir, stage } = newDirector({ ...ctxO, seed: `tell-${c.p}-${c.cue}-${c.before}-${k}` });
+        play(dir, stage, [tstart(1, { effect: 'tell' })], ctx, 25000);
+        play(dir, stage, [hand(2, 4), act(3, 'human', 'check', { street: 'flop' })], ctx);
+        const n0 = stage.out.length;
+        const bet = act(5, c.p, 'bet', { street: 'flop', sizeClass: 'medium', cue: c.cue });
+        const mark = tell(4, 4, c.p, c.mark);
+        play(dir, stage, c.before ? [mark, bet] : [{ ...bet, i: 4 } as PublicEvent, { ...mark, i: 5 } as PublicEvent], ctx, 300);
+        stage.turnOpen = true;
+        dir.onHumanTurn(true);
+        stage.pump(5000);
+        stage.turnOpen = false;
+        dir.onHumanTurn(false);
+        for (const o of stage.out.slice(n0).filter((x) => x.item.debug?.trigger === 'tellMark')) {
+          spoke++;
+          const l = lineOf(o)!;
+          check(o.item.text.length <= SHORT_CHARS, `${l.id}: tique longo na vez`);
+          if (l.role === 'actor') {
+            check(l.speaker === c.p && !!l.cue?.includes(c.cue), `${l.id} (ator ${l.speaker}, cue ${l.cue}) com ${c.p}/${c.cue}`);
+          }
+          if (l.variant?.length) check(l.variant[0] === c.mark, `${l.id}: marca ${l.variant[0]} com o tique ${c.mark}`);
+          if (c.p === 'bogart' && c.cue === 'calado') check(l.speaker !== 'bogart', `${l.id}: Sapo calado falou do tique`);
+          if (c.p === 'fincher' && c.cue === 'confiante') check(l.speaker !== 'fincher', `${l.id}: Raposo falou com o anel`);
+          check(l.speaker !== 'bogart' || l.role === 'actor' || l.out === 'only', `${l.id}: Sapo na mão comentou o tique alheio`);
+        }
+      }
+    }
+    check(spoke > 60, `o tique tem fala às vezes (${spoke}/${cases.length * 60})`);
+    // no máximo 2 falas de tique por partida
+    const { dir, stage } = newDirector({ mode: 'bounty', story: VETERAN_FX, seed: 'tell-cap' });
+    const ctx = makeCtx({ mode: 'bounty', story: VETERAN_FX });
+    play(dir, stage, [tstart(1, { effect: 'tell' })], ctx, 25000);
+    let i = 2;
+    for (let h = 4; h <= 9; h++) {
+      play(dir, stage, [hand(i++, h), act(i++, 'cypher', 'bet', { street: 'flop', cue: 'nervoso', sizeClass: 'medium' }), tell(i++, h, 'cypher', 'blefe'),
+        act(i++, 'fincher', 'raise', { street: 'flop', cue: 'neutro', sizeClass: 'big' }), tell(i++, h, 'fincher', 'valor'), done(i++, h, 'fincher')], ctx);
+      stage.pump(6000);
+    }
+    check(stage.out.filter((o) => o.item.debug?.trigger === 'tellMark').length <= 2, 'no máximo 2 falas de tique por partida');
+  }
+  // bônus: a opala da pessoa quase sempre tem fala, sempre de "humano"; o bônus vence a fala do pote
+  {
+    let humanLines = 0;
+    for (let k = 0; k < 100; k++) {
+      const human = k % 2 === 0;
+      const winner: PlayerId = human ? 'human' : (['bogart', 'cypher', 'fincher'] as RivalId[])[k % 3];
+      const fx: PosterEffectId = k % 4 < 2 ? 'opal' : 'hand_bounty';
+      const ctxO: CtxOpts = { mode: 'bounty', story: VETERAN_FX };
+      const ctx = makeCtx(ctxO);
+      const { dir, stage } = newDirector({ ...ctxO, seed: `bonus-${k}` });
+      play(dir, stage, [tstart(1, { effect: fx }), hand(2, 3), cast(3, 3, fx), done(4, 3, 'cypher')], ctx);
+      stage.pump(4000);
+      const n0 = stage.out.length;
+      play(dir, stage, [hand(10, 6), { i: 11, t: 'potAwarded', potIndex: 0, amount: 1500, eligibleIds: [winner, 'cypher'],
+        winners: [{ playerId: winner, amount: 1500 }], uncontested: false, kind: 'trips' } as PublicEvent,
+      bonus(12, 6, fx, winner, fx === 'opal' ? 1000 : 800), done(13, 6, winner, 30)], ctx);
+      stage.pump(12000);
+      const after = stage.out.slice(n0);
+      const b = after.filter((o) => o.item.debug?.trigger === 'effectBonus');
+      if (human && b.length) humanLines++;
+      for (const o of b) {
+        const l = lineOf(o);
+        if (l) {
+          check(l.variant!.includes(human ? 'humano' : 'oraculo'), `${l.id}: bônus de ${winner} com fala ${l.variant}`);
+          if (l.role === 'winner') check(l.speaker === winner, `${l.id}: fala de quem ganhou na boca de ${l.speaker}`);
+        } else check(!!o.item.exchange && human, `troca de bônus (${o.item.lineId}) sem ser da pessoa`);
+        check(!/\{/.test(o.item.text) && (!/valete|jack/.test(o.item.text) || fx === 'opal'), `bônus: texto ${o.item.text}`);
+      }
+      const nonP1 = after.filter((o) => o.item.priority !== 1 && (!o.item.exchange || o.item.exchange.part === 1) && o.item.debug?.hand === 6);
+      check(nonP1.length <= 1, `bônus: ${nonP1.length} momentos não-P1 na mão`);
+      if (b.length) check(nonP1.every((o) => o.item.debug?.trigger === 'effectBonus'), 'o bônus fica com o momento da mão');
+    }
+    check(humanLines >= 30, `opala/Raymond da pessoa com fala (${humanLines}/50)`);
+    // bônus depois do handComplete (ordem trocada): passa na frente da fala do pote que ainda não começou
+    let preempted = 0;
+    for (let k = 0; k < 80; k++) {
+      const ctxO: CtxOpts = { mode: 'bounty', story: VETERAN_FX };
+      const ctx = makeCtx(ctxO);
+      const { dir, stage } = newDirector({ ...ctxO, seed: `pre-${k}` });
+      play(dir, stage, [tstart(1, { effect: 'opal' }), hand(2, 3), cast(3, 3, 'opal'), done(4, 3, 'cypher')], ctx);
+      stage.pump(4000);
+      const n0 = stage.out.length;
+      dir.onEvent(hand(10, 6), ctx);
+      dir.onEvent(done(11, 6, 'human', 35), ctx);
+      dir.onEvent(bonus(12, 6, 'opal', 'human', 1000), ctx);
+      stage.pump(12000);
+      const after = stage.out.slice(n0).filter((o) => o.item.priority !== 1);
+      if (after.some((o) => o.item.debug?.trigger === 'effectBonus')) preempted++;
+      check(after.filter((o) => !o.item.exchange || o.item.exchange.part === 1).length <= 1, 'bônus trocado: um momento só');
+    }
+    check(preempted >= 45, `o bônus depois do fim da mão ainda sai (${preempted}/80)`);
+  }
+  // carta aberta da leitura: só a da pessoa, só se a lançada passou em silêncio, curta
+  {
+    let lines = 0;
+    for (let k = 0; k < 300; k++) {
+      const ctxO: CtxOpts = { mode: 'bounty', story: VETERAN_FX };
+      const ctx = makeCtx(ctxO);
+      const { dir, stage } = newDirector({ ...ctxO, seed: `rv-${k}` });
+      play(dir, stage, [tstart(1, { effect: 'reveal_one' })], ctx, 25000);
+      const mine: Card = (['Ah', 'Kd', '4c', '9s'] as Card[])[k % 4];
+      play(dir, stage, [hand(2, 4), cast(3, 4, 'reveal_one', 2), { i: 4, t: 'holeCards', cards: [mine, '2c'] } as PublicEvent,
+        { i: 5, t: 'effectReveal', effect: 'reveal_one', handNumber: 4, cards: [{ playerId: 'human', cards: [mine] }, { playerId: 'bogart', cards: ['7c'] },
+          { playerId: 'fincher', cards: ['Qs'] }, { playerId: 'cypher', cards: ['3d'] }] } as PublicEvent], ctx);
+      stage.pump(5000);
+      const hand4 = stage.out.filter((o) => o.item.debug?.hand === 4);
+      const rv = hand4.filter((o) => o.item.debug?.trigger === 'effectReveal');
+      lines += rv.length;
+      check(!(rv.length && hand4.some((o) => o.item.debug?.trigger === 'effectCast')), 'carta aberta comentada junto com a lançada');
+      for (const o of rv) {
+        const v = lineOf(o)!.variant ?? [];
+        const want = ['as', 'figura', 'baixa', ''][k % 4];
+        check(v.length === 1 || v[1] === want, `${o.item.lineId}: comentário ${v[1]} para ${mine}`);
+        check(o.item.text.length <= SHORT_CHARS, `${o.item.lineId}: longo`);
+      }
+    }
+    check(lines > 20 && lines < 150, `carta aberta comentada às vezes (${lines}/300)`);
+  }
+  // créditos do torneio
+  {
+    type CreditCase = { name: string; tctx?: CtxOpts['tournament']; t: Partial<TournamentConfig>; loan?: number; place: number;
+      reason?: 'won' | 'eliminated' | 'forfeit'; want: string[]; who?: RivalId[] };
+    const cases: CreditCase[] = [
+      { name: 'vitória + pôster apostado', tctx: { stake: 'poster' }, t: { effect: 'blackjack' }, place: 1, want: ['tournamentWon', 'stakeBack'] },
+      { name: 'derrota + pôster apostado', tctx: { stake: 'poster' }, t: { effect: 'blackjack' }, place: 3, want: ['stakeLost'] },
+      { name: 'desistência + pôster apostado', tctx: { stake: 'poster' }, t: { effect: 'early_flop' }, place: 4, reason: 'forfeit', want: ['stakeLost'] },
+      { name: 'desistência com fichas', tctx: { stake: 'chips' }, t: { effect: 'early_flop' }, place: 4, reason: 'forfeit', want: ['playerLeaves'] },
+      { name: 'vitória + caixinha', t: { effect: 'opal', cobraItem: true }, place: 1, want: ['tournamentWon', 'cobraItem'], who: ['cypher'] },
+      { name: 'derrota + caixinha', t: { effect: 'opal', cobraItem: true }, place: 2, want: ['cobraItem'], who: ['cypher'] },
+      { name: 'vitória + empréstimo', t: { effect: 'double_pot' }, loan: 500, place: 1, want: ['tournamentWon', 'loanCredits'] },
+      { name: 'derrota simples', t: { effect: 'tell' }, place: 2, want: ['tournamentLost'] },
+      { name: 'vitória simples', t: { effect: 'tell' }, place: 1, want: ['tournamentWon'] },
+    ];
+    for (const c of cases) {
+      for (let k = 0; k < 6; k++) {
+        const ctxO: CtxOpts = { mode: 'bounty', story: VETERAN_FX, tournament: c.tctx, lang: k % 3 === 2 ? 'en' : 'pt' };
+        const ctx = makeCtx(ctxO);
+        const { dir, stage } = newDirector({ ...ctxO, seed: `cr-${c.name}-${k}` });
+        play(dir, stage, [tstart(1, c.t, c.loan ?? 0)], ctx, 25000);
+        const evs: PublicEvent[] = [hand(2, 9), done(3, 9, 'fincher')];
+        if (c.reason !== 'forfeit' && c.place !== 1) evs.push({ i: 4, t: 'eliminated', playerId: 'human', place: c.place, byId: 'fincher', handNumber: 9 });
+        evs.push(ended(5, c.place, c.reason));
+        play(dir, stage, evs, ctx);
+        stage.pump(20000);
+        const cr = stage.out.filter((o) => o.item.scene === 'credits');
+        check(cr.map((o) => o.item.debug?.trigger).join(',') === c.want.join(','), `créditos "${c.name}": ${cr.map((o) => `${o.item.debug?.trigger}:${o.item.lineId}`).join(',')}`);
+        if (c.who) check(cr.filter((o) => o.item.debug?.trigger === 'cobraItem').every((o) => c.who!.includes(o.item.speaker as RivalId)), `créditos "${c.name}": quem fala da caixinha`);
+        if (c.name === 'vitória simples' && ctxO.lang === 'pt' && k === 0) check(['PPC71', 'PPF62'].includes(cr[0]?.item.lineId ?? ''), `vitória no lendário com fala própria (${cr[0]?.item.lineId})`);
+        if (c.reason !== 'forfeit' && c.place !== 1) check(stage.out.some((o) => o.item.scene === 'farewell'), `créditos "${c.name}": despedida antes`);
+      }
+    }
+  }
+  // recapitulação de torneio e caixinha no meio da partida
+  {
+    const { dir } = newDirector({ mode: 'bounty', seed: 'rc' });
+    const r = dir.cardLine('recap', makeCtx({ mode: 'bounty', tournament: { stake: 'chips' } }), { handNumber: 8, bb: 50, stacks: { human: 1800, bogart: 2600, cypher: 2000, fincher: 1600 } });
+    check(r?.lineId === 'AN7', `recapitulação de torneio (${r?.lineId})`);
+    let taunts = 0;
+    for (let k = 0; k < 150; k++) {
+      const ctxO: CtxOpts = { mode: 'bounty', story: VETERAN_FX };
+      const ctx = makeCtx(ctxO);
+      const { dir: d, stage } = newDirector({ ...ctxO, seed: `cx-${k}` });
+      play(d, stage, [tstart(1, { effect: 'early_flop', cobraItem: true })], ctx, 25000);
+      let i = 2;
+      for (let h = 1; h <= 8; h++) play(d, stage, [hand(i++, h), act(i++, 'human', 'fold'), done(i++, h, 'cypher')], ctx, 3000);
+      const mid = stage.out.filter((o) => o.item.debug?.trigger === 'cobraItem' && o.item.scene === 'table');
+      if (mid.length) taunts++;
+      check(mid.every((o) => o.item.speaker === 'cypher' || !!o.item.exchange), 'caixinha no meio: só a Cobra (ou a troca)');
+    }
+    check(taunts > 10 && taunts < 90, `a Cobra volta à caixinha no meio da partida às vezes (${taunts}/150)`);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 3. Fixtures do A1
 // ---------------------------------------------------------------------------
 
@@ -741,6 +1238,301 @@ if (!quick) {
   const dropAll = 1 - half.balloons / Math.max(1, base.balloons);
   console.log(`  meia-carga: ${(base.balloons / base.matches).toFixed(1)} → ${(half.balloons / half.matches).toFixed(1)} balões por partida (−${(dropAll * 100).toFixed(0)}% no total, −${(drop * 100).toFixed(0)}% fora os P1)`);
   check(dropAll >= 0.35 || drop >= 0.35, `meia-carga cai ${(dropAll * 100).toFixed(0)}% (meta ≥ 35%)`);
+}
+
+// ---------------------------------------------------------------------------
+// 4b. Fuzz de torneio (Pôster Poker)
+// ---------------------------------------------------------------------------
+
+/** Mão fraca para o tique (bucket abaixo de médio, sem monstro), como no BRIEF2. */
+function tellMarkOf(m: PrivateMeta | undefined, rng: () => number): 'blefe' | 'valor' {
+  if (!m) return rng() < 0.5 ? 'blefe' : 'valor';
+  if (m.monster) return 'valor';
+  if (m.bucket === null) return m.cue === 'confiante' || m.cue === 'calado' ? 'valor' : 'blefe';
+  return m.bucket === 'weak' || m.bucket === 'draw' || m.bucket === 'air' ? 'blefe' : 'valor';
+}
+
+/**
+ * Injeta os eventos do efeito numa partida do simulador, na ordem do E_NOTES (motor do E
+ * ainda sem efeitos): matchStarted com o torneio; eight_aces logo depois; efeitos de mão
+ * depois do handStarted; reveal_one depois das cartas; sixth_card antes do river; tique
+ * depois de cada aposta de oráculo nas 3 mãos; bônus antes do handComplete. Os `i` novos
+ * são fracionários (únicos e na ordem).
+ */
+function injectEffects(steps: StepIn[], meta: Map<number, PrivateMeta>, effect: PosterEffectId, cobraItem: boolean, rng: () => number): StepIn[] {
+  const pick = (a: number, b: number): number => a + Math.floor(rng() * (b - a + 1));
+  const casts: number[] = [];
+  if (['early_flop', 'double_pot', 'blackjack', 'reveal_one', 'sixth_card', 'tell'].includes(effect)) {
+    const c1 = pick(3, 9);
+    casts.push(c1, c1 + (effect === 'tell' ? 8 : 6) + pick(0, 3));
+  } else if (effect === 'hand_bounty' || effect === 'opal') casts.push(pick(3, 8));
+  const bonusHand = casts.length ? casts[0] + pick(0, 6) : -1;
+  let k = 0;
+  let castNo = 0;
+  let cur = 0;
+  let dealt: PlayerId[] = [];
+  let sixthArmed = false;
+  let castHere = false;
+  let tellUntil = -1;
+  const ev = (base: number, pre: boolean, body: Record<string, unknown>): PublicEvent => {
+    k++;
+    return { ...body, i: base + (pre ? -0.5 : 0) + k * 0.0001 } as PublicEvent;
+  };
+  const castEv = (base: number, pre: boolean, h: number): PublicEvent => {
+    castNo++;
+    return ev(base, pre, { t: 'effectCast', effect, handNumber: h, castNo, data: FX_DATA[effect] });
+  };
+  const RANDOM: Card[] = ['2c', '7d', 'Th', 'Ks', '5h', '9c', 'Jd', '3s'];
+  return steps.map((st) => {
+    const out: PublicEvent[] = [];
+    for (const e of st.events) {
+      const pre: PublicEvent[] = [];
+      const post: PublicEvent[] = [];
+      let main: PublicEvent = e;
+      switch (e.t) {
+        case 'matchStarted':
+          main = { ...e, mode: 'bounty', prize: null, tournament: { prizeId: `pp-${effect}`, rarity: FX_RARITY[effect], effect, cobraItem } } as PublicEvent;
+          if (effect === 'eight_aces') post.push(castEv(e.i, false, 0));
+          break;
+        case 'handStarted':
+          cur = e.handNumber;
+          dealt = Object.entries(e.stacks).filter(([, v]) => (v ?? 0) > 0).map(([p]) => p);
+          castHere = false;
+          if (casts.includes(cur)) {
+            if (effect === 'sixth_card') sixthArmed = true;
+            else {
+              castHere = true;
+              post.push(castEv(e.i, false, cur));
+              if (effect === 'tell') tellUntil = cur + 2;
+            }
+          }
+          break;
+        case 'holeCards':
+          if (castHere && effect === 'reveal_one') {
+            post.push(ev(e.i, false, { t: 'effectReveal', effect: 'reveal_one', handNumber: cur,
+              cards: dealt.map((p, j) => ({ playerId: p, cards: [p === 'human' ? e.cards[0] : RANDOM[j]] })) }));
+          }
+          break;
+        case 'street':
+          if (e.street === 'river' && sixthArmed) {
+            sixthArmed = false;
+            castHere = true;
+            pre.push(castEv(e.i, true, cur));
+          }
+          break;
+        case 'action':
+          if (effect === 'tell' && cur <= tellUntil && tellUntil > 0 && e.playerId !== 'human' && (e.action === 'bet' || e.action === 'raise')) {
+            post.push(ev(e.i, false, { t: 'tellMark', handNumber: cur, playerId: e.playerId, mark: tellMarkOf(meta.get(e.i), rng) }));
+          }
+          break;
+        case 'potAwarded':
+          if (castHere && effect === 'double_pot' && e.winners[0]) {
+            post.push(ev(e.i, false, { t: 'effectBonus', effect, handNumber: cur, playerId: e.winners[0].playerId, amount: e.amount }));
+          }
+          break;
+        case 'handComplete':
+          if (castHere && effect === 'blackjack' && dealt.length) {
+            pre.push(ev(e.i, true, { t: 'effectReveal', effect: 'blackjack', handNumber: cur,
+              cards: dealt.map((p, j) => ({ playerId: p, cards: [RANDOM[j], RANDOM[j + 1]] })) }));
+            pre.push(ev(e.i, true, { t: 'effectBonus', effect, handNumber: cur, playerId: dealt[Math.floor(rng() * dealt.length)], amount: 500 }));
+          }
+          if ((effect === 'hand_bounty' || effect === 'opal') && cur === bonusHand && e.winnerIds[0]) {
+            pre.push(ev(e.i, true, { t: 'effectBonus', effect, handNumber: cur, playerId: e.winnerIds[0], amount: effect === 'opal' ? 1000 : 800 }));
+          }
+          break;
+        default:
+          break;
+      }
+      out.push(...pre, main, ...post);
+    }
+    return { ...st, events: out };
+  });
+}
+
+interface PosterStats { castLines: number; casts: number; explains: number; bonusLines: number; bonuses: number; tellLines: number; revealLines: number }
+
+/** As regras do Pôster Poker numa partida já tocada. */
+function verifyPoster(tag: string, events: PublicEvent[], emitted: Emitted[], stake: 'chips' | 'poster'): PosterStats {
+  const st: PosterStats = { castLines: 0, casts: 0, explains: 0, bonusLines: 0, bonuses: 0, tellLines: 0, revealLines: 0 };
+  const evByI = new Map<number, PublicEvent>(events.map((e) => [e.i, e]));
+  const posOf = new Map<number, number>(events.map((e, j) => [e.i, j]));
+  st.casts = events.filter((e) => e.t === 'effectCast').length;
+  st.bonuses = events.filter((e) => e.t === 'effectBonus').length;
+  const marks = new Map<string, Set<string>>();
+  for (const e of events) if (e.t === 'tellMark') {
+    const key = `${e.handNumber}|${e.playerId}`;
+    marks.set(key, (marks.get(key) ?? new Set()).add(e.mark));
+  }
+  const castHands = new Set(emitted.filter((o) => o.item.debug?.trigger === 'effectCast').map((o) => o.item.debug!.hand));
+  /** Último cue de `p` na mão, até o evento de índice `upto`. */
+  const lastCue = (p: PlayerId, upto: number): Cue | null => {
+    for (let j = Math.min(upto, events.length - 1); j >= 0; j--) {
+      const e = events[j];
+      if (e.t === 'handStarted' || e.t === 'handComplete') return null;
+      if (e.t === 'action' && e.playerId === p) return e.action === 'fold' ? null : e.cue ?? null;
+    }
+    return null;
+  };
+  for (const em of emitted) {
+    const d = em.item.debug;
+    if (!d) continue;
+    const line = byId.get(em.item.lineId);
+    if (POSTER_IN_HAND.has(d.trigger) && em.item.speaker === 'fincher') {
+      check(lastCue('fincher', em.evIndex) !== 'confiante', `${tag}: Raposo falou (${em.item.lineId}) com o anel`);
+    }
+    if (d.trigger === 'effectCast') {
+      st.castLines++;
+      if (line?.variant?.includes('explica')) st.explains++;
+    }
+    if (d.trigger === 'tellMark' && line) {
+      st.tellLines++;
+      const key = `${d.hand}|${d.actorId}`;
+      if (line.variant?.length) check(!!marks.get(key)?.has(line.variant[0]), `${tag}: ${line.id} (${line.variant[0]}) sem esse tique`);
+      if (line.role === 'actor') {
+        check(line.speaker === d.actorId && !!d.cue && !!line.cue?.includes(d.cue), `${tag}: ${line.id} ator do tique com cue ${d.cue}`);
+        // o cue do sinal é o da aposta que levou o tique
+        const j = posOf.get(d.eventI) ?? -1;
+        const at = events[j];
+        const act = at?.t === 'action' ? at : events[j - 1];
+        check(act?.t === 'action' && act.playerId === d.actorId && act.cue === d.cue, `${tag}: ${line.id} cue ${d.cue} não é o da aposta`);
+      }
+    }
+    if (d.trigger === 'effectBonus') {
+      st.bonusLines++;
+      const b = evByI.get(d.eventI);
+      check(b?.t === 'effectBonus', `${tag}: fala de bônus sem bônus`);
+      if (b?.t === 'effectBonus' && line) {
+        check(line.variant!.includes(b.playerId === 'human' ? 'humano' : 'oraculo'), `${tag}: ${line.id} para bônus de ${b.playerId}`);
+        if (line.role === 'winner') check(line.speaker === b.playerId, `${tag}: ${line.id} de ${line.speaker}, bônus de ${b.playerId}`);
+      }
+    }
+    if (d.trigger === 'effectReveal') {
+      st.revealLines++;
+      check(!castHands.has(d.hand), `${tag}: carta aberta comentada na mão da lançada`);
+    }
+  }
+  const end = events.find((e) => e.t === 'matchEnded') as Extract<PublicEvent, { t: 'matchEnded' }> | undefined;
+  const credits = emitted.filter((o) => o.item.scene === 'credits').map((o) => o.item.debug?.trigger);
+  if (end && stake === 'poster' && end.humanPlace !== 1) check(credits.includes('stakeLost'), `${tag}: perdeu o pôster apostado sem fala (${credits})`);
+  if (end && end.humanPlace === 1) check(credits[0] === 'tournamentWon', `${tag}: venceu o torneio sem fala (${credits})`);
+  return st;
+}
+
+function fuzzTournament(n: number, label: string): void {
+  const tot = { matches: 0, hands: 0, balloons: 0, p1: 0, silent: 0, real: 0, b35: [] as number[] };
+  const ps: PosterStats = { castLines: 0, casts: 0, explains: 0, bonusLines: 0, bonuses: 0, tellLines: 0, revealLines: 0 };
+  const explainedBy = new Map<string, number>();
+  const byEffect = new Map<PosterEffectId, { matches: number; casts: number; castLines: number; bonuses: number; bonusLines: number; tellLines: number }>();
+  const forceSynthetic = args.includes('--synthetic');
+  let player: Player = newPlayer();
+  let personId = 0;
+  for (let k = 0; k < n; k++) {
+    // cada pessoa joga as 9 semanas em sequência; metade começa sem conhecer nenhum efeito
+    if (k % 9 === 0) {
+      personId++;
+      const g = k / 9;
+      player = newPlayer(g % 8 === 7 ? {} : g % 2 === 0 ? VETERAN : VETERAN_FX, g % 8 === 7 ? 0 : 5 + (g % 40));
+    }
+    const effect = FX_ALL[k % 9];
+    const cobraItem = k % 5 === 0;
+    const stake: 'chips' | 'poster' = k % 3 === 0 ? 'poster' : 'chips';
+    const loan = k % 11 === 0 ? 500 : 0;
+    const lang = k % 4 === 3 ? 'en' : 'pt';
+    const seed = `tz-${label}-${k}`;
+    const rng = createRng(`th-${label}-${k}`);
+    const ctxBase: CtxOpts = { mode: 'bounty', lang, lifetimeMatches: player.lifetime, story: { ...player.story }, tournament: { stake },
+      title: (['figurante', 'coadjuvante', 'estrela'] as TitleId[])[k % 3] };
+    const runMatch = (cfg: MatchConfig): { steps: StepIn[]; priv: MatchEvent[] } => {
+      const priv: MatchEvent[] = [];
+      const steps: StepIn[] = [];
+      let step = createMatch(cfg);
+      let s: MatchState = step.state;
+      const flush = (): void => {
+        priv.push(...step.events);
+        steps.push({ events: toPublicEvents(step.events, 'human'), view: tableView(step.state, 'human'), humanTurnAfter: step.state.status === 'running' });
+      };
+      flush();
+      const heroName: HeroName = (['medio', 'medio', 'iniciante', 'bom'] as HeroName[])[k % 4];
+      for (let guard = 0; s.status === 'running' && guard < 3000; guard++) {
+        const L = humanLegal(s);
+        if (!L) break;
+        step = applyHumanAction(s, HEROES[heroName](L, rng, s), { show: rng.nextFloat() < 0.3 });
+        s = step.state;
+        flush();
+      }
+      return { steps, priv };
+    };
+    let run: { steps: StepIn[]; priv: MatchEvent[] } | null = null;
+    let real = false;
+    if (!forceSynthetic) {
+      try {
+        run = runMatch(makeConfig({ seed, effect, cobraItem, loan }));
+        real = run.steps.some((x) => x.events.some((e) => e.t === 'effectCast'));
+      } catch {
+        run = null;
+      }
+    }
+    if (!real) {
+      const free = runMatch(makeConfig({ mode: 'free', seed, loan }));
+      run = { steps: injectEffects(free.steps, privateMeta(free.priv), effect, cobraItem, () => rng.nextFloat()), priv: free.priv };
+    }
+    if (real) tot.real++;
+    const { dir, stage } = newDirector({ ...ctxBase, seed: `td-${label}-${k}` }, player);
+    const all: PublicEvent[] = [];
+    playSteps(stage, run!.steps, ctxBase, () => rng.nextFloat(), all, { quips: true });
+    for (const key of dir.storyTouched()) player.story[key] = 'x';
+    player.lifetime++;
+    player.clock.t += 60_000;
+    const tag = `torneio-${label}-${k}(${effect}${real ? '' : ', injetado'})`;
+    const st = verify(tag, all, stage.out, privateMeta(run!.priv));
+    const p = verifyPoster(tag, all, stage.out, stake);
+    for (const o of stage.out) {
+      const l = byId.get(o.item.lineId);
+      if (l?.on === 'effectCast' && l.variant?.includes('explica')) {
+        const key = `${personId}|${l.variant[0]}`;
+        explainedBy.set(key, (explainedBy.get(key) ?? 0) + 1);
+      }
+    }
+    for (const key of Object.keys(ps) as (keyof PosterStats)[]) ps[key] += p[key];
+    const fxRow = byEffect.get(effect) ?? { matches: 0, casts: 0, castLines: 0, bonuses: 0, bonusLines: 0, tellLines: 0 };
+    fxRow.matches++;
+    fxRow.casts += p.casts;
+    fxRow.castLines += p.castLines;
+    fxRow.bonuses += p.bonuses;
+    fxRow.bonusLines += p.bonusLines;
+    fxRow.tellLines += p.tellLines;
+    byEffect.set(effect, fxRow);
+    tot.matches++;
+    tot.hands += st.hands;
+    tot.balloons += st.balloons;
+    tot.p1 += st.byPriority[1];
+    tot.silent += st.silentHands;
+    if (st.hands >= 28 && st.hands <= 42) tot.b35.push(st.balloons);
+  }
+  for (const [key, c] of explainedBy) check(c === 1, `fuzz de torneio: explicação ${key} tocou ${c} vezes para a mesma pessoa`);
+  const per35 = tot.b35.length ? tot.b35.reduce((a, b) => a + b, 0) / tot.b35.length : NaN;
+  const silentShare = tot.silent / Math.max(1, tot.hands);
+  console.log(`  ${tot.matches} partidas (${tot.real} com o motor do E, ${tot.matches - tot.real} com efeitos injetados), ` +
+    `${(tot.hands / tot.matches).toFixed(1)} mãos, ${(tot.balloons / tot.matches).toFixed(1)} balões por partida (${(tot.p1 / tot.matches).toFixed(1)} P1)`);
+  console.log(`  partidas de 28–42 mãos: ${tot.b35.length}, ${per35.toFixed(1)} balões em média; ${(silentShare * 100).toFixed(1)}% das mãos em silêncio`);
+  console.log(`  lançadas: ${ps.casts}, com fala ${ps.castLines} (${ps.explains} explicações); bônus: ${ps.bonuses}, com fala ${ps.bonusLines}; ` +
+    `tique com fala: ${ps.tellLines}; carta aberta comentada: ${ps.revealLines}`);
+  if (args.includes('--stats')) {
+    for (const [fx, r] of byEffect) {
+      console.log(`    ${fx}: ${r.matches} partidas, lançadas ${r.casts} (fala ${r.castLines}), bônus ${r.bonuses} (fala ${r.bonusLines}), tique ${r.tellLines}`);
+    }
+  }
+  check(silentShare >= 0.4, `torneio: ${(silentShare * 100).toFixed(1)}% das mãos em silêncio (meta ≥ 40%)`);
+  if (tot.b35.length >= 20) check(per35 <= 24, `torneio: ${per35.toFixed(1)} balões por partida de ~35 mãos (teto 24 com as explicações)`);
+  check(ps.castLines < ps.casts, 'nem toda lançada tem fala');
+  check(ps.explains > 0, 'o fuzz de torneio ouviu explicações');
+}
+
+section(`4b. Fuzz de torneio (${quick ? 45 : 900} partidas)`);
+{
+  const t0 = Date.now();
+  fuzzTournament(quick ? 45 : 900, quick ? 'q' : 'full');
+  console.log(`  ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }
 
 console.log(`\n${passed} asserções ok, ${failed} falharam.`);

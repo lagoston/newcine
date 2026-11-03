@@ -4,7 +4,7 @@
  */
 import type { Card } from '../cards.ts';
 import type { HandResult } from '../engine.ts';
-import { evaluateHand, scoreCards } from '../evaluator.ts';
+import { evaluateHand, scoreCardsAny } from '../evaluator.ts';
 import type { HandFlags, HumanTally, MatchState, MatchSummary, PlayerId } from '../types.ts';
 import { isAirShown } from '../bots/buckets.ts';
 import { HUMAN, x } from './internal.ts';
@@ -35,6 +35,10 @@ export interface TallyInput {
   odds: Record<string, number> | null;
   humanStackAfter: number;
   eliminations: { victimId: PlayerId; byId: PlayerId | null; hand: number }[];
+  /** Pôster Poker: o que a casa somou ao pote da pessoa (Dinheiro dobrado). */
+  potBonus?: number;
+  /** Pôster Poker: o baralho tem cartas repetidas (Cassino). */
+  repeats?: boolean;
 }
 
 /** Atualiza o tally (no lugar). */
@@ -98,11 +102,11 @@ export function updateTally(t: HumanTally, inp: TallyInput): void {
     if (lastAggr === HUMAN && isAirShown(mine, board)) t.bluffsWorked += 1;
     // Blefe de Oscar: pote ≥ 20 BB sem showdown e alguém que largou tinha mão melhor no board.
     if (inp.potTotal >= 20 * inp.bb) {
-      const myScore = scoreCards([...mine, ...board]);
+      const myScore = scoreCardsAny([...mine, ...board]);
       const folders = new Set(acts.filter((a) => a.type === 'fold' && a.playerId !== HUMAN).map((a) => a.playerId));
       for (const id of folders) {
         const h = inp.holes[id];
-        if (h && h.length === 2 && scoreCards([...h, ...board]) > myScore) {
+        if (h && h.length === 2 && scoreCardsAny([...h, ...board]) > myScore) {
           t.oscarBluff = true;
           break;
         }
@@ -115,11 +119,13 @@ export function updateTally(t: HumanTally, inp: TallyInput): void {
 
   let gross = 0;
   for (const p of result.pots) for (const w of p.winners) if (w.playerId === HUMAN) gross += w.amount;
+  gross += inp.potBonus ?? 0;   // o pote dobrado pela casa conta inteiro
   if (gross > t.biggestPot) t.biggestPot = gross;
 
   const folded = acts.some((a) => a.playerId === HUMAN && a.type === 'fold');
-  if (!folded && mine.length === 2 && board.length === 5) {
-    const v = evaluateHand([...mine, ...board]);
+  // board de 5, ou de 6 no river de 2 cartas (Onze Homens)
+  if (!folded && mine.length === 2 && board.length >= 5) {
+    const v = evaluateHand([...mine, ...board], { repeats: inp.repeats === true });
     if (!t.bestHand || v.score > t.bestHand.score) t.bestHand = { cards: v.best5.slice(), kind: v.kind, score: v.score };
   }
 
@@ -199,5 +205,12 @@ export function summarizeMatch(s: MatchState, meta: { clientId: string; startedA
     prize: st.config.prize ? { prizeId: st.config.prize.prizeId, capturedHand: st.capturedHand } : null,
     engineHash: ENGINE_HASH_UNSET,
     paramsVersion: { ...st.config.paramsVersion },
+    // Pôster Poker: quem vence a mesa (1º lugar) leva o pôster da semana; a Edge concede.
+    ...(st.config.mode === 'bounty' && st.config.tournament ? {
+      tournament: {
+        prizeId: st.config.tournament.prizeId, effect: st.config.tournament.effect, won: reason === 'won',
+        casts: st.fx?.castNo ?? 0, bonusWon: st.fx?.bonusWon ?? 0,
+      },
+    } : {}),
   };
 }
