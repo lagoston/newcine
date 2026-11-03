@@ -71,6 +71,69 @@ export const MagicPoster: React.FC<{
 };
 
 // ---------------------------------------------------------------------------
+// Mesa com amigos (fase 3): os pôsteres de efeito de todos, em leque, na mesma vaga
+// ---------------------------------------------------------------------------
+
+/**
+ * Até 3 pôsteres à vista, um atrás do outro (cada um com ×2/×3 quando repete); mais que
+ * isso, um "+N". Cabe na mesma vaga do pôster mágico do torneio (à esquerda da faixa de
+ * fala e no alto do feltro): nunca cobre cartas, pote ou ações. Tocar abre a lista.
+ */
+export const EffectStack: React.FC<{
+  posters: { effect: string; level: number; filePath: string; title: string; titleEn: string }[];
+  casts: number;
+  casting: string | null;
+  reduced: boolean;
+  onOpen: () => void;
+}> = ({ posters, casts, casting, reduced, onOpen }) => {
+  const { t } = useTranslation();
+  useEffect(() => {
+    loadPosterPokerFont();
+  }, []);
+  const shown = posters.slice(0, 3);
+  const more = posters.length - shown.length;
+  const names = posters.map((x) => `${t(`poker.effects.${x.effect}.name`)}${x.level > 1 ? ` ×${x.level}` : ''}`).join(', ');
+  return (
+    <button
+      type="button"
+      className="pp-magic-slot pf-stack"
+      data-pp-slot
+      data-n={shown.length}
+      onClick={onOpen}
+      aria-label={t('poker.friends.table.fxAria', { list: names })}
+    >
+      {shown
+        .slice()
+        .reverse()
+        .map((x, ri) => {
+          const i = shown.length - 1 - ri;
+          return (
+            <span
+              key={x.effect}
+              className={`pp-magic pf-stack-card ${casting === x.effect ? 'is-casting' : ''}`}
+              style={{ '--i': i, animationDelay: reduced ? undefined : `${-i * 1.3}s` } as React.CSSProperties}
+              aria-hidden
+            >
+              <PosterArt filePath={x.filePath} effect="gold" size="w185" animated={!reduced && i === 0} loading="eager" />
+              {x.level > 1 && <b className="pf-stack-level pk-num">×{x.level}</b>}
+            </span>
+          );
+        })}
+      {more > 0 && (
+        <span className="pf-stack-more pk-num" aria-hidden>
+          +{more}
+        </span>
+      )}
+      {casts > 0 && (
+        <span className="pp-magic-count" aria-hidden>
+          {casts}
+        </span>
+      )}
+    </button>
+  );
+};
+
+// ---------------------------------------------------------------------------
 // O CATCHAW
 // ---------------------------------------------------------------------------
 

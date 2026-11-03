@@ -12,7 +12,9 @@ import { SPEED_TAG, type PokerSettingsLocal } from '../../../lib/poker/client/se
 import { displayFont, fmt, whatYouHave, type Lang } from '../../../lib/poker/client/format';
 import { blindsText } from '../../../lib/poker/client/narrate';
 import { pokerCosmetics } from '../cosmetics/looks';
-import OracleSeat from '../acting/OracleSeat';
+import OracleSeat, { useSecondsLeft } from '../acting/OracleSeat';
+import type { TableEffectPoster, TurnClock } from '../../../lib/poker/client/useFriendsMatch';
+import { posterDef } from '../../../lib/poker/client/tournament';
 import WantedPoster from '../acting/WantedPoster';
 import PlayingCard from '../cards/PlayingCard';
 import TableChip from '../cards/TableChip';
@@ -20,6 +22,7 @@ import ActionBar, { type ActionBarHandle, type PreAction, type TutorialGate } fr
 import SpeechBand from './SpeechBand';
 import {
   CastOverlay,
+  EffectStack,
   HouseChips,
   MagicPoster,
   StakeThumb,
@@ -87,10 +90,37 @@ export interface TableStageProps {
   /** O pôster lançando um efeito agora (o CATCHAW). */
   cast?: CastShow | null;
   onPosterInfo?: () => void;
+  /**
+   * Mesa com amigos (fase 3): as pessoas nos lugares (foto, nome, cor da placa, ausente,
+   * saiu), o relógio de 30 s de quem está na vez e os pôsteres de efeito da mesa
+   * (vários, agrupados por efeito).
+   */
+  people?: Record<string, { name: string; avatarUrl: string | null; color: string; away: boolean; left: boolean }> | null;
+  clock?: TurnClock | null;
+  fx?: TableEffectPoster[] | null;
   children?: React.ReactNode;
 }
 
 const POS: Record<string, 'left' | 'center' | 'right'> = { bogart: 'left', fincher: 'center', cypher: 'right' };
+// Fase 3: o lugar manda (na mesa com amigos uma pessoa pode estar no lugar de qualquer
+// oráculo; depois do povView, 1 = à esquerda, 2 = em frente, 3 = à direita).
+const SEAT_POS: Record<number, 'left' | 'center' | 'right'> = { 1: 'left', 2: 'center', 3: 'right' };
+const posOf = (s: { id: string; seat: number }) => SEAT_POS[s.seat] ?? POS[s.id] ?? 'center';
+
+/** O meu relógio (na minha vez, na mesa com amigos): os segundos e uma barra que esvazia. */
+const MyClock: React.FC<{ clock: TurnClock; reduced: boolean }> = ({ clock, reduced }) => {
+  const { t } = useTranslation();
+  const left = useSecondsLeft(clock.endsAt) ?? 0;
+  const frac = Math.max(0, Math.min(1, left / (clock.total / 1000)));
+  return (
+    <span className={`pf-myclock ${left <= 10 ? 'is-late' : ''}`} role="timer" aria-label={t('poker.friends.table.myClockAria', { count: left })}>
+      <span className="pk-num">{t('poker.friends.table.seconds', { count: left })}</span>
+      <i aria-hidden>
+        <b style={{ transform: `scaleX(${frac})`, transition: reduced ? 'none' : 'transform 250ms linear' }} />
+      </i>
+    </span>
+  );
+};
 
 const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableStage(p, ref) {
   const { t } = useTranslation();
@@ -112,7 +142,24 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
   const pots = realPots.length > 1 && table.seats.some((x) => x.status === 'allIn') ? realPots : null;
   const level = table.level;
   const modeLabel =
-    p.mode === 'bounty' ? (p.tourney ? t('poker.table.tourney') : t('poker.table.bounty')) : p.mode === 'tutorial' ? t('poker.table.training') : t('poker.table.free');
+    p.mode === 'friends'
+      ? t('poker.friends.table.mode')
+      : p.mode === 'bounty'
+        ? p.tourney
+          ? t('poker.table.tourney')
+          : t('poker.table.bounty')
+        : p.mode === 'tutorial'
+          ? t('poker.table.training')
+          : t('poker.table.free');
+  // Os pôsteres de efeito da mesa com amigos, e o que o CATCHAW mostra para cada efeito.
+  const fx = p.fx && p.fx.length ? p.fx : null;
+  const castPoster = (() => {
+    if (p.tourney) return p.tourney.poster;
+    if (!fx || !p.cast) return null;
+    const hit = fx.find((x) => x.effect === p.cast!.effect);
+    const d = posterDef(p.cast.effect);
+    return { title: hit ? (lang === 'en' ? hit.titleEn : hit.title) : d?.titlePt ?? '', filePath: hit?.filePath ?? d?.filePath ?? '', rarity: d?.rarity ?? 'common', serial: d?.serial ?? null };
+  })();
   // Pôster Poker (03/11/2026): o que o efeito em vigor muda no desenho.
   const tt = table.tournament;
   // Fase 3: na mesa com amigos vários efeitos podem lançar na mesma mão.
@@ -124,7 +171,7 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
   const bjBest = blackjackLeaders(table);
   const bjOf = (s: { id: string; revealed: string[] }) =>
     castIn('blackjack') && s.revealed.length === 2 ? { value: blackjackValue(s.revealed as never), best: bjBest.has(s.id) } : null;
-  const ribbon = p.tourney ? effectRibbon(t, table, lang) : null;
+  const ribbon = p.tourney || fx ? effectRibbon(t, table, lang) : null;
   const myBj = me ? bjOf(me) : null;
 
   const thermoTone = p.thermo === 'strong' ? '#7BE0A0' : p.thermo === 'good' ? '#FFE8A3' : '#FF9AA0';
@@ -159,7 +206,7 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
       <div className="sr-only-pk" aria-live="polite">{p.live}</div>
       <div className="sr-only-pk" aria-live="assertive">{p.alert}</div>
 
-      <div className={`pk-col ${velvet ? 'pk-velvet' : ''}`}>
+      <div className={`pk-col ${velvet ? 'pk-velvet' : ''} ${fx && fx.length > 1 ? 'pf-fanned' : ''}`}>
         {/* Barra: modo, mão e blinds; velocidade e menu. */}
         <header className="pk-bar">
           <button type="button" className="pk-icon-btn" onClick={p.onBack} aria-label={t('poker.table.leave')}>
@@ -203,6 +250,10 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
         {p.tourney && (
           <MagicPoster poster={p.tourney.poster} casts={tt?.casts ?? 0} casting={!!p.cast} reduced={reduced} onOpen={() => p.onPosterInfo?.()} />
         )}
+        {/* Mesa com amigos: os pôsteres de efeito de todos, na mesma vaga, em leque. */}
+        {!p.tourney && fx && (
+          <EffectStack posters={fx} casts={tt?.casts ?? 0} casting={p.cast?.effect ?? null} reduced={reduced} onOpen={() => p.onPosterInfo?.()} />
+        )}
 
         {/* O arco: Sapo à esquerda, Raposo no alto, Cobra à direita. */}
         <section className="pk-seats" aria-label={t('poker.table.rivals')}>
@@ -210,7 +261,9 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
             <OracleSeat
               key={s.id}
               seat={s}
-              pos={POS[s.id] ?? 'center'}
+              pos={posOf(s)}
+              person={p.people?.[s.id] ?? null}
+              clock={p.clock && p.clock.playerId === s.id ? p.clock : null}
               cardStyle={p.cardStyle}
               deckId={looks.deck.id}
               fourColor={settings.fourColor}
@@ -222,7 +275,7 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
               emote={p.speech?.speaker === s.id ? p.speech.emote ?? null : null}
               reduced={reduced}
               lang={lang}
-              onPortrait={() => p.onPortrait(s.id)}
+              onPortrait={p.people?.[s.id] ? undefined : () => p.onPortrait(s.id)}
               opal={opal}
               bj={bjOf(s)}
               cobraBox={s.id === 'cypher' && !!tt?.cobraItem}
@@ -303,6 +356,7 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
               )}
               <span className="text-[12.5px] font-bold" style={{ color: '#F3EAD3' }}>{t('poker.table.you')}</span>
               {p.tourney?.stake && <StakeThumb stake={p.tourney.stake} />}
+              {p.clock?.playerId === 'human' && <MyClock clock={p.clock} reduced={reduced} />}
               {holder === 'human' && p.prize && (
                 <motion.span layoutId="pk-wanted" className="relative inline-block" transition={{ duration: reduced ? 0 : 0.7 }}>
                   <WantedPoster rarity={p.prize.rarity} size={20} />
@@ -437,8 +491,8 @@ const TableStage = forwardRef<ActionBarHandle, TableStageProps>(function TableSt
         </AnimatePresence>
 
         {/* Pôster Poker: as fichas da casa voando e o CATCHAW por cima de tudo. */}
-        {p.tourney && <HouseChips bonus={tt?.lastBonus ?? null} reduced={reduced} />}
-        {p.tourney && p.cast && <CastOverlay key={p.cast.id} cast={p.cast} poster={p.tourney.poster} lang={lang} reduced={reduced} onSkip={p.onSkipAnim} />}
+        {(p.tourney || fx) && <HouseChips bonus={tt?.lastBonus ?? null} reduced={reduced} />}
+        {p.cast && castPoster && <CastOverlay key={p.cast.id} cast={p.cast} poster={castPoster} lang={lang} reduced={reduced} onSkip={p.onSkipAnim} />}
 
         {p.children}
       </div>

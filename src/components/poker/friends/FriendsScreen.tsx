@@ -453,7 +453,7 @@ const FriendsScreen: React.FC<{ home: PokerHome }> = () => {
   };
   const blockText = (() => {
     if (!room || !me) return '';
-    if (!me.ready) return '';
+    if (!me.ready && !isHost) return '';
     const b = isHost ? room.blockers : [];
     if (isHost && b.includes('need_players')) return t('poker.friends.room.needPlayers');
     if (isHost && b.includes('stake_problem')) return t('poker.friends.room.stakeBlocked');
@@ -559,20 +559,12 @@ const FriendsScreen: React.FC<{ home: PokerHome }> = () => {
       )}
 
       <div className="pf-section pf-go">
-        {!me.ready ? (
+        {isHost ? (
+          // Quem criou conta sempre como pronto (F3): o botão é o de começar.
           <button
             type="button"
             className="pp-ticket is-gold pp-font"
-            disabled={!!busy || (!!room.stakeRarity && (!me.stake || !!me.stakeProblem))}
-            onClick={() => run('ready', async () => (await api!.setReady(room.id, true)).room)}
-          >
-            {busy === 'ready' ? <Loader2 className="w-5 h-5 animate-spin" /> : t('poker.friends.room.ready_cta')}
-          </button>
-        ) : isHost && room.canStart ? (
-          <button
-            type="button"
-            className="pp-ticket is-gold pp-font"
-            disabled={!!busy}
+            disabled={!!busy || !room.canStart}
             onClick={() =>
               run('start', async () => {
                 const r = await api!.start(room.id);
@@ -583,12 +575,21 @@ const FriendsScreen: React.FC<{ home: PokerHome }> = () => {
           >
             {busy === 'start' ? <Loader2 className="w-5 h-5 animate-spin" /> : t('poker.friends.room.start')}
           </button>
+        ) : !me.ready ? (
+          <button
+            type="button"
+            className="pp-ticket is-gold pp-font"
+            disabled={!!busy || (!!room.stakeRarity && (!me.stake || !!me.stakeProblem))}
+            onClick={() => run('ready', async () => (await api!.setReady(room.id, true)).room)}
+          >
+            {busy === 'ready' ? <Loader2 className="w-5 h-5 animate-spin" /> : t('poker.friends.room.ready_cta')}
+          </button>
         ) : (
           <button type="button" className="pp-ticket" disabled={!!busy} onClick={() => run('unready', async () => (await api!.setReady(room.id, false)).room)}>
             {t('poker.friends.room.unready')}
           </button>
         )}
-        {!me.ready && room.stakeRarity && !me.stake && <p className="pf-muted text-center">{t('poker.friends.stakeProblem.missing')}</p>}
+        {room.stakeRarity && !me.stake && <p className="pf-muted text-center">{t('poker.friends.stakeProblem.missing')}</p>}
         {blockText && (
           <p className="pf-wait" role="status">
             <Loader2 className="w-4 h-4 animate-spin" aria-hidden />

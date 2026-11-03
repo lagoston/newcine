@@ -536,7 +536,8 @@ export function makeMockFriends(bridge: MockBridge): { friends: FriendsApi; casu
       const now = Date.now();
       db.room = {
         id: uuid(), code: newCode(), status: 'lobby', hostId: ME, stakeRarity, version: 1, createdAt: new Date(now).toISOString(), startedAt: null, finishedAt: null,
-        members: [{ userId: ME, status: 'joined', isHost: true, ready: false, effects: [], stake: null, invitedAt: now, order: 0 }],
+        // Quem criou conta sempre como pronto (F3).
+        members: [{ userId: ME, status: 'joined', isHost: true, ready: true, effects: [], stake: null, invitedAt: now, order: 0 }],
         match: null, result: null,
       };
       return reply(db, db.room);
@@ -617,7 +618,8 @@ export function makeMockFriends(bridge: MockBridge): { friends: FriendsApi; casu
       const now = Date.now();
       r.members.forEach((m) => {
         m.stake = null;
-        if (m.userId !== ME && m.status === 'joined') {
+        if (m.isHost) m.ready = true;
+        else if (m.userId !== ME && m.status === 'joined') {
           m.ready = false;
           m.readyAt = now + 1400;
         } else m.ready = false;
@@ -632,6 +634,7 @@ export function makeMockFriends(bridge: MockBridge): { friends: FriendsApi; casu
       if (itemIds.length > 2 || itemIds.some((id) => !own.has(id))) throw new PokerClientError(400, 'effects_invalid', { reason: 'not_owned' });
       const me = meIn(r)!;
       me.effects = Array.from(new Set(itemIds));
+      if (!me.isHost) me.ready = false;
       touch(r);
       return reply(db, r);
     },
@@ -647,7 +650,7 @@ export function makeMockFriends(bridge: MockBridge): { friends: FriendsApi; casu
         if (c.rarity !== r.stakeRarity) throw new PokerClientError(400, 'stake_invalid', { reason: 'rarity' });
         me.stake = { itemId: c.itemId, effect: c.effect };
       }
-      me.ready = false;
+      if (!me.isHost) me.ready = false;
       touch(r);
       return reply(db, r);
     },
@@ -655,7 +658,7 @@ export function makeMockFriends(bridge: MockBridge): { friends: FriendsApi; casu
       await latency();
       const { db, r } = mine(roomId);
       const me = meIn(r)!;
-      me.ready = ready;
+      me.ready = me.isHost ? true : ready;
       // Na sala do amigo, ele começa logo depois que todos ficam prontos.
       if (r.hostId !== ME) r.hostStartAt = Date.now() + 2200;
       touch(r);
