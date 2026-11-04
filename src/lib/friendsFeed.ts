@@ -56,7 +56,9 @@ export interface FeedJackpotPrize {
   serial: number | null;
   file_path: string;
   effect: PosterEffect;
-  pull_kind: PullKind;
+  // 'contract' (04/11/2026): o lendário saiu de um contrato no Mercado Negro da
+  // Cobra (jackpot_pulls.kind = 'contract'), não de um giro.
+  pull_kind: PullKind | 'contract';
   title_pt: string | null;
   title_en: string | null;
   year: number | null;

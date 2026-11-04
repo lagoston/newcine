@@ -12,8 +12,10 @@ import ChipRack, { ChipFace, type ChipKind } from './Chips';
 import LuckyMeter from './LuckyMeter';
 import { getMovieDetails, type Movie } from '../../lib/tmdb';
 import JackpotReel, { reelKey, type JackpotReelHandle, type ReelCard } from './JackpotReel';
+import JackpotReveal, { Twinkle } from './JackpotReveal';
+import ContractPanel from './ContractPanel';
 import { MOOD_BY_KEY } from '../../lib/moods';
-import { ORACLE_BY_ID, PAPER, MIST, FOCUS_RING, VELVET, withAlpha, type OracleId } from '../../lib/oracleTheme';
+import { ORACLE_BY_ID, PAPER, MIST, FOCUS_RING, VELVET, type OracleId } from '../../lib/oracleTheme';
 import {
   EFFECTS,
   RARITY_META,
@@ -22,6 +24,7 @@ import {
   claimMission,
   equipPoster,
   fetchJackpotCatalog,
+  getContractBoard,
   loadJackpotFont,
   loadMyPosters,
   nextFriday13,
@@ -32,6 +35,7 @@ import {
   titleOf,
   unequipPoster,
   type CatalogPoster,
+  type ContractBoard,
   type JackpotMission,
   type DailyReward,
   type JackpotState,
@@ -61,11 +65,12 @@ const MovieDetailsModal = lazy(() => import('../MovieDetailsModal'));
 
 // 03/11/2026 (tarde), pedido do Bruno: o pôquer virou um jogo à parte (Pôster
 // Poker, botão próprio na home) e a aba Pôquer saiu da gaveta. Voltam as 4 abas.
-export type JackpotTab = 'machine' | 'collection' | 'trades' | 'missions';
+// 04/11/2026: a 5ª aba, Contrato (o Mercado Negro da Cobra), logo depois da
+// Coleção — é de lá que saem os pôsteres que entram no contrato.
+export type JackpotTab = 'machine' | 'collection' | 'contract' | 'trades' | 'missions';
 type Tab = JackpotTab;
 
 const RARITY_ASC: PosterRarity[] = ['common', 'rare', 'epic', 'legendary'];
-const SPARK_COLORS = ['#FFE8A3', '#F4C454', '#FF7AD9', '#8FE9FF', '#FFFFFF'];
 const ARCH_BULBS = 17;
 const BASE_BULBS = 13;
 
@@ -154,157 +159,6 @@ const Marquee: React.FC<{ fast: boolean }> = ({ fast }) => (
     </div>
   </div>
 );
-
-const Twinkle: React.FC<{ className?: string; color?: string }> = ({ className = '', color = '#FFE8A3' }) => (
-  <svg viewBox="0 0 24 24" className={className} aria-hidden>
-    <path d="M12 0 C13 8 16 11 24 12 C16 13 13 16 12 24 C11 16 8 13 0 12 C8 11 11 8 12 0Z" fill={color} />
-  </svg>
-);
-
-// ---------------------------------------------------------------------------
-// A revelação
-// ---------------------------------------------------------------------------
-
-const Reveal: React.FC<{
-  result: PullResult;
-  reduceMotion: boolean;
-  equipping: boolean;
-  equipped: boolean;
-  onEquip: () => void;
-  onClose: () => void;
-}> = ({ result, reduceMotion, equipping, equipped, onEquip, onClose }) => {
-  const { t, i18n } = useTranslation();
-  const isPt = i18n.language.startsWith('pt');
-  const meta = RARITY_META[result.item.rarity];
-  const title = titleOf(result.item, isPt);
-  const big = result.item.rarity === 'legendary' || result.item.rarity === 'epic';
-
-  const sparks = useMemo(() => {
-    const count = { common: 14, rare: 20, epic: 28, legendary: 40 }[result.item.rarity];
-    return Array.from({ length: count }, (_, i) => {
-      const angle = Math.random() * Math.PI * 2;
-      const distance = 90 + Math.random() * (big ? 170 : 110);
-      const second = result.item.rarity === 'legendary' && i % 2 === 1;
-      return {
-        dx: `${Math.cos(angle) * distance}px`,
-        dy: `${Math.sin(angle) * distance}px`,
-        s: `${6 + Math.random() * (big ? 12 : 8)}px`,
-        c: i % 4 === 0 ? meta.color : pick(SPARK_COLORS),
-        d: `${1.1 + Math.random() * 0.8}s`,
-        delay: `${(second ? 0.7 : 0.15) + Math.random() * 0.3}s`,
-      };
-    });
-  }, [result, big, meta.color]);
-
-  return (
-    <motion.div
-      key="reveal"
-      role="dialog"
-      aria-modal="false"
-      aria-label={t('jackpot.machine.revealAria', { rarity: t(`jackpot.rarity.${result.item.rarity}`), title })}
-      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-      className="absolute inset-0 z-20 overflow-hidden rounded-[30px]"
-      style={{ background: `radial-gradient(70% 55% at 50% 40%, ${withAlpha(meta.color, 0.28)}, transparent 70%), linear-gradient(180deg, #0f1645, #0a0e2c 60%, #150a33)` }}
-    >
-      <span className="pj-stars" aria-hidden />
-      <span className="pj-rays" aria-hidden style={{ ['--pj-ray' as string]: withAlpha(meta.color, big ? 0.55 : 0.35) }} />
-      {!reduceMotion && <span className="pj-flash" aria-hidden />}
-      {!reduceMotion &&
-        sparks.map((spark, i) => (
-          <span
-            key={i}
-            aria-hidden
-            className="pj-spark"
-            style={{ ['--dx' as string]: spark.dx, ['--dy' as string]: spark.dy, ['--s' as string]: spark.s, ['--c' as string]: spark.c, ['--d' as string]: spark.d, ['--delay' as string]: spark.delay }}
-          />
-        ))}
-
-      <div className="relative h-full overflow-y-auto px-5 py-6 sm:py-7 flex flex-col items-center justify-center text-center">
-        {result.kind === 'lucky' && (
-          <motion.span
-            initial={reduceMotion ? false : { opacity: 0, y: -8, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="pj-lucky-ribbon mb-3 shrink-0"
-          >
-            <Twinkle className="w-3 h-3" color="#7A4A00" />
-            {t('jackpot.lucky.title')}
-            <Twinkle className="w-3 h-3" color="#7A4A00" />
-          </motion.span>
-        )}
-        <motion.div
-          initial={reduceMotion ? false : { rotateY: 100, scale: 0.6, y: 20 }}
-          animate={{ rotateY: 0, scale: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 170, damping: 15, delay: 0.08 }}
-          style={{ transformPerspective: 900 }}
-          className="w-[min(40vw,184px)] shrink-0"
-        >
-          <PosterArt
-            filePath={result.item.file_path}
-            effect={result.effect}
-            alt={title}
-            size="w500"
-            loading="eager"
-            className="aspect-[2/3] rounded-2xl shadow-[0_24px_50px_-18px_rgba(0,0,0,0.95)]"
-            mark={{ rarity: result.item.rarity, serial: result.item.serial, size: 'md' }}
-          />
-        </motion.div>
-
-        <motion.p
-          initial={reduceMotion ? false : { opacity: 0, y: 10, letterSpacing: '0.3em' }}
-          animate={{ opacity: 1, y: 0, letterSpacing: '0.04em' }}
-          transition={{ duration: 0.6, delay: 0.35, ease: 'easeOut' }}
-          className="pj-display mt-4 text-[26px] sm:text-[32px] font-black leading-none"
-          style={{ color: meta.color, textShadow: `0 0 18px ${meta.glow}, 0 2px 0 rgba(0,0,0,0.6)` }}
-        >
-          {t(`jackpot.rarity.${result.item.rarity}`)}
-        </motion.p>
-        <motion.div initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}>
-          <SerialLine rarity={result.item.rarity} serial={result.item.serial} className="mt-2 text-[12.5px]" />
-          <p className="mt-1.5 text-[15px] font-semibold leading-snug" style={{ color: PAPER }}>
-            {title}
-            {result.item.year ? <span className="font-normal" style={{ color: MIST }}> ({result.item.year})</span> : null}
-          </p>
-          {result.effect !== 'none' && <EffectTag effect={result.effect} className="mt-2" />}
-          {result.luckyEarned && (
-            <p
-              className="mt-3 mx-auto inline-flex items-center gap-2 rounded-full pl-2 pr-3 py-1.5 text-[12.5px] font-semibold leading-snug"
-              style={{ background: 'rgba(244,196,84,0.14)', color: '#FFE8A3', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.55)' }}
-            >
-              <RarityGem rarity="legendary" glint className="w-4 h-4" />
-              {t('jackpot.lucky.earned')}
-            </p>
-          )}
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <button
-              type="button"
-              onClick={onEquip}
-              disabled={equipping || equipped}
-              className={`pj-spin inline-flex items-center gap-1.5 h-11 px-5 rounded-full text-sm font-bold transition disabled:opacity-80 ${FOCUS_RING}`}
-            >
-              {equipping ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : equipped ? <Check className="w-4 h-4" aria-hidden /> : <Sparkles className="w-4 h-4" aria-hidden />}
-              {equipped ? t('jackpot.collection.equipped') : t('jackpot.collection.equip')}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className={`inline-flex items-center gap-1.5 h-11 px-5 rounded-full text-sm font-semibold transition hover:bg-white/10 ${FOCUS_RING}`}
-              style={{ color: '#FFE8A3', boxShadow: 'inset 0 0 0 1.5px rgba(244,196,84,0.7)' }}
-            >
-              {t('jackpot.machine.back')}
-            </button>
-          </div>
-          <p className="mt-3 text-xs" style={{ color: MIST }}>
-            {equipped ? t('jackpot.collection.equipHint') : t('jackpot.machine.savedHint')}
-          </p>
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-};
 
 // ---------------------------------------------------------------------------
 // A roleta
@@ -605,12 +459,39 @@ const Machine: React.FC<{
 
       <AnimatePresence>
         {phase === 'revealed' && result && (
-          <Reveal
-            result={result}
+          <JackpotReveal
+            item={result.item}
+            effect={result.effect}
             reduceMotion={reduceMotion}
             equipping={equipping}
             equipped={equipped}
             onEquip={equip}
+            backLabel={t('jackpot.machine.back')}
+            ribbon={
+              result.kind === 'lucky' ? (
+                <motion.span
+                  initial={reduceMotion ? false : { opacity: 0, y: -8, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                  className="pj-lucky-ribbon mb-3 shrink-0"
+                >
+                  <Twinkle className="w-3 h-3" color="#7A4A00" />
+                  {t('jackpot.lucky.title')}
+                  <Twinkle className="w-3 h-3" color="#7A4A00" />
+                </motion.span>
+              ) : null
+            }
+            note={
+              result.luckyEarned ? (
+                <p
+                  className="mt-3 mx-auto inline-flex items-center gap-2 rounded-full pl-2 pr-3 py-1.5 text-[12.5px] font-semibold leading-snug"
+                  style={{ background: 'rgba(244,196,84,0.14)', color: '#FFE8A3', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.55)' }}
+                >
+                  <RarityGem rarity="legendary" glint className="w-4 h-4" />
+                  {t('jackpot.lucky.earned')}
+                </p>
+              ) : null
+            }
             onClose={() => {
               setPhase('idle');
               setLuckyRun(false);
@@ -920,7 +801,14 @@ const friday13Line = (t: TFunction, lang: string) => {
   return t('jackpot.missions.friday13Next', { date });
 };
 
-const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<JackpotState>) => void; dailyReward?: DailyReward | null }> = ({ state, onState, dailyReward = null }) => {
+const Missions: React.FC<{
+  state: JackpotState;
+  onState: (patch: Partial<JackpotState>) => void;
+  dailyReward?: DailyReward | null;
+  // A mesa da Cobra (04/11/2026): só para a linha de regra do contrato, que
+  // aparece com o contrato aberto e usa os números do servidor.
+  contract?: ContractBoard | null;
+}> = ({ state, onState, dailyReward = null, contract = null }) => {
   const { t, i18n } = useTranslation();
   const [claiming, setClaiming] = useState<string | null>(null);
 
@@ -1065,6 +953,12 @@ const Missions: React.FC<{ state: JackpotState; onState: (patch: Partial<Jackpot
             ultra: EFFECT_META.ultra_red.odds,
           })}
         </p>
+        {contract?.open && (
+          <p className="flex items-start gap-2">
+            <RarityGem rarity="epic" className="w-4 h-4 shrink-0 mt-0.5" />
+            {t('jackpot.contract.rule', { count: contract.size, step: contract.effectStep, cap: contract.effectCap })}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -1089,6 +983,10 @@ const PosterJackpotSheet: React.FC<{
   const [tab, setTab] = useState<Tab>(initialTab);
   const [owned, setOwned] = useState<OwnedPoster[] | null>(null);
   const [trades, setTrades] = useState<PosterTrade[] | null>(null);
+  // A mesa da Cobra (04/11/2026): carregada com a gaveta, como a coleção e as
+  // trocas, porque a aba Missões também lê (a linha de regra do contrato só
+  // aparece com o contrato aberto). null = carregando; 'failed' = deu erro.
+  const [board, setBoard] = useState<ContractBoard | 'failed' | null>(null);
   // Uma camada por cima (detalhe de um pôster): o Esc fecha só ela.
   const [layerOpen, setLayerOpen] = useState(false);
 
@@ -1105,6 +1003,16 @@ const PosterJackpotSheet: React.FC<{
         setTrades([]);
       });
   }, []);
+  // Recarregar não apaga a mesa que já está na tela (sem piscar o
+  // carregando); só um erro sem mesa nenhuma vira 'failed'.
+  const loadBoard = useCallback(() => {
+    getContractBoard()
+      .then(setBoard)
+      .catch((error) => {
+        console.error('Poster Jackpot contract board:', error);
+        setBoard((prev) => (prev && prev !== 'failed' ? prev : 'failed'));
+      });
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -1113,8 +1021,9 @@ const PosterJackpotSheet: React.FC<{
       onReload();
       loadOwned();
       loadTrades();
+      loadBoard();
     }
-  }, [open, initialTab, onReload, loadOwned, loadTrades]);
+  }, [open, initialTab, onReload, loadOwned, loadTrades, loadBoard]);
 
   const claimable = useMemo(() => (state?.missions || []).filter((m) => !m.claimed && m.progress >= m.target).length, [state?.missions]);
   const incomingTrades = useMemo(() => (trades || []).filter((tr) => tr.status === 'pending' && tr.incoming).length, [trades]);
@@ -1122,6 +1031,7 @@ const PosterJackpotSheet: React.FC<{
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: 'machine', label: t('jackpot.tabs.machine') },
     { key: 'collection', label: t('jackpot.tabs.collection') },
+    { key: 'contract', label: t('jackpot.tabs.contract') },
     { key: 'trades', label: t('jackpot.tabs.trades'), badge: incomingTrades || undefined },
     { key: 'missions', label: t('jackpot.tabs.missions'), badge: claimable || undefined },
   ];
@@ -1142,7 +1052,14 @@ const PosterJackpotSheet: React.FC<{
         </div>
       ) : (
         <>
-          <div className="mb-5 grid grid-cols-4 gap-1 rounded-xl p-1" style={{ background: VELVET }} role="tablist">
+          {/* 5 abas desde 04/11/2026 (entrou Contrato). Para caberem em 360 px
+              sem quebrar nem cortar: cada aba fica com a largura do rótulo
+              (flex-auto, em vez de 5 colunas iguais, que cortavam "Coleção" e
+              "Contrato"), a letra desce meio ponto no celular e o contador
+              (trocas recebidas, missões para resgatar) vira um selo pendurado
+              no canto de cima da aba, acima do rótulo, sem ocupar a linha
+              dele. 44 px de altura (e de largura mínima): o alvo de toque. */}
+          <div className="mb-5 flex gap-1 rounded-xl p-1" style={{ background: VELVET }} role="tablist">
             {tabs.map((item) => {
               const active = tab === item.key;
               return (
@@ -1152,13 +1069,13 @@ const PosterJackpotSheet: React.FC<{
                   role="tab"
                   aria-selected={active}
                   onClick={() => setTab(item.key)}
-                  className={`relative h-10 rounded-lg text-[13px] sm:text-sm font-semibold transition ${FOCUS_RING}`}
+                  className={`relative flex-auto min-w-[44px] h-11 px-1 sm:px-2 rounded-lg text-[12.5px] sm:text-sm font-semibold whitespace-nowrap transition ${FOCUS_RING}`}
                   style={active ? { background: PAPER, color: '#221B36' } : { color: MIST }}
                 >
                   {item.label}
                   {item.badge ? (
                     <span
-                      className="ml-1 inline-grid place-items-center min-w-[1.1rem] h-[18px] px-1 rounded-full text-[10.5px] tabular-nums"
+                      className="absolute -top-1.5 -right-1 sm:static sm:ml-1 inline-grid place-items-center min-w-[1rem] sm:min-w-[1.1rem] h-4 sm:h-[18px] px-1 rounded-full text-[10px] sm:text-[10.5px] leading-none tabular-nums"
                       style={{ background: '#FDE68A', color: '#221B36' }}
                     >
                       {item.badge}
@@ -1171,6 +1088,25 @@ const PosterJackpotSheet: React.FC<{
           <SheetFade id={tab}>
             {tab === 'machine' && <Machine state={state} owned={owned} onState={onState} onCollectionChanged={loadOwned} onInvite={() => setTab('missions')} />}
             {tab === 'collection' && <Collection list={owned} onChanged={loadOwned} onLayer={setLayerOpen} />}
+            {tab === 'contract' && (
+              <ContractPanel
+                board={board === 'failed' ? null : board}
+                failed={board === 'failed'}
+                onReloadBoard={loadBoard}
+                // Depois de um contrato (ou de equipar o pôster novo), tudo o
+                // que depende da coleção acompanha, como depois de uma troca:
+                // a coleção, as trocas (as propostas com os 6 caem), o estado
+                // da gaveta (pôsteres na coleção, quantos ainda podem sair) e
+                // a própria mesa.
+                onCollectionChanged={() => {
+                  loadOwned();
+                  loadTrades();
+                  loadBoard();
+                  onReload();
+                }}
+                onLayer={setLayerOpen}
+              />
+            )}
             {tab === 'trades' && (
               <PosterTradesPanel
                 trades={trades}
@@ -1181,7 +1117,7 @@ const PosterJackpotSheet: React.FC<{
                 }}
               />
             )}
-            {tab === 'missions' && <Missions state={state} onState={onState} dailyReward={dailyReward} />}
+            {tab === 'missions' && <Missions state={state} onState={onState} dailyReward={dailyReward} contract={board && board !== 'failed' ? board : null} />}
           </SheetFade>
         </>
       )}

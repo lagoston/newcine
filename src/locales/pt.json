@@ -2244,6 +2244,7 @@
     "tabs": {
       "machine": "Roleta",
       "collection": "Coleção",
+      "contract": "Contrato",
       "missions": "Missões",
       "trades": "Trocas"
     },
@@ -2384,6 +2385,126 @@
       "escaped": "Ah, ela escapou! Quem sabe da próxima vez.",
       "slipped": "Escorregou! Tente de novo, rápido!",
       "demo": "(demonstração)"
+    },
+    "contract": {
+      "title": "Mercado Negro",
+      "cobraName": "Cypher, a Cobra",
+      "paperTitle": "Contrato da Cobra",
+      "terms": "{{give}} por {{get}}",
+      "give": {
+        "common_one": "{{count}} comum",
+        "common_other": "{{count}} comuns",
+        "rare_one": "{{count}} raro",
+        "rare_other": "{{count}} raros",
+        "epic_one": "{{count}} épico",
+        "epic_other": "{{count}} épicos"
+      },
+      "get": {
+        "rare": "1 raro",
+        "epic": "1 épico",
+        "legendary": "1 lendário"
+      },
+      "plural": {
+        "common": "comuns",
+        "rare": "raros",
+        "epic": "épicos",
+        "legendary": "lendários"
+      },
+      "tiersAria": "Qual contrato fechar",
+      "tierHave": "Você tem {{give}} para entregar.",
+      "tierComplete": "Completo",
+      "complete": "Você já tem todos os {{plural}}.",
+      "completeHint": "Nenhum pôster novo pode sair deste contrato. Escolha outro degrau.",
+      "out": {
+        "rare": "Um raro que você ainda não tem",
+        "epic": "Um épico que você ainda não tem",
+        "legendary": "Um lendário que você ainda não tem"
+      },
+      "slotEmpty": "Lugar vazio no contrato",
+      "slotRemove": "Tirar {{title}} do contrato",
+      "chance": "Chance de efeito",
+      "chanceAria": "Chance de efeito: {{value}}%",
+      "chanceRule": "Cada pôster com efeito soma {{step}}%, até {{cap}}%.",
+      "chanceFloor": "Sem nenhum, a chance é {{floor}}%, a mesma de um giro.",
+      "split": "Se sair efeito:",
+      "splitSpin": "Se sair efeito: holográfico {{holo}}%, negativo {{negative}}% ou ultra vermelho {{ultra}}%, como num giro.",
+      "finePrint": "Os {{count}} saem da sua coleção para sempre. Eles podem voltar a sair na roleta.",
+      "pickTitle": {
+        "common": "Seus comuns",
+        "rare": "Seus raros",
+        "epic": "Seus épicos"
+      },
+      "pickHint": "Toque num pôster para pôr no contrato ou tirar dele.",
+      "pickEmpty": "Nenhum pôster desta raridade pode entrar agora. Gire a roleta para conseguir mais.",
+      "auto": "Escolher por mim",
+      "clear": "Limpar",
+      "equipped": "Equipado",
+      "inTrade": "Em troca",
+      "lock": {
+        "prize": "Prêmio",
+        "staked": "Apostado no pôquer"
+      },
+      "fullToast_one": "O contrato já tem {{count}} pôster. Tire um para pôr outro.",
+      "fullToast_other": "O contrato já tem {{count}} pôsteres. Tire um para pôr outro.",
+      "autoNone": "Não sobrou pôster livre para escolher por você. Os equipados e os em troca entram só se você tocar neles.",
+      "short": "Este contrato pede {{need}} e você tem {{have}}.",
+      "progressAria": "{{count}} de {{size}} pôsteres no contrato",
+      "sign": "Assinar contrato",
+      "sealing": "Fechando o contrato…",
+      "confirm": {
+        "title": "Assinar o contrato?",
+        "body": "Você entrega {{give}} e recebe {{get}} que ainda não tem.",
+        "leave": "Os {{count}} saem da sua coleção para sempre. Eles podem voltar a sair na roleta.",
+        "equipped_one": "1 deles está equipado: a capa original volta na sua biblioteca.",
+        "equipped_other": "{{count}} deles estão equipados: as capas originais voltam na sua biblioteca.",
+        "trade_one": "1 deles está numa proposta de troca, que será cancelada.",
+        "trade_other": "{{count}} deles estão em propostas de troca, que serão canceladas.",
+        "chance": "Chance de efeito: {{value}}%",
+        "sign": "Assinar contrato",
+        "back": "Voltar"
+      },
+      "ribbon": "Contrato da Cobra",
+      "storyRibbon": "Do Mercado Negro",
+      "reveal": {
+        "back": "Voltar ao balcão",
+        "rolled": "Saiu com efeito. A chance era de {{value}}%.",
+        "notRolled": "Sem efeito desta vez. A chance era de {{value}}%."
+      },
+      "closed": {
+        "title": "O balcão está fechado",
+        "body": "Em breve, a Cobra troca {{count}} pôsteres da mesma raridade por 1 da raridade de cima."
+      },
+      "loadError": "Não deu para abrir o Mercado Negro agora.",
+      "retry": "Tentar de novo",
+      "rule": "No Mercado Negro (aba Contrato), {{count}} pôsteres da mesma raridade viram 1 da raridade de cima que você ainda não tem. Cada um com efeito soma {{step}}% na chance de efeito, até {{cap}}%.",
+      "errors": {
+        "not_authenticated": "Sua sessão expirou. Entre de novo para assinar o contrato.",
+        "closed": "O Mercado Negro fechou por enquanto. Nenhum pôster saiu da sua coleção.",
+        "bad_rarity": "Este contrato não existe mais. A mesa foi recarregada: escolha o degrau de novo.",
+        "bad_size": "O contrato precisa de exatamente {{count}} pôsteres. A mesa foi recarregada: confira e assine de novo.",
+        "bad_item": "Um dos pôsteres chegou com dados errados. A mesa foi recarregada: escolha de novo.",
+        "duplicate": "Há um pôster repetido no contrato. Escolha {{count}} versões diferentes.",
+        "not_owned": "Um dos pôsteres não está mais na sua coleção. A mesa foi atualizada: troque-o e assine de novo.",
+        "wrong_rarity": "Os {{count}} pôsteres precisam ser da mesma raridade. A mesa foi atualizada: escolha de novo.",
+        "exclusive": "Pôsteres do Pôster Poker não entram no contrato. A mesa foi atualizada: escolha outro.",
+        "prize": "Um prêmio da mesa do pôquer não pode entrar no contrato. Tire-o e escolha outro.",
+        "staked": "Um dos pôsteres está apostado numa partida do pôquer. Escolha outro ou espere a partida acabar.",
+        "target_complete": "Você já tem todos os {{plural}}. Nenhum pôster saiu da sua coleção.",
+        "error": "O contrato não foi fechado e nenhum pôster saiu da sua coleção. Tente de novo."
+      },
+      "cobra": {
+        "idle": "Me traga {{count}} do mesmo quilate e eu costuro algo melhor. Sem perguntas, sem recibo.",
+        "partial_one": "Falta 1. Eu não faço desconto.",
+        "partial_other": "Faltam {{count}}. Eu não faço desconto.",
+        "full": "Contrato cheio. Assine antes que eu mude de ideia.",
+        "fullFx": "Brilho na mesa. Agora o negócio tem cheiro de raridade.",
+        "maxFx": "Tudo com efeito? Nem eu cobro tão caro. Gostei.",
+        "short": "Com esse estoque eu nem abro a gaveta. Volte com mais.",
+        "complete": "Você já tem todos. Nem no subsolo eu acho outro.",
+        "sealing": "Shhh… não olhe enquanto eu costuro.",
+        "signed": "Negócio fechado. Não conte para o Sapo.",
+        "closed": "Balcão fechado, criatura. Até a Cobra tira intervalo."
+      }
     }
   },
   "invite": {

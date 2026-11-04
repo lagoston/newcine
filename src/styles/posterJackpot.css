@@ -1340,3 +1340,633 @@
     opacity: 1;
   }
 }
+
+/* ======================================================================
+   O Mercado Negro da Cobra (04/11/2026): a aba Contrato da gaveta
+   (components/posterJackpot/ContractPanel). A sala dos fundos do cassino:
+   o mesmo céu azul da roleta, mais escuro, com fumaça verde-veneno e
+   moldura de latão (ouro velho, não o ouro novo do palco). A personalidade
+   fica na Cobra e no contrato (papel de contrabando com o selo de cera
+   verde dela); degraus, grade e barra de assinar seguem o porta-fichas,
+   a barra da sorte e as trocas. Verde = a Cobra; ouro = o que a pessoa
+   escolhe.
+   ====================================================================== */
+
+.pj-contract-den {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 14px 12px;
+  border-radius: 24px;
+  border: 2px solid transparent;
+  background:
+    radial-gradient(70% 45% at 18% 0%, rgba(46, 196, 128, 0.2), transparent 72%) padding-box,
+    radial-gradient(80% 55% at 100% 100%, rgba(80, 96, 220, 0.22), transparent 75%) padding-box,
+    linear-gradient(180deg, #08161a 0%, #070b22 52%, #0b0a24 100%) padding-box,
+    linear-gradient(160deg, #e9d08a, #a8741a 34%, #5c4210 60%, #c9a24a 100%) border-box;
+  box-shadow: 0 24px 50px -28px rgba(0, 0, 0, 0.95), 0 0 40px -22px rgba(61, 220, 151, 0.45);
+}
+.pj-contract-den .pj-stars {
+  opacity: 0.45;
+}
+
+/* A fumaça: três nuvens verdes que andam devagar (parada com movimento reduzido). */
+.pj-contract-smoke {
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background:
+    radial-gradient(34% 22% at 20% 22%, rgba(61, 220, 151, 0.17), transparent 70%),
+    radial-gradient(30% 20% at 74% 28%, rgba(46, 160, 110, 0.13), transparent 70%),
+    radial-gradient(46% 26% at 58% 82%, rgba(26, 110, 74, 0.2), transparent 70%);
+  filter: blur(10px);
+  animation: pj-contract-smoke 24s ease-in-out infinite alternate;
+}
+@keyframes pj-contract-smoke {
+  0% { transform: translate3d(-4%, 1%, 0) scale(1); }
+  100% { transform: translate3d(4%, -2%, 0) scale(1.08); }
+}
+
+/* --- A Cobra no balcão ------------------------------------------------- */
+
+.pj-contract-counter {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.pj-contract-card {
+  position: relative;
+  flex: none;
+  width: 68px;
+  aspect-ratio: 1696 / 2528;
+  margin: 2px 0 0 2px;
+  border-radius: 6px;
+  overflow: hidden;
+  transform: rotate(-4deg);
+  background: #0b0f36;
+  box-shadow: 0 0 0 1.5px rgba(233, 208, 138, 0.85), 0 14px 24px -10px rgba(0, 0, 0, 0.95), 0 0 28px -6px rgba(61, 220, 151, 0.5);
+}
+.pj-contract-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pj-contract-card.is-dim img {
+  filter: grayscale(0.7) brightness(0.62);
+}
+.pj-contract-title {
+  /* Uma linha só em 360 px ("Mercado Negro" / "Black Market"). */
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.pj-contract-bubble {
+  position: relative;
+  margin-top: 8px;
+  padding: 8px 12px 9px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.42;
+  color: #e6f6ed;
+  background: linear-gradient(180deg, rgba(16, 48, 36, 0.95), rgba(8, 26, 22, 0.95));
+  box-shadow: inset 0 0 0 1px rgba(61, 220, 151, 0.5), 0 10px 22px -14px rgba(0, 0, 0, 0.9);
+}
+/* O rabicho aponta para a carta. */
+.pj-contract-bubble::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 14px;
+  width: 11px;
+  height: 11px;
+  background: rgba(15, 46, 35, 0.98);
+  border-left: 1px solid rgba(61, 220, 151, 0.5);
+  border-bottom: 1px solid rgba(61, 220, 151, 0.5);
+  border-bottom-left-radius: 2px;
+  transform: rotate(45deg);
+}
+
+/* --- Os três degraus (o porta-fichas: aceso em ouro) -------------------- */
+
+.pj-contract-tiers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+.pj-contract-tier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 7px 4px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(12, 32, 28, 0.75), rgba(6, 9, 30, 0.85));
+  box-shadow: inset 0 0 0 1px rgba(233, 208, 138, 0.3);
+  transition: box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+}
+.pj-contract-tier:not(:disabled):hover {
+  box-shadow: inset 0 0 0 1px rgba(244, 196, 84, 0.65);
+}
+.pj-contract-tier.is-on,
+.pj-contract-tier.is-on:hover {
+  background:
+    radial-gradient(90% 70% at 50% 0%, rgba(255, 232, 163, 0.18), transparent 70%),
+    linear-gradient(180deg, rgba(26, 33, 100, 0.9), rgba(11, 15, 54, 0.95));
+  box-shadow: inset 0 0 0 1.5px rgba(244, 196, 84, 0.95), 0 0 18px -5px rgba(244, 196, 84, 0.75);
+}
+.pj-contract-tier:disabled {
+  cursor: default;
+}
+.pj-contract-tier-gems {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #cfc6ec;
+}
+.pj-contract-tier-gems .pj-gem {
+  width: 17px;
+  height: 17px;
+}
+.pj-contract-tier-name {
+  font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.1;
+  color: #fff4d6;
+  white-space: nowrap;
+}
+.pj-contract-tier-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  line-height: 1.15;
+  color: #cfc6ec;
+  white-space: nowrap;
+}
+.pj-contract-tier.is-complete .pj-contract-tier-sub {
+  color: #86efac;
+}
+.pj-contract-tier.is-complete:not(.is-on) .pj-contract-tier-gems,
+.pj-contract-tier.is-complete:not(.is-on) .pj-contract-tier-name {
+  opacity: 0.6;
+}
+
+/* --- O contrato: papel de contrabando ---------------------------------- */
+
+.pj-contract-paper {
+  --ink: #2b2113;
+  --ink-2: #5a4a2c;
+  position: relative;
+  margin-top: 14px;
+  padding: 14px 12px 12px;
+  border-radius: 6px;
+  color: var(--ink);
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255, 250, 235, 0.55), transparent 62%),
+    radial-gradient(80% 60% at 100% 100%, rgba(150, 105, 40, 0.24), transparent 70%),
+    radial-gradient(60% 50% at 0% 100%, rgba(120, 85, 30, 0.16), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(90, 60, 20, 0.035) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #efe3c3, #e2cfa2);
+  box-shadow: inset 0 0 0 1px rgba(120, 84, 30, 0.4), inset 0 0 34px rgba(120, 80, 20, 0.22), 0 20px 34px -20px rgba(0, 0, 0, 0.95);
+}
+/* O filete de tinta por dentro da borda, como num contrato antigo. */
+.pj-contract-paper::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(60, 40, 15, 0.28);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.pj-contract-paper-head {
+  position: relative;
+  text-align: center;
+}
+.pj-contract-paper-title {
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.pj-contract-terms {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.pj-contract-terms .pj-gem {
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35));
+}
+
+.pj-contract-deal {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+.pj-contract-slots {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+.pj-contract-slot {
+  position: relative;
+  aspect-ratio: 2 / 3;
+}
+.pj-contract-slot-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1.5px rgba(244, 196, 84, 0.95), 0 6px 12px -6px rgba(0, 0, 0, 0.8);
+  z-index: 1;
+}
+.pj-contract-slot-fill:disabled {
+  cursor: default;
+}
+.pj-contract-slot-fill .pj-mark--xs {
+  font-size: 6.5px;
+  --pj-mark-r: 0.45em;
+  --pj-mark-b: 0.45em;
+}
+.pj-contract-slot-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1.5px dashed rgba(70, 48, 18, 0.45);
+  background: rgba(90, 60, 20, 0.06);
+}
+.pj-contract-slot-empty .pj-gem {
+  width: 16px;
+  height: 16px;
+  opacity: 0.4;
+  filter: grayscale(0.4);
+}
+.pj-contract-arrow {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-2);
+}
+.pj-contract-out {
+  flex: none;
+  width: 70px;
+  text-align: center;
+}
+.pj-contract-mystery {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  background:
+    radial-gradient(90% 60% at 50% 42%, var(--pj-out-glow), transparent 72%),
+    linear-gradient(180deg, #141a4f, #0a0e2c);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(233, 208, 138, 0.8),
+    inset 0 0 0 4px rgba(10, 14, 44, 0.9),
+    inset 0 0 0 5px rgba(233, 208, 138, 0.35),
+    0 10px 18px -10px rgba(0, 0, 0, 0.9);
+}
+.pj-contract-mystery-q {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--pj-out);
+  text-shadow: 0 0 16px var(--pj-out-glow), 0 2px 0 rgba(0, 0, 0, 0.6);
+  transform: translateY(-6%);
+}
+.pj-contract-mystery-gem {
+  position: absolute;
+  left: 50%;
+  bottom: 9%;
+  width: 20px;
+  height: 20px;
+  transform: translateX(-50%);
+}
+.pj-contract-out-caption {
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink-2);
+}
+
+/* A chance de efeito + o lugar do selo. */
+.pj-contract-foot {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(60, 40, 15, 0.22);
+}
+.pj-contract-meter {
+  flex: 1;
+  min-width: 0;
+}
+.pj-contract-meter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pj-contract-meter-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.pj-contract-meter-value {
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  color: #145c3a;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.pj-contract-cells {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+.pj-contract-cell {
+  height: 10px;
+  border-radius: 3px;
+  background: rgba(90, 60, 20, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(70, 48, 18, 0.4);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+.pj-contract-cell.is-on {
+  box-shadow: inset 0 0 0 1px rgba(30, 20, 5, 0.55), 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.pj-contract-cell.is-holo,
+.pj-contract-dot.is-holo {
+  background: linear-gradient(90deg, #ff4fae, #ffd84a, #3cf0a8, #3cb4ff, #b25cff);
+}
+.pj-contract-cell.is-negative,
+.pj-contract-dot.is-negative {
+  background: linear-gradient(180deg, #ffffff, #d9d4c8);
+}
+.pj-contract-cell.is-ultra_red,
+.pj-contract-dot.is-ultra_red {
+  background: linear-gradient(180deg, #ff5a52, #c3121e);
+}
+.pj-contract-meter-hint {
+  margin-top: 5px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+.pj-contract-split {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.pj-contract-split b {
+  font-weight: 700;
+}
+.pj-contract-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px rgba(30, 20, 5, 0.5);
+}
+
+.pj-contract-seal-spot {
+  position: relative;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  margin-top: -2px;
+}
+.pj-contract-seal-ghost {
+  position: absolute;
+  inset: 4px;
+  border-radius: 9999px;
+  border: 1.5px dashed rgba(20, 92, 58, 0.45);
+  background: radial-gradient(closest-side, rgba(20, 92, 58, 0.08), transparent);
+}
+.pj-contract-seal {
+  position: absolute;
+  inset: -4px;
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 10px rgba(61, 220, 151, 0.35));
+}
+.pj-contract-fine {
+  position: relative;
+  margin-top: 8px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  font-style: italic;
+  text-align: center;
+  color: var(--ink-2);
+}
+
+/* O degrau completo: o papel com o cristal e o recado. */
+.pj-contract-paper.is-complete {
+  padding: 22px 16px 18px;
+  text-align: center;
+}
+.pj-contract-complete-gem {
+  display: inline-grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 50% 35%, #263080, #0b0f36 72%);
+  box-shadow: inset 0 0 0 1.5px rgba(233, 208, 138, 0.8), 0 8px 16px -8px rgba(0, 0, 0, 0.8);
+}
+
+/* --- A grade e a barra de assinar --------------------------------------- */
+
+.pj-contract-pick.is-on {
+  box-shadow: 0 0 0 2.5px #f4c454, 0 0 18px -2px rgba(244, 196, 84, 0.8);
+}
+/* No contrato: o pôster escurece e o check de ouro fica no meio. */
+.pj-contract-pick-on {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: rgba(8, 10, 32, 0.42);
+  color: #2a1a00;
+}
+.pj-contract-pick-on > svg {
+  box-sizing: content-box;
+  padding: 5px;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #ffe9a6, #f4c454 55%, #c8901f);
+  box-shadow: 0 0 0 2px rgba(10, 14, 44, 0.85), 0 4px 12px -2px rgba(0, 0, 0, 0.7);
+}
+.pj-contract-flag {
+  display: inline-block;
+  padding: 3px 5px 2px;
+  border-radius: 9999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.pj-contract-flag.is-equipped {
+  color: #d1fae5;
+  background: rgba(4, 92, 64, 0.94);
+  box-shadow: inset 0 0 0 1px rgba(110, 231, 183, 0.6);
+}
+.pj-contract-flag.is-trade {
+  color: #fef3c7;
+  background: rgba(124, 58, 16, 0.94);
+  box-shadow: inset 0 0 0 1px rgba(253, 230, 138, 0.6);
+}
+
+.pj-contract-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 22px;
+  background: rgba(10, 14, 44, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(244, 196, 84, 0.45), 0 12px 26px -14px rgba(0, 0, 0, 0.95);
+}
+.pj-contract-count {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+.pj-contract-count-num {
+  font-size: 21px;
+  font-weight: 900;
+  color: #ffe8a3;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.pj-contract-count-of {
+  font-size: 14px;
+  color: #cfc6ec;
+}
+.pj-contract-count-fx {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: #a7f3d0;
+  white-space: nowrap;
+}
+
+/* --- Fechado, e a faixa da revelação ------------------------------------ */
+
+.pj-contract-closed {
+  margin-top: 16px;
+  padding: 18px 16px;
+  border-radius: 16px;
+  text-align: center;
+  background: rgba(4, 12, 12, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(233, 208, 138, 0.3);
+}
+
+/* A faixa "Contrato da Cobra" (na revelação e no story), irmã da faixa do
+   Giro da Sorte: em vez de ouro com tinta marrom, o verde da toca com
+   letras de ouro. */
+.pj-contract-ribbon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 13px 0 9px;
+  border-radius: 9999px;
+  font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  font-weight: 700;
+  font-size: 12.5px;
+  white-space: nowrap;
+  color: #ffe8a3;
+  background: linear-gradient(180deg, #145036, #08241b);
+  box-shadow: inset 0 0 0 1.5px rgba(233, 208, 138, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 6px 18px -6px rgba(61, 220, 151, 0.65);
+}
+
+@media (min-width: 640px) {
+  .pj-contract-den {
+    padding: 18px 20px;
+  }
+  .pj-contract-counter {
+    gap: 16px;
+  }
+  .pj-contract-card {
+    width: 88px;
+  }
+  .pj-contract-title {
+    font-size: 30px;
+  }
+  .pj-contract-bubble {
+    font-size: 14px;
+    padding: 10px 14px 11px;
+  }
+  .pj-contract-tier {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    min-height: 58px;
+  }
+  .pj-contract-tier-sub {
+    flex-basis: 100%;
+    justify-content: center;
+  }
+  .pj-contract-tier-name {
+    font-size: 14px;
+  }
+  .pj-contract-paper {
+    padding: 18px 18px 14px;
+  }
+  .pj-contract-paper-title {
+    font-size: 19px;
+  }
+  .pj-contract-deal {
+    gap: 10px;
+  }
+  .pj-contract-slots {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .pj-contract-slot-fill .pj-mark--xs {
+    font-size: 7.5px;
+  }
+  .pj-contract-arrow {
+    width: 22px;
+    height: 22px;
+  }
+  .pj-contract-out {
+    width: 92px;
+  }
+  .pj-contract-mystery-q {
+    font-size: 42px;
+  }
+  .pj-contract-mystery-gem {
+    width: 24px;
+    height: 24px;
+  }
+  .pj-contract-seal-spot {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pj-contract-smoke {
+    animation: none !important;
+  }
+}

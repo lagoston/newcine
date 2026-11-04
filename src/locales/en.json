@@ -2239,6 +2239,7 @@
     "tabs": {
       "machine": "Reel",
       "collection": "Collection",
+      "contract": "Contract",
       "missions": "Missions",
       "trades": "Trades"
     },
@@ -2379,6 +2380,126 @@
       "escaped": "Oh, it got away! Maybe next time.",
       "slipped": "It slipped! Try again, quick!",
       "demo": "(demo)"
+    },
+    "contract": {
+      "title": "Black Market",
+      "cobraName": "Cypher, the Snake",
+      "paperTitle": "The Snake's Contract",
+      "terms": "{{give}} for {{get}}",
+      "give": {
+        "common_one": "{{count}} common",
+        "common_other": "{{count}} commons",
+        "rare_one": "{{count}} rare",
+        "rare_other": "{{count}} rares",
+        "epic_one": "{{count}} epic",
+        "epic_other": "{{count}} epics"
+      },
+      "get": {
+        "rare": "1 rare",
+        "epic": "1 epic",
+        "legendary": "1 legendary"
+      },
+      "plural": {
+        "common": "common posters",
+        "rare": "rare posters",
+        "epic": "epic posters",
+        "legendary": "legendary posters"
+      },
+      "tiersAria": "Which contract to sign",
+      "tierHave": "You have {{give}} to hand over.",
+      "tierComplete": "Complete",
+      "complete": "You already have all the {{plural}}.",
+      "completeHint": "No new poster can come out of this contract. Pick another tier.",
+      "out": {
+        "rare": "A rare you don't have yet",
+        "epic": "An epic you don't have yet",
+        "legendary": "A legendary you don't have yet"
+      },
+      "slotEmpty": "Empty spot in the contract",
+      "slotRemove": "Take {{title}} out of the contract",
+      "chance": "Effect chance",
+      "chanceAria": "Effect chance: {{value}}%",
+      "chanceRule": "Each poster with an effect adds {{step}}%, up to {{cap}}%.",
+      "chanceFloor": "With none, the chance is {{floor}}%, the same as a spin.",
+      "split": "If an effect comes up:",
+      "splitSpin": "If an effect comes up: holographic {{holo}}%, negative {{negative}}% or ultra red {{ultra}}%, like a spin.",
+      "finePrint": "The {{count}} leave your collection for good. They can come up on the reel again.",
+      "pickTitle": {
+        "common": "Your commons",
+        "rare": "Your rares",
+        "epic": "Your epics"
+      },
+      "pickHint": "Tap a poster to put it in the contract or take it out.",
+      "pickEmpty": "No poster of this rarity can go in right now. Spin the reel to get more.",
+      "auto": "Pick for me",
+      "clear": "Clear",
+      "equipped": "Equipped",
+      "inTrade": "In a trade",
+      "lock": {
+        "prize": "Prize",
+        "staked": "Staked in poker"
+      },
+      "fullToast_one": "The contract already has {{count}} poster. Take one out to add another.",
+      "fullToast_other": "The contract already has {{count}} posters. Take one out to add another.",
+      "autoNone": "No free posters left to pick for you. Equipped posters and posters in a trade only go in if you tap them.",
+      "short": "This contract needs {{need}} and you have {{have}}.",
+      "progressAria": "{{count}} of {{size}} posters in the contract",
+      "sign": "Sign contract",
+      "sealing": "Closing the contract…",
+      "confirm": {
+        "title": "Sign the contract?",
+        "body": "You hand over {{give}} and get {{get}} you don't have yet.",
+        "leave": "The {{count}} leave your collection for good. They can come up on the reel again.",
+        "equipped_one": "1 of them is equipped: the original cover comes back in your library.",
+        "equipped_other": "{{count}} of them are equipped: the original covers come back in your library.",
+        "trade_one": "1 of them is in a trade offer, which will be cancelled.",
+        "trade_other": "{{count}} of them are in trade offers, which will be cancelled.",
+        "chance": "Effect chance: {{value}}%",
+        "sign": "Sign contract",
+        "back": "Back"
+      },
+      "ribbon": "The Snake's Contract",
+      "storyRibbon": "From the Black Market",
+      "reveal": {
+        "back": "Back to the counter",
+        "rolled": "It came with an effect. The chance was {{value}}%.",
+        "notRolled": "No effect this time. The chance was {{value}}%."
+      },
+      "closed": {
+        "title": "The counter is closed",
+        "body": "Soon the Snake will trade {{count}} posters of the same rarity for 1 of the next rarity up."
+      },
+      "loadError": "Couldn't open the Black Market right now.",
+      "retry": "Try again",
+      "rule": "At the Black Market (Contract tab), {{count}} posters of the same rarity become 1 of the next rarity up that you don't have yet. Each one with an effect adds {{step}}% to the effect chance, up to {{cap}}%.",
+      "errors": {
+        "not_authenticated": "Your session expired. Sign in again to sign the contract.",
+        "closed": "The Black Market is closed for now. No poster left your collection.",
+        "bad_rarity": "This contract no longer exists. The table was reloaded: pick the tier again.",
+        "bad_size": "The contract needs exactly {{count}} posters. The table was reloaded: check and sign again.",
+        "bad_item": "One of the posters arrived with bad data. The table was reloaded: pick again.",
+        "duplicate": "There's a repeated poster in the contract. Pick {{count}} different versions.",
+        "not_owned": "One of the posters is no longer in your collection. The table was updated: swap it and sign again.",
+        "wrong_rarity": "The {{count}} posters must share the same rarity. The table was updated: pick again.",
+        "exclusive": "Poster Poker posters can't go in the contract. The table was updated: pick another one.",
+        "prize": "A poker table prize can't go in the contract. Take it out and pick another one.",
+        "staked": "One of the posters is staked in a poker match. Pick another one or wait for the match to end.",
+        "target_complete": "You already have all the {{plural}}. No poster left your collection.",
+        "error": "The contract wasn't closed and no poster left your collection. Try again."
+      },
+      "cobra": {
+        "idle": "Bring me {{count}} of the same carat and I'll stitch you something better. No questions, no receipts.",
+        "partial_one": "One to go. I don't do discounts.",
+        "partial_other": "{{count}} to go. I don't do discounts.",
+        "full": "Contract's full. Sign before I change my mind.",
+        "fullFx": "Shine on the table. Now this deal smells rare.",
+        "maxFx": "All of them shiny? Even I don't charge that much. I like it.",
+        "short": "With that stock I won't even open the drawer. Come back with more.",
+        "complete": "You've got them all. Not even the underground has another.",
+        "sealing": "Shhh… don't watch while I stitch.",
+        "signed": "Deal's done. Don't tell the Frog.",
+        "closed": "Counter's closed, creature. Even snakes take an intermission."
+      }
     }
   },
   "invite": {

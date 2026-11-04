@@ -7,6 +7,7 @@ import { RARITY_META, loadJackpotFont, titleOf } from '../../lib/posterJackpot';
 import { jackpotPrizeOf, storyTitle, type FeedStory } from '../../lib/friendsFeed';
 import PosterArt, { EffectTag } from '../posterJackpot/PosterArt';
 import { SerialLine } from '../posterJackpot/CollectorMark';
+import WaxSeal from '../posterJackpot/WaxSeal';
 import '../../styles/posterJackpot.css';
 import './jackpotStory.css';
 
@@ -15,7 +16,8 @@ import './jackpotStory.css';
 // revelação da roleta adaptado ao story — o céu noturno com estrelas, os
 // raios dourados girando, o pôster virando na moldura de ouro (com o efeito
 // e a marca de colecionador), "Lendário" em Cinzel Decorative, o número
-// ("Nº 008"), a obra e a faixa "Giro da Sorte" quando saiu nele. Embaixo,
+// ("Nº 008"), a obra e a faixa "Giro da Sorte" quando saiu nele (ou "Do
+// Mercado Negro", quando saiu de um contrato da Cobra). Embaixo,
 // o convite para girar também (o próprio dono vai para a coleção) e o
 // atalho para a obra. Com movimento reduzido, nada vira nem estoura.
 
@@ -97,13 +99,17 @@ export const JackpotCard: React.FC<{
   const title = titleOf(prize, isPt) || storyTitle(story, i18n.language);
   const rarityName = t(`jackpot.rarity.${prize.rarity}`);
   const lucky = prize.pull_kind === 'lucky';
+  // 04/11/2026: o lendário que saiu de um contrato do Mercado Negro da Cobra
+  // ganha a faixa verde da toca (a mesma da revelação do contrato) no lugar
+  // da faixa do giro. Ocupa a mesma altura da faixa do Giro da Sorte.
+  const contract = prize.pull_kind === 'contract';
   const hasEffect = prize.effect !== 'none';
   // O que o cartão ocupa além do pôster (px), para o pôster ficar com o
   // resto da altura (jackpotStory.css): o fixo + a faixa da sorte, o selo do
   // efeito, o título em duas linhas e o aviso de story oculto.
   const year = prize.year ? ` (${prize.year})` : '';
   const reserve =
-    280 + (lucky ? 36 : 0) + (hasEffect ? 28 : 0) + ((title + year).length > 34 ? 22 : 0) + (own && story.hidden ? 44 : 0) - (onOpenWork ? 0 : 44);
+    280 + (lucky || contract ? 36 : 0) + (hasEffect ? 28 : 0) + ((title + year).length > 34 ? 22 : 0) + (own && story.hidden ? 44 : 0) - (onOpenWork ? 0 : 44);
 
   return (
     <div
@@ -127,6 +133,17 @@ export const JackpotCard: React.FC<{
           <Twinkle className="w-3 h-3" color="#7A4A00" />
           {t('jackpot.lucky.title')}
           <Twinkle className="w-3 h-3" color="#7A4A00" />
+        </motion.span>
+      )}
+      {contract && (
+        <motion.span
+          initial={reduceMotion ? false : { opacity: 0, y: -6, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="co-jp-ribbon pj-contract-ribbon mt-2.5"
+        >
+          <WaxSeal className="w-[18px] h-[18px] -ml-1" />
+          {t('jackpot.contract.storyRibbon')}
         </motion.span>
       )}
 

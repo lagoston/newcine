@@ -314,6 +314,11 @@ export const GAME_TAGS: GameTag[] = [
   { id: 'jackpot-shiny-hunter', game: 'jackpot', name: 'Shiny Hunter', emoji: '🌈', requirement: 'Have 10 posters with an effect', requirementPt: 'Tenha 10 pôsteres com efeito', metric: 'effect_posters', goal: 10 },
   { id: 'jackpot-croupier', game: 'jackpot', name: 'Croupier', emoji: '🤝', requirement: 'Make 10 poster trades with friends', requirementPt: 'Faça 10 trocas de pôster com amigos', metric: 'trades', goal: 10 },
   { id: 'jackpot-curator', game: 'jackpot', name: 'Curator', emoji: '🗃️', requirement: 'Have 50 posters in your collection', requirementPt: 'Tenha 50 pôsteres na coleção', metric: 'posters', goal: 50 },
+  // 04/11/2026: as duas do Mercado Negro da Cobra (o contrato do Poster
+  // Jackpot). Mesmos ids, nomes e textos das linhas de special_tags
+  // (migração 20261104090000_jackpot_contracts.sql).
+  { id: 'jackpot-black-market', game: 'jackpot', name: 'Black Market', emoji: '🕶️', requirement: "Close a contract at the Cobra's Black Market (in the Poster Jackpot)", requirementPt: 'Feche um contrato no Mercado Negro da Cobra (no Poster Jackpot)', metric: 'contracts', goal: 1 },
+  { id: 'jackpot-alchemist', game: 'jackpot', name: 'Alchemist', emoji: '⚗️', requirement: 'Forge a legendary poster in a Black Market contract', requirementPt: 'Consiga um pôster lendário num contrato do Mercado Negro', metric: 'contract_legendaries', goal: 1 },
 
   { id: 'poker-first-win', game: 'poker', name: 'All-in', emoji: '♠️', requirement: 'Win your first Poster Poker tournament', requirementPt: 'Vença o seu primeiro torneio do Pôster Poker', metric: 'poker_wins', goal: 1 },
   { id: 'poker-fox-hunter', game: 'poker', name: 'Outfoxed', emoji: '🎯', requirement: 'Knock out the Fox in a tournament', requirementPt: 'Elimine o Raposo num torneio' },

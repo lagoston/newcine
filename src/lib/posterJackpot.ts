@@ -103,6 +103,12 @@ export interface PokerTeaser {
   ageConfirmed: boolean | null;
 }
 
+export interface JackpotGift {
+  kind: 'friday13';
+  amount: number;
+  day: string;
+}
+
 // Fichas (01/11/2026): o que era "ticket" no Jackpot virou "ficha" na tela
 // (num porta-fichas de cassino). No banco e aqui os campos continuam com os
 // nomes antigos: tickets = fichas comuns; special* = fichas especiais.
@@ -149,12 +155,6 @@ export interface JackpotState {
 export interface DailyReward {
   tickets: number;
   at: number;
-}
-
-export interface JackpotGift {
-  kind: 'friday13';
-  amount: number;
-  day: string;
 }
 
 // Um pôster do catálogo (para a fita da roleta).
@@ -252,6 +252,12 @@ export function parsePokerTeaser(value: unknown): PokerTeaser | null {
   };
 }
 
+const parseGift = (value: unknown): JackpotGift | null => {
+  const gift = value as Row | null;
+  if (!gift || gift.kind !== 'friday13') return null;
+  return { kind: 'friday13', amount: num(gift.amount) || 3, day: typeof gift.day === 'string' ? gift.day : '' };
+};
+
 export async function fetchJackpotState(): Promise<JackpotState> {
   const { data, error } = await supabase.rpc('get_jackpot_state');
   if (error) throw error;
@@ -297,12 +303,6 @@ export async function claimDailyChip(): Promise<{ ok: boolean; reason?: 'already
   };
 }
 
-const parseGift = (value: unknown): JackpotGift | null => {
-  const gift = value as Row | null;
-  if (!gift || gift.kind !== 'friday13') return null;
-  return { kind: 'friday13', amount: num(gift.amount) || 3, day: typeof gift.day === 'string' ? gift.day : '' };
-};
-
 // O aviso do presente foi mostrado (não aparece de novo).
 export async function markJackpotGiftSeen(): Promise<void> {
   const { error } = await supabase.rpc('jackpot_gift_seen');
@@ -335,6 +335,29 @@ export function fetchJackpotCatalog(): Promise<CatalogPoster[]> {
   return catalogPromise;
 }
 
+// ---------------------------------------------------------------------------
+// Coleção e pôster equipado (guardados na memória da página; qualquer
+// sorteio ou troca avisa quem estiver mostrando).
+// 04/11/2026: o aviso e os caches subiram para antes do primeiro uso (o giro
+// e o contrato chamam notifyPostersChanged), e JackpotGift / parseGift /
+// EquippedMap também foram para antes de quem os usa: só mudou a ordem, para
+// o lint (no-use-before-define) ficar limpo.
+// ---------------------------------------------------------------------------
+
+export type EquippedPoster = { item_id: number; effect: PosterEffect; rarity: PosterRarity; serial: number | null; file_path: string };
+export type EquippedMap = Map<string, EquippedPoster>;
+
+const CHANGED_EVENT = 'cineoracle:posters-changed';
+let myPostersPromise: Promise<OwnedPoster[]> | null = null;
+const equippedCache = new Map<string, Promise<EquippedMap>>();
+export const posterKey = (mediaType: string | null | undefined, id: number) => `${mediaType === 'tv' ? 'tv' : 'movie'}:${id}`;
+
+export function notifyPostersChanged() {
+  myPostersPromise = null;
+  equippedCache.clear();
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(CHANGED_EVENT));
+}
+
 // O motivo de um giro recusado pelo banco (mensagem da exceção).
 export const pullErrorCode = (error: unknown): string => {
   const message = (error as { message?: string })?.message || '';
@@ -364,25 +387,6 @@ export async function claimMission(key: string): Promise<{ tickets: number }> {
   if (error) throw error;
   const raw = data as Row;
   return { tickets: num(raw.tickets) };
-}
-
-// ---------------------------------------------------------------------------
-// Coleção e pôster equipado (guardados na memória da página; qualquer
-// sorteio ou troca avisa quem estiver mostrando).
-// ---------------------------------------------------------------------------
-
-const CHANGED_EVENT = 'cineoracle:posters-changed';
-let myPostersPromise: Promise<OwnedPoster[]> | null = null;
-const equippedCache = new Map<string, Promise<EquippedMap>>();
-
-export type EquippedPoster = { item_id: number; effect: PosterEffect; rarity: PosterRarity; serial: number | null; file_path: string };
-export type EquippedMap = Map<string, EquippedPoster>;
-export const posterKey = (mediaType: string | null | undefined, id: number) => `${mediaType === 'tv' ? 'tv' : 'movie'}:${id}`;
-
-export function notifyPostersChanged() {
-  myPostersPromise = null;
-  equippedCache.clear();
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event(CHANGED_EVENT));
 }
 
 export function loadMyPosters(): Promise<OwnedPoster[]> {
@@ -478,4 +482,140 @@ export async function unequipPoster(mediaType: TitleType, tmdbId: number) {
   const { error } = await supabase.rpc('unequip_poster', { p_media_type: mediaType, p_tmdb_id: tmdbId });
   if (error) throw error;
   notifyPostersChanged();
+}
+
+// ---------------------------------------------------------------------------
+// O Mercado Negro da Cobra (04/11/2026, pedido do Bruno): o "contrato" do
+// CS:GO. A pessoa entrega `size` pôsteres da mesma raridade e recebe 1 da
+// raridade de cima que ainda não tem. Tudo é conferido e sorteado no banco
+// (migração 20261104090000_jackpot_contracts.sql); aqui ficam os tipos, as
+// duas chamadas e o código de erro. Os números (quantos entram, quanto cada
+// efeito soma, o teto e o piso) vêm sempre do servidor, que pode regulá-los
+// sem migração: a tela nunca usa constante fixa para eles.
+// ---------------------------------------------------------------------------
+
+// As raridades que entram num contrato (o lendário só sai, nunca entra).
+export type ContractRarity = 'common' | 'rare' | 'epic';
+// Por que um pôster não pode entrar: prêmio da mesa do pôquer (intrável) ou
+// apostado numa partida aberta do pôquer.
+export type ContractLock = 'prize' | 'staked';
+
+export interface ContractPoster extends PosterItem {
+  effect: PosterEffect;
+  first_pulled_at: string;
+  equipped: boolean;
+  // Está numa proposta de troca aberta (a proposta cai se o contrato fechar).
+  in_trade: boolean;
+  lock: ContractLock | null;
+}
+
+export interface ContractTier {
+  from: ContractRarity;
+  to: Exclude<PosterRarity, 'common'>;
+  // Quantas versões (pôster + efeito) da raridade de cima a pessoa ainda pode
+  // receber; 0 = degrau completo.
+  left: number;
+}
+
+export interface ContractBoard {
+  // false = contrato fechado para esta pessoa (a aba mostra "em breve").
+  open: boolean;
+  size: number;
+  effectStep: number;
+  effectCap: number;
+  effectFloor: number;
+  tiers: ContractTier[];
+  posters: ContractPoster[];
+}
+
+export interface ContractResult {
+  contractId: number;
+  pullId: number;
+  poster: PosterItem & { effect: PosterEffect };
+  effectChance: number;
+  effectRolled: boolean;
+  // Quantas versões da raridade de cima ainda faltam depois deste contrato.
+  left: number;
+}
+
+const CONTRACT_FROM: ContractRarity[] = ['common', 'rare', 'epic'];
+const CONTRACT_TO: Record<ContractRarity, ContractTier['to']> = { common: 'rare', rare: 'epic', epic: 'legendary' };
+const CONTRACT_EFFECTS = new Set<PosterEffect>(['none', 'holo', 'negative', 'ultra_red']);
+
+// A mesa da Cobra lida com desconfiança (como o resumo do pôquer): campo
+// torto vira o valor seguro, e os três degraus saem sempre na mesma ordem.
+// Os números caem nos padrões da migração só se o servidor não mandar.
+export async function getContractBoard(): Promise<ContractBoard> {
+  const { data, error } = await supabase.rpc('get_jackpot_contract_board');
+  if (error) throw error;
+  const raw = (data || {}) as Row;
+  const tierRows = Array.isArray(raw.tiers) ? (raw.tiers as Row[]) : [];
+  const tiers = CONTRACT_FROM.map((from) => {
+    const row = tierRows.find((tier) => tier && tier.from === from);
+    return { from, to: CONTRACT_TO[from], left: row ? Math.max(0, num(row.left)) : 0 };
+  });
+  const posters = (Array.isArray(raw.posters) ? (raw.posters as Row[]) : [])
+    .filter((p) => p && CONTRACT_FROM.includes(p.rarity as ContractRarity) && CONTRACT_EFFECTS.has(p.effect as PosterEffect))
+    .map(
+      (p): ContractPoster => ({
+        ...(p as unknown as PosterItem),
+        effect: p.effect as PosterEffect,
+        first_pulled_at: typeof p.first_pulled_at === 'string' ? p.first_pulled_at : '',
+        equipped: p.equipped === true,
+        in_trade: p.in_trade === true,
+        lock: p.lock === 'prize' || p.lock === 'staked' ? p.lock : null,
+      })
+    );
+  const size = num(raw.size) || 6;
+  return {
+    open: raw.open === true,
+    size,
+    effectStep: raw.effect_step == null ? 10 : num(raw.effect_step),
+    effectCap: raw.effect_cap == null ? 60 : num(raw.effect_cap),
+    effectFloor: raw.effect_floor == null ? 5 : num(raw.effect_floor),
+    tiers,
+    posters,
+  };
+}
+
+// O motivo de um contrato recusado (mensagem da exceção do Postgres), como
+// tradeErrorCode das trocas. A ordem importa: 'closed' fica por último porque
+// é a palavra mais curta e genérica da lista.
+const CONTRACT_ERRORS = [
+  'not_authenticated',
+  'target_complete',
+  'wrong_rarity',
+  'bad_rarity',
+  'bad_size',
+  'bad_item',
+  'duplicate',
+  'not_owned',
+  'exclusive',
+  'prize',
+  'staked',
+  'closed',
+] as const;
+export type ContractErrorCode = (typeof CONTRACT_ERRORS)[number] | 'error';
+export const contractErrorCode = (error: unknown): ContractErrorCode => {
+  const message = (error as { message?: string })?.message || '';
+  return CONTRACT_ERRORS.find((code) => message.includes(code)) || 'error';
+};
+
+// Fecha o contrato. Os itens vão na ordem em que a pessoa pôs na mesa.
+// Deu certo: a coleção mudou (6 saíram, 1 entrou), então todo mundo que mostra
+// pôsteres é avisado, como num giro.
+export async function signContract(rarity: ContractRarity, items: { item_id: number; effect: PosterEffect }[]): Promise<ContractResult> {
+  const { data, error } = await supabase.rpc('jackpot_contract', { p_rarity: rarity, p_items: items });
+  if (error) throw error;
+  const raw = (data || {}) as Row;
+  notifyPostersChanged();
+  const poster = (raw.poster || {}) as Row;
+  return {
+    contractId: num(raw.contract_id),
+    pullId: num(raw.pull_id),
+    poster: { ...(poster as unknown as PosterItem), effect: (CONTRACT_EFFECTS.has(poster.effect as PosterEffect) ? poster.effect : 'none') as PosterEffect },
+    effectChance: num(raw.effect_chance),
+    effectRolled: raw.effect_rolled === true,
+    left: num(raw.left),
+  };
 }
