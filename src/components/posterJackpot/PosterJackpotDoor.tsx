@@ -37,6 +37,40 @@ const FAN: { rotate: number; x: number; effect: PosterEffect; z: number }[] = [
   { rotate: 0, x: 0, effect: 'holo', z: 2 },
 ];
 
+// 04/11/2026 (pedido do Bruno): o leque volta a ser o do começo, os três pôsteres de
+// Breaking Bad (o épico à esquerda, o raro à direita, o lendário no meio). Os dois
+// laterais nunca mudam; o do meio troca todo dia (dia de Brasília) e passa por todos
+// os lendários da roleta, na ordem do número de colecionador. O rodízio começa em
+// 04/11/2026 com o Breaking Bad lendário (Lendário 001); quando entra um lendário
+// novo, ele simplesmente passa a fazer parte da volta.
+const BREAKING_BAD_TV_ID = 1396;
+const FAN_ROTATION_START = Date.UTC(2026, 10, 4);
+const DAY_MS = 86_400_000;
+
+// Quantos dias de Brasília se passaram desde o começo do rodízio.
+function brasiliaDayIndex(now: Date = new Date()): number {
+  const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+  const [y, m, d] = ymd.split('-').map(Number);
+  return Math.floor((Date.UTC(y, m - 1, d) - FAN_ROTATION_START) / DAY_MS);
+}
+
+// [esquerda, direita, meio] — a ordem de FAN.
+function pickFan(catalog: CatalogPoster[], day: number): CatalogPoster[] {
+  const breakingBad = (rarity: CatalogPoster['rarity']) =>
+    catalog.find((p) => p.media_type === 'tv' && p.tmdb_id === BREAKING_BAD_TV_ID && p.rarity === rarity);
+  const legendaries = catalog
+    .filter((p) => p.rarity === 'legendary')
+    .sort((a, b) => (a.serial ?? Number.MAX_SAFE_INTEGER) - (b.serial ?? Number.MAX_SAFE_INTEGER) || a.id - b.id);
+  const center = legendaries.length ? legendaries[((day % legendaries.length) + legendaries.length) % legendaries.length] : breakingBad('legendary');
+  const picks = [breakingBad('epic'), breakingBad('rare'), center];
+  if (picks.every(Boolean)) return picks as CatalogPoster[];
+  // Sem algum Breaking Bad no catálogo (tirado da roleta, por exemplo): o primeiro da
+  // raridade, como antes, para a porta nunca ficar sem leque.
+  const by = (rarity: CatalogPoster['rarity']) => catalog.find((p) => p.rarity === rarity);
+  const fallback = [picks[0] ?? by('epic'), picks[1] ?? by('rare'), picks[2] ?? by('legendary')].filter(Boolean) as CatalogPoster[];
+  return fallback.length === 3 ? fallback : [];
+}
+
 const PosterJackpotDoor: React.FC = () => {
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -101,12 +135,8 @@ const PosterJackpotDoor: React.FC = () => {
       .catch(() => undefined);
   }, [enabled]);
 
-  // Lendário no meio, épico e raro dos lados (o que houver).
-  const fan = useMemo(() => {
-    const by = (rarity: CatalogPoster['rarity']) => catalog.find((p) => p.rarity === rarity);
-    const picks = [by('epic'), by('rare'), by('legendary')].map((p, i) => p || catalog[i]).filter(Boolean) as CatalogPoster[];
-    return picks.length === 3 ? picks : [];
-  }, [catalog]);
+  // Breaking Bad épico e raro dos lados; no meio, o lendário do dia (pickFan).
+  const fan = useMemo(() => pickFan(catalog, brasiliaDayIndex()), [catalog]);
 
   const patch = useCallback((value: Partial<JackpotState>) => setState((prev) => (prev ? { ...prev, ...value } : prev)), []);
 
