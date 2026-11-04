@@ -3642,5 +3642,130 @@
         "back": "{{title}} is back in your collection."
       }
     }
+  },
+  "curation": {
+    "posters": {
+      "untitled": "Untitled",
+      "eyebrow": "Poster Jackpot · Curation",
+      "title": "Poster catalog",
+      "lead": "Every poster side by side, by rarity, to judge the set as a whole: whether each rarity hangs together, whether one stands out, and how the spread looks.",
+      "loading": "Opening the catalog…",
+      "searchEmpty": "No poster has “{{query}}” in its title (pt or en).",
+      "summary": {
+        "label": "Catalog summary",
+        "roulette": "In the reel",
+        "ofGoal": "of {{goal}}",
+        "stackLabel": "{{count}} of {{goal}} posters in the reel: {{status}}",
+        "jump": "{{name}}: {{count}} of {{goal}}, {{status}}. Go to section",
+        "movies_zero": "No movies",
+        "movies_one": "{{count}} movie",
+        "movies_other": "{{count}} movies",
+        "series_zero": "No series",
+        "series_one": "{{count}} series",
+        "series_other": "{{count}} series",
+        "inactive_one": "{{count}} out of the reel",
+        "inactive_other": "{{count}} out of the reel",
+        "inactiveNone": "None out of the reel",
+        "exclusives_one": "+ {{count}} Poster Poker exclusive",
+        "exclusives_other": "+ {{count}} Poster Poker exclusives"
+      },
+      "sections": {
+        "legendary": "Legendary",
+        "epic": "Epic",
+        "rare": "Rare",
+        "common": "Common",
+        "poker": "Poster Poker exclusives"
+      },
+      "section": {
+        "ofGoal": "of {{goal}}",
+        "posters_one": "poster",
+        "posters_other": "posters",
+        "missing_one": "{{count}} to go",
+        "missing_other": "{{count}} to go",
+        "done": "goal reached",
+        "over_one": "{{count}} over the goal",
+        "over_other": "{{count}} over the goal",
+        "inactive_one": "+{{count}} out of the reel",
+        "inactive_other": "+{{count}} out of the reel",
+        "showing_zero": "none with these filters",
+        "showing_one": "showing {{count}}",
+        "showing_other": "showing {{count}}",
+        "inBatch_zero": "none from batch {{batch}}",
+        "inBatch_one": "{{count}} from batch {{batch}}",
+        "inBatch_other": "{{count}} from batch {{batch}}",
+        "empty": "No posters in this section match these filters.",
+        "pokerNote": "Not in the reel: they only come from the Poster Poker tournament, always with the gold shine."
+      },
+      "controls": {
+        "label": "Showcase controls",
+        "effect": "Effect",
+        "effectNone": "No effect",
+        "kindLabel": "Type",
+        "kind": {
+          "all": "All",
+          "movie": "Movies",
+          "tv": "Series"
+        },
+        "size": "Size",
+        "sizes": {
+          "s": "Small",
+          "m": "Medium",
+          "l": "Large"
+        },
+        "batch": "Batch",
+        "batchAll": "All",
+        "batchOption_one": "Batch {{batch}}: {{count}} poster",
+        "batchOption_other": "Batch {{batch}}: {{count}} posters",
+        "batchCount_one": "Batch {{batch}} · {{count}} poster highlighted",
+        "batchCount_other": "Batch {{batch}} · {{count}} posters highlighted",
+        "search": "Search title",
+        "searchClear": "Clear search",
+        "results_zero": "No titles found",
+        "results_one": "{{count}} title found",
+        "results_other": "{{count}} titles found",
+        "adjust": "Options",
+        "done": "Done"
+      },
+      "tile": {
+        "series": "Series",
+        "off": "Out of the reel"
+      },
+      "detail": {
+        "position": "{{index}} of {{total}}",
+        "prev": "Previous",
+        "next": "Next",
+        "keysHint": "Use the ← → arrow keys to browse the section.",
+        "year": "Year",
+        "kind": "Type",
+        "kindMovie": "Movie",
+        "kindTv": "Series",
+        "batch": "Batch",
+        "batchValue": "Batch {{batch}}",
+        "batchPoker": "Poster Poker exclusive",
+        "added": "added {{date}}",
+        "owners": "Owned by",
+        "ownersValue_one": "{{count}} person",
+        "ownersValue_other": "{{count}} people",
+        "ownersNone": "No one yet",
+        "status": "Reel",
+        "statusOn": "Active, can come up in the reel",
+        "statusOff": "Out of the reel",
+        "statusPoker": "Not in the reel (poker tournament only)",
+        "otherEn": "In English: {{title}}",
+        "otherPt": "In Portuguese: {{title}}",
+        "tmdb": "View on TMDB",
+        "tmdbAria": "View on TMDB (opens in a new tab)"
+      },
+      "forbidden": {
+        "title": "Curation team only",
+        "body": "This showcase lays out the whole Poster Jackpot catalog, with the numbers the people who pick the posters work from. It's open to the curation team only.",
+        "home": "Back to home"
+      },
+      "error": {
+        "title": "Couldn't open the catalog",
+        "body": "The connection failed or the server didn't answer. Check your internet and try again.",
+        "retry": "Try again"
+      }
+    }
   }
 }

@@ -36,6 +36,10 @@ const CategoryMovies = lazy(() => import('./pages/CategoryMovies'));
 const FlyingChip = lazy(() => import('./components/posterJackpot/FlyingChip'));
 // Pôster Poker (03/11/2026; antes O Grande Blefe): o pôquer, carregado só em /poster-poker.
 const Blefe = lazy(() => import('./pages/Blefe'));
+// Curadoria do catálogo de pôsteres (04/11/2026): a vitrine do Poster Jackpot para
+// quem escolhe os pôsteres (só testadores; o banco recusa os outros com 'forbidden').
+// Página interna, sem link no menu, carregada só quando alguém abre a URL.
+const PosterCuration = lazy(() => import('./pages/PosterCuration'));
 
 // /oracle → home, levando junto o state do link (a Central dos Oráculos foi
 // extinta em 02/11/2026).
@@ -111,6 +115,8 @@ function App() {
                   {/* Pôster Poker (03/11/2026): o jogo em /poster-poker; o /blefe antigo redireciona lá dentro. */}
                   <Route path="/poster-poker/*" element={<ProtectedRoute><Blefe /></ProtectedRoute>} />
                   <Route path="/blefe/*" element={<ProtectedRoute><Blefe /></ProtectedRoute>} />
+                  {/* Curadoria do catálogo de pôsteres (04/11/2026): ver pages/PosterCuration.tsx. */}
+                  <Route path="/curadoria/posteres" element={<ProtectedRoute><PosterCuration /></ProtectedRoute>} />
                   <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
                   <Route path="/premium/success" element={<ProtectedRoute><PremiumSuccess /></ProtectedRoute>} />
                   <Route path="*" element={<Navigate to="/" replace />} />

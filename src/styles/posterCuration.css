@@ -1,0 +1,692 @@
+/* Curadoria do catálogo de pôsteres (04/11/2026, /curadoria/posteres).
+   A vitrine onde o Bruno julga o conjunto do Poster Jackpot: todos os
+   pôsteres lado a lado, por raridade. Fala a língua do Jackpot (céu noturno
+   azul, latão e ouro, Cinzel, os cristais), mas é ferramenta de trabalho e
+   não palco: o fundo fica quieto para os pôsteres falarem, e a cor forte
+   aparece só no cabeçalho de cada raridade. Os efeitos dos pôsteres são os
+   de posterJackpot.css (PosterArt), sem nada copiado. */
+
+.pc-page,
+.pc-vars {
+  /* Altura da barra de controles (medida na página): o rolar até uma seção
+     para logo abaixo dela, sem esconder o cabeçalho. */
+  --pc-bar-h: 64px;
+  --pc-top: calc(env(safe-area-inset-top) + 3.5rem);
+  --pc-brass: #e9d08a;
+  --pc-brass-dim: rgba(233, 208, 138, 0.22);
+  --pc-paper: #f3ead3;
+  --pc-mist: #bdb4d6;
+  --pc-night: #090c26;
+}
+/* A folha de detalhe abre num portal (fora da página): leva só as cores
+   (.pc-vars), sem o position da página. */
+.pc-page {
+  position: relative;
+}
+
+/* O fundo: o céu azul do Jackpot, escurecido e sem estrelas atrás da grade.
+   Camada fixa própria (e não cor no body), como o PageBackground. */
+.pc-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background:
+    radial-gradient(110% 55% at 50% -12%, rgba(64, 80, 196, 0.26), transparent 62%),
+    linear-gradient(180deg, #0b1036 0%, #080b25 46%, #090820 100%);
+}
+
+.pc-display {
+  font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  letter-spacing: 0.02em;
+}
+.pc-cinzel {
+  font-family: 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+}
+/* Ouro parado (o pj-gold-text da roleta tem o brilho correndo: aqui não). */
+.pc-gold {
+  background: linear-gradient(180deg, #fff3c4 0%, #f4c454 52%, #b07a1c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(60, 30, 0, 0.6));
+}
+/* Rótulos pequenos em versalete de latão (grupos da barra, fichas do detalhe). */
+.pc-label {
+  font-family: 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pc-brass);
+}
+
+/* ---------------------------------------------------------------------
+   O topo: título e o painel do resumo
+   --------------------------------------------------------------------- */
+
+/* Painel com filete de latão (borda em gradiente), como a sala da Cobra,
+   com um céu de estrelas paradas e bem fracas só aqui no alto. */
+.pc-panel {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  background:
+    radial-gradient(80% 120% at 0% 0%, rgba(80, 96, 220, 0.18), transparent 70%) padding-box,
+    linear-gradient(180deg, rgba(14, 19, 60, 0.92), rgba(9, 11, 36, 0.94)) padding-box,
+    linear-gradient(160deg, rgba(255, 241, 191, 0.7), rgba(168, 116, 26, 0.55) 40%, rgba(92, 66, 16, 0.5) 62%, rgba(201, 162, 74, 0.7) 100%) border-box;
+  box-shadow: 0 24px 50px -32px rgba(0, 0, 0, 0.95);
+}
+.pc-panel-stars {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.32;
+  background-image:
+    radial-gradient(1.1px 1.1px at 12% 22%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 31% 70%, #fff 50%, transparent 51%),
+    radial-gradient(1.3px 1.3px at 47% 28%, #ffe8a3 50%, transparent 51%),
+    radial-gradient(1px 1px at 66% 14%, #fff 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 81% 62%, #cde9ff 50%, transparent 51%),
+    radial-gradient(1px 1px at 93% 30%, #fff 50%, transparent 51%);
+  background-size: 240px 160px;
+}
+
+/* A barra empilhada: cada raridade é um trecho na cor dela, sobre a meta
+   inteira (o trilho que sobra é o que falta para chegar lá). */
+.pc-stack {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+.pc-stack > span {
+  height: 100%;
+  min-width: 2px;
+}
+.pc-stack-goal {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--pc-paper);
+  border-radius: 2px;
+}
+
+/* As quatro raridades no resumo: botões que levam até a seção. */
+.pc-jump {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 6px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pc-jump:hover {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 0 0 1px var(--pc-tone-ring, rgba(255, 255, 255, 0.2));
+}
+.pc-jump .pj-gem {
+  width: 20px;
+  height: 20px;
+}
+
+/* Barrinha da meta (resumo e cabeçalho das seções). Acima da meta, o
+   trilho fica cheio e o excesso aparece em listras depois do marco. */
+.pc-meter {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.pc-meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--pc-tone);
+  box-shadow: 0 0 10px -2px var(--pc-tone-glow, transparent);
+}
+.pc-meter-over {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  background: repeating-linear-gradient(135deg, var(--pc-tone) 0 3px, rgba(9, 12, 38, 0.85) 3px 5px);
+}
+.pc-meter-mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--pc-paper);
+}
+
+/* ---------------------------------------------------------------------
+   A barra de controles (presa no alto ao rolar, logo abaixo da navbar)
+   --------------------------------------------------------------------- */
+
+.pc-bar {
+  position: sticky;
+  top: var(--pc-top);
+  z-index: 30;
+  /* Opaca: os pôsteres coloridos passando por baixo "fantasmavam" mesmo com
+     4% de transparência. */
+  background: #0a0d28;
+  border-bottom: 1px solid var(--pc-brass-dim);
+  transition: box-shadow 0.2s ease;
+}
+.pc-bar.is-stuck {
+  box-shadow: 0 14px 28px -18px rgba(0, 0, 0, 0.95);
+}
+
+/* Grupo de botões (segmentado): trilho escuro com filete de latão; o
+   escolhido em papel, como as abas da gaveta do Jackpot. */
+.pc-seg {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 0 0 1px var(--pc-brass-dim);
+}
+.pc-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--pc-mist);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.pc-seg-btn:hover {
+  color: var(--pc-paper);
+  background: rgba(255, 255, 255, 0.06);
+}
+.pc-seg-btn[aria-pressed='true'] {
+  background: var(--pc-paper);
+  color: #221b36;
+}
+.pc-seg-btn > svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* A bolinha do efeito no botão (a mesma leitura das cores do Jackpot). */
+.pc-swatch {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+.pc-swatch--none {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+  opacity: 0.7;
+}
+.pc-swatch--holo {
+  background: conic-gradient(#ff40a0, #ffdc3c, #3cffaa, #3cb4ff, #aa50ff, #ff40a0);
+}
+.pc-swatch--negative {
+  background: linear-gradient(90deg, #0a0a0a 50%, #f3ead3 50%);
+  box-shadow: inset 0 0 0 1px rgba(243, 234, 211, 0.8);
+}
+.pc-swatch--ultra_red {
+  background: radial-gradient(circle at 35% 35%, #ff8a70, #ff1e2d 55%, #46000a);
+}
+
+/* Os lotes: "Todos" e um botão por lote. */
+.pc-batches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pc-batch-btn {
+  min-width: 44px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pc-mist);
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 0 0 1px var(--pc-brass-dim);
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.pc-batch-btn:hover {
+  color: var(--pc-paper);
+  background: rgba(255, 255, 255, 0.07);
+}
+.pc-batch-btn[aria-pressed='true'] {
+  color: #2a1d05;
+  background: linear-gradient(180deg, #ffe8a3, #e3b552);
+  box-shadow: inset 0 0 0 1px rgba(255, 244, 205, 0.9), 0 0 16px -4px rgba(244, 196, 84, 0.6);
+}
+
+/* Na gaveta: no celular, os lotes em duas fileiras de 6 colunas iguais (sem
+   rolar de lado); abaixo de 1280 px, os grupos ocupando a largura toda. */
+@media (max-width: 639px) {
+  .pc-batches {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .pc-batches > .pc-batch-btn {
+    min-width: 0;
+    padding: 0;
+  }
+  .pc-batches > .pc-batch-btn--all {
+    grid-column: span 2;
+  }
+}
+@media (max-width: 1279px) {
+  .pc-seg--fill > .pc-seg-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 6px;
+  }
+  /* Os 4 efeitos em 2×2 no celular (os nomes não cabem em 4 colunas). */
+  .pc-seg--grid2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 640px) and (max-width: 1279px) {
+  .pc-seg--grid2 {
+    display: flex;
+  }
+}
+
+.pc-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: inset 0 0 0 1px var(--pc-brass-dim);
+}
+.pc-search:focus-within {
+  box-shadow: inset 0 0 0 1px rgba(255, 232, 163, 0.7);
+}
+.pc-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px 0 38px;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-size: 15px;
+  color: var(--pc-paper);
+}
+.pc-search input::placeholder {
+  color: rgba(189, 180, 214, 0.75);
+}
+.pc-search input::-webkit-search-cancel-button {
+  display: none;
+}
+.pc-search-icon {
+  position: absolute;
+  left: 12px;
+  width: 18px;
+  height: 18px;
+  color: var(--pc-mist);
+  pointer-events: none;
+}
+
+/* Abaixo de 1280 px: os ajustes abrem por cima da grade (posição absoluta,
+   sem empurrar a página), limitados à altura da tela. */
+.pc-drawer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  max-height: calc(100dvh - var(--pc-top) - var(--pc-bar-h) - 12px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #0a0d28;
+  border-bottom: 1px solid var(--pc-brass-dim);
+  box-shadow: 0 24px 40px -20px rgba(0, 0, 0, 0.95);
+}
+
+/* No celular a barra de baixo (MobileDock) cobre o fim da tela. */
+@media (max-width: 1023px) {
+  .has-mobile-dock .pc-drawer {
+    max-height: calc(100dvh - var(--pc-top) - var(--pc-bar-h) - var(--co-dock-space, 0px) - 12px);
+  }
+}
+
+.pc-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: #2a1d05;
+  background: #ffe8a3;
+}
+
+/* ---------------------------------------------------------------------
+   Seções e grade
+   --------------------------------------------------------------------- */
+
+.pc-section {
+  scroll-margin-top: calc(var(--pc-top) + var(--pc-bar-h) + 12px);
+}
+
+/* Cabeçalho da raridade: a cor dela num degradê que some para a direita,
+   um filete em cima e o cristal com o brilho da raridade. */
+.pc-head {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  padding: 14px 14px 14px 12px;
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, var(--pc-tone-wash) 0%, rgba(255, 255, 255, 0) 72%),
+    rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 1px 0 var(--pc-tone-line), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+.pc-head-gem {
+  width: 34px;
+  height: 34px;
+}
+.pc-head-name {
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.05;
+  color: var(--pc-tone);
+  text-shadow: 0 0 18px var(--pc-tone-glow), 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+@media (min-width: 640px) {
+  .pc-head-name {
+    font-size: 26px;
+  }
+}
+.pc-head-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-grid {
+  --pc-min: 96px;
+  --pc-gap: 10px;
+  --pc-radius: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--pc-min), 1fr));
+  gap: var(--pc-gap);
+}
+.pc-grid[data-size='s'] {
+  --pc-min: 58px;
+  --pc-gap: 6px;
+  --pc-radius: 5px;
+}
+.pc-grid[data-size='l'] {
+  --pc-min: 144px;
+  --pc-gap: 14px;
+  --pc-radius: 10px;
+}
+@media (min-width: 640px) {
+  .pc-grid[data-size='s'] { --pc-min: 76px; }
+  .pc-grid[data-size='m'] { --pc-min: 118px; --pc-gap: 12px; }
+  .pc-grid[data-size='l'] { --pc-min: 176px; --pc-gap: 16px; }
+}
+@media (min-width: 1024px) {
+  .pc-grid[data-size='s'] { --pc-min: 86px; --pc-gap: 8px; }
+  .pc-grid[data-size='m'] { --pc-min: 132px; }
+  .pc-grid[data-size='l'] { --pc-min: 196px; --pc-gap: 18px; }
+}
+
+/* O pôster na grade (o botão inteiro, pôster + legenda, é o alvo). O
+   index.css põe todo botão em flex centralizado com 44 px mínimos: aqui o
+   botão volta a ser um bloco do tamanho da célula. */
+.pc-tile {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  text-align: left;
+  border-radius: var(--pc-radius);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+/* Ao fechar o detalhe, o foco volta ao pôster e a página rola até ele sem
+   deixá-lo atrás da barra presa (nem da barra de baixo do celular). */
+.pc-tile {
+  scroll-margin-top: calc(var(--pc-top) + var(--pc-bar-h) + 10px);
+  scroll-margin-bottom: 10px;
+}
+@media (max-width: 1023px) {
+  .has-mobile-dock .pc-tile {
+    scroll-margin-bottom: calc(var(--co-dock-space, 0px) + 10px);
+  }
+}
+.pc-tile-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--pc-radius);
+  background: #10143a;
+  box-shadow: 0 10px 22px -14px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.pc-tile-art {
+  aspect-ratio: 2 / 3;
+  border-radius: inherit;
+}
+.pc-tile:hover .pc-tile-frame {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 26px -14px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 232, 163, 0.35);
+}
+
+/* A marca de colecionador acompanha o tamanho da grade (tudo em em). */
+.pc-grid[data-size='s'] .pj-mark {
+  font-size: 6px;
+  --pj-mark-r: 0.5em;
+  --pj-mark-b: 0.5em;
+}
+.pc-grid[data-size='l'] .pj-mark {
+  font-size: 10px;
+}
+
+/* Lote em destaque: os pôsteres dele com um aro de ouro claro; os outros
+   recuam (esmaecem e perdem cor), sem sumir. */
+.pc-tile[data-hl] .pc-tile-frame {
+  box-shadow: 0 0 0 2px #ffe8a3, 0 0 20px -2px rgba(255, 214, 120, 0.6), 0 12px 24px -14px rgba(0, 0, 0, 0.95);
+}
+.pc-tile[data-dim] {
+  opacity: 0.42;
+  filter: saturate(0.55);
+}
+.pc-tile[data-dim]:hover,
+.pc-tile[data-dim]:focus-visible {
+  opacity: 0.75;
+  filter: none;
+}
+
+/* Fora da roleta: o pôster apagado e uma tarja carimbada atravessando. */
+.pc-tile[data-off] .pc-tile-art {
+  opacity: 0.5;
+  filter: grayscale(0.85);
+}
+.pc-off {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  top: 44%;
+  z-index: 7;
+  transform: rotate(-12deg);
+  padding: 0.45em 0;
+  text-align: center;
+  font-family: 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.1;
+  color: var(--pc-paper);
+  background: rgba(12, 10, 30, 0.9);
+  box-shadow: inset 0 1px 0 rgba(233, 208, 138, 0.75), inset 0 -1px 0 rgba(233, 208, 138, 0.75);
+  pointer-events: none;
+}
+.pc-grid[data-size='s'] .pc-off {
+  font-size: 6px;
+  letter-spacing: 0.1em;
+}
+.pc-grid[data-size='l'] .pc-off {
+  font-size: 11px;
+}
+
+/* Legenda: título numa linha; ano e o selo "Série" embaixo. */
+.pc-cap {
+  margin-top: 6px;
+  min-width: 0;
+}
+.pc-cap-title {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--pc-paper);
+}
+.pc-cap-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 1px;
+  min-height: 16px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--pc-mist);
+  font-variant-numeric: tabular-nums;
+}
+.pc-grid[data-size='l'] .pc-cap-title {
+  font-size: 13.5px;
+}
+.pc-grid[data-size='l'] .pc-cap-meta {
+  font-size: 12px;
+}
+.pc-series {
+  display: inline-flex;
+  align-items: center;
+  height: 15px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #cde9ff;
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.5);
+}
+
+/* ---------------------------------------------------------------------
+   A folha de detalhe
+   --------------------------------------------------------------------- */
+
+.pc-sheet {
+  background:
+    radial-gradient(90% 320px at 50% 0%, rgba(80, 96, 220, 0.22), transparent 70%),
+    linear-gradient(180deg, #0d1240 0%, #090c28 60%, #0b0a24 100%);
+  box-shadow: 0 0 0 1px rgba(233, 208, 138, 0.28), 0 30px 70px -30px rgba(0, 0, 0, 0.95);
+}
+.pc-sheet-poster {
+  position: relative;
+  width: min(56vw, 250px);
+  margin: 0 auto;
+}
+@media (min-width: 768px) {
+  .pc-sheet-poster {
+    width: 300px;
+    margin: 0;
+  }
+}
+.pc-sheet-art {
+  aspect-ratio: 2 / 3;
+  border-radius: 14px;
+  box-shadow: 0 26px 50px -22px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.pc-sheet-poster .pc-off {
+  font-size: 14px;
+}
+.pc-sheet-off .pc-sheet-art {
+  opacity: 0.5;
+  filter: grayscale(0.85);
+}
+.pc-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 16px;
+  align-items: baseline;
+}
+.pc-facts dt {
+  font-family: 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pc-brass);
+  white-space: nowrap;
+}
+.pc-facts dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 14.5px;
+  color: var(--pc-paper);
+  font-variant-numeric: tabular-nums;
+}
+.pc-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-radius: 999px;
+  vertical-align: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-tile,
+  .pc-tile-frame,
+  .pc-bar,
+  .pc-jump,
+  .pc-seg-btn,
+  .pc-batch-btn {
+    transition: none !important;
+  }
+  .pc-tile:hover .pc-tile-frame {
+    transform: none;
+  }
+}

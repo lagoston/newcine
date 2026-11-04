@@ -3641,5 +3641,130 @@
         "back": "{{title}} voltou para a sua coleção."
       }
     }
+  },
+  "curation": {
+    "posters": {
+      "untitled": "Sem título",
+      "eyebrow": "Poster Jackpot · Curadoria",
+      "title": "Catálogo de pôsteres",
+      "lead": "Todos os pôsteres lado a lado, por raridade, para julgar o conjunto: se cada raridade está coerente, se algum destoa e como está a distribuição.",
+      "loading": "Abrindo o catálogo…",
+      "searchEmpty": "Nenhum pôster com “{{query}}” no título (pt ou en).",
+      "summary": {
+        "label": "Resumo do catálogo",
+        "roulette": "Na roleta",
+        "ofGoal": "de {{goal}}",
+        "stackLabel": "{{count}} de {{goal}} pôsteres na roleta: {{status}}",
+        "jump": "{{name}}: {{count}} de {{goal}}, {{status}}. Ir para a seção",
+        "movies_zero": "Nenhum filme",
+        "movies_one": "{{count}} filme",
+        "movies_other": "{{count}} filmes",
+        "series_zero": "Nenhuma série",
+        "series_one": "{{count}} série",
+        "series_other": "{{count}} séries",
+        "inactive_one": "{{count}} fora da roleta",
+        "inactive_other": "{{count}} fora da roleta",
+        "inactiveNone": "Nenhum fora da roleta",
+        "exclusives_one": "+ {{count}} exclusivo do Pôster Poker",
+        "exclusives_other": "+ {{count}} exclusivos do Pôster Poker"
+      },
+      "sections": {
+        "legendary": "Lendários",
+        "epic": "Épicos",
+        "rare": "Raros",
+        "common": "Comuns",
+        "poker": "Exclusivos do Pôster Poker"
+      },
+      "section": {
+        "ofGoal": "de {{goal}}",
+        "posters_one": "pôster",
+        "posters_other": "pôsteres",
+        "missing_one": "falta {{count}} para a meta",
+        "missing_other": "faltam {{count}} para a meta",
+        "done": "meta atingida",
+        "over_one": "{{count}} acima da meta",
+        "over_other": "{{count}} acima da meta",
+        "inactive_one": "+{{count}} fora da roleta",
+        "inactive_other": "+{{count}} fora da roleta",
+        "showing_zero": "nenhum com esses filtros",
+        "showing_one": "mostrando {{count}}",
+        "showing_other": "mostrando {{count}}",
+        "inBatch_zero": "nenhum do lote {{batch}}",
+        "inBatch_one": "{{count}} do lote {{batch}}",
+        "inBatch_other": "{{count}} do lote {{batch}}",
+        "empty": "Nenhum pôster desta seção com esses filtros.",
+        "pokerNote": "Fora da roleta: só saem no torneio do Pôster Poker, sempre com o brilho dourado."
+      },
+      "controls": {
+        "label": "Controles da vitrine",
+        "effect": "Efeito",
+        "effectNone": "Sem efeito",
+        "kindLabel": "Tipo",
+        "kind": {
+          "all": "Todos",
+          "movie": "Filmes",
+          "tv": "Séries"
+        },
+        "size": "Tamanho",
+        "sizes": {
+          "s": "Pequeno",
+          "m": "Médio",
+          "l": "Grande"
+        },
+        "batch": "Lote",
+        "batchAll": "Todos",
+        "batchOption_one": "Lote {{batch}}: {{count}} pôster",
+        "batchOption_other": "Lote {{batch}}: {{count}} pôsteres",
+        "batchCount_one": "Lote {{batch}} · {{count}} pôster em destaque",
+        "batchCount_other": "Lote {{batch}} · {{count}} pôsteres em destaque",
+        "search": "Buscar título",
+        "searchClear": "Limpar a busca",
+        "results_zero": "Nenhum título encontrado",
+        "results_one": "{{count}} título encontrado",
+        "results_other": "{{count}} títulos encontrados",
+        "adjust": "Ajustes",
+        "done": "Pronto"
+      },
+      "tile": {
+        "series": "Série",
+        "off": "Fora da roleta"
+      },
+      "detail": {
+        "position": "{{index}} de {{total}}",
+        "prev": "Anterior",
+        "next": "Próximo",
+        "keysHint": "Use as setas ← → do teclado para percorrer a seção.",
+        "year": "Ano",
+        "kind": "Tipo",
+        "kindMovie": "Filme",
+        "kindTv": "Série",
+        "batch": "Lote",
+        "batchValue": "Lote {{batch}}",
+        "batchPoker": "Exclusivo do Pôster Poker",
+        "added": "entrou em {{date}}",
+        "owners": "Quem tem",
+        "ownersValue_one": "{{count}} pessoa",
+        "ownersValue_other": "{{count}} pessoas",
+        "ownersNone": "Ninguém ainda",
+        "status": "Roleta",
+        "statusOn": "Ativo, pode sair na roleta",
+        "statusOff": "Fora da roleta",
+        "statusPoker": "Fora da roleta (só no torneio do pôquer)",
+        "otherEn": "Em inglês: {{title}}",
+        "otherPt": "Em português: {{title}}",
+        "tmdb": "Ver no TMDB",
+        "tmdbAria": "Ver no TMDB (abre em outra aba)"
+      },
+      "forbidden": {
+        "title": "Página só para a curadoria",
+        "body": "Esta vitrine mostra o catálogo inteiro do Poster Jackpot, com os números de quem escolhe os pôsteres. Ela fica aberta só para a curadoria.",
+        "home": "Voltar para o início"
+      },
+      "error": {
+        "title": "Não deu para abrir o catálogo",
+        "body": "A conexão falhou ou o servidor não respondeu. Confira a internet e tente de novo.",
+        "retry": "Tentar de novo"
+      }
+    }
   }
 }
