@@ -15,11 +15,19 @@ import { loadPosterPokerFont } from './font';
 import '../../../styles/posterJackpot.css';
 import '../../../styles/posterPoker.css';
 
-// O botão "Pôster Poker" da home (03/11/2026, tarde; no lugar da faixa de feltro): o
-// palco em miniatura — a prega da cortina, o pôster da semana dourado entre duas
-// cartas, o nome em letreiro e a seta de ouro. Só para quem tem o pôquer liberado
-// (get_poker_home: enabled e open). Enquanto não sabe, não desenha nada (a seção da
-// home some com empty:hidden, sem empurrar nada).
+// O ingresso do Pôster Poker na home (04/11/2026; antes, desde 03/11, um botão
+// do porte das portas). Pedido do Bruno: quatro portas do mesmo tamanho eram
+// demais e davam cara de site de jogos à home. O pôquer virou um ingresso de
+// cinema — o mesmo recorte meia-lua e o mesmo picote dos ingressos do menu do
+// jogo (.pp-ticket) —, menor que as portas e por último na fila:
+//   • celular e tablet: deitado, logo abaixo da Persona — a cortina, o pôster
+//     da semana dourado entre duas cartas, o letreiro e o torneio; depois do
+//     picote, o canhoto com a seta de ouro;
+//   • computador: em pé, estreito, ao lado da Persona, da altura das portas
+//     (o canhoto fica embaixo, com a seta na altura dos convites delas).
+// Só para quem tem o pôquer liberado (get_poker_home: enabled e open).
+// Enquanto não sabe, não desenha nada (o item da home some com empty:hidden,
+// sem empurrar nada).
 
 const isOpen = (h: PokerHome | null) => !!h && h.enabled && h.open !== false;
 
@@ -53,23 +61,32 @@ const PosterPokerButton: React.FC = () => {
   const title = posterTitle(prize, lang);
 
   return (
-    <motion.div initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.15 }}>
-      <Link to={BLEFE_ROUTES.title} className={`pp-door group ${FOCUS_RING}`} aria-label={t('pokerEntry.doorAria', { title })}>
-        <span className="pp-door-art" aria-hidden>
-          <i data-r="A" />
-          <i data-r="K" className="is-red" />
-          <span className="pp-door-poster">
-            <PosterArt filePath={prize.file_path} effect="gold" size="w185" animated={!reduce} />
+    // h-full: no computador o ingresso estica até a altura das portas.
+    <motion.div className="h-full" initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut', delay: 0.15 }}>
+      <Link to={BLEFE_ROUTES.title} className={`pp-pass group ${FOCUS_RING}`} aria-label={t('pokerEntry.doorAria', { title })}>
+        {/* O papel do ingresso (o veludo, o fio de ouro e os recortes) fica
+            numa camada de trás: a máscara dos recortes cortaria o anel de
+            foco se estivesse no próprio link. */}
+        <span className="pp-pass-paper" aria-hidden />
+        <span className="pp-pass-main">
+          <span className="pp-pass-art" aria-hidden>
+            <i data-r="A" />
+            <i data-r="K" className="is-red" />
+            <span className="pp-pass-poster">
+              <PosterArt filePath={prize.file_path} effect="gold" size="w185" animated={!reduce} />
+            </span>
+          </span>
+          <span className="pp-pass-text">
+            <span className="pp-pass-title pp-font pp-gold-letters">{t('pokerEntry.name')}</span>
+            <span className="pp-pass-hint">
+              {t('pokerEntry.doorHint')} <b>{title}</b>
+            </span>
           </span>
         </span>
-        <span className="relative min-w-0 flex-1">
-          <span className="pp-door-title pp-font pp-gold-letters">{t('pokerEntry.name')}</span>
-          <span className="pp-door-hint">
-            {t('pokerEntry.doorHint')} <b>{title}</b>
+        <span className="pp-pass-stub" aria-hidden>
+          <span className="pp-pass-arrow">
+            <ArrowRight className="w-[18px] h-[18px]" strokeWidth={2.4} />
           </span>
-        </span>
-        <span className="pp-door-arrow" aria-hidden>
-          <ArrowRight className="w-5 h-5" />
         </span>
       </Link>
     </motion.div>

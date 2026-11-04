@@ -171,7 +171,9 @@ const PersonaDoor: React.FC<{ userId: string; username: string | null }> = ({ us
 
           {hasPersona && persona?.code && text ? (
             <span className={DOOR_HINT} style={{ color: '#CFC6EC' }}>
-              <PersonaCode code={persona.code} className="mr-1.5 text-[15px] sm:text-base leading-none tracking-[0.08em]" />
+              {/* lg:leading-[0] (04/11/2026): a letra em pixel com a altura
+                  de linha dela esticava a linha da frase (24 px em vez de 20). */}
+              <PersonaCode code={persona.code} className="mr-1.5 text-[15px] sm:text-base leading-none lg:leading-[0] tracking-[0.08em]" />
               {text.title}
             </span>
           ) : (
@@ -180,25 +182,31 @@ const PersonaDoor: React.FC<{ userId: string; username: string | null }> = ({ us
             </span>
           )}
 
+          {/* 04/11/2026: no computador as três prateleiras ficam numa linha
+              cada — a letra, o nome e a barra lado a lado, numa grade de três
+              colunas (as linhas viram display:contents) para as barras
+              começarem todas no mesmo ponto. A porta perde ~25 px de altura e
+              quase não estica mais as vizinhas. No celular, como antes: o
+              nome em cima da barra. */}
           {hasPersona ? (
-            <span className="mt-2.5 flex flex-col gap-[7px] w-full max-w-[230px] lg:mt-3.5 lg:mx-auto text-left">
+            <span className="mt-2.5 flex flex-col gap-[7px] w-full max-w-[230px] lg:mx-auto lg:grid lg:grid-cols-[auto_auto_minmax(0,1fr)] lg:items-center lg:gap-x-2 lg:gap-y-[5px] text-left">
               {topScores.map((row) => {
                 const mood = MOOD_BY_KEY[row.moodKey];
                 if (!mood) return null;
                 const width = Math.max(4, (row.score / topMax) * 100);
                 return (
-                  <span key={row.moodKey} className="flex items-center gap-2">
+                  <span key={row.moodKey} className="flex items-center gap-2 lg:contents">
                     <span
-                      className="grid place-items-center w-[18px] h-[18px] shrink-0 rounded-md text-[11px] leading-none"
+                      className="grid place-items-center w-[18px] h-[18px] lg:w-[14px] lg:h-[14px] shrink-0 rounded-md lg:rounded-[4px] text-[11px] lg:text-[9px] leading-none"
                       style={{ ...PIXEL, color: mood.color, background: withAlpha(mood.color, 0.18), boxShadow: `inset 0 0 0 1px ${withAlpha(mood.color, 0.45)}` }}
                     >
                       {mood.letter}
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[11px] font-semibold leading-none" style={{ color: mood.color }}>
+                    <span className="min-w-0 flex-1 lg:contents">
+                      <span className="block truncate text-[11px] font-semibold leading-none lg:max-w-[8.5rem]" style={{ color: mood.color }}>
                         {t(mood.labelKey)}
                       </span>
-                      <span className="mt-[4px] block h-[3px] rounded-full bg-white/[0.08] overflow-hidden">
+                      <span className="mt-[4px] lg:mt-0 block h-[3px] rounded-full bg-white/[0.08] overflow-hidden">
                         <span className="block h-full rounded-full" style={{ width: `${width}%`, background: mood.color, boxShadow: `0 0 6px ${withAlpha(mood.color, 0.6)}` }} />
                       </span>
                     </span>
