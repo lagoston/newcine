@@ -57,6 +57,10 @@ const OracleCardFan: React.FC<OracleCardFanProps> = ({
           transition={{ type: 'spring', stiffness: 110, damping: 15, delay: reduceMotion ? 0 : 0.2 + i * 0.12 }}
           whileHover={{ y: '-7%', rotate: FAN[i].rotate * 0.4, zIndex: 5 }}
           whileTap={{ y: '-7%', rotate: FAN[i].rotate * 0.4, zIndex: 5 }}
+          // 04/11/2026: o whileTap faz o framer-motion dar tabIndex=0 a cada
+          // carta, e o Tab parava em três imagens sem nome (home de visitante e
+          // tela de conta). O leque é decorativo (o container já é role="img").
+          tabIndex={-1}
         />
       ))}
     </div>
