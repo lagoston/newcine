@@ -1,6 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Spade } from 'lucide-react';
+// 04/11/2026: o selo importa o próprio CSS. O fundo de veludo (.pe-velvet) mora
+// em pokerEntry.css, que só as telas do pôquer carregavam: dentro da gaveta do
+// Jackpot, sem nenhuma tela do pôquer aberta antes, o selo aparecia sem fundo.
+// O arquivo só tem seletores .pe-*, então não mexe em mais nada da gaveta.
+import '../../../styles/pokerEntry.css';
 
 // Selo "Prêmio da mesa" (03/11/2026): marca na Coleção o pôster ganho no
 // Grande Blefe, que não entra em trocas (user_posters.tradeable = false).
