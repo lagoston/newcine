@@ -1131,6 +1131,196 @@
     "pinsOf": "@{{username}}’s tags"
   },
   "premium": {
+    "page": {
+      "eyebrow": "CineOracle Premium",
+      "title": "CineOracle: <gold>the extended cut</gold>",
+      "lead": "Whole oracle shelves, reviews in your own voice, a special chip every week and gold pieces for your profile.",
+      "jumpAria": "Page chapters",
+      "jump": {
+        "oracles": "The oracles",
+        "collection": "The collection",
+        "profile": "Your profile",
+        "compare": "Side by side"
+      },
+      "reel": "Reel {{n}} · {{label}}",
+      "ticket": {
+        "label": "Premium ticket",
+        "plan": "Monthly showing",
+        "perMonth": "/month",
+        "priceAria": "{{price}} a month",
+        "subscribe": "Get Premium",
+        "opening": "Opening checkout…",
+        "renews": "Renews monthly. Cancel anytime.",
+        "secure": "Secure payment by Stripe",
+        "inApp": "Subscribing in the app is coming soon. For now, subscribe on the website.",
+        "checkoutError": "Couldn't open checkout. Please try again.",
+        "portalError": "Couldn't open your subscription. Please try again.",
+        "signIn": "Sign in to subscribe."
+      },
+      "oracles": {
+        "kicker": "The oracles",
+        "title": "Everything the oracles set aside for you",
+        "shelves": {
+          "title": "Whole shelves",
+          "body": "27 shelves, 3 oracles × 9 moods, sorted by your predicted rating. Without Premium, each one stops at title 20. With Premium, it runs to the very last.",
+          "cut": "#{{n}}",
+          "free": "Without Premium: the first 20 on each shelf",
+          "premium": "Premium: the whole shelf, down to the last title"
+        },
+        "review": {
+          "title": "Oracle Review",
+          "body": "The Oracle reads your reviews and writes a new one, your way, for the title you just rated. Like it? Post it. Don't? Ask for another.",
+          "rule": "1 a day, with 1 retry. Unlocks after 10 reviews of your own.",
+          "sampleTag": "Written by the Oracle",
+          "sampleTitle": "A punch in the gut, the good kind",
+          "sampleBody": "I didn't expect to leave the theater in silence, but that's exactly what happened. The direction holds every scene until the right moment to let it all fall apart.",
+          "post": "Post",
+          "again": "Generate another"
+        },
+        "duel": {
+          "title": "Watchlist Duel",
+          "body": "You and a friend you follow: 4 titles from each watchlist, an 8-title bracket and one winner for movie night.",
+          "rule": "As many duels as you want.",
+          "you": "You",
+          "friend": "Friend"
+        },
+        "whispers": {
+          "title": "Whispers",
+          "body": "The picks you send to your friends.",
+          "perDay": "a day",
+          "aria": "5 whispers a day without Premium, 20 with Premium"
+        }
+      },
+      "collection": {
+        "kicker": "The collection",
+        "title": "A special chip every week",
+        "body": "Every Monday, 1 special chip lands in your Poster Jackpot rack. It always pulls a poster with an effect: holographic, negative or ultra red.",
+        "rule": "It doesn't stack: use it by Sunday.",
+        "effectsAria": "Effects the special chip can pull",
+        "chipName": "Special chip",
+        "posters": {
+          "bladeRunner": "Blade Runner",
+          "odyssey": "2001: A Space Odyssey",
+          "fightClub": "Fight Club"
+        }
+      },
+      "profile": {
+        "kicker": "Your profile",
+        "title": "Gold pieces for your profile",
+        "lead": "The Gold frame and banner are yours right away. The themed ones you earn by watching: Matrix comes with the trilogy, Harry Potter with all 8 films.",
+        "previewName": "your_name",
+        "previewBio": "Gold frame, Gold banner and the Technicolor effect on your name.",
+        "frames": {
+          "title_one": "{{count}} frame",
+          "title_other": "{{count}} frames",
+          "body": "Gold, Matrix, Harry Potter, Avengers, Ghost Rider and more."
+        },
+        "banners": {
+          "title_one": "{{count}} banner",
+          "title_other": "{{count}} banners",
+          "body": "The same themes as the frames, across the top of your profile and your Community card.",
+          "gold": "Gold",
+          "matrix": "Matrix",
+          "potter": "Harry Potter"
+        },
+        "cards": {
+          "title": "Oracle cards",
+          "body": "A new look for the cards across the site. Yu-Gi-Oh! comes with 50 Adventures titles; Horror, with 50 from Dark & Scary.",
+          "default": "Default",
+          "yugioh": "Yu-Gi-Oh!",
+          "horror": "Horror"
+        },
+        "effects": {
+          "title": "Name effects",
+          "body": "On your name and bio, as you write reviews.",
+          "reviews_one": "{{count}} review",
+          "reviews_other": "{{count}} reviews"
+        },
+        "avatar": {
+          "title": "Animated avatar",
+          "body": "Animated GIF or WebP up to 2 MB. Without Premium, it goes in still."
+        },
+        "crown": {
+          "title": "The crown",
+          "body": "Next to your name on your profile, in the Community and in friends lists."
+        }
+      },
+      "compare": {
+        "kicker": "Compared",
+        "title": "Side by side",
+        "caption": "What changes with Premium",
+        "colFeature": "Feature",
+        "colFree": "Free",
+        "colPremium": "Premium",
+        "shelves": "Titles per oracle shelf",
+        "shelvesPremium": "All",
+        "review": "Oracle Review",
+        "reviewPremium": "1 a day",
+        "duel": "Watchlist Duel",
+        "duelPremium": "Unlimited",
+        "chip": "Poster Jackpot special chip",
+        "chipPremium": "1 a week",
+        "whispers": "Whispers a day",
+        "none": "Not included",
+        "note": "Oracle Review unlocks after 10 reviews of your own. Watchlist Duel needs 4 titles on your watchlist and your friend's."
+      },
+      "closing": {
+        "title": "Ready for the extended cut?"
+      },
+      "member": {
+        "kicker": "Premium active",
+        "kickerLifetime": "Lifetime Premium",
+        "title": "You're on <gold>the extended cut</gold>",
+        "lead": "Everything Premium turns on in your account, and where to find each piece.",
+        "status": "Active",
+        "statusLifetime": "Lifetime",
+        "planLifetime": "Lifetime access",
+        "manage": "Manage subscription",
+        "manageHint": "Change your card or cancel in the Stripe portal.",
+        "thanks": "Thanks for supporting CineOracle.",
+        "thanksLifetime": "It never expires. Thanks for supporting CineOracle.",
+        "whereKicker": "In your account",
+        "where": "Where to use it",
+        "go": {
+          "shelves": {
+            "title": "Whole shelves",
+            "body": "All 27 shelves of the Oracle Library, down to the last title.",
+            "cta": "Open the Library"
+          },
+          "chip": {
+            "title": "Special chip",
+            "body": "One a week in your Poster Jackpot rack. Use it by Sunday.",
+            "cta": "Open Poster Jackpot"
+          },
+          "duel": {
+            "title": "Watchlist Duel",
+            "body": "On your Watchlist, with 4 titles on yours and your friend's.",
+            "cta": "Go to Watchlist"
+          },
+          "profile": {
+            "title": "Gold pieces",
+            "body": "Frames, banners, cards and effects in Customize profile.",
+            "cta": "Open your profile"
+          },
+          "review": "On any title you've rated: open Reviews and tap Generate Review. Unlocks after 10 reviews of your own."
+        }
+      },
+      "success": {
+        "title": "Welcome to the extended cut",
+        "subtitle": "Your Premium subscription is active.",
+        "loading": "Setting up your Premium account…",
+        "details": "Your subscription",
+        "plan": "Plan",
+        "planName": "Premium monthly",
+        "price": "Price",
+        "started": "Started",
+        "next": "Next billing",
+        "included": "Already on",
+        "explore": "View my profile",
+        "redirect_one": "Taking you to your profile in {{count}} second…",
+        "redirect_other": "Taking you to your profile in {{count}} seconds…"
+      }
+    },
     "title": "Upgrade to Premium",
     "settings": "Premium Settings",
     "subscription": "Premium Subscription",

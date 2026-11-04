@@ -1,294 +1,214 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, Crown, Calendar, CreditCard, Gift, ArrowRight, Sparkles, Shield, PartyPopper, Swords } from 'lucide-react';
+import { ArrowRight, Check, Loader2 } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { products } from '../stripe-config';
-import { motion } from 'framer-motion';
+import { PAPER, MIST, PIXEL, VELVET, glassPanel } from '../lib/oracleTheme';
+import { TicketFan, PREMIUM_GOLD } from '../components/premium/parts';
+import { GOLD_BUTTON } from '../components/premium/PremiumTicket';
+import '../components/premium/premium.css';
+
+// Boas-vindas depois do pagamento (/premium/success). 04/11/2026: só o
+// visual mudou, para conversar com a página Premium nova (o ingresso
+// dourado, as cartas Yu-Gi-Oh! saindo de trás) — os textos eram fixos em
+// inglês e a tela prometia "Pro" e "VIP", que não existem. A lógica (buscar
+// a assinatura, atualizar o status Premium, ir para o perfil em 10 s)
+// continua a mesma de antes.
 
 interface SubscriptionDetails {
- planName: string;
- price: string;
- startDate: string;
- nextBillingDate: string;
- transactionId: string;
+  planName: string;
+  price: string;
+  // Datas guardadas como Date e formatadas na tela no idioma do site (antes
+  // saíam no formato do navegador, ex.: 11/4/2026 num site em português).
+  startDate: Date;
+  nextBillingDate: Date;
+  transactionId: string;
 }
 
+// O que já está ligado na conta (o mesmo inventário de pages/Premium.tsx).
+const INCLUDED = [
+  'premium.page.member.go.shelves.title',
+  'premium.page.oracles.review.title',
+  'premium.page.member.go.duel.title',
+  'premium.page.member.go.chip.title',
+  'premium.page.member.go.profile.title',
+];
+
 export default function PremiumSuccess() {
-  const { t } = useTranslation();
- const navigate = useNavigate();
- const location = useLocation();
- const { refreshSession, checkPremiumStatus } = useAuth();
- const [loading, setLoading] = useState(true);
- const [subscription, setSubscription] = useState<SubscriptionDetails | null>(null);
- const [countdown, setCountdown] = useState(10);
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { refreshSession, checkPremiumStatus } = useAuth();
+  const reduceMotion = useReducedMotion();
+  const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState<SubscriptionDetails | null>(null);
+  const [countdown, setCountdown] = useState(10);
 
- useEffect(() => {
- async function loadSubscriptionDetails() {
- try {
- setLoading(true);
+  useEffect(() => {
+    async function loadSubscriptionDetails() {
+      try {
+        setLoading(true);
 
- const plan = location.state?.plan || sessionStorage.getItem('premium_plan_type') || 'monthly';
- const sessionId = location.state?.session_id || '';
+        const sessionId = location.state?.session_id || '';
 
- Promise.all([
- refreshSession(),
- checkPremiumStatus()
- ]).catch(err => console.error('Error refreshing session:', err));
+        Promise.all([
+          refreshSession(),
+          checkPremiumStatus()
+        ]).catch(err => console.error('Error refreshing session:', err));
 
- const { data: subscriptionData, error } = await supabase
- .from('stripe_user_subscriptions')
- .select('*')
- .maybeSingle();
+        const { data: subscriptionData, error } = await supabase
+          .from('stripe_user_subscriptions')
+          .select('*')
+          .maybeSingle();
 
- if (error && error.code !== 'PGRST116') {
- console.error('Error fetching subscription details:', error);
- }
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching subscription details:', error);
+        }
 
- if (subscriptionData) {
- const startDate = subscriptionData.current_period_start
- ? new Date(subscriptionData.current_period_start * 1000).toLocaleDateString()
- : new Date().toLocaleDateString();
+        if (subscriptionData) {
+          const startDate = subscriptionData.current_period_start
+            ? new Date(subscriptionData.current_period_start * 1000)
+            : new Date();
 
- const nextBillingDate = subscriptionData.current_period_end
- ? new Date(subscriptionData.current_period_end * 1000).toLocaleDateString()
- : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString();
+          const nextBillingDate = subscriptionData.current_period_end
+            ? new Date(subscriptionData.current_period_end * 1000)
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
- setSubscription({
- planName: 'Premium Monthly',
- price: `$${products.premium.price}`,
- startDate,
- nextBillingDate,
- transactionId: subscriptionData.subscription_id || sessionId || 'Pending'
- });
- } else {
- setSubscription({
- planName: 'Premium Monthly',
- price: `$${products.premium.price}`,
- startDate: new Date().toLocaleDateString(),
- nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
- transactionId: sessionId || 'Pending'
- });
- }
- } catch (error) {
- console.error('Error in subscription loading:', error);
- } finally {
- setLoading(false);
- }
- }
+          setSubscription({
+            planName: 'Premium Monthly',
+            price: `$${products.premium.price}`,
+            startDate,
+            nextBillingDate,
+            transactionId: subscriptionData.subscription_id || sessionId || 'Pending'
+          });
+        } else {
+          setSubscription({
+            planName: 'Premium Monthly',
+            price: `$${products.premium.price}`,
+            startDate: new Date(),
+            nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            transactionId: sessionId || 'Pending'
+          });
+        }
+      } catch (error) {
+        console.error('Error in subscription loading:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
 
- loadSubscriptionDetails();
+    loadSubscriptionDetails();
 
- const timer = setInterval(() => {
- setCountdown(prev => {
- if (prev <= 1) {
- clearInterval(timer);
- navigate('/profile');
- return 0;
- }
- return prev - 1;
- });
- }, 1000);
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          navigate('/profile');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
- return () => {
- clearInterval(timer);
- sessionStorage.removeItem('premium_plan_type');
- };
- }, [navigate, refreshSession, checkPremiumStatus, location.state]);
+    return () => {
+      clearInterval(timer);
+      sessionStorage.removeItem('premium_plan_type');
+    };
+  }, [navigate, refreshSession, checkPremiumStatus, location.state]);
 
- return (
- <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 relative overflow-hidden">
- <motion.div
- className="max-w-2xl w-full relative z-10"
- initial={{ opacity: 0, scale: 0.9 }}
- animate={{ opacity: 1, scale: 1 }}
- transition={{ duration: 0.5 }}
- >
- <div className="rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl overflow-hidden">
- <div className="relative bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 p-8 sm:p-10 text-center overflow-hidden">
- <div className="absolute inset-0 overflow-hidden">
- {[...Array(15)].map((_, i) => (
- <motion.div
- key={i}
- className="absolute w-2 h-2 bg-white/80 rounded-full"
- initial={{
- x: Math.random() * 100 + '%',
- y: '100%',
- opacity: 0
- }}
- animate={{
- y: '-20%',
- opacity: [0, 1, 0]
- }}
- transition={{
- duration: 2 + Math.random() * 2,
- repeat: Infinity,
- delay: Math.random() * 2
- }}
- />
- ))}
- </div>
+  // Linhas do quadro da assinatura (o nome do plano agora vem traduzido).
+  const details = subscription
+    ? [
+        { label: t('premium.page.success.plan'), value: t('premium.page.success.planName') },
+        { label: t('premium.page.success.price'), value: `${subscription.price}${t('premium.page.ticket.perMonth')}` },
+        { label: t('premium.page.success.started'), value: subscription.startDate.toLocaleDateString(i18n.language) },
+        { label: t('premium.page.success.next'), value: subscription.nextBillingDate.toLocaleDateString(i18n.language) },
+      ]
+    : [];
 
- <div className="relative z-10">
- <motion.div
- className="inline-block mb-4"
- animate={{
- scale: [1, 1.2, 1],
- rotate: [0, 10, -10, 0]
- }}
- transition={{ duration: 0.6, times: [0, 0.5, 0.8, 1] }}
- >
- <div className="relative">
- <CheckCircle className="w-20 h-20 text-white drop-shadow-lg" />
- <motion.div
- className="absolute -top-2 -right-2"
- animate={{
- scale: [1, 1.3, 1],
- rotate: [0, 180, 360]
- }}
- transition={{ duration: 2, repeat: Infinity }}
- >
- <Crown className="w-10 h-10 text-yellow-200" />
- </motion.div>
- </div>
- </motion.div>
+  return (
+    <div className="prm-root min-h-[calc(100vh-4rem)] flex items-start sm:items-center justify-center px-4 py-8">
+      <motion.div
+        className="w-full max-w-xl"
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+      >
+        {/* As cartas Yu-Gi-Oh! saindo de trás do quadro, como no ingresso. */}
+        <div className="relative pt-[112px] sm:pt-[128px]">
+          <TicketFan />
+          <div
+            className="relative z-10 rounded-3xl px-5 py-8 sm:px-10 sm:py-10"
+            style={{
+              background: `radial-gradient(110% 60% at 50% 0%, rgba(244,196,84,0.2), transparent 62%), ${VELVET}`,
+              boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.45), 0 30px 60px -36px rgba(0,0,0,0.9), 0 0 40px -20px rgba(244,196,84,0.45)',
+            }}
+          >
+            <div className="text-center">
+              <h1 style={{ ...PIXEL, color: PAPER }} className="text-[34px] sm:text-[46px] leading-[1.02]">
+                {t('premium.page.success.title')}
+              </h1>
+              <p className="mt-3 text-base sm:text-lg" style={{ color: MIST }}>
+                {t('premium.page.success.subtitle')}
+              </p>
+            </div>
 
- <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2 drop-shadow-md">
- Welcome to Premium!
- </h1>
- <p className="text-lg text-white/90 font-medium">
- Your subscription is now active
- </p>
- </div>
- </div>
+            {loading ? (
+              <p role="status" className="mt-10 mb-4 flex items-center justify-center gap-2.5 text-[15px]" style={{ color: MIST }}>
+                <Loader2 className="w-5 h-5 animate-spin" aria-hidden />
+                {t('premium.page.success.loading')}
+              </p>
+            ) : (
+              <>
+                <section aria-labelledby="prm-success-details" className="mt-8 rounded-2xl p-5" style={glassPanel('#F4C454')}>
+                  <h2 id="prm-success-details" style={{ ...PIXEL, color: PREMIUM_GOLD }} className="text-[17px] leading-none tracking-[0.1em] uppercase">
+                    {t('premium.page.success.details')}
+                  </h2>
+                  <dl className="mt-3 divide-y divide-white/10">
+                    {details.map((row) => (
+                      <div key={row.label} className="flex items-center justify-between gap-4 py-2.5 text-[15px]">
+                        <dt style={{ color: MIST }}>{row.label}</dt>
+                        <dd className="font-semibold text-right" style={{ color: PAPER }}>
+                          {row.value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
 
- <div className="p-6 sm:p-8">
- {loading ? (
- <div className="flex flex-col items-center justify-center py-12">
- <motion.div
- animate={{ rotate: 360 }}
- transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
- >
- <Sparkles className="w-10 h-10 text-yellow-500 mb-4" />
- </motion.div>
- <p className="text-gray-600 dark:text-gray-400">Setting up your premium account...</p>
- </div>
- ) : (
- <>
- <div className="grid grid-cols-3 gap-3 mb-6">
- <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60">
- <Swords className="w-7 h-7 text-yellow-500 mx-auto mb-2" />
- <p className="text-xl font-bold text-gray-900 dark:text-white">∞</p>
- <p className="text-xs text-gray-600 dark:text-gray-400">{t('premium.unlimitedDuelsShort')}</p>
- </div>
- <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60">
- <Shield className="w-7 h-7 text-blue-500 mx-auto mb-2" />
- <p className="text-xl font-bold text-gray-900 dark:text-white">Pro</p>
- <p className="text-xs text-gray-600 dark:text-gray-400">{t('premium.featuresShort')}</p>
- </div>
- <div className="text-center p-4 rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60">
- <PartyPopper className="w-7 h-7 text-green-500 mx-auto mb-2" />
- <p className="text-xl font-bold text-gray-900 dark:text-white">VIP</p>
- <p className="text-xs text-gray-600 dark:text-gray-400">{t('premium.supportShort')}</p>
- </div>
- </div>
+                <section aria-labelledby="prm-success-included" className="mt-4 rounded-2xl p-5" style={glassPanel('#F0ABFC')}>
+                  <h2 id="prm-success-included" style={{ ...PIXEL, color: PAPER }} className="text-[17px] leading-none tracking-[0.1em] uppercase">
+                    {t('premium.page.success.included')}
+                  </h2>
+                  <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {INCLUDED.map((key) => (
+                      <li key={key} className="flex items-center gap-2.5 text-[15px]" style={{ color: PAPER }}>
+                        <span aria-hidden className="grid place-items-center w-5 h-5 rounded-full shrink-0" style={{ background: 'rgba(244,196,84,0.18)' }}>
+                          <Check className="w-3.5 h-3.5" style={{ color: PREMIUM_GOLD }} />
+                        </span>
+                        {t(key)}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
 
- <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60 p-5 mb-5">
- <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center">
- <Gift className="w-5 h-5 text-pink-500 mr-2" />
- Subscription Details
- </h2>
-
- <div className="space-y-2">
- <div className="flex items-center justify-between py-2 border-b border-gray-200/50 dark:border-gray-600/50">
- <div className="flex items-center text-gray-600 dark:text-gray-400">
- <Crown className="w-4 h-4 text-yellow-500 mr-2" />
- <span className="text-sm">Plan</span>
- </div>
- <div className="text-gray-900 dark:text-white font-semibold text-sm">
- {subscription?.planName}
- </div>
- </div>
-
- <div className="flex items-center justify-between py-2 border-b border-gray-200/50 dark:border-gray-600/50">
- <div className="flex items-center text-gray-600 dark:text-gray-400">
- <CreditCard className="w-4 h-4 text-blue-500 mr-2" />
- <span className="text-sm">Price</span>
- </div>
- <div className="text-gray-900 dark:text-white font-semibold text-sm">
- {subscription?.price}
- </div>
- </div>
-
- <div className="flex items-center justify-between py-2 border-b border-gray-200/50 dark:border-gray-600/50">
- <div className="flex items-center text-gray-600 dark:text-gray-400">
- <Calendar className="w-4 h-4 text-green-500 mr-2" />
- <span className="text-sm">Started</span>
- </div>
- <div className="text-gray-900 dark:text-white font-semibold text-sm">
- {subscription?.startDate}
- </div>
- </div>
-
- <div className="flex items-center justify-between py-2">
- <div className="flex items-center text-gray-600 dark:text-gray-400">
- <Calendar className="w-4 h-4 text-orange-500 mr-2" />
- <span className="text-sm">Next Billing</span>
- </div>
- <div className="text-gray-900 dark:text-white font-semibold text-sm">
- {subscription?.nextBillingDate}
- </div>
- </div>
- </div>
- </div>
-
- <div className="rounded-2xl bg-gradient-to-br from-yellow-100/50 to-orange-100/50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200/50 dark:border-yellow-800/30 p-5 mb-6">
- <h3 className="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center">
- <Sparkles className="w-5 h-5 text-yellow-500 mr-2" />
- {t('premium.benefits')}
- </h3>
- <ul className="space-y-2">
- {[
- t('premium.unlimitedDuels'),
- t('premium.fullShelves'),
- t('premium.aiReviews'),
- t('premium.exclusiveCustomization'),
- t('premium.prioritySupport')
- ].map((benefit, index) => (
- <li
- key={index}
- className="flex items-start"
- >
- <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
- <span className="text-sm text-gray-700 dark:text-gray-300">{benefit}</span>
- </li>
- ))}
- </ul>
- </div>
-
- <div className="text-center space-y-3">
- <button
- onClick={() => navigate('/profile')}
- className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 text-white rounded-xl hover:from-yellow-500 hover:to-orange-500 transition-all duration-300 shadow-lg hover:shadow-xl font-bold"
- >
- Explore Your Profile
- <ArrowRight className="w-5 h-5 ml-2" />
- </button>
-
- <motion.p
- className="text-sm text-gray-500 dark:text-gray-400"
- animate={{ opacity: [1, 0.5, 1] }}
- transition={{ duration: 2, repeat: Infinity }}
- >
- Redirecting in {countdown} seconds...
- </motion.p>
- </div>
- </>
- )}
- </div>
- </div>
- </motion.div>
- </div>
- );
+                <div className="mt-7 text-center">
+                  <button type="button" onClick={() => navigate('/profile')} className={`${GOLD_BUTTON} sm:w-auto sm:px-8`}>
+                    {t('premium.page.success.explore')}
+                    <ArrowRight className="w-5 h-5" aria-hidden />
+                  </button>
+                  <p className="mt-3 text-sm" style={{ color: MIST }}>
+                    {t('premium.page.success.redirect', { count: countdown })}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
 }

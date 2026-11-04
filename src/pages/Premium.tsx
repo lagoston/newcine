@@ -1,361 +1,275 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Crown, Star, Palette, Check, Settings, Loader2, Shield, Sparkles, Infinity, Swords, LibraryBig, PenLine } from 'lucide-react';
+import { ArrowLeft, Crown, ShieldCheck, Loader2 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { createCheckoutSession, createPortalSession } from '../lib/stripe';
 import { WEB_CHECKOUT_AVAILABLE } from '../lib/platform';
 import { toast } from 'sonner';
 import { products } from '../stripe-config';
-import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { Trans, useTranslation } from 'react-i18next';
+import { PAPER, MIST, PIXEL, FOCUS_RING, VELVET } from '../lib/oracleTheme';
+import PremiumTicket, { GOLD_BUTTON } from '../components/premium/PremiumTicket';
+import PremiumOracles from '../components/premium/PremiumOracles';
+import PremiumCollection from '../components/premium/PremiumCollection';
+import PremiumProfile from '../components/premium/PremiumProfile';
+import PremiumCompare from '../components/premium/PremiumCompare';
+import PremiumMember from '../components/premium/PremiumMember';
+import { OracleFaces, PREMIUM_GOLD } from '../components/premium/parts';
+import '../components/premium/premium.css';
 
-interface FeatureProps {
- icon: React.ElementType;
- title: string;
- description: string;
-}
+// Página Premium (/premium) — redesenhada em 04/11/2026: "a versão estendida
+// do CineOracle". Vende o Premium de hoje com as peças do próprio produto
+// (cartas dos oráculos, ficha especial, pôsteres com efeito, molduras e
+// banners), em capítulos ("rolos"): primeiro os oráculos e as prateleiras,
+// depois a coleção, depois o perfil, e uma tabela só com o que tem número.
+//
+// Inventário do que o Premium dá HOJE (conferido no código e no banco em
+// 04/11/2026 — se algo mudar, mude aqui e nos textos premium.page.*):
+//   1. Biblioteca dos Oráculos inteira — OracleLibraries.tsx: sem Premium,
+//      20 títulos por prateleira (FREE_LIMIT); com Premium, todos.
+//   2. Resenha do Oráculo no seu estilo — Edge Function generate-ai-review:
+//      Premium + 10 resenhas reais; 1 por dia + 1 nova tentativa.
+//   3. Duelo de Watchlist — Edge Function watchlist-duel: só Premium, sem
+//      limite (entra pela Watchlist da Biblioteca).
+//   4. Sussurros — get_user_indication_limit: 20 por dia (5 sem Premium).
+//   5. Ficha especial semanal do Poster Jackpot — get_jackpot_state: 1 por
+//      semana, não acumula, sempre com efeito.
+//   6. Molduras e banners Premium (11 + 11), cartas Yu-Gi-Oh! e Horror e os
+//      3 efeitos no nome — cosmetic_requirements / lib/frames, banners,
+//      textEffects; as temáticas pedem também a tag do tema.
+//   7. Avatar animado (GIF/WebP até 2 MB) — Profile.tsx.
+//   8. A coroa ao lado do nome — ProfileIdentityCard, Comunidade.
+// Saíram da página por não existirem mais (ou nunca terem existido):
+// "Duelos ilimitados" do Duelo do Oráculo (sem porta no site desde
+// 02/11/2026), "20 tickets por dia" (o sistema de tickets saiu do site),
+// "Suporte prioritário", "Mais recursos" e o "Pro/VIP" do PremiumSuccess.
+//
+// O checkout, o portal do Stripe, o preço e os planos continuam exatamente
+// como eram (lib/stripe.ts, stripe-config.ts); aqui mudou só a apresentação.
 
-const Feature = ({ icon: Icon, title, description }: FeatureProps) => (
- <div className="flex items-start gap-4 p-5 rounded-2xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-lg">
- <div className="shrink-0 p-3 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg">
- <Icon className="w-5 h-5 text-white" />
- </div>
- <div>
- <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{title}</h3>
- <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{description}</p>
- </div>
- </div>
+// Selo do topo ("CineOracle Premium", "Premium ativo").
+const Eyebrow: React.FC<{ label: string }> = ({ label }) => (
+  <p
+    className="inline-flex items-center gap-2 h-9 my-1 px-3.5 rounded-full text-sm font-semibold"
+    style={{ color: PREMIUM_GOLD, background: 'rgba(244,196,84,0.1)', boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.4)' }}
+  >
+    <Crown className="w-4 h-4" aria-hidden />
+    {label}
+  </p>
 );
 
 export default function Premium() {
- const navigate = useNavigate();
- const [searchParams] = useSearchParams();
- const { session, isPremium, isLifetimePremium } = useAuth();
- const { t } = useTranslation();
- const [loading, setLoading] = useState({
- monthly: false,
- portal: false
- });
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { session, isPremium, isLifetimePremium } = useAuth();
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState({
+    monthly: false,
+    portal: false,
+  });
 
- useEffect(() => {
- if (searchParams.get('success') === 'true') {
- navigate('/premium-success', { replace: true });
- }
- }, [searchParams, navigate]);
+  useEffect(() => {
+    if (searchParams.get('success') === 'true') {
+      // 04/11/2026: a rota da tela de boas-vindas é /premium/success (App.tsx);
+      // o caminho antigo (/premium-success) não existia e caía na home pelo
+      // "*". Leva junto o plano e a sessão que o Stripe devolve na URL.
+      navigate('/premium/success', {
+        replace: true,
+        state: { plan: searchParams.get('plan') || undefined, session_id: searchParams.get('session_id') || undefined },
+      });
+    }
+  }, [searchParams, navigate]);
 
- useEffect(() => {
- if (!session) {
- navigate('/auth');
- }
- }, [session, navigate]);
+  useEffect(() => {
+    if (!session) {
+      navigate('/auth');
+    }
+  }, [session, navigate]);
 
- const handleSubscribe = async () => {
- if (!session?.user) {
- toast.error('Please sign in to subscribe');
- navigate('/auth');
- return;
- }
+  const handleSubscribe = async () => {
+    if (!session?.user) {
+      toast.error(t('premium.page.ticket.signIn'));
+      navigate('/auth');
+      return;
+    }
 
- try {
- setLoading(prev => ({ ...prev, monthly: true }));
+    try {
+      setLoading((prev) => ({ ...prev, monthly: true }));
 
- const checkoutUrl = await createCheckoutSession({
- priceId: products.premium.priceId
- });
+      const checkoutUrl = await createCheckoutSession({
+        priceId: products.premium.priceId,
+      });
 
- if (checkoutUrl) {
- sessionStorage.setItem('premium_plan_type', 'monthly');
- window.location.href = checkoutUrl;
- }
- } catch (error) {
- console.error('Error creating checkout session:', error);
- toast.error('Failed to start checkout. Please try again.');
- } finally {
- setLoading(prev => ({ ...prev, monthly: false }));
- }
- };
+      if (checkoutUrl) {
+        sessionStorage.setItem('premium_plan_type', 'monthly');
+        window.location.href = checkoutUrl;
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      // 04/11/2026: os avisos de erro eram fixos em inglês.
+      toast.error(t('premium.page.ticket.checkoutError'));
+    } finally {
+      setLoading((prev) => ({ ...prev, monthly: false }));
+    }
+  };
 
- const handleManageSubscription = async () => {
- if (!session?.user) {
- toast.error('Please sign in to manage subscription');
- return;
- }
+  const handleManageSubscription = async () => {
+    if (!session?.user) {
+      toast.error(t('premium.page.ticket.signIn'));
+      return;
+    }
 
- try {
- setLoading(prev => ({ ...prev, portal: true }));
- const portalUrl = await createPortalSession();
- if (portalUrl) {
- window.location.href = portalUrl;
- }
- } catch (error) {
- console.error('Error opening customer portal:', error);
- toast.error('Failed to open subscription management.');
- } finally {
- setLoading(prev => ({ ...prev, portal: false }));
- }
- };
+    try {
+      setLoading((prev) => ({ ...prev, portal: true }));
+      const portalUrl = await createPortalSession();
+      if (portalUrl) {
+        window.location.href = portalUrl;
+      }
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
+      toast.error(t('premium.page.ticket.portalError'));
+    } finally {
+      setLoading((prev) => ({ ...prev, portal: false }));
+    }
+  };
 
- return (
- <div className="min-h-[calc(100vh-4rem)] py-8 px-4 relative overflow-hidden">
- <div className="max-w-5xl mx-auto relative z-10">
- <div className="flex items-center gap-4 mb-8">
- <button
- onClick={() => navigate(-1)}
- className="p-2.5 bg-white/60 dark:bg-gray-800/60 hover:bg-white/80 dark:hover:bg-gray-700/80 rounded-xl transition-colors border border-white/40 dark:border-gray-600/40"
- >
- <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
- </button>
- </div>
+  // O preço continua vindo do stripe-config (o mesmo $2.99 de antes).
+  const priceLabel = `$${products.premium.price.toFixed(2)}`;
 
- {isPremium ? (
- <motion.div
- className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700/60 shadow-2xl p-8 sm:p-12"
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- >
- <div className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden">
- <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-full blur-3xl" />
- <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-amber-400/20 to-yellow-500/20 rounded-full blur-3xl" />
- </div>
+  return (
+    <div className="prm-root min-h-[calc(100vh-4rem)]">
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-8 pt-4 sm:pt-6 pb-8">
+        {/* Voltar: no celular e no tablet fica na mesma linha do selo do topo
+            (assim o botão de assinar aparece sem rolar num celular comum);
+            no computador, o texto vai à esquerda e o botão volta ao fluxo. */}
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          aria-label={t('common.back')}
+          className={`absolute left-4 sm:left-8 top-4 sm:top-6 lg:static z-20 grid place-items-center w-11 h-11 rounded-xl ring-1 ring-white/15 hover:ring-white/35 hover:bg-white/5 transition ${FOCUS_RING}`}
+          style={{ color: PAPER }}
+        >
+          <ArrowLeft className="w-5 h-5" aria-hidden />
+        </button>
 
- <div className="relative z-10">
- <div className="text-center mb-8">
- <motion.div
- className={`inline-block p-4 rounded-full mb-4 shadow-xl ${
- isLifetimePremium
- ? 'bg-gradient-to-br from-emerald-400 to-teal-600'
- : 'bg-gradient-to-br from-yellow-400 to-orange-500'
- }`}
- animate={{ rotate: [0, 10, -10, 0] }}
- transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
- >
- {isLifetimePremium ? (
- <Infinity className="w-12 h-12 text-white" />
- ) : (
- <Crown className="w-12 h-12 text-white" />
- )}
- </motion.div>
- <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white mb-2">
- {isLifetimePremium ? t('premium.lifetimePremium') : t('premium.yourePremium')}
- </h2>
- <p className="text-lg text-gray-600 dark:text-gray-400">
- {isLifetimePremium ? t('premium.lifetimeThankYou') : t('premium.thankYou')}
- </p>
- </div>
+        {isPremium ? (
+          <>
+            <section aria-labelledby="prm-title" className="grid gap-4 lg:gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center pt-1 lg:pt-4 pb-4 lg:pb-8">
+              <div className="text-center lg:text-left">
+                <Eyebrow label={isLifetimePremium ? t('premium.page.member.kickerLifetime') : t('premium.page.member.kicker')} />
+                <h1 id="prm-title" style={{ ...PIXEL, color: PAPER }} className="mt-4 text-[36px] sm:text-[56px] lg:text-[64px] leading-[0.98]">
+                  <Trans i18nKey="premium.page.member.title" components={{ gold: <span style={{ color: PREMIUM_GOLD }} /> }} />
+                </h1>
+                <p className="mt-4 sm:mt-5 text-base sm:text-lg leading-relaxed max-w-xl mx-auto lg:mx-0" style={{ color: MIST }}>
+                  {t('premium.page.member.lead')}
+                </p>
+              </div>
+              {/* No app das lojas o portal do Stripe não abre (a cobrança lá é
+                  da loja); no vitalício não há assinatura para gerenciar. */}
+              <PremiumTicket
+                mode="member"
+                lifetime={isLifetimePremium}
+                canManage={!isLifetimePremium && WEB_CHECKOUT_AVAILABLE}
+                managing={loading.portal}
+                onManage={handleManageSubscription}
+              />
+            </section>
+            <PremiumMember />
+          </>
+        ) : (
+          <>
+            <section aria-labelledby="prm-title" className="grid gap-4 lg:gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center pt-1 lg:pt-4 pb-4 lg:pb-8">
+              <div className="text-center lg:text-left">
+                <Eyebrow label={t('premium.page.eyebrow')} />
+                <h1 id="prm-title" style={{ ...PIXEL, color: PAPER }} className="mt-4 text-[38px] sm:text-[60px] lg:text-[68px] leading-[0.96]">
+                  <Trans i18nKey="premium.page.title" components={{ gold: <span style={{ color: PREMIUM_GOLD }} /> }} />
+                </h1>
+                <p className="mt-4 sm:mt-5 text-base sm:text-lg leading-relaxed max-w-xl mx-auto lg:mx-0" style={{ color: MIST }}>
+                  {t('premium.page.lead')}
+                </p>
+                {/* Atalhos para os capítulos (do tablet para cima: no celular
+                    o ingresso vem logo depois do texto). */}
+                <nav aria-label={t('premium.page.jumpAria')} className="hidden sm:block mt-7">
+                  <ul className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                    {(['oracles', 'collection', 'profile', 'compare'] as const).map((key) => (
+                      <li key={key}>
+                        <a
+                          href={`#prm-${key}`}
+                          className={`inline-flex items-center h-11 px-4 rounded-full text-sm font-medium ring-1 ring-white/15 hover:ring-[color:var(--prm-gold-line)] hover:bg-white/5 transition ${FOCUS_RING}`}
+                          style={{ color: PAPER }}
+                        >
+                          {t(`premium.page.jump.${key}`)}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              </div>
+              <PremiumTicket
+                mode="offer"
+                priceLabel={priceLabel}
+                checkoutAvailable={WEB_CHECKOUT_AVAILABLE}
+                loading={loading.monthly}
+                onSubscribe={handleSubscribe}
+              />
+            </section>
 
- <div className="grid sm:grid-cols-3 gap-4 mb-8">
- <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60 p-5 text-center">
- <Swords className="w-8 h-8 text-yellow-500 mx-auto mb-3" />
- <p className="text-2xl font-bold text-gray-900 dark:text-white">∞</p>
- <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.unlimitedDuelsShort')}</p>
- </div>
- <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60 p-5 text-center">
- <Palette className="w-8 h-8 text-blue-500 mx-auto mb-3" />
- <p className="text-2xl font-bold text-gray-900 dark:text-white">{t('premium.customization')}</p>
- <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.exclusiveFrames')}</p>
- </div>
- <div className="rounded-2xl bg-white/50 dark:bg-gray-700/50 border border-white/60 dark:border-gray-600/60 p-5 text-center">
- {isLifetimePremium ? (
- <>
- <Infinity className="w-8 h-8 text-emerald-500 mx-auto mb-3" />
- <p className="text-2xl font-bold text-gray-900 dark:text-white">{t('premium.lifetime')}</p>
- <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.neverExpires')}</p>
- </>
- ) : (
- <>
- <Shield className="w-8 h-8 text-green-500 mx-auto mb-3" />
- <p className="text-2xl font-bold text-gray-900 dark:text-white">{t('premium.active')}</p>
- <p className="text-sm text-gray-600 dark:text-gray-400">{t('premium.subscriptionActive')}</p>
- </>
- )}
- </div>
- </div>
+            <PremiumOracles />
+            <PremiumCollection />
+            <PremiumProfile />
+            <PremiumCompare />
 
- {/* No app das lojas o portal do Stripe não abre (a cobrança lá é da loja). */}
- {!isLifetimePremium && WEB_CHECKOUT_AVAILABLE && (
- <div className="text-center">
- <button
- onClick={handleManageSubscription}
- disabled={loading.portal}
- className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-xl hover:from-gray-800 hover:to-gray-900 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium text-lg"
- >
- {loading.portal ? (
- <>
- <Loader2 className="w-5 h-5 animate-spin mr-2" />
- {t('common.loading')}
- </>
- ) : (
- <>
- <Settings className="w-5 h-5 mr-2" />
- {t('premium.manageSubscription')}
- </>
- )}
- </button>
- </div>
- )}
- </div>
- </motion.div>
- ) : (
- <>
- <motion.div
- className="text-center mb-12"
- initial={{ opacity: 0, y: -20 }}
- animate={{ opacity: 1, y: 0 }}
- >
- <motion.div
- className="inline-block mb-4"
- animate={{
- scale: [1, 1.1, 1],
- rotate: [0, 5, -5, 0]
- }}
- transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
- >
- <div className="p-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-xl">
- <Crown className="w-12 h-12 text-white" />
- </div>
- </motion.div>
- <h1 className="text-4xl sm:text-5xl font-extrabold mb-4">
- <span className="bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600 bg-clip-text text-transparent">
- {t('premium.title')}
- </span>
- </h1>
- <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
- {t('premium.unlockFullPower')}
- </p>
- </motion.div>
-
- <div className="flex justify-center mb-12">
- <motion.div
- className="relative rounded-3xl bg-white/80 dark:bg-gray-800/75 border-2 border-yellow-400/60 dark:border-yellow-500/40 shadow-2xl overflow-hidden max-w-md w-full"
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- >
- <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 text-white text-sm font-bold px-4 py-2.5 text-center">
- <Sparkles className="w-4 h-4 inline-block mr-2" />
- {t('premium.premiumPlan')}
- </div>
-
- <div className="p-8 pt-16">
- <div className="text-center mb-6">
- <Crown className="w-14 h-14 mx-auto mb-4 text-yellow-500" />
- <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
- {t('premium.monthly')}
- </h3>
- <p className="text-gray-500 dark:text-gray-400 text-sm">
- {t('premium.fullAccess')}
- </p>
- </div>
-
- <div className="text-center mb-6">
- <div className="flex items-baseline justify-center mb-2">
- <span className="text-5xl font-extrabold bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
- $2.99
- </span>
- <span className="text-gray-500 dark:text-gray-400 ml-2 text-lg">/month</span>
- </div>
- </div>
-
- <ul className="space-y-3 mb-8">
- {[
- t('premium.unlimitedDuels'),
- t('premium.fullShelves'),
- t('premium.aiReviews'),
- t('premium.exclusiveCustomization'),
- t('premium.prioritySupport'),
- t('premium.cancelAnytime'),
- t('premium.moreFeatures')
- ].map((feature, index) => (
- <li
- key={index}
- className="flex items-center gap-3 text-gray-700 dark:text-gray-300"
- >
- <div className="p-1 rounded-full bg-green-100 dark:bg-green-900/30">
- <Check className="w-4 h-4 text-green-500" />
- </div>
- <span>{feature}</span>
- </li>
- ))}
- </ul>
-
- {/* Dentro do app das lojas o checkout do site não pode abrir: a assinatura
- por lá vai ser cobrada pela própria loja (em breve). */}
- {WEB_CHECKOUT_AVAILABLE ? (
- <button
- onClick={handleSubscribe}
- disabled={loading.monthly}
- className="w-full py-4 px-6 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600 hover:from-yellow-600 hover:via-orange-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
- >
- {loading.monthly ? (
- <>
- <Loader2 className="w-5 h-5 animate-spin" />
- {t('premium.processing')}
- </>
- ) : (
- <>
- <Crown className="w-5 h-5" />
- {t('premium.subscribeNow')}
- </>
- )}
- </button>
- ) : (
- <p className="w-full py-4 px-6 rounded-xl text-center text-sm font-semibold bg-white/5 ring-1 ring-white/10 text-gray-300">
- {t('premium.inAppSoon')}
- </p>
- )}
- </div>
- </motion.div>
- </div>
-
- <div className="max-w-4xl mx-auto">
- <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">
- {t('premium.whatsIncluded')}
- </h2>
- <div className="grid sm:grid-cols-2 gap-4">
- <Feature
- icon={Swords}
- title={t('premium.unlimitedDuels')}
- description={t('premium.unlimitedDuelsDesc')}
- />
- <Feature
- icon={LibraryBig}
- title={t('premium.fullShelves')}
- description={t('premium.fullShelvesDesc')}
- />
- <Feature
- icon={PenLine}
- title={t('premium.aiReviews')}
- description={t('premium.aiReviewsDesc')}
- />
- <Feature
- icon={Palette}
- title={t('premium.exclusiveCustomization')}
- description={t('premium.exclusiveCustomizationDesc')}
- />
- <Feature
- icon={Star}
- title={t('premium.prioritySupport')}
- description={t('premium.prioritySupportDesc')}
- />
- <Feature
- icon={Shield}
- title={t('premium.cancelAnytime')}
- description={t('premium.cancelAnytimeDesc')}
- />
- </div>
- </div>
-
- <div className="mt-12 text-center">
- <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
- <Shield className="w-4 h-4 inline-block mr-1" />
- {t('premium.securePayment')}
- </p>
- <p className="text-xs text-gray-400 dark:text-gray-500">
- {t('premium.autoRenew')}
- </p>
- </div>
- </>
- )}
- </div>
- </div>
- );
+            {/* Fecho: o mesmo botão, para quem leu até o fim. */}
+            <section aria-labelledby="prm-closing" className="py-12 sm:py-16">
+              <div
+                className="rounded-3xl px-6 py-10 sm:px-12 sm:py-14 text-center"
+                style={{
+                  background: `radial-gradient(90% 120% at 50% 0%, rgba(244,196,84,0.18), transparent 60%), ${VELVET}`,
+                  boxShadow: 'inset 0 0 0 1px rgba(244,196,84,0.4), 0 30px 60px -40px rgba(244,196,84,0.6)',
+                }}
+              >
+                <OracleFaces size={44} className="justify-center" />
+                <h2 id="prm-closing" style={{ ...PIXEL, color: PAPER }} className="mt-5 text-[30px] sm:text-[44px] leading-[1.04]">
+                  {t('premium.page.closing.title')}
+                </h2>
+                <p className="mt-3 text-[15px] sm:text-base" style={{ color: MIST }}>
+                  <span style={{ ...PIXEL, color: PAPER }} className="text-[22px]">
+                    {priceLabel}
+                  </span>
+                  {t('premium.page.ticket.perMonth')} · {t('premium.page.ticket.renews')}
+                </p>
+                <div className="mt-7 mx-auto max-w-[320px]">
+                  {WEB_CHECKOUT_AVAILABLE ? (
+                    <button type="button" onClick={handleSubscribe} disabled={loading.monthly} aria-busy={loading.monthly || undefined} className={GOLD_BUTTON}>
+                      {loading.monthly ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" aria-hidden />
+                          {t('premium.page.ticket.opening')}
+                        </>
+                      ) : (
+                        <>
+                          <Crown className="w-5 h-5" aria-hidden />
+                          {t('premium.page.ticket.subscribe')}
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <p className="rounded-xl px-4 py-3 text-sm leading-snug ring-1 ring-white/15 bg-white/5" style={{ color: PAPER }}>
+                      {t('premium.page.ticket.inApp')}
+                    </p>
+                  )}
+                </div>
+                {WEB_CHECKOUT_AVAILABLE && (
+                  <p className="mt-4 inline-flex items-center gap-1.5 text-[13px]" style={{ color: MIST }}>
+                    <ShieldCheck className="w-4 h-4" aria-hidden />
+                    {t('premium.page.ticket.secure')}
+                  </p>
+                )}
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }

@@ -1,0 +1,235 @@
+/* ==========================================================================
+   Página Premium (04/11/2026) — "a versão estendida do CineOracle".
+
+   A página vende o Premium com peças do próprio produto (cartas dos
+   oráculos, ficha especial, pôsteres com efeito, molduras e banners), e
+   não com ícones. O dourado é a cor do Premium no site inteiro (a coroa
+   do perfil, o selo "Premium" do Personalizar, o aro da ficha), então é
+   ele que marca o que é exclusivo aqui; o resto segue o padrão noite
+   (NIGHT / VELVET / PAPER / MIST, ver lib/oracleTheme.ts).
+
+   Tudo com prefixo prm- para não esbarrar em outras telas.
+   ========================================================================== */
+
+.prm-root {
+  /* Ouro do Premium: o mesmo do aro da ficha comum (CHIP_COLORS.normal.ring).
+     Sobre o fundo noite (#120D22) dá 11:1 de contraste — serve para texto. */
+  --prm-gold: #f4c454;
+  --prm-gold-soft: rgba(244, 196, 84, 0.16);
+  --prm-gold-line: rgba(244, 196, 84, 0.42);
+  overflow-x: clip;
+}
+
+/* --------------------------------------------------------------------------
+   O ingresso (preço e botão). Duas peças empilhadas — o corpo e o canhoto —
+   cada uma com dois recortes redondos na emenda, como o picote de um
+   ingresso de cinema. A sombra fica no invólucro (drop-shadow segue o
+   recorte da máscara; box-shadow seria cortado por ela).
+   -------------------------------------------------------------------------- */
+
+.prm-ticket {
+  filter: drop-shadow(0 26px 34px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 26px rgba(244, 196, 84, 0.16));
+}
+
+.prm-ticket-main,
+.prm-ticket-stub {
+  position: relative;
+  box-shadow: inset 0 0 0 1px var(--prm-gold-line), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.prm-ticket-main {
+  border-radius: 22px 22px 0 0;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(244, 196, 84, 0.2), transparent 62%),
+    linear-gradient(180deg, #2a1e3f 0%, #1c1433 70%, #191130 100%);
+  -webkit-mask:
+    radial-gradient(circle 12px at 0 100%, #0000 96%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 12px at 100% 100%, #0000 96%, #000) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle 12px at 0 100%, #0000 96%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 12px at 100% 100%, #0000 96%, #000) right / 51% 100% no-repeat;
+}
+
+.prm-ticket-stub {
+  border-radius: 0 0 22px 22px;
+  background: linear-gradient(180deg, #191130, #150f28);
+  -webkit-mask:
+    radial-gradient(circle 12px at 0 0, #0000 96%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 12px at 100% 0, #0000 96%, #000) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle 12px at 0 0, #0000 96%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 12px at 100% 0, #0000 96%, #000) right / 51% 100% no-repeat;
+}
+
+/* O picote: pontinhos dourados entre os dois recortes. */
+.prm-ticket-stub::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 20px;
+  right: 20px;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--prm-gold-line) 0 6px, transparent 6px 12px);
+}
+
+/* O botão dourado. Texto INK sobre o ouro: 9:1. */
+.prm-cta {
+  color: #221b36;
+  background: linear-gradient(180deg, #ffe7a3 0%, #f4c454 50%, #d99d2e 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -2px 0 rgba(120, 70, 10, 0.35),
+    0 12px 26px -12px rgba(244, 196, 84, 0.7);
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+.prm-cta:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.prm-cta:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.prm-cta:disabled {
+  cursor: progress;
+  filter: saturate(0.7) brightness(0.92);
+}
+
+/* Selo "Ativo / Vitalício" carimbado no ingresso de quem já assina. */
+.prm-stamp {
+  color: var(--prm-gold);
+  box-shadow: inset 0 0 0 2px var(--prm-gold);
+  transform: rotate(-6deg);
+}
+
+/* --------------------------------------------------------------------------
+   "Rolo 1, 2, 3": o marcador de cada capítulo, com os furinhos de película.
+   -------------------------------------------------------------------------- */
+
+.prm-reel {
+  color: var(--prm-gold);
+}
+.prm-reel::before {
+  content: '';
+  width: 18px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  background:
+    repeating-linear-gradient(90deg, #120d22 0 2px, transparent 2px 5px) top 1px left 1px / calc(100% - 2px) 2px no-repeat,
+    repeating-linear-gradient(90deg, #120d22 0 2px, transparent 2px 5px) bottom 1px left 1px / calc(100% - 2px) 2px no-repeat,
+    var(--prm-gold);
+}
+
+/* --------------------------------------------------------------------------
+   A fileira cortada no 20º título (Prateleiras inteiras): 32 capinhas em
+   grade, que escala com a largura. As 20 primeiras são as de todo mundo;
+   as outras, douradas, são as do Premium.
+   -------------------------------------------------------------------------- */
+
+.prm-shelf {
+  display: grid;
+  grid-template-columns: repeat(32, minmax(0, 1fr));
+  gap: 3px;
+  -webkit-mask: linear-gradient(90deg, #000 82%, transparent);
+  mask: linear-gradient(90deg, #000 82%, transparent);
+}
+.prm-shelf > span {
+  aspect-ratio: 2 / 3;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(189, 180, 214, 0.42), rgba(189, 180, 214, 0.16));
+}
+.prm-shelf > span.is-premium {
+  background: linear-gradient(180deg, rgba(244, 196, 84, 0.75), rgba(244, 196, 84, 0.28));
+}
+/* O corte: uma linha tracejada entre a 20ª e a 21ª capinha. */
+.prm-shelf > span.is-cut {
+  position: relative;
+}
+.prm-shelf > span.is-cut::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  right: -2.5px;
+  width: 2px;
+  background: repeating-linear-gradient(180deg, #f3ead3 0 3px, transparent 3px 6px);
+}
+
+/* --------------------------------------------------------------------------
+   A chave do Duelo de Watchlist: 8 → 4 → 2 → 1.
+   -------------------------------------------------------------------------- */
+
+.prm-bracket {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+.prm-bracket-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 4px;
+}
+.prm-bracket-slot {
+  height: 14px;
+  border-radius: 3px;
+}
+.prm-bracket-slot.is-you {
+  background: rgba(167, 139, 250, 0.55);
+}
+.prm-bracket-slot.is-friend {
+  background: rgba(56, 189, 248, 0.5);
+}
+.prm-bracket-slot.is-mixed {
+  background: linear-gradient(90deg, rgba(167, 139, 250, 0.45), rgba(56, 189, 248, 0.45));
+}
+.prm-bracket-slot.is-winner {
+  height: 22px;
+  background: var(--prm-gold);
+  box-shadow: 0 0 18px -2px rgba(244, 196, 84, 0.65);
+}
+
+/* --------------------------------------------------------------------------
+   Vitrine (molduras, banners, efeitos): as animações ficam PARADAS e só
+   rodam com o mouse em cima do bloco ou com o foco de teclado nele — como
+   no Personalizar perfil (são várias animações pesadas ao mesmo tempo).
+   ::before/::after não obedecem estilo inline, por isso é CSS de verdade.
+   -------------------------------------------------------------------------- */
+
+.prm-pause :is(.co-frame, .co-banner, [class*='animate-']),
+.prm-pause :is(.co-frame, .co-banner)::before,
+.prm-pause :is(.co-frame, .co-banner)::after {
+  animation-play-state: paused !important;
+}
+.prm-pause .prm-tile:is(:hover, :focus-within) :is(.co-frame, .co-banner, [class*='animate-']),
+.prm-pause .prm-tile:is(:hover, :focus-within) :is(.co-frame, .co-banner)::before,
+.prm-pause .prm-tile:is(:hover, :focus-within) :is(.co-frame, .co-banner)::after {
+  animation-play-state: running !important;
+}
+
+/* A ficha especial boiando devagar. */
+.prm-float {
+  animation: prm-float 6s ease-in-out infinite;
+}
+@keyframes prm-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(4deg);
+  }
+}
+
+/* Quem prefere menos movimento vê tudo parado — inclusive os efeitos de
+   texto (animate-*), o brilho da ficha e o spinner do botão (o texto
+   "Abrindo o pagamento…" já diz o que está acontecendo). */
+@media (prefers-reduced-motion: reduce) {
+  .prm-root [class*='animate-'],
+  .prm-root .prm-float,
+  .prm-root :is(.co-frame, .co-banner),
+  .prm-root :is(.co-frame, .co-banner)::before,
+  .prm-root :is(.co-frame, .co-banner)::after {
+    animation: none !important;
+  }
+}

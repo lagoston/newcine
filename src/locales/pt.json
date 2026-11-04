@@ -1134,6 +1134,196 @@
     "pinsOf": "Tags de @{{username}}"
   },
   "premium": {
+    "page": {
+      "eyebrow": "CineOracle Premium",
+      "title": "A <gold>versão estendida</gold> do CineOracle",
+      "lead": "Prateleiras inteiras dos oráculos, resenhas no seu estilo, uma ficha especial por semana e as peças douradas do perfil.",
+      "jumpAria": "Capítulos da página",
+      "jump": {
+        "oracles": "Os oráculos",
+        "collection": "A coleção",
+        "profile": "O perfil",
+        "compare": "Lado a lado"
+      },
+      "reel": "Rolo {{n}} · {{label}}",
+      "ticket": {
+        "label": "Ingresso Premium",
+        "plan": "Sessão mensal",
+        "perMonth": "/mês",
+        "priceAria": "{{price}} por mês",
+        "subscribe": "Assinar o Premium",
+        "opening": "Abrindo o pagamento…",
+        "renews": "Renova todo mês. Cancele quando quiser.",
+        "secure": "Pagamento seguro pelo Stripe",
+        "inApp": "A assinatura pelo app chega em breve. Por enquanto, assine pelo site.",
+        "checkoutError": "Não deu para abrir o pagamento. Tente de novo.",
+        "portalError": "Não deu para abrir a sua assinatura. Tente de novo.",
+        "signIn": "Entre na sua conta para assinar."
+      },
+      "oracles": {
+        "kicker": "Os oráculos",
+        "title": "Tudo o que os oráculos separaram para você",
+        "shelves": {
+          "title": "Prateleiras inteiras",
+          "body": "São 27 prateleiras, 3 oráculos × 9 humores, em ordem da sua nota prevista. Sem Premium, cada uma para no 20º título. Com Premium, vai até o último.",
+          "cut": "{{n}}º",
+          "free": "Sem Premium: os 20 primeiros de cada prateleira",
+          "premium": "Premium: a prateleira inteira, até o último título"
+        },
+        "review": {
+          "title": "Resenha do Oráculo",
+          "body": "O Oráculo lê as suas resenhas e escreve uma nova, do seu jeito, para o título que você acabou de avaliar. Gostou, publique. Não gostou, peça outra.",
+          "rule": "1 por dia, com 1 nova tentativa. Libera com 10 resenhas suas.",
+          "sampleTag": "Escrita pelo Oráculo",
+          "sampleTitle": "Um soco no estômago, no bom sentido",
+          "sampleBody": "Não esperava sair do cinema em silêncio, mas foi exatamente isso que aconteceu. A direção segura cada cena até o momento certo de deixar tudo desabar.",
+          "post": "Postar",
+          "again": "Gerar outra"
+        },
+        "duel": {
+          "title": "Duelo de Watchlist",
+          "body": "Você e um amigo que você segue: 4 títulos de cada watchlist, uma chave de 8 e um vencedor para a próxima sessão.",
+          "rule": "Quantos duelos você quiser.",
+          "you": "Você",
+          "friend": "Amigo"
+        },
+        "whispers": {
+          "title": "Sussurros",
+          "body": "As indicações que você manda para os seus amigos.",
+          "perDay": "por dia",
+          "aria": "5 sussurros por dia sem Premium, 20 com Premium"
+        }
+      },
+      "collection": {
+        "kicker": "A coleção",
+        "title": "Uma ficha especial toda semana",
+        "body": "Toda segunda, 1 ficha especial cai no seu porta-fichas do Poster Jackpot. Ela sempre tira pôster com efeito: holográfico, negativo ou ultra vermelho.",
+        "rule": "Não acumula: use até domingo.",
+        "effectsAria": "Efeitos que a ficha especial pode tirar",
+        "chipName": "Ficha especial",
+        "posters": {
+          "bladeRunner": "Blade Runner",
+          "odyssey": "2001: Uma Odisseia no Espaço",
+          "fightClub": "Clube da Luta"
+        }
+      },
+      "profile": {
+        "kicker": "O perfil",
+        "title": "Peças douradas para o seu perfil",
+        "lead": "A moldura e o banner Ouro são seus na hora. Os temáticos você ganha assistindo: o do Matrix vem com a trilogia, o de Harry Potter com os 8 filmes.",
+        "previewName": "seu_nome",
+        "previewBio": "Moldura Ouro, banner Ouro e o efeito Technicolor no nome.",
+        "frames": {
+          "title_one": "{{count}} moldura",
+          "title_other": "{{count}} molduras",
+          "body": "Ouro, Matrix, Harry Potter, Vingadores, Motoqueiro Fantasma e mais."
+        },
+        "banners": {
+          "title_one": "{{count}} banner",
+          "title_other": "{{count}} banners",
+          "body": "Os mesmos temas das molduras, no alto do seu perfil e do seu cartão na Comunidade.",
+          "gold": "Ouro",
+          "matrix": "Matrix",
+          "potter": "Harry Potter"
+        },
+        "cards": {
+          "title": "Cartas dos oráculos",
+          "body": "Um visual novo para as cartas no site todo. Yu-Gi-Oh! vem com 50 títulos de Aventuras; Horror, com 50 de Sombrio e Assustador.",
+          "default": "Padrão",
+          "yugioh": "Yu-Gi-Oh!",
+          "horror": "Horror"
+        },
+        "effects": {
+          "title": "Efeitos no nome",
+          "body": "No seu nome e na sua bio, conforme você escreve resenhas.",
+          "reviews_one": "{{count}} resenha",
+          "reviews_other": "{{count}} resenhas"
+        },
+        "avatar": {
+          "title": "Avatar animado",
+          "body": "GIF ou WebP animado de até 2 MB. Sem Premium, ele entra parado."
+        },
+        "crown": {
+          "title": "A coroa",
+          "body": "Ao lado do seu nome, no perfil, na Comunidade e nas listas de amigos."
+        }
+      },
+      "compare": {
+        "kicker": "Comparação",
+        "title": "Lado a lado",
+        "caption": "O que muda com o Premium",
+        "colFeature": "Recurso",
+        "colFree": "Sem Premium",
+        "colPremium": "Premium",
+        "shelves": "Títulos por prateleira dos oráculos",
+        "shelvesPremium": "Todos",
+        "review": "Resenha do Oráculo",
+        "reviewPremium": "1 por dia",
+        "duel": "Duelo de Watchlist",
+        "duelPremium": "Sem limite",
+        "chip": "Ficha especial no Poster Jackpot",
+        "chipPremium": "1 por semana",
+        "whispers": "Sussurros por dia",
+        "none": "Não incluso",
+        "note": "A Resenha do Oráculo libera com 10 resenhas suas. O Duelo de Watchlist pede 4 títulos na sua watchlist e na do amigo."
+      },
+      "closing": {
+        "title": "Pronto para a versão estendida?"
+      },
+      "member": {
+        "kicker": "Premium ativo",
+        "kickerLifetime": "Premium vitalício",
+        "title": "Você está na <gold>versão estendida</gold>",
+        "lead": "Tudo o que o Premium liga na sua conta, e onde encontrar cada coisa.",
+        "status": "Ativo",
+        "statusLifetime": "Vitalício",
+        "planLifetime": "Acesso vitalício",
+        "manage": "Gerenciar assinatura",
+        "manageHint": "Troque o cartão ou cancele no portal do Stripe.",
+        "thanks": "Obrigado por apoiar o CineOracle.",
+        "thanksLifetime": "Nunca expira. Obrigado por apoiar o CineOracle.",
+        "whereKicker": "Na sua conta",
+        "where": "Onde usar",
+        "go": {
+          "shelves": {
+            "title": "Prateleiras inteiras",
+            "body": "As 27 prateleiras da Biblioteca dos Oráculos, até o último título.",
+            "cta": "Abrir a Biblioteca"
+          },
+          "chip": {
+            "title": "Ficha especial",
+            "body": "Uma por semana no porta-fichas do Poster Jackpot. Use até domingo.",
+            "cta": "Abrir o Poster Jackpot"
+          },
+          "duel": {
+            "title": "Duelo de Watchlist",
+            "body": "Na sua Watchlist, com 4 títulos na sua e na do amigo.",
+            "cta": "Ir para a Watchlist"
+          },
+          "profile": {
+            "title": "Peças douradas",
+            "body": "Molduras, banners, cartas e efeitos no Personalizar perfil.",
+            "cta": "Abrir o perfil"
+          },
+          "review": "Em qualquer título que você avaliou: abra Resenhas e toque em Gerar Resenha. Libera com 10 resenhas suas."
+        }
+      },
+      "success": {
+        "title": "Bem-vindo à versão estendida",
+        "subtitle": "Sua assinatura Premium está ativa.",
+        "loading": "Preparando a sua conta Premium…",
+        "details": "Sua assinatura",
+        "plan": "Plano",
+        "planName": "Premium mensal",
+        "price": "Preço",
+        "started": "Início",
+        "next": "Próxima cobrança",
+        "included": "O que já está ligado",
+        "explore": "Ver meu perfil",
+        "redirect_one": "Indo para o seu perfil em {{count}} segundo…",
+        "redirect_other": "Indo para o seu perfil em {{count}} segundos…"
+      }
+    },
     "title": "Upgrade para Premium",
     "settings": "Configurações Premium",
     "subscription": "Assinatura Premium",
