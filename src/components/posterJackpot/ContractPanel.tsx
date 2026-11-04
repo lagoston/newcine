@@ -129,12 +129,26 @@ const errorText = (t: TFunction, code: ContractErrorCode, board: ContractBoard |
 // A Cobra no balcão: a carta dela e o balão
 // ---------------------------------------------------------------------------
 
+// 04/11/2026 (piscada ao abrir a aba): a carta da Cobra já carregada fica
+// guardada num Image() (como os pôsteres em PosterArt). Sem isso, a cada
+// volta à aba a carta era uma <img> nova, que podia voltar do cache do disco
+// e aparecia vazia por alguns quadros. Guardada, ela entra pronta.
+const keptCards = new Map<string, HTMLImageElement>();
+const keepCard = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  const src = e.currentTarget.getAttribute('src') || '';
+  if (!src || keptCards.has(src)) return;
+  const img = new Image();
+  img.src = src;
+  keptCards.set(src, img);
+};
+
 const CobraCounter: React.FC<{ cardStyle: string; line: string; lineKey: string; dim?: boolean; reduceMotion: boolean }> = ({ cardStyle, line, lineKey, dim = false, reduceMotion }) => {
   const { t } = useTranslation();
+  const card = cardArt('cypher', cardStyle);
   return (
     <div className="pj-contract-counter">
       <span className={`pj-contract-card ${dim ? 'is-dim' : ''}`} aria-hidden>
-        <img src={cardArt('cypher', cardStyle)} alt="" decoding="async" draggable={false} />
+        <img src={card} alt="" decoding={keptCards.has(card) ? 'sync' : 'async'} draggable={false} onLoad={keepCard} />
       </span>
       <div className="min-w-0 flex-1">
         <h3 className="pj-display pj-gold-text pj-contract-title">{t('jackpot.contract.title')}</h3>
@@ -163,20 +177,26 @@ const CobraCounter: React.FC<{ cardStyle: string; line: string; lineKey: string;
 // Os três degraus: comuns → raro, raros → épico, épicos → lendário
 // ---------------------------------------------------------------------------
 
+// 04/11/2026, pedido do Bruno: o botão do degrau fica só com as joias e o nome
+// da raridade de cima. Saiu a linha de baixo ("11 comuns", "7 raros", "3
+// épicos": quantos a pessoa tem) e, com ela, o "✓ Completo" do degrau
+// fechado — o degrau completo continua apagado (is-complete) e o papel do
+// contrato diz que está completo ao tocar nele. O leitor de tela também
+// deixa de ouvir a contagem (fica igual ao que a tela mostra); o "completo"
+// continua no rótulo, porque a tela ainda sinaliza (apagado).
 const TierPicker: React.FC<{
   tiers: ContractTier[];
-  free: Record<ContractRarity, number>;
   value: ContractRarity;
   onChange: (rarity: ContractRarity) => void;
   disabled: boolean;
-}> = ({ tiers, free, value, onChange, disabled }) => {
+}> = ({ tiers, value, onChange, disabled }) => {
   const { t } = useTranslation();
   return (
     <div className="pj-contract-tiers" role="radiogroup" aria-label={t('jackpot.contract.tiersAria')}>
       {tiers.map((tier) => {
         const on = tier.from === value;
         const complete = tier.left <= 0;
-        const give = t(`jackpot.contract.give.${tier.from}`, { count: free[tier.from] });
+        const terms = t('jackpot.contract.terms', { give: t(`jackpot.contract.plural.${tier.from}`), get: t(`jackpot.contract.get.${tier.to}`) });
         return (
           <button
             key={tier.from}
@@ -185,9 +205,7 @@ const TierPicker: React.FC<{
             aria-checked={on}
             disabled={disabled}
             onClick={() => onChange(tier.from)}
-            aria-label={`${t('jackpot.contract.terms', { give: t(`jackpot.contract.plural.${tier.from}`), get: t(`jackpot.contract.get.${tier.to}`) })}. ${
-              complete ? t('jackpot.contract.complete', { plural: t(`jackpot.contract.plural.${tier.to}`) }) : t('jackpot.contract.tierHave', { give })
-            }`}
+            aria-label={complete ? `${terms}. ${t('jackpot.contract.complete', { plural: t(`jackpot.contract.plural.${tier.to}`) })}` : terms}
             className={`pj-contract-tier ${on ? 'is-on' : ''} ${complete ? 'is-complete' : ''} ${FOCUS_RING}`}
           >
             <span className="pj-contract-tier-gems" aria-hidden>
@@ -196,16 +214,6 @@ const TierPicker: React.FC<{
               <RarityGem rarity={tier.to} glint={tier.to === 'legendary' && on} />
             </span>
             <span className="pj-contract-tier-name">{t(`jackpot.rarity.${tier.to}`)}</span>
-            <span className="pj-contract-tier-sub">
-              {complete ? (
-                <>
-                  <Check className="w-3 h-3" aria-hidden />
-                  {t('jackpot.contract.tierComplete')}
-                </>
-              ) : (
-                give
-              )}
-            </span>
           </button>
         );
       })}
@@ -518,7 +526,9 @@ const ContractPanel: React.FC<{
   const reduceMotion = !!useReducedMotion();
   const { session } = useAuth();
   const cardStyle = useCardStyle(session?.user?.id);
-  const [tierFrom, setTierFrom] = useState<ContractRarity | null>(null);
+  // O degrau que a pessoa escolheu (null = ainda não escolheu: vale o
+  // degrau inicial, calculado logo abaixo).
+  const [chosenTier, setChosenTier] = useState<ContractRarity | null>(null);
   // Os pôsteres no contrato, na ordem em que entraram (chaves item:efeito).
   const [picked, setPicked] = useState<string[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -560,12 +570,24 @@ const ContractPanel: React.FC<{
 
   // O degrau inicial: o primeiro que já dá para fechar; senão o primeiro
   // ainda aberto com algum pôster; senão o primeiro ainda aberto.
+  // 04/11/2026 (piscada ao abrir a aba): era escolhido num useEffect, DEPOIS
+  // do primeiro quadro. A aba entrava sem o papel do contrato, a Cobra dizia
+  // a fala de "estoque curto", e um quadro depois o papel aparecia, a fala
+  // trocava (sumia e voltava) e a altura da aba pulava, o que no desktop
+  // ainda fazia a barra de rolagem da gaveta sumir e voltar. Agora o degrau
+  // inicial é calculado já no render: o primeiro quadro sai completo. O
+  // efeito só guarda a escolha (o mesmo valor), para o degrau não mudar
+  // sozinho quando a mesa recarrega depois de um contrato, como antes.
+  const initialTier = useMemo(() => {
+    if (!board) return null;
+    const open = tiers.filter((item) => item.left > 0);
+    const pickTier = open.find((item) => free[item.from] >= board.size) || open.find((item) => free[item.from] > 0) || open[0] || tiers[0];
+    return pickTier ? pickTier.from : null;
+  }, [board, tiers, free]);
+  const tierFrom = chosenTier ?? initialTier;
   useEffect(() => {
-    if (!board || tierFrom) return;
-    const open = tiers.filter((tier) => tier.left > 0);
-    const pickTier = open.find((tier) => free[tier.from] >= board.size) || open.find((tier) => free[tier.from] > 0) || open[0] || tiers[0];
-    if (pickTier) setTierFrom(pickTier.from);
-  }, [board, tiers, free, tierFrom]);
+    if (!chosenTier && initialTier) setChosenTier(initialTier);
+  }, [chosenTier, initialTier]);
 
   const tier = tiers.find((item) => item.from === tierFrom) ?? null;
   const complete = !!tier && tier.left <= 0;
@@ -618,7 +640,7 @@ const ContractPanel: React.FC<{
 
   const chooseTier = (rarity: ContractRarity) => {
     if (rarity === tierFrom) return;
-    setTierFrom(rarity);
+    setChosenTier(rarity);
     setPicked([]);
     setJustSigned(false);
   };
@@ -848,7 +870,7 @@ const ContractPanel: React.FC<{
         <span className="pj-stars" aria-hidden />
         <div className="relative">
           <CobraCounter cardStyle={cardStyle} line={cobraLine} lineKey={`${mood}:${mood === 'partial' ? pickedPosters.length : ''}`} reduceMotion={reduceMotion} />
-          <TierPicker tiers={tiers} free={free} value={tierFrom ?? 'common'} onChange={chooseTier} disabled={phase !== 'idle'} />
+          <TierPicker tiers={tiers} value={tierFrom ?? 'common'} onChange={chooseTier} disabled={phase !== 'idle'} />
 
           {tier && complete ? (
             <div className="pj-contract-paper is-complete">

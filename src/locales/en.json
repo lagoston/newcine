@@ -2443,8 +2443,6 @@
         "legendary": "legendary posters"
       },
       "tiersAria": "Which contract to sign",
-      "tierHave": "You have {{give}} to hand over.",
-      "tierComplete": "Complete",
       "complete": "You already have all the {{plural}}.",
       "completeHint": "No new poster can come out of this contract. Pick another tier.",
       "out": {

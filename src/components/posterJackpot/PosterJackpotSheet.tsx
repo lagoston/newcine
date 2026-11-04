@@ -74,6 +74,13 @@ const RARITY_ASC: PosterRarity[] = ['common', 'rare', 'epic', 'legendary'];
 const ARCH_BULBS = 17;
 const BASE_BULBS = 13;
 
+// 04/11/2026 (piscada ao voltar para a Roleta): o catálogo já buscado nesta
+// visita. A busca fica guardada em lib/posterJackpot, mas como promessa: a
+// Roleta remontada abria um quadro com o "carregando" (e a janela da fita
+// 20 px mais baixa) antes da fita, a cada troca de aba. Com o catálogo à mão,
+// a fita já sai no primeiro quadro.
+let catalogMemo: CatalogPoster[] | null = null;
+
 const pick = <T,>(list: T[]): T => list[Math.floor(Math.random() * list.length)];
 const weighted = <T,>(list: T[], weight: (value: T) => number): T => {
   const total = list.reduce((sum, value) => sum + weight(value), 0);
@@ -170,12 +177,14 @@ const Machine: React.FC<{
   onState: (patch: Partial<JackpotState>) => void;
   onCollectionChanged: () => void;
   onInvite: () => void;
-}> = ({ state, owned, onState, onCollectionChanged, onInvite }) => {
+  // A fita parada guardada entre as trocas de aba (ver JackpotReel).
+  reelParkId: number;
+}> = ({ state, owned, onState, onCollectionChanged, onInvite, reelParkId }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
   const reduceMotion = !!useReducedMotion();
   const reelRef = useRef<JackpotReelHandle>(null);
-  const [catalog, setCatalog] = useState<CatalogPoster[] | null>(null);
+  const [catalog, setCatalog] = useState<CatalogPoster[] | null>(() => catalogMemo);
   // A ficha escolhida no porta-fichas.
   const [kind, setKind] = useState<ChipKind>(state.tickets > 0 || !state.specialAvailable ? 'normal' : 'special');
   // Um Giro da Sorte em andamento (do toque na barra até fechar a revelação).
@@ -193,7 +202,10 @@ const Machine: React.FC<{
   useEffect(() => {
     let alive = true;
     fetchJackpotCatalog()
-      .then((list) => alive && setCatalog(list))
+      .then((list) => {
+        catalogMemo = list;
+        if (alive) setCatalog(list);
+      })
       .catch((error) => {
         console.error('Poster Jackpot catalog:', error);
         if (alive) setCatalog([]);
@@ -388,7 +400,7 @@ const Machine: React.FC<{
                 <Loader2 className="w-6 h-6 animate-spin text-amber-200" aria-hidden />
               </div>
             ) : (
-              <JackpotReel ref={reelRef} filler={filler} spinning={spinning} onSkipRequest={() => reelRef.current?.skip()} winnerKey={winnerKey} />
+              <JackpotReel ref={reelRef} filler={filler} spinning={spinning} onSkipRequest={() => reelRef.current?.skip()} winnerKey={winnerKey} parkId={reelParkId} />
             )}
             {complete && phase === 'idle' && (
               <div className="absolute inset-0 z-[5] grid place-items-center rounded-[18px] text-center px-6" style={{ background: 'rgba(10,14,44,0.82)' }}>
@@ -618,11 +630,15 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void; 
               aria-label={t('jackpot.collection.openTitle', { title: titleOf(open, isPt) })}
               className={`group relative mx-auto block w-44 sm:w-52 rounded-2xl transition-transform duration-200 hover:-translate-y-1 active:scale-[0.98] ${FOCUS_RING}`}
             >
+              {/* 04/11/2026: o w342 da grade (já no cache) fica por baixo
+                  enquanto o w500 carrega — o detalhe abria com o quadro vazio
+                  e o pôster "pipocava" depois. */}
               <PosterArt
                 filePath={open.file_path}
                 effect={open.effect}
                 alt=""
                 size="w500"
+                placeholderSize="w342"
                 loading="eager"
                 className="aspect-[2/3] rounded-2xl shadow-[0_22px_44px_-20px_rgba(0,0,0,0.95)]"
                 mark={{ rarity: open.rarity, serial: open.serial, size: 'md' }}
@@ -989,6 +1005,15 @@ const PosterJackpotSheet: React.FC<{
   const [board, setBoard] = useState<ContractBoard | 'failed' | null>(null);
   // Uma camada por cima (detalhe de um pôster): o Esc fecha só ela.
   const [layerOpen, setLayerOpen] = useState(false);
+  // 04/11/2026: a fita da roleta fica guardada entre as trocas de aba, mas
+  // só durante uma abertura da gaveta: fechar troca o número, e a próxima
+  // abertura começa com uma fita nova, como antes. (Quem fecha ainda guarda a
+  // fita com o número velho: a Roleta só desmonta depois da animação de
+  // saída, com as props de quando estava aberta.)
+  const [reelSession, setReelSession] = useState(0);
+  useEffect(() => {
+    if (!open) setReelSession((n) => n + 1);
+  }, [open]);
 
   const loadOwned = useCallback(() => {
     loadMyPosters()
@@ -1045,6 +1070,10 @@ const PosterJackpotSheet: React.FC<{
       size="lg"
       contentKey={tab}
       escapeEnabled={!layerOpen}
+      // 04/11/2026: no desktop, sem a barra de rolagem parada quando a aba
+      // cabe (ver OracleSheet): a linha que aparece ao trocar de ficha não
+      // faz a barra piscar por um quadro.
+      steadyScrollbar
     >
       {!state ? (
         <div className="flex justify-center py-16">
@@ -1086,7 +1115,9 @@ const PosterJackpotSheet: React.FC<{
             })}
           </div>
           <SheetFade id={tab}>
-            {tab === 'machine' && <Machine state={state} owned={owned} onState={onState} onCollectionChanged={loadOwned} onInvite={() => setTab('missions')} />}
+            {tab === 'machine' && (
+              <Machine state={state} owned={owned} onState={onState} onCollectionChanged={loadOwned} onInvite={() => setTab('missions')} reelParkId={reelSession} />
+            )}
             {tab === 'collection' && <Collection list={owned} onChanged={loadOwned} onLayer={setLayerOpen} />}
             {tab === 'contract' && (
               <ContractPanel

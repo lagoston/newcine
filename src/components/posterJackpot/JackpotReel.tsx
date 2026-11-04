@@ -36,6 +36,26 @@ const EASE: [number, number, number, number] = [0.08, 0.62, 0.14, 1];
 let cardSeq = 0;
 export const reelKey = () => `c${(cardSeq += 1)}`;
 
+// A primeira fita: pôsteres sorteados, um no meio.
+const firstStrip = (filler: (rarity?: PosterRarity) => ReelCard | null) => {
+  const first: ReelCard[] = [];
+  for (let i = 0; i < 12; i++) {
+    const card = filler();
+    if (card) first.push(card);
+  }
+  return first;
+};
+
+// 04/11/2026 (piscada ao voltar para a Roleta): a fita parada fica guardada
+// entre as trocas de aba da gaveta. Antes, cada volta à Roleta sorteava 12
+// pôsteres novos, e o primeiro quadro saía com a janela vazia (a fita era
+// montada num efeito, depois de pintar) e depois com as capas novas
+// carregando da rede, uma a uma. Agora a Roleta volta como a pessoa deixou
+// (mesmas capas, já no cache, no mesmo lugar). `parkId` é o número da
+// abertura da gaveta: numa abertura nova, fita nova, como sempre foi.
+type ParkedReel = { id: number; strip: ReelCard[]; rest: { index: number; offset: number } };
+let parked: ParkedReel | null = null;
+
 const JackpotReel = forwardRef<
   JackpotReelHandle,
   {
@@ -46,34 +66,44 @@ const JackpotReel = forwardRef<
     onSkipRequest?: () => void;
     winnerKey: string | null;
     className?: string;
+    // A abertura da gaveta (ver `parked` acima). Sem ele, nada é guardado.
+    parkId?: number | null;
   }
->(({ filler, spinning, onSkipRequest, winnerKey, className = '' }, ref) => {
+>(({ filler, spinning, onSkipRequest, winnerKey, className = '', parkId = null }, ref) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
   const [geom, setGeom] = useState<{ vw: number; w: number }>({ vw: 0, w: 96 });
   const geomRef = useRef(geom);
   geomRef.current = geom;
-  const [strip, setStrip] = useState<ReelCard[]>([]);
+  // A fita guardada desta abertura, se houver (só lida ao montar).
+  const restored = parkId !== null && parked && parked.id === parkId ? parked : null;
+  // 04/11/2026: a fita já sai montada no primeiro quadro (era num efeito).
+  const [strip, setStrip] = useState<ReelCard[]>(() => restored?.strip ?? firstStrip(filler));
   const stripRef = useRef(strip);
   stripRef.current = strip;
   // Onde a fita está parada: o índice sob a agulha e o desvio dentro dele.
-  const restRef = useRef<{ index: number; offset: number }>({ index: 3, offset: 0 });
+  const restRef = useRef<{ index: number; offset: number }>(restored?.rest ?? { index: 3, offset: 0 });
   const controlsRef = useRef<AnimationPlaybackControls | null>(null);
   const finishRef = useRef<(() => void) | null>(null);
   const pendingRef = useRef<{ shift: number; prizeIndex: number; offset: number; reduceMotion: boolean } | null>(null);
 
   const targetX = useCallback((index: number, offset: number, g = geomRef.current) => g.vw / 2 - (index * (g.w + GAP) + g.w / 2 + offset), []);
 
-  // A primeira fita: pôsteres sorteados, um no meio.
+  // Sem fita ainda (o catálogo veio vazio no começo): monta quando o
+  // sorteador mudar.
   useEffect(() => {
     if (stripRef.current.length) return;
-    const first: ReelCard[] = [];
-    for (let i = 0; i < 12; i++) {
-      const card = filler();
-      if (card) first.push(card);
-    }
+    const first = firstStrip(filler);
     if (first.length) setStrip(first);
   }, [filler]);
+
+  // Guarda a fita (e onde ela para) a cada mudança: é o que volta na
+  // próxima vez que a Roleta montar nesta abertura. restRef já está
+  // atualizado aqui (o layout effect do giro roda antes).
+  useEffect(() => {
+    if (parkId === null || !strip.length) return;
+    parked = { id: parkId, strip, rest: restRef.current };
+  }, [strip, parkId]);
 
   // Mede a janela: o tamanho do pôster acompanha a largura (uns 3,7 por vez).
   useLayoutEffect(() => {

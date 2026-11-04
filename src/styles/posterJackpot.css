@@ -10,6 +10,19 @@
   isolation: isolate;
 }
 
+/* 04/11/2026 (pôsteres dourados com canto vivo): quando o pôster PREENCHE a
+   moldura de quem o usa (absolute inset-0 ou w-full h-full: a capa equipada
+   na biblioteca, o Ver Todos, o menu do título, a fita da roleta, as fichas
+   do pôquer), quem arredonda é a moldura, e o .pj-art ficava quadrado por
+   dentro. As camadas do efeito herdam o raio do .pj-art (o friso de ouro
+   tem border-radius: inherit), então o friso saía com canto reto dentro do
+   recorte redondo da moldura: um quadro dourado pontudo. Agora, nesse caso,
+   o .pj-art herda o raio da moldura. :where() = especificidade zero: quem
+   passa um rounded-* próprio (ou uma regra .pp-* .pj-art) continua valendo. */
+:where(.pj-art.absolute.inset-0, .pj-art.w-full.h-full) {
+  border-radius: inherit;
+}
+
 .pj-art > img {
   position: absolute;
   inset: 0;
@@ -142,9 +155,12 @@
   mix-blend-mode: overlay;
   pointer-events: none;
 }
+/* 04/11/2026: inset 0 (era -2px). A lâmina passava 2 px para fora do
+   pôster e, sendo uma camada animada no compositor, era justamente o que
+   escapava do recorte arredondado no celular. */
 .pj-gold-sheen {
   position: absolute;
-  inset: -2px;
+  inset: 0;
   background: linear-gradient(
     105deg,
     transparent 38%,
@@ -168,14 +184,20 @@
   box-shadow: inset 0 0 0 1.5px rgba(255, 231, 161, 0.95), inset 0 0 0 3px rgba(140, 90, 18, 0.85), inset 0 0 22px rgba(255, 196, 80, 0.38);
   pointer-events: none;
 }
+/* 04/11/2026: a passada anima só o background-position, como as camadas do
+   holográfico (que no celular sempre saíram redondas). Antes ela animava
+   também a opacidade, e animação de opacidade sobe a camada para o
+   compositor: é a camada que o Chrome/WebKit do celular deixava de recortar
+   no canto. Mesma passada na tela: nas pontas (0% e 46%+) a faixa já está
+   inteira fora do pôster (background-size 300%), então o fade de opacidade
+   nas pontas não se via; a opacidade de 0.85 da passada virou fixa. */
 .pj-animated .pj-gold-sheen {
+  opacity: 0.85;
   animation: pj-gold-sweep 4.2s cubic-bezier(0.45, 0.05, 0.3, 1) infinite;
 }
 @keyframes pj-gold-sweep {
-  0% { background-position: 100% 0; opacity: 0; }
-  8% { opacity: 0.85; }
-  46% { background-position: 0% 0; opacity: 0.85; }
-  54%, 100% { background-position: 0% 0; opacity: 0; }
+  0% { background-position: 100% 0; }
+  46%, 100% { background-position: 0% 0; }
 }
 .pj-gold-text {
   background: linear-gradient(180deg, #fff3c4 0%, #f4c454 48%, #b07a1c 100%);
@@ -1500,18 +1522,8 @@
   color: #fff4d6;
   white-space: nowrap;
 }
-.pj-contract-tier-sub {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11.5px;
-  line-height: 1.15;
-  color: #cfc6ec;
-  white-space: nowrap;
-}
-.pj-contract-tier.is-complete .pj-contract-tier-sub {
-  color: #86efac;
-}
+/* 04/11/2026: saiu a linha de baixo do degrau (.pj-contract-tier-sub, com
+   quantos a pessoa tem e o "Completo"): o botão fica com as joias e o nome. */
 .pj-contract-tier.is-complete:not(.is-on) .pj-contract-tier-gems,
 .pj-contract-tier.is-complete:not(.is-on) .pj-contract-tier-name {
   opacity: 0.6;
@@ -1921,10 +1933,6 @@
     flex-wrap: wrap;
     gap: 4px 8px;
     min-height: 58px;
-  }
-  .pj-contract-tier-sub {
-    flex-basis: 100%;
-    justify-content: center;
   }
   .pj-contract-tier-name {
     font-size: 14px;

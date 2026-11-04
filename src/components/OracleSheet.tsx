@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +30,26 @@ import { NIGHT, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
 //     repintar tudo a cada quadro;
 //   • trocar de aba (contentKey) volta o corpo para o topo, e o conteúdo da
 //     aba nova entra com um fade curto (SheetFade).
+//
+// 04/11/2026 (piscadas no desktop, gaveta do Poster Jackpot): no desktop a
+// barra de rolagem OCUPA largura (o index.css dá 10 px a toda barra a partir
+// de 768 px; no celular ela é display:none). O "corpo sem rolagem durante a
+// transição" trocava overflow-y-auto por overflow-hidden: quando o conteúdo
+// rolava, a barra sumia no começo da transição e voltava no fim, e o conteúdo
+// inteiro mudava 10 px de largura duas vezes (grade de pôsteres, roleta,
+// textos: tudo pulava). Agora, só onde a barra ocupa largura:
+//   • durante a transição o corpo fica no estado de barra do FIM dela:
+//     overflow-y-scroll se o conteúdo vai rolar na altura nova, hidden se vai
+//     caber. A barra muda (no máximo) uma vez, junto com a troca de conteúdo,
+//     e não pisca no fim;
+//   • a troca de aba (contentKey) mede, marca a transição e volta o corpo ao
+//     topo ANTES de pintar (layout effects): o primeiro quadro da aba nova já
+//     sai com a altura-alvo, a barra certa e no topo (antes ele saía com a
+//     altura e a rolagem da aba velha e corrigia no quadro seguinte).
+// Parado, o corpo segue com overflow-y-auto em todos os modais (a gaveta do
+// Jackpot liga steadyScrollbar: sem barra parada quando o conteúdo cabe).
+// Onde a barra não ocupa largura (celular, barras sobrepostas), o
+// comportamento é o mesmo de antes: hidden durante a transição.
 
 type SheetSize = 'md' | 'lg' | 'xl' | 'full';
 
@@ -59,6 +79,13 @@ interface OracleSheetProps {
   // Muda quando o conteúdo troca de "página" (aba, filtro, item aberto):
   // o corpo volta para o topo.
   contentKey?: string | number | null;
+  // 04/11/2026 (opcional, só a gaveta do Poster Jackpot usa): no desktop,
+  // com o conteúdo cabendo, o corpo fica sem barra também parado
+  // (overflow-hidden em vez de auto). Assim um conteúdo que cresce sozinho
+  // (uma linha que aparece, a mesa do contrato que chega) não mostra a barra
+  // por um quadro antes da medida nova. Os outros modais seguem com auto
+  // parado (algum pode ter um menu que sai do conteúdo e precisa rolar).
+  steadyScrollbar?: boolean;
   children: React.ReactNode;
 }
 
@@ -68,6 +95,23 @@ const DESKTOP_MARGIN = 48;
 const HEIGHT_MS = 380;
 
 const isDesktop = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches;
+
+// Largura que uma barra de rolagem ocupa aqui (0 = barra sobreposta ou
+// escondida, como no celular). Medida com uma caixa de teste, que pega os
+// mesmos estilos de barra do site; guardada por largura de janela (a regra
+// do index.css muda em 768 px).
+let barCache: { width: number; bar: number } | null = null;
+const scrollbarWidth = () => {
+  if (typeof document === 'undefined') return 0;
+  if (barCache && barCache.width === window.innerWidth) return barCache.bar;
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:100px;height:100px;overflow:scroll;visibility:hidden';
+  document.body.appendChild(probe);
+  const bar = probe.offsetWidth - probe.clientWidth;
+  probe.remove();
+  barCache = { width: window.innerWidth, bar };
+  return bar;
+};
 
 // Conteúdo de uma aba: entra com um fade curto quando `id` muda.
 export const SheetFade: React.FC<{ id: string | number; className?: string; children: React.ReactNode }> = ({ id, className, children }) => (
@@ -88,6 +132,7 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
   bodyClassName = 'px-5 sm:px-7 py-6',
   zIndexClass = 'z-[9990]',
   contentKey = null,
+  steadyScrollbar = false,
   children,
 }) => {
   const { t } = useTranslation();
@@ -97,8 +142,10 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
   const bodyRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
-  // Altura e topo (só no desktop) da gaveta, em px.
-  const [box, setBox] = useState<{ height: number; top: number | null } | null>(null);
+  // Altura e topo (só no desktop) da gaveta, em px. 04/11/2026: e o estado
+  // da barra de rolagem na altura nova — `overflows`: o conteúdo passa do
+  // limite e o corpo rola; `bar`: a barra ocupa largura aqui (desktop).
+  const [box, setBox] = useState<{ height: number; top: number | null; overflows: boolean; bar: boolean } | null>(null);
   // Transições ligadas só depois da primeira medida (senão a gaveta
   // "desliza" do topo da tela até o centro ao abrir).
   const [settled, setSettled] = useState(false);
@@ -107,6 +154,33 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
   const resizeTimer = useRef<number | null>(null);
   const hasFooter = !!footer;
 
+  // A medida (só lê refs): usada pelo ResizeObserver e, desde 04/11/2026,
+  // também na troca de aba, antes de pintar (ver o efeito do contentKey).
+  const measure = useCallback(() => {
+    const header = headerRef.current;
+    const content = contentRef.current;
+    const panel = panelRef.current;
+    if (!header || !content || !panel) return;
+    const natural = header.offsetHeight + content.offsetHeight + (footerRef.current?.offsetHeight ?? 0);
+    // O alvo já vem limitado ao max-h da gaveta: sem isso, crescer além
+    // do limite "anda" num trecho invisível e parece um pulo.
+    const maxPx = parseFloat(getComputedStyle(panel).maxHeight);
+    const height = Math.ceil(Number.isFinite(maxPx) ? Math.min(natural, maxPx) : natural);
+    const overflows = Number.isFinite(maxPx) && natural > maxPx;
+    const bar = scrollbarWidth() > 0;
+    setBox((prev) => {
+      let top: number | null = null;
+      if (isDesktop()) {
+        const room = window.innerHeight - DESKTOP_MARGIN - height;
+        // Abre centralizada; depois o topo só sobe quando precisa.
+        const wanted = prev?.top ?? Math.round((window.innerHeight - height) / 2);
+        top = Math.max(DESKTOP_MARGIN, Math.min(wanted, room));
+      }
+      if (prev && prev.height === height && prev.top === top && prev.overflows === overflows && prev.bar === bar) return prev;
+      return { height, top, overflows, bar };
+    });
+  }, []);
+
   useLayoutEffect(() => {
     if (!open) {
       setBox(null);
@@ -114,28 +188,6 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
       setResizing(false);
       return;
     }
-    const measure = () => {
-      const header = headerRef.current;
-      const content = contentRef.current;
-      const panel = panelRef.current;
-      if (!header || !content || !panel) return;
-      const natural = header.offsetHeight + content.offsetHeight + (footerRef.current?.offsetHeight ?? 0);
-      // O alvo já vem limitado ao max-h da gaveta: sem isso, crescer além
-      // do limite "anda" num trecho invisível e parece um pulo.
-      const maxPx = parseFloat(getComputedStyle(panel).maxHeight);
-      const height = Math.ceil(Number.isFinite(maxPx) ? Math.min(natural, maxPx) : natural);
-      setBox((prev) => {
-        let top: number | null = null;
-        if (isDesktop()) {
-          const room = window.innerHeight - DESKTOP_MARGIN - height;
-          // Abre centralizada; depois o topo só sobe quando precisa.
-          const wanted = prev?.top ?? Math.round((window.innerHeight - height) / 2);
-          top = Math.max(DESKTOP_MARGIN, Math.min(wanted, room));
-        }
-        if (prev && prev.height === height && prev.top === top) return prev;
-        return { height, top };
-      });
-    };
     measure();
     window.addEventListener('resize', measure);
     if (typeof ResizeObserver === 'undefined') return () => window.removeEventListener('resize', measure);
@@ -145,7 +197,7 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
       observer.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [open, hasFooter]);
+  }, [open, hasFooter, measure]);
 
   // Liga as transições no quadro seguinte à primeira medida.
   useEffect(() => {
@@ -156,8 +208,10 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
 
   // Cada mudança de tamanho depois de aberta: marca "mudando" até a
   // transição acabar (transitionend, com um teto de segurança).
+  // 04/11/2026: layout effect (era useEffect): o "mudando" entra no mesmo
+  // quadro em que a altura começa a andar, e não um quadro depois.
   const lastBox = useRef(box);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const prev = lastBox.current;
     lastBox.current = box;
     if (!settled || !box || !prev || (prev.height === box.height && prev.top === box.top)) return;
@@ -178,9 +232,34 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
   };
 
   // Troca de aba/filtro: o corpo volta para o topo.
-  useEffect(() => {
+  // 04/11/2026: antes de pintar (layout effect), e medindo a aba nova na
+  // hora: o primeiro quadro dela já sai no topo, com a altura-alvo e a barra
+  // de rolagem certa. Antes ele saía com a rolagem e a altura da aba velha e
+  // corrigia no quadro seguinte (um pulo a cada troca de aba).
+  useLayoutEffect(() => {
+    if (open) measure();
     if (bodyRef.current) bodyRef.current.scrollTop = 0;
-  }, [contentKey]);
+  }, [contentKey, open, measure]);
+
+  // A rolagem do corpo. Onde a barra não ocupa largura (celular): como
+  // sempre foi, sem rolagem durante a transição. Onde ocupa (desktop,
+  // 04/11/2026): durante a transição o corpo já fica no estado de barra da
+  // altura nova — com barra se o conteúdo vai rolar (scroll), sem barra se
+  // vai caber (hidden) —, para a largura do conteúdo não mudar no meio nem
+  // no fim. Parado: auto, como sempre (hidden quando cabe só com
+  // steadyScrollbar).
+  const bodyOverflow =
+    box && box.bar
+      ? box.overflows
+        ? resizing
+          ? 'overflow-y-scroll'
+          : 'overflow-y-auto'
+        : resizing || steadyScrollbar
+          ? 'overflow-hidden'
+          : 'overflow-y-auto'
+      : resizing
+        ? 'overflow-hidden'
+        : 'overflow-y-auto';
 
   useEffect(() => {
     if (!open) return;
@@ -253,7 +332,7 @@ const OracleSheet: React.FC<OracleSheetProps> = ({
 
               {/* O corpo rola; o conteúdo (com o padding de quem usa) fica
                   num div próprio, que é o que o ResizeObserver mede. */}
-              <div ref={bodyRef} className={`flex-1 min-h-0 overscroll-contain ${resizing ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+              <div ref={bodyRef} className={`flex-1 min-h-0 overscroll-contain ${bodyOverflow}`}>
                 {/* will-change: o conteúdo fica numa camada própria; ao mudar a
                     altura, o navegador só recorta a camada em vez de repintar
                     o conteúdo inteiro a cada quadro. */}

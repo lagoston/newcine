@@ -2448,8 +2448,6 @@
         "legendary": "lendários"
       },
       "tiersAria": "Qual contrato fechar",
-      "tierHave": "Você tem {{give}} para entregar.",
-      "tierComplete": "Completo",
       "complete": "Você já tem todos os {{plural}}.",
       "completeHint": "Nenhum pôster novo pode sair deste contrato. Escolha outro degrau.",
       "out": {

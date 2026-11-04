@@ -11,24 +11,69 @@ import '../../styles/posterJackpot.css';
 // marca de colecionador (cristal + número) no canto de baixo à direita.
 export type PosterMark = { rarity: PosterRarity; serial: number | null | undefined; size?: MarkSize; bottom?: string };
 
+type ArtSize = 'w185' | 'w342' | 'w500' | 'w780';
+
+// 04/11/2026 (piscadas na gaveta do Jackpot): os pôsteres que já carregaram
+// nesta visita ficam guardados. Trocar de aba na gaveta desmonta a aba
+// inteira; quando ela volta, cada <img> é nova. O navegador só entrega uma
+// imagem na hora (no mesmo quadro, sem esperar) se ela ainda está viva no
+// cache em memória da página — e, sem nenhum <img> apontando para ela, ela
+// sai de lá logo. Aí a imagem volta do cache do disco/rede, de forma
+// assíncrona (e, com loading="lazy", só depois do observador de "perto da
+// tela"): a grade aparecia com os pôsteres vazios (só o efeito por cima, o
+// dourado sem a capa) e eles pipocavam 100–600 ms depois, a cada troca.
+// Agora: guardamos um Image() de cada pôster carregado (no máximo KEEP, os
+// mais recentes; um w342 tem ~30–50 KB), o que mantém a imagem viva na
+// memória; o pôster que volta entra com loading="eager" e decoding="sync":
+// sai pronto no primeiro quadro. Pôster nunca visto segue como antes (lazy,
+// decodificação assíncrona).
+const KEEP = 160;
+const keptArt = new Map<string, HTMLImageElement>();
+const remember = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  const src = e.currentTarget.getAttribute('src') || '';
+  if (!src) return;
+  const kept = keptArt.get(src);
+  if (kept) {
+    // O mais recente vai para o fim (o primeiro do Map é o que sai).
+    keptArt.delete(src);
+    keptArt.set(src, kept);
+    return;
+  }
+  const img = new Image();
+  img.src = src;
+  keptArt.set(src, img);
+  if (keptArt.size > KEEP) {
+    const oldest = keptArt.keys().next().value;
+    if (oldest !== undefined) keptArt.delete(oldest);
+  }
+};
+
 const PosterArt: React.FC<{
   filePath: string;
   effect?: PosterEffect;
   alt?: string;
-  size?: 'w185' | 'w342' | 'w500' | 'w780';
+  size?: ArtSize;
   animated?: boolean;
   className?: string;
   style?: React.CSSProperties;
   loading?: 'lazy' | 'eager';
   mark?: PosterMark | null;
-}> = ({ filePath, effect = 'none', alt = '', size = 'w342', animated = true, className = '', style, loading = 'lazy', mark }) => {
+  // 04/11/2026: um tamanho menor do mesmo pôster, por baixo, enquanto o
+  // grande carrega (ex.: o detalhe da coleção abre em w500 com o w342 da
+  // grade, que já está no cache, em vez de um quadro vazio que depois pisca).
+  placeholderSize?: ArtSize | null;
+}> = ({ filePath, effect = 'none', alt = '', size = 'w342', animated = true, className = '', style, loading = 'lazy', mark, placeholderSize = null }) => {
   const effectClass =
     effect === 'negative' ? 'pj-negative' : effect === 'ultra_red' ? 'pj-ultra' : effect === 'holo' ? 'pj-holo' : effect === 'gold' ? 'pj-gold' : '';
   // Quem passa `absolute` posiciona; senão, o pôster é o próprio quadro.
   const position = /\babsolute\b/.test(className) ? '' : 'relative';
+  const src = posterUrl(filePath, size);
+  const known = keptArt.has(src);
+  const low = placeholderSize && placeholderSize !== size ? posterUrl(filePath, placeholderSize) : null;
   return (
     <span className={`pj-art block ${position} ${effectClass} ${animated ? 'pj-animated' : ''} ${className}`} style={style}>
-      <img src={posterUrl(filePath, size)} alt={alt} loading={loading} decoding="async" draggable={false} />
+      {low && <img src={low} alt="" aria-hidden loading="eager" decoding={keptArt.has(low) ? 'sync' : 'async'} draggable={false} onLoad={remember} />}
+      <img src={src} alt={alt} loading={known ? 'eager' : loading} decoding={known ? 'sync' : 'async'} draggable={false} onLoad={remember} />
       {effect === 'ultra_red' && (
         <>
           <span aria-hidden className="pj-ultra-tint" />
