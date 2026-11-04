@@ -1,0 +1,42 @@
+/* Home de visitante (04/11/2026) — só o que o Tailwind não faz sozinho.
+
+   O ingresso do herói (LandingHero → AdmitTicket): o papel creme das cartas
+   dos oráculos, com o canhoto à direita separado por um picote e as duas
+   meias-luas recortadas (máscara) no alto e no pé do picote, como um
+   ingresso de cinema de verdade. A sombra vai no invólucro (filter), porque
+   a máscara recortaria um box-shadow. */
+
+.lp-ticket-wrap {
+  --lp-stub: 84px;
+  filter: drop-shadow(0 18px 26px rgba(0, 0, 0, 0.55));
+}
+
+@media (min-width: 640px) {
+  .lp-ticket-wrap {
+    --lp-stub: 96px;
+  }
+}
+
+.lp-ticket {
+  --lp-notch: 9px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(255, 255, 255, 0.55), transparent 55%),
+    #f3ead3;
+  border-radius: 14px;
+  -webkit-mask:
+    radial-gradient(circle var(--lp-notch) at calc(100% - var(--lp-stub)) 0, transparent 97%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle var(--lp-notch) at calc(100% - var(--lp-stub)) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat;
+  mask:
+    radial-gradient(circle var(--lp-notch) at calc(100% - var(--lp-stub)) 0, transparent 97%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle var(--lp-notch) at calc(100% - var(--lp-stub)) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat;
+}
+
+/* O picote entre o ingresso e o canhoto. */
+.lp-ticket-perf {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  right: var(--lp-stub);
+  border-left: 2px dashed rgba(34, 27, 54, 0.26);
+  pointer-events: none;
+}
