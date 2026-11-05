@@ -1,7 +1,7 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Library as LibraryIcon, LogIn, LogOut, User, Home, Users } from 'lucide-react';
+import { Library as LibraryIcon, LogIn, LogOut, User, Eye, Home, Users } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { LogoLockup, LogoMark, LogoWordmark } from './Logo';
 import { useTranslation } from 'react-i18next';
@@ -72,19 +72,28 @@ function Navbar() {
 
   // Item de navegação (computador) — compacto o bastante pra 5 links +
   // busca + sino + idioma + sair caberem sem espremer nada.
-  const NavLink = ({ to, icon: Icon, children, labelClassName = 'hidden xl:inline' }: {
+  const NavLink = ({ to, icon: Icon, children, labelClassName = 'hidden xl:inline', active }: {
     to: string;
     icon: React.ElementType;
     children: React.ReactNode;
     labelClassName?: string;
+    // Acesa por outra regra que não "caminho igual ao link" (a aba Oráculo).
+    active?: boolean;
   }) => {
-    // A Central dos Oráculos continua acesa na Biblioteca dos Oráculos e no Duelo.
-    // A Biblioteca dos Oráculos e as salas secretas moram atrás das portas da
-    // home (a Central dos Oráculos foi extinta em 02/11/2026).
-    const isActive = location.pathname === to || (to === '/' && (location.pathname.startsWith('/oracle/') || location.pathname.startsWith('/sala/')));
+    // As salas secretas moram atrás das portas da home (a Central dos
+    // Oráculos foi extinta em 02/11/2026) e acendem o Início.
+    const isActive = active ?? (location.pathname === to || (to === '/' && location.pathname.startsWith('/sala/')));
     return (
       <Link
         to={to}
+        onClick={(e) => {
+          // Aba Oráculo já dentro da Biblioteca dos Oráculos: fica no oráculo
+          // em que a pessoa está (o link leva ao Bogart) e só volta ao topo.
+          if (active && location.pathname === '/oracle/libraries') {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }}
         aria-current={isActive ? 'page' : undefined}
         className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300 relative whitespace-nowrap ${
           isActive
@@ -186,6 +195,10 @@ function Navbar() {
             <div className="hidden lg:flex flex-1 items-center justify-center gap-1 min-w-0">
               <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
               <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
+              {/* 04/11/2026 (pedido do Bruno): o olho volta à barra, mas abre
+                  direto a Biblioteca dos Oráculos (a Central não existe mais).
+                  Acende em toda página /oracle/ (Biblioteca e Duelo). */}
+              <NavLink to="/oracle/libraries?oracle=bogart" icon={Eye} active={location.pathname.startsWith('/oracle/')}>{t('nav.oracle')}</NavLink>
               <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
               <NavLink to="/profile" icon={User}>{t('nav.profile')}</NavLink>
             </div>

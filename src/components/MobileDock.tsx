@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Library as LibraryIcon, Users, User, Search } from 'lucide-react';
+import { Home, Library as LibraryIcon, Eye, Users, User, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -13,11 +13,12 @@ import MobileSearch, { DOCK_SEARCH_LAYOUT_ID } from './MobileSearch';
 // hambúrguer do topo e da lupa presa na borda esquerda: uma barra de vidro
 // flutuando na base da tela, como no Instagram e no IMDb.
 //
-//   [ Início  Biblioteca  Comunidade  Perfil ]  ( busca )
+//   [ Início  Biblioteca  Oráculo  Comunidade  Perfil ]  ( busca )
 //
-// (A aba Oráculo saiu em 02/11/2026: a Central dos Oráculos foi extinta e as
-// portas dela — Biblioteca dos Oráculos, Poster Jackpot e Persona — moram na
-// home. A Biblioteca dos Oráculos acende a aba Início.)
+// (A aba Oráculo saiu em 02/11/2026, quando a Central dos Oráculos foi
+// extinta, e voltou em 04/11/2026 a pedido do Bruno: o olho agora abre direto
+// a Biblioteca dos Oráculos, no Bogart, e acende em toda página /oracle/.
+// Tocar nela já dentro da Biblioteca fica no oráculo atual e volta ao topo.)
 //
 // • A aba da página atual fica dentro de uma "lente" violeta que desliza
 //   de uma aba para a outra. Tocar na aba em que você já está volta ao topo.
@@ -100,9 +101,11 @@ const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect, movieOpen = fals
     setSearchOpen(false);
   }, [path]);
 
-  const tabs: { to: string; label: string; icon?: typeof Home; active: boolean }[] = [
-    { to: '/', label: t('nav.home'), icon: Home, active: path === '/' || path.startsWith('/category/') || path.startsWith('/oracle/') || path.startsWith('/sala/') },
+  // `here`: o caminho em que tocar na aba só volta ao topo (sem navegar).
+  const tabs: { to: string; label: string; icon?: typeof Home; active: boolean; here?: string }[] = [
+    { to: '/', label: t('nav.home'), icon: Home, active: path === '/' || path.startsWith('/category/') || path.startsWith('/sala/') },
     { to: '/library', label: t('nav.library'), icon: LibraryIcon, active: path === '/library' || path === '/lists' || path === '/add-movies' },
+    { to: '/oracle/libraries?oracle=bogart', label: t('nav.oracle'), icon: Eye, active: path.startsWith('/oracle/'), here: '/oracle/libraries' },
     { to: '/community', label: t('nav.community'), icon: Users, active: path === '/community' || path.startsWith('/profile/') },
     { to: '/profile', label: t('nav.profile'), active: path === '/profile' || path.startsWith('/premium') },
   ];
@@ -143,9 +146,15 @@ const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect, movieOpen = fals
                         title={tab.label}
                         aria-current={tab.active ? 'page' : undefined}
                         tabIndex={searchOpen ? -1 : undefined}
-                        onClick={() => {
-                          // Na aba em que já está: volta ao topo.
-                          if (tab.active && path === tab.to) window.scrollTo({ top: 0, behavior: 'smooth' });
+                        onClick={(e) => {
+                          // Na aba em que já está: volta ao topo. Na do Oráculo,
+                          // sem navegar (o link leva ao Bogart; fica no oráculo atual).
+                          if (tab.here && path === tab.here) {
+                            e.preventDefault();
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          } else if (tab.active && path === tab.to) {
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }
                         }}
                         className={`relative flex-1 h-full min-w-0 rounded-full ${FOCUS_RING}`}
                       >
