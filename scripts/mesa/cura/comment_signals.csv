@@ -1,0 +1,940 @@
+signal,media_type,tmdb_id,oracle,title,decision,confirmed_by,note
+choro,movie,299534,b,Vingadores: Ultimato,1,claude-0511,lenço
+choro,movie,597,f,Titanic,1,claude-0511,
+choro,movie,122,b,O Retorno do Rei,1,claude-0511,lenço do lado da pipoca
+choro,movie,150540,b,Divertida Mente,1,claude-0511,
+choro,movie,14160,b,Up: Altas Aventuras,1,claude-0511,
+choro,movie,354912,b,Viva: A Vida é Uma Festa,1,claude-0511,
+choro,movie,419430,b,Corra!,0,claude-0511,lágrima do personagem
+choro,movie,808,b,Shrek,0,claude-0511,chorar de rir
+choro,movie,424,f,A Lista de Schindler,1,claude-0511,
+choro,movie,10193,b,Toy Story 3,1,claude-0511,
+choro,movie,752,b,V de Vingança,1,claude-0511,
+choro,movie,489,f,Gênio Indomável,1,claude-0511,
+choro,movie,637,f,A Vida é Bela,1,claude-0511,
+choro,movie,162,f,Edward Mãos de Tesoura,1,claude-0511,
+choro,movie,296096,b,Como Eu Era Antes de Você,1,claude-0511,
+choro,movie,207,f,Sociedade dos Poetas Mortos,1,claude-0511,
+choro,movie,372058,c,Your Name.,1,claude-0511,
+choro,tv,71712,b,The Good Doctor,1,claude-0511,
+choro,movie,8358,b,Náufrago,1,claude-0511,
+choro,movie,601,f,E.T.: O Extraterrestre,1,claude-0511,
+choro,movie,222935,b,A Culpa é das Estrelas,1,claude-0511,
+choro,movie,12405,b,Quem Quer Ser um Milionário?,1,claude-0511,
+choro,movie,211672,b,Minions,0,claude-0511,chora de rir
+choro,tv,1416,b,Grey's Anatomy,1,claude-0511,
+choro,movie,301528,b,Toy Story 4,1,claude-0511,
+choro,movie,318846,b,A Grande Aposta,0,claude-0511,rir para não chorar
+choro,movie,50619,b,Crepúsculo: Amanhecer,1,claude-0511,lencinho na mão
+choro,movie,50014,b,Histórias Cruzadas,1,claude-0511,
+choro,movie,95,f,Armageddon,1,claude-0511,
+choro,movie,447365,b,Guardiões da Galáxia Vol. 3,1,claude-0511,
+choro,movie,396535,c,Invasão Zumbi,1,claude-0511,
+choro,movie,406997,b,Extraordinário,1,claude-0511,
+choro,movie,545611,b,Tudo em Todo o Lugar ao Mesmo Tempo,1,claude-0511,
+choro,movie,773,b,Pequena Miss Sunshine,1,claude-0511,
+choro,movie,587,b,Peixe Grande,1,claude-0511,
+choro,movie,616,b,O Último Samurai,1,claude-0511,
+choro,movie,257211,b,Um Senhor Estagiário,0,claude-0511,lenço do personagem
+choro,movie,11321,b,Sete Vidas,1,claude-0511,
+choro,movie,28178,b,Sempre ao Seu Lado,1,claude-0511,
+choro,movie,11544,b,Lilo & Stitch,1,claude-0511,
+choro,movie,80278,b,O Impossível,1,claude-0511,
+choro,movie,788,f,Uma Babá Quase Perfeita,0,claude-0511,comédia; o choro é de passagem
+choro,movie,1184918,b,Robô Selvagem,1,claude-0511,
+choro,movie,969681,b,Homem-Aranha: Um Novo Dia,1,claude-0511,
+choro,movie,10386,f,O Gigante de Ferro,1,claude-0511,
+choro,tv,46260,c,Naruto,0,claude-0511,lágrimas dos personagens
+choro,movie,43347,b,Amor e Outras Drogas,1,claude-0511,
+choro,movie,82695,b,Os Miseráveis,1,claude-0511,
+choro,movie,345920,b,Beleza Oculta,1,claude-0511,
+choro,movie,1585,c,A Felicidade Não Se Compra,1,claude-0511,
+choro,movie,11216,f,Cinema Paradiso,1,claude-0511,
+choro,tv,70785,b,Anne com um E,1,claude-0511,
+choro,movie,14306,b,Marley & Eu,1,claude-0511,
+choro,movie,637920,c,Milagre na Cela 7 (Turquia),1,claude-0511,
+choro,movie,590223,c,Amor e Monstros,0,claude-0511,falso: cachorro
+choro,movie,10229,b,Um Amor para Recordar,1,claude-0511,
+choro,movie,22971,b,Querido John,1,claude-0511,
+choro,movie,582,c,A Vida dos Outros,1,claude-0511,
+choro,movie,40807,b,50%,1,claude-0511,
+choro,movie,522402,b,Finch,0,claude-0511,falso: cachorro
+choro,movie,9335,b,Carga Explosiva 2,0,claude-0511,a física é que chora
+choro,movie,2277,f,O Homem Bicentenário,1,claude-0511,
+choro,movie,580175,c,Druk: Mais Uma Rodada,1,claude-0511,
+choro,tv,615,f,Futurama,0,claude-0511,comédia; o choro é de passagem
+choro,movie,371638,b,Artista do Desastre,0,claude-0511,chorando de rir
+choro,movie,937278,b,O Pior Vizinho do Mundo,1,claude-0511,
+choro,movie,57212,b,Cavalo de Guerra,1,claude-0511,
+choro,movie,258230,c,Sete Minutos Depois da Meia-Noite,1,claude-0511,
+choro,movie,674324,b,Os Banshees de Inisherin,1,claude-0511,
+choro,movie,284293,b,Para Sempre Alice,1,claude-0511,
+choro,movie,11836,b,Bob Esponja: O Filme,0,claude-0511,choro de rir
+choro,tv,15260,b,Hora de Aventura,1,claude-0511,
+choro,movie,65057,b,Os Descendentes,1,claude-0511,
+choro,tv,67915,b,Goblin,1,claude-0511,
+choro,movie,10637,b,Duelo de Titãs,1,claude-0511,
+choro,tv,1424,b,Orange Is the New Black,1,claude-0511,
+choro,movie,804095,b,Os Fabelmans,1,claude-0511,
+choro,movie,20453,c,3 Idiotas,1,claude-0511,
+choro,movie,12144,f,Em Busca do Vale Encantado,1,claude-0511,
+choro,movie,24420,b,Te Amarei Para Sempre,1,claude-0511,
+choro,movie,776503,b,No Ritmo do Coração,1,claude-0511,
+choro,movie,8470,b,Um Ato de Coragem,1,claude-0511,
+choro,movie,338,c,Adeus Lênin!,1,claude-0511,
+choro,movie,1262,b,Mais Estranho que a Ficção,1,claude-0511,
+choro,movie,552178,b,O Preço da Verdade,1,claude-0511,
+choro,movie,901,f,Luzes da Cidade,1,claude-0511,
+choro,tv,65494,b,The Crown,0,claude-0511,lágrimas engolidas pelos personagens
+choro,movie,537116,b,tick tick...BOOM!,1,claude-0511,
+choro,movie,606856,b,Togo,0,claude-0511,falso: cachorro
+choro,movie,864,f,Jamaica Abaixo de Zero,1,claude-0511,
+choro,movie,24238,c,Mary e Max,1,claude-0511,
+choro,movie,1677,b,Ray,1,claude-0511,
+choro,movie,99,c,Tudo Sobre Minha Mãe,1,claude-0511,
+choro,movie,976893,b,Dias Perfeitos,1,claude-0511,
+choro,movie,10647,b,A Corrente do Bem,1,claude-0511,
+choro,movie,10559,b,Alta Frequência,1,claude-0511,
+choro,movie,1850,f,O Mundo de Andy,1,claude-0511,
+choro,movie,517814,c,Cafarnaum,1,claude-0511,
+choro,movie,1634,f,Free Willy,1,claude-0511,
+choro,movie,149871,c,O Conto da Princesa Kaguya,1,claude-0511,
+choro,movie,873,f,A Cor Púrpura,1,claude-0511,
+choro,movie,330483,b,A Escolha,1,claude-0511,
+choro,tv,136315,b,O Urso,1,claude-0511,
+choro,movie,9559,f,Um Mundo Perfeito,1,claude-0511,
+choro,tv,61664,b,Sense8,1,claude-0511,
+choro,movie,404,f,Uma História Real,1,claude-0511,
+choro,movie,504253,c,Eu Quero Comer seu Pâncreas,1,claude-0511,
+choro,movie,722778,c,The Hand of God,1,claude-0511,
+choro,movie,2323,f,Campo dos Sonhos,1,claude-0511,
+choro,movie,205220,b,Philomena,1,claude-0511,
+choro,tv,67136,b,This Is Us,1,claude-0511,
+choro,movie,522518,b,Juntos para Sempre,1,claude-0511,
+choro,movie,10228,c,Pokémon: Mewtwo Contra-Ataca,1,claude-0511,
+choro,movie,110416,c,A Canção do Mar,1,claude-0511,
+choro,movie,565310,b,A Despedida,1,claude-0511,
+choro,tv,79525,b,Arremesso Final,1,claude-0511,
+choro,movie,64,c,Fale com Ela,1,claude-0511,
+choro,movie,9294,f,Fenômeno,1,claude-0511,
+choro,movie,3782,c,Viver,1,claude-0511,
+choro,movie,348678,c,Um Homem Chamado Ove,1,claude-0511,
+choro,movie,16052,f,Selena,1,claude-0511,
+choro,tv,1695,b,Monk,0,claude-0511,falso: lencinho do personagem
+choro,movie,58496,b,Senna,1,claude-0511,
+choro,movie,360814,c,Dangal,1,claude-0511,
+choro,tv,61663,c,Your lie in April,1,claude-0511,
+choro,movie,26280,c,Eu Matei Minha Mãe,1,claude-0511,
+choro,tv,1274,b,A Sete Palmos,1,claude-0511,
+choro,movie,967941,b,Wicked: Parte II,1,claude-0511,
+choro,movie,55347,b,Toda Forma de Amor,1,claude-0511,
+choro,movie,394741,b,Stan & Ollie,1,claude-0511,
+choro,movie,6878,f,A Incrível Jornada,1,claude-0511,
+choro,movie,1396,c,O Espelho (Tarkovsky),1,claude-0511,
+choro,movie,994108,b,Todos Nós Desconhecidos,1,claude-0511,
+choro,movie,666,f,Central do Brasil,1,claude-0511,
+choro,movie,10161,c,Meu Pé Esquerdo,1,claude-0511,
+choro,movie,1913,c,Mar Adentro,1,claude-0511,
+choro,tv,250307,b,The Pitt,1,claude-0511,
+choro,tv,1781,f,Os Pioneiros,1,claude-0511,
+choro,tv,209867,c,Frieren,1,claude-0511,
+choro,tv,75214,c,Violet Evergarden,1,claude-0511,
+choro,tv,197067,c,Uma Advogada Extraordinária,1,claude-0511,
+choro,tv,42573,c,Slam Dunk,1,claude-0511,
+choro,tv,4588,f,ER: Plantão Médico,1,claude-0511,
+choro,movie,228203,c,McFarland USA,1,claude-0511,
+choro,movie,16804,c,A Partida,1,claude-0511,
+choro,movie,11386,c,Traídos pelo Desejo,0,claude-0511,falso: cachorro
+choro,movie,13090,b,Trabalho Sujo,1,claude-0511,
+choro,movie,11050,f,Laços de Ternura,1,claude-0511,
+choro,movie,1064486,c,Memórias de um Caracol,1,claude-0511,
+choro,movie,838240,c,Meu Amigo Robô,1,claude-0511,
+choro,movie,14534,f,Rudy,1,claude-0511,
+choro,movie,518068,c,Along With the Gods 2,1,claude-0511,
+choro,tv,75208,c,Devilman Crybaby,1,claude-0511,
+choro,movie,833,c,Umberto D.,1,claude-0511,
+choro,movie,9062,f,Love Story,1,claude-0511,
+choro,tv,82728,b,Bluey,1,claude-0511,
+choro,tv,9160,c,Candy Candy,1,claude-0511,
+choro,movie,1088514,c,O Quarto ao Lado,1,claude-0511,
+choro,movie,244772,c,Irmãos Desastre,0,claude-0511,fala do ator chorando
+choro,movie,3870,c,1900,1,claude-0511,
+choro,movie,62837,c,Winter o Golfinho,1,claude-0511,
+choro,movie,15775,c,Antes que Termine o Dia,1,claude-0511,
+choro,movie,45094,c,A Condenação,1,claude-0511,
+choro,movie,407449,c,Lucky,1,claude-0511,
+choro,movie,11101,c,Stalingrado,0,claude-0511,o choro não sai
+choro,movie,1254786,b,A Lista da Minha Vida,1,claude-0511,
+choro,movie,4480,c,Jean de Florette,1,claude-0511,
+choro,movie,14326,b,Noites de Tormenta,1,claude-0511,
+choro,movie,28971,f,Luzes da Ribalta,1,claude-0511,
+choro,movie,1317149,b,Eu Juro,1,claude-0511,
+choro,tv,219246,c,Se a Vida Te Der Tangerinas,1,claude-0511,
+choro,movie,315846,c,Nossa Irmã Mais Nova,1,claude-0511,
+choro,movie,1327862,b,Se Não Fosse Você,1,claude-0511,
+choro,movie,4481,c,A Vingança de Manon,1,claude-0511,
+choro,movie,11646,c,Gallipoli,1,claude-0511,
+choro,tv,110695,b,Dopesick,1,claude-0511,
+choro,movie,533514,c,Violet Evergarden: O Filme,1,claude-0511,
+choro,movie,7913,c,Pinte de Açafrão,1,claude-0511,
+choro,movie,265228,c,Timbuktu,1,claude-0511,
+choro,movie,8356,f,Tarde Demais para Esquecer,1,claude-0511,
+choro,movie,429450,c,Pandora,1,claude-0511,
+choro,tv,215720,b,Rainha das Lágrimas,1,claude-0511,
+choro,movie,527,c,O Amor e a Fúria,1,claude-0511,
+choro,movie,5801,c,A Canção da Estrada,1,claude-0511,
+choro,movie,158445,c,Milagre na Cela 7 (Coreia),1,claude-0511,
+choro,tv,24835,c,Clannad,1,claude-0511,
+choro,movie,110398,c,No,0,claude-0511,sátira; o choro é jogo de palavras
+choro,movie,43266,f,Como Era Verde o Meu Vale,1,claude-0511,
+choro,movie,2054,f,Mr. Holland,1,claude-0511,
+choro,movie,94047,c,My Way,1,claude-0511,
+choro,movie,3309,f,Alma em Suplício,1,claude-0511,
+choro,movie,11832,c,A Festa de Babette,1,claude-0511,
+choro,tv,815,b,Peep Show,0,claude-0511,rir até chorar
+choro,tv,90972,b,Estação Onze,1,claude-0511,
+choro,movie,1367642,c,Uma Segunda Chance,1,claude-0511,
+choro,movie,11042,c,As Invasões Bárbaras,1,claude-0511,
+choro,movie,472454,c,Ayla,1,claude-0511,
+choro,movie,1155828,c,Sing Sing,1,claude-0511,
+choro,movie,18519,f,Free Willy 3,0,claude-0511,o choro foi no primeiro
+choro,movie,530079,c,Pegando uma Onda com Você,1,claude-0511,
+choro,movie,15859,c,A Moment To Remember,1,claude-0511,
+choro,movie,315872,c,Minha Mãe (Moretti),1,claude-0511,
+choro,movie,4107,c,Domingo Sangrento,1,claude-0511,
+choro,movie,25934,c,Ao Mestre Com Carinho,1,claude-0511,
+choro,tv,112613,c,Ranking of Kings,1,claude-0511,
+choro,movie,1180634,c,O Trem Italiano da Felicidade,1,claude-0511,
+choro,movie,25389,f,Matinee,0,claude-0511,chorou de rir
+choro,movie,50759,c,A Rotina Tem Seu Encanto,1,claude-0511,
+choro,movie,34148,f,Imitação da Vida,1,claude-0511,
+choro,movie,209361,c,Apenas uma Chance,1,claude-0511,
+choro,movie,154030,c,Pânico na Torre,1,claude-0511,
+choro,movie,265851,c,Assassino Profissional,0,claude-0511,lágrima é estilo do filme
+choro,tv,70128,b,Genius,1,claude-0511,
+choro,movie,897,c,O Invencível (Aparajito),1,claude-0511,
+choro,movie,9450,c,Um Toque de Esperança,1,claude-0511,
+choro,tv,46619,b,Rectify,1,claude-0511,
+choro,tv,88166,c,Eu Sei Que Isso é Verdade,1,claude-0511,
+choro,movie,128246,c,O Garoto Lobisomem,1,claude-0511,
+choro,movie,5055,c,Cinzas e Diamantes,1,claude-0511,
+choro,movie,15592,f,Amigas Para Sempre,1,claude-0511,
+choro,movie,18094,c,Anvil!,1,claude-0511,
+choro,tv,39793,c,Chame a Parteira,1,claude-0511,
+choro,tv,4556,c,Scrubs,0,claude-0511,comédia; o choro é de passagem
+choro,movie,32015,c,Eu Sou Cuba,1,claude-0511,
+choro,movie,1919,c,Longe Dela,1,claude-0511,
+choro,movie,47795,c,Paisagem na Neblina,1,claude-0511,
+choro,movie,19460,c,O Filho da Noiva,1,claude-0511,
+choro,tv,116174,c,It's a Sin,1,claude-0511,
+choro,movie,148,c,A Vida Secreta das Palavras,1,claude-0511,
+choro,movie,499028,c,Ficar com Você,1,claude-0511,
+choro,movie,24858,c,A Eternidade e Um Dia,1,claude-0511,
+choro,movie,12086,c,Machuca,1,claude-0511,
+choro,movie,42113,c,A Balada de Narayama,1,claude-0511,
+choro,movie,31032,c,A Morte do Sr. Lazarescu,1,claude-0511,
+choro,movie,670981,c,A Noite do Fogo,1,claude-0511,
+choro,movie,459073,c,Dia Sem Fim,1,claude-0511,
+choro,tv,4344,c,Esquadrão Resgate,1,claude-0511,
+choro,movie,19155,c,Antes da Chuva,1,claude-0511,
+choro,tv,21762,c,Parenthood,1,claude-0511,
+choro,movie,91186,c,A Simple Life,1,claude-0511,
+choro,tv,2243,f,O Toque de Um Anjo,1,claude-0511,
+choro,movie,43445,c,A Terra Treme,1,claude-0511,
+choro,movie,822,c,A Sala de Música,1,claude-0511,
+choro,tv,12539,c,Sonata de Inverno,1,claude-0511,
+choro,movie,1212121,c,Homem com H,1,claude-0511,
+choro,movie,245917,c,Gintama: The Final Chapter,1,claude-0511,
+choro,movie,41799,c,Vozes Distantes,1,claude-0511,
+choro,tv,134581,c,Kotaro Vai Morar Sozinho,0,claude-0511,descreve o tom; não diz que fez chorar
+choro,movie,22549,c,Um Olhar a Cada Dia,1,claude-0511,
+choro,movie,36872,c,Quando a Mulher Sobe a Escada,1,claude-0511,
+choro,movie,7509,c,Water,1,claude-0511,
+choro,tv,42699,c,Decálogo,1,claude-0511,
+choro,movie,673737,c,O Natal de James & Bob,1,claude-0511,
+choro,movie,18317,c,Um Romance do Outro Mundo,1,claude-0511,
+choro,movie,689,c,A Viagem dos Comediantes,1,claude-0511,
+choro,movie,887870,c,BLUE GIANT,1,claude-0511,
+choro,movie,52679,c,A Última Ordem,1,claude-0511,
+choro,movie,61461,c,A Culpa dos Pais,1,claude-0511,
+choro,tv,90705,c,Small Axe,1,claude-0511,
+choro,movie,43339,c,As 24 Pupilas,1,claude-0511,
+choro,tv,30982,c,Hikaru no Go,1,claude-0511,
+choro,tv,56017,c,Shtisel,1,claude-0511,
+choro,tv,202851,c,Big Boys,1,claude-0511,
+chuva,movie,807,f,Seven,1,claude-0511,chuva sem fim é o clima do filme
+chuva,movie,78,f,Blade Runner,1,claude-0511,chuva e neon
+chuva,movie,11036,b,Diário de uma Paixão,0,claude-0511,chuva é metáfora da química
+chuva,movie,414906,b,Batman (2022),1,claude-0511,encharcado de chuva
+chuva,movie,8392,f,Meu Amigo Totoro,1,claude-0511,cheiro de chuva
+chuva,movie,9495,f,O Corvo,1,claude-0511,chuva gótica
+chuva,movie,4147,b,Estrada para Perdição,1,claude-0511,chuva e silêncio
+chuva,movie,400650,b,O Retorno de Mary Poppins,0,claude-0511,falso: guarda-chuva
+chuva,movie,11439,b,O Escritor Fantasma,1,claude-0511,chuva e paranoia
+chuva,movie,198375,c,O Jardim das Palavras,1,claude-0511,filme de dias de chuva
+chuva,movie,111083,c,O Corpo,1,claude-0511,chuva e noite
+chuva,movie,2176,c,A Casa de Vidro,1,claude-0511,suspense de tarde chuvosa
+chuva,movie,13205,b,Bambi 2,1,claude-0511,desenho de tarde chuvosa
+chuva,movie,16804,c,A Partida,0,claude-0511,chuva é metáfora do choro
+chuva,movie,11966,f,Um Robô em Curto Circuito 2,1,claude-0511,tarde de chuva resolvida
+chuva,movie,14326,b,Noites de Tormenta,1,claude-0511,pra ver com chuva na janela
+chuva,tv,1615,f,Tico e Teco,0,claude-0511,falso: chuveiro
+chuva,tv,37664,b,O Círculo Secreto,0,claude-0511,série; a ocasião é só de filmes
+chuva,movie,538858,c,Tumbbad,1,claude-0511,chuva sem fim
+chuva,movie,2731,c,Indochina,0,claude-0511,cheiro de chuva é metáfora
+chuva,movie,46918,c,Ervas Flutuantes,1,claude-0511,Ozu com chuva
+chuva,tv,2473,f,Os Vingadores (série),0,claude-0511,falso: guarda-chuva
+chuva,tv,2625,f,Diagnosis: Murder,0,claude-0511,série; a ocasião é só de filmes
+sozinho,movie,10138,b,Homem de Ferro 2,0,claude-0511,fala do ator
+sozinho,movie,24,b,Kill Bill: Volume 1,0,claude-0511,fala da personagem
+sozinho,movie,694,f,O Iluminado,-1,claude-0511,o próprio Raposo manda não ver sozinho
+sozinho,movie,152601,b,Ela,1,claude-0511,pra ver sozinho numa noite quieta
+sozinho,movie,206647,b,007 Contra Spectre,0,claude-0511,fala da abertura
+sozinho,movie,12477,c,Túmulo dos Vagalumes,-1,claude-0511,a Cobra manda não ver sozinha
+sozinho,movie,82695,b,Os Miseráveis,0,claude-0511,fala da atriz
+sozinho,movie,332567,c,Águas Rasas,0,claude-0511,fala da atriz
+sozinho,movie,343674,b,Jogo Perigoso,0,claude-0511,fala da atriz
+sozinho,movie,8367,f,Robin Hood: O Príncipe dos Ladrões,0,claude-0511,fala do ator
+sozinho,movie,9361,f,O Último dos Moicanos,0,claude-0511,fala da trilha
+sozinho,movie,567748,c,O Culpado (2021),0,claude-0511,fala do ator
+sozinho,movie,26388,b,Enterrado Vivo,0,claude-0511,fala do ator
+sozinho,movie,9315,c,Plano de Voo,0,claude-0511,fala da atriz
+sozinho,movie,210479,b,Locke,0,claude-0511,fala do ator
+sozinho,movie,682,f,007 Contra o Homem com a Pistola de Ouro,0,claude-0511,fala do ator
+sozinho,movie,614696,c,#Alive,0,claude-0511,fala do ator
+sozinho,movie,14359,b,Dúvida,0,claude-0511,saí discutindo sozinho
+sozinho,movie,774825,b,A Era do Gelo: As Aventuras de Buck,0,claude-0511,fala do ator
+sozinho,movie,27324,c,Kairo,0,claude-0511,a Cobra vive sozinha; é terror
+sozinho,movie,2517,c,Ninguém Pode Saber,0,claude-0511,doer sozinha é figura
+sozinho,tv,35338,c,La que se avecina,0,claude-0511,fala do ator
+sozinho,tv,91520,c,Beforeigners,0,claude-0511,rir sozinha
+sozinho,tv,500,f,Louco por Você,0,claude-0511,sorrir sozinho
+sozinho,movie,27561,c,Trailer Park Boys: Countdown to Liquor Day,0,claude-0511,rir sozinha
+sozinho,movie,426264,c,Uma Viagem para Espanha,0,claude-0511,rir sozinha
+sozinho,movie,39504,c,Moolaadé,0,claude-0511,aplaudindo sozinha
+amor,movie,10528,b,Sherlock Holmes,0,claude-0511,casal é figura dos personagens
+amor,movie,102382,b,O Espetacular Homem-Aranha 2,0,claude-0511,casal da tela
+amor,movie,787,b,Sr. & Sra. Smith,1,claude-0511,veja a dois
+amor,movie,1824,b,Como Se Fosse a Primeira Vez,0,claude-0511,casal da tela
+amor,movie,927,f,Gremlins,0,claude-0511,mãos dadas é figura
+amor,movie,10340,f,A Dama e o Vagabundo,1,claude-0511,abra um vinho e chame seu amor
+amor,tv,72844,b,A Maldição da Residência Hill,0,claude-0511,mãos dadas é figura
+amor,movie,265189,c,Força Maior,1,claude-0511,veja com o seu amor e discuta depois
+amor,tv,73107,b,Barry,0,claude-0511,mãos dadas é figura
+amor,tv,69470,b,Santa Clarita Diet,0,claude-0511,descreve o gênero
+amor,movie,596161,b,Deixe-o Partir,0,claude-0511,mãos dadas dos personagens
+amor,movie,489930,b,Ponto Cego,0,claude-0511,falso: Rafael Casal
+amor,movie,3529,f,A Ceia dos Acusados,0,claude-0511,casal da tela
+amor,movie,843847,b,Jerry & Marge Tiram a Sorte Grande,0,claude-0511,casal da tela
+amor,tv,118642,b,Sr. & Sra. Smith (série),0,claude-0511,terapia de casal da tela
+amor,movie,25431,f,A Costela de Adão,0,claude-0511,casal da tela
+amor,movie,2748,c,Viagem à Itália,0,claude-0511,silêncio a dois na tela
+amor,movie,11698,c,Stroszek,0,claude-0511,mãos dadas é figura
+amor,movie,43430,c,Ironia do Destino,1,claude-0511,pra ver com o seu amor
+amor,tv,61118,c,Você é o Pior,0,claude-0511,casal da tela
+amor,tv,15166,c,Os Normais,0,claude-0511,casal da tela
+galera,movie,24428,b,Os Vingadores,0,claude-0511,turma da tela
+galera,movie,291805,b,Truque de Mestre: O 2º Ato,0,claude-0511,turma da tela
+galera,movie,336843,b,Maze Runner: A Cura Mortal,0,claude-0511,turma da tela
+galera,movie,298,b,Treze Homens e um Novo Segredo,0,claude-0511,amigos da tela
+galera,movie,109414,b,É o Fim,0,claude-0511,amigos da tela
+galera,movie,38365,b,Gente Grande,0,claude-0511,turma da tela
+galera,tv,1100,b,Como Eu Conheci Sua Mãe,1,claude-0511,maratona com os amigos
+galera,movie,2978,f,Os Caça-Fantasmas 2,0,claude-0511,turma da tela
+galera,movie,547016,b,The Old Guard,0,claude-0511,turma da tela
+galera,movie,71552,b,American Pie: O Reencontro,0,claude-0511,turma da tela
+galera,movie,180863,b,T2 Trainspotting,0,claude-0511,turma da tela
+galera,movie,943,f,Máquina Mortífera 3,0,claude-0511,turma da tela
+galera,movie,9352,b,Eurotrip,1,claude-0511,melhor ver com os amigos
+galera,movie,6466,b,Freddy vs. Jason,1,claude-0511,pra ver com a turma
+galera,movie,109443,b,Tudo por um Furo,0,claude-0511,turma da tela
+galera,movie,804150,c,O Urso do Pó Branco,1,claude-0511,pra ver em turma
+galera,movie,11282,b,Madrugada Muito Louca,1,claude-0511,pra ver com os amigos
+galera,movie,425274,b,Truque de Mestre: O 3º Ato,0,claude-0511,turma da tela
+galera,movie,17473,c,The Room,1,claude-0511,assista em grupo
+galera,movie,9538,f,Scanners,0,claude-0511,cara de poucos amigos
+galera,tv,604,b,Os Jovens Titãs,0,claude-0511,turma de sofá é ambíguo
+galera,tv,100757,b,Outer Banks,1,claude-0511,com a turma toda
+galera,tv,62823,b,Pânico: A Série,1,claude-0511,maratonar com a turma
+galera,movie,394741,b,Stan & Ollie,0,claude-0511,amigos da tela
+galera,tv,1778,b,Zoey 101,0,claude-0511,turma da tela
+galera,movie,10890,f,Recrutas da Pesada,0,claude-0511,descreve o gênero
+galera,tv,1447,b,Psych,0,claude-0511,amigos da tela
+galera,movie,13151,f,Scooby-Doo! na Ilha dos Zumbis,0,claude-0511,turma da tela
+galera,tv,65320,b,SKAM,0,claude-0511,turma da tela
+galera,movie,13820,f,Repo Man,0,claude-0511,cara de poucos amigos
+galera,movie,21316,b,Leroy & Stitch,0,claude-0511,turma da tela
+galera,tv,63623,b,Fuller House,0,claude-0511,abraço em grupo da tela
+galera,tv,32605,b,O Show dos Looney Tunes,0,claude-0511,turma da tela
+galera,movie,11129,f,Human Traffic,1,claude-0511,pra ver com a turma antes da balada
+galera,movie,14752,c,O que o Coração Deseja,0,claude-0511,amigos da tela
+galera,tv,72,f,Only Fools and Horses,0,claude-0511,velhos amigos é figura
+galera,movie,13612,f,Cheech e Chong Atacam Novamente,1,claude-0511,só funciona com os amigos
+galera,tv,92621,c,Brassic,0,claude-0511,turma da tela
+galera,tv,31497,c,The League,0,claude-0511,amigos da tela
+galera,tv,157004,c,Goosebumps (2023),1,claude-0511,maratonar em grupo
+galera,movie,673175,b,Maior Viagem,0,claude-0511,papo entre amigos é o formato
+galera,tv,86893,c,Tacoma FD,0,claude-0511,turma da tela
+maratona,tv,1399,b,Game of Thrones,0,claude-0511,longa demais para um fim de semana
+maratona,tv,71446,b,La casa de papel,0,claude-0511,longa demais para um fim de semana
+maratona,tv,1396,b,Breaking Bad,0,claude-0511,longa demais para um fim de semana
+maratona,tv,1402,b,The Walking Dead,0,claude-0511,longa demais
+maratona,tv,63174,b,Lucifer,0,claude-0511,longa demais
+maratona,tv,69050,b,Riverdale,0,claude-0511,longa demais
+maratona,tv,18165,b,Diários de um Vampiro,0,claude-0511,longa demais
+maratona,tv,1668,f,Friends,0,claude-0511,longa demais
+maratona,tv,88396,b,Falcão e o Soldado Invernal,1,claude-0511,minissérie de 6 episódios
+maratona,tv,31910,c,Naruto Shippuden,0,claude-0511,longa demais
+maratona,tv,1429,c,Attack on Titan,0,claude-0511,longa demais
+maratona,tv,71912,b,The Witcher,0,claude-0511,em andamento
+maratona,tv,1412,b,Arqueiro,0,claude-0511,longa demais
+maratona,tv,1100,b,Como Eu Conheci Sua Mãe,0,claude-0511,longa demais
+maratona,tv,87739,b,O Gambito da Rainha,1,claude-0511,minissérie de 7 episódios
+maratona,tv,12637,b,Rebelde,0,claude-0511,longa demais
+maratona,tv,66788,b,13 Reasons Why,0,claude-0511,longa demais
+maratona,tv,4604,b,Smallville,0,claude-0511,longa demais
+maratona,tv,48891,b,Brooklyn Nine-Nine,0,claude-0511,longa demais
+maratona,tv,40075,b,Gravity Falls,1,claude-0511,40 episódios curtos
+maratona,tv,91239,b,Bridgerton,0,claude-0511,em andamento
+maratona,tv,1425,b,House of Cards,0,claude-0511,longa demais
+maratona,tv,71728,b,Jovem Sheldon,0,claude-0511,longa demais
+maratona,tv,46296,b,Spartacus,0,claude-0511,passa de 20 h
+maratona,tv,1981,f,Charmed,0,claude-0511,longa demais
+maratona,tv,68421,b,Altered Carbon,1,claude-0511,18 episódios
+maratona,tv,1395,b,A Garota do Blog,0,claude-0511,longa demais
+maratona,tv,105,f,Sexo e a Cidade,0,claude-0511,longa demais
+maratona,tv,890,c,Neon Genesis Evangelion,1,claude-0511,26 episódios
+maratona,tv,61664,b,Sense8,0,claude-0511,passa de 20 h
+maratona,tv,117581,b,Ginny e Georgia,0,claude-0511,em andamento
+maratona,tv,39340,b,Duas Garotas em Apuros,0,claude-0511,longa demais
+maratona,tv,4589,b,Arrested Development,0,claude-0511,passa de 20 h
+maratona,tv,52,f,De Volta aos Anos 70,0,claude-0511,longa demais
+maratona,tv,21510,b,Crimes do Colarinho Branco,0,claude-0511,longa demais
+maratona,tv,56296,b,Orphan Black,0,claude-0511,longa demais
+maratona,tv,61459,c,Parasyte: The Maxim,1,claude-0511,24 episódios curtos
+maratona,tv,604,b,Os Jovens Titãs,0,claude-0511,passa de 20 h
+maratona,tv,100757,b,Outer Banks,0,claude-0511,em andamento
+maratona,tv,33217,b,Justiça Jovem,0,claude-0511,passa de 20 h
+maratona,tv,62823,b,Pânico: A Série,0,claude-0511,passa um pouco de 20 h
+maratona,tv,50825,b,A Lenda de Sleepy Hollow,0,claude-0511,longa demais
+maratona,tv,45,b,Top Gear,0,claude-0511,em andamento
+maratona,tv,83851,b,The Undoing,1,claude-0511,minissérie de 6 episódios
+maratona,tv,30983,c,Detetive Conan,0,claude-0511,em andamento
+maratona,tv,154825,b,Pretendente Surpresa,1,claude-0511,maratonei de uma vez
+maratona,tv,4238,f,O Rei do Bairro,0,claude-0511,longa demais
+maratona,tv,9160,c,Candy Candy,0,claude-0511,longa demais
+maratona,tv,269,b,Lances da Vida,0,claude-0511,longa demais
+maratona,tv,88324,b,Virgin River,0,claude-0511,em andamento
+maratona,tv,688,f,West Wing,0,claude-0511,longa demais
+maratona,tv,219246,c,Se a Vida Te Der Tangerinas,1,claude-0511,16 episódios
+maratona,tv,668,b,X-Men: Evolution,1,claude-0511,52 episódios curtos; cerca de 19 h
+maratona,movie,1084187,b,Lindas e Letais,0,claude-0511,falso: de uma vez; é filme
+maratona,tv,9045,f,A Dança da Morte,1,claude-0511,minissérie de 4 episódios
+maratona,tv,745,f,Spaced,1,claude-0511,14 episódios
+maratona,tv,326,c,Red Dwarf,0,claude-0511,passa de 20 h
+maratona,tv,86340,b,Undone,1,claude-0511,maratona curta
+maratona,tv,764,f,Midsomer Murders,0,claude-0511,em andamento
+maratona,tv,37664,b,O Círculo Secreto,1,claude-0511,fim de semana chuvoso
+maratona,tv,241609,b,Seus Amigos e Vizinhos,0,claude-0511,em andamento
+maratona,tv,132750,b,Garotos Detetives Mortos,1,claude-0511,8 episódios
+maratona,tv,217667,c,Eric,1,claude-0511,minissérie de 6 episódios
+maratona,tv,35338,c,La que se avecina,0,claude-0511,em andamento
+maratona,tv,71146,c,Condor,1,claude-0511,20 episódios
+maratona,tv,67419,c,Vitória: A Vida de uma Rainha,1,claude-0511,24 episódios
+maratona,tv,69557,c,Fauda,0,claude-0511,em andamento
+maratona,tv,114068,c,A Oferta,1,claude-0511,minissérie de 10 episódios
+maratona,tv,95612,c,Namorado de Natal,1,claude-0511,episódios de meia hora
+maratona,tv,17174,c,Ghosts,1,claude-0511,episódios de meia hora
+maratona,tv,252193,c,Até o Último Samurai,0,claude-0511,em andamento
+maratona,tv,13862,f,Shogun (1980),1,claude-0511,minissérie
+maratona,tv,95599,c,Kipo e os Animonstros,1,claude-0511,30 episódios curtos
+maratona,tv,157004,c,Goosebumps (2023),1,claude-0511,10 episódios
+maratona,tv,72071,c,The Chi,0,claude-0511,longa demais
+maratona,tv,1706,f,The Pretender,0,claude-0511,longa demais
+maratona,movie,12086,c,Machuca,0,claude-0511,falso: de uma vez; é filme
+maratona,tv,244244,c,Custe o que Custar,1,claude-0511,minissérie de 8 episódios
+maratona,tv,1101,f,Minha Vida de Cão,0,claude-0511,não fala em maratona
+maratona,tv,56387,c,Punho da Estrela do Norte,0,claude-0511,longa demais
+maratona,tv,33827,c,Como Funciona o Universo,0,claude-0511,longa demais
+maratona,tv,2750,c,Testemunha Silenciosa,0,claude-0511,longa demais
+maratona,tv,74823,c,Çukur,0,claude-0511,longa demais
+maratona,tv,233219,c,ONE: High School Heroes,1,claude-0511,8 episódios
+maratona,tv,32085,c,The Good Guys,0,claude-0511,não fala em maratona
+maratona,tv,10083,c,O Fugitivo,0,claude-0511,longa demais
+maratona,tv,10420,c,The Whitest Kids U' Know,0,claude-0511,passa de 20 h
+maratona,tv,202577,c,Mar Branco,1,claude-0511,19 episódios
+maratona,tv,220074,c,Flex x Cop,0,claude-0511,passa de 20 h
+maratona,tv,202851,c,Big Boys,1,claude-0511,18 episódios curtos
+maratona,tv,43059,c,Heimat,1,claude-0511,maratona longa e rara; cabe em 20 h
+maratona,tv,3743,c,Forever Knight,0,claude-0511,longa demais
+maratona,tv,12272,c,Thriller,0,claude-0511,longa demais
+riso,movie,585,b,Monstros S.A.,1,claude-0511,
+riso,movie,808,b,Shrek,1,claude-0511,chorar de rir
+riso,movie,19908,b,Zumbilândia,1,claude-0511,pra rir alto
+riso,tv,1418,b,Big Bang: A Teoria,1,claude-0511,
+riso,movie,93456,b,Meu Malvado Favorito 2,1,claude-0511,
+riso,movie,564,f,A Múmia (1999),1,claude-0511,sustos e gargalhadas
+riso,movie,138832,b,Família do Bagulho,1,claude-0511,
+riso,movie,512200,b,Jumanji: Próxima Fase,1,claude-0511,
+riso,tv,1668,f,Friends,1,claude-0511,
+riso,movie,50014,b,Histórias Cruzadas,0,claude-0511,drama
+riso,movie,214756,b,Ted 2,1,claude-0511,
+riso,movie,38055,b,Megamente,1,claude-0511,
+riso,movie,10527,b,Madagascar 2,1,claude-0511,
+riso,movie,375262,b,A Favorita,1,claude-0511,veneno e risada
+riso,movie,377,f,A Hora do Pesadelo,0,claude-0511,risada do vilão
+riso,movie,567609,b,Casamento Sangrento,1,claude-0511,gargalhando de nervoso
+riso,movie,308266,b,Cães de Guerra,0,claude-0511,risada do personagem
+riso,movie,544,f,Quem Vai Ficar com Mary?,1,claude-0511,
+riso,movie,425909,b,Ghostbusters: Mais Além,1,claude-0511,
+riso,movie,298312,b,A Visita,0,claude-0511,terror primeiro
+riso,movie,278154,b,A Era do Gelo: O Big Bang,0,claude-0511,a risada é da molecada
+riso,movie,9602,f,Um Príncipe em Nova York,1,claude-0511,
+riso,movie,16871,c,Arraste-me Para o Inferno,0,claude-0511,terror primeiro
+riso,movie,7350,b,Antes de Partir,0,claude-0511,riso com nó na garganta
+riso,movie,246741,b,O Que Fazemos nas Sombras,1,claude-0511,
+riso,movie,9362,f,O Ataque dos Vermes Malditos,1,claude-0511,dá vontade de rir alto
+riso,tv,40075,b,Gravity Falls,1,claude-0511,
+riso,movie,573435,b,Bad Boys: Até o Fim,1,claude-0511,
+riso,tv,387,f,Bob Esponja,0,claude-0511,risada do dublador
+riso,movie,459992,b,Casal Improvável,1,claude-0511,
+riso,movie,20453,c,3 Idiotas,1,claude-0511,
+riso,movie,459151,b,O Poderoso Chefinho 2,1,claude-0511,
+riso,movie,11770,c,Kung Fu Futebol Clube,1,claude-0511,
+riso,movie,2609,f,Antes Só do que Mal Acompanhado,1,claude-0511,
+riso,movie,24803,b,Julie & Julia,0,claude-0511,risada da atriz
+riso,movie,87428,b,Este é o Meu Garoto,1,claude-0511,
+riso,movie,11186,f,Brinquedo Assassino 2,0,claude-0511,risada do boneco
+riso,tv,66573,b,The Good Place,1,claude-0511,
+riso,tv,2038,b,Drake e Josh,1,claude-0511,
+riso,movie,870028,b,O Contador 2,0,claude-0511,ação primeiro
+riso,movie,763,c,Fome Animal,1,claude-0511,gargalhei de nojo
+riso,tv,117581,b,Ginny e Georgia,0,claude-0511,drama primeiro
+riso,tv,62264,b,Ash vs Evil Dead,1,claude-0511,
+riso,movie,1694,f,Re-Animator,0,claude-0511,risada nervosa
+riso,tv,2490,b,The IT Crowd,1,claude-0511,
+riso,tv,5371,b,iCarly,1,claude-0511,
+riso,movie,263109,b,Shaun o Carneiro: O Filme,1,claude-0511,
+riso,movie,280180,b,Um Tira da Pesada 4,0,claude-0511,risada do ator
+riso,movie,9394,c,Trinity é o Meu Nome,1,claude-0511,
+riso,movie,394741,b,Stan & Ollie,0,claude-0511,biografia
+riso,tv,2391,f,Contos da Cripta,0,claude-0511,risada de caveira
+riso,movie,653349,b,Amizade de Férias,1,claude-0511,
+riso,tv,926,f,Scooby-Doo Cadê Você?,0,claude-0511,risada enlatada
+riso,movie,696393,b,Alerta Apocalipse,0,claude-0511,terror primeiro
+riso,tv,154825,b,Pretendente Surpresa,1,claude-0511,
+riso,movie,11419,f,Férias Frustradas em Las Vegas,1,claude-0511,
+riso,movie,24929,f,A Volta dos Mortos Vivos 2,1,claude-0511,
+riso,tv,4605,b,Zack & Cody,0,claude-0511,risada de claque
+riso,movie,534780,c,Assassinato às Cegas,0,claude-0511,suspense primeiro
+riso,movie,11455,f,Queimando Tudo,1,claude-0511,
+riso,movie,10722,c,O Dia da Besta,1,claude-0511,
+riso,tv,13943,f,Beavis e Butt-Head,1,claude-0511,
+riso,tv,7869,b,Os Pinguins de Madagascar,1,claude-0511,
+riso,movie,1859,f,Ninotchka,0,claude-0511,risada da atriz
+riso,movie,47796,c,Mamma Roma,0,claude-0511,risada da atriz
+riso,movie,5558,c,O Fantasma da Liberdade,1,claude-0511,
+riso,movie,572164,c,Saída: Fuga em Seul,1,claude-0511,
+riso,tv,102321,c,Looney Tunes Cartoons,1,claude-0511,
+riso,tv,2730,f,I Love Lucy,1,claude-0511,
+riso,movie,395982,c,Prevenge,0,claude-0511,risada desconfortável
+riso,tv,106454,c,Depois da Festa,1,claude-0511,
+riso,movie,1583,c,Lammbock,1,claude-0511,
+riso,movie,574284,c,Arpão,1,claude-0511,
+riso,tv,243316,c,As Quatro Estações do Ano,0,claude-0511,risada leve
+riso,movie,42790,c,Seduzida e Abandonada,1,claude-0511,
+riso,tv,44684,c,Nichijou,1,claude-0511,
+riso,movie,245917,c,Gintama: The Final Chapter,1,claude-0511,
+riso,tv,13455,f,Contos da Cripta (infantil),0,claude-0511,risada do dublador
+riso,movie,37833,c,A Porta da Loucura,1,claude-0511,
+riso,movie,27296,c,The Gingerdead Man,1,claude-0511,
+riso,tv,1803,f,Vivendo e Aprendendo,1,claude-0511,
+familia,movie,271110,b,Capitão América: Guerra Civil,0,claude-0511,família é tema
+familia,movie,150540,b,Divertida Mente,1,claude-0511,pra criança e marmanjo
+familia,movie,354912,b,Viva: A Vida é Uma Festa,1,claude-0511,sofá da família
+familia,movie,12,b,Procurando Nemo,1,claude-0511,pra toda idade
+familia,movie,585,b,Monstros S.A.,1,claude-0511,sessão em família
+familia,movie,9806,b,Os Incríveis,1,claude-0511,família toda vidrada
+familia,movie,329,f,Jurassic Park,0,claude-0511,virei criança
+familia,movie,324857,b,Homem-Aranha no Aranhaverso,1,claude-0511,família boquiaberta
+familia,movie,177572,b,Operação Big Hero,1,claude-0511,na medida pra família
+familia,movie,20352,b,Meu Malvado Favorito,1,claude-0511,criançada e pais
+familia,movie,10193,b,Toy Story 3,0,claude-0511,chorou feito criança
+familia,movie,920,b,Carros,1,claude-0511,
+familia,movie,353486,b,Jumanji: Bem-Vindo à Selva,1,claude-0511,família espremida no sofá
+familia,movie,10191,b,Como Treinar o Seu Dragão,1,claude-0511,
+familia,movie,425,b,A Era do Gelo,1,claude-0511,sessão em família
+familia,movie,72105,b,Ted,-1,claude-0511,não é pra ver com as crianças
+familia,movie,82690,b,Detona Ralph,1,claude-0511,pais e filhos
+familia,movie,812,f,Aladdin (1992),1,claude-0511,adultos e crianças
+familia,movie,411,b,As Crônicas de Nárnia,0,claude-0511,não diz com quem ver
+familia,movie,8844,f,Jumanji (1995),0,claude-0511,energia de criança
+familia,movie,211672,b,Minions,1,claude-0511,criança e adulto
+familia,movie,1593,b,Uma Noite no Museu,1,claude-0511,sessão em família
+familia,movie,772,f,Esqueceram de Mim 2,1,claude-0511,a família toda ri junto
+familia,tv,119051,b,Wandinha,1,claude-0511,gótico pra ver em família
+familia,movie,453395,b,Doutor Estranho no Multiverso da Loucura,0,claude-0511,vibrei feito criança
+familia,tv,75006,b,The Umbrella Academy,0,claude-0511,família é tema
+familia,movie,810,b,Shrek Terceiro,1,claude-0511,a criançada ri
+familia,movie,14836,b,Coraline,1,claude-0511,pra criança corajosa
+familia,movie,91314,b,Transformers: A Era da Extinção,0,claude-0511,gritei feito criança
+familia,movie,35,b,Os Simpsons: O Filme,0,claude-0511,família amarela
+familia,movie,335797,b,Sing,1,claude-0511,todo mundo canta junto
+familia,movie,406997,b,Extraordinário,1,claude-0511,família inteira abraçada
+familia,movie,49444,b,Kung Fu Panda 2,0,claude-0511,família é tema
+familia,movie,408,f,Branca de Neve e os Sete Anões,1,claude-0511,ver com os netos
+familia,movie,32657,b,Percy Jackson e o Ladrão de Raios,1,claude-0511,família toda
+familia,movie,223702,c,Festa da Salsicha,-1,claude-0511,mantenha as crianças longe
+familia,movie,44826,b,A Invenção de Hugo Cabret,1,claude-0511,família inteira
+familia,movie,49519,b,Os Croods,1,claude-0511,família no sofá
+familia,tv,94997,b,A Casa do Dragão,0,claude-0511,briga de família é tema
+familia,movie,927,f,Gremlins,0,claude-0511,tirou o sono das crianças; não recomenda nem veta
+familia,movie,80278,b,O Impossível,0,claude-0511,chorei feito criança
+familia,movie,250546,b,Annabelle,0,claude-0511,casa de família é cenário
+familia,movie,83666,b,Moonrise Kingdom,0,claude-0511,amor de criança é tema
+familia,movie,12092,f,Alice no País das Maravilhas (1951),1,claude-0511,criança adora
+familia,movie,159824,b,Hotel Transilvânia 2,1,claude-0511,família inteira se diverte
+familia,tv,95557,b,Invencível,-1,claude-0511,parece desenho de criança até a primeira gota de sangue
+familia,movie,4523,b,Encantada,1,claude-0511,ver com a família toda
+familia,movie,324849,b,Lego Batman: O Filme,1,claude-0511,pais e crianças
+familia,movie,1265,b,Ponte para Terabítia,0,claude-0511,não diz com quem ver
+familia,movie,11360,f,Dumbo,0,claude-0511,não diz com quem ver
+familia,movie,1061474,b,Superman (2025),0,claude-0511,sorrindo feito criança
+familia,tv,70785,b,Anne com um E,1,claude-0511,lenço da família
+familia,movie,12429,b,Ponyo,1,claude-0511,pequenos no colo
+familia,movie,840,f,Contatos Imediatos do Terceiro Grau,0,claude-0511,fé de criança
+familia,movie,10137,f,O Pequeno Stuart Little,1,claude-0511,criançada dormir feliz
+familia,tv,91363,b,What If...?,1,claude-0511,palpitar em família
+familia,tv,65334,b,Miraculous,1,claude-0511,criançada devora
+familia,movie,360920,b,O Grinch (2018),1,claude-0511,sessão com os pequenos
+familia,movie,9297,b,A Casa Monstro,1,claude-0511,terrorzinho pra criançada
+familia,movie,529203,b,Os Croods 2,1,claude-0511,família toda
+familia,movie,481848,b,O Chamado da Floresta,0,claude-0511,voz de avô é figura
+familia,movie,448119,b,Dolittle,1,claude-0511,as crianças curtem
+familia,movie,8965,b,Atlantis: O Retorno de Milo,1,claude-0511,a criançada curte
+familia,movie,172385,b,Rio 2,1,claude-0511,samba com a criançada
+familia,movie,258216,b,Ninfomaníaca: Volume 1,-1,claude-0511,longe da família
+familia,movie,6795,b,Zathura,1,claude-0511,a criançada adora
+familia,tv,40075,b,Gravity Falls,1,claude-0511,pra família toda
+familia,tv,34307,b,Shameless,0,claude-0511,elenco virou família
+familia,movie,501929,b,A Família Mitchell e a Revolta das Máquinas,0,claude-0511,família é tema
+familia,movie,1278,b,Os Sonhadores,-1,claude-0511,não é pra ver com a família
+familia,movie,394117,c,Projeto Flórida,0,claude-0511,criançada é tema
+familia,movie,309809,c,O Pequeno Príncipe,0,claude-0511,sonho de criança é figura
+familia,movie,9360,c,Anaconda,0,claude-0511,piada de família
+familia,tv,72844,b,A Maldição da Residência Hill,0,claude-0511,drama de família é tema
+familia,movie,77174,b,ParaNorman,1,claude-0511,família corajosa
+familia,movie,762509,b,Mufasa,0,claude-0511,voz de avô é figura
+familia,movie,1304313,b,Maldição da Múmia,0,claude-0511,terror de família é tema
+familia,movie,83899,c,Você é o Próximo,0,claude-0511,família é tema
+familia,movie,11395,f,Meu Papai é Noel,1,claude-0511,criançada no cobertor
+familia,movie,614479,b,Sobrenatural: A Porta Vermelha,0,claude-0511,susto de família é tema
+familia,movie,521777,b,Bons Meninos,-1,claude-0511,deixe os pequenos dormindo antes
+familia,movie,1029575,b,Plano em Família,0,claude-0511,pai de família é tema
+familia,tv,79696,b,Manifest,0,claude-0511,drama de família é tema
+familia,movie,170687,c,Os Boxtrolls,1,claude-0511,leve as crianças
+familia,movie,722778,c,The Hand of God,0,claude-0511,álbum de família é tema
+familia,movie,40662,b,Batman Contra o Capuz Vermelho,-1,claude-0511,não é desenho pra criança
+familia,movie,1301421,b,As Ovelhas Detetives,1,claude-0511,resolver em família
+familia,tv,31356,b,Big Time Rush,1,claude-0511,família cantando
+familia,movie,244,f,King Kong (1933),0,claude-0511,avô dos monstros é figura
+familia,movie,522518,b,Juntos para Sempre,1,claude-0511,família chorar abraçada
+familia,movie,13179,b,Tinker Bell,1,claude-0511,pequenos no colo
+familia,movie,157,f,Jornada nas Estrelas III,0,claude-0511,família é figura
+familia,movie,565310,b,A Despedida,0,claude-0511,avó é figura
+familia,movie,9021,b,Meu Papai é Noel 2,1,claude-0511,ver com a família
+familia,movie,441130,b,Wolfwalkers,1,claude-0511,obra-prima pra família
+familia,movie,7508,c,Como Estrelas na Terra,1,claude-0511,veja com seus filhos
+familia,movie,10166,f,Convenção das Bruxas (1990),1,claude-0511,assusta criança do jeito certo
+familia,movie,49948,b,Fantasia 2000,1,claude-0511,família toda
+familia,movie,850165,b,Garra de Ferro,0,claude-0511,frágil feito criança
+familia,movie,11639,f,O Cristal Encantado,0,claude-0511,não recomenda nem veta
+familia,movie,675445,b,Patrulha Canina: O Filme,1,claude-0511,feito pra criançada
+familia,tv,4239,f,Um Amor de Família,0,claude-0511,família é tema
+familia,movie,474395,b,Os Jovens Titãs em Ação! Nos Cinemas,1,claude-0511,criança e pai
+familia,movie,10510,f,Milagre na Rua 34 (1994),1,claude-0511,aquece a sala inteira
+familia,tv,68267,b,Caçadores de Trolls,1,claude-0511,aventura de família
+familia,movie,16366,b,José: O Rei dos Sonhos,1,claude-0511,ver com os avós
+familia,movie,13155,f,O Mundo Fantástico de Oz,0,claude-0511,assustou criança; não recomenda nem veta
+familia,movie,28874,c,Guerras de Verão,0,claude-0511,família é tema
+familia,tv,1877,b,Phineas e Ferb,1,claude-0511,família inteira cantarola
+familia,movie,19101,f,A Princesinha (1995),1,claude-0511,adulto e criança
+familia,movie,592984,b,Era uma Vez um Sonho,0,claude-0511,família é tema
+familia,tv,14141,f,V: A Minissérie Original,0,claude-0511,criança sem dormir é lembrança
+familia,tv,537,f,Ei Arnold!,0,claude-0511,olhar de criança é figura
+familia,movie,11704,c,A Ratinha Valente,1,claude-0511,não subestima filhote
+familia,movie,44629,c,Reino Animal,0,claude-0511,família criminosa é tema
+familia,movie,632856,b,Spirited: Um Conto Natalino,1,claude-0511,ver em família
+familia,movie,1125257,b,Uma Sexta-Feira Mais Louca Ainda,1,claude-0511,noite em família
+familia,movie,38843,c,Ramona e Beezus,0,claude-0511,atriz criança
+familia,tv,82728,b,Bluey,1,claude-0511,pais vejam com os filhos
+familia,movie,1202033,b,Enola Holmes 3,1,claude-0511,aventura leve pra família
+familia,movie,15400,f,Aconteceu no Natal do Mickey,1,claude-0511,criança no colo
+familia,movie,11837,c,Uma Grande Aventura (Watership Down),-1,claude-0511,não mostre às crianças sem avisar
+familia,movie,929204,c,Wallace & Gromit: Avengança,1,claude-0511,delícia pra família
+familia,movie,12761,c,Sonata de Outono,0,claude-0511,família é tema
+familia,movie,24929,f,A Volta dos Mortos Vivos 2,0,claude-0511,me divirto como criança
+familia,movie,13683,b,Tarzan e Jane,1,claude-0511,a criançada nem pisca
+familia,movie,62837,c,Winter o Golfinho,0,claude-0511,drama de família é tema
+familia,tv,97645,b,Solar Opposites,0,claude-0511,família é tema
+familia,tv,5835,f,Goosebumps (1995),1,claude-0511,apresentar o medo aos pequenos
+familia,tv,2913,f,O Clube do Terror (1990),0,claude-0511,lembrança; não recomenda
+familia,movie,10150,f,O Último Unicórnio,1,claude-0511,criança sai mais sábia
+familia,movie,893723,b,Patrulha Canina: Um Filme Superpoderoso,1,claude-0511,os pequenos vão latir de alegria
+familia,movie,276843,c,O Que Nós Fizemos nas Nossas Férias,0,claude-0511,crianças são do elenco
+familia,movie,11848,c,A Revolução dos Bichos (1954),-1,claude-0511,desenho que não é pra criança
+familia,movie,736732,c,Broker,0,claude-0511,família é tema
+familia,tv,504,f,Ren e Stimpy,-1,claude-0511,não é bem pra criança
+familia,movie,11816,f,Num Lago Dourado,0,claude-0511,família é tema
+familia,movie,13682,b,Pooh e o Efalante,1,claude-0511,primeira sessão dos pequenos
+familia,movie,20235,f,O Mundo Mágico da Bela,1,claude-0511,pra criança
+familia,tv,1018,f,Bonanza,1,claude-0511,a família inteira no sofá
+familia,tv,4324,f,Doutora Quinn,1,claude-0511,faroeste pra ver em família
+familia,movie,27813,c,O Mistério do Cesto,0,claude-0511,piada de família
+familia,tv,1430,f,Cosmos (1980),0,claude-0511,voz de avô é figura
+familia,movie,909,f,Agora Seremos Felizes,1,claude-0511,domingo com a família toda
+familia,movie,11905,c,A Companhia dos Lobos,-1,claude-0511,coloque as crianças pra dormir antes
+familia,tv,49009,b,Os Goldbergs,1,claude-0511,sofá com a família
+familia,movie,227735,c,Winter o Golfinho 2,1,claude-0511,família inteira no sofá
+familia,tv,39518,b,Minha Babá é Uma Vampira,1,claude-0511,ótimo pra criançada
+familia,movie,19165,f,Em Busca do Vale Encantado II,1,claude-0511,criançada e vovô
+familia,movie,8216,f,Conheça os Feebles,-1,claude-0511,não mostre pras crianças
+familia,tv,199318,c,Mal de Família,0,claude-0511,família é tema
+familia,movie,8937,c,Sonata de Tóquio,0,claude-0511,família é tema
+familia,tv,90812,c,Industry,0,claude-0511,piada de família
+familia,tv,2005,f,As Novas Aventuras do Ursinho Pooh,1,claude-0511,manhã de domingo
+familia,tv,93693,c,Clube do Terror (2019),1,claude-0511,ver com a criançada
+familia,tv,384,f,Doug,0,claude-0511,não diz com quem ver
+familia,movie,8340,c,Tartarugas podem Voar,0,claude-0511,crianças do elenco
+familia,tv,4550,f,Sétimo Céu,0,claude-0511,dá sono
+familia,tv,1950,c,Everwood,0,claude-0511,drama de família é tema
+familia,movie,480,c,Um Casamento à Indiana,0,claude-0511,família é tema
+familia,tv,33841,c,A Hora do Arrepio,1,claude-0511,terror juvenil
+familia,movie,32054,c,Esperança e Glória,0,claude-0511,olhar de criança é figura
+familia,movie,682012,c,A Pequena Amélie,0,claude-0511,olhar de criança é figura
+familia,movie,999075,c,A Garota Canhota,0,claude-0511,família é tema
+familia,tv,21762,c,Parenthood,0,claude-0511,família é tema
+familia,tv,2243,f,O Toque de Um Anjo,1,claude-0511,série para ver em família
+familia,movie,2981,c,O Mundo Perdido (1925),0,claude-0511,avó dos monstros é figura
+familia,movie,8983,c,Felidae,-1,claude-0511,traumatiza qualquer criança
+familia,movie,27653,c,Um Conto Americano 4,1,claude-0511,pra criança corajosa
+familia,tv,13455,f,Contos da Cripta (infantil),1,claude-0511,terror pra criança
+familia,tv,3696,c,Gavin & Stacey,0,claude-0511,família é tema
+familia,movie,339526,c,Em Busca do Vale Encantado (2016),0,claude-0511,álbum de família é figura
+familia,tv,2625,f,Diagnosis: Murder,0,claude-0511,sorriso de avô é figura
+familia,tv,93520,c,O Fantasma Escritor,1,claude-0511,faz criança querer ler
+familia,movie,19947,c,As Aventuras de Mark Twain,0,claude-0511,cena que assombra criança; não recomenda nem veta
+familia,movie,913816,c,Marte Um,0,claude-0511,família é tema
+familia,movie,61461,c,A Culpa dos Pais,0,claude-0511,olhar de criança é figura
+familia,tv,80587,c,Os Vizinhos Green,1,claude-0511,bagunça boa pra criançada
+familia,tv,1459,c,Wonder Showzen,-1,claude-0511,não mostre pras crianças
+familia,tv,56017,c,Shtisel,0,claude-0511,família é tema
+familia,tv,16183,c,A Grande Família,0,claude-0511,elenco virou família
+familia,tv,157747,c,Transformers: A Centelha da Terra,1,claude-0511,porta de entrada pra criançada
+susto,movie,475557,b,Coringa,0,claude-0511,assustador é a atuação
+susto,movie,98,b,Gladiador,0,claude-0511,arrepio de emoção
+susto,movie,8587,f,O Rei Leão (1994),0,claude-0511,arrepio da trilha
+susto,tv,1396,b,Breaking Bad,0,claude-0511,arrepio de emoção
+susto,movie,244786,b,Whiplash,0,claude-0511,medo da atuação
+susto,movie,37724,b,007: Operação Skyfall,0,claude-0511,arrepio é figura
+susto,movie,745,f,O Sexto Sentido,1,claude-0511,
+susto,movie,228150,b,Corações de Ferro,0,claude-0511,medo de guerra; não é susto
+susto,movie,1359,b,Psicopata Americano,1,claude-0511,dá mais medo que monstro
+susto,movie,332562,b,Nasce Uma Estrela,0,claude-0511,arrepio da voz
+susto,movie,242582,b,O Abutre,0,claude-0511,arrepio da atuação
+susto,movie,539,f,Psicose,1,claude-0511,
+susto,movie,679,f,Aliens: O Resgate,1,claude-0511,
+susto,movie,56292,b,Missão: Impossível - Protocolo Fantasma,0,claude-0511,vertigem
+susto,movie,420818,b,O Rei Leão (2019),0,claude-0511,arrepio das canções
+susto,movie,564,f,A Múmia (1999),1,claude-0511,matinê com sustos
+susto,movie,106,f,O Predador,1,claude-0511,
+susto,movie,330,f,O Mundo Perdido: Jurassic Park,1,claude-0511,ainda arma um susto
+susto,movie,259693,b,Invocação do Mal 2,1,claude-0511,
+susto,movie,14836,b,Coraline,1,claude-0511,fascina e arrepia
+susto,movie,333371,b,Rua Cloverfield 10,1,claude-0511,
+susto,movie,9552,f,O Exorcista,1,claude-0511,dormi de luz acesa
+susto,movie,22970,b,O Segredo da Cabana,1,claude-0511,ri e pulei
+susto,movie,693134,b,Duna: Parte Dois,0,claude-0511,assustador é a atuação
+susto,movie,65,b,8 Mile,0,claude-0511,arrepio de emoção
+susto,movie,310131,b,A Bruxa,1,claude-0511,
+susto,movie,3131,b,Gangues de Nova York,0,claude-0511,assustador é a atuação
+susto,movie,100,f,Jogos Trapaças e Dois Canos Fumegantes,0,claude-0511,assustador é a atuação
+susto,movie,1933,b,Os Outros,1,claude-0511,
+susto,movie,439079,b,A Freira,1,claude-0511,
+susto,movie,270303,b,Corrente do Mal,1,claude-0511,
+susto,movie,2034,b,Dia de Treinamento,0,claude-0511,assustador é a atuação
+susto,movie,423108,b,Invocação do Mal 3,0,claude-0511,sombrio mais que assustador
+susto,movie,39538,b,Contágio,0,claude-0511,medo realista; não é susto
+susto,movie,250546,b,Annabelle,1,claude-0511,
+susto,tv,42009,b,Black Mirror,0,claude-0511,medo do celular é figura
+susto,movie,2675,b,Sinais,1,claude-0511,assisti de luz acesa
+susto,movie,4553,b,O Operário,0,claude-0511,pesadelo é figura
+susto,movie,389015,b,Eu Tonya,0,claude-0511,medo da atuação
+susto,movie,49529,c,John Carter,0,claude-0511,defendo sem medo
+susto,movie,10530,f,Pocahontas,0,claude-0511,arrepio da canção
+susto,movie,5876,b,O Nevoeiro,1,claude-0511,
+susto,movie,396422,b,Annabelle 2: A Criação do Mal,1,claude-0511,
+susto,movie,308266,b,Cães de Guerra,0,claude-0511,assustador é a atuação
+susto,movie,2667,f,A Bruxa de Blair (1999),1,claude-0511,
+susto,movie,1700,f,Louca Obsessão,1,claude-0511,gelei na poltrona
+susto,movie,298312,b,A Visita,1,claude-0511,
+susto,movie,762504,b,Não! Não Olhe!,1,claude-0511,
+susto,movie,507089,b,Five Nights at Freddy's,1,claude-0511,susto de leve
+susto,movie,1427,c,Perfume,0,claude-0511,arrepio de sensação
+susto,movie,9659,f,Mad Max,0,claude-0511,sem medo
+susto,movie,9358,b,Premonição 2,1,claude-0511,
+susto,movie,536554,b,M3GAN,1,claude-0511,
+susto,movie,1578,f,Touro Indomável,0,claude-0511,assustadora é a entrega física
+susto,movie,9533,b,Dragão Vermelho,1,claude-0511,dá arrepio de verdade
+susto,movie,911430,b,F1: O Filme,0,claude-0511,arrepio do motor
+susto,movie,6947,b,A Vila,0,claude-0511,arrepio da trilha
+susto,movie,138697,b,Como Não Perder Essa Mulher,0,claude-0511,sem medo
+susto,movie,399057,b,O Sacrifício do Cervo Sagrado,1,claude-0511,dá arrepio
+susto,movie,9392,b,Abismo do Medo,1,claude-0511,
+susto,movie,205775,b,No Coração do Mar,0,claude-0511,piada do medo da banheira
+susto,movie,132232,b,Mama,1,claude-0511,
+susto,movie,805,f,O Bebê de Rosemary,1,claude-0511,
+susto,tv,46648,b,True Detective,0,claude-0511,arrepio é figura
+susto,movie,9297,b,A Casa Monstro,1,claude-0511,terrorzinho de luz acesa
+susto,movie,7340,f,Carrie A Estranha,1,claude-0511,
+susto,tv,124364,b,Origem (From),1,claude-0511,medo de olhar pela janela
+susto,movie,41446,b,Pânico 4,1,claude-0511,
+susto,movie,882598,b,Sorria,1,claude-0511,
+susto,movie,442249,b,A Primeira Noite de Crime,0,claude-0511,mais grito que susto
+susto,movie,400535,b,Sicário: Dia do Soldado,0,claude-0511,assustador é a atuação
+susto,tv,4057,b,Mentes Criminosas,1,claude-0511,maratone de luz acesa
+susto,tv,78191,b,Você,0,claude-0511,arrepia é figura
+susto,movie,884605,b,Que Horas Eu Te Pego?,0,claude-0511,sem medo
+susto,movie,1598,f,Cabo do Medo,1,claude-0511,arrepio garantido
+susto,movie,793,f,Veludo Azul,0,claude-0511,assustador é a atuação
+susto,movie,446021,b,Maus Momentos no Hotel Royale,0,claude-0511,arrepio da voz
+susto,movie,499932,b,O Diabo de Cada Dia,0,claude-0511,arrepio da atuação
+susto,movie,1083381,b,Backrooms,1,claude-0511,estranheza que arrepia
+susto,tv,92749,b,Cavaleiro da Lua,0,claude-0511,assustador é a atuação
+susto,tv,1398,f,Família Soprano,0,claude-0511,medo e ternura do personagem
+susto,movie,762441,b,Um Lugar Silencioso: Dia Um,1,claude-0511,
+susto,movie,433808,b,O Ritual,1,claude-0511,
+susto,movie,8413,f,O Enigma do Horizonte,1,claude-0511,
+susto,movie,393519,c,Grave,1,claude-0511,
+susto,movie,609,f,Poltergeist,1,claude-0511,
+susto,tv,1409,b,Filhos da Anarquia,0,claude-0511,medo da atuação
+susto,movie,13310,c,Deixa Ela Entrar,1,claude-0511,
+susto,movie,11906,f,Suspiria (1977),1,claude-0511,
+susto,movie,402431,b,Wicked,0,claude-0511,arrepio da voz
+susto,movie,398173,c,A Casa Que Jack Construiu,0,claude-0511,assustador é a atuação
+susto,movie,8643,b,O Exorcismo de Emily Rose,1,claude-0511,
+susto,movie,768,b,Do Inferno,1,claude-0511,pede luz acesa
+susto,movie,420634,b,Aterrorizante,1,claude-0511,só para estômago blindado
+susto,movie,800158,b,O Assassino,0,claude-0511,medo da atuação
+susto,movie,25376,c,O Segredo dos seus Olhos,0,claude-0511,arrepio de emoção
+susto,movie,945729,b,A Noite das Bruxas,1,claude-0511,
+susto,movie,546121,b,Fuja,1,claude-0511,gritei com a TV
+susto,movie,521,f,Disque M para Matar,0,claude-0511,arrepio é suspense elegante
+susto,movie,1138194,b,Herege,1,claude-0511,
+susto,movie,361292,b,Suspíria (2018),1,claude-0511,
+susto,movie,4512,b,O Assassinato de Jesse James,0,claude-0511,arrepio da atuação
+susto,movie,10665,b,Os Estranhos,1,claude-0511,
+susto,tv,1639,b,Heroes,0,claude-0511,arrepio da atuação
+susto,movie,625568,b,Fúria Incontrolável,0,claude-0511,medo da atuação
+susto,movie,87492,b,Foxcatcher,0,claude-0511,arrepio do silêncio
+susto,movie,86825,b,Segredos de Sangue,0,claude-0511,arrepio da imagem
+susto,movie,1523,c,O Último Rei da Escócia,0,claude-0511,assustador é a atuação
+susto,movie,10065,b,Horror em Amityville (2005),1,claude-0511,casarão de dar arrepio
+susto,movie,319888,b,Voando Alto,0,claude-0511,pulei de empolgação
+susto,movie,339967,b,Colossal,0,claude-0511,sem medo
+susto,movie,339692,b,Sem Perdão,0,claude-0511,assustadora é a transformação
+susto,movie,402897,b,A Morte de Stalin,0,claude-0511,ri do que dá medo
+susto,movie,431580,b,Abominável,0,claude-0511,arrepio do violino
+susto,movie,1038392,b,Invocação do Mal 4,1,claude-0511,
+susto,movie,614479,b,Sobrenatural: A Porta Vermelha,1,claude-0511,
+susto,movie,1725,f,Amor Sublime Amor,0,claude-0511,arrepio do musical
+susto,movie,12620,c,A Casa das Coelhinhas,0,claude-0511,sem medo do ridículo
+susto,movie,798645,b,O Sobrevivente (2025),0,claude-0511,medo da atuação
+susto,movie,6279,f,Mudança de Hábito 2,0,claude-0511,arrepio do coral
+susto,movie,9357,b,Retratos de Uma Obsessão,0,claude-0511,arrepio da atuação
+susto,movie,9316,c,Ong-Bak,0,claude-0511,arrepio da luta
+susto,tv,68507,b,His Dark Materials,0,claude-0511,medo da atuação
+susto,movie,244458,b,As Vozes,0,claude-0511,assustador é a atuação
+susto,movie,399366,c,O Segredo de Marrowbone,1,claude-0511,
+susto,movie,3112,f,O Mensageiro do Diabo,1,claude-0511,
+susto,movie,9386,f,Na Linha de Fogo,0,claude-0511,medo da atuação
+susto,movie,654,f,Sindicato de Ladrões,0,claude-0511,arrepio de emoção
+susto,movie,46146,c,O Caçador de Troll,1,claude-0511,divertido de dar medo
+susto,movie,790,f,A Bruma Assassina,1,claude-0511,
+susto,movie,1551,f,Linha Mortal (1990),1,claude-0511,
+susto,movie,11096,c,O Amigo Oculto,1,claude-0511,
+susto,movie,30018,c,Mother: A Busca Pela Verdade,0,claude-0511,arrepio da atuação
+susto,tv,84661,b,The Outsider,1,claude-0511,
+susto,tv,58474,b,Cosmos: Uma Odisseia do Espaço-Tempo,0,claude-0511,arrepio de emoção
+susto,movie,10998,f,Atração Fatal,0,claude-0511,assustadora é a atuação
+susto,tv,79788,b,Watchmen,0,claude-0511,sem medo
+susto,movie,1041613,b,Imaculada,1,claude-0511,
+susto,movie,398,b,Capote,0,claude-0511,assustador é a atuação
+susto,movie,9411,f,Possuídos,1,claude-0511,
+susto,movie,11596,f,O Novo Pesadelo: O Retorno de Freddy Krueger,1,claude-0511,
+susto,movie,20126,c,Prelúdio para Matar,1,claude-0511,
+susto,movie,1480,c,A Marca da Maldade,0,claude-0511,arrepio da imagem
+susto,movie,1241436,b,Tempo de Guerra,0,claude-0511,medo de guerra; não é susto
+susto,movie,11454,f,Caçador de Assassinos,0,claude-0511,suspense policial
+susto,movie,174772,c,Viagem à Lua de Júpiter,0,claude-0511,arrepio da imagem
+susto,tv,111803,b,The White Lotus,0,claude-0511,arrepio da trilha
+susto,movie,515042,b,Free Solo,0,claude-0511,medo de altura
+susto,movie,661539,b,Um Completo Desconhecido,0,claude-0511,arrepio de emoção
+susto,movie,11618,f,A Casa Amaldiçoada (1999),0,claude-0511,sustos de computador
+susto,tv,54671,b,Penny Dreadful,1,claude-0511,
+susto,tv,62017,b,O Homem do Castelo Alto,0,claude-0511,medo da atuação
+susto,movie,6488,f,Aracnofobia,1,claude-0511,
+susto,movie,2362,f,Westworld (1973),0,claude-0511,assustador é a atuação
+susto,movie,471506,b,Obsessão (Greta),0,claude-0511,medo da atuação
+susto,movie,663260,c,Caixa Preta,0,claude-0511,arrepio do som
+susto,tv,109958,b,A Maldição da Mansão Bly,1,claude-0511,vim pelo susto
+susto,movie,11798,c,Isto É Inglaterra,0,claude-0511,assustador é a atuação
+susto,movie,17111,c,Espíritos: A Morte Está ao Seu Lado,1,claude-0511,
+susto,movie,75638,c,Poder Paranormal,0,claude-0511,arrepio de desconfiança
+susto,movie,11974,f,Meus Vizinhos São um Terror,0,claude-0511,comédia primeiro
+susto,tv,4574,f,X-Men (série animada),0,claude-0511,arrepio da guitarra
+susto,movie,12149,b,A Mão do Diabo,1,claude-0511,
+susto,movie,1316092,b,O Morro dos Ventos Uivantes (2026),0,claude-0511,arrepio de paixão
+susto,movie,4552,c,Duas Irmãs,1,claude-0511,
+susto,movie,1197137,b,O Telefone Preto 2,1,claude-0511,
+susto,movie,331781,c,Amy,0,claude-0511,arrepio da voz
+susto,tv,97400,b,Missa da Meia-Noite,1,claude-0511,
+susto,movie,11835,b,Sentença de Morte,0,claude-0511,troca susto por fúria
+susto,movie,9885,b,Wolf Creek,1,claude-0511,
+susto,movie,1097549,c,Babygirl,0,claude-0511,sem medo
+susto,movie,324560,c,Amaldiçoada (Brimstone),1,claude-0511,
+susto,movie,9075,c,A Espiã,0,claude-0511,arrepio é figura
+susto,movie,10307,f,Stigmata,0,claude-0511,sem medo
+susto,tv,241259,b,Bebê Rena,0,claude-0511,arrepio da atuação
+susto,movie,10518,f,Maratona da Morte,0,claude-0511,suspense
+susto,movie,257,b,Oliver Twist (2005),0,claude-0511,arrepio da atuação
+susto,movie,11549,f,Vampiros de Almas (1956),1,claude-0511,
+susto,movie,931,f,Inverno de Sangue em Veneza,1,claude-0511,
+susto,movie,9451,c,Eleição,0,claude-0511,assustadora é a personagem
+susto,tv,73107,b,Barry,0,claude-0511,assustador de bom é figura
+susto,movie,1228246,b,Five Nights at Freddy's 2,1,claude-0511,
+susto,movie,48340,c,Santuário,0,claude-0511,claustrofobia; não é susto
+susto,tv,247718,b,Terra da Máfia,0,claude-0511,medo da atuação
+susto,movie,8092,f,O Despertar de um Homem,0,claude-0511,sem medo
+susto,movie,663870,c,Loucos por Justiça,0,claude-0511,comédia
+susto,tv,79240,b,Monstro do Pântano,1,claude-0511,
+susto,movie,13155,f,O Mundo Fantástico de Oz,0,claude-0511,assustou criança; aventura
+susto,tv,86848,b,Evil,1,claude-0511,
+susto,movie,788929,c,Lamb,1,claude-0511,
+susto,movie,10972,c,A Nona Sessão,1,claude-0511,
+susto,tv,75191,b,Terror (The Terror),1,claude-0511,
+susto,movie,802219,b,Bob Marley: One Love,0,claude-0511,arrepio do coro
+susto,tv,49010,c,The Fall,0,claude-0511,suspense policial
+susto,movie,1291595,c,Sobrenatural: Agora É Pessoal,1,claude-0511,
+susto,movie,508642,b,Gonjiam,1,claude-0511,
+susto,movie,501,b,O Homem-Urso,0,claude-0511,documentário
+susto,movie,10787,f,O Homem Invisível (1933),1,claude-0511,
+susto,movie,11704,c,A Ratinha Valente,0,claude-0511,sem medo de assustar criança
+susto,movie,506528,b,Harriet,0,claude-0511,arrepio da voz
+familia,movie,8392,f,Meu Amigo Totoro,1,claude-0511,leitura: pra ver no colo de quem a gente ama
+familia,movie,808,b,Shrek,1,claude-0511,leitura: humor pra pai e filho
+familia,movie,93456,b,Meu Malvado Favorito 2,1,claude-0511,leitura: risada pra casa inteira
+familia,movie,263109,b,Shaun o Carneiro: O Filme,1,claude-0511,leitura: pra vovó e neto
+familia,tv,7869,b,Os Pinguins de Madagascar,1,claude-0511,leitura: risada pra todas as idades
+familia,movie,507089,b,Five Nights at Freddy's,1,claude-0511,leitura: pra assistir com a molecada
+riso,movie,673175,b,Maior Viagem,1,claude-0511,leitura: ri de doer a barriga

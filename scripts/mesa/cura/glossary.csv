@@ -1,0 +1,930 @@
+kw_id,name_en,df,label_pt,label_en,kind,tema,exibivel,spoiler,sensivel
+818,based on novel or book,962,baseado em livro,based on a book,origem,,0,0,0
+9663,sequel,563,continuação,sequel,outro,,0,0,0
+9826,murder,440,assassinato,murder,tema,crime,0,0,1
+9672,based on true story,359,baseado em fatos reais,based on a true story,origem,,0,0,0
+179431,duringcreditsstinger,311,cena durante os créditos,mid-credits scene,outro,,0,0,0
+242,new york city,310,Nova York,New York City,lugar,cidade,1,0,0
+6054,friendship,297,amizade,friendship,tema,amizade,1,0,0
+12999,black and white,269,preto e branco,black and white,formato,arte-e-cinema,1,0,0
+179430,aftercreditsstinger,263,cena pós-créditos,post-credits scene,outro,,0,0,0
+9748,revenge,238,vingança,revenge,tema,vingança,1,0,0
+210024,anime,235,anime,anime,formato,arte-e-cinema,1,0,0
+325765,amused,229,bom humor,good humor,tom,humor,1,0,0
+187056,woman director,227,dirigido por mulher,woman director,outro,,0,0,0
+10683,coming of age,218,amadurecimento,coming of age,tema,crescer,1,0,0
+278823,3d animation,211,animação 3D,3D animation,formato,arte-e-cinema,1,0,0
+9717,based on comic,202,baseado em quadrinhos,based on a comic,origem,,0,0,0
+10123,dark comedy,191,humor ácido,dark comedy,tom,humor,1,0,0
+212,"london, england",185,Londres,London,lugar,cidade,1,0,0
+3289,villain,183,vilão marcante,memorable villain,tema,poder,1,0,0
+5565,biography,177,cinebiografia,biopic,origem,,0,0,0
+9715,superhero,176,super-herói,superhero,tema,poder,1,0,0
+4565,dystopia,174,distopia,dystopia,tema,distopia,1,0,0
+6270,high school,173,ensino médio,high school,tema,escola,1,0,0
+6152,supernatural,172,sobrenatural,the supernatural,tema,sobrenatural,1,0,0
+314730,suspenseful,171,suspense,suspense,tom,medo,1,0,0
+311315,dramatic,166,carga dramática,dramatic,tom,,0,0,0
+12670,"los angeles, california",165,Los Angeles,Los Angeles,lugar,cidade,1,0,0
+970,parent child relationship,165,relação de pais e filhos,parents and children,tema,família,1,0,0
+158718,lgbt,164,temática LGBTQIA+,LGBTQ+ themes,tema,identidade,1,0,0
+10714,serial killer,164,serial killer,serial killer,tema,crime,0,0,1
+6149,police,163,polícia,police,tema,crime,1,0,0
+703,detective,159,detetive,detective,tema,mistério,1,0,0
+18035,family,159,família,family,tema,família,1,0,0
+9673,love,159,amor,love,tema,amor,1,0,0
+309974,absurd,158,humor absurdo,absurd humor,tom,humor,1,0,0
+3335,halloween,156,Halloween,Halloween,data,,0,0,0
+321464,intense,155,intensidade,intensity,tom,,1,0,0
+380,sibling relationship,152,relação entre irmãos,siblings,tema,família,1,0,0
+697,loss of loved one,150,perda de alguém amado,loss of a loved one,tema,luto,0,0,1
+320420,hilarious,149,comédia rasgada,laugh-out-loud comedy,tom,humor,1,0,0
+1956,world war ii,148,Segunda Guerra,World War II,tema,guerra,1,0,0
+4344,musical,147,musical,musical,formato,música,1,0,0
+9951,alien,146,alienígenas,aliens,tema,espaço,1,0,0
+2343,magic,144,magia,magic,tema,sobrenatural,1,0,0
+9840,romance,144,romance,romance,tema,amor,1,0,0
+193171,sitcom,141,sitcom,sitcom,formato,humor,1,0,0
+1415,small town,139,cidade pequena,small town,lugar,cidade,1,0,0
+14964,drugs,138,drogas,drugs,tema,crime,0,0,1
+207268,neo-noir,138,neo-noir,neo-noir,formato,arte-e-cinema,1,0,0
+325811,excited,137,empolgação,excitement,tom,,0,0,0
+779,martial arts,134,artes marciais,martial arts,tema,esporte,1,0,0
+11322,female protagonist,132,protagonista mulher,female lead,outro,,0,0,0
+9714,remake,132,refilmagem,remake,outro,,0,0,0
+208289,1980s,131,anos 80,the 1980s,tema,época,1,0,0
+325761,admiring,131,admiração,admiration,tom,,0,0,0
+10235,family relationships,131,laços de família,family ties,tema,família,1,0,0
+10292,gore,130,gore,gore,tom,medo,0,0,1
+1157,husband wife relationship,130,vida de casal,married life,tema,amor,1,0,0
+5340,investigation,129,investigação,investigation,tema,mistério,1,0,0
+13141,based on manga,128,baseado em mangá,based on a manga,origem,,0,0,0
+90,"paris, france",122,Paris,Paris,lugar,cidade,1,0,0
+10349,survival,122,sobrevivência,survival,tema,sobrevivência,1,0,0
+208992,1960s,120,anos 60,the 1960s,tema,época,1,0,0
+325778,bold,119,ousadia,boldness,tom,,0,0,0
+378,prison,116,prisão,prison,tema,justiça,1,0,0
+8201,satire,116,sátira,satire,tom,humor,1,0,0
+4379,time travel,116,viagem no tempo,time travel,tema,tempo,1,0,0
+6075,sports,115,esporte,sports,tema,esporte,1,0,0
+9887,surrealism,115,surrealismo,surrealism,tom,sonho-e-realidade,1,0,0
+236,suicide,114,suicídio,suicide,tema,morte,0,0,1
+207928,19th century,113,século XIX,19th century,tema,época,1,0,0
+15060,period drama,110,drama de época,period drama,formato,época,1,0,0
+202371,aggressive,109,agressividade,aggressive,tom,,0,0,0
+1228,1970s,108,anos 70,the 1970s,tema,época,1,0,0
+207883,1940s,107,anos 40,the 1940s,tema,época,1,0,0
+34079,death,107,morte,death,tema,morte,0,0,0
+3149,gangster,107,gângsteres,gangsters,tema,crime,1,0,0
+281585,inspirational,106,história inspiradora,inspiring story,tom,,1,0,0
+315058,horror,105,horror,horror,tom,medo,1,0,0
+33637,super power,104,superpoderes,superpowers,tema,poder,1,0,0
+239797,complex,102,trama complexa,intricate plot,tom,mistério,1,0,0
+570,rape,102,estupro,rape,tema,crime,0,0,1
+11162,miniseries,101,minissérie,miniseries,formato,arte-e-cinema,1,0,0
+6259,psychopath,101,psicopata,psychopath,tema,crime,0,0,1
+161919,adult animation,100,animação adulta,adult animation,formato,arte-e-cinema,1,0,0
+233,japan,100,Japão,Japan,lugar,cidade,1,0,0
+15162,dog,99,cachorro,dogs,tema,animais,1,0,0
+258533,gay theme,99,temática LGBTQIA+,LGBTQ+ themes,tema,identidade,1,0,0
+162846,ghost,98,fantasmas,ghosts,tema,sobrenatural,1,0,0
+1299,monster,98,monstros,monsters,tema,monstros,1,0,0
+12565,psychological thriller,98,suspense psicológico,psychological thriller,tom,mistério,1,0,0
+325775,awestruck,97,deslumbramento,awe,tom,,0,0,0
+207317,christmas,97,Natal,Christmas,data,,0,0,0
+1930,kidnapping,97,sequestro,kidnapping,tema,crime,1,0,0
+325782,cheerful,96,alto-astral,upbeat,tom,humor,1,0,0
+325773,audacious,93,audácia,audacious,tom,,0,0,0
+470,spy,93,espionagem,spies,tema,política,1,0,0
+10181,based on play or musical,92,baseado em peça,based on a play,origem,,0,0,0
+7312,road trip,92,pé na estrada,road trip,tema,viagem,1,0,0
+6513,cartoon,91,desenho animado,cartoon,formato,arte-e-cinema,1,0,0
+324713,whimsical,91,clima lúdico,whimsy,tom,humor,1,0,0
+325762,adoring,90,ternura,adoring,tom,,0,0,0
+10410,conspiracy,90,conspiração,conspiracy,tema,política,1,0,0
+10873,school,90,escola,school,tema,escola,1,0,0
+256183,supernatural horror,90,terror sobrenatural,supernatural horror,tom,medo,1,0,0
+325763,ambiguous,89,ambiguidade,ambiguity,tom,mistério,1,0,0
+240119,father son relationship,89,relação pai e filho,father and son,tema,família,1,0,0
+11612,hospital,89,hospital,hospital,lugar,trabalho,1,0,0
+259376,playful,89,tom brincalhão,playful,tom,humor,1,0,0
+10909,lawyer,88,advogados,lawyers,tema,justiça,1,0,0
+208611,1950s,87,anos 50,the 1950s,tema,época,1,0,0
+15001,demon,86,demônios,demons,tema,sobrenatural,1,0,0
+324429,romantic,86,romantismo,romantic,tom,amor,1,0,0
+10614,tragedy,86,tragédia,tragedy,tema,luto,1,0,0
+616,witch,86,bruxas,witches,tema,sobrenatural,1,0,0
+392,england,85,Inglaterra,England,lugar,cidade,1,0,0
+240303,father daughter relationship,85,relação pai e filha,father and daughter,tema,família,1,0,0
+9856,flashback,85,flashbacks,flashbacks,formato,memória,1,0,0
+164246,nostalgic,83,nostalgia,nostalgia,tom,memória,1,0,0
+3133,vampire,83,vampiros,vampires,tema,monstros,1,0,0
+246466,based on young adult novel,81,baseado em livro juvenil,based on a YA novel,origem,,0,0,0
+13005,doctor,81,médicos,doctors,tema,trabalho,1,0,0
+325809,enthusiastic,81,entusiasmo,enthusiasm,tom,,0,0,0
+10685,escape,81,fuga,escape,tema,sobrevivência,1,0,0
+251667,anxious,80,ansiedade,anxious,tom,,0,0,0
+387,california,80,Califórnia,California,lugar,cidade,1,0,0
+9713,friends,79,amigos,friends,tema,amizade,1,0,0
+417,corruption,78,corrupção,corruption,tema,política,1,0,0
+3737,dying and death,77,morte,dying and death,tema,morte,0,0,0
+10041,dysfunctional family,77,família disfuncional,dysfunctional family,tema,família,1,0,0
+13006,torture,77,tortura,torture,tema,crime,0,0,1
+325824,hopeful,76,esperança,hope,tom,,1,0,0
+1326,infidelity,76,infidelidade,infidelity,tema,amor,1,0,0
+931,jealousy,76,ciúme,jealousy,tema,amor,1,0,0
+212737,philosophical,76,reflexão filosófica,philosophical,tom,identidade,1,0,0
+4458,post-apocalyptic future,76,pós-apocalipse,post-apocalyptic,tema,distopia,1,0,0
+319397,witty,76,humor afiado,sharp wit,tom,humor,1,0,0
+14544,robot,74,robôs,robots,tema,tecnologia,1,0,0
+12339,slasher,74,slasher,slasher,formato,medo,1,0,0
+9706,anthology,73,antologia,anthology,formato,arte-e-cinema,1,0,0
+6038,marriage,73,casamento,marriage,tema,amor,1,0,0
+9799,romcom,73,comédia romântica,romcom,formato,amor,1,0,0
+1812,fbi,72,FBI,FBI,tema,crime,1,0,0
+1721,fight,72,brigas,fights,tema,,0,0,0
+269233,good versus evil,71,bem contra o mal,good vs. evil,tema,poder,1,0,0
+325854,tragic,71,tom trágico,tragic,tom,luto,1,0,0
+9882,space,70,espaço,outer space,tema,espaço,1,0,0
+325856,vibrant,70,vibração,vibrant,tom,,0,0,0
+13031,creature,69,criaturas,creatures,tema,monstros,1,0,0
+10809,teenage girl,69,garota adolescente,teenage girl,tema,crescer,0,0,0
+296608,teenager,69,adolescência,teenagers,tema,crescer,1,0,0
+214548,1930s,68,anos 30,the 1930s,tema,época,1,0,0
+219404,action hero,68,herói de ação,action hero,tema,poder,1,0,0
+3230,male friendship,68,amizade masculina,male friendship,tema,amizade,1,0,0
+197582,mysterious,68,mistério,mystery,tom,mistério,1,0,0
+9755,parody,68,paródia,parody,formato,humor,1,0,0
+549,prostitute,68,prostituição,prostitution,tema,crime,0,0,1
+11001,religion,68,religião,religion,tema,religião,1,0,0
+200234,shocking,68,choque,shocking,tom,,0,0,0
+13028,writer,68,escritores,writers,tema,arte-e-cinema,1,0,0
+210608,1990s,67,anos 90,the 1990s,tema,época,1,0,0
+10085,betrayal,67,traição,betrayal,tema,vingança,1,0,0
+325784,comforting,67,aconchego,comfort,tom,,1,0,0
+9807,film noir,67,film noir,film noir,formato,arte-e-cinema,1,0,0
+2041,island,67,ilha,island,lugar,natureza,1,0,0
+240315,mother daughter relationship,67,relação mãe e filha,mother and daughter,tema,família,1,0,0
+316362,thriller,67,suspense,thriller,formato,medo,0,0,0
+6733,bullying,66,bullying,bullying,tema,escola,0,0,1
+323809,depressing,66,tom pesado,bleak,tom,luto,0,0,0
+325832,joyful,66,alegria,joy,tom,humor,1,0,0
+207826,shounen,66,shonen,shonen,formato,arte-e-cinema,1,0,0
+316832,tense,66,tensão,tension,tom,medo,1,0,0
+1566,dreams,65,sonhos,dreams,tema,sonho-e-realidade,1,0,0
+13014,orphan,65,órfãos,orphans,tema,família,1,0,0
+325842,powerful,65,força,powerful,tom,,0,0,0
+9675,prequel,65,prólogo da saga,prequel,outro,,0,0,0
+10950,shootout,65,tiroteio,shootout,tema,crime,0,0,0
+14707,brutality,64,brutalidade,brutality,tom,,0,0,1
+10051,heist,64,assalto,heist,tema,assalto,1,0,0
+13065,soldier,64,soldados,soldiers,tema,guerra,1,0,0
+325769,appreciative,63,apreço,appreciative,tom,,0,0,0
+1701,hero,63,heróis,heroes,tema,poder,0,0,0
+612,hotel,63,hotel,hotel,lugar,viagem,1,0,0
+288816,lighthearted,63,leveza,lighthearted,tom,humor,1,0,0
+240237,mother son relationship,63,relação mãe e filho,mother and son,tema,família,1,0,0
+6078,politics,63,política,politics,tema,política,1,0,0
+14760,scientist,63,cientistas,scientists,tema,tecnologia,1,0,0
+14768,single mother,63,mãe solo,single mother,tema,família,1,0,0
+12377,zombie,63,zumbis,zombies,tema,monstros,1,0,0
+325786,compassionate,62,compaixão,compassion,tom,,1,0,0
+4232,melancholy,62,melancolia,melancholy,tom,luto,1,0,0
+2652,nazi,62,nazismo,Nazis,tema,guerra,0,0,1
+10291,organized crime,62,crime organizado,organized crime,tema,crime,1,0,0
+272553,psychological,62,psicológico,psychological,tom,,0,0,0
+312898,violence,62,violência,violence,tom,,0,0,1
+322942,adventure,61,aventura,adventure,tema,viagem,0,0,0
+325766,antagonistic,61,antagonismo,antagonistic,tom,,0,0,0
+11477,anthropomorphism,61,bichos falantes,talking animals,tema,animais,1,0,0
+5600,daughter,61,filha,daughter,tema,família,0,0,0
+2964,future,61,futuro,the future,tema,tempo,1,0,0
+65,holiday,61,feriado,holiday,data,,0,0,0
+12425,racism,61,racismo,racism,tema,política,0,0,1
+12570,whodunit,61,mistério policial,whodunit,formato,mistério,1,0,0
+4129,widow,61,viuvez,widowhood,tema,luto,0,0,0
+10508,teacher,60,professores,teachers,tema,escola,1,0,0
+310,artificial intelligence (a.i.),59,inteligência artificial,artificial intelligence,tema,tecnologia,1,0,0
+128,love triangle,59,triângulo amoroso,love triangle,tema,amor,1,0,0
+41329,mental illness,59,doença mental,mental illness,tema,identidade,0,0,1
+10594,money,59,dinheiro,money,tema,dinheiro,1,0,0
+295907,psychological horror,59,terror psicológico,psychological horror,tom,medo,1,0,0
+642,robbery,59,roubo,robbery,tema,assalto,1,0,0
+582,"san francisco, california",59,São Francisco,San Francisco,lugar,cidade,1,0,0
+15285,spin off,59,derivado,spin-off,outro,,0,0,0
+13015,terrorism,59,terrorismo,terrorism,tema,política,0,0,1
+596,adultery,58,adultério,adultery,tema,amor,1,0,0
+7464,alcoholism,58,alcoolismo,alcoholism,tema,,0,0,1
+782,assassin,58,matador profissional,assassin,tema,crime,0,0,1
+591,central intelligence agency (cia),58,CIA,CIA,tema,política,1,0,0
+177895,dark fantasy,58,fantasia sombria,dark fantasy,tom,sobrenatural,1,0,0
+18034,desert,58,deserto,desert,lugar,natureza,1,0,0
+2231,drug dealer,58,traficante,drug dealer,tema,crime,0,0,1
+225219,reflective,58,tom reflexivo,reflective,tom,identidade,1,0,0
+33457,alcoholic,57,alcoolismo,alcoholic,tema,,0,0,1
+2340,paranoia,57,paranoia,paranoia,tom,medo,1,0,0
+3725,pregnancy,57,gravidez,pregnancy,tema,família,1,0,0
+3801,space travel,57,viagem espacial,space travel,tema,espaço,1,0,0
+520,"chicago, illinois",56,Chicago,Chicago,lugar,cidade,1,0,0
+894,depression,56,depressão,depression,tema,identidade,0,0,1
+736,journalist,56,jornalistas,journalists,tema,trabalho,1,0,0
+1556,texas,56,Texas,Texas,lugar,cidade,1,0,0
+210434,thoughtful,56,tom contemplativo,contemplative,tom,identidade,1,0,0
+266753,cautionary,55,fábula moral,cautionary tale,tom,,1,0,0
+15009,criminal,55,criminosos,criminals,tema,crime,0,0,0
+1803,drug addiction,55,dependência química,drug addiction,tema,,0,0,1
+163053,found footage,55,found footage,found footage,formato,medo,1,0,0
+10562,on the run,55,em fuga,on the run,tema,sobrevivência,1,0,0
+3800,airplane,54,avião,airplane,tema,viagem,1,0,0
+325812,exhilarated,54,euforia,exhilarating,tom,,0,0,0
+325818,frightened,54,medo,fear,tom,medo,1,0,0
+9872,grief,54,luto,grief,tema,luto,1,0,0
+2708,hitman,54,matador de aluguel,hitman,tema,crime,0,0,0
+10776,marijuana,54,maconha,marijuana,tema,,0,0,1
+2803,affectation,53,afetação,affectation,tom,,0,0,0
+283085,body horror,53,body horror,body horror,tom,medo,1,0,0
+269808,introspective,53,introspecção,introspective,tom,identidade,1,0,0
+1523,obsession,53,obsessão,obsession,tema,,1,0,0
+309029,psychological drama,53,drama psicológico,psychological drama,tom,,1,0,0
+200918,angry,52,raiva,anger,tom,,0,0,0
+5248,female friendship,52,amizade feminina,female friendship,tema,amizade,1,0,0
+162365,military,52,militares,military,tema,guerra,1,0,0
+1308,secret identity,52,identidade secreta,secret identity,tema,identidade,0,1,0
+9914,slice of life,52,retrato do cotidiano,slice of life,formato,,1,0,0
+156866,based on short story,51,baseado em conto,based on a short story,origem,,0,0,0
+269769,based on tv series,51,baseado em série,based on a TV series,origem,,0,0,0
+12392,best friend,51,melhores amigos,best friends,tema,amizade,1,0,0
+325787,complicated,51,complicação,complicated,tom,,0,0,0
+325806,empathetic,51,empatia,empathy,tom,,1,0,0
+9823,rivalry,51,rivalidade,rivalry,tema,,1,0,0
+325783,cliché,50,clichê,cliché,tom,,0,0,0
+325791,defiant,50,rebeldia,defiant,tom,,0,0,0
+3358,haunted house,50,casa mal-assombrada,haunted house,tema,sobrenatural,1,0,0
+325835,melodramatic,50,melodrama,melodramatic,tom,,0,0,0
+3030,nightmare,50,pesadelo,nightmares,tema,sonho-e-realidade,1,0,0
+319319,sentimental,50,emoção à flor da pele,sentimental,tom,,1,0,0
+3307,surreal,50,clima surreal,surreal,tom,sonho-e-realidade,1,0,0
+13027,wedding,50,festa de casamento,wedding,tema,amor,1,0,0
+34094,extramarital affair,49,caso extraconjugal,extramarital affair,tema,amor,1,0,0
+281237,independent film,49,cinema independente,independent film,outro,,0,0,0
+292593,intimate,49,tom intimista,intimate,tom,,1,0,0
+209220,live action and animation,49,live-action com animação,live action and animation,formato,arte-e-cinema,1,0,0
+10084,rescue,49,resgate,rescue,tema,sobrevivência,1,0,0
+4289,secret agent,49,agente secreto,secret agent,tema,política,1,0,0
+1453,amnesia,48,amnésia,amnesia,tema,memória,0,1,0
+18165,animals,48,animais,animals,tema,animais,1,0,0
+2095,anti hero,48,anti-herói,antihero,tema,poder,1,0,0
+14765,church,48,igreja,church,lugar,religião,1,0,0
+15160,divorce,48,divórcio,divorce,tema,família,1,0,0
+170362,fantasy world,48,mundo fantástico,fantasy world,tema,sobrenatural,1,0,0
+210162,grim,48,tom soturno,grim,tom,luto,1,0,0
+15167,police detective,48,detetive de polícia,police detective,tema,mistério,1,0,0
+1612,spacecraft,48,nave espacial,spacecraft,tema,espaço,1,0,0
+325776,baffled,47,perplexidade,baffling,tom,,0,0,0
+1706,experiment,47,experimento,experiment,tema,tecnologia,1,0,0
+180547,marvel cinematic universe (mcu),47,Universo Marvel,Marvel Cinematic Universe,outro,,0,0,0
+251513,supernatural power,47,poderes sobrenaturais,supernatural powers,tema,poder,1,0,0
+50009,survival horror,47,terror de sobrevivência,survival horror,tom,medo,1,0,0
+207876,1920s,46,anos 20,the 1920s,tema,época,1,0,0
+165317,based on movie,46,baseado em filme,based on a film,origem,,0,0,0
+516,child abuse,46,abuso infantil,child abuse,tema,crime,0,0,1
+199524,disturbed,46,perturbador,disturbing,tom,,0,0,0
+14601,explosion,46,explosões,explosions,tema,,0,0,0
+12995,historical fiction,46,ficção histórica,historical fiction,formato,época,1,0,0
+9957,loneliness,46,solidão,loneliness,tema,solidão,1,0,0
+207046,murder mystery,46,mistério policial,murder mystery,formato,mistério,1,0,0
+10226,neighbor,46,vizinhos,neighbors,tema,cidade,1,0,0
+9712,possession,46,possessão,possession,tema,sobrenatural,1,0,0
+10093,priest,46,padres,priests,tema,religião,1,0,0
+225012,satirical,46,tom satírico,satirical,tom,humor,1,0,0
+14909,alien invasion,45,invasão alienígena,alien invasion,tema,espaço,1,0,0
+209792,candid,45,franqueza,candid,tom,,0,0,0
+977,cat,45,gatos,cats,tema,animais,1,0,0
+315053,critical,45,tom crítico,critical,tom,,0,0,0
+10541,curse,45,maldição,curse,tema,sobrenatural,1,0,0
+12190,cyberpunk,45,cyberpunk,cyberpunk,tema,tecnologia,1,0,0
+293198,fantasy,45,fantasia,fantasy,tema,sobrenatural,0,0,0
+5774,forest,45,floresta,forest,lugar,natureza,1,0,0
+208349,kids,45,crianças,kids,tema,crescer,1,0,0
+15127,killer,45,assassino,killer,tema,crime,0,0,1
+886,movie business,45,bastidores do cinema,the movie business,tema,arte-e-cinema,1,0,0
+293649,provocative,45,provocação,provocative,tom,,0,0,0
+7002,vigilante,45,justiceiro,vigilante,tema,justiça,1,0,0
+966,beach,44,praia,beach,lugar,natureza,1,0,0
+243959,brother brother relationship,44,relação entre irmãos,brothers,tema,família,1,0,0
+3098,castle,44,castelo,castle,lugar,época,1,0,0
+12616,dinosaur,44,dinossauros,dinosaurs,tema,animais,1,0,0
+10941,disappearance,44,desaparecimento,disappearance,tema,mistério,1,0,0
+1419,gun,44,armas,guns,tema,,0,0,0
+11004,rural area,44,vida rural,rural life,lugar,natureza,1,0,0
+1252,suicide attempt,44,tentativa de suicídio,suicide attempt,tema,morte,0,0,1
+15101,based on children's book,43,baseado em livro infantil,based on a children's book,origem,,0,0,0
+14643,battle,43,batalhas,battles,tema,guerra,1,0,0
+3205,fairy tale,43,conto de fadas,fairy tale,tema,sobrenatural,1,0,0
+3298,hallucination,43,alucinação,hallucination,tema,sonho-e-realidade,0,1,0
+6255,insanity,43,loucura,insanity,tema,identidade,0,0,0
+156091,missing person,43,pessoa desaparecida,missing person,tema,mistério,1,0,0
+161982,murder investigation,43,investigação de assassinato,murder investigation,tema,mistério,0,0,1
+4426,sadism,43,sadismo,sadism,tom,,0,0,1
+1936,blackmail,42,chantagem,blackmail,tema,crime,1,0,0
+548,countryside,42,campo,countryside,lugar,natureza,1,0,0
+325801,distressing,42,angústia,distressing,tom,,0,0,0
+5265,espionage,42,espionagem,espionage,tema,política,1,0,0
+254,france,42,França,France,lugar,cidade,1,0,0
+131,italy,42,Itália,Italy,lugar,cidade,1,0,0
+208152,pets,42,bichos de estimação,pets,tema,animais,1,0,0
+14534,relationship,42,relacionamento,relationship,tema,amor,0,0,0
+798,sheriff,42,xerife,sheriff,tema,justiça,1,0,0
+9253,slapstick comedy,42,comédia pastelão,slapstick,formato,humor,1,0,0
+161176,space opera,42,ópera espacial,space opera,formato,espaço,1,0,0
+325853,sympathetic,42,simpatia,sympathetic,tom,,0,0,0
+13008,train,42,trem,train,tema,viagem,1,0,0
+2754,trauma,42,trauma,trauma,tema,identidade,0,0,1
+1442,winter,42,inverno,winter,tema,natureza,1,0,0
+6092,army,41,exército,army,tema,guerra,1,0,0
+325772,assertive,41,assertividade,assertive,tom,,0,0,0
+3713,chase,41,perseguição,chase,tema,,1,0,0
+325823,harsh,41,dureza,harsh,tom,,0,0,0
+15106,psychiatrist,41,psiquiatra,psychiatrist,tema,trabalho,1,0,0
+83,saving the world,41,salvar o mundo,saving the world,tema,poder,1,0,0
+325764,ambivalent,40,ambivalência,ambivalent,tom,,0,0,0
+15208,biting,40,humor mordaz,biting humor,tom,humor,1,0,0
+325781,celebratory,40,celebração,celebratory,tom,humor,0,0,0
+1533,isolation,40,isolamento,isolation,tema,solidão,1,0,0
+2038,love of one's life,40,amor da vida,love of a lifetime,tema,amor,1,0,0
+10121,stop motion,40,stop-motion,stop-motion,formato,arte-e-cinema,1,0,0
+9727,thief,40,ladrões,thieves,tema,assalto,1,0,0
+4375,transformation,40,transformação,transformation,tema,identidade,1,0,0
+1568,undercover,40,infiltrado,undercover,tema,crime,1,0,0
+240422,wonder,40,encantamento,wonder,tom,,1,0,0
+167316,buddy cop,39,dupla de policiais,buddy cop,formato,crime,1,0,0
+194998,curious,39,curiosidade,curious,tom,,0,0,0
+3739,funeral,39,funeral,funeral,tema,luto,0,0,0
+10391,mafia,39,máfia,mafia,tema,crime,1,0,0
+256330,mischievous,39,travessura,mischief,tom,humor,1,0,0
+288394,suspense,39,suspense,suspense,tom,medo,1,0,0
+33519,courtroom,38,tribunal,courtroom,lugar,justiça,1,0,0
+10726,gang,38,gangues,gangs,tema,crime,1,0,0
+33505,gothic,38,gótico,gothic,tom,medo,1,0,0
+12371,gunfight,38,tiroteio,gunfight,tema,,0,0,0
+15126,historical,38,histórico,historical,tema,época,0,0,0
+325825,horrified,38,horror,horrifying,tom,medo,0,0,0
+162810,macabre,38,clima macabro,macabre,tom,medo,1,0,0
+2546,mask,38,máscaras,masks,tema,,0,0,0
+3799,ship,38,navio,ship,tema,viagem,1,0,0
+5331,village,38,vilarejo,village,lugar,natureza,1,0,0
+409,africa,37,África,Africa,lugar,cidade,1,0,0
+803,android,37,androides,androids,tema,tecnologia,1,0,0
+14641,based on memoir or autobiography,37,baseado em memórias,based on a memoir,origem,,0,0,0
+13063,car accident,37,acidente de carro,car accident,tema,,0,1,0
+10617,disaster,37,catástrofe,disaster,tema,sobrevivência,1,0,0
+261264,dreary,37,tom sombrio,dreary,tom,luto,0,0,0
+156075,evil,37,maldade,evil,tema,,0,0,0
+1196,florida,37,Flórida,Florida,lugar,cidade,1,0,0
+10364,mission,37,missão,mission,tema,,0,0,0
+1852,mutant,37,mutantes,mutants,tema,poder,1,0,0
+447,post-traumatic stress disorder (ptsd),37,estresse pós-traumático,PTSD,tema,guerra,0,0,1
+1462,samurai,37,samurais,samurai,tema,época,1,0,0
+165402,semi autobiographical,37,semiautobiográfico,semi-autobiographical,origem,,0,0,0
+10794,snow,37,neve,snow,tema,natureza,1,0,0
+18068,teenage boy,37,garoto adolescente,teenage boy,tema,crescer,0,0,0
+15214,buddy,36,parceria,buddies,tema,amizade,0,0,0
+10163,cancer,36,câncer,cancer,tema,morte,0,0,1
+325790,cruel,36,crueldade,cruel,tom,,0,0,1
+325813,exuberant,36,exuberância,exuberant,tom,,0,0,0
+1562,hostage,36,reféns,hostages,tema,crime,1,0,0
+254167,loving,36,carinho,loving,tom,amor,0,0,0
+156597,magic realism,36,realismo mágico,magical realism,tom,sonho-e-realidade,1,0,0
+11734,police corruption,36,polícia corrupta,police corruption,tema,crime,1,0,0
+15090,police officer,36,policiais,police officers,tema,crime,0,0,0
+7376,princess,36,princesas,princesses,tema,poder,1,0,0
+3271,secret organization,36,organização secreta,secret organization,tema,política,1,0,0
+211659,somber,36,tom sombrio,somber,tom,luto,1,0,0
+12369,"tokyo, japan",36,Tóquio,Tokyo,lugar,cidade,1,0,0
+273967,war,36,guerra,war,tema,guerra,1,0,0
+521,"washington dc, usa",36,Washington,"Washington, D.C.",lugar,cidade,1,0,0
+9720,woods,36,bosque,woods,lugar,natureza,1,0,0
+210184,1910s,35,anos 1910,the 1910s,tema,época,1,0,0
+801,bounty hunter,35,caçador de recompensas,bounty hunter,tema,justiça,1,0,0
+209673,calm,35,calmaria,calm,tom,,0,0,0
+14903,home invasion,35,invasão de casa,home invasion,tema,medo,1,0,0
+156174,occult,35,ocultismo,the occult,tema,sobrenatural,1,0,0
+325839,ominous,35,clima ameaçador,ominous,tom,medo,1,0,0
+1992,professor,35,professores,professors,tema,escola,1,0,0
+190116,school life,35,vida escolar,school life,tema,escola,1,0,0
+12564,werewolf,35,lobisomem,werewolves,tema,monstros,1,0,0
+271,competition,34,competição,competition,tema,esporte,1,0,0
+192772,historical drama,34,drama histórico,historical drama,formato,época,1,0,0
+12396,hollywood,34,Hollywood,Hollywood,lugar,arte-e-cinema,1,0,0
+14985,ireland,34,Irlanda,Ireland,lugar,cidade,1,0,0
+189092,journey,34,jornada,journey,tema,viagem,1,0,0
+780,kung fu,34,kung fu,kung fu,tema,esporte,1,0,0
+2887,manipulation,34,manipulação,manipulation,tema,poder,1,0,0
+276,"philadelphia, pennsylvania",34,Filadélfia,Philadelphia,lugar,cidade,1,0,0
+12987,poverty,34,pobreza,poverty,tema,dinheiro,1,0,0
+3071,prince,34,príncipes,princes,tema,poder,1,0,0
+195668,seinen,34,seinen,seinen,formato,arte-e-cinema,1,0,0
+10229,singer,34,cantores,singers,tema,música,1,0,0
+241738,sister sister relationship,34,relação entre irmãs,sisters,tema,família,1,0,0
+10028,steampunk,34,steampunk,steampunk,tema,tecnologia,1,0,0
+177912,wizard,34,magos,wizards,tema,sobrenatural,1,0,0
+6782,addiction,33,vício,addiction,tema,,0,0,1
+6155,afterlife,33,vida após a morte,afterlife,tema,morte,0,1,0
+9844,car crash,33,batida de carro,car crash,tema,,0,1,0
+186,christianity,33,cristianismo,Christianity,tema,religião,1,0,0
+14514,class differences,33,diferença de classes,class differences,tema,dinheiro,1,0,0
+232076,desperate,33,desespero,desperate,tom,,0,0,0
+325807,enchant,33,encantamento,enchanting,tom,,0,0,0
+6150,faith,33,fé,faith,tema,religião,1,0,0
+157303,first love,33,primeiro amor,first love,tema,amor,1,0,0
+3691,forbidden love,33,amor proibido,forbidden love,tema,amor,1,0,0
+10718,fugitive,33,fugitivos,fugitives,tema,sobrevivência,1,0,0
+303310,joyous,33,alegria,joyous,tom,humor,1,0,0
+534,mexico,33,México,Mexico,lugar,cidade,1,0,0
+4048,musician,33,músicos,musicians,tema,música,1,0,0
+155790,private detective,33,detetive particular,private eye,tema,mistério,1,0,0
+207372,quest,33,busca épica,quest,tema,viagem,1,0,0
+12193,reporter,33,repórteres,reporters,tema,trabalho,1,0,0
+1946,restaurant,33,restaurante,restaurant,lugar,comida,1,0,0
+658,sea,33,mar,the sea,lugar,natureza,1,0,0
+739,sexual abuse,33,abuso sexual,sexual abuse,tema,crime,0,0,1
+13088,summer,33,verão,summer,tema,natureza,1,0,0
+193400,teen drama,33,drama adolescente,teen drama,formato,crescer,1,0,0
+9935,travel,33,viagem,travel,tema,viagem,1,0,0
+210605,workplace comedy,33,comédia de escritório,workplace comedy,formato,humor,1,0,0
+10818,author,32,escritores,authors,tema,arte-e-cinema,1,0,0
+41645,based on video game,32,baseado em videogame,based on a video game,origem,,0,0,0
+325777,bewildered,32,perplexidade,bewildering,tom,,0,0,0
+34136,blunt,32,franqueza,blunt,tom,,0,0,0
+240485,brother sister relationship,32,relação entre irmãos,brother and sister,tema,família,1,0,0
+33424,cynical,32,cinismo,cynicism,tom,,1,0,0
+208156,frantic,32,frenesi,frantic,tom,,0,0,0
+720,helicopter,32,helicóptero,helicopter,tema,,0,0,0
+33910,high school student,32,estudantes,high school students,tema,escola,0,0,0
+235790,japanese high school,32,colégio japonês,Japanese high school,tema,escola,1,0,0
+168346,"manhattan, new york city",32,Manhattan,Manhattan,lugar,cidade,1,0,0
+14735,motorcycle,32,motos,motorcycles,tema,viagem,1,0,0
+586,new jersey,32,Nova Jersey,New Jersey,lugar,cidade,1,0,0
+325840,optimistic,32,otimismo,optimism,tom,humor,1,0,0
+161184,reboot,32,reinício de franquia,reboot,outro,,0,0,0
+4613,training,32,treinamento,training,tema,esporte,1,0,0
+567,alcohol,31,álcool,alcohol,tema,,0,0,1
+441,assassination,31,atentado,assassination,tema,política,0,0,1
+5657,australia,31,Austrália,Australia,lugar,cidade,1,0,0
+2150,cocaine,31,cocaína,cocaine,tema,crime,0,0,1
+13092,corpse,31,cadáver,corpse,tema,morte,0,0,1
+6158,cult,31,seita,cult,tema,religião,1,0,0
+325814,familiar,31,familiaridade,familiar,tom,,0,0,0
+395,gambling,31,jogatina,gambling,tema,dinheiro,1,0,0
+15032,gothic horror,31,terror gótico,gothic horror,tom,medo,1,0,0
+3070,mercenary,31,mercenários,mercenaries,tema,guerra,1,0,0
+1003,photographer,31,fotógrafos,photographers,tema,arte-e-cinema,1,0,0
+154802,silent film,31,cinema mudo,silent film,formato,arte-e-cinema,1,0,0
+325849,sincere,31,sinceridade,sincere,tom,,0,0,0
+9725,sword fight,31,duelo de espadas,sword fight,tema,guerra,1,0,0
+175428,adventurer,30,aventureiros,adventurers,tema,viagem,1,0,0
+175629,alternative reality,30,realidade alternativa,alternate reality,tema,sonho-e-realidade,0,1,0
+2679,artist,30,artistas,artists,tema,arte-e-cinema,1,0,0
+1009,baby,30,bebê,baby,tema,família,1,0,0
+15363,bank robbery,30,assalto a banco,bank robbery,tema,assalto,1,0,0
+324886,bitter,30,amargura,bitter,tom,,0,0,0
+11687,breaking the fourth wall,30,quebra da quarta parede,breaking the fourth wall,formato,arte-e-cinema,1,0,0
+478,china,30,China,China,lugar,cidade,1,0,0
+156121,ex-con,30,ex-presidiário,ex-con,tema,justiça,1,0,0
+3864,fake identity,30,identidade falsa,fake identity,tema,identidade,0,1,0
+4932,farm,30,fazenda,farm,lugar,natureza,1,0,0
+11100,giant monster,30,monstro gigante,giant monster,tema,monstros,1,0,0
+33841,incest,30,incesto,incest,tema,,0,0,1
+2334,nightclub,30,boate,nightclub,lugar,cidade,1,0,0
+428,nurse,30,enfermagem,nurses,tema,trabalho,1,0,0
+490,philosophy,30,filosofia,philosophy,tema,identidade,1,0,0
+796,police brutality,30,violência policial,police brutality,tema,justiça,0,0,1
+9777,prison escape,30,fuga da prisão,prison break,tema,justiça,1,0,0
+325844,ridiculous,30,ridículo,ridiculous,tom,humor,0,0,0
+588,"rome, italy",30,Roma,Rome,lugar,cidade,1,0,0
+797,showdown,30,duelo final,showdown,tema,,0,0,0
+160279,18th century,29,século XVIII,18th century,tema,época,1,0,0
+18712,based on graphic novel,29,baseado em graphic novel,based on a graphic novel,origem,,0,0,0
+1680,"boston, massachusetts",29,Boston,Boston,lugar,cidade,1,0,0
+14895,cannibal,29,canibal,cannibal,tema,,0,0,1
+3616,college,29,faculdade,college,tema,escola,1,0,0
+325785,commanding,29,imponência,commanding,tom,,0,0,0
+214780,courtroom drama,29,drama de tribunal,courtroom drama,formato,justiça,1,0,0
+2149,drug trafficking,29,tráfico de drogas,drug trafficking,tema,crime,0,0,1
+155939,group of friends,29,turma de amigos,group of friends,tema,amizade,1,0,0
+10787,jungle,29,selva,jungle,lugar,natureza,1,0,0
+41410,madness,29,loucura,madness,tema,identidade,0,0,0
+14546,massacre,29,massacre,massacre,tema,,0,0,1
+11800,mockumentary,29,falso documentário,mockumentary,formato,humor,1,0,0
+338822,pixar,29,Pixar,Pixar,outro,,0,0,0
+167043,road movie,29,road movie,road movie,formato,viagem,1,0,0
+1647,sadness,29,tristeza,sadness,tom,luto,1,0,0
+11038,trial,29,julgamento,trial,tema,justiça,1,0,0
+12332,apocalypse,28,apocalipse,apocalypse,tema,distopia,1,0,0
+209476,boxing,28,boxe,boxing,tema,esporte,1,0,0
+5301,brother,28,irmão,brother,tema,família,0,0,0
+167541,buddy comedy,28,comédia de dupla,buddy comedy,formato,humor,1,0,0
+2106,cold war,28,Guerra Fria,Cold War,tema,política,1,0,0
+246,dancing,28,dança,dance,tema,música,1,0,0
+9758,deception,28,engano,deception,tema,,0,0,0
+161261,demonic possession,28,possessão demoníaca,demonic possession,tema,sobrenatural,1,0,0
+12554,dragon,28,dragões,dragons,tema,monstros,1,0,0
+325804,earnest,28,sinceridade,earnest,tom,,0,0,0
+181324,existentialism,28,existencialismo,existentialism,tom,identidade,1,0,0
+13073,fear,28,medo,fear,tema,medo,1,0,0
+11860,fish out of water,28,peixe fora d'água,fish out of water,tema,identidade,1,0,0
+2673,horse,28,cavalos,horses,tema,animais,1,0,0
+4978,immortality,28,imortalidade,immortality,tema,sobrenatural,1,0,0
+287274,lovecraftian,28,horror lovecraftiano,Lovecraftian horror,tom,medo,1,0,0
+10180,male homosexuality,28,homossexualidade,male homosexuality,tema,identidade,0,0,0
+197056,meditative,28,tom meditativo,meditative,tom,identidade,1,0,0
+10937,memory,28,memória,memory,tema,memória,1,0,0
+745,nun,28,freiras,nuns,tema,religião,1,0,0
+3182,seduction,28,sedução,seduction,tema,amor,1,0,0
+840,usa president,28,presidente dos EUA,US president,tema,política,1,0,0
+6876,vacation,28,férias,vacation,tema,viagem,1,0,0
+188957,virus,28,vírus,virus,tema,sobrevivência,1,0,0
+10158,alien planet,27,planeta alienígena,alien planet,lugar,espaço,1,0,0
+220,"berlin, germany",27,Berlim,Berlin,lugar,cidade,1,0,0
+14624,cruelty,27,crueldade,cruelty,tema,,0,0,1
+13072,falling in love,27,paixão,falling in love,tema,amor,1,0,0
+325815,farcical,27,farsa,farcical,tom,humor,1,0,0
+657,fire,27,fogo,fire,tema,,0,0,0
+9890,jail,27,cadeia,jail,lugar,justiça,1,0,0
+12545,mansion,27,mansão,mansion,lugar,dinheiro,1,0,0
+5809,marriage crisis,27,crise no casamento,marriage in crisis,tema,amor,1,0,0
+1262,mountain,27,montanha,mountains,lugar,natureza,1,0,0
+613,new year's eve,27,Réveillon,New Year's Eve,data,,0,0,0
+530,prophecy,27,profecia,prophecy,tema,sobrenatural,1,0,0
+13059,prostitution,27,prostituição,prostitution,tema,crime,0,0,1
+4776,race against time,27,corrida contra o tempo,race against time,tema,tempo,1,0,0
+155457,screwball comedy,27,comédia maluca,screwball comedy,formato,humor,1,0,0
+7879,secret love,27,amor secreto,secret love,tema,amor,1,0,0
+322255,sinister,27,clima sinistro,sinister,tom,medo,1,0,0
+2831,slavery,27,escravidão,slavery,tema,política,0,0,1
+11931,spoof,27,paródia,spoof,formato,humor,1,0,0
+542,street gang,27,gangue de rua,street gang,tema,crime,1,0,0
+1938,sword,27,espadas,swords,tema,guerra,0,0,0
+178649,voyeurism,27,voyeurismo,voyeurism,tema,,0,0,1
+14626,astronaut,26,astronautas,astronauts,tema,espaço,1,0,0
+4630,chaos,26,caos,chaos,tom,,0,0,0
+5707,childhood trauma,26,trauma de infância,childhood trauma,tema,,0,0,1
+6148,court,26,tribunal,court,lugar,justiça,1,0,0
+1664,eroticism,26,erotismo,eroticism,tema,,0,0,1
+325810,euphoric,26,euforia,euphoric,tom,,0,0,0
+166726,female villain,26,vilã,female villain,tema,poder,1,0,0
+9016,femme fatale,26,femme fatale,femme fatale,tema,crime,1,0,0
+325817,foreboding,26,mau presságio,foreboding,tom,medo,1,0,0
+291153,grand,26,grandiosidade,grand,tom,,0,0,0
+1849,homicide,26,homicídio,homicide,tema,crime,0,0,1
+325830,informative,26,informativo,informative,tom,,0,0,0
+306278,james bond,26,James Bond,James Bond,outro,,0,0,0
+14570,las vegas,26,Las Vegas,Las Vegas,lugar,cidade,1,0,0
+201456,paranoid,26,paranoia,paranoid,tom,medo,1,0,0
+6083,politician,26,políticos,politicians,tema,política,1,0,0
+11436,redemption,26,redenção,redemption,tema,justiça,1,0,0
+388,scotland,26,Escócia,Scotland,lugar,cidade,1,0,0
+295809,secret,26,segredo,secret,tema,mistério,0,0,0
+276605,serious,26,seriedade,serious,tom,,0,0,0
+188953,sign languages,26,língua de sinais,sign language,tema,identidade,1,0,0
+6844,stalker,26,perseguidor,stalker,tema,medo,0,0,1
+11935,working class,26,classe trabalhadora,working class,tema,trabalho,1,0,0
+252104,2000s,25,anos 2000,the 2000s,tema,época,1,0,0
+236316,anarchic comedy,25,comédia anárquica,anarchic comedy,formato,humor,1,0,0
+288474,based on webcomic or webtoon,25,baseado em webtoon,based on a webtoon,origem,,0,0,0
+1422,boat,25,barco,boat,tema,viagem,1,0,0
+2792,boxer,25,boxeador,boxer,tema,esporte,1,0,0
+325780,callous,25,frieza,callous,tom,,0,0,0
+6562,celebrity,25,fama,fame,tema,arte-e-cinema,1,0,0
+160246,childhood friends,25,amigos de infância,childhood friends,tema,amizade,1,0,0
+33720,guilt,25,culpa,guilt,tema,,1,0,0
+2671,heroin,25,heroína (droga),heroin,tema,crime,0,0,1
+1284,identity,25,identidade,identity,tema,identidade,1,0,0
+917,journalism,25,jornalismo,journalism,tema,trabalho,1,0,0
+10322,native american,25,povos indígenas,Native Americans,tema,identidade,1,0,0
+1508,new mexico,25,Novo México,New Mexico,lugar,cidade,1,0,0
+9503,outlaw,25,fora da lei,outlaws,tema,justiça,1,0,0
+836,resistance,25,resistência,resistance,tema,guerra,1,0,0
+1253,roommates,25,colegas de quarto,roommates,tema,amizade,1,0,0
+11514,social satire,25,sátira social,social satire,tom,humor,1,0,0
+9740,sociopath,25,sociopata,sociopath,tema,crime,0,0,1
+155722,teen comedy,25,comédia adolescente,teen comedy,formato,humor,1,0,0
+15016,twins,25,gêmeos,twins,tema,família,0,1,0
+2957,vietnam war,25,Guerra do Vietnã,Vietnam War,tema,guerra,1,0,0
+192913,warrior,25,guerreiros,warriors,tema,guerra,1,0,0
+2504,world war i,25,Primeira Guerra,World War I,tema,guerra,1,0,0
+4862,alien life-form,24,vida alienígena,alien life,tema,espaço,1,0,0
+165431,anti war,24,antiguerra,anti-war,tema,guerra,1,0,0
+585,casino,24,cassino,casino,lugar,dinheiro,1,0,0
+161207,catholicism,24,catolicismo,Catholicism,tema,religião,1,0,0
+259094,dark,24,tom sombrio,dark,tom,luto,0,0,0
+10201,death of father,24,morte do pai,death of a father,tema,luto,0,0,1
+726,drug abuse,24,abuso de drogas,drug abuse,tema,,0,0,1
+10150,end of the world,24,fim do mundo,end of the world,tema,distopia,1,0,0
+2804,exploitation,24,cinema de exploração,exploitation film,formato,arte-e-cinema,0,0,0
+2710,fairy,24,fadas,fairies,tema,sobrenatural,1,0,0
+33490,filmmaking,24,fazer cinema,filmmaking,tema,arte-e-cinema,1,0,0
+365923,found footage adjacent,24,estilo found footage,found-footage style,formato,medo,1,0,0
+325819,frustrated,24,frustração,frustrated,tom,,0,0,0
+74,germany,24,Alemanha,Germany,lugar,cidade,1,0,0
+5332,greed,24,ganância,greed,tema,dinheiro,1,0,0
+2526,human animal relationship,24,amizade com animais,human-animal bond,tema,animais,1,0,0
+4152,kingdom,24,reino,kingdom,lugar,poder,1,0,0
+3344,letter,24,cartas,letters,tema,memória,1,0,0
+11469,memory loss,24,perda de memória,memory loss,tema,memória,0,1,0
+2669,motel,24,motel de estrada,roadside motel,lugar,viagem,1,0,0
+18330,nature,24,natureza,nature,tema,natureza,1,0,0
+33465,parallel world,24,mundo paralelo,parallel world,tema,sonho-e-realidade,1,0,0
+904,"pennsylvania, usa",24,Pensilvânia,Pennsylvania,lugar,cidade,1,0,0
+12988,pirate,24,piratas,pirates,tema,viagem,1,0,0
+164218,psychotronic,24,cinema psicotrônico,psychotronic cinema,formato,arte-e-cinema,1,0,0
+578,rock 'n' roll,24,rock 'n' roll,rock 'n' roll,tema,música,1,0,0
+1366,shotgun,24,espingarda,shotgun,tema,,0,0,0
+2660,strong woman,24,mulher forte,strong woman,tema,poder,1,0,0
+155030,superhero team,24,equipe de heróis,superhero team,tema,poder,1,0,0
+1576,technology,24,tecnologia,technology,tema,tecnologia,1,0,0
+188237,teenage romance,24,romance adolescente,teen romance,tema,amor,1,0,0
+6564,terminal illness,24,doença terminal,terminal illness,tema,morte,0,0,1
+18029,trapped,24,sem saída,trapped,tema,sobrevivência,1,0,0
+240,underdog,24,azarão,underdog,tema,esporte,1,0,0
+13160,university,24,universidade,university,tema,escola,1,0,0
+33476,widower,24,viuvez,widower,tema,luto,0,0,0
+3593,wilderness,24,natureza selvagem,wilderness,lugar,natureza,1,0,0
+281659,wistful,24,saudade,wistful,tom,memória,1,0,0
+236170,1900s,23,início do século XX,the 1900s,tema,época,1,0,0
+290,angel,23,anjos,angels,tema,religião,1,0,0
+223059,animal horror,23,terror animal,animal horror,tom,medo,1,0,0
+18396,catholic,23,católicos,Catholics,tema,religião,0,0,0
+6104,computer,23,computadores,computers,tema,tecnologia,1,0,0
+155291,cowboy,23,caubóis,cowboys,tema,época,1,0,0
+1160,egypt,23,Egito,Egypt,lugar,cidade,1,0,0
+5905,father,23,pai,father,tema,família,0,0,0
+272551,fbi agent,23,agente do FBI,FBI agent,tema,crime,1,0,0
+5572,fistfight,23,briga,fistfight,tema,,0,0,0
+9649,god,23,Deus,God,tema,religião,1,0,0
+1321,gold,23,ouro,gold,tema,dinheiro,1,0,0
+6086,government,23,governo,government,tema,política,1,0,0
+12354,hong kong,23,Hong Kong,Hong Kong,lugar,cidade,1,0,0
+2356,immigrant,23,imigração,immigration,tema,identidade,1,0,0
+276775,irreverent,23,irreverência,irreverent,tom,humor,1,0,0
+699,love at first sight,23,amor à primeira vista,love at first sight,tema,amor,1,0,0
+171366,multiple storylines,23,histórias cruzadas,interwoven stories,formato,,1,0,0
+2411,"new orleans, louisiana",23,Nova Orleans,New Orleans,lugar,cidade,1,0,0
+351,poison,23,veneno,poison,tema,crime,0,1,0
+209817,political thriller,23,suspense político,political thriller,formato,política,1,0,0
+178895,questioning,23,questionamento,questioning,tom,,0,0,0
+11107,rescue mission,23,missão de resgate,rescue mission,tema,sobrevivência,1,0,0
+14676,series of murders,23,série de assassinatos,series of murders,tema,crime,0,0,1
+33479,single father,23,pai solo,single father,tema,família,1,0,0
+5923,sister,23,irmã,sister,tema,família,0,0,0
+1589,sniper,23,atirador de elite,sniper,tema,guerra,0,0,0
+1400,swordplay,23,combate de espadas,swordplay,tema,guerra,1,0,0
+267848,talking animal,23,bichos falantes,talking animals,tema,animais,1,0,0
+11870,teen movie,23,filme adolescente,teen movie,formato,crescer,1,0,0
+282,video game,23,videogame,video games,tema,tecnologia,1,0,0
+5160,animal attack,22,ataque de animais,animal attack,tema,medo,1,0,0
+1332,cheating,22,traição amorosa,cheating,tema,amor,1,0,0
+732,coma,22,coma,coma,tema,,0,1,0
+18543,combat,22,combate,combat,tema,guerra,0,0,0
+8015,cop,22,policiais,cops,tema,crime,0,0,0
+3012,court case,22,caso judicial,court case,tema,justiça,1,0,0
+848,double life,22,vida dupla,double life,tema,identidade,0,1,0
+603,elves,22,elfos,elves,tema,sobrenatural,1,0,0
+1295,europe,22,Europa,Europe,lugar,cidade,1,0,0
+769,falsely accused,22,falsa acusação,falsely accused,tema,justiça,1,0,0
+1755,fascism,22,fascismo,fascism,tema,política,0,0,1
+10855,fate,22,destino,fate,tema,,1,0,0
+334,flying,22,voar,flying,tema,,0,0,0
+10891,giant robot,22,robô gigante,giant robot,tema,tecnologia,1,0,0
+5571,great depression,22,Grande Depressão,Great Depression,tema,época,1,0,0
+186753,jidaigeki,22,jidaigeki,jidaigeki,formato,época,1,0,0
+2251,lie,22,mentiras,lies,tema,,0,0,0
+10125,mad scientist,22,cientista maluco,mad scientist,tema,tecnologia,1,0,0
+416,"miami, florida",22,Miami,Miami,lugar,cidade,1,0,0
+305,moon,22,Lua,the Moon,lugar,espaço,1,0,0
+1605,new love,22,amor novo,new love,tema,amor,1,0,0
+11627,paranormal phenomena,22,fenômenos paranormais,paranormal phenomena,tema,sobrenatural,1,0,0
+1563,prisoner,22,prisioneiros,prisoners,tema,justiça,0,0,0
+11196,rebellion,22,rebelião,rebellion,tema,política,1,0,0
+9920,royalty,22,realeza,royalty,tema,poder,1,0,0
+3269,secret mission,22,missão secreta,secret mission,tema,política,1,0,0
+190531,speculative,22,ficção especulativa,speculative fiction,formato,,1,0,0
+13153,spirit,22,espíritos,spirits,tema,sobrenatural,1,0,0
+339,submarine,22,submarino,submarine,tema,guerra,1,0,0
+4654,undercover agent,22,agente infiltrado,undercover agent,tema,crime,1,0,0
+309426,understated,22,sutileza,understated,tom,,1,0,0
+4563,virtual reality,22,realidade virtual,virtual reality,tema,tecnologia,1,0,0
+207691,abuse,21,abuso,abuse,tema,,0,0,1
+322496,action,21,ação,action,tema,,0,0,0
+3036,bible,21,Bíblia,the Bible,tema,religião,1,0,0
+258,bomb,21,bomba,bomb,tema,,0,0,0
+592,capitalism,21,capitalismo,capitalism,tema,dinheiro,1,0,0
+1227,cemetery,21,cemitério,cemetery,lugar,morte,1,0,0
+1468,child murder,21,assassinato de criança,child murder,tema,crime,0,0,1
+3202,con man,21,golpistas,con artists,tema,assalto,1,0,0
+12090,cross dressing,21,travestimento,cross-dressing,tema,identidade,0,0,0
+679,cyborg,21,ciborgues,cyborgs,tema,tecnologia,1,0,0
+295702,death game,21,jogo mortal,death game,tema,sobrevivência,1,0,0
+305168,depressed,21,depressão,depressed,tom,,0,0,1
+161891,doppelgänger,21,sósia,doppelgänger,tema,identidade,0,1,0
+11494,drug use,21,uso de drogas,drug use,tema,,0,0,1
+14988,east asian lead,21,protagonista asiático,East Asian lead,outro,,0,0,0
+2626,exorcism,21,exorcismo,exorcism,tema,sobrenatural,1,0,0
+3446,forgiveness,21,perdão,forgiveness,tema,,1,0,0
+1013,homophobia,21,homofobia,homophobia,tema,,0,0,1
+250593,horror anthology,21,antologia de terror,horror anthology,formato,medo,1,0,0
+4728,knife,21,faca,knife,tema,,0,0,0
+14720,love affair,21,caso amoroso,love affair,tema,amor,1,0,0
+1583,mass murder,21,massacre,mass murder,tema,,0,0,1
+208788,medical drama,21,drama médico,medical drama,formato,trabalho,1,0,0
+41393,new england,21,Nova Inglaterra,New England,lugar,cidade,1,0,0
+918,newspaper,21,jornal,newspaper,tema,trabalho,1,0,0
+6025,photography,21,fotografia,photography,tema,arte-e-cinema,1,0,0
+11148,police chase,21,perseguição policial,police chase,tema,crime,1,0,0
+1261,river,21,rio,river,lugar,natureza,1,0,0
+2908,secret society,21,sociedade secreta,secret society,tema,mistério,1,0,0
+12990,singing,21,cantoria,singing,tema,música,1,0,0
+531,southern usa,21,sul dos EUA,American South,lugar,cidade,1,0,0
+261681,south korea,21,Coreia do Sul,South Korea,lugar,cidade,1,0,0
+15354,struggle for survival,21,luta pela sobrevivência,struggle for survival,tema,sobrevivência,1,0,0
+234213,sword and sorcery,21,espada e feitiçaria,sword and sorcery,formato,sobrenatural,1,0,0
+12380,tournament,21,torneio,tournament,tema,esporte,1,0,0
+167982,unlikely friendship,21,amizade improvável,unlikely friendship,tema,amizade,1,0,0
+10048,unrequited love,21,amor não correspondido,unrequited love,tema,amor,1,0,0
+6059,unsociability,21,antissocial,unsociable,tema,solidão,0,0,0
+207941,17th century,20,século XVII,17th century,tema,época,1,0,0
+704,adolescence,20,adolescência,adolescence,tema,crescer,1,0,0
+2393,adoption,20,adoção,adoption,tema,família,1,0,0
+965,age difference,20,diferença de idade,age gap,tema,amor,1,0,0
+33705,agent,20,agentes,agents,tema,política,0,0,0
+185343,"based on myths, legends or folklore",20,baseado em lendas,based on myths and legends,origem,,0,0,0
+268132,based on short film,20,baseado em curta,based on a short film,origem,,0,0,0
+4553,black humor,20,humor ácido,black humor,tom,humor,1,0,0
+4252,black magic,20,magia negra,black magic,tema,sobrenatural,1,0,0
+6271,boarding school,20,colégio interno,boarding school,tema,escola,1,0,0
+3930,bravery,20,coragem,bravery,tema,,1,0,0
+12648,bromance,20,bromance,bromance,tema,amizade,1,0,0
+41523,"brooklyn, new york city",20,Brooklyn,Brooklyn,lugar,cidade,1,0,0
+1411,brothel,20,bordel,brothel,lugar,,0,0,1
+830,car race,20,corrida de carros,car racing,tema,esporte,1,0,0
+12394,chainsaw,20,motosserra,chainsaw,tema,medo,0,0,0
+170865,child kidnapping,20,sequestro de criança,child kidnapping,tema,crime,0,0,1
+393,civil war,20,guerra civil,civil war,tema,guerra,1,0,0
+9964,crude humor,20,humor escrachado,crude humor,tom,humor,1,0,0
+325799,disheartening,20,desalento,disheartening,tom,,0,0,0
+203322,dramedy,20,dramédia,dramedy,formato,humor,1,0,0
+209568,folk horror,20,folk horror,folk horror,tom,medo,1,0,0
+1420,gas station,20,posto de gasolina,gas station,lugar,viagem,1,0,0
+2157,hacker,20,hackers,hackers,tema,tecnologia,1,0,0
+934,judge,20,juízes,judges,tema,justiça,0,0,0
+161791,kaiju,20,kaiju,kaiju,tema,monstros,1,0,0
+13084,king,20,reis,kings,tema,poder,1,0,0
+222517,legal drama,20,drama jurídico,legal drama,formato,justiça,1,0,0
+725,lovesickness,20,dor de amor,lovesickness,tema,amor,1,0,0
+2587,married couple,20,casal,married couple,tema,amor,0,0,0
+10046,mecha,20,mecha,mecha,formato,tecnologia,1,0,0
+33626,millionaire,20,milionários,millionaires,tema,dinheiro,1,0,0
+456,mother,20,mãe,mother,tema,família,0,0,0
+2766,mutation,20,mutação,mutation,tema,monstros,1,0,0
+2035,mythology,20,mitologia,mythology,tema,religião,1,0,0
+244256,near future,20,futuro próximo,near future,tema,tempo,1,0,0
+1541,nihilism,20,niilismo,nihilism,tom,identidade,1,0,0
+5215,northern england,20,norte da Inglaterra,northern England,lugar,cidade,1,0,0
+157799,older woman younger man relationship,20,mulher mais velha e jovem,older woman and younger man,tema,amor,0,0,0
+5918,painting,20,pintura,painting,tema,arte-e-cinema,1,0,0
+268067,police procedural,20,procedural policial,police procedural,formato,crime,1,0,0
+157701,psychotic,20,psicótico,psychotic,tom,,0,0,1
+5484,reincarnation,20,reencarnação,reincarnation,tema,religião,0,1,0
+325546,sadistic horror,20,terror sádico,sadistic horror,tom,medo,0,0,1
+738,sexuality,20,sexualidade,sexuality,tema,identidade,0,0,1
+11479,social commentary,20,crítica social,social commentary,tom,política,1,0,0
+9743,stranded,20,à deriva,stranded,tema,sobrevivência,1,0,0
+163074,super villain,20,supervilão,supervillain,tema,poder,1,0,0
+18420,surveillance,20,vigilância,surveillance,tema,tecnologia,1,0,0
+1715,symbolism,20,simbolismo,symbolism,tom,arte-e-cinema,1,0,0
+1794,yakuza,20,yakuza,yakuza,tema,crime,1,0,0
+10854,time loop,19,loop temporal,time loop,tema,tempo,1,0,0
+2796,self-discovery,19,autodescoberta,self-discovery,tema,identidade,1,0,0
+278235,cannibalism,18,canibalismo,cannibalism,tema,,0,0,1
+11925,domestic violence,18,violência doméstica,domestic violence,tema,,0,0,1
+10303,domestic abuse,17,abuso doméstico,domestic abuse,tema,,0,0,1
+10624,bully,17,valentão,bully,tema,escola,0,0,1
+1739,holocaust (shoah),17,Holocausto,the Holocaust,tema,guerra,0,0,1
+160404,valentine's day,16,Dia dos Namorados,Valentine's Day,data,amor,0,0,0
+14900,genocide,16,genocídio,genocide,tema,,0,0,1
+1991,santa claus,16,Papai Noel,Santa Claus,data,,0,0,0
+3473,carnival,16,parque itinerante,traveling carnival,lugar,,0,0,0
+1824,self-destruction,16,autodestruição,self-destruction,tema,,0,0,1
+222,schizophrenia,16,esquizofrenia,schizophrenia,tema,,0,0,1
+208591,abortion,15,aborto,abortion,tema,,0,0,1
+157171,nonlinear timeline,15,narrativa fora de ordem,nonlinear timeline,formato,tempo,1,0,0
+207767,erotic thriller,15,suspense erótico,erotic thriller,formato,,0,0,1
+2337,pedophilia,14,pedofilia,pedophilia,tema,,0,0,1
+208397,death of wife,14,morte da esposa,death of a wife,tema,luto,0,0,1
+190327,sexual assault,14,agressão sexual,sexual assault,tema,,0,0,1
+10325,mistaken identity,14,confusão de identidade,mistaken identity,tema,identidade,1,0,0
+267122,sex,13,sexo,sex,tema,,0,0,1
+2217,rain,13,chuva,rain,tema,natureza,1,0,0
+233130,self-harm,13,automutilação,self-harm,tema,,0,0,1
+851,dual identity,13,identidade dupla,dual identity,tema,identidade,0,1,0
+162804,sexual awakening,13,despertar sexual,sexual awakening,tema,,0,0,1
+184352,rape and revenge,13,estupro e vingança,rape and revenge,tema,,0,0,1
+445,pornography,13,pornografia,pornography,tema,,0,0,1
+459,sexual obsession,13,obsessão sexual,sexual obsession,tema,,0,0,1
+283953,farce,12,farsa,farce,formato,humor,1,0,0
+157213,death of mother,12,morte da mãe,death of a mother,tema,luto,0,0,1
+7942,imaginary friend,12,amigo imaginário,imaginary friend,tema,,0,1,0
+17987,killing spree,12,matança,killing spree,tema,,0,0,1
+10089,slaughter,12,chacina,slaughter,tema,,0,0,1
+156777,teenage sexuality,12,sexualidade adolescente,teenage sexuality,tema,,0,0,1
+2547,new identity,12,nova identidade,new identity,tema,identidade,0,1,0
+278730,bittersweet,11,agridoce,bittersweet,tom,luto,1,0,0
+15237,alcohol abuse,11,abuso de álcool,alcohol abuse,tema,,0,0,1
+175421,death of husband,11,morte do marido,death of a husband,tema,luto,0,0,1
+2635,overdose,11,overdose,overdose,tema,,0,0,1
+3394,identity crisis,11,crise de identidade,identity crisis,tema,identidade,1,0,0
+186189,hidden identity,11,identidade oculta,hidden identity,tema,identidade,0,1,0
+157791,self mutilation,11,automutilação,self-mutilation,tema,,0,0,1
+4663,lovers,10,amantes,lovers,tema,amor,1,0,0
+4543,thanksgiving,10,Ação de Graças,Thanksgiving,data,,0,0,0
+11534,sexual violence,10,violência sexual,sexual violence,tema,,0,0,1
+163764,death of brother,10,morte do irmão,death of a brother,tema,luto,0,0,1
+2689,dementia,10,demência,dementia,tema,,0,0,1
+160612,self-referential,10,metalinguagem,self-referential,formato,arte-e-cinema,1,0,0
+5903,alzheimer's disease,10,Alzheimer,Alzheimer's disease,tema,,0,0,1
+7856,racist,10,racismo,racist,tema,,0,0,1
+14576,pedophile,10,pedófilo,pedophile,tema,,0,0,1
+384156,blood and gore,10,sangue e gore,blood and gore,tom,medo,0,0,1
+262404,extreme violence,9,violência extrema,extreme violence,tom,,0,0,1
+156924,tearjerker,9,lágrimas garantidas,tearjerker,tom,luto,1,0,0
+156761,split personality,9,dupla personalidade,split personality,tema,identidade,0,1,0
+12365,gang rape,9,estupro coletivo,gang rape,tema,,0,0,1
+11316,sexual humor,9,humor sexual,sexual humor,tom,,0,0,1
+11547,slaughterhouse,9,matadouro,slaughterhouse,lugar,,0,0,1
+283874,shooting,9,tiroteio,shooting,tema,,0,0,1
+275311,plot twist,8,reviravolta,plot twist,tema,,0,1,0
+164881,death of daughter,8,morte da filha,death of a daughter,tema,luto,0,0,1
+161545,alcoholic father,8,pai alcoólatra,alcoholic father,tema,,0,0,1
+161520,terrorist plot,8,plano terrorista,terrorist plot,tema,,0,0,1
+1242,war on terror,8,guerra ao terror,war on terror,tema,,0,0,1
+189422,nazi occupation,8,ocupação nazista,Nazi occupation,tema,guerra,0,0,1
+163599,death of parent,7,morte dos pais,death of a parent,tema,luto,0,0,1
+159138,death of son,7,morte do filho,death of a son,tema,luto,0,0,1
+157512,mutilation,7,mutilação,mutilation,tema,,0,0,1
+18087,attempted rape,7,tentativa de estupro,attempted rape,tema,,0,0,1
+206736,changing the past or future,7,mudar o passado,changing the past,tema,tempo,1,0,0
+264551,child sexual abuse,7,abuso sexual infantil,child sexual abuse,tema,,0,0,1
+184988,childhood sexual abuse,7,abuso sexual na infância,childhood sexual abuse,tema,,0,0,1
+17986,miscarriage,6,aborto espontâneo,miscarriage,tema,,0,0,1
+9661,dying man,6,homem à beira da morte,dying man,tema,,0,0,1
+5919,necrophilia,6,necrofilia,necrophilia,tema,,0,0,1
+158774,terrorist attack,6,atentado terrorista,terrorist attack,tema,,0,0,1
+171676,school shooting,6,massacre em escola,school shooting,tema,,0,0,1
+177035,identity swap,6,troca de identidade,identity swap,tema,identidade,1,0,0
+181129,terrorist group,6,grupo terrorista,terrorist group,tema,,0,0,1
+191726,nazism,6,nazismo,Nazism,tema,,0,0,1
+212803,dissociative identity disorder,6,transtorno dissociativo,dissociative identity disorder,tema,,0,1,1
+232090,sexual predator,6,predador sexual,sexual predator,tema,,0,0,1
+253411,death of a child,6,morte de criança,death of a child,tema,luto,0,0,1
+376,neo-nazism,6,neonazismo,neo-Nazism,tema,,0,0,1
+279911,nazi germany,6,Alemanha nazista,Nazi Germany,tema,guerra,0,0,1
+11258,suicidal,6,pensamento suicida,suicidal,tema,,0,0,1
+239108,crystal meth,5,metanfetamina,crystal meth,tema,,0,0,1
+12993,suicide mission,5,missão suicida,suicide mission,tema,,0,0,1
+165615,child molestation,5,abuso infantil,child molestation,tema,,0,0,1
+157215,death of sister,5,morte da irmã,death of a sister,tema,luto,0,0,1
+13095,death of lover,5,morte da pessoa amada,death of a lover,tema,luto,0,0,1
+9332,psychological abuse,5,abuso psicológico,psychological abuse,tema,,0,0,1
+159803,killing a dog,5,morte de cachorro,killing a dog,tema,,0,0,1
+160059,psychosis,5,psicose,psychosis,tema,,0,0,1
+33407,hanging,5,enforcamento,hanging,tema,,0,0,1
+185974,substance abuse,5,abuso de substâncias,substance abuse,tema,,0,0,1
+3874,twist,5,reviravolta,twist,tema,,0,1,0
+155750,fake death,5,morte forjada,faked death,tema,,0,1,0
+174089,unreliable narrator,5,narrador não confiável,unreliable narrator,formato,,0,1,0
+155800,atmospheric,5,clima envolvente,atmospheric,tom,,1,0,0
+226425,mass shooting,4,massacre a tiros,mass shooting,tema,,0,0,1
+236377,emotional abuse,4,abuso emocional,emotional abuse,tema,,0,0,1
+10850,sexual harassment,4,assédio sexual,sexual harassment,tema,,0,0,1
+350360,brother sister incest,4,incesto,incest,tema,,0,0,1
+243608,abused woman,4,violência contra a mulher,abused woman,tema,,0,0,1
+157136,lynching,4,linchamento,lynching,tema,,0,0,1
+5836,self-inflicted injury,4,autolesão,self-inflicted injury,tema,,0,0,1
+3880,snuff,4,snuff,snuff,tema,,0,0,1
+41589,dying,4,morrer,dying,tema,,0,0,1
+179569,terrorist bombing,4,atentado a bomba,terrorist bombing,tema,,0,0,1
+315583,male rape,4,estupro masculino,male rape,tema,,0,0,1
+18514,death of family,4,morte da família,death of a family,tema,luto,0,0,1
+11262,statutory rape,4,estupro de vulnerável,statutory rape,tema,,0,0,1
+206662,euthanasia,4,eutanásia,euthanasia,tema,,0,0,1
+18321,porn industry,4,indústria pornô,porn industry,tema,,0,0,1
+9835,sexual fantasy,4,fantasia sexual,sexual fantasy,tema,,0,0,1
+10772,torture chamber,4,câmara de tortura,torture chamber,lugar,,0,0,1
+209941,death of best friend,4,morte do melhor amigo,death of a best friend,tema,luto,0,0,1
+346773,dream,4,sonho,dream,tema,sonho-e-realidade,0,1,0
+281741,nudity,4,nudez,nudity,tema,,0,0,1
+210458,creepy,4,clima arrepiante,creepy,tom,medo,1,0,0
+9921,easter,3,Páscoa,Easter,data,,0,0,0
+319357,heartwarming,3,coração quentinho,heartwarming,tom,,1,0,0
+326438,twist ending,2,final surpreendente,twist ending,tema,,0,1,0
+256466,erotic,1,erótico,erotic,tema,,0,0,1

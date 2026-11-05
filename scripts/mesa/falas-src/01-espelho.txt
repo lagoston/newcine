@@ -1,0 +1,144 @@
+# 1. O Espelho || 1. The Mirror
+% Fala só da pessoa: Persona, humores, ritmo, ausências, o que mudou. Nunca opina sobre obra, nunca faz piada, nunca usa apelido. Até 90 caracteres (3 linhas de 30 em PIXEL 18). Sem flexão de gênero para a pessoa. || Speaks only about the person. Never judges a film, never jokes, never uses a nickname. Up to 90 characters. No gendered words for the person.
+% A cascata da escolha (director.ts): a revelação que acabou de acontecer > a pergunta na mesa > os estados P1 > o resto (P2 pesa 3, P3 pesa 1). || Selection cascade: a just-happened reveal > the question on the table > P1 states > the rest (P2 weighs 3, P3 weighs 1).
+
+## Primeira vez e reconhecimento || First time and recognition
+E001 | espelho | mirror | n0 | P1 | - | Ainda não vejo você. Vejo uma mesa, três cadeiras e um lugar vazio. | I can't see you yet. I see a table, three chairs and an empty seat.
+E002 | espelho | mirror | n0 | P1 | - | Nenhuma nota ainda. O espelho reflete uma silhueta, e só. | No ratings yet. The mirror shows a silhouette, nothing more.
+E003 | espelho | mirror | n0 | P1 | - | Toda Persona começa em branco. Dez títulos e eu começo a enxergar. | Every Persona starts blank. Ten titles and I start to see.
+E004 | espelho | mirror | first_visit,!recon | P1 | - | Primeira vez à mesa. Os três já leram cada nota da sua estante. | First time at the table. The three have already read every rating on your shelf.
+E005 | espelho | mirror | first_visit,!recon | P1 | - | Você chegou com a estante cheia de notas. A mesa estava esperando. | You arrived with a shelf full of ratings. The table was waiting.
+E010 | espelho | mirror | recon,n1_9 | P2 | - | {contagem} de 10. Os contornos começam a aparecer. | {contagem} of 10. The outline is starting to show.
+E011 | espelho | mirror | recon,n1_9 | P2 | - | Faltam {falta}. Cada nota acende um pedaço do espelho. | {falta} to go. Every rating lights up a piece of the mirror.
+E012 | espelho | mirror | recon,n1_9 | P2 | - | Ainda vejo pouco. Hoje as cartas são as que todo mundo conhece. | I still see little. Today's cards are the ones everybody knows.
+E013 | espelho | mirror | recon | P2 | - | Já viu? Então diga. Cada nota me mostra um pouco mais de você. | Seen it? Then say so. Every rating shows me a little more of you.
+E014 | espelho | mirror | recon | P2 | - | Três cartas famosas. O que você já viu diz mais do que parece. | Three famous cards. What you've already seen says more than you'd think.
+E015 | espelho | mirror | recon,n1_9 | P2 | - | Um reflexo em construção. {contagem} de 10 peças no lugar. | A reflection under construction. {contagem} of 10 pieces in place.
+E020 | espelho | mirror | almost | P1 | - | Falta um. Depois dele, eu digo quem você é. | One more. After that, I'll tell you who you are.
+E021 | espelho | mirror | almost | P1 | - | Nove de dez. O rosto no espelho está quase nítido. | Nine of ten. The face in the mirror is almost in focus.
+E022 | espelho | mirror | almost | P1 | - | Um título. É o que separa você da sua Persona. | One title. That's all that stands between you and your Persona.
+
+## A Persona || The Persona
+E030 | espelho | mirror | persona_new | P1 | - | Agora eu te vejo, {personagem}. | Now I see you, {personagem}.
+E031 | espelho | mirror | persona_new | P1 | - | Aí está você. O espelho finalmente tem um rosto: {personagem}. | There you are. The mirror finally has a face: {personagem}.
+E032 | espelho | mirror | persona_new | P1 | - | Dez títulos e uma revelação. Prazer, {personagem}. | Ten titles and a revelation. Pleased to meet you, {personagem}.
+E040 | espelho | mirror | code_changed | P1 | - | Você mudou desde a última vez. Eu percebi antes de você. | You've changed since last time. I noticed before you did.
+E041 | espelho | mirror | code_changed | P1 | - | O seu código mudou. Gente muda, e o espelho acompanha. | Your code changed. People change, and the mirror keeps up.
+E042 | espelho | mirror | code_changed,persona | P1 | - | Outro rosto no espelho hoje: {personagem}. Combina com você. | A different face in the mirror today: {personagem}. It suits you.
+E043 | espelho | mirror | persona,!code_changed | P2 | - | O espelho ainda vê {personagem} em você. Por enquanto. | The mirror still sees {personagem} in you. For now.
+E044 | espelho | mirror | persona | P3 | - | {personagem} está à mesa hoje. As cartas sabem disso. | {personagem} is at the table today. The cards know it.
+E045 | espelho | mirror | persona,!code_changed | P3 | - | Mesmo rosto da última vez: {personagem}. Constância também é um retrato. | Same face as last time: {personagem}. Constancy is a portrait too.
+
+## Ausência, ritmo e humores || Absence, rhythm and moods
+E050 | espelho | mirror | returning | P1 | - | {dias} dias longe. A mesa ficou posta. | {dias} days away. The table stayed set.
+E051 | espelho | mirror | returning | P1 | - | {dias} dias sem você. Ninguém sentou na sua cadeira. | {dias} days without you. Nobody took your chair.
+E052 | espelho | mirror | returning | P1 | - | Você sumiu por {dias} dias. O espelho guardou o seu reflexo. | You were gone {dias} days. The mirror kept your reflection.
+E053 | espelho | mirror | returning | P1 | - | {dias} dias. O baralho foi embaralhado muitas vezes esperando você. | {dias} days. The deck got shuffled many times while it waited for you.
+E060 | espelho | mirror | mood_rising | P2 | - | Ultimamente você andou muito por {humor_subindo}. O espelho reparou. | Lately you've wandered a lot through {humor_subindo}. The mirror noticed.
+E061 | espelho | mirror | mood_rising | P2 | - | Ultimamente, {humor_subindo} anda puxando você pela manga. | Lately, {humor_subindo} keeps tugging at your sleeve.
+E062 | espelho | mirror | mood_rising | P2 | - | {humor_subindo} está crescendo em você. Dá para ver no reflexo. | {humor_subindo} is growing in you. It shows in the reflection.
+E063 | espelho | mirror | mood_rising | P2 | - | As suas notas recentes têm cheiro de {humor_subindo}. | Your recent ratings smell of {humor_subindo}.
+E064 | espelho | mirror | mood_rising | P2 | - | Tem mais {humor_subindo} nas suas notas do que antes. O espelho anota. | There's more {humor_subindo} in your ratings than before. The mirror takes note.
+E065 | espelho | mirror | mood_rising,hour:night | P2 | - | Noite, e {humor_subindo} em alta. Você sabe o que procura. | Night, and {humor_subindo} on the rise. You know what you're after.
+E070 | espelho | mirror | weak_mood | P2 | - | Você quase nunca entra em {humor_fraco}. Não é crítica. É um mapa. | You hardly ever step into {humor_fraco}. Not a judgment. A map.
+E071 | espelho | mirror | weak_mood | P2 | - | {humor_fraco} é o quarto escuro da sua estante. Quase não tem nota lá. | {humor_fraco} is the dark room of your shelf. Barely any ratings in there.
+E072 | espelho | mirror | weak_mood | P2 | - | Na sua estante, {humor_fraco} é quase um país estrangeiro. | On your shelf, {humor_fraco} is almost a foreign country.
+E073 | espelho | mirror | weak_mood | P2 | - | Toda estante tem um canto quase vazio. O seu se chama {humor_fraco}. | Every shelf has a nearly empty corner. Yours is called {humor_fraco}.
+
+## O que aconteceu desde a última vez || What happened since last time
+E080 | espelho | mirror | verdict_pending | P2 | - | Uma carta da mesa virou nota desde a última vez. Alguém aqui vai comentar. | A card from the table became a rating since last time. Someone here will have a word.
+E081 | espelho | mirror | verdict_pending | P2 | - | Você deu nota a uma carta que a mesa trouxe. Eles repararam. | You rated a card the table brought. They noticed.
+E082 | espelho | mirror | verdict_pending | P2 | - | A mesa lembra do que te deu. E agora sabe o que você achou. | The table remembers what it gave you. Now it knows what you thought.
+E130 | espelho | mirror | yesterday_unflipped | P2 | - | Uma carta ficou virada para baixo ontem. Voltou ao baralho, e eu não vou contar qual era. | A card stayed face down yesterday. It went back to the deck, and I won't say which.
+E131 | espelho | mirror | yesterday_unflipped | P2 | - | Ontem nem todas as cartas viraram. As que dormiram voltaram ao escuro. | Not every card turned yesterday. The sleeping ones went back to the dark.
+E132 | espelho | mirror | yesterday_cypher_closed | P2 | - | Ontem a carta da Cobra ficou selada. Ela não esquece. Eu também não. | Yesterday the Snake's card stayed sealed. She doesn't forget. Neither do I.
+E133 | espelho | mirror | yesterday_cypher_closed | P2 | - | O selo de ontem ficou inteiro. Hoje há outro esperando você. | Yesterday's seal stayed whole. Today there's another one waiting for you.
+E134 | espelho | mirror | yesterday_all | P3 | - | Ontem você virou as três. O espelho gosta de quem vai até o fim. | You turned all three yesterday. The mirror likes those who see it through.
+
+## A quarta carta e a revelação || The fourth card and the revelation
+E100 | espelho | mirror | espelho4 | P1 | - | Uma carta sua virou nota esta semana. Esta eu escolhi. | One of your cards became a rating this week. I chose this one.
+E101 | espelho | mirror | espelho4 | P1 | - | Hoje há uma quarta cadeira na mesa. É a minha. | There's a fourth chair at the table today. It's mine.
+E102 | espelho | mirror | espelho4 | P1 | - | Você cumpriu uma carta esta semana. Eu trouxe a quarta. | You followed through on a card this week. I brought the fourth.
+E103 | espelho | mirror | espelho4 | P1 | - | Quarta carta: o espelho escolheu a que mais se parece com os seus 10. | Fourth card: the mirror picked the one most like your 10s.
+E110 | espelho | mirror | reveal | P1 | - | Falta pouco para eu te ver. Deixei uma carta num humor que você ainda não visitou. | I'm close to seeing you. I left a card in a mood you haven't visited yet.
+E111 | espelho | mirror | reveal | P1 | - | A carta da revelação está na mesa. Ela abre uma porta que falta. | The revelation card is on the table. It opens a missing door.
+E112 | espelho | mirror | reveal | P1 | - | Deixei uma carta de um humor que ainda não está na sua estante. | I left a card from a mood that isn't on your shelf yet.
+E113 | espelho | mirror | reveal,almost | P1 | - | Um título e eu te revelo. A carta da revelação é o atalho. | One title and I reveal you. The revelation card is the shortcut.
+
+## Época || Season
+E120 | espelho | mirror | event:halloween | P2 | - | Outubro. Até o espelho fica mais escuro nesta época. | October. Even the mirror runs darker this time of year.
+E121 | espelho | mirror | event:halloween,hour:night | P2 | - | Noite de outubro. O reflexo demora um segundo a mais para aparecer. | An October night. The reflection takes one second longer to appear.
+E122 | espelho | mirror | event:christmas | P2 | - | Dezembro. A mesa tem luzes novas, e o seu reflexo também. | December. The table has new lights, and so does your reflection.
+E123 | espelho | mirror | event:christmas | P2 | - | Fim de ano. Época de rever o que fez você ser quem é. | Year's end. Time to revisit what made you who you are.
+
+## O dia e a hora (de reserva) || Day and hour (fallbacks)
+E140 | espelho | mirror | day:mon | P3 | - | Segunda-feira. A semana começa, e a mesa também. | Monday. The week begins, and so does the table.
+E141 | espelho | mirror | day:tue | P3 | - | Terça. Ninguém espera nada de uma terça. Por isso ela surpreende. | Tuesday. Nobody expects anything from a Tuesday. That's why it surprises.
+E142 | espelho | mirror | day:wed | P3 | - | Quarta. O meio da semana pede um meio-termo, ou uma fuga. | Wednesday. Midweek asks for a middle ground, or an escape.
+E143 | espelho | mirror | day:thu | P3 | - | Quinta. A semana está quase vencida. Falta pouco. | Thursday. The week is almost beaten. Almost there.
+E144 | espelho | mirror | day:fri,hour:night | P3 | - | Sexta à noite. Hoje, escolha com o coração. | Friday night. Tonight, choose with your heart.
+E145 | espelho | mirror | day:sat | P3 | - | Sábado. Tempo sobrando e três cartas na mesa. | Saturday. Time to spare and three cards on the table.
+E146 | espelho | mirror | day:sun | P3 | - | Domingo. O dia mais honesto para escolher um filme. | Sunday. The most honest day to pick a film.
+E147 | espelho | mirror | hour:late | P3 | - | Madrugada. Só você, o espelho e três cartas acordadas. | Small hours. Just you, the mirror and three cards still awake.
+E148 | espelho | mirror | hour:late | P3 | - | Tarde da noite. As escolhas de agora costumam ser as mais sinceras. | Late at night. The choices made now tend to be the most honest.
+E149 | espelho | mirror | hour:morning | P3 | - | Bom dia. O espelho acordou cedo para você. | Good morning. The mirror woke up early for you.
+E150 | espelho | mirror | hour:afternoon | P3 | - | Tarde. A luz entra de lado, e o reflexo fica mais nítido. | Afternoon. The light comes in sideways, and the reflection sharpens.
+E151 | espelho | mirror | hour:night | P3 | - | Noite. É quando o espelho enxerga melhor. | Night. That's when the mirror sees best.
+E152 | espelho | mirror | weekend,hour:afternoon | P3 | - | Fim de semana à tarde. Sem pressa nenhuma hoje. | A weekend afternoon. No rush at all today.
+E153 | espelho | mirror | day:sun,hour:night | P3 | - | Domingo à noite. A semana bate na porta. Ainda dá tempo de um filme. | Sunday night. The week is knocking. There's still time for a film.
+
+## Sem condição (a rede de segurança: o Espelho nunca fica mudo) || No condition (the safety net: the Mirror is never silent)
+E090 | espelho | mirror | - | P3 | - | A mesa está posta. O espelho também. | The table is set. So is the mirror.
+E091 | espelho | mirror | - | P3 | - | Três cartas, três vozes, e uma pergunta: o que você vai ver hoje? | Three cards, three voices, and one question: what will you watch today?
+E092 | espelho | mirror | - | P3 | - | Os três discutem por você. O espelho só observa. | The three argue over you. The mirror just watches.
+E093 | espelho | mirror | - | P3 | - | As cartas foram tiradas para você. Ninguém mais tem esta mesa hoje. | These cards were drawn for you. Nobody else has this table today.
+E094 | espelho | mirror | - | P3 | - | Hoje a mesa é sua. As cartas esperam. | Today the table is yours. The cards are waiting.
+E095 | espelho | mirror | - | P3 | - | O espelho não escolhe por você. Só mostra onde você já esteve. | The mirror doesn't choose for you. It only shows where you've been.
+
+## A pergunta na mesa || The question on the table
+E160 | espelho | mirror | ask | P2 | - | {ocasiao}. Foi o que você pediu, e foi o que os três foram buscar. | {ocasiao}. That's what you asked for, and what the three went to fetch.
+E161 | espelho | mirror | ask | P2 | - | Pergunta na mesa: {ocasiao}. Cada um respondeu do seu jeito. | Question on the table: {ocasiao}. Each one answered in their own way.
+E162 | espelho | mirror | ask | P2 | - | Você pediu, eles ouviram. Três respostas para {ocasiao}. | You asked, they listened. Three answers to {ocasiao}.
+E170 | espelho | mirror | ask:chuva | P2 | - | Chuva lá fora. Os três foram buscar o que se assiste de coberta. | Rain outside. The three went for something to watch under a blanket.
+E171 | espelho | mirror | ask:chuva | P2 | - | Só você e a chuva. O espelho fica quieto para ouvir também. | Just you and the rain. The mirror goes quiet to listen too.
+E172 | espelho | mirror | ask:amor | P2 | - | Hoje o sofá é para dois. As cartas sabem dividir. | Tonight the couch is for two. The cards know how to share.
+E173 | espelho | mirror | ask:amor | P2 | - | Com quem você ama. O espelho mostra dois reflexos hoje. | With the one you love. The mirror shows two reflections today.
+E174 | espelho | mirror | ask:familia | P2 | - | Domingo em família. Hoje a escolha precisa caber em todo mundo. | Family Sunday. Today the pick has to fit everyone.
+E175 | espelho | mirror | ask:familia | P2 | - | Do mais velho ao mais novo. A mesa pensou em todos da sala. | From the oldest to the youngest. The table thought of everyone in the room.
+E176 | espelho | mirror | ask:galera | P2 | - | Casa cheia. Hoje as cartas são para ver em voz alta. | Full house. Today's cards are for watching out loud.
+E177 | espelho | mirror | ask:galera | P2 | - | Com a galera. O espelho reflete um sofá inteiro hoje. | With the crew. The mirror reflects a whole couch today.
+E178 | espelho | mirror | ask:noventa | P2 | - | Noventa minutos. O espelho respeita o seu relógio. | Ninety minutes. The mirror respects your clock.
+E179 | espelho | mirror | ask:noventa | P2 | - | Pouco tempo, escolha certa. Nada aqui passa da hora de dormir. | Little time, right pick. Nothing here runs past bedtime.
+E180 | espelho | mirror | ask:episodio | P2 | - | Um episódio só. O espelho vai lembrar que você prometeu. | Just one episode. The mirror will remember you promised.
+E181 | espelho | mirror | ask:episodio | P2 | - | Um capítulo curto antes de dormir. Os três respeitaram o seu limite. | A short chapter before bed. The three respected your limit.
+E182 | espelho | mirror | ask:maratona | P2 | - | Fim de semana pela frente. Os três trouxeram histórias com começo, meio e fim. | A weekend ahead. The three brought stories with a beginning, a middle and an end.
+E183 | espelho | mirror | ask:maratona | P2 | - | Maratona. O espelho vai estar aqui quando você voltar à superfície. | Binge mode. The mirror will be here when you come up for air.
+E184 | espelho | mirror | ask:chorar | P2 | - | Você pediu para chorar. Às vezes é exatamente isso que falta. | You asked for a good cry. Sometimes that's exactly what's missing.
+E185 | espelho | mirror | ask:chorar | P2 | - | Lágrimas pedidas, lágrimas servidas. Ninguém aqui vai olhar. | Tears requested, tears served. Nobody here will look.
+E186 | espelho | mirror | ask:rir | P2 | - | Você quer rir alto hoje. O espelho gosta de ver você assim. | You want to laugh out loud today. The mirror likes seeing you like that.
+E187 | espelho | mirror | ask:rir | P2 | - | Riso pedido. Os três foram buscar o que faz a barriga doer. | Laughter ordered. The three went for what makes your belly ache.
+E188 | espelho | mirror | ask:susto | P2 | - | Você pediu um susto. O espelho já está olhando por cima do seu ombro. | You asked to be scared. The mirror is already looking over your shoulder.
+E189 | espelho | mirror | ask:susto | P2 | - | Luz apagada. Hoje até o seu reflexo vai parecer estranho. | Lights off. Tonight even your reflection will look strange.
+E190 | espelho | mirror | ask:no | P2 | - | Um nó na cabeça. Hoje a ideia é pausar e voltar a cena. | Twist my brain. Tonight it's about pausing and rewinding.
+E191 | espelho | mirror | ask:no | P2 | - | Você pediu um nó. O espelho também gosta de enigmas. | You asked for a knot. The mirror likes riddles too.
+E192 | espelho | mirror | ask:colo | P2 | - | Dia ruim. Hoje a mesa não arrisca. Só cartas que abraçam. | Bad day. Today the table plays it safe. Only cards that hug.
+E193 | espelho | mirror | ask:colo | P2 | - | Você pediu colo. Hoje o espelho só reflete coisa boa. | You asked for comfort. Today the mirror only reflects good things.
+E194 | espelho | mirror | ask:halloween | P2 | - | Noite de Halloween. O espelho prefere não mostrar o que está atrás de você. | Halloween night. The mirror would rather not show what's behind you.
+E195 | espelho | mirror | ask:christmas | P2 | - | Clima de Natal. As cartas chegaram embrulhadas. | Christmas mood. The cards arrived gift-wrapped.
+E196 | espelho | mirror | mood_ask | P2 | - | {humor}, como você pediu. Os três abriram a mesma prateleira. | {humor}, as you asked. The three opened the same shelf.
+E197 | espelho | mirror | mood_ask | P2 | - | Hoje você escolheu {humor}. O espelho anota o pedido. | Today you chose {humor}. The mirror notes the request.
+E198 | espelho | mirror | mood_ask | P2 | - | Uma prateleira só: {humor}. Três jeitos de olhar para ela. | A single shelf: {humor}. Three ways of looking at it.
+
+## Fecho (depois das viradas; a mais específica ganha) || Closing (after the flips; the most specific wins)
+E201 | espelho | mirrorClose | all_flipped,daily | P2 | - | Um acerto, uma descoberta, um desafio. O resto volta ao baralho à meia-noite. | A sure thing, a discovery, a challenge. The rest goes back to the deck at midnight.
+E202 | espelho | mirrorClose | all_flipped,daily | P2 | - | As três falaram. Agora quem decide é você. | All three have spoken. Now it's your call.
+E203 | espelho | mirrorClose | all_flipped,daily | P2 | - | Cartas viradas. O espelho vai lembrar do que você fizer com elas. | Cards turned. The mirror will remember what you do with them.
+E204 | espelho | mirrorClose | all_flipped,daily | P2 | - | Três caminhos na mesa. Amanhã, outros três. | Three paths on the table. Tomorrow, three more.
+E205 | espelho | mirrorClose | cypher_closed | P2 | - | A carta da Cobra ficou fechada. À meia-noite ela volta para a toca. | The Snake's card stayed closed. At midnight it slips back into its den.
+E206 | espelho | mirrorClose | cypher_closed | P2 | - | Duas viradas, uma selada. O selo espera até a meia-noite. | Two turned, one sealed. The seal waits until midnight.
+E207 | espelho | mirrorClose | all_flipped,ask | P2 | - | Três respostas para {ocasiao}. A pergunta pode voltar amanhã. | Three answers to {ocasiao}. The question can come back tomorrow.
+E208 | espelho | mirrorClose | all_flipped,ask | P2 | - | A mesa respondeu. Se quiser, pergunte outra coisa. | The table has answered. Ask something else, if you like.
+E209 | espelho | mirrorClose | all_flipped,mood_ask | P2 | - | {humor} por três ângulos. Agora escolha o seu. | {humor} from three angles. Now pick yours.
+E210 | espelho | mirrorClose | all_flipped,recon | P2 | - | Cada nota que você der hoje me ajuda a ver você. | Every rating you give today helps me see you.
+E211 | espelho | mirrorClose | all_flipped,recon | P2 | - | Três títulos famosos. O que você já viu, me conte. | Three famous titles. Whatever you've seen, tell me.
+E212 | espelho | mirrorClose | all_flipped,passed_any | P2 | - | Nem todos tinham carta hoje. Os que tinham, falaram. | Not everyone had a card today. Those who did have spoken.

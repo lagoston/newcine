@@ -1,0 +1,109 @@
+# 3. Fincher, o Raposo || 3. Fincher, the Fox
+% A descoberta. Projecionista veterano, culto e espirituoso: película, projetor, matinê, charuto, chapéu. Cita clássicos CERTO. "Eu lembro. Eu sempre lembro." Chama a pessoa de {estreante} (estreante até 30 notas, depois colega); o Bogart de Crítico; a Cypher de minha cara (só nas trocas). || The discovery. Veteran projectionist, cultured and witty. Quotes the classics RIGHT. Calls the person {estreante} (kid, then partner), Bogart the Critic, Cypher my dear (only in exchanges).
+
+## Anfitrião da tiragem || Host of the daily draw
+F001 | fincher | open | daily | P2 | - | {estreante}, comece pela minha. Toda boa sessão começa pelo projetor. | {estreante}, start with mine. Every good show starts at the projector.
+F002 | fincher | open | daily | P2 | - | A descoberta do dia está no meu rolo. O Crítico trouxe o óbvio. | Today's discovery is on my reel. The Critic brought the obvious.
+F003 | fincher | open | daily | P2 | - | Eu lembro de tudo que você já avaliou, {estreante}. Por isso trouxe esta. | I remember everything you've rated, {estreante}. That's why I brought this one.
+F004 | fincher | open | daily,old | P2 | - | A minha é das antigas. Película com cheiro de charuto e matinê. | Mine's an old one. Film that smells of cigars and matinees.
+F005 | fincher | open | daily,bw | P2 | - | Hoje tem preto e branco, {estreante}. Não fuja. A cor é que chegou atrasada. | Black and white today, {estreante}. Don't run. Color was the latecomer.
+F006 | fincher | open | daily,long | P2 | - | A minha pede tempo, {estreante}. Cinema longo é cinema com respeito. | Mine asks for time, {estreante}. A long film is a respectful film.
+F007 | fincher | open | daily,p10hi | P2 | - | Tenho uma com cara de 10. Não costumo dizer isso. Anote. | I have one that looks like a 10. I don't say that often. Take note.
+F008 | fincher | open | daily,series | P2 | - | Trouxe uma série. Na minha época, se esperava uma semana pelo episódio. | Brought a series. In my day, you waited a week for each episode.
+F009 | fincher | open | daily,watchlist | P2 | - | Esta já estava na sua lista. Eu lembro. Eu sempre lembro. | This one was already on your list. I remember. I always remember.
+F010 | fincher | open | daily,hidden | P2 | - | Pouca gente viu a minha. Pouca gente sabe o que perdeu. | Barely anyone has seen mine. Barely anyone knows what they missed.
+F011 | fincher | open | daily | P2 | - | Apertem os cintos. Vai ser uma noite turbulenta. | Fasten your seatbelts. It's going to be a bumpy night.
+F012 | fincher | open | daily | P2 | - | Ajeitei o chapéu, limpei a lente. A minha carta já pode rodar. | Hat straightened, lens cleaned. My card is ready to roll.
+
+## Anfitrião da pergunta || Host of a question
+F101 | fincher | ask | ask | P3 | - | {ocasiao}. Eu lembro de noites assim. Tenho a película certa. | {ocasiao}. I remember nights like this. I have the right reel.
+F102 | fincher | ask | ask | P3 | - | {ocasiao}, {estreante}? Para isso existe um clássico. Sempre existe. | {ocasiao}, {estreante}? There's a classic for that. There always is.
+F103 | fincher | ask | ask | P3 | - | Pedido recebido na cabine: {ocasiao}. Rodando. | Request received in the booth: {ocasiao}. Rolling.
+F110 | fincher | ask | ask:chuva | P1 | - | Chuva lá fora, projetor aqui dentro. | Rain outside, projector in here.
+F111 | fincher | ask | ask:amor | P1 | - | Para dois. Na minha época, era sessão dupla e mão dada no escuro. | For two. In my day, it was a double feature and holding hands in the dark.
+F112 | fincher | ask | ask:familia | P1 | - | Um de matinê de domingo. Atravessa gerações sem um arranhão. | A Sunday matinee kind. It crosses generations without a scratch.
+F113 | fincher | ask | ask:galera | P1 | - | Para a turma? Trouxe um que se assiste comentando. Baixinho, por favor. | For the crew? Brought one made for commenting. Quietly, please.
+F114 | fincher | ask | ask:noventa | P1 | - | Noventa minutos. Os mestres diziam tudo nesse tempo. | Ninety minutes. The masters said it all in that time.
+F115 | fincher | ask | ask:episodio | P1 | - | Um episódio. Antigamente era uma semana de espera. Que sorte a sua. | One episode. It used to be a week's wait. Lucky you.
+F116 | fincher | ask | ask:maratona | P1 | - | Uma temporada fechada, como antigamente. | A finished season, like the old days.
+F117 | fincher | ask | ask:chorar | P1 | - | Lenço no bolso, {estreante}. Hoje a película pesa. | Handkerchief ready, {estreante}. Tonight the film weighs heavy.
+F118 | fincher | ask | ask:rir | P1 | - | Riso de verdade, {estreante}. Do tipo que envelhece bem. | Real laughter, {estreante}. The kind that ages well.
+F119 | fincher | ask | ask:susto | P1 | - | Medo de verdade não precisa de sangue. Precisa de sombra. | Real fear doesn't need blood. It needs shadow.
+F120 | fincher | ask | ask:no | P1 | - | Pra pausar e voltar a cena. Duas vezes. | For pausing and rewinding. Twice.
+F121 | fincher | ask | ask:colo | P1 | - | Um conforto das antigas. Chá quente e cobertor de lã. | An old-fashioned comfort. Hot tea and a wool blanket.
+F122 | fincher | ask | mood_ask | P1 | - | {humor}? Eu lembro de cada título dessa prateleira. Escolhi um. | {humor}? I remember every title on that shelf. I picked one.
+F123 | fincher | ask | ask:halloween | P1 | - | Halloween. O medo clássico ainda é o que mais assusta. | Halloween. Classic fear is still the scariest kind.
+F124 | fincher | ask | ask:christmas | P1 | - | Natal, {estreante}. Clássico de fim de ano envelhece como vinho. | Christmas, {estreante}. Holiday classics age like wine.
+
+## Reconhecimento || Recognition
+F151 | fincher | recon | n0 | P2 | - | Um que todo mundo já viu, {estreante}. Vamos ver se você também. | One everybody's seen, {estreante}. Let's see if you have too.
+F152 | fincher | recon | n1_9 | P2 | - | Outro clássico conhecido. Se já viu, me diga a nota. Eu anoto. | Another well-known classic. If you've seen it, tell me the rating. I'll note it.
+F153 | fincher | recon | recon | P2 | - | Comecemos pelo básico, {estreante}. Este é passagem obrigatória. | Let's start with the basics, {estreante}. This one's required viewing.
+
+## Veredito na hora || Instant verdict
+% Só o slot {nota} (o Livro repete a mesma fala). || Only {nota} (the Book repeats the same line).
+F201 | fincher | verdict | exact | P2 | - | {nota}. Eu lembro. Eu sempre lembro. | {nota}. I remember. I always remember.
+F202 | fincher | verdict | exact | P2 | - | {nota}, como eu disse. Cinema é memória, e a minha é boa. | {nota}, as I said. Cinema is memory, and mine is good.
+F203 | fincher | verdict | exact | P2 | - | Exatamente {nota}. Ajeito o chapéu e não digo mais nada. | Exactly {nota}. I tip my hat and say no more.
+F204 | fincher | verdict | exact | P2 | - | {nota}. Corte perfeito. Pode rodar os créditos. | {nota}. Perfect cut. Roll the credits.
+F211 | fincher | verdict | near | P2 | - | Um ponto de diferença. Na minha época, isso era acerto. | One point off. In my day, that counted as a hit.
+F212 | fincher | verdict | near | P2 | - | {nota}. Quase. Um fotograma fora do lugar, nada mais. | {nota}. Close. One frame out of place, nothing more.
+F213 | fincher | verdict | near | P2 | - | {nota}. Por um ponto. Até Hitchcock refazia uma tomada. | {nota}. By one point. Even Hitchcock reshot a take.
+F214 | fincher | verdict | near | P2 | - | Perto. Foco quase perfeito. Ajusto a lente na próxima. | Close. Focus almost perfect. I'll adjust the lens next time.
+F221 | fincher | verdict | over | P2 | - | Mais do que eu disse. Gosto quando a película me desmente. | More than I said. I love it when the film proves me wrong.
+F222 | fincher | verdict | over | P2 | - | {nota}? Subestimei. Isto não é mais o Kansas, e eu não sou infalível. | {nota}? I underestimated it. This isn't Kansas anymore, and I'm not infallible.
+F223 | fincher | verdict | over | P2 | - | {nota}. Você viu algo que eu não vi. Isso é raro. Anoto com respeito. | {nota}. You saw something I didn't. That's rare. Noted with respect.
+F224 | fincher | verdict | over,r10 | P2 | - | Um 10 onde eu esperava menos. Tiro o chapéu. Literalmente. | A 10 where I expected less. Hat off. Literally.
+F225 | fincher | verdict | over,r10 | P2 | - | Dez. Eu fui conservador, e o filme foi generoso. | Ten. I was conservative, and the film was generous.
+F231 | fincher | verdict | under | P2 | - | {nota}. Anotado. Até raposa velha erra o corte. | {nota}. Noted. Even an old fox botches a cut.
+F232 | fincher | verdict | under | P2 | - | {nota}. O rolo arrebentou no meio. Acontece nas melhores salas. | {nota}. The reel snapped mid-show. It happens in the best theaters.
+F233 | fincher | verdict | under | P2 | - | {nota}. Nem todo clássico conversa com todo mundo. Disso eu também lembro. | {nota}. Not every classic speaks to everyone. I remember that too.
+F234 | fincher | verdict | under | P2 | - | Errei a lente. O Crítico vai comemorar com pipoca, eu sei. | Wrong lens. The Critic will celebrate with popcorn, I know.
+F235 | fincher | verdict | under,r_low | P2 | - | {nota}. Vou rebobinar a minha confiança e guardar na lata. | {nota}. I'll rewind my confidence and put it back in the can.
+F236 | fincher | verdict | under,r_low | P2 | - | {nota}. Sem palavras. Como no cinema mudo: só a cara. | {nota}. Speechless. Like the silent era: just the face.
+F241 | fincher | verdict | ten | P2 | - | Um 10. Guarde a data. Eu guardo todas. | A 10. Mark the date. I mark them all.
+F242 | fincher | verdict | ten | P2 | - | Dez. Um clássico achou o seu lugar na sua estante. | Ten. A classic found its place on your shelf.
+F243 | fincher | verdict | ten | P2 | - | Um 10. Isto merece um close-up. | A 10. This deserves a close-up.
+F244 | fincher | verdict | ten | P2 | - | Dez. Eu lembro de cada 10 que você deu. Deste vou lembrar mais. | Ten. I remember every 10 you've given. This one I'll remember most.
+F251 | fincher | verdict | nopred | P2 | - | {nota}. Anotado na sua ficha. A partir de agora, eu lembro. | {nota}. Noted on your file. From now on, I remember.
+F252 | fincher | verdict | nopred | P2 | - | {nota}. Toda filmografia começa com um rolo. Este é o seu. | {nota}. Every filmography starts with one reel. This is yours.
+
+## Veredito no dia seguinte || Next-day verdict
+F301 | fincher | verdictLater | exact | P2 | - | {titulo} levou {nota}. Exatamente o que eu disse. Eu lembro. | {titulo} got a {nota}. Exactly what I said. I remember.
+F302 | fincher | verdictLater | exact | P2 | - | Você deu {nota} à minha de {dia_semana}. Projecionista não erra o foco. | You gave my {dia_semana} pick a {nota}. A projectionist never misses focus.
+F303 | fincher | verdictLater | exact,yesterday_card | P2 | - | Ontem eu trouxe, você deu {nota}. Como manda o roteiro. | I brought it yesterday, you gave it a {nota}. Right by the script.
+F311 | fincher | verdictLater | near | P2 | - | {titulo} levou {nota}. A memória é boa, a lente quase. | {titulo} got a {nota}. The memory's good, the lens nearly so.
+F312 | fincher | verdictLater | near | P2 | - | A minha de {dia_semana} levou {nota}. Perto o bastante para um aceno de chapéu. | My {dia_semana} pick got a {nota}. Close enough for a tip of the hat.
+F313 | fincher | verdictLater | near | P2 | - | {titulo} levou {nota}. Um ponto não estraga uma sessão. | {titulo} got a {nota}. One point doesn't ruin a screening.
+F321 | fincher | verdictLater | over | P2 | - | {titulo} levou {nota}. A película me desmentiu, e eu gostei. | {titulo} got a {nota}. The film proved me wrong, and I liked it.
+F322 | fincher | verdictLater | over | P2 | - | Você deu {nota} à minha de {dia_semana}. Raposa velha também erra para cima. | You gave my {dia_semana} pick a {nota}. Old foxes miss upward too.
+F323 | fincher | verdictLater | over,r10 | P2 | - | {titulo} levou 10. Eu disse menos. Corrijo a ficha com prazer. | {titulo} got a 10. I said less. Happy to correct the file.
+F331 | fincher | verdictLater | under | P2 | - | {titulo} levou {nota}. Passei a noite rebobinando onde errei. | {titulo} got a {nota}. I spent the night rewinding my mistake.
+F332 | fincher | verdictLater | under | P2 | - | A minha de {dia_semana} levou {nota}. O Crítico deve estar rindo. Que ria. | My {dia_semana} pick got a {nota}. The Critic must be laughing. Let him.
+F333 | fincher | verdictLater | under,r_low | P2 | - | {titulo} levou {nota}. Hoje o projetor acordou envergonhado. | {titulo} got a {nota}. The projector woke up embarrassed today.
+F341 | fincher | verdictLater | ten | P2 | - | {titulo} levou 10. Guarde a data. Eu já guardei. | {titulo} got a 10. Mark the date. I already did.
+F342 | fincher | verdictLater | ten | P2 | - | Um 10 para a minha de {dia_semana}. Acendi um charuto. Só um. | A 10 for my {dia_semana} pick. I lit a cigar. Just one.
+F343 | fincher | verdictLater | ten,yesterday_card | P2 | - | Ontem a minha carta, agora um 10 na sua estante. Isto é cinema. | Yesterday my card, now a 10 on your shelf. That's cinema.
+F351 | fincher | verdictLater | nopred | P2 | - | {titulo} levou {nota}. Anotado. Agora tenho por onde começar. | {titulo} got a {nota}. Noted. Now I have somewhere to start.
+
+## Gestos || Gestures
+F401 | fincher | want | - | P2 | - | Anotado na sua lista. Película boa espera. | Noted on your list. Good film waits.
+F402 | fincher | want | - | P2 | - | Na lista. Clássico não tem pressa, mas não esqueça. | On the list. Classics don't rush, but don't forget.
+F403 | fincher | want | long | P2 | - | Na lista. Separe a noite: é longo, e vale. | On the list. Clear the night: it's long, and worth it.
+F404 | fincher | want | p10hi | P2 | - | Guardado. Tem cara de 10, {estreante}. Eu lembro. | Saved. It looks like a 10, {estreante}. I'll remember.
+F405 | fincher | want | series | P2 | - | Série na lista. Um episódio por noite, como antigamente. | Series on the list. One episode a night, like the old days.
+F451 | fincher | refuse | - | P2 | - | Nem todo clássico é para todo mundo. Tome este. | Not every classic is for everyone. Take this one.
+F452 | fincher | refuse | - | P2 | - | Justo. Tenho outro rolo na cabine. | Fair. I have another reel in the booth.
+F453 | fincher | refuse | - | P2 | - | Recusado. Sem mágoa. Troco a película. | Refused. No hard feelings. Changing the reel.
+F454 | fincher | refuse | ask | P2 | - | Para este pedido, tenho uma segunda sessão. | For this request, I have a second showing.
+F455 | fincher | refuse | - | P2 | - | Uma oferta que você pôde recusar. Tome outra. | An offer you could refuse. Take another.
+F501 | fincher | pass | refused | P2 | - | Por hoje, o projetor descansa. Até amanhã. | The projector rests for today. See you tomorrow.
+F502 | fincher | pass | refused | P2 | - | Duas recusas. Fecho a cabine por hoje, {estreante}. | Two refusals. I'm closing the booth for today, {estreante}.
+F503 | fincher | pass | empty | P2 | - | Neste pedido eu passo. Meu acervo não cabe nele. Ainda. | I'll pass on this request. My archive doesn't fit it. Yet.
+F504 | fincher | pass | empty | P2 | - | Para isso, minhas latas estão vazias hoje. | For this, my film cans are empty today.
+F551 | fincher | replace | - | P2 | - | Tome outra, {estreante}. A sessão continua. | Take another, {estreante}. The show goes on.
+F552 | fincher | replace | - | P2 | - | Próximo rolo. Este ainda não tem a sua nota. | Next reel. This one doesn't have your rating yet.
+F553 | fincher | replace | - | P2 | - | Já viu? Eu anoto e troco a película. | Seen it? I'll note it and change the reel.
+F601 | fincher | notSeen | - | P2 | - | Ainda não viu? Este outro, talvez. | Not yet? Maybe this other one.
+F602 | fincher | notSeen | - | P2 | - | Sem problema. Guarde aquele na memória e tome este. | No problem. Keep that one in mind and take this.
+F603 | fincher | notSeen | - | P2 | - | Ainda não? Todo mundo tem um clássico pendente. Outro. | Not yet? Everyone has a classic pending. Another.

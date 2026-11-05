@@ -1,0 +1,210 @@
+media_type,tmdb_id,oracle,title,ressalva,confirmed_by,note
+movie,10138,b,Homem de Ferro 2,1,claude-0511,barulhento e meio perdido
+movie,1892,f,O Retorno de Jedi,1,claude-0511,ursinho demais
+movie,131631,b,Jogos Vorazes: A Esperança Parte 1,1,claude-0511,morno
+movie,1893,f,Star Wars: Episódio I,1,claude-0511,pouca magia
+movie,285,b,Piratas do Caribe: No Fim do Mundo,1,claude-0511,longo
+movie,1865,b,Piratas do Caribe: Navegando em Águas Misteriosas,1,claude-0511,maré baixando
+movie,297802,b,Aquaman,0,claude-0511,exagero é elogio
+movie,546554,b,Entre Facas e Segredos,0,claude-0511,arrastado é o sotaque
+movie,1894,b,Star Wars: Episódio II,1,claude-0511,romance duro
+movie,291805,b,Truque de Mestre: O 2º Ato,1,claude-0511,menos surpresa
+movie,600,f,Nascido Para Matar,0,claude-0511,só elogio
+movie,45243,b,Se Beber Não Case! Parte II,1,claude-0511,requentado
+movie,2080,b,X-Men Origens: Wolverine,1,claude-0511,roteiro capenga
+movie,343668,b,Kingsman: O Círculo Dourado,0,claude-0511,exagero é elogio
+movie,294254,b,Maze Runner: Prova de Fogo,1,claude-0511,cansa um pouco
+movie,181812,b,Star Wars: A Ascensão Skywalker,1,claude-0511,quer agradar todo mundo
+movie,772,f,Esqueceram de Mim 2,1,claude-0511,repetido
+movie,36668,b,X-Men: O Confronto Final,1,claude-0511,pressa demais
+movie,392044,c,Assassinato no Expresso do Oriente (2017),1,claude-0511,fico com o Lumet
+movie,454626,b,Sonic: O Filme,0,claude-0511,exagero é elogio
+movie,262500,b,A Série Divergente: Insurgente,1,claude-0511,continuação corrida
+movie,810,b,Shrek Terceiro,1,claude-0511,não é o auge
+movie,330,f,O Mundo Perdido: Jurassic Park,1,claude-0511,Spielberg menos encantado
+movie,464052,b,Mulher-Maravilha 1984,1,claude-0511,exagera na dose
+movie,616037,b,Thor: Amor e Trovão,1,claude-0511,tropeça
+movie,95,f,Armageddon,0,claude-0511,assume o exagero e elogia
+movie,4011,f,Os Fantasmas se Divertem,0,claude-0511,só elogio
+movie,57800,b,A Era do Gelo 4,1,claude-0511,saga cansada
+movie,214756,b,Ted 2,1,claude-0511,perdeu o fôlego
+movie,163,b,Doze Homens e Outro Segredo,1,claude-0511,roteiro de férias
+movie,320288,b,X-Men: Fênix Negra,1,claude-0511,bocejei
+movie,82675,b,Busca Implacável 2,1,claude-0511,menos fôlego
+movie,262504,b,A Série Divergente: Convergente,1,claude-0511,perde o fôlego
+movie,242,f,O Poderoso Chefão: Parte III,1,claude-0511,menor que os anteriores
+movie,373571,b,Godzilla II: Rei dos Monstros,1,claude-0511,os humanos atrapalham
+movie,423108,b,Invocação do Mal 3,1,claude-0511,sombrio mais que assustador
+movie,13053,b,Bolt: Supercão,0,claude-0511,só elogio
+movie,628,f,Entrevista com o Vampiro,0,claude-0511,elogio a Kirsten Dunst
+movie,10895,f,Pinóquio (1940),0,claude-0511,aviso; não diminui
+movie,324668,b,Jason Bourne,1,claude-0511,a faísca já não acende
+movie,49040,b,O Legado Bourne,1,claude-0511,falta a tremedeira de antes
+movie,754,f,A Outra Face,0,claude-0511,exagero é elogio
+movie,879,f,Hook: A Volta do Capitão Gancho,1,claude-0511,exagera no doce
+movie,268896,b,Círculo de Fogo: A Revolta,1,claude-0511,falta a mão de del Toro
+movie,1265,b,Ponte para Terabítia,0,claude-0511,só elogio
+movie,4248,b,Todo Mundo em Pânico 2,1,claude-0511,mais bobo
+movie,343611,b,Jack Reacher: Sem Retorno,1,claude-0511,piloto automático
+tv,1434,f,Uma Família da Pesada,1,claude-0511,nem sempre acerta
+movie,2978,f,Os Caça-Fantasmas 2,1,claude-0511,não chega aos pés do primeiro
+movie,52449,b,Professora Sem Classe,1,claude-0511,a lição fica pela metade
+movie,278154,b,A Era do Gelo: O Big Bang,1,claude-0511,já sem fôlego
+movie,338766,b,A Qualquer Custo,0,claude-0511,arrastado é o sotaque
+movie,6477,b,Alvin e os Esquilos,1,claude-0511,bobinho e estridente
+movie,9273,f,Ace Ventura 2,0,claude-0511,exagero é elogio
+movie,37136,f,Corra que a Polícia Vem Aí!,0,claude-0511,tropeçando é a piada
+movie,2789,b,A Batalha de Riddick,0,claude-0511,exagero é elogio
+movie,227159,b,Quero Matar Meu Chefe 2,1,claude-0511,fórmula repetida
+movie,7555,b,Rambo IV,0,claude-0511,aviso; não diminui
+movie,82682,b,Caça aos Gângsteres,1,claude-0511,estilo vence a substância
+movie,442249,b,A Primeira Noite de Crime,1,claude-0511,mais grito que susto
+movie,379686,b,Space Jam: Um Novo Legado,1,claude-0511,meio exagerado
+movie,189,b,Sin City: A Dama Fatal,1,claude-0511,menos fôlego
+movie,340837,b,A Cura,1,claude-0511,longo demais
+movie,400535,b,Sicário: Dia do Soldado,1,claude-0511,perdeu a poesia
+movie,9804,f,Waterworld,0,claude-0511,defende o filme
+movie,169,f,O Predador 2,1,claude-0511,menor que o original
+movie,94329,c,Operação Invasão,0,claude-0511,só elogio
+movie,8965,b,Atlantis: O Retorno de Milo,1,claude-0511,episódio de TV esticado
+movie,5174,b,A Hora do Rush 3,1,claude-0511,mais cansado
+movie,817,f,Austin Powers: O Agente Bond Cama,1,claude-0511,repetitivo
+movie,13387,b,Carga Explosiva 3,1,claude-0511,cansado
+movie,11674,f,101 Dálmatas (1996),1,claude-0511,o resto é latido
+movie,572802,b,Aquaman 2,1,claude-0511,esquecível
+movie,8367,f,Robin Hood: O Príncipe dos Ladrões,1,claude-0511,Costner sem sotaque
+movie,714,f,007: O Amanhã Nunca Morre,0,claude-0511,exagero é elogio
+movie,9355,f,Mad Max: Além da Cúpula do Trovão,1,claude-0511,mais leve que o anterior
+tv,19614,f,It: Uma Obra-Prima do Medo,1,claude-0511,o resto oscila
+movie,943,f,Máquina Mortífera 3,1,claude-0511,mais comédia que ação
+movie,10439,f,Abracadabra,0,claude-0511,exagero é elogio
+movie,60935,b,A Coisa (2011),1,claude-0511,na sombra do clássico
+movie,1241982,b,Moana 2,1,claude-0511,o encanto ficou no primeiro
+movie,567748,c,O Culpado (2021),1,claude-0511,prefiro o original
+movie,585083,b,Hotel Transilvânia: Transformonstrão,1,claude-0511,a magia já cansou
+movie,9801,b,Bridget Jones: No Limite da Razão,1,claude-0511,menos graça que o primeiro
+tv,46296,b,Spartacus,0,claude-0511,exagero é elogio
+movie,9374,f,A Morte lhe Cai Bem,0,claude-0511,exagero é elogio
+movie,610253,b,Halloween Kills,0,claude-0511,exagero é elogio
+movie,565426,b,Para Todos os Garotos: P.S. Ainda Amo Você,1,claude-0511,o primeiro ainda é o xodó
+movie,459151,b,O Poderoso Chefinho 2,1,claude-0511,mais do mesmo
+movie,549053,c,Uma Segunda Chance Para Amar,0,claude-0511,piada da Cobra; não diminui
+movie,11770,c,Kung Fu Futebol Clube,0,claude-0511,exagero é elogio
+movie,36593,f,Corra que a Polícia Vem Aí! 33 1/3,1,claude-0511,fôlego menor
+movie,587807,b,Tom e Jerry: O Filme,1,claude-0511,a parte de gente deu sono
+movie,795,f,Cidade dos Anjos,1,claude-0511,atrás de Asas do Desejo
+movie,681,f,007: Os Diamantes São Eternos,1,claude-0511,sem brilho
+movie,700,f,007 Contra Octopussy,1,claude-0511,palhaçada assumida
+movie,581726,b,Infinito,1,claude-0511,lógica ficou no estacionamento
+movie,5549,f,RoboCop 2,1,claude-0511,sobra barulho
+movie,579,f,Tubarão 2,1,claude-0511,não tem a mão do mestre
+movie,12096,b,A Pantera Cor-de-Rosa (2006),1,claude-0511,o original segue imbatível
+movie,9946,f,Fim dos Dias,1,claude-0511,bobo
+movie,11186,f,Brinquedo Assassino 2,1,claude-0511,mais do mesmo
+movie,9268,f,Queima de Arquivo,1,claude-0511,esquecível
+movie,351211,b,Bruxa de Blair (2016),1,claude-0511,sem a magia do original
+movie,9725,f,Sexta-Feira 13 Parte 2,1,claude-0511,feita no molde
+movie,129670,c,Nebraska,0,claude-0511,só elogio
+tv,16420,b,Meninos Antes de Flores,0,claude-0511,exagero é elogio
+movie,10898,b,A Pequena Sereia II,1,claude-0511,modesta
+movie,258509,b,Alvin e os Esquilos 2,1,claude-0511,fraquinho
+movie,8845,f,A Força em Alerta,0,claude-0511,elogio a Tommy Lee Jones
+movie,9610,f,Conan o Destruidor,1,claude-0511,mais bobo que o primeiro
+movie,9208,f,A Última Ameaça,1,claude-0511,bobo
+movie,579974,c,RRR,0,claude-0511,exagero é elogio
+movie,20760,b,Lilo & Stitch 2,0,claude-0511,pequenino mas com coração; não diminui
+movie,7305,f,Vivos,0,claude-0511,aviso; não diminui
+movie,446807,b,Millennium: A Garota na Teia de Aranha,1,claude-0511,mais ação que mistério
+tv,253,f,Jornada nas Estrelas,0,claude-0511,exagero é elogio
+movie,9556,f,Darkman,0,claude-0511,exagero é elogio
+movie,1685,f,De Volta ao Planeta dos Macacos,1,claude-0511,mais delirante que boa
+tv,2384,f,A Super Máquina,0,claude-0511,piada com o carro
+movie,34480,b,Abismo do Medo 2,1,claude-0511,menos surpresa
+tv,73021,b,(Des)encanto,1,claude-0511,não é o melhor dele
+movie,529485,b,O Caminho de Volta,0,claude-0511,elogio a Affleck
+movie,2665,f,Apertem os Cintos o Piloto Sumiu 2,1,claude-0511,repete as piadas
+movie,11522,f,A Garota de Rosa Shocking,0,claude-0511,só elogio
+movie,9763,c,Gol! O Sonho Impossível,1,claude-0511,previsível
+movie,936,f,A Pantera Cor-de-Rosa (1963),0,claude-0511,tropeçando é a piada
+movie,776797,c,A Tristeza,0,claude-0511,aviso; não diminui
+tv,7842,f,O Novo Festival Tom e Jerry,1,claude-0511,sente-se falta da pancadaria
+movie,2176,c,A Casa de Vidro,1,claude-0511,previsível
+movie,13313,f,A Bela e a Fera: O Natal Encantado,1,claude-0511,feito pro vídeo
+movie,123,f,O Senhor dos Anéis (1978),1,claude-0511,incompleto
+movie,11418,f,Férias Frustradas II,1,claude-0511,mais fraco que o primeiro
+movie,11595,f,48 Horas Parte 2,1,claude-0511,requentado
+movie,11285,f,Cocoon II: O Regresso,1,claude-0511,continuação morna
+movie,10651,f,Dirty Harry na Lista Negra,1,claude-0511,menor da série
+movie,1939,f,Laura,0,claude-0511,só elogio
+movie,5544,c,Hiroshima Meu Amor,0,claude-0511,só elogio
+tv,3322,f,Oz,0,claude-0511,aviso; não diminui
+movie,18937,f,A Espada Mágica,1,claude-0511,tropeçando
+movie,22821,b,Santos Justiceiros II,0,claude-0511,assume o exagero e elogia
+movie,10380,f,Um Conto Americano: Fievel Vai para o Oeste,0,claude-0511,só elogio
+movie,11485,f,Um Assaltante Bem Trapalhão,1,claude-0511,ainda cru
+movie,11133,f,Poltergeist II,1,claude-0511,não chega perto do primeiro
+movie,518068,c,Along With the Gods 2,1,claude-0511,CGI exagerado
+movie,516729,b,Paddington: Uma Aventura na Floresta,1,claude-0511,sem o brilho do segundo
+movie,263341,b,O Tigre e o Dragão: A Espada do Destino,1,claude-0511,sem a magia do original
+movie,24929,f,A Volta dos Mortos Vivos 2,1,claude-0511,mais bobo que o primeiro
+movie,70006,b,Quebrando Regras 2,1,claude-0511,modesto
+movie,11860,f,Sabrina (1995),1,claude-0511,não bate o de Wilder
+movie,11656,c,A Fonte da Donzela,0,claude-0511,elogia este original
+movie,11966,f,Um Robô em Curto Circuito 2,1,claude-0511,menos graça que o primeiro
+movie,5780,f,Cortina Rasgada,1,claude-0511,longe do melhor Hitchcock
+movie,11164,f,D2: Nós Somos os Campeões,1,claude-0511,menos coração
+tv,155,f,Uma Família de Outro Mundo,0,claude-0511,exagero é elogio
+movie,14580,f,Os Corruptos,0,claude-0511,só elogio
+movie,11317,f,Meu Primeiro Amor Parte 2,1,claude-0511,sem o impacto do primeiro
+movie,793998,c,O Acontecimento,0,claude-0511,aviso; não diminui
+movie,391757,b,Quebrando Regras 3,0,claude-0511,não decepciona
+movie,10680,f,D3: Nós Somos os Campeões,1,claude-0511,fórmula pedia aposentadoria
+tv,24835,c,Clannad,0,claude-0511,parece bobinho mas cresce; não diminui
+movie,2621,c,Feitiço do Coração,0,claude-0511,piada da Cobra; não diminui
+movie,11620,f,Quo Vadis,0,claude-0511,exagero é elogio
+movie,8079,c,Om Shanti Om,0,claude-0511,exagero é elogio
+movie,14456,c,Alucinação,1,claude-0511,tropeça no próprio susto; bomba
+movie,3086,f,As Três Noites de Eva,0,claude-0511,tropeçando é elogio
+movie,18519,f,Free Willy 3,1,claude-0511,sem brilho
+movie,10409,c,Vem Dançar Comigo,0,claude-0511,brega com carinho
+movie,17467,c,A História de Ricky,0,claude-0511,aviso; não diminui
+movie,11326,f,Tommy,0,claude-0511,exagero é elogio
+movie,12502,f,Silkwood,0,claude-0511,só elogio
+movie,14628,f,Fletch Vive,1,claude-0511,abaixo do primeiro
+movie,50759,c,A Rotina Tem Seu Encanto,0,claude-0511,só elogio
+tv,2973,c,Life on Mars,0,claude-0511,só elogio
+movie,632666,c,Desgrávida,0,claude-0511,leve mas tem dente; não diminui
+movie,285423,c,Soldado Anônimo 2,1,claude-0511,bala demais
+movie,40342,f,Demons 2,1,claude-0511,mais bagunçada
+movie,13715,f,Caminhos Violentos,0,claude-0511,só elogio
+movie,12639,f,A Volta dos Sete Homens,1,claude-0511,a magia ficou no primeiro
+movie,17337,f,Em Busca do Vale Encantado (continuação),1,claude-0511,repetição assumida
+movie,32669,f,A Chave do Enigma,1,claude-0511,não chega aos pés de Chinatown
+tv,247518,c,Grotesquerie,0,claude-0511,exagero é elogio
+movie,25998,c,Campo 731,0,claude-0511,aviso; não diminui
+tv,1918,f,Além da Imaginação (1985),1,claude-0511,sem a mística da original
+movie,5257,c,A Antena,0,claude-0511,gosto da Cobra; não diminui
+movie,19594,f,Bartok o Magnífico,1,claude-0511,esquecível
+movie,11940,f,Simbad e o Olho do Tigre,1,claude-0511,não é o melhor da safra
+movie,957314,b,Carona Aterrorizante,0,claude-0511,só elogio
+movie,30462,f,Os Comancheros,1,claude-0511,Wayne no piloto automático
+movie,294992,c,A Batalha na Montanha do Tigre,0,claude-0511,exagero é elogio
+movie,5921,c,Nevada Smith,1,claude-0511,arrasta
+movie,10434,c,Tão Longe Tão Perto,1,claude-0511,menos mágico que Asas do Desejo
+movie,17170,f,Nova York Uma Cidade em Delírio,1,claude-0511,irregular
+movie,37833,c,A Porta da Loucura,1,claude-0511,bomba de museu
+tv,136735,c,Deixa Ela Entrar (série),1,claude-0511,não é o filme sueco
+tv,3318,f,Moto Laser,0,claude-0511,durou pouco; não diminui
+movie,754716,c,Badhaai Do,0,claude-0511,leve mas com recado; não diminui
+movie,47576,c,Memórias do Subdesenvolvimento,0,claude-0511,só elogio
+tv,2883,c,Sombras da Noite,1,claude-0511,cenário tremendo
+movie,33673,c,Seu Tipo de Mulher,0,claude-0511,exagero é elogio
+movie,202171,b,The Invitation (2003),0,claude-0511,pouca gente viu; não diminui
+movie,682,f,007 Contra o Homem com a Pistola de Ouro,1,claude-0511,leitura: Roger Moore no piloto automático
+movie,14534,f,Rudy,1,claude-0511,leitura: clichê? talvez
+movie,439079,b,A Freira,1,claude-0511,leitura: susto de fábrica
+movie,11618,f,A Casa Amaldiçoada (1999),1,claude-0511,leitura: merecia filme melhor
+movie,675445,b,Patrulha Canina: O Filme,1,claude-0511,leitura: eu cochilei
+movie,20235,f,O Mundo Mágico da Bela,1,claude-0511,leitura: retalhos de episódios
+tv,4550,f,Sétimo Céu,1,claude-0511,leitura: chega a dar sono
+movie,11419,f,Férias Frustradas em Las Vegas,1,claude-0511,leitura: franquia já cansada

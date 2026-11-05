@@ -1,0 +1,10 @@
+# 6. Sistema (na voz do Espelho) || 6. System (in the Mirror's voice)
+% Erros e estados da mesa, no lugar da frase do alto. Sem culpa e sem número de sistema. || Errors and table states, in place of the top line. No blame, no system numbers.
+S001 | espelho | system | error | P1 | - | O espelho embaçou. Tente de novo. | The mirror fogged up. Try again.
+S002 | espelho | system | error | P1 | - | Algo se perdeu entre a mesa e o espelho. Tente outra vez. | Something got lost between the table and the mirror. Try again.
+S011 | espelho | system | empty_all | P1 | - | Para esta pergunta, hoje a mesa não tem cartas à sua altura. | For this question, the table has no cards worthy of you today.
+S012 | espelho | system | empty_all | P1 | - | Os três procuraram e voltaram de mãos vazias. Pergunte outra coisa. | The three searched and came back empty-handed. Ask something else.
+S021 | espelho | system | offline | P1 | - | Sem sinal. O espelho só reflete quem está conectado. | No signal. The mirror only reflects who's connected.
+S022 | espelho | system | offline | P1 | - | A conexão caiu. A mesa espera você voltar. | The connection dropped. The table will wait for you.
+S031 | espelho | system | midnight | P1 | - | Meia-noite. As cartas que você não virou voltaram ao baralho. | Midnight. The cards you didn't flip went back to the deck.
+S032 | espelho | system | midnight | P1 | - | O dia virou. Uma nova tiragem já está na mesa. | The day turned. A new draw is on the table.

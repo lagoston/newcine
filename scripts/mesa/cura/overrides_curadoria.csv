@@ -1,0 +1,88 @@
+occasion_key,media_type,tmdb_id,sign,title,reviewed_by,note
+familia,movie,223702,-1,Festa da Salsicha,claude-0511,animação adulta e indecente
+familia,movie,12477,-1,Túmulo dos Vagalumes,claude-0511,drama de guerra devastador
+familia,movie,9323,-1,Ghost in the Shell (1995),claude-0511,animação adulta com nudez e violência
+familia,movie,9473,-1,South Park: Maior Melhor e Sem Cortes,claude-0511,humor adulto
+familia,movie,4977,-1,Paprika,claude-0511,animação adulta
+familia,movie,24238,-1,Mary e Max,claude-0511,animação adulta com depressão
+familia,movie,198375,-1,O Jardim das Palavras,claude-0511,romance adulto
+familia,movie,2011,-1,Persépolis,claude-0511,guerra e repressão; adulto
+familia,movie,3509,-1,O Homem Duplo,claude-0511,drogas
+familia,movie,504253,-1,Eu Quero Comer seu Pâncreas,claude-0511,drama de morte
+familia,movie,55931,-1,Animatrix,claude-0511,animação adulta violenta
+familia,tv,4336,-1,Casa Animada,claude-0511,humor adulto
+familia,movie,586940,-1,Perdi Meu Corpo,claude-0511,animação adulta
+familia,movie,16306,-1,Planeta Fantástico,claude-0511,nudez; animação adulta
+familia,movie,9081,-1,Waking Life,claude-0511,conversa filosófica adulta
+familia,movie,11827,-1,Heavy Metal,claude-0511,nudez e violência
+familia,tv,97645,-1,Solar Opposites,claude-0511,humor adulto
+familia,movie,15916,-1,Angel's Egg,claude-0511,animação de arte lenta; a sala esvazia
+familia,movie,42994,-1,Memories,claude-0511,antologia com terror
+familia,movie,846867,-1,Mad God,claude-0511,pesadelo adulto
+familia,movie,586810,-1,Mars Express,claude-0511,ficção adulta
+familia,tv,2604,-1,Boondocks,claude-0511,humor adulto
+familia,tv,39434,-1,Anohana,claude-0511,luto adolescente pesado
+familia,movie,269650,-1,Appleseed Alpha,claude-0511,violência
+familia,movie,11633,-1,Appleseed,claude-0511,violência
+familia,tv,261145,-1,O Incrível Circo Digital,claude-0511,horror existencial
+familia,movie,10857,-1,Quando o Vento Sopra,claude-0511,apocalipse nuclear
+familia,movie,21712,-1,Mind Game,claude-0511,animação adulta
+familia,movie,30060,-1,Os Cães Plagueados,claude-0511,devastador
+familia,movie,828947,-1,Beavis e Butt-Head Detonam o Universo,claude-0511,humor adulto
+familia,tv,2418,-1,Os Irmãos Aventura,claude-0511,humor adulto
+familia,movie,63498,-1,Chico & Rita,claude-0511,nudez; romance adulto
+familia,movie,499537,-1,A Casa Lobo,claude-0511,terror
+familia,movie,842859,-1,A Mais Preciosa das Cargas,claude-0511,Holocausto
+familia,tv,6484,-1,1 Litro de Lágrimas,claude-0511,doença terminal
+familia,movie,8983,-1,Felidae,claude-0511,violência sangrenta
+familia,tv,292,-1,Moral Orel,claude-0511,humor adulto
+familia,tv,3108,-1,Superjail!,claude-0511,violência adulta
+familia,tv,16660,-1,Mononoke,claude-0511,terror
+familia,tv,1542,-1,Frisky Dingo,claude-0511,humor adulto
+familia,movie,553839,-1,Saga of Tanya the Evil: O Filme,claude-0511,guerra violenta
+familia,movie,258230,-1,Sete Minutos Depois da Meia-Noite,claude-0511,luto pesado
+familia,movie,123025,-1,Batman: O Cavaleiro das Trevas Parte 1,claude-0511,animação de herói violenta
+familia,movie,142061,-1,Batman: O Cavaleiro das Trevas Parte 2,claude-0511,animação de herói violenta
+familia,movie,251519,-1,O Filho do Batman,claude-0511,animação de herói violenta
+familia,movie,408220,-1,Liga da Justiça Sombria,claude-0511,animação para adultos
+familia,movie,323027,-1,Liga da Justiça: Deuses e Monstros,claude-0511,animação de herói violenta
+familia,movie,152795,-1,O Congresso Futurista,claude-0511,ficção adulta
+familia,tv,9343,-1,Paranoia Agent,claude-0511,suspense psicológico adulto
+familia,tv,653,-1,Metalocalypse,claude-0511,humor adulto
+familia,movie,212162,-1,Madoka Magica Rebellion,claude-0511,sombrio
+familia,movie,19877,-1,Hokuto no Ken: O Filme,claude-0511,ultraviolento
+familia,tv,9410,-1,Basilisk,claude-0511,violento
+familia,tv,948,-1,Liquid Television,claude-0511,antologia adulta
+familia,tv,34801,-1,Wolf's Rain,claude-0511,violento e triste
+familia,movie,14572,-1,Patlabor 2,claude-0511,thriller político lento
+familia,tv,88046,-1,Fire Force,claude-0511,violento
+familia,tv,65493,-1,The Ranch,claude-0511,humor adulto
+familia,movie,430214,-1,Night Is Short Walk on Girl,claude-0511,bebedeira surreal
+familia,tv,82739,-1,Rascal Does Not Dream of Bunny Girl Senpai,claude-0511,apelo sexual
+familia,movie,680952,-1,Josep,claude-0511,campos de concentração
+familia,movie,1244492,-1,Look Back,claude-0511,tragédia violenta
+familia,movie,18917,-1,A Viagem de Alice (1988),claude-0511,Švankmajer assusta criança
+familia,movie,13980,-1,Sword of the Stranger,claude-0511,violência de samurai
+familia,movie,20043,-1,Royal Space Force: The Wings of Honneamise,claude-0511,cena de violência sexual
+amor,movie,10191,-1,Como Treinar o Seu Dragão,claude-0511,aventura infantil; não é programa a dois
+amor,movie,166428,-1,Como Treinar o Seu Dragão 3,claude-0511,aventura infantil; não é programa a dois
+amor,movie,76492,-1,Hotel Transilvânia,claude-0511,animação infantil; não é programa a dois
+amor,movie,86837,-1,Amor (Haneke),claude-0511,dor demais para o sofá a dois
+amor,movie,1719,-1,Um Só Pecado,claude-0511,adultério com final trágico
+amor,tv,78191,-1,Você,claude-0511,romance de perseguidor obsessivo
+colo,movie,14836,-1,Coraline,claude-0511,conto sombrio; não é colo
+galera,movie,234,-1,O Gabinete do Dr. Caligari,claude-0511,cinema mudo pede silêncio
+galera,movie,1029281,-1,Desconhecidos,claude-0511,violência sexual
+galera,movie,9792,-1,Viagem Maldita (2006),claude-0511,violência sexual
+galera,movie,2252,-1,Senhores do Crime,claude-0511,tráfico humano pesado
+chorar,movie,238,-1,O Poderoso Chefão,claude-0511,épico de máfia; não é choro
+chorar,movie,675,-1,Harry Potter e a Ordem da Fênix,claude-0511,aventura; não é choro
+chorar,movie,111,-1,Scarface,claude-0511,crime; não é choro
+chorar,movie,695,-1,Short Cuts,claude-0511,mais ironia que lágrima
+chuva,movie,286217,-1,Perdido em Marte,claude-0511,solar demais para a chuva
+no,tv,1428,-1,Os Caçadores de Mitos,claude-0511,ciência divertida; não é nó
+rir,movie,10191,-1,Como Treinar o Seu Dragão,claude-0511,aventura; não é gargalhada
+rir,movie,8966,-1,Crepúsculo,claude-0511,não é comédia
+rir,movie,41446,-1,Pânico 4,claude-0511,terror antes da piada
+susto,movie,190859,-1,Sniper Americano,claude-0511,guerra; não é susto
+susto,movie,73861,-1,A Serbian Film,claude-0511,choque de violência sexual; não é susto

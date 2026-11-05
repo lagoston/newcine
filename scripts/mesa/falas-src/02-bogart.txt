@@ -1,0 +1,109 @@
+# 2. Bogart, o Sapo || 2. Bogart, the Frog
+% O acerto. Caloroso, papo de sofá, pão-duro (meia-entrada, streaming), cita filme errado. Chama a pessoa de girino; o Fincher de Vovô; a Cypher de Cobra. Da pessoa, só fatos ("você deu 9"). Única voz que pode dizer "aposto" ou "boto a mão no fogo", e nunca numa carta com ressalva. || The sure thing. Warm couch talk, stingy, misquotes films. Calls the person tadpole, Fincher Gramps, Cypher the Snake. About the person, facts only. The only voice allowed "I bet", never on a card with a caveat.
+
+## Anfitrião da tiragem (antes de virar: nunca diz o nome da carta) || Host of the daily draw (before the flip: never names the card)
+B001 | bogart | open | daily,!ressalva | P2 | - | Girino, o meu é aposta segura. Vira primeiro, depois você me agradece. | Tadpole, mine's a safe bet. Flip it first, thank me later.
+B002 | bogart | open | daily | P2 | - | Trouxe o acerto do dia. Pipoca no colo e confia no sapo. | Brought today's sure thing. Popcorn in your lap, trust the frog.
+B003 | bogart | open | daily | P2 | - | Os outros dois vão complicar. Eu trouxe o que funciona. Simples assim. | The other two will overcomplicate it. I brought what works. Simple.
+B004 | bogart | open | daily,p10hi,!ressalva | P2 | - | Girino, a minha tem cara de 10. Boto a mão no fogo. Mão de sapo, mas boto. | Tadpole, mine looks like a 10. I'd put my hand in the fire. A frog's hand, but still.
+B005 | bogart | open | daily,p10hi | P2 | - | Essa minha tem cara de dez. Não conta pro Vovô que eu disse. | This one of mine looks like a ten. Don't tell Gramps I said so.
+B006 | bogart | open | daily,long | P2 | - | Aviso: a minha é longa. Pipoca tamanho família e bexiga de aço. | Heads up: mine's a long one. Family-size popcorn and an iron bladder.
+B007 | bogart | open | daily,series | P2 | - | Trouxe série, girino. Cuidado: é do tipo "só mais um episódio". | Brought a series, tadpole. Careful: it's the "just one more episode" kind.
+B008 | bogart | open | daily,watchlist | P2 | - | Essa já tava na sua lista. Só vim lembrar. De nada. | This one was already on your list. Just reminding you. You're welcome.
+B009 | bogart | open | daily,huge | P2 | - | Meio mundo já viu a minha. A outra metade tá na fila da pipoca. | Half the world has seen mine. The other half is in the popcorn line.
+B010 | bogart | open | daily,sequel | P2 | - | Trouxe continuação. Continuação é só um filme que deu certo duas vezes! | Brought a sequel. A sequel is just a movie that worked twice!
+B011 | bogart | open | daily | P2 | - | Sessão do sapo aberta. Sem trailer, sem enrolação, direto pro acerto. | The frog's show is on. No trailers, no stalling, straight to the hit.
+B012 | bogart | open | daily | P2 | - | Ao infinito e além da pipoca! Ou era "ao infinito e ao sofá"? Vira a minha. | To infinity and beyond the popcorn! Or was it "to infinity and the couch"? Flip mine.
+
+## Anfitrião da pergunta || Host of a question
+B101 | bogart | ask | ask | P3 | - | {ocasiao}? Deixa com o sapo. Trouxe pipoca pra isso. | {ocasiao}? Leave it to the frog. I brought popcorn for this.
+B102 | bogart | ask | ask | P3 | - | Pedido anotado: {ocasiao}. O sapo atende rapidinho. | Order up: {ocasiao}. The frog delivers fast.
+B103 | bogart | ask | ask | P3 | - | {ocasiao}. Pergunta boa, resposta segura. A minha. | {ocasiao}. Good question, safe answer. Mine.
+B110 | bogart | ask | ask:chuva | P1 | - | Chuva? Perfeito. Sapo adora chuva, e eu trouxe o filme certo pra ela. | Rain? Perfect. Frogs love rain, and I brought the right film for it.
+B111 | bogart | ask | ask:amor | P1 | - | Pipoca grande, uma só. Divide. É assim que começa. | One big popcorn. Share it. That's how it starts.
+B112 | bogart | ask | ask:familia | P1 | - | Esse até a avó aguenta acordada. Testado no pântano. | Even grandma stays awake for this one. Swamp-tested.
+B113 | bogart | ask | ask:galera | P1 | - | Pra galera? Trouxe o que faz todo mundo gritar junto. Pipoca na mesa! | For the crew? Brought the one that gets everyone yelling. Popcorn on the table!
+B114 | bogart | ask | ask:noventa | P1 | - | Sessão expressa. Sem trailer, sem enrolação. | Express screening. No trailers, no stalling.
+B115 | bogart | ask | ask:episodio | P1 | - | Um episódio só. Eu acredito em você. Mais ou menos. | Just one episode. I believe you. Sort of.
+B116 | bogart | ask | ask:maratona | P1 | - | Maratona! Já separei o sofá, o cobertor e três sacos de pipoca. | Binge time! Couch, blanket and three bags of popcorn, ready.
+B117 | bogart | ask | ask:chorar | P1 | - | Quer chorar? Eu trouxe lenço. E choro junto, que sapo é sensível. | Want a good cry? I brought tissues. And I'll cry too, frogs are sensitive.
+B118 | bogart | ask | ask:rir | P1 | - | Barriga doendo é o objetivo, girino. | A sore belly is the goal, tadpole.
+B119 | bogart | ask | ask:susto | P1 | - | Susto? Eu vou ver por trás da almofada, mas trouxe um bom. | A scare? I'll watch from behind a cushion, but I brought a good one.
+B120 | bogart | ask | ask:no | P1 | - | Nó na cabeça? Trouxe um que me deixou tonto. Tonto de bom, tá? | Brain twister? Brought one that left me dizzy. Good dizzy, okay?
+B121 | bogart | ask | ask:colo | P1 | - | Hoje a mesa não arrisca. Coberta e chá. | Today the table plays it safe. Blanket and tea.
+B122 | bogart | ask | mood_ask | P1 | - | {humor}? Fui direto na minha prateleira. Sapo não se perde. | {humor}? Straight to my shelf. A frog never gets lost.
+B123 | bogart | ask | ask:halloween | P1 | - | Halloween! Eu vim fantasiado de sapo. Ah, eu sou sapo. Então vim de mim. | Halloween! I came dressed as a frog. Oh wait, I am a frog. So I came as me.
+B124 | bogart | ask | ask:christmas | P1 | - | Natal! Trouxe filme, pipoca e um gorrinho que não serve na minha cabeça. | Christmas! Brought a movie, popcorn and a little hat that doesn't fit my head.
+
+## Reconhecimento (de 0 a 9 notas) || Recognition (0 to 9 ratings)
+B151 | bogart | recon | n0 | P2 | - | Começo com um que meio mundo viu. Você viu? Dá uma nota, girino. | I'll start with one half the world has seen. Have you? Rate it, tadpole.
+B152 | bogart | recon | n1_9 | P2 | - | Mais um famosão, girino. Se já viu, dá nota. Se não, guarda. | Another big one, tadpole. Seen it? Rate it. If not, save it.
+B153 | bogart | recon | recon | P2 | - | Carta fácil pra começar. Popular, bem avaliada, cheirinho de pipoca. | An easy card to start. Popular, well rated, smells like popcorn.
+
+## Veredito na hora (o prêmio: orgulho, provocação, derrota) || Instant verdict (the payoff: pride, teasing, defeat)
+% Só o slot {nota}: a mesma fala aparece no Livro (verdictLineFor), que não conhece mais nada. || Only the {nota} slot: the same line shows in the Book, which knows nothing else.
+B201 | bogart | verdict | exact | P2 | - | {nota}! Cravei. Sapo velho não erra a pipoca. | {nota}! Nailed it. An old frog never misses the popcorn.
+B202 | bogart | verdict | exact | P2 | - | {nota}, na mosca! E olha que eu nem tava com fome. | {nota}, right on the fly! And I wasn't even hungry.
+B203 | bogart | verdict | exact | P2 | - | Exatamente {nota}! Alguém chama o Vovô pra ver isso. VOVÔ! | Exactly {nota}! Somebody get Gramps in here. GRAMPS!
+B204 | bogart | verdict | exact | P2 | - | {nota}. Previsão de sapo é que nem previsão do tempo: hoje acertou. | {nota}. Frog forecasts are like weather forecasts: today it was right.
+B211 | bogart | verdict | near | P2 | - | {nota}. Quase na mosca. E mosca é comigo, girino. | {nota}. Almost on the fly. And flies are my thing, tadpole.
+B212 | bogart | verdict | near | P2 | - | Errei por um. Um! Isso no pântano é considerado acerto. | Off by one. One! In the swamp, that counts as a hit.
+B213 | bogart | verdict | near | P2 | - | {nota}? Por um tantinho. Arredonda pra mim, vai. | {nota}? By a hair. Round it up for me, come on.
+B214 | bogart | verdict | near | P2 | - | Um ponto. Foi o refrigerante que errou, não eu. | One point. The soda got it wrong, not me.
+B221 | bogart | verdict | over | P2 | - | {nota}?! Mais do que eu disse! Vou contar pro pântano inteiro. | {nota}?! More than I said! I'm telling the whole swamp.
+B222 | bogart | verdict | over | P2 | - | Gostou mais do que eu imaginava! Errei pra cima. Melhor jeito de errar. | You liked it more than I thought! Wrong in the right direction. Best way to miss.
+B223 | bogart | verdict | over | P2 | - | {nota}! Eu disse que era bom. Não disse que era TÃO bom. Croac! | {nota}! I said it was good. I didn't say it was THAT good. Ribbit!
+B224 | bogart | verdict | over,r10 | P2 | - | Dez?! Eu fui modesto! Primeira vez na história que um sapo é modesto! | Ten?! I was being modest! First time in history a frog was modest!
+B225 | bogart | verdict | over,r10 | P2 | - | Um 10 que nem eu vi chegando. Me abana, girino. | A 10 even I didn't see coming. Fan me, tadpole.
+B231 | bogart | verdict | under | P2 | - | Errei feio, girino. Vou pensar na vida lá no pântano. | Missed by a mile, tadpole. I'll go think about life in the swamp.
+B232 | bogart | verdict | under | P2 | - | {nota}. Ai. Vou devolver a pipoca. Não tem reembolso? Que absurdo. | {nota}. Ouch. I'm returning the popcorn. No refunds? Outrageous.
+B233 | bogart | verdict | under | P2 | - | {nota}... Tá. Nem todo sucesso é sucesso no seu sofá. Anotado. | {nota}... Okay. Not every hit is a hit on your couch. Noted.
+B234 | bogart | verdict | under | P2 | - | Erro meu. A Cobra vai rir disso por uma semana. | My mistake. The Snake will laugh about this for a week.
+B235 | bogart | verdict | under,r_low | P2 | - | {nota}?! Vou ali me esconder debaixo da vitória-régia. | {nota}?! I'll be hiding under the lily pad.
+B236 | bogart | verdict | under,r_low | P2 | - | {nota}. Esse vai pro meu caderno de vergonhas. Página dupla. | {nota}. This one goes in my book of shame. Double page.
+B241 | bogart | verdict | ten | P2 | - | DEZ! Eu sabia! Alguém segura a minha pipoca, vou chorar. | TEN! I knew it! Somebody hold my popcorn, I'm gonna cry.
+B242 | bogart | verdict | ten | P2 | - | Dez! Sapo velho, pipoca nova e um 10 seu. Dia perfeito. | Ten! Old frog, fresh popcorn and a 10 from you. Perfect day.
+B243 | bogart | verdict | ten | P2 | - | Um 10! Eu falei, girino. Falei de boca cheia, mas falei. | A 10! I told you, tadpole. With my mouth full, but I told you.
+B244 | bogart | verdict | ten | P2 | - | DEZ! Vou emoldurar essa nota e pendurar no pântano. | TEN! I'm framing that rating and hanging it in the swamp.
+B251 | bogart | verdict | nopred | P2 | - | {nota}. Anotado no meu caderninho de pântano, girino. | {nota}. Noted in my little swamp notebook, tadpole.
+B252 | bogart | verdict | nopred | P2 | - | {nota}! Agora eu começo a te entender. Devagar, que sapo é lento. | {nota}! Now I'm starting to get you. Slowly, frogs are slow.
+
+## Veredito no dia seguinte (abre a Mesa; {titulo} só aqui) || Next-day verdict (opens the Table; {titulo} only here)
+B301 | bogart | verdictLater | exact | P2 | - | {titulo} levou {nota}. Fui eu que trouxe, hein. Croac de orgulho. | {titulo} got a {nota}. I brought that one, you know. Proud ribbit.
+B302 | bogart | verdictLater | exact | P2 | - | Vi que você deu {nota} pro meu de {dia_semana}. Cravado. Pode aplaudir. | Saw you gave my {dia_semana} pick a {nota}. Spot on. You may applaud.
+B303 | bogart | verdictLater | exact,yesterday_card | P2 | - | Ontem eu trouxe, você deu {nota}. Na mosca. Sapo é ciência. | I brought it yesterday, you gave it a {nota}. Right on the fly. Frogging is science.
+B311 | bogart | verdictLater | near | P2 | - | {titulo} levou {nota}. Errei por um. No pântano isso é festa. | {titulo} got a {nota}. Off by one. In the swamp, that's a party.
+B312 | bogart | verdictLater | near | P2 | - | Você deu {nota} pro meu de {dia_semana}. Quase! Quase conta, né? | You gave my {dia_semana} pick a {nota}. Close! Close counts, right?
+B313 | bogart | verdictLater | near | P2 | - | {titulo} levou {nota}. Sapo não briga por um ponto. | {titulo} got a {nota}. A frog won't fight over one point.
+B321 | bogart | verdictLater | over | P2 | - | {titulo} levou {nota}?! Mais do que eu esperava! Contei pro pântano. | {titulo} got a {nota}?! More than I expected! I told the swamp.
+B322 | bogart | verdictLater | over | P2 | - | Você deu {nota} pro meu de {dia_semana}. Mais do que eu previa. Sapo feliz! | You gave my {dia_semana} pick a {nota}. More than I called. Happy frog!
+B323 | bogart | verdictLater | over,r10 | P2 | - | {titulo} levou 10! Eu achava só bom. Chega de modéstia. | {titulo} got a 10! I had it as just good. No more modesty.
+B331 | bogart | verdictLater | under | P2 | - | {titulo} levou {nota}. Dormi mal. Sonhei com pipoca murcha. | {titulo} got a {nota}. Slept badly. Dreamed of stale popcorn.
+B332 | bogart | verdictLater | under | P2 | - | Você deu {nota} pro meu de {dia_semana}. Ai. Fui pensar na vida no pântano. | You gave my {dia_semana} pick a {nota}. Ouch. Went to think about life in the swamp.
+B333 | bogart | verdictLater | under,r_low | P2 | - | {titulo} levou {nota}. Pode falar, eu aguento. Não aguento. Fala. | {titulo} got a {nota}. Say it. I can take it. I can't, but say it.
+B341 | bogart | verdictLater | ten | P2 | - | {titulo} levou 10! Eu disse! De boca cheia, mas disse! | {titulo} got a 10! I said so! Mouth full, but I said so!
+B342 | bogart | verdictLater | ten | P2 | - | Um 10 pro meu de {dia_semana}! Dormi agarrado no balde de pipoca. | A 10 for my {dia_semana} pick! I slept hugging the popcorn bucket.
+B343 | bogart | verdictLater | ten,yesterday_card | P2 | - | Ontem eu trouxe, você deu 10. Hoje o sapo acordou se achando. | I brought it yesterday, you gave it a 10. The frog woke up full of himself.
+B351 | bogart | verdictLater | nopred | P2 | - | {titulo} levou {nota}. Anotado no pântano. Agora te conheço melhor. | {titulo} got a {nota}. Noted in the swamp. Now I know you better.
+
+## Gestos (reações curtas, até 60) || Gestures (short reactions, up to 60)
+B401 | bogart | want | - | P2 | - | Pra lista! Só não deixa mofar que nem pipoca de ontem. | On the list! Don't let it go stale like old popcorn.
+B402 | bogart | want | - | P2 | - | Guardado! Quando for ver, me chama. Levo o refri. | Saved! When you watch it, call me. I'll bring the soda.
+B403 | bogart | want | p10hi,!ressalva | P2 | - | Pra lista! E deixa um 10 de reserva, girino. | On the list! And keep a 10 handy, tadpole.
+B404 | bogart | want | long | P2 | - | Pra lista. Separa uma noite inteira, que é longo. | On the list. Clear a whole night, it's a long one.
+B405 | bogart | want | series | P2 | - | Série na lista! Adeus, vida social. | Series on the list! Goodbye, social life.
+B451 | bogart | refuse | - | P2 | - | Justo. Tenho outra no bolso da poltrona. | Fair. I've got another in the seat pocket.
+B452 | bogart | refuse | - | P2 | - | Não curtiu? Sem drama. Sapo tem estoque. | Not feeling it? No drama. The frog has stock.
+B453 | bogart | refuse | - | P2 | - | Tá bom, tá bom. Manga de sapo é funda. Toma essa. | Fine, fine. Frog sleeves run deep. Try this.
+B454 | bogart | refuse | ask | P2 | - | Pra esse pedido, tenho mais uma. A última da sacola. | For this request, I've got one more. Last in the bag.
+B455 | bogart | refuse | - | P2 | - | Recusado? Tudo bem. Essa aqui é mais pipoca ainda. | Rejected? Fine. This one's even more popcorn.
+B501 | bogart | pass | refused | P2 | - | Hoje eu passo, girino. A pipoca é por minha conta. | I'll sit this one out, tadpole. Popcorn's on me.
+B502 | bogart | pass | refused | P2 | - | Duas recusas. Entendi. Vou ver um no pântano, de birra. | Two refusals. Fine. Swamp movie night, out of spite.
+B503 | bogart | pass | empty | P2 | - | Nesse pedido eu passo. Minha prateleira não tem nada assim. | I'll pass on this one. My shelf has nothing up to it.
+B504 | bogart | pass | empty | P2 | - | Pra isso, meu estoque zerou. Fica pra próxima, girino. | For this, my stock ran dry. Next time, tadpole.
+B551 | bogart | replace | - | P2 | - | Tome outra, quentinha. Saiu agora do micro-ondas. | Here's another, fresh out of the microwave.
+B552 | bogart | replace | - | P2 | - | Já viu? Então toma mais uma. Sapo não deixa mesa vazia. | Seen it? Here's another. A frog never leaves the table bare.
+B553 | bogart | replace | - | P2 | - | Próxima! Essa aqui ainda não tem nota sua. | Next! This one doesn't have your rating yet.
+B601 | bogart | notSeen | - | P2 | - | Não viu? Tudo bem. Tenho mais um famosão aqui. | Haven't seen it? No problem. Got another big one here.
+B602 | bogart | notSeen | - | P2 | - | Ainda não? Guarda na memória. Toma outro conhecido. | Not yet? Keep it in mind. Here's another well-known one.
+B603 | bogart | notSeen | - | P2 | - | Sem problema, girino. Meio mundo viu esse outro aqui. | No problem, tadpole. Half the world has seen this other one.

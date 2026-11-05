@@ -1,0 +1,88 @@
+# 5. Trocas (depois das três viradas) || 5. Exchanges (after all three flips)
+% Atômicas: começam ou não; se começam, vão até o fim. Só quando os dados criam a situação (a 1ª condição é a situação; os slots saem da carta-assunto dela). Em 40% das tiragens, nenhuma (pela semente). Quem passou a vez não entra. || Atomic: they start or they don't. Only when the data creates the situation (the first condition is the situation; slots come from its subject card). In 40% of draws, none. A seat that passed doesn't take part.
+% Os bordões da casa ("Os meus acordaram", as 37 fichas) têm once=week. || House catchphrases have once=week.
+
+## O Raposo e o tempo || The Fox and time
+=X01 | banter | fincher_bw | P2 | - | Preto e branco || Black and white
+> bogart | Preto e branco de novo, Vovô? Minha TV tem cor, paguei caro nela. | Black and white again, Gramps? My TV has color, I paid good money for it.
+> fincher | A cor é que foi moda passageira, Crítico. | Color was the passing fad, Critic.
+=X02 | banter | fincher_bw | P2 | - | Preto e branco, de novo || Black and white, again
+> cypher | Preto e branco, velho? Que ousado. Para {ano}. | Black and white, old man? How daring. For {ano}.
+> fincher | Ousado era filmar sem saber se a cor ia pegar, minha cara. | Daring was shooting without knowing if color would catch on, my dear.
+=X03 | banter | fincher_old | P2 | - | Das antigas || An old one
+> bogart | O do Vovô é de {ano}. Eu nem era girino. | Gramps's pick is from {ano}. I wasn't even a tadpole.
+> fincher | Nem você nem o seu streaming, Crítico. | Neither were you, nor your streaming, Critic.
+=X04 | banter | fincher_long_bogart_short | P2 | - | Longo contra curto || Long versus short
+> bogart | O do Vovô tem {duracao}. Leva lanche. E travesseiro. | Gramps's pick runs {duracao}. Pack a snack. And a pillow.
+> fincher | E o seu acaba antes de a pipoca esfriar. Grande mérito. | And yours ends before the popcorn cools. Quite the achievement.
+=X05 | banter | bogart_long | P2 | - | O Crítico também demora || The Critic runs long too
+> fincher | {duracao}, Crítico? Achei que só eu tinha direito a filme longo. | {duracao}, Critic? I thought only I was allowed long films.
+> bogart | É longo, mas é IMAX, Vovô. Passa voando. | It's long, but it's IMAX, Gramps. Flies by.
+> cypher | Voando com pipoca no colo. Que imagem. | Flying with popcorn in his lap. What a picture.
+=X19 | banter | series_on_table | P2 | - | Série na mesa || A series on the table
+> fincher | Série na mesa. Na minha época, cinema era uma sessão só. | A series on the table. In my day, cinema was one sitting.
+> bogart | Na sua época tinha intervalo pra trocar o rolo, Vovô. | In your day there was an intermission to change the reel, Gramps.
+
+## A Cobra e o resto do mundo || The Snake and everyone else
+=X06 | banter | cypher_older_than_fincher | P2 | - | Mais velha que o Raposo || Older than the Fox's
+> cypher | A minha é de {ano}. Mais velha que a sua, Raposo. | Mine's from {ano}. Older than yours, Fox.
+> fincher | Idade não é currículo, minha cara. | Age isn't a résumé, my dear.
+> bogart | Disse o mais velho da mesa. | Says the oldest one at the table.
+=X07 | banter | cypher_bomb | P1 | once=week | Os clássicos vaiados || The booed classics
+> fincher | Isso tem nota de reprovado, minha cara. | That has a failing grade, my dear.
+> cypher | Reprovado pelos mesmos que vaiaram os seus na estreia, velho. | Failed by the same people who booed yours at the premiere, old man.
+> fincher | Os meus acordaram. | Mine woke up.
+=X08 | banter | cypher_bomb | P2 | - | O público erra || The crowd gets it wrong
+> bogart | O dela tem {nota_publico} no público. Só pra constar. | Hers has a {nota_publico} from the crowd. Just saying.
+> cypher | O público erra, sapinho. Eu adoro quando erra. | The crowd gets it wrong, froggy. I love it when it does.
+=X09 | banter | cypher_hidden | P2 | - | Quantos votos? || How many votes?
+> bogart | {votos} votos? Já vi trailer com mais visualização que isso. | {votos} votes? I've seen trailers with more views than that.
+> cypher | Hoje podem ser {votos_mais_um}. Depende da criatura. | Tonight it could be {votos_mais_um}. Depends on the creature.
+=X10 | banter | cypher_hidden | P2 | - | Pouca gente viu || Barely anyone saw it
+> fincher | Pouca gente viu a da Cobra. | Barely anyone has seen the Snake's.
+> cypher | Pouca gente viu os seus também, na época. Depois viraram clássico. | Few saw yours too, back then. Then they became classics.
+> fincher | Os meus, sim. Os seus, veremos. | Mine did. Yours, we'll see.
+=X11 | banter | cypher_anime | P2 | - | Desenho? || A cartoon?
+> bogart | Desenho, Cobra? Achei que era a sessão dos adultos. | A cartoon, Snake? I thought this was the grown-ups' show.
+> cypher | Animação, sapinho. E mais adulta que metade da sua prateleira. | Animation, froggy. And more grown-up than half your shelf.
+=X12 | banter | cypher_br | P2 | - | Um daqui || A local one
+> fincher | Um daqui, minha cara? Pensei que você só rastejasse para longe. | A Brazilian one, my dear? I thought you only slithered abroad.
+> cypher | A melhor toca é a de casa, velho. | The best den is the one at home, old man.
+=X13 | banter | cypher_newmood | P2 | - | Fora do caminho || Off the path
+> bogart | A Cobra foi buscar a dela num corredor que ninguém aqui usa. | The Snake fetched hers from a hallway nobody here uses.
+> cypher | É assim que um caminho nasce, sapinho. Alguém passa primeiro. | That's how a path is born, froggy. Someone goes first.
+
+## O Sapo e o sucesso || The Frog and success
+=X14 | banter | bogart_p10hi | P2 | - | Cara de 10 || Looks like a 10
+> bogart | A minha tem cara de 10. Só digo isso. | Mine looks like a 10. That's all I'm saying.
+> fincher | Ele diz isso toda semana. | He says that every week.
+> cypher | E diz com tanta convicção... Quase acredito. | And with such conviction... I almost believe him.
+=X15 | banter | bogart_sequel | P2 | - | Continuação || A sequel
+> cypher | Uma continuação, sapinho? Que ousadia criativa. | A sequel, froggy? How creatively daring.
+> bogart | Continuação é só um filme que deu certo duas vezes! | A sequel is just a movie that worked twice!
+=X16 | banter | bogart_huge | P2 | - | Todo mundo viu || Everybody's seen it
+> fincher | O do Crítico todo mundo já viu. | Everybody's seen the Critic's.
+> bogart | Todo mundo, menos o girino! É pra isso que eu sirvo. | Everybody but the tadpole! That's what I'm here for.
+=X24 | banter | bogart_huge | P1 | once=week | As 37 fichas || The 37 chips
+> cypher | Meio mundo viu o seu, sapinho. Já dá pra pagar as 37 fichas do Raposo? | Half the world has seen yours, froggy. Enough to pay the Fox his 37 chips?
+> bogart | Paguei em pipoca! | I paid in popcorn!
+> fincher | Murcha. E pela metade. Eu lembro. | Stale. And half-eaten. I remember.
+
+## A mesa inteira || The whole table
+=X17 | banter | same_country_two | P2 | - | Mesmo país || Same country
+> cypher | Duas cartas {de_pais} na mesa. Alguém andou me copiando. | Two cards {de_pais} on the table. Someone's been copying me.
+> fincher | Coincidência de curadoria, minha cara. Acontece nas melhores mostras. | Curatorial coincidence, my dear. It happens at the best festivals.
+=X18 | banter | three_moods_same | P2 | - | Três do mesmo humor || Three of one mood
+> bogart | Três cartas de {humor}. A gente combinou isso? | Three {humor} cards. Did we plan this?
+> cypher | Não. Mas pensamos igual. Que medo. | No. But we think alike. Scary.
+=X22 | banter | watchlist_on_table | P2 | - | Da sua lista || From your list
+> bogart | Uma dessas já tava na sua lista, girino. Hoje sai ou não sai? | One of these was already on your list, tadpole. Is today the day or not?
+> fincher | Lista é onde os filmes envelhecem esperando, Crítico. Eu lembro. | A list is where films grow old waiting, Critic. I remember.
+
+## A quarta carta || The fourth card
+=X20 | banter | espelho4_from_bogart | P2 | - | O espelho pegou um do Sapo || The mirror took the Frog's
+> bogart | O espelho pegou um meu! Isso é furto de pântano! | The mirror took one of mine! That's swamp theft!
+> cypher | Ele pega o que quer, sapinho. Igual a mim. | He takes what he wants, froggy. Like me.
+=X21 | banter | espelho4_from_fincher | P2 | - | O espelho pegou um do Raposo || The mirror took the Fox's
+> fincher | O espelho escolheu um meu. Gente de bom gosto. | The mirror chose one of mine. A being of taste.
+> bogart | Ou de óculos fortes, Vovô. | Or strong glasses, Gramps.

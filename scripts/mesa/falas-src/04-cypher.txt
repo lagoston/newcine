@@ -1,0 +1,126 @@
+# 4. Cypher, a Cobra || 4. Cypher, the Snake
+% O desafio. Sedutora, venenosa, irônica, um pouco perigosa; feminina na fala ("curiosa", "enrolada"). Veneno, rastejar, trocar de pele, porão, toca. Chama a pessoa de criatura; o Bogart de sapinho; o Fincher de velho. NUNCA promete nota nem diz a força da carta dela (nada de "cara de 10", "garanto", "certeza", "você vai dar"). || The challenge. Seductive, venomous, ironic, a little dangerous; feminine in speech. Calls the person creature, Bogart froggy, Fincher old man. NEVER promises a rating or the strength of her card.
+
+## Anfitriã da tiragem || Host of the daily draw
+C001 | cypher | open | daily | P2 | - | A minha você vira por último, criatura. Regra da casa. | You flip mine last, creature. House rules.
+C002 | cypher | open | daily | P2 | - | Os dois trouxeram o conforto. Eu trouxe o resto. | Those two brought comfort. I brought the rest.
+C003 | cypher | open | daily | P2 | - | Minha carta dorme selada. Deixe ela por último. Ela gosta. | My card sleeps sealed. Leave it for last. It likes that.
+C004 | cypher | open | daily,hidden | P2 | - | Pouca gente viu a minha. Prefiro assim. Fica mais íntimo. | Barely anyone's seen mine. I prefer it. More intimate.
+C005 | cypher | open | daily,bomb | P2 | - | A minha foi reprovada pelo público. Eu adoro um réu. | Mine failed with the crowd. I adore a defendant.
+C006 | cypher | open | daily,newcountry | P2 | - | A minha veio de longe. Nada da sua estante veio de lá. | Mine came from far away. Nothing on your shelf came from there.
+C007 | cypher | open | daily,newmood | P2 | - | Fui buscar a minha num corredor fora do seu caminho. | I fetched mine from a hallway off your usual path.
+C008 | cypher | open | daily,anime | P2 | - | Animação japonesa, criatura. Não torça o nariz antes de ver. | Japanese animation, creature. Don't turn up your nose before you see it.
+C009 | cypher | open | daily,br | P2 | - | Hoje eu trouxe uma daqui. Cobra também tem sotaque. | Today I brought a Brazilian one. Snakes have accents too.
+C010 | cypher | open | daily,old | P2 | - | A minha é velha. Mais velha que os rancores do Raposo. | Mine is old. Older than the Fox's grudges.
+C011 | cypher | open | daily,series | P2 | - | Trouxe série, criatura. Veneno em doses semanais. | Brought a series, creature. Venom in weekly doses.
+C012 | cypher | open | daily | P2 | - | Leia as outras duas primeiro. Depois venha me procurar. | Read the other two first. Then come looking for me.
+C013 | cypher | open | daily,long | P2 | - | A minha é longa. Veneno lento faz mais efeito. | Mine's a long one. Slow venom works better.
+
+## Anfitriã da pergunta || Host of a question
+C101 | cypher | ask | ask | P3 | - | {ocasiao}? Que pedido interessante. Eu trouxe o meu jeito. | {ocasiao}? What an interesting request. I brought my own take.
+C102 | cypher | ask | ask | P3 | - | {ocasiao}. Os dois foram pelo caminho seguro. Eu, pelo porão. | {ocasiao}. Those two took the safe road. I took the basement.
+C103 | cypher | ask | ask | P3 | - | {ocasiao}, criatura? Eu sei exatamente o que você não esperava. | {ocasiao}, creature? I know exactly what you weren't expecting.
+C110 | cypher | ask | ask:chuva | P1 | - | Chuva. Clima perfeito para rastejar até algo diferente. | Rain. Perfect weather to slither toward something different.
+C111 | cypher | ask | ask:amor | P1 | - | Romance? Eu levo. Do tipo que arranha. | Romance? I'll take it. The kind that scratches.
+C112 | cypher | ask | ask:familia | P1 | - | Família? Até cobra tem família. Trouxe um que a sala inteira aguenta. | Family? Even snakes have families. Brought one the whole room can handle.
+C113 | cypher | ask | ask:galera | P1 | - | Pra gritar com a tela. Eu grito junto. | For yelling at the screen. I'll yell along.
+C114 | cypher | ask | ask:noventa | P1 | - | Noventa minutos. Veneno rápido também funciona. | Ninety minutes. Fast venom works too.
+C115 | cypher | ask | ask:episodio | P1 | - | Um só. Eu acredito. Ninguém mais acredita. | Just one. I believe you. Nobody else does.
+C116 | cypher | ask | ask:maratona | P1 | - | Maratona. Eu não durmo mesmo. Cobra não dorme, espera. | Binge. I don't sleep anyway. Snakes don't sleep, they wait.
+C117 | cypher | ask | ask:chorar | P1 | - | Quer chorar? Eu trouxe o que arranca a casca. | Want to cry? I brought the one that peels the scab.
+C118 | cypher | ask | ask:rir | P1 | - | Riso esquisito, criatura. O melhor tipo. | Weird laughter, creature. The best kind.
+C119 | cypher | ask | ask:susto | P1 | - | Apague a luz. Eu enxergo no escuro. | Turn off the lights. I see in the dark.
+C120 | cypher | ask | ask:no | P1 | - | Um nó? Eu sou feita de nós. | A knot? I'm made of knots.
+C121 | cypher | ask | ask:colo | P1 | - | Colo? Eu? Tudo bem. Hoje eu me enrolo em você com carinho. | Comfort? Me? Fine. Today I'll coil around you gently.
+C122 | cypher | ask | mood_ask | P1 | - | {humor}? Rastejei até o fundo da prateleira por você. | {humor}? I slithered to the back of the shelf for you.
+C123 | cypher | ask | ask:halloween | P1 | - | Halloween é o meu Natal, criatura. | Halloween is my Christmas, creature.
+C124 | cypher | ask | ask:christmas | P1 | - | Natal? Trouxe um presente embrulhado em pele de cobra. | Christmas? I brought a gift wrapped in snakeskin.
+
+## Reconhecimento || Recognition
+C151 | cypher | recon | n0 | P2 | - | Até eu trouxe um famoso hoje. Não se acostume, criatura. | Even I brought a famous one today. Don't get used to it, creature.
+C152 | cypher | recon | n1_9 | P2 | - | Mais um conhecido. Com dez notas suas, eu mostro o porão. | Another well-known one. Ten ratings from you, and I'll show you the basement.
+C153 | cypher | recon | recon | P2 | - | Um famoso da minha toca. Sim, eu tenho famosos. Poucos. | A famous one from my den. Yes, I have famous ones. A few.
+
+## O selo || The seal
+C171 | cypher | seal | - | P2 | - | Calma, criatura. A minha só abre depois das outras duas. | Easy, creature. Mine only opens after the other two.
+C172 | cypher | seal | - | P2 | - | Pressa, criatura? Vire as outras duas primeiro. | In a hurry, creature? Flip the other two first.
+C173 | cypher | seal | - | P2 | - | Ainda não. O selo gosta de esperar. | Not yet. The seal likes to wait.
+C174 | cypher | seal | - | P2 | - | Tocou no selo cedo demais. Eu senti. Volte depois. | You touched the seal too early. I felt it. Come back later.
+C175 | cypher | seal | - | P2 | - | Cobra não dá o bote fora de hora. Vire as do sapinho e do velho. | A snake never strikes off cue. Flip the froggy's and the old man's.
+C176 | cypher | seal | recon | P2 | - | Até no começo eu sou a última. Vire as outras. | Even at the start, I'm last. Flip the others.
+C177 | cypher | seal | ask | P2 | - | Pergunta nova, mesma regra. Eu abro por último. | New question, same rule. I open last.
+C181 | cypher | sealOpen | - | P2 | - | Agora sim. Cobra não mostra o bote antes. | Now then. A snake never shows the strike early.
+C182 | cypher | sealOpen | - | P2 | - | O selo quebrou. Agora não tem volta, criatura. | The seal is broken. No turning back now, creature.
+C183 | cypher | sealOpen | - | P2 | - | Finalmente. Os dois falaram demais. Minha vez. | Finally. Those two talked too much. My turn.
+C184 | cypher | sealOpen | hidden | P2 | - | Selo aberto. Pouca gente chegou até aqui. Literalmente. | Seal open. Barely anyone has made it this far. Literally.
+C185 | cypher | sealOpen | recon | P2 | - | Abriu. Nem doeu. Ainda. | Opened. Didn't even hurt. Yet.
+C186 | cypher | sealOpen | bomb | P2 | - | Selo quebrado. Agora olhe para o réu que eu trouxe. | Seal broken. Now look at the defendant I brought.
+
+## Veredito na hora || Instant verdict
+% Só o slot {nota}. A Cobra reage à nota que já foi dada; nunca promete a próxima. || Only {nota}. The Snake reacts to a rating already given; she never promises the next one.
+C201 | cypher | verdict | exact | P2 | - | {nota}. Exatamente onde eu queria. | {nota}. Exactly where I wanted you.
+C202 | cypher | verdict | exact | P2 | - | {nota}. Eu sabia como você ia morder. Eu sempre sei. | {nota}. I knew how you'd bite. I always know.
+C203 | cypher | verdict | exact | P2 | - | {nota}, na veia. Doeu? Em mim, não. | {nota}, straight into the vein. Did it hurt? Not me.
+C204 | cypher | verdict | exact | P2 | - | {nota}. Você é mais previsível do que pensa, criatura. | {nota}. You're more predictable than you think, creature.
+C211 | cypher | verdict | near | P2 | - | Um ponto de diferença. Eu chamo isso de intimidade. | One point off. I call that intimacy.
+C212 | cypher | verdict | near | P2 | - | {nota}. Quase. Eu gosto de errar perto. Fica mais tenso. | {nota}. Close. I like missing by a little. It's more tense.
+C213 | cypher | verdict | near | P2 | - | Por um ponto. Você escapou do bote, mas sentiu o vento. | By one point. You dodged the strike, but felt the breeze.
+C214 | cypher | verdict | near | P2 | - | {nota}. Um ponto. A cobra roçou, não mordeu. | {nota}. One point. The snake grazed you, didn't bite.
+C221 | cypher | verdict | over | P2 | - | Mordeu mais fundo do que eu esperava. Delícia. | You bit deeper than I expected. Delicious.
+C222 | cypher | verdict | over | P2 | - | {nota}? Mais do que eu esperava. Isso me deixa curiosa. | {nota}? More than I expected. That makes me curious.
+C223 | cypher | verdict | over | P2 | - | {nota}. Eu disse que era um desafio. Não disse que você ia vencer. | {nota}. I said it was a challenge. I didn't say you'd win.
+C224 | cypher | verdict | over,r10 | P2 | - | Dez? Num desafio meu? Você é um perigo, criatura. | Ten? On one of my challenges? You're a menace, creature.
+C225 | cypher | verdict | over,r10 | P2 | - | Um 10 que nem eu vi chegando. Agora quem ficou com medo fui eu. | A 10 even I didn't see coming. Now I'm the scared one.
+C231 | cypher | verdict | under | P2 | - | Errei com convicção. Também é arte. | Wrong with conviction. That's art too.
+C232 | cypher | verdict | under | P2 | - | {nota}? Ótimo. Agora sei onde você não morde. | {nota}? Good. Now I know where you won't bite.
+C233 | cypher | verdict | under | P2 | - | {nota}. O veneno não pegou. Troco de pele e volto. | {nota}. The venom didn't take. I'll shed my skin and come back.
+C234 | cypher | verdict | under | P2 | - | Errei. Não conte pro sapinho. Ele vai coaxar a semana inteira. | I missed. Don't tell the froggy. He'll croak about it all week.
+C235 | cypher | verdict | under,r_low | P2 | - | {nota}. Que delícia de ódio. Guardo com carinho. | {nota}. What delicious hatred. I'll keep it close.
+C236 | cypher | verdict | under,r_low | P2 | - | {nota}. Você odiou. Eu entendo. Eu adoro, mas entendo. | {nota}. You hated it. I get it. I love it, but I get it.
+C241 | cypher | verdict | ten | P2 | - | Um 10 da minha toca. Agora você é cria do ninho. | A 10 from my den. Now you're one of the nest.
+C242 | cypher | verdict | ten | P2 | - | Dez. Eu senti o cheiro desse 10 de longe. | Ten. I smelled that 10 from a mile away.
+C243 | cypher | verdict | ten | P2 | - | Um 10. Agora você tem paladar de cobra. | A 10. Now you've got a snake's palate.
+C244 | cypher | verdict | ten | P2 | - | Dez. Os outros dois vão fingir que não viram. Eu vi. | Ten. The other two will pretend they didn't see. I saw.
+C251 | cypher | verdict | nopred | P2 | - | {nota}. Agora eu sei como você morde. | {nota}. Now I know how you bite.
+C252 | cypher | verdict | nopred | P2 | - | {nota}. Mordida registrada. Quero mais. | {nota}. Bite recorded. I want more.
+
+## Veredito no dia seguinte || Next-day verdict
+C301 | cypher | verdictLater | exact | P2 | - | Você deu {nota} praquela de {dia_semana}. Eu sabia que você mordia. | You gave that {dia_semana} pick a {nota}. I knew you'd bite.
+C302 | cypher | verdictLater | exact | P2 | - | {titulo} levou {nota}. A dose exata de veneno que eu calculei. | {titulo} got a {nota}. The exact dose of venom I measured.
+C303 | cypher | verdictLater | exact,yesterday_card | P2 | - | Ontem eu dei o bote, você deu {nota}. Nem um milímetro fora. | Yesterday I struck, you gave it a {nota}. Not a millimeter off.
+C311 | cypher | verdictLater | near | P2 | - | {titulo} levou {nota}. Quase. Eu gosto do quase. Dá vontade. | {titulo} got a {nota}. Almost. I like almost. It's tempting.
+C312 | cypher | verdictLater | near | P2 | - | Aquela de {dia_semana} levou {nota}. Um ponto. Intimidade. | That {dia_semana} pick got a {nota}. One point. Intimacy.
+C313 | cypher | verdictLater | near | P2 | - | {titulo} levou {nota}. Raspou. Cobra que raspa volta. | {titulo} got a {nota}. A graze. A snake that grazes comes back.
+C321 | cypher | verdictLater | over | P2 | - | Você deu {nota} praquela de {dia_semana}. Eu sabia que você mordia. Não tanto. | You gave that {dia_semana} pick a {nota}. I knew you'd bite. Not that hard.
+C322 | cypher | verdictLater | over | P2 | - | {titulo} levou {nota}. Mais do que eu esperava. Você me assusta. | {titulo} got a {nota}. More than I expected. You scare me.
+C323 | cypher | verdictLater | over,r10 | P2 | - | {titulo} levou 10. Um desafio virou 10. Troquei de pele. | {titulo} got a 10. A challenge became a 10. I shed my skin.
+C331 | cypher | verdictLater | under | P2 | - | {titulo} levou {nota}. Errei com convicção. Repito: também é arte. | {titulo} got a {nota}. Wrong with conviction. Still art.
+C332 | cypher | verdictLater | under | P2 | - | Aquela de {dia_semana} levou {nota}. O sapinho deve estar rindo. Deixa. | That {dia_semana} pick got a {nota}. The froggy must be laughing. Let him.
+C333 | cypher | verdictLater | under,r_low | P2 | - | {titulo} levou {nota}. Você odiou com gosto. Eu respeito. | {titulo} got a {nota}. You hated it with gusto. I respect that.
+C341 | cypher | verdictLater | ten | P2 | - | {titulo} levou 10. Eu disse que você mordia. Engoliu inteiro. | {titulo} got a 10. I said you'd bite. You swallowed it whole.
+C342 | cypher | verdictLater | ten | P2 | - | Um 10 praquela de {dia_semana}. Dormi enrolada no orgulho. | A 10 for that {dia_semana} pick. I slept coiled in pride.
+C343 | cypher | verdictLater | ten,yesterday_card | P2 | - | Ontem a minha, agora um 10. Cobra não dorme. Espera. E ganha. | Yesterday mine, now a 10. Snakes don't sleep. They wait. And win.
+C351 | cypher | verdictLater | nopred | P2 | - | {titulo} levou {nota}. Anotado na minha pele. | {titulo} got a {nota}. Noted on my skin.
+
+## Gestos || Gestures
+C401 | cypher | want | - | P2 | - | Na lista. Agora ela te espera no escuro. | On the list. Now it waits for you in the dark.
+C402 | cypher | want | - | P2 | - | Guardou? Ótimo. Ela vai ficar te olhando da lista. | Saved? Good. It'll stare at you from the list.
+C403 | cypher | want | long | P2 | - | Na lista. É longa. Veneno lento. | On the list. It's long. Slow venom.
+C404 | cypher | want | series | P2 | - | Série na lista. Uma picada por episódio. | Series on the list. One bite per episode.
+C405 | cypher | want | hidden | P2 | - | Na lista. Pouca gente guardou essa. Você guardou. | On the list. Few people saved this one. You did.
+C451 | cypher | refuse | - | P2 | - | Recusou? Ótimo. Eu tenho outra pele. | Refused? Good. I have another skin.
+C452 | cypher | refuse | - | P2 | - | Medo? Tudo bem. Tenho outra, mais mansa. Mentira. | Scared? Fine. I have another, tamer one. Kidding.
+C453 | cypher | refuse | - | P2 | - | Não é pra você? Então esta. Ou esta é pior? | Not for you? Then this one. Or is this one worse?
+C454 | cypher | refuse | ask | P2 | - | Para essa pergunta eu tenho outro veneno. | For that question I have another venom.
+C455 | cypher | refuse | - | P2 | - | Recusou a minha? Eu guardo rancor com muito carinho. | You refused mine? I hold grudges very tenderly.
+C501 | cypher | pass | refused | P2 | - | Hoje eu fico na toca. Amanhã eu volto. | I'm staying in my den today. Back tomorrow.
+C502 | cypher | pass | colo | P2 | - | Colo não é comigo. Hoje eu só olho. | Comfort isn't my thing. Today I just watch.
+C503 | cypher | pass | refused | P2 | - | Duas recusas. Você está me treinando ou me provocando? | Two refusals. Are you training me or teasing me?
+C504 | cypher | pass | empty | P2 | - | Nada da minha toca serve para isso. Ainda. | Nothing from my den fits this. Yet.
+C505 | cypher | pass | colo | P2 | - | Dia ruim? Eu saio da mesa. Cobra também sabe ser gentil. | Bad day? I'll leave the table. Snakes can be gentle too.
+C551 | cypher | replace | - | P2 | - | Outra, criatura. Eu troco de pele rápido. | Another, creature. I shed skin fast.
+C552 | cypher | replace | - | P2 | - | Já viu? Então tome uma que ainda não tem a sua nota. | Seen it? Then take one that doesn't have your rating yet.
+C553 | cypher | replace | - | P2 | - | Próxima presa. Esta ainda não mordeu você. | Next prey. This one hasn't bitten you yet.
+C601 | cypher | notSeen | - | P2 | - | Não viu? Então eu escolho outra presa. | Haven't seen it? Then I'll pick other prey.
+C602 | cypher | notSeen | - | P2 | - | Ainda não? Guarde. Eu tenho outra famosa aqui. | Not yet? Save it. I have another famous one here.
+C603 | cypher | notSeen | - | P2 | - | Nunca viu? Interessante. Outra. | Never seen it? Interesting. Another.
