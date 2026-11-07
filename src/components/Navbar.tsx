@@ -87,11 +87,16 @@ function Navbar() {
       <Link
         to={to}
         onClick={(e) => {
-          // Aba Oráculo já dentro da Biblioteca dos Oráculos: fica no oráculo
-          // em que a pessoa está (o link leva ao Bogart) e só volta ao topo.
-          if (active && location.pathname === '/oracle/libraries') {
+          // Aba Oráculo já dentro da Mesa dos Oráculos (05/11/2026): não navega
+          // (perderia a pergunta da vez, ?ask=) e só volta ao topo. A Mesa é uma
+          // camada por cima da barra, então isso quase nunca dispara; fica
+          // coerente com a barra do celular.
+          if (active && location.pathname === '/oracle/mesa') {
             e.preventDefault();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // A Mesa rola dentro da própria camada (.ms-scroll, MesaLayer).
+            const mesaScroll = document.querySelector<HTMLElement>('.ms-scroll');
+            if (mesaScroll) mesaScroll.scrollTo({ top: 0, behavior: 'smooth' });
+            else window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }}
         aria-current={isActive ? 'page' : undefined}
@@ -195,10 +200,10 @@ function Navbar() {
             <div className="hidden lg:flex flex-1 items-center justify-center gap-1 min-w-0">
               <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
               <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
-              {/* 04/11/2026 (pedido do Bruno): o olho volta à barra, mas abre
-                  direto a Biblioteca dos Oráculos (a Central não existe mais).
-                  Acende em toda página /oracle/ (Biblioteca e Duelo). */}
-              <NavLink to="/oracle/libraries?oracle=bogart" icon={Eye} active={location.pathname.startsWith('/oracle/')}>{t('nav.oracle')}</NavLink>
+              {/* 04/11/2026 (pedido do Bruno): o olho volta à barra. 05/11/2026:
+                  abre A Mesa dos Oráculos (a Biblioteca virou a Mesa e o Acervo).
+                  Acende em toda página /oracle/ (Mesa, Acervo e Duelo). */}
+              <NavLink to="/oracle/mesa" icon={Eye} active={location.pathname.startsWith('/oracle/')}>{t('nav.oracle')}</NavLink>
               <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
               <NavLink to="/profile" icon={User}>{t('nav.profile')}</NavLink>
             </div>

@@ -20,13 +20,15 @@ import '../components/premium/premium.css';
 // Página Premium (/premium) — redesenhada em 04/11/2026: "a versão estendida
 // do CineOracle". Vende o Premium de hoje com as peças do próprio produto
 // (cartas dos oráculos, ficha especial, pôsteres com efeito, molduras e
-// banners), em capítulos ("rolos"): primeiro os oráculos e as prateleiras,
-// depois a coleção, depois o perfil, e uma tabela só com o que tem número.
+// banners), em capítulos ("rolos"): primeiro os oráculos, depois a
+// coleção, depois o perfil, e uma tabela só com o que tem número.
 //
 // Inventário do que o Premium dá HOJE (conferido no código e no banco em
 // 04/11/2026 — se algo mudar, mude aqui e nos textos premium.page.*):
-//   1. Biblioteca dos Oráculos inteira — OracleLibraries.tsx: sem Premium,
-//      20 títulos por prateleira (FREE_LIMIT); com Premium, todos.
+//   1. (05/11/2026) As prateleiras inteiras deixaram de ser Premium: a
+//      Biblioteca dos Oráculos virou a Mesa dos Oráculos e o Acervo, iguais
+//      para todos (decisão do Bruno: nada na Mesa nem no Acervo é Premium). Saíram o
+//      benefício, a linha da tabela e o atalho de quem já assina.
 //   2. Resenha do Oráculo no seu estilo — Edge Function generate-ai-review:
 //      Premium + 10 resenhas reais; 1 por dia + 1 nova tentativa.
 //   3. Duelo de Watchlist — Edge Function watchlist-duel: só Premium, sem

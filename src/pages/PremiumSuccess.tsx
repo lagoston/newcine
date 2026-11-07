@@ -29,8 +29,10 @@ interface SubscriptionDetails {
 }
 
 // O que já está ligado na conta (o mesmo inventário de pages/Premium.tsx).
+// 05/11/2026: saiu "Prateleiras inteiras" — a Mesa dos Oráculos e o Acervo
+// são iguais e completos para todo mundo (decisão do Bruno), então não é
+// mais benefício do Premium.
 const INCLUDED = [
-  'premium.page.member.go.shelves.title',
   'premium.page.oracles.review.title',
   'premium.page.member.go.duel.title',
   'premium.page.member.go.chip.title',

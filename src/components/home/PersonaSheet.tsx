@@ -196,7 +196,9 @@ const PersonaSheet: React.FC<{
             {t('oracle.intro.countedHint')}
           </p>
           <div className="mt-5 flex flex-col sm:flex-row flex-wrap gap-2">
-            <Link to="/oracle/libraries?oracle=bogart" onClick={onClose} className={PRIMARY_BUTTON}>
+            {/* 05/11/2026: o convite leva à Mesa dos Oráculos (a Biblioteca saiu);
+                o modo reconhecimento da Mesa é o caminho até a Persona. */}
+            <Link to="/oracle/mesa" onClick={onClose} className={PRIMARY_BUTTON}>
               <LibraryBig className="w-5 h-5 shrink-0" aria-hidden />
               {t('oracle.intro.exploreLibrary')}
             </Link>

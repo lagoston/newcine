@@ -252,7 +252,7 @@
       "allTagsHint": "Você já tem todas as tags disponíveis."
     },
     "doors": {
-      "label": "Biblioteca dos Oráculos, Poster Jackpot e Sua Persona"
+      "label": "Mesa dos Oráculos, Poster Jackpot e Sua Persona"
     },
     "persona": {
       "title": "Sua Persona",
@@ -697,8 +697,8 @@
       "progressTitle": "O caminho até a revelação",
       "requirement": "Avalie {{count}} filmes ou séries das prateleiras dos oráculos — de pelo menos 3 prateleiras diferentes — e o Oráculo revela sua personalidade.",
       "needMoreShelves": "Você já tem títulos suficientes. Agora avalie filmes ou séries de pelo menos 3 prateleiras diferentes.",
-      "countedHint": "Contam os filmes e as séries que moram nas prateleiras da Biblioteca dos Oráculos — cada um soma a sua nota na prateleira dele.",
-      "exploreLibrary": "Explorar a Biblioteca dos Oráculos"
+      "countedHint": "Contam os filmes e as séries que moram nas prateleiras dos oráculos — cada um soma a sua nota na prateleira dele.",
+      "exploreLibrary": "Abrir a Mesa dos Oráculos"
     },
     "cinematicEssence": "Sua personalidade cinematográfica",
     "archetypeExplain": "Seu Arquétipo é formado pelas duas balanças com maior pontuação, as forças que hoje brilham mais forte em você.",
@@ -847,7 +847,7 @@
     "howItWorks": {
       "intro": "Sua personalidade não é adivinhação: é a soma das prateleiras que você mais usa.",
       "shelvesTitle": "As nove prateleiras",
-      "shelvesText": "Cada filme e cada série da Biblioteca dos Oráculos mora em uma de nove prateleiras — e cada prateleira tem uma letra.",
+      "shelvesText": "Cada filme e cada série dos oráculos mora em uma de nove prateleiras — e cada prateleira tem uma letra.",
       "pointsTitle": "Seus pontos",
       "pointsTitleOther": "Os pontos",
       "pointsText": "Cada filme ou série das prateleiras que você avalia soma a sua nota na prateleira dele: um 10 soma 10, um 3 soma 3. Quanto mais você vê — e gosta — de um tipo de história, mais forte a prateleira fica.",
@@ -927,9 +927,14 @@
       "goldenDecade_other": "a década de ouro ({{decade}}), com {{count}} títulos"
     },
     "libraryDoor": {
-      "title": "Biblioteca dos Oráculos",
-      "hint": "Curadoria de filmes e séries personalizada para você.",
-      "enter": "Entrar"
+      "title": "A Mesa dos Oráculos",
+      "hint": "Três cartas por dia, tiradas para você.",
+      "enter": "Entrar",
+      "state": {
+        "fresh": "Três cartas na mesa, ainda viradas.",
+        "partial": "Você virou {{n}} de {{total}}.",
+        "done": "As cartas de hoje já falaram."
+      }
     }
   },
   "profile": {
@@ -939,7 +944,7 @@
       "watching": "assistindo",
       "moodsHint_one": "{{count}} título nas prateleiras dos oráculos. Toque num humor para ver o que ele revela.",
       "moodsHint_other": "{{count}} títulos nas prateleiras dos oráculos. Toque num humor para ver o que ele revela.",
-      "openShelf": "Abrir a prateleira",
+      "openShelf": "Pedir à Mesa",
       "keywordsTitle": "Os temas que você mais ama",
       "keywordsTitleOf": "Os temas que {{name}} mais ama",
       "keywordsInMood": "Temas mais bem avaliados em {{mood}}",
@@ -1137,7 +1142,7 @@
     "page": {
       "eyebrow": "CineOracle Premium",
       "title": "A <gold>versão estendida</gold> do CineOracle",
-      "lead": "Prateleiras inteiras dos oráculos, resenhas no seu estilo, uma ficha especial por semana e as peças douradas do perfil.",
+      "lead": "Resenhas no seu estilo, duelos de Watchlist, uma ficha especial por semana e as peças douradas do perfil.",
       "jumpAria": "Capítulos da página",
       "jump": {
         "oracles": "Os oráculos",
@@ -1162,14 +1167,7 @@
       },
       "oracles": {
         "kicker": "Os oráculos",
-        "title": "Tudo o que os oráculos separaram para você",
-        "shelves": {
-          "title": "Prateleiras inteiras",
-          "body": "São 27 prateleiras, 3 oráculos × 9 humores, em ordem da sua nota prevista. Sem Premium, cada uma para no 20º título. Com Premium, vai até o último.",
-          "cut": "{{n}}º",
-          "free": "Sem Premium: os 20 primeiros de cada prateleira",
-          "premium": "Premium: a prateleira inteira, até o último título"
-        },
+        "title": "O que o Premium soma aos oráculos",
         "review": {
           "title": "Resenha do Oráculo",
           "body": "O Oráculo lê as suas resenhas e escreve uma nova, do seu jeito, para o título que você acabou de avaliar. Gostou, publique. Não gostou, peça outra.",
@@ -1255,8 +1253,6 @@
         "colFeature": "Recurso",
         "colFree": "Sem Premium",
         "colPremium": "Premium",
-        "shelves": "Títulos por prateleira dos oráculos",
-        "shelvesPremium": "Todos",
         "review": "Resenha do Oráculo",
         "reviewPremium": "1 por dia",
         "duel": "Duelo de Watchlist",
@@ -1285,11 +1281,6 @@
         "whereKicker": "Na sua conta",
         "where": "Onde usar",
         "go": {
-          "shelves": {
-            "title": "Prateleiras inteiras",
-            "body": "As 27 prateleiras da Biblioteca dos Oráculos, até o último título.",
-            "cta": "Abrir a Biblioteca"
-          },
           "chip": {
             "title": "Ficha especial",
             "body": "Uma por semana no porta-fichas do Poster Jackpot. Use até domingo.",
@@ -1384,8 +1375,6 @@
     "unlimitedDuels": "Duelos Ilimitados",
     "unlimitedDuelsDesc": "Duelo do Oráculo e Duelo de Watchlist sem nenhum limite de uso",
     "unlimitedDuelsShort": "Duelos",
-    "fullShelves": "Prateleiras Completas",
-    "fullShelvesDesc": "Explore todos os títulos da Biblioteca dos Oráculos, não só os 20 primeiros de cada prateleira",
     "aiReviews": "Resenhas por IA",
     "aiReviewsDesc": "O Oráculo aprende com as suas resenhas e escreve novas no seu próprio estilo",
     "featuresShort": "Recursos",
@@ -2357,6 +2346,216 @@
       "share": "Compartilhar nos stories"
     }
   },
+  "mesa": {
+    "title": "A Mesa dos Oráculos",
+    "top": {
+      "back": "Início",
+      "backAria": "Sair da Mesa",
+      "today": "A tiragem do dia",
+      "onTable": "Na mesa: {{name}}",
+      "onTableAria": "Pergunta na mesa: {{name}}. Voltar à tiragem do dia",
+      "clearAsk": "Voltar à tiragem do dia",
+      "book": "Livro",
+      "more": "Mais opções"
+    },
+    "menu": {
+      "media": "O que entra na mesa",
+      "mediaAll": "Filmes e séries",
+      "mediaMovie": "Só filmes",
+      "mediaTv": "Só séries",
+      "soundOn": "Som ligado",
+      "soundOff": "Som desligado",
+      "flipAll": "Virar as três",
+      "acervo": "Abrir o Acervo",
+      "how": "Como a mesa funciona"
+    },
+    "entrance": {
+      "dealing": "Os oráculos estão dando as cartas",
+      "skip": "Toque para pular"
+    },
+    "roles": {
+      "bogart": "o acerto",
+      "fincher": "a descoberta",
+      "cypher": "o desafio",
+      "espelho": "o espelho"
+    },
+    "espelho": {
+      "name": "O Espelho",
+      "aria": "O Espelho diz"
+    },
+    "card": {
+      "backAria": "Carta de {{oracle}}, virada para baixo. Virar.",
+      "sealedAria": "Carta da Cypher, selada. Vire as outras duas primeiro.",
+      "sealOpenAria": "Carta da Cypher. Abrir o selo.",
+      "faceAria": "{{oracle}}: {{title}}, {{year}}. Mostrar a leitura.",
+      "espelhoBackAria": "{{label}}, virada para baixo. Virar.",
+      "passedAria": "{{oracle}} passou a vez hoje.",
+      "sealed": "Selada",
+      "sealHint": "Vire as outras duas",
+      "sealTap": "Abrir o selo",
+      "passed": "passou a vez",
+      "espelho4": "A quarta carta",
+      "reveal": "A carta da revelação",
+      "recon": "Já viu este?",
+      "ownerSays": "o dono dela diz",
+      "second": "segunda opinião"
+    },
+    "pred": {
+      "aria": "Nota prevista para você: {{n}}",
+      "guess": "palpite {{n}}",
+      "guessAria": "Palpite de nota: {{n}}",
+      "hiddenAria": "Ainda estou te conhecendo"
+    },
+    "actions": {
+      "want": "Quero ver",
+      "wantDone": "Na sua lista",
+      "seen": "Já vi",
+      "refuse": "Não é pra mim",
+      "notSeen": "Não vi",
+      "details": "Ver ficha completa",
+      "more": {
+        "bogart": "Mais do Bogart em {{mood}}",
+        "fincher": "Mais do Fincher em {{mood}}",
+        "cypher": "Mais da Cypher em {{mood}}"
+      }
+    },
+    "ruler": {
+      "title": "Que nota você dá?",
+      "aria": "Sua nota, de 0 a 10",
+      "cancel": "Cancelar",
+      "saving": "Gravando…",
+      "error": "Não deu para gravar a nota. Tente de novo."
+    },
+    "reading": {
+      "aria": "A leitura da carta",
+      "empty": "Toque numa carta para virar.",
+      "pick": "Toque numa carta para ler o que ela diz.",
+      "midnight": "À meia-noite, as que você não virar voltam ao baralho.",
+      "sealNext": "A da Cobra abre depois das outras duas.",
+      "kindMovie": "Filme",
+      "kindTv": "Série",
+      "seasons_one": "{{count}} temporada",
+      "seasons_other": "{{count}} temporadas",
+      "episodes": "episódios de {{min}} min",
+      "yourRating": "Você deu {{n}}",
+      "anchorOpen": "Abrir {{title}}"
+    },
+    "ask": {
+      "title": "Pergunte à mesa",
+      "all": "Todas",
+      "allAria": "Todas as perguntas",
+      "handAria": "Perguntas sugeridas",
+      "drawerTitle": "O que você quer perguntar?",
+      "drawerTitleShort": "O que perguntar?",
+      "drawerLead": "Uma pergunta por vez. A mesma pergunta, no mesmo dia, traz as mesmas cartas.",
+      "group": {
+        "who": "Com quem",
+        "time": "Quanto tempo",
+        "feel": "Como você quer sair",
+        "mood": "Um humor",
+        "season": "Da época"
+      },
+      "moodAria": "Pergunta de humor: {{mood}}",
+      "onlyMovies": "Só filmes nesta pergunta",
+      "onlyTv": "Só séries nesta pergunta",
+      "current": "na mesa"
+    },
+    "book": {
+      "title": "O Livro",
+      "subtitle": "O que a mesa já te deu",
+      "empty": "Ainda em branco. Vire uma carta e ela fica guardada aqui.",
+      "error": "Não deu para abrir o Livro agora.",
+      "knowsBest": {
+        "bogart": "Quem te conhece melhor, por enquanto: o Sapo.",
+        "fincher": "Quem te conhece melhor, por enquanto: o Raposo.",
+        "cypher": "Quem te conhece melhor, por enquanto: a Cobra."
+      },
+      "today": "Hoje",
+      "yesterday": "Ontem",
+      "daily": "a tiragem do dia",
+      "asked": "Pergunta: {{name}}",
+      "state": {
+        "want": "Na sua lista",
+        "seen": "Você deu {{n}}",
+        "refused": "Não era pra você",
+        "not_seen": "Ainda não viu",
+        "up": "Virada"
+      },
+      "more": "Páginas anteriores"
+    },
+    "recon": {
+      "progress": "{{count}} de 10",
+      "progressAria": "{{count}} de 10 títulos para a revelação da sua Persona"
+    },
+    "newDay": {
+      "text": "Uma nova tiragem já está na mesa.",
+      "cta": "Ver"
+    },
+    "error": {
+      "retry": "Tentar de novo"
+    },
+    "toast": {
+      "wantError": "Não deu para guardar na sua lista.",
+      "reactError": "Não deu para falar com a mesa agora."
+    },
+    "how": {
+      "title": "Como a mesa funciona",
+      "p1": "Todo dia, três cartas: o Bogart traz o acerto, o Fincher a descoberta e a Cypher o desafio. A da Cobra só abre depois das outras duas.",
+      "p2": "Cada carta diz por que veio. O número pequeno é a nota que o site prevê para você.",
+      "p3": "Já vi: você dá a nota e a carta é trocada. Quero ver: vai para a sua lista. Não é pra mim: o oráculo tenta uma vez mais.",
+      "p4": "Pergunte à mesa quantas vezes quiser. A mesma pergunta, no mesmo dia, traz as mesmas cartas.",
+      "p5": "À meia-noite, as cartas que você não virou voltam ao baralho. As que você virou ficam no Livro."
+    },
+    "kbd": "Atalhos: 1 2 3 viram as cartas · P perguntas · L livro",
+    "speech": {
+      "next": "Próxima fala"
+    },
+    "occasions": {
+      "chuva": { "name": "Só eu e a chuva", "short": "Eu e a chuva", "phrase": "Barulho na janela e um filme que combina." },
+      "amor": { "name": "Com quem eu amo", "short": "Com quem eu amo", "phrase": "Para dividir o sofá e o cobertor." },
+      "familia": { "name": "Domingo em família", "short": "Em família", "phrase": "Do avô ao caçula, ninguém sai da sala." },
+      "galera": { "name": "Com a galera", "short": "Com a galera", "phrase": "Pipoca dividida e comentário alto." },
+      "noventa": { "name": "Tenho 90 minutos", "short": "Tenho 90 min", "phrase": "Cabe antes de dormir." },
+      "episodio": { "name": "Só um episódio", "short": "Só um episódio", "phrase": "Um só. Prometa." },
+      "maratona": { "name": "Maratona de fim de semana", "short": "Maratona", "phrase": "Começa sexta, termina domingo." },
+      "chorar": { "name": "Quero chorar", "short": "Quero chorar", "phrase": "Lenço do lado. Sem vergonha." },
+      "rir": { "name": "Quero rir alto", "short": "Quero rir alto", "phrase": "Até a vizinha reclamar." },
+      "susto": { "name": "Quero levar um susto", "short": "Um susto", "phrase": "Luz apagada, celular longe." },
+      "no": { "name": "Um nó na cabeça", "short": "Um nó na cabeça", "phrase": "Para pausar e voltar a cena." },
+      "colo": { "name": "Dia ruim, quero colo", "short": "Quero colo", "phrase": "Hoje a mesa não arrisca." },
+      "halloween": { "name": "Noite de Halloween", "short": "Halloween", "phrase": "Abóbora acesa, coragem apagada." },
+      "christmas": { "name": "Clima de Natal", "short": "Natal", "phrase": "Pisca-pisca ligado e chocolate quente." }
+    },
+    "reason": {
+      "anchor_director": "Você deu {{rating}} a {{title}} · mesmo diretor",
+      "anchor_kw": "Você deu {{rating}} a {{title}} · {{themes}}",
+      "watchlistToday": "Você guardou este hoje",
+      "watchlist_one": "Você guardou este ontem",
+      "watchlist_other": "Está na sua lista há {{count}} dias",
+      "friend": "{{name}} deu {{rating}}",
+      "friendOthers": "{{name}} deu {{rating}}, e mais {{count}}",
+      "mood_affinity": "Em {{mood}}, você dá {{avg}} em média",
+      "cypher_mood": "Fora das suas três prateleiras: {{mood}}",
+      "cypher_country": "País novo na sua estante: {{country}}",
+      "cypher_decade": "Nenhuma nota sua nos anos {{decade2}}",
+      "hidden": "Pouca gente viu: {{votes}} votos",
+      "occasion_runtime": "Cabe em {{duration}}",
+      "occasion_episode": "Episódios de {{min}} min",
+      "occasion_binge": "Série fechada: {{hours}} h no total",
+      "occasion_comment": {
+        "bogart": "O Sapo já avisou",
+        "fincher": "O Raposo já avisou",
+        "cypher": "A Cobra já avisou"
+      },
+      "occasion_tone": "{{occasion}}: {{themes}}",
+      "mood_ask": "{{mood}}, como você pediu",
+      "recognition": "Um dos mais vistos de {{mood}}",
+      "espelho_best": "O espelho escolheu: o que mais se parece com os seus 10",
+      "reveal_one": "Uma nota aqui e o espelho te revela. {{mood}} ainda não está na sua estante.",
+      "reveal_other": "Faltam {{count}} para a sua Persona. {{mood}} ainda não está na sua estante.",
+      "house": "Escolha da casa: bem avaliado por quem viu"
+    }
+  },
   "secretRoom": {
     "entranceSkip": "Toque para pular",
     "loadError": "Não deu para abrir a sala agora.",
@@ -2445,6 +2644,30 @@
       "openProfile": "Ir para o meu perfil",
       "signIn": "Entrar",
       "home": "Ir para o início"
+    }
+  },
+  "acervo": {
+    "title": "O Acervo",
+    "back": "Mesa",
+    "backAria": "Voltar à Mesa",
+    "lead": "As 27 prateleiras dos oráculos, inteiras. Uma de cada vez.",
+    "oracleTab": "Prateleiras de {{oracle}}",
+    "profileHint": "Toque de novo para ver o perfil",
+    "moodAria": "Prateleira {{mood}}",
+    "movies": "Filmes",
+    "series": "Séries",
+    "count_one": "{{count}} título que você ainda não avaliou",
+    "count_other": "{{count}} títulos que você ainda não avaliou",
+    "allDone": "Você já avaliou tudo desta prateleira. Bom trabalho.",
+    "noSeries": "Esta prateleira ainda não tem séries.",
+    "noMovies": "Esta prateleira ainda não tem filmes.",
+    "error": "Não deu para abrir esta prateleira agora.",
+    "retry": "Tentar de novo",
+    "askMood": "Pedir à Mesa: {{mood}}",
+    "pred": {
+      "guess": "palpite {{n}}",
+      "guessAria": "Palpite de nota: {{n}}",
+      "hiddenAria": "Ainda estou te conhecendo"
     }
   },
   "jackpot": {

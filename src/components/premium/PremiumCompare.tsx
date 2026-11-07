@@ -8,12 +8,13 @@ import './premium.css';
 // (ver o inventário em pages/Premium.tsx). As peças do perfil ficam de fora
 // da tabela de propósito: molduras e banners também saem como prêmio do
 // Pôster Poker para quem não é Premium, então "0 × 11" não seria verdade.
+// 05/11/2026: saiu a linha "Títulos por prateleira" (20 × todos) — as
+// prateleiras dos oráculos ficaram inteiras para todos (decisão do Bruno).
 type Row = { key: string; free: string | null; premium: string };
 
 const PremiumCompare: React.FC = () => {
   const { t } = useTranslation();
   const rows: Row[] = [
-    { key: 'shelves', free: '20', premium: t('premium.page.compare.shelvesPremium') },
     { key: 'review', free: null, premium: t('premium.page.compare.reviewPremium') },
     { key: 'duel', free: null, premium: t('premium.page.compare.duelPremium') },
     { key: 'chip', free: null, premium: t('premium.page.compare.chipPremium') },

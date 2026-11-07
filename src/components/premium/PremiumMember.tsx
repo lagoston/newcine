@@ -5,13 +5,14 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import { PAPER, INK, MIST, PIXEL, NIGHT, FOCUS_RING, glassPanel } from '../../lib/oracleTheme';
 import { frames } from '../../lib/frames';
 import { ChipFace } from '../posterJackpot/Chips';
-import { ChapterHeader, H3_CLASS, OracleFaces } from './parts';
+import { ChapterHeader, H3_CLASS } from './parts';
 import './premium.css';
 
 // Para quem já é Premium (04/11/2026): em vez de vender de novo, a página
 // mostra onde cada benefício mora no site, com o atalho direto para ele.
-// Os atalhos usam as mesmas portas que o resto do site já usa:
-//   • /oracle/libraries — a Biblioteca dos Oráculos (porta da home);
+// Os atalhos usam as mesmas portas que o resto do site já usa (05/11/2026:
+// saiu o atalho das prateleiras inteiras — a Mesa e o Acervo dos oráculos
+// são iguais para todos, decisão do Bruno):
 //   • '/' com state { openJackpot: 'machine' } — abre a gaveta do Poster
 //     Jackpot na máquina (PosterJackpotDoor lê esse state);
 //   • /library com state { openWatchlistDuel: true } — a Biblioteca abre o
@@ -21,7 +22,7 @@ import './premium.css';
 // cada título avaliado, por isso aqui é só o caminho, sem link.
 
 type Shortcut = {
-  key: 'shelves' | 'chip' | 'duel' | 'profile';
+  key: 'chip' | 'duel' | 'profile';
   to: string;
   state?: Record<string, unknown>;
   accent: string;
@@ -36,7 +37,6 @@ const PremiumMember: React.FC = () => {
   const { t } = useTranslation();
 
   const shortcuts: Shortcut[] = [
-    { key: 'shelves', to: '/oracle/libraries?oracle=bogart', accent: '#F0ABFC', art: <OracleFaces size={40} /> },
     {
       key: 'chip',
       to: '/',
@@ -71,7 +71,10 @@ const PremiumMember: React.FC = () => {
     <section aria-labelledby="prm-where" className="py-12 sm:py-16">
       <ChapterHeader id="prm-where" reel={t('premium.page.member.whereKicker')} title={t('premium.page.member.where')} />
 
-      <ul className="mt-8 grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {/* 05/11/2026: três atalhos numa linha (do tablet para cima) e a Resenha
+          na linha inteira de baixo; no celular, um embaixo do outro. Com 2
+          colunas sobrava uma célula vazia ao lado do terceiro cartão. */}
+      <ul className="mt-8 grid gap-4 sm:gap-5 md:grid-cols-3">
         {shortcuts.map((s) => (
           <li key={s.key} className="flex">
             <Link to={s.to} state={s.state} className={`${CARD} w-full`} style={glassPanel(s.accent)}>
@@ -93,7 +96,7 @@ const PremiumMember: React.FC = () => {
         ))}
 
         {/* A Resenha do Oráculo: só o caminho (não há porta própria). */}
-        <li className="flex sm:col-span-2 lg:col-span-2">
+        <li className="flex md:col-span-3">
           <div className="rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 w-full min-h-[180px]" style={glassPanel('#F472B6')}>
             <span aria-hidden className="shrink-0 rounded-xl px-3.5 py-3 max-w-[260px] shadow-lg" style={{ background: PAPER, color: INK }}>
               <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold">

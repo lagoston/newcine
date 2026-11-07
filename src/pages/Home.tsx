@@ -453,14 +453,16 @@ const Home = () => {
   // A página abre com o topo pronto; as listas de baixo vêm conforme a
   // pessoa desce (cada uma com a própria faixa de esqueletos).
   const pageReady = panelsReady || readyTimeout;
-  // "Ver todos" de Filmes/Séries Para Você abre a Biblioteca dos Oráculos —
-  // é lá que estão todos os recomendados —, no oráculo que mais aparece na
-  // lista de hoje e já em Filmes ou em Séries.
+  // "Ver todos" de Filmes/Séries Para Você abre o Acervo dos oráculos —
+  // é lá que estão as prateleiras inteiras —, no oráculo que mais aparece na
+  // lista de hoje e já em Filmes ou em Séries. 05/11/2026: antes abria a
+  // Biblioteca dos Oráculos, substituída pela Mesa e pelo Acervo; sem humor
+  // na URL, o Acervo abre no humor mais forte da pessoa.
   const openOracleLibrary = (shelf: ForYouShelf | undefined, mediaType: 'movie' | 'tv') => {
     const counts = new Map<string, number>();
     Object.values(shelf?.info ?? {}).forEach((info) => counts.set(info.oracle, (counts.get(info.oracle) ?? 0) + 1));
     const oracle = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'bogart';
-    navigate(`/oracle/libraries?oracle=${oracle}&type=${mediaType}`);
+    navigate(`/oracle/acervo?oracle=${oracle}&type=${mediaType}`);
   };
   const openAll = (title: string, movies: Movie[]) => setAllMoviesModal({ isOpen: true, title, movies });
 

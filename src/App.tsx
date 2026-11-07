@@ -27,7 +27,13 @@ const UserProfile = lazy(() => import('./pages/UserProfile'));
 const Community = lazy(() => import('./pages/Community'));
 const Auth = lazy(() => import('./pages/Auth'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
-const OracleLibraries = lazy(() => import('./pages/OracleLibraries'));
+// A Mesa dos Oráculos e o Acervo (05/11/2026): substituem a Biblioteca dos
+// Oráculos. A rota antiga da Biblioteca virou um redirecionador por intenção
+// (links antigos com ?mood= vão à Mesa com a pergunta; com ?oracle=&type=, ao
+// Acervo) — ver pages/OracleLibrariesRedirect.tsx.
+const OracleTable = lazy(() => import('./pages/OracleTable'));
+const OracleAcervo = lazy(() => import('./pages/OracleAcervo'));
+const OracleLibrariesRedirect = lazy(() => import('./pages/OracleLibrariesRedirect'));
 const OracleDuel = lazy(() => import('./pages/OracleDuel'));
 const SecretRoom = lazy(() => import('./pages/SecretRoom'));
 const Premium = lazy(() => import('./pages/Premium'));
@@ -108,8 +114,12 @@ function App() {
                       Links antigos para /oracle voltam para lá, com o state junto
                       (ex.: { openJackpot: 'trades' }). */}
                   <Route path="/oracle" element={<OracleRedirect />} />
-                  <Route path="/oracle/libraries" element={<ProtectedRoute><OracleLibraries /></ProtectedRoute>} />
-                <Route path="/oracle/duel" element={<ProtectedRoute><OracleDuel /></ProtectedRoute>} />
+                  {/* 05/11/2026: a Mesa (o olho da barra e a porta da home) e o
+                      Acervo (as 27 prateleiras inteiras, uma de cada vez). */}
+                  <Route path="/oracle/mesa" element={<ProtectedRoute><OracleTable /></ProtectedRoute>} />
+                  <Route path="/oracle/acervo" element={<ProtectedRoute><OracleAcervo /></ProtectedRoute>} />
+                  <Route path="/oracle/libraries" element={<ProtectedRoute><OracleLibrariesRedirect /></ProtectedRoute>} />
+                  <Route path="/oracle/duel" element={<ProtectedRoute><OracleDuel /></ProtectedRoute>} />
                   {/* Salas secretas (Clube do Terror…): ver lib/secretRooms.ts */}
                   <Route path="/sala/:roomKey" element={<ProtectedRoute><SecretRoom /></ProtectedRoute>} />
                   {/* Pôster Poker (03/11/2026): o jogo em /poster-poker; o /blefe antigo redireciona lá dentro. */}

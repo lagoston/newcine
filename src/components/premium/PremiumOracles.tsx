@@ -2,57 +2,21 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { PAPER, INK, MIST, PIXEL, glassPanel } from '../../lib/oracleTheme';
-import { BODY_CLASS, ChapterHeader, H3_CLASS, OracleFaces, PREMIUM_GOLD } from './parts';
+import { BODY_CLASS, ChapterHeader, H3_CLASS, PREMIUM_GOLD } from './parts';
 import './premium.css';
 
 // Rolo 1 da página Premium (04/11/2026): o que o Premium muda nos oráculos.
 // Cada benefício foi conferido no código e no banco:
-//   • Prateleiras inteiras — pages/OracleLibraries.tsx (FREE_LIMIT = 20;
-//     com Premium, a prateleira toda). 27 prateleiras = 3 oráculos × 9
-//     humores (lib/moods; o "random-surprise" do banco não vira prateleira).
+//   • (05/11/2026) "Prateleiras inteiras" saiu: decisão do Bruno, nada na Mesa
+//     dos Oráculos nem no Acervo é Premium — as 27 prateleiras são inteiras
+//     para todos (pages/OracleAcervo.tsx). Ficam Resenha, Duelo e Sussurros:
+//     duas metades numa linha e os Sussurros na linha de baixo, sem buraco.
 //   • Resenha do Oráculo — Edge Function generate-ai-review: só Premium,
 //     pede 10 resenhas reais, 1 por dia + 1 nova tentativa do mesmo título
 //     (try_consume_oracle_generation com limite 2).
 //   • Duelo de Watchlist — Edge Function watchlist-duel: só Premium, sem
 //     limite; 4 títulos de cada watchlist, chave de 8; só com quem você segue.
 //   • Sussurros — RPC get_user_indication_limit: 20 por dia com Premium, 5 sem.
-
-// Só a ilustração: 32 capinhas, as 20 primeiras de todo mundo e o resto
-// dourado (Premium). O corte fica entre a 20ª e a 21ª.
-const SHELF_SLOTS = 32;
-const FREE_LIMIT = 20;
-
-const ShelfCut: React.FC = () => {
-  const { t } = useTranslation();
-  return (
-    <figure className="w-full">
-      <div className="relative pt-7">
-        <span
-          style={{ ...PIXEL, color: PAPER, left: `${(FREE_LIMIT / SHELF_SLOTS) * 100}%` }}
-          className="absolute top-0 -translate-x-1/2 text-[15px] leading-none whitespace-nowrap"
-          aria-hidden
-        >
-          {t('premium.page.oracles.shelves.cut', { n: FREE_LIMIT })}
-        </span>
-        <div className="prm-shelf" aria-hidden>
-          {Array.from({ length: SHELF_SLOTS }, (_, i) => (
-            <span key={i} className={`${i >= FREE_LIMIT ? 'is-premium' : ''} ${i === FREE_LIMIT - 1 ? 'is-cut' : ''}`} />
-          ))}
-        </div>
-      </div>
-      <figcaption className="mt-5 grid gap-2 text-sm" style={{ color: MIST }}>
-        <span className="flex items-center gap-2.5">
-          <span aria-hidden className="w-3 h-4 rounded-[2px] shrink-0" style={{ background: 'rgba(189,180,214,0.42)' }} />
-          {t('premium.page.oracles.shelves.free')}
-        </span>
-        <span className="flex items-center gap-2.5" style={{ color: PAPER }}>
-          <span aria-hidden className="w-3 h-4 rounded-[2px] shrink-0" style={{ background: PREMIUM_GOLD }} />
-          {t('premium.page.oracles.shelves.premium')}
-        </span>
-      </figcaption>
-    </figure>
-  );
-};
 
 // Uma resenha como o Oráculo entrega: título curto e um parágrafo, com as
 // duas saídas que a tela real oferece (postar ou pedir outra). O exemplo é
@@ -143,20 +107,6 @@ const PremiumOracles: React.FC = () => {
       />
 
       <div className="mt-8 grid gap-4 sm:gap-5 md:grid-cols-2">
-        {/* Prateleiras inteiras — o benefício mais usado, ocupa a linha toda. */}
-        <article className="md:col-span-2 rounded-2xl p-5 sm:p-7 grid gap-7 lg:grid-cols-[0.95fr_1.05fr] lg:items-center" style={glassPanel('#F0ABFC')}>
-          <div>
-            <OracleFaces />
-            <h3 style={{ ...PIXEL, color: PAPER }} className={`mt-4 ${H3_CLASS}`}>
-              {t('premium.page.oracles.shelves.title')}
-            </h3>
-            <p className={`mt-2 ${BODY_CLASS}`} style={{ color: MIST }}>
-              {t('premium.page.oracles.shelves.body')}
-            </p>
-          </div>
-          <ShelfCut />
-        </article>
-
         <article className="rounded-2xl p-5 sm:p-7 flex flex-col" style={glassPanel('#F472B6')}>
           <ReviewSample />
           <h3 style={{ ...PIXEL, color: PAPER }} className={`mt-6 ${H3_CLASS}`}>
