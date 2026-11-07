@@ -936,5 +936,5 @@ familia,movie,808,b,Shrek,1,claude-0511,leitura: humor pra pai e filho
 familia,movie,93456,b,Meu Malvado Favorito 2,1,claude-0511,leitura: risada pra casa inteira
 familia,movie,263109,b,Shaun o Carneiro: O Filme,1,claude-0511,leitura: pra vovó e neto
 familia,tv,7869,b,Os Pinguins de Madagascar,1,claude-0511,leitura: risada pra todas as idades
-familia,movie,507089,b,Five Nights at Freddy's,1,claude-0511,leitura: pra assistir com a molecada
+familia,movie,507089,b,Five Nights at Freddy's,0,claude-0511,leitura: pra assistir com a molecada · recusada no QA M5 (terror com assassino de crianças)
 riso,movie,673175,b,Maior Viagem,1,claude-0511,leitura: ri de doer a barriga

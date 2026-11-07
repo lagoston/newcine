@@ -86,3 +86,12 @@ rir,movie,8966,-1,Crepúsculo,claude-0511,não é comédia
 rir,movie,41446,-1,Pânico 4,claude-0511,terror antes da piada
 susto,movie,190859,-1,Sniper Americano,claude-0511,guerra; não é susto
 susto,movie,73861,-1,A Serbian Film,claude-0511,choque de violência sexual; não é susto
+familia,movie,507089,-1,Five Nights at Freddy's,claude-0511,"QA M5: terror com assassino de crianças, não é pra família"
+season:christmas,movie,927,1,Gremlins,claude-0511,clássico de Natal: susto de brincadeira pra família
+season:christmas,movie,8321,-1,Na Mira do Chefe,claude-0511,matadores de aluguel e mortes; o Natal é só cenário
+season:christmas,movie,15983,-1,Invasão U.S.A.,claude-0511,ação violenta contra civis; o Natal é só cenário
+season:christmas,movie,16608,-1,A Proposta,claude-0511,faroeste brutal; o Natal é só cenário
+season:christmas,movie,25338,-1,O Sócio do Silêncio,claude-0511,assalto com violência gráfica; o Natal é só cenário
+season:christmas,movie,29381,-1,À Margem da Vida,claude-0511,drama de presídio feminino; nada de Natal
+season:christmas,movie,807196,-1,O Chef,claude-0511,crise numa cozinha e overdose; nada de aconchego
+season:christmas,tv,33153,-1,Fanny e Alexander,claude-0511,abuso infantil e luto; o filme já sai por pesado

@@ -3,7 +3,7 @@ chuva,who,1,movie,80,150,,,,0,,,,,,,,catharsis:0.35;mind-blowing:0.25;romantic:0
 amor,who,2,,80,140,,,,0,,,6.5,,dark-and-scary,,heavy,romantic:0.6;laugh-out-loud:0.2;catharsis:0.15;adventures:0.1,romance;love;romantic;romcom;first love;falling in love;lovers;sentimental;heartwarming;hopeful,tragic;depressing;grief;loss of loved one;war;suicide,amor,,,Com quem eu amo,With the one I love
 familia,who,3,,,130,,,,0,,,,12,dark-and-scary,moods=family-time;genres=16|10751;genre_weight=0.5,heavy_family,family-time:0.7,friendship;heartwarming;cheerful;whimsical;comforting;joyous;lighthearted;hopeful;playful,,familia,,,Domingo em família,Family Sunday
 galera,who,4,,,130,,,,0,1000,300,,,,,,laugh-out-loud:0.45;adrenaline:0.45;dark-and-scary:0.35;adventures:0.3,hilarious;absurd;dark comedy;amused;witty;parody;farce;heist;zombie;slasher;suspenseful;intense,tragic;depressing;grief;loss of loved one;war;suicide,galera,,,Com a galera,With the crew
-noventa,time,5,movie,60,100,,,,0,,,,,,,,*:1,,,,,,Tenho 90 minutos,I've got 90 minutes
+noventa,time,5,movie,60,90,,,,0,,,,,,,,*:1,,,,,,Tenho 90 minutos,I've got 90 minutes
 episodio,time,6,tv,,,35,,,0,,,,,,,,*:1,,,,,,Só um episódio,Just one episode
 maratona,time,7,tv,,,,180,1200,1,,,,,,,,*:1,suspenseful;intense,,maratona,,,Maratona de fim de semana,Weekend binge
 chorar,feel,8,,,,,,,0,,,,,,,,catharsis:0.45;romantic:0.25;family-time:0.15,tragic;grief;sadness;loss of loved one;tearjerker;empathetic;sentimental;bittersweet;melancholy;depressing,hilarious;amused;parody;sitcom;farce;playful;witty;satire;absurd,choro,,,Quero chorar,I want a good cry
@@ -12,4 +12,4 @@ susto,feel,10,,,,,,,0,,,,,,,,dark-and-scary:0.55;mind-blowing:0.1,suspenseful;te
 no,feel,11,,,,,,,0,,,,,,,,mind-blowing:0.55;drug-trip:0.3,complex;nonlinear timeline;time loop;surrealism;surreal;psychological thriller;whodunit;ambiguous;dystopia;time travel;philosophical;existentialism;twist ending;plot twist,,,,,Um nó na cabeça,Twist my brain
 colo,feel,12,,,120,45,,,0,300,,6.8,,dark-and-scary,,heavy_family;sad,laugh-out-loud:0.35;family-time:0.35;romantic:0.3;adventures:0.2,comforting;cheerful;heartwarming;hopeful;whimsical;lighthearted;joyous;friendship;playful;nostalgic;amused,,,cypher,,"Dia ruim, quero colo","Bad day, comfort me"
 season:halloween,season,13,,,,,,,0,,,,,,,,,halloween,,,,halloween,Noite de Halloween,Halloween night
-season:christmas,season,14,,,,,,,0,,,,,,,,,christmas,,,,christmas,Clima de Natal,Christmas mood
+season:christmas,season,14,,,,,,,0,,,,,dark-and-scary;drug-trip,,heavy,,christmas,,,,christmas,Clima de Natal,Christmas mood

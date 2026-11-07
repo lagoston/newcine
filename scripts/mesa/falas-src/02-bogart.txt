@@ -47,20 +47,20 @@ B202 | bogart | verdict | exact | P2 | - | {nota}, na mosca! E olha que eu nem t
 B203 | bogart | verdict | exact | P2 | - | Exatamente {nota}! Alguém chama o Vovô pra ver isso. VOVÔ! | Exactly {nota}! Somebody get Gramps in here. GRAMPS!
 B204 | bogart | verdict | exact | P2 | - | {nota}. Previsão de sapo é que nem previsão do tempo: hoje acertou. | {nota}. Frog forecasts are like weather forecasts: today it was right.
 B211 | bogart | verdict | near | P2 | - | {nota}. Quase na mosca. E mosca é comigo, girino. | {nota}. Almost on the fly. And flies are my thing, tadpole.
-B212 | bogart | verdict | near | P2 | - | Errei por um. Um! Isso no pântano é considerado acerto. | Off by one. One! In the swamp, that counts as a hit.
+B212 | bogart | verdict | near | P2 | - | Por um ponto! Um! Isso no pântano é considerado acerto. | By one point! One! In the swamp, that counts as a hit.
 B213 | bogart | verdict | near | P2 | - | {nota}? Por um tantinho. Arredonda pra mim, vai. | {nota}? By a hair. Round it up for me, come on.
-B214 | bogart | verdict | near | P2 | - | Um ponto. Foi o refrigerante que errou, não eu. | One point. The soda got it wrong, not me.
-B221 | bogart | verdict | over | P2 | - | {nota}?! Mais do que eu disse! Vou contar pro pântano inteiro. | {nota}?! More than I said! I'm telling the whole swamp.
-B222 | bogart | verdict | over | P2 | - | Gostou mais do que eu imaginava! Errei pra cima. Melhor jeito de errar. | You liked it more than I thought! Wrong in the right direction. Best way to miss.
-B223 | bogart | verdict | over | P2 | - | {nota}! Eu disse que era bom. Não disse que era TÃO bom. Croac! | {nota}! I said it was good. I didn't say it was THAT good. Ribbit!
-B224 | bogart | verdict | over,r10 | P2 | - | Dez?! Eu fui modesto! Primeira vez na história que um sapo é modesto! | Ten?! I was being modest! First time in history a frog was modest!
-B225 | bogart | verdict | over,r10 | P2 | - | Um 10 que nem eu vi chegando. Me abana, girino. | A 10 even I didn't see coming. Fan me, tadpole.
-B231 | bogart | verdict | under | P2 | - | Errei feio, girino. Vou pensar na vida lá no pântano. | Missed by a mile, tadpole. I'll go think about life in the swamp.
-B232 | bogart | verdict | under | P2 | - | {nota}. Ai. Vou devolver a pipoca. Não tem reembolso? Que absurdo. | {nota}. Ouch. I'm returning the popcorn. No refunds? Outrageous.
-B233 | bogart | verdict | under | P2 | - | {nota}... Tá. Nem todo sucesso é sucesso no seu sofá. Anotado. | {nota}... Okay. Not every hit is a hit on your couch. Noted.
-B234 | bogart | verdict | under | P2 | - | Erro meu. A Cobra vai rir disso por uma semana. | My mistake. The Snake will laugh about this for a week.
-B235 | bogart | verdict | under,r_low | P2 | - | {nota}?! Vou ali me esconder debaixo da vitória-régia. | {nota}?! I'll be hiding under the lily pad.
-B236 | bogart | verdict | under,r_low | P2 | - | {nota}. Esse vai pro meu caderno de vergonhas. Página dupla. | {nota}. This one goes in my book of shame. Double page.
+B214 | bogart | verdict | near | P2 | - | Um ponto. Na mosca, com uma asinha de lado. | One point. Right on the fly, one wing off.
+B221 | bogart | verdict | over | P2 | - | {nota}?! Mais do que eu disse! Anotei no pântano: você gosta disso mais do que parece. | {nota}?! More than I said! Swamp memo: you like this stuff more than it looks.
+B222 | bogart | verdict | over | P2 | - | Gostou mais do que eu imaginava! Agora eu sei. Sapo velho aprende rápido. | You liked it more than I imagined! Now I know. This old frog learns fast.
+B223 | bogart | verdict | over | P2 | - | {nota}! Eu disse bom, você disse ÓTIMO. Anotado de caneta, girino. | {nota}! I said good, you said GREAT. Noted in pen, tadpole.
+B224 | bogart | verdict | over,r10 | P2 | - | Dez?! Isso eu não sabia de você. Agora sei, e não esqueço nunca mais. | Ten?! I didn't know that about you. Now I do, and I'll never forget.
+B225 | bogart | verdict | over,r10 | P2 | - | Um 10! Essa me ensinou mais sobre você que um mês de pipoca. | A 10! That taught me more about you than a month of popcorn.
+B231 | bogart | verdict | under | P2 | - | {nota}. Anotado, girino. Agora eu sei o que não é pipoca pra você. | {nota}. Noted, tadpole. Now I know what isn't popcorn for you.
+B232 | bogart | verdict | under | P2 | - | {nota}. Esse não desceu, né? Guardei a lição junto com a pipoca. | {nota}. That one didn't go down, huh? I saved the lesson with the popcorn.
+B233 | bogart | verdict | under | P2 | - | {nota}. Nem todo sucesso é sucesso no seu sofá. Isso o sapo agora sabe. | {nota}. Not every hit is a hit on your couch. The frog knows that now.
+B234 | bogart | verdict | under | P2 | - | {nota}. Belo jeito de me ensinar. A Cobra que nem pense em rir. | {nota}. Nice way to teach me. The Snake had better not laugh.
+B235 | bogart | verdict | under,r_low | P2 | - | {nota}?! Recado recebido, alto e bom som. O pântano inteiro anotou. | {nota}?! Message received, loud and clear. The whole swamp took notes.
+B236 | bogart | verdict | under,r_low | P2 | - | {nota}. Página nova no caderninho: isso o girino não engole. | {nota}. New page in my notebook: the tadpole won't swallow this.
 B241 | bogart | verdict | ten | P2 | - | DEZ! Eu sabia! Alguém segura a minha pipoca, vou chorar. | TEN! I knew it! Somebody hold my popcorn, I'm gonna cry.
 B242 | bogart | verdict | ten | P2 | - | Dez! Sapo velho, pipoca nova e um 10 seu. Dia perfeito. | Ten! Old frog, fresh popcorn and a 10 from you. Perfect day.
 B243 | bogart | verdict | ten | P2 | - | Um 10! Eu falei, girino. Falei de boca cheia, mas falei. | A 10! I told you, tadpole. With my mouth full, but I told you.
@@ -72,15 +72,15 @@ B252 | bogart | verdict | nopred | P2 | - | {nota}! Agora eu começo a te entend
 B301 | bogart | verdictLater | exact | P2 | - | {titulo} levou {nota}. Fui eu que trouxe, hein. Croac de orgulho. | {titulo} got a {nota}. I brought that one, you know. Proud ribbit.
 B302 | bogart | verdictLater | exact | P2 | - | Vi que você deu {nota} pro meu de {dia_semana}. Cravado. Pode aplaudir. | Saw you gave my {dia_semana} pick a {nota}. Spot on. You may applaud.
 B303 | bogart | verdictLater | exact,yesterday_card | P2 | - | Ontem eu trouxe, você deu {nota}. Na mosca. Sapo é ciência. | I brought it yesterday, you gave it a {nota}. Right on the fly. Frogging is science.
-B311 | bogart | verdictLater | near | P2 | - | {titulo} levou {nota}. Errei por um. No pântano isso é festa. | {titulo} got a {nota}. Off by one. In the swamp, that's a party.
+B311 | bogart | verdictLater | near | P2 | - | {titulo} levou {nota}. Por um ponto! No pântano isso é festa. | {titulo} got a {nota}. One point away! In the swamp, that's a party.
 B312 | bogart | verdictLater | near | P2 | - | Você deu {nota} pro meu de {dia_semana}. Quase! Quase conta, né? | You gave my {dia_semana} pick a {nota}. Close! Close counts, right?
 B313 | bogart | verdictLater | near | P2 | - | {titulo} levou {nota}. Sapo não briga por um ponto. | {titulo} got a {nota}. A frog won't fight over one point.
-B321 | bogart | verdictLater | over | P2 | - | {titulo} levou {nota}?! Mais do que eu esperava! Contei pro pântano. | {titulo} got a {nota}?! More than I expected! I told the swamp.
-B322 | bogart | verdictLater | over | P2 | - | Você deu {nota} pro meu de {dia_semana}. Mais do que eu previa. Sapo feliz! | You gave my {dia_semana} pick a {nota}. More than I called. Happy frog!
-B323 | bogart | verdictLater | over,r10 | P2 | - | {titulo} levou 10! Eu achava só bom. Chega de modéstia. | {titulo} got a 10! I had it as just good. No more modesty.
-B331 | bogart | verdictLater | under | P2 | - | {titulo} levou {nota}. Dormi mal. Sonhei com pipoca murcha. | {titulo} got a {nota}. Slept badly. Dreamed of stale popcorn.
-B332 | bogart | verdictLater | under | P2 | - | Você deu {nota} pro meu de {dia_semana}. Ai. Fui pensar na vida no pântano. | You gave my {dia_semana} pick a {nota}. Ouch. Went to think about life in the swamp.
-B333 | bogart | verdictLater | under,r_low | P2 | - | {titulo} levou {nota}. Pode falar, eu aguento. Não aguento. Fala. | {titulo} got a {nota}. Say it. I can take it. I can't, but say it.
+B321 | bogart | verdictLater | over | P2 | - | {titulo} levou {nota}?! Isso me ensinou um bocado sobre você. | {titulo} got a {nota}?! That taught me a lot about you.
+B322 | bogart | verdictLater | over | P2 | - | Você deu {nota} pro meu de {dia_semana}. Sapo feliz, e sapo mais sabido. | You gave my {dia_semana} pick a {nota}. Happy frog, and a wiser one.
+B323 | bogart | verdictLater | over,r10 | P2 | - | {titulo} levou 10! Agora eu sei do que você gosta de verdade. | {titulo} got a 10! Now I know what you really love.
+B331 | bogart | verdictLater | under | P2 | - | {titulo} levou {nota}. Isso muda o que eu sei de você. Pra melhor. | {titulo} got a {nota}. That changes what I know about you.
+B332 | bogart | verdictLater | under | P2 | - | Você deu {nota} pro meu de {dia_semana}. Aprendi. Sapo velho aprende, sim. | You gave my {dia_semana} pick a {nota}. Lesson learned. Old frogs do learn.
+B333 | bogart | verdictLater | under,r_low | P2 | - | {titulo} levou {nota}. Recado recebido. A mesa de hoje já sabe. | {titulo} got a {nota}. Message received. Today's table knows.
 B341 | bogart | verdictLater | ten | P2 | - | {titulo} levou 10! Eu disse! De boca cheia, mas disse! | {titulo} got a 10! I said so! Mouth full, but I said so!
 B342 | bogart | verdictLater | ten | P2 | - | Um 10 pro meu de {dia_semana}! Dormi agarrado no balde de pipoca. | A 10 for my {dia_semana} pick! I slept hugging the popcorn bucket.
 B343 | bogart | verdictLater | ten,yesterday_card | P2 | - | Ontem eu trouxe, você deu 10. Hoje o sapo acordou se achando. | I brought it yesterday, you gave it a 10. The frog woke up full of himself.

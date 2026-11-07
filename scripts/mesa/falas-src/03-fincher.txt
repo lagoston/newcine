@@ -50,17 +50,17 @@ F211 | fincher | verdict | near | P2 | - | Um ponto de diferença. Na minha épo
 F212 | fincher | verdict | near | P2 | - | {nota}. Quase. Um fotograma fora do lugar, nada mais. | {nota}. Close. One frame out of place, nothing more.
 F213 | fincher | verdict | near | P2 | - | {nota}. Por um ponto. Até Hitchcock refazia uma tomada. | {nota}. By one point. Even Hitchcock reshot a take.
 F214 | fincher | verdict | near | P2 | - | Perto. Foco quase perfeito. Ajusto a lente na próxima. | Close. Focus almost perfect. I'll adjust the lens next time.
-F221 | fincher | verdict | over | P2 | - | Mais do que eu disse. Gosto quando a película me desmente. | More than I said. I love it when the film proves me wrong.
-F222 | fincher | verdict | over | P2 | - | {nota}? Subestimei. Isto não é mais o Kansas, e eu não sou infalível. | {nota}? I underestimated it. This isn't Kansas anymore, and I'm not infallible.
-F223 | fincher | verdict | over | P2 | - | {nota}. Você viu algo que eu não vi. Isso é raro. Anoto com respeito. | {nota}. You saw something I didn't. That's rare. Noted with respect.
-F224 | fincher | verdict | over,r10 | P2 | - | Um 10 onde eu esperava menos. Tiro o chapéu. Literalmente. | A 10 where I expected less. Hat off. Literally.
-F225 | fincher | verdict | over,r10 | P2 | - | Dez. Eu fui conservador, e o filme foi generoso. | Ten. I was conservative, and the film was generous.
-F231 | fincher | verdict | under | P2 | - | {nota}. Anotado. Até raposa velha erra o corte. | {nota}. Noted. Even an old fox botches a cut.
-F232 | fincher | verdict | under | P2 | - | {nota}. O rolo arrebentou no meio. Acontece nas melhores salas. | {nota}. The reel snapped mid-show. It happens in the best theaters.
-F233 | fincher | verdict | under | P2 | - | {nota}. Nem todo clássico conversa com todo mundo. Disso eu também lembro. | {nota}. Not every classic speaks to everyone. I remember that too.
-F234 | fincher | verdict | under | P2 | - | Errei a lente. O Crítico vai comemorar com pipoca, eu sei. | Wrong lens. The Critic will celebrate with popcorn, I know.
-F235 | fincher | verdict | under,r_low | P2 | - | {nota}. Vou rebobinar a minha confiança e guardar na lata. | {nota}. I'll rewind my confidence and put it back in the can.
-F236 | fincher | verdict | under,r_low | P2 | - | {nota}. Sem palavras. Como no cinema mudo: só a cara. | {nota}. Speechless. Like the silent era: just the face.
+F221 | fincher | verdict | over | P2 | - | Mais do que eu disse. Anoto na sua ficha: isso mexe com você. | More than I said. Noted on your file: this one moves you.
+F222 | fincher | verdict | over | P2 | - | {nota}? Isto não é mais o Kansas. Bom saber de que lado do arco-íris você mora. | {nota}? This isn't Kansas anymore. Good to know which side of the rainbow you live on.
+F223 | fincher | verdict | over | P2 | - | {nota}. Você viu algo que eu ainda não tinha visto. Agora eu vejo também. | {nota}. You saw something I hadn't seen yet. Now I see it too.
+F224 | fincher | verdict | over,r10 | P2 | - | Um 10. Tiro o chapéu e reescrevo a sua ficha. Com prazer. | A 10. Hat off, and I'm rewriting your file. With pleasure.
+F225 | fincher | verdict | over,r10 | P2 | - | Dez. Agora eu sei onde mora o seu coração de cinema. | Ten. Now I know where your movie heart lives.
+F231 | fincher | verdict | under | P2 | - | {nota}. Anotado. Raposa velha também aprende truque novo. | {nota}. Noted. An old fox learns new tricks too.
+F232 | fincher | verdict | under | P2 | - | {nota}. Troco o rolo. Agora eu sei o que não roda na sua sala. | {nota}. Changing reels. Now I know what doesn't play in your room.
+F233 | fincher | verdict | under | P2 | - | {nota}. Nem todo clássico conversa com você. Disso eu vou lembrar. | {nota}. Not every classic speaks to you. I'll remember that.
+F234 | fincher | verdict | under | P2 | - | {nota}. Ajustei a lente. A sua imagem está mais nítida agora. | {nota}. Lens adjusted. Your picture is sharper now.
+F235 | fincher | verdict | under,r_low | P2 | - | {nota}. Recado claro como cópia restaurada. Está na sua ficha. | {nota}. A message as clear as a restored print. It's on your file.
+F236 | fincher | verdict | under,r_low | P2 | - | {nota}. Como no cinema mudo: nem precisou de palavra. Entendi. | {nota}. Like the silent era: no words needed. Understood.
 F241 | fincher | verdict | ten | P2 | - | Um 10. Guarde a data. Eu guardo todas. | A 10. Mark the date. I mark them all.
 F242 | fincher | verdict | ten | P2 | - | Dez. Um clássico achou o seu lugar na sua estante. | Ten. A classic found its place on your shelf.
 F243 | fincher | verdict | ten | P2 | - | Um 10. Isto merece um close-up. | A 10. This deserves a close-up.
@@ -75,12 +75,12 @@ F303 | fincher | verdictLater | exact,yesterday_card | P2 | - | Ontem eu trouxe,
 F311 | fincher | verdictLater | near | P2 | - | {titulo} levou {nota}. A memória é boa, a lente quase. | {titulo} got a {nota}. The memory's good, the lens nearly so.
 F312 | fincher | verdictLater | near | P2 | - | A minha de {dia_semana} levou {nota}. Perto o bastante para um aceno de chapéu. | My {dia_semana} pick got a {nota}. Close enough for a tip of the hat.
 F313 | fincher | verdictLater | near | P2 | - | {titulo} levou {nota}. Um ponto não estraga uma sessão. | {titulo} got a {nota}. One point doesn't ruin a screening.
-F321 | fincher | verdictLater | over | P2 | - | {titulo} levou {nota}. A película me desmentiu, e eu gostei. | {titulo} got a {nota}. The film proved me wrong, and I liked it.
-F322 | fincher | verdictLater | over | P2 | - | Você deu {nota} à minha de {dia_semana}. Raposa velha também erra para cima. | You gave my {dia_semana} pick a {nota}. Old foxes miss upward too.
-F323 | fincher | verdictLater | over,r10 | P2 | - | {titulo} levou 10. Eu disse menos. Corrijo a ficha com prazer. | {titulo} got a 10. I said less. Happy to correct the file.
-F331 | fincher | verdictLater | under | P2 | - | {titulo} levou {nota}. Passei a noite rebobinando onde errei. | {titulo} got a {nota}. I spent the night rewinding my mistake.
-F332 | fincher | verdictLater | under | P2 | - | A minha de {dia_semana} levou {nota}. O Crítico deve estar rindo. Que ria. | My {dia_semana} pick got a {nota}. The Critic must be laughing. Let him.
-F333 | fincher | verdictLater | under,r_low | P2 | - | {titulo} levou {nota}. Hoje o projetor acordou envergonhado. | {titulo} got a {nota}. The projector woke up embarrassed today.
+F321 | fincher | verdictLater | over | P2 | - | {titulo} levou {nota}. Anotei na sua ficha, com sublinhado. | {titulo} got a {nota}. Noted on your file, underlined.
+F322 | fincher | verdictLater | over | P2 | - | Você deu {nota} à minha de {dia_semana}. Eu lembro, e agora lembro melhor. | You gave my {dia_semana} pick a {nota}. I remember, and now I remember better.
+F323 | fincher | verdictLater | over,r10 | P2 | - | {titulo} levou 10. Atualizei a sua ficha com o maior prazer. | {titulo} got a 10. I updated your file with great pleasure.
+F331 | fincher | verdictLater | under | P2 | - | {titulo} levou {nota}. Revi a sua ficha a noite toda. Valeu. | {titulo} got a {nota}. I went over your file all night. Worth it.
+F332 | fincher | verdictLater | under | P2 | - | A minha de {dia_semana} levou {nota}. Eu lembro, e a carta de hoje também. | My {dia_semana} pick got a {nota}. I remember, and so does today's card.
+F333 | fincher | verdictLater | under,r_low | P2 | - | {titulo} levou {nota}. Recado recebido na cabine. Projetor ajustado. | {titulo} got a {nota}. Message received in the booth. Lens adjusted.
 F341 | fincher | verdictLater | ten | P2 | - | {titulo} levou 10. Guarde a data. Eu já guardei. | {titulo} got a 10. Mark the date. I already did.
 F342 | fincher | verdictLater | ten | P2 | - | Um 10 para a minha de {dia_semana}. Acendi um charuto. Só um. | A 10 for my {dia_semana} pick. I lit a cigar. Just one.
 F343 | fincher | verdictLater | ten,yesterday_card | P2 | - | Ontem a minha carta, agora um 10 na sua estante. Isto é cinema. | Yesterday my card, now a 10 on your shelf. That's cinema.

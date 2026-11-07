@@ -63,19 +63,19 @@ C202 | cypher | verdict | exact | P2 | - | {nota}. Eu sabia como você ia morder
 C203 | cypher | verdict | exact | P2 | - | {nota}, na veia. Doeu? Em mim, não. | {nota}, straight into the vein. Did it hurt? Not me.
 C204 | cypher | verdict | exact | P2 | - | {nota}. Você é mais previsível do que pensa, criatura. | {nota}. You're more predictable than you think, creature.
 C211 | cypher | verdict | near | P2 | - | Um ponto de diferença. Eu chamo isso de intimidade. | One point off. I call that intimacy.
-C212 | cypher | verdict | near | P2 | - | {nota}. Quase. Eu gosto de errar perto. Fica mais tenso. | {nota}. Close. I like missing by a little. It's more tense.
+C212 | cypher | verdict | near | P2 | - | {nota}. Quase na veia. Perto assim, eu chamo de acerto. | {nota}. Almost in the vein. This close, I call it a hit.
 C213 | cypher | verdict | near | P2 | - | Por um ponto. Você escapou do bote, mas sentiu o vento. | By one point. You dodged the strike, but felt the breeze.
 C214 | cypher | verdict | near | P2 | - | {nota}. Um ponto. A cobra roçou, não mordeu. | {nota}. One point. The snake grazed you, didn't bite.
-C221 | cypher | verdict | over | P2 | - | Mordeu mais fundo do que eu esperava. Delícia. | You bit deeper than I expected. Delicious.
-C222 | cypher | verdict | over | P2 | - | {nota}? Mais do que eu esperava. Isso me deixa curiosa. | {nota}? More than I expected. That makes me curious.
+C221 | cypher | verdict | over | P2 | - | Mordeu mais fundo do que eu esperava. Agora eu sei o tamanho da sua fome. | You bit deeper than I expected. Now I know how hungry you are.
+C222 | cypher | verdict | over | P2 | - | {nota}? Que surpresa boa. Acabei de aprender uma coisa sobre você. | {nota}? What a lovely surprise. I just learned something about you.
 C223 | cypher | verdict | over | P2 | - | {nota}. Eu disse que era um desafio. Não disse que você ia vencer. | {nota}. I said it was a challenge. I didn't say you'd win.
 C224 | cypher | verdict | over,r10 | P2 | - | Dez? Num desafio meu? Você é um perigo, criatura. | Ten? On one of my challenges? You're a menace, creature.
-C225 | cypher | verdict | over,r10 | P2 | - | Um 10 que nem eu vi chegando. Agora quem ficou com medo fui eu. | A 10 even I didn't see coming. Now I'm the scared one.
-C231 | cypher | verdict | under | P2 | - | Errei com convicção. Também é arte. | Wrong with conviction. That's art too.
+C225 | cypher | verdict | over,r10 | P2 | - | Um 10 num desafio. Troquei de pele: agora eu te enxergo melhor. | A 10 on a challenge. I shed my skin: now I see you better.
+C231 | cypher | verdict | under | P2 | - | {nota}. Agora eu sei onde fica a sua cerca. Cobra decora caminho. | {nota}. Now I know where your fence is. Snakes memorize paths.
 C232 | cypher | verdict | under | P2 | - | {nota}? Ótimo. Agora sei onde você não morde. | {nota}? Good. Now I know where you won't bite.
-C233 | cypher | verdict | under | P2 | - | {nota}. O veneno não pegou. Troco de pele e volto. | {nota}. The venom didn't take. I'll shed my skin and come back.
-C234 | cypher | verdict | under | P2 | - | Errei. Não conte pro sapinho. Ele vai coaxar a semana inteira. | I missed. Don't tell the froggy. He'll croak about it all week.
-C235 | cypher | verdict | under,r_low | P2 | - | {nota}. Que delícia de ódio. Guardo com carinho. | {nota}. What delicious hatred. I'll keep it close.
+C233 | cypher | verdict | under | P2 | - | {nota}. Esse veneno não é o seu. Já sei qual não usar. | {nota}. That venom isn't yours. Now I know which one not to use.
+C234 | cypher | verdict | under | P2 | - | {nota}. Não conte pro sapinho. Mas eu aprendi, e ele nunca aprende. | {nota}. Don't tell the froggy. But I learned, and he never does.
+C235 | cypher | verdict | under,r_low | P2 | - | {nota}. Que delícia de ódio. Guardo, e uso. | {nota}. What delicious hatred. I'll keep it, and use it.
 C236 | cypher | verdict | under,r_low | P2 | - | {nota}. Você odiou. Eu entendo. Eu adoro, mas entendo. | {nota}. You hated it. I get it. I love it, but I get it.
 C241 | cypher | verdict | ten | P2 | - | Um 10 da minha toca. Agora você é cria do ninho. | A 10 from my den. Now you're one of the nest.
 C242 | cypher | verdict | ten | P2 | - | Dez. Eu senti o cheiro desse 10 de longe. | Ten. I smelled that 10 from a mile away.
@@ -91,12 +91,12 @@ C303 | cypher | verdictLater | exact,yesterday_card | P2 | - | Ontem eu dei o bo
 C311 | cypher | verdictLater | near | P2 | - | {titulo} levou {nota}. Quase. Eu gosto do quase. Dá vontade. | {titulo} got a {nota}. Almost. I like almost. It's tempting.
 C312 | cypher | verdictLater | near | P2 | - | Aquela de {dia_semana} levou {nota}. Um ponto. Intimidade. | That {dia_semana} pick got a {nota}. One point. Intimacy.
 C313 | cypher | verdictLater | near | P2 | - | {titulo} levou {nota}. Raspou. Cobra que raspa volta. | {titulo} got a {nota}. A graze. A snake that grazes comes back.
-C321 | cypher | verdictLater | over | P2 | - | Você deu {nota} praquela de {dia_semana}. Eu sabia que você mordia. Não tanto. | You gave that {dia_semana} pick a {nota}. I knew you'd bite. Not that hard.
-C322 | cypher | verdictLater | over | P2 | - | {titulo} levou {nota}. Mais do que eu esperava. Você me assusta. | {titulo} got a {nota}. More than I expected. You scare me.
-C323 | cypher | verdictLater | over,r10 | P2 | - | {titulo} levou 10. Um desafio virou 10. Troquei de pele. | {titulo} got a 10. A challenge became a 10. I shed my skin.
-C331 | cypher | verdictLater | under | P2 | - | {titulo} levou {nota}. Errei com convicção. Repito: também é arte. | {titulo} got a {nota}. Wrong with conviction. Still art.
-C332 | cypher | verdictLater | under | P2 | - | Aquela de {dia_semana} levou {nota}. O sapinho deve estar rindo. Deixa. | That {dia_semana} pick got a {nota}. The froggy must be laughing. Let him.
-C333 | cypher | verdictLater | under,r_low | P2 | - | {titulo} levou {nota}. Você odiou com gosto. Eu respeito. | {titulo} got a {nota}. You hated it with gusto. I respect that.
+C321 | cypher | verdictLater | over | P2 | - | Você deu {nota} praquela de {dia_semana}. Mordeu fundo. Agora eu sei. | You gave that {dia_semana} pick a {nota}. You bit deep. Now I know.
+C322 | cypher | verdictLater | over | P2 | - | {titulo} levou {nota}. Surpresa boa. Agora te conheço melhor. | {titulo} got a {nota}. Lovely surprise. Now I know you better.
+C323 | cypher | verdictLater | over,r10 | P2 | - | {titulo} levou 10. Desafio vencido. Troquei de pele por você. | {titulo} got a 10. Challenge beaten. I shed my skin for you.
+C331 | cypher | verdictLater | under | P2 | - | {titulo} levou {nota}. Uma porta fechada também é um mapa. Guardei. | {titulo} got a {nota}. A closed door is a map too. Kept it.
+C332 | cypher | verdictLater | under | P2 | - | Aquela de {dia_semana} levou {nota}. O sapinho que ria. Eu aprendi. | That {dia_semana} pick got a {nota}. Let the froggy laugh. I learned.
+C333 | cypher | verdictLater | under,r_low | P2 | - | {titulo} levou {nota}. Você odiou com gosto. Anotei cada gota. | {titulo} got a {nota}. You hated it with gusto. I noted every drop.
 C341 | cypher | verdictLater | ten | P2 | - | {titulo} levou 10. Eu disse que você mordia. Engoliu inteiro. | {titulo} got a 10. I said you'd bite. You swallowed it whole.
 C342 | cypher | verdictLater | ten | P2 | - | Um 10 praquela de {dia_semana}. Dormi enrolada no orgulho. | A 10 for that {dia_semana} pick. I slept coiled in pride.
 C343 | cypher | verdictLater | ten,yesterday_card | P2 | - | Ontem a minha, agora um 10. Cobra não dorme. Espera. E ganha. | Yesterday mine, now a 10. Snakes don't sleep. They wait. And win.
