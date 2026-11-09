@@ -925,13 +925,8 @@
     },
     "libraryDoor": {
       "title": "The Oracles' Table",
-      "hint": "Three cards a day, drawn for you.",
-      "enter": "Enter",
-      "state": {
-        "fresh": "Three cards on the table, still face down.",
-        "partial": "You've flipped {{n}} of {{total}}.",
-        "done": "Today's cards have spoken."
-      }
+      "hint": "Films and series for your moment, picked by the three.",
+      "enter": "Enter"
     }
   },
   "profile": {
@@ -2342,213 +2337,63 @@
     }
   },
   "mesa": {
-    "title": "The Oracles' Table",
-    "top": {
-      "back": "Home",
-      "backAria": "Leave the Table",
-      "today": "Today's draw",
-      "onTable": "On the table: {{name}}",
-      "onTableAria": "Question on the table: {{name}}. Back to today's draw",
-      "clearAsk": "Back to today's draw",
-      "book": "Book",
-      "more": "More options"
-    },
-    "menu": {
-      "media": "What goes on the table",
-      "mediaAll": "Films and series",
-      "mediaMovie": "Films only",
-      "mediaTv": "Series only",
-      "soundOn": "Sound on",
-      "soundOff": "Sound off",
-      "flipAll": "Flip all three",
-      "acervo": "Open the Archive",
-      "how": "How the Table works"
-    },
-    "entrance": {
-      "dealing": "The oracles are dealing",
-      "skip": "Tap to skip"
-    },
-    "roles": {
-      "bogart": "the sure thing",
-      "fincher": "the discovery",
-      "cypher": "the challenge",
-      "espelho": "the mirror"
-    },
-    "espelho": {
-      "name": "The Mirror",
-      "aria": "The Mirror says"
-    },
-    "card": {
-      "backAria": "{{oracle}}'s card, face down. Flip.",
-      "sealedAria": "Cypher's card, sealed. Flip the other two first.",
-      "sealOpenAria": "Cypher's card. Break the seal.",
-      "faceAria": "{{oracle}}: {{title}}, {{year}}. Show the reading.",
-      "espelhoBackAria": "{{label}}, face down. Flip.",
-      "passedAria": "{{oracle}} passed today.",
-      "sealed": "Sealed",
-      "sealHint": "Flip the other two",
-      "sealTap": "Break the seal",
-      "passed": "passed",
-      "espelho4": "The fourth card",
-      "reveal": "The revelation card",
-      "recon": "Seen this one?",
-      "ownerSays": "its keeper says",
-      "second": "second opinion"
-    },
-    "pred": {
-      "aria": "Your predicted rating: {{n}}",
-      "guess": "hunch {{n}}",
-      "guessAria": "Rating hunch: {{n}}",
-      "hiddenAria": "Still getting to know you"
-    },
-    "actions": {
-      "want": "Want to watch",
-      "wantDone": "On your list",
-      "seen": "Seen it",
-      "refuse": "Not for me",
-      "notSeen": "Haven't seen it",
-      "details": "Full details",
-      "more": {
-        "bogart": "More from Bogart in {{mood}}",
-        "fincher": "More from Fincher in {{mood}}",
-        "cypher": "More from Cypher in {{mood}}"
-      }
-    },
-    "ruler": {
-      "title": "What's your rating?",
-      "aria": "Your rating, 0 to 10",
-      "cancel": "Cancel",
-      "saving": "Saving…",
-      "error": "Couldn't save your rating. Try again."
-    },
-    "reading": {
-      "aria": "The card's reading",
-      "empty": "Tap a card to flip it.",
-      "pick": "Tap a card to read what it says.",
-      "midnight": "At midnight, unflipped cards go back to the deck.",
-      "sealNext": "The Snake's opens after the other two.",
-      "kindMovie": "Film",
-      "kindTv": "Series",
-      "seasons_one": "{{count}} season",
-      "seasons_other": "{{count}} seasons",
-      "episodes": "{{min}}-min episodes",
-      "yourRating": "You gave it {{n}}",
-      "anchorOpen": "Open {{title}}"
-    },
-    "ask": {
-      "title": "Ask the Table",
-      "all": "All",
-      "allAria": "All questions",
-      "handAria": "Suggested questions",
-      "drawerTitle": "What do you want to ask?",
-      "drawerTitleShort": "What to ask?",
-      "drawerLead": "One question at a time. The same question on the same day brings the same cards.",
-      "group": {
-        "who": "Who with",
-        "time": "How much time",
-        "feel": "How you want to feel",
-        "mood": "A mood",
-        "season": "In season"
-      },
-      "moodAria": "Mood question: {{mood}}",
-      "onlyMovies": "Films only for this question",
-      "onlyTv": "Series only for this question",
-      "current": "on the table"
-    },
-    "book": {
-      "title": "The Book",
-      "subtitle": "What the Table has given you",
-      "empty": "Still blank. Flip a card and it stays here.",
-      "error": "Couldn't open the Book right now.",
-      "knowsBest": {
-        "bogart": "Who knows you best, for now: the Frog.",
-        "fincher": "Who knows you best, for now: the Fox.",
-        "cypher": "Who knows you best, for now: the Snake."
-      },
-      "today": "Today",
-      "yesterday": "Yesterday",
-      "daily": "today's draw",
-      "asked": "Question: {{name}}",
-      "state": {
-        "want": "On your list",
-        "seen": "You gave it {{n}}",
-        "refused": "Not for you",
-        "not_seen": "Not seen yet",
-        "up": "Flipped"
-      },
-      "more": "Earlier pages"
-    },
-    "recon": {
-      "progress": "{{count}} of 10",
-      "progressAria": "{{count}} of 10 titles until your Persona is revealed"
-    },
-    "newDay": {
-      "text": "A new draw is on the table.",
-      "cta": "Show"
-    },
-    "error": {
-      "retry": "Try again"
-    },
-    "toast": {
-      "wantError": "Couldn't add it to your list.",
-      "reactError": "Couldn't reach the Table right now."
-    },
-    "how": {
-      "title": "How the Table works",
-      "p1": "Every day, three cards: Bogart brings the sure thing, Fincher the discovery, Cypher the challenge. The Snake's opens only after the other two.",
-      "p2": "Each card says why it came. The small number is the rating the site predicts for you.",
-      "p3": "Seen it: rate it and the card is swapped. Want to watch: it goes to your list. Not for me: the oracle tries once more.",
-      "p4": "Ask the Table as often as you like. The same question on the same day brings the same cards.",
-      "p5": "At midnight, the cards you didn't flip go back to the deck. The ones you flipped stay in the Book."
-    },
-    "kbd": "Shortcuts: 1 2 3 flip the cards · P questions · L book",
-    "speech": {
-      "next": "Next line"
-    },
     "occasions": {
-      "chuva": { "name": "Just me and the rain", "short": "Me and the rain", "phrase": "Rain on the window and a film to match." },
-      "amor": { "name": "With the one I love", "short": "With my love", "phrase": "For sharing the couch and the blanket." },
-      "familia": { "name": "Family Sunday", "short": "Family Sunday", "phrase": "From grandpa to the little one, nobody leaves the room." },
-      "galera": { "name": "With the crew", "short": "With the crew", "phrase": "Shared popcorn, loud comments." },
-      "noventa": { "name": "I've got 90 minutes", "short": "90 minutes", "phrase": "Done before bedtime." },
-      "episodio": { "name": "Just one episode", "short": "One episode", "phrase": "Just one. Promise." },
-      "maratona": { "name": "Weekend binge", "short": "Weekend binge", "phrase": "Starts Friday, ends Sunday." },
-      "chorar": { "name": "I want a good cry", "short": "A good cry", "phrase": "Tissues ready. No shame." },
-      "rir": { "name": "Make me laugh out loud", "short": "Make me laugh", "phrase": "Until the neighbors complain." },
-      "susto": { "name": "Scare me", "short": "Scare me", "phrase": "Lights off, phone away." },
-      "no": { "name": "Twist my brain", "short": "Twist my brain", "phrase": "For pausing and rewinding." },
-      "colo": { "name": "Bad day, comfort me", "short": "Comfort me", "phrase": "Today the table plays it safe." },
-      "halloween": { "name": "Halloween night", "short": "Halloween", "phrase": "Pumpkin lit, courage out." },
-      "christmas": { "name": "Christmas mood", "short": "Christmas", "phrase": "Fairy lights on, hot cocoa ready." }
-    },
-    "reason": {
-      "anchor_director": "You gave {{title}} a {{rating}} · same director",
-      "anchor_kw": "You gave {{title}} a {{rating}} · {{themes}}",
-      "watchlistToday": "You saved this today",
-      "watchlist_one": "You saved this yesterday",
-      "watchlist_other": "On your list for {{count}} days",
-      "friend": "{{name}} gave it {{rating}}",
-      "friendOthers": "{{name}} gave it {{rating}}, and {{count}} more",
-      "mood_affinity": "In {{mood}}, you average {{avg}}",
-      "cypher_mood": "Outside your three shelves: {{mood}}",
-      "cypher_country": "New country on your shelf: {{country}}",
-      "cypher_decade": "You've never rated anything from the {{decade}}s",
-      "hidden": "Barely seen: {{votes}} votes",
-      "occasion_runtime": "Fits in {{duration}}",
-      "occasion_episode": "{{min}}-minute episodes",
-      "occasion_binge": "Finished series: {{hours}} h total",
-      "occasion_comment": {
-        "bogart": "The Frog said so",
-        "fincher": "The Fox said so",
-        "cypher": "The Snake said so"
+      "chuva": {
+        "name": "Just me and the rain",
+        "short": "Me and the rain"
       },
-      "occasion_tone": "{{occasion}}: {{themes}}",
-      "mood_ask": "{{mood}}, as you asked",
-      "recognition": "One of the most-watched in {{mood}}",
-      "espelho_best": "The mirror's pick: the closest thing to your 10s",
-      "reveal_one": "One rating here and the mirror reveals you. {{mood}} isn't on your shelf yet.",
-      "reveal_other": "{{count}} to go for your Persona. {{mood}} isn't on your shelf yet.",
-      "house": "House pick: well rated by those who've seen it"
+      "amor": {
+        "name": "With the one I love",
+        "short": "With my love"
+      },
+      "familia": {
+        "name": "Family Sunday",
+        "short": "Family Sunday"
+      },
+      "galera": {
+        "name": "With the crew",
+        "short": "With the crew"
+      },
+      "noventa": {
+        "name": "I've got 90 minutes",
+        "short": "90 minutes"
+      },
+      "episodio": {
+        "name": "Just one episode",
+        "short": "One episode"
+      },
+      "maratona": {
+        "name": "Weekend binge",
+        "short": "Weekend binge"
+      },
+      "chorar": {
+        "name": "I want a good cry",
+        "short": "A good cry"
+      },
+      "rir": {
+        "name": "Make me laugh out loud",
+        "short": "Make me laugh"
+      },
+      "susto": {
+        "name": "Scare me",
+        "short": "Scare me"
+      },
+      "no": {
+        "name": "Twist my brain",
+        "short": "Twist my brain"
+      },
+      "colo": {
+        "name": "Bad day, comfort me",
+        "short": "Comfort me"
+      },
+      "halloween": {
+        "name": "Halloween night",
+        "short": "Halloween"
+      },
+      "christmas": {
+        "name": "Christmas mood",
+        "short": "Christmas"
+      }
     }
   },
   "secretRoom": {
@@ -2643,26 +2488,42 @@
   },
   "acervo": {
     "title": "The Archive",
-    "back": "Table",
-    "backAria": "Back to the Table",
-    "lead": "The oracles' 27 shelves, in full. One at a time.",
+    "exitAria": "Leave the Archive",
     "oracleTab": "{{oracle}}'s shelves",
     "profileHint": "Tap again for the profile",
     "moodAria": "{{mood}} shelf",
     "movies": "Films",
     "series": "Series",
-    "count_one": "{{count}} title you haven't rated yet",
-    "count_other": "{{count}} titles you haven't rated yet",
-    "allDone": "You've rated everything on this shelf. Nice work.",
+    "occasionsLabel": "Occasions",
+    "occasionClear": "Clear the occasion",
+    "allMoods": "every mood",
+    "count_one": "{{count}} title",
+    "count_other": "{{count}} titles",
+    "allDone": "You've rated everything here.",
     "noSeries": "This shelf has no series yet.",
     "noMovies": "This shelf has no films yet.",
-    "error": "Couldn't open this shelf right now.",
+    "emptyOccasion": "Nothing from this oracle for this occasion.",
+    "passed": "{{oracle}} sits out “{{occasion}}”.",
+    "error": "Couldn't open this right now.",
     "retry": "Try again",
-    "askMood": "Ask the Table: {{mood}}",
     "pred": {
       "guess": "hunch {{n}}",
       "guessAria": "Rating hunch: {{n}}",
       "hiddenAria": "Still getting to know you"
+    },
+    "reason": {
+      "anchor_director": "You gave {{title}} a {{rating}} · same director",
+      "anchor_kw": "Shares {{theme}} with {{title}}",
+      "watchlist_one": "On your list",
+      "watchlist_other": "On your list for {{count}} days",
+      "friend": "{{name}} gave it {{rating}}",
+      "friendMore_one": "{{name}} gave it {{rating}} · 1 more friend",
+      "friendMore_other": "{{name}} gave it {{rating}} · {{count}} more friends",
+      "mood_affinity": "Your {{mood}} average: {{avg}}",
+      "cypher_mood": "Outside your shelves: {{mood}}",
+      "cypher_country": "New country for you: {{country}}",
+      "cypher_decade": "Nothing rated from the {{decade}}s",
+      "hidden": "Barely seen: {{votes}} votes"
     }
   },
   "jackpot": {

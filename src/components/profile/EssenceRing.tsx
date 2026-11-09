@@ -313,10 +313,10 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
         </div>
       </div>
 
-      {/* 05/11/2026: o humor escolhido vira a pergunta da Mesa ("Um humor"),
-          em vez da prateleira do Bogart na Biblioteca antiga. */}
+      {/* 09/11/2026: o humor escolhido abre a prateleira dele no Acervo (a
+          página única da Mesa dos Oráculos; a Mesa de cartas saiu). */}
       <Link
-        to={`/oracle/mesa?ask=mood:${selectedMood.key}`}
+        to={`/oracle/acervo?mood=${selectedMood.key}`}
         className={`mt-3 inline-flex items-center justify-start gap-1.5 text-sm font-medium rounded ${FOCUS_RING}`}
         style={{ color: selectedMood.color }}
       >

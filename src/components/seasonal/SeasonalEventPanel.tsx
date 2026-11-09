@@ -24,9 +24,9 @@ import { PortalSpiral } from '../secretRoom/TerrorPortal';
 import { BONE, CANDLE } from '../secretRoom/terrorTheme';
 
 // O atalho para a prateleira que também conta (ex.: Sombrio e Assustador no
-// Halloween) põe esse humor como pergunta na Mesa dos Oráculos, só com filmes
-// (05/11/2026; antes abria a Biblioteca do Bogart, que deixou de existir — os
-// três oráculos respondem a pergunta de humor, cada um do próprio acervo).
+// Halloween) abre esse humor no Acervo, só com filmes (09/11/2026; de 05 a
+// 09/11 era uma pergunta na Mesa de cartas, que saiu; antes, a Biblioteca do
+// Bogart). As abas do Acervo levam às prateleiras dos outros dois oráculos.
 
 // Painel do evento na home ("Recomendações de Halloween", "Recomendações de
 // Natal"): toma o lugar das Recomendações do Dia enquanto o evento está no
@@ -510,7 +510,7 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
                     return (
                       <Link
                         key={mood.key}
-                        to={`/oracle/mesa?ask=mood:${mood.key}&media=movie`}
+                        to={`/oracle/acervo?mood=${mood.key}&type=movie`}
                         className={`inline-flex items-center gap-2 min-h-[40px] pl-2.5 pr-3 rounded-xl text-sm font-semibold hover:bg-white/10 transition ${FOCUS_RING}`}
                         style={{ background: 'rgba(0,0,0,0.28)', color: PAPER, boxShadow: `inset 0 0 0 1px ${withAlpha(mood.color, 0.4)}` }}
                       >

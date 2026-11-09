@@ -1,52 +1,68 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { MOODS, MOOD_BY_KEY } from '../../lib/moods';
-import { mesaAcervo, type AcervoItem, type AcervoMedia } from '../../lib/mesa/acervoApi';
-import { getCachedPayload } from '../../lib/mesa/api';
-import { brtDay } from '../../lib/mesa/day';
-import type { OracleSlot, PredLabel } from '../../lib/mesa/types';
+import { AcervoError, mesaAcervo, type AcervoQuery } from '../../lib/mesa/acervoApi';
+import type { AcervoItem, AcervoMedia, AcervoOccasion, AcervoPage, OracleSlot, PredLabel } from '../../lib/mesa/types';
+import { MOODS } from '../../lib/moods';
 
-// Estado do Acervo (SPEC §2.13), 05/11/2026: UMA prateleira por vez
-// (oráculo × humor × filmes/séries), que cresce de 30 em 30 conforme a grade
-// chega ao fim. Nada de nove fileiras empilhadas como na Biblioteca antiga:
-// uma chamada por página, e a prateleira inteira para todos.
+// Estado do Acervo (05/11/2026; v2 em 09/11/2026): UMA prateleira por vez —
+// oráculo × humor × filmes/séries, ou oráculo × ocasião (todos os humores) —
+// que cresce de 30 em 30 conforme a grade chega ao fim.
+//
+// O que mudou na v2, por causa do erro das ocasiões da Mesa (a resposta
+// demorava, e uma resposta velha ou um erro tomava a tela):
+//   - cada filtro novo CANCELA o pedido anterior (AbortController); resposta
+//     atrasada nunca ocupa a grade;
+//   - enquanto o filtro novo carrega, a grade anterior fica na tela, apagada
+//     (`stale`), em vez de virar esqueleto a cada toque;
+//   - o humor padrão (o mais forte da pessoa) vem do próprio servidor: sem
+//     humor no endereço, o pedido sai com p_mood null e a resposta diz qual
+//     foi; a página grava na URL e o guardado já responde por ela.
 
 export interface AcervoShelf {
   key: string;
   status: 'loading' | 'ready' | 'error';
   items: AcervoItem[];
-  // Títulos da prateleira (com os já avaliados) e os que faltam avaliar.
+  // Os títulos na tela são de outro filtro (o novo ainda está carregando).
+  stale: boolean;
+  // O que o servidor resolveu (humor padrão, mídia de uma ocasião de um tipo só).
+  oracle: OracleSlot;
+  mood: string | null;
+  occasion: string | null;
+  media: AcervoMedia;
   total: number;
   unrated: number;
   nextOffset: number | null;
   predLabel: PredLabel;
+  passed: boolean;
   loadingMore: boolean;
   // A página seguinte falhou: a grade fica, e o fim mostra "Tentar de novo".
   moreError: boolean;
 }
 
-export const shelfKey = (oracle: OracleSlot, mood: string, media: AcervoMedia) => `${oracle}|${mood}|${media}`;
+export const shelfKey = (q: Pick<AcervoQuery, 'oracle' | 'mood' | 'occasion' | 'media'>) =>
+  `${q.oracle}|${q.occasion ? '' : q.mood ?? '*'}|${q.occasion ?? ''}|${q.media}`;
 
 const itemKey = (item: { tmdb_id: number; media_type: string }) => `${item.media_type}:${item.tmdb_id}`;
 
-// Guardado da sessão: voltar a uma prateleira já vista (trocar de humor e
-// voltar, ir à Mesa e voltar) reabre na hora. Vale 5 minutos — depois disso a
-// pessoa pode ter avaliado títulos em outra tela e a prateleira é refeita.
+// Guardado da sessão: voltar a um filtro já visto reabre na hora. Vale 5
+// minutos — depois disso a pessoa pode ter avaliado títulos em outra tela.
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const CACHE_MAX = 12;
+const CACHE_MAX = 16;
 const shelfCache = new Map<string, { at: number; shelf: AcervoShelf }>();
+
+// A última lista de ocasiões que o servidor mandou (só a 1ª página traz).
+let lastOccasions: AcervoOccasion[] | null = null;
 
 const readCache = (key: string): AcervoShelf | null => {
   const hit = shelfCache.get(key);
   if (!hit || Date.now() - hit.at > CACHE_TTL_MS) return null;
-  return hit.shelf;
+  return { ...hit.shelf, key };
 };
 
-const writeCache = (shelf: AcervoShelf) => {
-  if (shelf.status !== 'ready') return;
-  shelfCache.delete(shelf.key);
+const writeCache = (key: string, shelf: AcervoShelf) => {
+  if (shelf.status !== 'ready' || shelf.stale) return;
+  shelfCache.delete(key);
   // O que fica no guardado nunca está "carregando mais" nem com erro de página.
-  shelfCache.set(shelf.key, { at: Date.now(), shelf: { ...shelf, loadingMore: false, moreError: false } });
+  shelfCache.set(key, { at: Date.now(), shelf: { ...shelf, key, loadingMore: false, moreError: false } });
   while (shelfCache.size > CACHE_MAX) {
     const oldest = shelfCache.keys().next().value;
     if (oldest === undefined) break;
@@ -54,84 +70,127 @@ const writeCache = (shelf: AcervoShelf) => {
   }
 };
 
-const loadingShelf = (key: string): AcervoShelf => ({
+const fromPage = (key: string, page: AcervoPage): AcervoShelf => ({
   key,
-  status: 'loading',
-  items: [],
-  total: 0,
-  unrated: 0,
-  nextOffset: null,
-  predLabel: 'number',
+  status: 'ready',
+  items: page.items,
+  stale: false,
+  oracle: page.oracle,
+  mood: page.mood,
+  occasion: page.occasion,
+  media: page.media,
+  total: page.total,
+  unrated: page.unrated_total,
+  nextOffset: page.next_offset,
+  predLabel: page.pred_label,
+  passed: page.passed,
   loadingMore: false,
   moreError: false,
 });
 
-export function useAcervo(oracle: OracleSlot, mood: string | null, media: AcervoMedia) {
-  const key = mood ? shelfKey(oracle, mood, media) : null;
-  const [shelf, setShelf] = useState<AcervoShelf | null>(() => (key ? readCache(key) ?? loadingShelf(key) : null));
-  // Cada busca leva um número: a resposta de uma prateleira que a pessoa já
-  // trocou (atrasada) é descartada em vez de ocupar a grade nova.
-  const tokenRef = useRef(0);
+const emptyShelf = (key: string, q: AcervoQuery, status: AcervoShelf['status']): AcervoShelf => ({
+  key,
+  status,
+  items: [],
+  stale: false,
+  oracle: q.oracle,
+  mood: q.occasion ? null : q.mood,
+  occasion: q.occasion,
+  media: q.media,
+  total: 0,
+  unrated: 0,
+  nextOffset: null,
+  predLabel: 'number',
+  passed: false,
+  loadingMore: false,
+  moreError: false,
+});
+
+export function useAcervo(query: AcervoQuery) {
+  const { oracle, mood, occasion, media } = query;
+  const key = shelfKey({ oracle, mood, occasion, media });
+  const [shelf, setShelf] = useState<AcervoShelf>(() => readCache(key) ?? emptyShelf(key, query, 'loading'));
+  const [occasions, setOccasions] = useState<AcervoOccasion[] | null>(lastOccasions);
   const shelfRef = useRef(shelf);
   shelfRef.current = shelf;
-  const moreInFlight = useRef(false);
+  // O pedido em voo (primeira página ou seguinte): trocar de filtro cancela.
+  const firstCtl = useRef<AbortController | null>(null);
+  const moreCtl = useRef<AbortController | null>(null);
 
   const loadFirst = useCallback(
     (force = false) => {
-      if (!key || !mood) return;
-      const token = ++tokenRef.current;
-      moreInFlight.current = false;
+      firstCtl.current?.abort();
+      moreCtl.current?.abort();
+      const q: AcervoQuery = { oracle, mood: occasion ? null : mood, occasion, media, offset: 0 };
       const cached = force ? null : readCache(key);
       if (cached) {
+        firstCtl.current = null;
         setShelf(cached);
         return;
       }
-      setShelf(loadingShelf(key));
-      mesaAcervo(oracle, mood, media, 0)
+      const ctl = new AbortController();
+      firstCtl.current = ctl;
+      // A grade anterior fica na tela, apagada, até a nova chegar.
+      setShelf((prev) =>
+        prev.items.length && !prev.passed
+          ? { ...prev, key, status: 'loading', stale: true, loadingMore: false, moreError: false }
+          : emptyShelf(key, q, 'loading')
+      );
+      mesaAcervo(q, ctl.signal)
         .then((page) => {
-          if (token !== tokenRef.current) return;
-          const next: AcervoShelf = {
-            key,
-            status: 'ready',
-            items: page.items,
-            total: page.total,
-            unrated: page.unrated_total,
-            nextOffset: page.next_offset,
-            predLabel: page.pred_label,
-            loadingMore: false,
-            moreError: false,
-          };
-          writeCache(next);
+          if (ctl.signal.aborted) return;
+          firstCtl.current = null;
+          const next = fromPage(key, page);
+          writeCache(key, next);
+          // O mesmo resultado responde pelo filtro resolvido (humor padrão,
+          // mídia da ocasião), que a página grava na URL logo em seguida.
+          const resolved = shelfKey({ oracle: page.oracle, mood: page.mood, occasion: page.occasion, media: page.media });
+          if (resolved !== key) writeCache(resolved, next);
+          if (page.occasions) {
+            lastOccasions = page.occasions;
+            setOccasions(page.occasions);
+          }
           setShelf(next);
         })
-        .catch((error) => {
-          if (token !== tokenRef.current) return;
+        .catch((error: unknown) => {
+          if (ctl.signal.aborted || (error instanceof AcervoError && error.code === 'aborted')) return;
+          firstCtl.current = null;
           console.error(`Acervo ${key}:`, error);
-          setShelf({ ...loadingShelf(key), status: 'error' });
+          setShelf(emptyShelf(key, q, 'error'));
         });
     },
-    [key, oracle, mood, media]
+    [key, oracle, mood, occasion, media]
   );
 
   useEffect(() => {
     loadFirst();
   }, [loadFirst]);
 
-  // A próxima página (30), quando o fim da grade entra na tela.
+  // Saiu do Acervo: nada fica em voo.
+  useEffect(
+    () => () => {
+      firstCtl.current?.abort();
+      moreCtl.current?.abort();
+    },
+    []
+  );
+
+  // A próxima página (30), quando o fim da grade entra na tela. Usa o filtro
+  // que o servidor resolveu (o humor padrão já vem preenchido).
   const loadMore = useCallback(() => {
     const current = shelfRef.current;
-    if (!current || !mood || current.status !== 'ready' || current.nextOffset === null || moreInFlight.current) return;
-    moreInFlight.current = true;
-    const token = tokenRef.current;
+    if (current.status !== 'ready' || current.stale || current.nextOffset === null || moreCtl.current) return;
+    const ctl = new AbortController();
+    moreCtl.current = ctl;
     const forKey = current.key;
     const offset = current.nextOffset;
-    setShelf((prev) => (prev && prev.key === forKey ? { ...prev, loadingMore: true, moreError: false } : prev));
-    mesaAcervo(oracle, mood, media, offset)
+    setShelf((prev) => (prev.key === forKey ? { ...prev, loadingMore: true, moreError: false } : prev));
+    mesaAcervo({ oracle: current.oracle, mood: current.mood, occasion: current.occasion, media: current.media, offset }, ctl.signal)
       .then((page) => {
-        if (token !== tokenRef.current) return;
-        moreInFlight.current = false;
+        if (ctl.signal.aborted) return;
+        moreCtl.current = null;
         setShelf((prev) => {
-          if (!prev || prev.key !== forKey) return prev;
+          if (prev.key !== forKey) return prev;
           // Sem repetir título (uma nota dada no meio do caminho desloca a lista do servidor).
           const seen = new Set(prev.items.map(itemKey));
           const fresh = page.items.filter((item) => !seen.has(itemKey(item)));
@@ -144,40 +203,43 @@ export function useAcervo(oracle: OracleSlot, mood: string | null, media: Acervo
             loadingMore: false,
             moreError: false,
           };
-          writeCache(next);
+          writeCache(forKey, next);
           return next;
         });
       })
-      .catch((error) => {
-        if (token !== tokenRef.current) return;
-        moreInFlight.current = false;
+      .catch((error: unknown) => {
+        if (ctl.signal.aborted || (error instanceof AcervoError && error.code === 'aborted')) return;
+        moreCtl.current = null;
         console.error(`Acervo ${forKey} @${offset}:`, error);
-        setShelf((prev) => (prev && prev.key === forKey ? { ...prev, loadingMore: false, moreError: true } : prev));
+        setShelf((prev) => (prev.key === forKey ? { ...prev, loadingMore: false, moreError: true } : prev));
       });
-  }, [oracle, mood, media]);
+  }, []);
 
-  // A pessoa deu nota pelo menu do título: ele sai da prateleira (o servidor já
-  // não o devolve), e a próxima página começa uma posição antes.
-  const removeItem = useCallback((tmdbId: number, mediaType: 'movie' | 'tv') => {
+  // A pessoa deu nota pelo menu do título: ele sai da grade (o servidor já não
+  // o devolve), e a próxima página começa uma posição antes. Some também dos
+  // outros filtros guardados (o mesmo título pode estar numa ocasião).
+  const removeItem = useCallback((tmdbId: number, mediaType: AcervoMedia) => {
+    const target = `${mediaType}:${tmdbId}`;
+    shelfCache.forEach((entry, cacheKey) => {
+      if (entry.shelf.items.some((item) => itemKey(item) === target)) shelfCache.delete(cacheKey);
+    });
     setShelf((prev) => {
-      if (!prev || prev.status !== 'ready') return prev;
-      const target = `${mediaType}:${tmdbId}`;
-      if (!prev.items.some((item) => itemKey(item) === target)) return prev;
+      if (prev.status !== 'ready' || !prev.items.some((item) => itemKey(item) === target)) return prev;
       const next: AcervoShelf = {
         ...prev,
         items: prev.items.filter((item) => itemKey(item) !== target),
         unrated: Math.max(0, prev.unrated - 1),
         nextOffset: prev.nextOffset === null ? null : Math.max(0, prev.nextOffset - 1),
       };
-      writeCache(next);
+      writeCache(prev.key, next);
       return next;
     });
   }, []);
 
   // Entrou ou saiu da Watchlist pelo menu do título: só a marca muda.
-  const setWatchlist = useCallback((tmdbId: number, mediaType: 'movie' | 'tv', inWatchlist: boolean) => {
+  const setWatchlist = useCallback((tmdbId: number, mediaType: AcervoMedia, inWatchlist: boolean) => {
     setShelf((prev) => {
-      if (!prev || prev.status !== 'ready') return prev;
+      if (prev.status !== 'ready') return prev;
       const target = `${mediaType}:${tmdbId}`;
       let changed = false;
       const items = prev.items.map((item) => {
@@ -187,93 +249,24 @@ export function useAcervo(oracle: OracleSlot, mood: string | null, media: Acervo
       });
       if (!changed) return prev;
       const next = { ...prev, items };
-      writeCache(next);
+      writeCache(prev.key, next);
       return next;
     });
   }, []);
 
   const retry = useCallback(() => loadFirst(true), [loadFirst]);
 
-  // Enquanto a chave muda (antes do efeito rodar), não mostra a prateleira velha.
-  const visible = shelf && key && shelf.key === key ? shelf : key ? readCache(key) ?? loadingShelf(key) : null;
-  return { shelf: visible, loadMore, retry, removeItem, setWatchlist };
-}
+  // No render em que o filtro acabou de mudar (antes de o efeito rodar), a
+  // grade nunca se passa pela do filtro anterior: vem do guardado, ou apagada.
+  const visible: AcervoShelf =
+    shelf.key === key
+      ? shelf
+      : readCache(key) ??
+        (shelf.items.length && !shelf.passed
+          ? { ...shelf, key, status: 'loading', stale: true, loadingMore: false, moreError: false }
+          : emptyShelf(key, { oracle, mood: occasion ? null : mood, occasion, media }, 'loading'));
 
-// ---------------------------------------------------------------------------
-// O humor padrão (SPEC §2.13): sem ?mood=, vale o humor mais forte da pessoa
-// (o primeiro da ordem de favoritos calculada no servidor, a mesma que a
-// Biblioteca antiga usava para ordenar as prateleiras), ou "mind-blowing".
-// Guardado na sessão por pessoa: a segunda abertura não espera nada.
-// ---------------------------------------------------------------------------
-
-export const FALLBACK_MOOD = 'mind-blowing';
-const TOP_MOOD_KEY = (uid: string) => `cineoracle:acervo:topMood:${uid}`;
-// Sem resposta nesse tempo, abre no padrão (a prateleira não fica esperando).
-const TOP_MOOD_TIMEOUT_MS = 2500;
-
-// Quem veio da Mesa já tem o payload do dia na memória: o humor mais forte
-// vem de lá (me.top_moods[0]), sem consulta nenhuma.
-const topMoodFromMesa = (): string | null => {
-  const day = brtDay();
-  for (const media of ['all', 'movie', 'tv'] as const) {
-    const top = getCachedPayload(null, media, day)?.me.top_moods?.[0];
-    if (top && MOOD_BY_KEY[top]) return top;
-  }
-  return null;
-};
-
-const readTopMood = (uid: string): string | null => {
-  const fromMesa = topMoodFromMesa();
-  if (fromMesa) return fromMesa;
-  try {
-    const saved = window.sessionStorage.getItem(TOP_MOOD_KEY(uid));
-    return saved && MOOD_BY_KEY[saved] ? saved : null;
-  } catch {
-    return null;
-  }
-};
-
-export function useDefaultMood(uid: string | undefined, needed: boolean): string | null {
-  const [mood, setMood] = useState<string | null>(() => (uid ? readTopMood(uid) : null));
-  useEffect(() => {
-    if (!needed || mood) return;
-    if (!uid) {
-      setMood(FALLBACK_MOOD);
-      return;
-    }
-    const saved = readTopMood(uid);
-    if (saved) {
-      setMood(saved);
-      return;
-    }
-    let done = false;
-    const finish = (value: string) => {
-      if (done) return;
-      done = true;
-      setMood(value);
-    };
-    const timer = window.setTimeout(() => finish(FALLBACK_MOOD), TOP_MOOD_TIMEOUT_MS);
-    Promise.resolve(supabase.rpc('get_user_favorite_moods_order', { p_user_id: uid }))
-      .then(({ data, error }) => {
-        const rows = !error && Array.isArray(data) ? (data as { mood_key: string; score?: number }[]) : [];
-        // Só humores das 9 prateleiras (o "random-surprise" do banco fica de fora)
-        // e com alguma nota (score > 0); sem nenhum, vale o padrão.
-        const top = rows.find((row) => MOOD_BY_KEY[row.mood_key] && (row.score === undefined || row.score > 0))?.mood_key ?? FALLBACK_MOOD;
-        try {
-          window.sessionStorage.setItem(TOP_MOOD_KEY(uid), top);
-        } catch {
-          // sem armazenamento: vale só nesta visita
-        }
-        finish(top);
-      })
-      .catch(() => finish(FALLBACK_MOOD))
-      .finally(() => window.clearTimeout(timer));
-    return () => {
-      done = true;
-      window.clearTimeout(timer);
-    };
-  }, [uid, needed, mood]);
-  return needed ? mood : null;
+  return { shelf: visible, occasions, loadMore, retry, removeItem, setWatchlist };
 }
 
 export const isAcervoMood = (value: string | null | undefined): value is string => Boolean(value && MOODS.some((m) => m.key === value));

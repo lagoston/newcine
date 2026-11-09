@@ -105,8 +105,9 @@ const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect, movieOpen = fals
   const tabs: { to: string; label: string; icon?: typeof Home; active: boolean; here?: string }[] = [
     { to: '/', label: t('nav.home'), icon: Home, active: path === '/' || path.startsWith('/category/') || path.startsWith('/sala/') },
     { to: '/library', label: t('nav.library'), icon: LibraryIcon, active: path === '/library' || path === '/lists' || path === '/add-movies' },
-    // 05/11/2026: o olho abre A Mesa dos Oráculos; acende em Mesa, Acervo e Duelo.
-    { to: '/oracle/mesa', label: t('nav.oracle'), icon: Eye, active: path.startsWith('/oracle/'), here: '/oracle/mesa' },
+    // 09/11/2026: o olho abre o Acervo (a página única da Mesa dos Oráculos);
+    // acende em toda página /oracle/ (Acervo e Duelo).
+    { to: '/oracle/acervo', label: t('nav.oracle'), icon: Eye, active: path.startsWith('/oracle/'), here: '/oracle/acervo' },
     { to: '/community', label: t('nav.community'), icon: Users, active: path === '/community' || path.startsWith('/profile/') },
     { to: '/profile', label: t('nav.profile'), active: path === '/profile' || path.startsWith('/premium') },
   ];
@@ -149,13 +150,13 @@ const MobileDock: React.FC<MobileDockProps> = ({ onMovieSelect, movieOpen = fals
                         tabIndex={searchOpen ? -1 : undefined}
                         onClick={(e) => {
                           // Na aba em que já está: volta ao topo. Na do Oráculo,
-                          // dentro da Mesa, sem navegar (05/11/2026: navegar
-                          // tiraria a pergunta da vez, ?ask=, da mesa).
+                          // dentro do Acervo, sem navegar (09/11/2026: navegar
+                          // tiraria o filtro da vez, ?ocasiao= / ?mood=).
                           if (tab.here && path === tab.here) {
                             e.preventDefault();
-                            // A Mesa rola dentro da própria camada (.ms-scroll, MesaLayer).
-                            const mesaScroll = document.querySelector<HTMLElement>('.ms-scroll');
-                            if (mesaScroll) mesaScroll.scrollTo({ top: 0, behavior: 'smooth' });
+                            // O Acervo rola dentro da própria camada (.ac-scroll, AcervoLayer).
+                            const acervoScroll = document.querySelector<HTMLElement>('.ac-scroll');
+                            if (acervoScroll) acervoScroll.scrollTo({ top: 0, behavior: 'smooth' });
                             else window.scrollTo({ top: 0, behavior: 'smooth' });
                           } else if (tab.active && path === tab.to) {
                             window.scrollTo({ top: 0, behavior: 'smooth' });

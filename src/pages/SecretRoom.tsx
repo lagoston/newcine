@@ -503,8 +503,9 @@ const LockedRoom: React.FC<{ data: SecretRoomData; via: string | null }> = ({ da
           <div className="mt-7 flex flex-wrap justify-center gap-2.5">
             {reason === 'need_tag' && (
               // 05/11/2026: a tag do Terror vem de avaliar Sombrio e Assustador;
-              // o atalho pergunta esse humor à Mesa (a Biblioteca saiu).
-              <Link to="/oracle/mesa?ask=mood:dark-and-scary" className={BUTTON} style={{ background: CANDLE, color: CRYPT }}>
+              // 09/11/2026: o atalho abre essa prateleira no Acervo (a Mesa de
+              // cartas saiu).
+              <Link to="/oracle/acervo?mood=dark-and-scary" className={BUTTON} style={{ background: CANDLE, color: CRYPT }}>
                 <Skull className="w-4 h-4" aria-hidden />
                 {t('secretRoom.locked.openDark')}
               </Link>

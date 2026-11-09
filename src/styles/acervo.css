@@ -1,0 +1,58 @@
+/* ======================================================================
+   O Acervo dos oráculos (a Mesa dos Oráculos) · 09/11/2026
+   Importado só por AcervoLayer. Tudo com prefixo ac- para não vazar no resto
+   do site. Veio de styles/mesa.css (05/11), sem as cartas, os balões e o
+   selo de cera da tiragem de três cartas, que saiu.
+   ====================================================================== */
+
+.ac-layer {
+  -webkit-tap-highlight-color: transparent;
+  font-synthesis: none;
+}
+
+/* Cone de luz de cima: um gradiente parado (nada de backdrop-filter). */
+.ac-light {
+  background:
+    radial-gradient(ellipse 46% 80% at 50% -8%, rgba(243, 234, 211, 0.08), transparent 70%),
+    radial-gradient(ellipse 90% 40% at 50% 0%, rgba(185, 166, 255, 0.06), transparent 75%);
+}
+
+/* Grão de feltro: textura parada, pintada uma vez. */
+.ac-grain {
+  opacity: 0.07;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+.ac-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(189, 180, 214, 0.25) transparent;
+  /* O foco e o scrollIntoView param abaixo do topo fixo. */
+  scroll-padding-top: 72px;
+}
+
+/* Sem rolagem lateral em lugar nenhum da camada. */
+.ac-scroll > * {
+  max-width: 100%;
+}
+
+/* A fileira das ocasiões no celular: rola de lado dentro dela mesma (a página
+   não), sem barra visível, e as pontas esmaecem para mostrar que continua. */
+.ac-chips {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 24px), transparent 100%);
+}
+.ac-chips::-webkit-scrollbar {
+  display: none;
+}
+.ac-chips > * {
+  scroll-snap-align: start;
+}
+@media (min-width: 1024px) {
+  .ac-chips {
+    mask-image: none;
+  }
+}

@@ -1,38 +1,47 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Inbox, PartyPopper } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import MesaLayer, { useLayerStack, useMesaLayerEntry } from '../components/oracleTable/MesaLayer';
+import AcervoLayer from '../components/oracleAcervo/AcervoLayer';
+import { useLayerEntry, useLayerStack } from '../components/oracleAcervo/layerStack';
 import AcervoTabs from '../components/oracleAcervo/AcervoTabs';
 import MoodPicker from '../components/oracleAcervo/MoodPicker';
-import AcervoGrid from '../components/oracleAcervo/AcervoGrid';
+import OccasionChips from '../components/oracleAcervo/OccasionChips';
+import AcervoGrid, { AcervoErrorBox, GRID, SkeletonTile } from '../components/oracleAcervo/AcervoGrid';
+import { BASE_OCCASIONS, OCCASION_ICON } from '../components/oracleAcervo/occasions';
 import { posterOf, titleOf } from '../components/oracleAcervo/titles';
-import { isAcervoMood, useAcervo, useDefaultMood } from '../components/oracleAcervo/useAcervo';
+import { isAcervoMood, shelfKey, useAcervo } from '../components/oracleAcervo/useAcervo';
+import { readAcervoParams } from '../components/oracleAcervo/acervoTarget';
 import OracleProfileSheet from '../components/oracleHub/OracleProfileSheet';
 import MovieDetailsModal from '../components/MovieDetailsModal';
 import { getFullTitle } from '../lib/titleCards';
 import type { Movie } from '../lib/tmdb';
-import { isAcervoMedia, isAcervoOracle, type AcervoItem, type AcervoMedia } from '../lib/mesa/acervoApi';
-import type { OracleSlot } from '../lib/mesa/types';
+import type { AcervoItem, AcervoMedia, OracleSlot } from '../lib/mesa/types';
 import { MOOD_BY_KEY } from '../lib/moods';
-import { FOCUS_RING, MIST, NIGHT, ORACLE_BY_ID, PAPER, PIXEL, withAlpha } from '../lib/oracleTheme';
+import { FOCUS_RING, MIST, NIGHT, ORACLE_BY_ID, PAPER, PIXEL, VELVET, withAlpha } from '../lib/oracleTheme';
 
-// O Acervo dos oráculos (/oracle/acervo?oracle=&mood=&type=), 05/11/2026 —
-// SPEC §2.13. Substitui a Biblioteca dos Oráculos (OracleLibraries.tsx, que
-// empilhava nove fileiras de lado e cortava cada uma em 20 títulos para quem
-// não assinava). Aqui é UMA prateleira por vez, inteira e igual para todos,
-// escolhida por oráculo × humor × filmes/séries, numa grade calma que cresce
-// de 30 em 30. Mora na mesma camada da Mesa (MesaLayer: o feltro, z 9980), e
-// "← Mesa" volta para ela.
+// O Acervo dos oráculos — desde 09/11/2026, a página única da Mesa dos
+// Oráculos (/oracle/acervo; /oracle/mesa e /oracle/libraries caem aqui).
 //
-// A URL manda: ?oracle (bogart|fincher|cypher; padrão bogart), ?mood (uma das
-// 9 chaves; padrão o humor mais forte da pessoa) e ?type (movie|tv; padrão
-// movie). Trocar a prateleira reescreve a URL sem empilhar histórico: o
-// voltar do aparelho sai do Acervo de uma vez.
-
-type ShelfParams = { oracle: OracleSlot; mood: string | null; media: AcervoMedia };
+// O Bruno testou a Mesa de três cartas (06/11) e decidiu: as cartas saem; o
+// Acervo fica, com o que ele gostou da Mesa — as ocasiões ("Com a galera",
+// "Só eu e a chuva"…) como fichas de filtro e o porquê de cada título numa
+// linha embaixo do pôster. Pouco texto: o nome, as escolhas e a grade.
+//
+// A URL manda:
+//   ?oracle   bogart | fincher | cypher (padrão bogart)
+//   ?mood     uma das 9 chaves; sem ela, o servidor escolhe o humor mais
+//             forte da pessoa e a página grava na URL
+//   ?ocasiao  uma ocasião (galera, chuva…): a grade junta todos os humores do
+//             oráculo; a ocasião vence o humor
+//   ?type     movie | tv (padrão movie; uma ocasião de um tipo só, como
+//             "Só um episódio", passa por cima)
+//   ?ask      o formato antigo da Mesa (occ:<id>, mood:<chave>,
+//             season:<id>), traduzido para os de cima
+// Trocar o filtro reescreve a URL sem empilhar histórico: o voltar do
+// aparelho sai do Acervo de uma vez.
 
 // Um Movie mínimo, para o menu abrir mesmo se os detalhes completos falharem.
 const fallbackMovie = (item: AcervoItem, lang: string): Movie => ({
@@ -47,19 +56,31 @@ const fallbackMovie = (item: AcervoItem, lang: string): Movie => ({
   media_type: item.media_type,
 });
 
-const AcervoScreen: React.FC<ShelfParams & { onShelf: (next: Partial<ShelfParams>) => void; onBack: () => void }> = ({
-  oracle,
-  mood,
-  media,
-  onShelf,
-  onBack,
-}) => {
+interface Filter {
+  oracle: OracleSlot;
+  mood: string | null;
+  occasion: string | null;
+  media: AcervoMedia;
+}
+
+const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void; onExit: () => void }> = ({ filter, onFilter, onExit }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language || 'pt';
   const { user } = useAuth();
   const userId = user?.id;
   const { scrollRef } = useLayerStack();
-  const { shelf, loadMore, retry, removeItem, setWatchlist } = useAcervo(oracle, mood, media);
+  const { shelf, occasions, loadMore, retry, removeItem, setWatchlist } = useAcervo(filter);
+  const chipList = occasions ?? BASE_OCCASIONS;
+
+  // A URL sempre diz o filtro que está na tela: o humor padrão escolhido pelo
+  // servidor, a mídia de uma ocasião de um tipo só e os valores corrigidos
+  // entram nela (sem criar entrada nova no histórico). Só quando a grade na
+  // tela é a do filtro pedido — nunca a de um toque anterior.
+  const filterKey = shelfKey(filter);
+  useEffect(() => {
+    if (shelf.key !== filterKey || shelf.status !== 'ready' || shelf.stale) return;
+    onFilter({ oracle: shelf.oracle, media: shelf.media, occasion: shelf.occasion, mood: shelf.occasion ? null : shelf.mood });
+  }, [shelf, filterKey, onFilter]);
 
   const [profileOracle, setProfileOracle] = useState<OracleSlot | null>(null);
   const [selected, setSelected] = useState<{ movie: Movie; item: AcervoItem } | null>(null);
@@ -68,7 +89,7 @@ const AcervoScreen: React.FC<ShelfParams & { onShelf: (next: Partial<ShelfParams
   const [cardStyle, setCardStyle] = useState('default');
 
   // O foco entra na camada ao abrir: sem isso o primeiro Tab ia para a barra
-  // do site, que fica por baixo da MesaLayer (o contêiner não desenha anel).
+  // do site, que fica por baixo da AcervoLayer (o contêiner não desenha anel).
   const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     rootRef.current?.focus({ preventScroll: true });
@@ -90,14 +111,14 @@ const AcervoScreen: React.FC<ShelfParams & { onShelf: (next: Partial<ShelfParams
     };
   }, [userId]);
 
-  // As gavetas entram na pilha de camadas da MesaLayer: o Esc e o voltar do
-  // aparelho fecham uma de cada vez (perfil / menu do título → Acervo → Mesa).
+  // As gavetas entram na pilha de camadas: o Esc e o voltar do aparelho
+  // fecham uma de cada vez (perfil / menu do título → Acervo → fora).
   const closeProfile = useCallback(() => setProfileOracle(null), []);
-  useMesaLayerEntry(profileOracle !== null, closeProfile, { ownEscape: true });
+  useLayerEntry(profileOracle !== null, closeProfile, { ownEscape: true });
 
-  // O botão que abriu o menu: o foco volta para ele ao fechar (SPEC §2.15).
+  // O botão que abriu o menu: o foco volta para ele ao fechar.
   const openerRef = useRef<HTMLElement | null>(null);
-  // Fechou o menu do título: se a pessoa deu nota, ele sai da prateleira (o
+  // Fechou o menu do título: se a pessoa deu nota, ele sai da grade (o
   // Acervo só mostra o que falta avaliar); se mexeu na Watchlist, a marca muda.
   const closeDetails = useCallback(() => {
     const closing = selected?.item;
@@ -105,7 +126,6 @@ const AcervoScreen: React.FC<ShelfParams & { onShelf: (next: Partial<ShelfParams
     const opener = openerRef.current;
     openerRef.current = null;
     window.requestAnimationFrame(() => {
-      // Se o título saiu da grade (ganhou nota), o foco fica na camada.
       if (opener && opener.isConnected) opener.focus({ preventScroll: true });
       else rootRef.current?.focus({ preventScroll: true });
     });
@@ -129,7 +149,7 @@ const AcervoScreen: React.FC<ShelfParams & { onShelf: (next: Partial<ShelfParams
         } else setWatchlist(closing.tmdb_id, closing.media_type, Boolean(row));
       });
   }, [selected, userId, removeItem, setWatchlist]);
-  useMesaLayerEntry(selected !== null, closeDetails, { ownEscape: true });
+  useLayerEntry(selected !== null, closeDetails, { ownEscape: true });
 
   const openItem = useCallback(
     async (item: AcervoItem) => {
@@ -148,32 +168,93 @@ const AcervoScreen: React.FC<ShelfParams & { onShelf: (next: Partial<ShelfParams
     [lang]
   );
 
-  // Trocou de prateleira: a grade nova começa do alto (se a pessoa tinha
-  // descido, volta até os seletores).
-  const shelfId = `${oracle}|${mood}|${media}`;
+  // Trocou de filtro com a grade já rolada para baixo: volta até o nome da
+  // prateleira (os seletores ficam logo acima).
+  const sectionRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = scrollRef.current;
-    if (el && el.scrollTop > 0) el.scrollTo({ top: 0 });
-  }, [shelfId, scrollRef]);
+    const section = sectionRef.current;
+    if (!el || !section) return;
+    const top = section.getBoundingClientRect().top - el.getBoundingClientRect().top;
+    if (top < 0) el.scrollTo({ top: Math.max(0, el.scrollTop + top - 72) });
+  }, [shelf.key, scrollRef]);
 
-  const current = ORACLE_BY_ID[oracle];
-  const moodInfo = mood ? MOOD_BY_KEY[mood] : null;
-  const moodName = moodInfo ? t(moodInfo.labelKey) : '';
+  // O humor de antes da ocasião: tirar a ocasião volta para ele.
+  const lastMood = useRef<string | null>(filter.mood);
+  if (filter.mood) lastMood.current = filter.mood;
+
+  const selectOccasion = (id: string | null) => {
+    if (!id) {
+      onFilter({ ...filter, occasion: null, mood: lastMood.current });
+      return;
+    }
+    const occ = chipList.find((o) => o.id === id);
+    onFilter({ ...filter, occasion: id, mood: null, media: occ?.media ?? filter.media });
+  };
+  const selectMedia = (media: AcervoMedia) => {
+    if (media === filter.media) return;
+    const occ = filter.occasion ? chipList.find((o) => o.id === filter.occasion) : null;
+    // A ocasião é de um tipo só ("Só um episódio"): trocar o tipo tira a ocasião.
+    if (occ?.media && occ.media !== media) onFilter({ ...filter, media, occasion: null, mood: lastMood.current });
+    else onFilter({ ...filter, media });
+  };
+
+  const current = ORACLE_BY_ID[filter.oracle];
+  const occasionId = filter.occasion ?? null;
+  const moodKey = occasionId ? null : filter.mood ?? shelf.mood;
+  const moodInfo = moodKey ? MOOD_BY_KEY[moodKey] : null;
+  const OccIcon = occasionId ? OCCASION_ICON[occasionId] : null;
   const MoodIcon = moodInfo?.icon;
+  const shelfName = occasionId ? t(`mesa.occasions.${occasionId}.name`) : moodInfo ? t(moodInfo.labelKey) : '';
   const panelId = 'acervo-shelf';
+  const ready = shelf.status === 'ready' && !shelf.stale;
+
+  let body: React.ReactNode;
+  if (shelf.status === 'error') {
+    body = <AcervoErrorBox onRetry={retry} />;
+  } else if (shelf.status === 'loading' && !shelf.items.length) {
+    body = (
+      <ol className={GRID} aria-busy="true" aria-label={t('common.loading')}>
+        {Array.from({ length: 12 }, (_, i) => (
+          <SkeletonTile key={i} />
+        ))}
+      </ol>
+    );
+  } else if (ready && shelf.passed) {
+    body = (
+      <p className="flex items-center gap-3 rounded-xl px-4 py-5 text-[15px] leading-snug ring-1 ring-white/10" style={{ background: VELVET, color: PAPER }}>
+        <img src={current.avatar} alt="" aria-hidden className="w-8 h-8 rounded-full object-cover shrink-0" style={{ boxShadow: `0 0 0 1.5px ${current.color}` }} />
+        {t('acervo.passed', { oracle: current.name, occasion: shelfName })}
+      </p>
+    );
+  } else if (ready && shelf.items.length === 0) {
+    const noTitles = shelf.total === 0;
+    body = (
+      <p className="flex items-center gap-3 rounded-xl px-4 py-5 text-[15px] leading-snug ring-1 ring-white/10" style={{ background: VELVET, color: PAPER }}>
+        {noTitles ? <Inbox className="w-5 h-5 shrink-0" style={{ color: MIST }} aria-hidden /> : <PartyPopper className="w-5 h-5 shrink-0 text-amber-300" aria-hidden />}
+        {noTitles ? t(occasionId ? 'acervo.emptyOccasion' : shelf.media === 'tv' ? 'acervo.noSeries' : 'acervo.noMovies') : t('acervo.allDone')}
+      </p>
+    );
+  } else {
+    body = (
+      <AcervoGrid
+        shelf={shelf}
+        userId={userId}
+        moodShelf={!occasionId}
+        openingKey={openingKey}
+        onOpen={openItem}
+        onLoadMore={loadMore}
+        scrollRoot={scrollRef}
+      />
+    );
+  }
 
   return (
-    <div
-      ref={rootRef}
-      tabIndex={-1}
-      className="min-h-full flex flex-col outline-none"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 28px)' }}
-    >
-      {/* Topo: "← Mesa" e o nome. Fica preso no alto enquanto a grade rola. */}
-      {/* Fundo quase opaco (os pôsteres não aparecem por trás do nome ao
-          rolar) e só os últimos 10 px esmaecem, para a borda não ficar dura. */}
+    <div ref={rootRef} tabIndex={-1} className="min-h-full flex flex-col outline-none" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 32px)' }}>
+      {/* Topo: sair e o nome. Fica preso no alto enquanto a grade rola; fundo
+          quase opaco, e só os últimos 10 px esmaecem. */}
       <header
-        className="sticky top-0 z-10 pb-2.5"
+        className="sticky top-0 z-10 pb-2"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
           background: `linear-gradient(180deg, ${withAlpha(NIGHT, 0.97)} 0%, ${withAlpha(NIGHT, 0.95)} calc(100% - 10px), ${withAlpha(NIGHT, 0)} 100%)`,
@@ -182,13 +263,12 @@ const AcervoScreen: React.FC<ShelfParams & { onShelf: (next: Partial<ShelfParams
         <div className="mx-auto max-w-[1200px] h-[52px] sm:h-14 px-2 sm:px-6 grid grid-cols-[1fr_auto_1fr] items-center">
           <button
             type="button"
-            onClick={onBack}
-            aria-label={t('acervo.backAria')}
-            className={`justify-self-start inline-flex items-center gap-1.5 h-11 pl-2 pr-3 rounded-xl text-sm font-medium hover:bg-white/[0.06] transition-colors ${FOCUS_RING}`}
+            onClick={onExit}
+            aria-label={t('acervo.exitAria')}
+            className={`justify-self-start grid place-items-center w-11 h-11 rounded-xl hover:bg-white/[0.06] transition-colors ${FOCUS_RING}`}
             style={{ color: PAPER }}
           >
-            <ArrowLeft className="w-[18px] h-[18px]" aria-hidden />
-            {t('acervo.back')}
+            <ArrowLeft className="w-5 h-5" aria-hidden />
           </button>
           <h1 style={{ ...PIXEL, color: PAPER }} className="text-[20px] sm:text-[24px] leading-none whitespace-nowrap">
             {t('acervo.title')}
@@ -199,76 +279,63 @@ const AcervoScreen: React.FC<ShelfParams & { onShelf: (next: Partial<ShelfParams
 
       {/* div, e não <main>: o <main> do site continua por baixo da camada. */}
       <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8 flex-1">
-        <p className="text-center lg:text-left text-[13px] sm:text-sm leading-snug [text-wrap:balance]" style={{ color: MIST }}>
-          {t('acervo.lead')}
-        </p>
-
-        <div className="mt-4 sm:mt-5">
-          <AcervoTabs active={oracle} panelId={panelId} onSelect={(next) => onShelf({ oracle: next })} onOpenProfile={setProfileOracle} />
+        <div className="mt-2">
+          <AcervoTabs
+            active={filter.oracle}
+            panelId={panelId}
+            onSelect={(oracle) => onFilter({ ...filter, oracle })}
+            onOpenProfile={setProfileOracle}
+          />
         </div>
 
-        <div className="mt-4 sm:mt-5">
-          <MoodPicker active={mood ?? ''} onSelect={(next) => onShelf({ mood: next })} media={media} onMedia={(next) => onShelf({ media: next })} />
+        <div className="mt-5">
+          <MoodPicker
+            active={moodKey}
+            off={!!occasionId}
+            onSelect={(mood) => onFilter({ ...filter, mood, occasion: null })}
+            media={filter.media}
+            onMedia={selectMedia}
+          />
         </div>
 
-        <section id={panelId} role="tabpanel" aria-labelledby={`acervo-tab-${oracle}`} className="mt-6 sm:mt-8">
+        <div className="mt-3 sm:mt-4">
+          <OccasionChips occasions={chipList} active={occasionId} onSelect={selectOccasion} />
+        </div>
+
+        <section ref={sectionRef} id={panelId} role="tabpanel" aria-labelledby={`acervo-tab-${filter.oracle}`} className="mt-6 sm:mt-8">
           {/* O nome da prateleira e quantos títulos faltam (altura reservada:
               nada pula quando o número chega). */}
-          <div className="mb-4 sm:mb-5 min-h-[52px]">
+          <div className="mb-4 sm:mb-5 min-h-[50px]">
             <h2 style={PIXEL} className="flex items-center gap-2 text-[21px] sm:text-[26px] leading-tight min-w-0">
               <span style={{ color: current.color }} className="shrink-0">
                 {current.name}
               </span>
-              <span aria-hidden style={{ color: MIST }} className="shrink-0">
-                ·
-              </span>
-              <span className="truncate" style={{ color: PAPER }}>
-                {moodName}
-              </span>
-              {MoodIcon && <MoodIcon className="w-5 h-5 shrink-0" style={{ color: moodInfo?.color }} aria-hidden />}
+              {shelfName && (
+                <>
+                  <span aria-hidden style={{ color: MIST }} className="shrink-0">
+                    ·
+                  </span>
+                  <span className="truncate" style={{ color: PAPER }}>
+                    {shelfName}
+                  </span>
+                </>
+              )}
+              {OccIcon ? (
+                <OccIcon className="w-5 h-5 shrink-0" style={{ color: MIST }} aria-hidden />
+              ) : (
+                MoodIcon && <MoodIcon className="w-5 h-5 shrink-0" style={{ color: moodInfo?.color }} aria-hidden />
+              )}
             </h2>
             <p className="mt-1 text-sm h-5" style={{ color: MIST }} aria-live="polite">
-              {shelf?.status === 'ready' && shelf.unrated > 0 ? t('acervo.count', { count: shelf.unrated }) : ' '}
+              {ready && shelf.unrated > 0
+                ? occasionId
+                  ? `${t('acervo.count', { count: shelf.unrated })} · ${t('acervo.allMoods')}`
+                  : t('acervo.count', { count: shelf.unrated })
+                : ' '}
             </p>
           </div>
-
-          {shelf ? (
-            <AcervoGrid
-              shelf={shelf}
-              media={media}
-              userId={userId}
-              openingKey={openingKey}
-              onOpen={openItem}
-              onLoadMore={loadMore}
-              onRetry={retry}
-              scrollRoot={scrollRef}
-            />
-          ) : (
-            // Ainda escolhendo o humor padrão (uma consulta curta): esqueleto.
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-x-3 gap-y-5 sm:gap-x-4" aria-busy="true">
-              {Array.from({ length: 12 }, (_, i) => (
-                <span key={i} className="block aspect-[2/3] rounded-lg poster-skeleton" aria-hidden />
-              ))}
-            </div>
-          )}
+          {body}
         </section>
-
-        {/* No pé: a mesma prateleira como pergunta para a Mesa. */}
-        {mood && moodInfo && (
-          <div className="mt-10 sm:mt-12 flex justify-center">
-            <Link
-              to={`/oracle/mesa?ask=mood:${mood}`}
-              className={`inline-flex items-center gap-2 min-h-[44px] px-4 rounded-full text-sm sm:text-[15px] font-semibold transition hover:bg-white/[0.06] ${FOCUS_RING}`}
-              style={{ color: PAPER, boxShadow: `inset 0 0 0 1.5px ${withAlpha(moodInfo.color, 0.55)}` }}
-            >
-              <span style={{ ...PIXEL, color: moodInfo.color }} className="text-[18px] leading-none" aria-hidden>
-                {moodInfo.letter}
-              </span>
-              {t('acervo.askMood', { mood: moodName })}
-              <ChevronRight className="w-4 h-4" aria-hidden />
-            </Link>
-          </div>
-        )}
       </div>
 
       <OracleProfileSheet oracleId={profileOracle} cardStyle={cardStyle} onClose={closeProfile} />
@@ -281,53 +348,42 @@ export default function OracleAcervo() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
 
-  const oracleParam = params.get('oracle');
-  const typeParam = params.get('type');
-  const moodParam = params.get('mood');
-  const oracle: OracleSlot = isAcervoOracle(oracleParam) ? oracleParam : 'bogart';
-  const media: AcervoMedia = isAcervoMedia(typeParam) ? typeParam : 'movie';
-  const validMood = isAcervoMood(moodParam) ? moodParam : null;
-  const defaultMood = useDefaultMood(user?.id, validMood === null);
-  const mood = validMood ?? defaultMood;
-
-  // A URL sempre diz a prateleira que está na tela (o humor padrão e os
-  // valores corrigidos entram nela), sem criar entrada nova no histórico.
-  useEffect(() => {
-    if (!mood) return;
-    if (oracleParam === oracle && typeParam === media && moodParam === mood) return;
-    const next = new URLSearchParams(params);
-    next.set('oracle', oracle);
-    next.set('mood', mood);
-    next.set('type', media);
-    setParams(next, { replace: true, state: location.state });
-  }, [mood, oracle, media, oracleParam, typeParam, moodParam, params, setParams, location.state]);
-
-  const onShelf = useCallback(
-    (change: Partial<ShelfParams>) => {
-      const next = new URLSearchParams(params);
-      next.set('oracle', change.oracle ?? oracle);
-      next.set('type', change.media ?? media);
-      const nextMood = change.mood ?? mood;
-      if (nextMood) next.set('mood', nextMood);
-      setParams(next, { replace: true, state: location.state });
-    },
-    [params, oracle, media, mood, setParams, location.state]
+  // O filtro pedido pela URL (com o ?ask= antigo traduzido).
+  const asked = useMemo(() => readAcervoParams(params), [params]);
+  const filter: Filter = useMemo(
+    () => ({ oracle: asked.oracle, media: asked.media, occasion: asked.occasion, mood: asked.occasion ? null : asked.mood }),
+    [asked]
   );
 
-  // "← Mesa": quem veio da Mesa (ela manda state.fromMesa no link) volta para
-  // a mesma pergunta; quem chegou por outra porta vai à tiragem do dia.
-  const fromMesa = Boolean((location.state as { fromMesa?: boolean } | null)?.fromMesa);
-  const goMesa = useCallback(() => {
-    if (fromMesa && window.history.length > 1) navigate(-1);
-    else navigate('/oracle/mesa');
-  }, [fromMesa, navigate]);
+  const writeFilter = useCallback(
+    (next: Filter) => {
+      const out = new URLSearchParams();
+      out.set('oracle', next.oracle);
+      if (next.occasion) out.set('ocasiao', next.occasion);
+      else if (next.mood && isAcervoMood(next.mood)) out.set('mood', next.mood);
+      out.set('type', next.media);
+      if (out.toString() === params.toString()) return;
+      setParams(out, { replace: true, state: location.state });
+    },
+    [params, setParams, location.state]
+  );
+
+  // Sair: volta para a tela de onde a pessoa veio dentro do site; quem entrou
+  // direto pelo endereço (um link no WhatsApp, o favorito) vai para a home, e
+  // não para fora do site. O React Router numera as entradas do histórico
+  // (state.idx): 0 é a primeira tela do site nesta aba. As trocas de filtro
+  // usam replace e não mudam o número.
+  const exit = useCallback(() => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (idx > 0) navigate(-1);
+    else navigate('/', { replace: true });
+  }, [navigate]);
 
   return (
-    <MesaLayer label={t('acervo.title')} onExit={goMesa}>
-      <AcervoScreen oracle={oracle} mood={mood} media={media} onShelf={onShelf} onBack={goMesa} />
-    </MesaLayer>
+    <AcervoLayer label={t('acervo.title')} onExit={exit}>
+      <AcervoScreen filter={filter} onFilter={writeFilter} onExit={exit} />
+    </AcervoLayer>
   );
 }

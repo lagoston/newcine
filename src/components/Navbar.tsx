@@ -87,15 +87,15 @@ function Navbar() {
       <Link
         to={to}
         onClick={(e) => {
-          // Aba Oráculo já dentro da Mesa dos Oráculos (05/11/2026): não navega
-          // (perderia a pergunta da vez, ?ask=) e só volta ao topo. A Mesa é uma
-          // camada por cima da barra, então isso quase nunca dispara; fica
-          // coerente com a barra do celular.
-          if (active && location.pathname === '/oracle/mesa') {
+          // Aba Oráculo já dentro do Acervo (09/11/2026; era a Mesa): não navega
+          // (perderia o filtro da vez, ?ocasiao= / ?mood=) e só volta ao topo. O
+          // Acervo é uma camada por cima da barra, então isso quase nunca
+          // dispara; fica coerente com a barra do celular.
+          if (active && location.pathname === '/oracle/acervo') {
             e.preventDefault();
-            // A Mesa rola dentro da própria camada (.ms-scroll, MesaLayer).
-            const mesaScroll = document.querySelector<HTMLElement>('.ms-scroll');
-            if (mesaScroll) mesaScroll.scrollTo({ top: 0, behavior: 'smooth' });
+            // O Acervo rola dentro da própria camada (.ac-scroll, AcervoLayer).
+            const acervoScroll = document.querySelector<HTMLElement>('.ac-scroll');
+            if (acervoScroll) acervoScroll.scrollTo({ top: 0, behavior: 'smooth' });
             else window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }}
@@ -200,10 +200,10 @@ function Navbar() {
             <div className="hidden lg:flex flex-1 items-center justify-center gap-1 min-w-0">
               <NavLink to="/" icon={Home}>{t('nav.home')}</NavLink>
               <NavLink to="/library" icon={LibraryIcon}>{t('nav.library')}</NavLink>
-              {/* 04/11/2026 (pedido do Bruno): o olho volta à barra. 05/11/2026:
-                  abre A Mesa dos Oráculos (a Biblioteca virou a Mesa e o Acervo).
-                  Acende em toda página /oracle/ (Mesa, Acervo e Duelo). */}
-              <NavLink to="/oracle/mesa" icon={Eye} active={location.pathname.startsWith('/oracle/')}>{t('nav.oracle')}</NavLink>
+              {/* 04/11/2026 (pedido do Bruno): o olho volta à barra. 09/11/2026:
+                  abre o Acervo, a página única da Mesa dos Oráculos. Acende em
+                  toda página /oracle/ (Acervo e Duelo). */}
+              <NavLink to="/oracle/acervo" icon={Eye} active={location.pathname.startsWith('/oracle/')}>{t('nav.oracle')}</NavLink>
               <NavLink to="/community" icon={Users}>{t('nav.community')}</NavLink>
               <NavLink to="/profile" icon={User}>{t('nav.profile')}</NavLink>
             </div>

@@ -1,42 +1,43 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Film, Inbox, Loader2, PartyPopper, RefreshCw } from 'lucide-react';
+import { Film, Loader2, RefreshCw } from 'lucide-react';
 import OptimizedPoster from '../OptimizedPoster';
 import FloatingFriendBubbles from '../FloatingFriendBubbles';
 import { PosterTopBadges, WatchlistMark } from '../PredictedBadge';
 import { friendKey, useFriendActivity } from '../../hooks/useFriendActivity';
 import { useReveal } from '../../hooks/useLazyList';
 import { prefetchFullTitle } from '../../lib/titleCards';
-import { FOCUS_RING, INK, MIST, NIGHT, PAPER, PIXEL, POSTER_TITLE, VELVET } from '../../lib/oracleTheme';
-import type { AcervoItem, AcervoMedia } from '../../lib/mesa/acervoApi';
-import type { PredLabel } from '../../lib/mesa/types';
+import { FOCUS_RING, INK, MIST, NIGHT, PAPER, PIXEL, VELVET } from '../../lib/oracleTheme';
+import type { AcervoItem, PredLabel } from '../../lib/mesa/types';
 import type { AcervoShelf } from './useAcervo';
 import { posterOf, titleOf } from './titles';
+import { pickReason } from './reasonText';
+import ReasonTag from './ReasonTag';
 
-// A grade do Acervo (SPEC §2.13 e §7.9), 05/11/2026: a prateleira inteira,
-// 3 colunas no celular e 6 no computador, ordenada pela nota prevista. Herda
-// da Biblioteca antiga o que era bom: esqueletos do tamanho final, o selo e a
-// Watchlist no alto do pôster (PosterTopBadges), as bolhas dos amigos, os
-// detalhes adiantados ao encostar (prefetchFullTitle) e a entrada suave.
-// O que saiu: as nove fileiras de lado, o filtro de streaming e o corte de 20
-// com o convite de assinatura. A próxima página (30) é pedida quando o fim da grade
-// chega perto — no contêiner que rola da MesaLayer, não na janela.
+// A grade do Acervo (05/11/2026; v2 em 09/11/2026): a prateleira inteira,
+// ordenada pela nota prevista, com o selo da nota, a Watchlist e as bolhas
+// dos amigos no pôster. Na v2, embaixo de cada pôster, o título e UMA linha do
+// porquê ("Você deu 9 a Interestelar · mesmo diretor") — o que o Bruno gostou
+// nas cartas da Mesa, sem o resto do texto delas. Duas colunas no celular
+// (a linha do porquê precisa de largura para ser lida), até seis no
+// computador. A próxima página (30) é pedida quando o fim da grade chega
+// perto — no contêiner que rola da AcervoLayer, não na janela.
 
-const GRID = 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-6';
+export const GRID = 'grid grid-cols-2 min-[520px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-3 gap-y-6 sm:gap-x-4 sm:gap-y-7';
 // Antecedência com que a página seguinte é pedida (≈ 2 linhas de pôsteres).
-const NEAR_END_PX = 600;
+const NEAR_END_PX = 700;
 
-const SkeletonTile: React.FC = () => (
+export const SkeletonTile: React.FC = () => (
   <li aria-hidden>
     <span className="block aspect-[2/3] rounded-lg poster-skeleton" />
     <span className="mt-2 block h-3.5 w-4/5 rounded poster-skeleton" />
-    <span className="mt-1.5 block h-3 w-1/3 rounded poster-skeleton" />
+    <span className="mt-2 block h-3 w-3/5 rounded poster-skeleton" />
   </li>
 );
 
 // O selo da nota no pôster. `number` é o da gramática do site (PredictedPill,
-// violeta); `guess` (de 3 a 9 notas) e `hidden` (menos de 3) seguem a Mesa:
-// "palpite 7" e "?", discretos, sem o violeta forte (SPEC §2.3).
+// violeta); `guess` (de 3 a 9 notas) e `hidden` (menos de 3) ficam discretos:
+// "palpite 7" e "?", sem o violeta forte.
 const PredMark: React.FC<{ label: PredLabel; pred: number | null; inWatchlist: boolean }> = ({ label, pred, inWatchlist }) => {
   const { t } = useTranslation();
   if (label === 'number') return <PosterTopBadges predicted={pred} inWatchlist={inWatchlist} />;
@@ -67,18 +68,19 @@ const PredMark: React.FC<{ label: PredLabel; pred: number | null; inWatchlist: b
 
 interface AcervoGridProps {
   shelf: AcervoShelf;
-  media: AcervoMedia;
   userId: string | undefined;
+  // A grade é uma prateleira de um humor só (as razões que só falam do humor
+  // seriam iguais em todos os pôsteres e ficam de fora).
+  moodShelf: boolean;
   // O título cujo menu está abrindo (mostra o giro no pôster).
   openingKey: string | null;
   onOpen: (item: AcervoItem) => void;
   onLoadMore: () => void;
-  onRetry: () => void;
-  // O contêiner que rola (a MesaLayer): é nele que o fim da grade é vigiado.
+  // O contêiner que rola (a AcervoLayer): é nele que o fim da grade é vigiado.
   scrollRoot: React.RefObject<HTMLElement>;
 }
 
-const AcervoGrid: React.FC<AcervoGridProps> = ({ shelf, media, userId, openingKey, onOpen, onLoadMore, onRetry, scrollRoot }) => {
+const AcervoGrid: React.FC<AcervoGridProps> = ({ shelf, userId, moodShelf, openingKey, onOpen, onLoadMore, scrollRoot }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language || 'pt';
   const reveal = useReveal();
@@ -90,7 +92,7 @@ const AcervoGrid: React.FC<AcervoGridProps> = ({ shelf, media, userId, openingKe
 
   // Vigia o fim da grade. O observador é refeito a cada página que chega:
   // se o fim continua perto (tela alta), a próxima página vem em seguida.
-  const canLoadMore = shelf.status === 'ready' && shelf.nextOffset !== null && !shelf.loadingMore && !shelf.moreError;
+  const canLoadMore = shelf.status === 'ready' && !shelf.stale && shelf.nextOffset !== null && !shelf.loadingMore && !shelf.moreError;
   useEffect(() => {
     const target = endRef.current;
     if (!canLoadMore || !target) return;
@@ -108,63 +110,18 @@ const AcervoGrid: React.FC<AcervoGridProps> = ({ shelf, media, userId, openingKe
     return () => io.disconnect();
   }, [canLoadMore, shelf.items.length, onLoadMore, scrollRoot]);
 
-  if (shelf.status === 'loading') {
-    return (
-      <ol className={GRID} aria-busy="true" aria-label={t('common.loading')}>
-        {Array.from({ length: 18 }, (_, i) => (
-          <SkeletonTile key={i} />
-        ))}
-      </ol>
-    );
-  }
-
-  if (shelf.status === 'error') {
-    return (
-      <div className="flex flex-wrap items-center gap-3 rounded-xl px-4 py-4 text-sm ring-1 ring-white/10" style={{ background: VELVET, color: MIST }} role="alert">
-        <span className="flex-1 min-w-[12rem]">{t('acervo.error')}</span>
-        <button
-          type="button"
-          onClick={onRetry}
-          className={`inline-flex items-center gap-2 h-11 px-4 rounded-xl text-sm font-semibold transition hover:brightness-105 ${FOCUS_RING}`}
-          style={{ background: PAPER, color: INK }}
-        >
-          <RefreshCw className="w-4 h-4" aria-hidden />
-          {t('acervo.retry')}
-        </button>
-      </div>
-    );
-  }
-
-  if (shelf.items.length === 0) {
-    const noTitles = shelf.total === 0;
-    return (
-      <p className="flex items-center gap-3 rounded-xl px-4 py-5 text-[15px] leading-snug ring-1 ring-white/10" style={{ background: VELVET, color: PAPER }}>
-        {noTitles ? (
-          <>
-            <Inbox className="w-5 h-5 shrink-0" style={{ color: MIST }} aria-hidden />
-            {t(media === 'tv' ? 'acervo.noSeries' : 'acervo.noMovies')}
-          </>
-        ) : (
-          <>
-            <PartyPopper className="w-5 h-5 shrink-0 text-amber-300" aria-hidden />
-            {t('acervo.allDone')}
-          </>
-        )}
-      </p>
-    );
-  }
-
   const pendingSkeletons = shelf.loadingMore ? Math.min(12, Math.max(0, shelf.unrated - shelf.items.length)) : 0;
 
   return (
     <>
-      <ol className={GRID}>
+      <ol className={`${GRID} transition-opacity duration-200 ${shelf.stale ? 'opacity-40' : ''}`} aria-busy={shelf.stale || undefined}>
         {shelf.items.map((item) => {
           const key = `${item.media_type}:${item.tmdb_id}`;
           const name = titleOf(item, lang);
           const poster = posterOf(item, lang);
           const ref = { id: item.tmdb_id, media_type: item.media_type };
           const opening = openingKey === key;
+          const reason = pickReason(item.reasons, moodShelf);
           return (
             <li key={key} ref={reveal} className="reveal-tile group relative min-w-0">
               <button
@@ -173,6 +130,7 @@ const AcervoGrid: React.FC<AcervoGridProps> = ({ shelf, media, userId, openingKe
                 onPointerEnter={() => prefetchFullTitle(ref)}
                 onPointerDown={() => prefetchFullTitle(ref)}
                 onFocus={() => prefetchFullTitle(ref)}
+                disabled={shelf.stale}
                 aria-busy={opening || undefined}
                 className={`block w-full text-left rounded-lg ${FOCUS_RING}`}
               >
@@ -198,12 +156,10 @@ const AcervoGrid: React.FC<AcervoGridProps> = ({ shelf, media, userId, openingKe
                     </span>
                   )}
                 </span>
-                <span className={`mt-2 text-[13px] sm:text-sm font-medium ${POSTER_TITLE}`} style={{ color: PAPER }} title={name}>
+                <span className="mt-2 block text-[13px] sm:text-sm font-medium leading-snug truncate" style={{ color: PAPER }} title={name}>
                   {name}
                 </span>
-                <span className="mt-0.5 block text-xs" style={{ color: MIST }}>
-                  {item.year ?? ' '}
-                </span>
+                {reason && <ReasonTag reason={reason} />}
               </button>
             </li>
           );
@@ -230,6 +186,25 @@ const AcervoGrid: React.FC<AcervoGridProps> = ({ shelf, media, userId, openingKe
         </div>
       )}
     </>
+  );
+};
+
+// O estado de erro da primeira página: uma linha e o botão.
+export const AcervoErrorBox: React.FC<{ onRetry: () => void }> = ({ onRetry }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl px-4 py-4 text-sm ring-1 ring-white/10" style={{ background: VELVET, color: MIST }} role="alert">
+      <span className="flex-1 min-w-[12rem]">{t('acervo.error')}</span>
+      <button
+        type="button"
+        onClick={onRetry}
+        className={`inline-flex items-center gap-2 h-11 px-4 rounded-xl text-sm font-semibold transition hover:brightness-105 ${FOCUS_RING}`}
+        style={{ background: PAPER, color: INK }}
+      >
+        <RefreshCw className="w-4 h-4" aria-hidden />
+        {t('acervo.retry')}
+      </button>
+    </div>
   );
 };
 

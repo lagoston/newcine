@@ -27,13 +27,13 @@ const UserProfile = lazy(() => import('./pages/UserProfile'));
 const Community = lazy(() => import('./pages/Community'));
 const Auth = lazy(() => import('./pages/Auth'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
-// A Mesa dos Oráculos e o Acervo (05/11/2026): substituem a Biblioteca dos
-// Oráculos. A rota antiga da Biblioteca virou um redirecionador por intenção
-// (links antigos com ?mood= vão à Mesa com a pergunta; com ?oracle=&type=, ao
-// Acervo) — ver pages/OracleLibrariesRedirect.tsx.
-const OracleTable = lazy(() => import('./pages/OracleTable'));
+// O Acervo dos oráculos (09/11/2026): a página única da Mesa dos Oráculos.
+// A Mesa de três cartas (05–09/11) saiu; /oracle/mesa e a rota antiga da
+// Biblioteca (/oracle/libraries) viraram redirecionadores por intenção para o
+// Acervo (?ask=occ:galera → ?ocasiao=galera etc.) — ver
+// pages/OracleAcervoRedirect.tsx.
 const OracleAcervo = lazy(() => import('./pages/OracleAcervo'));
-const OracleLibrariesRedirect = lazy(() => import('./pages/OracleLibrariesRedirect'));
+const OracleAcervoRedirect = lazy(() => import('./pages/OracleAcervoRedirect'));
 const OracleDuel = lazy(() => import('./pages/OracleDuel'));
 const SecretRoom = lazy(() => import('./pages/SecretRoom'));
 const Premium = lazy(() => import('./pages/Premium'));
@@ -114,11 +114,12 @@ function App() {
                       Links antigos para /oracle voltam para lá, com o state junto
                       (ex.: { openJackpot: 'trades' }). */}
                   <Route path="/oracle" element={<OracleRedirect />} />
-                  {/* 05/11/2026: a Mesa (o olho da barra e a porta da home) e o
-                      Acervo (as 27 prateleiras inteiras, uma de cada vez). */}
-                  <Route path="/oracle/mesa" element={<ProtectedRoute><OracleTable /></ProtectedRoute>} />
+                  {/* 09/11/2026: o Acervo (o olho da barra e a porta da home) é a
+                      Mesa dos Oráculos; os endereços da Mesa de cartas e da
+                      Biblioteca antiga abrem o Acervo com o mesmo filtro. */}
                   <Route path="/oracle/acervo" element={<ProtectedRoute><OracleAcervo /></ProtectedRoute>} />
-                  <Route path="/oracle/libraries" element={<ProtectedRoute><OracleLibrariesRedirect /></ProtectedRoute>} />
+                  <Route path="/oracle/mesa" element={<ProtectedRoute><OracleAcervoRedirect /></ProtectedRoute>} />
+                  <Route path="/oracle/libraries" element={<ProtectedRoute><OracleAcervoRedirect /></ProtectedRoute>} />
                   <Route path="/oracle/duel" element={<ProtectedRoute><OracleDuel /></ProtectedRoute>} />
                   {/* Salas secretas (Clube do Terror…): ver lib/secretRooms.ts */}
                   <Route path="/sala/:roomKey" element={<ProtectedRoute><SecretRoom /></ProtectedRoute>} />

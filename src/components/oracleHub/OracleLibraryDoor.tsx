@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../lib/auth';
 import { PAPER, PIXEL, FOCUS_RING, ORACLES, oracleCardImage, withAlpha } from '../../lib/oracleTheme';
 import { DOOR_ART, DOOR_BODY, DOOR_CLASS, DOOR_CTA, DOOR_CTA_LABEL, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
 import DoorArrow from '../home/DoorArrow';
@@ -18,38 +17,10 @@ import DoorArrow from '../home/DoorArrow';
 // séries personalizada para você." A porta não faz mais consulta nenhuma.
 // 02/11/2026 (noite): mais minimalista — saíram as etiquetas dos três
 // oráculos embaixo da frase; à direita, a seta de neon nas cores deles.
-// 05/11/2026: a porta abre A Mesa dos Oráculos (/oracle/mesa), que tomou o
-// lugar da Biblioteca. A frase pode contar o estado das cartas de hoje, lido
-// do aparelho (a Mesa grava a cada virada; nenhuma consulta ao banco).
-
-// Estado do dia que a Mesa grava neste aparelho (contrato com a Mesa, SPEC
-// §7.8): { day: 'AAAA-MM-DD' de Brasília, flipped, total }.
-const dayStateKey = (uid: string) => `cineoracle:mesa:day:${uid}`;
-
-// O dia de Brasília, como a Mesa o calcula (o 'en-CA' formata AAAA-MM-DD).
-const brtToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-
-type DoorState = { kind: 'fresh' } | { kind: 'partial'; flipped: number; total: number } | { kind: 'done' } | null;
-
-// Só vale o estado de hoje: de ontem (ou mal formado) a porta fica com a frase fixa.
-const readDoorState = (uid: string | undefined): DoorState => {
-  if (!uid) return null;
-  try {
-    const raw = window.localStorage.getItem(dayStateKey(uid));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { day?: unknown; flipped?: unknown; total?: unknown };
-    if (parsed.day !== brtToday()) return null;
-    const flipped = typeof parsed.flipped === 'number' ? parsed.flipped : NaN;
-    const total = typeof parsed.total === 'number' ? parsed.total : NaN;
-    if (!Number.isFinite(flipped) || !Number.isFinite(total) || total <= 0) return null;
-    if (flipped <= 0) return { kind: 'fresh' };
-    if (flipped >= total) return { kind: 'done' };
-    return { kind: 'partial', flipped, total };
-  } catch {
-    // sem armazenamento (aba anônima etc.): a frase fixa
-    return null;
-  }
-};
+// 05/11/2026: a porta abria A Mesa dos Oráculos (/oracle/mesa), e a frase
+// contava as cartas do dia. 09/11/2026: a Mesa de cartas saiu e o Acervo
+// virou a página única da Mesa — a porta abre o Acervo, com a frase fixa de
+// novo (nenhuma consulta, nada guardado no aparelho).
 
 // Leque: Bogart à esquerda, Cypher à direita, Fincher no meio, na frente.
 const FAN = [
@@ -60,31 +31,9 @@ const FAN = [
 
 const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  // Lido ao montar e ao voltar para a aba (a Mesa pode ter virado cartas).
-  const [doorState, setDoorState] = useState<DoorState>(() => readDoorState(user?.id));
-  useEffect(() => {
-    const refresh = () => setDoorState(readDoorState(user?.id));
-    refresh();
-    window.addEventListener('focus', refresh);
-    document.addEventListener('visibilitychange', refresh);
-    return () => {
-      window.removeEventListener('focus', refresh);
-      document.removeEventListener('visibilitychange', refresh);
-    };
-  }, [user?.id]);
-  const hint =
-    doorState?.kind === 'fresh'
-      ? t('oracle.libraryDoor.state.fresh')
-      : doorState?.kind === 'partial'
-        ? t('oracle.libraryDoor.state.partial', { n: doorState.flipped, total: doorState.total })
-        : doorState?.kind === 'done'
-          ? t('oracle.libraryDoor.state.done')
-          : t('oracle.libraryDoor.hint');
-
   return (
     <Link
-      to="/oracle/mesa"
+      to="/oracle/acervo"
       className={`${DOOR_CLASS} ${FOCUS_RING}`}
       style={{
         background: [
@@ -133,7 +82,7 @@ const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
           {t('oracle.libraryDoor.title')}
         </span>
         <span className={DOOR_HINT} style={{ color: '#CFC6EC' }}>
-          {hint}
+          {t('oracle.libraryDoor.hint')}
         </span>
       </span>
 

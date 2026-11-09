@@ -1,4 +1,11 @@
 /**
+ * APOSENTADO EM 09/11/2026: a Mesa de três cartas saiu (pedido do Bruno; o Acervo
+ * virou a página única da Mesa) e nenhuma tela importa mais este Diretor. Ele fica
+ * no repositório, intacto, com o banco de 478 falas escritas à mão
+ * (scripts/mesa/falas-src/, gen-lines.ts, check-lines.ts e test-director.ts
+ * continuam rodando), para o dia em que os oráculos voltarem a falar. Não entra
+ * no pacote do site: o Vite só empacota o que é importado.
+ *
  * O Diretor de falas da Mesa dos Oráculos (SPEC §3). Contrato com o WP-UI-MESA no
  * §3.8: `createMesaDirector()` devolve um objeto com mirror/opening/seal/sealOpen/
  * allFlipped/mirrorClose/reaction/verdictLineFor/system.
