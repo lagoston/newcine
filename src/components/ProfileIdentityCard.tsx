@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { User, Users, Calendar, Crown, Loader2 } from 'lucide-react';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
-import { GhostRiderFrame } from './GhostRiderFrame';
+import { FlipFrame } from './kitFrames/FlipFrame';
 import { getBannerClass } from '../lib/banners';
 import { getTextEffectNameClass, getTextEffectSecondaryClass } from '../lib/textEffects';
 import { NIGHT, VELVET, PAPER, MIST, PIXEL, FOCUS_RING, tagCategoryStyle } from '../lib/oracleTheme';
@@ -117,8 +117,8 @@ const ProfileIdentityCard: React.FC<ProfileIdentityCardProps> = ({
           {/* O gorro de Natal sobe ~55px acima do avatar: margem para ele não
               ser cortado pela borda de cima do cartão. */}
           <div className={`relative mx-auto sm:mx-0 shrink-0 ${seasonalDecoration === 'christmas' ? 'mt-9 sm:mt-6' : ''}`}>
-            {!avatarBusy && avatarUrl && frameUsesComponent(avatarFrame || undefined, isPremium) === 'GhostRiderFrame' ? (
-              <GhostRiderFrame src={avatarUrl} alt={username} size={120} />
+            {!avatarBusy && avatarUrl && avatarFrame && frameUsesComponent(avatarFrame, isPremium) ? (
+              <FlipFrame frameId={avatarFrame} src={avatarUrl} alt={username} size={120} />
             ) : (
               <div className={`w-[120px] h-[120px] rounded-full overflow-hidden ${frameClass}`} style={{ background: NIGHT }}>
                 {avatarBusy ? (

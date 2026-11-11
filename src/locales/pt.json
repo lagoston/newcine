@@ -1597,7 +1597,11 @@
       "none": "Sem efeito",
       "noneDesc": "O nome no estilo padrão do site"
     },
-    "preview": "Assim fica o seu perfil"
+    "preview": "Assim fica o seu perfil",
+    "kit": {
+      "owned": "Kit da Cobra · é seu",
+      "locked": "Kit da Cobra · ficha especial"
+    }
   },
   "reviews": {
     "title": "Resenhas",
@@ -2814,6 +2818,24 @@
         "signed": "Negócio fechado. Não conte para o Sapo.",
         "closed": "Balcão fechado, criatura. Até a Cobra tira intervalo."
       }
+    },
+    "kits": {
+      "ribbon": "Item da Cobra",
+      "revealLead": "Junto com o pôster, a Cobra deixou um kit na bandeja.",
+      "revealAria": "Kit da Cobra: {{name}}",
+      "contents": "Moldura com movimento e banner animado, para o seu perfil.",
+      "use": "Usar o kit",
+      "inUse": "Em uso",
+      "usedToast": "Kit {{name}} no seu perfil.",
+      "useError": "Não deu para usar o kit agora. Tente de novo em Personalizar perfil.",
+      "usedHint": "Já está no seu perfil. Para trocar, use Personalizar perfil.",
+      "savedHint": "Fica guardado na Coleção e em Personalizar perfil, para sempre.",
+      "oddsLabel": "Kit da Cobra",
+      "chanceHint": "E {{pct}}% de chance de a Cobra deixar um kit (moldura e banner) junto.",
+      "shelfTitle": "Kits da Cobra",
+      "count": "{{owned}} de {{total}}",
+      "shelfHint": "Moldura e banner de uma obra. Só saem com a ficha especial, em {{pct}}% dos giros, junto com o pôster.",
+      "lockedChip": "Ficha especial"
     }
   },
   "invite": {
@@ -3253,7 +3275,9 @@
       "deck-classico": "Clássico CineOracle",
       "deck-noir": "Baralho Noir",
       "table-feltro-verde": "Feltro verde",
-      "table-meia-noite": "Feltro Meia-Noite"
+      "table-meia-noite": "Feltro Meia-Noite",
+      "deck-breaking-bad": "Baralho Breaking Bad",
+      "table-breaking-bad": "Mesa Breaking Bad"
     },
     "lobby": {
       "back": "Voltar ao início",

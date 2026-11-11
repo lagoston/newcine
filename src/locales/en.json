@@ -1594,7 +1594,11 @@
       "none": "No effect",
       "noneDesc": "Your name in the site’s default style"
     },
-    "preview": "How your profile looks"
+    "preview": "How your profile looks",
+    "kit": {
+      "owned": "Snake's kit · yours",
+      "locked": "Snake's kit · special chip"
+    }
   },
   "reviews": {
     "title": "Reviews",
@@ -2809,6 +2813,24 @@
         "signed": "Deal's done. Don't tell the Frog.",
         "closed": "Counter's closed, creature. Even snakes take an intermission."
       }
+    },
+    "kits": {
+      "ribbon": "Snake's item",
+      "revealLead": "Along with the poster, the Snake left a kit on the tray.",
+      "revealAria": "Snake's kit: {{name}}",
+      "contents": "A moving frame and an animated banner for your profile.",
+      "use": "Use the kit",
+      "inUse": "In use",
+      "usedToast": "{{name}} kit is on your profile.",
+      "useError": "Couldn't use the kit right now. Try again in Customize profile.",
+      "usedHint": "It's on your profile. To change it, use Customize profile.",
+      "savedHint": "It stays in your Collection and in Customize profile, for good.",
+      "oddsLabel": "Snake's kit",
+      "chanceHint": "Plus a {{pct}}% chance the Snake leaves a kit (frame and banner) with it.",
+      "shelfTitle": "Snake's kits",
+      "count": "{{owned}} of {{total}}",
+      "shelfHint": "The frame and banner of one show. Only from the special chip, in {{pct}}% of spins, along with the poster.",
+      "lockedChip": "Special chip"
     }
   },
   "invite": {
@@ -3248,7 +3270,9 @@
       "deck-classico": "CineOracle Classic",
       "deck-noir": "Noir Deck",
       "table-feltro-verde": "Green felt",
-      "table-meia-noite": "Midnight Felt"
+      "table-meia-noite": "Midnight Felt",
+      "deck-breaking-bad": "Breaking Bad Deck",
+      "table-breaking-bad": "Breaking Bad Table"
     },
     "lobby": {
       "back": "Back to home",

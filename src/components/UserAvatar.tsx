@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from 'lucide-react';
 import { getFrameClass, frameUsesComponent } from '../lib/frames';
-import { GhostRiderFrame } from './GhostRiderFrame';
+import { FlipFrame } from './kitFrames/FlipFrame';
 import { MIST, VELVET } from '../lib/oracleTheme';
 
 // Avatar de alguém com a moldura escolhida (13/10/2026). Antes cada tela
@@ -34,8 +34,9 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ user, size, className = '', pla
   const frameId = user.avatar_frame || undefined;
   const src = !failed ? user.avatar_url || null : null;
 
-  if (!plain && src && frameUsesComponent(frameId, premium) === 'GhostRiderFrame') {
-    return <GhostRiderFrame src={src} alt="" size={size} className={`shrink-0 ${className}`} />;
+  // Molduras com segunda face (Motoqueiro e os kits da Cobra, 11/11/2026).
+  if (!plain && src && frameId && frameUsesComponent(frameId, premium)) {
+    return <FlipFrame frameId={frameId} src={src} alt="" size={size} className={`shrink-0 ${className}`} />;
   }
   const raw = plain ? '' : getFrameClass(frameId, premium);
   const frame = !raw || raw === 'ring-0' ? 'ring-2 ring-white/15' : raw;

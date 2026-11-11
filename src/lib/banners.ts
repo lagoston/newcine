@@ -6,6 +6,10 @@
 //
 // requiredTag precisa bater com is_required_tag_met() no banco, que é quem
 // valida o desbloqueio de verdade (set_user_cosmetic).
+//
+// 11/11/2026: kits da Cobra. Os banners com `kit` não pedem Premium nem tag:
+// só saem na roleta do Poster Jackpot, com a ficha especial, junto com a
+// moldura do mesmo kit. O desenho deles mora em styles/cosmeticKits.css.
 
 export const banners = {
   default: {
@@ -88,11 +92,13 @@ export const banners = {
     surface: '#151C3D',
     className: 'co-banner co-banner--transformers co-banner--fade-left',
   },
+  // 11/11/2026: era da tag Spirit of Vengeance (que saiu); virou kit da Cobra.
   hellrider: {
     id: 'hellrider',
-    name: 'Spirit of Vengeance Banner',
-    isPremium: true,
-    requiredTag: 'hell-rider',
+    name: 'Ghost Rider Banner',
+    isPremium: false,
+    requiredTag: null,
+    kit: 'ghost-rider',
     // cor do contorno (a mesma do --co-line em cosmetics.css)
     accent: '#C5B358',
     // cor escolhida pro fundo das informações/blocos (substitui a calculada)
@@ -132,6 +138,47 @@ export const banners = {
     surface: '#1A1533',
     className: 'co-banner co-banner--avengers',
   },
+  // Kits da Cobra (11/11/2026).
+  got: {
+    id: 'got',
+    name: 'Game of Thrones Banner',
+    isPremium: false,
+    requiredTag: null,
+    kit: 'game-of-thrones',
+    accent: '#CBD5E1',
+    surface: '#1A2130',
+    className: 'co-banner co-banner--got',
+  },
+  'rick-morty': {
+    id: 'rick-morty',
+    name: 'Rick and Morty Banner',
+    isPremium: false,
+    requiredTag: null,
+    kit: 'rick-and-morty',
+    accent: '#A3E635',
+    surface: '#15261A',
+    className: 'co-banner co-banner--rick-morty',
+  },
+  sopranos: {
+    id: 'sopranos',
+    name: 'The Sopranos Banner',
+    isPremium: false,
+    requiredTag: null,
+    kit: 'sopranos',
+    accent: '#D4A64A',
+    surface: '#2E1B12',
+    className: 'co-banner co-banner--sopranos',
+  },
+  'walking-dead': {
+    id: 'walking-dead',
+    name: 'The Walking Dead Banner',
+    isPremium: false,
+    requiredTag: null,
+    kit: 'walking-dead',
+    accent: '#A8A29E',
+    surface: '#24211C',
+    className: 'co-banner co-banner--walking-dead',
+  },
 } as const;
 
 export type BannerId = keyof typeof banners;
@@ -166,7 +213,7 @@ function hueSat(hex: string): [number, number] {
 // cartão da Comunidade e os blocos do perfil (Números, Década favorita,
 // Atlas…). Quando o banner tem `surface` (cor escolhida à mão: Ouro, De
 // Volta para o Futuro, Harry Potter, Transformers, Motoqueiro, Premonição,
-// Se Beber e Vingadores), é ela; senão, é a cor do contorno escurecida até uma
+// Se Beber, Vingadores e os kits da Cobra), é ela; senão, é a cor do contorno escurecida até uma
 // luminosidade fixa de 13% (saturação no máximo 50%) — texto papel/névoa
 // com contraste >= 7:1. O Ouro é o #BFA869 escolhido, escurecido até o
 // texto claro ficar legível (#524723, contraste ~4,6:1 com a névoa).
@@ -184,4 +231,10 @@ export function getBannerTone(bannerId?: string | null, isPremium: boolean = fal
   if ('surface' in banner && banner.surface) return { accent: banner.accent, surface: banner.surface };
   const [h, s] = hueSat(banner.accent);
   return { accent: banner.accent, surface: `hsl(${h}, ${Math.round(Math.min(s, 0.5) * 100)}%, 13%)` };
+}
+
+// O kit da Cobra de um banner (null nos que vêm de tag ou Premium).
+export function bannerKit(bannerId: string): string | null {
+  const banner = banners[bannerId as BannerId];
+  return banner && 'kit' in banner ? banner.kit : null;
 }

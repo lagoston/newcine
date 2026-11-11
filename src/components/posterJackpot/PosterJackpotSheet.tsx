@@ -14,6 +14,8 @@ import { getMovieDetails, type Movie } from '../../lib/tmdb';
 import JackpotReel, { reelKey, type JackpotReelHandle, type ReelCard } from './JackpotReel';
 import JackpotReveal, { Twinkle } from './JackpotReveal';
 import ContractPanel from './ContractPanel';
+import { CobraKitShelf, KitReveal, useCobraKits } from './CobraKits';
+import { ackCobraKitDrops, equipCobraKit, kitName, type CobraKit, type CobraKitDrop } from '../../lib/cobraKits';
 import { MOOD_BY_KEY } from '../../lib/moods';
 import { ORACLE_BY_ID, PAPER, MIST, FOCUS_RING, VELVET, type OracleId } from '../../lib/oracleTheme';
 import {
@@ -198,6 +200,58 @@ const Machine: React.FC<{
   // A casa da barra que acabou de acender.
   const [freshCell, setFreshCell] = useState<number | null>(null);
   const busyRef = useRef(false);
+  // Kits da Cobra (11/11/2026): 20% dos giros com ficha especial trazem um
+  // kit (moldura + banner) JUNTO com o pôster. A revelação do kit vem depois
+  // que a pessoa fecha a do pôster.
+  const cobra = useCobraKits();
+  const [kitDrop, setKitDrop] = useState<CobraKitDrop | null>(null);
+  const [showKit, setShowKit] = useState(false);
+  const [kitEquipping, setKitEquipping] = useState(false);
+  const [kitEquipped, setKitEquipped] = useState(false);
+  const kitOf = (drop: CobraKitDrop | null): CobraKit | null => (drop && cobra.state?.kits.find((k) => k.id === drop.kit_id)) || null;
+  const kitsMissing = cobra.state ? cobra.state.kits.some((k) => !k.owned) : false;
+  const kitPct = Math.round((cobra.state?.chance ?? 0.2) * 100);
+  // Uma revelação que ficou para trás (a gaveta fechou antes de ver) aparece
+  // uma vez, quando a roleta abre de novo.
+  const pendingCheckedRef = useRef(false);
+  useEffect(() => {
+    if (pendingCheckedRef.current || !cobra.state) return;
+    pendingCheckedRef.current = true;
+    const first = cobra.state.unseen[0];
+    if (first && phase === 'idle') {
+      setKitDrop(first);
+      setShowKit(true);
+    }
+  }, [cobra.state, phase]);
+
+  const closeKit = () => {
+    const drop = kitDrop;
+    setShowKit(false);
+    setKitDrop(null);
+    setKitEquipped(false);
+    if (drop) {
+      ackCobraKitDrops([drop.id])
+        .catch((error) => console.error('Kits da Cobra (visto):', error))
+        .finally(() => cobra.reload());
+    }
+  };
+
+  const equipKit = async () => {
+    const kit = kitOf(kitDrop);
+    if (!kit) return;
+    setKitEquipping(true);
+    try {
+      const used = await equipCobraKit(kit.id);
+      setKitEquipped(true);
+      cobra.setLook((look) => (look ? { ...look, frame: used.frameId, banner: used.bannerId } : look));
+      toast.success(t('jackpot.kits.usedToast', { name: kitName(kit, isPt) }));
+    } catch (error) {
+      console.error('Kits da Cobra (usar):', error);
+      toast.error(t('jackpot.kits.useError'));
+    } finally {
+      setKitEquipping(false);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -277,6 +331,9 @@ const Machine: React.FC<{
       busyRef.current = false;
       return;
     }
+    // Giro com ficha especial: o banco já decidiu se veio kit; a pergunta
+    // corre junto com a fita.
+    const kitsAfter = pullKind === 'special' ? cobra.reload() : Promise.resolve(null);
     const prize: ReelCard = {
       key: reelKey(),
       item: { id: res.item.id, rarity: res.item.rarity, serial: res.item.serial, file_path: res.item.file_path, media_type: res.item.media_type, tmdb_id: res.item.tmdb_id },
@@ -295,6 +352,8 @@ const Machine: React.FC<{
     });
     onCollectionChanged();
     await (reelRef.current?.spinTo(prize, { reduceMotion }) ?? Promise.resolve());
+    const kitsNow = await kitsAfter;
+    setKitDrop(kitsNow?.unseen[kitsNow.unseen.length - 1] ?? null);
     setWinnerKey(prize.key);
     setPhase('landed');
     playReveal(res.item.rarity, res.effect !== 'none');
@@ -347,7 +406,7 @@ const Machine: React.FC<{
       ? ''
       : kind === 'special'
         ? state.remainingSpecial > 0
-          ? t('jackpot.machine.specialHint')
+          ? `${t('jackpot.machine.specialHint')}${kitsMissing ? ` ${t('jackpot.kits.chanceHint', { pct: kitPct })}` : ''}`
           : t('jackpot.machine.specialComplete')
         : '';
 
@@ -391,6 +450,14 @@ const Machine: React.FC<{
                   <span className="font-semibold tabular-nums" style={{ color: '#FFF4D6' }}>{chance}%</span>
                 </li>
               ))}
+              {/* Com a ficha especial, a chance do kit da Cobra (enquanto faltar algum). */}
+              {kind === 'special' && !luckyRun && kitsMissing && (
+                <li className="inline-flex items-center gap-[3px] sm:gap-1.5 text-[10.5px] sm:text-[12px]" style={{ color: '#CFE9DA' }}>
+                  <img src="/avatar-cobra.webp" alt="" className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full" />
+                  {t('jackpot.kits.oddsLabel')}
+                  <span className="font-semibold tabular-nums" style={{ color: '#FFF4D6' }}>{kitPct}%</span>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -509,7 +576,21 @@ const Machine: React.FC<{
               setLuckyRun(false);
               setFreshCell(null);
               if (state.tickets <= 0 && state.specialAvailable && state.remainingSpecial > 0) setKind('special');
+              // veio kit junto: a revelação dele entra agora
+              if (kitDrop) setShowKit(true);
             }}
+          />
+        )}
+        {showKit && phase === 'idle' && kitOf(kitDrop) && (
+          <KitReveal
+            kit={kitOf(kitDrop) as CobraKit}
+            avatarUrl={cobra.look?.avatarUrl ?? null}
+            username={cobra.look?.username ?? ''}
+            reduceMotion={reduceMotion}
+            equipping={kitEquipping}
+            equipped={kitEquipped}
+            onEquip={equipKit}
+            onClose={closeKit}
           />
         )}
       </AnimatePresence>
@@ -524,6 +605,22 @@ const Machine: React.FC<{
 const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void; onLayer?: (open: boolean) => void }> = ({ list, onChanged, onLayer }) => {
   const { t, i18n } = useTranslation();
   const isPt = i18n.language.startsWith('pt');
+  // Os kits da Cobra (11/11/2026), depois dos pôsteres.
+  const cobra = useCobraKits();
+  const [kitBusy, setKitBusy] = useState<string | null>(null);
+  const applyKit = async (kit: CobraKit) => {
+    setKitBusy(kit.id);
+    try {
+      const used = await equipCobraKit(kit.id);
+      cobra.setLook((look) => (look ? { ...look, frame: used.frameId, banner: used.bannerId } : look));
+      toast.success(t('jackpot.kits.usedToast', { name: kitName(kit, isPt) }));
+    } catch (error) {
+      console.error('Kits da Cobra (usar):', error);
+      toast.error(t('jackpot.kits.useError'));
+    } finally {
+      setKitBusy(null);
+    }
+  };
   const [open, setOpen] = useState<OwnedPoster | null>(null);
   const [busy, setBusy] = useState(false);
   // O menu expandido do título, aberto ao tocar no pôster do detalhe.
@@ -611,6 +708,17 @@ const Collection: React.FC<{ list: OwnedPoster[] | null; onChanged: () => void; 
             </li>
           ))}
         </ul>
+      )}
+
+      {cobra.state && cobra.state.kits.length > 0 && (
+        <CobraKitShelf
+          kits={cobra.state.kits}
+          chance={cobra.state.chance}
+          avatarUrl={cobra.look?.avatarUrl ?? null}
+          inUse={(kit) => cobra.look?.frame === kit.frame_id && cobra.look?.banner === kit.banner_id}
+          busyId={kitBusy}
+          onUse={applyKit}
+        />
       )}
 
       <OracleSheet

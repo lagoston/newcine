@@ -1,0 +1,519 @@
+/* ==========================================================================
+   Kits da Cobra (11/11/2026) — moldura + banner que só saem na roleta do
+   Poster Jackpot, com a ficha especial (20% dos giros). Pedido do Bruno: o
+   mesmo rigor do Motoqueiro Fantasma, adaptado a cada obra.
+
+   Mesma anatomia de cosmetics.css (aro no ::before, véu no ::after, halo no
+   box-shadow; banner com o céu no fundo, a textura no ::before e a cena no
+   ::after). As cenas e as texturas de aro são SVG gerados por
+   scripts/cosmetics/kits-art.mjs (cosmeticKits.art.css).
+
+   A segunda face de cada moldura (o "giro" do Motoqueiro) mora em
+   components/kitFrames/KitFrame.tsx; aqui ficam as classes .kit-*. Cada obra
+   troca de face do seu jeito:
+     • Game of Thrones — gira em 3D e o olho do dragão se abre;
+     • Rick and Morty — um portal se abre na foto e mostra você de outra
+       dimensão;
+     • Família Soprano — corte seco para os patos na piscina e corte para o
+       preto (o final), sem transição;
+     • The Walking Dead — a foto "vira": a cor morre, as veias sobem, um
+       tremor; depois volta.
+   Ninguém aqui desenha personagem: só o mundo de cada obra.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   MOLDURAS (frente)
+   -------------------------------------------------------------------------- */
+
+/* ---- Game of Thrones: aço valiriano, gelo e fogo --------------------------
+   Aro de aço dobrado (as ondas claras e escuras), com geada no alto à
+   esquerda e brasa embaixo à direita; o brilho vai do frio ao quente. */
+.co-frame--got {
+  --co-edge: rgba(203, 213, 225, 0.55);
+  --co-glow: rgba(148, 163, 184, 0.3);
+  --co-glow-size: 16px;
+  --co-rim:
+    radial-gradient(circle at 15% 17%, rgba(240, 249, 255, 0.95) 0 5%, rgba(186, 230, 253, 0.6) 13%, transparent 28%),
+    radial-gradient(circle at 85% 83%, rgba(254, 215, 170, 0.95) 0 4%, rgba(249, 115, 22, 0.65) 13%, transparent 28%),
+    var(--kit-rim-art) center / 100% 100% no-repeat,
+    conic-gradient(from 200deg, #3B4250, #A9B4C2 9%, #59606C 20%, #D7DEE7 33%, #4A515D 46%, #B8C2CE 60%, #3E4551 73%, #C9D2DC 86%, #3B4250);
+  animation: kit-got-breathe 7s ease-in-out infinite;
+}
+.co-frame--got::after {
+  background:
+    radial-gradient(circle at 17% 15%, rgba(224, 242, 254, 0.4), transparent 24%),
+    radial-gradient(circle at 83% 86%, rgba(234, 88, 12, 0.32), transparent 24%),
+    radial-gradient(circle, transparent 62%, rgba(15, 23, 42, 0.32) 100%);
+}
+@keyframes kit-got-breathe {
+  0%, 100% { box-shadow: 0 0 0 1px var(--co-edge), -5px -5px 14px rgba(186, 230, 253, 0.4), 5px 5px 14px rgba(249, 115, 22, 0.14); }
+  50% { box-shadow: 0 0 0 1px var(--co-edge), -5px -5px 14px rgba(186, 230, 253, 0.14), 5px 5px 16px rgba(249, 115, 22, 0.44); }
+}
+
+/* ---- Rick and Morty: o tubo do laboratório -------------------------------
+   Aro de vidro com o fluido verde dos portais, quatro braçadeiras de metal e
+   um fio de energia girando por dentro. */
+.co-frame--rick-morty {
+  --co-edge: rgba(190, 242, 100, 0.6);
+  --co-glow: rgba(132, 204, 22, 0.5);
+  --co-glow-size: 18px;
+  --co-rim:
+    radial-gradient(6% 4.2% at 50% 4.5%, #F3F4F6 0, #9CA3AF 50%, #374151 85%, transparent 100%),
+    radial-gradient(4.2% 6% at 95.5% 50%, #F3F4F6 0, #9CA3AF 50%, #374151 85%, transparent 100%),
+    radial-gradient(6% 4.2% at 50% 95.5%, #F3F4F6 0, #9CA3AF 50%, #374151 85%, transparent 100%),
+    radial-gradient(4.2% 6% at 4.5% 50%, #F3F4F6 0, #9CA3AF 50%, #374151 85%, transparent 100%),
+    conic-gradient(from 300deg, rgba(255, 255, 255, 0.6) 0deg, transparent 28deg, transparent 178deg, rgba(255, 255, 255, 0.32) 196deg, transparent 222deg),
+    conic-gradient(from 0deg, #3F6212, #A3E635 12%, #D9F99D 20%, #65A30D 32%, #BEF264 46%, #4D7C0F 58%, #A3E635 72%, #ECFCCB 80%, #65A30D 90%, #3F6212);
+  animation: co-breathe 2.6s ease-in-out infinite;
+}
+.co-frame--rick-morty::after {
+  background: conic-gradient(rgba(217, 249, 157, 0), rgba(236, 252, 203, 0.85), rgba(132, 204, 22, 0) 25%, rgba(190, 242, 100, 0.7) 50%, rgba(132, 204, 22, 0) 75%, rgba(236, 252, 203, 0.85));
+  -webkit-mask: radial-gradient(circle closest-side, transparent 72%, #000 83%, transparent 88%);
+  mask: radial-gradient(circle closest-side, transparent 72%, #000 83%, transparent 88%);
+  opacity: 0.7;
+  animation: co-spin 3.2s linear infinite;
+}
+
+/* ---- Família Soprano: a corrente de ouro e o anel de mindinho -------------
+   Aro de cordão de ouro torcido, um ônix cravado embaixo e a fumaça do
+   charuto subindo pela borda da foto. */
+.co-frame--sopranos {
+  --co-edge: rgba(212, 166, 74, 0.6);
+  --co-glow: rgba(217, 119, 6, 0.32);
+  --co-glow-size: 16px;
+  --co-rim:
+    radial-gradient(7.5% 7.5% at 50% 94%, #4B4B4B 0, #0A0A0A 52%, #F1CF73 60%, #8A6212 76%, transparent 82%),
+    var(--kit-rim-art) center / 100% 100% no-repeat,
+    conic-gradient(from 10deg, #5C3D0A, #E9C46A 12%, #A87C20 25%, #FFF0B8 38%, #B8892A 52%, #6B4A0C 64%, #F2D27A 78%, #9A6E18 90%, #5C3D0A);
+  animation: co-breathe 4s ease-in-out infinite;
+}
+.co-frame--sopranos::after {
+  background:
+    radial-gradient(38% 22% at 30% 100%, rgba(231, 225, 216, 0.34), transparent 70%),
+    radial-gradient(30% 20% at 66% 104%, rgba(231, 225, 216, 0.26), transparent 70%),
+    radial-gradient(circle, transparent 60%, rgba(41, 24, 10, 0.35) 100%);
+  background-size: 100% 160%, 100% 160%, 100% 100%;
+  animation: kit-smoke 9s ease-in-out infinite;
+}
+@keyframes kit-smoke {
+  0%, 100% { background-position: 0 0, 0 0, 0 0; opacity: 0.95; }
+  50% { background-position: 0 -18%, 0 -12%, 0 0; opacity: 0.55; }
+}
+
+/* ---- The Walking Dead: ferro enferrujado e arame farpado ------------------
+   Aro de ferro com ferrugem, o arame farpado enrolado por cima, respingos
+   secos e um brilho vermelho fraco, devagar. */
+.co-frame--walking-dead {
+  --co-edge: rgba(120, 113, 108, 0.6);
+  --co-glow: rgba(127, 29, 29, 0.36);
+  --co-glow-size: 14px;
+  --co-rim:
+    var(--kit-rim-spatter) center / 100% 100% no-repeat,
+    var(--kit-rim-art) center / 100% 100% no-repeat,
+    conic-gradient(from 30deg, #3B2A1E, #7C4A2A 10%, #4A3324 20%, #8B5A33 32%, #3F2E22 44%, #6B4430 56%, #2E241C 66%, #7A5236 80%, #43301F 90%, #3B2A1E);
+  animation: co-breathe 5.5s ease-in-out infinite;
+}
+.co-frame--walking-dead::after {
+  background:
+    radial-gradient(circle, transparent 56%, rgba(28, 25, 23, 0.5) 100%),
+    linear-gradient(160deg, rgba(120, 113, 80, 0.12), transparent 50%, rgba(80, 20, 10, 0.12));
+}
+
+/* --------------------------------------------------------------------------
+   A SEGUNDA FACE (KitFrame.tsx)
+   -------------------------------------------------------------------------- */
+
+.kit-frame {
+  position: relative;
+  flex-shrink: 0;
+}
+.kit-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.kit-face > img,
+.kit-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---- Game of Thrones: gira em 3D e o olho do dragão se abre (12 s) ------- */
+.kit-scene--got {
+  perspective: 900px;
+}
+.kit-card--got {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: kit-got-flip 12s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+}
+.kit-card--got .kit-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.kit-card--got .kit-back {
+  transform: rotateY(180deg);
+}
+@keyframes kit-got-flip {
+  0%, 70% { transform: rotateY(0deg); }
+  78% { transform: rotateY(180deg); }
+  90% { transform: rotateY(180deg); }
+  98%, 100% { transform: rotateY(360deg); }
+}
+/* as pálpebras abrem quando o giro termina e fecham antes de voltar */
+.kit-eye-lid-top,
+.kit-eye-lid-bottom,
+.kit-eye-pupil {
+  transform-box: fill-box;
+}
+.kit-eye-lid-top {
+  transform-origin: 50% 0%;
+  animation: kit-lid 12s ease-in-out infinite;
+}
+.kit-eye-lid-bottom {
+  transform-origin: 50% 100%;
+  animation: kit-lid 12s ease-in-out infinite;
+}
+.kit-eye-pupil {
+  transform-origin: 50% 50%;
+  animation: kit-pupil 12s ease-in-out infinite;
+}
+.kit-eye-ember {
+  animation: kit-ember 12s linear infinite;
+}
+@keyframes kit-lid {
+  0%, 77% { transform: scaleY(1); }
+  81%, 87% { transform: scaleY(0.04); }
+  89.5%, 100% { transform: scaleY(1); }
+}
+@keyframes kit-pupil {
+  0%, 81% { transform: scaleX(2.1); }
+  84% { transform: scaleX(1); }
+  87% { transform: scaleX(0.55); }
+  90%, 100% { transform: scaleX(2.1); }
+}
+@keyframes kit-ember {
+  0%, 78% { opacity: 0; transform: translateY(0); }
+  82% { opacity: 1; }
+  90%, 100% { opacity: 0; transform: translateY(-14%); }
+}
+
+/* ---- Rick and Morty: o portal se abre na foto (14 s) --------------------- */
+.kit-back--portal {
+  clip-path: circle(0% at 50% 50%);
+  animation: kit-portal-open 14s linear infinite;
+}
+@keyframes kit-portal-open {
+  0%, 61% { clip-path: circle(0% at 50% 50%); }
+  64% { clip-path: circle(36% at 50% 50%); }
+  67%, 85% { clip-path: circle(72% at 50% 50%); }
+  88% { clip-path: circle(36% at 50% 50%); }
+  91%, 100% { clip-path: circle(0% at 50% 50%); }
+}
+/* a borda do portal acompanha a abertura (escala 1 = o círculo inscrito) */
+.kit-portal-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 3px #BEF264, inset 0 0 10px 4px rgba(163, 230, 53, 0.85), 0 0 10px 3px rgba(163, 230, 53, 0.7);
+  transform: scale(0);
+  opacity: 0;
+  animation: kit-portal-ring 14s linear infinite;
+}
+@keyframes kit-portal-ring {
+  0%, 61% { transform: scale(0); opacity: 0; }
+  61.5% { opacity: 1; }
+  64% { transform: scale(0.72); opacity: 1; }
+  67% { transform: scale(1.44); opacity: 0; }
+  85% { transform: scale(1.44); opacity: 0; }
+  85.5% { opacity: 1; }
+  88% { transform: scale(0.72); opacity: 1; }
+  90.5% { opacity: 1; }
+  91%, 100% { transform: scale(0); opacity: 0; }
+}
+.kit-portal-swirl {
+  position: absolute;
+  inset: -12%;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle, #FFFFFF 0, #ECFCCB 10%, rgba(190, 242, 100, 0.6) 26%, transparent 44%),
+    repeating-conic-gradient(from 0deg, #ECFCCB 0 9deg, #84CC16 9deg 22deg, #3F6212 22deg 34deg);
+  filter: blur(1px);
+  animation: co-spin 2.2s linear infinite;
+}
+.kit-portal-swirl::after {
+  content: '';
+  position: absolute;
+  inset: 8%;
+  border-radius: 9999px;
+  background: repeating-conic-gradient(from 20deg, rgba(217, 249, 157, 0.55) 0 7deg, transparent 7deg 26deg);
+  animation: co-spin 1.4s linear infinite reverse;
+}
+.kit-portal-you {
+  position: absolute;
+  inset: 22%;
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px #D9F99D, 0 0 10px 3px rgba(163, 230, 53, 0.85);
+  animation: kit-wobble 2.4s ease-in-out infinite;
+}
+/* você, de outra dimensão: as cores trocadas */
+.kit-portal-you > img {
+  filter: hue-rotate(150deg) saturate(1.55) contrast(1.06);
+}
+@keyframes kit-wobble {
+  0%, 100% { transform: rotate(-7deg) scale(0.97); }
+  50% { transform: rotate(7deg) scale(1.03); }
+}
+
+/* ---- Família Soprano: corte seco para os patos, corte para o preto (16 s) */
+.kit-back--pool,
+.kit-cut-black {
+  opacity: 0;
+}
+.kit-back--pool {
+  animation: kit-cut-pool 16s step-end infinite;
+}
+.kit-cut-black {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: #000;
+  animation: kit-cut-black 16s step-end infinite;
+}
+@keyframes kit-cut-pool {
+  0% { opacity: 0; }
+  66% { opacity: 1; }
+  85%, 100% { opacity: 0; }
+}
+@keyframes kit-cut-black {
+  0% { opacity: 0; }
+  85% { opacity: 1; }
+  91%, 100% { opacity: 0; }
+}
+.kit-duck {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: kit-bob 2.6s ease-in-out infinite;
+}
+.kit-duck--second {
+  animation-delay: -1.1s;
+}
+@keyframes kit-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-4%) rotate(2deg); }
+}
+.kit-ripple {
+  animation: kit-ripple 3.4s linear infinite;
+}
+@keyframes kit-ripple {
+  from { transform: translateX(0); }
+  to { transform: translateX(-20px); }
+}
+
+/* ---- The Walking Dead: a foto vira (15 s) --------------------------------- */
+.kit-card--wd {
+  position: absolute;
+  inset: 0;
+  animation: kit-shudder 15s linear infinite;
+}
+@keyframes kit-shudder {
+  0%, 63% { transform: none; }
+  64% { transform: translate(1px, 0) rotate(1.5deg); }
+  65% { transform: translate(-1px, 1px) rotate(-2deg); }
+  66% { transform: translate(1px, -1px) rotate(1deg); }
+  67% { transform: translate(-1px, 0) rotate(-1deg); }
+  68%, 100% { transform: none; }
+}
+.kit-back--turned {
+  opacity: 0;
+  animation: kit-turn 15s ease-in-out infinite;
+}
+@keyframes kit-turn {
+  0%, 63% { opacity: 0; }
+  68%, 86% { opacity: 1; }
+  92%, 100% { opacity: 0; }
+}
+/* a cor morre: cinza, esverdeado, mais contraste e mais escuro */
+.kit-back--turned > img {
+  filter: grayscale(0.55) sepia(0.5) hue-rotate(40deg) saturate(1.3) contrast(1.28) brightness(0.74);
+}
+.kit-veins path {
+  stroke-dasharray: 70;
+  stroke-dashoffset: 70;
+  animation: kit-veins 15s ease-out infinite;
+}
+@keyframes kit-veins {
+  0%, 64% { stroke-dashoffset: 70; }
+  73%, 86% { stroke-dashoffset: 0; }
+  92%, 100% { stroke-dashoffset: 70; }
+}
+
+/* As prévias do Personalizar ficam paradas e só rodam com o mouse em cima
+   (o mesmo combinado das outras molduras). */
+.cz-tile .kit-frame,
+.cz-tile .kit-frame *,
+.cz-tile .kit-frame *::before,
+.cz-tile .kit-frame *::after {
+  animation-play-state: paused;
+}
+.cz-tile:hover .kit-frame,
+.cz-tile:hover .kit-frame *,
+.cz-tile:hover .kit-frame *::before,
+.cz-tile:hover .kit-frame *::after,
+.cz-tile:focus-visible .kit-frame,
+.cz-tile:focus-visible .kit-frame *,
+.cz-tile:focus-visible .kit-frame *::before,
+.cz-tile:focus-visible .kit-frame *::after {
+  animation-play-state: running;
+}
+
+/* --------------------------------------------------------------------------
+   BANNERS
+   A cena (SVG) fica presa à direita, na altura do banner, no ::after.
+   -------------------------------------------------------------------------- */
+
+.co-banner--got::after,
+.co-banner--rick-morty::after,
+.co-banner--sopranos::after,
+.co-banner--walking-dead::after {
+  background: var(--kit-art) right center / auto 100% no-repeat;
+  -webkit-mask: linear-gradient(to left, #000 55%, rgba(0, 0, 0, 0.55) 80%, transparent);
+  mask: linear-gradient(to left, #000 55%, rgba(0, 0, 0, 0.55) 80%, transparent);
+}
+
+/* ---- Game of Thrones: o inverno chegou ------------------------------------
+   Noite fria com a lua e as montanhas do Norte, um castelo com fogo e o
+   dragão cruzando a lua; a neve cai na frente de tudo. */
+.co-banner--got {
+  --co-line: rgba(203, 213, 225, 0.36);
+  --co-bg:
+    radial-gradient(ellipse 45% 85% at 100% 100%, rgba(234, 88, 12, 0.18), transparent 65%),
+    radial-gradient(ellipse 55% 110% at 82% 0%, rgba(203, 213, 225, 0.12), transparent 62%),
+    linear-gradient(180deg, #0A0E16, #111826 70%, #151B28);
+}
+.co-banner--got::before {
+  z-index: 1;
+  background:
+    radial-gradient(1.4px 1.4px at 20px 30px, rgba(241, 245, 249, 0.9), transparent),
+    radial-gradient(1px 1px at 70px 80px, rgba(241, 245, 249, 0.75), transparent),
+    radial-gradient(1.8px 1.8px at 122px 18px, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1.1px 1.1px at 160px 100px, rgba(226, 232, 240, 0.7), transparent),
+    radial-gradient(1.3px 1.3px at 42px 108px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(0.9px 0.9px at 98px 52px, rgba(255, 255, 255, 0.6), transparent);
+  background-size: 180px 120px;
+  -webkit-mask: linear-gradient(to left, #000 15%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0.18));
+  mask: linear-gradient(to left, #000 15%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0.18));
+  animation: kit-snow 14s linear infinite;
+}
+/* 3 ladrilhos para baixo e 1 para o lado: o recomeço não dá salto */
+@keyframes kit-snow {
+  to { background-position: -180px 360px; }
+}
+
+/* ---- Rick and Morty: o portal no meio do espaço --------------------------
+   Espaço fundo em violeta, estrelas piscando e o portal verde girando, com
+   faíscas, dois portais distantes e um planeta anelado. */
+.co-banner--rick-morty {
+  --co-line: rgba(190, 242, 100, 0.38);
+  --co-bg:
+    radial-gradient(ellipse 45% 100% at 80% 50%, rgba(132, 204, 22, 0.16), transparent 66%),
+    radial-gradient(ellipse 40% 80% at 15% 100%, rgba(124, 58, 237, 0.16), transparent 70%),
+    linear-gradient(165deg, #0B0716, #0A0B14 60%, #0C0A18);
+}
+.co-banner--rick-morty::before {
+  background:
+    radial-gradient(1.2px 1.2px at 16px 20px, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 76px 66px, rgba(236, 252, 203, 0.75), transparent),
+    radial-gradient(1.4px 1.4px at 130px 24px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 172px 88px, rgba(221, 214, 254, 0.7), transparent),
+    radial-gradient(0.8px 0.8px at 46px 96px, rgba(255, 255, 255, 0.6), transparent);
+  background-size: 200px 110px;
+  animation: co-twinkle 3.6s ease-in-out infinite;
+}
+
+/* ---- Família Soprano: Nova Jersey à noite ----------------------------------
+   A cidade do outro lado do rio, as luzes do túnel passando em cima, a
+   fumaça do charuto e, de vez em quando, os patos indo embora. */
+.co-banner--sopranos {
+  --co-line: rgba(212, 166, 74, 0.38);
+  --co-bg:
+    radial-gradient(ellipse 50% 90% at 78% 100%, rgba(245, 184, 65, 0.16), transparent 66%),
+    radial-gradient(ellipse 35% 80% at 0% 100%, rgba(190, 18, 60, 0.12), transparent 70%),
+    linear-gradient(180deg, #160D0A, #120A08 60%, #0A0606);
+}
+.co-banner--sopranos::before {
+  background: repeating-linear-gradient(90deg, transparent 0 70px, rgba(251, 191, 36, 0.09) 70px 74px, transparent 74px 140px);
+  -webkit-mask: linear-gradient(to bottom, #000, transparent 42%);
+  mask: linear-gradient(to bottom, #000, transparent 42%);
+  animation: kit-tunnel 5s linear infinite;
+}
+@keyframes kit-tunnel {
+  to { background-position: -140px 0; }
+}
+
+/* ---- The Walking Dead: o fim do mundo ao entardecer -----------------------
+   Céu cinza e o sol vermelho baixo, a cidade em ruínas, a cerca com arame
+   farpado (e um rasgo), os corvos; a névoa passa na frente. */
+.co-banner--walking-dead {
+  --co-line: rgba(168, 162, 158, 0.34);
+  --co-bg:
+    radial-gradient(ellipse 50% 70% at 80% 75%, rgba(185, 28, 28, 0.22), transparent 66%),
+    linear-gradient(180deg, #1C1D19, #22211C 50%, #2A1A14);
+}
+.co-banner--walking-dead::before {
+  z-index: 1;
+  background:
+    radial-gradient(ellipse 30% 40% at 20% 85%, rgba(168, 162, 158, 0.2), transparent 70%),
+    radial-gradient(ellipse 25% 35% at 60% 95%, rgba(168, 162, 158, 0.16), transparent 70%),
+    radial-gradient(ellipse 35% 30% at 92% 80%, rgba(168, 162, 158, 0.18), transparent 70%);
+  background-size: 200% 100%;
+  background-repeat: repeat-x;
+  animation: kit-fog 36s linear infinite;
+}
+@keyframes kit-fog {
+  to { background-position: 200% 0; }
+}
+
+/* No celular, o cartão grande do perfil (.co-banner--card) é centralizado
+   (foto no meio): a cena sobe para o alto, menor, e some antes da foto. */
+@media (max-width: 639px) {
+  .co-banner--card.co-banner--got::after,
+  .co-banner--card.co-banner--rick-morty::after,
+  .co-banner--card.co-banner--sopranos::after,
+  .co-banner--card.co-banner--walking-dead::after {
+    background-size: auto 46%;
+    background-position: right -64px top -4px;
+    -webkit-mask: linear-gradient(to bottom, #000 26%, transparent 50%);
+    mask: linear-gradient(to bottom, #000 26%, transparent 50%);
+  }
+}
+
+/* ---- Movimento reduzido -------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .kit-frame,
+  .kit-frame * {
+    animation: none !important;
+  }
+  /* só a frente: a segunda face não aparece */
+  .kit-back,
+  .kit-portal-ring,
+  .kit-cut-black {
+    display: none !important;
+  }
+  .kit-card--got {
+    transform: none !important;
+  }
+  /* as cenas trocam pela versão parada (a animação do SVG é interna) */
+  .co-banner--got::after,
+  .co-banner--rick-morty::after,
+  .co-banner--sopranos::after,
+  .co-banner--walking-dead::after {
+    background-image: var(--kit-art-still);
+  }
+}

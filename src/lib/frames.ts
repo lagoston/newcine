@@ -7,6 +7,11 @@
 //
 // requiredTag precisa bater com is_required_tag_met() no banco, que é quem
 // valida o desbloqueio de verdade (set_user_cosmetic).
+//
+// 11/11/2026: kits da Cobra. As molduras com `kit` não pedem Premium nem
+// tag: só saem na roleta do Poster Jackpot, com a ficha especial, junto com
+// o banner do mesmo kit (cobra_kits / user_cosmetic_unlocks no banco). Quem
+// ganhou usa para sempre, com ou sem Premium.
 
 export const frames = {
   gold: {
@@ -93,14 +98,59 @@ export const frames = {
   // pra usar o componente em vez de aplicar className num wrapper. A classe
   // abaixo é a mesma que o componente usa nas duas faces e serve de reserva
   // caso algum lugar ainda aplique só a classe.
+  // 11/11/2026: deixou de vir da tag Spirit of Vengeance (que saiu) e virou
+  // o primeiro kit da Cobra.
   ghostRider: {
     id: 'ghostRider',
     name: 'Ghost Rider Frame',
-    isPremium: true,
-    requiredTag: 'hell-rider',
+    isPremium: false,
+    requiredTag: null,
+    kit: 'ghost-rider',
     renderType: 'component',
     component: 'GhostRiderFrame',
     className: 'co-frame co-frame--ghost-rider',
+  },
+  // Os outros quatro kits (11/11/2026): cada um com a segunda face no
+  // KitFrame (components/kitFrames). A classe é a frente, de reserva.
+  got: {
+    id: 'got',
+    name: 'Game of Thrones Frame',
+    isPremium: false,
+    requiredTag: null,
+    kit: 'game-of-thrones',
+    renderType: 'component',
+    component: 'KitFrame',
+    className: 'co-frame co-frame--got',
+  },
+  'rick-morty': {
+    id: 'rick-morty',
+    name: 'Rick and Morty Frame',
+    isPremium: false,
+    requiredTag: null,
+    kit: 'rick-and-morty',
+    renderType: 'component',
+    component: 'KitFrame',
+    className: 'co-frame co-frame--rick-morty',
+  },
+  sopranos: {
+    id: 'sopranos',
+    name: 'The Sopranos Frame',
+    isPremium: false,
+    requiredTag: null,
+    kit: 'sopranos',
+    renderType: 'component',
+    component: 'KitFrame',
+    className: 'co-frame co-frame--sopranos',
+  },
+  'walking-dead': {
+    id: 'walking-dead',
+    name: 'The Walking Dead Frame',
+    isPremium: false,
+    requiredTag: null,
+    kit: 'walking-dead',
+    renderType: 'component',
+    component: 'KitFrame',
+    className: 'co-frame co-frame--walking-dead',
   },
 } as const;
 
@@ -109,7 +159,8 @@ export type FrameId = keyof typeof frames;
 // Frames com renderType:'component' precisam de tratamento especial em
 // qualquer lugar que renderiza avatar+frame — checar isso ANTES de decidir
 // se aplica getFrameClass() num wrapper simples ou renderiza um componente
-// dedicado. Ver GhostRiderFrame.tsx.
+// dedicado. Ver GhostRiderFrame.tsx e components/kitFrames/FlipFrame.tsx
+// (que escolhe entre o Motoqueiro e os kits).
 export function frameUsesComponent(frameId: string = 'default', isPremium: boolean = false): string | null {
   const frame = frames[frameId as FrameId];
   if (!frame || (frame.isPremium && !isPremium)) return null;
@@ -122,4 +173,10 @@ export function getFrameClass(frameId: string = 'default', isPremium: boolean = 
     return frames.default.className;
   }
   return frame.className;
+}
+
+// O kit da Cobra de uma moldura (null nas que vêm de tag ou Premium).
+export function frameKit(frameId: string): string | null {
+  const frame = frames[frameId as FrameId];
+  return frame && 'kit' in frame ? frame.kit : null;
 }

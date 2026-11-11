@@ -13,8 +13,10 @@ import type React from 'react';
 
 export const DEFAULT_DECK_ID = 'deck-classico';
 export const DEFAULT_TABLE_ID = 'table-feltro-verde';
-export const DECK_IDS = ['deck-classico', 'deck-noir'] as const;
-export const TABLE_IDS = ['table-feltro-verde', 'table-meia-noite'] as const;
+// 11/11/2026: o conjunto Breaking Bad (baralho e mesa, itens separados do
+// catálogo da Cobra, que saem em 20% dos torneios).
+export const DECK_IDS = ['deck-classico', 'deck-noir', 'deck-breaking-bad'] as const;
+export const TABLE_IDS = ['table-feltro-verde', 'table-meia-noite', 'table-breaking-bad'] as const;
 
 // 'friends' (03/11/2026, fase 3): a mesa com amigos usa o feltro equipado, como a casual.
 export type PokerMode = 'free' | 'bounty' | 'tutorial' | 'friends';
@@ -117,6 +119,77 @@ const NOIR_SVG = `
   </g>
 </svg>`;
 
+// Breaking Bad (11/11/2026): o laboratório. Fundo de cristal azul estilhaçado,
+// moldura amarela de material perigoso com as faixas listradas nos cantos e,
+// no meio, a molécula em giz (o professor de química). Nada de logotipo nem
+// de personagem: só o mundo da série.
+const BB_SHARDS = (() => {
+  // estilhaços em leque a partir de dois pontos de impacto (semente fixa)
+  let seed = 7;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  const out: string[] = [];
+  [
+    [30, 40],
+    [72, 104],
+  ].forEach(([cx, cy]) => {
+    let a = rnd() * Math.PI * 2;
+    for (let i = 0; i < 9; i += 1) {
+      const step = 0.5 + rnd() * 0.6;
+      const r1 = 40 + rnd() * 50;
+      const r2 = 40 + rnd() * 50;
+      const x1 = (cx + Math.cos(a) * r1).toFixed(1);
+      const y1 = (cy + Math.sin(a) * r1).toFixed(1);
+      const x2 = (cx + Math.cos(a + step) * r2).toFixed(1);
+      const y2 = (cy + Math.sin(a + step) * r2).toFixed(1);
+      const tone = ['#BAE6FD', '#7DD3FC', '#E0F2FE', '#38BDF8'][i % 4];
+      const op = (0.06 + rnd() * 0.16).toFixed(2);
+      out.push(`<path d='M${cx} ${cy} L${x1} ${y1} L${x2} ${y2}Z' fill='${tone}' fill-opacity='${op}' stroke='#E0F2FE' stroke-opacity='.18' stroke-width='.4'/>`);
+      a += step;
+    }
+  });
+  return out.join('');
+})();
+
+// faixas pretas e amarelas num triângulo de canto
+const hazardCorner = (tx: number, ty: number, rot: number) => `
+  <g transform='translate(${tx} ${ty}) rotate(${rot})'>
+    <clipPath id='hz${rot}'><path d='M0 0 H15 L0 15Z'/></clipPath>
+    <g clip-path='url(#hz${rot})'>
+      <path d='M0 0 H15 L0 15Z' fill='#F2C318'/>
+      ${[0, 6, 12].map((o) => `<path d='M${o} 0 h3 L${o - 15} 18 h-3Z' fill='#16130B'/>`).join('')}
+    </g>
+  </g>`;
+
+const BREAKING_BAD_SVG = `
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140' preserveAspectRatio='xMidYMid slice'>
+  <defs>
+    <radialGradient id='b' cx='50%' cy='46%' r='70%'>
+      <stop offset='0' stop-color='#1D7699'/><stop offset='.55' stop-color='#0F4560'/><stop offset='1' stop-color='#072131'/>
+    </radialGradient>
+    <clipPath id='c'><rect x='9' y='9' width='82' height='122' rx='3'/></clipPath>
+  </defs>
+  <rect width='100' height='140' fill='url(#b)'/>
+  <g clip-path='url(#c)'>${BB_SHARDS}</g>
+  <rect x='5' y='5' width='90' height='130' rx='5' fill='none' stroke='#F2C318' stroke-width='1.8'/>
+  <rect x='8.5' y='8.5' width='83' height='123' rx='3' fill='none' stroke='#F2C318' stroke-opacity='.45' stroke-width='.6'/>
+  ${hazardCorner(9, 9, 0)}${hazardCorner(91, 9, 90)}${hazardCorner(91, 131, 180)}${hazardCorner(9, 131, 270)}
+  <circle cx='50' cy='70' r='21' fill='#0A2A3A' stroke='#F2C318' stroke-width='1.4'/>
+  <circle cx='50' cy='70' r='17.5' fill='none' stroke='#F2C318' stroke-opacity='.4' stroke-width='.5' stroke-dasharray='1.2 1.6'/>
+  <g fill='none' stroke='#EAF6FB' stroke-opacity='.92' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round'>
+    <path d='M50 60.5 L58.2 65.2 L58.2 74.8 L50 79.5 L41.8 74.8 L41.8 65.2Z'/>
+    <path d='M52.4 63.2 L56 65.3 M56 73.2 L52.4 75.3 M43.8 73.2 L43.8 66.8'/>
+    <path d='M58.2 65.2 L63.6 62 L66.8 64.4 M63.6 62 L63.6 57.2'/>
+    <path d='M41.8 74.8 L36.6 77.8'/>
+  </g>
+  <g fill='#BAE6FD'>
+    <path d='M50 22 l3 4 l-3 5 l-3 -5z' fill-opacity='.9'/>
+    <path d='M50 109 l3 4 l-3 5 l-3 -5z' fill-opacity='.9'/>
+  </g>
+</svg>`;
+
 const DECKS: Record<string, DeckLook> = {
   'deck-classico': {
     id: 'deck-classico',
@@ -129,6 +202,12 @@ const DECKS: Record<string, DeckLook> = {
     back: { backgroundColor: '#121217', backgroundImage: svgUri(NOIR_SVG), backgroundSize: 'cover', backgroundPosition: 'center' },
     edge: '#DCE0E7',
     base: '#121217',
+  },
+  'deck-breaking-bad': {
+    id: 'deck-breaking-bad',
+    back: { backgroundColor: '#0F4560', backgroundImage: svgUri(BREAKING_BAD_SVG), backgroundSize: 'cover', backgroundPosition: 'center' },
+    edge: '#F2C318',
+    base: '#0F4560',
   },
 };
 
@@ -154,6 +233,24 @@ const MIDNIGHT_STARS = [
   'radial-gradient(1px 1px at 52% 44%, rgba(255,255,255,0.25) 50%, transparent 51%)',
 ].join(', ');
 
+// Breaking Bad (11/11/2026): a mesa no meio do deserto do Novo México, ao
+// entardecer. Pano cor de areia queimada, o rastro de pneus atravessando, uns
+// cristais azuis espalhados brilhando e a borda de borracha amarela de
+// material perigoso (no lugar do couro com friso de ouro).
+const BB_CRYSTALS = [
+  'radial-gradient(1.6px 1.6px at 14% 30%, rgba(125,211,252,0.75) 50%, transparent 51%)',
+  'radial-gradient(1.2px 1.2px at 78% 22%, rgba(186,230,253,0.7) 50%, transparent 51%)',
+  'radial-gradient(1.4px 1.4px at 66% 76%, rgba(125,211,252,0.65) 50%, transparent 51%)',
+  'radial-gradient(1px 1px at 32% 70%, rgba(224,242,254,0.6) 50%, transparent 51%)',
+  'radial-gradient(1.2px 1.2px at 88% 58%, rgba(125,211,252,0.6) 50%, transparent 51%)',
+].join(', ');
+// dois sulcos paralelos de pneu, na diagonal, e as dunas (luz e sombra largas)
+const BB_TRACKS = [
+  'linear-gradient(112deg, transparent 0 58%, rgba(52,32,14,0.17) 58.6% 61%, transparent 61.6% 64.6%, rgba(52,32,14,0.17) 65.2% 67.6%, transparent 68.2%)',
+  'radial-gradient(60% 50% at 18% 85%, rgba(40,24,10,0.28), transparent 70%)',
+  'radial-gradient(55% 45% at 82% 18%, rgba(255,214,150,0.14), transparent 70%)',
+].join(', ');
+
 const TABLES: Record<string, TableLook> = {
   'table-feltro-verde': {
     id: 'table-feltro-verde',
@@ -174,6 +271,21 @@ const TABLES: Record<string, TableLook> = {
     rim: RIM,
     textSoft: '#D6DEFF',
     base: '#101B4A',
+  },
+  'table-breaking-bad': {
+    id: 'table-breaking-bad',
+    kind: 'felt',
+    felt: {
+      backgroundColor: '#7A5530',
+      backgroundImage: `${GRAIN}, ${BB_CRYSTALS}, ${BB_TRACKS}, radial-gradient(90% 55% at 50% -6%, rgba(251,146,60,0.32), transparent 70%), radial-gradient(120% 90% at 50% 40%, #9A6E3E 0%, #7A5530 52%, #4A3018 100%)`,
+      backgroundSize: '140px 140px, 240px 240px, 240px 240px, 240px 240px, 240px 240px, 240px 240px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%',
+    },
+    // a borda de borracha amarela (material perigoso) com o friso preto
+    rim: {
+      boxShadow: 'inset 0 0 0 1.5px #F2C318, inset 0 0 0 7px #1D1A12, inset 0 0 0 8px rgba(242,195,24,0.55), inset 0 14px 30px -12px rgba(0,0,0,0.55)',
+    },
+    textSoft: '#FFF1D6',
+    base: '#7A5530',
   },
 };
 

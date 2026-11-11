@@ -9,6 +9,7 @@ import { setPokerSettings, SPEEDS, usePokerSettings, type PokerSettingsLocal } f
 import { invalidatePokerHome } from '../../../lib/poker/client/usePokerHome';
 import { BLEFE_ROUTES } from '../jackpot/pokerMeta';
 import { CardBack, FeltSwatch } from '../cosmetics/CosmeticPreviews';
+import { DECK_IDS, TABLE_IDS } from '../cosmetics/looks';
 import HandRanking from '../cards/HandRanking';
 import { Sheet } from '../table/Overlays';
 import Layer from './PpLayer';
@@ -26,8 +27,9 @@ export const SettingsSheet: React.FC<{ home: PokerHome; reduced: boolean; onClos
   const [loadout, setLoadout] = useState(home.loadout ?? { deck: 'deck-classico', table: 'table-feltro-verde', quips: 'quips-padrao' });
   const [equipping, setEquipping] = useState<string | null>(null);
   const owned = new Set(['deck-classico', 'table-feltro-verde', ...(home.owned_items ?? [])]);
-  const decks = ['deck-classico', 'deck-noir'].filter((id) => owned.has(id));
-  const tables = ['table-feltro-verde', 'table-meia-noite'].filter((id) => owned.has(id));
+  // A ordem das listas mora em cosmetics/looks.ts (11/11/2026: + Breaking Bad).
+  const decks = DECK_IDS.filter((id) => owned.has(id));
+  const tables = TABLE_IDS.filter((id) => owned.has(id));
 
   const equip = async (slot: 'deck' | 'table', id: string) => {
     setEquipping(id);

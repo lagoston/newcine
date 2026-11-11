@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { frames, FrameId, getFrameClass, frameUsesComponent } from '../lib/frames';
-import { GhostRiderFrame } from './GhostRiderFrame';
+import { FlipFrame } from './kitFrames/FlipFrame';
 import { THEME_TAGS, PROGRESSION_TAGS } from '../lib/tags';
 import { fetchTagProgress } from '../lib/tagProgress';
 import { banners, BannerId, getBannerClass } from '../lib/banners';
@@ -280,17 +280,23 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
   };
 
   // Estado de desbloqueio comum a molduras, banners e cartas. `grantKey`
-  // ("frame:id") libera o item ganho como prêmio da mesa.
-  const lockState = (item: { isPremium: boolean; requiredTag?: string | null }, grantKey?: string) => {
+  // ("frame:id") libera o item ganho como prêmio da mesa ou como kit da
+  // Cobra. Kit (11/11/2026) não pede Premium nem tag: só sai na roleta, com
+  // a ficha especial; até lá fica trancado com a faixa "Kit da Cobra".
+  const lockState = (item: { isPremium: boolean; requiredTag?: string | null; kit?: string }, grantKey?: string) => {
+    const kit = Boolean(item.kit);
     if (grantKey && grants.has(grantKey)) {
-      return { isPremiumLocked: false, unlockInfo: null, progress: 0, required: 0, tagMet: true, isLocked: false };
+      return { isPremiumLocked: false, unlockInfo: null, progress: 0, required: 0, tagMet: true, isLocked: false, kit };
+    }
+    if (kit) {
+      return { isPremiumLocked: false, unlockInfo: null, progress: 0, required: 0, tagMet: false, isLocked: true, kit };
     }
     const isPremiumLocked = item.isPremium && !isPremium;
     const unlockInfo = getUnlockTagInfo(item.requiredTag);
     const progress = item.requiredTag ? themeTagProgress[item.requiredTag] || 0 : 0;
     const required = unlockInfo?.requiredCount || 0;
     const tagMet = !item.requiredTag || progress >= required;
-    return { isPremiumLocked, unlockInfo, progress: Math.min(progress, required || progress), required, tagMet, isLocked: isPremiumLocked || !tagMet };
+    return { isPremiumLocked, unlockInfo, progress: Math.min(progress, required || progress), required, tagMet, isLocked: isPremiumLocked || !tagMet, kit };
   };
 
   // ---- Peças visuais compartilhadas ----
@@ -339,6 +345,14 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     </span>
   );
 
+  // Faixa dos kits da Cobra: de onde vem (trancado) ou que já é seu.
+  const kitStrip = (owned: boolean) => (
+    <span className="flex items-center justify-center gap-1.5 text-[11px] leading-tight" style={{ color: owned ? '#D9F99D' : MIST }}>
+      {owned ? <Unlock className="w-3 h-3 shrink-0" aria-hidden /> : <Lock className="w-3 h-3 shrink-0" aria-hidden />}
+      <span className="truncate">{owned ? t('customize.kit.owned') : t('customize.kit.locked')}</span>
+    </span>
+  );
+
   const ariaLabelFor = (name: string, selected: boolean, locked: boolean, isPremiumLocked: boolean) =>
     [name, selected ? t('customize.inUse') : null, isPremiumLocked ? 'Premium' : locked ? t('customize.locked') : null].filter(Boolean).join(' — ');
 
@@ -353,8 +367,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
     const ordered = [frames.default, ...Object.values(frames).filter((frame) => frame.id !== 'default')];
 
     const avatarPreview = (frame: (typeof frames)[FrameId], animate: boolean) => {
-      if ('renderType' in frame && frame.renderType === 'component' && frame.component === 'GhostRiderFrame') {
-        return <GhostRiderFrame src={frozenAvatarUrl || ''} alt="" size={72} className="shrink-0" />;
+      if ('renderType' in frame && frame.renderType === 'component') {
+        return <FlipFrame frameId={frame.id} src={frozenAvatarUrl || ''} alt="" size={72} className="shrink-0" />;
       }
       const anim = animate ? 'cz-anim' : '';
       const ring = frame.id === 'default' ? 'ring-2 ring-white/15' : frame.className;
@@ -397,6 +411,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                     {frame.name}
                   </span>
                   {!state.isPremiumLocked && state.unlockInfo && unlockStrip(state.unlockInfo, state.progress, state.required, state.tagMet)}
+                  {state.kit && kitStrip(!state.isLocked)}
                   {selected && !isLockedNow && selectedBadge}
                   {state.isLocked && <span className="absolute top-2 right-2 z-20">{state.isPremiumLocked ? premiumChip : lockChip}</span>}
                 </button>
@@ -462,6 +477,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
                 {!state.isPremiumLocked && state.unlockInfo && (
                   <span className="px-1.5">{unlockStrip(state.unlockInfo, state.progress, state.required, state.tagMet)}</span>
                 )}
+                {state.kit && <span className="px-1.5">{kitStrip(!state.isLocked)}</span>}
                 {selected && !isLockedNow && selectedBadge}
                 {state.isLocked && <span className="absolute top-4 right-4 z-20">{state.isPremiumLocked ? premiumChip : lockChip}</span>}
               </button>
@@ -600,8 +616,8 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, onSave
           style={bannerClass ? undefined : { background: `radial-gradient(ellipse 70% 90% at 100% 0%, rgba(139,92,246,0.22), transparent 65%), ${VELVET}` }}
         >
           <div className="relative z-10 flex items-center gap-4 px-4 sm:px-6 py-5">
-            {frameUsesComponent(selectedFrame, isPremium) === 'GhostRiderFrame' && frozenAvatarUrl ? (
-              <GhostRiderFrame src={frozenAvatarUrl} alt="" size={64} className="shrink-0" />
+            {frameUsesComponent(selectedFrame, isPremium || grants.has(`frame:${selectedFrame}`)) && frozenAvatarUrl ? (
+              <FlipFrame frameId={selectedFrame} src={frozenAvatarUrl} alt="" size={64} className="shrink-0" />
             ) : (
               <span className={`block w-16 h-16 shrink-0 rounded-full overflow-hidden ${frameClass}`} style={{ background: NIGHT }}>
                 {frozenAvatarUrl ? <img src={frozenAvatarUrl} alt="" className="w-full h-full object-cover" /> : avatarPlaceholder('w-7 h-7')}
