@@ -200,6 +200,22 @@
   animation: slideUpFull 0.3s ease-out;
 }
 
+/* 12/11/2026 — o trailer da porta da Mesa (oracleHub/DoorTrailer.tsx).
+   O vídeo fica parado no lugar e é descoberto (e coberto de novo) como uma
+   cortina, no mesmo passo e na mesma curva do conteúdo da porta, que sai para
+   a esquerda: a borda da cortina acompanha a borda direita do conteúdo, então
+   os dois nunca se sobrepõem. O vídeo não anda porque precisa estar no lugar
+   (visível para o navegador) enquanto toca escondido antes de entrar. */
+@keyframes door-trailer-in {
+  from { clip-path: inset(0 0 0 100%); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes door-trailer-out {
+  from { clip-path: inset(0 0 0 0); }
+  to { clip-path: inset(0 0 0 100%); }
+}
+
 @keyframes float {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }

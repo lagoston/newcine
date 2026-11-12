@@ -27,6 +27,9 @@ import { DoorTrailerLayer, useDoorTrailer } from './DoorTrailer';
 // roda o trailer de um dos filmes mais recomendados das três prateleiras
 // favoritas da pessoa (DoorTrailer.tsx). Tocar no trailer abre o filme e a
 // porta volta ao que era; sem trailer, a porta abre o Acervo como sempre.
+// 12/11/2026: o vídeo toca escondido por uns segundos antes de a porta abrir
+// (para o botão de play do YouTube já ter sumido), então a porta abre um
+// pouco depois de a home acender (uns 5 s a mais que antes).
 
 // Leque: Bogart à esquerda, Cypher à direita, Fincher no meio, na frente.
 const FAN = [
@@ -75,6 +78,17 @@ const OracleLibraryDoor: React.FC<{
         boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.14), 0 18px 40px -26px rgba(240,171,252,0.5)',
       }}
     >
+      {/* O trailer vem primeiro: fica embaixo do conteúdo da porta, que sai
+          para a esquerda enquanto o vídeo é descoberto (12/11/2026). */}
+      {trailer.pick && trailer.phase !== 'off' && (
+        <DoorTrailerLayer
+          pick={trailer.pick}
+          phase={trailer.phase}
+          iframeRef={trailer.iframeRef}
+          onLoad={trailer.onIframeLoad}
+        />
+      )}
+
       {/* O tubo de neon com as cores dos três oráculos. */}
       <span
         aria-hidden
@@ -122,15 +136,6 @@ const OracleLibraryDoor: React.FC<{
         <DoorArrow colors={ORACLES.map((oracle) => oracle.color)} />
       </span>
 
-      {trailer.pick && trailer.phase !== 'off' && (
-        <DoorTrailerLayer
-          pick={trailer.pick}
-          showing={showing}
-          leaving={trailer.phase === 'leaving'}
-          iframeRef={trailer.iframeRef}
-          onLoad={trailer.onIframeLoad}
-        />
-      )}
     </Link>
     </div>
   );
