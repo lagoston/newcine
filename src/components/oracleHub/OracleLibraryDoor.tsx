@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PAPER, PIXEL, FOCUS_RING, ORACLES, oracleCardImage, withAlpha } from '../../lib/oracleTheme';
 import { DOOR_ART, DOOR_BODY, DOOR_CLASS, DOOR_CTA, DOOR_CTA_LABEL, DOOR_FAN, DOOR_HINT } from '../home/doorLayout';
 import DoorArrow from '../home/DoorArrow';
+import type { Movie } from '../../lib/tmdb';
+import { DoorTrailerLayer, useDoorTrailer } from './DoorTrailer';
 
 // A porta da Biblioteca dos Oráculos (31/10/2026; na home desde 02/11, com a
 // Central dos Oráculos extinta). Um botão do mesmo porte da porta do Poster
@@ -21,6 +23,10 @@ import DoorArrow from '../home/DoorArrow';
 // contava as cartas do dia. 09/11/2026: a Mesa de cartas saiu e o Acervo
 // virou a página única da Mesa — a porta abre o Acervo, com a frase fixa de
 // novo (nenhuma consulta, nada guardado no aparelho).
+// 11/11/2026: no primeiro segundo da home, o conteúdo desliza para o lado e
+// roda o trailer de um dos filmes mais recomendados das três prateleiras
+// favoritas da pessoa (DoorTrailer.tsx). Tocar no trailer abre o filme e a
+// porta volta ao que era; sem trailer, a porta abre o Acervo como sempre.
 
 // Leque: Bogart à esquerda, Cypher à direita, Fincher no meio, na frente.
 const FAN = [
@@ -29,12 +35,37 @@ const FAN = [
   { id: 'fincher', rest: '[transform:translate(-50%,-52%)]', open: 'group-hover:[transform:translate(-50%,-56%)]', z: 2 },
 ] as const;
 
-const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
+// O conteúdo da porta inteiro anda a largura da porta para a esquerda (100cqw:
+// a porta é o container), e todas as peças andam juntas, como um bloco.
+const SLIDE = 'transition-[transform,opacity] duration-[650ms] ease-[cubic-bezier(0.7,0,0.2,1)] motion-reduce:transition-none';
+const SLID = '[transform:translateX(-100cqw)] opacity-0';
+
+const OracleLibraryDoor: React.FC<{
+  cardStyle: string;
+  /** a home já acendeu (o trailer só começa depois disso) */
+  active?: boolean;
+  /** abre o menu expandido do filme do trailer */
+  onOpenMovie?: (movie: Movie) => void;
+}> = ({ cardStyle, active = false, onOpenMovie }) => {
   const { t } = useTranslation();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const trailer = useDoorTrailer(active && !!onOpenMovie, wrapRef);
+  const showing = trailer.phase === 'showing';
+  const slid = showing ? SLID : '';
   return (
+    <div ref={wrapRef} className="relative h-full">
     <Link
       to="/oracle/acervo"
-      className={`${DOOR_CLASS} ${FOCUS_RING}`}
+      onClick={(event) => {
+        // Com o trailer na porta, o toque é no filme: o vídeo para, a porta
+        // volta e abre o menu expandido dele.
+        if (!showing) return;
+        event.preventDefault();
+        const movie = trailer.open();
+        if (movie && onOpenMovie) onOpenMovie(movie);
+      }}
+      aria-label={showing && trailer.pick ? t('oracle.libraryDoor.trailer.aria', { title: trailer.pick.movie.title }) : undefined}
+      className={`${DOOR_CLASS} ${FOCUS_RING} [container-type:inline-size]`}
       style={{
         background: [
           ...ORACLES.map((oracle, i) => `radial-gradient(40% 90% at ${8 + i * 9}% 100%, ${withAlpha(oracle.color, 0.2)}, transparent 70%)`),
@@ -47,7 +78,7 @@ const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
       {/* O tubo de neon com as cores dos três oráculos. */}
       <span
         aria-hidden
-        className="absolute left-5 right-5 top-0 h-[2px] rounded-full opacity-80 transition-opacity duration-300 group-hover:opacity-100"
+        className={`absolute left-5 right-5 top-0 h-[2px] rounded-full opacity-80 group-hover:opacity-100 ${SLIDE} ${slid}`}
         style={{
           background: `linear-gradient(90deg, ${ORACLES.map((o) => o.color).join(', ')})`,
           boxShadow: `0 0 10px 1px ${withAlpha(ORACLES[1].color, 0.55)}, 0 0 22px 2px ${withAlpha(ORACLES[0].color, 0.3)}`,
@@ -55,7 +86,7 @@ const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
       />
 
       {/* As três cartas em leque */}
-      <span className={DOOR_ART} aria-hidden>
+      <span className={`${DOOR_ART} ${SLIDE} ${slid}`} aria-hidden>
         <span className={DOOR_FAN}>
         {FAN.map((card) => {
           const oracle = ORACLES.find((o) => o.id === card.id)!;
@@ -74,7 +105,7 @@ const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
         </span>
       </span>
 
-      <span className={DOOR_BODY}>
+      <span className={`${DOOR_BODY} ${SLIDE} ${slid}`}>
         <span
           style={{ ...PIXEL, color: PAPER, textShadow: '0 0 14px rgba(240,171,252,0.55)' }}
           className="block text-[22px] sm:text-[30px] leading-none transition-[text-shadow] duration-300 group-hover:[text-shadow:0_0_18px_rgba(240,171,252,0.9)]"
@@ -86,11 +117,22 @@ const OracleLibraryDoor: React.FC<{ cardStyle: string }> = ({ cardStyle }) => {
         </span>
       </span>
 
-      <span className={DOOR_CTA} style={{ color: '#F0ABFC' }}>
+      <span className={`${DOOR_CTA} ${SLIDE} ${slid}`} style={{ color: '#F0ABFC' }}>
         <span className={DOOR_CTA_LABEL}>{t('oracle.libraryDoor.enter')}</span>
         <DoorArrow colors={ORACLES.map((oracle) => oracle.color)} />
       </span>
+
+      {trailer.pick && trailer.phase !== 'off' && (
+        <DoorTrailerLayer
+          pick={trailer.pick}
+          showing={showing}
+          leaving={trailer.phase === 'leaving'}
+          iframeRef={trailer.iframeRef}
+          onLoad={trailer.onIframeLoad}
+        />
+      )}
     </Link>
+    </div>
   );
 };
 

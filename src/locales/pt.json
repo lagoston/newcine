@@ -929,7 +929,10 @@
     "libraryDoor": {
       "title": "A Mesa dos Oráculos",
       "hint": "Filmes e séries para o seu momento, escolhidos pelos três.",
-      "enter": "Entrar"
+      "enter": "Entrar",
+      "trailer": {
+        "aria": "Trailer de {{title}}. Toque para abrir o filme."
+      }
     }
   },
   "profile": {

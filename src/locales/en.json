@@ -926,7 +926,10 @@
     "libraryDoor": {
       "title": "The Oracles' Table",
       "hint": "Films and series for your moment, picked by the three.",
-      "enter": "Enter"
+      "enter": "Enter",
+      "trailer": {
+        "aria": "{{title}} trailer. Tap to open the film."
+      }
     }
   },
   "profile": {

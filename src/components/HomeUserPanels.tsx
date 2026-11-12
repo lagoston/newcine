@@ -181,7 +181,9 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
           animate={visible ? 'shown' : 'hidden'}
         >
           <motion.li variants={doorItem} className="min-w-0 lg:flex-1">
-            <OracleLibraryDoor cardStyle={cardStyle} />
+            {/* 11/11/2026: o trailer do filme mais recomendado roda na porta no
+                primeiro segundo; tocar nele abre o menu do filme. */}
+            <OracleLibraryDoor cardStyle={cardStyle} active={visible} onOpenMovie={onMovieClick} />
           </motion.li>
           <motion.li variants={doorItem} className="min-w-0 empty:hidden lg:flex-1">
             <PosterJackpotDoor />
