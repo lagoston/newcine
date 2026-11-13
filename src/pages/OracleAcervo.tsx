@@ -8,11 +8,11 @@ import AcervoLayer from '../components/oracleAcervo/AcervoLayer';
 import { useLayerEntry, useLayerStack } from '../components/oracleAcervo/layerStack';
 import AcervoTabs from '../components/oracleAcervo/AcervoTabs';
 import MoodPicker from '../components/oracleAcervo/MoodPicker';
-import OccasionChips from '../components/oracleAcervo/OccasionChips';
 import AcervoGrid, { AcervoErrorBox, GRID, SkeletonTile } from '../components/oracleAcervo/AcervoGrid';
 import { BASE_OCCASIONS, OCCASION_ICON } from '../components/oracleAcervo/occasions';
 import { posterOf, titleOf } from '../components/oracleAcervo/titles';
 import { isAcervoMood, shelfKey, useAcervo } from '../components/oracleAcervo/useAcervo';
+import { useMoodOrder } from '../components/oracleAcervo/useMoodOrder';
 import { readAcervoParams } from '../components/oracleAcervo/acervoTarget';
 import OracleProfileSheet from '../components/oracleHub/OracleProfileSheet';
 import MovieDetailsModal from '../components/MovieDetailsModal';
@@ -29,6 +29,8 @@ import { FOCUS_RING, MIST, NIGHT, ORACLE_BY_ID, PAPER, PIXEL, VELVET, withAlpha 
 // Acervo fica, com o que ele gostou da Mesa — as ocasiões ("Com a galera",
 // "Só eu e a chuva"…) como fichas de filtro e o porquê de cada título numa
 // linha embaixo do pôster. Pouco texto: o nome, as escolhas e a grade.
+// 13/11/2026: as letras seguem a ordem da Persona da pessoa, e as ocasiões
+// moram no botão da décima casa (MoodPicker), não mais numa fileira à parte.
 //
 // A URL manda:
 //   ?oracle   bogart | fincher | cypher (padrão bogart)
@@ -71,6 +73,8 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
   const { scrollRef } = useLayerStack();
   const { shelf, occasions, loadMore, retry, removeItem, setWatchlist } = useAcervo(filter);
   const chipList = occasions ?? BASE_OCCASIONS;
+  // A ordem das 9 letras: a da Persona da pessoa (13/11/2026).
+  const moodOrder = useMoodOrder(userId);
 
   // A URL sempre diz o filtro que está na tela: o humor padrão escolhido pelo
   // servidor, a mídia de uma ocasião de um tipo só e os valores corrigidos
@@ -288,18 +292,20 @@ const AcervoScreen: React.FC<{ filter: Filter; onFilter: (next: Filter) => void;
           />
         </div>
 
+        {/* As letras (na ordem da Persona) e, na décima casa, o botão das
+            ocasiões, que abre as fichas logo abaixo (13/11/2026). */}
         <div className="mt-5">
           <MoodPicker
+            order={moodOrder}
             active={moodKey}
             off={!!occasionId}
             onSelect={(mood) => onFilter({ ...filter, mood, occasion: null })}
             media={filter.media}
             onMedia={selectMedia}
+            occasions={chipList}
+            occasion={occasionId}
+            onOccasion={selectOccasion}
           />
-        </div>
-
-        <div className="mt-3 sm:mt-4">
-          <OccasionChips occasions={chipList} active={occasionId} onSelect={selectOccasion} />
         </div>
 
         <section ref={sectionRef} id={panelId} role="tabpanel" aria-labelledby={`acervo-tab-${filter.oracle}`} className="mt-6 sm:mt-8">

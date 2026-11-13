@@ -15,6 +15,8 @@ import { getMovieTrailer, getMoviesFromCacheByType, type Movie } from '../../lib
 // Como funciona:
 //   • os candidatos vêm de get_home_trailer_pick() (até 12, pela nota prevista);
 //     sorteamos entre os 8 primeiros um que tenha trailer no YouTube;
+//   • 13/11/2026: metade das vezes o filme vem da Watchlist da pessoa (um
+//     sorteado entre os que estão lá), e não dos mais recomendados;
 //   • 12/11/2026 (Bruno: "o botão play do YouTube ainda aparece por alguns
 //     segundos quando o vídeo entra … deixe-o rodando mas sem aparecer"): o
 //     vídeo começa aos 5 s e toca ESCONDIDO, no lugar dele, por baixo do
@@ -72,17 +74,74 @@ function markShown() {
   }
 }
 
-async function chooseTrailer(): Promise<Pick | null> {
+interface Candidate {
+  id: number;
+  trailer_key: string | null;
+}
+
+function shuffle<T>(list: T[]): T[] {
+  const out = list.slice();
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+// Os mais recomendados: até 12 do servidor; sorteamos entre os 8 primeiros.
+async function recommendedCandidates(): Promise<Candidate[]> {
   const { data, error } = await supabase.rpc('get_home_trailer_pick');
   if (error) throw error;
-  const items = ((data as { items?: { id: number; trailer_key: string | null }[] } | null)?.items ?? []).slice(0, 8);
-  // um dos mais recomendados, não sempre o primeiro
-  for (let i = items.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [items[i], items[j]] = [items[j], items[i]];
-  }
+  return shuffle(((data as { items?: Candidate[] } | null)?.items ?? []).slice(0, 8));
+}
+
+// 13/11/2026 (Bruno: "devem poder aparecer trailers de filmes aleatórios que
+// estão na Watchlist do usuário, não apenas os mais recomendados"): 8 filmes
+// sorteados da Watchlist (os da lista sem nota). Os que sabidamente não têm
+// trailer (movie_cache.trailer = {}) ficam de fora; o trailer já conhecido vai
+// junto, e os que ainda não se sabe o site pergunta ao TMDB, como nos outros.
+async function watchlistCandidates(): Promise<Candidate[]> {
+  const { data: auth } = await supabase.auth.getSession();
+  const uid = auth.session?.user?.id;
+  if (!uid) return [];
+  const { data, error } = await supabase
+    .from('user_movies')
+    .select('movie_id')
+    .eq('user_id', uid)
+    .eq('media_type', 'movie')
+    .is('rating', null)
+    .limit(300);
+  if (error) throw error;
+  const ids = shuffle(Array.from(new Set(((data ?? []) as { movie_id: number }[]).map((row) => row.movie_id)))).slice(0, 8);
+  if (!ids.length) return [];
+  const { data: cache } = await supabase.from('movie_cache').select('tmdb_id, trailer').eq('media_type', 'movie').in('tmdb_id', ids);
+  const trailers = new Map(((cache ?? []) as { tmdb_id: number; trailer: { key?: string } | null }[]).map((row) => [row.tmdb_id, row.trailer]));
+  return ids
+    .filter((id) => {
+      const known = trailers.get(id);
+      return !(known && typeof known === 'object' && !known.key);
+    })
+    .map((id) => ({ id, trailer_key: trailers.get(id)?.key ?? null }));
+}
+
+async function chooseTrailer(): Promise<Pick | null> {
+  const [recommended, watchlist] = await Promise.all([
+    recommendedCandidates(),
+    // A Watchlist é um extra: um erro nela não tira o trailer dos recomendados.
+    watchlistCandidates().catch((error) => {
+      console.error('Trailer da porta (Watchlist):', error);
+      return [] as Candidate[];
+    }),
+  ]);
+  // Metade das vezes vem da Watchlist (quando ela tem filmes); a outra fonte
+  // fica de reserva, para quando nenhum filme da primeira tiver trailer.
+  const fromWatchlistFirst = watchlist.length > 0 && Math.random() < 0.5;
+  const ordered = fromWatchlistFirst ? [...watchlist, ...recommended] : [...recommended, ...watchlist];
+  const tried = new Set<number>();
   let lookups = 0;
-  for (const item of items) {
+  for (const item of ordered) {
+    if (tried.has(item.id)) continue;
+    tried.add(item.id);
     let key = item.trailer_key;
     if (!key) {
       if (lookups >= 3) continue;

@@ -98,8 +98,9 @@ const PosterJackpotDoor: React.FC = () => {
       .catch((error) => console.error('Poster Jackpot state:', error));
   }, [userId]);
 
-  // O presente da sexta-feira 13 (02/11/2026): quem tem a Scary Clown ganha 3
-  // fichas especiais à meia-noite do dia; na primeira vez que a home abre
+  // O presente da sexta-feira 13 (02/11/2026): quem está usando a Scary Clown
+  // no perfil (13/11/2026; antes bastava ter) ganha 3 fichas especiais à
+  // meia-noite do dia; na primeira vez que a home abre
   // depois disso, um aviso conta de onde vieram (uma vez só: o servidor marca
   // como visto).
   const giftShown = useRef(false);

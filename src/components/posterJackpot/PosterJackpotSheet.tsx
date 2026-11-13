@@ -1045,7 +1045,9 @@ const Missions: React.FC<{
             {state.specialTickets > 0 && <> {t('jackpot.missions.specialSaved', { count: state.specialTickets })}</>}
           </p>
           {/* Quem tem a Scary Clown ganha 3 fichas especiais em toda
-              sexta-feira 13 (02/11/2026): a gaveta lembra quando é a próxima. */}
+              sexta-feira 13 (02/11/2026): a gaveta lembra quando é a próxima.
+              13/11/2026: só ganha quem está USANDO a tag no perfil (o texto
+              diz isso; a regra mora em jackpot_grant_friday13_on). */}
           {state.friday13Perk && (
             <p className="mt-1.5 flex items-start gap-1.5" style={{ color: '#FDE68A' }}>
               <span aria-hidden>🤡</span>

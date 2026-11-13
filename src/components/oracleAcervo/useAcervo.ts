@@ -43,6 +43,39 @@ export const shelfKey = (q: Pick<AcervoQuery, 'oracle' | 'mood' | 'occasion' | '
 
 const itemKey = (item: { tmdb_id: number; media_type: string }) => `${item.media_type}:${item.tmdb_id}`;
 
+// 13/11/2026 (Bruno: "Mude a ordem com que filmes com a mesma nota prevista
+// aparecem … para não ficar tudo sempre na mesma ordem"). O servidor já sorteia
+// os empates por pessoa e por dia (20261113121000_acervo_tie_shuffle); aqui,
+// a cada vez que o Acervo abre, os títulos de mesma nota que chegam juntos
+// numa página trocam de lugar entre si. Só nas prateleiras de humor (numa
+// ocasião, quem encaixa melhor nela vem antes, e isso fica) e só com nota à
+// mostra (sem o selo, a ordem do servidor é a única pista).
+const newSeed = () => Math.floor(Math.random() * 0x7fffffff);
+
+const tieRank = (seed: number, key: string) => {
+  let h = (2166136261 ^ seed) >>> 0;
+  for (let i = 0; i < key.length; i += 1) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h;
+};
+
+export function shuffleTies(items: AcervoItem[], seed: number): AcervoItem[] {
+  const out: AcervoItem[] = [];
+  let i = 0;
+  while (i < items.length) {
+    const pred = items[i].pred;
+    let j = i + 1;
+    if (typeof pred === 'number') while (j < items.length && items[j].pred === pred) j += 1;
+    const run = items.slice(i, j);
+    if (run.length > 1) run.sort((a, b) => tieRank(seed, itemKey(a)) - tieRank(seed, itemKey(b)));
+    out.push(...run);
+    i = j;
+  }
+  return out;
+}
+
 // Guardado da sessão: voltar a um filtro já visto reabre na hora. Vale 5
 // minutos — depois disso a pessoa pode ter avaliado títulos em outra tela.
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -70,10 +103,10 @@ const writeCache = (key: string, shelf: AcervoShelf) => {
   }
 };
 
-const fromPage = (key: string, page: AcervoPage): AcervoShelf => ({
+const fromPage = (key: string, page: AcervoPage, seed: number): AcervoShelf => ({
   key,
   status: 'ready',
-  items: page.items,
+  items: page.occasion ? page.items : shuffleTies(page.items, seed),
   stale: false,
   oracle: page.oracle,
   mood: page.mood,
@@ -113,6 +146,9 @@ export function useAcervo(query: AcervoQuery) {
   const [occasions, setOccasions] = useState<AcervoOccasion[] | null>(lastOccasions);
   const shelfRef = useRef(shelf);
   shelfRef.current = shelf;
+  // A semente desta visita ao Acervo (a ordem dos empates).
+  const seedRef = useRef(0);
+  if (!seedRef.current) seedRef.current = newSeed() || 1;
   // O pedido em voo (primeira página ou seguinte): trocar de filtro cancela.
   const firstCtl = useRef<AbortController | null>(null);
   const moreCtl = useRef<AbortController | null>(null);
@@ -140,7 +176,7 @@ export function useAcervo(query: AcervoQuery) {
         .then((page) => {
           if (ctl.signal.aborted) return;
           firstCtl.current = null;
-          const next = fromPage(key, page);
+          const next = fromPage(key, page, seedRef.current);
           writeCache(key, next);
           // O mesmo resultado responde pelo filtro resolvido (humor padrão,
           // mídia da ocasião), que a página grava na URL logo em seguida.
@@ -193,7 +229,8 @@ export function useAcervo(query: AcervoQuery) {
           if (prev.key !== forKey) return prev;
           // Sem repetir título (uma nota dada no meio do caminho desloca a lista do servidor).
           const seen = new Set(prev.items.map(itemKey));
-          const fresh = page.items.filter((item) => !seen.has(itemKey(item)));
+          const unseen = page.items.filter((item) => !seen.has(itemKey(item)));
+          const fresh = prev.occasion ? unseen : shuffleTies(unseen, seedRef.current);
           const next: AcervoShelf = {
             ...prev,
             items: [...prev.items, ...fresh],

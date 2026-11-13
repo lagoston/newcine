@@ -2536,6 +2536,13 @@
       "cypher_country": "País novo pra você: {{country}}",
       "cypher_decade": "Nenhuma nota sua nos anos {{decade2}}",
       "hidden": "Pouca gente viu: {{votes}} votos"
+    },
+    "occasionsButtonActive": "Ocasião: {{name}}. Toque para ver as outras.",
+    "occasionGroups": {
+      "who": "Com quem",
+      "time": "Quanto tempo",
+      "feel": "Pra sentir",
+      "season": "Da época"
     }
   },
   "jackpot": {
@@ -2645,8 +2652,8 @@
       "effectsRule": "Quando sai efeito: holográfico {{holo}}%, negativo {{negative}}%, ultra vermelho {{ultra}}%.",
       "specialSaved_one": "Você também tem {{count}} ficha especial guardada, que não vence.",
       "specialSaved_other": "Você também tem {{count}} fichas especiais guardadas, que não vencem.",
-      "friday13Next": "Sua Scary Clown dá 3 fichas especiais em toda sexta-feira 13. A próxima é {{date}}.",
-      "friday13Today": "Hoje é sexta-feira 13: sua Scary Clown deixou 3 fichas especiais no porta-fichas.",
+      "friday13Next": "Usando a Scary Clown no perfil, você ganha 3 fichas especiais em toda sexta-feira 13. A próxima é {{date}}.",
+      "friday13Today": "Hoje é sexta-feira 13: com a Scary Clown no perfil, você ganha 3 fichas especiais.",
       "luckyRule": "A cada {{count}} giros com fichas, a barra da sorte libera um Giro da Sorte grátis: 50% épico, 50% lendário."
     },
     "library": {

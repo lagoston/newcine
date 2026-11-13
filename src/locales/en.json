@@ -2531,6 +2531,13 @@
       "cypher_country": "New country for you: {{country}}",
       "cypher_decade": "Nothing rated from the {{decade}}s",
       "hidden": "Barely seen: {{votes}} votes"
+    },
+    "occasionsButtonActive": "Occasion: {{name}}. Tap to see the others.",
+    "occasionGroups": {
+      "who": "Who with",
+      "time": "How much time",
+      "feel": "To feel",
+      "season": "This season"
     }
   },
   "jackpot": {
@@ -2640,8 +2647,8 @@
       "effectsRule": "When an effect comes up: holographic {{holo}}%, negative {{negative}}%, ultra red {{ultra}}%.",
       "specialSaved_one": "You also have {{count}} saved special chip, which never expires.",
       "specialSaved_other": "You also have {{count}} saved special chips, which never expire.",
-      "friday13Next": "Your Scary Clown gives you 3 special chips every Friday the 13th. The next one is {{date}}.",
-      "friday13Today": "It's Friday the 13th: your Scary Clown left 3 special chips in your chip tray.",
+      "friday13Next": "With Scary Clown on your profile, you get 3 special chips every Friday the 13th. The next one is {{date}}.",
+      "friday13Today": "It's Friday the 13th: with Scary Clown on your profile, you get 3 special chips.",
       "luckyRule": "Every {{count}} spins with chips, the luck meter unlocks a free Lucky Spin: 50% epic, 50% legendary."
     },
     "library": {
