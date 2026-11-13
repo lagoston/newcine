@@ -126,8 +126,9 @@ begin
   -- prateleira vem vazia, com passed = true, e a tela diz isso numa linha.
   if v_passed then v_ids := '{}'::int[]; end if;
 
-  -- A página: os que faltam avaliar, pela nota prevista (mu, a esperança do
-  -- vetor); sem vetor, pela nota do público. Os da Watchlist ficam, marcados.
+  -- A página: os que faltam avaliar, pela nota prevista (pr, a do selo; até
+  -- 13/11/2026 era mu, a esperança do vetor); sem vetor, pela nota do
+  -- público. Os da Watchlist ficam, marcados.
   with mine as (
     select um.movie_id as id, um.rating
       from public.user_movies um
