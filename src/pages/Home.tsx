@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Wand2 } from 'lucide-react';
+import { Star } from 'lucide-react';
+import FateThread from '../components/FateThread';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { Movie, getTrending, getComingSoon, getBestOfYear } from '../lib/tmdb';
@@ -220,15 +221,12 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
                         {index + 1}
                       </span>
                     )}
+                    {/* 14/11/2026: a nota prevista saiu do selo com número e virou o Fio
+                        do Destino, na base da capa. A barra na cor do oráculo, que
+                        ficava ali, saiu: duas linhas no pé se confundiam, e o oráculo
+                        continua no retrato com o contorno na cor dele e na sombra. */}
                     {meta === 'forYou' && typeof forYouInfo?.[movieKey(movie)]?.predicted === 'number' && (
-                      <span
-                        className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full bg-violet-600/95 text-white shadow-lg ring-1 ring-white/20"
-                        title={t('home.desk.predictedForYou')}
-                      >
-                        <Wand2 className="w-3 h-3" aria-hidden />
-                        <span className="sr-only">{t('home.desk.predictedForYou')}:</span>
-                        <span style={PIXEL} className="text-sm leading-none">{forYouInfo?.[movieKey(movie)]?.predicted}</span>
-                      </span>
+                      <FateThread rating={forYouInfo[movieKey(movie)].predicted as number} />
                     )}
                     {(() => {
                       const oracle = forYouOracle(movie);
@@ -246,10 +244,9 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
                             loading="lazy"
                             decoding="async"
                             title={curated}
-                            className="absolute bottom-2 left-1.5 w-[22px] h-[22px] rounded-full object-cover"
+                            className="absolute bottom-3 left-1.5 w-[22px] h-[22px] rounded-full object-cover"
                             style={{ boxShadow: `0 0 0 2px ${oracle.color}` }}
                           />
-                          <span aria-hidden className="absolute inset-x-0 bottom-0 h-1" style={{ background: oracle.color }} />
                           <span className="sr-only">{curated}</span>
                         </>
                       );

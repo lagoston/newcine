@@ -16,7 +16,7 @@ import OracleSheet from './OracleSheet';
 import { RATING_LABELS } from './RatingSliderSheet';
 import { useTranslation } from 'react-i18next';
 import OptimizedPoster from './OptimizedPoster';
-import PredictedBadge from './PredictedBadge';
+import FateThread from './FateThread';
 import PosterArt from './posterJackpot/PosterArt';
 import { equipPoster, posterKey, unequipPoster, useEquippedPosters, useMyPosters, type OwnedPoster } from '../lib/posterJackpot';
 import { RANK_MEDALS } from '../lib/libraryLayouts';
@@ -534,7 +534,8 @@ const RatingBox: React.FC<RatingBoxProps> = ({
                         )}
 
                         {predicted !== null ? (
-                          <PredictedBadge rating={predicted} />
+                          // o fio fica por cima da barra de episódios das séries (6 px)
+                          <FateThread rating={predicted} lift={tv ? 6 : 0} />
                         ) : showOwnRating ? (
                           <span
                             className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 pl-1 pr-1.5 py-0.5 rounded-full text-xs font-semibold shadow-lg"

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Bookmark, Check, Film, Lock, Sparkles, Star, Sun, Wand2 } from 'lucide-react';
+import { ArrowRight, Bookmark, Check, Film, Lock, Sparkles, Star, Sun } from 'lucide-react';
+import FateThread from '../FateThread';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { getMovieDetails, getMoviesFromCacheByType, type Movie } from '../../lib/tmdb';
@@ -304,21 +305,10 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
         </span>
       );
     }
+    // 14/11/2026: a nota prevista é o Fio do Destino, na base da capa (antes,
+    // o selo violeta com o número).
     const prediction = predictions[movieId];
-    if (typeof prediction === 'number') {
-      return (
-        <span
-          className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full bg-violet-600/95 text-white shadow-lg ring-1 ring-white/20"
-          title={t('home.desk.predictedForYou')}
-        >
-          <Wand2 className="w-3 h-3" aria-hidden />
-          <span className="sr-only">{t('home.desk.predictedForYou')}:</span>
-          <span style={PIXEL} className="text-sm leading-none">
-            {prediction}
-          </span>
-        </span>
-      );
-    }
+    if (typeof prediction === 'number') return <FateThread rating={prediction} />;
     return null;
   };
 
@@ -591,10 +581,11 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
                                 loading="lazy"
                                 decoding="async"
                                 title={t('events.curatedBy', { name: oracle.name })}
-                                className="absolute bottom-2 left-1.5 w-[22px] h-[22px] rounded-full object-cover"
+                                className="absolute bottom-3 left-1.5 w-[22px] h-[22px] rounded-full object-cover"
                                 style={{ boxShadow: `0 0 0 2px ${oracle.color}` }}
                               />
-                              <span aria-hidden className="absolute inset-x-0 bottom-0 h-1" style={{ background: oracle.color }} />
+                              {/* a barra na cor do oráculo saiu daqui em 14/11/2026: a base da
+                                  capa é do Fio do Destino */}
                             </>
                           )}
                         </span>

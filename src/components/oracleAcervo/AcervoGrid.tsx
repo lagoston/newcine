@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Film, Loader2, RefreshCw } from 'lucide-react';
 import OptimizedPoster from '../OptimizedPoster';
 import FloatingFriendBubbles from '../FloatingFriendBubbles';
-import { PosterTopBadges, WatchlistMark } from '../PredictedBadge';
+import { PosterMarks, WatchlistMark } from '../PredictedBadge';
+import FateThread from '../FateThread';
 import { friendKey, useFriendActivity } from '../../hooks/useFriendActivity';
 import { useReveal } from '../../hooks/useLazyList';
 import { prefetchFullTitle } from '../../lib/titleCards';
@@ -35,21 +36,18 @@ export const SkeletonTile: React.FC = () => (
   </li>
 );
 
-// O selo da nota no pôster. `number` é o da gramática do site (PredictedPill,
-// violeta); `guess` (de 3 a 9 notas) e `hidden` (menos de 3) ficam discretos:
-// "palpite 7" e "?", sem o violeta forte.
+// A nota prevista no pôster. `number` é o Fio do Destino na base da capa
+// (14/11/2026: saiu o selo violeta com o número); `guess` (de 3 a 9 notas) é
+// o mesmo fio, mais apagado — um palpite; `hidden` (menos de 3) continua com
+// o "?" discreto no alto.
 const PredMark: React.FC<{ label: PredLabel; pred: number | null; inWatchlist: boolean }> = ({ label, pred, inWatchlist }) => {
   const { t } = useTranslation();
-  if (label === 'number') return <PosterTopBadges predicted={pred} inWatchlist={inWatchlist} />;
+  if (label === 'number') return <PosterMarks predicted={pred} inWatchlist={inWatchlist} />;
   const quiet = 'inline-flex items-center h-[18px] px-1.5 rounded-full text-[11px] leading-none ring-1 ring-white/15 shadow';
   return (
     <>
       {label === 'guess' && pred !== null ? (
-        <span className="absolute top-1.5 left-1.5 pointer-events-none">
-          <span className={quiet} style={{ background: `${NIGHT}E6`, color: MIST }} aria-label={t('acervo.pred.guessAria', { n: pred })}>
-            <span aria-hidden>{t('acervo.pred.guess', { n: pred })}</span>
-          </span>
-        </span>
+        <FateThread rating={pred} quiet label={t('acervo.pred.guessAria', { n: pred })} />
       ) : label === 'hidden' ? (
         <span className="absolute top-1.5 left-1.5 pointer-events-none">
           <span className={`${quiet} justify-center w-[18px] !px-0`} style={{ ...PIXEL, background: `${NIGHT}E6`, color: MIST }} aria-label={t('acervo.pred.hiddenAria')}>

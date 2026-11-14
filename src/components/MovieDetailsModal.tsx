@@ -1555,18 +1555,18 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // oráculo) vem primeiro e é o destaque; depois a nota do público.
   //
   // 14/11/2026 (pedido do Bruno): a nota prevista e a chance de virar 10
-  // deixaram de ser dois números e viraram um medidor só, no lugar das duas
-  // colunas — a barra com o espectro das notas e a agulha oscilando onde a
-  // nota deve cair (PredictionGauge). A sua nota e a do público continuam
-  // em número.
+  // deixaram de ser dois números e viraram o Astrolábio do Oráculo, no
+  // lugar das duas colunas — um arco com o espectro (azul, púrpura, dourado)
+  // e uma agulha que dança e trava onde a nota deve cair (PredictionGauge).
+  // A sua nota e a do público continuam em número.
   //
   // Lugares fixos: assim que se sabe se você já avaliou (consulta rápida),
-  // o placar entra com as colunas definidas — 3 (o medidor ocupa duas, e o
-  // público) ou 2 (sua nota, público). A previsão demora mais: enquanto ela
-  // não chega, o medidor já aparece apagado, com a agulha no zero; quando
-  // chega, as notas acendem e a agulha sobe. Sem previsão (quem ainda não
-  // avaliou o suficiente), a 1ª coluna ocupa o lugar das duas — o público
-  // nunca sai do lugar.
+  // o placar entra com as colunas definidas — 3 (o astrolábio ocupa duas, e
+  // o público) ou 2 (sua nota, público). A previsão demora mais: enquanto
+  // ela não chega, a agulha varre o arco; quando chega, trava. Sem previsão
+  // (quem ainda não avaliou o suficiente), a 1ª coluna ocupa o lugar das
+  // duas — o público nunca sai do lugar. Com o astrolábio o placar fica um
+  // pouco mais alto, e os nomes de baixo se alinham pelo pé das colunas.
   type ScoreCell = {
     key: string;
     value?: React.ReactNode;
@@ -1590,9 +1590,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const scoreCols = !loggedIn ? 1 : hasRated ? 2 : inOraclePools ? 3 : 1;
   const scoreCells: ScoreCell[] = [];
   if (loggedIn && scoreReady && (hasRated || inOraclePools)) {
-    // O medidor fica sempre no mesmo lugar da árvore (mesma chave, mesmo
-    // componente) enquanto carrega e depois: é isso que deixa a agulha subir
-    // do zero e as notas acenderem quando a previsão chega.
+    // O astrolábio fica sempre no mesmo lugar da árvore (mesma chave, mesmo
+    // componente) enquanto carrega e depois: a agulha que estava varrendo é
+    // a mesma que trava quando a previsão chega.
     const gaugeCell = (pending: boolean): ScoreCell => ({
       key: 'slot1',
       label: t('movieModal.score.predicted'),
@@ -1621,8 +1621,11 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     icon: movie.vote_average > 0 ? <Star className="w-4 h-4 fill-amber-300 text-amber-300" aria-hidden /> : undefined,
   });
   // flex-col-reverse + justify-end: o número fica sempre no alto da coluna,
-  // na mesma altura nas três, mesmo com nome de uma ou duas linhas.
-  const scoreCellClass = 'flex flex-col-reverse justify-end items-center md:items-start px-3 sm:px-5 md:first:pl-0 border-l border-white/10 first:border-l-0';
+  // na mesma altura nas três, mesmo com nome de uma ou duas linhas. Com o
+  // astrolábio (mais alto que um número) é o contrário: justify-start, tudo
+  // assentado no pé, para o nome do público ficar na linha do nome dele.
+  const hasGauge = scoreCells.some((cell) => cell.node);
+  const scoreCellClass = `flex flex-col-reverse ${hasGauge ? 'justify-start' : 'justify-end'} items-center md:items-start px-3 sm:px-5 md:first:pl-0 border-l border-white/10 first:border-l-0`;
 
   // Prateleira e gêneros: a linha espera a prateleira (consulta rápida)
   // pra entrar inteira, com fade, em vez de os gêneros serem empurrados.
@@ -1989,7 +1992,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   )}
 
                   {/* Placar (lugar reservado desde a abertura) */}
-                  <div className="mt-5 min-h-[4.6rem]">
+                  <div className={`mt-5 transition-[min-height] duration-300 ${hasGauge || (loggedIn && !scoreReady) ? 'min-h-[5.4rem]' : 'min-h-[4.6rem]'}`}>
                     {scoreReady && (
                       <motion.dl
                         initial={{ opacity: 0, y: 4 }}
@@ -2004,7 +2007,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                               {cell.labelIcon}
                               {cell.label}
                             </dt>
-                            <dd className={`h-[1.9rem] flex items-center ${cell.node ? 'w-full' : ''}`} style={{ color: cell.color }}>
+                            <dd className={cell.node ? 'w-full flex justify-center md:justify-start' : 'h-[1.9rem] flex items-center'} style={{ color: cell.color }}>
                               {cell.node ? (
                                 cell.node
                               ) : cell.pending ? (

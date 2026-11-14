@@ -7,7 +7,7 @@ import { getFullTitle, prefetchFullTitle, titleKey, type TitleRef } from '../../
 import { tilesThatFit, useReveal, useTitleCards } from '../../hooks/useLazyList';
 import { fetchOracleHubPicks, mixPicks, drawSeriesShare, type OracleHubPicks, type OraclePick } from '../../lib/oraclePicks';
 import { VELVET, PAPER, MIST, PIXEL, FOCUS_RING, POSTER_TITLE, ORACLES, oracleCardImage, withAlpha, type OracleCard, type OracleId } from '../../lib/oracleTheme';
-import { PosterTopBadges } from '../PredictedBadge';
+import { PosterMarks } from '../PredictedBadge';
 import FloatingFriendBubbles from '../FloatingFriendBubbles';
 import { friendKey, useFriendActivity, type FriendActivity } from '../../hooks/useFriendActivity';
 import { useAuth } from '../../lib/auth';
@@ -174,7 +174,7 @@ const OracleRow: React.FC<{
                           </span>
                         </span>
                       )}
-                      <PosterTopBadges predicted={pick.rating} inWatchlist={pick.inWatchlist} />
+                      <PosterMarks predicted={pick.rating} inWatchlist={pick.inWatchlist} />
                       {/* As bolhas dos amigos (como na home); duas no máximo, o pôster aqui é pequeno. */}
                       <FloatingFriendBubbles
                         movieId={pick.id}

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Film, Eye, User as UserIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import OptimizedPoster from '../OptimizedPoster';
-import PredictedBadge from '../PredictedBadge';
+import FateThread from '../FateThread';
 import UserAvatar from '../UserAvatar';
 import { useReveal } from '../../hooks/useLazyList';
 import { PIXEL, FOCUS_RING, POSTER_TITLE, ratingTone } from '../../lib/oracleTheme';
@@ -150,7 +150,7 @@ export const PosterTile: React.FC<{
               </span>
             </span>
           )}
-          {!hideBadge && (seen !== undefined ? <SeenChip rating={seen} /> : predicted !== null && <PredictedBadge rating={predicted} />)}
+          {!hideBadge && (seen !== undefined ? <SeenChip rating={seen} /> : predicted !== null && <FateThread rating={predicted} />)}
           {overlay}
         </span>
         <span className={`mt-2.5 text-sm font-medium ${POSTER_TITLE}`} style={{ color: BONE }} title={title}>
@@ -232,7 +232,7 @@ export const BannedCard: React.FC<{ card: RoomCard; ctx: TileContext; wasDrag: (
           ) : (
             <Film className="absolute inset-0 m-auto w-6 h-6" style={{ color: ASH }} aria-hidden />
           )}
-          {seen !== undefined ? <SeenChip rating={seen} /> : predicted !== null && <PredictedBadge rating={predicted} />}
+          {seen !== undefined ? <SeenChip rating={seen} /> : predicted !== null && <FateThread rating={predicted} />}
           <span
             aria-hidden
             className="absolute left-1/2 bottom-3 -translate-x-1/2 -rotate-[9deg] px-2 py-0.5 rounded-sm text-base leading-none whitespace-nowrap"
