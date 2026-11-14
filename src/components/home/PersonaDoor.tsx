@@ -1,13 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PersonalityCompletionModal from '../PersonalityCompletionModal';
 import { PersonaCard, PersonaCode } from '../PersonaBits';
-import PersonaSheet from './PersonaSheet';
 import { DOOR_ART, DOOR_BODY, DOOR_CHIPS, DOOR_CLASS, DOOR_CTA, DOOR_CTA_LABEL, DOOR_FAN, DOOR_HINT } from './doorLayout';
 import DoorArrow from './DoorArrow';
 import { MOOD_BY_KEY, MOOD_BY_LETTER, type Mood } from '../../lib/moods';
-import { fetchUserPersona, personaText, PERSONA_THRESHOLD, type UserPersona } from '../../lib/persona';
+import { fetchUserPersona, personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../../lib/persona';
 import { markRevealSeen, revealModeFor, type RevealMode } from '../../lib/personaReveal';
 import { FOCUS_RING, ORACLES, PAPER, PIXEL, withAlpha } from '../../lib/oracleTheme';
 
@@ -30,6 +29,10 @@ import { FOCUS_RING, ORACLES, PAPER, PIXEL, withAlpha } from '../../lib/oracleTh
 
 const DEFAULT_TINTS = ['#A78BFA', '#F0ABFC', '#38BDF8'];
 
+// 13/11/2026: a gaveta virou a Persona viva (a cabine e a mariposa). O código
+// dela (o desenho da cena) só é baixado quando a porta é aberta pela primeira vez.
+const PersonaWorldSheet = lazy(() => import('../personaWorld/PersonaWorldSheet'));
+
 const PersonaDoor: React.FC<{ userId: string; username: string | null }> = ({ userId, username }) => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
@@ -37,6 +40,8 @@ const PersonaDoor: React.FC<{ userId: string; username: string | null }> = ({ us
   const [persona, setPersona] = useState<UserPersona | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
+  // a gaveta fica montada depois da primeira abertura (para a saída animar)
+  const [sheetMounted, setSheetMounted] = useState(false);
   const [reveal, setReveal] = useState<RevealMode | null>(null);
 
   const load = useCallback(() => {
@@ -54,6 +59,10 @@ const PersonaDoor: React.FC<{ userId: string; username: string | null }> = ({ us
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (open) setSheetMounted(true);
+  }, [open]);
 
   // Aberta de fora (perfil, links antigos da Central).
   const requested = (location.state as { openPersona?: boolean } | null)?.openPersona;
@@ -82,7 +91,10 @@ const PersonaDoor: React.FC<{ userId: string; username: string | null }> = ({ us
   const counted = Math.min(persona?.counted ?? 0, threshold);
   // As três prateleiras do código, com a força de cada uma (a mais forte =
   // barra cheia), como em MoodBars.
-  const topScores = hasPersona && persona ? persona.scores.filter((s) => s.films > 0).slice(0, 3) : [];
+  // 13/11/2026: as do CÓDIGO (com a regra dos 10 pontos, podem não ser as
+  // três com mais pontos por algumas notas).
+  const codeKeys = topMoodKeys(persona);
+  const topScores = hasPersona && persona ? persona.scores.filter((s) => codeKeys.includes(s.moodKey)) : [];
   const topMax = Math.max(1, ...topScores.map((s) => s.score));
 
   if (!loaded) {
@@ -232,17 +244,23 @@ const PersonaDoor: React.FC<{ userId: string; username: string | null }> = ({ us
         </span>
       </button>
 
-      <PersonaSheet
-        open={open}
-        onClose={() => {
-          setOpen(false);
-          load();
-        }}
-        persona={persona}
-        userId={userId}
-        username={username}
-        onUserClick={(name) => navigate(`/profile/${name}`)}
-      />
+      {sheetMounted && (
+        <Suspense fallback={null}>
+          <PersonaWorldSheet
+            open={open}
+            onClose={() => {
+              setOpen(false);
+              load();
+            }}
+            ownerId={userId}
+            isOwn
+            persona={persona}
+            viewerId={userId}
+            username={username}
+            onUserClick={(name) => navigate(`/profile/${name}`)}
+          />
+        </Suspense>
+      )}
 
       {reveal && persona && <PersonalityCompletionModal isOpen onClose={closeReveal} persona={persona} changed={reveal === 'changed'} recast={reveal === 'recast'} />}
     </>

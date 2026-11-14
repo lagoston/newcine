@@ -850,8 +850,13 @@
       "pointsText": "Every shelf film or series you rate adds your rating to its shelf: a 10 adds 10, a 3 adds 3. The more you watch — and like — a kind of story, the stronger that shelf gets.",
       "personaTitle": "Your personality",
       "personaTitleOther": "The personality",
-      "personaText": "The three strongest shelves form the three-letter code, always in the shelves' order. There are 84 combinations, each with a movie character. It changes on its own: every rating can reshuffle your shelves.",
-      "thresholdText": "It appears once {{count}} shelf titles are rated (films or series), across at least 3 different shelves."
+      "personaText": "The three strongest shelves form the three-letter code, always in the shelves' order. There are 84 combinations, each with a movie character. It changes on its own, but not with every rating: an outside shelf only enters the code once it opens a 10-point lead over the weakest of the three.",
+      "thresholdText": "It appears once {{count}} shelf titles are rated (films or series), across at least 3 different shelves.",
+      "worldTitle": "The booth and the moth",
+      "worldCabin": "The booth keeps everything that was rated: one can per title on the bookcase and a poster on the wall for every 10.",
+      "worldMoth": "The moth wears what has been watched lately: the bands on its wings are the moods of the last 30 shelf titles, and each eye is a 9 or a 10.",
+      "worldWingspan": "Every rated title widens the wingspan. At each film gauge, from 8 mm to Cinerama, the booth gets a piece of furniture.",
+      "worldCalm": "Nothing disappears or shrinks over time: the booth waits just as it was left."
     },
     "reveal": {
       "title": "The reveal",
@@ -4109,6 +4114,106 @@
         "body": "The connection failed or the server didn't answer. Check your internet and try again.",
         "retry": "Try again"
       }
+    }
+  },
+  "personaWorld": {
+    "subtitle": "The booth and the moth",
+    "titleOf": "{{name}}'s Persona",
+    "loading": "Opening the booth",
+    "loadError": "Couldn't open the booth right now.",
+    "retry": "Try again",
+    "enter": "Enter the booth",
+    "untitled": "Rated title",
+    "archive": "Archive",
+    "sceneLabel": "The projection booth of {{code}}: the bookcase with the nine shelves, the screen with the character, the posters of the titles rated 10 and the moth in the projector beam.",
+    "sceneLabelEmpty": "The projection booth, still empty, waiting for the Persona.",
+    "mothLabel": "The moth up close. Each eye on the wing is a title rated 9 or 10.",
+    "larvaLabel": "The caterpillar up close: one segment per shelf title.",
+    "eggLabel": "The egg, waiting for the first title.",
+    "tabs": {
+      "label": "What to see in the booth",
+      "always": "Always",
+      "now": "Now",
+      "next": "Ahead"
+    },
+    "gauges": {
+      "egg": "Egg",
+      "larva": "Caterpillar",
+      "g8": "8 mm",
+      "s8": "Super 8",
+      "g16": "16 mm",
+      "s16": "Super 16",
+      "g35": "35 mm",
+      "g70": "70 mm",
+      "imax": "IMAX",
+      "cinerama": "Cinerama"
+    },
+    "furniture": {
+      "projector": "the projector",
+      "armchair": "the armchair",
+      "rug": "the rug",
+      "lamp": "the lamp",
+      "popcorn": "the popcorn cart",
+      "curtain": "the screen curtain",
+      "bigScreen": "the big screen",
+      "marquee": "the marquee lights"
+    },
+    "plate": {
+      "egg": "An egg waiting for the first title",
+      "larva": "A caterpillar: one segment per title",
+      "progress": "{{counted}} of {{threshold}} shelf titles",
+      "needShelves": "Titles from 3 different shelves are still missing",
+      "gaugeAria": "{{pct}}% of the way to {{next}}"
+    },
+    "always": {
+      "lead_one": "The booth keeps everything that was rated: {{count}} title.",
+      "lead_other": "The booth keeps everything that was rated: {{count}} titles.",
+      "lead_zero": "The booth keeps everything that gets rated. No titles yet.",
+      "trioRank": "#{{rank}} of the trio",
+      "openShelf": "See the whole shelf",
+      "emptyShelf": "No rated titles here yet.",
+      "archive_one": "Archive: {{count}} title from outside the shelves. It also widens the wingspan.",
+      "archive_other": "Archive: {{count}} titles from outside the shelves. They also widen the wingspan.",
+      "legend": "On the bookcase, a colored can is 1 title and a pale can is 10. A golden lid is a 9 or a 10.",
+      "wall": "On the wall",
+      "wallHint": "The latest 10s.",
+      "molts": "Molts",
+      "moltsHint": "The shapes this Persona has had.",
+      "born": "Born at rated title no. {{no}}",
+      "changed": "Changed at rated title no. {{no}}",
+      "bornPlain": "Born",
+      "changedPlain": "Changed"
+    },
+    "now": {
+      "distinct": "The shelves say {{code}}. The wings, today, lean toward {{mood}}.",
+      "same": "The wings wear the same as the shelves: the taste of now is the taste of always.",
+      "early": "The wings still wear everything that was rated. At {{min}} shelf titles they start wearing only the {{window}} most recent ({{left}} to go).",
+      "stripAlways": "Always",
+      "stripNow": "Now",
+      "stripWings": "Wings",
+      "eyes": "Each eye on the wing is a title rated 9 or 10. Tap an eye to open it.",
+      "last": "The latest titles",
+      "egg": "The egg hatches with the first rated title.",
+      "larva": "Every shelf title becomes a segment, in the color of its mood. With 10 titles across 3 moods, it spins the cocoon and comes out a moth."
+    },
+    "next": {
+      "wingspan": "The wingspan",
+      "wingspanLead": "From {{from}} to {{to}}. Every rated title widens the wingspan; a rarely visited shelf widens it more.",
+      "arrives": "At {{to}}, the moth grows and the booth gets {{item}}.",
+      "arrivesRoom": "At {{to}}, the booth gets {{item}}.",
+      "max": "Cinerama is the widest wingspan. The bookcase keeps filling with every title.",
+      "neighbor": "The neighboring shape",
+      "far": "far",
+      "near": "near",
+      "cocoon": "almost",
+      "degreesAria": "Distance to the neighboring shape: {{degree}}",
+      "farLead": "The current shape is steady. {{challenger}} is the outside mood closest to the trio.",
+      "nearLead": "{{challenger}} is closing in on {{weakest}}. No cocoon yet.",
+      "cocoonLead": "A cocoon has formed. {{challenger}} passed {{weakest}}; if it opens a full 10-point lead, the Persona changes shape.",
+      "rule": "The shape only changes when the outside mood opens a 10-point lead. Before that, the cocoon gives notice.",
+      "noNeighbor": "No mood outside the trio has a title yet.",
+      "birth": "The cocoon",
+      "birthLead": "With 10 shelf titles across at least 3 moods, the caterpillar spins the cocoon and the Persona appears: the projector arrives, the screen lights up and the neon gets its three letters."
     }
   }
 }

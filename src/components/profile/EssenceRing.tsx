@@ -1,18 +1,20 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowUpRight, Film, Info, Scroll, X } from 'lucide-react';
+import { ArrowUpRight, DoorOpen, Film, Info, Scroll, X } from 'lucide-react';
 import { MOOD_BY_KEY, withMoodAlpha } from '../../lib/moods';
 import { personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../../lib/persona';
-import { PAPER, MIST, PIXEL, VELVET, FOCUS_RING, glassPanel, ratingTone } from '../../lib/oracleTheme';
+import { fetchPersonaWorld, worldState, type PersonaWorld } from '../../lib/personaWorld';
+import { PAPER, MIST, PIXEL, VELVET, INK, FOCUS_RING, glassPanel, ratingTone } from '../../lib/oracleTheme';
 import { getMovieDetailsFromDB, type Movie } from '../../lib/tmdb';
 import type { Affinity, MoodSlice } from '../../lib/tasteStats';
 import type { MovieWithRating } from '../../hooks/useProfileData';
 import { PersonaCode, PersonaCard } from '../PersonaBits';
 import { PersonaRevelationSheet, PersonaHowItWorksSheet } from '../PersonaSheets';
 import MovieDetailsModal from '../MovieDetailsModal';
+import { PersonaScene } from '../personaWorld/PersonaScene';
 import MoodGrid from './MoodGrid';
 import KeywordCloud from './KeywordCloud';
 import { ModuleTitle, formatOne } from './observatoryKit';
@@ -30,6 +32,12 @@ import { ModuleTitle, formatOne } from './observatoryKit';
 // filmes, a média, o que ele revela, os títulos mais bem avaliados ali
 // (pôsteres que abrem o filme), os temas dele e a prateleira. O X volta
 // para a personalidade. O "i" do canto abre o Como funciona.
+//
+// 13/11/2026 (a Persona viva): no lugar da carta do personagem, a cabine da
+// pessoa em miniatura, com a mariposa voando e a bitola ao lado. Tocar abre a
+// gaveta da Persona viva dessa pessoa (a mesma da home): no seu perfil,
+// completa; no dos outros, só para olhar. Enquanto a cena não chega (ou se
+// não chegar), fica a carta de antes. A Revelação continua a um toque.
 
 interface EssenceRingProps {
   slices: MoodSlice[];
@@ -40,7 +48,14 @@ interface EssenceRingProps {
   isOwn: boolean;
   // "@fulano" no perfil de outra pessoa
   ownerName?: string;
+  // De quem é o perfil (para buscar a cabine dessa pessoa).
+  ownerId?: string;
+  // Seu perfil: o seu nome de usuário (vai no cartão de compartilhar).
+  shareName?: string | null;
 }
+
+// O desenho da cena e a gaveta só são baixados na primeira abertura.
+const PersonaWorldSheet = lazy(() => import('../personaWorld/PersonaWorldSheet'));
 
 // Celular estreito: frascos mais baixos e menos palavras por vez.
 function useCompact() {
@@ -56,8 +71,9 @@ function useCompact() {
   return compact;
 }
 
-const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, personaLoading = false, topKeywords, isOwn, ownerName }) => {
+const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, personaLoading = false, topKeywords, isOwn, ownerName, ownerId, shareName = null }) => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
   const compact = useCompact();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -66,6 +82,10 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [movie, setMovie] = useState<Movie | null>(null);
   const [opening, setOpening] = useState<number | null>(null);
+  const [world, setWorld] = useState<PersonaWorld | null>(null);
+  const [showWorld, setShowWorld] = useState(false);
+  // a gaveta fica montada depois da primeira abertura (para a saída animar)
+  const [worldMounted, setWorldMounted] = useState(false);
 
   const bySlice = useMemo(() => new Map(slices.map((s) => [s.key, s])), [slices]);
   const codeKeys = useMemo(() => topMoodKeys(persona), [persona]);
@@ -80,6 +100,26 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
   const username = ownerName?.replace(/^@/, '');
 
   const toggle = (key: string) => setSelected((prev) => (prev === key ? null : key));
+
+  // A cabine em miniatura: a cena da pessoa (some se o perfil mudar de dono).
+  const personaCode = persona?.code ?? null;
+  const personaCounted = persona?.counted ?? 0;
+  useEffect(() => {
+    setWorld(null);
+    if (!ownerId || !personaCode) return;
+    let alive = true;
+    fetchPersonaWorld(ownerId)
+      .then((value) => alive && setWorld(value))
+      .catch((error) => console.error('Persona world:', error));
+    return () => {
+      alive = false;
+    };
+  }, [ownerId, personaCode, personaCounted]);
+  const worldSt = useMemo(() => (world ? worldState(world) : null), [world]);
+  const openWorld = () => {
+    setWorldMounted(true);
+    setShowWorld(true);
+  };
 
   // No celular o painel fica embaixo da grade: ao escolher um humor, traz o
   // painel para a tela se ele estiver escondido.
@@ -167,15 +207,24 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
         </div>
       );
     }
+    // Sem o dono do perfil não há cabine para abrir: vale a Revelação, como antes.
+    const canEnter = Boolean(ownerId);
+    const showScene = Boolean(canEnter && world && worldSt?.hasTrio);
     return (
       <div>
         <button
           type="button"
-          onClick={() => setShowRevelation(true)}
+          onClick={canEnter ? openWorld : () => setShowRevelation(true)}
           className={`group w-full flex items-start justify-start gap-4 text-left rounded-2xl p-2 -m-2 transition hover:bg-white/[0.04] ${FOCUS_RING}`}
-          aria-label={`${t('oracle.revelation')}: ${text.title}`}
+          aria-label={canEnter ? `${t('personaWorld.enter')}: ${text.title}` : `${t('oracle.revelation')}: ${text.title}`}
         >
-          <PersonaCard persona={persona.persona} code={persona.code} foot={false} className="w-[84px] sm:w-[100px] shrink-0" />
+          {showScene && world && worldSt ? (
+            <span className="shrink-0 rounded-xl overflow-hidden" style={{ background: '#0D0919', boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.1)' }}>
+              <PersonaScene world={world} state={worldSt} scale={1} label={t('personaWorld.sceneLabel', { code: persona.code })} />
+            </span>
+          ) : (
+            <PersonaCard persona={persona.persona} code={persona.code} foot={false} className="w-[84px] sm:w-[100px] shrink-0" />
+          )}
           <span className="min-w-0 flex flex-col">
             <PersonaCode code={persona.code as string} className="text-4xl sm:text-[44px] leading-none" />
             <span className="mt-1.5 text-lg font-semibold leading-snug" style={{ color: PAPER }}>
@@ -184,6 +233,11 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
             <span className="mt-0.5 text-[13px]" style={{ color: MIST }}>
               {text.sameAsFilm ? text.filmWithYear : t('oracle.persona.characterIn', { character: text.character, film: text.filmWithYear })}
             </span>
+            {showScene && worldSt && (
+              <span style={{ ...PIXEL, background: PAPER, color: INK }} className="mt-2 self-start px-2 py-[5px] rounded-md text-[13px] leading-none">
+                {t(`personaWorld.gauges.${worldSt.gaugeKey}`)}
+              </span>
+            )}
           </span>
         </button>
         {text.blurb && (
@@ -191,15 +245,18 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
             {text.blurb}
           </p>
         )}
-        <button
-          type="button"
-          onClick={() => setShowRevelation(true)}
-          className={`mt-1.5 inline-flex items-center justify-start gap-1.5 text-[13px] font-medium rounded ${FOCUS_RING}`}
-          style={{ color: '#F9A8D4' }}
-        >
-          <Scroll className="w-4 h-4" aria-hidden />
-          {t('profile.observatory.readRevelation')}
-        </button>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+          {canEnter && (
+            <button type="button" onClick={openWorld} className={`inline-flex items-center justify-start gap-1.5 text-[13px] font-medium rounded ${FOCUS_RING}`} style={{ color: '#FCD34D' }}>
+              <DoorOpen className="w-4 h-4" aria-hidden />
+              {t('personaWorld.enter')}
+            </button>
+          )}
+          <button type="button" onClick={() => setShowRevelation(true)} className={`inline-flex items-center justify-start gap-1.5 text-[13px] font-medium rounded ${FOCUS_RING}`} style={{ color: '#F9A8D4' }}>
+            <Scroll className="w-4 h-4" aria-hidden />
+            {t('profile.observatory.readRevelation')}
+          </button>
+        </div>
         {/* As obras do personagem saíram daqui em 24/10/2026 (continuam no
             Oracle Hub e na Revelação): logo depois da revelação, os temas. */}
         {themes}
@@ -368,6 +425,22 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
       {hasPersona && persona && <PersonaRevelationSheet open={showRevelation} onClose={() => setShowRevelation(false)} persona={persona} isOwn={isOwn} />}
       <PersonaHowItWorksSheet open={showHowItWorks} onClose={() => setShowHowItWorks(false)} persona={persona} isOwn={isOwn} />
       {movie && <MovieDetailsModal movie={movie} isOpen={true} onClose={() => setMovie(null)} />}
+      {worldMounted && ownerId && (
+        <Suspense fallback={null}>
+          <PersonaWorldSheet
+            open={showWorld}
+            onClose={() => setShowWorld(false)}
+            ownerId={ownerId}
+            isOwn={isOwn}
+            ownerName={ownerName}
+            persona={persona}
+            initialWorld={world}
+            viewerId={isOwn ? ownerId : undefined}
+            username={shareName}
+            onUserClick={isOwn ? (name) => navigate(`/profile/${name}`) : undefined}
+          />
+        </Suspense>
+      )}
     </section>
   );
 };

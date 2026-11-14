@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { moodsOfCode } from './moods';
 
 // Personalidade cinematográfica (sistema novo): as 3 prateleiras que a
 // pessoa mais usa — cada filme avaliado soma a própria nota na prateleira
@@ -118,11 +119,10 @@ export const personaPortrait = (p: PersonaEntry, large = false): { src: string |
   return { src: posterUrl(p.posterPath, large ? 'w500' : 'w342'), focus: '50% 20%', isCharacter: false };
 };
 
-// Personalidade de alguém (a sua, ou a de um perfil que você pode ver).
-export async function fetchUserPersona(userId: string): Promise<UserPersona | null> {
-  const { data, error } = await supabase.rpc('get_user_persona', { p_user_id: userId });
-  if (error) throw error;
-  if (!data) return null;
+// Converte o que get_user_persona devolve (também vem dentro de
+// get_persona_world, a cena da Persona viva).
+export function parseUserPersona(data: unknown): UserPersona | null {
+  if (!data || typeof data !== 'object') return null;
   const raw = data as Row;
   const scores = Array.isArray(raw.scores)
     ? (raw.scores as Row[]).map((s) => ({ moodKey: str(s.mood_key), score: num(s.score), films: num(s.films) }))
@@ -137,6 +137,20 @@ export async function fetchUserPersona(userId: string): Promise<UserPersona | nu
   };
 }
 
+// Personalidade de alguém (a sua, ou a de um perfil que você pode ver).
+export async function fetchUserPersona(userId: string): Promise<UserPersona | null> {
+  const { data, error } = await supabase.rpc('get_user_persona', { p_user_id: userId });
+  if (error) throw error;
+  return parseUserPersona(data);
+}
+
 // As três prateleiras que formam a personalidade, da mais forte pra menos.
-export const topMoodKeys = (persona: UserPersona | null): string[] =>
-  persona?.code ? persona.scores.filter((s) => s.films > 0).slice(0, 3).map((s) => s.moodKey) : [];
+// 13/11/2026: saem do CÓDIGO, não mais das três com mais pontos. Com a regra
+// dos 10 pontos (a prateleira de fora só entra no trio quando abre uma nota
+// 10 inteira de vantagem), o trio do código pode não ser o top 3 de pontos por
+// algumas notas — é quando a Persona viva mostra o casulo.
+export const topMoodKeys = (persona: UserPersona | null): string[] => {
+  if (!persona?.code) return [];
+  const inCode = new Set(moodsOfCode(persona.code).map((m) => m.key as string));
+  return persona.scores.filter((s) => inCode.has(s.moodKey)).map((s) => s.moodKey);
+};

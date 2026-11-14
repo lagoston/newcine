@@ -11,8 +11,12 @@ const MoodBars: React.FC<{
   scores: MoodScore[];
   // Quantas ficam acesas (as que formam o código). 0 = nenhuma.
   highlight?: number;
+  // 13/11/2026: as prateleiras do código. Com a regra dos 10 pontos, o trio
+  // do código pode não ser as três primeiras da lista; quando vem, é ele que
+  // acende (e `highlight` deixa de valer).
+  codeKeys?: string[];
   compact?: boolean;
-}> = ({ scores, highlight = 3, compact = false }) => {
+}> = ({ scores, highlight = 3, codeKeys, compact = false }) => {
   const { t, i18n } = useTranslation();
 
   // Sem nada calculado ainda: as nove prateleiras zeradas, na ordem fixa.
@@ -24,7 +28,7 @@ const MoodBars: React.FC<{
       {rows.map((row, i) => {
         const mood = MOOD_BY_KEY[row.moodKey];
         if (!mood) return null;
-        const lit = i < highlight && row.films > 0;
+        const lit = (codeKeys ? codeKeys.includes(row.moodKey) : i < highlight) && row.films > 0;
         const width = row.score > 0 ? Math.max(3, (row.score / max) * 100) : 0;
         return (
           <li key={row.moodKey} className="flex items-center gap-3">

@@ -125,7 +125,7 @@ export const PersonaHowItWorksSheet: React.FC<{ open: boolean; onClose: () => vo
             {t('oracle.howItWorks.pointsText')}
           </p>
           <div className="mt-4">
-            <MoodBars scores={persona?.scores ?? []} highlight={persona?.code ? 3 : 0} />
+            <MoodBars scores={persona?.scores ?? []} highlight={persona?.code ? 3 : 0} codeKeys={persona?.code ? topMoodKeys(persona) : undefined} />
           </div>
         </>,
       )}
@@ -142,6 +142,18 @@ export const PersonaHowItWorksSheet: React.FC<{ open: boolean; onClose: () => vo
             {t('oracle.howItWorks.thresholdText', { count: threshold })}
           </p>
         </>,
+      )}
+
+      {/* 13/11/2026: a Persona viva (a cena da gaveta "Sua Persona"). */}
+      {step(
+        4,
+        '#F4C454',
+        t('oracle.howItWorks.worldTitle'),
+        <ul className="mt-2 space-y-2 text-sm leading-relaxed" style={{ color: MIST }}>
+          {['worldCabin', 'worldMoth', 'worldWingspan', 'worldCalm'].map((key) => (
+            <li key={key}>{t(`oracle.howItWorks.${key}`)}</li>
+          ))}
+        </ul>,
       )}
     </OracleSheet>
   );

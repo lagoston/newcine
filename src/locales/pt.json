@@ -853,8 +853,13 @@
       "pointsText": "Cada filme ou série das prateleiras que você avalia soma a sua nota na prateleira dele: um 10 soma 10, um 3 soma 3. Quanto mais você vê — e gosta — de um tipo de história, mais forte a prateleira fica.",
       "personaTitle": "Sua personalidade",
       "personaTitleOther": "A personalidade",
-      "personaText": "As três prateleiras mais fortes formam o código de três letras, sempre na mesma ordem das prateleiras. São 84 combinações, cada uma com um personagem de cinema. Ela muda sozinha: cada avaliação pode trocar as prateleiras de lugar.",
-      "thresholdText": "Ela aparece a partir de {{count}} títulos das prateleiras avaliados (filmes ou séries), em pelo menos 3 prateleiras diferentes."
+      "personaText": "As três prateleiras mais fortes formam o código de três letras, sempre na mesma ordem das prateleiras. São 84 combinações, cada uma com um personagem de cinema. Ela muda sozinha, mas não a cada nota: uma prateleira de fora só entra no código quando abre 10 pontos de vantagem sobre a mais fraca das três.",
+      "thresholdText": "Ela aparece a partir de {{count}} títulos das prateleiras avaliados (filmes ou séries), em pelo menos 3 prateleiras diferentes.",
+      "worldTitle": "A cabine e a mariposa",
+      "worldCabin": "A cabine guarda tudo o que foi avaliado: uma lata por título na estante e um pôster na parede para cada nota 10.",
+      "worldMoth": "A mariposa veste o que anda sendo visto: as faixas das asas são os humores dos últimos 30 títulos das prateleiras, e cada olho é uma nota 9 ou 10.",
+      "worldWingspan": "Todo título avaliado aumenta a envergadura. A cada bitola, de 8 mm a Cinerama, a cabine ganha um móvel.",
+      "worldCalm": "Nada some nem encolhe com o tempo: a cabine espera do jeito que ficou."
     },
     "reveal": {
       "title": "A revelação",
@@ -4108,6 +4113,106 @@
         "body": "A conexão falhou ou o servidor não respondeu. Confira a internet e tente de novo.",
         "retry": "Tentar de novo"
       }
+    }
+  },
+  "personaWorld": {
+    "subtitle": "A cabine e a mariposa",
+    "titleOf": "A Persona de {{name}}",
+    "loading": "Abrindo a cabine",
+    "loadError": "Não deu para abrir a cabine agora.",
+    "retry": "Tentar de novo",
+    "enter": "Entrar na cabine",
+    "untitled": "Título avaliado",
+    "archive": "Arquivo",
+    "sceneLabel": "A cabine de projeção de {{code}}: a estante com as nove prateleiras, a tela com o personagem, os pôsteres das notas 10 e a mariposa no facho do projetor.",
+    "sceneLabelEmpty": "A cabine de projeção ainda vazia, à espera da Persona.",
+    "mothLabel": "A mariposa de perto. Cada olho na asa é um título com nota 9 ou 10.",
+    "larvaLabel": "A lagarta de perto: um gomo por título das prateleiras.",
+    "eggLabel": "O ovo, à espera do primeiro título.",
+    "tabs": {
+      "label": "O que ver na cabine",
+      "always": "Sempre",
+      "now": "Agora",
+      "next": "Por vir"
+    },
+    "gauges": {
+      "egg": "Ovo",
+      "larva": "Lagarta",
+      "g8": "8 mm",
+      "s8": "Super 8",
+      "g16": "16 mm",
+      "s16": "Super 16",
+      "g35": "35 mm",
+      "g70": "70 mm",
+      "imax": "IMAX",
+      "cinerama": "Cinerama"
+    },
+    "furniture": {
+      "projector": "o projetor",
+      "armchair": "a poltrona",
+      "rug": "o tapete",
+      "lamp": "o abajur",
+      "popcorn": "a pipoqueira",
+      "curtain": "a cortina da tela",
+      "bigScreen": "a tela grande",
+      "marquee": "o letreiro de lâmpadas"
+    },
+    "plate": {
+      "egg": "Um ovo à espera do primeiro título",
+      "larva": "Uma lagarta: um gomo por título",
+      "progress": "{{counted}} de {{threshold}} títulos das prateleiras",
+      "needShelves": "Faltam títulos de 3 prateleiras diferentes",
+      "gaugeAria": "{{pct}}% do caminho até {{next}}"
+    },
+    "always": {
+      "lead_one": "A cabine guarda tudo o que foi avaliado: {{count}} título.",
+      "lead_other": "A cabine guarda tudo o que foi avaliado: {{count}} títulos.",
+      "lead_zero": "A cabine guarda tudo o que for avaliado. Ainda não há nenhum título.",
+      "trioRank": "{{rank}}ª do trio",
+      "openShelf": "Ver a prateleira inteira",
+      "emptyShelf": "Nenhum título avaliado aqui ainda.",
+      "archive_one": "Arquivo: {{count}} título de fora das prateleiras. Também aumenta a envergadura.",
+      "archive_other": "Arquivo: {{count}} títulos de fora das prateleiras. Também aumentam a envergadura.",
+      "legend": "Na estante, lata colorida vale 1 título e lata clara vale 10. Tampa dourada é nota 9 ou 10.",
+      "wall": "Na parede",
+      "wallHint": "As últimas notas 10.",
+      "molts": "Mudas",
+      "moltsHint": "As formas que esta Persona já teve.",
+      "born": "Nasceu no {{no}}º título avaliado",
+      "changed": "Mudou no {{no}}º título avaliado",
+      "bornPlain": "Nasceu",
+      "changedPlain": "Mudou"
+    },
+    "now": {
+      "distinct": "As estantes dizem {{code}}. As asas, hoje, puxam para {{mood}}.",
+      "same": "As asas vestem o mesmo que as estantes: o gosto de agora é o de sempre.",
+      "early": "As asas ainda vestem tudo o que foi avaliado. Com {{min}} títulos nas prateleiras, passam a vestir só os {{window}} mais recentes (faltam {{left}}).",
+      "stripAlways": "Sempre",
+      "stripNow": "Agora",
+      "stripWings": "Asas",
+      "eyes": "Cada olho na asa é um título com nota 9 ou 10. Toque num olho para abrir.",
+      "last": "Os últimos títulos",
+      "egg": "O ovo choca com o primeiro título avaliado.",
+      "larva": "Cada título das prateleiras vira um gomo, na cor do humor dele. Com 10 títulos em 3 humores, ela tece o casulo e sai mariposa."
+    },
+    "next": {
+      "wingspan": "A envergadura",
+      "wingspanLead": "De {{from}} para {{to}}. Todo título avaliado aumenta a envergadura; uma prateleira pouco visitada aumenta mais.",
+      "arrives": "Com {{to}}, a mariposa cresce e a cabine ganha {{item}}.",
+      "arrivesRoom": "Com {{to}}, a cabine ganha {{item}}.",
+      "max": "Cinerama é a maior envergadura. A estante continua enchendo a cada título.",
+      "neighbor": "A forma vizinha",
+      "far": "longe",
+      "near": "perto",
+      "cocoon": "quase",
+      "degreesAria": "Distância da forma vizinha: {{degree}}",
+      "farLead": "A forma de agora está firme. {{challenger}} é o humor de fora mais próximo do trio.",
+      "nearLead": "{{challenger}} está encostando em {{weakest}}. Ainda não há casulo.",
+      "cocoonLead": "Um casulo se formou. {{challenger}} passou {{weakest}}; se abrir uma nota 10 inteira de vantagem, a Persona muda de forma.",
+      "rule": "A forma só muda quando o humor de fora abre 10 pontos de vantagem. Antes disso, o casulo avisa.",
+      "noNeighbor": "Nenhum humor de fora do trio tem título ainda.",
+      "birth": "O casulo",
+      "birthLead": "Com 10 títulos das prateleiras, em pelo menos 3 humores, a lagarta tece o casulo e a Persona aparece: o projetor chega, a tela acende e o néon ganha as três letras."
     }
   }
 }

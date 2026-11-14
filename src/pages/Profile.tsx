@@ -721,6 +721,7 @@ export default function Profile() {
               persona={persona}
               personaLoading={personaLoading}
               isOwn
+              username={profile?.username ?? null}
               ratingCounts={ratingCounts}
               countryCounts={countryCounts}
               countryAvgRatings={countryAvgRatings}

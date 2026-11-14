@@ -94,6 +94,8 @@ interface ProfileTasteGridProps {
   ownerRatingLabel?: string;
   // Perfil de outra pessoa: o @ dela nos títulos ("Temas que @fulano mais ama").
   ownerName?: string;
+  // Seu perfil: o seu nome de usuário (vai no cartão de compartilhar a Persona).
+  username?: string | null;
   // Título do espectro de notas (padrão: "Distribuição de notas") e o que
   // fazer ao tocar numa nota (ex.: ir pra prateleira dela na Coleção).
   ratingTitle?: string;
@@ -114,6 +116,7 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
   onViewCountryMovies,
   ownerRatingLabel,
   ownerName,
+  username = null,
   ratingTitle,
   onJumpToRating,
   extra,
@@ -134,6 +137,8 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
         topKeywords={observatory.topKeywords}
         isOwn={isOwn}
         ownerName={ownerName}
+        ownerId={userId}
+        shareName={username}
       />
 
       <div className={`${PROFILE_CARD} rounded-3xl`} style={glassPanel(observatory.prior ? ratingTone(Math.round(observatory.prior)).color : PROFILE_ACCENTS.rated)}>
