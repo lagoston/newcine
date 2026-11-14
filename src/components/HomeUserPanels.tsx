@@ -8,29 +8,27 @@ import MonthlyInsightsModal from './MonthlyInsightsModal';
 import SeasonalEventPanel from './seasonal/SeasonalEventPanel';
 import FriendsFeed from './feed/FriendsFeed';
 import OracleLibraryDoor from './oracleHub/OracleLibraryDoor';
-import PosterJackpotDoor from './posterJackpot/PosterJackpotDoor';
-import PersonaDoor from './home/PersonaDoor';
-import SecretRoomDoor from './secretRoom/SecretRoomDoor';
-import PosterPokerButton from './poker/game/PosterPokerButton';
+import StudioDoor from './home/StudioDoor';
 import { useSeasonalEvent } from '../contexts/SeasonalEventContext';
 import { NIGHT, PAPER, MIST, PIXEL } from '../lib/oracleTheme';
 
 // Topo da home de quem está logado.
 //   1. Os stories dos amigos.
 //   2. Cabeçalho: saudação e o atalho dos Insights do mês.
-//   3. As três portas (02/11/2026) — a nova cara do site, no lugar das
-//      Recomendações do Dia: a Biblioteca dos Oráculos, o Poster Jackpot e a
-//      Sua Persona. Vieram da Central dos Oráculos, que foi extinta (a rota
-//      /oracle agora volta para cá). No celular ficam uma embaixo da outra;
-//      no computador, lado a lado, em pé (home/doorLayout). Para quem tem o
-//      Pôster Poker, o ingresso dele vem por último (04/11/2026).
+//   3. A porta da Biblioteca dos Oráculos e o estúdio da pessoa.
+//      De 02/11 a 14/11/2026 eram três portas (a Biblioteca, o Poster Jackpot
+//      e a Sua Persona) e, para quem tem o Pôster Poker, um ingresso. Em
+//      14/11/2026 (pedido do Bruno) a Persona virou o estúdio inteiro e tomou
+//      o lugar do Jackpot e do Pôquer, que agora são objetos dentro dele (a
+//      máquina caça-níquel e a mesa). No celular ficam um embaixo do outro;
+//      no computador, lado a lado: a porta da Biblioteca em pé e o estúdio
+//      com o resto da largura (home/StudioDoor).
 //   4. Durante um evento sazonal (Halloween em outubro, Natal em dezembro), o
-//      painel do evento logo abaixo das portas — sem a alternância com o
-//      painel do dia, que deixou de existir). O painel do Halloween já traz a
-//      entrada do Clube do Terror; fora do Halloween, a porta do Clube
-//      aparece aqui para quem usa a tag dele.
-// As portas sobem em sequência ao abrir a página: o único momento animado
-// do topo.
+//      painel do evento logo abaixo — o do Halloween traz a entrada do Clube
+//      do Terror. Fora do evento, a entrada do Clube deixou de ser uma faixa
+//      aqui (14/11/2026): é a caixa de papelão no estúdio de quem tem a tag.
+// A porta e o estúdio sobem em sequência ao abrir a página: o único momento
+// animado do topo.
 
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300';
 
@@ -158,21 +156,13 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
         </div>
       </section>
 
-      {/* ---------- As três portas e o ingresso do Pôster Poker ----------
-          04/11/2026 (pedido do Bruno: "4 é demais, parece um site de
-          jogos"): o Pôster Poker deixou de ser uma quarta porta e virou um
-          ingresso de cinema (o mesmo recorte meia-lua e picote do menu do
-          jogo), menor e por último, depois da Persona — a fila fala primeiro
-          de cinema (a curadoria, quem você é) e o pôquer entra como a sessão
-          da semana:
-            • celular e tablet: a pilha das três portas, como sempre, e o
-              ingresso deitado logo abaixo da Persona (fora da primeira tela
-              no celular, e sem empurrar porta nenhuma quando chega);
-            • computador (lg): uma fileira flex — as três portas dividem a
-              largura e o ingresso fica em pé, estreito, ao lado da Persona.
-          Flex no lugar da grade de lugares fixos: um item que some
-          (empty:hidden — o pôquer fechado, ou o Jackpot desligado) não deixa
-          buraco, e todas as portas da fileira ficam com a mesma altura. */}
+      {/* ---------- A porta da Biblioteca e o estúdio ----------
+          Flex: no computador a porta fica em pé, com cerca de um quarto da
+          largura, e o estúdio com o resto; as duas com a mesma altura. No
+          celular o estúdio quase encosta nas bordas da tela (-mx-3), para a
+          cena de 360 px caber inteira num aparelho de 360 px; em telas ainda
+          menores ele encosta de vez (-mx-5) e só as pontas das paredes ficam
+          de fora. */}
       <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-5 sm:pt-7" aria-label={t('home.doors.label')}>
         <motion.ul
           className="flex flex-col lg:flex-row gap-3 sm:gap-4"
@@ -185,31 +175,16 @@ const HomeUserPanels: React.FC<Props> = ({ userId, username, visible = true, onR
                 primeiro segundo; tocar nele abre o menu do filme. */}
             <OracleLibraryDoor cardStyle={cardStyle} active={visible} onOpenMovie={onMovieClick} />
           </motion.li>
-          <motion.li variants={doorItem} className="min-w-0 empty:hidden lg:flex-1">
-            <PosterJackpotDoor />
-          </motion.li>
-          <motion.li variants={doorItem} className="min-w-0 lg:flex-1">
-            <PersonaDoor userId={userId} username={displayName || null} />
-          </motion.li>
-          {/* O ingresso: no computador, uma coluna estreita de largura fixa
-              (as portas ficam com o resto). */}
-          <motion.li variants={doorItem} className="min-w-0 empty:hidden lg:flex-none lg:w-[112px] xl:w-[132px]">
-            <PosterPokerButton />
+          <motion.li variants={doorItem} className="min-w-0 -mx-5 min-[360px]:-mx-3 sm:mx-0 lg:flex-[2.6]">
+            <StudioDoor userId={userId} username={displayName || null} />
           </motion.li>
         </motion.ul>
       </section>
 
-      {/* ---------- O evento sazonal e o Clube do Terror ---------- */}
+      {/* ---------- O evento sazonal ---------- */}
       {seasonal && seasonalTheme && (
         <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 sm:pt-8">
           <SeasonalEventPanel event={seasonal} theme={seasonalTheme} onMovieClick={onMovieClick} />
-        </section>
-      )}
-      {/* No Halloween o painel do evento já tem a entrada do Clube do Terror;
-          fora dele, a porta aparece aqui para quem usa a tag. */}
-      {seasonal?.id !== 'halloween' && (
-        <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-3 sm:pt-4 empty:hidden">
-          <SecretRoomDoor />
         </section>
       )}
 

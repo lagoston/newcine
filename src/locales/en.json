@@ -852,11 +852,11 @@
       "personaTitleOther": "The personality",
       "personaText": "The three strongest shelves form the three-letter code, always in the shelves' order. There are 84 combinations, each with a movie character. It changes on its own, but not with every rating: an outside shelf only enters the code once it opens a 10-point lead over the weakest of the three.",
       "thresholdText": "It appears once {{count}} shelf titles are rated (films or series), across at least 3 different shelves.",
-      "worldTitle": "The booth and the moth",
-      "worldCabin": "The booth keeps everything that was rated: one can per title on the bookcase and a poster on the wall for every 10.",
+      "worldTitle": "The studio and the moth",
+      "worldCabin": "The studio keeps everything that was rated: one can per title on the bookcase and a poster on the wall for every 10.",
       "worldMoth": "The moth wears what has been watched lately: the bands on its wings are the moods of the last 30 shelf titles, and each eye is a 9 or a 10.",
-      "worldWingspan": "Every rated title widens the wingspan. At each film gauge, from 8 mm to Cinerama, the booth gets a piece of furniture.",
-      "worldCalm": "Nothing disappears or shrinks over time: the booth waits just as it was left."
+      "worldWingspan": "Every rated title widens the wingspan. At each film gauge, from 8 mm to Cinerama, the studio gets a piece of furniture. The book on the shelf tells that story page by page.",
+      "worldCalm": "Nothing disappears or shrinks over time: the studio waits just as it was left."
     },
     "reveal": {
       "title": "The reveal",
@@ -4119,22 +4119,57 @@
       }
     }
   },
+  "studio": {
+    "name": "Your studio",
+    "hint": "Tap the objects: each one leads to a corner of the site.",
+    "open": "Open the studio",
+    "spots": {
+      "jackpot": "Poster Jackpot",
+      "jackpotWaiting_one": "Poster Jackpot: {{count}} thing waiting",
+      "jackpotWaiting_other": "Poster Jackpot: {{count}} things waiting",
+      "poker": "Pôster Poker",
+      "aquarium_one": "Watchlist: {{count}} title waiting",
+      "aquarium_other": "Watchlist: {{count}} titles waiting",
+      "aquariumEmpty": "Watchlist",
+      "book": "The moth's book",
+      "terror": "Terror Club",
+      "terrorVia": "Terror Club, as a guest of @{{name}}"
+    }
+  },
   "personaWorld": {
-    "subtitle": "The booth and the moth",
+    "replay": {
+      "start": "Relive from the start",
+      "startHint": "Your story here, from the first rating to today.",
+      "loading": "Fetching your story…",
+      "error": "Couldn't fetch your story right now. Try again.",
+      "play": "Resume",
+      "pause": "Pause",
+      "again": "Relive again",
+      "close": "Back to today",
+      "sliderAria": "Position in the story of your ratings",
+      "before": "Before the first rating",
+      "position": "Rating {{no}} of {{total}}",
+      "today": "Today · {{total}} ratings",
+      "rated": "rated {{rating}} in",
+      "ratedOut": "rated {{rating}}, off the shelves",
+      "born": "Born as",
+      "changed": "Became"
+    },
+    "subtitle": "The studio and the moth",
     "titleOf": "{{name}}'s Persona",
-    "loading": "Opening the booth",
-    "loadError": "Couldn't open the booth right now.",
+    "loading": "Opening the studio",
+    "loadError": "Couldn't open the studio right now.",
     "retry": "Try again",
-    "enter": "Enter the booth",
+    "enter": "Enter the studio",
     "untitled": "Rated title",
     "archive": "Archive",
-    "sceneLabel": "The projection booth of {{code}}: the bookcase with the nine shelves, the screen with the character, the posters of the titles rated 10 and the moth in the projector beam.",
-    "sceneLabelEmpty": "The projection booth, still empty, waiting for the Persona.",
+    "sceneLabel": "The studio of {{code}}: the bookcase with the nine shelves, the screen with the poster of the Persona's film, the posters of the titles rated 10, the moth in the projector beam and the lounge with the games, the fish tank and the book.",
+    "sceneLabelEmpty": "The studio, still empty, waiting for the Persona.",
     "mothLabel": "The moth up close. Each eye on the wing is a title rated 9 or 10.",
     "larvaLabel": "The caterpillar up close: one segment per shelf title.",
     "eggLabel": "The egg, waiting for the first title.",
     "tabs": {
-      "label": "What to see in the booth",
+      "label": "What to see in the studio",
       "always": "Always",
       "now": "Now",
       "next": "Ahead"
@@ -4169,9 +4204,9 @@
       "gaugeAria": "{{pct}}% of the way to {{next}}"
     },
     "always": {
-      "lead_one": "The booth keeps everything that was rated: {{count}} title.",
-      "lead_other": "The booth keeps everything that was rated: {{count}} titles.",
-      "lead_zero": "The booth keeps everything that gets rated. No titles yet.",
+      "lead_one": "The studio keeps everything that was rated: {{count}} title.",
+      "lead_other": "The studio keeps everything that was rated: {{count}} titles.",
+      "lead_zero": "The studio keeps everything that gets rated. No titles yet.",
       "trioRank": "#{{rank}} of the trio",
       "openShelf": "See the whole shelf",
       "emptyShelf": "No rated titles here yet.",
@@ -4202,8 +4237,8 @@
     "next": {
       "wingspan": "The wingspan",
       "wingspanLead": "From {{from}} to {{to}}. Every rated title widens the wingspan; a rarely visited shelf widens it more.",
-      "arrives": "At {{to}}, the moth grows and the booth gets {{item}}.",
-      "arrivesRoom": "At {{to}}, the booth gets {{item}}.",
+      "arrives": "At {{to}}, the moth grows and the studio gets {{item}}.",
+      "arrivesRoom": "At {{to}}, the studio gets {{item}}.",
       "max": "Cinerama is the widest wingspan. The bookcase keeps filling with every title.",
       "neighbor": "The neighboring shape",
       "far": "far",
@@ -4217,6 +4252,158 @@
       "noNeighbor": "No mood outside the trio has a title yet.",
       "birth": "The cocoon",
       "birthLead": "With 10 shelf titles across at least 3 moods, the caterpillar spins the cocoon and the Persona appears: the projector arrives, the screen lights up and the neon gets its three letters."
+    },
+    "book": {
+      "title": "The book of the moth",
+      "dialogAria": "The book of the moth: the story of its evolution, page by page",
+      "coverOwn": "The story of your moth",
+      "coverOther": "The story of {{name}}'s moth",
+      "open": "Open the book",
+      "close": "Close the book",
+      "prev": "Previous page",
+      "next": "Next page",
+      "cover": "Cover",
+      "pageOf": "{{no}} of {{total}}",
+      "pageAria": "Page {{no}} of {{total}}: {{title}}",
+      "bookmarkOwn": "Go to your page",
+      "bookmarkOther": "Go to {{name}}'s page",
+      "chapter": "Chapter {{no}}",
+      "exlibrisOwn": "This book tells the story of your moth.",
+      "exlibrisOther": "This book tells the story of {{name}}'s moth.",
+      "today": "Today: {{gauge}}, with {{rated}}.",
+      "rated_zero": "no titles rated",
+      "rated_one": "{{count}} title rated",
+      "rated_other": "{{count}} titles rated",
+      "once": "Once upon a time",
+      "intro": "there was an empty film studio, with nine shelves waiting for film cans. In the middle of it, an egg. This book tells how the egg becomes a moth, how the moth grows, and what arrives in the studio at each step.",
+      "turn": "Turn the page",
+      "facts": {
+        "hatches": "Hatches with",
+        "firstTitle": "1 rated title",
+        "grows": "Grows with",
+        "shelfTitles": "titles from the Library shelves",
+        "closes": "Closes with",
+        "tenInThree": "10 titles in 3 moods",
+        "needs": "Needs",
+        "wingspan": "wingspan {{g}}",
+        "atLeast": "At least",
+        "titlesSpread": "{{n}} titles, well spread",
+        "arrives": "Arrives"
+      },
+      "status": {
+        "pastOwn": "You have been through here.",
+        "pastOther": "{{name}} has been through here.",
+        "hereOwn": "You are here.",
+        "hereOther": "{{name}} is here.",
+        "future": "Still to come.",
+        "futureLeft": "{{left}} of wingspan to go.",
+        "wingspanNext": "Wingspan {{g}}. {{left}} to go until {{next}}.",
+        "wingspanMax": "Wingspan {{g}}. There is no bigger gauge.",
+        "eggOwn": "The egg hatches with your first rated title.",
+        "segments": "{{counted}} of {{threshold}} segments."
+      },
+      "chapters": {
+        "egg": {
+          "title": "The egg",
+          "caption": "The studio before the first title.",
+          "text": "In the beginning there is only an egg in the middle of the studio. It does not ask for much: it hatches with the first rated title, whatever the rating."
+        },
+        "larva": {
+          "title": "The caterpillar",
+          "caption": "One segment for every title from the shelves.",
+          "text": "Out of the egg comes a caterpillar. Every rated title that lives on one of the nine Library shelves becomes one of its segments, painted in the colour of that shelf’s mood. The more varied the menu, the more colourful the caterpillar."
+        },
+        "cocoon": {
+          "title": "The cocoon",
+          "caption": "The cocoon, in the colours of the three strongest moods.",
+          "text": "With ten segments, from at least three moods, the caterpillar spins its cocoon. Inside, the Oracle adds up the ratings on each shelf and keeps the three strongest: those are the three letters of the Persona."
+        },
+        "g8": {
+          "caption": "The projector arrives together with the moth.",
+          "text": "The cocoon opens and out comes the moth, as small as a frame of 8 mm film. The studio wakes up with it: the projector arrives, the screen lights up with the Persona’s film and the neon sign gets its three letters."
+        },
+        "s8": {
+          "caption": "The armchair, facing the screen.",
+          "text": "With a wingspan of 12, the moth already fills a Super 8 frame. A velvet armchair appears in the middle of the studio, facing the screen."
+        },
+        "g16": {
+          "caption": "The rug, under the armchair.",
+          "text": "With a wingspan of 20 comes 16 mm, the film of documentaries and film clubs. On the floor, a rug in the colour of the third mood of the trio."
+        },
+        "s16": {
+          "caption": "The lamp, in the back corner.",
+          "text": "With a wingspan of 32, Super 16. A lamp lights up in the back corner, for the screenings that run into the small hours."
+        },
+        "g35": {
+          "caption": "The popcorn machine, at the front of the studio.",
+          "text": "With a wingspan of 50, 35 mm, the gauge of real cinemas. The studio gets the right smell: the popcorn machine arrives."
+        },
+        "g70": {
+          "caption": "The velvet curtain, around the screen.",
+          "text": "With a wingspan of 80, the 70 mm of the great epics. The moth reaches its largest size, and the screen gets a velvet curtain."
+        },
+        "imax": {
+          "caption": "The big screen.",
+          "text": "With a wingspan of 125, IMAX. The screen grows until it barely fits on the wall."
+        },
+        "cinerama": {
+          "caption": "The marquee of light bulbs, at the top of the walls.",
+          "text": "With a wingspan of 200, Cinerama, the widest screen cinema ever had. A marquee of light bulbs lights up at the top of the walls. There is no bigger gauge: from here on, only the bookcase keeps filling up."
+        },
+        "wings": {
+          "title": "The secret of the wings"
+        },
+        "treasures": {
+          "title": "The treasures of the studio"
+        }
+      },
+      "wings": {
+        "p1": "The wing does not grow by quantity alone. Each shelf pushes the wing with the square root of the titles it holds: 4 titles push 2, 9 push 3, 100 push 10. The sum of the pushes is the wingspan.",
+        "p2": "That is why the first title on a rarely visited shelf is worth more than the hundredth on a full one. Whoever watches a bit of everything grows faster.",
+        "p3": "With each gauge reached, the moth grows and the studio gets a piece of furniture. The next pages show them one by one.",
+        "ledgerOwn": "The sum of your wing",
+        "ledgerOther": "The sum of {{name}}'s wing",
+        "shelf": "Shelf",
+        "titles": "Titles",
+        "push": "Pushes",
+        "archive": "Archive (outside the shelves)",
+        "total": "Wingspan"
+      },
+      "treasures": {
+        "caption": "The lounge and the places marked on the floor.",
+        "text": "Not everything in the studio comes from the wing. {{standing}} and this book have had a reserved place since day one. The other places, marked with tape on the floor like on a film set, wait for what is earned at events.",
+        "has": "Already in the studio.",
+        "missing": "The place is waiting.",
+        "more": "There are empty places left for the next events.",
+        "items": {
+          "pumpkin": {
+            "name": "The Halloween pumpkin",
+            "hint": "It grows with each step of Halloween night"
+          },
+          "terror": {
+            "name": "The Terror Club box",
+            "hint": "An old cardboard box with a portal inside, for those who have the Deadly Sleeping tag"
+          },
+          "tree": {
+            "name": "The Christmas tree",
+            "hint": "It lights up, gets presents and gets its star"
+          },
+          "amulet": {
+            "name": "The beta amulet",
+            "hint": "For those who arrived before everyone else"
+          }
+        },
+        "tank": "The Watchlist fish tank",
+        "machine": "the Jackpot machine",
+        "table": "the poker table"
+      },
+      "end": {
+        "title": "And the story goes on",
+        "text": "With every rated title, the bookcase gets one more can. The wing wears the colours of the last thirty titles, and an outside mood that opens a ten-point lead changes the shape of the Persona.",
+        "replay": "To watch your story go by again, close the book and tap Relive from the start, under the studio.",
+        "captionMoth": "The moth today, in the projector beam.",
+        "captionRoom": "The studio today."
+      }
     }
   }
 }

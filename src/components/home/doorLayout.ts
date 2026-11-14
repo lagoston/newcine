@@ -10,7 +10,10 @@
 // etiquetas embaixo do texto (os oráculos, o saldo de fichas) e toda porta
 // ganhou uma seta à direita, para se ler como botão: no celular e no tablet
 // só a seta, centrada na altura da faixa; no computador, o convite com a
-// seta no pé. Cada porta desenha a sua seta (DoorArrow, JackpotArrow).
+// seta no pé. Cada porta desenha a sua seta (DoorArrow).
+// 14/11/2026: das três portas só a da Biblioteca continua sendo uma porta; a
+// Persona virou o estúdio (home/StudioDoor) e o Jackpot e o Pôquer viraram
+// objetos dentro dele. Esta geometria hoje só serve à porta da Biblioteca.
 // 04/11/2026: no computador as três portas têm sempre a mesma altura (a da
 // mais alta da fileira) e cada uma tem um texto de tamanho diferente. Antes o
 // texto ficava colado na arte e a sobra virava um vão entre a frase e o

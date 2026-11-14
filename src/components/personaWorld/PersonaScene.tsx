@@ -1,8 +1,11 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { personaPortrait, posterUrl } from '../../lib/persona';
+import { Link } from 'react-router-dom';
+import { posterUrl } from '../../lib/persona';
 import type { PersonaWorld, WorldState, WorldTitle } from '../../lib/personaWorld';
-import { drawLarva, drawMoth, drawRoom, mothSpec, paintFrame, sceneHit, shrinkCover, NO_IMAGES, POSTER_SIZE, RH, RW, SCREEN_SIZE, type EyeHit, type Pt, type SceneHit, type SceneImages } from './draw';
+import { FOCUS_RING, NIGHT, PAPER } from '../../lib/oracleTheme';
+import { drawLarva, drawMoth, drawRoom, mothSpec, paintFrame, sceneHit, shrinkCover, studioSpots, NO_IMAGES, POSTER_SIZE, RH, RW, SCREEN_SIZE, type EyeHit, type Pt, type SceneHit, type SceneImages } from './draw';
+import { NO_EXTRAS, type SpotKind, type StudioExtras } from './studio';
 
 // As duas telas da Persona viva (13/11/2026): a cabine inteira (PersonaScene) e
 // a mariposa de perto (MothCloseUp). As duas são um canvas pequeno ampliado em
@@ -24,17 +27,20 @@ const loadImage = (src: string): Promise<HTMLImageElement | null> =>
     img.src = src;
   });
 
-const focusPoint = (focus: string): [number, number] => {
-  const parts = focus.split(/\s+/).map((part) => parseFloat(part) / 100);
-  return [Number.isFinite(parts[0]) ? parts[0] : 0.5, Number.isFinite(parts[1]) ? parts[1] : 0.3];
-};
-
-// O retrato do personagem e os pôsteres das notas 10, reduzidos a pixel. Enquanto
-// não chegam (ou se o TMDB não responder), a cena usa os desenhos de reserva.
+// A capa do filme da Persona (na tela) e os pôsteres das notas 10 (na parede),
+// reduzidos a pixel. Enquanto não chegam (ou se o TMDB não responder), a cena
+// usa os desenhos de reserva.
+//
+// 14/11/2026 (pedido do Bruno): a tela projeta a CAPA DO FILME, para todo
+// mundo. Antes era a "foto do personagem", que para 70 das 84 Personas é uma
+// cena larga do filme e para 14 é um pôster: uns estúdios mostravam a capa e
+// outros, um recorte de cena. No dele (Contato) o recorte, feito para o
+// cartão em pé, pegava mais da metade da cena e mostrava "um homem em pixels"
+// ao lado da personagem. O personagem continua no cartão, embaixo da cena.
 function useSceneImages(world: PersonaWorld, stage: number): SceneImages {
   const [images, setImages] = useState<SceneImages>(NO_IMAGES);
   const entry = world.persona?.code ? (world.persona.persona ?? null) : null;
-  const portrait = useMemo(() => (entry ? personaPortrait(entry) : null), [entry]);
+  const cover = useMemo(() => (entry ? posterUrl(entry.posterPath, 'w342') : null), [entry]);
   const posterPaths = world.tens
     .slice(0, 4)
     .map((title) => title.poster ?? '')
@@ -43,13 +49,12 @@ function useSceneImages(world: PersonaWorld, stage: number): SceneImages {
   useEffect(() => {
     let alive = true;
     const posters = posterPaths.split('|').map((path) => posterUrl(path || null, 'w185'));
-    Promise.all([portrait?.src ? loadImage(portrait.src) : Promise.resolve(null), ...posters.map((src) => (src ? loadImage(src) : Promise.resolve(null)))]).then(([face, ...rest]) => {
+    Promise.all([cover ? loadImage(cover) : Promise.resolve(null), ...posters.map((src) => (src ? loadImage(src) : Promise.resolve(null)))]).then(([face, ...rest]) => {
       if (!alive) return;
       try {
-        const [fx, fy] = focusPoint(portrait?.focus ?? '50% 30%');
         setImages({
-          // a foto do personagem entra um pouco mais de perto (a tela é pequena)
-          portrait: face ? shrinkCover(face, size.w, size.h, fx, fy, portrait?.isCharacter ? 1.25 : 1) : null,
+          // a capa é em pé e a tela é deitada: entra a faixa de cima do pôster, de ponta a ponta
+          portrait: face ? shrinkCover(face, size.w, size.h, 0.5, 0.14, 1) : null,
           posters: rest.map((img) => (img ? shrinkCover(img, POSTER_SIZE.w, POSTER_SIZE.h) : null)),
         });
       } catch {
@@ -59,7 +64,7 @@ function useSceneImages(world: PersonaWorld, stage: number): SceneImages {
     return () => {
       alive = false;
     };
-  }, [portrait, posterPaths, size.w, size.h]);
+  }, [cover, posterPaths, size.w, size.h]);
   return images;
 }
 
@@ -95,7 +100,13 @@ function useIntegerScale(ref: React.RefObject<HTMLElement>, width: number, scale
     }
     const el = ref.current;
     if (!el) return;
-    const measure = () => setK(Math.max(1, Math.min(maxScale, Math.floor(el.clientWidth / width))));
+    // De 316 a 359 px de largura (celulares estreitos) a cena de 180 px ainda
+    // fica em 2×: as pontas das paredes passam um pouco da borda e são
+    // cortadas. Sem isso ela cairia para 1× (metade do tamanho).
+    const measure = () => {
+      const fit = Math.floor(el.clientWidth / width);
+      setK(Math.max(1, Math.min(maxScale, fit === 1 && el.clientWidth + 44 >= width * 2 ? 2 : fit)));
+    };
     measure();
     if (typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(measure);
@@ -109,6 +120,22 @@ function useIntegerScale(ref: React.RefObject<HTMLElement>, width: number, scale
 // A cabine
 // ---------------------------------------------------------------------------
 
+// O que um objeto da sala de estar faz quando é tocado (a máquina do Jackpot,
+// a mesa de pôquer, o aquário, o livro, a caixa do Clube do Terror).
+export interface Hotspot {
+  // o nome do objeto (aparece ao passar o mouse ou chegar pelo teclado, e é o que o leitor de tela lê)
+  label: string;
+  onClick?: () => void;
+  // em vez de onClick: o objeto é um link
+  to?: string;
+  // um número no canto (o que está esperando a pessoa no Jackpot)
+  badge?: number;
+  // algo preso em cima do objeto (o balão da ficha do dia)
+  above?: React.ReactNode;
+}
+
+const HOTSPOT_CLASS = `group/spot absolute block min-w-0 min-h-0 rounded-md transition-shadow duration-150 hover:shadow-[inset_0_0_0_2px_rgba(243,234,211,0.75)] focus-visible:shadow-[inset_0_0_0_2px_rgba(243,234,211,0.9)] ${FOCUS_RING}`;
+
 export const PersonaScene: React.FC<{
   world: PersonaWorld;
   state: WorldState;
@@ -121,7 +148,11 @@ export const PersonaScene: React.FC<{
   onPick?: (hit: SceneHit) => void;
   label: string;
   className?: string;
-}> = ({ world, state, scale = 'fit', maxScale = 4, animated = true, onPick, label, className = '' }) => {
+  // a sala de estar: a máquina do Jackpot e a mesa de pôquer aparecem?
+  extras?: StudioExtras;
+  // os objetos que levam a algum lugar (sem isto, são só desenho)
+  hotspots?: Partial<Record<SpotKind, Hotspot>>;
+}> = ({ world, state, scale = 'fit', maxScale = 4, animated = true, onPick, label, className = '', extras = NO_EXTRAS, hotspots }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const roomRef = useRef<HTMLCanvasElement | null>(null);
@@ -131,6 +162,7 @@ export const PersonaScene: React.FC<{
   const k = useIntegerScale(wrapRef, RW, scale, maxScale);
   const images = useSceneImages(world, state.stage);
   const spec = useMemo(() => mothSpec(state, world), [state, world]);
+  const { jackpot, poker } = extras;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -142,15 +174,16 @@ export const PersonaScene: React.FC<{
     room.height = RH;
     const roomCtx = room.getContext('2d');
     if (!roomCtx) return;
-    drawRoom(roomCtx, state, world, images);
+    const lounge: StudioExtras = { jackpot, poker };
+    drawRoom(roomCtx, state, world, images, lounge);
     const still = !animated || Boolean(reduceMotion);
     const paint = () => {
-      creatureRef.current = paintFrame(ctx, room, state, world, spec, tickRef.current, still);
+      creatureRef.current = paintFrame(ctx, room, state, world, spec, tickRef.current, still, lounge);
     };
     paint();
     if (still) return;
     return runFrames(canvas, tickRef, paint);
-  }, [state, world, images, spec, animated, reduceMotion]);
+  }, [state, world, images, spec, animated, reduceMotion, jackpot, poker]);
 
   const pick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onPick) return;
@@ -158,18 +191,63 @@ export const PersonaScene: React.FC<{
     onPick(sceneHit(((event.clientX - rect.left) / rect.width) * RW, ((event.clientY - rect.top) / rect.height) * RH, state, world, creatureRef.current));
   };
 
+  // os objetos tocáveis: um botão (ou link) de verdade por cima de cada um,
+  // para o teclado e o leitor de tela também chegarem neles
+  const spots = useMemo(() => (hotspots ? studioSpots(world, { jackpot, poker }).filter((spot) => hotspots[spot.kind]) : []), [hotspots, world, jackpot, poker]);
+
   return (
-    <div ref={wrapRef} className={`grid place-items-center ${className}`}>
-      <canvas
-        ref={canvasRef}
-        width={RW}
-        height={RH}
-        role="img"
-        aria-label={label}
-        onClick={onPick ? pick : undefined}
-        className="block max-w-full"
-        style={{ width: RW * k, height: RH * k, imageRendering: 'pixelated', cursor: onPick ? 'pointer' : undefined }}
-      />
+    <div ref={wrapRef} className={`grid place-items-center overflow-hidden ${className}`}>
+      <div className="relative shrink-0" style={{ width: RW * k, height: RH * k }}>
+        <canvas
+          ref={canvasRef}
+          width={RW}
+          height={RH}
+          role="img"
+          aria-label={label}
+          onClick={onPick ? pick : undefined}
+          className="block"
+          style={{ width: RW * k, height: RH * k, imageRendering: 'pixelated', cursor: onPick ? 'pointer' : undefined }}
+        />
+        {spots.map((spot) => {
+          const hotspot = hotspots?.[spot.kind];
+          if (!hotspot) return null;
+          const style: React.CSSProperties = { left: spot.x * k, top: spot.y * k, width: spot.w * k, height: spot.h * k };
+          const inner = (
+            <>
+              <span
+                className="pointer-events-none absolute left-1/2 bottom-full mb-1 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold leading-none opacity-0 transition-opacity duration-150 group-hover/spot:opacity-100 group-focus-visible/spot:opacity-100"
+                style={{ background: PAPER, color: NIGHT, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}
+                aria-hidden
+              >
+                {hotspot.label}
+              </span>
+              {hotspot.badge ? (
+                <span className="pointer-events-none absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-fuchsia-500 px-1 text-[11px] font-bold leading-none text-white shadow" aria-hidden>
+                  {hotspot.badge}
+                </span>
+              ) : null}
+            </>
+          );
+          return (
+            <React.Fragment key={spot.kind}>
+              {hotspot.to ? (
+                <Link to={hotspot.to} className={HOTSPOT_CLASS} style={style} aria-label={hotspot.label} onClick={hotspot.onClick}>
+                  {inner}
+                </Link>
+              ) : (
+                <button type="button" className={HOTSPOT_CLASS} style={style} aria-label={hotspot.label} onClick={hotspot.onClick}>
+                  {inner}
+                </button>
+              )}
+              {hotspot.above && (
+                <span className="absolute z-[2]" style={{ left: (spot.x + spot.w / 2) * k, top: spot.y * k }}>
+                  {hotspot.above}
+                </span>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
     </div>
   );
 };

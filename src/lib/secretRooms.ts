@@ -132,6 +132,10 @@ export async function fetchSecretRoomPredictions(room: string, via?: string | nu
   return (data as SecretRoomPredictions) ?? null;
 }
 
+// Sem uso no site desde 14/11/2026: o portal saiu do banner do perfil e virou
+// a caixa de papelão do estúdio (que olha as tags da cena, get_persona_world).
+// A função do banco continua existindo e respondendo pela regra nova (abre
+// para quem TEM a tag).
 export async function fetchSecretRoomPortal(userId: string): Promise<SecretRoomPortal | null> {
   const { data, error } = await supabase.rpc('get_secret_room_portal', { p_user_id: userId });
   if (error) throw error;

@@ -94,6 +94,12 @@ export interface PersonaWorld {
   last: WorldTitle[];
   best: Record<string, WorldTitle[]>;
   molts: WorldMolt[];
+  // 14/11/2026 (o estúdio): as tags que a pessoa conquistou, da mais antiga à
+  // mais nova. As de evento viram objetos no estúdio (a abóbora, a árvore).
+  tags: { id: string; at: string }[];
+  // a Watchlist, para o aquário: quantos títulos esperam e a prateleira dos 8
+  // mais novos (um peixe por título; null = título de fora das prateleiras)
+  watch: { count: number; fish: (string | null)[] };
 }
 
 export type Neighbor = 'far' | 'near' | 'cocoon';
@@ -189,6 +195,16 @@ export function parsePersonaWorld(data: unknown): PersonaWorld | null {
           .map((m) => ({ at: String(m.at ?? ''), from: strOrNull(m.from), to: String(m.to ?? ''), no: m.no == null ? null : num(m.no) }))
           .filter((m) => m.to.length === 3)
       : [],
+    tags: Array.isArray(raw.tags)
+      ? (raw.tags as Row[]).map((tag) => ({ id: String(tag.id ?? ''), at: String(tag.at ?? '') })).filter((tag) => tag.id)
+      : [],
+    watch: {
+      count: raw.watch && typeof raw.watch === 'object' ? num((raw.watch as Row).n) : 0,
+      fish:
+        raw.watch && typeof raw.watch === 'object' && Array.isArray((raw.watch as Row).fish)
+          ? ((raw.watch as Row).fish as unknown[]).map((letter) => (typeof letter === 'string' && MOOD_BY_LETTER[letter] ? letter : null))
+          : [],
+    },
   };
 }
 

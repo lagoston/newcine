@@ -855,11 +855,11 @@
       "personaTitleOther": "A personalidade",
       "personaText": "As três prateleiras mais fortes formam o código de três letras, sempre na mesma ordem das prateleiras. São 84 combinações, cada uma com um personagem de cinema. Ela muda sozinha, mas não a cada nota: uma prateleira de fora só entra no código quando abre 10 pontos de vantagem sobre a mais fraca das três.",
       "thresholdText": "Ela aparece a partir de {{count}} títulos das prateleiras avaliados (filmes ou séries), em pelo menos 3 prateleiras diferentes.",
-      "worldTitle": "A cabine e a mariposa",
-      "worldCabin": "A cabine guarda tudo o que foi avaliado: uma lata por título na estante e um pôster na parede para cada nota 10.",
+      "worldTitle": "O estúdio e a mariposa",
+      "worldCabin": "O estúdio guarda tudo o que foi avaliado: uma lata por título na estante e um pôster na parede para cada nota 10.",
       "worldMoth": "A mariposa veste o que anda sendo visto: as faixas das asas são os humores dos últimos 30 títulos das prateleiras, e cada olho é uma nota 9 ou 10.",
-      "worldWingspan": "Todo título avaliado aumenta a envergadura. A cada bitola, de 8 mm a Cinerama, a cabine ganha um móvel.",
-      "worldCalm": "Nada some nem encolhe com o tempo: a cabine espera do jeito que ficou."
+      "worldWingspan": "Todo título avaliado aumenta a envergadura. A cada bitola, de 8 mm a Cinerama, o estúdio ganha um móvel. O livro da estante conta essa história página por página.",
+      "worldCalm": "Nada some nem encolhe com o tempo: o estúdio espera do jeito que ficou."
     },
     "reveal": {
       "title": "A revelação",
@@ -4118,22 +4118,57 @@
       }
     }
   },
+  "studio": {
+    "name": "Seu estúdio",
+    "hint": "Toque nos objetos: cada um leva a um canto do site.",
+    "open": "Abrir o estúdio",
+    "spots": {
+      "jackpot": "Poster Jackpot",
+      "jackpotWaiting_one": "Poster Jackpot: {{count}} coisa esperando",
+      "jackpotWaiting_other": "Poster Jackpot: {{count}} coisas esperando",
+      "poker": "Pôster Poker",
+      "aquarium_one": "Watchlist: {{count}} título esperando",
+      "aquarium_other": "Watchlist: {{count}} títulos esperando",
+      "aquariumEmpty": "Watchlist",
+      "book": "O livro da mariposa",
+      "terror": "Clube do Terror",
+      "terrorVia": "Clube do Terror, como convidado de @{{name}}"
+    }
+  },
   "personaWorld": {
-    "subtitle": "A cabine e a mariposa",
+    "replay": {
+      "start": "Reviver desde o início",
+      "startHint": "A sua história aqui, da primeira nota até hoje.",
+      "loading": "Buscando a sua história…",
+      "error": "Não deu para buscar a sua história agora. Tente de novo.",
+      "play": "Continuar",
+      "pause": "Pausar",
+      "again": "Reviver de novo",
+      "close": "Voltar para hoje",
+      "sliderAria": "Posição na história das suas notas",
+      "before": "Antes da primeira nota",
+      "position": "Nota {{no}} de {{total}}",
+      "today": "Hoje · {{total}} notas",
+      "rated": "nota {{rating}} em",
+      "ratedOut": "nota {{rating}}, fora das prateleiras",
+      "born": "Nasceu",
+      "changed": "Virou"
+    },
+    "subtitle": "O estúdio e a mariposa",
     "titleOf": "A Persona de {{name}}",
-    "loading": "Abrindo a cabine",
-    "loadError": "Não deu para abrir a cabine agora.",
+    "loading": "Abrindo o estúdio",
+    "loadError": "Não deu para abrir o estúdio agora.",
     "retry": "Tentar de novo",
-    "enter": "Entrar na cabine",
+    "enter": "Entrar no estúdio",
     "untitled": "Título avaliado",
     "archive": "Arquivo",
-    "sceneLabel": "A cabine de projeção de {{code}}: a estante com as nove prateleiras, a tela com o personagem, os pôsteres das notas 10 e a mariposa no facho do projetor.",
-    "sceneLabelEmpty": "A cabine de projeção ainda vazia, à espera da Persona.",
+    "sceneLabel": "O estúdio de {{code}}: a estante com as nove prateleiras, a tela com a capa do filme da Persona, os pôsteres das notas 10, a mariposa no facho do projetor e a sala de estar com os jogos, o aquário e o livro.",
+    "sceneLabelEmpty": "O estúdio ainda vazio, à espera da Persona.",
     "mothLabel": "A mariposa de perto. Cada olho na asa é um título com nota 9 ou 10.",
     "larvaLabel": "A lagarta de perto: um gomo por título das prateleiras.",
     "eggLabel": "O ovo, à espera do primeiro título.",
     "tabs": {
-      "label": "O que ver na cabine",
+      "label": "O que ver no estúdio",
       "always": "Sempre",
       "now": "Agora",
       "next": "Por vir"
@@ -4168,9 +4203,9 @@
       "gaugeAria": "{{pct}}% do caminho até {{next}}"
     },
     "always": {
-      "lead_one": "A cabine guarda tudo o que foi avaliado: {{count}} título.",
-      "lead_other": "A cabine guarda tudo o que foi avaliado: {{count}} títulos.",
-      "lead_zero": "A cabine guarda tudo o que for avaliado. Ainda não há nenhum título.",
+      "lead_one": "O estúdio guarda tudo o que foi avaliado: {{count}} título.",
+      "lead_other": "O estúdio guarda tudo o que foi avaliado: {{count}} títulos.",
+      "lead_zero": "O estúdio guarda tudo o que for avaliado. Ainda não há nenhum título.",
       "trioRank": "{{rank}}ª do trio",
       "openShelf": "Ver a prateleira inteira",
       "emptyShelf": "Nenhum título avaliado aqui ainda.",
@@ -4201,8 +4236,8 @@
     "next": {
       "wingspan": "A envergadura",
       "wingspanLead": "De {{from}} para {{to}}. Todo título avaliado aumenta a envergadura; uma prateleira pouco visitada aumenta mais.",
-      "arrives": "Com {{to}}, a mariposa cresce e a cabine ganha {{item}}.",
-      "arrivesRoom": "Com {{to}}, a cabine ganha {{item}}.",
+      "arrives": "Com {{to}}, a mariposa cresce e o estúdio ganha {{item}}.",
+      "arrivesRoom": "Com {{to}}, o estúdio ganha {{item}}.",
       "max": "Cinerama é a maior envergadura. A estante continua enchendo a cada título.",
       "neighbor": "A forma vizinha",
       "far": "longe",
@@ -4216,6 +4251,158 @@
       "noNeighbor": "Nenhum humor de fora do trio tem título ainda.",
       "birth": "O casulo",
       "birthLead": "Com 10 títulos das prateleiras, em pelo menos 3 humores, a lagarta tece o casulo e a Persona aparece: o projetor chega, a tela acende e o néon ganha as três letras."
+    },
+    "book": {
+      "title": "O livro da mariposa",
+      "dialogAria": "O livro da mariposa: a história da evolução, página por página",
+      "coverOwn": "A história da sua mariposa",
+      "coverOther": "A história da mariposa de {{name}}",
+      "open": "Abrir o livro",
+      "close": "Fechar o livro",
+      "prev": "Página anterior",
+      "next": "Próxima página",
+      "cover": "Capa",
+      "pageOf": "{{no}} de {{total}}",
+      "pageAria": "Página {{no}} de {{total}}: {{title}}",
+      "bookmarkOwn": "Ir para a sua página",
+      "bookmarkOther": "Ir para a página de {{name}}",
+      "chapter": "Capítulo {{no}}",
+      "exlibrisOwn": "Este livro conta a história da sua mariposa.",
+      "exlibrisOther": "Este livro conta a história da mariposa de {{name}}.",
+      "today": "Hoje: {{gauge}}, com {{rated}}.",
+      "rated_zero": "nenhum título avaliado",
+      "rated_one": "{{count}} título avaliado",
+      "rated_other": "{{count}} títulos avaliados",
+      "once": "Era uma vez",
+      "intro": "um estúdio de cinema vazio, com nove prateleiras à espera de latas de filme. No meio dele, um ovo. Este livro conta como o ovo vira mariposa, como a mariposa cresce e o que chega ao estúdio a cada passo.",
+      "turn": "Vire a página",
+      "facts": {
+        "hatches": "Choca com",
+        "firstTitle": "1 título avaliado",
+        "grows": "Cresce com",
+        "shelfTitles": "títulos das prateleiras do Acervo",
+        "closes": "Fecha com",
+        "tenInThree": "10 títulos em 3 humores",
+        "needs": "Pede",
+        "wingspan": "envergadura {{g}}",
+        "atLeast": "No mínimo",
+        "titlesSpread": "{{n}} títulos, bem espalhados",
+        "arrives": "Chega"
+      },
+      "status": {
+        "pastOwn": "Você já passou por aqui.",
+        "pastOther": "{{name}} já passou por aqui.",
+        "hereOwn": "Você está aqui.",
+        "hereOther": "{{name}} está aqui.",
+        "future": "Por vir.",
+        "futureLeft": "Faltam {{left}} de envergadura.",
+        "wingspanNext": "Envergadura {{g}}. Faltam {{left}} para {{next}}.",
+        "wingspanMax": "Envergadura {{g}}. Não há bitola maior.",
+        "eggOwn": "O ovo choca com o seu primeiro título avaliado.",
+        "segments": "{{counted}} de {{threshold}} gomos."
+      },
+      "chapters": {
+        "egg": {
+          "title": "O ovo",
+          "caption": "O estúdio antes do primeiro título.",
+          "text": "No começo há só um ovo no meio do estúdio. Ele não pede muito: choca com o primeiro título avaliado, com qualquer nota."
+        },
+        "larva": {
+          "title": "A lagarta",
+          "caption": "Um gomo para cada título das prateleiras.",
+          "text": "Do ovo sai uma lagarta. Cada título avaliado que mora numa das nove prateleiras do Acervo vira um gomo dela, pintado com a cor do humor daquela prateleira. Quanto mais variado o cardápio, mais colorida a lagarta."
+        },
+        "cocoon": {
+          "title": "O casulo",
+          "caption": "O casulo, com as cores dos três humores mais fortes.",
+          "text": "Com dez gomos, vindos de pelo menos três humores, a lagarta tece o casulo. Lá dentro, o Oráculo soma as notas de cada prateleira e fica com as três mais fortes: são as três letras da Persona."
+        },
+        "g8": {
+          "caption": "O projetor chega junto com a mariposa.",
+          "text": "O casulo se abre e sai a mariposa, pequena como um quadro de filme de 8 mm. O estúdio acorda com ela: chega o projetor, a tela acende com o filme da Persona e o néon ganha as três letras."
+        },
+        "s8": {
+          "caption": "A poltrona, de frente para a tela.",
+          "text": "Com envergadura 12, a mariposa já enche um quadro de Super 8. Uma poltrona de veludo aparece no meio do estúdio, virada para a tela."
+        },
+        "g16": {
+          "caption": "O tapete, embaixo da poltrona.",
+          "text": "Com envergadura 20 vem o 16 mm, o filme dos documentários e dos cineclubes. No chão, um tapete da cor do terceiro humor do trio."
+        },
+        "s16": {
+          "caption": "O abajur, no canto do fundo.",
+          "text": "Com envergadura 32, o Super 16. Um abajur acende no canto do fundo, para as sessões que entram pela madrugada."
+        },
+        "g35": {
+          "caption": "A pipoqueira, na frente do estúdio.",
+          "text": "Com envergadura 50, o 35 mm, a bitola das salas de cinema. O estúdio ganha o cheiro certo: chega a pipoqueira."
+        },
+        "g70": {
+          "caption": "A cortina de veludo, em volta da tela.",
+          "text": "Com envergadura 80, o 70 mm dos grandes épicos. A mariposa chega ao seu maior tamanho, e a tela ganha cortina de veludo."
+        },
+        "imax": {
+          "caption": "A tela grande.",
+          "text": "Com envergadura 125, o IMAX. A tela cresce até quase não caber na parede."
+        },
+        "cinerama": {
+          "caption": "O letreiro de lâmpadas, no alto das paredes.",
+          "text": "Com envergadura 200, o Cinerama, a tela mais larga que o cinema já teve. Um letreiro de lâmpadas acende no alto das paredes. Não há bitola maior: daqui em diante, só a estante continua enchendo."
+        },
+        "wings": {
+          "title": "O segredo das asas"
+        },
+        "treasures": {
+          "title": "Os tesouros do estúdio"
+        }
+      },
+      "wings": {
+        "p1": "A asa não cresce só por quantidade. Cada prateleira empurra a asa com a raiz quadrada dos títulos que guarda: 4 títulos empurram 2, 9 empurram 3, 100 empurram 10. A soma dos empurrões é a envergadura.",
+        "p2": "Por isso o primeiro título de uma prateleira pouco visitada vale mais do que o centésimo de uma prateleira cheia. Quem assiste de tudo um pouco cresce mais depressa.",
+        "p3": "A cada bitola vencida, a mariposa cresce e o estúdio ganha um móvel. As próximas páginas mostram um por um.",
+        "ledgerOwn": "A conta da sua asa",
+        "ledgerOther": "A conta da asa de {{name}}",
+        "shelf": "Prateleira",
+        "titles": "Títulos",
+        "push": "Empurra",
+        "archive": "Arquivo (fora das prateleiras)",
+        "total": "Envergadura"
+      },
+      "treasures": {
+        "caption": "A sala de estar e os lugares marcados no chão.",
+        "text": "Nem tudo no estúdio vem da asa. {{standing}} e este livro têm lugar reservado desde o primeiro dia. Os outros lugares, marcados com fita no chão como num set de filmagem, esperam o que se ganha nos eventos.",
+        "has": "Já está no estúdio.",
+        "missing": "O lugar está à espera.",
+        "more": "Sobram lugares vazios para os próximos eventos.",
+        "items": {
+          "pumpkin": {
+            "name": "A abóbora do Halloween",
+            "hint": "Cresce a cada passo da noite das bruxas"
+          },
+          "terror": {
+            "name": "A caixa do Clube do Terror",
+            "hint": "Uma caixa velha de papelão com um portal dentro, para quem tem a tag Deadly Sleeping"
+          },
+          "tree": {
+            "name": "A árvore de Natal",
+            "hint": "Acende, ganha presentes e ganha a estrela"
+          },
+          "amulet": {
+            "name": "O amuleto do beta",
+            "hint": "Para quem chegou antes de todo mundo"
+          }
+        },
+        "tank": "O aquário da Watchlist",
+        "machine": "a máquina do Jackpot",
+        "table": "a mesa de pôquer"
+      },
+      "end": {
+        "title": "E a história continua",
+        "text": "A cada título avaliado, a estante ganha uma lata. A asa veste as cores dos últimos trinta títulos, e um humor de fora que abra dez pontos de vantagem muda a forma da Persona.",
+        "replay": "Para ver a sua história passar de novo, feche o livro e toque em Reviver desde o início, embaixo do estúdio.",
+        "captionMoth": "A mariposa hoje, no facho do projetor.",
+        "captionRoom": "O estúdio hoje."
+      }
     }
   }
 }

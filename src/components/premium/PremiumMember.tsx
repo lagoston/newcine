@@ -14,7 +14,7 @@ import './premium.css';
 // saiu o atalho das prateleiras inteiras — a Mesa e o Acervo dos oráculos
 // são iguais para todos, decisão do Bruno):
 //   • '/' com state { openJackpot: 'machine' } — abre a gaveta do Poster
-//     Jackpot na máquina (PosterJackpotDoor lê esse state);
+//     Jackpot na máquina (useJackpotDoor lê esse state);
 //   • /library com state { openWatchlistDuel: true } — a Biblioteca abre o
 //     Duelo de Watchlist sozinha se houver 4 títulos na Watchlist;
 //   • /profile — o Personalizar perfil fica no cartão do perfil.

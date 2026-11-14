@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Info, LayoutGrid, LibraryBig, Plus, RotateCw, Scroll, Share2 } from 'lucide-react';
@@ -13,8 +14,15 @@ import { fetchPersonaWorld, type PersonaWorld, type WorldTitle } from '../../lib
 import { getFullTitle } from '../../lib/titleCards';
 import type { Movie } from '../../lib/tmdb';
 import { FOCUS_RING, MIST, PAPER } from '../../lib/oracleTheme';
+import { fetchPersonaEntries, fetchPersonaHistory, worldAt, type PersonaHistory } from '../../lib/personaHistory';
+import type { PersonaEntry } from '../../lib/persona';
 import { rememberPatronus } from '../patronus/patronus';
 import PersonaWorldView from './PersonaWorld';
+import ReplayBar from './ReplayBar';
+import { useStudioDoors, type StudioJackpot } from './useStudioDoors';
+
+// O livro da mariposa só é baixado quando alguém toca nele.
+const EvolutionBook = lazy(() => import('./EvolutionBook'));
 
 // A gaveta "Sua Persona" (13/11/2026): a Persona viva, a cabine e a mariposa.
 //
@@ -31,6 +39,13 @@ import PersonaWorldView from './PersonaWorld';
 //
 // A cena vem de get_persona_world, pedida a cada abertura (a nota que a pessoa
 // acabou de dar já aparece).
+//
+// 14/11/2026 (o estúdio, pedido do Bruno): a cena ganhou a sala de estar (a
+// máquina do Jackpot, a mesa de pôquer, o aquário, a estante do livro, os
+// objetos de evento), e cada objeto leva a algum lugar (useStudioDoors). No
+// seu estúdio, embaixo da cena, a barra "Reviver desde o início" (ReplayBar):
+// enquanto a história passa, a gaveta mostra o estúdio como ele era naquela
+// nota, e as três abas dão lugar à linha do tempo.
 
 type Nested = 'revelation' | 'howItWorks' | 'personas' | 'share' | null;
 
@@ -53,10 +68,14 @@ interface PersonaWorldSheetProps {
   viewerId?: string;
   username?: string | null;
   onUserClick?: (username: string) => void;
+  // na home: a máquina do Jackpot com tudo o que a porta fazia (o número do
+  // que está esperando, o balão da ficha do dia, a gaveta)
+  jackpot?: StudioJackpot;
 }
 
-const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ownerId, isOwn, ownerName, persona: seed, initialWorld = null, viewerId, username = null, onUserClick }) => {
+const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ownerId, isOwn, ownerName, persona: seed, initialWorld = null, viewerId, username = null, onUserClick, jackpot }) => {
   const { t } = useTranslation();
+  const reduceMotion = useReducedMotion();
   const [world, setWorld] = useState<PersonaWorld | null>(initialWorld);
   const [failed, setFailed] = useState(false);
   const [nested, setNested] = useState<Nested>(null);
@@ -91,7 +110,75 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
     setWorld(null);
   }, [ownerId]);
 
-  const persona = world?.persona ?? seed;
+  // ---- reviver desde o início ----
+  const [story, setStory] = useState<{ history: PersonaHistory; entries: Record<string, PersonaEntry> } | null>(null);
+  // null = a barra está fechada; senão, quantas notas da história já passaram
+  const [position, setPosition] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [storyLoading, setStoryLoading] = useState(false);
+  const [storyFailed, setStoryFailed] = useState(false);
+  const total = story?.history.rows.length ?? 0;
+  const closeReplay = useCallback(() => {
+    setPosition(null);
+    setPlaying(false);
+  }, []);
+  const startReplay = () => {
+    if (storyLoading) return;
+    const begin = () => {
+      // com "reduzir movimento" a história não passa sozinha: abre parada no começo
+      setPosition(0);
+      setPlaying(!reduceMotion);
+    };
+    if (story) {
+      begin();
+      return;
+    }
+    setStoryLoading(true);
+    setStoryFailed(false);
+    fetchPersonaHistory(ownerId)
+      .then(async (history) => {
+        if (!history || history.rows.length === 0) throw new Error('empty history');
+        const entries = await fetchPersonaEntries(history.molts.map((molt) => molt.to));
+        setStory({ history, entries });
+        begin();
+      })
+      .catch((error) => {
+        console.error('Persona history:', error);
+        setStoryFailed(true);
+      })
+      .finally(() => setStoryLoading(false));
+  };
+  // a história anda sozinha: a conta inteira leva uns 22 s; em cada muda ela para um instante
+  useEffect(() => {
+    if (!playing || position === null || !story) return;
+    if (position >= total) {
+      setPlaying(false);
+      return;
+    }
+    const molted = story.history.molts.some((molt) => molt.index === position - 1);
+    const pace = Math.max(70, Math.min(240, 22000 / Math.max(1, total)));
+    const timer = window.setTimeout(() => setPosition((current) => (current === null ? null : Math.min(total, current + 1))), molted ? 1200 : pace);
+    return () => window.clearTimeout(timer);
+  }, [playing, position, story, total]);
+  // a gaveta fechou ou trocou de dono: a barra fecha, e a história é buscada de novo na próxima vez
+  useEffect(() => {
+    if (open) return;
+    closeReplay();
+    setStory(null);
+    setStoryFailed(false);
+  }, [open, ownerId, closeReplay]);
+
+  const replaying = position !== null && position < total && Boolean(story);
+  const shownWorld = useMemo(
+    () => (replaying && story && world && position !== null ? worldAt(story.history, position, world, story.entries) : world),
+    [replaying, story, world, position],
+  );
+
+  const [bookOpen, setBookOpen] = useState(false);
+  const openBook = useCallback(() => setBookOpen(true), []);
+  const doors = useStudioDoors({ world, isOwn, ownerUsername: ownerName ? ownerName.replace(/^@/, '') : null, onOpenBook: openBook, jackpot, onLeave: onClose });
+
+  const persona = shownWorld?.persona ?? seed;
   const hasPersona = Boolean(persona?.code && persona.persona);
 
   const openTitle = async (title: WorldTitle) => {
@@ -124,11 +211,40 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
         title={isOwn ? t('home.persona.title') : t('personaWorld.titleOf', { name: ownerName ?? '' })}
         subtitle={t('personaWorld.subtitle')}
         size="lg"
-        escapeEnabled={nested === null && !movie}
+        escapeEnabled={nested === null && !movie && !bookOpen}
       >
         <div className="space-y-6">
-          {world ? (
-            <PersonaWorldView world={world} isOwn={isOwn} onOpenTitle={openTitle} openingKey={openingKey} onOpenRevelation={() => hasPersona && setNested('revelation')} onNavigate={onClose} />
+          {shownWorld ? (
+            <PersonaWorldView
+              world={shownWorld}
+              isOwn={isOwn}
+              onOpenTitle={openTitle}
+              openingKey={openingKey}
+              onOpenRevelation={() => hasPersona && setNested('revelation')}
+              onNavigate={onClose}
+              doors={doors}
+              replaying={replaying}
+              replay={
+                isOwn && (world?.rated ?? 0) > 0 ? (
+                  <ReplayBar
+                    position={position}
+                    total={total}
+                    playing={playing}
+                    loading={storyLoading}
+                    failed={storyFailed}
+                    row={story && position !== null && position > 0 ? (story.history.rows[position - 1] ?? null) : null}
+                    molt={story && position !== null ? (story.history.molts.find((molt) => molt.index === position - 1) ?? null) : null}
+                    onStart={startReplay}
+                    onSeek={(value) => {
+                      setPosition(value);
+                      setPlaying(false);
+                    }}
+                    onToggle={() => setPlaying((value) => !value)}
+                    onClose={closeReplay}
+                  />
+                ) : null
+              }
+            />
           ) : failed ? (
             <div className="rounded-2xl p-5 text-center ring-1 ring-white/10" style={{ background: 'rgba(28,20,51,0.55)' }}>
               <p className="text-[15px]" style={{ color: MIST }}>
@@ -148,7 +264,7 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
           )}
 
           {/* quem ainda não tem Persona: o caminho até ela */}
-          {isOwn && !hasPersona && (world || failed) && (
+          {isOwn && !hasPersona && !replaying && (world || failed) && (
             <section className="space-y-3">
               {/* o caminho já está no "Por vir" (o casulo); aqui só o aviso de quem
                   tem títulos de sobra mas em menos de 3 prateleiras */}
@@ -179,7 +295,7 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
             ))}
           </div>
 
-          {hasPersona && persona?.persona && <PersonaWorks persona={persona.persona} seen={persona.worksSeen} />}
+          {hasPersona && !replaying && persona?.persona && <PersonaWorks persona={persona.persona} seen={persona.worksSeen} />}
         </div>
       </OracleSheet>
 
@@ -188,6 +304,11 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
       <PersonaHowItWorksSheet open={nested === 'howItWorks'} onClose={closeNested} persona={persona} isOwn={isOwn} />
       {isOwn && viewerId && onUserClick && <PersonasModal isOpen={nested === 'personas'} onClose={closeNested} viewerId={viewerId} viewerPersonaCode={persona?.code ?? null} onUserClick={onUserClick} />}
       {isOwn && hasPersona && persona && <PersonaShareModal isOpen={nested === 'share'} onClose={closeNested} persona={persona} username={username} />}
+      {bookOpen && world && (
+        <Suspense fallback={null}>
+          <EvolutionBook world={world} isOwn={isOwn} ownerName={ownerName ?? null} extras={doors.extras} onClose={() => setBookOpen(false)} />
+        </Suspense>
+      )}
       {movie && (
         <MovieDetailsModal
           movie={movie}

@@ -1,43 +1,51 @@
-import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowUpRight, DoorOpen, Film, Info, Scroll, X } from 'lucide-react';
-import { MOOD_BY_KEY, withMoodAlpha } from '../../lib/moods';
+import { ArrowUpRight, BookOpen, DoorOpen, Film, Info, Scroll, X } from 'lucide-react';
+import { MOODS, MOOD_BY_KEY, MOOD_BY_LETTER, withMoodAlpha } from '../../lib/moods';
 import { personaText, topMoodKeys, PERSONA_THRESHOLD, type UserPersona } from '../../lib/persona';
-import { fetchPersonaWorld, worldState, type PersonaWorld } from '../../lib/personaWorld';
-import { PAPER, MIST, PIXEL, VELVET, INK, FOCUS_RING, glassPanel, ratingTone } from '../../lib/oracleTheme';
+import { fetchPersonaWorld, worldState, type PersonaWorld, type WorldTitle } from '../../lib/personaWorld';
+import { PAPER, MIST, PIXEL, VELVET, INK, NIGHT, FOCUS_RING, glassPanel, ratingTone } from '../../lib/oracleTheme';
 import { getMovieDetailsFromDB, type Movie } from '../../lib/tmdb';
 import type { Affinity, MoodSlice } from '../../lib/tasteStats';
 import type { MovieWithRating } from '../../hooks/useProfileData';
 import { PersonaCode, PersonaCard } from '../PersonaBits';
 import { PersonaRevelationSheet, PersonaHowItWorksSheet } from '../PersonaSheets';
 import MovieDetailsModal from '../MovieDetailsModal';
-import { PersonaScene } from '../personaWorld/PersonaScene';
-import MoodGrid from './MoodGrid';
+import { MothCloseUp, PersonaScene } from '../personaWorld/PersonaScene';
+import type { SceneHit } from '../personaWorld/draw';
+import { useStudioDoors } from '../personaWorld/useStudioDoors';
 import KeywordCloud from './KeywordCloud';
 import { ModuleTitle, formatOne } from './observatoryKit';
 
-// Personalidade cinematográfica + as 9 prateleiras, num bloco só (13/10/2026,
-// terceira versão — sem círculo).
+// Personalidade cinematográfica, no perfil: o estúdio da pessoa e a mariposa
+// dela, num bloco só.
 //
-// À esquerda, a grade 3×3 de frascos (MoodGrid): cada humor com o líquido
-// no nível da parte dos filmes da pessoa nele; os 3 do código numerados.
-// À direita, a personalidade: pôster, código, título e o começo da revelação
-// (tocar abre a Revelação completa) e os temas que a pessoa mais ama
-// (KeywordCloud: tamanho = nota média, poucos de cada vez, alternando).
+// 14/11/2026, pedido do Bruno: "Deve converter o modal de profile
+// completamente para se tornar análogo ao projeto do 'estúdio' do usuário,
+// com sua borboleta majestosa." Até aqui o bloco era a grade 3×3 de frascos
+// (um por humor, de 13/10/2026) e, desde 13/11, uma cabine em miniatura no
+// lugar da carta do personagem. Agora:
+//   • à esquerda, o estúdio inteiro, vivo, do mesmo jeito da home e da gaveta
+//     (2× no celular, 3× no computador). Os objetos funcionam: o livro abre a
+//     história da mariposa; no seu perfil, a máquina, a mesa e o aquário levam
+//     aos jogos e à Watchlist; a caixa de papelão leva ao Clube do Terror.
+//     Tocar numa prateleira da estante escolhe aquele humor; tocar num pôster
+//     da parede abre o título; qualquer outro ponto abre a gaveta do estúdio;
+//   • embaixo dele, as nove prateleiras numa fileira de plaquinhas (a letra,
+//     a parte dos títulos e o nível): o que os frascos mostravam, agora na
+//     língua do estúdio, e o caminho de quem usa teclado;
+//   • à direita, a mariposa da pessoa bem grande (os olhos da asa abrem os
+//     títulos de nota 9 e 10), o código, o título, a bitola, o começo da
+//     revelação e os temas que ela mais ama.
+// Escolher um humor troca o painel da direita pela leitura dele (a %, quantos
+// títulos, a média, o que ele revela, os mais bem avaliados, os temas e a
+// prateleira), como antes. O "i" do canto abre o Como funciona.
 //
-// Tocar num frasco troca o painel pela leitura daquele humor: a %, quantos
-// filmes, a média, o que ele revela, os títulos mais bem avaliados ali
-// (pôsteres que abrem o filme), os temas dele e a prateleira. O X volta
-// para a personalidade. O "i" do canto abre o Como funciona.
-//
-// 13/11/2026 (a Persona viva): no lugar da carta do personagem, a cabine da
-// pessoa em miniatura, com a mariposa voando e a bitola ao lado. Tocar abre a
-// gaveta da Persona viva dessa pessoa (a mesma da home): no seu perfil,
-// completa; no dos outros, só para olhar. Enquanto a cena não chega (ou se
-// não chegar), fica a carta de antes. A Revelação continua a um toque.
+// No seu perfil a gaveta abre completa; no dos outros, só para olhar. Enquanto
+// a cena não chega (ou se não chegar), fica a carta do personagem.
 
 interface EssenceRingProps {
   slices: MoodSlice[];
@@ -54,8 +62,9 @@ interface EssenceRingProps {
   shareName?: string | null;
 }
 
-// O desenho da cena e a gaveta só são baixados na primeira abertura.
+// A gaveta e o livro só são baixados na primeira abertura.
 const PersonaWorldSheet = lazy(() => import('../personaWorld/PersonaWorldSheet'));
+const EvolutionBook = lazy(() => import('../personaWorld/EvolutionBook'));
 
 // Celular estreito: frascos mais baixos e menos palavras por vez.
 function useCompact() {
@@ -86,6 +95,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
   const [showWorld, setShowWorld] = useState(false);
   // a gaveta fica montada depois da primeira abertura (para a saída animar)
   const [worldMounted, setWorldMounted] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
 
   const bySlice = useMemo(() => new Map(slices.map((s) => [s.key, s])), [slices]);
   const codeKeys = useMemo(() => topMoodKeys(persona), [persona]);
@@ -101,12 +111,13 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
 
   const toggle = (key: string) => setSelected((prev) => (prev === key ? null : key));
 
-  // A cabine em miniatura: a cena da pessoa (some se o perfil mudar de dono).
+  // O estúdio da pessoa (some se o perfil mudar de dono). Quem ainda não tem
+  // Persona também tem estúdio: o do ovo ou o da lagarta.
   const personaCode = persona?.code ?? null;
   const personaCounted = persona?.counted ?? 0;
   useEffect(() => {
     setWorld(null);
-    if (!ownerId || !personaCode) return;
+    if (!ownerId) return;
     let alive = true;
     fetchPersonaWorld(ownerId)
       .then((value) => alive && setWorld(value))
@@ -120,6 +131,8 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
     setWorldMounted(true);
     setShowWorld(true);
   };
+  const openBook = useCallback(() => setBookOpen(true), []);
+  const doors = useStudioDoors({ world, isOwn, ownerUsername: isOwn ? shareName : username, onOpenBook: openBook });
 
   // No celular o painel fica embaixo da grade: ao escolher um humor, traz o
   // painel para a tela se ele estiver escondido.
@@ -140,7 +153,24 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
     }
   };
 
-  if (counted === 0 && !hasPersona && !personaLoading) {
+  const openTitle = async (title: WorldTitle) => {
+    try {
+      setMovie(await getMovieDetailsFromDB(title.id, title.type));
+    } catch {
+      toast.error(t('common.error'));
+    }
+  };
+  // Um toque na cena: a prateleira escolhe o humor, o pôster abre o título e o
+  // resto abre a gaveta do estúdio.
+  const pickScene = (hit: SceneHit) => {
+    if (hit.kind === 'shelf') {
+      const mood = MOOD_BY_LETTER[hit.letter];
+      if (mood) toggle(mood.key);
+    } else if (hit.kind === 'poster') openTitle(hit.title);
+    else openWorld();
+  };
+
+  if (counted === 0 && !hasPersona && !personaLoading && !world) {
     return (
       <section className="h-full rounded-3xl p-5 sm:p-7" style={glassPanel('#8B5CF6')}>
         <ModuleTitle title={isOwn ? t('oracle.cinematicEssenceLabel') : t('profile.essenceOf', { username })} hint={isOwn ? t('home.desk.essenceEmptyDesc') : t('profile.essenceEmptyOther', { username })} />
@@ -158,6 +188,49 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
     <p className="text-[12px] font-medium" style={{ color: MIST }}>
       {label}
     </p>
+  );
+
+  // A mariposa da pessoa, grande (o ovo ou a lagarta, para quem ainda não tem
+  // Persona). Os olhos da asa abrem os títulos de nota 9 e 10.
+  const creature =
+    world && worldSt ? (
+      <div className="rounded-2xl pt-2 pb-1" style={{ background: 'radial-gradient(70% 70% at 50% 45%, rgba(243,234,211,0.07), transparent 75%), #0D0919', boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.1)' }}>
+        <MothCloseUp
+          world={world}
+          state={worldSt}
+          onOpenTitle={openTitle}
+          maxScale={3}
+          label={worldSt.hasTrio ? t('personaWorld.mothLabel') : world.rated === 0 ? t('personaWorld.eggLabel') : t('personaWorld.larvaLabel')}
+        />
+      </div>
+    ) : null;
+  const gaugeChip =
+    world && worldSt ? (
+      <span style={{ ...PIXEL, background: PAPER, color: INK }} className="self-start px-2 py-[5px] rounded-md text-[13px] leading-none">
+        {t(`personaWorld.gauges.${worldSt.gaugeKey}`)}
+      </span>
+    ) : null;
+  const studioLinks = (
+    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+      {ownerId && (
+        <button type="button" onClick={openWorld} className={`inline-flex items-center justify-start gap-1.5 text-[13px] font-medium rounded ${FOCUS_RING}`} style={{ color: '#FCD34D' }}>
+          <DoorOpen className="w-4 h-4" aria-hidden />
+          {t('personaWorld.enter')}
+        </button>
+      )}
+      {world && (
+        <button type="button" onClick={openBook} className={`inline-flex items-center justify-start gap-1.5 text-[13px] font-medium rounded ${FOCUS_RING}`} style={{ color: '#7DD3FC' }}>
+          <BookOpen className="w-4 h-4" aria-hidden />
+          {t('personaWorld.book.title')}
+        </button>
+      )}
+      {hasPersona && (
+        <button type="button" onClick={() => setShowRevelation(true)} className={`inline-flex items-center justify-start gap-1.5 text-[13px] font-medium rounded ${FOCUS_RING}`} style={{ color: '#F9A8D4' }}>
+          <Scroll className="w-4 h-4" aria-hidden />
+          {t('profile.observatory.readRevelation')}
+        </button>
+      )}
+    </div>
   );
 
   // ---------- painel: personalidade ----------
@@ -188,6 +261,7 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
       const missing = Math.max(0, threshold - (persona?.counted ?? counted));
       return (
         <div>
+          {creature && <div className="mb-4">{creature}</div>}
           <p className="font-semibold" style={{ color: PAPER }}>
             {isOwn ? t('home.desk.essenceEmptyTitle') : t('profile.essenceEmptyOther', { username })}
           </p>
@@ -197,66 +271,54 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
           <p className="mt-2 text-[13px]" style={{ color: MIST }}>
             {t('profile.observatory.personaProgress', { counted: threshold - missing, threshold })}
           </p>
-          {isOwn && (
+          {isOwn && !world && (
             <Link to="/" state={{ openPersona: true }} className={`mt-4 inline-flex items-center justify-start gap-1.5 text-sm font-medium rounded ${FOCUS_RING}`} style={{ color: '#F0ABFC' }}>
               {t('oracle.discoverYourEssence')}
               <ArrowUpRight className="w-4 h-4" aria-hidden />
             </Link>
           )}
+          {world && studioLinks}
           {themes}
         </div>
       );
     }
-    // Sem o dono do perfil não há cabine para abrir: vale a Revelação, como antes.
-    const canEnter = Boolean(ownerId);
-    const showScene = Boolean(canEnter && world && worldSt?.hasTrio);
+    // Sem a cena (ainda chegando, ou sem o dono do perfil): a carta do personagem, como antes.
+    const identity = (
+      <span className="min-w-0 flex flex-col">
+        <PersonaCode code={persona.code as string} className="text-4xl sm:text-[44px] leading-none" />
+        <span className="mt-1.5 text-lg font-semibold leading-snug" style={{ color: PAPER }}>
+          {text.title}
+        </span>
+        <span className="mt-0.5 text-[13px]" style={{ color: MIST }}>
+          {text.sameAsFilm ? text.filmWithYear : t('oracle.persona.characterIn', { character: text.character, film: text.filmWithYear })}
+        </span>
+        {gaugeChip && <span className="mt-2 flex">{gaugeChip}</span>}
+      </span>
+    );
     return (
       <div>
-        <button
-          type="button"
-          onClick={canEnter ? openWorld : () => setShowRevelation(true)}
-          className={`group w-full flex items-start justify-start gap-4 text-left rounded-2xl p-2 -m-2 transition hover:bg-white/[0.04] ${FOCUS_RING}`}
-          aria-label={canEnter ? `${t('personaWorld.enter')}: ${text.title}` : `${t('oracle.revelation')}: ${text.title}`}
-        >
-          {showScene && world && worldSt ? (
-            <span className="shrink-0 rounded-xl overflow-hidden" style={{ background: '#0D0919', boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.1)' }}>
-              <PersonaScene world={world} state={worldSt} scale={1} label={t('personaWorld.sceneLabel', { code: persona.code })} />
-            </span>
-          ) : (
+        {creature ? (
+          <>
+            {creature}
+            <div className="mt-4">{identity}</div>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={ownerId ? openWorld : () => setShowRevelation(true)}
+            className={`group w-full flex items-start justify-start gap-4 text-left rounded-2xl p-2 -m-2 transition hover:bg-white/[0.04] ${FOCUS_RING}`}
+            aria-label={ownerId ? `${t('personaWorld.enter')}: ${text.title}` : `${t('oracle.revelation')}: ${text.title}`}
+          >
             <PersonaCard persona={persona.persona} code={persona.code} foot={false} className="w-[84px] sm:w-[100px] shrink-0" />
-          )}
-          <span className="min-w-0 flex flex-col">
-            <PersonaCode code={persona.code as string} className="text-4xl sm:text-[44px] leading-none" />
-            <span className="mt-1.5 text-lg font-semibold leading-snug" style={{ color: PAPER }}>
-              {text.title}
-            </span>
-            <span className="mt-0.5 text-[13px]" style={{ color: MIST }}>
-              {text.sameAsFilm ? text.filmWithYear : t('oracle.persona.characterIn', { character: text.character, film: text.filmWithYear })}
-            </span>
-            {showScene && worldSt && (
-              <span style={{ ...PIXEL, background: PAPER, color: INK }} className="mt-2 self-start px-2 py-[5px] rounded-md text-[13px] leading-none">
-                {t(`personaWorld.gauges.${worldSt.gaugeKey}`)}
-              </span>
-            )}
-          </span>
-        </button>
+            {identity}
+          </button>
+        )}
         {text.blurb && (
           <p className="mt-3 text-[14px] leading-relaxed line-clamp-3" style={{ color: 'rgba(243,234,211,0.82)' }}>
             {text.blurb}
           </p>
         )}
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-          {canEnter && (
-            <button type="button" onClick={openWorld} className={`inline-flex items-center justify-start gap-1.5 text-[13px] font-medium rounded ${FOCUS_RING}`} style={{ color: '#FCD34D' }}>
-              <DoorOpen className="w-4 h-4" aria-hidden />
-              {t('personaWorld.enter')}
-            </button>
-          )}
-          <button type="button" onClick={() => setShowRevelation(true)} className={`inline-flex items-center justify-start gap-1.5 text-[13px] font-medium rounded ${FOCUS_RING}`} style={{ color: '#F9A8D4' }}>
-            <Scroll className="w-4 h-4" aria-hidden />
-            {t('profile.observatory.readRevelation')}
-          </button>
-        </div>
+        {studioLinks}
         {/* As obras do personagem saíram daqui em 24/10/2026 (continuam no
             Oracle Hub e na Revelação): logo depois da revelação, os temas. */}
         {themes}
@@ -383,6 +445,55 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
     </div>
   ) : null;
 
+  // ---------- as nove prateleiras, numa fileira de plaquinhas ----------
+  // O que os frascos mostravam (a letra, a parte dos títulos, o nível e a
+  // posição no código), agora embaixo do estúdio. Tocar escolhe o humor.
+  const maxShare = Math.max(0.0001, ...slices.map((slice) => slice.share));
+  const moodStrip = (
+    <ul className="mt-3 grid grid-cols-9 gap-1 sm:gap-1.5" aria-label={t('profile.observatory.gridLabel')}>
+      {MOODS.map((mood) => {
+        const slice = bySlice.get(mood.key);
+        const share = slice?.share ?? 0;
+        const rank = codeKeys.indexOf(mood.key);
+        const isSel = selected === mood.key;
+        const label = t('profile.observatory.arcLabel', { mood: t(mood.labelKey), pct: pct(share), count: slice?.films ?? 0, avg: avgText(slice?.avg) });
+        return (
+          <li key={mood.key} className="min-w-0">
+            <button
+              type="button"
+              onClick={() => toggle(mood.key)}
+              aria-pressed={isSel}
+              aria-label={label}
+              title={label}
+              className={`relative block w-full min-w-0 h-[54px] overflow-hidden rounded-[10px] transition ${FOCUS_RING}`}
+              style={{
+                background: 'rgba(13,9,25,0.72)',
+                boxShadow: isSel ? `0 0 0 2px ${mood.color}, 0 10px 22px -12px ${mood.color}` : rank >= 0 ? `inset 0 0 0 1.5px ${withMoodAlpha(mood, 0.75)}` : 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+                opacity: selected !== null && !isSel ? 0.55 : 1,
+              }}
+            >
+              {/* o nível: a prateleira mais cheia vai até perto do alto */}
+              <span aria-hidden className="absolute inset-x-0 bottom-0" style={{ height: `${share > 0 ? 10 + (share / maxShare) * 62 : 0}%`, background: withMoodAlpha(mood, isSel ? 0.5 : 0.3) }} />
+              <span className="relative flex h-full flex-col items-center justify-center gap-[3px]">
+                <span style={{ ...PIXEL, color: mood.color, textShadow: '0 1px 6px rgba(13,9,25,0.9)' }} className="text-[18px] leading-none">
+                  {mood.letter}
+                </span>
+                <span style={{ ...PIXEL, color: PAPER, textShadow: '0 1px 6px rgba(13,9,25,0.9)' }} className="text-[11px] leading-none tabular-nums">
+                  {pct(share)}
+                </span>
+              </span>
+              {rank >= 0 && (
+                <span aria-hidden className="absolute right-[3px] top-[3px] grid h-[13px] w-[13px] place-items-center rounded-full text-[9px] leading-none" style={{ ...PIXEL, background: mood.color, color: NIGHT }}>
+                  {rank + 1}
+                </span>
+              )}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
   // ---------- bloco ----------
   return (
     <section className="relative h-full rounded-3xl p-5 sm:p-7 overflow-hidden" style={glassPanel(accent)}>
@@ -402,9 +513,25 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
         }
       />
 
-      <div className="mt-5 grid md:grid-cols-[minmax(0,440px)_minmax(0,1fr)] gap-6 md:gap-10 items-start">
+      <div className="mt-5 grid md:grid-cols-[360px_minmax(0,1fr)] lg:grid-cols-[540px_minmax(0,1fr)] gap-6 md:gap-8 items-start">
         <div className="min-w-0">
-          <MoodGrid slices={slices} codeKeys={codeKeys} selected={selected} onToggle={toggle} compact={compact} />
+          {/* O estúdio. No celular ele vai de borda a borda do bloco, para a cena de 2× caber. */}
+          {world && worldSt ? (
+            <div className="-mx-5 sm:mx-0 overflow-hidden sm:rounded-2xl" style={{ background: '#0D0919', boxShadow: 'inset 0 0 0 1px rgba(243,234,211,0.08)' }}>
+              <PersonaScene
+                world={world}
+                state={worldSt}
+                maxScale={3}
+                onPick={pickScene}
+                extras={doors.extras}
+                hotspots={doors.hotspots}
+                label={worldSt.hasTrio ? t('personaWorld.sceneLabel', { code: worldSt.code }) : t('personaWorld.sceneLabelEmpty')}
+              />
+            </div>
+          ) : (
+            ownerId && <div className="-mx-5 sm:mx-0 h-[316px] lg:h-[474px] sm:rounded-2xl animate-pulse" style={{ background: 'rgba(13,9,25,0.7)' }} aria-hidden />
+          )}
+          {moodStrip}
         </div>
 
         <div ref={panelRef} className="min-w-0 scroll-mt-24">
@@ -425,6 +552,11 @@ const EssenceRing: React.FC<EssenceRingProps> = ({ slices, counted, persona, per
       {hasPersona && persona && <PersonaRevelationSheet open={showRevelation} onClose={() => setShowRevelation(false)} persona={persona} isOwn={isOwn} />}
       <PersonaHowItWorksSheet open={showHowItWorks} onClose={() => setShowHowItWorks(false)} persona={persona} isOwn={isOwn} />
       {movie && <MovieDetailsModal movie={movie} isOpen={true} onClose={() => setMovie(null)} />}
+      {bookOpen && world && (
+        <Suspense fallback={null}>
+          <EvolutionBook world={world} isOwn={isOwn} ownerName={ownerName ?? null} extras={doors.extras} onClose={() => setBookOpen(false)} />
+        </Suspense>
+      )}
       {worldMounted && ownerId && (
         <Suspense fallback={null}>
           <PersonaWorldSheet

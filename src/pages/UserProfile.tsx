@@ -24,7 +24,6 @@ import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON, type
 import { useTagDecoration } from '../contexts/SeasonalEventContext';
 import { ProfileTasteGrid, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
 import TasteHud from '../components/profile/TasteHud';
-import SecretRoomPortal from '../components/secretRoom/SecretRoomPortal';
 import { summarizeRatings } from '../lib/profileStats';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -549,9 +548,9 @@ export default function UserProfile() {
             actions={actions}
             connection={connectionStrip}
             seasonalDecoration={seasonalDecoration}
-            // Quem usa a tag de uma sala secreta vira um portal: a espiral
-            // leva direto para dentro, como convidado.
-            portal={<SecretRoomPortal userId={profile.id} username={profile.username} isSelf={isSelf} activeTagName={profile.active_tag?.name ?? null} />}
+            // 14/11/2026 (pedido do Bruno): o portal do Clube do Terror saiu
+            // do banner. Quem tem a tag ganha a caixa de papelão no estúdio (o
+            // bloco da Persona, logo abaixo): tocar nela entra como convidado.
           />
         </div>
       </section>

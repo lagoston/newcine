@@ -1227,6 +1227,17 @@
   }
 }
 
+/* 14/11/2026: no estúdio da home o balão sai de cima da máquina caça-níquel,
+   que fica no lado direito da cena. Com .pj-daily-left ele cresce para a
+   esquerda em qualquer tela (o rabicho fica na ponta direita, como no
+   celular), para não sair da cena. */
+.pj-daily-left .pj-daily-anchor {
+  transform-origin: calc(100% - 29px) 100%;
+}
+.pj-daily-left .pj-daily-tail {
+  left: calc(100% - 36px);
+}
+
 /* O "+1" pendurado no canto. */
 .pj-daily-plus {
   position: absolute;
@@ -1333,7 +1344,8 @@
 
 /* ======================================================================
    A seta da porta do Jackpot (02/11/2026): três setas de letreiro que
-   acendem em sequência dentro de um medalhão de ouro (JackpotArrow).
+   acendem em sequência dentro de um medalhão de ouro. Sem uso desde
+   14/11/2026: a porta saiu da home (a máquina mora no estúdio da pessoa).
    ====================================================================== */
 .pj-arrow {
   filter: drop-shadow(0 0 8px rgba(244, 196, 84, 0.35));

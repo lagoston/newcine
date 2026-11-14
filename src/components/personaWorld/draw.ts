@@ -1,6 +1,7 @@
 import { MOOD_BY_LETTER } from '../../lib/moods';
 import { MIST, NIGHT, PAPER, VELVET } from '../../lib/oracleTheme';
 import { LETTERS, type PersonaWorld, type WorldState, type WorldTitle } from '../../lib/personaWorld';
+import { drawLounge, loungeSpots, NO_EXTRAS, paintLounge, type Kit, type Spot, type StudioExtras } from './studio';
 
 // O desenho da Persona viva (13/11/2026): a cabine de projeção isométrica em
 // pixel art e a mariposa. Tudo é desenhado num canvas pequeno (160 × 142) e
@@ -30,13 +31,21 @@ type Ctx = CanvasRenderingContext2D;
 export type Pt = [number, number];
 
 export const GOLD = '#F4C454';
-export const RW = 160;
-export const RH = 142;
-const CX = 80;
+// 14/11/2026 (o estúdio): a cabine ficou mais comprida para a direita, de
+// 6 × 6 para 9 × 6 ladrilhos, para caber a sala de estar (studio.ts): a
+// máquina do Jackpot, a mesa de pôquer, o aquário, a estante do livro e os
+// lugares de conquista. A parte do cinema não saiu do lugar.
+export const RW = 180;
+export const RH = 158;
+const CX = 72;
 const OY = 62;
 const HW = 12;
 const HH = 6;
-const NT = 6;
+// ladrilhos ao longo da parede da direita (x) e da parede da esquerda (y)
+const NX = 9;
+const NY = 6;
+const WALL_R = NX * HW;
+const WALL_L = NY * HW;
 const WALL = 56;
 const EDGE = '#150E26';
 
@@ -146,6 +155,9 @@ const box = (ctx: Ctx, x: number, y: number, z: number, w: number, d: number, h:
   poly(ctx, [A, B, C, D], light(c, 0.16));
 };
 
+// As ferramentas daqui, para o desenho da sala de estar (studio.ts).
+const KIT: Kit = { iso, box, poly, px, mix, dark, light, moodColor };
+
 const FONT5: Record<string, string[]> = {
   M: ['X...X', 'XX.XX', 'X.X.X', 'X...X', 'X...X'],
   X: ['X...X', '.X.X.', '..X..', '.X.X.', 'X...X'],
@@ -240,7 +252,7 @@ const miniPoster = (ctx: Ctx, side: Side, u: number, v: number, seed: string) =>
 };
 
 // ---------- a cabine (a parte parada) ----------
-export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: SceneImages = NO_IMAGES) {
+export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: SceneImages = NO_IMAGES, extras: StudioExtras = NO_EXTRAS) {
   const t1 = st.hasTrio ? moodColor(st.trio[0]) : '#6B5FA0';
   const t2 = st.hasTrio ? moodColor(st.trio[1]) : '#5A5390';
   const t3 = st.hasTrio ? moodColor(st.trio[2]) : '#8B7FC0';
@@ -251,33 +263,29 @@ export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: 
   ctx.clearRect(0, 0, RW, RH);
 
   // paredes, rodapé, friso e listras discretas do papel de parede
-  wallRect(ctx, 'R', 0, 0, 72, WALL, wallR);
-  wallRect(ctx, 'L', 0, 0, 72, WALL, wallL);
-  wallRect(ctx, 'R', 0, WALL - 1, 72, 1, light(wallR, 0.22));
-  wallRect(ctx, 'L', 0, WALL - 1, 72, 1, light(wallL, 0.18));
-  wallRect(ctx, 'R', 0, 0, 72, 2, dark(wallR, 0.3));
-  wallRect(ctx, 'L', 0, 0, 72, 2, dark(wallL, 0.3));
-  for (let s = 5; s < 72; s += 6) {
-    wallRect(ctx, 'R', s, 2, 1, WALL - 3, light(wallR, 0.05));
-    wallRect(ctx, 'L', s, 2, 1, WALL - 3, light(wallL, 0.04));
-  }
+  wallRect(ctx, 'R', 0, 0, WALL_R, WALL, wallR);
+  wallRect(ctx, 'L', 0, 0, WALL_L, WALL, wallL);
+  wallRect(ctx, 'R', 0, WALL - 1, WALL_R, 1, light(wallR, 0.22));
+  wallRect(ctx, 'L', 0, WALL - 1, WALL_L, 1, light(wallL, 0.18));
+  wallRect(ctx, 'R', 0, 0, WALL_R, 2, dark(wallR, 0.3));
+  wallRect(ctx, 'L', 0, 0, WALL_L, 2, dark(wallL, 0.3));
+  for (let s = 5; s < WALL_R; s += 6) wallRect(ctx, 'R', s, 2, 1, WALL - 3, light(wallR, 0.05));
+  for (let s = 5; s < WALL_L; s += 6) wallRect(ctx, 'L', s, 2, 1, WALL - 3, light(wallL, 0.04));
   px(ctx, CX - 1, OY - WALL, dark(wallL, 0.4), 2, WALL);
 
   // chão xadrez, pixel a pixel
-  for (let py = OY; py < OY + NT * HH * 2 + 1; py += 1) {
-    for (let qx = CX - NT * HW; qx < CX + NT * HW; qx += 1) {
+  for (let py = OY; py < OY + (NX + NY) * HH + 1; py += 1) {
+    for (let qx = CX - WALL_L; qx < CX + WALL_R; qx += 1) {
       const dx = qx + 0.5 - CX;
       const dy = py + 0.5 - OY;
       const fx = (dx / HW + dy / HH) / 2;
       const fy = (dy / HH - dx / HW) / 2;
-      if (fx >= 0 && fx < NT && fy >= 0 && fy < NT) px(ctx, qx, py, (Math.floor(fx) + Math.floor(fy)) % 2 ? floorA : floorB);
+      if (fx >= 0 && fx < NX && fy >= 0 && fy < NY) px(ctx, qx, py, (Math.floor(fx) + Math.floor(fy)) % 2 ? floorA : floorB);
     }
   }
-  // a borda da frente do chão
-  for (let ex = 0; ex < NT * HW; ex += 1) {
-    px(ctx, CX - NT * HW + ex, OY + NT * HH + (ex >> 1) + 1, dark(floorB, 0.45), 1, 3);
-    px(ctx, CX + NT * HW - 1 - ex, OY + NT * HH + (ex >> 1) + 1, dark(floorB, 0.3), 1, 3);
-  }
+  // a borda da frente do chão: a da esquerda (ao longo de x) e a da direita (ao longo de y)
+  for (let ex = 0; ex < WALL_R; ex += 1) px(ctx, CX - WALL_L + ex, OY + NY * HH + (ex >> 1) + 1, dark(floorB, 0.45), 1, 3);
+  for (let ex = 0; ex < WALL_L; ex += 1) px(ctx, CX + WALL_R - 1 - ex, OY + NX * HH + (ex >> 1) + 1, dark(floorB, 0.3), 1, 3);
 
   // ---- parede direita: a estante das nove prateleiras (3 × 3, na ordem das letras) ----
   wallRect(ctx, 'R', 5, 3, 62, 48, '#3A2A4A');
@@ -370,10 +378,8 @@ export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: 
   });
   if (st.stage >= 9) {
     // o letreiro de lâmpadas (Cinerama), no alto das duas paredes
-    for (let b = 2; b < 72; b += 4) {
-      wallRect(ctx, 'R', b, WALL - 4, 1, 1, GOLD);
-      wallRect(ctx, 'L', b, WALL - 4, 1, 1, GOLD);
-    }
+    for (let b = 2; b < WALL_R; b += 4) wallRect(ctx, 'R', b, WALL - 4, 1, 1, GOLD);
+    for (let b = 2; b < WALL_L; b += 4) wallRect(ctx, 'L', b, WALL - 4, 1, 1, GOLD);
   }
 
   // ---- mobília que chega com a bitola ----
@@ -435,7 +441,13 @@ export function drawRoom(ctx: Ctx, st: WorldState, world: PersonaWorld, images: 
     px(ctx, pr[0] - 4, pr[1] - 5, MIST, 2, 2);
     px(ctx, pr[0] + 3, pr[1] - 3, MIST, 1, 1);
   }
+
+  // ---- a sala de estar (14/11/2026): a máquina, a mesa, o aquário, o livro e as conquistas ----
+  drawLounge(KIT, ctx, world, extras);
 }
+
+// Os objetos da sala de estar que levam a algum lugar (o retângulo de cada um na cena).
+export const studioSpots = (world: PersonaWorld, extras: StudioExtras = NO_EXTRAS): Spot[] => loungeSpots(KIT, world, extras);
 
 // o facho do projetor (por cima da mobília, por baixo da mariposa)
 const drawBeam = (ctx: Ctx, st: WorldState, tick: number) => {
@@ -720,20 +732,30 @@ const COCOON_AT: Pt = [CX - 1 - 60, OY + 30 - WALL + 4];
 // ---------- um quadro da cena ----------
 // `room` é a cabine já desenhada (drawRoom) num canvas à parte; aqui entram só
 // as partes que se mexem. Devolve onde a criatura ficou (para o toque).
-export function paintFrame(ctx: Ctx, room: HTMLCanvasElement, st: WorldState, world: PersonaWorld, spec: MothSpec | null, tick: number, still: boolean): Pt {
+export function paintFrame(
+  ctx: Ctx,
+  room: HTMLCanvasElement,
+  st: WorldState,
+  world: PersonaWorld,
+  spec: MothSpec | null,
+  tick: number,
+  still: boolean,
+  extras: StudioExtras = NO_EXTRAS,
+): Pt {
   ctx.clearRect(0, 0, RW, RH);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(room, 0, 0);
   if (st.hasTrio && st.neighbor === 'cocoon' && st.nextCode) drawCocoon(ctx, COCOON_AT[0], COCOON_AT[1], st.nextCode);
   if (st.stage >= 9 && !still) {
     // as lâmpadas do letreiro piscam alternadas
-    for (let b = 2; b < 72; b += 4) {
+    for (let b = 2; b < WALL_R; b += 4) {
       if ((b / 4 + (tick >> 2)) % 2 < 1) {
         wallRect(ctx, 'R', b, WALL - 4, 1, 1, PAPER);
-        wallRect(ctx, 'L', b, WALL - 4, 1, 1, PAPER);
+        if (b < WALL_L) wallRect(ctx, 'L', b, WALL - 4, 1, 1, PAPER);
       }
     }
   }
+  paintLounge(KIT, ctx, world, extras, tick, still);
   drawBeam(ctx, st, still ? 1 : tick);
   if (spec) {
     const a = tick / 10;
@@ -757,7 +779,7 @@ export function sceneHit(x: number, y: number, st: WorldState, world: PersonaWor
   if (creature && Math.abs(x - creature[0]) < 16 && Math.abs(y - creature[1]) < 14) return { kind: 'creature' };
   if (st.hasTrio && st.neighbor === 'cocoon' && Math.abs(x - COCOON_AT[0]) < 8 && y > COCOON_AT[1] - 6 && y < COCOON_AT[1] + 14) return { kind: 'cocoon' };
   const p = wallPoint(x, y);
-  if (p.v >= 0 && p.v < WALL && p.u < 72) {
+  if (p.v >= 0 && p.v < WALL && p.u < (p.side === 'R' ? WALL_R : WALL_L)) {
     if (p.side === 'L') {
       const tens = world.tens.slice(0, POSTER_SLOTS.length);
       for (let i = 0; i < tens.length; i += 1) {

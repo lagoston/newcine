@@ -13,7 +13,6 @@ import TagPinsModal from '../components/TagPinsModal';
 import ProfileIdentityCard, { PROFILE_GHOST_BUTTON, PROFILE_PRIMARY_BUTTON } from '../components/ProfileIdentityCard';
 import { ProfileTasteGrid, PROFILE_CARD, ProfileGlassAmbient } from '../components/ProfileTaste';
 import TasteHud from '../components/profile/TasteHud';
-import SecretRoomPortal from '../components/secretRoom/SecretRoomPortal';
 import { summarizeRatings } from '../lib/profileStats';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -565,14 +564,9 @@ export default function Profile() {
           onFriendsClick={() => setShowFriendsModal(true)}
           avatarBusy={isUploadingAvatar}
           seasonalDecoration={seasonalDecoration}
-          // Portal de sala secreta: só para quem está usando a tag dela (a
-          // espiral do clube; tocar entra direto). Desde 02/11/2026 não há
-          // mais o portal fechado para quem tem a tag e usa outra.
-          portal={
-            session?.user?.id && profile?.username ? (
-              <SecretRoomPortal userId={session.user.id} username={profile.username} isSelf activeTagName={profile.active_tag?.name ?? null} />
-            ) : undefined
-          }
+          // 14/11/2026 (pedido do Bruno): o portal do Clube do Terror saiu do
+          // banner. Agora é um objeto do estúdio de quem tem a tag (a caixa de
+          // papelão, no bloco da Persona logo abaixo).
           topRight={
             <button
               onClick={() => setShowSettingsModal(true)}

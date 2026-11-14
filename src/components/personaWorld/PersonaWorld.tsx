@@ -9,6 +9,7 @@ import { fetchPersonaNames, worldState, FURNITURE, PHASE_MIN, PHASE_WINDOW, type
 import { FOCUS_RING, INK, MIST, PAPER, PIXEL, VELVET, ratingTone, withAlpha } from '../../lib/oracleTheme';
 import { PersonaCard, PersonaCode } from '../PersonaBits';
 import { MothCloseUp, PersonaScene } from './PersonaScene';
+import type { StudioDoors } from './useStudioDoors';
 import { GOLD, type SceneHit } from './draw';
 
 // O corpo do modal "Sua Persona" (13/11/2026): a Persona viva.
@@ -83,9 +84,16 @@ interface PersonaWorldProps {
   onOpenRevelation: () => void;
   // ao seguir um link para outra página (fecha a gaveta)
   onNavigate?: () => void;
+  // 14/11/2026 (o estúdio): a máquina, a mesa, o aquário, o livro e a caixa,
+  // com o que cada um abre (useStudioDoors)
+  doors?: StudioDoors;
+  // a barra "Reviver desde o início", logo abaixo da cena (só no seu estúdio)
+  replay?: React.ReactNode;
+  // a história está passando: saem as três abas e os painéis (ficam a cena, a placa e a bitola)
+  replaying?: boolean;
 }
 
-const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, onOpenTitle, openingKey = null, onOpenRevelation, onNavigate }) => {
+const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, onOpenTitle, openingKey = null, onOpenRevelation, onNavigate, doors, replay, replaying = false }) => {
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
   const st: WorldState = useMemo(() => worldState(world), [world]);
@@ -467,8 +475,17 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, onOpenTit
           px-5 do corpo da OracleSheet): numa tela de 320 px ela ainda cabe em
           escala 2; com a margem, cairia para escala 1 e ficaria miúda. */}
       <div className="-mx-5 sm:mx-0 sm:rounded-2xl py-1.5" style={{ background: STAGE_BG }}>
-        <PersonaScene world={world} state={st} onPick={pickScene} label={st.hasTrio ? t('personaWorld.sceneLabel', { code: st.code }) : t('personaWorld.sceneLabelEmpty')} />
+        <PersonaScene
+          world={world}
+          state={st}
+          onPick={pickScene}
+          label={st.hasTrio ? t('personaWorld.sceneLabel', { code: st.code }) : t('personaWorld.sceneLabelEmpty')}
+          extras={doors?.extras}
+          hotspots={doors?.hotspots}
+        />
       </div>
+
+      {replay}
 
       {/* a placa: quem é */}
       <div className="flex items-center gap-3.5 min-w-0">
@@ -525,8 +542,8 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, onOpenTit
         )}
       </div>
 
-      {/* os três botões */}
-      <div ref={tabsRef} role="tablist" aria-label={t('personaWorld.tabs.label')} className="grid grid-cols-3 gap-2 pt-1 scroll-mt-3">
+      {/* os três botões (enquanto a história passa, saem: ficam a cena, a placa e a bitola) */}
+      <div ref={tabsRef} role="tablist" aria-label={t('personaWorld.tabs.label')} className={`grid-cols-3 gap-2 pt-1 scroll-mt-3 ${replaying ? 'hidden' : 'grid'}`}>
         {TABS.map((key) => {
           const selected = tab === key;
           return (
@@ -552,9 +569,11 @@ const PersonaWorldView: React.FC<PersonaWorldProps> = ({ world, isOwn, onOpenTit
           );
         })}
       </div>
-      <div id="persona-tabpanel" role="tabpanel" aria-labelledby={`persona-tab-${tab}`} className="space-y-3 min-w-0">
-        {tab === 'always' ? always() : tab === 'now' ? now() : next()}
-      </div>
+      {!replaying && (
+        <div id="persona-tabpanel" role="tabpanel" aria-labelledby={`persona-tab-${tab}`} className="space-y-3 min-w-0">
+          {tab === 'always' ? always() : tab === 'now' ? now() : next()}
+        </div>
+      )}
     </div>
   );
 };

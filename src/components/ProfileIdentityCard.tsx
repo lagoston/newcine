@@ -53,8 +53,10 @@ interface ProfileIdentityCardProps {
   actions?: React.ReactNode;
   // Faixa da Conexão com quem está vendo (só no perfil de outra pessoa).
   connection?: React.ReactNode;
-  // Portal de sala secreta (a espiral do Clube do Terror): à direita do
-  // nome no computador, embaixo dele no celular.
+  // Um destaque à direita do nome no computador, embaixo dele no celular.
+  // Era o portal de sala secreta (a espiral do Clube do Terror). Sem uso
+  // desde 14/11/2026: o portal virou um objeto do estúdio (a caixa de
+  // papelão). O lugar fica para a próxima coisa que precisar dele.
   portal?: React.ReactNode;
   // Perfil decorado de Halloween ou Natal (dono usando 🎃 Headless Horseman ou
   // 🎅 Ho Ho Ho). Quem calcula é useTagDecoration.
