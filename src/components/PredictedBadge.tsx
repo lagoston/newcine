@@ -24,9 +24,11 @@ export const WatchlistMark: React.FC = () => {
 
 // O fio da nota prevista na base e a marca da Watchlist no canto direito do
 // alto, quando o título está lá — um não tira o outro (30/10/2026).
-export const PosterMarks: React.FC<{ predicted: number | null; inWatchlist?: boolean }> = ({ predicted, inWatchlist }) => (
+// runKey = qual é o título ("movie:603"): a centelha do fio corre uma vez só
+// por título (ver FateThread).
+export const PosterMarks: React.FC<{ predicted: number | null; inWatchlist?: boolean; runKey?: string }> = ({ predicted, inWatchlist, runKey }) => (
   <>
-    {predicted !== null && <FateThread rating={predicted} />}
+    {predicted !== null && <FateThread rating={predicted} runKey={runKey} />}
     {inWatchlist && (
       <span className="absolute top-1.5 right-1.5 pointer-events-none">
         <WatchlistMark />

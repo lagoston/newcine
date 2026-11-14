@@ -13,6 +13,7 @@ import { fetchPersonaWorld, type PersonaWorld, type WorldTitle } from '../../lib
 import { getFullTitle } from '../../lib/titleCards';
 import type { Movie } from '../../lib/tmdb';
 import { FOCUS_RING, MIST, PAPER } from '../../lib/oracleTheme';
+import { rememberPatronus } from '../patronus/patronus';
 import PersonaWorldView from './PersonaWorld';
 
 // A gaveta "Sua Persona" (13/11/2026): a Persona viva, a cabine e a mariposa.
@@ -67,14 +68,18 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
     setFailed(false);
     fetchPersonaWorld(ownerId)
       .then((value) => {
-        if (value) setWorld(value);
-        else setFailed(true);
+        if (value) {
+          setWorld(value);
+          // a cena da própria pessoa atualiza o Patrono dela (a mariposa de
+          // luz do menu do título): quem acabou de mudar de forma já vê a nova
+          if (isOwn) rememberPatronus(ownerId, value);
+        } else setFailed(true);
       })
       .catch((error) => {
         console.error('Persona world:', error);
         setFailed(true);
       });
-  }, [ownerId]);
+  }, [ownerId, isOwn]);
   useEffect(() => {
     if (open) load();
   }, [open, load]);

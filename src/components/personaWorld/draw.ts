@@ -471,6 +471,10 @@ const WING: Record<string, { len: number; a: number; b: number; sc: number; m: n
 };
 // a envergadura por bitola (a mariposa cresce até 70 mm)
 const SIZE = [0, 0, 0.6, 0.68, 0.76, 0.84, 0.92, 1, 1, 1];
+// 14/11/2026: o Patrono (a mariposa feita de luz, fora da cabine) é desenhado
+// sempre do mesmo tamanho, qualquer que seja a bitola; ele divide a meia
+// envergadura por este fator antes de chamar drawMoth.
+export const mothScale = (stage: number): number => SIZE[stage] || 0.6;
 
 export interface MothEye {
   letter: string;
@@ -523,7 +527,9 @@ const HIND = [8 * DEG, 88 * DEG];
 
 // Desenha a mariposa centrada em (cx, cy), com meia envergadura `half` em
 // pixels. flap: 1 = asas abertas … 0.5 = fechando. Devolve onde ficou cada olho.
-export function drawMoth(ctx: Ctx, cx: number, cy: number, half: number, spec: MothSpec, flap: number): EyeHit[] {
+// flat (14/11/2026, para o Patrono, que é pequeno): cor chapada, sem o
+// pontilhado de escama, e cada olho vira uma pinta dourada lisa.
+export function drawMoth(ctx: Ctx, cx: number, cy: number, half: number, spec: MothSpec, flap: number, flat = false): EyeHit[] {
   const W = WING[spec.shape] ?? WING.M;
   const U = half * (SIZE[spec.stage] || 0.6);
   const hits: EyeHit[] = [];
@@ -586,7 +592,7 @@ export function drawMoth(ctx: Ctx, cx: number, cy: number, half: number, spec: M
               break;
             }
           }
-          const tone = d > 0.9 ? 2 : (x + y) % 2 === 0 ? 1 : 0;
+          const tone = d > 0.9 ? 2 : !flat && (x + y) % 2 === 0 ? 1 : 0;
           grid[gy * gw + gx] = palette[bi][(fore ? 0 : 3) + tone];
         }
       }
@@ -617,12 +623,14 @@ export function drawMoth(ctx: Ctx, cx: number, cy: number, half: number, spec: M
       if (!eye) return;
       const ox = Math.round(cx + side * spot[0] * U * flap);
       const oy = Math.round(cy + spot[1] * U);
-      const rr = Math.max(1.5, U * 0.085);
+      // no Patrono (flat) o olho é uma pinta de um pixel: com o raio normal,
+      // os seis olhos cobririam a asa inteira de uma mariposa tão pequena
+      const rr = flat ? 0.5 : Math.max(1.5, U * 0.085);
       const reach = Math.ceil(rr);
       for (let yy = -reach; yy <= reach; yy += 1) {
         for (let xx = -reach; xx <= reach; xx += 1) {
           const q = Math.sqrt(xx * xx + yy * yy);
-          if (q <= rr) px(ctx, ox + xx, oy + yy, q > rr * 0.62 ? (eye.gold ? GOLD : PAPER) : q > rr * 0.3 ? moodColor(eye.letter) : EDGE);
+          if (q <= rr) px(ctx, ox + xx, oy + yy, flat ? GOLD : q > rr * 0.62 ? (eye.gold ? GOLD : PAPER) : q > rr * 0.3 ? moodColor(eye.letter) : EDGE);
         }
       }
       hits.push({ x: ox, y: oy, r: rr + 2, eye });

@@ -1,90 +1,227 @@
-import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { animate, useMotionValue, useMotionValueEvent, useReducedMotion, type AnimationPlaybackControls } from 'framer-motion';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { NIGHT } from '../lib/oracleTheme';
-import { formatChance, ORACLE_SPECTRUM, reigningRange, spectrumColor } from '../lib/prediction';
+import { ratingBarColor, ratingTone } from '../lib/oracleTheme';
+import { formatChance, lampLevels, landingSpot } from '../lib/prediction';
+import type { MothSpec } from './personaWorld/draw';
+import { usePatronus } from './patronus/patronus';
+import { drawBurst, PATRONUS_SKY, patronusSprite, wispSprite, type Sprite } from './patronus/sprite';
+import { columnOf, DECK, drawConsole, drawNeedle, drawSpeedLines, layoutFor, type Layout } from './patronus/spectrometer';
 
-// O Astrolábio do Oráculo (14/11/2026): a nota prevista no menu do título.
+// A nota prevista no menu do título: o Espectrômetro e o Patrono.
 //
-// Pedido do Bruno: "Números absolutos são cartesianos demais para o
-// CineOracle; eles não têm alma. Trocar os algarismos por um espectro de cores
-// com uma agulha oscilante transforma a previsão em um evento."
+// História (tudo em 14/11/2026, a pedido do Bruno):
+//   1. os dois números (nota prevista, chance de nota 10) viraram um medidor;
+//   2. o medidor virou o Astrolábio: um arco azul, púrpura e dourado, com uma
+//      agulha que varria o arco de ponta a ponta antes de travar;
+//   3. esta versão. O que ele pediu: as cores do padrão do site (as das
+//      prateleiras da biblioteca), a agulha sem oscilar tanto, "um movimento
+//      mais cartoonesco e um design mais Old Cartoon Network anos 2000,
+//      cartoonzão, Laboratório de Dexter", em sintonia com o modal Sua
+//      Persona, e uma diretriz nova em volta da borboleta, "o Espectro
+//      Patrono do usuário, como em Harry Potter".
 //
-//   • O arco: fino e curvo, como o mostrador de um rádio antigo. Vai do azul
-//     gélido (nota baixa), passa pelo púrpura (nota média) e acaba no dourado
-//     incandescente (o 10). Tem onze riscos, um por nota, e nenhum número.
-//   • A dança: a agulha nasce no centro e varre o arco de ponta a ponta, como
-//     se lesse o gosto da pessoa. Depois de 1,5 s (ou quando a previsão
-//     chegar, se demorar mais), ela trava no lugar da nota com um coice de
-//     mola. A varredura é também o "carregando".
-//   • A região onde a nota impera: travada a agulha, acende o trecho do arco
-//     em volta dela que guarda metade da chance. Quem dá notas previsíveis vê
-//     um trecho curto; quem varia mais, um trecho largo.
-//   • A estrela na ponta dourada é o 10: brilha conforme a chance de nota 10.
-//   • Ressonância: quando a previsão é 10, o arco inteiro pulsa e a agulha
-//     treme de leve, em rajadas, no mesmo compasso.
+// O que se vê:
+//   • O aparelho: onze lâmpadas, uma por nota (0 a 10), nas cores de nota do
+//     site. Acesas onde a nota deve cair, a meia-luz onde ainda pode, apagadas
+//     no resto. É o espectro das notas previstas.
+//   • O cursor: uma haste que corre por cima das lâmpadas.
+//   • O Patrono: a mariposa da própria pessoa, feita de luz. É ela quem leva o
+//     cursor até a nota e pousa em cima dele. Quem ainda não tem Persona tem
+//     uma fagulha no lugar (o Patrono que ainda não tomou forma).
+//
+// O movimento (desenho animado, 12 quadros por segundo, pose a pose):
+//   • enquanto a previsão não chega, a fagulha fica parada em cima do cursor,
+//     no meio da escala, só piscando: nada varre o aparelho;
+//   • quando chega: um clarão, a fagulha vira mariposa, ela recua um passo
+//     (a antecipação), dispara de uma vez até a nota deixando um rastro,
+//     passa um pouco do ponto, volta e pousa. As lâmpadas acendem;
+//   • depois disso, nada mais se mexe.
+// Um movimento só, com começo e fim. Com "reduzir movimento" não há nem esse:
+// o aparelho já aparece com o Patrono pousado.
 //
 // Os números não somem para quem precisa deles: estão no texto para leitores
-// de tela e na dica ao passar o mouse. Com "reduzir movimento" não há dança,
-// pulso nem tremor: a agulha aparece já no lugar.
+// de tela e na dica ao passar o mouse.
 
-// ---------- geometria (em unidades do desenho) ----------
-const VIEW_W = 240;
-const VIEW_H = 64;
-const ARC_LEFT = 16;
-const ARC_RIGHT = 224;
-const ARC_TOP = 10;
-// a flecha do arco (o quanto ele sobe do começo ao topo)
-const ARC_RISE = 38;
-const HALF = (ARC_RIGHT - ARC_LEFT) / 2;
-const RADIUS = (HALF * HALF + ARC_RISE * ARC_RISE) / (2 * ARC_RISE);
-const CENTER_X = VIEW_W / 2;
-const CENTER_Y = ARC_TOP + RADIUS;
-// meia abertura do arco, em radianos
-const SWEEP = Math.asin(HALF / RADIUS);
+// 12 quadros por segundo: o ritmo do desenho animado feito "em dois".
+const TICK_MS = 83;
+// A fagulha aparece pelo menos por este tempo antes de virar mariposa.
+const MIN_IDLE_MS = 420;
+// Quanto se espera pela mariposa da pessoa antes de seguir só com a fagulha.
+const PATRONUS_WAIT_MS = 600;
+// meia envergadura do Patrono, em pixels do desenho
+const SPAN = 10;
+// a altura do pouso (o centro do corpo: a mariposa senta na cabeça do cursor)
+// e a do voo, dois pixels acima
+const PERCH_Y = DECK - 9;
+const FLY_Y = PERCH_Y - 2;
+const WISP_IDLE_Y = DECK - 13;
+const WISP_PERCH_Y = DECK - 9;
+// ampliação do desenho na tela
+const SCALE = 2;
 
-// nota (0 a 10) → ângulo a partir da vertical; a agulha pode passar um pouco das pontas
-const angleOf = (rating: number) => (rating / 10 - 0.5) * 2 * SWEEP;
-const pointAt = (angle: number, radius: number): [number, number] => [CENTER_X + radius * Math.sin(angle), CENTER_Y - radius * Math.cos(angle)];
-const fix = (value: number) => value.toFixed(2);
-const arcPath = (from: number, to: number, radius = RADIUS): string => {
-  const [x1, y1] = pointAt(angleOf(from), radius);
-  const [x2, y2] = pointAt(angleOf(to), radius);
-  return `M${fix(x1)} ${fix(y1)} A${fix(radius)} ${fix(radius)} 0 0 1 ${fix(x2)} ${fix(y2)}`;
-};
-// a agulha: uma lâmina que afina do pé (dentro do arco) até a ponta (fora dele)
-const FOOT = RADIUS - 24;
-const needlePath = (rating: number): string => {
-  const angle = angleOf(rating);
-  const [tx, ty] = pointAt(angle, RADIUS + 8.5);
-  const [ex, ey] = pointAt(angle, FOOT);
-  const px = Math.cos(angle) * 1.55;
-  const py = Math.sin(angle) * 1.55;
-  return `M${fix(tx)} ${fix(ty)} L${fix(ex + px)} ${fix(ey + py)} L${fix(ex - px)} ${fix(ey - py)} Z`;
+type Form = 'wisp' | 'moth';
+
+// A cor que o Patrono e a bolinha da antena tomam ao pousar: a da nota no
+// padrão do site, entre o tom fechado das barras e o claro dos números. (Só o
+// tom claro não serve: o vermelho claro de 1 a 3 e o rosa claro do 10 ficam
+// parecidos demais numa aura.)
+const landingTint = (rating: number): string => {
+  const deep = parseInt(ratingBarColor(rating).slice(1), 16);
+  const soft = parseInt(ratingTone(rating).color.slice(1), 16);
+  const channel = (shift: number) => Math.round(((deep >> shift) & 255) * 0.65 + ((soft >> shift) & 255) * 0.35);
+  return `#${[16, 8, 0].map((shift) => channel(shift).toString(16).padStart(2, '0')).join('')}`;
 };
 
-const FULL_ARC = arcPath(0, 10);
-// o limbo graduado: um fio por dentro do arco e onze riscos, um por nota
-const LIMB = arcPath(0, 10, RADIUS - 13.5);
-const TICKS = Array.from({ length: 11 }, (_, rating) => {
-  const angle = angleOf(rating);
-  const [x1, y1] = pointAt(angle, RADIUS - 13.5);
-  const [x2, y2] = pointAt(angle, RADIUS - (rating % 5 === 0 ? 6 : 9.5));
-  return { rating, x1, y1, x2, y2 };
+interface Pose {
+  // a coluna do cursor
+  needle: number;
+  levels: number[];
+  form: Form | 'none';
+  x: number;
+  y: number;
+  flap?: number;
+  twinkle?: boolean;
+  // para onde a mariposa olha (-1 esquerda, 0 em frente, 1 direita)
+  gaze?: number;
+  tint: string;
+  // a bolinha da antena (null = apagada)
+  beacon: string | null;
+  // estica e amassa (1 = normal): o Patrono se alonga no disparo e achata no pouso
+  stretch?: [number, number];
+  ghosts?: { x: number; y: number; alpha: number; flap?: number }[];
+  burst?: { x: number; y: number; step: number; color: string };
+  speed?: { from: number; to: number; y: number };
+  // o raio entre o cursor e a fagulha (0 e 1 = os dois desenhos)
+  bolt?: 0 | 1;
+  dust?: 0 | 1;
+}
+
+const DARK: number[] = new Array(11).fill(0);
+
+// A espera: a fagulha em cima do cursor, no meio da escala, e a bolinha da
+// antena piscando. Tudo no lugar: nada varre o aparelho. O pisca é lento (duas
+// vezes por segundo) para não cansar.
+const idlePoses = (column: number): Pose[] =>
+  Array.from({ length: 12 }, (_, tick) => ({
+    needle: column,
+    levels: DARK,
+    form: 'wisp' as const,
+    x: column,
+    y: WISP_IDLE_Y - (tick >= 6 ? 1 : 0),
+    twinkle: tick % 6 >= 3,
+    tint: PATRONUS_SKY,
+    beacon: tick % 6 < 3 ? PATRONUS_SKY : null,
+    bolt: (tick % 6 < 3 ? 0 : 1) as 0 | 1,
+  }));
+
+// O pouso: como o aparelho fica depois que tudo para.
+const restPose = (column: number, form: Form, levels: number[], tint: string): Pose => ({
+  needle: column,
+  levels,
+  form,
+  x: column,
+  y: form === 'moth' ? PERCH_Y : WISP_PERCH_Y,
+  flap: 1,
+  twinkle: false,
+  gaze: 0,
+  tint,
+  beacon: tint,
 });
-// a estrela do 10, logo depois da ponta dourada
-const [STAR_X, STAR_Y] = pointAt(angleOf(10) + 0.052, RADIUS);
-const starPath = (x: number, y: number, size: number) =>
-  `M${fix(x)} ${fix(y - size)} Q${fix(x)} ${fix(y)} ${fix(x + size)} ${fix(y)} Q${fix(x)} ${fix(y)} ${fix(x)} ${fix(y + size)} Q${fix(x)} ${fix(y)} ${fix(x - size)} ${fix(y)} Q${fix(x)} ${fix(y)} ${fix(x)} ${fix(y - size)} Z`;
 
-// ---------- a dança ----------
-// O ritual dura pelo menos isto antes de a agulha travar.
-const RITUAL_MS = 1500;
-// A varredura: do lugar onde está (null) para as pontas, cada vez um pouco diferente.
-const SCAN: (number | null)[] = [null, 0.2, 9.8, 0.9, 9.6, 2.1, 9.1, 0.2, 9.5, 1.4, 9.8, 2.6, 5];
-const SCAN_SECONDS = (SCAN.length - 1) * 0.235;
-// a mola do travamento: passa um pouco do ponto e volta (o coice)
-const SETTLE = { type: 'spring' as const, stiffness: 210, damping: 13, mass: 1 };
+// A cena inteira, pose a pose: da espera ao pouso.
+//   conjure: a fagulha vira mariposa no começo (false = o Patrono já está no ar)
+//   tenColumn: a coluna da lâmpada do 10, quando a nota prevista é 10
+function eventPoses(from: number, to: number, form: Form, levels: number[], tint: string, conjure: boolean, tenColumn: number | null): Pose[] {
+  const poses: Pose[] = [];
+  const sky = PATRONUS_SKY;
+  const distance = to - from;
+  const dir = distance < 0 ? -1 : 1;
+  const flyY = form === 'moth' ? FLY_Y : WISP_IDLE_Y;
+  const base = { levels: DARK, form, tint: sky, beacon: sky, gaze: dir };
+
+  if (form === 'moth' && conjure) {
+    // o clarão em que a fagulha toma forma
+    const empty = { needle: from, levels: DARK, form: 'none' as const, x: from, y: flyY, tint: sky, beacon: sky };
+    poses.push({ ...empty, burst: { x: from, y: flyY, step: 0, color: sky } });
+    poses.push({ ...empty, burst: { x: from, y: flyY, step: 1, color: sky } });
+    poses.push({ ...base, gaze: 0, needle: from, x: from, y: flyY - 1, flap: 0.5, burst: { x: from, y: flyY, step: 2, color: sky } });
+    poses.push({ ...base, gaze: 0, needle: from, x: from, y: flyY, flap: 1 });
+    poses.push({ ...base, needle: from, x: from, y: flyY, flap: 1 });
+  } else if (conjure) {
+    poses.push({ ...base, needle: from, x: from, y: flyY - 1, twinkle: true });
+    poses.push({ ...base, needle: from, x: from, y: flyY, twinkle: false });
+  }
+
+  if (Math.abs(distance) < 5) {
+    // a nota é quase no meio: um pulinho no lugar
+    poses.push({ ...base, needle: from, x: from, y: flyY + 1, flap: 0.5, twinkle: true, stretch: [1.15, 0.85] });
+    poses.push({ ...base, needle: to, x: to, y: flyY - 3, flap: 1, stretch: [0.9, 1.15] });
+    poses.push({ ...base, needle: to, x: to, y: flyY - 1, flap: 0.78, twinkle: true });
+  } else {
+    const over = Math.min(7, Math.max(3, Math.round(Math.abs(distance) * 0.15)));
+    const at = (share: number) => Math.round(from + distance * share);
+    // antecipação: encolhe e recua antes de disparar
+    poses.push({ ...base, needle: from - dir, x: from - dir * 3, y: flyY, flap: 0.78, twinkle: true, stretch: [0.92, 1.05] });
+    poses.push({ ...base, needle: from - dir * 3, x: from - dir * 5, y: flyY + 1, flap: 0.5, stretch: [0.85, 1.12] });
+    // o disparo: esticada, com rastro e riscos de velocidade
+    poses.push({
+      ...base,
+      needle: at(0.45),
+      x: at(0.62),
+      y: flyY - 1,
+      flap: 1,
+      twinkle: true,
+      stretch: [1.4, 0.8],
+      ghosts: [
+        { x: at(0.18), y: flyY, alpha: 0.2, flap: 0.5 },
+        { x: at(0.4), y: flyY - 1, alpha: 0.4, flap: 0.78 },
+      ],
+      speed: { from: from - dir * 5, to: at(0.5), y: flyY },
+    });
+    // passa do ponto
+    poses.push({
+      ...base,
+      needle: to + dir * over,
+      x: to + dir * over,
+      y: flyY,
+      flap: 0.78,
+      stretch: [1.15, 0.9],
+      ghosts: [{ x: at(0.84), y: flyY - 1, alpha: 0.32, flap: 1 }],
+      speed: { from: at(0.5), to: at(0.9), y: flyY },
+    });
+    // e volta
+    poses.push({ ...base, needle: to - dir * 2, x: to - dir * 2, y: flyY + 1, flap: 0.5, twinkle: true });
+  }
+
+  // o pouso: ela achata na batida, as lâmpadas acendem (primeiro as fortes,
+  // depois a meia-luz) e tudo para
+  const strong = levels.map((level) => (level >= 2 ? 2 : 0));
+  const rest = restPose(to, form, levels, tint);
+  const ten = (step: number) => (tenColumn !== null ? { burst: { x: tenColumn, y: DECK + 7, step, color: ratingTone(10).color } } : {});
+  poses.push({ ...rest, y: rest.y + 1, levels: strong, stretch: [1.2, 0.8], dust: 0, ...ten(0) });
+  poses.push({ ...rest, flap: 0.78, twinkle: true, dust: 1, ...ten(1) });
+  if (tenColumn !== null) poses.push({ ...rest, ...ten(2) });
+  poses.push(rest);
+  return poses;
+}
+
+// A mariposa aparece depois (a cena dela chegou tarde): só o clarão, no lugar.
+const latePoses = (column: number, levels: number[], tint: string): Pose[] => {
+  const rest = restPose(column, 'moth', levels, tint);
+  const empty = { ...rest, form: 'none' as const };
+  return [
+    { ...empty, burst: { x: column, y: PERCH_Y, step: 0, color: tint } },
+    { ...empty, burst: { x: column, y: PERCH_Y, step: 1, color: tint } },
+    { ...rest, flap: 0.5, burst: { x: column, y: PERCH_Y, step: 2, color: tint } },
+    { ...rest, flap: 0.78 },
+    rest,
+  ];
+};
+
+// A mariposa em uma linha: muda só quando o desenho dela muda.
+const specKeyOf = (spec: MothSpec | null): string =>
+  spec ? [spec.shape, spec.third, spec.stage, spec.bands.map((band) => `${band.letter}${band.upTo.toFixed(2)}`).join(','), spec.eyes.map((eye) => `${eye.letter}${eye.gold ? 'g' : ''}`).join(',')].join('|') : '';
 
 interface PredictionGaugeProps {
   // a nota dos selos (inteira, já com o corte de 9 e 10)
@@ -94,149 +231,225 @@ interface PredictionGaugeProps {
   sigma: number | null;
   // a chance de nota 10 (0 a 1)
   tenChance: number | null;
-  // a previsão ainda não chegou: a agulha segue varrendo
+  // a previsão ainda não chegou: a fagulha espera
   pending?: boolean;
+  // de quem é o Patrono (quem está vendo o título)
+  userId?: string | null;
 }
 
-const PredictionGauge: React.FC<PredictionGaugeProps> = ({ predicted, mu, sigma, tenChance, pending = false }) => {
+const PredictionGauge: React.FC<PredictionGaugeProps> = ({ predicted, mu, sigma, tenChance, pending = false, userId }) => {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
-  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
-  const target = mu ?? predicted;
-  const ready = !pending && target !== null;
-  // 10 previsto: o título ressoa com a Persona
-  const resonant = ready && predicted === 10;
+  const patronus = usePatronus(userId);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [available, setAvailable] = useState(212);
+  const layout = useMemo<Layout>(() => layoutFor(available), [available]);
 
-  const [locked, setLocked] = useState(false);
-  const position = useMotionValue(5);
-  const needleRef = useRef<SVGPathElement>(null);
-  const footRef = useRef<SVGCircleElement>(null);
-  const handRef = useRef<SVGGElement>(null);
-  const scanRef = useRef<AnimationPlaybackControls | null>(null);
-  const startedAt = useRef(0);
+  const shown = predicted ?? (mu !== null ? Math.round(mu) : null);
+  const ready = !pending && shown !== null;
+  const spot = shown !== null ? landingSpot(shown, mu) : 5;
+  const levelsKey = ready && shown !== null ? lampLevels(shown, mu, sigma, tenChance).join('') : '';
+  // a cena depende do desenho da mariposa, não do objeto (o mesmo desenho
+  // conferido de novo com o banco não reinicia nada)
+  const specKey = specKeyOf(patronus.spec);
+  const specRef = useRef(patronus.spec);
+  specRef.current = patronus.spec;
 
-  // A agulha é redesenhada a cada passo (posição e a cor do brilho, que é a
-  // do ponto do arco para onde ela aponta).
-  const draw = (rating: number) => {
-    const at = Math.min(10.35, Math.max(-0.35, rating));
-    needleRef.current?.setAttribute('d', needlePath(at));
-    const [fx, fy] = pointAt(angleOf(at), FOOT);
-    footRef.current?.setAttribute('cx', fix(fx));
-    footRef.current?.setAttribute('cy', fix(fy));
-    if (handRef.current) handRef.current.style.filter = `drop-shadow(0 0 3.5px ${spectrumColor(at)})`;
-  };
-  useMotionValueEvent(position, 'change', draw);
+  // os desenhos do Patrono já prontos (um por batida de asa e por cor)
+  const sprites = useRef(new Map<string, Sprite>());
+  useEffect(() => {
+    sprites.current.clear();
+  }, [specKey]);
+
+  // onde a cena está: esperando, no meio do movimento, ou já pousada
+  const stage = useRef<{ phase: 'idle' | 'event' | 'rest'; idleSince: number; spot: number; form: Form }>({ phase: 'idle', idleSince: 0, spot: 5, form: 'wisp' });
+
   useLayoutEffect(() => {
-    draw(position.get());
-    // só no primeiro desenho
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const measure = () => setAvailable(wrap.clientWidth);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(wrap);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    if (reduceMotion) {
-      scanRef.current?.stop();
-      scanRef.current = null;
-      position.set(ready && target !== null ? target : 5);
-      setLocked(ready);
-      return;
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+
+    const sprite = (pose: Pose, flap: number): Sprite => {
+      const spec = specRef.current;
+      const moth = pose.form === 'moth' && spec;
+      const id = moth ? `m${flap}${pose.gaze ?? 0}${pose.tint}` : `w${pose.twinkle ? 1 : 0}${pose.tint}`;
+      const hit = sprites.current.get(id);
+      if (hit) return hit;
+      const made = moth ? patronusSprite(spec, SPAN, flap, pose.tint, pose.gaze ?? 0) : wispSprite(Boolean(pose.twinkle), pose.tint);
+      sprites.current.set(id, made);
+      return made;
+    };
+    const paint = (pose: Pose) => {
+      ctx.clearRect(0, 0, layout.width, layout.height);
+      ctx.imageSmoothingEnabled = false;
+      if (pose.speed) drawSpeedLines(ctx, pose.speed.from, pose.speed.to, pose.speed.y, 'rgba(243,234,211,0.5)');
+      drawConsole(ctx, layout, pose.levels, pose.beacon);
+      drawNeedle(ctx, pose.needle);
+      if (pose.bolt !== undefined) {
+        // o raio que chama o Patrono: um zigue-zague entre o cursor e a fagulha
+        const flip = pose.bolt ? 1 : 0;
+        for (let row = 0; row < 4; row += 1) {
+          ctx.fillStyle = row % 2 === flip ? '#FFFFFF' : PATRONUS_SKY;
+          ctx.fillRect(pose.needle - 1 + ((row + flip) % 2), DECK - 9 + row, 1, 1);
+        }
+      }
+      if (pose.form !== 'none') {
+        (pose.ghosts ?? []).forEach((ghost) => {
+          const image = sprite(pose, ghost.flap ?? 1);
+          ctx.globalAlpha = ghost.alpha;
+          ctx.drawImage(image.canvas, ghost.x - image.ax, ghost.y - image.ay);
+        });
+        ctx.globalAlpha = 1;
+        const image = sprite(pose, pose.flap ?? 1);
+        const [wide, tall] = pose.stretch ?? [1, 1];
+        if (wide === 1 && tall === 1) ctx.drawImage(image.canvas, pose.x - image.ax, pose.y - image.ay);
+        else {
+          // estica e amassa em volta do centro do corpo, sempre em pixel inteiro
+          const w = Math.round(image.canvas.width * wide);
+          const h = Math.round(image.canvas.height * tall);
+          ctx.drawImage(image.canvas, pose.x - Math.round(image.ax * wide), pose.y - Math.round(image.ay * tall), w, h);
+        }
+      }
+      if (pose.burst) drawBurst(ctx, pose.burst.x, pose.burst.y, pose.burst.step, pose.burst.color);
+      if (pose.dust !== undefined) {
+        // a poeirinha do pouso
+        const reach = pose.dust ? 7 : 5;
+        ctx.fillStyle = 'rgba(243,234,211,0.7)';
+        ctx.fillRect(pose.needle - reach - 5, DECK - 2 - pose.dust, 1, 1);
+        ctx.fillRect(pose.needle + reach + 4, DECK - 2 - pose.dust, 1, 1);
+      }
+    };
+
+    let frame = 0;
+    const timers: number[] = [];
+    // Toca uma lista de poses, uma por batida. Em laço (a espera) ou até a
+    // última, que fica na tela (a cena).
+    const play = (poses: Pose[], loop: boolean, onEnd?: () => void) => {
+      const started = performance.now();
+      let shownIndex = -1;
+      const step = (now: number) => {
+        const index = Math.max(0, Math.floor((now - started) / TICK_MS));
+        if (index !== shownIndex) {
+          shownIndex = index;
+          if (!loop && index >= poses.length - 1) {
+            paint(poses[poses.length - 1]);
+            frame = 0;
+            onEnd?.();
+            return;
+          }
+          paint(poses[loop ? index % poses.length : index]);
+        }
+        frame = requestAnimationFrame(step);
+      };
+      frame = requestAnimationFrame(step);
+    };
+    const stop = () => {
+      if (frame) cancelAnimationFrame(frame);
+      timers.forEach((id) => window.clearTimeout(id));
+    };
+
+    const now = performance.now();
+    const center = columnOf(layout, 5);
+    const state = stage.current;
+
+    if (!ready || shown === null) {
+      // esperando a previsão
+      if (state.phase !== 'idle' || !state.idleSince) stage.current = { phase: 'idle', idleSince: now, spot: 5, form: 'wisp' };
+      const poses = idlePoses(center);
+      if (reduceMotion) paint({ ...poses[0], bolt: undefined, beacon: null });
+      else {
+        paint(poses[0]);
+        play(poses, true);
+      }
+      return stop;
     }
-    if (!scanRef.current) {
-      startedAt.current = performance.now();
-      setLocked(false);
-      scanRef.current = animate(position, SCAN, { duration: SCAN_SECONDS, ease: 'easeInOut', repeat: Infinity });
+
+    const levels = levelsKey.split('').map(Number);
+    const tint = landingTint(shown);
+    const form: Form = specKey ? 'moth' : 'wisp';
+    const to = columnOf(layout, spot);
+    const rest = restPose(to, form, levels, tint);
+    const tenColumn = shown === 10 ? columnOf(layout, 10) : null;
+    const land = () => {
+      stage.current = { phase: 'rest', idleSince: 0, spot, form };
+    };
+
+    if (reduceMotion || state.phase === 'event') {
+      // sem movimento (ou algo mudou no meio do movimento): direto ao pouso
+      paint(rest);
+      land();
+      return stop;
     }
-    if (!ready || target === null) return;
-    let settle: AnimationPlaybackControls | null = null;
-    const timer = window.setTimeout(
-      () => {
-        scanRef.current?.stop();
-        scanRef.current = null;
-        settle = animate(position, target, SETTLE);
-        setLocked(true);
-      },
-      Math.max(0, RITUAL_MS - (performance.now() - startedAt.current)),
+    if (state.phase === 'rest') {
+      if (state.form === 'wisp' && form === 'moth' && state.spot === spot) {
+        // a mariposa chegou depois do pouso
+        stage.current = { ...state, phase: 'event' };
+        play(latePoses(to, levels, tint), false, land);
+      } else if (state.spot !== spot) {
+        // outra previsão para o mesmo aparelho: o Patrono vai de onde está
+        stage.current = { ...state, phase: 'event' };
+        play(eventPoses(columnOf(layout, state.spot), to, form, levels, tint, false, tenColumn), false, land);
+      } else {
+        // mesma previsão (mudou o tamanho da tela ou o desenho): redesenha parado
+        paint(rest);
+        land();
+      }
+      return stop;
+    }
+
+    // da espera ao pouso: a fagulha fica um instante e a cena começa
+    if (!state.idleSince) stage.current = { ...state, idleSince: now };
+    const begin = stage.current.idleSince + MIN_IDLE_MS + (patronus.settled ? 0 : PATRONUS_WAIT_MS);
+    const waiting = idlePoses(center);
+    paint(waiting[0]);
+    play(waiting, true);
+    timers.push(
+      window.setTimeout(
+        () => {
+          if (frame) cancelAnimationFrame(frame);
+          stage.current = { ...stage.current, phase: 'event' };
+          play(eventPoses(center, to, form, levels, tint, true, tenColumn), false, land);
+        },
+        Math.max(0, begin - now),
+      ),
     );
-    return () => {
-      window.clearTimeout(timer);
-      settle?.stop();
-    };
-  }, [ready, target, reduceMotion, position]);
-  useEffect(() => () => scanRef.current?.stop(), []);
+    return stop;
+  }, [layout, ready, shown, spot, levelsKey, specKey, patronus.settled, reduceMotion]);
 
-  // Ressonância: a agulha treme em rajadas curtas, no compasso do pulso do arco.
-  useEffect(() => {
-    if (!locked || !resonant || reduceMotion || target === null) return;
-    let tremble: AnimationPlaybackControls | null = null;
-    const timer = window.setTimeout(() => {
-      tremble = animate(position, [target, target + 0.07, target - 0.06, target + 0.05, target - 0.07, target + 0.03, target], { duration: 0.5, ease: 'linear', repeat: Infinity, repeatDelay: 1.9 });
-    }, 900);
-    return () => {
-      window.clearTimeout(timer);
-      tremble?.stop();
-    };
-  }, [locked, resonant, reduceMotion, target, position]);
-
-  const [low, high] = locked && target !== null ? reigningRange(target, sigma) : [5, 5];
-  const middle = locked && target !== null ? Math.min(10, Math.max(0, target)) : 5;
-  // três trechos, do mais largo (fraco) ao miolo (forte): as bordas esmaecem
-  const glow = [1, 0.62, 0.3].map((share) => arcPath(Math.max(0, middle - (middle - low) * share), Math.min(10, middle + (high - middle) * share)));
-  const starShine = locked ? 0.3 + 0.7 * Math.min(1, (tenChance ?? 0) / 0.35) : 0.3;
-
-  const shown = predicted ?? (target !== null ? Math.round(target) : 0);
-  const label = !ready
-    ? t('movieModal.score.gaugePending')
-    : tenChance !== null && shown <= 9
-      ? t('movieModal.score.gaugeAria', { rating: shown, chance: formatChance(tenChance) })
-      : t('movieModal.score.gaugeAriaPlain', { rating: shown });
+  const label =
+    !ready || shown === null
+      ? t('movieModal.score.gaugePending')
+      : tenChance !== null && shown <= 9
+        ? t('movieModal.score.gaugeAria', { rating: shown, chance: formatChance(tenChance) })
+        : t('movieModal.score.gaugeAriaPlain', { rating: shown });
 
   return (
-    <span role="img" aria-label={label} title={ready ? label : undefined} className="block w-full max-w-[240px]">
-      <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="block w-full h-auto overflow-visible" aria-hidden>
-        <defs>
-          <linearGradient id={`${uid}-spectrum`} gradientUnits="userSpaceOnUse" x1={ARC_LEFT} y1="0" x2={ARC_RIGHT} y2="0">
-            {ORACLE_SPECTRUM.map((color, rating) => (
-              <stop key={rating} offset={rating / 10} stopColor={color} />
-            ))}
-          </linearGradient>
-          {/* em unidades do desenho: a caixa de um trecho quase reto do arco é fina demais para o borrão */}
-          <filter id={`${uid}-blur`} filterUnits="userSpaceOnUse" x="-20" y="-24" width={VIEW_W + 40} height={VIEW_H + 48}>
-            <feGaussianBlur stdDeviation="3.2" />
-          </filter>
-        </defs>
-
-        {/* o pulso da ressonância: o arco inteiro, borrado, respirando */}
-        {resonant && locked && <path d={FULL_ARC} fill="none" stroke={`url(#${uid}-spectrum)`} strokeWidth="11" strokeLinecap="round" filter={`url(#${uid}-blur)`} className="astrolabe-pulse" />}
-
-        {/* o limbo graduado */}
-        <path d={LIMB} fill="none" stroke="rgba(243,234,211,0.16)" strokeWidth="0.8" strokeLinecap="round" />
-        {TICKS.map((tick) => (
-          <line key={tick.rating} x1={tick.x1} y1={tick.y1} x2={tick.x2} y2={tick.y2} stroke="rgba(243,234,211,0.32)" strokeWidth="0.9" strokeLinecap="round" />
-        ))}
-
-        {/* o arco apagado e, por cima, a região onde a nota impera */}
-        <path d={FULL_ARC} fill="none" stroke={`url(#${uid}-spectrum)`} strokeWidth="3.2" strokeLinecap="round" opacity={resonant && locked ? 0.8 : 0.5} style={{ transition: 'opacity 600ms ease-out' }} />
-        <g style={{ opacity: locked ? 1 : 0, transition: 'opacity 700ms ease-out 250ms' }}>
-          <path d={glow[0]} fill="none" stroke={`url(#${uid}-spectrum)`} strokeWidth="10" strokeLinecap="round" filter={`url(#${uid}-blur)`} opacity="0.75" />
-          {glow.map((d, i) => (
-            <path key={i} d={d} fill="none" stroke={`url(#${uid}-spectrum)`} strokeWidth="5" strokeLinecap="round" opacity={[0.45, 0.7, 1][i]} />
-          ))}
-        </g>
-
-        {/* a estrela do 10: brilha conforme a chance de nota 10 */}
-        <path
-          d={starPath(STAR_X, STAR_Y, 5.2)}
-          fill="#FFE39A"
-          className={resonant && locked ? 'astrolabe-star' : undefined}
-          style={{ opacity: starShine, filter: `drop-shadow(0 0 ${2 + 5 * starShine}px rgba(255,215,97,${0.35 + 0.6 * starShine}))`, transition: 'opacity 700ms ease-out 250ms, filter 700ms ease-out 250ms' }}
+    <span ref={wrapRef} className="block w-full">
+      {/* a folga dos lados (a asa do Patrono passa da ponta da escala) vaza para a margem da coluna */}
+      <span className="flex justify-center md:justify-start" style={{ marginInline: -(layout.bodyX * SCALE) }}>
+        <canvas
+          ref={canvasRef}
+          width={layout.width}
+          height={layout.height}
+          role="img"
+          aria-label={label}
+          title={ready ? label : undefined}
+          className="block shrink-0"
+          style={{ width: layout.width * SCALE, height: layout.height * SCALE, imageRendering: 'pixelated' }}
         />
-
-        {/* a agulha */}
-        <g ref={handRef} style={{ opacity: reduceMotion && !ready ? 0 : 1, transition: 'opacity 300ms ease-out' }}>
-          <path ref={needleRef} fill="#FFF8E8" stroke={NIGHT} strokeWidth="0.6" strokeLinejoin="round" />
-          {/* o cubo da agulha: um anel, como o eixo de um ponteiro */}
-          <circle ref={footRef} r="2.7" fill={NIGHT} stroke="#FFF8E8" strokeWidth="1.3" />
-        </g>
-      </svg>
+      </span>
     </span>
   );
 };

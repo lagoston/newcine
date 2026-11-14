@@ -226,7 +226,7 @@ const Shelf: React.FC<ShelfProps> = ({ title, subtitle, movies, onNearView, meta
                         ficava ali, saiu: duas linhas no pé se confundiam, e o oráculo
                         continua no retrato com o contorno na cor dele e na sombra. */}
                     {meta === 'forYou' && typeof forYouInfo?.[movieKey(movie)]?.predicted === 'number' && (
-                      <FateThread rating={forYouInfo[movieKey(movie)].predicted as number} />
+                      <FateThread rating={forYouInfo[movieKey(movie)].predicted as number} runKey={movieKey(movie)} />
                     )}
                     {(() => {
                       const oracle = forYouOracle(movie);

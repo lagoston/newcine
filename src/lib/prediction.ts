@@ -10,63 +10,62 @@
 // 0.287 → "29%"; abaixo de 0,5% → "<1%"
 export const formatChance = (chance: number): string => (chance < 0.005 ? '<1%' : `${Math.round(chance * 100)}%`);
 
-// O espectro do Oráculo (14/11/2026, pedido do Bruno): "Números absolutos
-// são cartesianos demais para o CineOracle; eles não têm alma." A previsão
-// deixou de ser um número e virou cor e posição:
-//   • no menu do título, o Astrolábio (PredictionGauge): um arco com o
-//     espectro e uma agulha que dança e trava onde a nota deve cair;
+// A previsão sem número (14/11/2026, pedido do Bruno): "Números absolutos
+// são cartesianos demais para o CineOracle; eles não têm alma." A nota
+// prevista deixou de ser um algarismo e virou cor e posição:
+//   • no menu do título, o Espectrômetro (PredictionGauge): onze lâmpadas, uma
+//     por nota, e o Patrono da pessoa pousando onde a nota deve cair;
 //   • nas capas, o Fio do Destino (FateThread): uma linha fina na base do
-//     pôster, com uma centelha que para na posição da nota.
-// Os dois leem a mesma paleta, pedida por ele para fugir do vermelho/verde:
-// azul gélido e nebuloso (nota baixa), púrpura (nota média) e dourado
-// incandescente (o 10). Entre o púrpura e o dourado a cor passa por magenta e
-// âmbar: a mistura direta dos dois dá um marrom apagado.
-
-// A cor de cada nota inteira, de 0 a 10.
-export const ORACLE_SPECTRUM: string[] = [
-  '#6F87A6', // 0  azul nebuloso
-  '#6996C6', // 1
-  '#62A6E8', // 2  azul gélido
-  '#5E8FF0', // 3
-  '#6E79F5', // 4  anil
-  '#8667F6', // 5  púrpura
-  '#A05AF5', // 6
-  '#C051EA', // 7  púrpura quente
-  '#E659B0', // 8  magenta
-  '#F99F3F', // 9  âmbar
-  '#FFD761', // 10 dourado incandescente
-];
-
-const channels = (hex: string): [number, number, number] => {
-  const n = parseInt(hex.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-};
-
-// A cor do espectro numa nota qualquer (7,4 fica entre a do 7 e a do 8).
-export function spectrumColor(rating: number): string {
-  const at = Math.min(10, Math.max(0, rating));
-  const low = Math.floor(at);
-  const high = Math.min(10, low + 1);
-  const a = channels(ORACLE_SPECTRUM[low]);
-  const b = channels(ORACLE_SPECTRUM[high]);
-  const mix = at - low;
-  return `rgb(${a.map((value, i) => Math.round(value + (b[i] - value) * mix)).join(',')})`;
-}
+//     pôster, com uma centelha parada na posição da nota.
+// As cores são as que o site já usa para nota (ratingTone e ratingBarColor,
+// em oracleTheme.ts — as mesmas das prateleiras da biblioteca): cinza no 0,
+// vermelho de 1 a 3, amarelo de 4 a 6, verde de 7 a 9 e rosa no 10. A
+// primeira versão, do mesmo dia, usava uma paleta própria (azul, púrpura,
+// dourado); o Bruno pediu para voltar ao padrão do site.
 
 // A largura da previsão. O modelo (predict_ratings, no banco) trata a nota
 // que a pessoa daria como uma curva em torno da expectativa (mu), com a
 // largura do ruído pessoal (sigma) — o quanto as notas dela costumam fugir do
 // que o modelo esperava. A chance de a nota passar de x é
 //   1 / (1 + exp(-1,702 · (mu − x) / sigma)),
-// a mesma conta que o banco usa para a chance de 9 ou 10. Dessa curva sai a
-// região onde a nota impera: a faixa em volta da expectativa que guarda
-// metade da chance (mu ± 0,645 · sigma). É o trecho do arco que acende.
+// a mesma conta que o banco usa para a chance de 9 ou 10.
 
 // Largura usada quando o banco não manda a da pessoa (a mediana das contas
 // reais em 14/11/2026; elas vão de 1,0 a 2,0).
 export const DEFAULT_SIGMA = 1.5;
 
-export function reigningRange(mu: number, sigma: number | null): [number, number] {
-  const half = 0.645 * (sigma !== null && sigma > 0 ? sigma : DEFAULT_SIGMA);
-  return [Math.max(0, mu - half), Math.min(10, mu + half)];
+const chanceAbove = (x: number, mu: number, sigma: number) => 1 / (1 + Math.exp((-1.702 * (mu - x)) / sigma));
+
+// A chance de cada nota inteira, de 0 a 10 (soma 1). A do 10 é a que o banco
+// calculou (ele dá um desconto próprio ao 10); as outras saem da curva e são
+// acertadas para o total fechar.
+export function ratingSpectrum(mu: number, sigma: number | null, tenChance: number | null): number[] {
+  const width = sigma !== null && sigma > 0 ? sigma : DEFAULT_SIGMA;
+  const lower: number[] = [];
+  for (let rating = 0; rating <= 9; rating += 1) {
+    const from = rating === 0 ? 1 : chanceAbove(rating - 0.5, mu, width);
+    lower.push(Math.max(0, from - chanceAbove(rating + 0.5, mu, width)));
+  }
+  const ten = tenChance !== null && tenChance >= 0 && tenChance <= 1 ? tenChance : chanceAbove(9.5, mu, width);
+  const rest = lower.reduce((sum, chance) => sum + chance, 0) || 1;
+  return [...lower.map((chance) => (chance / rest) * (1 - ten)), ten];
+}
+
+// As lâmpadas do Espectrômetro: 2 = acesa (a nota tem 15% de chance ou mais
+// de cair ali), 1 = meia-luz (5% ou mais), 0 = apagada. A lâmpada da nota
+// prevista fica sempre acesa. Com as larguras reais das contas (1,0 a 2,0)
+// isso dá de duas a três lâmpadas acesas e duas a quatro a meia-luz: quem dá
+// notas previsíveis vê um trecho curto; quem varia mais, um trecho largo.
+export function lampLevels(predicted: number, mu: number | null, sigma: number | null, tenChance: number | null): number[] {
+  const chances = ratingSpectrum(mu ?? predicted, sigma, tenChance);
+  return chances.map((chance, rating) => (rating === predicted || chance >= 0.15 ? 2 : chance >= 0.05 ? 1 : 0));
+}
+
+// Onde o Patrono pousa: dentro da lâmpada da nota prevista, mais para um lado
+// ou para o outro conforme a expectativa. (A nota prevista pode ser maior que
+// a expectativa arredondada: ela sobe para 9 ou 10 quando a chance é alta.
+// Nesse caso o pouso fica na beirada de baixo da lâmpada.)
+export function landingSpot(predicted: number, mu: number | null): number {
+  if (mu === null || !Number.isFinite(mu)) return predicted;
+  return Math.min(predicted + 0.3, Math.max(predicted - 0.3, mu));
 }

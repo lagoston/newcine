@@ -1555,18 +1555,21 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // oráculo) vem primeiro e é o destaque; depois a nota do público.
   //
   // 14/11/2026 (pedido do Bruno): a nota prevista e a chance de virar 10
-  // deixaram de ser dois números e viraram o Astrolábio do Oráculo, no
-  // lugar das duas colunas — um arco com o espectro (azul, púrpura, dourado)
-  // e uma agulha que dança e trava onde a nota deve cair (PredictionGauge).
-  // A sua nota e a do público continuam em número.
+  // deixaram de ser dois números e viraram um aparelho, no lugar das duas
+  // colunas: o Espectrômetro (PredictionGauge) — onze lâmpadas, uma por nota,
+  // nas cores de nota do site, e o Patrono da pessoa (a mariposa dela, feita
+  // de luz) pousando onde a nota deve cair. A sua nota e a do público
+  // continuam em número.
   //
   // Lugares fixos: assim que se sabe se você já avaliou (consulta rápida),
-  // o placar entra com as colunas definidas — 3 (o astrolábio ocupa duas, e
-  // o público) ou 2 (sua nota, público). A previsão demora mais: enquanto
-  // ela não chega, a agulha varre o arco; quando chega, trava. Sem previsão
-  // (quem ainda não avaliou o suficiente), a 1ª coluna ocupa o lugar das
-  // duas — o público nunca sai do lugar. Com o astrolábio o placar fica um
-  // pouco mais alto, e os nomes de baixo se alinham pelo pé das colunas.
+  // o placar entra com as colunas definidas — 3 (o aparelho ocupa duas, e o
+  // público) ou 2 (sua nota, público). A previsão demora mais: enquanto ela
+  // não chega, o aparelho fica apagado com uma fagulha em cima do cursor;
+  // quando chega, a fagulha vira a mariposa e ela voa até a nota. Sem
+  // previsão (quem ainda não avaliou o suficiente), a 1ª coluna ocupa o
+  // lugar das duas — o público nunca sai do lugar. Com o aparelho o placar
+  // fica mais alto (80 px de desenho), e os nomes de baixo se alinham pelo pé
+  // das colunas.
   type ScoreCell = {
     key: string;
     value?: React.ReactNode;
@@ -1590,16 +1593,16 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const scoreCols = !loggedIn ? 1 : hasRated ? 2 : inOraclePools ? 3 : 1;
   const scoreCells: ScoreCell[] = [];
   if (loggedIn && scoreReady && (hasRated || inOraclePools)) {
-    // O astrolábio fica sempre no mesmo lugar da árvore (mesma chave, mesmo
-    // componente) enquanto carrega e depois: a agulha que estava varrendo é
-    // a mesma que trava quando a previsão chega.
+    // O aparelho fica sempre no mesmo lugar da árvore (mesma chave, mesmo
+    // componente) enquanto carrega e depois: a fagulha que estava esperando
+    // é a mesma que vira mariposa quando a previsão chega.
     const gaugeCell = (pending: boolean): ScoreCell => ({
       key: 'slot1',
       label: t('movieModal.score.predicted'),
       labelIcon: <Wand2 className="inline-block w-3.5 h-3.5 mr-1 -mt-0.5 text-violet-300" aria-hidden />,
       color: '#C4B5FD',
       span: 2,
-      node: <PredictionGauge predicted={predictedRating} mu={predictionSpread.mu} sigma={predictionSpread.sigma} tenChance={tenChance} pending={pending} />,
+      node: <PredictionGauge predicted={predictedRating} mu={predictionSpread.mu} sigma={predictionSpread.sigma} tenChance={tenChance} pending={pending} userId={session?.user?.id} />,
     });
     if (hasRated) {
       scoreCells.push({ key: 'slot1', value: userRating, label: t('movieModal.score.yours'), color: PAPER, icon: <Star className="w-4 h-4 fill-current" aria-hidden /> });
@@ -1622,7 +1625,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   });
   // flex-col-reverse + justify-end: o número fica sempre no alto da coluna,
   // na mesma altura nas três, mesmo com nome de uma ou duas linhas. Com o
-  // astrolábio (mais alto que um número) é o contrário: justify-start, tudo
+  // aparelho (mais alto que um número) é o contrário: justify-start, tudo
   // assentado no pé, para o nome do público ficar na linha do nome dele.
   const hasGauge = scoreCells.some((cell) => cell.node);
   const scoreCellClass = `flex flex-col-reverse ${hasGauge ? 'justify-start' : 'justify-end'} items-center md:items-start px-3 sm:px-5 md:first:pl-0 border-l border-white/10 first:border-l-0`;
@@ -1992,7 +1995,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                   )}
 
                   {/* Placar (lugar reservado desde a abertura) */}
-                  <div className={`mt-5 transition-[min-height] duration-300 ${hasGauge || (loggedIn && !scoreReady) ? 'min-h-[5.4rem]' : 'min-h-[4.6rem]'}`}>
+                  <div className={`mt-5 transition-[min-height] duration-300 ${hasGauge || (loggedIn && !scoreReady) ? 'min-h-[6.5rem]' : 'min-h-[4.6rem]'}`}>
                     {scoreReady && (
                       <motion.dl
                         initial={{ opacity: 0, y: 4 }}

@@ -974,57 +974,12 @@ img[loading="lazy"] {
   }
 }
 
-/* Astrolábio do Oráculo (menu do título, 14/11/2026): quando a previsão é 10
-   o arco pulsa (uma cópia borrada dele respira) e a estrela da ponta dourada
-   cintila, no mesmo compasso em que a agulha treme. Só opacity e transform,
-   em duas peças pequenas. Para quem pede menos movimento, fica aceso e parado. */
-.astrolabe-pulse {
-  animation: astrolabe-pulse 2.4s ease-in-out 0.6s infinite backwards;
-}
-.astrolabe-star {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: astrolabe-star 2.4s ease-in-out 0.6s infinite backwards;
-}
-@keyframes astrolabe-pulse {
-  0%,
-  100% {
-    opacity: 0.2;
-  }
-  14% {
-    opacity: 0.9;
-  }
-  46% {
-    opacity: 0.32;
-  }
-}
-@keyframes astrolabe-star {
-  0%,
-  100% {
-    transform: scale(1) rotate(0deg);
-  }
-  14% {
-    transform: scale(1.4) rotate(20deg);
-  }
-  46% {
-    transform: scale(1.06) rotate(0deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .astrolabe-pulse {
-    animation: none;
-    opacity: 0.45;
-  }
-  .astrolabe-star {
-    animation: none;
-  }
-}
-
 /* Fio do Destino (a nota prevista nas capas, 14/11/2026): uma linha fina na
-   base do pôster, na cor da previsão (--fate-color), com uma centelha parada
-   na posição da nota (--fate-stop). Em repouso fica discreto; com o mouse, o
-   toque ou o foco (data-lit) o fio acende. A corrida da centelha é disparada
-   pelo componente (FateThread). Uma sombra curta por baixo garante a leitura
+   base do pôster, na cor da nota no padrão do site (--fate-color é o tom
+   claro de ratingTone; --fate-deep, o fechado de ratingBarColor), com uma
+   centelha parada na posição da nota (--fate-stop). A corrida da centelha
+   acontece uma vez só, quando a capa aparece (FateThread); depois disso nada
+   se mexe e nada reage ao mouse. Uma sombra curta por baixo garante a leitura
    em pôster claro. */
 .fate-thread {
   position: absolute;
@@ -1040,7 +995,7 @@ img[loading="lazy"] {
 .fate-thread__shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(10, 6, 22, 0.74), rgba(10, 6, 22, 0));
+  background: linear-gradient(to top, rgba(10, 6, 22, 0.78), rgba(10, 6, 22, 0));
 }
 /* o trilho para antes dos cantos arredondados do pôster */
 .fate-thread__track {
@@ -1054,9 +1009,8 @@ img[loading="lazy"] {
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: var(--fate-color);
-  opacity: 0.24;
-  transition: opacity 200ms ease-out, box-shadow 200ms ease-out;
+  background: var(--fate-deep);
+  opacity: 0.5;
 }
 /* translateX em % vale sobre a largura do próprio trilho */
 .fate-thread__runner {
@@ -1072,28 +1026,15 @@ img[loading="lazy"] {
   width: var(--fate-tail);
   border-radius: 999px;
   background: linear-gradient(90deg, transparent, var(--fate-color));
-  opacity: 0.85;
-  transition: opacity 200ms ease-out, box-shadow 200ms ease-out;
 }
+/* a centelha: um losango de luz (o Patrono em forma de fagulha) */
 .fate-thread__spark {
   position: absolute;
   left: -3px;
   top: -1.5px;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff 0 34%, var(--fate-color) 70%);
-  box-shadow: 0 0 5px 1px var(--fate-color);
-  transition: box-shadow 200ms ease-out;
-}
-.fate-thread[data-lit='true'] .fate-thread__line {
-  opacity: 0.6;
-  box-shadow: 0 0 7px var(--fate-color);
-}
-.fate-thread[data-lit='true'] .fate-thread__tail {
-  opacity: 1;
-  box-shadow: 0 0 8px var(--fate-color);
-}
-.fate-thread[data-lit='true'] .fate-thread__spark {
-  box-shadow: 0 0 10px 3px var(--fate-color), 0 0 3px 1px #fff;
+  transform: rotate(45deg);
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--fate-color), 0 0 6px 2px var(--fate-deep);
 }

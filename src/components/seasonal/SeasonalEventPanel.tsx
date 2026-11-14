@@ -308,7 +308,7 @@ const SeasonalEventPanel: React.FC<Props> = ({ event, theme, onMovieClick, switc
     // 14/11/2026: a nota prevista é o Fio do Destino, na base da capa (antes,
     // o selo violeta com o número).
     const prediction = predictions[movieId];
-    if (typeof prediction === 'number') return <FateThread rating={prediction} />;
+    if (typeof prediction === 'number') return <FateThread rating={prediction} runKey={`movie:${movieId}`} />;
     return null;
   };
 

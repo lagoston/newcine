@@ -174,7 +174,7 @@ const OracleRow: React.FC<{
                           </span>
                         </span>
                       )}
-                      <PosterMarks predicted={pick.rating} inWatchlist={pick.inWatchlist} />
+                      <PosterMarks predicted={pick.rating} inWatchlist={pick.inWatchlist} runKey={`${pick.type}:${pick.id}`} />
                       {/* As bolhas dos amigos (como na home); duas no máximo, o pôster aqui é pequeno. */}
                       <FloatingFriendBubbles
                         movieId={pick.id}

@@ -535,7 +535,7 @@ const RatingBox: React.FC<RatingBoxProps> = ({
 
                         {predicted !== null ? (
                           // o fio fica por cima da barra de episódios das séries (6 px)
-                          <FateThread rating={predicted} lift={tv ? 6 : 0} />
+                          <FateThread rating={predicted} lift={tv ? 6 : 0} runKey={titleKey(entry)} />
                         ) : showOwnRating ? (
                           <span
                             className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 pl-1 pr-1.5 py-0.5 rounded-full text-xs font-semibold shadow-lg"

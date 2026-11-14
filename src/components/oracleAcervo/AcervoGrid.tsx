@@ -40,14 +40,14 @@ export const SkeletonTile: React.FC = () => (
 // (14/11/2026: saiu o selo violeta com o número); `guess` (de 3 a 9 notas) é
 // o mesmo fio, mais apagado — um palpite; `hidden` (menos de 3) continua com
 // o "?" discreto no alto.
-const PredMark: React.FC<{ label: PredLabel; pred: number | null; inWatchlist: boolean }> = ({ label, pred, inWatchlist }) => {
+const PredMark: React.FC<{ label: PredLabel; pred: number | null; inWatchlist: boolean; runKey: string }> = ({ label, pred, inWatchlist, runKey }) => {
   const { t } = useTranslation();
-  if (label === 'number') return <PosterMarks predicted={pred} inWatchlist={inWatchlist} />;
+  if (label === 'number') return <PosterMarks predicted={pred} inWatchlist={inWatchlist} runKey={runKey} />;
   const quiet = 'inline-flex items-center h-[18px] px-1.5 rounded-full text-[11px] leading-none ring-1 ring-white/15 shadow';
   return (
     <>
       {label === 'guess' && pred !== null ? (
-        <FateThread rating={pred} quiet label={t('acervo.pred.guessAria', { n: pred })} />
+        <FateThread rating={pred} quiet label={t('acervo.pred.guessAria', { n: pred })} runKey={runKey} />
       ) : label === 'hidden' ? (
         <span className="absolute top-1.5 left-1.5 pointer-events-none">
           <span className={`${quiet} justify-center w-[18px] !px-0`} style={{ ...PIXEL, background: `${NIGHT}E6`, color: MIST }} aria-label={t('acervo.pred.hiddenAria')}>
@@ -146,7 +146,7 @@ const AcervoGrid: React.FC<AcervoGridProps> = ({ shelf, userId, moodShelf, openi
                       </span>
                     </span>
                   )}
-                  <PredMark label={shelf.predLabel} pred={item.pred} inWatchlist={item.in_watchlist} />
+                  <PredMark label={shelf.predLabel} pred={item.pred} inWatchlist={item.in_watchlist} runKey={key} />
                   <FloatingFriendBubbles movieId={item.tmdb_id} mediaType={item.media_type} friends={friendActivity[friendKey(ref)] ?? []} placement="belowBadges" />
                   {opening && (
                     <span className="absolute inset-0 grid place-items-center bg-black/45" aria-hidden>
