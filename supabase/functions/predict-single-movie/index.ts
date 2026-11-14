@@ -9,6 +9,28 @@ import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 // A fórmula (v4) mora no banco, na função predict_ratings — ver as migrações
 // 20261003200000_prediction_v4.sql, 20261003210000_prediction_v4_cut.sql e
 // 20261003220000_prediction_ten_chance.sql.
+//
+// 14/11/2026 (pedido do Bruno): o menu do título trocou os dois números por
+// um medidor — a barra com o espectro das notas e a agulha oscilando. Para
+// desenhar isso o menu precisa da expectativa (mu) e da largura da previsão
+// (sigma, o ruído pessoal). O mu o banco já devolve; o sigma ele usa mas não
+// devolve, então sai aqui da própria chance que ele calculou:
+//   chance de 9 ou 10 = 1 / (1 + exp(-1,702 · (mu − 8,5) / sigma))
+//   chance de 10      = 1 / (1 + exp(-(1,702 · (mu − 9,5) / sigma − 0,4)))
+// Vale a que estiver mais longe do próprio limiar (perto dele a conta vira
+// 0/0). Só campos novos na resposta: os apps antigos seguem como estavam.
+
+const logit = (p: number) => Math.log(p / (1 - p));
+const between = (p: number | null): p is number => p !== null && p > 0 && p < 1;
+
+function predictionWidth(mu: number | null, chance9plus: number | null, chance10: number | null): number | null {
+  if (mu === null || !Number.isFinite(mu)) return null;
+  const from9 = between(chance9plus) ? (1.702 * (mu - 8.5)) / logit(chance9plus) : NaN;
+  const from10 = between(chance10) ? (1.702 * (mu - 9.5)) / (logit(chance10) + 0.4) : NaN;
+  const ordered = Math.abs(mu - 8.5) >= Math.abs(mu - 9.5) ? [from9, from10] : [from10, from9];
+  const sigma = ordered.find((value) => Number.isFinite(value) && value > 0.2 && value < 6);
+  return sigma === undefined ? null : sigma;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,7 +99,7 @@ Deno.serve(async (req) => {
     if (predictionError) throw new Error(`Prediction: ${predictionError.message}`);
 
     const row = (rows || [])[0] as
-      | { predicted_rating: number | null; chance_9plus: number | null; chance_10: number | null }
+      | { mu: number | null; predicted_rating: number | null; chance_9plus: number | null; chance_10: number | null }
       | undefined;
     if (!row) return json({ inPool: true, predictedRating: null, reason: 'movie_not_cached' });
 
@@ -85,6 +107,9 @@ Deno.serve(async (req) => {
     return json({
       inPool: true,
       predictedRating: row.predicted_rating,
+      // a expectativa do modelo e a largura da previsão (para o medidor)
+      mu: round3(row.mu),
+      sigma: round3(predictionWidth(row.mu, row.chance_9plus, row.chance_10)),
       // chance de nota 10 (0 a 1)
       tenChance: round3(row.chance_10),
       // chance de 9 ou 10 — mantida pra versões antigas do app

@@ -973,3 +973,38 @@ img[loading="lazy"] {
     display: none;
   }
 }
+
+/* Medidor da nota prevista (menu do título, 14/11/2026): a agulha balança
+   em volta da expectativa. O tamanho do balanço vem de --gauge-swing (uma
+   fração da largura da barra, calculada da incerteza da previsão). São duas
+   camadas com tempos que não casam, para o movimento não parecer um pêndulo:
+   o vaivém lento e um tremor curto por cima. Só transform, numa peça pequena.
+   Parada para quem pede menos movimento. */
+.gauge-sway {
+  animation: gauge-sway 2.9s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+.gauge-wobble {
+  animation: gauge-wobble 1.13s cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
+}
+@keyframes gauge-sway {
+  from {
+    transform: translateX(calc(var(--gauge-swing, 5%) * -1));
+  }
+  to {
+    transform: translateX(var(--gauge-swing, 5%));
+  }
+}
+@keyframes gauge-wobble {
+  from {
+    transform: translateX(calc(var(--gauge-swing, 5%) * -0.28));
+  }
+  to {
+    transform: translateX(calc(var(--gauge-swing, 5%) * 0.28));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gauge-sway,
+  .gauge-wobble {
+    animation: none;
+  }
+}

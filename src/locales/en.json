@@ -1782,7 +1782,10 @@
       "predicted": "Predicted for you",
       "tenChance": "Chance of a 10",
       "public": "Audience (TMDB)",
-      "noPrediction": "No prediction"
+      "noPrediction": "No prediction",
+      "gaugeAria": "Predicted rating for you: {{rating}}. Chance of a 10: {{chance}}.",
+      "gaugeAriaPlain": "Predicted rating for you: {{rating}}.",
+      "gaugePending": "Working out your predicted rating"
     },
     "genres": "Genres",
     "oracleShelf": "Oracles' shelf",

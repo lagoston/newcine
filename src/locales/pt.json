@@ -1787,7 +1787,10 @@
       "predicted": "Prevista para você",
       "tenChance": "Chance de virar 10",
       "public": "Público (TMDB)",
-      "noPrediction": "Sem previsão"
+      "noPrediction": "Sem previsão",
+      "gaugeAria": "Nota prevista para você: {{rating}}. Chance de virar 10: {{chance}}.",
+      "gaugeAriaPlain": "Nota prevista para você: {{rating}}.",
+      "gaugePending": "Calculando a nota prevista para você"
     },
     "genres": "Gêneros",
     "oracleShelf": "Prateleira dos oráculos",

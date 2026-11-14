@@ -4,9 +4,9 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   X, Star, Loader2, Film, Instagram, Tv, Send, MessageSquare, Play, ChevronRight,
-  ChevronDown, Wand2, Plus, Check, Eye, Layers, Sparkles,
+  ChevronDown, Wand2, Plus, Check, Eye, Layers, 
 } from 'lucide-react';
-import { formatChance } from '../lib/prediction';
+import PredictionGauge from './PredictionGauge';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget, ensureMovieCachedIfMissing, getTVSeasons } from '../lib/tmdb';
 import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
 import { getPeoplePhotos, getStoredPersonPhoto } from '../lib/peoplePhotos';
@@ -212,6 +212,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // Chance de o título virar nota 10 da pessoa (0 a 1) — aparece no menu
   // quando a nota prevista é 9 ou menos (ver lib/prediction).
   const [tenChance, setTenChance] = useState<number | null>(null);
+  // A expectativa e a largura da previsão (14/11/2026): o medidor do placar
+  // desenha o espectro das notas e o balanço da agulha a partir delas.
+  const [predictionSpread, setPredictionSpread] = useState<{ mu: number | null; sigma: number | null }>({ mu: null, sigma: null });
   const [predictionLoading, setPredictionLoading] = useState(true);
   const [movieMoodKey, setMovieMoodKey] = useState<string | null>(null);
   // A prateleira já foi consultada (a linha de gêneros espera por ela, pra
@@ -847,6 +850,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     setPredictionLoading(true);
     setPredictedRating(null);
     setTenChance(null);
+    setPredictionSpread({ mu: null, sigma: null });
 
     try {
       const { data, error } = await supabase.functions.invoke('predict-single-movie', {
@@ -857,10 +861,15 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       const inPool = Boolean(data?.inPool) && typeof data?.predictedRating === 'number';
       setPredictedRating(inPool ? data.predictedRating : null);
       setTenChance(inPool && typeof data?.tenChance === 'number' ? data.tenChance : null);
+      setPredictionSpread({
+        mu: inPool && typeof data?.mu === 'number' ? data.mu : null,
+        sigma: inPool && typeof data?.sigma === 'number' ? data.sigma : null,
+      });
     } catch (error) {
       console.error('Error loading predicted rating:', error);
       setPredictedRating(null);
       setTenChance(null);
+      setPredictionSpread({ mu: null, sigma: null });
     } finally {
       setPredictionLoading(false);
     }
@@ -1542,17 +1551,22 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   );
 
   // Placar logo abaixo do título: números grandes com o nome embaixo, sem
-  // cápsulas, separados por fios finos. A sua nota (ou a prevista pelo
-  // oráculo) vem primeiro e é o destaque; depois a chance de virar 10 (só
-  // com nota prevista até 9) e a nota do público.
+  // cápsulas, separados por fios finos. A sua nota (ou a previsão do
+  // oráculo) vem primeiro e é o destaque; depois a nota do público.
+  //
+  // 14/11/2026 (pedido do Bruno): a nota prevista e a chance de virar 10
+  // deixaram de ser dois números e viraram um medidor só, no lugar das duas
+  // colunas — a barra com o espectro das notas e a agulha oscilando onde a
+  // nota deve cair (PredictionGauge). A sua nota e a do público continuam
+  // em número.
   //
   // Lugares fixos: assim que se sabe se você já avaliou (consulta rápida),
-  // o placar entra com as colunas definidas — 3 (prevista, chance, público)
-  // ou 2 (sua nota, público). A previsão demora mais: enquanto ela não
-  // chega, os nomes já aparecem com um esqueleto no lugar do número, e o
-  // número entra com um fade. Se não houver chance de 10 (nota prevista
-  // 10) ou previsão (fora das prateleiras), a 1ª coluna ocupa o lugar das
-  // duas — o público nunca sai do lugar.
+  // o placar entra com as colunas definidas — 3 (o medidor ocupa duas, e o
+  // público) ou 2 (sua nota, público). A previsão demora mais: enquanto ela
+  // não chega, o medidor já aparece apagado, com a agulha no zero; quando
+  // chega, as notas acendem e a agulha sobe. Sem previsão (quem ainda não
+  // avaliou o suficiente), a 1ª coluna ocupa o lugar das duas — o público
+  // nunca sai do lugar.
   type ScoreCell = {
     key: string;
     value?: React.ReactNode;
@@ -1562,6 +1576,9 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     glow?: string;
     span?: 2;
     pending?: boolean;
+    // no lugar do número (o medidor da nota prevista)
+    node?: React.ReactNode;
+    labelIcon?: React.ReactNode;
   };
   const loggedIn = !!session?.user;
   // Título fora das prateleiras dos oráculos: não existe previsão para ele,
@@ -1573,25 +1590,23 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   const scoreCols = !loggedIn ? 1 : hasRated ? 2 : inOraclePools ? 3 : 1;
   const scoreCells: ScoreCell[] = [];
   if (loggedIn && scoreReady && (hasRated || inOraclePools)) {
-    const predictedCell = (span?: 2): ScoreCell => ({
+    // O medidor fica sempre no mesmo lugar da árvore (mesma chave, mesmo
+    // componente) enquanto carrega e depois: é isso que deixa a agulha subir
+    // do zero e as notas acenderem quando a previsão chega.
+    const gaugeCell = (pending: boolean): ScoreCell => ({
       key: 'slot1',
-      value: predictedRating,
       label: t('movieModal.score.predicted'),
+      labelIcon: <Wand2 className="inline-block w-3.5 h-3.5 mr-1 -mt-0.5 text-violet-300" aria-hidden />,
       color: '#C4B5FD',
-      glow: 'rgba(139,92,246,0.6)',
-      icon: <Wand2 className="w-4 h-4" aria-hidden />,
-      span,
+      span: 2,
+      node: <PredictionGauge predicted={predictedRating} mu={predictionSpread.mu} sigma={predictionSpread.sigma} tenChance={tenChance} pending={pending} />,
     });
     if (hasRated) {
       scoreCells.push({ key: 'slot1', value: userRating, label: t('movieModal.score.yours'), color: PAPER, icon: <Star className="w-4 h-4 fill-current" aria-hidden /> });
     } else if (predictionLoading) {
-      scoreCells.push({ key: 'slot1', label: t('movieModal.score.predicted'), color: '#C4B5FD', pending: true });
-      scoreCells.push({ key: 'slot2', label: t('movieModal.score.tenChance'), color: PAPER, pending: true });
-    } else if (predictedRating !== null && predictedRating <= 9 && tenChance !== null) {
-      scoreCells.push(predictedCell());
-      scoreCells.push({ key: 'slot2', value: formatChance(tenChance), label: t('movieModal.score.tenChance'), color: PAPER, icon: <Sparkles className="w-4 h-4 text-violet-300" aria-hidden /> });
+      scoreCells.push(gaugeCell(true));
     } else if (predictedRating !== null) {
-      scoreCells.push(predictedCell(2));
+      scoreCells.push(gaugeCell(false));
     } else if (isInLibrary) {
       scoreCells.push({ key: 'slot1', value: <Eye className="w-7 h-7" aria-hidden />, label: t('home.desk.inWatchlist'), color: '#BAE6FD', span: 2 });
     } else {
@@ -1986,10 +2001,13 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
                         {scoreCells.map((cell) => (
                           <div key={cell.key} className={`${scoreCellClass} ${cell.span === 2 ? 'col-span-2' : ''}`}>
                             <dt className="mt-1.5 text-xs leading-snug text-center md:text-left" style={{ color: MIST }}>
+                              {cell.labelIcon}
                               {cell.label}
                             </dt>
-                            <dd className="h-[1.9rem] flex items-center" style={{ color: cell.color }}>
-                              {cell.pending ? (
+                            <dd className={`h-[1.9rem] flex items-center ${cell.node ? 'w-full' : ''}`} style={{ color: cell.color }}>
+                              {cell.node ? (
+                                cell.node
+                              ) : cell.pending ? (
                                 <span className="block h-7 w-12 rounded-md animate-pulse" style={{ background: VELVET }} aria-hidden />
                               ) : (
                                 <motion.span
