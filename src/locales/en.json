@@ -1754,7 +1754,8 @@
       "noPrediction": "No prediction",
       "gaugeAria": "Predicted rating for you: {{rating}}. Chance of a 10: {{chance}}.",
       "gaugeAriaPlain": "Predicted rating for you: {{rating}}.",
-      "gaugePending": "Working out your predicted rating"
+      "gaugePending": "Working out your predicted rating",
+      "gaugeOutside": "Outside the oracles' shelves: a wider guess."
     },
     "genres": "Genres",
     "oracleShelf": "Oracles' shelf",

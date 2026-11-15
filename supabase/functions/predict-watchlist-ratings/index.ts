@@ -1,9 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 
 // Nota prevista de VÁRIOS títulos de uma vez (Filtro do Oráculo na
-// Watchlist). Só títulos que estão em alguma prateleira dos oráculos
-// recebem previsão: filmes (movieIds) em recommendation_pools.movie_ids,
-// séries (seriesIds) em recommendation_pools.tv_ids.
+// Watchlist). Títulos que estão em alguma prateleira dos oráculos recebem a
+// v4: filmes (movieIds) em recommendation_pools.movie_ids, séries
+// (seriesIds) em recommendation_pools.tv_ids. Filmes de fora: ver abaixo.
 //
 // Resposta: { ratings, chances } pros filmes e { seriesRatings,
 // seriesChances } pras séries, todos no formato { id: valor }. "chances" é
@@ -11,6 +11,12 @@ import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 //
 // A fórmula (v4) mora no banco, na função predict_ratings_v4 — ver a
 // migração 20261003200000_prediction_v4.sql.
+//
+// 15/11/2026 (pedido do Bruno: previsão também para os filmes fora das
+// prateleiras): filmes de fora com nota do público e 20+ votos entram pela
+// fórmula paralela, predict_ratings_outside (mais aberta, sem o selo 9/10 —
+// ver 20261115233000_prediction_outside_shelves.sql). Séries de fora
+// continuam sem previsão.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -83,6 +89,7 @@ Deno.serve(async (req) => {
     });
 
     const moviesInPool = movieIds.filter((id) => pooledMovies.has(id));
+    const moviesOutside = movieIds.filter((id) => !pooledMovies.has(id));
     const seriesInPool = seriesIds.filter((id) => pooledSeries.has(id));
 
     const predict = (mediaType: 'movie' | 'tv', ids: number[]) =>
@@ -90,9 +97,15 @@ Deno.serve(async (req) => {
         ? supabase.rpc('predict_ratings_v4', { p_user_id: userId, p_media_type: mediaType, p_ids: ids })
         : Promise.resolve({ data: [] as PredictionRow[], error: null });
 
-    const [moviesRes, seriesRes] = await Promise.all([predict('movie', moviesInPool), predict('tv', seriesInPool)]);
+    const outside = moviesOutside.length > 0
+      ? supabase.rpc('predict_ratings_outside', { p_user_id: userId, p_ids: moviesOutside })
+      : Promise.resolve({ data: [] as PredictionRow[], error: null });
+
+    const [moviesRes, outsideRes, seriesRes] = await Promise.all([predict('movie', moviesInPool), outside, predict('tv', seriesInPool)]);
     if (moviesRes.error) throw new Error(`Movie predictions: ${moviesRes.error.message}`);
     if (seriesRes.error) throw new Error(`Series predictions: ${seriesRes.error.message}`);
+    // a de fora é um extra: se falhar, a Watchlist segue com as da prateleira
+    if (outsideRes.error) console.error('Outside predictions:', outsideRes.error.message);
 
     const collect = (rows: PredictionRow[]) => {
       const ratings: Record<number, number> = {};
@@ -105,7 +118,10 @@ Deno.serve(async (req) => {
       return { ratings, chances };
     };
 
-    const movies = collect((moviesRes.data || []) as PredictionRow[]);
+    const movies = collect([
+      ...((moviesRes.data || []) as PredictionRow[]),
+      ...((outsideRes.error ? [] : outsideRes.data || []) as PredictionRow[]),
+    ]);
     const series = collect((seriesRes.data || []) as PredictionRow[]);
 
     return json({ ratings: movies.ratings, chances: movies.chances, seriesRatings: series.ratings, seriesChances: series.chances });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useId } from 'react';
+import React, { useState, useEffect, useId, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,8 @@ import {
   ChevronDown, Wand2, Plus, Check, Eye, Layers, 
 } from 'lucide-react';
 import PredictionGauge from './PredictionGauge';
+import { prefetchPatronus } from './patronus/patronus';
+import { fetchTitlePrediction, peekTitlePrediction, type PredictionScope } from '../lib/titlePrediction';
 import { Movie, getMovieTrailer, getMovieDetailsFromDB, getWatchedEpisodesForProfile, fetchAndStoreBudget, ensureMovieCachedIfMissing, getTVSeasons } from '../lib/tmdb';
 import { getCastPhotos, PROFILE_IMAGE_BASE } from '../lib/castPhotos';
 import { getPeoplePhotos, getStoredPersonPhoto } from '../lib/peoplePhotos';
@@ -216,6 +218,12 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // desenha o espectro das notas e o balanço da agulha a partir delas.
   const [predictionSpread, setPredictionSpread] = useState<{ mu: number | null; sigma: number | null }>({ mu: null, sigma: null });
   const [predictionLoading, setPredictionLoading] = useState(true);
+  // De onde veio a previsão (15/11/2026): 'shelf' = título de prateleira (v4),
+  // 'outside' = filme de fora, pela fórmula paralela (lib/titlePrediction).
+  const [predictionScope, setPredictionScope] = useState<PredictionScope | null>(null);
+  // de qual título é a previsão que está chegando (trocar de título no meio
+  // da conta não pode pôr a previsão do anterior no novo)
+  const predictionFor = useRef('');
   const [movieMoodKey, setMovieMoodKey] = useState<string | null>(null);
   // A prateleira já foi consultada (a linha de gêneros espera por ela, pra
   // não aparecer e depois ser empurrada).
@@ -381,6 +389,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       loadFriendRatings();
       loadUserRating();
       loadPredictedRating();
+      prefetchPatronus(session.user.id);
       loadMovieMood();
       if (movie.media_type === 'tv') {
         loadWatchedEpisodes();
@@ -838,40 +847,50 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   };
 
   // Nota Prevista para Você — mesmo modelo usado nas prateleiras da
-  // Biblioteca dos Oráculos e no Match Movie. Fica vazia (sem badge
-  // nenhum) quando o filme não está em nenhuma pool de recomendação
-  // ou quando o usuário ainda não completou o questionário de
-  // personalidade. Enquanto a previsão carrega, um skeleton do mesmo
-  // tamanho do badge final fica no lugar — sem isso, o badge só surge
-  // quando a resposta chega, empurrando repentinamente tudo que vem
-  // depois dele.
+  // Biblioteca dos Oráculos e no Match Movie. Fica vazia quando o usuário
+  // ainda não completou o questionário de personalidade, quando já avaliou,
+  // em séries fora das prateleiras e em filmes sem nota do público ou com
+  // menos de 20 votos. Enquanto a previsão carrega, o medidor fica apagado
+  // com a fagulha esperando (sem empurrar nada).
+  //
+  // 15/11/2026 (pedidos do Bruno): a previsão vem direto do banco
+  // (get_title_prediction, ~0,6 s, em vez dos 4 a 5,5 s da função de borda
+  // quando ela "acordava"), fica na memória por alguns minutos, e os filmes
+  // fora das prateleiras ganharam previsão pela fórmula paralela (mais
+  // aberta, sem o selo 9/10). A predict-single-movie continua lá para os apps
+  // antigos.
   const loadPredictedRating = async () => {
-    if (!session?.user?.id) return;
+    const userId = session?.user?.id;
+    if (!userId) return;
+    const mediaType = movie.media_type === 'tv' ? 'tv' : 'movie';
+    const key = `${mediaType}:${movie.id}`;
+    predictionFor.current = key;
+    const show = (value: Awaited<ReturnType<typeof fetchTitlePrediction>>) => {
+      setPredictedRating(value ? value.predictedRating : null);
+      setTenChance(value ? value.tenChance : null);
+      setPredictionSpread({ mu: value ? value.mu : null, sigma: value ? value.sigma : null });
+      setPredictionScope(value ? value.scope : null);
+      setPredictionLoading(false);
+    };
+
+    // já guardada: o medidor nasce com ela
+    const known = peekTitlePrediction(userId, movie.id, mediaType);
+    if (known !== undefined) {
+      show(known);
+      return;
+    }
+
     setPredictionLoading(true);
     setPredictedRating(null);
     setTenChance(null);
     setPredictionSpread({ mu: null, sigma: null });
-
+    setPredictionScope(null);
     try {
-      const { data, error } = await supabase.functions.invoke('predict-single-movie', {
-        body: { movieId: movie.id, mediaType: movie.media_type },
-      });
-
-      if (error) throw error;
-      const inPool = Boolean(data?.inPool) && typeof data?.predictedRating === 'number';
-      setPredictedRating(inPool ? data.predictedRating : null);
-      setTenChance(inPool && typeof data?.tenChance === 'number' ? data.tenChance : null);
-      setPredictionSpread({
-        mu: inPool && typeof data?.mu === 'number' ? data.mu : null,
-        sigma: inPool && typeof data?.sigma === 'number' ? data.sigma : null,
-      });
+      const value = await fetchTitlePrediction(userId, movie.id, mediaType);
+      if (predictionFor.current === key) show(value);
     } catch (error) {
       console.error('Error loading predicted rating:', error);
-      setPredictedRating(null);
-      setTenChance(null);
-      setPredictionSpread({ mu: null, sigma: null });
-    } finally {
-      setPredictionLoading(false);
+      if (predictionFor.current === key) show(null);
     }
   };
 
@@ -1570,6 +1589,10 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
   // lugar das duas — o público nunca sai do lugar. Com o aparelho o placar
   // fica mais alto (80 px de desenho), e os nomes de baixo se alinham pelo pé
   // das colunas.
+  //
+  // 15/11/2026: filmes fora das prateleiras também reservam o aparelho (a
+  // fórmula paralela), desde que tenham nota do público e 20+ votos. A dica
+  // do aparelho diz que a previsão é de fora (e o espectro sai mais aberto).
   type ScoreCell = {
     key: string;
     value?: React.ReactNode;
@@ -1584,15 +1607,23 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
     labelIcon?: React.ReactNode;
   };
   const loggedIn = !!session?.user;
-  // Título fora das prateleiras dos oráculos: não existe previsão para ele,
-  // então o placar já abre só com a nota do público (ou sua nota + público),
-  // sem reservar o lugar da previsão. Por isso o placar espera também a
-  // consulta da prateleira (rápida) antes de entrar.
+  // Série fora das prateleiras dos oráculos (ou filme sem nota do público,
+  // ou com menos de 20 votos): não existe previsão para ela, então o placar
+  // já abre só com a nota do público (ou sua nota + público), sem reservar o
+  // lugar da previsão. Por isso o placar espera também a consulta da
+  // prateleira (rápida) antes de entrar.
   const inOraclePools = moodLoaded && movieMoodKey !== null;
+  const outsidePredictable =
+    moodLoaded &&
+    movieMoodKey === null &&
+    movie.media_type !== 'tv' &&
+    movie.vote_average > 0 &&
+    (typeof movie.vote_count !== 'number' || movie.vote_count >= 20);
+  const predictable = inOraclePools || outsidePredictable;
   const scoreReady = !loggedIn || (userRatingLoaded && moodLoaded);
-  const scoreCols = !loggedIn ? 1 : hasRated ? 2 : inOraclePools ? 3 : 1;
+  const scoreCols = !loggedIn ? 1 : hasRated ? 2 : predictable ? 3 : 1;
   const scoreCells: ScoreCell[] = [];
-  if (loggedIn && scoreReady && (hasRated || inOraclePools)) {
+  if (loggedIn && scoreReady && (hasRated || predictable)) {
     // O aparelho fica sempre no mesmo lugar da árvore (mesma chave, mesmo
     // componente) enquanto carrega e depois: a fagulha que estava esperando
     // é a mesma que vira mariposa quando a previsão chega.
@@ -1602,7 +1633,7 @@ const MovieDetailsModal: React.FC<MovieDetailsModalProps> = ({
       labelIcon: <Wand2 className="inline-block w-3.5 h-3.5 mr-1 -mt-0.5 text-violet-300" aria-hidden />,
       color: '#C4B5FD',
       span: 2,
-      node: <PredictionGauge predicted={predictedRating} mu={predictionSpread.mu} sigma={predictionSpread.sigma} tenChance={tenChance} pending={pending} userId={session?.user?.id} />,
+      node: <PredictionGauge predicted={predictedRating} mu={predictionSpread.mu} sigma={predictionSpread.sigma} tenChance={tenChance} pending={pending} userId={session?.user?.id} scope={predictionScope} />,
     });
     if (hasRated) {
       scoreCells.push({ key: 'slot1', value: userRating, label: t('movieModal.score.yours'), color: PAPER, icon: <Star className="w-4 h-4 fill-current" aria-hidden /> });

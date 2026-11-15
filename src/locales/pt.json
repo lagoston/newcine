@@ -1759,7 +1759,8 @@
       "noPrediction": "Sem previsão",
       "gaugeAria": "Nota prevista para você: {{rating}}. Chance de virar 10: {{chance}}.",
       "gaugeAriaPlain": "Nota prevista para você: {{rating}}.",
-      "gaugePending": "Calculando a nota prevista para você"
+      "gaugePending": "Calculando a nota prevista para você",
+      "gaugeOutside": "Fora das prateleiras dos oráculos: previsão mais aberta."
     },
     "genres": "Gêneros",
     "oracleShelf": "Prateleira dos oráculos",

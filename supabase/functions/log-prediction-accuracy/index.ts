@@ -9,8 +9,16 @@ import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 // A fórmula (v4) mora no banco, na função predict_ratings_v4 — ver a
 // migração 20261003200000_prediction_v4.sql. O filme avaliado fica fora do
 // histórico (p_exclude_movie), senão a própria resposta vazaria pro cálculo.
+//
+// 15/11/2026 (pedido do Bruno: previsão também para os filmes fora das
+// prateleiras): o gatilho passou a mandar também os filmes de fora com nota
+// do público e 20+ votos. Essas linhas já chegam com model_version 'fora-v1'
+// e são calculadas com a fórmula paralela, predict_ratings_outside (ver a
+// migração 20261115233000_prediction_outside_shelves.sql). É o placar que vai
+// dizer se ela segura com notas de verdade.
 
 const MODEL_VERSION = 'v4';
+const OUTSIDE_VERSION = 'fora-v1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,6 +36,7 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
   let logId: string | undefined;
+  let version = MODEL_VERSION;
 
   try {
     const body = await req.json();
@@ -36,20 +45,28 @@ Deno.serve(async (req) => {
 
     const { data: logRow, error: logError } = await supabase
       .from('prediction_accuracy_log')
-      .select('user_id, movie_id, media_type, actual_rating')
+      .select('user_id, movie_id, media_type, actual_rating, model_version')
       .eq('id', logId)
       .single();
 
     if (logError) throw new Error(`Log row: ${logError.message}`);
 
     const { user_id: userId, movie_id: movieId, media_type: mediaType, actual_rating: actualRating } = logRow;
+    const outside = logRow.model_version === OUTSIDE_VERSION && mediaType !== 'tv';
+    version = outside ? OUTSIDE_VERSION : MODEL_VERSION;
 
-    const { data: rows, error: predictionError } = await supabase.rpc('predict_ratings_v4', {
-      p_user_id: userId,
-      p_media_type: mediaType === 'tv' ? 'tv' : 'movie',
-      p_ids: [movieId],
-      p_exclude_movie: mediaType === 'tv' ? null : movieId,
-    });
+    const { data: rows, error: predictionError } = outside
+      ? await supabase.rpc('predict_ratings_outside', {
+          p_user_id: userId,
+          p_ids: [movieId],
+          p_exclude_movie: movieId,
+        })
+      : await supabase.rpc('predict_ratings_v4', {
+          p_user_id: userId,
+          p_media_type: mediaType === 'tv' ? 'tv' : 'movie',
+          p_ids: [movieId],
+          p_exclude_movie: mediaType === 'tv' ? null : movieId,
+        });
 
     if (predictionError) throw new Error(`Prediction: ${predictionError.message}`);
 
@@ -58,8 +75,10 @@ Deno.serve(async (req) => {
     if (!row || row.predicted_rating === null || row.mu === null) {
       await supabase.from('prediction_accuracy_log').update({
         prediction_status: 'error',
-        error_message: 'Title not found in movie_cache or without TMDB score',
-        model_version: MODEL_VERSION,
+        error_message: outside
+          ? 'Title not found in movie_cache, without TMDB score, under 20 votes or on a shelf'
+          : 'Title not found in movie_cache or without TMDB score',
+        model_version: version,
       }).eq('id', logId);
       return json({ success: false, reason: 'movie_not_cached' });
     }
@@ -85,7 +104,7 @@ Deno.serve(async (req) => {
       naive_error: Math.round(naiveError * 100) / 100,
       beats_naive: predictedError < naiveError,
       prediction_status: 'computed',
-      model_version: MODEL_VERSION,
+      model_version: version,
     }).eq('id', logId);
 
     return json({ success: true, predictedRating, chance9plus: row.chance_9plus, voteAverage, actualRating });
@@ -96,7 +115,7 @@ Deno.serve(async (req) => {
         await supabase.from('prediction_accuracy_log').update({
           prediction_status: 'error',
           error_message: String(error.message || error),
-          model_version: MODEL_VERSION,
+          model_version: version,
         }).eq('id', logId);
       } catch {
         // se nem isso funcionar, só loga e segue — nunca deixa isso afetar o resto do sistema

@@ -78,6 +78,16 @@ const refresh = (userId: string): Promise<MothSpec | null> => {
   return request;
 };
 
+// Já começa a buscar a receita (15/11/2026): o menu do título chama ao abrir,
+// junto com a previsão, em vez de esperar o medidor aparecer. Só faz alguma
+// coisa na primeira vez num aparelho (ou passados os 10 minutos).
+export function prefetchPatronus(userId: string | null | undefined) {
+  if (!userId) return;
+  const known = memory.get(userId) ?? readStored(userId);
+  if (known && Date.now() - known.at <= FRESH_MS) return;
+  refresh(userId).catch((error) => console.error('Patronus:', error));
+}
+
 export interface Patronus {
   // a mariposa da pessoa, ou null (a fagulha)
   spec: MothSpec | null;

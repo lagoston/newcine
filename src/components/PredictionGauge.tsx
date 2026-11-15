@@ -46,7 +46,10 @@ import { columnOf, DECK, drawConsole, drawNeedle, drawSpeedLines, layoutFor, typ
 // 12 quadros por segundo: o ritmo do desenho animado feito "em dois".
 const TICK_MS = 83;
 // A fagulha aparece pelo menos por este tempo antes de virar mariposa.
-const MIN_IDLE_MS = 420;
+// 15/11/2026 (pedido do Bruno: "agilize o início do efeito da previsão da
+// borboleta"): 420 → 250 ms (três batidas). O grosso da espera era a previsão,
+// que agora vem direto do banco (lib/titlePrediction).
+const MIN_IDLE_MS = 250;
 // Quanto se espera pela mariposa da pessoa antes de seguir só com a fagulha.
 const PATRONUS_WAIT_MS = 600;
 // meia envergadura do Patrono, em pixels do desenho
@@ -235,9 +238,12 @@ interface PredictionGaugeProps {
   pending?: boolean;
   // de quem é o Patrono (quem está vendo o título)
   userId?: string | null;
+  // 'outside' = filme fora das prateleiras, previsto pela fórmula paralela
+  // (15/11/2026): a largura já vem maior; a dica avisa em palavras
+  scope?: 'shelf' | 'outside' | null;
 }
 
-const PredictionGauge: React.FC<PredictionGaugeProps> = ({ predicted, mu, sigma, tenChance, pending = false, userId }) => {
+const PredictionGauge: React.FC<PredictionGaugeProps> = ({ predicted, mu, sigma, tenChance, pending = false, userId, scope = null }) => {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const patronus = usePatronus(userId);
@@ -428,12 +434,13 @@ const PredictionGauge: React.FC<PredictionGaugeProps> = ({ predicted, mu, sigma,
     return stop;
   }, [layout, ready, shown, spot, levelsKey, specKey, patronus.settled, reduceMotion]);
 
-  const label =
+  const reading =
     !ready || shown === null
       ? t('movieModal.score.gaugePending')
       : tenChance !== null && shown <= 9
         ? t('movieModal.score.gaugeAria', { rating: shown, chance: formatChance(tenChance) })
         : t('movieModal.score.gaugeAriaPlain', { rating: shown });
+  const label = ready && scope === 'outside' ? `${reading} ${t('movieModal.score.gaugeOutside')}` : reading;
 
   return (
     <span ref={wrapRef} className="block w-full">
