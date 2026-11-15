@@ -1,7 +1,4 @@
-import { MOODS, type MoodKey } from './moods';
 import { groupByDecade, type DecadeOrders } from './libraryLayouts';
-import type { UserPersona } from './persona';
-import { titleKey } from './titleCards';
 import type { MovieWithRating } from '../hooks/useProfileData';
 
 // Contas do "observatório" do perfil (12/10/2026). Todas respondem às mesmas
@@ -13,6 +10,10 @@ import type { MovieWithRating } from '../hooks/useProfileData';
 // um filme só, a ordem usa a média "puxada" para a média geral da pessoa
 // (como se cada item já tivesse 2 filmes com a nota de sempre). O número
 // mostrado continua sendo a média de verdade.
+//
+// 15/11/2026: a conta das prateleiras (moodSlices) saiu daqui com o bloco da
+// personalidade do perfil. A dos temas (keywordAffinity) ficou e é a mesma que
+// os potinhos do modal "Sua Persona" usam (lib/personaThemes.ts).
 
 export interface Affinity {
   key: string;
@@ -25,17 +26,6 @@ export interface Affinity {
 
 export interface PersonAffinity extends Affinity {
   id: number | null;
-}
-
-export interface MoodSlice {
-  key: MoodKey;
-  films: number;
-  // fração dos filmes das prateleiras (0 a 1)
-  share: number;
-  avg: number | null;
-  keywords: Affinity[];
-  // os títulos mais bem avaliados da pessoa nesse humor (para os pôsteres)
-  top: MovieWithRating[];
 }
 
 export interface DecadeBand {
@@ -141,49 +131,6 @@ export function peopleAffinity(movies: MovieWithRating[], prior: number, role: '
     });
   }
   return rank(tallies, prior, role === 'cast' ? 3 : 2, limit) as PersonAffinity[];
-}
-
-// A roda dos 9 humores. moodByMovie vem de get_profile_mood_titles_v2 (em que
-// prateleira está cada título avaliado, por "movie:123" / "tv:456"): filmes e
-// séries contam, como na personalidade (desde 21/10/2026). Sem ele (perfil
-// fechado, erro), vale o que a personalidade guarda (títulos e pontos por
-// humor), sem os temas.
-export function moodSlices(movies: MovieWithRating[], moodByMovie: Map<string, string> | null, persona: UserPersona | null, prior: number): MoodSlice[] {
-  const rated = ratedOnly(movies);
-  const byMood = new Map<string, MovieWithRating[]>();
-  if (moodByMovie && moodByMovie.size > 0) {
-    rated.forEach((movie) => {
-      const key = moodByMovie.get(titleKey({ id: movie.id, media_type: movie.media_type }));
-      if (!key) return;
-      const list = byMood.get(key) || [];
-      list.push(movie);
-      byMood.set(key, list);
-    });
-  }
-  const usePersona = byMood.size === 0 && !!persona?.scores?.length;
-  const total = usePersona
-    ? persona!.scores.reduce((sum, s) => sum + s.films, 0)
-    : Array.from(byMood.values()).reduce((sum, list) => sum + list.length, 0);
-
-  return MOODS.map((mood) => {
-    if (usePersona) {
-      const s = persona!.scores.find((score) => score.moodKey === mood.key);
-      const films = s?.films ?? 0;
-      return { key: mood.key, films, share: total > 0 ? films / total : 0, avg: films > 0 ? (s!.score as number) / films : null, keywords: [], top: [] };
-    }
-    const list = byMood.get(mood.key) || [];
-    const avg = list.length > 0 ? list.reduce((sum, m) => sum + (m.userRating as number), 0) / list.length : null;
-    return {
-      key: mood.key,
-      films: list.length,
-      share: total > 0 ? list.length / total : 0,
-      avg,
-      keywords: keywordAffinity(list, avg ?? prior, { minCount: 2, limit: 6 }),
-      top: [...list]
-        .sort((a, b) => (b.userRating as number) - (a.userRating as number) || (b.vote_average || 0) - (a.vote_average || 0))
-        .slice(0, 4),
-    };
-  });
 }
 
 // Linha do tempo das décadas, da mais antiga para a mais nova, com os

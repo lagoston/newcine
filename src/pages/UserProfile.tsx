@@ -99,7 +99,6 @@ export default function UserProfile() {
     totalWatchTime,
     friendsCount,
     persona,
-    personaLoading,
     countryCounts,
     countryAvgRatings,
     refetch: refetchProfileData,
@@ -691,7 +690,6 @@ export default function UserProfile() {
                     userId={profile.id}
                     movies={movies}
                     persona={persona}
-                    personaLoading={personaLoading}
                     ownerName={`@${profile.username}`}
                     ratingCounts={ratingCounts}
                     ratingTitle={t('profile.stats.ratingDistribution')}

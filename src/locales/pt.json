@@ -245,8 +245,6 @@
       "essenceLabel": "Sua essência",
       "balancesHint": "As duas balanças mais fortes formam o seu arquétipo. Cada nota que você dá move todas elas.",
       "openOracle": "Abrir o Oráculo",
-      "essenceEmptyTitle": "Sua personalidade ainda não foi revelada",
-      "essenceEmptyDesc": "Avalie 10 filmes ou séries das prateleiras dos oráculos e ela aparece sozinha — junto com as notas previstas para você.",
       "tagProgress": "{{current}} de {{target}}",
       "findFriendsHint": "Adicione amigos para ver as notas deles nos pôsteres e fazer match de filmes.",
       "allTagsHint": "Você já tem todas as tags disponíveis."
@@ -258,7 +256,6 @@
       "title": "Sua Persona",
       "subtitleEmpty": "Ainda escondida: o Oráculo precisa conhecer você",
       "scalesHint": "Cada nota que você dá move as nove prateleiras; as três mais fortes formam o seu código.",
-      "doorAria": "Sua Persona: {{code}}, {{title}}",
       "doorAriaEmpty": "Sua Persona: ainda não revelada",
       "hintEmpty": "Avalie {{count}} títulos das prateleiras e o Oráculo revela quem você é como espectador.",
       "open": "Abrir",
@@ -712,12 +709,10 @@
       "S": "Sensorial",
       "R": "Recreativo"
     },
-    "revelation": "Revelação",
     "yourEssence": "Sua Essência",
     "yourAttunement": "Sua Sintonia",
     "theEssence": "A Essência",
     "theAttunement": "A Sintonia",
-    "architectureTitle": "A Arquitetura da Alma",
     "architectureIntro": "Seu Arquétipo não é adivinhação. É a arquitetura de seus gostos, construída em duas etapas:",
     "essenceProfileText": "Seu perfil principal ({{profile}}) é a soma matemática do que você ama e odeia. Cada filme que você avalia move cinco balanças: Emocional (E), Intelectual (I), Cultural (C), Sensorial (S) e Recreativa (R).",
     "essenceLogicLabel": "A Lógica:",
@@ -744,8 +739,6 @@
     "viewPremium": "Ver Premium",
     "discoverEssence": "Revelar minha personalidade",
     "noRecommendationsToday": "Nenhuma recomendação disponível hoje",
-    "cinematicEssenceLabel": "Personalidade cinematográfica",
-    "discoverYourEssence": "Revelar minha personalidade",
     "completion": {
       "line1": "O ritual está completo. A sintonia fina foi alcançada.",
       "line2": "A balança finalmente pendeu... e eu posso ver sua forma verdadeira.",
@@ -787,11 +780,8 @@
       "characterIn": "{{character}}, em {{film}}",
       "yourShelves": "Suas três prateleiras",
       "theirShelves": "As três prateleiras",
-      "points_one": "{{formatted}} ponto",
-      "points_other": "{{formatted}} pontos",
       "films_one": "{{count}} título",
       "films_other": "{{count}} títulos",
-      "points_zero": "0 pontos",
       "films_zero": "nenhum título",
       "worksTitle": "Onde {{character}} aparece",
       "worksCount_one": "{{count}} obra nas prateleiras",
@@ -846,21 +836,9 @@
       "laughOutLoud": "Pra você, rir é essencial: comédias, sátiras e personagens absurdos que salvam qualquer noite."
     },
     "howItWorks": {
-      "intro": "Sua personalidade não é adivinhação: é a soma das prateleiras que você mais usa.",
-      "shelvesTitle": "As nove prateleiras",
-      "shelvesText": "Cada filme e cada série dos oráculos mora em uma de nove prateleiras — e cada prateleira tem uma letra.",
-      "pointsTitle": "Seus pontos",
-      "pointsTitleOther": "Os pontos",
       "pointsText": "Cada filme ou série das prateleiras que você avalia soma a sua nota na prateleira dele: um 10 soma 10, um 3 soma 3. Quanto mais você vê — e gosta — de um tipo de história, mais forte a prateleira fica.",
-      "personaTitle": "Sua personalidade",
-      "personaTitleOther": "A personalidade",
       "personaText": "As três prateleiras mais fortes formam o código de três letras, sempre na mesma ordem das prateleiras. São 84 combinações, cada uma com um personagem de cinema. Ela muda sozinha, mas não a cada nota: uma prateleira de fora só entra no código quando abre 10 pontos de vantagem sobre a mais fraca das três.",
-      "thresholdText": "Ela aparece a partir de {{count}} títulos das prateleiras avaliados (filmes ou séries), em pelo menos 3 prateleiras diferentes.",
-      "worldTitle": "O estúdio e a mariposa",
-      "worldCabin": "O estúdio guarda tudo o que foi avaliado: uma lata por título na estante. Na parede ficam os quatro últimos pôsteres ganhos no Poster Jackpot.",
-      "worldMoth": "A mariposa veste o que anda sendo visto: as faixas das asas são os humores dos últimos 30 títulos das prateleiras, e cada olho é uma nota 9 ou 10.",
-      "worldWingspan": "Todo título avaliado aumenta a envergadura. A cada bitola, de 8 mm a Cinerama, o estúdio ganha um móvel. O guia da estante mostra cada passo e o que chega com ele.",
-      "worldCalm": "Nada some nem encolhe com o tempo: o estúdio espera do jeito que ficou."
+      "thresholdText": "Ela aparece a partir de {{count}} títulos das prateleiras avaliados (filmes ou séries), em pelo menos 3 prateleiras diferentes."
     },
     "reveal": {
       "title": "A revelação",
@@ -946,8 +924,6 @@
       "numbersLabel": "Números do perfil",
       "rated": "títulos avaliados",
       "watching": "assistindo",
-      "moodsHint_one": "{{count}} título nas prateleiras dos oráculos. Toque num humor para ver o que ele revela.",
-      "moodsHint_other": "{{count}} títulos nas prateleiras dos oráculos. Toque num humor para ver o que ele revela.",
       "openShelf": "Pedir à Mesa",
       "keywordsTitle": "Os temas que você mais ama",
       "keywordsTitleOf": "Os temas que {{name}} mais ama",
@@ -995,10 +971,7 @@
       "seeTitles": "Ver títulos",
       "showAllCountries": "Ver os {{count}} países",
       "showLess": "Mostrar menos",
-      "personaProgress": "{{counted}} de {{threshold}} títulos nas prateleiras",
-      "readRevelation": "Ler a revelação completa",
       "codeRank": "{{rank}}ª prateleira favorita",
-      "backToPersona": "Voltar à personalidade",
       "moodShareLabel": "dos títulos",
       "moodFilmsLabel": "títulos",
       "moodAvgLabel": "sua média",
@@ -1083,7 +1056,6 @@
     "noRecentActivity": "Sem atividade ainda",
     "tasteEmptyTitle": "Seu gosto aparece aqui",
     "tasteEmptyDesc": "Avalie alguns filmes e o perfil monta suas notas, gêneros, décadas e países.",
-    "howItWorks": "Como funciona",
     "decadeLabels": {
       "grandpa": "Cinema de avô",
       "nostalgic": "Nostálgico",
@@ -1134,7 +1106,6 @@
     "collectionTab": "Coleção",
     "infoTab": "Info",
     "numbersOf": "Números de @{{username}}",
-    "essenceOf": "Personalidade de @{{username}}",
     "essenceEmptyOther": "@{{username}} ainda não tem uma personalidade revelada.",
     "collectionEmptyOther": "@{{username}} ainda não adicionou títulos à coleção.",
     "tasteEmptyOther": "O retrato de gosto aparece quando @{{username}} avaliar alguns títulos.",
@@ -4155,7 +4126,6 @@
     "loading": "Abrindo o estúdio",
     "loadError": "Não deu para abrir o estúdio agora.",
     "retry": "Tentar de novo",
-    "enter": "Entrar no estúdio",
     "untitled": "Título avaliado",
     "archive": "Arquivo",
     "sceneLabel": "O estúdio de {{code}}: a estante com as nove prateleiras, a tela com a capa do filme da Persona, os últimos pôsteres ganhos no Jackpot, a mariposa no facho do projetor e a sala de estar com a máquina do Jackpot, a mesa de pôquer e o guia do estúdio.",
@@ -4191,6 +4161,23 @@
       "progress": "{{counted}} de {{threshold}} títulos das prateleiras",
       "needShelves": "Faltam títulos de 3 prateleiras diferentes",
       "gaugeAria": "{{pct}}% do caminho até {{next}}"
+    },
+    "gauge": {
+      "label": "O nível do estúdio",
+      "line": "Envergadura {{g}}. Faltam {{left}} para {{next}}.",
+      "max": "Envergadura {{g}}. Não há bitola maior."
+    },
+    "pots": {
+      "title": "As nove prateleiras",
+      "hint": "Toque numa prateleira para ver os títulos, a média e os temas dela.",
+      "close": "Fechar a prateleira",
+      "themesLoading": "Buscando os temas",
+      "themesError": "Não deu para buscar os temas agora."
+    },
+    "persona": {
+      "title": "A Persona",
+      "howTitle": "Como o código se forma",
+      "guide": "Ver as 84 personalidades no guia do estúdio"
     },
     "always": {
       "lead_one": "O estúdio guarda tudo o que foi avaliado: {{count}} título.",

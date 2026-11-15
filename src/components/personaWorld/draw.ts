@@ -36,6 +36,10 @@ type Ctx = CanvasRenderingContext2D;
 export type Pt = [number, number];
 
 export const GOLD = '#F4C454';
+// o escuro em volta da cena e da mariposa de perto (o fundo do palco)
+export const STAGE_BG = '#0D0919';
+// uma nota por extenso: 9, 8.5
+export const fmtRating = (rating: number): string => (Number.isInteger(rating) ? String(rating) : rating.toFixed(1));
 // 14/11/2026 (o estúdio): a cabine ficou mais comprida para a direita, de
 // 6 × 6 para 9 × 6 ladrilhos, para caber a sala de estar (studio.ts): a
 // máquina do Jackpot, a mesa de pôquer, a estante do guia e os

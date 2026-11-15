@@ -1,31 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { decadeKey, fetchDecadeOrders, saveDecadeOrder as persistDecadeOrder, type DecadeOrders } from '../lib/libraryLayouts';
 import {
   averageRating,
   decadeBands,
   favoriteBand,
   hiddenGems,
-  keywordAffinity,
-  moodSlices,
   peopleAffinity,
   ratedOnly,
   type PersonAffinity,
 } from '../lib/tasteStats';
 import { getPeoplePhotos, type PersonPhoto } from '../lib/peoplePhotos';
-import type { UserPersona } from '../lib/persona';
-import { titleKey } from '../lib/titleCards';
 import type { MovieWithRating } from './useProfileData';
 
 // Tudo o que o observatório do perfil mostra, a partir dos filmes que
-// useProfileData já carregou — mais três leituras pequenas: em que
-// prateleira está cada filme (roda dos humores), a ordem das décadas da
-// Biblioteca e as fotos das pessoas destacadas.
+// useProfileData já carregou — mais duas leituras pequenas: a ordem das
+// décadas da Biblioteca e as fotos das pessoas destacadas.
+//
+// 15/11/2026: as prateleiras de cada título e os temas saíram daqui. Eram do
+// bloco da personalidade, que virou o cartão do estúdio; hoje os potinhos e os
+// temas moram no modal "Sua Persona" e vêm de get_persona_world e de
+// get_persona_themes (lib/personaThemes.ts).
 
-export function useTasteObservatory(userId: string | undefined, movies: MovieWithRating[], persona: UserPersona | null) {
-  // Prateleira de cada título avaliado, por "movie:123" / "tv:456" (filmes e
-  // séries; desde 21/10/2026 as séries das prateleiras também contam).
-  const [moodByMovie, setMoodByMovie] = useState<Map<string, string> | null>(null);
+export function useTasteObservatory(userId: string | undefined, movies: MovieWithRating[]) {
   const [orders, setOrders] = useState<DecadeOrders>({});
   const [photos, setPhotos] = useState<Map<string, PersonPhoto>>(new Map());
   const ratedCount = useMemo(() => ratedOnly(movies).length, [movies]);
@@ -33,16 +29,6 @@ export function useTasteObservatory(userId: string | undefined, movies: MovieWit
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    supabase.rpc('get_profile_mood_titles_v2', { p_user_id: userId }).then(({ data, error }) => {
-      if (cancelled) return;
-      if (error || !Array.isArray(data)) {
-        setMoodByMovie(null);
-        return;
-      }
-      setMoodByMovie(
-        new Map((data as { movie_id: number; media_type: string; mood_key: string }[]).map((row) => [titleKey({ id: row.movie_id, media_type: row.media_type }), row.mood_key]))
-      );
-    });
     fetchDecadeOrders(userId).then((found) => !cancelled && setOrders(found));
     return () => {
       cancelled = true;
@@ -50,8 +36,6 @@ export function useTasteObservatory(userId: string | undefined, movies: MovieWit
   }, [userId, ratedCount]);
 
   const prior = useMemo(() => averageRating(movies) ?? 7, [movies]);
-  const moods = useMemo(() => moodSlices(movies, moodByMovie, persona, prior), [movies, moodByMovie, persona, prior]);
-  const topKeywords = useMemo(() => keywordAffinity(movies, prior, { minCount: 3, limit: 10 }), [movies, prior]);
   const actors = useMemo(() => peopleAffinity(movies, prior, 'cast', 5), [movies, prior]);
   const directors = useMemo(() => peopleAffinity(movies, prior, 'director', 5), [movies, prior]);
   const bands = useMemo(() => decadeBands(movies, orders), [movies, orders]);
@@ -98,9 +82,6 @@ export function useTasteObservatory(userId: string | undefined, movies: MovieWit
 
   return {
     prior,
-    moods,
-    moodsCounted: moods.reduce((sum, m) => sum + m.films, 0),
-    topKeywords,
     actors: withPhoto(actors, 'cast'),
     directors: withPhoto(directors, 'director'),
     bands,

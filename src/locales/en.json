@@ -243,8 +243,6 @@
       "essenceLabel": "Your essence",
       "balancesHint": "Your two strongest scales form your archetype. Every rating you give moves all of them.",
       "openOracle": "Open the Oracle",
-      "essenceEmptyTitle": "Your personality hasn't been revealed yet",
-      "essenceEmptyDesc": "Rate 10 films or series from the oracles' shelves and it appears on its own — along with your predicted ratings.",
       "tagProgress": "{{current}} of {{target}}",
       "findFriendsHint": "Add friends to see their ratings on posters and match on films.",
       "allTagsHint": "You already have every available tag."
@@ -256,7 +254,6 @@
       "title": "Your Persona",
       "subtitleEmpty": "Still hidden: the Oracle needs to know you first",
       "scalesHint": "Every rating moves the nine shelves; the three strongest make up your code.",
-      "doorAria": "Your Persona: {{code}}, {{title}}",
       "doorAriaEmpty": "Your Persona: not revealed yet",
       "hintEmpty": "Rate {{count}} titles from the shelves and the Oracle reveals who you are as a viewer.",
       "open": "Open",
@@ -709,12 +706,10 @@
       "S": "Sensorial",
       "R": "Recreational"
     },
-    "revelation": "Revelation",
     "yourEssence": "Your Essence",
     "yourAttunement": "Your Attunement",
     "theEssence": "The Essence",
     "theAttunement": "The Attunement",
-    "architectureTitle": "The Architecture of the Soul",
     "architectureIntro": "Your Archetype is not guesswork. It is the architecture of your tastes, built in two stages:",
     "essenceProfileText": "Your main profile ({{profile}}) is the mathematical sum of what you love and hate. Every film you rate moves five scales: Emotional (E), Intellectual (I), Cultural (C), Sensorial (S), and Recreational (R).",
     "essenceLogicLabel": "The Logic:",
@@ -741,8 +736,6 @@
     "viewPremium": "View Premium",
     "discoverEssence": "Reveal my personality",
     "noRecommendationsToday": "No recommendations available today",
-    "cinematicEssenceLabel": "Cinematic personality",
-    "discoverYourEssence": "Reveal my personality",
     "completion": {
       "line1": "The ritual is complete. Fine attunement has been reached.",
       "line2": "The scale has finally tipped... and I can see your true form.",
@@ -784,11 +777,8 @@
       "characterIn": "{{character}}, in {{film}}",
       "yourShelves": "Your three shelves",
       "theirShelves": "The three shelves",
-      "points_one": "{{formatted}} point",
-      "points_other": "{{formatted}} points",
       "films_one": "{{count}} title",
       "films_other": "{{count}} titles",
-      "points_zero": "0 points",
       "films_zero": "no titles",
       "worksTitle": "Where {{character}} appears",
       "worksCount_one": "{{count}} title on the shelves",
@@ -843,21 +833,9 @@
       "laughOutLoud": "For you, laughing is essential: comedies, satires and absurd characters that save any night."
     },
     "howItWorks": {
-      "intro": "Your personality isn't guesswork: it's the sum of the shelves you use the most.",
-      "shelvesTitle": "The nine shelves",
-      "shelvesText": "Every film and series the oracles keep lives on one of nine shelves — and each shelf has a letter.",
-      "pointsTitle": "Your points",
-      "pointsTitleOther": "The points",
       "pointsText": "Every shelf film or series you rate adds your rating to its shelf: a 10 adds 10, a 3 adds 3. The more you watch — and like — a kind of story, the stronger that shelf gets.",
-      "personaTitle": "Your personality",
-      "personaTitleOther": "The personality",
       "personaText": "The three strongest shelves form the three-letter code, always in the shelves' order. There are 84 combinations, each with a movie character. It changes on its own, but not with every rating: an outside shelf only enters the code once it opens a 10-point lead over the weakest of the three.",
-      "thresholdText": "It appears once {{count}} shelf titles are rated (films or series), across at least 3 different shelves.",
-      "worldTitle": "The studio and the moth",
-      "worldCabin": "The studio keeps everything that was rated: one can per title on the bookcase. The wall holds the last four posters won in the Poster Jackpot.",
-      "worldMoth": "The moth wears what has been watched lately: the bands on its wings are the moods of the last 30 shelf titles, and each eye is a 9 or a 10.",
-      "worldWingspan": "Every rated title increases the wingspan. At each gauge, from 8 mm to Cinerama, the studio gets a piece of furniture. The guide on the bookcase shows each step and what arrives with it.",
-      "worldCalm": "Nothing disappears or shrinks over time: the studio waits just as it was left."
+      "thresholdText": "It appears once {{count}} shelf titles are rated (films or series), across at least 3 different shelves."
     },
     "reveal": {
       "title": "The reveal",
@@ -943,8 +921,6 @@
       "numbersLabel": "Profile numbers",
       "rated": "titles rated",
       "watching": "watching",
-      "moodsHint_one": "{{count}} title on the oracles' shelves. Tap a mood to see what it reveals.",
-      "moodsHint_other": "{{count}} titles on the oracles' shelves. Tap a mood to see what it reveals.",
       "openShelf": "Ask the Table",
       "keywordsTitle": "The themes you love most",
       "keywordsTitleOf": "The themes {{name}} loves most",
@@ -992,10 +968,7 @@
       "seeTitles": "See titles",
       "showAllCountries": "See all {{count}} countries",
       "showLess": "Show less",
-      "personaProgress": "{{counted}} of {{threshold}} titles on the shelves",
-      "readRevelation": "Read the full revelation",
       "codeRank": "Favorite shelf No. {{rank}}",
-      "backToPersona": "Back to the personality",
       "moodShareLabel": "of the titles",
       "moodFilmsLabel": "titles",
       "moodAvgLabel": "your average",
@@ -1080,7 +1053,6 @@
     "noRecentActivity": "No activity yet",
     "tasteEmptyTitle": "Your taste shows up here",
     "tasteEmptyDesc": "Rate a few movies and your profile maps your ratings, genres, decades and countries.",
-    "howItWorks": "How it works",
     "decadeLabels": {
       "grandpa": "Grandpa cinema",
       "nostalgic": "Nostalgic",
@@ -1131,7 +1103,6 @@
     "collectionTab": "Collection",
     "infoTab": "Info",
     "numbersOf": "@{{username}}’s numbers",
-    "essenceOf": "@{{username}}’s personality",
     "essenceEmptyOther": "@{{username}} hasn’t revealed a personality yet.",
     "collectionEmptyOther": "@{{username}} hasn’t added any titles yet.",
     "tasteEmptyOther": "The taste portrait shows up once @{{username}} rates a few titles.",
@@ -4156,7 +4127,6 @@
     "loading": "Opening the studio",
     "loadError": "Couldn't open the studio right now.",
     "retry": "Try again",
-    "enter": "Enter the studio",
     "untitled": "Rated title",
     "archive": "Archive",
     "sceneLabel": "The studio of {{code}}: the bookcase with the nine shelves, the screen with the cover of the Persona's film, the last posters won in the Jackpot, the moth in the projector beam and the lounge with the Jackpot machine, the poker table and the studio guide.",
@@ -4192,6 +4162,23 @@
       "progress": "{{counted}} of {{threshold}} shelf titles",
       "needShelves": "Titles from 3 different shelves are still missing",
       "gaugeAria": "{{pct}}% of the way to {{next}}"
+    },
+    "gauge": {
+      "label": "The studio's level",
+      "line": "Wingspan {{g}}. {{left}} to go until {{next}}.",
+      "max": "Wingspan {{g}}. There is no larger gauge."
+    },
+    "pots": {
+      "title": "The nine shelves",
+      "hint": "Tap a shelf to see its titles, its average and its themes.",
+      "close": "Close the shelf",
+      "themesLoading": "Loading the themes",
+      "themesError": "Couldn't load the themes right now."
+    },
+    "persona": {
+      "title": "The Persona",
+      "howTitle": "How the code is formed",
+      "guide": "See the 84 personalities in the studio guide"
     },
     "always": {
       "lead_one": "The studio keeps everything that was rated: {{count}} title.",

@@ -70,8 +70,9 @@ export const ProfileSectionHeading: React.FC<{ title: string; hint?: string; act
 // Cada coisa leva ao que mostra: humor → prateleira, pessoa → página da
 // pessoa, década → filmes, país → filmes, joia → o filme. A nota aparece
 // sempre como número, na cor da faixa dela.
-//   • Personalidade + roda dos humores (um anel com os 9 humores, os temas
-//     flutuando dentro e a personalidade ao lado) — no topo, largura toda
+//   • "Sua Persona": o cartão do estúdio, o mesmo da home (desde 15/11/2026;
+//     antes, a personalidade com a roda dos humores, depois os frascos, depois
+//     o estúdio com as plaquinhas e os temas) — no topo, largura toda
 //   • Notas (espectro)
 //   • Pessoas (pódio de atores e diretores) | Décadas (linha do tempo + os
 //     melhores da década, com "Organizar" no seu perfil)
@@ -83,7 +84,6 @@ interface ProfileTasteGridProps {
   userId?: string;
   movies: MovieWithRating[];
   persona: UserPersona | null;
-  personaLoading?: boolean;
   // Seu próprio perfil (textos em "você", Organizar as décadas).
   isOwn?: boolean;
   ratingCounts: number[];
@@ -108,7 +108,6 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
   userId,
   movies,
   persona,
-  personaLoading = false,
   isOwn = false,
   ratingCounts,
   countryCounts,
@@ -122,24 +121,14 @@ export const ProfileTasteGrid: React.FC<ProfileTasteGridProps> = ({
   extra,
 }) => {
   const { t, i18n } = useTranslation();
-  const observatory = useTasteObservatory(userId, movies, persona);
+  const observatory = useTasteObservatory(userId, movies);
   // A média geral do dono do perfil: a régua de cada país no Atlas parte dela.
   const overallAvg = useMemo(() => averageRating(movies), [movies]);
   const ratingLabel = ownerRatingLabel ?? t('home.desk.yourRating');
 
   return (
     <div className="space-y-4">
-      <EssenceRing
-        slices={observatory.moods}
-        counted={observatory.moodsCounted}
-        persona={persona}
-        personaLoading={personaLoading}
-        topKeywords={observatory.topKeywords}
-        isOwn={isOwn}
-        ownerName={ownerName}
-        ownerId={userId}
-        shareName={username}
-      />
+      <EssenceRing persona={persona} isOwn={isOwn} ownerName={ownerName} ownerId={userId} shareName={username} />
 
       <div className={`${PROFILE_CARD} rounded-3xl`} style={glassPanel(observatory.prior ? ratingTone(Math.round(observatory.prior)).color : PROFILE_ACCENTS.rated)}>
         <RatingSpectrum counts={ratingCounts} average={null} onJump={onJumpToRating} title={ratingTitle ?? t('profile.stats.ratingDistribution')} />

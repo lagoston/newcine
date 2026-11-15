@@ -11,6 +11,7 @@ import { getFullTitle } from '../../lib/titleCards';
 import type { Movie } from '../../lib/tmdb';
 import { FOCUS_RING, MIST, PAPER } from '../../lib/oracleTheme';
 import { fetchPersonaEntries, fetchPersonaHistory, worldAt, type PersonaHistory } from '../../lib/personaHistory';
+import { fetchPersonaThemes, readThemes, type PersonaThemes } from '../../lib/personaThemes';
 import { rememberPatronus } from '../patronus/patronus';
 import PersonaWorldView from './PersonaWorld';
 import { useStudioDoors, type StudioJackpot } from './useStudioDoors';
@@ -41,6 +42,13 @@ const PersonaShareModal = lazy(() => import('../PersonaShareModal'));
 //     história (get_persona_history) é buscada quando a gaveta abre, só para o
 //     dono. Enquanto a barra está fora da ponta direita, a gaveta inteira
 //     mostra o estúdio como ele era naquela nota.
+//
+// 15/11/2026, pedido do Bruno ("unificar o 'Sua Persona' da home e o do
+// profile"): a gaveta ganhou a ordem nova (PersonaWorldView) e os potinhos das
+// prateleiras, que eram do bloco do perfil. Os temas de cada prateleira vêm de
+// get_persona_themes, pedidos quando a gaveta abre, para qualquer pessoa; com
+// a barra da Evolução no passado, a conta dos temas é refeita só com os
+// títulos avaliados até aquele ponto (readThemes).
 
 const GHOST_BUTTON = `inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-white/15 hover:border-white/35 hover:bg-white/5 text-sm font-medium transition ${FOCUS_RING}`;
 const PRIMARY_BUTTON = `inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold text-center leading-snug shadow-lg shadow-fuchsia-900/30 transition ${FOCUS_RING}`;
@@ -138,6 +146,33 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
   const travelling = Boolean(story) && at < total;
   const shownWorld = useMemo(() => (travelling && story && world ? worldAt(story.history, at, world, story.entries) : world), [travelling, story, world, at]);
 
+  // ---- os temas das prateleiras (os potinhos) ----
+  const [themes, setThemes] = useState<PersonaThemes | null>(null);
+  const [themesFailed, setThemesFailed] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    setThemesFailed(false);
+    fetchPersonaThemes(ownerId)
+      .then((value) => {
+        if (!alive) return;
+        if (value) setThemes(value);
+        else setThemesFailed(true);
+      })
+      .catch((error) => {
+        console.error('Persona themes:', error);
+        if (alive) setThemesFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
+    // `rated` entra para os temas acompanharem uma nota dada com a gaveta aberta
+  }, [open, ownerId, rated]);
+  // mudou de dono: os temas antigos saem
+  useEffect(() => setThemes(null), [ownerId]);
+  // os temas do ponto em que a barra está (hoje: tudo o que foi avaliado)
+  const themeReading = useMemo(() => (themes ? readThemes(themes, travelling && story ? story.history.rows.slice(0, at) : null) : null), [themes, travelling, story, at]);
+
   const openGuide = useCallback(() => setGuideOpen(true), []);
   const doors = useStudioDoors({ world, isOwn, ownerUsername: ownerName ? ownerName.replace(/^@/, '') : null, onOpenBook: openGuide, jackpot, onLeave: onClose });
 
@@ -177,9 +212,15 @@ const PersonaWorldSheet: React.FC<PersonaWorldSheetProps> = ({ open, onClose, ow
           {shownWorld ? (
             <PersonaWorldView
               world={shownWorld}
+              isOwn={isOwn}
+              ownerName={ownerName ?? null}
               onOpenTitle={openTitle}
               openingKey={openingKey}
               doors={doors}
+              themes={themeReading}
+              themesFailed={themesFailed && !themes}
+              onOpenGuide={openGuide}
+              onLeave={onClose}
               onShare={
                 canShare
                   ? () => {

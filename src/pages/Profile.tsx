@@ -142,7 +142,6 @@ export default function Profile() {
     totalWatchTime,
     friendsCount,
     persona,
-    personaLoading,
     countryCounts,
     countryAvgRatings,
     movies,
@@ -713,7 +712,6 @@ export default function Profile() {
               userId={session?.user?.id}
               movies={movies}
               persona={persona}
-              personaLoading={personaLoading}
               isOwn
               username={profile?.username ?? null}
               ratingCounts={ratingCounts}
